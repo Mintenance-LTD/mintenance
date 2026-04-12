@@ -12,10 +12,13 @@ export const GET = withApiHandler(
       .from('properties')
       .select('id, owner_id')
       .eq('id', propertyId)
-      .single();
+      .maybeSingle();
 
     if (!property || (property.owner_id !== user.id && user.role !== 'admin')) {
-      return NextResponse.json({ error: 'Property not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Property not found' },
+        { status: 404 }
+      );
     }
 
     const { data: schedules, error } = await serverSupabase
@@ -25,11 +28,14 @@ export const GET = withApiHandler(
       .order('next_due_date', { ascending: true });
 
     if (error) {
-      return NextResponse.json({ error: 'Failed to fetch schedules' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Failed to fetch schedules' },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({ schedules: schedules || [] });
-  },
+  }
 );
 
 // POST /api/properties/[id]/recurring-maintenance
@@ -43,16 +49,22 @@ export const POST = withApiHandler(
       .from('properties')
       .select('id, owner_id')
       .eq('id', propertyId)
-      .single();
+      .maybeSingle();
 
     if (!property || (property.owner_id !== user.id && user.role !== 'admin')) {
-      return NextResponse.json({ error: 'Property not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Property not found' },
+        { status: 404 }
+      );
     }
 
     const { title, category, frequency, next_due_date } = body;
 
     if (!title || !frequency || !next_due_date) {
-      return NextResponse.json({ error: 'title, frequency, and next_due_date are required' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'title, frequency, and next_due_date are required' },
+        { status: 400 }
+      );
     }
 
     const validFrequencies = ['weekly', 'monthly', 'quarterly', 'yearly'];
@@ -74,11 +86,14 @@ export const POST = withApiHandler(
       .single();
 
     if (error) {
-      return NextResponse.json({ error: 'Failed to create schedule' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Failed to create schedule' },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({ schedule }, { status: 201 });
-  },
+  }
 );
 
 // DELETE /api/properties/[id]/recurring-maintenance
@@ -90,17 +105,23 @@ export const DELETE = withApiHandler(
     const scheduleId = searchParams.get('scheduleId');
 
     if (!scheduleId) {
-      return NextResponse.json({ error: 'scheduleId is required' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'scheduleId is required' },
+        { status: 400 }
+      );
     }
 
     const { data: property } = await serverSupabase
       .from('properties')
       .select('id, owner_id')
       .eq('id', propertyId)
-      .single();
+      .maybeSingle();
 
     if (!property || (property.owner_id !== user.id && user.role !== 'admin')) {
-      return NextResponse.json({ error: 'Property not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Property not found' },
+        { status: 404 }
+      );
     }
 
     const { error } = await serverSupabase
@@ -110,11 +131,14 @@ export const DELETE = withApiHandler(
       .eq('property_id', propertyId);
 
     if (error) {
-      return NextResponse.json({ error: 'Failed to delete schedule' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Failed to delete schedule' },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({ success: true });
-  },
+  }
 );
 
 // PATCH /api/properties/[id]/recurring-maintenance — toggle active
@@ -126,17 +150,23 @@ export const PATCH = withApiHandler(
     const { scheduleId, is_active } = body;
 
     if (!scheduleId || typeof is_active !== 'boolean') {
-      return NextResponse.json({ error: 'scheduleId and is_active required' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'scheduleId and is_active required' },
+        { status: 400 }
+      );
     }
 
     const { data: property } = await serverSupabase
       .from('properties')
       .select('id, owner_id')
       .eq('id', propertyId)
-      .single();
+      .maybeSingle();
 
     if (!property || (property.owner_id !== user.id && user.role !== 'admin')) {
-      return NextResponse.json({ error: 'Property not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Property not found' },
+        { status: 404 }
+      );
     }
 
     const { data: schedule, error } = await serverSupabase
@@ -145,12 +175,22 @@ export const PATCH = withApiHandler(
       .eq('id', scheduleId)
       .eq('property_id', propertyId)
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) {
-      return NextResponse.json({ error: 'Failed to update schedule' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Failed to update schedule' },
+        { status: 500 }
+      );
+    }
+
+    if (!schedule) {
+      return NextResponse.json(
+        { error: 'Schedule not found' },
+        { status: 404 }
+      );
     }
 
     return NextResponse.json({ schedule });
-  },
+  }
 );

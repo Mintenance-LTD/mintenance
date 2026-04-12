@@ -20,7 +20,6 @@ import {
 } from '../../components/shared';
 import { useAuth } from '../../contexts/AuthContext';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '../../config/supabase';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import type { Property } from '@mintenance/types';
 import { theme } from '../../theme';
@@ -143,20 +142,26 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
 
-  // Load favorites from server on mount
+  // Load favorites from the API so server-side validation, logging and
+  // rate limits apply (previously hit Supabase directly with no try/catch).
   useEffect(() => {
     if (!user?.id) return;
-    supabase
-      .from('property_favorites')
-      .select('property_id')
-      .eq('user_id', user.id)
-      .then(({ data }) => {
-        if (data?.length) {
-          setFavoriteIds(
-            new Set(data.map((f: { property_id: string }) => f.property_id))
-          );
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await mobileApiClient.get<{ favorites: string[] }>(
+          '/api/properties/favorites'
+        );
+        if (!cancelled && res?.favorites?.length) {
+          setFavoriteIds(new Set(res.favorites));
         }
-      });
+      } catch {
+        // Non-fatal — favorites default to an empty set.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [user?.id]);
 
   const {
@@ -168,13 +173,10 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
     queryKey: ['properties', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      const { data, error: queryError } = await supabase
-        .from('properties')
-        .select('*')
-        .eq('owner_id', user.id)
-        .order('created_at', { ascending: false });
-      if (queryError) throw new Error(queryError.message);
-      return (data ?? []) as Property[];
+      const res = await mobileApiClient.get<{ properties: Property[] }>(
+        '/api/properties'
+      );
+      return res.properties ?? [];
     },
     enabled: !!user?.id,
     retry: 2,

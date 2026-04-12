@@ -3,6 +3,9 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 
 // GET /api/properties/[id]/team
+// csrf:false — this is an idempotent read. withApiHandler's default enables
+// CSRF only for mutating methods, but we set it explicitly so the intent is
+// obvious and stays aligned with sibling GET handlers.
 export const GET = withApiHandler(
   { roles: ['homeowner', 'admin'], csrf: false },
   async (_req, { user, params }) => {
@@ -12,10 +15,13 @@ export const GET = withApiHandler(
       .from('properties')
       .select('id, owner_id')
       .eq('id', propertyId)
-      .single();
+      .maybeSingle();
 
     if (!property || (property.owner_id !== user.id && user.role !== 'admin')) {
-      return NextResponse.json({ error: 'Property not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Property not found' },
+        { status: 404 }
+      );
     }
 
     const { data: members, error } = await serverSupabase
@@ -25,11 +31,14 @@ export const GET = withApiHandler(
       .order('created_at', { ascending: false });
 
     if (error) {
-      return NextResponse.json({ error: 'Failed to fetch team members' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Failed to fetch team members' },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({ members: members || [] });
-  },
+  }
 );
 
 // POST /api/properties/[id]/team — invite a team member
@@ -43,16 +52,22 @@ export const POST = withApiHandler(
       .from('properties')
       .select('id, owner_id')
       .eq('id', propertyId)
-      .single();
+      .maybeSingle();
 
     if (!property || (property.owner_id !== user.id && user.role !== 'admin')) {
-      return NextResponse.json({ error: 'Property not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Property not found' },
+        { status: 404 }
+      );
     }
 
     const { email, role } = body;
 
     if (!email || !role) {
-      return NextResponse.json({ error: 'email and role are required' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'email and role are required' },
+        { status: 400 }
+      );
     }
 
     const validRoles = ['admin', 'manager', 'viewer'];
@@ -66,10 +81,13 @@ export const POST = withApiHandler(
       .select('id')
       .eq('property_id', propertyId)
       .eq('email', email)
-      .single();
+      .maybeSingle();
 
     if (existing) {
-      return NextResponse.json({ error: 'This email has already been invited' }, { status: 409 });
+      return NextResponse.json(
+        { error: 'This email has already been invited' },
+        { status: 409 }
+      );
     }
 
     // Enforce 10-member cap
@@ -81,7 +99,7 @@ export const POST = withApiHandler(
     if ((memberCount ?? 0) >= 10) {
       return NextResponse.json(
         { error: 'Team member limit reached (maximum 10 per property)' },
-        { status: 422 },
+        { status: 422 }
       );
     }
 
@@ -97,11 +115,14 @@ export const POST = withApiHandler(
       .single();
 
     if (error) {
-      return NextResponse.json({ error: 'Failed to invite team member' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Failed to invite team member' },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({ member }, { status: 201 });
-  },
+  }
 );
 
 // DELETE /api/properties/[id]/team — remove a team member
@@ -113,17 +134,23 @@ export const DELETE = withApiHandler(
     const memberId = searchParams.get('memberId');
 
     if (!memberId) {
-      return NextResponse.json({ error: 'memberId is required' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'memberId is required' },
+        { status: 400 }
+      );
     }
 
     const { data: property } = await serverSupabase
       .from('properties')
       .select('id, owner_id')
       .eq('id', propertyId)
-      .single();
+      .maybeSingle();
 
     if (!property || (property.owner_id !== user.id && user.role !== 'admin')) {
-      return NextResponse.json({ error: 'Property not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Property not found' },
+        { status: 404 }
+      );
     }
 
     const { error } = await serverSupabase
@@ -133,9 +160,12 @@ export const DELETE = withApiHandler(
       .eq('property_id', propertyId);
 
     if (error) {
-      return NextResponse.json({ error: 'Failed to remove member' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Failed to remove member' },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({ success: true });
-  },
+  }
 );

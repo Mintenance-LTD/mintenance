@@ -29,6 +29,7 @@ import { PropertyInfoForm } from './PropertyAssessmentScreen/PropertyInfoForm';
 import { PhotosGrid } from './PropertyAssessmentScreen/PhotosGrid';
 import { ReviewSummary } from './PropertyAssessmentScreen/ReviewSummary';
 import { uploadPhotosToStorage } from './PropertyAssessmentScreen/uploadPhotos';
+import { useAssessmentLocation } from './PropertyAssessmentScreen/useAssessmentLocation';
 
 interface Props {
   navigation: {
@@ -76,6 +77,15 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({
   // Step 5 — Review
   const [showReview, setShowReview] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // GPS location (opt-in) — hook captures once on mount, graceful fallback
+  const gpsLocation = useAssessmentLocation();
+
+  // Room metadata (optional) — set via PropertyInfoForm
+  const [roomMetadata, setRoomMetadata] = useState<{
+    room?: string;
+    floor?: number;
+  }>({});
 
   // ---------------------------------------------------------------------------
   // Helpers
@@ -275,24 +285,38 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({
         photo_count: photos.length,
         submitted_from: 'mobile_app',
         submitted_at: new Date().toISOString(),
+        gps: gpsLocation || null,
+        room_metadata: roomMetadata,
       };
 
-      // Insert into building_assessments with all required NOT NULL columns
+      // Insert into building_assessments with all required NOT NULL columns.
+      // severity must be one of early/developing/significant/dangerous (DB CHECK constraint).
+      // Default to 'early' since no damage has been analyzed yet — the AI will update later.
       const { data: assessment, error: insertError } = await supabase
         .from('building_assessments')
         .insert({
           user_id: user.id,
           property_id: propertyId || null,
           domain: 'building',
-          damage_type: 'general_inspection',
-          severity: 'pending_review',
+          damage_type: 'general_damage',
+          damage_type_canonical: 'general_damage',
+          severity: 'early',
           confidence: 0,
           safety_score: 0,
           compliance_score: 0,
           insurance_risk_score: 0,
-          urgency: 'normal',
+          urgency: 'monitor',
           assessment_data: assessmentData,
           validation_status: 'pending',
+          ...(gpsLocation
+            ? {
+                latitude: gpsLocation.latitude,
+                longitude: gpsLocation.longitude,
+              }
+            : {}),
+          ...(roomMetadata && (roomMetadata.room || roomMetadata.floor != null)
+            ? { room_metadata: roomMetadata }
+            : {}),
         })
         .select('id')
         .single();
@@ -377,6 +401,8 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({
           <PropertyInfoForm
             propertyInfo={propertyInfo}
             setPropertyInfo={setPropertyInfo}
+            roomMetadata={roomMetadata}
+            setRoomMetadata={setRoomMetadata}
             onSave={handlePropertyInfoSave}
           />
         )}
