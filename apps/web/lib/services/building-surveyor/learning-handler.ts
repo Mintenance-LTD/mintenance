@@ -5,10 +5,20 @@
 
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { memoryManager } from '../ml-engine/memory/MemoryManager';
-import type { Phase1BuildingAssessment, DamageSeverity, UrgencyLevel, AssessmentContext } from './types';
+import type {
+  Phase1BuildingAssessment,
+  DamageSeverity,
+  UrgencyLevel,
+  AssessmentContext,
+} from './types';
 import { extractDetectionFeatures } from './feature-extractor';
 import { logger } from '@mintenance/shared';
-import { initializeMemorySystem, triggerSelfModification, getLearnedFeatureExtractor, isLearnedFeaturesEnabled } from './initialization/BuildingSurveyorInitializationService';
+import {
+  initializeMemorySystem,
+  triggerSelfModification,
+  getLearnedFeatureExtractor,
+  isLearnedFeaturesEnabled,
+} from './initialization/BuildingSurveyorInitializationService';
 
 const AGENT_NAME = 'building-surveyor';
 
@@ -44,7 +54,8 @@ export async function learnFromRepairOutcome(
       return;
     }
 
-    const originalAssessment = assessmentRecord.assessment_data as Phase1BuildingAssessment;
+    const originalAssessment =
+      assessmentRecord.assessment_data as Phase1BuildingAssessment;
 
     // Get images for feature extraction
     const { data: images } = await serverSupabase
@@ -53,7 +64,7 @@ export async function learnFromRepairOutcome(
       .eq('assessment_id', assessmentId)
       .order('image_index');
 
-    const imageUrls = images?.map(img => img.image_url) || [];
+    const imageUrls = images?.map((img) => img.image_url) || [];
     const features = await extractDetectionFeatures(
       imageUrls,
       {},
@@ -65,18 +76,30 @@ export async function learnFromRepairOutcome(
     );
 
     // Calculate surprise signals
-    const severityAccuracy = actualSeverity &&
-      originalAssessment.damageAssessment.severity === actualSeverity ? 1.0 : 0.0;
+    const severityAccuracy =
+      actualSeverity &&
+      originalAssessment.damageAssessment.severity === actualSeverity
+        ? 1.0
+        : 0.0;
 
-    const costAccuracy = actualCost && originalAssessment.contractorAdvice?.estimatedCost?.recommended
-      ? Math.max(-1, Math.min(1,
-          (actualCost - originalAssessment.contractorAdvice.estimatedCost.recommended) /
-          originalAssessment.contractorAdvice.estimatedCost.recommended
-        ))
-      : 0.0;
+    const costAccuracy =
+      actualCost &&
+      originalAssessment.contractorAdvice?.estimatedCost?.recommended
+        ? Math.max(
+            -1,
+            Math.min(
+              1,
+              (actualCost -
+                originalAssessment.contractorAdvice.estimatedCost.recommended) /
+                originalAssessment.contractorAdvice.estimatedCost.recommended
+            )
+          )
+        : 0.0;
 
-    const urgencyAccuracy = actualUrgency &&
-      originalAssessment.urgency.urgency === actualUrgency ? 1.0 : 0.0;
+    const urgencyAccuracy =
+      actualUrgency && originalAssessment.urgency.urgency === actualUrgency
+        ? 1.0
+        : 0.0;
 
     // Values: [damage_type_accuracy (0), severity_accuracy, cost_accuracy, urgency_accuracy, confidence_error (0)]
     const values = [
@@ -90,12 +113,7 @@ export async function learnFromRepairOutcome(
     // Add context flow to all memory levels
     for (let level = 0; level < 3; level++) {
       try {
-        await memoryManager.addContextFlow(
-          AGENT_NAME,
-          features,
-          values,
-          level
-        );
+        await memoryManager.addContextFlow(AGENT_NAME, features, values, level);
       } catch (levelError) {
         logger.warn('Failed to add context flow to memory level', {
           service: 'learning-handler',
@@ -153,21 +171,37 @@ export async function learnFromProgression(
       return;
     }
 
-    const originalAssessment = originalRecord.assessment_data as Phase1BuildingAssessment;
-    const followUpAssessment = followUpRecord.assessment_data as Phase1BuildingAssessment;
+    const originalAssessment =
+      originalRecord.assessment_data as Phase1BuildingAssessment;
+    const followUpAssessment =
+      followUpRecord.assessment_data as Phase1BuildingAssessment;
 
     // Calculate time difference
     const originalDate = new Date(originalRecord.created_at);
     const followUpDate = new Date(followUpRecord.created_at);
-    const daysDiff = (followUpDate.getTime() - originalDate.getTime()) / (1000 * 60 * 60 * 24);
+    const daysDiff =
+      (followUpDate.getTime() - originalDate.getTime()) / (1000 * 60 * 60 * 24);
 
     // Compare severity progression
-    const severityOrder: DamageSeverity[] = ['early', 'midway', 'full'];
-    const originalIndex = severityOrder.indexOf(originalAssessment.damageAssessment.severity);
-    const followUpIndex = severityOrder.indexOf(followUpAssessment.damageAssessment.severity);
+    const severityOrder: DamageSeverity[] = [
+      'early',
+      'developing',
+      'significant',
+      'dangerous',
+    ];
+    const originalIndex = severityOrder.indexOf(
+      originalAssessment.damageAssessment.severity
+    );
+    const followUpIndex = severityOrder.indexOf(
+      followUpAssessment.damageAssessment.severity
+    );
 
-    const severityProgression = followUpIndex > originalIndex ? 1.0 : 
-                               followUpIndex < originalIndex ? -1.0 : 0.0;
+    const severityProgression =
+      followUpIndex > originalIndex
+        ? 1.0
+        : followUpIndex < originalIndex
+          ? -1.0
+          : 0.0;
 
     // Get images for feature extraction
     const { data: images } = await serverSupabase
@@ -176,7 +210,7 @@ export async function learnFromProgression(
       .eq('assessment_id', originalAssessmentId)
       .order('image_index');
 
-    const imageUrls = images?.map(img => img.image_url) || [];
+    const imageUrls = images?.map((img) => img.image_url) || [];
     const features = await extractDetectionFeatures(
       imageUrls,
       {},
@@ -200,12 +234,7 @@ export async function learnFromProgression(
     // Add context flow to all memory levels
     for (let level = 0; level < 3; level++) {
       try {
-        await memoryManager.addContextFlow(
-          AGENT_NAME,
-          features,
-          values,
-          level
-        );
+        await memoryManager.addContextFlow(AGENT_NAME, features, values, level);
       } catch (levelError) {
         logger.warn('Failed to add context flow to memory level', {
           service: 'learning-handler',
@@ -257,7 +286,8 @@ export async function learnFromValidation(
       return;
     }
 
-    const originalAssessment = assessmentRecord.assessment_data as Phase1BuildingAssessment;
+    const originalAssessment =
+      assessmentRecord.assessment_data as Phase1BuildingAssessment;
 
     // Get context from database (if available)
     const { data: images } = await serverSupabase
@@ -266,7 +296,7 @@ export async function learnFromValidation(
       .eq('assessment_id', assessmentId)
       .order('image_index');
 
-    const imageUrls = images?.map(img => img.image_url) || [];
+    const imageUrls = images?.map((img) => img.image_url) || [];
     const context: AssessmentContext = {}; // Could be enhanced to fetch from user profile
 
     const useLearnedFeatures = isLearnedFeaturesEnabled();
@@ -298,7 +328,16 @@ export async function learnFromValidation(
     if (useLearnedFeatures && learnedFeatureExtractor) {
       try {
         // Build raw input for learning
-        const rawInput = (learnedFeatureExtractor as unknown as { buildRawInput: (imageUrls: string[], context: AssessmentContext, roboflowDetections?: unknown, visionAnalysis?: unknown) => unknown }).buildRawInput(
+        const rawInput = (
+          learnedFeatureExtractor as unknown as {
+            buildRawInput: (
+              imageUrls: string[],
+              context: AssessmentContext,
+              roboflowDetections?: unknown,
+              visionAnalysis?: unknown
+            ) => unknown;
+          }
+        ).buildRawInput(
           imageUrls,
           context,
           originalAssessment.evidence?.roboflowDetections,
@@ -326,28 +365,44 @@ export async function learnFromValidation(
     }
 
     // Calculate surprise signals for memory system
-    const damageTypeAccuracy = originalAssessment.damageAssessment.damageType ===
-      humanValidatedAssessment.damageAssessment.damageType ? 1.0 : 0.0;
+    const damageTypeAccuracy =
+      originalAssessment.damageAssessment.damageType ===
+      humanValidatedAssessment.damageAssessment.damageType
+        ? 1.0
+        : 0.0;
 
-    const severityAccuracy = originalAssessment.damageAssessment.severity ===
-      humanValidatedAssessment.damageAssessment.severity ? 1.0 : 0.0;
+    const severityAccuracy =
+      originalAssessment.damageAssessment.severity ===
+      humanValidatedAssessment.damageAssessment.severity
+        ? 1.0
+        : 0.0;
 
-    const confidenceError = Math.abs(
-      originalAssessment.damageAssessment.confidence -
-      humanValidatedAssessment.damageAssessment.confidence
-    ) / 100;
+    const confidenceError =
+      Math.abs(
+        originalAssessment.damageAssessment.confidence -
+          humanValidatedAssessment.damageAssessment.confidence
+      ) / 100;
 
-    const costAccuracy = originalAssessment.contractorAdvice?.estimatedCost?.recommended &&
+    const costAccuracy =
+      originalAssessment.contractorAdvice?.estimatedCost?.recommended &&
       humanValidatedAssessment.contractorAdvice?.estimatedCost?.recommended
-      ? Math.max(-1, Math.min(1, 
-          (humanValidatedAssessment.contractorAdvice.estimatedCost.recommended -
-           originalAssessment.contractorAdvice.estimatedCost.recommended) /
-          originalAssessment.contractorAdvice.estimatedCost.recommended
-        ))
-      : 0.0;
+        ? Math.max(
+            -1,
+            Math.min(
+              1,
+              (humanValidatedAssessment.contractorAdvice.estimatedCost
+                .recommended -
+                originalAssessment.contractorAdvice.estimatedCost.recommended) /
+                originalAssessment.contractorAdvice.estimatedCost.recommended
+            )
+          )
+        : 0.0;
 
-    const urgencyAccuracy = originalAssessment.urgency.urgency ===
-      humanValidatedAssessment.urgency.urgency ? 1.0 : 0.0;
+    const urgencyAccuracy =
+      originalAssessment.urgency.urgency ===
+      humanValidatedAssessment.urgency.urgency
+        ? 1.0
+        : 0.0;
 
     // Values: [damage_type_accuracy, severity_accuracy, cost_accuracy, urgency_accuracy, confidence_error]
     const values = [
@@ -400,13 +455,12 @@ export async function learnFromValidation(
     }
 
     // Calculate overall accuracy
-    const overallAccuracy = (
+    const overallAccuracy =
       damageTypeAccuracy * 0.3 +
       severityAccuracy * 0.25 +
       urgencyAccuracy * 0.15 +
       (1 - Math.min(1, confidenceError)) * 0.1 +
-      (1 - Math.min(1, Math.abs(costAccuracy))) * 0.2
-    );
+      (1 - Math.min(1, Math.abs(costAccuracy))) * 0.2;
 
     // Trigger self-modification if accuracy is low
     if (overallAccuracy < 0.7) {
@@ -427,4 +481,3 @@ export async function learnFromValidation(
     });
   }
 }
-

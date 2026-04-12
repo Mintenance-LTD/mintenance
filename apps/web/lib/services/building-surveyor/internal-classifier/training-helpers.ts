@@ -28,8 +28,9 @@ export async function getTrainingDataStats(): Promise<{
     const damageTypeDistribution: Record<string, number> = {};
     const severityDistribution: Record<DamageSeverity, number> = {
       early: 0,
-      midway: 0,
-      full: 0,
+      developing: 0,
+      significant: 0,
+      dangerous: 0,
     };
     let totalConfidence = 0;
 
@@ -58,7 +59,12 @@ export async function getTrainingDataStats(): Promise<{
     return {
       totalValidatedSamples: 0,
       damageTypeDistribution: {},
-      severityDistribution: { early: 0, midway: 0, full: 0 },
+      severityDistribution: {
+        early: 0,
+        developing: 0,
+        significant: 0,
+        dangerous: 0,
+      },
       averageConfidence: 0,
     };
   }

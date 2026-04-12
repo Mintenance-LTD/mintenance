@@ -3,6 +3,7 @@ import type { Phase1BuildingAssessment } from '@/lib/services/building-surveyor/
 import crypto from 'crypto';
 import { LRUCache } from 'lru-cache';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { canonicalizeDamageType } from '@/lib/services/building-surveyor/normalization-utils';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -505,10 +506,15 @@ export const POST = withApiHandler(
               ? 'pending_shadow'
               : 'pending';
 
+      const canonicalType = canonicalizeDamageType(
+        assessment.damageAssessment.damageType
+      );
+
       await deps.serverSupabase
         .from('building_assessments')
         .update({
           damage_type: assessment.damageAssessment.damageType,
+          damage_type_canonical: canonicalType,
           severity: assessment.damageAssessment.severity,
           confidence: assessment.damageAssessment.confidence,
           safety_score: assessment.safetyHazards.overallSafetyScore,
@@ -517,6 +523,8 @@ export const POST = withApiHandler(
           urgency: assessment.urgency.urgency,
           assessment_data: assessment as unknown as Record<string, unknown>,
           validation_status: validationStatus,
+          recommended_trades:
+            assessment.contractorAdvice.recommendedTrades || [],
         })
         .eq('id', assessmentId);
 
@@ -526,6 +534,26 @@ export const POST = withApiHandler(
         userId: user.id,
         assessmentId,
       });
+    }
+
+    // Save assessment_images immediately (before any early return)
+    // This fixes the gap where automated assessments skipped image persistence
+    if (assessmentIdForImages) {
+      try {
+        await deps.serverSupabase.from('assessment_images').insert(
+          imageUrls.map((url, index) => ({
+            assessment_id: assessmentIdForImages,
+            image_url: url,
+            image_index: index,
+          }))
+        );
+      } catch (imgErr) {
+        deps.logger.warn('Failed to save assessment images', {
+          service: 'building-surveyor-api',
+          error: imgErr,
+          assessmentId: assessmentIdForImages,
+        });
+      }
     }
 
     const shadowModeEnabled = process.env.SHADOW_MODE_ENABLED === 'true';
@@ -544,6 +572,9 @@ export const POST = withApiHandler(
 
     try {
       if (config.useHybridInference && !assessmentIdForImages) {
+        const hybridCanonicalType = canonicalizeDamageType(
+          assessment.damageAssessment.damageType
+        );
         await deps.serverSupabase.from('building_assessments').insert({
           user_id: user.id,
           job_id: bodyJobId ?? null,
@@ -551,6 +582,7 @@ export const POST = withApiHandler(
           cache_key: cacheKey,
           domain: bodyDomain ?? 'building',
           damage_type: assessment.damageAssessment.damageType,
+          damage_type_canonical: hybridCanonicalType,
           severity: assessment.damageAssessment.severity,
           confidence: assessment.damageAssessment.confidence,
           safety_score: assessment.safetyHazards.overallSafetyScore,
@@ -558,6 +590,8 @@ export const POST = withApiHandler(
           insurance_risk_score: assessment.insuranceRisk.riskScore,
           urgency: assessment.urgency.urgency,
           assessment_data: assessment as unknown as Record<string, unknown>,
+          recommended_trades:
+            assessment.contractorAdvice.recommendedTrades || [],
           validation_status:
             shadowModeEnabled &&
             assessment.decisionResult?.decision === 'automate'
@@ -578,13 +612,17 @@ export const POST = withApiHandler(
         ).data?.id;
 
       if (savedAssessmentId) {
-        await deps.serverSupabase.from('assessment_images').insert(
-          imageUrls.map((url, index) => ({
-            assessment_id: savedAssessmentId,
-            image_url: url,
-            image_index: index,
-          }))
-        );
+        // Images already saved above (before early-return check).
+        // Only save here for hybrid inference path where assessmentIdForImages was null.
+        if (!assessmentIdForImages) {
+          await deps.serverSupabase.from('assessment_images').insert(
+            imageUrls.map((url, index) => ({
+              assessment_id: savedAssessmentId,
+              image_url: url,
+              image_index: index,
+            }))
+          );
+        }
 
         const autoValidationResult =
           await deps.DataCollectionService.autoValidateIfHighConfidence(

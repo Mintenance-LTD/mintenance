@@ -177,7 +177,7 @@ function convertInternalPredictionToAssessment(
     },
     compliance: {
       complianceIssues: [],
-      requiresProfessionalInspection: prediction.severity === 'full',
+      requiresProfessionalInspection: prediction.severity === 'dangerous',
       complianceScore: 100,
     },
     insuranceRisk: {
@@ -252,8 +252,9 @@ function calculateSafetyScore(urgency: UrgencyLevel): number {
 
 function calculateRiskScore(severity: DamageSeverity): number {
   const scores: Record<DamageSeverity, number> = {
-    full: 90,
-    midway: 60,
+    dangerous: 90,
+    significant: 70,
+    developing: 50,
     early: 30,
   };
   return scores[severity] || 50;
@@ -264,8 +265,9 @@ function calculatePremiumImpact(
 ): 'none' | 'low' | 'medium' | 'high' {
   const impacts: Record<DamageSeverity, 'none' | 'low' | 'medium' | 'high'> = {
     early: 'low',
-    midway: 'medium',
-    full: 'high',
+    developing: 'medium',
+    significant: 'medium',
+    dangerous: 'high',
   };
   return impacts[severity] || 'low';
 }
@@ -304,8 +306,9 @@ function calculatePriorityScore(
     monitor: 20,
   };
   const severityScores: Record<DamageSeverity, number> = {
-    full: 100,
-    midway: 60,
+    dangerous: 100,
+    significant: 75,
+    developing: 50,
     early: 30,
   };
   return Math.round(
@@ -316,8 +319,9 @@ function calculatePriorityScore(
 function getComplexity(severity: DamageSeverity): 'low' | 'medium' | 'high' {
   const complexity: Record<DamageSeverity, 'low' | 'medium' | 'high'> = {
     early: 'low',
-    midway: 'medium',
-    full: 'high',
+    developing: 'medium',
+    significant: 'medium',
+    dangerous: 'high',
   };
   return complexity[severity] || 'medium';
 }

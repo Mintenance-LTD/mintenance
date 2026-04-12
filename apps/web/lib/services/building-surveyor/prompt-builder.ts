@@ -159,7 +159,7 @@ ${damageTypeGuidance}
 You must respond with valid JSON matching this exact structure:
 {
   "damageType": "string (e.g., 'water damage', 'structural crack', 'mold growth'${safeDamageTypes?.length ? ` or one of: ${safeDamageTypes.slice(0, 5).join(', ')}` : ''})",
-  "severity": "early" | "midway" | "full",
+  "severity": "early" | "developing" | "significant" | "dangerous",
   "confidence": number (0-100),
   "location": "string (specific location in property)",
   "description": "string (detailed description of damage)",
@@ -216,7 +216,8 @@ You must respond with valid JSON matching this exact structure:
       "max": number (in GBP),
       "recommended": number (in GBP)
     },
-    "complexity": "low" | "medium" | "high"
+    "complexity": "low" | "medium" | "high",
+    "recommendedTrades": ["plumber" | "electrician" | "roofer" | "structural_engineer" | "plasterer" | "general_builder" | "damp_specialist" | "gas_engineer" | "drainage" | "locksmith" | "glazier" | "pest_control"]
   },
   "ricsConditionRating": 1 | 2 | 3,
   "specialistReferrals": [
@@ -249,9 +250,12 @@ Guidelines:
 - Prioritize safety hazards - if you see electrical hazards near water, structural risks, or fire hazards, mark them as critical
 - Provide realistic cost estimates based on UK market rates
 - Use clear, professional language
-- If damage is minimal or cosmetic, classify as "early"
-- If damage is moderate and progressing, classify as "midway"
-- If damage is severe or structural, classify as "full"
+- Severity uses a 4-tier scale aligned with UK landlord compliance:
+  - "early": Cosmetic/minor defect — routine maintenance, no immediate risk
+  - "developing": Defect is progressing — needs attention within weeks to prevent worsening
+  - "significant": Serious defect with risk of spread — repair soon, may affect adjacent elements
+  - "dangerous": Structural or safety risk — urgent repair required, potential hazard to occupants
+- Always include "recommendedTrades" in contractorAdvice — choose from the enum values above
 - Always consider safety implications when determining urgency
 - Be conservative with compliance flags - only flag if you're reasonably certain
 - Provide actionable advice for both homeowners and contractors

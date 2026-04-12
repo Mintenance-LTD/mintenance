@@ -37,7 +37,7 @@ from transformers import (
 )
 
 
-DEFAULT_MODEL = "Qwen/Qwen2.5-VL-3B-Instruct"
+DEFAULT_MODEL = "Qwen/Qwen2.5-VL-7B-Instruct"
 LORA_RANK = 16
 LORA_ALPHA = 32
 LORA_DROPOUT = 0.05

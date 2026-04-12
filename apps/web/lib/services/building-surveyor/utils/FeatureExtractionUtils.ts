@@ -168,10 +168,12 @@ export async function extractHandcraftedFeatures(
     features.push(encodeDamageType(assessment.damageAssessment.damageType));
     const severityValue =
       assessment.damageAssessment.severity === 'early'
-        ? 0.33
-        : assessment.damageAssessment.severity === 'midway'
-          ? 0.66
-          : 1.0;
+        ? 0.25
+        : assessment.damageAssessment.severity === 'developing'
+          ? 0.5
+          : assessment.damageAssessment.severity === 'significant'
+            ? 0.75
+            : 1.0;
     features.push(severityValue);
     features.push(assessment.damageAssessment.confidence / 100);
     features.push(encodeDamageLocation(assessment.damageAssessment.location));

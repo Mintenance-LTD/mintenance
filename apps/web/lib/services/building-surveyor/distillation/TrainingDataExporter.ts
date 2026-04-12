@@ -21,7 +21,9 @@ interface ExportOptions {
 interface QwenConversation {
   messages: Array<{
     role: 'system' | 'user' | 'assistant';
-    content: string | Array<{ type: string; text?: string; image_url?: { url: string } }>;
+    content:
+      | string
+      | Array<{ type: string; text?: string; image_url?: { url: string } }>;
   }>;
 }
 
@@ -38,10 +40,15 @@ export class TrainingDataExporter {
     const limit = options.maxExamples ?? 500;
     const minQuality = options.minQuality ?? 'medium';
 
-    let examples = await ExperienceBufferService.getTopExamples(limit, minQuality);
+    let examples = await ExperienceBufferService.getTopExamples(
+      limit,
+      minQuality
+    );
 
     if (options.minPriority) {
-      examples = examples.filter((e) => e.priorityScore >= options.minPriority!);
+      examples = examples.filter(
+        (e) => e.priorityScore >= options.minPriority!
+      );
     }
 
     if (options.balanceCategories) {
@@ -67,7 +74,10 @@ export class TrainingDataExporter {
   /**
    * Mark exported examples as used after a training round.
    */
-  static async markExported(ids: string[], trainingRound: number): Promise<void> {
+  static async markExported(
+    ids: string[],
+    trainingRound: number
+  ): Promise<void> {
     await ExperienceBufferService.markUsed(ids, trainingRound);
   }
 
@@ -76,7 +86,10 @@ export class TrainingDataExporter {
    * Retains the structural instruction so the student learns the output schema.
    */
   private static readonly TRAINING_SYSTEM_PROMPT =
-    'You are a building damage assessment AI. Analyze the provided images and return a JSON object with these sections: damageAssessment, safetyHazards, compliance, insuranceRisk, urgency, homeownerExplanation, contractorAdvice. Be precise, safety-conscious, and evidence-based.';
+    'You are a UK building damage assessment AI. Analyze the provided images and return a JSON object with these sections: damageAssessment, safetyHazards, compliance, insuranceRisk, urgency, homeownerExplanation, contractorAdvice. ' +
+    'Use 4-tier severity: "early" (cosmetic/minor), "developing" (progressing, needs attention), "significant" (serious, risk of spread), "dangerous" (structural/safety risk, urgent repair). ' +
+    'Include recommendedTrades in contractorAdvice: choose from plumber, electrician, roofer, structural_engineer, plasterer, general_builder, damp_specialist, gas_engineer, drainage, locksmith, glazier, pest_control. ' +
+    'Be precise, safety-conscious, and evidence-based.';
 
   /**
    * Convert a single training example into the Qwen2.5-VL conversation format.
@@ -84,9 +97,11 @@ export class TrainingDataExporter {
    */
   static toQwenConversation(example: VLMTrainingExample): QwenConversation {
     // Build user content: text prompt + image URLs
-    const userContent: Array<{ type: string; text?: string; image_url?: { url: string } }> = [
-      { type: 'text', text: example.userPrompt },
-    ];
+    const userContent: Array<{
+      type: string;
+      text?: string;
+      image_url?: { url: string };
+    }> = [{ type: 'text', text: example.userPrompt }];
 
     for (const url of example.imageUrls) {
       userContent.push({

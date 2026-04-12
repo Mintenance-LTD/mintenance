@@ -10,7 +10,10 @@
  */
 
 import type { Phase1BuildingAssessment } from '../types';
-import type { ShadowComparisonResult, VLMTrainingExample } from '../distillation/types';
+import type {
+  ShadowComparisonResult,
+  VLMTrainingExample,
+} from '../distillation/types';
 
 // ---------------------------------------------------------------------------
 // Mocks — must appear before imports of the modules under test
@@ -52,7 +55,7 @@ import { SafetyRecallGate } from '../distillation/SafetyRecallGate';
 function makeAssessment(
   overrides?: Partial<{
     damageType: string;
-    severity: 'early' | 'midway' | 'full';
+    severity: 'early' | 'developing' | 'significant' | 'dangerous';
     confidence: number;
     urgency: 'immediate' | 'urgent' | 'soon' | 'planned' | 'monitor';
     hazards: Phase1BuildingAssessment['safetyHazards']['hazards'];
@@ -63,7 +66,7 @@ function makeAssessment(
   return {
     damageAssessment: {
       damageType: overrides?.damageType ?? 'water_damage',
-      severity: overrides?.severity ?? 'midway',
+      severity: overrides?.severity ?? 'developing',
       confidence: overrides?.confidence ?? 85,
       location: 'Bathroom ceiling',
       description: 'Visible water stain with mold growth',
@@ -132,8 +135,13 @@ describe('StudentShadowService.compareAssessments', () => {
   it('returns all-zero agreement when student is null (parse failure)', () => {
     const teacher = makeAssessment();
     const result = StudentShadowService.compareAssessments(
-      baseArgs.assessmentId, teacher, null, false,
-      baseArgs.latencyMs, baseArgs.costUsd, baseArgs.imageCount,
+      baseArgs.assessmentId,
+      teacher,
+      null,
+      false,
+      baseArgs.latencyMs,
+      baseArgs.costUsd,
+      baseArgs.imageCount
     );
 
     expect(result.damageTypeMatch).toBe(false);
@@ -153,8 +161,13 @@ describe('StudentShadowService.compareAssessments', () => {
     const student = makeAssessment(); // identical
 
     const result = StudentShadowService.compareAssessments(
-      baseArgs.assessmentId, teacher, student, true,
-      baseArgs.latencyMs, baseArgs.costUsd, baseArgs.imageCount,
+      baseArgs.assessmentId,
+      teacher,
+      student,
+      true,
+      baseArgs.latencyMs,
+      baseArgs.costUsd,
+      baseArgs.imageCount
     );
 
     expect(result.damageTypeMatch).toBe(true);
@@ -169,20 +182,30 @@ describe('StudentShadowService.compareAssessments', () => {
     const student = makeAssessment({ damageType: 'water_damage' });
 
     const result = StudentShadowService.compareAssessments(
-      baseArgs.assessmentId, teacher, student, true,
-      baseArgs.latencyMs, baseArgs.costUsd, baseArgs.imageCount,
+      baseArgs.assessmentId,
+      teacher,
+      student,
+      true,
+      baseArgs.latencyMs,
+      baseArgs.costUsd,
+      baseArgs.imageCount
     );
 
     expect(result.damageTypeMatch).toBe(true);
   });
 
   it('severityMatch checks exact match', () => {
-    const teacher = makeAssessment({ severity: 'midway' });
-    const student = makeAssessment({ severity: 'full' });
+    const teacher = makeAssessment({ severity: 'developing' });
+    const student = makeAssessment({ severity: 'dangerous' });
 
     const result = StudentShadowService.compareAssessments(
-      baseArgs.assessmentId, teacher, student, true,
-      baseArgs.latencyMs, baseArgs.costUsd, baseArgs.imageCount,
+      baseArgs.assessmentId,
+      teacher,
+      student,
+      true,
+      baseArgs.latencyMs,
+      baseArgs.costUsd,
+      baseArgs.imageCount
     );
 
     expect(result.severityMatch).toBe(false);
@@ -193,8 +216,13 @@ describe('StudentShadowService.compareAssessments', () => {
     const student = makeAssessment({ urgency: 'soon' });
 
     const result = StudentShadowService.compareAssessments(
-      baseArgs.assessmentId, teacher, student, true,
-      baseArgs.latencyMs, baseArgs.costUsd, baseArgs.imageCount,
+      baseArgs.assessmentId,
+      teacher,
+      student,
+      true,
+      baseArgs.latencyMs,
+      baseArgs.costUsd,
+      baseArgs.imageCount
     );
 
     expect(result.urgencyMatch).toBe(false);
@@ -202,15 +230,24 @@ describe('StudentShadowService.compareAssessments', () => {
 
   it('safetyRecall = caught / total teacher hazards', () => {
     const teacher = makeAssessment({
-      hazards: [makeHazard('electrical'), makeHazard('fire'), makeHazard('gas')],
+      hazards: [
+        makeHazard('electrical'),
+        makeHazard('fire'),
+        makeHazard('gas'),
+      ],
     });
     const student = makeAssessment({
       hazards: [makeHazard('electrical'), makeHazard('fire')], // misses gas
     });
 
     const result = StudentShadowService.compareAssessments(
-      baseArgs.assessmentId, teacher, student, true,
-      baseArgs.latencyMs, baseArgs.costUsd, baseArgs.imageCount,
+      baseArgs.assessmentId,
+      teacher,
+      student,
+      true,
+      baseArgs.latencyMs,
+      baseArgs.costUsd,
+      baseArgs.imageCount
     );
 
     expect(result.safetyRecall).toBeCloseTo(2 / 3, 5);
@@ -225,8 +262,13 @@ describe('StudentShadowService.compareAssessments', () => {
     });
 
     const result = StudentShadowService.compareAssessments(
-      baseArgs.assessmentId, teacher, student, true,
-      baseArgs.latencyMs, baseArgs.costUsd, baseArgs.imageCount,
+      baseArgs.assessmentId,
+      teacher,
+      student,
+      true,
+      baseArgs.latencyMs,
+      baseArgs.costUsd,
+      baseArgs.imageCount
     );
 
     expect(result.safetyPrecision).toBeCloseTo(1 / 2, 5);
@@ -237,8 +279,13 @@ describe('StudentShadowService.compareAssessments', () => {
     const student = makeAssessment({ hazards: [] });
 
     const result = StudentShadowService.compareAssessments(
-      baseArgs.assessmentId, teacher, student, true,
-      baseArgs.latencyMs, baseArgs.costUsd, baseArgs.imageCount,
+      baseArgs.assessmentId,
+      teacher,
+      student,
+      true,
+      baseArgs.latencyMs,
+      baseArgs.costUsd,
+      baseArgs.imageCount
     );
 
     expect(result.safetyRecall).toBe(1);
@@ -249,20 +296,25 @@ describe('StudentShadowService.compareAssessments', () => {
     // Match only damageType and urgency, partial safety recall
     const teacher = makeAssessment({
       damageType: 'crack',
-      severity: 'full',
+      severity: 'dangerous',
       urgency: 'immediate',
       hazards: [makeHazard('electrical'), makeHazard('fire')],
     });
     const student = makeAssessment({
-      damageType: 'crack',       // match  -> 0.35
-      severity: 'midway',        // no match -> 0
-      urgency: 'immediate',      // match  -> 0.15
+      damageType: 'crack', // match  -> 0.35
+      severity: 'developing', // no match -> 0
+      urgency: 'immediate', // match  -> 0.15
       hazards: [makeHazard('electrical')], // recall 1/2 -> 0.25*0.5
     });
 
     const result = StudentShadowService.compareAssessments(
-      baseArgs.assessmentId, teacher, student, true,
-      baseArgs.latencyMs, baseArgs.costUsd, baseArgs.imageCount,
+      baseArgs.assessmentId,
+      teacher,
+      student,
+      true,
+      baseArgs.latencyMs,
+      baseArgs.costUsd,
+      baseArgs.imageCount
     );
 
     const expected = 0.35 + 0 + 0.15 + 0.25 * 0.5; // = 0.625
@@ -274,8 +326,13 @@ describe('StudentShadowService.compareAssessments', () => {
     const student = makeAssessment({ confidence: 72 });
 
     const result = StudentShadowService.compareAssessments(
-      baseArgs.assessmentId, teacher, student, true,
-      baseArgs.latencyMs, baseArgs.costUsd, baseArgs.imageCount,
+      baseArgs.assessmentId,
+      teacher,
+      student,
+      true,
+      baseArgs.latencyMs,
+      baseArgs.costUsd,
+      baseArgs.imageCount
     );
 
     expect(result.confidenceDelta).toBe(72 - 90);
@@ -302,7 +359,9 @@ describe('ExperienceBufferService.computeSurpriseScore', () => {
       overallAgreement: 0.75,
     } as ShadowComparisonResult;
 
-    expect(ExperienceBufferService.computeSurpriseScore(comparison)).toBeCloseTo(0.25, 5);
+    expect(
+      ExperienceBufferService.computeSurpriseScore(comparison)
+    ).toBeCloseTo(0.25, 5);
   });
 
   it('returns 0 for perfect agreement', () => {
@@ -338,7 +397,7 @@ describe('ExperienceBufferService.computePriorityScore', () => {
     // categoryBalance = 1 - 10/50 = 0.8, * 0.3 = 0.24
     // teacherQuality = 0.8, * 0.2 = 0.16
     // total = 0.40
-    expect(score).toBeCloseTo(0.40, 2);
+    expect(score).toBeCloseTo(0.4, 2);
   });
 
   it('category at target gives categoryBalanceScore = 0', () => {
@@ -352,8 +411,18 @@ describe('ExperienceBufferService.computePriorityScore', () => {
   });
 
   it('category over target still gives categoryBalanceScore = 0', () => {
-    const score = ExperienceBufferService.computePriorityScore(0.5, 70, 100, 50);
-    const scoreAtTarget = ExperienceBufferService.computePriorityScore(0.5, 70, 50, 50);
+    const score = ExperienceBufferService.computePriorityScore(
+      0.5,
+      70,
+      100,
+      50
+    );
+    const scoreAtTarget = ExperienceBufferService.computePriorityScore(
+      0.5,
+      70,
+      50,
+      50
+    );
 
     expect(score).toBe(scoreAtTarget);
   });
@@ -370,7 +439,10 @@ describe('ExperienceBufferService.computePriorityScore', () => {
       Math.min(confidence / 100, 1) * 0.2;
 
     const score = ExperienceBufferService.computePriorityScore(
-      surprise, confidence, categoryCount, target,
+      surprise,
+      confidence,
+      categoryCount,
+      target
     );
 
     expect(score).toBeCloseTo(expected, 10);
@@ -385,7 +457,10 @@ describe('TrainingDataExporter.toQwenConversation', () => {
   const example: VLMTrainingExample = {
     id: 'ex-001',
     assessmentId: 'assess-001',
-    imageUrls: ['https://storage.example.com/img1.jpg', 'https://storage.example.com/img2.jpg'],
+    imageUrls: [
+      'https://storage.example.com/img1.jpg',
+      'https://storage.example.com/img2.jpg',
+    ],
     systemPrompt: 'PROPRIETARY: secret prompt engineering here',
     userPrompt: 'Analyze this bathroom ceiling damage',
     teacherResponse: makeAssessment(),
@@ -394,7 +469,7 @@ describe('TrainingDataExporter.toQwenConversation', () => {
     priorityScore: 0.85,
     difficultyScore: null,
     damageCategory: 'water_damage',
-    severity: 'midway',
+    severity: 'developing',
     teacherConfidence: 85,
     teacherQuality: 'high',
     humanVerified: false,
@@ -426,7 +501,11 @@ describe('TrainingDataExporter.toQwenConversation', () => {
     const userContent = conversation.messages[1].content;
 
     expect(Array.isArray(userContent)).toBe(true);
-    const items = userContent as Array<{ type: string; text?: string; image_url?: { url: string } }>;
+    const items = userContent as Array<{
+      type: string;
+      text?: string;
+      image_url?: { url: string };
+    }>;
 
     // First element: text prompt
     expect(items[0]).toEqual({ type: 'text', text: example.userPrompt });
@@ -460,8 +539,14 @@ describe('TrainingDataExporter.toQwenConversation', () => {
 
 describe('SafetyRecallGate.validateStudentSafety', () => {
   it('returns safe:true for normal non-hazardous assessment', () => {
-    const assessment = makeAssessment({ confidence: 80, overallSafetyScore: 70 });
-    const result = SafetyRecallGate.validateStudentSafety(assessment, 'water_damage');
+    const assessment = makeAssessment({
+      confidence: 80,
+      overallSafetyScore: 70,
+    });
+    const result = SafetyRecallGate.validateStudentSafety(
+      assessment,
+      'water_damage'
+    );
 
     expect(result.safe).toBe(true);
     expect(result.failReason).toBeUndefined();
@@ -475,19 +560,25 @@ describe('SafetyRecallGate.validateStudentSafety', () => {
     'mold_toxicity',
     'gas_leak',
     'lead_paint',
-  ])('returns safe:false when always-hazardous category "%s" has NO hazards', (category) => {
-    const assessment = makeAssessment({
-      confidence: 80,
-      hazards: [],
-      hasCriticalHazards: false,
-    });
+  ])(
+    'returns safe:false when always-hazardous category "%s" has NO hazards',
+    (category) => {
+      const assessment = makeAssessment({
+        confidence: 80,
+        hazards: [],
+        hasCriticalHazards: false,
+      });
 
-    const result = SafetyRecallGate.validateStudentSafety(assessment, category);
+      const result = SafetyRecallGate.validateStudentSafety(
+        assessment,
+        category
+      );
 
-    expect(result.safe).toBe(false);
-    expect(result.failReason).toContain(category);
-    expect(result.failReason).toContain('expected hazards');
-  });
+      expect(result.safe).toBe(false);
+      expect(result.failReason).toContain(category);
+      expect(result.failReason).toContain('expected hazards');
+    }
+  );
 
   it('returns safe:true for always-hazardous category when hazards ARE reported', () => {
     const assessment = makeAssessment({
@@ -496,14 +587,20 @@ describe('SafetyRecallGate.validateStudentSafety', () => {
       hasCriticalHazards: true,
     });
 
-    const result = SafetyRecallGate.validateStudentSafety(assessment, 'electrical_hazard');
+    const result = SafetyRecallGate.validateStudentSafety(
+      assessment,
+      'electrical_hazard'
+    );
 
     expect(result.safe).toBe(true);
   });
 
   it('returns safe:false when confidence < 40', () => {
     const assessment = makeAssessment({ confidence: 35 });
-    const result = SafetyRecallGate.validateStudentSafety(assessment, 'water_damage');
+    const result = SafetyRecallGate.validateStudentSafety(
+      assessment,
+      'water_damage'
+    );
 
     expect(result.safe).toBe(false);
     expect(result.failReason).toContain('confidence too low');
@@ -511,7 +608,10 @@ describe('SafetyRecallGate.validateStudentSafety', () => {
 
   it('returns safe:true when confidence is exactly 40', () => {
     const assessment = makeAssessment({ confidence: 40 });
-    const result = SafetyRecallGate.validateStudentSafety(assessment, 'water_damage');
+    const result = SafetyRecallGate.validateStudentSafety(
+      assessment,
+      'water_damage'
+    );
 
     expect(result.safe).toBe(true);
   });
@@ -523,7 +623,10 @@ describe('SafetyRecallGate.validateStudentSafety', () => {
       urgency: 'immediate',
     });
 
-    const result = SafetyRecallGate.validateStudentSafety(assessment, 'water_damage');
+    const result = SafetyRecallGate.validateStudentSafety(
+      assessment,
+      'water_damage'
+    );
 
     expect(result.safe).toBe(false);
     expect(result.failReason).toContain('Contradiction');
@@ -536,7 +639,10 @@ describe('SafetyRecallGate.validateStudentSafety', () => {
       urgency: 'immediate',
     });
 
-    const result = SafetyRecallGate.validateStudentSafety(assessment, 'water_damage');
+    const result = SafetyRecallGate.validateStudentSafety(
+      assessment,
+      'water_damage'
+    );
 
     expect(result.safe).toBe(true);
   });

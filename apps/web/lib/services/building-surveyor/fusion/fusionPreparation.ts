@@ -180,15 +180,15 @@ function generateAssessmentFromFusion(
   }
 
   if (fusionOutput.mean > 0.8) {
-    severity = 'full';
+    severity = 'dangerous';
   } else if (fusionOutput.mean > 0.5) {
-    severity = 'midway';
+    severity = 'developing';
   }
 
   let urgency: UrgencyLevel = 'monitor';
-  if (severity === 'full' || fusionOutput.uncertaintyLevel === 'high') {
+  if (severity === 'dangerous' || fusionOutput.uncertaintyLevel === 'high') {
     urgency = 'urgent';
-  } else if (severity === 'midway') {
+  } else if (severity === 'developing') {
     urgency = 'soon';
   } else {
     urgency = 'planned';
@@ -217,7 +217,11 @@ function generateAssessmentFromFusion(
       riskFactors: [],
       riskScore: fusionOutput.mean * 100,
       premiumImpact:
-        severity === 'full' ? 'high' : severity === 'midway' ? 'medium' : 'low',
+        severity === 'dangerous'
+          ? 'high'
+          : severity === 'developing'
+            ? 'medium'
+            : 'low',
       mitigationSuggestions: [],
     },
     urgency: {
@@ -238,7 +242,11 @@ function generateAssessmentFromFusion(
       estimatedTime: 'To be determined',
       estimatedCost: { min: 0, max: 0, recommended: 0 },
       complexity:
-        severity === 'full' ? 'high' : severity === 'midway' ? 'medium' : 'low',
+        severity === 'dangerous'
+          ? 'high'
+          : severity === 'developing'
+            ? 'medium'
+            : 'low',
     },
     evidence: {
       roboflowDetections: yoloOutput?.detections || [],
@@ -271,8 +279,9 @@ function getTimelineForUrgency(urgency: UrgencyLevel): string {
 function getRecommendationForSeverity(severity: DamageSeverity): string {
   const recommendations: Record<DamageSeverity, string> = {
     early: 'Monitor and plan for preventive maintenance',
-    midway: 'Schedule professional assessment and repairs',
-    full: 'Immediate professional intervention required',
+    developing: 'Schedule professional assessment soon',
+    significant: 'Schedule professional assessment and repairs',
+    dangerous: 'Immediate professional intervention required',
   };
   return recommendations[severity];
 }
