@@ -1,8 +1,11 @@
-import SecurityManager from '../../utils/SecurityManager';
+import {
+  SecurityManager,
+  SecurityManagerService,
+} from '../../utils/SecurityManager';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import SqlInjectionProtection from '../../utils/SqlInjectionProtection';
-import InputValidationMiddleware from '../../middleware/InputValidationMiddleware';
+import { InputValidationMiddleware } from '../../middleware/InputValidationMiddleware';
 import { logger } from '../../utils/logger';
 import { Alert } from 'react-native';
 
@@ -32,9 +35,11 @@ jest.mock('../../utils/SqlInjectionProtection', () => ({
 }));
 
 jest.mock('../../middleware/InputValidationMiddleware', () => ({
-  validateText: jest.fn(),
-  validateEmail: jest.fn(),
-  validateRateLimit: jest.fn(),
+  InputValidationMiddleware: {
+    validateText: jest.fn(),
+    validateEmail: jest.fn(),
+    validateRateLimit: jest.fn(),
+  },
 }));
 
 jest.mock('../../utils/logger', () => ({
@@ -74,13 +79,12 @@ describe('SecurityManager', () => {
       expect(typeof SecurityManager.validateFileUpload).toBe('function');
       expect(typeof SecurityManager.secureStore).toBe('function');
       expect(typeof SecurityManager.secureRetrieve).toBe('function');
-      expect(typeof SecurityManager.sanitizeForLogging).toBe('function');
-      expect(typeof SecurityManager.checkRateLimit).toBe('function');
+      expect(typeof SecurityManagerService.sanitizeForLogging).toBe('function');
+      expect(typeof SecurityManagerService.checkRateLimit).toBe('function');
       expect(typeof SecurityManager.generateSecurityReport).toBe('function');
     });
 
     it('should export static methods', () => {
-      const SecurityManagerService = SecurityManager.constructor;
       expect(typeof SecurityManagerService.checkRateLimit).toBe('function');
       expect(typeof SecurityManagerService.hasPermission).toBe('function');
       expect(typeof SecurityManagerService.sanitizeForLogging).toBe('function');
@@ -538,11 +542,15 @@ describe('SecurityManager', () => {
 
   describe('sanitizeForLogging', () => {
     it('should return non-objects as-is', () => {
-      expect(SecurityManager.sanitizeForLogging('string')).toBe('string');
-      expect(SecurityManager.sanitizeForLogging(123)).toBe(123);
-      expect(SecurityManager.sanitizeForLogging(true)).toBe(true);
-      expect(SecurityManager.sanitizeForLogging(null)).toBe(null);
-      expect(SecurityManager.sanitizeForLogging(undefined)).toBe(undefined);
+      expect(SecurityManagerService.sanitizeForLogging('string')).toBe(
+        'string'
+      );
+      expect(SecurityManagerService.sanitizeForLogging(123)).toBe(123);
+      expect(SecurityManagerService.sanitizeForLogging(true)).toBe(true);
+      expect(SecurityManagerService.sanitizeForLogging(null)).toBe(null);
+      expect(SecurityManagerService.sanitizeForLogging(undefined)).toBe(
+        undefined
+      );
     });
 
     it('should redact sensitive keys', () => {
@@ -556,7 +564,7 @@ describe('SecurityManager', () => {
         ssn: '123-45-6789',
       };
 
-      const sanitized = SecurityManager.sanitizeForLogging(data);
+      const sanitized = SecurityManagerService.sanitizeForLogging(data);
 
       expect(sanitized).toEqual({
         username: 'john',
@@ -577,7 +585,7 @@ describe('SecurityManager', () => {
         SECRET_KEY: 'secret',
       };
 
-      const sanitized = SecurityManager.sanitizeForLogging(data);
+      const sanitized = SecurityManagerService.sanitizeForLogging(data);
 
       expect(sanitized).toEqual({
         PASSWORD: '[REDACTED]',
@@ -595,7 +603,7 @@ describe('SecurityManager', () => {
         keychain: 'keys',
       };
 
-      const sanitized = SecurityManager.sanitizeForLogging(data);
+      const sanitized = SecurityManagerService.sanitizeForLogging(data);
 
       expect(sanitized).toEqual({
         user: 'john',
@@ -607,7 +615,7 @@ describe('SecurityManager', () => {
 
     it('should not mutate original object', () => {
       const data = { password: 'secret' };
-      const sanitized = SecurityManager.sanitizeForLogging(data);
+      const sanitized = SecurityManagerService.sanitizeForLogging(data);
 
       expect(data.password).toBe('secret');
       expect(sanitized.password).toBe('[REDACTED]');
@@ -616,138 +624,64 @@ describe('SecurityManager', () => {
 
     it('should use static method', () => {
       const data = { password: 'secret' };
-      const instanceResult = SecurityManager.sanitizeForLogging(data);
-      const staticResult = SecurityManager.constructor.sanitizeForLogging(data);
+      const instanceResult = SecurityManagerService.sanitizeForLogging(data);
+      const staticResult = SecurityManagerService.sanitizeForLogging(data);
 
       expect(instanceResult).toEqual(staticResult);
     });
   });
 
   describe('checkRateLimit', () => {
-    it('should allow first request', async () => {
-      (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null);
-      (AsyncStorage.setItem as jest.Mock).mockResolvedValue(undefined);
+    // NOTE: The rate limit persistence logic moved from SecurityManager to
+    // InputValidationMiddleware (see commit c806b9ba & InputValidationMiddleware.test.ts).
+    // SecurityManagerService.checkRateLimit is now a thin delegate that just
+    // calls InputValidationMiddleware.validateRateLimit(...).allowed.
+    // Persistence / window / storage-error behavior is covered in
+    // apps/mobile/src/middleware/__tests__/InputValidationMiddleware.test.ts.
 
-      const result = await SecurityManager.checkRateLimit('user1', 5, 1000);
+    it('should delegate to InputValidationMiddleware.validateRateLimit and return allowed=true', async () => {
+      (
+        InputValidationMiddleware.validateRateLimit as jest.Mock
+      ).mockResolvedValue({ allowed: true, remaining: 4 });
+
+      const result = await SecurityManagerService.checkRateLimit(
+        'user1',
+        5,
+        1000
+      );
 
       expect(result).toBe(true);
-      expect(AsyncStorage.getItem).toHaveBeenCalledWith('@rate_limit_data');
-      expect(AsyncStorage.setItem).toHaveBeenCalled();
+      expect(InputValidationMiddleware.validateRateLimit).toHaveBeenCalledWith(
+        'user1',
+        5,
+        1000
+      );
     });
 
-    it('should increment counter for subsequent requests', async () => {
-      (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null);
-      (AsyncStorage.setItem as jest.Mock).mockResolvedValue(undefined);
+    it('should return false when middleware says rate limit exceeded', async () => {
+      (
+        InputValidationMiddleware.validateRateLimit as jest.Mock
+      ).mockResolvedValue({ allowed: false, remaining: 0 });
 
-      const result1 = await SecurityManager.checkRateLimit('user1', 5, 60000);
-      const result2 = await SecurityManager.checkRateLimit('user1', 5, 60000);
-      const result3 = await SecurityManager.checkRateLimit('user1', 5, 60000);
+      const result = await SecurityManagerService.checkRateLimit(
+        'user2',
+        3,
+        60000
+      );
 
-      expect(result1).toBe(true);
-      expect(result2).toBe(true);
-      expect(result3).toBe(true);
-    });
-
-    it('should block requests exceeding limit', async () => {
-      (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null);
-      (AsyncStorage.setItem as jest.Mock).mockResolvedValue(undefined);
-
-      // Make requests up to the limit
-      for (let i = 0; i < 3; i++) {
-        await SecurityManager.checkRateLimit('user2', 3, 60000);
-      }
-
-      // Next request should be blocked
-      const result = await SecurityManager.checkRateLimit('user2', 3, 60000);
       expect(result).toBe(false);
     });
 
-    it('should reset after window expires', async () => {
-      (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null);
-      (AsyncStorage.setItem as jest.Mock).mockResolvedValue(undefined);
+    it('should forward all arguments to the middleware', async () => {
+      (
+        InputValidationMiddleware.validateRateLimit as jest.Mock
+      ).mockResolvedValue({ allowed: true, remaining: 9 });
 
-      const now = Date.now();
-      jest.spyOn(Date, 'now').mockReturnValue(now);
+      await SecurityManagerService.checkRateLimit('user3', 10, 30000);
 
-      // First request
-      await SecurityManager.checkRateLimit('user3', 1, 1000);
-
-      // Move time forward past the window
-      jest.spyOn(Date, 'now').mockReturnValue(now + 1001);
-
-      // Should allow new request
-      const result = await SecurityManager.checkRateLimit('user3', 1, 1000);
-      expect(result).toBe(true);
-    });
-
-    it('should load persisted rate limit data', async () => {
-      const futureTime = Date.now() + 10000;
-      const persistedData = {
-        user4: { count: 2, resetTime: futureTime },
-      };
-
-      (AsyncStorage.getItem as jest.Mock).mockResolvedValue(
-        JSON.stringify(persistedData)
-      );
-      (AsyncStorage.setItem as jest.Mock).mockResolvedValue(undefined);
-
-      // Should respect the persisted count
-      const result = await SecurityManager.checkRateLimit('user4', 3, 60000);
-      expect(result).toBe(true);
-
-      // One more request should hit the limit
-      const result2 = await SecurityManager.checkRateLimit('user4', 3, 60000);
-      expect(result2).toBe(false);
-    });
-
-    it('should filter out expired entries when loading', async () => {
-      const now = Date.now();
-      const persistedData = {
-        expired: { count: 5, resetTime: now - 1000 },
-        valid: { count: 2, resetTime: now + 10000 },
-      };
-
-      (AsyncStorage.getItem as jest.Mock).mockResolvedValue(
-        JSON.stringify(persistedData)
-      );
-      (AsyncStorage.setItem as jest.Mock).mockResolvedValue(undefined);
-
-      await SecurityManager.checkRateLimit('expired', 3, 60000);
-
-      // Expired entry should have been reset
-      expect(await SecurityManager.checkRateLimit('expired', 3, 60000)).toBe(
-        true
-      );
-    });
-
-    it('should handle AsyncStorage errors gracefully', async () => {
-      (AsyncStorage.getItem as jest.Mock).mockRejectedValue(
-        new Error('Storage error')
-      );
-      (AsyncStorage.setItem as jest.Mock).mockResolvedValue(undefined);
-
-      const result = await SecurityManager.checkRateLimit('user5', 5, 1000);
-
-      expect(result).toBe(true);
-      expect(logger.error).toHaveBeenCalledWith(
-        'Failed to load rate limit data:',
-        expect.any(Error)
-      );
-    });
-
-    it('should handle save errors gracefully', async () => {
-      (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null);
-      (AsyncStorage.setItem as jest.Mock).mockRejectedValue(
-        new Error('Save error')
-      );
-
-      const result = await SecurityManager.checkRateLimit('user6', 5, 1000);
-
-      expect(result).toBe(true);
-      expect(logger.error).toHaveBeenCalledWith(
-        'Failed to save rate limit data:',
-        expect.any(Error)
-      );
+      expect(
+        InputValidationMiddleware.validateRateLimit
+      ).toHaveBeenLastCalledWith('user3', 10, 30000);
     });
   });
 
@@ -761,7 +695,7 @@ describe('SecurityManager', () => {
           remaining: 5,
         });
 
-        const result = await SecurityManager.constructor.checkRateLimit(
+        const result = await SecurityManagerService.checkRateLimit(
           'user1',
           10,
           60000
@@ -781,7 +715,7 @@ describe('SecurityManager', () => {
           remaining: 0,
         });
 
-        const result = await SecurityManager.constructor.checkRateLimit(
+        const result = await SecurityManagerService.checkRateLimit(
           'user1',
           10,
           60000
@@ -793,63 +727,63 @@ describe('SecurityManager', () => {
 
     describe('hasPermission', () => {
       it('should allow access when user role meets required level', () => {
+        expect(SecurityManagerService.hasPermission('admin', 'homeowner')).toBe(
+          true
+        );
         expect(
-          SecurityManager.constructor.hasPermission('admin', 'homeowner')
+          SecurityManagerService.hasPermission('admin', 'contractor')
         ).toBe(true);
-        expect(
-          SecurityManager.constructor.hasPermission('admin', 'contractor')
-        ).toBe(true);
-        expect(
-          SecurityManager.constructor.hasPermission('admin', 'admin')
-        ).toBe(true);
+        expect(SecurityManagerService.hasPermission('admin', 'admin')).toBe(
+          true
+        );
       });
 
       it('should deny access when user role is below required level', () => {
+        expect(SecurityManagerService.hasPermission('guest', 'homeowner')).toBe(
+          false
+        );
+        expect(SecurityManagerService.hasPermission('guest', 'admin')).toBe(
+          false
+        );
+        expect(SecurityManagerService.hasPermission('homeowner', 'admin')).toBe(
+          false
+        );
         expect(
-          SecurityManager.constructor.hasPermission('guest', 'homeowner')
-        ).toBe(false);
-        expect(
-          SecurityManager.constructor.hasPermission('guest', 'admin')
-        ).toBe(false);
-        expect(
-          SecurityManager.constructor.hasPermission('homeowner', 'admin')
-        ).toBe(false);
-        expect(
-          SecurityManager.constructor.hasPermission('contractor', 'admin')
+          SecurityManagerService.hasPermission('contractor', 'admin')
         ).toBe(false);
       });
 
       it('should handle equal permission levels', () => {
         expect(
-          SecurityManager.constructor.hasPermission('homeowner', 'homeowner')
+          SecurityManagerService.hasPermission('homeowner', 'homeowner')
         ).toBe(true);
         expect(
-          SecurityManager.constructor.hasPermission('contractor', 'contractor')
+          SecurityManagerService.hasPermission('contractor', 'contractor')
         ).toBe(true);
         expect(
-          SecurityManager.constructor.hasPermission('homeowner', 'contractor')
+          SecurityManagerService.hasPermission('homeowner', 'contractor')
         ).toBe(true);
         expect(
-          SecurityManager.constructor.hasPermission('contractor', 'homeowner')
+          SecurityManagerService.hasPermission('contractor', 'homeowner')
         ).toBe(true);
       });
 
       it('should default unknown roles to guest level', () => {
         expect(
-          SecurityManager.constructor.hasPermission('unknown', 'homeowner')
+          SecurityManagerService.hasPermission('unknown', 'homeowner')
         ).toBe(false);
-        expect(
-          SecurityManager.constructor.hasPermission('invalid', 'admin')
-        ).toBe(false);
+        expect(SecurityManagerService.hasPermission('invalid', 'admin')).toBe(
+          false
+        );
       });
 
       it('should handle undefined required role', () => {
-        expect(
-          SecurityManager.constructor.hasPermission('admin', 'undefined')
-        ).toBe(true);
-        expect(
-          SecurityManager.constructor.hasPermission('guest', 'undefined')
-        ).toBe(true);
+        expect(SecurityManagerService.hasPermission('admin', 'undefined')).toBe(
+          true
+        );
+        expect(SecurityManagerService.hasPermission('guest', 'undefined')).toBe(
+          true
+        );
       });
     });
   });
@@ -869,20 +803,11 @@ describe('SecurityManager', () => {
       });
     });
 
-    it('should include current rate limit status', async () => {
-      (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null);
-      (AsyncStorage.setItem as jest.Mock).mockResolvedValue(undefined);
-
-      // Add some rate limit entries
-      await SecurityManager.checkRateLimit('user1', 5, 60000);
-      await SecurityManager.checkRateLimit('user2', 5, 60000);
-
-      const report = SecurityManager.generateSecurityReport();
-
-      expect(report.rateLimitStatus).toHaveLength(2);
-      expect(report.rateLimitStatus[0]).toHaveProperty('identifier');
-      expect(report.rateLimitStatus[0]).toHaveProperty('count');
-      expect(report.rateLimitStatus[0]).toHaveProperty('resetTime');
+    it.skip('should include current rate limit status', async () => {
+      // SKIPPED: rate limit internal map was moved from SecurityManager to
+      // InputValidationMiddleware. SecurityManager.generateSecurityReport()
+      // no longer tracks a local rateLimitStatus array — that behavior is
+      // owned by InputValidationMiddleware and tested in its own suite.
     });
   });
 
@@ -976,31 +901,15 @@ describe('SecurityManager', () => {
       expect(result.errors).toContain('Text exceeds maximum length');
     });
 
-    it('should handle concurrent rate limit checks', async () => {
-      (AsyncStorage.getItem as jest.Mock).mockResolvedValue(null);
-      (AsyncStorage.setItem as jest.Mock).mockResolvedValue(undefined);
-
-      // Simulate concurrent requests
-      const promises = [];
-      for (let i = 0; i < 5; i++) {
-        promises.push(SecurityManager.checkRateLimit('concurrent', 3, 60000));
-      }
-
-      const results = await Promise.all(promises);
-
-      // First 3 should succeed, last 2 should fail
-      expect(results.slice(0, 3).every((r) => r === true)).toBe(true);
-      expect(results.slice(3).every((r) => r === false)).toBe(true);
+    it.skip('should handle concurrent rate limit checks', async () => {
+      // SKIPPED: concurrent counter behavior is owned by
+      // InputValidationMiddleware's persistent rate limiter, not
+      // SecurityManager. See InputValidationMiddleware.test.ts.
     });
 
-    it('should handle malformed JSON in AsyncStorage', async () => {
-      (AsyncStorage.getItem as jest.Mock).mockResolvedValue('invalid json');
-      (AsyncStorage.setItem as jest.Mock).mockResolvedValue(undefined);
-
-      const result = await SecurityManager.checkRateLimit('user', 5, 1000);
-
-      expect(result).toBe(true);
-      expect(logger.error).toHaveBeenCalled();
+    it.skip('should handle malformed JSON in AsyncStorage', async () => {
+      // SKIPPED: AsyncStorage JSON handling moved to
+      // InputValidationMiddleware. See InputValidationMiddleware.test.ts.
     });
   });
 
@@ -1082,7 +991,7 @@ describe('SecurityManager', () => {
         },
       };
 
-      const sanitized = SecurityManager.sanitizeForLogging(complexData);
+      const sanitized = SecurityManagerService.sanitizeForLogging(complexData);
 
       expect(sanitized.user.password).toBe('[REDACTED]');
       expect(sanitized.user.profile.apiKey).toBe('[REDACTED]');
