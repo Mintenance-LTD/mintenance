@@ -194,6 +194,8 @@ export const POST = withApiHandler(
       jobId: bodyJobId,
       propertyId: bodyPropertyId,
       domain: bodyDomain,
+      gps: bodyGps,
+      roomMetadata: bodyRoomMetadata,
     } = validationResult.data;
 
     // SECURITY: Validate image URLs — whitelist domains, block SSRF
@@ -414,6 +416,13 @@ export const POST = withApiHandler(
             urgency: 'monitor',
             assessment_data: {},
             validation_status: 'pending',
+            ...(bodyGps
+              ? {
+                  latitude: bodyGps.latitude,
+                  longitude: bodyGps.longitude,
+                }
+              : {}),
+            ...(bodyRoomMetadata ? { room_metadata: bodyRoomMetadata } : {}),
             created_at: new Date().toISOString(),
           })
           .select('id')
