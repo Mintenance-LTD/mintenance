@@ -22,7 +22,7 @@ import { ScreenHeader } from '../../components/shared';
 import { DatePicker } from '../../components/ui/DatePicker';
 import { useAuth } from '../../contexts/AuthContext';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '../../config/supabase';
+import { mobileApiClient } from '../../utils/mobileApiClient';
 import type { ProfileStackParamList } from '../../navigation/types';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 import { theme } from '../../theme';
@@ -83,7 +83,6 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
       ]
         .filter(Boolean)
         .join(', ');
-      const propertyName = `${data.property_type || 'Property'} at ${data.address_line1}`;
 
       // Forward geocode address if we don't have coordinates yet
       let lat = data.latitude as number | undefined;
@@ -101,20 +100,21 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
         }
       }
 
-      const { error } = await supabase.from('properties').insert({
-        owner_id: user.id,
-        property_name: propertyName,
-        address,
-        property_type: (data.property_type as string) || 'residential',
+      // Route through the server API so rate limits, subscription-tier
+      // enforcement, sanitization, and auditing all run.
+      await mobileApiClient.post('/api/properties', {
+        address_line1: data.address_line1,
+        address_line2: data.address_line2,
         city: data.city,
+        county: data.county,
         postcode: data.postcode,
-        bedrooms: data.bedrooms || null,
-        bathrooms: data.bathrooms || null,
-        latitude: lat || null,
-        longitude: lng || null,
-        is_primary: false,
+        country: data.country,
+        property_type: data.property_type,
+        bedrooms: data.bedrooms,
+        bathrooms: data.bathrooms,
+        latitude: lat,
+        longitude: lng,
       });
-      if (error) throw new Error(error.message);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['properties'] });

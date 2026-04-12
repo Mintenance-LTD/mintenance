@@ -70,15 +70,11 @@ export const EditPropertyScreen: React.FC<Props> = ({ navigation, route }) => {
   } = useQuery({
     queryKey: ['property', propertyId],
     queryFn: async () => {
-      const { data, error: queryError } = await (
-        await import('../../config/supabase')
-      ).supabase
-        .from('properties')
-        .select('*')
-        .eq('id', propertyId)
-        .single();
-      if (queryError) throw new Error(queryError.message);
-      return data as Property;
+      // Route through the API so ownership is authoritatively checked
+      // server-side (via PropertyTeamService) and RLS isn't the sole guard.
+      return await mobileApiClient.get<Property>(
+        `/api/properties/${propertyId}`
+      );
     },
     enabled: !!user && !!propertyId,
   });

@@ -21,7 +21,10 @@ export const GET = withApiHandler(
       .single();
 
     if (!property) {
-      return NextResponse.json({ error: 'Property not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Property not found' },
+        { status: 404 }
+      );
     }
 
     const isOwner = property.owner_id === user.id || user.role === 'admin';
@@ -36,21 +39,29 @@ export const GET = withApiHandler(
       : { data: null };
 
     if (!isOwner && !tenantLink) {
-      return NextResponse.json({ error: 'Property not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Property not found' },
+        { status: 404 }
+      );
     }
 
     const { data: tenants, error } = await serverSupabase
       .from('property_tenants')
-      .select('id, name, email, phone, lease_start, lease_end, notes, is_active, invitation_sent_at, invitation_accepted_at, user_id, created_at')
+      .select(
+        'id, name, email, phone, lease_start, lease_end, notes, is_active, invitation_sent_at, invitation_accepted_at, user_id, created_at'
+      )
       .eq('property_id', propertyId)
       .order('created_at', { ascending: false });
 
     if (error) {
-      return NextResponse.json({ error: 'Failed to fetch tenants' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Failed to fetch tenants' },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({ tenants: tenants || [] });
-  },
+  }
 );
 
 /**
@@ -68,10 +79,13 @@ export const POST = withApiHandler(
       .from('properties')
       .select('id, owner_id, address, name')
       .eq('id', propertyId)
-      .single();
+      .maybeSingle();
 
     if (!property || (property.owner_id !== user.id && user.role !== 'admin')) {
-      return NextResponse.json({ error: 'Property not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Property not found' },
+        { status: 404 }
+      );
     }
 
     const { name, email, phone, lease_start, lease_end, notes } = body;
@@ -80,18 +94,26 @@ export const POST = withApiHandler(
       return NextResponse.json({ error: 'name is required' }, { status: 400 });
     }
 
+    // Normalize email once so every downstream branch agrees on casing.
+    const normalizedEmail: string | null =
+      typeof email === 'string' && email.trim()
+        ? email.toLowerCase().trim()
+        : null;
+
     // Check if tenant with same email already exists for this property
-    if (email) {
+    if (normalizedEmail) {
       const { data: existing } = await serverSupabase
         .from('property_tenants')
         .select('id')
         .eq('property_id', propertyId)
-        .eq('email', email.toLowerCase().trim())
+        .eq('email', normalizedEmail)
         .maybeSingle();
 
       if (existing) {
         return NextResponse.json(
-          { error: 'A tenant with this email already exists for this property' },
+          {
+            error: 'A tenant with this email already exists for this property',
+          },
           { status: 409 }
         );
       }
@@ -100,7 +122,7 @@ export const POST = withApiHandler(
       const { data: existingUser } = await serverSupabase
         .from('profiles')
         .select('id')
-        .eq('email', email.toLowerCase().trim())
+        .eq('email', normalizedEmail)
         .maybeSingle();
 
       // If they have an account, link them directly
@@ -110,7 +132,7 @@ export const POST = withApiHandler(
           .insert({
             property_id: propertyId,
             name,
-            email: email.toLowerCase().trim(),
+            email: normalizedEmail,
             phone: phone || null,
             lease_start: lease_start || null,
             lease_end: lease_end || null,
@@ -124,7 +146,10 @@ export const POST = withApiHandler(
 
         if (error) {
           logger.error('Failed to create tenant', { error });
-          return NextResponse.json({ error: 'Failed to create tenant' }, { status: 500 });
+          return NextResponse.json(
+            { error: 'Failed to create tenant' },
+            { status: 500 }
+          );
         }
 
         // Notify the existing user
@@ -146,7 +171,7 @@ export const POST = withApiHandler(
       .insert({
         property_id: propertyId,
         name,
-        email: email?.toLowerCase().trim() || null,
+        email: normalizedEmail,
         phone: phone || null,
         lease_start: lease_start || null,
         lease_end: lease_end || null,
@@ -158,12 +183,16 @@ export const POST = withApiHandler(
 
     if (error) {
       logger.error('Failed to create tenant', { error });
-      return NextResponse.json({ error: 'Failed to create tenant' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Failed to create tenant' },
+        { status: 500 }
+      );
     }
 
     // Send invitation email if email provided
     if (email && tenant.invitation_token) {
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.co.uk';
+      const baseUrl =
+        process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.co.uk';
       const inviteUrl = `${baseUrl}/register?invite=${tenant.invitation_token}`;
 
       // Get landlord name
@@ -173,36 +202,43 @@ export const POST = withApiHandler(
         .eq('id', user.id)
         .single();
 
-      const landlordName = landlord?.first_name && landlord?.last_name
-        ? `${landlord.first_name} ${landlord.last_name}`
-        : 'Your landlord';
+      const landlordName =
+        landlord?.first_name && landlord?.last_name
+          ? `${landlord.first_name} ${landlord.last_name}`
+          : 'Your landlord';
 
-      const propertyAddress = property.address || property.name || 'your property';
+      const propertyAddress =
+        property.address || property.name || 'your property';
 
       EmailService.sendTenantInviteEmail(email.toLowerCase().trim(), {
         tenantName: name,
         propertyAddress,
         landlordName,
         inviteUrl,
-      }).then((sent) => {
-        if (sent) {
-          // Update invitation_sent_at
-          serverSupabase
-            .from('property_tenants')
-            .update({ invitation_sent_at: new Date().toISOString() })
-            .eq('id', tenant.id)
-            .then(() => {});
-        }
-      }).catch((err) => {
-        logger.error('Failed to send tenant invitation email', { err, tenantId: tenant.id });
-      });
+      })
+        .then((sent) => {
+          if (sent) {
+            // Update invitation_sent_at
+            serverSupabase
+              .from('property_tenants')
+              .update({ invitation_sent_at: new Date().toISOString() })
+              .eq('id', tenant.id)
+              .then(() => {});
+          }
+        })
+        .catch((err) => {
+          logger.error('Failed to send tenant invitation email', {
+            err,
+            tenantId: tenant.id,
+          });
+        });
     }
 
     return NextResponse.json(
       { tenant, invitation_sent: !!email },
       { status: 201 }
     );
-  },
+  }
 );
 
 /**
@@ -217,7 +253,10 @@ export const DELETE = withApiHandler(
     const tenantId = searchParams.get('tenantId');
 
     if (!tenantId) {
-      return NextResponse.json({ error: 'tenantId is required' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'tenantId is required' },
+        { status: 400 }
+      );
     }
 
     const { data: property } = await serverSupabase
@@ -227,7 +266,10 @@ export const DELETE = withApiHandler(
       .single();
 
     if (!property || (property.owner_id !== user.id && user.role !== 'admin')) {
-      return NextResponse.json({ error: 'Property not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Property not found' },
+        { status: 404 }
+      );
     }
 
     const { error } = await serverSupabase
@@ -237,9 +279,12 @@ export const DELETE = withApiHandler(
       .eq('property_id', propertyId);
 
     if (error) {
-      return NextResponse.json({ error: 'Failed to remove tenant' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Failed to remove tenant' },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({ success: true });
-  },
+  }
 );

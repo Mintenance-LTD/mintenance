@@ -21,26 +21,40 @@ import {
   UsageMetrics,
   ModelTrainingConfig,
   TrainingProgress,
-  ResponseMetadata
+  ResponseMetadata,
 } from '../types';
+import {
+  generateRequestId,
+  getPlatform,
+  createMetadata,
+  createEmptyMetadata,
+} from './aiMetadataHelpers';
 export class UnifiedAIService {
   private apiClient: AxiosInstance;
   private config: AIServiceConfig;
-  private cache: Map<string, { data: Record<string, unknown>; timestamp: number }> = new Map();
+  private cache: Map<
+    string,
+    { data: Record<string, unknown>; timestamp: number }
+  > = new Map();
   private maxCacheEntries = 1000;
   constructor(config: AIServiceConfig) {
     this.config = config;
     this.apiClient = axios.create({
-      baseURL: config.endpoints.baseUrl || config.endpoints.buildingSurveyor.replace('/api/building-surveyor/assess', ''),
+      baseURL:
+        config.endpoints.baseUrl ||
+        config.endpoints.buildingSurveyor.replace(
+          '/api/building-surveyor/assess',
+          ''
+        ),
       timeout: config.performance.timeout || 30000,
       headers: {
         'Content-Type': 'application/json',
-      }
+      },
     });
     // Add request interceptor for auth and tracking
     this.apiClient.interceptors.request.use((config) => {
-      config.headers['X-Request-ID'] = this.generateRequestId();
-      config.headers['X-Platform'] = this.getPlatform();
+      config.headers['X-Request-ID'] = generateRequestId();
+      config.headers['X-Platform'] = getPlatform();
       return config;
     });
     // Add response interceptor for error handling
@@ -65,6 +79,15 @@ export class UnifiedAIService {
       category?: string;
       location?: string;
       urgency?: string;
+      gps?: { latitude: number; longitude: number };
+      roomMetadata?: {
+        room?: string;
+        floor?: number;
+        dimensions?: string;
+        orientation?: string;
+      };
+      jobId?: string;
+      propertyId?: string;
     }
   ): Promise<AIServiceResponse<BuildingAssessment>> {
     const cacheKey = this.getCacheKey('assess', images, context);
@@ -76,27 +99,34 @@ export class UnifiedAIService {
           success: true,
           data: cached,
           metadata: {
-            requestId: this.generateRequestId(),
+            requestId: generateRequestId(),
             timestamp: new Date().toISOString(),
             processingTime: 0,
             apiCalls: 0,
             totalCost: 0,
             cacheHit: true,
-            modelVersion: this.config.features.enableShadowMode ? 'shadow' : 'production'
-          }
+            modelVersion: this.config.features.enableShadowMode
+              ? 'shadow'
+              : 'production',
+          },
         };
       }
     }
     try {
       const startTime = Date.now();
+      // API expects `imageUrls` + top-level gps/roomMetadata/jobId/propertyId
       const response = await this.apiClient.post<BuildingAssessment>(
         '/api/building-surveyor/assess',
         {
-          images,
-          context,
-          enableSAM3: this.config.features.enableSAM3,
-          shadowMode: this.config.features.enableShadowMode,
-          collectTrainingData: this.config.features.enableTrainingDataCollection
+          imageUrls: images,
+          context: context && {
+            location: context.location,
+            propertyDetails: context.description,
+          },
+          ...(context?.jobId && { jobId: context.jobId }),
+          ...(context?.propertyId && { propertyId: context.propertyId }),
+          ...(context?.gps && { gps: context.gps }),
+          ...(context?.roomMetadata && { roomMetadata: context.roomMetadata }),
         }
       );
       const assessment = response.data;
@@ -105,21 +135,24 @@ export class UnifiedAIService {
         this.saveToCache(cacheKey, assessment);
       }
       // Collect training data if enabled
-      if (this.config.features.enableTrainingDataCollection && assessment.trainingData) {
+      if (
+        this.config.features.enableTrainingDataCollection &&
+        assessment.trainingData
+      ) {
         await this.submitTrainingData(assessment.trainingData);
       }
       return {
         success: true,
         data: assessment,
         metadata: {
-          requestId: response.headers['x-request-id'] || this.generateRequestId(),
+          requestId: response.headers['x-request-id'] || generateRequestId(),
           timestamp: new Date().toISOString(),
           processingTime: Date.now() - startTime,
           apiCalls: assessment.metadata?.apiCalls?.length || 1,
           totalCost: assessment.metadata?.costTracking?.actualCost || 0,
           cacheHit: false,
-          modelVersion: assessment.metadata?.version || 'unknown'
-        }
+          modelVersion: assessment.metadata?.version || 'unknown',
+        },
       };
     } catch (err: unknown) {
       if (!axios.isAxiosError(err)) {
@@ -130,9 +163,9 @@ export class UnifiedAIService {
             message: (err as Error).message || 'Building assessment failed',
             details: err,
             retryable: false,
-            fallbackUsed: false
+            fallbackUsed: false,
           },
-          metadata: this.createEmptyMetadata()
+          metadata: createEmptyMetadata(),
         };
       }
       const error = err;
@@ -143,17 +176,17 @@ export class UnifiedAIService {
           message: error.message || 'Building assessment failed',
           details: error.response?.data,
           retryable: error.response?.status !== 400,
-          fallbackUsed: false
+          fallbackUsed: false,
         },
         metadata: {
-          requestId: this.generateRequestId(),
+          requestId: generateRequestId(),
           timestamp: new Date().toISOString(),
           processingTime: 0,
           apiCalls: 0,
           totalCost: 0,
           cacheHit: false,
-          modelVersion: 'error'
-        }
+          modelVersion: 'error',
+        },
       };
     }
   }
@@ -169,13 +202,13 @@ export class UnifiedAIService {
       const response = await this.apiClient.get<PricingRecommendation>(
         `/api/jobs/${jobId}/pricing-recommendation`,
         {
-          params: { contractorId, proposedPrice }
+          params: { contractorId, proposedPrice },
         }
       );
       return {
         success: true,
         data: response.data,
-        metadata: this.createMetadata(response)
+        metadata: createMetadata(response),
       };
     } catch (error) {
       return this.handleError(error, 'Pricing recommendation failed');
@@ -193,13 +226,13 @@ export class UnifiedAIService {
         '/api/agents/decision',
         {
           agentName,
-          context
+          context,
         }
       );
       return {
         success: true,
         data: response.data,
-        metadata: this.createMetadata(response)
+        metadata: createMetadata(response),
       };
     } catch (error) {
       return this.handleError(error, 'Agent decision failed');
@@ -208,7 +241,9 @@ export class UnifiedAIService {
   /**
    * Perform semantic search
    */
-  async search(query: SemanticSearchQuery): Promise<AIServiceResponse<SearchResult[]>> {
+  async search(
+    query: SemanticSearchQuery
+  ): Promise<AIServiceResponse<SearchResult[]>> {
     try {
       const response = await this.apiClient.post<SearchResult[]>(
         '/api/ai/search',
@@ -217,7 +252,7 @@ export class UnifiedAIService {
       return {
         success: true,
         data: response.data,
-        metadata: this.createMetadata(response)
+        metadata: createMetadata(response),
       };
     } catch (error) {
       return this.handleError(error, 'Search failed');
@@ -235,13 +270,13 @@ export class UnifiedAIService {
         '/api/sustainability/calculate',
         {
           contractorId,
-          data
+          data,
         }
       );
       return {
         success: true,
         data: response.data,
-        metadata: this.createMetadata(response)
+        metadata: createMetadata(response),
       };
     } catch (error) {
       return this.handleError(error, 'ESG calculation failed');
@@ -250,7 +285,9 @@ export class UnifiedAIService {
   /**
    * Analyze images using Google Vision
    */
-  async analyzeImages(images: string[]): Promise<AIServiceResponse<ImageAnalysis[]>> {
+  async analyzeImages(
+    images: string[]
+  ): Promise<AIServiceResponse<ImageAnalysis[]>> {
     try {
       const response = await this.apiClient.post<ImageAnalysis[]>(
         '/api/images/analyze',
@@ -259,7 +296,7 @@ export class UnifiedAIService {
       return {
         success: true,
         data: response.data,
-        metadata: this.createMetadata(response)
+        metadata: createMetadata(response),
       };
     } catch (error) {
       return this.handleError(error, 'Image analysis failed');
@@ -268,16 +305,15 @@ export class UnifiedAIService {
   /**
    * Submit training data for model improvement
    */
-  async submitTrainingData(data: TrainingDataEntry): Promise<AIServiceResponse<boolean>> {
+  async submitTrainingData(
+    data: TrainingDataEntry
+  ): Promise<AIServiceResponse<boolean>> {
     try {
-      const response = await this.apiClient.post(
-        '/api/training/submit',
-        data
-      );
+      const response = await this.apiClient.post('/api/training/submit', data);
       return {
         success: true,
         data: true,
-        metadata: this.createMetadata(response)
+        metadata: createMetadata(response),
       };
     } catch (error) {
       return this.handleError(error, 'Training data submission failed');
@@ -291,17 +327,14 @@ export class UnifiedAIService {
     corrections: UserCorrection[]
   ): Promise<AIServiceResponse<boolean>> {
     try {
-      const response = await this.apiClient.post(
-        '/api/training/corrections',
-        {
-          assessmentId,
-          corrections
-        }
-      );
+      const response = await this.apiClient.post('/api/training/corrections', {
+        assessmentId,
+        corrections,
+      });
       return {
         success: true,
         data: true,
-        metadata: this.createMetadata(response)
+        metadata: createMetadata(response),
       };
     } catch (error) {
       return this.handleError(error, 'Correction submission failed');
@@ -321,7 +354,7 @@ export class UnifiedAIService {
       return {
         success: true,
         data: response.data,
-        metadata: this.createMetadata(response)
+        metadata: createMetadata(response),
       };
     } catch (error) {
       return this.handleError(error, 'Failed to fetch usage metrics');
@@ -341,7 +374,7 @@ export class UnifiedAIService {
       return {
         success: true,
         data: response.data,
-        metadata: this.createMetadata(response)
+        metadata: createMetadata(response),
       };
     } catch (error) {
       return this.handleError(error, 'Failed to start model training');
@@ -350,7 +383,9 @@ export class UnifiedAIService {
   /**
    * Get training progress
    */
-  async getTrainingProgress(trainingId: string): Promise<AIServiceResponse<TrainingProgress>> {
+  async getTrainingProgress(
+    trainingId: string
+  ): Promise<AIServiceResponse<TrainingProgress>> {
     try {
       const response = await this.apiClient.get<TrainingProgress>(
         `/api/training/${trainingId}/progress`
@@ -358,7 +393,7 @@ export class UnifiedAIService {
       return {
         success: true,
         data: response.data,
-        metadata: this.createMetadata(response)
+        metadata: createMetadata(response),
       };
     } catch (error) {
       return this.handleError(error, 'Failed to fetch training progress');
@@ -373,13 +408,13 @@ export class UnifiedAIService {
     context: unknown
   ): Promise<AIServiceResponse<unknown>> {
     const agentEndpoints: { [key: string]: string } = {
-      'BidAcceptanceAgent': '/api/agents/bid-acceptance',
-      'SchedulingAgent': '/api/agents/scheduling',
-      'NotificationAgent': '/api/agents/notification',
-      'DisputeResolutionAgent': '/api/agents/dispute-resolution',
-      'EscrowReleaseAgent': '/api/agents/escrow-release',
-      'JobStatusAgent': '/api/agents/job-status',
-      'PredictiveAgent': '/api/agents/predictive'
+      BidAcceptanceAgent: '/api/agents/bid-acceptance',
+      SchedulingAgent: '/api/agents/scheduling',
+      NotificationAgent: '/api/agents/notification',
+      DisputeResolutionAgent: '/api/agents/dispute-resolution',
+      EscrowReleaseAgent: '/api/agents/escrow-release',
+      JobStatusAgent: '/api/agents/job-status',
+      PredictiveAgent: '/api/agents/predictive',
     };
     const endpoint = agentEndpoints[agentName];
     if (!endpoint) {
@@ -389,20 +424,20 @@ export class UnifiedAIService {
           code: 'INVALID_AGENT',
           message: `Unknown agent: ${agentName}`,
           retryable: false,
-          fallbackUsed: false
+          fallbackUsed: false,
         },
-        metadata: this.createEmptyMetadata()
+        metadata: createEmptyMetadata(),
       };
     }
     try {
       const response = await this.apiClient.post(endpoint, {
         action,
-        context
+        context,
       });
       return {
         success: true,
         data: response.data,
-        metadata: this.createMetadata(response)
+        metadata: createMetadata(response),
       };
     } catch (error) {
       return this.handleError(error, `${agentName} action failed`);
@@ -434,85 +469,41 @@ export class UnifiedAIService {
     }
     this.cache.set(key, {
       data: data as Record<string, unknown>,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     });
   }
-  private generateRequestId(): string {
-    return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-  }
-  private getPlatform(): string {
-    // Check if running in React Native
-    if (typeof navigator !== 'undefined' && navigator.product === 'ReactNative') {
-      return 'mobile';
-    }
-    // Check if running in browser
-    if (typeof window !== 'undefined') {
-      return 'web';
-    }
-    // Server-side
-    return 'server';
-  }
-  private createMetadata(response: AxiosResponse): ResponseMetadata {
-    return {
-      requestId: response.headers?.['x-request-id'] || this.generateRequestId(),
-      timestamp: new Date().toISOString(),
-      processingTime: parseInt(response.headers?.['x-processing-time'] || '0'),
-      apiCalls: parseInt(response.headers?.['x-api-calls'] || '1'),
-      totalCost: parseFloat(response.headers?.['x-total-cost'] || '0'),
-      cacheHit: response.headers?.['x-cache-hit'] === 'true',
-      modelVersion: response.headers?.['x-model-version'] || 'unknown'
-    };
-  }
-  private createEmptyMetadata(): ResponseMetadata {
-    return {
-      requestId: this.generateRequestId(),
-      timestamp: new Date().toISOString(),
-      processingTime: 0,
-      apiCalls: 0,
-      totalCost: 0,
-      cacheHit: false,
-      modelVersion: 'unknown'
-    };
-  }
-  private handleError<T>(error: unknown, defaultMessage: string): AIServiceResponse<T> {
-    if (!axios.isAxiosError(error)) {
-      return {
-        success: false,
-        error: {
-          code: 'UNKNOWN',
-          message: (error as Error).message || defaultMessage,
-          details: error,
-          retryable: false,
-          fallbackUsed: false
-        },
-        metadata: this.createEmptyMetadata()
-      };
-    }
-    const axiosError = error;
+  // generateRequestId, getPlatform, createMetadata, createEmptyMetadata imported from aiMetadataHelpers
+  private handleError<T>(
+    error: unknown,
+    defaultMessage: string
+  ): AIServiceResponse<T> {
+    const isAxios = axios.isAxiosError(error);
+    const axiosError = isAxios ? error : null;
     return {
       success: false,
       error: {
-        code: axiosError.response?.status?.toString() || 'UNKNOWN',
-        message: axiosError.message || defaultMessage,
-        details: axiosError.response?.data,
-        retryable: axiosError.response?.status !== 400 && axiosError.response?.status !== 401,
-        fallbackUsed: false
+        code: axiosError?.response?.status?.toString() || 'UNKNOWN',
+        message: (axiosError ?? (error as Error))?.message || defaultMessage,
+        details: axiosError?.response?.data ?? error,
+        retryable:
+          isAxios &&
+          axiosError?.response?.status !== 400 &&
+          axiosError?.response?.status !== 401,
+        fallbackUsed: false,
       },
-      metadata: this.createEmptyMetadata()
+      metadata: createEmptyMetadata(),
     };
   }
   private async retryRequest(error: AxiosError): Promise<AxiosResponse> {
     const config = error.config;
-    if (!config) {
-      return Promise.reject(error);
-    }
+    if (!config) return Promise.reject(error);
     const retryCount = Number(config.headers?.['X-Retry-Count'] ?? 0);
-    if (retryCount >= this.config.performance.maxRetries) {
+    if (retryCount >= this.config.performance.maxRetries)
       return Promise.reject(error);
-    }
     const retryAfter = error.response?.headers?.['retry-after'];
-    const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : 5000;
-    await new Promise(resolve => setTimeout(resolve, waitTime));
+    await new Promise((resolve) =>
+      setTimeout(resolve, retryAfter ? parseInt(retryAfter) * 1000 : 5000)
+    );
     config.headers.set('X-Retry-Count', retryCount + 1);
     return this.apiClient.request(config);
   }
@@ -528,7 +519,7 @@ export class UnifiedAIService {
   getCacheStats(): { size: number; entries: number } {
     return {
       size: JSON.stringify([...this.cache.entries()]).length,
-      entries: this.cache.size
+      entries: this.cache.size,
     };
   }
 }
