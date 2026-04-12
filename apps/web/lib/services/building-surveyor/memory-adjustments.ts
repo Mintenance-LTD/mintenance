@@ -88,7 +88,12 @@ function applySeverityAdjustment(
     return originalSeverity; // No significant adjustment
   }
 
-  const severityOrder: DamageSeverity[] = ['early', 'midway', 'full'];
+  const severityOrder: DamageSeverity[] = [
+    'early',
+    'developing',
+    'significant',
+    'dangerous',
+  ];
   const currentIndex = severityOrder.indexOf(originalSeverity);
 
   if (adjustment > 0.3) {

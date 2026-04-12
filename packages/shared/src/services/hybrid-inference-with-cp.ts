@@ -8,7 +8,7 @@ import {
   ConformalPredictionInterval,
   PropertyAgeCategory,
   PredictionScores,
-  SeverityLevel
+  SeverityLevel,
 } from './conformal-prediction';
 // ============================================================================
 // Types
@@ -57,7 +57,8 @@ export class EnhancedHybridInferenceService {
   private constructor() {}
   public static getInstance(): EnhancedHybridInferenceService {
     if (!EnhancedHybridInferenceService.instance) {
-      EnhancedHybridInferenceService.instance = new EnhancedHybridInferenceService();
+      EnhancedHybridInferenceService.instance =
+        new EnhancedHybridInferenceService();
     }
     return EnhancedHybridInferenceService.instance;
   }
@@ -121,14 +122,14 @@ export class EnhancedHybridInferenceService {
       );
     }
     // Calculate interval efficiency
-    const intervalEfficiency = predictionInterval.interval_size / 3;
+    const intervalEfficiency = predictionInterval.interval_size / 4;
     // Return enhanced assessment with guarantees
     return {
       ...finalAssessment,
       predictionInterval,
       uncertaintyQuantified: true,
       guaranteedCoverage: targetConfidenceLevel,
-      intervalEfficiency
+      intervalEfficiency,
     };
   }
   /**
@@ -140,34 +141,39 @@ export class EnhancedHybridInferenceService {
     requireHighConfidence: boolean
   ): Promise<RoutingDecision> {
     // Case 1: High confidence with small interval - use internal
-    if (predictionInterval.interval_size === 1 &&
-        internalPrediction.confidence >= this.CONFIDENCE_THRESHOLD) {
+    if (
+      predictionInterval.interval_size === 1 &&
+      internalPrediction.confidence >= this.CONFIDENCE_THRESHOLD
+    ) {
       return {
         route: 'internal',
-        reasoning: 'Internal model has high confidence with singleton prediction set',
+        reasoning:
+          'Internal model has high confidence with singleton prediction set',
         useGPT4: false,
         conformalInterval: predictionInterval,
-        confidenceGuarantee: predictionInterval.confidence_level
+        confidenceGuarantee: predictionInterval.confidence_level,
       };
     }
     // Case 2: Large uncertainty interval - use GPT-4
     if (predictionInterval.interval_size === 3) {
       return {
         route: 'gpt4_vision',
-        reasoning: 'High uncertainty detected - full prediction set, requiring expert model',
+        reasoning:
+          'High uncertainty detected - full prediction set, requiring expert model',
         useGPT4: true,
         conformalInterval: predictionInterval,
-        confidenceGuarantee: predictionInterval.confidence_level
+        confidenceGuarantee: predictionInterval.confidence_level,
       };
     }
     // Case 3: Critical scenarios requiring high confidence
     if (requireHighConfidence && predictionInterval.interval_size > 1) {
       return {
         route: 'hybrid',
-        reasoning: 'Critical scenario with moderate uncertainty - using ensemble approach',
+        reasoning:
+          'Critical scenario with moderate uncertainty - using ensemble approach',
         useGPT4: true,
         conformalInterval: predictionInterval,
-        confidenceGuarantee: predictionInterval.confidence_level
+        confidenceGuarantee: predictionInterval.confidence_level,
       };
     }
     // Case 4: Moderate confidence - decide based on cost-benefit
@@ -181,7 +187,7 @@ export class EnhancedHybridInferenceService {
         reasoning: `Positive cost-benefit ratio: ${costBenefit.netBenefit.toFixed(2)}`,
         useGPT4: true,
         conformalInterval: predictionInterval,
-        confidenceGuarantee: predictionInterval.confidence_level
+        confidenceGuarantee: predictionInterval.confidence_level,
       };
     }
     return {
@@ -189,7 +195,7 @@ export class EnhancedHybridInferenceService {
       reasoning: 'Acceptable uncertainty level for internal model',
       useGPT4: false,
       conformalInterval: predictionInterval,
-      confidenceGuarantee: predictionInterval.confidence_level
+      confidenceGuarantee: predictionInterval.confidence_level,
     };
   }
   /**
@@ -211,7 +217,7 @@ export class EnhancedHybridInferenceService {
     const netBenefit = expectedBenefit - this.GPT4_COST_PER_CALL;
     return {
       netBenefit,
-      shouldUseGPT4: netBenefit > 0
+      shouldUseGPT4: netBenefit > 0,
     };
   }
   /**
@@ -222,9 +228,9 @@ export class EnhancedHybridInferenceService {
     interval: ConformalPredictionInterval
   ): number {
     const baseCosts = {
-      full: 1000,    // High cost for missing severe damage
-      midway: 500,   // Moderate cost
-      early: 100     // Low cost for early-stage issues
+      full: 1000, // High cost for missing severe damage
+      midway: 500, // Moderate cost
+      early: 100, // Low cost for early-stage issues
     };
     // Adjust based on interval uncertainty
     const uncertaintyMultiplier = interval.interval_size;
@@ -248,7 +254,7 @@ export class EnhancedHybridInferenceService {
     // Use GPT-4's assessment as base but adjust confidence
     return {
       ...gpt4Pred.assessment,
-      confidence: Math.min(combinedConfidence, interval.confidence_level)
+      confidence: Math.min(combinedConfidence, interval.confidence_level),
     };
   }
   /**
@@ -261,9 +267,10 @@ export class EnhancedHybridInferenceService {
     // Use the most likely severity from the prediction set
     const finalSeverity = interval.prediction_set[0] || internalPred.severity;
     // Adjust confidence based on interval size
-    const adjustedConfidence = interval.interval_size === 1
-      ? internalPred.confidence
-      : internalPred.confidence * (1 / interval.interval_size);
+    const adjustedConfidence =
+      interval.interval_size === 1
+        ? internalPred.confidence
+        : internalPred.confidence * (1 / interval.interval_size);
     return {
       damageType: 'structural', // Simplified
       severity: finalSeverity,
@@ -271,7 +278,7 @@ export class EnhancedHybridInferenceService {
       urgency: this.determineUrgency(finalSeverity),
       safetyScore: 85, // Example values
       complianceScore: 90,
-      insuranceRiskScore: 75
+      insuranceRiskScore: 75,
     };
   }
   /**
@@ -288,7 +295,7 @@ export class EnhancedHybridInferenceService {
     if (prediction.confidence < 0.6) {
       return 0.95; // Need higher guarantee when model is uncertain
     } else if (prediction.confidence < 0.8) {
-      return 0.90;
+      return 0.9;
     } else {
       return 0.85; // Can accept lower guarantee when model is confident
     }
@@ -313,15 +320,19 @@ export class EnhancedHybridInferenceService {
       confidenceLevel: predictedInterval.confidence_level,
       wasCorrect,
       actualSeverity,
-      calibrationSetId: predictedInterval.calibration_set_id
+      calibrationSetId: predictedInterval.calibration_set_id,
     });
     // Check if recalibration is needed
     if (predictedInterval.calibration_set_id) {
-      const needsRecalibration = await conformalPrediction.isRecalibrationNeeded(
-        predictedInterval.calibration_set_id
-      );
+      const needsRecalibration =
+        await conformalPrediction.isRecalibrationNeeded(
+          predictedInterval.calibration_set_id
+        );
       if (needsRecalibration) {
-        logger.info(`Recalibration recommended for set: ${predictedInterval.calibration_set_id}`, { service: 'general' });
+        logger.info(
+          `Recalibration recommended for set: ${predictedInterval.calibration_set_id}`,
+          { service: 'general' }
+        );
         // Could trigger automated recalibration here
       }
     }
@@ -354,21 +365,24 @@ export class EnhancedHybridInferenceService {
     const scores: PredictionScores = {
       early: 0,
       midway: 0,
-      full: 0
+      full: 0,
     };
     // Set score for predicted severity
     scores[assessment.severity] = assessment.confidence;
     // Distribute remaining probability
     const remaining = 1 - assessment.confidence;
-    const otherSeverities = (['early', 'midway', 'full'] as SeverityLevel[])
-      .filter(s => s !== assessment.severity);
-    otherSeverities.forEach(severity => {
+    const otherSeverities = (
+      ['early', 'midway', 'full'] as SeverityLevel[]
+    ).filter((s) => s !== assessment.severity);
+    otherSeverities.forEach((severity) => {
       scores[severity] = remaining / otherSeverities.length;
     });
     return scores;
   }
   // Placeholder methods for actual model calls
-  private async runInternalModel(imageUrls: string[]): Promise<InternalModelPrediction> {
+  private async runInternalModel(
+    imageUrls: string[]
+  ): Promise<InternalModelPrediction> {
     throw new Error('Internal model inference not implemented');
   }
   private async runGPT4Vision(imageUrls: string[]): Promise<GPT4Prediction> {
@@ -376,10 +390,13 @@ export class EnhancedHybridInferenceService {
   }
   private async logPerformanceMetric(metric: unknown): Promise<void> {
     // Implement logging to database
-    logger.info(`Performance metric: ${JSON.stringify(metric)}`, { service: 'general' });
+    logger.info(`Performance metric: ${JSON.stringify(metric)}`, {
+      service: 'general',
+    });
   }
 }
 // ============================================================================
 // Export singleton
 // ============================================================================
-export const enhancedHybridInference = EnhancedHybridInferenceService.getInstance();
+export const enhancedHybridInference =
+  EnhancedHybridInferenceService.getInstance();

@@ -54,7 +54,7 @@ function calculatePriorityScore(
   }
 
   // Adjust based on damage severity
-  if (aiResponse.severity === 'full') {
+  if (aiResponse.severity === 'dangerous') {
     score = Math.min(100, score + 10);
   }
 

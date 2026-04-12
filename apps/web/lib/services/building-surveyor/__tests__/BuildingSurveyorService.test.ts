@@ -59,9 +59,12 @@ vi.mock('@/lib/api/supabaseServer', () => ({
       limit: vi.fn().mockReturnThis(),
       single: vi.fn().mockResolvedValue({ data: null, error: null }),
       maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
-      then: vi.fn().mockImplementation((cb: (val: { data: never[], error: null }) => unknown) =>
-        Promise.resolve(cb({ data: [], error: null }))
-      ),
+      then: vi
+        .fn()
+        .mockImplementation(
+          (cb: (val: { data: never[]; error: null }) => unknown) =>
+            Promise.resolve(cb({ data: [], error: null }))
+        ),
     }),
     rpc: vi.fn().mockResolvedValue({ data: null, error: null }),
   },
@@ -139,12 +142,41 @@ const mockAssessment = {
     description: 'Test assessment',
     detectedItems: [],
   },
-  safetyHazards: { hazards: [], hasCriticalHazards: false, overallSafetyScore: 100 },
-  compliance: { complianceIssues: [], requiresProfessionalInspection: false, complianceScore: 100 },
-  insuranceRisk: { riskFactors: [], riskScore: 10, premiumImpact: 'low', mitigationSuggestions: [] },
-  urgency: { urgency: 'routine', recommendedActionTimeline: 'No rush', reasoning: 'Minor', priorityScore: 20 },
-  homeownerExplanation: { whatIsIt: 'Minor issue', whyItHappened: 'Normal wear', whatToDo: 'Monitor' },
-  contractorAdvice: { repairNeeded: [], materials: [], tools: [], estimatedTime: 'N/A', estimatedCost: { min: 0, max: 100, recommended: 50 }, complexity: 'low' },
+  safetyHazards: {
+    hazards: [],
+    hasCriticalHazards: false,
+    overallSafetyScore: 100,
+  },
+  compliance: {
+    complianceIssues: [],
+    requiresProfessionalInspection: false,
+    complianceScore: 100,
+  },
+  insuranceRisk: {
+    riskFactors: [],
+    riskScore: 10,
+    premiumImpact: 'low',
+    mitigationSuggestions: [],
+  },
+  urgency: {
+    urgency: 'routine',
+    recommendedActionTimeline: 'No rush',
+    reasoning: 'Minor',
+    priorityScore: 20,
+  },
+  homeownerExplanation: {
+    whatIsIt: 'Minor issue',
+    whyItHappened: 'Normal wear',
+    whatToDo: 'Monitor',
+  },
+  contractorAdvice: {
+    repairNeeded: [],
+    materials: [],
+    tools: [],
+    estimatedTime: 'N/A',
+    estimatedCost: { min: 0, max: 100, recommended: 50 },
+    complexity: 'low',
+  },
 };
 
 describe('BuildingSurveyorService - Production Critical Tests', () => {
@@ -179,8 +211,12 @@ describe('BuildingSurveyorService - Production Critical Tests', () => {
       memoryAdjustments: [],
       imageQuality: null,
     } as ReturnType<Awaited<typeof extractAllFeatures>>);
-    vi.mocked(callGptAssessment).mockResolvedValue(JSON.stringify(mockAssessment));
-    vi.mocked(postProcessAssessment).mockResolvedValue(mockAssessment as ReturnType<Awaited<typeof postProcessAssessment>>);
+    vi.mocked(callGptAssessment).mockResolvedValue(
+      JSON.stringify(mockAssessment)
+    );
+    vi.mocked(postProcessAssessment).mockResolvedValue(
+      mockAssessment as ReturnType<Awaited<typeof postProcessAssessment>>
+    );
   });
 
   afterEach(() => {
@@ -217,7 +253,9 @@ describe('BuildingSurveyorService - Production Critical Tests', () => {
         invalid: [],
       });
 
-      const result = await BuildingSurveyorService.assessDamage(['https://example.com/image1.jpg']);
+      const result = await BuildingSurveyorService.assessDamage([
+        'https://example.com/image1.jpg',
+      ]);
 
       expect(result).toBeDefined();
       expect(result.damageAssessment).toBeDefined();
@@ -242,9 +280,10 @@ describe('BuildingSurveyorService - Production Critical Tests', () => {
 
         return {
           arm: safetyUcb >= safetyThreshold ? 'automate' : 'escalate',
-          reason: safetyUcb >= safetyThreshold
-            ? 'Safety threshold met (FNR < 5%)'
-            : 'Safety threshold not met',
+          reason:
+            safetyUcb >= safetyThreshold
+              ? 'Safety threshold met (FNR < 5%)'
+              : 'Safety threshold not met',
           safetyUcb,
           rewardUcb: 0.8,
           safetyThreshold,
@@ -261,14 +300,18 @@ describe('BuildingSurveyorService - Production Critical Tests', () => {
       // Verify FNR constraint is respected
       expect(decision.safetyThreshold).toBeGreaterThanOrEqual(0.95);
       if (decision.arm === 'automate') {
-        expect(decision.safetyUcb).toBeGreaterThanOrEqual(decision.safetyThreshold);
+        expect(decision.safetyUcb).toBeGreaterThanOrEqual(
+          decision.safetyThreshold
+        );
       }
     });
   });
 
   describe('Fallback Mechanisms', () => {
     it('should handle stage failures gracefully with logged errors', async () => {
-      vi.mocked(collectEvidence).mockRejectedValue(new Error('Detector failed'));
+      vi.mocked(collectEvidence).mockRejectedValue(
+        new Error('Detector failed')
+      );
 
       await expect(
         BuildingSurveyorService.assessDamage(['https://example.com/test.jpg'])
@@ -299,7 +342,10 @@ describe('BuildingSurveyorService - Production Critical Tests', () => {
         valid: [],
         invalid: [
           { url: 'javascript:alert(1)', error: 'Invalid URL format' },
-          { url: 'data:text/html,<script>alert(1)</script>', error: 'Invalid URL format' },
+          {
+            url: 'data:text/html,<script>alert(1)</script>',
+            error: 'Invalid URL format',
+          },
           { url: '../../../etc/passwd', error: 'Invalid URL format' },
         ],
       });
@@ -316,7 +362,10 @@ describe('BuildingSurveyorService - Production Critical Tests', () => {
   describe('Pipeline Integration', () => {
     it('should complete full assessment flow with all stages', async () => {
       vi.mocked(validateURLs).mockResolvedValue({
-        valid: ['https://example.com/damage1.jpg', 'https://example.com/damage2.jpg'],
+        valid: [
+          'https://example.com/damage1.jpg',
+          'https://example.com/damage2.jpg',
+        ],
         invalid: [],
       });
 
@@ -324,7 +373,7 @@ describe('BuildingSurveyorService - Production Critical Tests', () => {
         ...mockAssessment,
         damageAssessment: {
           damageType: 'structural',
-          severity: 'full',
+          severity: 'dangerous',
           confidence: 92,
           location: 'Basement',
           description: 'Significant structural and water damage',
@@ -343,7 +392,9 @@ describe('BuildingSurveyorService - Production Critical Tests', () => {
         },
       };
 
-      vi.mocked(postProcessAssessment).mockResolvedValue(fullAssessment as ReturnType<Awaited<typeof postProcessAssessment>>);
+      vi.mocked(postProcessAssessment).mockResolvedValue(
+        fullAssessment as ReturnType<Awaited<typeof postProcessAssessment>>
+      );
 
       const result = await BuildingSurveyorService.assessDamage(
         ['https://example.com/damage1.jpg', 'https://example.com/damage2.jpg'],
@@ -356,7 +407,7 @@ describe('BuildingSurveyorService - Production Critical Tests', () => {
 
       // Verify complete assessment structure
       expect(result.damageAssessment.damageType).toBe('structural');
-      expect(result.damageAssessment.severity).toBe('full');
+      expect(result.damageAssessment.severity).toBe('dangerous');
       expect(result.safetyHazards.hasCriticalHazards).toBe(true);
       expect(result.urgency.urgency).toBe('emergency');
 
@@ -369,9 +420,9 @@ describe('BuildingSurveyorService - Production Critical Tests', () => {
     });
 
     it('should throw when no images provided', async () => {
-      await expect(
-        BuildingSurveyorService.assessDamage([])
-      ).rejects.toThrow('At least one image is required');
+      await expect(BuildingSurveyorService.assessDamage([])).rejects.toThrow(
+        'At least one image is required'
+      );
     });
 
     it('should pass context through to stages', async () => {
@@ -398,7 +449,7 @@ describe('BuildingSurveyorService - Production Critical Tests', () => {
         expect.any(Array),
         null,
         undefined,
-        context,
+        context
       );
     });
   });

@@ -116,7 +116,10 @@ export async function buildFinalAssessment(
 
   // Type-safe helpers
   const isValidSeverity = (s: string | undefined): s is DamageSeverity =>
-    s === 'early' || s === 'midway' || s === 'full';
+    s === 'early' ||
+    s === 'developing' ||
+    s === 'significant' ||
+    s === 'dangerous';
   const isValidUrgency = (u: string | undefined): u is UrgencyLevel =>
     u === 'immediate' ||
     u === 'urgent' ||

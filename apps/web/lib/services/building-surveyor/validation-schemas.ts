@@ -44,7 +44,58 @@ const riskSeverityEnum = z.enum(['low', 'medium', 'high']).optional();
 const urgencyEnum = z
   .enum(['immediate', 'urgent', 'soon', 'planned', 'monitor'])
   .optional();
-const damageSeverityEnum = z.enum(['early', 'midway', 'full']).optional();
+// 4-tier severity: GPT may still return old labels — preprocess to canonical
+const damageSeverityEnum = z.preprocess(
+  (val) => {
+    if (val === 'midway') return 'developing';
+    if (val === 'full') return 'dangerous';
+    // Map common GPT-4o free-text labels
+    if (typeof val === 'string') {
+      const s = val.toLowerCase();
+      if (s === 'minor' || s === 'initial') return 'early';
+      if (s === 'moderate' || s === 'progressing') return 'developing';
+      if (s === 'serious' || s === 'advanced') return 'significant';
+      if (s === 'severe' || s === 'critical' || s === 'structural')
+        return 'dangerous';
+    }
+    return val;
+  },
+  z.enum(['early', 'developing', 'significant', 'dangerous']).optional()
+);
+
+const CANONICAL_DAMAGE_TYPES = [
+  'pipe_leak',
+  'water_damage',
+  'wall_crack',
+  'roof_damage',
+  'electrical_fault',
+  'mold_damp',
+  'fire_damage',
+  'window_broken',
+  'door_damaged',
+  'floor_damage',
+  'ceiling_damage',
+  'foundation_crack',
+  'hvac_issue',
+  'gutter_blocked',
+  'general_damage',
+  'none',
+] as const;
+
+const CONTRACTOR_TRADES = [
+  'plumber',
+  'electrician',
+  'roofer',
+  'structural_engineer',
+  'plasterer',
+  'general_builder',
+  'damp_specialist',
+  'gas_engineer',
+  'drainage',
+  'locksmith',
+  'glazier',
+  'pest_control',
+] as const;
 const complexityEnum = z.enum(['low', 'medium', 'high']).optional();
 
 const hazardSchema = z.object({
@@ -95,6 +146,11 @@ const contractorAdviceSchema = z.object({
     })
     .optional(),
   complexity: complexityEnum,
+  recommendedTrades: z
+    .array(z.enum(CONTRACTOR_TRADES))
+    .max(5)
+    .optional()
+    .default([]),
 });
 
 const specialistReferralSchema = z.object({

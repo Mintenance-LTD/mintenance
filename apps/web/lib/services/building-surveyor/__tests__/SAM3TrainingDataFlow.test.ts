@@ -108,7 +108,7 @@ describe('SAM3 Training Data Collection Flow', () => {
       const gpt4Assessment: Phase1BuildingAssessment = {
         damageAssessment: {
           damageType: 'water_damage',
-          severity: 'midway',
+          severity: 'developing',
           confidence: 85,
           location: 'Ceiling',
           description: 'Water staining on ceiling with visible moisture',
@@ -192,7 +192,12 @@ describe('SAM3 Training Data Collection Flow', () => {
         },
       };
 
-      const maskIds = await SAM3TrainingDataService.captureSAM3Output(assessmentId, imageUrl, sam3Data, 0);
+      const maskIds = await SAM3TrainingDataService.captureSAM3Output(
+        assessmentId,
+        imageUrl,
+        sam3Data,
+        0
+      );
 
       expect(maskIds).toHaveLength(1);
       expect(maskIds[0]).toBe('test-id');
@@ -260,7 +265,10 @@ describe('SAM3 Training Data Collection Flow', () => {
         },
       });
 
-      const imageUrls = ['https://example.com/unlabeled1.jpg', 'https://example.com/unlabeled2.jpg'];
+      const imageUrls = [
+        'https://example.com/unlabeled1.jpg',
+        'https://example.com/unlabeled2.jpg',
+      ];
 
       const options: PseudoLabelGenerationOptions = {
         damageTypes: ['crack', 'mold', 'water damage'],
@@ -269,7 +277,10 @@ describe('SAM3 Training Data Collection Flow', () => {
         autoConvertToYOLO: true,
       };
 
-      const results = await SAM3TrainingDataService.generatePseudoLabels(imageUrls, options);
+      const results = await SAM3TrainingDataService.generatePseudoLabels(
+        imageUrls,
+        options
+      );
 
       expect(results).toHaveLength(2);
       expect(results[0].success).toBe(true);
@@ -349,7 +360,11 @@ describe('SAM3 Training Data Collection Flow', () => {
       const jobId = 'kd-456-segmentation_model';
       const sam3MaskIds = ['mask-1', 'mask-2', 'mask-3'];
 
-      await KnowledgeDistillationService.markDataAsUsed(jobId, 'segmentation_model', sam3MaskIds);
+      await KnowledgeDistillationService.markDataAsUsed(
+        jobId,
+        'segmentation_model',
+        sam3MaskIds
+      );
 
       // Verify data is marked as used
       expect(true).toBe(true);
@@ -415,7 +430,7 @@ describe('Integration: Complete Training Pipeline', () => {
     const mockAssessment: Phase1BuildingAssessment = {
       damageAssessment: {
         damageType: 'structural_damage',
-        severity: 'full',
+        severity: 'dangerous',
         confidence: 92,
         location: 'Foundation',
         description: 'Major structural cracks in foundation',
