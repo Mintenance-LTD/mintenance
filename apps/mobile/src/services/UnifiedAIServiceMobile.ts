@@ -21,6 +21,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { config } from '../config/environment';
 import { logger } from '@mintenance/shared';
+import { buildFallbackAssessment } from './aiFallbacks';
 
 // Mobile-specific configuration
 const mobileConfig: AIServiceConfig = {
@@ -87,10 +88,19 @@ class UnifiedAIServiceMobile {
   async assessBuilding(
     images: string[],
     jobDetails?: {
-      title: string;
-      description: string;
-      category: string;
-      location: string;
+      title?: string;
+      description?: string;
+      category?: string;
+      location?: string;
+      jobId?: string;
+      propertyId?: string;
+      gps?: { latitude: number; longitude: number };
+      roomMetadata?: {
+        room?: string;
+        floor?: number;
+        dimensions?: string;
+        orientation?: string;
+      };
     }
   ): Promise<BuildingAssessment | null> {
     try {
@@ -98,6 +108,10 @@ class UnifiedAIServiceMobile {
         description: jobDetails?.description,
         category: jobDetails?.category,
         location: jobDetails?.location,
+        jobId: jobDetails?.jobId,
+        propertyId: jobDetails?.propertyId,
+        gps: jobDetails?.gps,
+        roomMetadata: jobDetails?.roomMetadata,
       });
 
       if (response.success && response.data) {
@@ -376,85 +390,14 @@ class UnifiedAIServiceMobile {
   }
 
   /**
-   * Fallback assessment for offline/error scenarios
+   * Fallback assessment for offline/error scenarios.
+   * Delegates to the extracted helper in ./aiFallbacks.
    */
   private getFallbackAssessment(
     images: string[],
     jobDetails?: { category?: string }
   ): BuildingAssessment | null {
-    // Use the existing RealAIAnalysisService fallback logic
-    // This ensures mobile app still works even if API is down
-    const category = jobDetails?.category || 'general';
-    const severity = this.estimateSeverityFromCategory(category);
-
-    return {
-      id: `fallback_${Date.now()}`,
-      timestamp: new Date().toISOString(),
-      damageAssessment: {
-        damageType: category,
-        severity,
-        confidence: 60,
-        description: 'Assessment generated using fallback rules',
-        detectedIssues: [],
-      },
-      safetyHazards: {
-        hasSafetyHazards: severity === 'critical',
-        criticalFlags:
-          severity === 'critical' ? ['Requires immediate attention'] : [],
-        immediateActionRequired: severity === 'critical',
-        riskLevel: severity === 'critical' ? 'high' : 'medium',
-        details: 'Fallback assessment - professional inspection recommended',
-      },
-      insuranceRisk: {
-        riskScore: 50,
-        category: 'medium',
-        factors: ['Unable to perform detailed assessment'],
-        recommendedAction: 'Professional assessment required',
-      },
-      complianceFlags: [],
-      recommendations: ['Get professional assessment', 'Document all damage'],
-      estimatedCost: {
-        min: 500,
-        max: 5000,
-        likely: 2000,
-        currency: 'GBP',
-        confidence: 30,
-      },
-      confidence: 60,
-      metadata: {
-        model: 'fallback',
-        version: '1.0',
-        processingTime: 0,
-        imageCount: images.length,
-        apiCalls: [],
-        costTracking: {
-          estimatedCost: 0,
-          actualCost: 0,
-          breakdown: {},
-        },
-      },
-    };
-  }
-
-  /**
-   * Estimate severity from category
-   */
-  private estimateSeverityFromCategory(
-    category: string
-  ): 'minimal' | 'moderate' | 'severe' | 'critical' {
-    const severityMap: {
-      [key: string]: 'minimal' | 'moderate' | 'severe' | 'critical';
-    } = {
-      emergency: 'critical',
-      plumbing_leak: 'severe',
-      electrical: 'severe',
-      structural: 'critical',
-      roofing: 'severe',
-      painting: 'minimal',
-      cleaning: 'minimal',
-    };
-
-    return severityMap[category.toLowerCase()] || 'moderate';
+    return buildFallbackAssessment(images, jobDetails);
   }
 
   /**

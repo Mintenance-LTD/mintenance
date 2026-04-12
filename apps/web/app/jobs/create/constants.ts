@@ -7,8 +7,8 @@
 
 // Form Validation
 export const VALIDATION = {
-  /** Minimum description length (characters) */
-  MIN_DESCRIPTION_LENGTH: 50,
+  /** Minimum description length (characters) — matches server schema min 20 */
+  MIN_DESCRIPTION_LENGTH: 20,
 
   /** Budget threshold requiring photos (£) */
   BUDGET_PHOTO_THRESHOLD: 500,

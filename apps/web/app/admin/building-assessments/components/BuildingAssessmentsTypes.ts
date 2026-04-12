@@ -4,7 +4,7 @@ export interface Assessment {
   id: string;
   user_id: string;
   damage_type: string;
-  severity: 'early' | 'midway' | 'full';
+  severity: 'early' | 'developing' | 'significant' | 'dangerous';
   confidence: number;
   safety_score: number;
   compliance_score: number;
@@ -42,7 +42,12 @@ export interface Statistics {
   pending: number;
   validated: number;
   rejected: number;
-  bySeverity: { early: number; midway: number; full: number };
+  bySeverity: {
+    early: number;
+    developing: number;
+    significant: number;
+    dangerous: number;
+  };
   byDamageType: Record<string, number>;
   autoValidationEnabled?: boolean;
   minValidatedForAutoValidation?: number;

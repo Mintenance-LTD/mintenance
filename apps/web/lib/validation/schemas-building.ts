@@ -16,9 +16,36 @@ export const buildingAssessRequestSchema = z.object({
   context: z
     .object({
       location: z.string().max(200).optional(),
-      propertyType: z.enum(['residential', 'commercial', 'industrial']).optional(),
+      propertyType: z
+        .enum(['residential', 'commercial', 'industrial'])
+        .optional(),
       ageOfProperty: z.number().int().positive().max(500).optional(),
       propertyDetails: z.string().max(1000).optional(),
+    })
+    .optional(),
+  gps: z
+    .object({
+      latitude: z.number().min(-90).max(90),
+      longitude: z.number().min(-180).max(180),
+    })
+    .optional(),
+  roomMetadata: z
+    .object({
+      room: z.string().max(100).optional(),
+      floor: z.number().int().min(-5).max(200).optional(),
+      dimensions: z.string().max(50).optional(),
+      orientation: z
+        .enum([
+          'north',
+          'south',
+          'east',
+          'west',
+          'northeast',
+          'northwest',
+          'southeast',
+          'southwest',
+        ])
+        .optional(),
     })
     .optional(),
 });
@@ -57,8 +84,15 @@ export const maintenanceFeedbackSchema = z.object({
   wasAccurate: z.boolean(),
   actualIssue: z.string().max(200, 'Issue description too long').optional(),
   actualSeverity: z.enum(['minor', 'moderate', 'major', 'critical']).optional(),
-  actualTimeHours: z.number().min(0, 'Time must be non-negative').max(100, 'Time exceeds maximum').optional(),
-  actualMaterials: z.array(z.string().max(200)).max(50, 'Maximum 50 materials').optional(),
+  actualTimeHours: z
+    .number()
+    .min(0, 'Time must be non-negative')
+    .max(100, 'Time exceeds maximum')
+    .optional(),
+  actualMaterials: z
+    .array(z.string().max(200))
+    .max(50, 'Maximum 50 materials')
+    .optional(),
   contractorNotes: z.string().max(1000, 'Notes too long').optional(),
   helpfulnessScore: z
     .number()
@@ -69,7 +103,11 @@ export const maintenanceFeedbackSchema = z.object({
 });
 
 // Type exports
-export type BuildingAssessRequestInput = z.infer<typeof buildingAssessRequestSchema>;
+export type BuildingAssessRequestInput = z.infer<
+  typeof buildingAssessRequestSchema
+>;
 export type BuildingCorrectionInput = z.infer<typeof buildingCorrectionSchema>;
 export type MaintenanceDetectInput = z.infer<typeof maintenanceDetectSchema>;
-export type MaintenanceFeedbackInput = z.infer<typeof maintenanceFeedbackSchema>;
+export type MaintenanceFeedbackInput = z.infer<
+  typeof maintenanceFeedbackSchema
+>;

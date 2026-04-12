@@ -37,10 +37,11 @@ export function validateField(
     case 'title':
       if (!value || typeof value !== 'string') return 'Job title is required';
       if (value.trim().length === 0) return 'Job title is required';
-      if (value.trim().length < 10)
-        return 'Title must be at least 10 characters';
-      if (value.trim().length > 100)
-        return 'Title cannot exceed 100 characters';
+      // Align with server schema in apps/web/app/api/jobs/route.ts (min 5, max 200).
+      // Client was previously 10/100 which blocked short valid titles like "Fix tap".
+      if (value.trim().length < 5) return 'Title must be at least 5 characters';
+      if (value.trim().length > 200)
+        return 'Title cannot exceed 200 characters';
       return undefined;
 
     case 'description':

@@ -28,41 +28,16 @@ import Animated, {
 import VideoService from '../../services/VideoService';
 import { logger } from '@mintenance/shared';
 import { theme } from '../../theme';
+import { VideoDamageItem } from './VideoDamageItem';
+import {
+  DamageData,
+  ProcessingResults,
+  QueueStatus,
+  ProcessingStage,
+  PROCESSING_STAGES,
+} from './videoProcessingTypes';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
-interface DamageData {
-  instance_count: number;
-  average_confidence: number;
-  temporal_coverage: number;
-  severity_estimate: string;
-}
-
-interface AggregatedAssessment {
-  overall_severity: string;
-  confidence_level: string;
-  total_unique_damages: number;
-  damage_summary: Record<string, DamageData>;
-  high_priority_damages: string[];
-  video_metadata: {
-    duration_seconds: number;
-    processed_frames: number;
-    resolution: { width: number; height: number };
-  };
-}
-
-interface ProcessingResults {
-  aggregated_assessment?: AggregatedAssessment;
-}
-
-interface QueueStatus {
-  pending: number;
-  uploading: number;
-  processing: number;
-  completed: number;
-  failed: number;
-  current: { id: string; status: string } | null;
-}
 
 interface Props {
   navigation: {
@@ -77,53 +52,6 @@ interface Props {
     };
   };
 }
-
-interface ProcessingStage {
-  stage:
-    | 'queued'
-    | 'uploading'
-    | 'processing'
-    | 'analyzing'
-    | 'completed'
-    | 'failed';
-  title: string;
-  description: string;
-  icon: string;
-  progress?: number;
-}
-
-const PROCESSING_STAGES: ProcessingStage[] = [
-  {
-    stage: 'queued',
-    title: 'Queued',
-    description: 'Video is waiting to be processed',
-    icon: 'schedule',
-  },
-  {
-    stage: 'uploading',
-    title: 'Uploading',
-    description: 'Uploading video to cloud storage',
-    icon: 'cloud-upload',
-  },
-  {
-    stage: 'processing',
-    title: 'Processing',
-    description: 'AI is analyzing your video frame by frame',
-    icon: 'memory',
-  },
-  {
-    stage: 'analyzing',
-    title: 'Analyzing',
-    description: 'Identifying damage and generating assessment',
-    icon: 'analytics',
-  },
-  {
-    stage: 'completed',
-    title: 'Complete',
-    description: 'Assessment ready',
-    icon: 'check-circle',
-  },
-];
 
 export const VideoProcessingStatusScreen: React.FC<Props> = ({
   navigation,
@@ -255,45 +183,9 @@ export const VideoProcessingStatusScreen: React.FC<Props> = ({
     transform: [{ scale: pulseAnimation.value }],
   }));
 
-  const renderDamageItem = (type: string, data: DamageData) => {
-    const severityColors: Record<string, string> = {
-      early: theme.colors.primary,
-      midway: theme.colors.accent,
-      full: theme.colors.error,
-      none: theme.colors.textTertiary,
-    };
-
-    return (
-      <View key={type} style={styles.damageItem}>
-        <View style={styles.damageHeader}>
-          <Text style={styles.damageType}>{type}</Text>
-          <View
-            style={[
-              styles.severityBadge,
-              {
-                backgroundColor:
-                  severityColors[data.severity_estimate] ||
-                  theme.colors.textTertiary,
-              },
-            ]}
-          >
-            <Text style={styles.severityText}>{data.severity_estimate}</Text>
-          </View>
-        </View>
-        <View style={styles.damageDetails}>
-          <Text style={styles.damageDetailText}>
-            Instances: {data.instance_count}
-          </Text>
-          <Text style={styles.damageDetailText}>
-            Confidence: {(data.average_confidence * 100).toFixed(1)}%
-          </Text>
-          <Text style={styles.damageDetailText}>
-            Coverage: {(data.temporal_coverage * 100).toFixed(1)}%
-          </Text>
-        </View>
-      </View>
-    );
-  };
+  const renderDamageItem = (type: string, data: DamageData) => (
+    <VideoDamageItem key={type} type={type} data={data} />
+  );
 
   return (
     <SafeAreaView style={styles.container}>

@@ -12,14 +12,18 @@ export const GET = withApiHandler(
   async (_request, { user, params }) => {
     const propertyId = params.id as string;
 
-    // Verify property exists and belongs to user
+    // Verify property exists and belongs to the requesting user
     const { data: property, error: propError } = await serverSupabase
       .from('properties')
       .select('id, owner_id')
       .eq('id', propertyId)
-      .single();
+      .maybeSingle();
 
     if (propError || !property) {
+      throw new NotFoundError('Property not found');
+    }
+
+    if (property.owner_id !== user.id && user.role !== 'admin') {
       throw new NotFoundError('Property not found');
     }
 

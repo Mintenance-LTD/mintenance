@@ -216,6 +216,19 @@ export const createPropertySchema = z
     message: 'Address is required (provide address or address_line1)',
   });
 
+/**
+ * Property update payload accepted by PUT /api/properties/[id].
+ *
+ * Client field names here intentionally differ from the DB columns:
+ *   schema `name`        ↔ db `property_name`
+ *   schema `type`        ↔ db `property_type`
+ *   schema `squareFeet`  ↔ db `square_footage`
+ *   schema `yearBuilt`   ↔ db `year_built`
+ *
+ * The route handler in app/api/properties/[id]/route.ts performs the mapping.
+ * Both the web edit form (PropertyEditClient) and mobile (EditPropertyScreen)
+ * send these client names directly, so do not rename without updating both.
+ */
 export const updatePropertySchema = z.object({
   name: z
     .string()
@@ -235,8 +248,8 @@ export const updatePropertySchema = z.object({
     .optional(),
   postcode: z
     .string()
-    .max(20, 'Postcode too long')
-    .transform((val) => sanitizeText(val.trim(), 20))
+    .max(25, 'Postcode too long')
+    .transform((val) => sanitizeText(val.trim(), 25))
     .optional(),
   type: z
     .enum([
