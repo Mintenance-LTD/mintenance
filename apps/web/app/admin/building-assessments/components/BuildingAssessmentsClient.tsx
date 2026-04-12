@@ -41,7 +41,7 @@ export function BuildingAssessmentsClient(
       pending: 0,
       validated: 0,
       rejected: 0,
-      bySeverity: { early: 0, midway: 0, full: 0 },
+      bySeverity: { early: 0, developing: 0, significant: 0, dangerous: 0 },
       byDamageType: {},
       canAutoValidate: false,
     },
