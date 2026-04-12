@@ -213,8 +213,37 @@ export function mapClassNameToDamageType(className: string): string | null {
 /**
  * Map a source class index (0-80) to damage_taxonomy.damage_type.
  */
-function mapClassIndexToDamageType(sourceIndex: number): string | null {
+export function mapClassIndexToDamageType(sourceIndex: number): string | null {
   const targetIndex = SOURCE_TO_TARGET[String(sourceIndex)];
   if (targetIndex === undefined || targetIndex === -1) return null;
   return TARGET_CLASSES[String(targetIndex)] ?? null;
 }
+
+/** All 15 canonical damage types + 'none' */
+export const CANONICAL_DAMAGE_TYPES = [
+  ...Object.values(TARGET_CLASSES),
+  'none',
+] as const;
+
+/**
+ * Default contractor trade recommendations by canonical damage type.
+ * Used as fallback when GPT/Qwen don't provide recommendedTrades.
+ */
+export const DAMAGE_TYPE_TO_TRADES: Record<string, string[]> = {
+  pipe_leak: ['plumber'],
+  water_damage: ['plumber', 'damp_specialist'],
+  wall_crack: ['plasterer', 'structural_engineer'],
+  roof_damage: ['roofer'],
+  electrical_fault: ['electrician'],
+  mold_damp: ['damp_specialist'],
+  fire_damage: ['general_builder'],
+  window_broken: ['glazier'],
+  door_damaged: ['general_builder', 'locksmith'],
+  floor_damage: ['general_builder'],
+  ceiling_damage: ['plasterer'],
+  foundation_crack: ['structural_engineer'],
+  hvac_issue: ['gas_engineer'],
+  gutter_blocked: ['roofer'],
+  general_damage: ['general_builder'],
+  none: [],
+};

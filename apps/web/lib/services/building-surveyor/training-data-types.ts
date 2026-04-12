@@ -14,7 +14,7 @@ interface GPT4TrainingLabel {
   imageUrls: string[];
   gpt4Response: Phase1BuildingAssessment;
   damageType: string;
-  severity: 'early' | 'midway' | 'full';
+  severity: 'early' | 'developing' | 'significant' | 'dangerous';
   confidence: number;
   safetyHazards: unknown[];
   complianceIssues: unknown[];

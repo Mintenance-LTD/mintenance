@@ -24,7 +24,8 @@ const AUTO_VALIDATION_CONFIG = {
   ],
   ENABLED: process.env.BUILDING_SURVEYOR_AUTO_VALIDATION_ENABLED === 'true',
   MIN_VALIDATED_COUNT: 100,
-  SHADOW_PHASE_ENABLED: process.env.BUILDING_SURVEYOR_SHADOW_PHASE_ENABLED === 'true',
+  SHADOW_PHASE_ENABLED:
+    process.env.BUILDING_SURVEYOR_SHADOW_PHASE_ENABLED === 'true',
   MIN_SHADOW_PHASE_COUNT: 500,
 };
 
@@ -46,9 +47,16 @@ export function isShadowPhaseEnabled(): boolean {
 export async function getShadowPhaseDecision(
   assessment: Phase1BuildingAssessment,
   assessmentId: string
-): Promise<{ aiDecision: 'automate' | 'escalate'; reason?: string; confidence?: number }> {
+): Promise<{
+  aiDecision: 'automate' | 'escalate';
+  reason?: string;
+  confidence?: number;
+}> {
   try {
-    const { canAutoValidate: can, reason } = await canAutoValidate(assessment, assessmentId);
+    const { canAutoValidate: can, reason } = await canAutoValidate(
+      assessment,
+      assessmentId
+    );
     return {
       aiDecision: can ? 'automate' : 'escalate',
       reason,
@@ -72,7 +80,10 @@ export async function canAutoValidate(
 ): Promise<{ canAutoValidate: boolean; reason?: string }> {
   try {
     if (AUTO_VALIDATION_CONFIG.SHADOW_PHASE_ENABLED) {
-      const shadowDecision = await getShadowPhaseDecision(assessment, assessmentId);
+      const shadowDecision = await getShadowPhaseDecision(
+        assessment,
+        assessmentId
+      );
       recordMetric('shadow_phase.decision', {
         assessmentId,
         aiDecision: shadowDecision.aiDecision,
@@ -97,7 +108,10 @@ export async function canAutoValidate(
       };
     }
 
-    if (assessment.damageAssessment.confidence < AUTO_VALIDATION_CONFIG.MIN_CONFIDENCE) {
+    if (
+      assessment.damageAssessment.confidence <
+      AUTO_VALIDATION_CONFIG.MIN_CONFIDENCE
+    ) {
       return {
         canAutoValidate: false,
         reason: `Low confidence (${assessment.damageAssessment.confidence}% < ${AUTO_VALIDATION_CONFIG.MIN_CONFIDENCE}%)`,
@@ -111,14 +125,20 @@ export async function canAutoValidate(
       };
     }
 
-    if (assessment.safetyHazards.overallSafetyScore < AUTO_VALIDATION_CONFIG.MIN_SAFETY_SCORE) {
+    if (
+      assessment.safetyHazards.overallSafetyScore <
+      AUTO_VALIDATION_CONFIG.MIN_SAFETY_SCORE
+    ) {
       return {
         canAutoValidate: false,
         reason: `Low safety score (${assessment.safetyHazards.overallSafetyScore} < ${AUTO_VALIDATION_CONFIG.MIN_SAFETY_SCORE})`,
       };
     }
 
-    if (assessment.insuranceRisk.riskScore > AUTO_VALIDATION_CONFIG.MAX_INSURANCE_RISK) {
+    if (
+      assessment.insuranceRisk.riskScore >
+      AUTO_VALIDATION_CONFIG.MAX_INSURANCE_RISK
+    ) {
       return {
         canAutoValidate: false,
         reason: `High insurance risk (${assessment.insuranceRisk.riskScore} > ${AUTO_VALIDATION_CONFIG.MAX_INSURANCE_RISK})`,
@@ -126,16 +146,21 @@ export async function canAutoValidate(
     }
 
     const damageType = assessment.damageAssessment.damageType.toLowerCase();
-    if (AUTO_VALIDATION_CONFIG.EDGE_CASE_DAMAGE_TYPES.some(
-      (edgeCase) => damageType.includes(edgeCase.toLowerCase())
-    )) {
+    if (
+      AUTO_VALIDATION_CONFIG.EDGE_CASE_DAMAGE_TYPES.some((edgeCase) =>
+        damageType.includes(edgeCase.toLowerCase())
+      )
+    ) {
       return {
         canAutoValidate: false,
         reason: `Edge case damage type (${assessment.damageAssessment.damageType}) - requires human review`,
       };
     }
 
-    if (assessment.urgency.urgency === 'immediate' || assessment.urgency.urgency === 'urgent') {
+    if (
+      assessment.urgency.urgency === 'immediate' ||
+      assessment.urgency.urgency === 'urgent'
+    ) {
       return {
         canAutoValidate: false,
         reason: `High urgency (${assessment.urgency.urgency}) - requires human review`,
@@ -170,7 +195,10 @@ export async function autoValidateIfHighConfidence(
   assessmentId: string
 ): Promise<{ autoValidated: boolean; reason?: string }> {
   try {
-    const { canAutoValidate: can, reason } = await canAutoValidate(assessment, assessmentId);
+    const { canAutoValidate: can, reason } = await canAutoValidate(
+      assessment,
+      assessmentId
+    );
 
     if (!can) {
       if (reason) {
@@ -247,7 +275,9 @@ export async function getStatistics() {
   try {
     const { data: stats, error } = await serverSupabase
       .from('building_assessments')
-      .select('validation_status, severity, damage_type, auto_validated, auto_validation_review_status')
+      .select(
+        'validation_status, severity, damage_type, auto_validated, auto_validation_review_status'
+      )
       .limit(10000);
 
     if (error) {
@@ -255,14 +285,19 @@ export async function getStatistics() {
     }
 
     const total = stats?.length || 0;
-    const pending = stats?.filter((s) => s.validation_status === 'pending').length || 0;
-    const validated = stats?.filter((s) => s.validation_status === 'validated').length || 0;
-    const rejected = stats?.filter((s) => s.validation_status === 'rejected').length || 0;
+    const pending =
+      stats?.filter((s) => s.validation_status === 'pending').length || 0;
+    const validated =
+      stats?.filter((s) => s.validation_status === 'validated').length || 0;
+    const rejected =
+      stats?.filter((s) => s.validation_status === 'rejected').length || 0;
 
     const bySeverity = {
       early: stats?.filter((s) => s.severity === 'early').length || 0,
-      midway: stats?.filter((s) => s.severity === 'midway').length || 0,
-      full: stats?.filter((s) => s.severity === 'full').length || 0,
+      developing: stats?.filter((s) => s.severity === 'developing').length || 0,
+      significant:
+        stats?.filter((s) => s.severity === 'significant').length || 0,
+      dangerous: stats?.filter((s) => s.severity === 'dangerous').length || 0,
     };
 
     const byDamageType: Record<string, number> = {};
@@ -271,21 +306,32 @@ export async function getStatistics() {
     });
 
     const autoValidated = stats?.filter((s) => s.auto_validated).length || 0;
-    const autoPendingReview = stats?.filter(
-      (s) => s.auto_validated && s.auto_validation_review_status === 'pending_review'
-    ).length || 0;
-    const autoConfirmed = stats?.filter(
-      (s) => s.auto_validated && s.auto_validation_review_status === 'confirmed'
-    ).length || 0;
-    const autoOverturned = stats?.filter(
-      (s) => s.auto_validated && s.auto_validation_review_status === 'overturned'
-    ).length || 0;
+    const autoPendingReview =
+      stats?.filter(
+        (s) =>
+          s.auto_validated &&
+          s.auto_validation_review_status === 'pending_review'
+      ).length || 0;
+    const autoConfirmed =
+      stats?.filter(
+        (s) =>
+          s.auto_validated && s.auto_validation_review_status === 'confirmed'
+      ).length || 0;
+    const autoOverturned =
+      stats?.filter(
+        (s) =>
+          s.auto_validated && s.auto_validation_review_status === 'overturned'
+      ).length || 0;
 
     const autoReviewed = autoConfirmed + autoOverturned;
-    const autoValidationPrecision = autoReviewed > 0 ? autoConfirmed / autoReviewed : null;
-    const autoValidationRecall = autoValidated > 0 ? autoConfirmed / autoValidated : null;
-    const autoValidationCoverage = validated > 0 ? autoValidated / validated : null;
-    const autoValidationPendingRate = autoValidated > 0 ? autoPendingReview / autoValidated : null;
+    const autoValidationPrecision =
+      autoReviewed > 0 ? autoConfirmed / autoReviewed : null;
+    const autoValidationRecall =
+      autoValidated > 0 ? autoConfirmed / autoValidated : null;
+    const autoValidationCoverage =
+      validated > 0 ? autoValidated / validated : null;
+    const autoValidationPendingRate =
+      autoValidated > 0 ? autoPendingReview / autoValidated : null;
 
     recordMetric('auto_validation.metrics', {
       total,

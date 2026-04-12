@@ -2,9 +2,64 @@
  * Type definitions for Building Surveyor AI Assessment System
  */
 
-export type DamageSeverity = 'early' | 'midway' | 'full';
+/**
+ * 4-tier damage severity aligned with UK landlord compliance urgency.
+ * - early: Cosmetic/minor — routine maintenance
+ * - developing: Progressing — needs attention within weeks
+ * - significant: Serious — risk of spread, repair soon
+ * - dangerous: Structural/safety risk — urgent repair required
+ */
+export type DamageSeverity =
+  | 'early'
+  | 'developing'
+  | 'significant'
+  | 'dangerous';
 
-export type UrgencyLevel = 'immediate' | 'urgent' | 'soon' | 'planned' | 'monitor';
+/**
+ * 15 canonical damage types from damage-type-mapping.ts.
+ * All GPT-4o and Qwen outputs are normalized to one of these.
+ */
+export type CanonicalDamageType =
+  | 'pipe_leak'
+  | 'water_damage'
+  | 'wall_crack'
+  | 'roof_damage'
+  | 'electrical_fault'
+  | 'mold_damp'
+  | 'fire_damage'
+  | 'window_broken'
+  | 'door_damaged'
+  | 'floor_damage'
+  | 'ceiling_damage'
+  | 'foundation_crack'
+  | 'hvac_issue'
+  | 'gutter_blocked'
+  | 'general_damage'
+  | 'none';
+
+/**
+ * Contractor trades for structured repair recommendations.
+ */
+export type ContractorTrade =
+  | 'plumber'
+  | 'electrician'
+  | 'roofer'
+  | 'structural_engineer'
+  | 'plasterer'
+  | 'general_builder'
+  | 'damp_specialist'
+  | 'gas_engineer'
+  | 'drainage'
+  | 'locksmith'
+  | 'glazier'
+  | 'pest_control';
+
+export type UrgencyLevel =
+  | 'immediate'
+  | 'urgent'
+  | 'soon'
+  | 'planned'
+  | 'monitor';
 
 export type SafetyHazardSeverity = 'low' | 'medium' | 'high' | 'critical';
 
@@ -83,13 +138,13 @@ export interface Material {
   estimatedCost: number;
 
   // Database enrichment fields (optional for backward compatibility)
-  material_id?: string;      // Database UUID
-  unit_price?: number;       // Per-unit price from database
-  total_cost?: number;       // Calculated: quantity × unit_price
+  material_id?: string; // Database UUID
+  unit_price?: number; // Per-unit price from database
+  total_cost?: number; // Calculated: quantity × unit_price
   source?: 'ai' | 'database'; // Enrichment source
-  sku?: string;              // Product SKU from database
-  supplier_name?: string;    // Supplier name from database
-  unit?: string;             // Unit type from database (meter, sqm, liter, etc.)
+  sku?: string; // Product SKU from database
+  supplier_name?: string; // Supplier name from database
+  unit?: string; // Unit type from database (meter, sqm, liter, etc.)
 }
 
 export interface ContractorAdvice {
@@ -103,6 +158,8 @@ export interface ContractorAdvice {
     recommended: number;
   };
   complexity: 'low' | 'medium' | 'high';
+  /** Structured contractor trade recommendations */
+  recommendedTrades?: ContractorTrade[];
 }
 
 /** RICS Condition Rating (1 = Green/routine, 2 = Amber/repair soon, 3 = Red/urgent) */
@@ -145,7 +202,11 @@ export interface VisionAnalysisSummary {
   labels: Array<{ description: string; score: number }>;
   objects: Array<{ name: string; score: number }>;
   detectedFeatures: string[];
-  suggestedCategories: Array<{ category: string; confidence: number; reason: string }>;
+  suggestedCategories: Array<{
+    category: string;
+    confidence: number;
+    reason: string;
+  }>;
   propertyType?: string;
   condition?: 'excellent' | 'good' | 'fair' | 'poor';
   complexity?: 'simple' | 'moderate' | 'complex';
@@ -180,8 +241,13 @@ export interface Phase1BuildingAssessment {
   evidence?: {
     roboflowDetections?: RoboflowDetection[];
     visionAnalysis?: VisionAnalysisSummary | null;
-    sam3Segmentation?: SAM3SegmentationData | import('./SAM3Service').DamageTypeSegmentation | null; // SAM 3 precise segmentation data
-    sceneGraphFeatures?: import('./scene_graph_features').SceneGraphFeatures | null; // Scene graph features for Bayesian fusion
+    sam3Segmentation?:
+      | SAM3SegmentationData
+      | import('./SAM3Service').DamageTypeSegmentation
+      | null; // SAM 3 precise segmentation data
+    sceneGraphFeatures?:
+      | import('./scene_graph_features').SceneGraphFeatures
+      | null; // Scene graph features for Bayesian fusion
   };
   decisionResult?: DecisionResult; // Safe-LUCB decision with uncertainty metrics
 }
@@ -216,4 +282,3 @@ export interface DecisionResult {
   fusionMean: number;
   fusionVariance: number;
 }
-

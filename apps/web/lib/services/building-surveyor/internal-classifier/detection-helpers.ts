@@ -68,7 +68,7 @@ export function detectionsToAssessment(
     const className = detection.className.toLowerCase();
     if (SEVERE_CLASSES.some((c) => className.includes(c))) {
       primaryDamage = detection;
-      severity = 'full';
+      severity = 'dangerous';
       urgency = 'urgent';
       safetyHazards.push({
         type: className,
@@ -79,7 +79,7 @@ export function detectionsToAssessment(
     } else if (MODERATE_CLASSES.some((c) => className.includes(c))) {
       if (severity === 'early') {
         primaryDamage = detection;
-        severity = 'midway';
+        severity = 'developing';
         urgency = 'soon';
       }
     } else if (MINOR_CLASSES.some((c) => className.includes(c))) {

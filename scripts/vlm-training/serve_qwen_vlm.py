@@ -23,7 +23,7 @@ import sys
 
 def main():
     parser = argparse.ArgumentParser(description="Serve Qwen2.5-VL with vLLM")
-    parser.add_argument("--model", default="Qwen/Qwen2.5-VL-3B-Instruct", help="Base model")
+    parser.add_argument("--model", default="Qwen/Qwen2.5-VL-7B-Instruct", help="Base model")
     parser.add_argument("--lora-adapter", default=None, help="Path to LoRA adapter directory")
     parser.add_argument("--port", type=int, default=8000, help="Server port")
     parser.add_argument("--host", default="0.0.0.0", help="Server host")

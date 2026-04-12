@@ -17,7 +17,7 @@ import type { GeneratorMessage } from '../generator/AssessmentGenerator';
 import type { Phase1BuildingAssessment } from '../types';
 import type { ShadowComparisonResult } from './types';
 
-const STUDENT_MODEL_NAME = 'qwen2.5-vl-3b';
+const STUDENT_MODEL_NAME = 'qwen2.5-vl-7b';
 
 export class StudentShadowService {
   /**
@@ -88,16 +88,23 @@ export class StudentShadowService {
       );
 
       // Write to vlm_shadow_comparisons and capture ID
-      const shadowComparisonId = await this.storeShadowComparison(comparison, teacherAssessment, studentAssessment);
+      const shadowComparisonId = await this.storeShadowComparison(
+        comparison,
+        teacherAssessment,
+        studentAssessment
+      );
 
       // Populate experience buffer for future training (Phase 2)
-      const { ExperienceBufferService } = await import('./ExperienceBufferService');
+      const { ExperienceBufferService } =
+        await import('./ExperienceBufferService');
       await ExperienceBufferService.recordExperience(
         comparison,
         shadowComparisonId ?? undefined,
         imageUrls,
         typeof messages[0]?.content === 'string' ? messages[0].content : '',
-        typeof messages[1]?.content === 'string' ? messages[1].content : JSON.stringify(messages[1]?.content ?? ''),
+        typeof messages[1]?.content === 'string'
+          ? messages[1].content
+          : JSON.stringify(messages[1]?.content ?? ''),
         teacherAssessment,
         studentAssessment,
         teacherReasoning
@@ -109,8 +116,11 @@ export class StudentShadowService {
       });
 
       // Update student calibration for routing gate (Phase 5)
-      const { CalibrationFeedbackService } = await import('./CalibrationFeedbackService');
-      await CalibrationFeedbackService.updateFromShadowComparison(comparison).catch((err) => {
+      const { CalibrationFeedbackService } =
+        await import('./CalibrationFeedbackService');
+      await CalibrationFeedbackService.updateFromShadowComparison(
+        comparison
+      ).catch((err) => {
         logger.debug('Calibration update failed (non-critical)', {
           service: 'StudentShadowService',
           error: err instanceof Error ? err.message : String(err),
@@ -175,8 +185,7 @@ export class StudentShadowService {
     const severityMatch =
       teacher.damageAssessment.severity === student.damageAssessment.severity;
 
-    const urgencyMatch =
-      teacher.urgency.urgency === student.urgency.urgency;
+    const urgencyMatch = teacher.urgency.urgency === student.urgency.urgency;
 
     const confidenceDelta =
       student.damageAssessment.confidence - teacher.damageAssessment.confidence;
@@ -238,7 +247,9 @@ export class StudentShadowService {
    * Coerce a raw parsed object into a Phase1BuildingAssessment shape with
    * sensible defaults so comparison doesn't crash on partial student output.
    */
-  private static coerceToAssessment(raw: Record<string, unknown>): Phase1BuildingAssessment {
+  private static coerceToAssessment(
+    raw: Record<string, unknown>
+  ): Phase1BuildingAssessment {
     const da = (raw.damageAssessment ?? raw) as Record<string, unknown>;
     const sh = (raw.safetyHazards ?? {}) as Record<string, unknown>;
     const comp = (raw.compliance ?? {}) as Record<string, unknown>;
@@ -250,23 +261,38 @@ export class StudentShadowService {
     return {
       damageAssessment: {
         damageType: String(da.damageType ?? 'unknown'),
-        severity: (['early', 'midway', 'full'].includes(String(da.severity))
+        severity: (['early', 'developing', 'significant', 'dangerous'].includes(
+          String(da.severity)
+        )
           ? String(da.severity)
-          : 'early') as 'early' | 'midway' | 'full',
+          : 'early') as 'early' | 'developing' | 'significant' | 'dangerous',
         confidence: Number(da.confidence) || 0,
         location: String(da.location ?? 'Unknown'),
         description: String(da.description ?? ''),
-        detectedItems: Array.isArray(da.detectedItems) ? da.detectedItems as string[] : [],
+        detectedItems: Array.isArray(da.detectedItems)
+          ? (da.detectedItems as string[])
+          : [],
       },
       safetyHazards: {
         hazards: Array.isArray(sh.hazards)
           ? (sh.hazards as Array<Record<string, unknown>>).map((h) => ({
               type: String(h.type ?? ''),
-              severity: String(h.severity ?? 'low') as 'low' | 'medium' | 'high' | 'critical',
+              severity: String(h.severity ?? 'low') as
+                | 'low'
+                | 'medium'
+                | 'high'
+                | 'critical',
               location: String(h.location ?? ''),
               description: String(h.description ?? ''),
-              immediateAction: h.immediateAction ? String(h.immediateAction) : undefined,
-              urgency: String(h.urgency ?? 'monitor') as 'immediate' | 'urgent' | 'soon' | 'planned' | 'monitor',
+              immediateAction: h.immediateAction
+                ? String(h.immediateAction)
+                : undefined,
+              urgency: String(h.urgency ?? 'monitor') as
+                | 'immediate'
+                | 'urgent'
+                | 'soon'
+                | 'planned'
+                | 'monitor',
             }))
           : [],
         hasCriticalHazards: Boolean(sh.hasCriticalHazards),
@@ -274,39 +300,66 @@ export class StudentShadowService {
       },
       compliance: {
         complianceIssues: Array.isArray(comp.complianceIssues)
-          ? (comp.complianceIssues as Array<Record<string, unknown>>).map((c) => ({
-              issue: String(c.issue ?? ''),
-              regulation: c.regulation ? String(c.regulation) : undefined,
-              severity: String(c.severity ?? 'info') as 'info' | 'warning' | 'violation',
-              description: String(c.description ?? ''),
-              recommendation: String(c.recommendation ?? ''),
-            }))
+          ? (comp.complianceIssues as Array<Record<string, unknown>>).map(
+              (c) => ({
+                issue: String(c.issue ?? ''),
+                regulation: c.regulation ? String(c.regulation) : undefined,
+                severity: String(c.severity ?? 'info') as
+                  | 'info'
+                  | 'warning'
+                  | 'violation',
+                description: String(c.description ?? ''),
+                recommendation: String(c.recommendation ?? ''),
+              })
+            )
           : [],
-        requiresProfessionalInspection: Boolean(comp.requiresProfessionalInspection),
+        requiresProfessionalInspection: Boolean(
+          comp.requiresProfessionalInspection
+        ),
         complianceScore: Number(comp.complianceScore) || 100,
       },
       insuranceRisk: {
         riskFactors: Array.isArray(ir.riskFactors)
           ? (ir.riskFactors as Array<Record<string, unknown>>).map((r) => ({
               factor: String(r.factor ?? ''),
-              severity: String(r.severity ?? 'low') as 'low' | 'medium' | 'high',
+              severity: String(r.severity ?? 'low') as
+                | 'low'
+                | 'medium'
+                | 'high',
               impact: String(r.impact ?? ''),
             }))
           : [],
         riskScore: Number(ir.riskScore) || 0,
-        premiumImpact: (['none', 'low', 'medium', 'high'].includes(String(ir.premiumImpact))
+        premiumImpact: (['none', 'low', 'medium', 'high'].includes(
+          String(ir.premiumImpact)
+        )
           ? String(ir.premiumImpact)
           : 'none') as 'none' | 'low' | 'medium' | 'high',
         mitigationSuggestions: Array.isArray(ir.mitigationSuggestions)
-          ? ir.mitigationSuggestions as string[]
+          ? (ir.mitigationSuggestions as string[])
           : [],
       },
       urgency: {
-        urgency: (['immediate', 'urgent', 'soon', 'planned', 'monitor'].includes(String(urg.urgency))
+        urgency: ([
+          'immediate',
+          'urgent',
+          'soon',
+          'planned',
+          'monitor',
+        ].includes(String(urg.urgency))
           ? String(urg.urgency)
-          : 'monitor') as 'immediate' | 'urgent' | 'soon' | 'planned' | 'monitor',
-        recommendedActionTimeline: String(urg.recommendedActionTimeline ?? 'Monitor'),
-        estimatedTimeToWorsen: urg.estimatedTimeToWorsen ? String(urg.estimatedTimeToWorsen) : undefined,
+          : 'monitor') as
+          | 'immediate'
+          | 'urgent'
+          | 'soon'
+          | 'planned'
+          | 'monitor',
+        recommendedActionTimeline: String(
+          urg.recommendedActionTimeline ?? 'Monitor'
+        ),
+        estimatedTimeToWorsen: urg.estimatedTimeToWorsen
+          ? String(urg.estimatedTimeToWorsen)
+          : undefined,
         reasoning: String(urg.reasoning ?? ''),
         priorityScore: Number(urg.priorityScore) || 0,
       },
@@ -316,7 +369,9 @@ export class StudentShadowService {
         whatToDo: String(he.whatToDo ?? ''),
       },
       contractorAdvice: {
-        repairNeeded: Array.isArray(ca.repairNeeded) ? ca.repairNeeded as string[] : [],
+        repairNeeded: Array.isArray(ca.repairNeeded)
+          ? (ca.repairNeeded as string[])
+          : [],
         materials: Array.isArray(ca.materials)
           ? (ca.materials as Array<Record<string, unknown>>).map((m) => ({
               name: String(m.name ?? ''),
@@ -324,12 +379,15 @@ export class StudentShadowService {
               estimatedCost: Number(m.estimatedCost) || 0,
             }))
           : [],
-        tools: Array.isArray(ca.tools) ? ca.tools as string[] : [],
+        tools: Array.isArray(ca.tools) ? (ca.tools as string[]) : [],
         estimatedTime: String(ca.estimatedTime ?? 'Unknown'),
         estimatedCost: {
           min: Number((ca.estimatedCost as Record<string, unknown>)?.min) || 0,
           max: Number((ca.estimatedCost as Record<string, unknown>)?.max) || 0,
-          recommended: Number((ca.estimatedCost as Record<string, unknown>)?.recommended) || 0,
+          recommended:
+            Number(
+              (ca.estimatedCost as Record<string, unknown>)?.recommended
+            ) || 0,
         },
         complexity: (['low', 'medium', 'high'].includes(String(ca.complexity))
           ? String(ca.complexity)
@@ -350,7 +408,9 @@ export class StudentShadowService {
   }> {
     let query = serverSupabase
       .from('vlm_shadow_comparisons')
-      .select('damage_category, overall_agreement, safety_recall, student_parse_success');
+      .select(
+        'damage_category, overall_agreement, safety_recall, student_parse_success'
+      );
 
     if (since) {
       query = query.gte('created_at', since.toISOString());
@@ -359,15 +419,25 @@ export class StudentShadowService {
     const { data, error } = await query;
 
     if (error || !data || data.length === 0) {
-      return { total: 0, avgAgreement: 0, avgSafetyRecall: 0, parseSuccessRate: 0, byCategory: {} };
+      return {
+        total: 0,
+        avgAgreement: 0,
+        avgSafetyRecall: 0,
+        parseSuccessRate: 0,
+        byCategory: {},
+      };
     }
 
     const total = data.length;
-    const avgAgreement = data.reduce((s, r) => s + (r.overall_agreement ?? 0), 0) / total;
-    const avgSafetyRecall = data.reduce((s, r) => s + (r.safety_recall ?? 0), 0) / total;
-    const parseSuccessRate = data.filter((r) => r.student_parse_success).length / total;
+    const avgAgreement =
+      data.reduce((s, r) => s + (r.overall_agreement ?? 0), 0) / total;
+    const avgSafetyRecall =
+      data.reduce((s, r) => s + (r.safety_recall ?? 0), 0) / total;
+    const parseSuccessRate =
+      data.filter((r) => r.student_parse_success).length / total;
 
-    const byCategory: Record<string, { count: number; avgAgreement: number }> = {};
+    const byCategory: Record<string, { count: number; avgAgreement: number }> =
+      {};
     for (const row of data) {
       const cat = row.damage_category ?? 'unknown';
       if (!byCategory[cat]) byCategory[cat] = { count: 0, avgAgreement: 0 };
@@ -378,7 +448,13 @@ export class StudentShadowService {
       byCategory[cat].avgAgreement /= byCategory[cat].count;
     }
 
-    return { total, avgAgreement, avgSafetyRecall, parseSuccessRate, byCategory };
+    return {
+      total,
+      avgAgreement,
+      avgSafetyRecall,
+      parseSuccessRate,
+      byCategory,
+    };
   }
 
   // ---------------------------------------------------------------------------
@@ -390,27 +466,31 @@ export class StudentShadowService {
     teacherAssessment: Phase1BuildingAssessment,
     studentAssessment: Phase1BuildingAssessment | null
   ): Promise<string | null> {
-    const { data, error } = await serverSupabase.from('vlm_shadow_comparisons').insert({
-      assessment_id: comparison.assessmentId,
-      teacher_model: comparison.teacherModel,
-      student_model: comparison.studentModel,
-      damage_type_match: comparison.damageTypeMatch,
-      severity_match: comparison.severityMatch,
-      urgency_match: comparison.urgencyMatch,
-      confidence_delta: comparison.confidenceDelta,
-      safety_recall: comparison.safetyRecall,
-      safety_precision: comparison.safetyPrecision,
-      overall_agreement: comparison.overallAgreement,
-      student_confidence: comparison.studentConfidence,
-      teacher_confidence: comparison.teacherConfidence,
-      student_parse_success: comparison.studentParseSuccess,
-      student_response: studentAssessment,
-      teacher_response: teacherAssessment,
-      latency_ms: comparison.latencyMs,
-      cost_usd: comparison.costUsd,
-      damage_category: comparison.damageCategory,
-      image_count: comparison.imageCount,
-    }).select('id').single();
+    const { data, error } = await serverSupabase
+      .from('vlm_shadow_comparisons')
+      .insert({
+        assessment_id: comparison.assessmentId,
+        teacher_model: comparison.teacherModel,
+        student_model: comparison.studentModel,
+        damage_type_match: comparison.damageTypeMatch,
+        severity_match: comparison.severityMatch,
+        urgency_match: comparison.urgencyMatch,
+        confidence_delta: comparison.confidenceDelta,
+        safety_recall: comparison.safetyRecall,
+        safety_precision: comparison.safetyPrecision,
+        overall_agreement: comparison.overallAgreement,
+        student_confidence: comparison.studentConfidence,
+        teacher_confidence: comparison.teacherConfidence,
+        student_parse_success: comparison.studentParseSuccess,
+        student_response: studentAssessment,
+        teacher_response: teacherAssessment,
+        latency_ms: comparison.latencyMs,
+        cost_usd: comparison.costUsd,
+        damage_category: comparison.damageCategory,
+        image_count: comparison.imageCount,
+      })
+      .select('id')
+      .single();
 
     if (error) {
       logger.warn('Failed to store shadow comparison', {
