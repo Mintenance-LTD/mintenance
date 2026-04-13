@@ -56,7 +56,24 @@ export const useBiometricAuth = (): BiometricAuthHook => {
         });
 
       if (!restoredUser || restoredUser.email !== credentials.email) {
-        throw new Error('Biometric credentials do not match current user');
+        // MSV-P1-10: mismatch means the SecureStore-stored email is stale
+        // (e.g. user signed into a different account on another device,
+        // or refresh_token rotated owners). Wipe biometric credentials so
+        // the user cannot retry with the stale entry and must re-enrol.
+        logger.error('Biometric email mismatch — wiping stored credentials', {
+          storedEmail: credentials.email,
+          restoredEmail: restoredUser?.email,
+        });
+        try {
+          await BiometricService.disableBiometric();
+        } catch (disableError) {
+          logger.warn('Failed to wipe biometric credentials after mismatch', {
+            disableError,
+          });
+        }
+        throw new Error(
+          'Biometric credentials do not match current user. Please sign in with your password and re-enable biometrics.'
+        );
       }
 
       trackUserAction('auth.biometric_sign_in_success', {

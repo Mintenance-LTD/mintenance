@@ -14,7 +14,20 @@ export class EntityVersionTracker {
     try {
       const versionsJson = await AsyncStorage.getItem(this.ENTITY_VERSIONS_KEY);
       if (!versionsJson) return 0;
-      const versions = JSON.parse(versionsJson);
+      let versions: Record<string, number>;
+      try {
+        versions = JSON.parse(versionsJson);
+      } catch (parseError) {
+        // MSV-P1-4: version tracker store is corrupt. Reset so the client
+        // can continue syncing but log loudly — silently returning 0 could
+        // mask conflict detection bugs.
+        logger.error(
+          'Entity version store JSON corrupt in getEntityVersion; resetting',
+          { parseError, entity, entityId }
+        );
+        await AsyncStorage.removeItem(this.ENTITY_VERSIONS_KEY);
+        return 0;
+      }
       return versions[`${entity}:${entityId}`] || 0;
     } catch (error) {
       logger.error('Failed to get entity version:', error);
@@ -26,10 +39,26 @@ export class EntityVersionTracker {
   async updateEntityVersion(entity: string, entityId: string): Promise<void> {
     try {
       const versionsJson = await AsyncStorage.getItem(this.ENTITY_VERSIONS_KEY);
-      const versions = versionsJson ? JSON.parse(versionsJson) : {};
+      let versions: Record<string, number>;
+      if (versionsJson) {
+        try {
+          versions = JSON.parse(versionsJson);
+        } catch (parseError) {
+          logger.error(
+            'Entity version store JSON corrupt in updateEntityVersion; resetting',
+            { parseError, entity, entityId }
+          );
+          versions = {};
+        }
+      } else {
+        versions = {};
+      }
       const key = `${entity}:${entityId}`;
       versions[key] = (versions[key] || 0) + 1;
-      await AsyncStorage.setItem(this.ENTITY_VERSIONS_KEY, JSON.stringify(versions));
+      await AsyncStorage.setItem(
+        this.ENTITY_VERSIONS_KEY,
+        JSON.stringify(versions)
+      );
     } catch (error) {
       logger.error('Failed to update entity version:', error);
     }

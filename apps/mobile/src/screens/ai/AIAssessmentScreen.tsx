@@ -16,6 +16,7 @@ import type { NavigationProp } from '@react-navigation/native';
 import { useMutation } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { ScreenHeader } from '../../components/shared';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -37,6 +38,7 @@ interface AnalysisResult {
 
 export const AIAssessmentScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  const { t } = useTranslation();
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [result, setResult] = useState<AnalysisResult | null>(null);
 
@@ -69,8 +71,8 @@ export const AIAssessmentScreen: React.FC = () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert(
-        'Permission Required',
-        'Camera roll access is needed to select photos.'
+        t('permissions.gallery.title'),
+        t('permissions.gallery.message')
       );
       return;
     }
@@ -93,8 +95,8 @@ export const AIAssessmentScreen: React.FC = () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert(
-        'Permission Required',
-        'Camera access is needed to take photos.'
+        t('permissions.camera.title'),
+        t('permissions.camera.message')
       );
       return;
     }

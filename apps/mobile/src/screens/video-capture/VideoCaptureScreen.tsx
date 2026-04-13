@@ -27,6 +27,7 @@ import {
 import { useIsFocused } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
+import { useTranslation } from 'react-i18next';
 import VideoService, { VideoGuidancePhase } from '../../services/VideoService';
 import { logger } from '@mintenance/shared';
 import Reanimated, {
@@ -57,6 +58,7 @@ interface Props {
 
 export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
   const { assessmentId, propertyId, onComplete } = route.params || {};
+  const { t } = useTranslation();
 
   // Camera setup
   const cameraRef = useRef<CameraView>(null);
@@ -303,12 +305,16 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
             size={64}
             color={theme.colors.textTertiary}
           />
-          <Text style={styles.permissionText}>Camera permission required</Text>
+          <Text style={styles.permissionText}>
+            {t('permissions.camera.title')}
+          </Text>
           <TouchableOpacity
             style={styles.permissionButton}
             onPress={requestPermissions}
           >
-            <Text style={styles.permissionButtonText}>Grant Permission</Text>
+            <Text style={styles.permissionButtonText}>
+              {t('permissions.grantButton', 'Grant Permission')}
+            </Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>

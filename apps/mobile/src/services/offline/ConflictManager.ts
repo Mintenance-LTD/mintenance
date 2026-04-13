@@ -31,7 +31,10 @@ export class ConflictManager {
   ) {}
 
   /** Get default conflict resolution strategy for entity/operation type */
-  getDefaultStrategy(entity: string, type: OfflineAction['type']): ConflictResolutionStrategy {
+  getDefaultStrategy(
+    entity: string,
+    type: OfflineAction['type']
+  ): ConflictResolutionStrategy {
     if (entity === 'payment' || entity === 'escrow') return 'server-wins';
     if (entity === 'profile' && type === 'UPDATE') return 'client-wins';
     if (entity === 'message') return 'last-write-wins';
@@ -43,7 +46,10 @@ export class ConflictManager {
   async detectConflict(action: OfflineAction): Promise<DataConflict | null> {
     if (action.type !== 'UPDATE' || !action.entityId) return null;
     try {
-      const serverData = await this.fetchServerData(action.entity, action.entityId);
+      const serverData = await this.fetchServerData(
+        action.entity,
+        action.entityId
+      );
       if (!serverData) return null;
       const serverEntity = serverData as ServerEntityData;
       const currentVersion = await this.versionTracker.getEntityVersion(
@@ -51,7 +57,8 @@ export class ConflictManager {
         action.entityId
       );
       const baseVersion = action.baseVersion || 0;
-      if (!serverEntity.version || serverEntity.version <= baseVersion) return null;
+      if (!serverEntity.version || serverEntity.version <= baseVersion)
+        return null;
 
       const conflict: DataConflict = {
         id: `conflict_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
@@ -67,7 +74,9 @@ export class ConflictManager {
           serverEntity.updatedAt || serverEntity.updated_at || Date.now()
         ).getTime(),
         detectedAt: Date.now(),
-        strategy: action.strategy || this.getDefaultStrategy(action.entity, action.type),
+        strategy:
+          action.strategy ||
+          this.getDefaultStrategy(action.entity, action.type),
         resolved: false,
       };
       logger.warn('Conflict detected', {
@@ -85,7 +94,10 @@ export class ConflictManager {
   }
 
   /** Fetch current server data for an entity (used by detectConflict) */
-  private async fetchServerData(entity: string, entityId: string): Promise<unknown> {
+  private async fetchServerData(
+    entity: string,
+    entityId: string
+  ): Promise<unknown> {
     try {
       switch (entity) {
         case 'job': {
@@ -121,12 +133,16 @@ export class ConflictManager {
       case 'server-wins':
         conflict.resolved = true;
         conflict.resolution = 'server';
-        logger.info('Conflict resolved: server-wins strategy', { entity: conflict.entity });
+        logger.info('Conflict resolved: server-wins strategy', {
+          entity: conflict.entity,
+        });
         return true;
       case 'client-wins':
         conflict.resolved = true;
         conflict.resolution = 'client';
-        logger.info('Conflict resolved: client-wins strategy', { entity: conflict.entity });
+        logger.info('Conflict resolved: client-wins strategy', {
+          entity: conflict.entity,
+        });
         return true;
       case 'merge':
         return this.resolveMerge(conflict);
@@ -141,10 +157,14 @@ export class ConflictManager {
     conflict.resolved = true;
     if (conflict.clientTimestamp > conflict.serverTimestamp) {
       conflict.resolution = 'client';
-      logger.info('Conflict resolved: client write is newer', { entity: conflict.entity });
+      logger.info('Conflict resolved: client write is newer', {
+        entity: conflict.entity,
+      });
     } else {
       conflict.resolution = 'server';
-      logger.info('Conflict resolved: server write is newer', { entity: conflict.entity });
+      logger.info('Conflict resolved: server write is newer', {
+        entity: conflict.entity,
+      });
     }
     return true;
   }
@@ -154,13 +174,22 @@ export class ConflictManager {
       let mergedData: unknown;
       switch (conflict.entity) {
         case 'job':
-          mergedData = this.dataMerger.mergeJobData(conflict.clientData, conflict.serverData);
+          mergedData = this.dataMerger.mergeJobData(
+            conflict.clientData,
+            conflict.serverData
+          );
           break;
         case 'bid':
-          mergedData = this.dataMerger.mergeBidData(conflict.clientData, conflict.serverData);
+          mergedData = this.dataMerger.mergeBidData(
+            conflict.clientData,
+            conflict.serverData
+          );
           break;
         case 'profile':
-          mergedData = this.dataMerger.mergeProfileData(conflict.clientData, conflict.serverData);
+          mergedData = this.dataMerger.mergeProfileData(
+            conflict.clientData,
+            conflict.serverData
+          );
           break;
         default:
           return this.resolveLastWriteWins(conflict);
@@ -168,7 +197,9 @@ export class ConflictManager {
       conflict.resolved = true;
       conflict.resolution = 'merged';
       conflict.mergedData = mergedData;
-      logger.info('Conflict resolved: data merged', { entity: conflict.entity });
+      logger.info('Conflict resolved: data merged', {
+        entity: conflict.entity,
+      });
       return true;
     } catch (error) {
       logger.error('Failed to merge data:', error);
@@ -179,12 +210,32 @@ export class ConflictManager {
   /** Add conflict to queue for manual resolution */
   async addToConflictQueue(conflict: DataConflict): Promise<void> {
     try {
-      const existing = (await AsyncStorage.getItem(this.CONFLICT_QUEUE_KEY)) || '[]';
-      const queue: DataConflict[] = JSON.parse(existing);
+      const existing =
+        (await AsyncStorage.getItem(this.CONFLICT_QUEUE_KEY)) || '[]';
+      let queue: DataConflict[];
+      try {
+        queue = JSON.parse(existing);
+      } catch (parseError) {
+        // MSV-P1-5: conflict queue corrupt. Previously the outer catch ate
+        // this but we could not distinguish parse errors from storage errors.
+        // Reset and log so pending conflicts don't silently pile up.
+        logger.error(
+          'Conflict queue JSON corrupt in addToConflictQueue; resetting',
+          {
+            parseError,
+          }
+        );
+        queue = [];
+      }
       queue.push(conflict);
-      await AsyncStorage.setItem(this.CONFLICT_QUEUE_KEY, JSON.stringify(queue));
+      await AsyncStorage.setItem(
+        this.CONFLICT_QUEUE_KEY,
+        JSON.stringify(queue)
+      );
       this.notifyConflictListeners(queue);
-      logger.info('Conflict added to queue for manual resolution', { conflictId: conflict.id });
+      logger.info('Conflict added to queue for manual resolution', {
+        conflictId: conflict.id,
+      });
     } catch (error) {
       logger.error('Failed to add conflict to queue:', error);
     }
@@ -195,7 +246,17 @@ export class ConflictManager {
     try {
       const existing = await AsyncStorage.getItem(this.CONFLICT_QUEUE_KEY);
       if (!existing) return [];
-      return JSON.parse(existing);
+      try {
+        return JSON.parse(existing);
+      } catch (parseError) {
+        logger.error(
+          'Conflict queue JSON corrupt in getConflicts; returning empty',
+          {
+            parseError,
+          }
+        );
+        return [];
+      }
     } catch (error) {
       logger.error('Failed to get conflicts:', error);
       return [];
@@ -217,10 +278,14 @@ export class ConflictManager {
     if (mergedData) conflict.mergedData = mergedData;
 
     const remaining = conflicts.filter((c) => c.id !== conflictId);
-    await AsyncStorage.setItem(this.CONFLICT_QUEUE_KEY, JSON.stringify(remaining));
+    await AsyncStorage.setItem(
+      this.CONFLICT_QUEUE_KEY,
+      JSON.stringify(remaining)
+    );
 
     if (resolution === 'client' || resolution === 'merged') {
-      const dataToSync = resolution === 'merged' ? mergedData : conflict.clientData;
+      const dataToSync =
+        resolution === 'merged' ? mergedData : conflict.clientData;
       await this.queueAction({
         type: 'UPDATE',
         entity: conflict.entity,
@@ -233,7 +298,11 @@ export class ConflictManager {
     }
 
     this.notifyConflictListeners(remaining);
-    logger.info('Conflict resolved manually', { conflictId, resolution, entity: conflict.entity });
+    logger.info('Conflict resolved manually', {
+      conflictId,
+      resolution,
+      entity: conflict.entity,
+    });
   }
 
   /** Clear all resolved conflicts from the queue */
@@ -241,7 +310,10 @@ export class ConflictManager {
     try {
       const conflicts = await this.getConflicts();
       const unresolved = conflicts.filter((c) => !c.resolved);
-      await AsyncStorage.setItem(this.CONFLICT_QUEUE_KEY, JSON.stringify(unresolved));
+      await AsyncStorage.setItem(
+        this.CONFLICT_QUEUE_KEY,
+        JSON.stringify(unresolved)
+      );
       this.notifyConflictListeners(unresolved);
     } catch (error) {
       logger.error('Failed to clear resolved conflicts:', error);
@@ -249,7 +321,9 @@ export class ConflictManager {
   }
 
   /** Subscribe to conflict updates. Returns unsubscribe function. */
-  onConflictDetected(callback: (conflicts: DataConflict[]) => void): () => void {
+  onConflictDetected(
+    callback: (conflicts: DataConflict[]) => void
+  ): () => void {
     this.conflictListeners.push(callback);
     return () => {
       const index = this.conflictListeners.indexOf(callback);
