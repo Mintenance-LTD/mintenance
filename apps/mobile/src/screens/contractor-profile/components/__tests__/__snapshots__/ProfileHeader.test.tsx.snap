@@ -1,33 +1,86 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`ProfileHeader Component Snapshot Stability renders consistently with different names and locations 1`] = `
-<View
-  style={
-    {
-      "alignItems": "center",
-      "backgroundColor": "#F5F5F5",
-      "flexDirection": "row",
-      "justifyContent": "space-between",
-      "paddingHorizontal": 16,
-      "paddingVertical": 24,
-    }
-  }
->
+<View>
   <View
-    style={
+    colors={
+      [
+        "#134E4A",
+        "#0D9488",
+        "#14B8A6",
+      ]
+    }
+    end={
       {
-        "position": "relative",
+        "x": 1,
+        "y": 1,
       }
+    }
+    start={
+      {
+        "x": 0,
+        "y": 0,
+      }
+    }
+    style={
+      [
+        {
+          "overflow": "hidden",
+          "paddingHorizontal": 20,
+        },
+        {
+          "paddingTop": 12,
+        },
+      ]
     }
   >
     <View
-      accessible={false}
       style={
         {
-          "backgroundColor": "#D4D4D4",
+          "backgroundColor": "rgba(255,255,255,0.06)",
+          "borderRadius": 90,
+          "height": 180,
+          "position": "absolute",
+          "right": -30,
+          "top": -30,
+          "width": 180,
+        }
+      }
+    />
+    <View
+      style={
+        {
+          "backgroundColor": "rgba(255,255,255,0.04)",
           "borderRadius": 50,
+          "bottom": -20,
           "height": 100,
+          "left": -20,
+          "position": "absolute",
           "width": 100,
+        }
+      }
+    />
+    <View
+      style={
+        {
+          "alignItems": "center",
+          "flexDirection": "row",
+          "marginBottom": 8,
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "flex": 1,
+          }
+        }
+      />
+    </View>
+    <View
+      style={
+        {
+          "height": 50,
         }
       }
     />
@@ -35,22 +88,74 @@ exports[`ProfileHeader Component Snapshot Stability renders consistently with di
   <View
     style={
       {
-        "flex": 1,
-        "marginLeft": 16,
+        "alignItems": "center",
+        "backgroundColor": undefined,
+        "marginTop": -48,
+        "paddingBottom": 20,
+        "paddingHorizontal": 24,
       }
     }
   >
+    <View
+      style={
+        {
+          "marginBottom": 12,
+          "position": "relative",
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "alignItems": "center",
+            "backgroundColor": undefined,
+            "borderColor": undefined,
+            "borderRadius": 48,
+            "borderWidth": 4,
+            "height": 96,
+            "justifyContent": "center",
+            "shadowColor": "#000",
+            "shadowOffset": {
+              "height": 2,
+              "width": 0,
+            },
+            "shadowOpacity": 0.1,
+            "shadowRadius": 8,
+            "width": 96,
+          }
+        }
+      >
+        <View
+          accessibilityLabel="Icon: person, size: 40, color: undefined"
+          testID="ionicon-person"
+        />
+      </View>
+    </View>
     <Text
       style={
         {
           "color": "#171717",
           "fontSize": 24,
-          "fontWeight": "600",
-          "marginBottom": 8,
+          "fontWeight": "800",
+          "letterSpacing": -0.5,
+          "textAlign": "center",
         }
       }
     >
       Alice Johnson
+    </Text>
+    <Text
+      style={
+        {
+          "color": "#10B981",
+          "fontSize": 15,
+          "fontWeight": "600",
+          "marginTop": 2,
+          "textAlign": "center",
+        }
+      }
+    >
+      Contractor
     </Text>
     <View
       style={
@@ -58,12 +163,13 @@ exports[`ProfileHeader Component Snapshot Stability renders consistently with di
           "alignItems": "center",
           "flexDirection": "row",
           "gap": 4,
+          "marginTop": 6,
         }
       }
     >
       <View
-        accessibilityLabel="Icon: location, size: 16, color: #737373"
-        testID="ionicon-location"
+        accessibilityLabel="Icon: location-outline, size: 14, color: #737373"
+        testID="ionicon-location-outline"
       />
       <Text
         style={
@@ -76,96 +182,240 @@ exports[`ProfileHeader Component Snapshot Stability renders consistently with di
         San Francisco, CA
       </Text>
     </View>
+    <View
+      style={
+        {
+          "flexDirection": "row",
+          "flexWrap": "wrap",
+          "gap": 8,
+          "justifyContent": "center",
+          "marginTop": 16,
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "alignItems": "center",
+            "backgroundColor": undefined,
+            "borderColor": undefined,
+            "borderRadius": 12,
+            "borderWidth": 1,
+            "flexDirection": "row",
+            "gap": 5,
+            "paddingHorizontal": 12,
+            "paddingVertical": 8,
+          }
+        }
+      >
+        <View
+          accessibilityLabel="Icon: flash, size: 14, color: undefined"
+          testID="ionicon-flash"
+        />
+        <Text
+          style={
+            {
+              "color": "#171717",
+              "fontSize": 12,
+              "fontWeight": "600",
+            }
+          }
+        >
+          &lt; 1hr Response
+        </Text>
+      </View>
+      <View
+        style={
+          {
+            "alignItems": "center",
+            "backgroundColor": undefined,
+            "borderColor": undefined,
+            "borderRadius": 12,
+            "borderWidth": 1,
+            "flexDirection": "row",
+            "gap": 5,
+            "paddingHorizontal": 12,
+            "paddingVertical": 8,
+          }
+        }
+      >
+        <View
+          accessibilityLabel="Icon: ribbon, size: 14, color: #3B82F6"
+          testID="ionicon-ribbon"
+        />
+        <Text
+          style={
+            {
+              "color": "#171717",
+              "fontSize": 12,
+              "fontWeight": "600",
+            }
+          }
+        >
+          Insured
+        </Text>
+      </View>
+    </View>
   </View>
 </View>
 `;
 
 exports[`ProfileHeader Component Snapshot Stability renders consistently with edit button 1`] = `
-<View
-  style={
-    {
-      "alignItems": "center",
-      "backgroundColor": "#F5F5F5",
-      "flexDirection": "row",
-      "justifyContent": "space-between",
-      "paddingHorizontal": 16,
-      "paddingVertical": 24,
-    }
-  }
->
+<View>
   <View
-    style={
+    colors={
+      [
+        "#134E4A",
+        "#0D9488",
+        "#14B8A6",
+      ]
+    }
+    end={
       {
-        "position": "relative",
+        "x": 1,
+        "y": 1,
       }
+    }
+    start={
+      {
+        "x": 0,
+        "y": 0,
+      }
+    }
+    style={
+      [
+        {
+          "overflow": "hidden",
+          "paddingHorizontal": 20,
+        },
+        {
+          "paddingTop": 12,
+        },
+      ]
     }
   >
     <View
-      accessible={false}
       style={
         {
-          "backgroundColor": "#D4D4D4",
+          "backgroundColor": "rgba(255,255,255,0.06)",
+          "borderRadius": 90,
+          "height": 180,
+          "position": "absolute",
+          "right": -30,
+          "top": -30,
+          "width": 180,
+        }
+      }
+    />
+    <View
+      style={
+        {
+          "backgroundColor": "rgba(255,255,255,0.04)",
           "borderRadius": 50,
+          "bottom": -20,
           "height": 100,
+          "left": -20,
+          "position": "absolute",
           "width": 100,
         }
       }
     />
-    <TouchableOpacity
-      accessibilityLabel="Edit profile photo"
-      accessibilityRole="button"
-      onPress={[MockFunction]}
+    <View
       style={
         {
           "alignItems": "center",
-          "backgroundColor": "#222222",
-          "borderRadius": 8,
-          "bottom": 0,
           "flexDirection": "row",
-          "gap": 4,
-          "paddingHorizontal": 8,
-          "paddingVertical": 4,
-          "position": "absolute",
-          "right": 0,
+          "marginBottom": 8,
         }
       }
     >
       <View
-        accessibilityLabel="Icon: pencil, size: 14, color: #FFFFFF"
-        testID="ionicon-pencil"
-      />
-      <Text
         style={
           {
-            "color": "#FFFFFF",
-            "fontSize": 12,
-            "fontWeight": "600",
+            "flex": 1,
           }
         }
-      >
-        Edit
-      </Text>
-    </TouchableOpacity>
+      />
+    </View>
+    <View
+      style={
+        {
+          "height": 50,
+        }
+      }
+    />
   </View>
   <View
     style={
       {
-        "flex": 1,
-        "marginLeft": 16,
+        "alignItems": "center",
+        "backgroundColor": undefined,
+        "marginTop": -48,
+        "paddingBottom": 20,
+        "paddingHorizontal": 24,
       }
     }
   >
+    <View
+      style={
+        {
+          "marginBottom": 12,
+          "position": "relative",
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "alignItems": "center",
+            "backgroundColor": undefined,
+            "borderColor": undefined,
+            "borderRadius": 48,
+            "borderWidth": 4,
+            "height": 96,
+            "justifyContent": "center",
+            "shadowColor": "#000",
+            "shadowOffset": {
+              "height": 2,
+              "width": 0,
+            },
+            "shadowOpacity": 0.1,
+            "shadowRadius": 8,
+            "width": 96,
+          }
+        }
+      >
+        <View
+          accessibilityLabel="Icon: person, size: 40, color: undefined"
+          testID="ionicon-person"
+        />
+      </View>
+    </View>
     <Text
       style={
         {
           "color": "#171717",
           "fontSize": 24,
-          "fontWeight": "600",
-          "marginBottom": 8,
+          "fontWeight": "800",
+          "letterSpacing": -0.5,
+          "textAlign": "center",
         }
       }
     >
       John Smith
+    </Text>
+    <Text
+      style={
+        {
+          "color": "#10B981",
+          "fontSize": 15,
+          "fontWeight": "600",
+          "marginTop": 2,
+          "textAlign": "center",
+        }
+      }
+    >
+      Contractor
     </Text>
     <View
       style={
@@ -173,12 +423,13 @@ exports[`ProfileHeader Component Snapshot Stability renders consistently with ed
           "alignItems": "center",
           "flexDirection": "row",
           "gap": 4,
+          "marginTop": 6,
         }
       }
     >
       <View
-        accessibilityLabel="Icon: location, size: 16, color: #737373"
-        testID="ionicon-location"
+        accessibilityLabel="Icon: location-outline, size: 14, color: #737373"
+        testID="ionicon-location-outline"
       />
       <Text
         style={
@@ -191,38 +442,165 @@ exports[`ProfileHeader Component Snapshot Stability renders consistently with ed
         New York, NY
       </Text>
     </View>
+    <View
+      style={
+        {
+          "flexDirection": "row",
+          "flexWrap": "wrap",
+          "gap": 8,
+          "justifyContent": "center",
+          "marginTop": 16,
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "alignItems": "center",
+            "backgroundColor": undefined,
+            "borderColor": undefined,
+            "borderRadius": 12,
+            "borderWidth": 1,
+            "flexDirection": "row",
+            "gap": 5,
+            "paddingHorizontal": 12,
+            "paddingVertical": 8,
+          }
+        }
+      >
+        <View
+          accessibilityLabel="Icon: flash, size: 14, color: undefined"
+          testID="ionicon-flash"
+        />
+        <Text
+          style={
+            {
+              "color": "#171717",
+              "fontSize": 12,
+              "fontWeight": "600",
+            }
+          }
+        >
+          &lt; 1hr Response
+        </Text>
+      </View>
+      <View
+        style={
+          {
+            "alignItems": "center",
+            "backgroundColor": undefined,
+            "borderColor": undefined,
+            "borderRadius": 12,
+            "borderWidth": 1,
+            "flexDirection": "row",
+            "gap": 5,
+            "paddingHorizontal": 12,
+            "paddingVertical": 8,
+          }
+        }
+      >
+        <View
+          accessibilityLabel="Icon: ribbon, size: 14, color: #3B82F6"
+          testID="ionicon-ribbon"
+        />
+        <Text
+          style={
+            {
+              "color": "#171717",
+              "fontSize": 12,
+              "fontWeight": "600",
+            }
+          }
+        >
+          Insured
+        </Text>
+      </View>
+    </View>
   </View>
 </View>
 `;
 
 exports[`ProfileHeader Component Snapshot Stability renders consistently without edit button 1`] = `
-<View
-  style={
-    {
-      "alignItems": "center",
-      "backgroundColor": "#F5F5F5",
-      "flexDirection": "row",
-      "justifyContent": "space-between",
-      "paddingHorizontal": 16,
-      "paddingVertical": 24,
-    }
-  }
->
+<View>
   <View
-    style={
+    colors={
+      [
+        "#134E4A",
+        "#0D9488",
+        "#14B8A6",
+      ]
+    }
+    end={
       {
-        "position": "relative",
+        "x": 1,
+        "y": 1,
       }
+    }
+    start={
+      {
+        "x": 0,
+        "y": 0,
+      }
+    }
+    style={
+      [
+        {
+          "overflow": "hidden",
+          "paddingHorizontal": 20,
+        },
+        {
+          "paddingTop": 12,
+        },
+      ]
     }
   >
     <View
-      accessible={false}
       style={
         {
-          "backgroundColor": "#D4D4D4",
+          "backgroundColor": "rgba(255,255,255,0.06)",
+          "borderRadius": 90,
+          "height": 180,
+          "position": "absolute",
+          "right": -30,
+          "top": -30,
+          "width": 180,
+        }
+      }
+    />
+    <View
+      style={
+        {
+          "backgroundColor": "rgba(255,255,255,0.04)",
           "borderRadius": 50,
+          "bottom": -20,
           "height": 100,
+          "left": -20,
+          "position": "absolute",
           "width": 100,
+        }
+      }
+    />
+    <View
+      style={
+        {
+          "alignItems": "center",
+          "flexDirection": "row",
+          "marginBottom": 8,
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "flex": 1,
+          }
+        }
+      />
+    </View>
+    <View
+      style={
+        {
+          "height": 50,
         }
       }
     />
@@ -230,22 +608,74 @@ exports[`ProfileHeader Component Snapshot Stability renders consistently without
   <View
     style={
       {
-        "flex": 1,
-        "marginLeft": 16,
+        "alignItems": "center",
+        "backgroundColor": undefined,
+        "marginTop": -48,
+        "paddingBottom": 20,
+        "paddingHorizontal": 24,
       }
     }
   >
+    <View
+      style={
+        {
+          "marginBottom": 12,
+          "position": "relative",
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "alignItems": "center",
+            "backgroundColor": undefined,
+            "borderColor": undefined,
+            "borderRadius": 48,
+            "borderWidth": 4,
+            "height": 96,
+            "justifyContent": "center",
+            "shadowColor": "#000",
+            "shadowOffset": {
+              "height": 2,
+              "width": 0,
+            },
+            "shadowOpacity": 0.1,
+            "shadowRadius": 8,
+            "width": 96,
+          }
+        }
+      >
+        <View
+          accessibilityLabel="Icon: person, size: 40, color: undefined"
+          testID="ionicon-person"
+        />
+      </View>
+    </View>
     <Text
       style={
         {
           "color": "#171717",
           "fontSize": 24,
-          "fontWeight": "600",
-          "marginBottom": 8,
+          "fontWeight": "800",
+          "letterSpacing": -0.5,
+          "textAlign": "center",
         }
       }
     >
       John Smith
+    </Text>
+    <Text
+      style={
+        {
+          "color": "#10B981",
+          "fontSize": 15,
+          "fontWeight": "600",
+          "marginTop": 2,
+          "textAlign": "center",
+        }
+      }
+    >
+      Contractor
     </Text>
     <View
       style={
@@ -253,12 +683,13 @@ exports[`ProfileHeader Component Snapshot Stability renders consistently without
           "alignItems": "center",
           "flexDirection": "row",
           "gap": 4,
+          "marginTop": 6,
         }
       }
     >
       <View
-        accessibilityLabel="Icon: location, size: 16, color: #737373"
-        testID="ionicon-location"
+        accessibilityLabel="Icon: location-outline, size: 14, color: #737373"
+        testID="ionicon-location-outline"
       />
       <Text
         style={
@@ -270,6 +701,80 @@ exports[`ProfileHeader Component Snapshot Stability renders consistently without
       >
         New York, NY
       </Text>
+    </View>
+    <View
+      style={
+        {
+          "flexDirection": "row",
+          "flexWrap": "wrap",
+          "gap": 8,
+          "justifyContent": "center",
+          "marginTop": 16,
+        }
+      }
+    >
+      <View
+        style={
+          {
+            "alignItems": "center",
+            "backgroundColor": undefined,
+            "borderColor": undefined,
+            "borderRadius": 12,
+            "borderWidth": 1,
+            "flexDirection": "row",
+            "gap": 5,
+            "paddingHorizontal": 12,
+            "paddingVertical": 8,
+          }
+        }
+      >
+        <View
+          accessibilityLabel="Icon: flash, size: 14, color: undefined"
+          testID="ionicon-flash"
+        />
+        <Text
+          style={
+            {
+              "color": "#171717",
+              "fontSize": 12,
+              "fontWeight": "600",
+            }
+          }
+        >
+          &lt; 1hr Response
+        </Text>
+      </View>
+      <View
+        style={
+          {
+            "alignItems": "center",
+            "backgroundColor": undefined,
+            "borderColor": undefined,
+            "borderRadius": 12,
+            "borderWidth": 1,
+            "flexDirection": "row",
+            "gap": 5,
+            "paddingHorizontal": 12,
+            "paddingVertical": 8,
+          }
+        }
+      >
+        <View
+          accessibilityLabel="Icon: ribbon, size: 14, color: #3B82F6"
+          testID="ionicon-ribbon"
+        />
+        <Text
+          style={
+            {
+              "color": "#171717",
+              "fontSize": 12,
+              "fontWeight": "600",
+            }
+          }
+        >
+          Insured
+        </Text>
+      </View>
     </View>
   </View>
 </View>

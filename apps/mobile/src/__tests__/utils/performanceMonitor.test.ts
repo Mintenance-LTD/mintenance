@@ -1,4 +1,4 @@
-import performanceMonitor from '../../utils/performanceMonitor';
+import { performanceMonitor } from '../../utils/performanceMonitor';
 
 // Mock logger
 jest.mock('../../utils/logger', () => ({
@@ -59,7 +59,9 @@ describe('PerformanceMonitor', () => {
       performanceMonitor.recordStartupTime();
 
       const budgetStatus = performanceMonitor.getBudgetStatus();
-      const startupStatus = budgetStatus.find(s => s.metric === 'startupTime');
+      const startupStatus = budgetStatus.find(
+        (s) => s.metric === 'startupTime'
+      );
       expect(startupStatus?.status).toBe('error');
     });
 
@@ -69,7 +71,9 @@ describe('PerformanceMonitor', () => {
       performanceMonitor.recordStartupTime();
 
       const budgetStatus = performanceMonitor.getBudgetStatus();
-      const startupStatus = budgetStatus.find(s => s.metric === 'startupTime');
+      const startupStatus = budgetStatus.find(
+        (s) => s.metric === 'startupTime'
+      );
       expect(startupStatus?.status).toBe('warning');
     });
   });
@@ -114,7 +118,7 @@ describe('PerformanceMonitor', () => {
       performanceMonitor.recordNavigationTime('SlowScreen');
 
       const budgetStatus = performanceMonitor.getBudgetStatus();
-      const navStatus = budgetStatus.find(s => s.metric === 'navigationTime');
+      const navStatus = budgetStatus.find((s) => s.metric === 'navigationTime');
       expect(navStatus?.status).toBe('error');
     });
   });
@@ -181,7 +185,9 @@ describe('PerformanceMonitor', () => {
       performanceMonitor.recordApiResponseTime(requestId, '/api/slow-endpoint');
 
       const budgetStatus = performanceMonitor.getBudgetStatus();
-      const apiStatus = budgetStatus.find(s => s.metric === 'apiResponseTime');
+      const apiStatus = budgetStatus.find(
+        (s) => s.metric === 'apiResponseTime'
+      );
       expect(apiStatus?.status).toBe('error');
     });
   });
@@ -246,7 +252,7 @@ describe('PerformanceMonitor', () => {
       performanceMonitor.recordMemoryUsage();
 
       const budgetStatus = performanceMonitor.getBudgetStatus();
-      const memoryStatus = budgetStatus.find(s => s.metric === 'memoryUsage');
+      const memoryStatus = budgetStatus.find((s) => s.metric === 'memoryUsage');
       expect(memoryStatus?.status).toBe('error');
     });
   });
@@ -271,7 +277,7 @@ describe('PerformanceMonitor', () => {
       performanceMonitor.recordFPS(40);
 
       const budgetStatus = performanceMonitor.getBudgetStatus();
-      const fpsStatus = budgetStatus.find(s => s.metric === 'fps');
+      const fpsStatus = budgetStatus.find((s) => s.metric === 'fps');
       expect(fpsStatus?.status).toBe('error');
     });
 
@@ -279,7 +285,7 @@ describe('PerformanceMonitor', () => {
       performanceMonitor.recordFPS(58); // Above warning threshold of 55
 
       const budgetStatus = performanceMonitor.getBudgetStatus();
-      const fpsStatus = budgetStatus.find(s => s.metric === 'fps');
+      const fpsStatus = budgetStatus.find((s) => s.metric === 'fps');
       expect(fpsStatus?.status).toBe('good');
     });
   });
@@ -289,14 +295,18 @@ describe('PerformanceMonitor', () => {
       performanceMonitor.recordStartupTime(); // Should be very fast with fake timers
 
       const budgetStatus = performanceMonitor.getBudgetStatus();
-      const startupStatus = budgetStatus.find(s => s.metric === 'startupTime');
+      const startupStatus = budgetStatus.find(
+        (s) => s.metric === 'startupTime'
+      );
       expect(startupStatus?.status).toBe('good');
       expect(startupStatus?.value).toBe(0);
     });
 
     it('returns good status for undefined metrics', () => {
       const budgetStatus = performanceMonitor.getBudgetStatus();
-      const undefinedStatus = budgetStatus.find(s => s.metric === 'apiResponseTime');
+      const undefinedStatus = budgetStatus.find(
+        (s) => s.metric === 'apiResponseTime'
+      );
       expect(undefinedStatus?.status).toBe('good');
       expect(undefinedStatus?.value).toBeUndefined();
     });
@@ -309,8 +319,10 @@ describe('PerformanceMonitor', () => {
       performanceMonitor.recordFPS(30);
 
       const budgetStatus = performanceMonitor.getBudgetStatus();
-      const startupStatus = budgetStatus.find(s => s.metric === 'startupTime');
-      const fpsStatus = budgetStatus.find(s => s.metric === 'fps');
+      const startupStatus = budgetStatus.find(
+        (s) => s.metric === 'startupTime'
+      );
+      const fpsStatus = budgetStatus.find((s) => s.metric === 'fps');
 
       expect(startupStatus?.status).toBe('good');
       expect(fpsStatus?.status).toBe('error');
@@ -395,7 +407,10 @@ describe('PerformanceMonitor', () => {
       for (let i = 0; i < 100; i++) {
         performanceMonitor.startApiTimer(`request-${i}`);
         jest.advanceTimersByTime(10);
-        performanceMonitor.recordApiResponseTime(`request-${i}`, `/api/endpoint-${i}`);
+        performanceMonitor.recordApiResponseTime(
+          `request-${i}`,
+          `/api/endpoint-${i}`
+        );
       }
 
       const metrics = performanceMonitor.getMetrics();
@@ -409,7 +424,7 @@ describe('PerformanceMonitor', () => {
       expect(metrics.startupTime).toBe(0);
 
       const budgetStatus = performanceMonitor.getBudgetStatus();
-      const status = budgetStatus.find(s => s.metric === 'startupTime');
+      const status = budgetStatus.find((s) => s.metric === 'startupTime');
       expect(status?.status).toBe('good');
     });
 
@@ -421,7 +436,7 @@ describe('PerformanceMonitor', () => {
       expect(metrics.startupTime).toBe(1000000);
 
       const budgetStatus = performanceMonitor.getBudgetStatus();
-      const status = budgetStatus.find(s => s.metric === 'startupTime');
+      const status = budgetStatus.find((s) => s.metric === 'startupTime');
       expect(status?.status).toBe('error');
     });
 
@@ -429,7 +444,7 @@ describe('PerformanceMonitor', () => {
       performanceMonitor.recordFPS(-10);
 
       const budgetStatus = performanceMonitor.getBudgetStatus();
-      const fpsStatus = budgetStatus.find(s => s.metric === 'fps');
+      const fpsStatus = budgetStatus.find((s) => s.metric === 'fps');
       expect(fpsStatus?.status).toBe('error');
     });
   });
@@ -441,7 +456,9 @@ describe('PerformanceMonitor', () => {
       performanceMonitor.recordStartupTime();
       performanceMonitor.recordFPS(60);
 
-      expect(logger.debug).toHaveBeenCalledWith(expect.stringContaining('App startup time'));
+      expect(logger.debug).toHaveBeenCalledWith(
+        expect.stringContaining('App startup time')
+      );
     });
 
     it('logs warnings for performance issues', () => {
@@ -449,7 +466,9 @@ describe('PerformanceMonitor', () => {
 
       performanceMonitor.recordFPS(45); // Below warning threshold
 
-      expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Low FPS detected: 45'));
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('Low FPS detected: 45')
+      );
     });
 
     it('logs errors for budget violations', () => {
@@ -483,8 +502,8 @@ describe('Singleton Performance Monitor', () => {
     const originalPerformance = global.performance;
     (global as any).performance = {
       memory: {
-        usedJSHeapSize: 52428800 // 50MB in bytes
-      }
+        usedJSHeapSize: 52428800, // 50MB in bytes
+      },
     };
 
     // Clear previous logger calls
@@ -535,7 +554,9 @@ describe('Production vs Development Behavior', () => {
     performanceMonitor.recordStartupTime();
 
     expect(logger.info).toHaveBeenCalledWith(
-      expect.stringContaining('Performance budget violation: error for startupTime')
+      expect.stringContaining(
+        'Performance budget violation: error for startupTime'
+      )
     );
 
     jest.useRealTimers();
