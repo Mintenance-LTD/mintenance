@@ -11,6 +11,22 @@ import { CTASection } from './CTASection';
 import { logger } from '@mintenance/shared';
 import { normalizeSeverity } from '@mintenance/ai-core/types';
 
+// WFE-P0-2: enforce client-side validation before base64 encoding.
+// The demo API route has its own validation, but rejecting early prevents
+// OOM from huge file reads and keeps SVG-with-script from ever being read.
+const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
+const ALLOWED_IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
+
+function validateImageFile(file: File): string | null {
+  if (file.size > MAX_IMAGE_SIZE_BYTES) {
+    return `${file.name} is too large (max 10 MB).`;
+  }
+  if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
+    return `${file.name} is not a supported image type. Use JPEG, PNG, or WebP.`;
+  }
+  return null;
+}
+
 export type UploadState =
   | 'idle'
   | 'uploading'
@@ -82,6 +98,17 @@ export function TryMintAIClient() {
   const [errorMessage, setErrorMessage] = useState<string>('');
 
   const handleImagesSelected = (files: File[]) => {
+    // Early validation so the user sees an error before hitting analyze.
+    for (const file of files) {
+      const errorMessage = validateImageFile(file);
+      if (errorMessage) {
+        setErrorMessage(errorMessage);
+        setUploadState('error');
+        setUploadedImages([]);
+        setAssessmentResult(null);
+        return;
+      }
+    }
     setUploadedImages(files);
     setUploadState('idle');
     setAssessmentResult(null);
@@ -102,6 +129,13 @@ export function TryMintAIClient() {
       const imageUrls: string[] = [];
 
       for (const file of uploadedImages) {
+        // Re-validate inside analyze in case handleImagesSelected was bypassed.
+        const fileError = validateImageFile(file);
+        if (fileError) {
+          setErrorMessage(fileError);
+          setUploadState('error');
+          return;
+        }
         // Convert to base64 for demo (in production, upload to Supabase storage)
         const base64 = await fileToBase64(file);
         imageUrls.push(base64);
