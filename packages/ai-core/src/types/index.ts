@@ -2,6 +2,9 @@
  * Shared AI Types for Mintenance Platform
  * Used by both web and mobile applications
  */
+export { normalizeSeverity, type SeverityTier } from './severity';
+import type { SeverityTier } from './severity';
+
 // Building Assessment Types
 export interface BuildingAssessment {
   id: string;
@@ -18,11 +21,12 @@ export interface BuildingAssessment {
 }
 export interface DamageAssessment {
   damageType: string;
-  severity: 'minimal' | 'moderate' | 'severe' | 'critical';
+  /** 4-tier canonical severity — see `./severity.ts` for semantics. */
+  severity: SeverityTier;
   confidence: number;
   description: string;
   affectedArea?: number;
-  progression?: 'early' | 'midway' | 'full';
+  progression?: SeverityTier;
   detectedIssues: DetectedIssue[];
 }
 export interface DetectedIssue {

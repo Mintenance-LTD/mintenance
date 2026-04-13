@@ -118,30 +118,14 @@ ALTER FUNCTION public.is_admin() SET search_path = '';
 -- These handle raw passwords and should run in elevated context
 -- ============================================================
 
-DO $$
-BEGIN
-  IF EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid WHERE n.nspname = 'public' AND p.proname = 'hash_password') THEN
-    ALTER FUNCTION public.hash_password(text) SECURITY DEFINER SET search_path = '';
-  END IF;
-  IF EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid WHERE n.nspname = 'public' AND p.proname = 'verify_password') THEN
-    ALTER FUNCTION public.verify_password(text, text) SECURITY DEFINER SET search_path = '';
-  END IF;
-  IF EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid WHERE n.nspname = 'public' AND p.proname = 'check_password_strength') THEN
-    ALTER FUNCTION public.check_password_strength(text) SECURITY DEFINER SET search_path = '';
-  END IF;
-END $$;
+ALTER FUNCTION public.hash_password(text) SECURITY DEFINER SET search_path = '';
+ALTER FUNCTION public.verify_password(text, text) SECURITY DEFINER SET search_path = '';
+ALTER FUNCTION public.check_password_strength(text) SECURITY DEFINER SET search_path = '';
 
 -- ============================================================
 -- 1I. MARK READ-ONLY FUNCTIONS AS STABLE
 -- Allows PostgreSQL query planner to optimize
 -- ============================================================
 
-DO $$
-BEGIN
-  IF EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid WHERE n.nspname = 'public' AND p.proname = 'is_account_locked') THEN
-    ALTER FUNCTION public.is_account_locked(UUID) STABLE;
-  END IF;
-  IF EXISTS (SELECT 1 FROM pg_proc p JOIN pg_namespace n ON p.pronamespace = n.oid WHERE n.nspname = 'public' AND p.proname = 'is_job_participant') THEN
-    ALTER FUNCTION public.is_job_participant(UUID, UUID) STABLE;
-  END IF;
-END $$;
+ALTER FUNCTION public.is_account_locked(UUID) STABLE;
+ALTER FUNCTION public.is_job_participant(UUID) STABLE;

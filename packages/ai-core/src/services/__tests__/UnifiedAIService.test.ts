@@ -20,26 +20,26 @@ describe('UnifiedAIService', () => {
       buildingSurveyor: 'https://api.example.com/api/building-surveyor/assess',
       agents: 'https://api.example.com/api/agents',
       search: 'https://api.example.com/api/ai/search',
-      training: 'https://api.example.com/api/training'
+      training: 'https://api.example.com/api/training',
     },
     limits: {
-      maxMonthlyCost: 1000,
-      maxDailyCost: 100,
-      maxRequestsPerMinute: 60
+      daily: 100,
+      weekly: 700,
+      monthly: 1000,
     },
     features: {
       enableSAM3: true,
       enableShadowMode: false,
       enableABTesting: false,
       enableContinuousLearning: false,
-      enableTrainingDataCollection: false
+      enableTrainingDataCollection: false,
     },
     performance: {
       timeout: 1000,
       maxRetries: 1,
       cacheEnabled: true,
-      cacheTTL: 60
-    }
+      cacheTTL: 60,
+    },
   };
 
   beforeEach(() => {
@@ -48,7 +48,7 @@ describe('UnifiedAIService', () => {
       post: mockPost,
       get: mockGet,
       request: mockRequest,
-      interceptors: mockInterceptors
+      interceptors: mockInterceptors,
     });
   });
 
@@ -56,9 +56,11 @@ describe('UnifiedAIService', () => {
     it('should create an instance with baseUrl', () => {
       const service = new UnifiedAIService(baseConfig);
       expect(service).toBeDefined();
-      expect(axios.create).toHaveBeenCalledWith(expect.objectContaining({
-        baseURL: baseConfig.endpoints.baseUrl,
-      }));
+      expect(axios.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          baseURL: baseConfig.endpoints.baseUrl,
+        })
+      );
     });
   });
 
@@ -71,23 +73,23 @@ describe('UnifiedAIService', () => {
         timestamp: new Date().toISOString(),
         damageAssessment: {
           damageType: 'roof',
-          severity: 'moderate',
+          severity: 'developing',
           confidence: 0.9,
           description: 'Test',
-          detectedIssues: []
+          detectedIssues: [],
         },
         safetyHazards: {
           hasSafetyHazards: false,
           criticalFlags: [],
           immediateActionRequired: false,
           riskLevel: 'low',
-          details: 'none'
+          details: 'none',
         },
         insuranceRisk: {
           riskScore: 0.1,
           category: 'low',
           factors: [],
-          recommendedAction: 'none'
+          recommendedAction: 'none',
         },
         complianceFlags: [],
         recommendations: [],
@@ -96,7 +98,7 @@ describe('UnifiedAIService', () => {
           max: 200,
           likely: 150,
           currency: 'USD',
-          confidence: 0.9
+          confidence: 0.9,
         },
         confidence: 0.9,
         metadata: {
@@ -105,8 +107,8 @@ describe('UnifiedAIService', () => {
           processingTime: 10,
           imageCount: 1,
           apiCalls: [],
-          costTracking: { estimatedCost: 0, actualCost: 0, breakdown: {} }
-        }
+          costTracking: { estimatedCost: 0, actualCost: 0, breakdown: {} },
+        },
       };
       mockPost.mockResolvedValueOnce({ data: assessment, headers: {} });
 

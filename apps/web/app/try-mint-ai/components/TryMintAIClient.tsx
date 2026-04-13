@@ -9,8 +9,14 @@ import { HowItWorksSection } from './HowItWorksSection';
 import { FeaturesGrid } from './FeaturesGrid';
 import { CTASection } from './CTASection';
 import { logger } from '@mintenance/shared';
+import { normalizeSeverity } from '@mintenance/ai-core/types';
 
-export type UploadState = 'idle' | 'uploading' | 'analyzing' | 'complete' | 'error';
+export type UploadState =
+  | 'idle'
+  | 'uploading'
+  | 'analyzing'
+  | 'complete'
+  | 'error';
 
 export interface Material {
   name: string;
@@ -26,9 +32,16 @@ export interface Material {
   unit?: string;
 }
 
+/** 4-tier severity display labels (matches UK landlord compliance urgency) */
+export type SeverityLabel =
+  | 'Early'
+  | 'Developing'
+  | 'Significant'
+  | 'Dangerous';
+
 export interface AssessmentResult {
   damageType: string;
-  severity: 'Minor' | 'Moderate' | 'Severe';
+  severity: SeverityLabel;
   costEstimate: {
     min: number;
     max: number;
@@ -49,7 +62,7 @@ export interface CorrectionData {
   selectedIssues: string[];
   corrections: {
     damageType?: string;
-    severity?: 'Minor' | 'Moderate' | 'Severe';
+    severity?: SeverityLabel;
     costEstimate?: number;
     notes?: string;
     additionalImages?: File[];
@@ -59,7 +72,8 @@ export interface CorrectionData {
 export function TryMintAIClient() {
   const [uploadState, setUploadState] = useState<UploadState>('idle');
   const [uploadedImages, setUploadedImages] = useState<File[]>([]);
-  const [assessmentResult, setAssessmentResult] = useState<AssessmentResult | null>(null);
+  const [assessmentResult, setAssessmentResult] =
+    useState<AssessmentResult | null>(null);
   const [correctionState, setCorrectionState] = useState<CorrectionData>({
     isOpen: false,
     selectedIssues: [],
@@ -113,7 +127,9 @@ export function TryMintAIClient() {
 
       if (!response.ok) {
         if (response.status === 429) {
-          throw new Error('Too many requests. Please wait a moment and try again.');
+          throw new Error(
+            'Too many requests. Please wait a moment and try again.'
+          );
         }
         throw new Error('Assessment failed. Please try again.');
       }
@@ -139,9 +155,11 @@ export function TryMintAIClient() {
         confidence: result.damageAssessment?.confidence || 75,
         assessmentId: result.assessmentId || null, // NEW: Store for training feedback
         details: {
-          description: result.damageAssessment?.description || 'Assessment completed',
+          description:
+            result.damageAssessment?.description || 'Assessment completed',
           urgency: result.urgency?.urgency || 'monitor',
-          safetyRisk: result.safetyHazards?.overallSafetyScore > 70 ? 'Low' : 'High',
+          safetyRisk:
+            result.safetyHazards?.overallSafetyScore > 70 ? 'Low' : 'High',
           recommendations: result.recommendations || [
             'Professional inspection recommended',
             'Monitor for changes',
@@ -160,8 +178,13 @@ export function TryMintAIClient() {
       setAssessmentResult(assessment);
       setUploadState('complete');
     } catch (error) {
-      logger.error('Assessment error in demo', { error, service: 'mint-ai-demo' });
-      setErrorMessage(error instanceof Error ? error.message : 'An error occurred');
+      logger.error('Assessment error in demo', {
+        error,
+        service: 'mint-ai-demo',
+      });
+      setErrorMessage(
+        error instanceof Error ? error.message : 'An error occurred'
+      );
       setUploadState('error');
     }
   };
@@ -176,7 +199,9 @@ export function TryMintAIClient() {
     });
 
     if (!assessmentResult?.assessmentId) {
-      logger.warn('No assessment ID available for feedback', { service: 'mint-ai-demo' });
+      logger.warn('No assessment ID available for feedback', {
+        service: 'mint-ai-demo',
+      });
       alert('Unable to submit feedback at this time');
       return;
     }
@@ -208,20 +233,27 @@ export function TryMintAIClient() {
         const result = await response.json();
         logger.info('User confirmed assessment accuracy', {
           service: 'mint-ai-demo',
-          assessmentId: assessmentResult.assessmentId
+          assessmentId: assessmentResult.assessmentId,
         });
 
         alert(result.message || 'Thank you for confirming the accuracy!');
       } catch (error) {
-        logger.error('Failed to submit positive feedback', { error, service: 'mint-ai-demo' });
+        logger.error('Failed to submit positive feedback', {
+          error,
+          service: 'mint-ai-demo',
+        });
         alert('Failed to submit feedback. Please try again.');
       }
     }
   };
 
-  const handleCorrectionSubmit = async (corrections: CorrectionData['corrections']) => {
+  const handleCorrectionSubmit = async (
+    corrections: CorrectionData['corrections']
+  ) => {
     if (!assessmentResult?.assessmentId) {
-      logger.warn('No assessment ID available for corrections', { service: 'mint-ai-demo' });
+      logger.warn('No assessment ID available for corrections', {
+        service: 'mint-ai-demo',
+      });
       alert('Unable to submit corrections at this time');
       return;
     }
@@ -238,8 +270,12 @@ export function TryMintAIClient() {
           isAccurate: false,
           correctedDamageType: corrections.damageType,
           correctedSeverity: corrections.severity?.toLowerCase(), // Convert to backend format
-          correctedCostMin: corrections.costEstimate ? corrections.costEstimate * 0.8 : undefined,
-          correctedCostMax: corrections.costEstimate ? corrections.costEstimate * 1.2 : undefined,
+          correctedCostMin: corrections.costEstimate
+            ? corrections.costEstimate * 0.8
+            : undefined,
+          correctedCostMax: corrections.costEstimate
+            ? corrections.costEstimate * 1.2
+            : undefined,
           correctionNotes: corrections.notes,
           feedbackText: correctionState.selectedIssues.join(', '),
         }),
@@ -263,19 +299,22 @@ export function TryMintAIClient() {
 
       logger.info('User submitted corrections', {
         service: 'mint-ai-demo',
-        assessmentId: assessmentResult.assessmentId
+        assessmentId: assessmentResult.assessmentId,
       });
     } catch (error) {
-      logger.error('Failed to submit corrections', { error, service: 'mint-ai-demo' });
+      logger.error('Failed to submit corrections', {
+        error,
+        service: 'mint-ai-demo',
+      });
       alert('Failed to submit corrections. Please try again.');
     }
   };
 
   return (
-    <div className="bg-gray-50">
+    <div className='bg-gray-50'>
       <HeroSection />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+      <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16'>
         <UploadSection
           uploadState={uploadState}
           uploadedImages={uploadedImages}
@@ -314,12 +353,22 @@ function fileToBase64(file: File): Promise<string> {
     const reader = new FileReader();
     reader.readAsDataURL(file);
     reader.onload = () => resolve(reader.result as string);
-    reader.onerror = error => reject(error);
+    reader.onerror = (error) => reject(error);
   });
 }
 
-function mapSeverity(severityScore: number): 'Minor' | 'Moderate' | 'Severe' {
-  if (severityScore < 30) return 'Minor';
-  if (severityScore < 70) return 'Moderate';
-  return 'Severe';
+/**
+ * Map API severity (4-tier string or numeric 0–100 score) to the capitalized
+ * display label used by `AssessmentResults`. Delegates normalization of legacy
+ * string values to the canonical helper in `@mintenance/ai-core/types`.
+ */
+function mapSeverity(raw: string | number | null | undefined): SeverityLabel {
+  if (typeof raw === 'number' && Number.isFinite(raw)) {
+    if (raw < 25) return 'Early';
+    if (raw < 50) return 'Developing';
+    if (raw < 75) return 'Significant';
+    return 'Dangerous';
+  }
+  const tier = normalizeSeverity(raw);
+  return (tier[0]!.toUpperCase() + tier.slice(1)) as SeverityLabel;
 }

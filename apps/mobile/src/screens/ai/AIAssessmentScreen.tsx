@@ -26,7 +26,8 @@ import { theme } from '../../theme';
 
 interface AnalysisResult {
   damageType: string;
-  severity: 'low' | 'medium' | 'high' | 'critical';
+  /** 4-tier severity: early, developing, significant, dangerous */
+  severity: 'early' | 'developing' | 'significant' | 'dangerous';
   estimatedCostMin: number;
   estimatedCostMax: number;
   recommendedActions: string[];
@@ -197,9 +198,9 @@ export const AIAssessmentScreen: React.FC = () => {
                     <Text style={styles.resultTitle}>Assessment Result</Text>
                     <Badge
                       variant={
-                        result.severity === 'low'
+                        result.severity === 'early'
                           ? 'success'
-                          : result.severity === 'critical'
+                          : result.severity === 'dangerous'
                             ? 'error'
                             : 'warning'
                       }
