@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@mintenance/types": "file:../types",
-    "@supabase/supabase-js": "^2"
+    "@supabase/supabase-js": "^2.103.0"
   },
   "devDependencies": {
     "typescript": "^5"
