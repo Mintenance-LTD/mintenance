@@ -4,7 +4,11 @@ import { createHash } from 'crypto';
 import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { env } from '@/lib/env';
-import { handleAPIError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
+import {
+  handleAPIError,
+  BadRequestError,
+  InternalServerError,
+} from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
 import { StripeWebhookEventHandler } from './stripe-webhook-event-handler';
 
@@ -42,11 +46,17 @@ export class StripeWebhookService {
 
       const webhookSecret = env.STRIPE_WEBHOOK_SECRET;
       if (!webhookSecret) {
-        logger.error('STRIPE_WEBHOOK_SECRET not configured - rejecting webhook', null, {
-          service: 'stripe-webhook',
-          eventType: 'unknown',
-        });
-        throw new InternalServerError('Webhook endpoint not properly configured');
+        logger.error(
+          'STRIPE_WEBHOOK_SECRET not configured - rejecting webhook',
+          null,
+          {
+            service: 'stripe-webhook',
+            eventType: 'unknown',
+          }
+        );
+        throw new InternalServerError(
+          'Webhook endpoint not properly configured'
+        );
       }
 
       const stripe = this.getStripeInstance();
@@ -54,9 +64,15 @@ export class StripeWebhookService {
       this.validateTimestamp(event);
 
       const idempotencyKey = this.buildIdempotencyKey(event);
-      const { eventRecordId, isDuplicate } = await this.checkIdempotency(event, idempotencyKey);
+      const { eventRecordId, isDuplicate } = await this.checkIdempotency(
+        event,
+        idempotencyKey
+      );
       if (isDuplicate) {
-        return NextResponse.json({ received: true, duplicate: true }, { status: 200 });
+        return NextResponse.json(
+          { received: true, duplicate: true },
+          { status: 200 }
+        );
       }
 
       logger.info('Processing webhook event', {
@@ -72,7 +88,10 @@ export class StripeWebhookService {
         await this.markProcessed(eventRecordId, 'processed');
         return NextResponse.json({ received: true }, { status: 200 });
       } catch (processingError: unknown) {
-        const errorMessage = processingError instanceof Error ? processingError.message : String(processingError);
+        const errorMessage =
+          processingError instanceof Error
+            ? processingError.message
+            : String(processingError);
         logger.error('Webhook event processing failed', processingError, {
           service: 'stripe-webhook',
           eventId: eventRecordId,
@@ -86,23 +105,49 @@ export class StripeWebhookService {
     }
   }
 
-  private async checkRateLimit(request: NextRequest): Promise<NextResponse | null> {
+  private async checkRateLimit(
+    request: NextRequest
+  ): Promise<NextResponse | null> {
+    // Sprint 5.5: this is a DoS guard, NOT the forgery gate. Stripe webhook
+    // signature verification (constructEvent, line ~129) is what stops forged
+    // events from being processed. The rate limit only stops an attacker
+    // hammering the endpoint with garbage that would never pass signature
+    // verification but would still consume CPU.
+    //
+    // Threshold is intentionally generous (1000 req/min/IP) because:
+    //   1. Stripe sends from a small pool of IPs that rotate, so a tight
+    //      per-IP limit can false-positive on legitimate traffic for high
+    //      volume accounts.
+    //   2. A burst of failed signature-verification attempts from one IP
+    //      is the only realistic abuse pattern, and 1000/min still bounds
+    //      the worst case.
+    const ip =
+      request.headers.get('x-forwarded-for')?.split(',')[0] ||
+      request.headers.get('x-real-ip') ||
+      'anonymous';
     const rateLimitResult = await rateLimiter.checkRateLimit({
-      identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
-      windowMs: 60000,
-      maxRequests: 20,
+      identifier: `stripe-webhook:${ip}`,
+      windowMs: 60_000,
+      maxRequests: 1000,
     });
 
     if (!rateLimitResult.allowed) {
+      logger.warn('Stripe webhook rate limit exceeded', {
+        service: 'stripe-webhook',
+        ip,
+        retryAfter: rateLimitResult.retryAfter,
+      });
       return NextResponse.json(
         { error: 'Too many requests. Please try again later.' },
         {
           status: 429,
           headers: {
             'Retry-After': String(rateLimitResult.retryAfter || 60),
-            'X-RateLimit-Limit': String(20),
+            'X-RateLimit-Limit': String(1000),
             'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-            'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString(),
+            'X-RateLimit-Reset': new Date(
+              rateLimitResult.resetTime
+            ).toISOString(),
           },
         }
       );
@@ -129,7 +174,9 @@ export class StripeWebhookService {
       return stripe.webhooks.constructEvent(body, signature, webhookSecret);
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : String(err);
-      logger.error('Webhook signature verification failed', err, { service: 'stripe-webhook' });
+      logger.error('Webhook signature verification failed', err, {
+        service: 'stripe-webhook',
+      });
       throw new BadRequestError('Webhook signature verification failed');
     }
   }
@@ -161,8 +208,8 @@ export class StripeWebhookService {
     event: Stripe.Event,
     idempotencyKey: string
   ): Promise<{ eventRecordId?: string; isDuplicate: boolean }> {
-    const { data: idempotencyResult, error: idempotencyError } = await serverSupabase
-      .rpc('check_webhook_idempotency', {
+    const { data: idempotencyResult, error: idempotencyError } =
+      await serverSupabase.rpc('check_webhook_idempotency', {
         p_idempotency_key: idempotencyKey,
         p_event_type: event.type,
         p_event_id: event.id,
@@ -171,11 +218,14 @@ export class StripeWebhookService {
       });
 
     if (idempotencyError) {
-      logger.error('Webhook idempotency check failed', idempotencyError, { service: 'stripe-webhook' });
+      logger.error('Webhook idempotency check failed', idempotencyError, {
+        service: 'stripe-webhook',
+      });
       throw new InternalServerError('Idempotency check failed');
     }
 
-    const row = (idempotencyResult?.[0] as IdempotencyResultRow | undefined) ?? {};
+    const row =
+      (idempotencyResult?.[0] as IdempotencyResultRow | undefined) ?? {};
     if (row.is_duplicate) {
       logger.info('Duplicate webhook event detected', {
         service: 'stripe-webhook',
@@ -206,7 +256,9 @@ export class StripeWebhookService {
 
   private safeLogMissingSignature(): void {
     try {
-      logger.error('Webhook missing Stripe signature', null, { service: 'stripe-webhook' });
+      logger.error('Webhook missing Stripe signature', null, {
+        service: 'stripe-webhook',
+      });
     } catch {
       // Logger might fail, ignore it
     }

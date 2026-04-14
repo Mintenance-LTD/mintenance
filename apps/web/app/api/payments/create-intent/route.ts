@@ -233,6 +233,11 @@ export const POST = withApiHandler(
         jobId
       );
 
+      // Sprint 5.1: checkIdempotency now throws IdempotencyStoreUnavailableError
+      // (a ServiceUnavailableError subclass) on store errors instead of
+      // silently returning null. That error propagates through withApiHandler
+      // → handleAPIError which returns a clean 503. No explicit try/catch
+      // needed here — the failure path is fail-CLOSED by construction.
       const idempotencyCheck = await checkIdempotency(
         idempotencyKey,
         'create_payment_intent'

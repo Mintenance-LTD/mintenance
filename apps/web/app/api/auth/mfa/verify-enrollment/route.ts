@@ -5,12 +5,16 @@ import { rateLimiter } from '@/lib/rate-limiter';
 import { logger } from '@mintenance/shared';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { RateLimitError } from '@/lib/errors/api-error';
+import { logAuditEvent, getClientIp } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
 const verifyEnrollmentSchema = z.object({
-  token: z.string().length(6).regex(/^\d{6}$/, 'Token must be 6 digits'),
+  token: z
+    .string()
+    .length(6)
+    .regex(/^\d{6}$/, 'Token must be 6 digits'),
 });
 
 /**
@@ -52,6 +56,14 @@ export const POST = withApiHandler(
     const result = await MFAService.verifyTOTPEnrollment(user.id, token);
 
     if (!result.success) {
+      // Sprint 5.2: failed enrollment verifications are security-relevant
+      await logAuditEvent({
+        actorId: user.id,
+        category: 'mfa',
+        action: 'enroll_totp_verify_failed',
+        targetId: user.id,
+        ipAddress: getClientIp(request),
+      });
       return NextResponse.json(
         { error: result.error || 'Invalid verification code' },
         { status: 400 }
@@ -63,9 +75,20 @@ export const POST = withApiHandler(
       userId: user.id,
     });
 
+    // Sprint 5.2: audit trail for sensitive auth events
+    await logAuditEvent({
+      actorId: user.id,
+      category: 'mfa',
+      action: 'enroll_totp_completed',
+      targetId: user.id,
+      after: { mfa_enabled: true, method: 'totp' },
+      ipAddress: getClientIp(request),
+    });
+
     return NextResponse.json({
       success: true,
-      message: 'MFA enabled successfully. Your account is now protected with two-factor authentication.',
+      message:
+        'MFA enabled successfully. Your account is now protected with two-factor authentication.',
     });
   }
 );

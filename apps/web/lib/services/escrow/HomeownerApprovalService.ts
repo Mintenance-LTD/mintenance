@@ -9,6 +9,7 @@ import {
   sendFinalWarningNotification,
 } from './homeowner-approval/notifications';
 import { checkAutoApprovalEligibility } from './homeowner-approval/auto-approval';
+import { logAuditEvent } from '@/lib/audit';
 
 const AUTO_APPROVAL_DAYS = 7;
 const REMINDER_DAYS = 3;
@@ -202,6 +203,27 @@ export class HomeownerApprovalService {
         await sendApprovalNotification(escrowId, job.contractor_id);
       }
 
+      // Sprint 5.7: central audit log so security incidents can be
+      // reconstructed without joining homeowner_approval_history.
+      // Distinct action verb for auto vs explicit so audit queries can
+      // filter (set by caller via the comments string convention).
+      const isAutoApproval = comments?.startsWith('auto_approved_') ?? false;
+      await logAuditEvent({
+        actorId: homeownerId,
+        category: 'escrow_decision',
+        action: isAutoApproval
+          ? 'auto_approve_completion'
+          : 'approve_completion',
+        targetId: escrowId,
+        before: { homeowner_approval: false },
+        after: {
+          homeowner_approval: true,
+          cooling_off_ends_at: coolingOffEndsAt.toISOString(),
+          comments: comments || null,
+          job_id: job.id,
+        },
+      });
+
       logger.info('Homeowner approved completion', {
         service: 'HomeownerApprovalService',
         escrowId,
@@ -297,6 +319,20 @@ export class HomeownerApprovalService {
 
       // Send notification to contractor and admin
       await sendRejectionNotification(escrowId, job.contractor_id, reason);
+
+      // Sprint 5.7: central audit log for rejection decisions
+      await logAuditEvent({
+        actorId: homeownerId,
+        category: 'escrow_decision',
+        action: 'reject_completion',
+        targetId: escrowId,
+        before: { admin_hold_status: 'none' },
+        after: {
+          admin_hold_status: 'pending_review',
+          reason,
+          job_id: job.id,
+        },
+      });
 
       logger.info('Homeowner rejected completion', {
         service: 'HomeownerApprovalService',

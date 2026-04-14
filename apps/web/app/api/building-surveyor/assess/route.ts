@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import { LRUCache } from 'lru-cache';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { canonicalizeDamageType } from '@/lib/services/building-surveyor/normalization-utils';
+import { checkAICostBudget } from '@/lib/ai/cost-budget';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -180,6 +181,30 @@ export const POST = withApiHandler(
             'Retry-After': String(rateLimitResult.retryAfter || 60),
           },
         }
+      );
+    }
+
+    // Sprint 5.3: per-user AI cost cap. Rate limit is the sprint cadence;
+    // this is the rolling-window budget guard. Checking ai_service_costs
+    // for the last 24h / 30d sum and rejecting if over cap.
+    const budget = await checkAICostBudget(user.id);
+    if (!budget.allowed) {
+      deps.logger.warn('Building surveyor cost cap reached', {
+        service: 'building-surveyor-api',
+        userId: user.id,
+        reason: budget.reason,
+        spent: budget.spent,
+        limits: budget.limits,
+      });
+      return NextResponse.json(
+        {
+          error:
+            budget.reason === 'monthly_cap_exceeded'
+              ? 'Monthly AI usage limit reached. Please contact support to increase your quota.'
+              : 'Daily AI usage limit reached. Please try again tomorrow or contact support.',
+          code: budget.reason,
+        },
+        { status: 429 }
       );
     }
 
