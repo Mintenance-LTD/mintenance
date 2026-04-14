@@ -14,7 +14,12 @@ import type {
 } from './offline/types';
 
 // Re-export public types so existing imports from this module continue to work
-export type { ConflictResolutionStrategy, DataConflict, OfflineAction, SyncStatus } from './offline/types';
+export type {
+  ConflictResolutionStrategy,
+  DataConflict,
+  OfflineAction,
+  SyncStatus,
+} from './offline/types';
 
 class OfflineManagerClass {
   private readonly OFFLINE_QUEUE_KEY = 'OFFLINE_QUEUE';
@@ -23,7 +28,10 @@ class OfflineManagerClass {
   private syncInProgress = false;
   private retryTimer: NodeJS.Timeout | null = null;
   // CRITICAL FIX: Memory leak prevention - use unsubscribe from onSyncStatusChange()
-  private syncListeners: ((status: SyncStatus, pendingCount: number) => void)[] = [];
+  private syncListeners: ((
+    status: SyncStatus,
+    pendingCount: number
+  ) => void)[] = [];
 
   private readonly versionTracker = new EntityVersionTracker();
   private readonly dataMerger = new DataMerger();
@@ -46,15 +54,37 @@ class OfflineManagerClass {
   async queueAction(
     action: Omit<OfflineAction, 'id' | 'timestamp' | 'retryCount'>
   ): Promise<string> {
-    try { const sentry = require('../config/sentry'); sentry.addBreadcrumb?.('offline.queue_action', 'offline'); } catch {}
+    try {
+      const sentry = require('../config/sentry');
+      sentry.addBreadcrumb?.('offline.queue_action', 'offline');
+    } catch (sentryError) {
+      // MSV-P1-2: sentry breadcrumb is best-effort; don't block queueing, but
+      // log so we know if the import is broken.
+      logger.debug('Sentry breadcrumb unavailable in queueAction', {
+        sentryError,
+      });
+    }
     const actionId = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     try {
-      const existing = (await AsyncStorage.getItem(this.OFFLINE_QUEUE_KEY)) || '[]';
+      const existing =
+        (await AsyncStorage.getItem(this.OFFLINE_QUEUE_KEY)) || '[]';
       let queue: OfflineAction[];
-      try { queue = JSON.parse(existing); } catch { queue = []; }
+      try {
+        queue = JSON.parse(existing);
+      } catch (parseError) {
+        // MSV-P1-3: queue is corrupted. Reset to empty but log loudly so ops
+        // can investigate data loss.
+        logger.error('Offline queue JSON corrupt in queueAction; resetting', {
+          parseError,
+        });
+        queue = [];
+      }
 
       const baseVersion = action.entityId
-        ? await this.versionTracker.getEntityVersion(action.entity, action.entityId)
+        ? await this.versionTracker.getEntityVersion(
+            action.entity,
+            action.entityId
+          )
         : undefined;
       const strategy =
         action.strategy ||
@@ -77,8 +107,12 @@ class OfflineManagerClass {
       queue.push(queued);
       await AsyncStorage.setItem(this.OFFLINE_QUEUE_KEY, JSON.stringify(queue));
       logger.info('Action queued for offline sync', {
-        actionId, type: action.type, entity: action.entity,
-        version: action.version, baseVersion, strategy,
+        actionId,
+        type: action.type,
+        entity: action.entity,
+        version: action.version,
+        baseVersion,
+        strategy,
       });
 
       const networkState = await NetInfo.fetch();
@@ -99,7 +133,18 @@ class OfflineManagerClass {
     try {
       const existing = await AsyncStorage.getItem(this.OFFLINE_QUEUE_KEY);
       if (!existing) return [];
-      try { return JSON.parse(existing); } catch { return []; }
+      try {
+        return JSON.parse(existing);
+      } catch (parseError) {
+        // MSV-P1-3: queue JSON is corrupt. Previously returned silently.
+        logger.error(
+          'Offline queue JSON corrupt in getQueue; returning empty',
+          {
+            parseError,
+          }
+        );
+        return [];
+      }
     } catch (error) {
       logger.error('Failed to get offline queue:', error);
       return [];
@@ -117,9 +162,19 @@ class OfflineManagerClass {
   }
 
   async syncQueue(): Promise<void> {
-    try { const sentry = require('../config/sentry'); sentry.addBreadcrumb?.('offline.sync_start', 'offline'); } catch {}
+    try {
+      const sentry = require('../config/sentry');
+      sentry.addBreadcrumb?.('offline.sync_start', 'offline');
+    } catch (sentryError) {
+      logger.debug('Sentry breadcrumb unavailable in syncQueue', {
+        sentryError,
+      });
+    }
     const networkState = await NetInfo.fetch();
-    if (this.syncInProgress) { logger.debug('Sync already in progress, skipping'); return; }
+    if (this.syncInProgress) {
+      logger.debug('Sync already in progress, skipping');
+      return;
+    }
     if (!networkState.isConnected || !networkState.isInternetReachable) {
       logger.debug('Device is offline, skipping sync');
       return;
@@ -130,7 +185,10 @@ class OfflineManagerClass {
 
     try {
       const queue = await this.getQueue();
-      if (queue.length === 0) { this.notifySyncListeners('synced', 0); return; }
+      if (queue.length === 0) {
+        this.notifySyncListeners('synced', 0);
+        return;
+      }
       logger.info('Starting offline queue sync', { queueLength: queue.length });
 
       const failedActions: OfflineAction[] = [];
@@ -142,17 +200,22 @@ class OfflineManagerClass {
           try {
             const conflict = await this.conflictManager.detectConflict(action);
             if (conflict) {
-              const resolved = await this.conflictManager.resolveConflict(conflict);
+              const resolved =
+                await this.conflictManager.resolveConflict(conflict);
               if (!resolved) {
                 await this.conflictManager.addToConflictQueue(conflict);
                 this.notifySyncListeners('conflict', failedActions.length);
-                logger.warn('Conflict requires manual resolution', { actionId: action.id });
+                logger.warn('Conflict requires manual resolution', {
+                  actionId: action.id,
+                });
                 continue;
               }
               if (conflict.resolution === 'merged' && conflict.mergedData) {
                 action.data = conflict.mergedData;
               } else if (conflict.resolution === 'server') {
-                logger.info('Conflict resolved: server version kept', { actionId: action.id });
+                logger.info('Conflict resolved: server version kept', {
+                  actionId: action.id,
+                });
                 continue;
               }
             }
@@ -161,18 +224,27 @@ class OfflineManagerClass {
             syncedCount++;
 
             if (action.entityId) {
-              await this.versionTracker.updateEntityVersion(action.entity, action.entityId);
+              await this.versionTracker.updateEntityVersion(
+                action.entity,
+                action.entityId
+              );
             }
             if (action.queryKey) {
-              await queryClient.invalidateQueries({ queryKey: action.queryKey });
+              await queryClient.invalidateQueries({
+                queryKey: action.queryKey,
+              });
             }
-            logger.debug('Action synced successfully', { actionId: action.id, type: action.type });
+            logger.debug('Action synced successfully', {
+              actionId: action.id,
+              type: action.type,
+            });
           } catch (error) {
             action.retryCount++;
             if (action.retryCount < action.maxRetries) {
               const actionWithRetry = action as OfflineActionWithRetry;
               actionWithRetry.nextRetryAt =
-                Date.now() + Math.min(30000, 500 * Math.pow(2, action.retryCount - 1));
+                Date.now() +
+                Math.min(30000, 500 * Math.pow(2, action.retryCount - 1));
               failedActions.push(action);
               logger.warn('Action failed, will retry', {
                 actionId: action.id,
@@ -180,9 +252,15 @@ class OfflineManagerClass {
                 error: (error as Error).message,
               });
             } else {
-              logger.error('Action failed permanently, removed from queue', error, {
-                actionId: action.id, type: action.type, entity: action.entity,
-              });
+              logger.error(
+                'Action failed permanently, removed from queue',
+                error,
+                {
+                  actionId: action.id,
+                  type: action.type,
+                  entity: action.entity,
+                }
+              );
             }
           }
         }
@@ -198,7 +276,9 @@ class OfflineManagerClass {
       const status: SyncStatus = failedActions.length > 0 ? 'error' : 'synced';
       this.notifySyncListeners(status, failedActions.length);
       logger.info('Offline queue sync completed', {
-        totalActions: queue.length, syncedActions: syncedCount, failedActions: failedActions.length,
+        totalActions: queue.length,
+        syncedActions: syncedCount,
+        failedActions: failedActions.length,
       });
 
       if (failedActions.length > 0) {
@@ -227,13 +307,34 @@ class OfflineManagerClass {
 
   private scheduleNextSync(delayMs: number): void {
     try {
-      if (this.retryTimer) { clearTimeout(this.retryTimer); this.retryTimer = null; }
-      try { const sentry = require('../config/sentry'); sentry.addBreadcrumb?.(`offline.schedule_retry:${delayMs}`, 'offline'); } catch {}
-      this.retryTimer = setTimeout(() => { this.retryTimer = null; this.syncQueue(); }, Math.max(0, delayMs | 0));
-      if (this.retryTimer && typeof (this.retryTimer as NodeJS.Timeout).unref === 'function') {
+      if (this.retryTimer) {
+        clearTimeout(this.retryTimer);
+        this.retryTimer = null;
+      }
+      try {
+        const sentry = require('../config/sentry');
+        sentry.addBreadcrumb?.(`offline.schedule_retry:${delayMs}`, 'offline');
+      } catch (sentryError) {
+        logger.debug('Sentry breadcrumb unavailable in scheduleNextSync', {
+          sentryError,
+        });
+      }
+      this.retryTimer = setTimeout(
+        () => {
+          this.retryTimer = null;
+          this.syncQueue();
+        },
+        Math.max(0, delayMs | 0)
+      );
+      if (
+        this.retryTimer &&
+        typeof (this.retryTimer as NodeJS.Timeout).unref === 'function'
+      ) {
         (this.retryTimer as NodeJS.Timeout).unref();
       }
-    } catch {}
+    } catch (error) {
+      logger.warn('OfflineManager: scheduleNextSync threw', { error, delayMs });
+    }
   }
 
   /**
@@ -253,7 +354,9 @@ class OfflineManagerClass {
 
   private notifySyncListeners(status: SyncStatus, pendingCount: number): void {
     this.syncListeners.forEach((callback) => {
-      try { callback(status, pendingCount); } catch (error) {
+      try {
+        callback(status, pendingCount);
+      } catch (error) {
         logger.error('Error in sync status callback:', error);
       }
     });
@@ -263,7 +366,17 @@ class OfflineManagerClass {
     try {
       const existing = await AsyncStorage.getItem(this.OFFLINE_QUEUE_KEY);
       if (!existing) return 0;
-      try { const queue = JSON.parse(existing); return Array.isArray(queue) ? queue.length : 0; } catch { return 0; }
+      try {
+        const queue = JSON.parse(existing);
+        return Array.isArray(queue) ? queue.length : 0;
+      } catch (parseError) {
+        // MSV-P1-3: queue corrupt; reporting 0 hides pending work. Log loudly.
+        logger.error(
+          'Offline queue JSON corrupt in getPendingActionsCount; reporting 0',
+          { parseError }
+        );
+        return 0;
+      }
     } catch (error) {
       logger.error('Failed to get pending actions count:', error);
       return 0;
@@ -285,14 +398,20 @@ class OfflineManagerClass {
     resolution: 'client' | 'server' | 'merged',
     mergedData?: unknown
   ): Promise<void> {
-    return this.conflictManager.resolveConflictManually(conflictId, resolution, mergedData);
+    return this.conflictManager.resolveConflictManually(
+      conflictId,
+      resolution,
+      mergedData
+    );
   }
 
   async clearResolvedConflicts(): Promise<void> {
     return this.conflictManager.clearResolvedConflicts();
   }
 
-  onConflictDetected(callback: (conflicts: DataConflict[]) => void): () => void {
+  onConflictDetected(
+    callback: (conflicts: DataConflict[]) => void
+  ): () => void {
     return this.conflictManager.onConflictDetected(callback);
   }
 }

@@ -31,6 +31,53 @@ interface PhotoUploadResult {
   error?: string;
 }
 
+/**
+ * MSV-P1-8: retry a photo upload on transient network failures.
+ *
+ * Only retries when the underlying error looks network-flaky (TypeError /
+ * fetch failed / abort). A 4xx/5xx HTTP response is returned by the API
+ * client as a structured error and is NOT retried — retries on those
+ * would just hammer the server.
+ *
+ * 3 attempts, 500 ms base, exponential backoff (500, 1000, 2000 ms).
+ */
+async function withUploadRetry<T>(
+  label: string,
+  fn: () => Promise<T>
+): Promise<T> {
+  const attempts = 3;
+  const baseMs = 500;
+  let lastError: unknown;
+
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      const isNetwork =
+        error instanceof TypeError ||
+        (error instanceof Error &&
+          /network|fetch|aborted|timeout/i.test(error.message));
+      if (!isNetwork || i === attempts - 1) {
+        if (i > 0) {
+          logger.warn(`${label}: failed permanently after ${i + 1} attempts`, {
+            error,
+          });
+        }
+        throw error;
+      }
+      const delay = baseMs * Math.pow(2, i);
+      logger.warn(
+        `${label}: transient network error, retrying in ${delay} ms (attempt ${i + 1}/${attempts})`,
+        { error }
+      );
+      await new Promise((resolve) => setTimeout(resolve, delay));
+    }
+  }
+
+  throw lastError;
+}
+
 export class PhotoUploadService {
   /**
    * Request camera and location permissions
@@ -86,11 +133,13 @@ export class PhotoUploadService {
 
         let response: { photoId?: string; url?: string };
         try {
-          const rawResponse = await mobileApiClient.postFormData<{
-            photoId?: string;
-            url?: string;
-            photos?: { url: string; qualityScore?: number }[];
-          }>(`/api/jobs/${jobId}/photos/before`, formData);
+          const rawResponse = await withUploadRetry('uploadBeforePhotos', () =>
+            mobileApiClient.postFormData<{
+              photoId?: string;
+              url?: string;
+              photos?: { url: string; qualityScore?: number }[];
+            }>(`/api/jobs/${jobId}/photos/before`, formData)
+          );
           // API returns { photos: [{url, qualityScore}] } — normalize to { url }
           response = {
             photoId: rawResponse.photoId,
@@ -161,10 +210,12 @@ export class PhotoUploadService {
 
         let data: { photoId?: string; url?: string };
         try {
-          data = await mobileApiClient.postFormData<{
-            photoId?: string;
-            url?: string;
-          }>(`/api/jobs/${jobId}/photos/after`, formData);
+          data = await withUploadRetry('uploadAfterPhotos', () =>
+            mobileApiClient.postFormData<{
+              photoId?: string;
+              url?: string;
+            }>(`/api/jobs/${jobId}/photos/after`, formData)
+          );
         } catch (uploadError) {
           const apiError = parseError(uploadError);
           results.push({
@@ -217,10 +268,12 @@ export class PhotoUploadService {
       } as unknown as Blob);
       formData.append('metadata', JSON.stringify(metadata));
 
-      const data = await mobileApiClient.postFormData<{
-        photoId?: string;
-        url?: string;
-      }>(`/api/jobs/${jobId}/photos/video`, formData);
+      const data = await withUploadRetry('uploadVideoWalkthrough', () =>
+        mobileApiClient.postFormData<{
+          photoId?: string;
+          url?: string;
+        }>(`/api/jobs/${jobId}/photos/video`, formData)
+      );
 
       return {
         success: true,

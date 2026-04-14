@@ -146,27 +146,37 @@ export default async function JobDetailPage2025({
     });
   }
 
-  // Process bids
-  const bidsWithContractors = bids
-    ? bids.map((bid) => {
-        const contractor = Array.isArray(bid.contractor)
-          ? bid.contractor[0]
-          : bid.contractor;
-        const portfolioImages = bid.contractor_id
-          ? (portfolioMap.get(bid.contractor_id) || []).slice(0, 12)
-          : [];
+  // Process bids (WFE-P1-3: drop bids whose contractor relationship is null
+  // so downstream components never receive `contractor: null` and crash on
+  // deep access like `bid.contractor.first_name`).
+  const bidsWithContractors = (bids ?? [])
+    .map((bid) => {
+      const contractor = Array.isArray(bid.contractor)
+        ? bid.contractor[0]
+        : bid.contractor;
 
-        // Extract line items from quote if available
-        const quote = Array.isArray(bid.quote) ? bid.quote[0] : bid.quote;
-        const lineItems = quote?.line_items || [];
+      if (!contractor) {
+        logger.warn('JobDetailPage2025 - bid missing contractor relationship', {
+          jobId: resolvedParams.id,
+          bidId: bid.id,
+        });
+        return null;
+      }
 
-        return {
-          ...bid,
-          contractor: contractor ? { ...contractor, portfolioImages } : null,
-          lineItems,
-        };
-      })
-    : [];
+      const portfolioImages = bid.contractor_id
+        ? (portfolioMap.get(bid.contractor_id) || []).slice(0, 12)
+        : [];
+
+      const quote = Array.isArray(bid.quote) ? bid.quote[0] : bid.quote;
+      const lineItems = quote?.line_items ?? [];
+
+      return {
+        ...bid,
+        contractor: { ...contractor, portfolioImages },
+        lineItems,
+      };
+    })
+    .filter((b): b is NonNullable<typeof b> => b !== null);
 
   // Fetch job photos
   // NOTE: job_attachments uses 'uploaded_at' not 'created_at'

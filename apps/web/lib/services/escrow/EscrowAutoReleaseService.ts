@@ -9,7 +9,10 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { EscrowReleaseAgent } from '@/lib/services/agents/EscrowReleaseAgent';
-import { FeeCalculationService, type PaymentType } from '@/lib/services/payment/FeeCalculationService';
+import {
+  FeeCalculationService,
+  type PaymentType,
+} from '@/lib/services/payment/FeeCalculationService';
 import { FeeTransferService } from '@/lib/services/payment/FeeTransferService';
 import Stripe from 'stripe';
 import { env } from '@/lib/env';
@@ -68,13 +71,15 @@ export class EscrowAutoReleaseService {
     // Fetch eligible escrows
     const { data: eligibleEscrows, error: fetchError } = await serverSupabase
       .from('escrow_transactions')
-      .select(`
+      .select(
+        `
         id, job_id, payer_id, payee_id, amount, status,
         payment_type, payment_intent_id, metadata,
         auto_release_enabled, auto_release_date,
         admin_hold_status, homeowner_approval, cooling_off_ends_at,
         jobs (id, status, contractor_id, homeowner_id, title)
-      `)
+      `
+      )
       .eq('status', 'held')
       .eq('auto_release_enabled', true)
       .in('admin_hold_status', ['none', 'admin_approved'])
@@ -109,17 +114,25 @@ export class EscrowAutoReleaseService {
         if (!job || job.status !== 'completed') continue;
 
         // Skip admin-held escrows
-        if (escrow.admin_hold_status === 'admin_hold' || escrow.admin_hold_status === 'pending_review') {
+        if (
+          escrow.admin_hold_status === 'admin_hold' ||
+          escrow.admin_hold_status === 'pending_review'
+        ) {
           continue;
         }
 
         // Skip if cooling-off period not passed
-        if (escrow.cooling_off_ends_at && new Date(escrow.cooling_off_ends_at) > now) {
+        if (
+          escrow.cooling_off_ends_at &&
+          new Date(escrow.cooling_off_ends_at) > now
+        ) {
           continue;
         }
 
         // Evaluate auto-release conditions
-        const evaluation = await EscrowReleaseAgent.evaluateAutoRelease(escrow.id);
+        const evaluation = await EscrowReleaseAgent.evaluateAutoRelease(
+          escrow.id
+        );
         if (!evaluation || !evaluation.success) {
           if (evaluation?.message?.includes('delayed')) {
             results.delayed++;
@@ -128,7 +141,11 @@ export class EscrowAutoReleaseService {
         }
 
         // Process the release
-        const released = await this.releaseEscrow(escrow, job, contractorStripeMap);
+        const released = await this.releaseEscrow(
+          escrow,
+          job,
+          contractorStripeMap
+        );
         if (released) {
           results.released++;
         } else {
@@ -152,11 +169,13 @@ export class EscrowAutoReleaseService {
   private static async fetchContractorStripeAccounts(
     escrows: EligibleEscrow[]
   ): Promise<Map<string, string>> {
+    // Use payee_id (locked at escrow creation) rather than the current
+    // job.contractor_id — if the contractor was reassigned mid-job, the
+    // funds must still go to the original payee. See LFC-P1-1 in the
+    // 2026-04-13 audit.
     const contractorIds = [
       ...new Set(
-        escrows
-          .map((e) => e.jobs?.contractor_id)
-          .filter((id): id is string => Boolean(id))
+        escrows.map((e) => e.payee_id).filter((id): id is string => Boolean(id))
       ),
     ];
 
@@ -187,7 +206,30 @@ export class EscrowAutoReleaseService {
     job: NonNullable<EligibleEscrow['jobs']>,
     contractorStripeMap: Map<string, string>
   ): Promise<boolean> {
-    const contractorStripeAccountId = contractorStripeMap.get(job.contractor_id);
+    // LFC-P1-1: the payee is locked at escrow creation in payee_id.
+    // If the job's contractor has been reassigned since, funds must NOT
+    // follow the new contractor — they must go to the original payee (or
+    // be blocked and reviewed). Reject the release if they diverged.
+    if (!escrow.payee_id) {
+      await this.blockEscrow(escrow.id, 'missing_payee_id');
+      return false;
+    }
+    if (escrow.payee_id !== job.contractor_id) {
+      logger.error(
+        'Escrow payee_id does not match current job.contractor_id — blocking release',
+        {
+          service: 'EscrowAutoReleaseService',
+          escrowId: escrow.id,
+          jobId: job.id,
+          escrowPayeeId: escrow.payee_id,
+          jobContractorId: job.contractor_id,
+        }
+      );
+      await this.blockEscrow(escrow.id, 'payee_contractor_mismatch');
+      return false;
+    }
+
+    const contractorStripeAccountId = contractorStripeMap.get(escrow.payee_id);
 
     if (!contractorStripeAccountId) {
       await this.notifyMissingStripeAccount(escrow, job);
@@ -196,19 +238,23 @@ export class EscrowAutoReleaseService {
 
     // Calculate fees
     const paymentType = (escrow.payment_type as PaymentType) || 'final';
-    const feeBreakdown = FeeCalculationService.calculateFees(escrow.amount || 0, { paymentType });
-    const contractorAmountCents = Math.round(feeBreakdown.contractorAmount * 100);
+    const feeBreakdown = FeeCalculationService.calculateFees(
+      escrow.amount || 0,
+      { paymentType }
+    );
+    const contractorAmountCents = Math.round(
+      feeBreakdown.contractorAmount * 100
+    );
 
     // Accumulation mode: skip direct transfer, credit the payout balance.
     // The weekly cron (/api/cron/contractor-payouts) will issue the Stripe
     // transfer once the contractor's pending balance crosses the threshold.
     // See docs/STRIPE_CONNECT_INTEGRATION.md for the weekly payout model.
     if (process.env.ESCROW_USE_PAYOUT_ACCUMULATION === 'true') {
-      const { accumulateEarnings } = await import(
-        '@/lib/stripe/connect/payouts'
-      );
+      const { accumulateEarnings } =
+        await import('@/lib/stripe/connect/payouts');
       await accumulateEarnings({
-        contractorId: job.contractor_id,
+        contractorId: escrow.payee_id,
         amountMinor: contractorAmountCents,
         currency: 'GBP',
         jobId: job.id,
@@ -222,17 +268,21 @@ export class EscrowAutoReleaseService {
         feeTransferResultAcc = await FeeTransferService.transferPlatformFee({
           escrowTransactionId: escrow.id,
           jobId: job.id,
-          contractorId: job.contractor_id,
+          contractorId: escrow.payee_id,
           amount: escrow.amount || 0,
           paymentIntentId: escrow.payment_intent_id || '',
           chargeId: chargeIdAcc,
           paymentType,
         });
       } catch (error) {
-        logger.error('Failed to create fee transfer record (accumulation mode)', error, {
-          service: 'EscrowAutoReleaseService',
-          escrowId: escrow.id,
-        });
+        logger.error(
+          'Failed to create fee transfer record (accumulation mode)',
+          error,
+          {
+            service: 'EscrowAutoReleaseService',
+            escrowId: escrow.id,
+          }
+        );
       }
 
       const { error: accUpdateErr } = await serverSupabase
@@ -249,7 +299,9 @@ export class EscrowAutoReleaseService {
           fee_transfer_status: feeTransferResultAcc?.status || 'pending',
           fee_transfer_id: feeTransferResultAcc?.feeTransferId || null,
           metadata: {
-            ...(typeof escrow.metadata === 'object' && escrow.metadata ? escrow.metadata : {}),
+            ...(typeof escrow.metadata === 'object' && escrow.metadata
+              ? escrow.metadata
+              : {}),
             auto_released: true,
             auto_released_at: new Date().toISOString(),
             payout_mode: 'accumulated',
@@ -285,7 +337,7 @@ export class EscrowAutoReleaseService {
         jobId: job.id,
         escrowId: escrow.id,
         homeownerId: job.homeowner_id,
-        contractorId: job.contractor_id,
+        contractorId: escrow.payee_id,
         releaseReason: 'auto_release',
         platformFee: feeBreakdown.platformFee.toString(),
         contractorAmount: feeBreakdown.contractorAmount.toString(),
@@ -299,17 +351,21 @@ export class EscrowAutoReleaseService {
       feeTransferResult = await FeeTransferService.transferPlatformFee({
         escrowTransactionId: escrow.id,
         jobId: job.id,
-        contractorId: job.contractor_id,
+        contractorId: escrow.payee_id,
         amount: escrow.amount || 0,
         paymentIntentId: escrow.payment_intent_id || '',
         chargeId,
         paymentType,
       });
     } catch (error) {
-      logger.error('Failed to create fee transfer record in auto-release', error, {
-        service: 'EscrowAutoReleaseService',
-        escrowId: escrow.id,
-      });
+      logger.error(
+        'Failed to create fee transfer record in auto-release',
+        error,
+        {
+          service: 'EscrowAutoReleaseService',
+          escrowId: escrow.id,
+        }
+      );
     }
 
     // Update escrow record
@@ -325,7 +381,9 @@ export class EscrowAutoReleaseService {
       fee_transfer_status: feeTransferResult?.status || 'pending',
       fee_transfer_id: feeTransferResult?.feeTransferId || null,
       metadata: {
-        ...(typeof escrow.metadata === 'object' && escrow.metadata ? escrow.metadata : {}),
+        ...(typeof escrow.metadata === 'object' && escrow.metadata
+          ? escrow.metadata
+          : {}),
         auto_released: true,
         auto_released_at: new Date().toISOString(),
       },
@@ -370,11 +428,14 @@ export class EscrowAutoReleaseService {
   /**
    * Retrieve the charge ID from a payment intent for fee tracking.
    */
-  private static async getChargeId(paymentIntentId: string | null): Promise<string | undefined> {
+  private static async getChargeId(
+    paymentIntentId: string | null
+  ): Promise<string | undefined> {
     if (!paymentIntentId) return undefined;
 
     try {
-      const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+      const paymentIntent =
+        await stripe.paymentIntents.retrieve(paymentIntentId);
       return typeof paymentIntent.latest_charge === 'string'
         ? paymentIntent.latest_charge
         : paymentIntent.latest_charge?.id;
@@ -395,9 +456,8 @@ export class EscrowAutoReleaseService {
     job: NonNullable<EligibleEscrow['jobs']>
   ): Promise<void> {
     try {
-      const { PaymentSetupNotificationService } = await import(
-        '@/lib/services/contractor/PaymentSetupNotificationService'
-      );
+      const { PaymentSetupNotificationService } =
+        await import('@/lib/services/contractor/PaymentSetupNotificationService');
       await PaymentSetupNotificationService.notifyPaymentSetupRequired(
         job.contractor_id,
         escrow.id,
@@ -413,5 +473,39 @@ export class EscrowAutoReleaseService {
       contractorId: job.contractor_id,
       escrowId: escrow.id,
     });
+  }
+
+  /**
+   * Mark an escrow as blocked for manual review. Used when the payee lock
+   * invariant is violated (see LFC-P1-1). Does NOT touch escrow.status so
+   * that an ops engineer can inspect before deciding how to resolve.
+   */
+  private static async blockEscrow(
+    escrowId: string,
+    reason: string
+  ): Promise<void> {
+    const { error } = await serverSupabase
+      .from('escrow_transactions')
+      .update({
+        release_blocked_reason: reason,
+        auto_release_enabled: false,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', escrowId);
+
+    if (error) {
+      logger.error('Failed to mark escrow as blocked', {
+        service: 'EscrowAutoReleaseService',
+        escrowId,
+        reason,
+        error: error.message,
+      });
+    } else {
+      logger.warn('Escrow auto-release blocked for review', {
+        service: 'EscrowAutoReleaseService',
+        escrowId,
+        reason,
+      });
+    }
   }
 }

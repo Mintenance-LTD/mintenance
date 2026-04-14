@@ -2,7 +2,7 @@
  * Building Surveyor & Maintenance Validation Schemas
  */
 import { z } from 'zod';
-import { sanitizeText } from '@/lib/sanitizer';
+import { sanitizeText, sanitizePromptText } from '@/lib/sanitizer';
 
 // Building Surveyor Schemas
 export const buildingAssessRequestSchema = z.object({
@@ -13,14 +13,24 @@ export const buildingAssessRequestSchema = z.object({
   jobId: z.string().uuid('Invalid job ID').optional(),
   propertyId: z.string().uuid('Invalid property ID').optional(),
   domain: z.enum(['building', 'rail', 'infrastructure', 'general']).optional(),
+  // Sprint 5.3: free-text fields are sanitized for prompt-injection patterns
+  // before reaching the LLM. See sanitizePromptText() for what's stripped.
   context: z
     .object({
-      location: z.string().max(200).optional(),
+      location: z
+        .string()
+        .max(200)
+        .transform((val) => sanitizePromptText(val, 200))
+        .optional(),
       propertyType: z
         .enum(['residential', 'commercial', 'industrial'])
         .optional(),
       ageOfProperty: z.number().int().positive().max(500).optional(),
-      propertyDetails: z.string().max(1000).optional(),
+      propertyDetails: z
+        .string()
+        .max(1000)
+        .transform((val) => sanitizePromptText(val, 1000))
+        .optional(),
     })
     .optional(),
   gps: z

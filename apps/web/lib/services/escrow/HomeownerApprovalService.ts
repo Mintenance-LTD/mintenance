@@ -1,7 +1,15 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { EscrowStatusService } from './EscrowStatusService';
-import { NotificationService } from '@/lib/services/notifications/NotificationService';
+import {
+  sendApprovalRequestNotification,
+  sendApprovalNotification,
+  sendRejectionNotification,
+  sendReminderNotification,
+  sendFinalWarningNotification,
+} from './homeowner-approval/notifications';
+import { checkAutoApprovalEligibility } from './homeowner-approval/auto-approval';
+import { logAuditEvent } from '@/lib/audit';
 
 const AUTO_APPROVAL_DAYS = 7;
 const REMINDER_DAYS = 3;
@@ -94,7 +102,7 @@ export class HomeownerApprovalService {
       );
 
       // Send notification to homeowner
-      await this.sendApprovalRequestNotification(escrowId, homeownerId, photoUrls);
+      await sendApprovalRequestNotification(escrowId, homeownerId, photoUrls);
 
       logger.info('Homeowner approval requested', {
         service: 'HomeownerApprovalService',
@@ -192,8 +200,29 @@ export class HomeownerApprovalService {
 
       // Send notification to contractor
       if (job.contractor_id) {
-        await this.sendApprovalNotification(escrowId, job.contractor_id);
+        await sendApprovalNotification(escrowId, job.contractor_id);
       }
+
+      // Sprint 5.7: central audit log so security incidents can be
+      // reconstructed without joining homeowner_approval_history.
+      // Distinct action verb for auto vs explicit so audit queries can
+      // filter (set by caller via the comments string convention).
+      const isAutoApproval = comments?.startsWith('auto_approved_') ?? false;
+      await logAuditEvent({
+        actorId: homeownerId,
+        category: 'escrow_decision',
+        action: isAutoApproval
+          ? 'auto_approve_completion'
+          : 'approve_completion',
+        targetId: escrowId,
+        before: { homeowner_approval: false },
+        after: {
+          homeowner_approval: true,
+          cooling_off_ends_at: coolingOffEndsAt.toISOString(),
+          comments: comments || null,
+          job_id: job.id,
+        },
+      });
 
       logger.info('Homeowner approved completion', {
         service: 'HomeownerApprovalService',
@@ -241,8 +270,12 @@ export class HomeownerApprovalService {
         throw new Error('Escrow not found');
       }
 
-      const typedEscrow = escrow as EscrowWithJob & { jobs: JobInfo & { contractor_id: string } };
-      const job = getJob(typedEscrow.jobs) as (JobInfo & { contractor_id: string }) | undefined;
+      const typedEscrow = escrow as EscrowWithJob & {
+        jobs: JobInfo & { contractor_id: string };
+      };
+      const job = getJob(typedEscrow.jobs) as
+        | (JobInfo & { contractor_id: string })
+        | undefined;
       if (job?.homeowner_id !== homeownerId) {
         throw new Error('Unauthorized: Not the homeowner for this escrow');
       }
@@ -285,7 +318,21 @@ export class HomeownerApprovalService {
       );
 
       // Send notification to contractor and admin
-      await this.sendRejectionNotification(escrowId, job.contractor_id, reason);
+      await sendRejectionNotification(escrowId, job.contractor_id, reason);
+
+      // Sprint 5.7: central audit log for rejection decisions
+      await logAuditEvent({
+        actorId: homeownerId,
+        category: 'escrow_decision',
+        action: 'reject_completion',
+        targetId: escrowId,
+        before: { admin_hold_status: 'none' },
+        after: {
+          admin_hold_status: 'pending_review',
+          reason,
+          job_id: job.id,
+        },
+      });
 
       logger.info('Homeowner rejected completion', {
         service: 'HomeownerApprovalService',
@@ -345,12 +392,16 @@ export class HomeownerApprovalService {
 
       // Send reminder if 3 days remaining
       if (daysUntilAutoApproval <= REMINDER_DAYS && daysUntilAutoApproval > 0) {
-        await this.sendReminderNotification(escrowId, job.homeowner_id, daysUntilAutoApproval);
+        await sendReminderNotification(
+          escrowId,
+          job.homeowner_id,
+          daysUntilAutoApproval
+        );
       }
 
       // Send final warning if 1 day remaining
       if (daysUntilAutoApproval === 1) {
-        await this.sendFinalWarningNotification(escrowId, job.homeowner_id);
+        await sendFinalWarningNotification(escrowId, job.homeowner_id);
       }
     } catch (error) {
       logger.error('Error sending reminder notifications', error, {
@@ -361,61 +412,13 @@ export class HomeownerApprovalService {
   }
 
   /**
-   * Check if escrow is eligible for auto-approval
+   * Check if escrow is eligible for auto-approval.
+   * Delegates to ./homeowner-approval/auto-approval.ts — see LFC-P0-1.
    */
-  static async checkAutoApprovalEligibility(escrowId: string): Promise<boolean> {
-    try {
-      const { data: escrow, error } = await serverSupabase
-        .from('escrow_transactions')
-        .select(
-          `
-          id,
-          homeowner_approval,
-          auto_approval_date,
-          photo_verification_status,
-          photo_verification_score
-        `
-        )
-        .eq('id', escrowId)
-        .single();
-
-      if (error || !escrow) {
-        return false;
-      }
-
-      // Already approved
-      if (escrow.homeowner_approval) {
-        return false;
-      }
-
-      // Check if auto-approval date has passed
-      const autoApprovalDate = escrow.auto_approval_date
-        ? new Date(escrow.auto_approval_date)
-        : null;
-
-      if (!autoApprovalDate || autoApprovalDate > new Date()) {
-        return false; // Not yet time for auto-approval
-      }
-
-      // Check if photos are verified
-      if (escrow.photo_verification_status !== 'verified') {
-        return false; // Photos not verified
-      }
-
-      // Check photo verification score
-      const photoScore = escrow.photo_verification_score || 0;
-      if (photoScore < 0.7) {
-        return false; // Photo score too low
-      }
-
-      return true; // Eligible for auto-approval
-    } catch (error) {
-      logger.error('Error checking auto-approval eligibility', error, {
-        service: 'HomeownerApprovalService',
-        escrowId,
-      });
-      return false;
-    }
+  static async checkAutoApprovalEligibility(
+    escrowId: string
+  ): Promise<boolean> {
+    return checkAutoApprovalEligibility(escrowId);
   }
 
   /**
@@ -455,13 +458,20 @@ export class HomeownerApprovalService {
         return false;
       }
 
-      // Auto-approve
-      await this.approveCompletion(escrowId, homeownerId, 'Auto-approved after 7 days (homeowner did not respond)');
+      // Auto-approve (safety net, NOT homeowner consent). Logged with a
+      // distinct reason string so ops + audit log queries can distinguish
+      // the 7-day timeout path from explicit homeowner approval.
+      await this.approveCompletion(
+        escrowId,
+        homeownerId,
+        'auto_approved_7d_timeout: homeowner did not respond within the 7-day safety-net window'
+      );
 
-      logger.info('Escrow auto-approved', {
+      logger.info('Escrow auto-approved via 7-day safety net', {
         service: 'HomeownerApprovalService',
         escrowId,
         homeownerId,
+        reason: 'auto_approved_7d_timeout',
       });
 
       return true;
@@ -474,145 +484,5 @@ export class HomeownerApprovalService {
     }
   }
 
-  // ============================================================================
-  // PRIVATE HELPER METHODS
-  // ============================================================================
-
-  /**
-   * Send approval request notification to homeowner
-   */
-  private static async sendApprovalRequestNotification(
-    escrowId: string,
-    homeownerId: string,
-    photoUrls: string[]
-  ): Promise<void> {
-    try {
-      await NotificationService.createNotification({
-        userId: homeownerId,
-        title: 'Review Completion Photos',
-        message: `Please review the completion photos for your job. You have 7 days to approve or the payment will be automatically released.`,
-        type: 'escrow_approval_request',
-        metadata: {
-          escrowId,
-          photoUrls,
-          autoApprovalDays: AUTO_APPROVAL_DAYS,
-        },
-      });
-    } catch (error) {
-      logger.error('Error sending approval request notification', error, {
-        service: 'HomeownerApprovalService',
-        escrowId,
-        homeownerId,
-      });
-    }
-  }
-
-  /**
-   * Send approval notification to contractor
-   */
-  private static async sendApprovalNotification(
-    escrowId: string,
-    contractorId: string
-  ): Promise<void> {
-    try {
-      await NotificationService.createNotification({
-        userId: contractorId,
-        title: 'Homeowner Approved Completion',
-        message: 'The homeowner has approved your completion photos. Funds will be released after a 48-hour cooling-off period.',
-        type: 'escrow_approved',
-        metadata: {
-          escrowId,
-        },
-      });
-    } catch (error) {
-      logger.error('Error sending approval notification', error, {
-        service: 'HomeownerApprovalService',
-        escrowId,
-        contractorId,
-      });
-    }
-  }
-
-  /**
-   * Send rejection notification
-   */
-  private static async sendRejectionNotification(
-    escrowId: string,
-    contractorId: string,
-    reason: string
-  ): Promise<void> {
-    try {
-      await NotificationService.createNotification({
-        userId: contractorId,
-        title: 'Homeowner Rejected Completion',
-        message: `The homeowner has rejected your completion photos. Reason: ${reason}. An admin will review.`,
-        type: 'escrow_rejected',
-        metadata: {
-          escrowId,
-          reason,
-        },
-      });
-    } catch (error) {
-      logger.error('Error sending rejection notification', error, {
-        service: 'HomeownerApprovalService',
-        escrowId,
-        contractorId,
-      });
-    }
-  }
-
-  /**
-   * Send reminder notification
-   */
-  private static async sendReminderNotification(
-    escrowId: string,
-    homeownerId: string,
-    daysRemaining: number
-  ): Promise<void> {
-    try {
-      await NotificationService.createNotification({
-        userId: homeownerId,
-        title: `Reminder: Review Completion Photos (${daysRemaining} days remaining)`,
-        message: `You have ${daysRemaining} days to review and approve the completion photos. After ${daysRemaining} days, the payment will be automatically released.`,
-        type: 'escrow_reminder',
-        metadata: {
-          escrowId,
-          daysRemaining,
-        },
-      });
-    } catch (error) {
-      logger.error('Error sending reminder notification', error, {
-        service: 'HomeownerApprovalService',
-        escrowId,
-        homeownerId,
-      });
-    }
-  }
-
-  /**
-   * Send final warning notification
-   */
-  private static async sendFinalWarningNotification(
-    escrowId: string,
-    homeownerId: string
-  ): Promise<void> {
-    try {
-      await NotificationService.createNotification({
-        userId: homeownerId,
-        title: 'Final Warning: Auto-Approval Tomorrow',
-        message: 'If you do not review the completion photos by tomorrow, the payment will be automatically released.',
-        type: 'escrow_final_warning',
-        metadata: {
-          escrowId,
-        },
-      });
-    } catch (error) {
-      logger.error('Error sending final warning notification', error, {
-        service: 'HomeownerApprovalService',
-        escrowId,
-        homeownerId,
-      });
-    }
-  }
+  // Private notification helpers extracted to ./homeowner-approval/notifications.ts
 }
-

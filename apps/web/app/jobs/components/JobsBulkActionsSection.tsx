@@ -5,6 +5,7 @@ import { AnimatePresence } from 'framer-motion';
 import { BulkActionsBar } from './BulkActionsBar';
 import { ConfirmationModal } from './ConfirmationModal';
 import { logger } from '@/lib/logger';
+import { getCsrfHeaders } from '@/lib/csrf-client';
 
 interface ProcessedJob {
   id: string;
@@ -35,14 +36,21 @@ export function JobsBulkActionsSection({
   const handleArchive = async () => {
     setBulkActionLoading(true);
     try {
-      const archivePromises = Array.from(selectedJobs).map(jobId =>
+      const csrfHeaders = await getCsrfHeaders();
+      const archivePromises = Array.from(selectedJobs).map((jobId) =>
         fetch(`/api/jobs/${jobId}`, {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: 'archived' })
+          headers: { ...csrfHeaders, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'archived' }),
         })
       );
-      await Promise.all(archivePromises);
+      const results = await Promise.all(archivePromises);
+      const failed = results.filter((r) => !r.ok);
+      if (failed.length > 0) {
+        throw new Error(
+          `${failed.length} job${failed.length === 1 ? '' : 's'} failed to archive`
+        );
+      }
       window.location.reload();
     } catch (error) {
       logger.error('Error archiving jobs', error);
@@ -56,27 +64,31 @@ export function JobsBulkActionsSection({
   const handleExport = async () => {
     setBulkActionLoading(true);
     try {
-      const selectedJobDetails = filteredJobs.filter(job => selectedJobs.has(job.id));
-      const exportData = selectedJobDetails.map(job => ({
+      const selectedJobDetails = filteredJobs.filter((job) =>
+        selectedJobs.has(job.id)
+      );
+      const exportData = selectedJobDetails.map((job) => ({
         title: job.title,
         description: job.description,
         location: job.location,
         budget: `\u00A3${job.budget.toLocaleString()}`,
         status: job.status,
-        created: new Date(job.created_at).toLocaleDateString('en-GB')
+        created: new Date(job.created_at).toLocaleDateString('en-GB'),
       }));
 
       const csv = [
         ['Title', 'Description', 'Location', 'Budget', 'Status', 'Created'],
-        ...exportData.map(job => [
+        ...exportData.map((job) => [
           job.title,
           job.description,
           job.location,
           job.budget,
           job.status,
-          job.created
-        ])
-      ].map(row => row.join(',')).join('\n');
+          job.created,
+        ]),
+      ]
+        .map((row) => row.join(','))
+        .join('\n');
 
       const blob = new Blob([csv], { type: 'text/csv' });
       const url = URL.createObjectURL(blob);
@@ -96,10 +108,20 @@ export function JobsBulkActionsSection({
   const handleDeleteConfirm = async () => {
     setBulkActionLoading(true);
     try {
-      const deletePromises = Array.from(selectedJobs).map(jobId =>
-        fetch(`/api/jobs/${jobId}`, { method: 'DELETE' })
+      const csrfHeaders = await getCsrfHeaders();
+      const deletePromises = Array.from(selectedJobs).map((jobId) =>
+        fetch(`/api/jobs/${jobId}`, {
+          method: 'DELETE',
+          headers: { ...csrfHeaders },
+        })
       );
-      await Promise.all(deletePromises);
+      const results = await Promise.all(deletePromises);
+      const failed = results.filter((r) => !r.ok);
+      if (failed.length > 0) {
+        throw new Error(
+          `${failed.length} job${failed.length === 1 ? '' : 's'} failed to delete`
+        );
+      }
       window.location.reload();
     } catch (error) {
       logger.error('Error deleting jobs', error);
@@ -131,11 +153,11 @@ export function JobsBulkActionsSection({
         isOpen={showDeleteModal}
         onClose={() => setShowDeleteModal(false)}
         onConfirm={handleDeleteConfirm}
-        title="Delete Jobs"
+        title='Delete Jobs'
         message={`Are you sure you want to delete ${selectedJobs.size} job(s)? This action cannot be undone and will permanently remove all job data, including bids and messages.`}
-        confirmLabel="Delete Jobs"
-        cancelLabel="Cancel"
-        variant="danger"
+        confirmLabel='Delete Jobs'
+        cancelLabel='Cancel'
+        variant='danger'
         loading={bulkActionLoading}
       />
     </>

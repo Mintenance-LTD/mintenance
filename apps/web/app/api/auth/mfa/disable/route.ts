@@ -10,6 +10,7 @@ import {
   RateLimitError,
 } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { logAuditEvent, getClientIp } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -60,6 +61,15 @@ export const POST = withApiHandler(
         service: 'mfa',
         userId: user.id,
       });
+      // Sprint 5.2: failed disable attempts are security-relevant — log
+      // them so brute-force attempts on the disable flow are visible.
+      await logAuditEvent({
+        actorId: user.id,
+        category: 'mfa',
+        action: 'disable_failed_invalid_password',
+        targetId: user.id,
+        ipAddress: getClientIp(request),
+      });
       throw new UnauthorizedError('Invalid password');
     }
 
@@ -71,6 +81,17 @@ export const POST = withApiHandler(
     await MFAService.disableMFA(user.id);
 
     logger.info('MFA disabled', { service: 'mfa', userId: user.id });
+
+    // Sprint 5.2: audit trail for sensitive auth events
+    await logAuditEvent({
+      actorId: user.id,
+      category: 'mfa',
+      action: 'disable',
+      targetId: user.id,
+      before: { mfa_enabled: true },
+      after: { mfa_enabled: false },
+      ipAddress: getClientIp(request),
+    });
 
     return NextResponse.json({
       success: true,

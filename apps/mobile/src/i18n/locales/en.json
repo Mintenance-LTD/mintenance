@@ -247,9 +247,7 @@
     "newest": "Newest",
     "oldest": "Oldest",
     "priceHighToLow": "Price: High to Low",
-    "priceLowToHigh": "Price: Low to High",
-    "rating": "Rating",
-    "distance": "Distance"
+    "priceLowToHigh": "Price: Low to High"
   },
   "categories": {
     "plumbing": "Plumbing",
@@ -362,5 +360,23 @@
     "nextWeek": "Next week",
     "thisMonth": "This month",
     "nextMonth": "Next month"
+  },
+  "permissions": {
+    "camera": {
+      "title": "Camera Permission Required",
+      "message": "Camera access is needed to take photos. Please enable it in your device settings."
+    },
+    "gallery": {
+      "title": "Photo Library Permission Required",
+      "message": "Photo library access is needed to select photos. Please enable it in your device settings."
+    },
+    "location": {
+      "title": "Location Permission Required",
+      "message": "Location access is needed to verify photos were taken on-site. Please enable it in your device settings."
+    },
+    "microphone": {
+      "title": "Microphone Permission Required",
+      "message": "Microphone access is needed to record audio for your walkthrough. Please enable it in your device settings."
+    }
   }
 }

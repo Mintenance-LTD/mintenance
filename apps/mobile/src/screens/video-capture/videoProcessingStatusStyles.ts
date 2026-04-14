@@ -37,7 +37,12 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
     ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
       android: { elevation: 2 },
     }),
   },
@@ -103,7 +108,12 @@ export const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 16,
     ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
       android: { elevation: 2 },
     }),
   },
@@ -138,7 +148,12 @@ export const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 16,
     ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
       android: { elevation: 2 },
     }),
   },
@@ -173,13 +188,17 @@ export const styles = StyleSheet.create({
     fontWeight: '600',
     color: theme.colors.textPrimary,
   },
+  // 4-tier severity styles (canonical)
   severity_early: {
     color: theme.colors.primary,
   },
-  severity_midway: {
+  severity_developing: {
+    color: '#A16207',
+  },
+  severity_significant: {
     color: theme.colors.accent,
   },
-  severity_full: {
+  severity_dangerous: {
     color: theme.colors.error,
   },
   damageSection: {
@@ -295,7 +314,12 @@ export const styles = StyleSheet.create({
   secondaryButton: {
     backgroundColor: theme.colors.surface,
     ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 4 },
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.04,
+        shadowRadius: 4,
+      },
       android: { elevation: 1 },
     }),
   },

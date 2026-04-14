@@ -111,9 +111,16 @@ class LocalDatabaseService {
         );
       } catch (error) {
         logger.error('Database migration failed:', error);
+        // MSV-P1-6: previously the cleanup catch was silent. Log so a stale
+        // messages_backup table after a failed migration rollback is visible.
         await this.db
           .execAsync('DROP TABLE IF EXISTS messages_backup')
-          .catch(() => {});
+          .catch((cleanupError) => {
+            logger.warn(
+              'LocalDatabaseService: failed to drop messages_backup during migration rollback',
+              { cleanupError }
+            );
+          });
       }
     }
     // Migration: make jobs columns nullable (homeowner_id, description, location, budget)
@@ -146,7 +153,12 @@ class LocalDatabaseService {
         logger.error('Database migration failed (jobs):', error);
         await this.db
           .execAsync('DROP TABLE IF EXISTS jobs_backup')
-          .catch(() => {});
+          .catch((cleanupError) => {
+            logger.warn(
+              'LocalDatabaseService: failed to drop jobs_backup during migration rollback',
+              { cleanupError }
+            );
+          });
       }
     }
 

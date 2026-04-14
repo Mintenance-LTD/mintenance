@@ -2,6 +2,9 @@
  * Shared AI Types for Mintenance Platform
  * Used by both web and mobile applications
  */
+export { normalizeSeverity, type SeverityTier } from './severity';
+import type { SeverityTier } from './severity';
+
 // Building Assessment Types
 export interface BuildingAssessment {
   id: string;
@@ -18,11 +21,12 @@ export interface BuildingAssessment {
 }
 export interface DamageAssessment {
   damageType: string;
-  severity: 'minimal' | 'moderate' | 'severe' | 'critical';
+  /** 4-tier canonical severity — see `./severity.ts` for semantics. */
+  severity: SeverityTier;
   confidence: number;
   description: string;
   affectedArea?: number;
-  progression?: 'early' | 'midway' | 'full';
+  progression?: SeverityTier;
   detectedIssues: DetectedIssue[];
 }
 export interface DetectedIssue {
@@ -142,13 +146,30 @@ export interface PricingFactor {
   description: string;
 }
 // Agent Types
+
+/**
+ * JSON-serializable value for agent decision metadata.
+ * Sprint 6.3 (PKG-P1-2): narrowed from `unknown` to constrain metadata to
+ * JSON-safe shapes so audit log queries can reliably parse the field and
+ * so type hints at call sites tell authors what kind of data to put here.
+ */
+export type AgentDecisionMetadataValue =
+  | string
+  | number
+  | boolean
+  | null
+  | AgentDecisionMetadataValue[]
+  | { [key: string]: AgentDecisionMetadataValue };
+
+export type AgentDecisionMetadata = Record<string, AgentDecisionMetadataValue>;
+
 export interface AgentDecision {
   agentName: string;
   decisionType: string;
   actionTaken: string;
   confidence: number;
   reasoning: string;
-  metadata: Record<string, unknown>;
+  metadata: AgentDecisionMetadata;
   timestamp: string;
   userId?: string;
   automated: boolean;
@@ -188,6 +209,18 @@ export interface SearchFilters {
   availability?: string;
   distance?: number;
 }
+/**
+ * Search result metadata. Sprint 6.3 (PKG-P1-2): the index signature was
+ * `[key: string]: unknown` — now narrowed to JSON-safe primitives so the
+ * public type surface constrains what can appear in the blob.
+ */
+export type SearchResultMetadataValue =
+  | string
+  | number
+  | boolean
+  | null
+  | string[];
+
 export interface SearchResult {
   id: string;
   type: 'job' | 'contractor' | 'service' | 'property';
@@ -201,7 +234,7 @@ export interface SearchResult {
     price?: number;
     rating?: number;
     availability?: string;
-    [key: string]: unknown;
+    [key: string]: SearchResultMetadataValue | undefined;
   };
 }
 export interface SearchSuggestion {

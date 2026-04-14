@@ -20,17 +20,16 @@ export async function handleDisputeCreated(
   });
 
   try {
-    const chargeId = typeof dispute.charge === 'string'
-      ? dispute.charge
-      : dispute.charge?.id;
-    const paymentIntentId = typeof dispute.payment_intent === 'string'
-      ? dispute.payment_intent
-      : dispute.payment_intent?.id;
+    const chargeId =
+      typeof dispute.charge === 'string' ? dispute.charge : dispute.charge?.id;
+    const paymentIntentId =
+      typeof dispute.payment_intent === 'string'
+        ? dispute.payment_intent
+        : dispute.payment_intent?.id;
 
     // Record dispute in disputes table
-    await serverSupabase
-      .from('disputes')
-      .upsert({
+    await serverSupabase.from('disputes').upsert(
+      {
         stripe_dispute_id: dispute.id,
         charge_id: chargeId || null,
         payment_intent_id: paymentIntentId || null,
@@ -43,17 +42,26 @@ export async function handleDisputeCreated(
           : null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
-      }, { onConflict: 'stripe_dispute_id' });
+      },
+      { onConflict: 'stripe_dispute_id' }
+    );
 
-    // Freeze the related escrow transaction
+    // Freeze the related escrow transaction.
+    // Sprint 5.6: also set release_blocked_reason and disable auto_release
+    // so the ops dashboard shows a clear reason and the EscrowAutoReleaseService
+    // cron skips this row even if status is later changed.
     if (paymentIntentId) {
       const { data: escrow } = await serverSupabase
         .from('escrow_transactions')
         .update({
           status: 'disputed',
+          release_blocked_reason: `dispute_${dispute.id}`,
+          auto_release_enabled: false,
           updated_at: new Date().toISOString(),
         })
-        .or(`payment_intent_id.eq.${paymentIntentId},stripe_payment_intent_id.eq.${paymentIntentId}`)
+        .or(
+          `payment_intent_id.eq.${paymentIntentId},stripe_payment_intent_id.eq.${paymentIntentId}`
+        )
         .select('id, payer_id, payee_id, job_id')
         .single();
 
@@ -112,7 +120,9 @@ export async function handleDisputeCreated(
       paymentIntentId,
     });
   } catch (error) {
-    logger.error('Error in handleDisputeCreated', error, { service: 'stripe-webhook' });
+    logger.error('Error in handleDisputeCreated', error, {
+      service: 'stripe-webhook',
+    });
     throw error;
   }
 }
@@ -145,7 +155,9 @@ export async function handleDisputeUpdated(
       status: dispute.status,
     });
   } catch (error) {
-    logger.error('Error in handleDisputeUpdated', error, { service: 'stripe-webhook' });
+    logger.error('Error in handleDisputeUpdated', error, {
+      service: 'stripe-webhook',
+    });
     throw error;
   }
 }
@@ -173,9 +185,10 @@ export async function handleDisputeClosed(
       })
       .eq('stripe_dispute_id', dispute.id);
 
-    const paymentIntentId = typeof dispute.payment_intent === 'string'
-      ? dispute.payment_intent
-      : dispute.payment_intent?.id;
+    const paymentIntentId =
+      typeof dispute.payment_intent === 'string'
+        ? dispute.payment_intent
+        : dispute.payment_intent?.id;
 
     if (!paymentIntentId) return;
 
@@ -183,13 +196,20 @@ export async function handleDisputeClosed(
     const newEscrowStatus = isLost ? 'refunded' : 'held';
     const newPaymentStatus = isLost ? 'refunded' : 'paid';
 
+    // Sprint 5.6: clear release_blocked_reason and re-enable auto_release
+    // when the dispute closes in our favour ('won' or 'warning_closed'); on
+    // 'lost' the escrow is being refunded so blocking is moot.
     const { data: escrow } = await serverSupabase
       .from('escrow_transactions')
       .update({
         status: newEscrowStatus,
+        release_blocked_reason: isLost ? `dispute_lost_${dispute.id}` : null,
+        auto_release_enabled: !isLost,
         updated_at: new Date().toISOString(),
       })
-      .or(`payment_intent_id.eq.${paymentIntentId},stripe_payment_intent_id.eq.${paymentIntentId}`)
+      .or(
+        `payment_intent_id.eq.${paymentIntentId},stripe_payment_intent_id.eq.${paymentIntentId}`
+      )
       .select('id, payer_id, payee_id, job_id')
       .single();
 
@@ -204,14 +224,24 @@ export async function handleDisputeClosed(
     }
 
     const outcomeMsg = isLost
-      ? 'The payment dispute has been resolved in the cardholder\'s favour. The funds have been returned.'
+      ? "The payment dispute has been resolved in the cardholder's favour. The funds have been returned."
       : 'The payment dispute has been resolved in our favour. The original payment stands.';
 
     if (escrow?.payer_id) {
-      await sendNotification(escrow.payer_id, 'Dispute Resolved', outcomeMsg, 'dispute_closed');
+      await sendNotification(
+        escrow.payer_id,
+        'Dispute Resolved',
+        outcomeMsg,
+        'dispute_closed'
+      );
     }
     if (escrow?.payee_id) {
-      await sendNotification(escrow.payee_id, 'Dispute Resolved', outcomeMsg, 'dispute_closed');
+      await sendNotification(
+        escrow.payee_id,
+        'Dispute Resolved',
+        outcomeMsg,
+        'dispute_closed'
+      );
     }
 
     logger.info('Dispute closed and escrow resolved', {
@@ -221,7 +251,9 @@ export async function handleDisputeClosed(
       escrowStatus: newEscrowStatus,
     });
   } catch (error) {
-    logger.error('Error in handleDisputeClosed', error, { service: 'stripe-webhook' });
+    logger.error('Error in handleDisputeClosed', error, {
+      service: 'stripe-webhook',
+    });
     throw error;
   }
 }
