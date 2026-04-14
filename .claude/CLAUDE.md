@@ -1,8 +1,28 @@
 # CLAUDE MANDATORY DEVELOPMENT CONTRACT (MDC) - MINTENANCE CODEBASE
 
-## CODE QUALITY AUDIT (Last audited: 2026-02-26)
+## CODE QUALITY AUDIT (Last audited: 2026-04-13, 7-sprint remediation complete)
 
-**Current State: B- Grade (72/100) - FURTHER IMPROVED in Feb 26 session**
+**Current State: B+ Grade (85/100) after audit remediation Sprints 0-6**
+
+Audit + remediation details in [docs/AUDIT_2026_04_13.md](../docs/AUDIT_2026_04_13.md) and the plan
+file `C:\Users\Djodjo.Nkouka.ERICCOLE\.claude\plans\purring-jumping-raccoon.md`.
+
+### Audit remediation summary (2026-04-13)
+
+Seven-sprint branch `fix/mobile-audit-security-ux-features` closed:
+
+- **8 P0 findings** (7 fixed, 1 ecosystem-blocked — PostGIS schema ownership)
+- **~36 P1 findings** out of 41 (5 deferred with runbooks: PostGIS schema move, Job type
+  consolidation, mobile TLS cert pinning, migration drift pull, web Sentry)
+- **Sprint 0**: CI unblock + 4-tier severity atomic commit + 8 DB migrations pushed
+- **Sprint 1**: DB-P0-1 (8 zero-policy tables) closed; DB-P0-3 documented as blocked
+- **Sprint 2**: LFC-P0-1 (homeowner approval explicit gate) + LFC-P1-1 (escrow payee lock)
+- **Sprint 3**: WFE-P0-1/2, WBE-P1-1/2, dashboard/bid null-safety, XC-P0-1 resolved
+- **Sprint 4**: Mobile hardening — silent catches, photo retry, biometric verify, i18n
+- **Sprint 5**: Idempotency fail-closed, webhook rate limit, dispute freeze, MFA audit logs, AI cost
+  caps, prompt injection guard, Stripe Connect verified
+- **Sprint 6**: Storage bucket policies, security types narrowed, api-client service-role guard,
+  building-surveyor route partial split
 
 ### Verified Metrics (measured, not estimated):
 
