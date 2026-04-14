@@ -11,21 +11,7 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../../theme';
-
-// --- Shared color helpers ---
-
-const SEVERITY_COLORS: Record<string, { bg: string; text: string }> = {
-  critical: { bg: '#FEE2E2', text: '#DC2626' },
-  full: { bg: '#FEE2E2', text: '#DC2626' },
-  severe: { bg: '#FFF7ED', text: '#EA580C' },
-  midway: { bg: '#FFF7ED', text: '#EA580C' },
-  moderate: { bg: '#FEF9C3', text: '#A16207' },
-  medium: { bg: '#FEF9C3', text: '#A16207' },
-  minimal: { bg: '#DCFCE7', text: '#16A34A' },
-  early: { bg: '#DCFCE7', text: '#16A34A' },
-  low: { bg: '#DCFCE7', text: '#16A34A' },
-  none: { bg: '#DCFCE7', text: '#16A34A' },
-};
+import { getSeverityDisplay } from '../../../utils/severityUtils';
 
 const URGENCY_COLORS: Record<
   string,
@@ -38,8 +24,9 @@ const URGENCY_COLORS: Record<
   monitor: { bg: '#EFF6FF', text: '#2563EB', icon: 'eye' },
 };
 
-function getSeverityStyle(severity: string) {
-  return SEVERITY_COLORS[severity] ?? { bg: '#F3F4F6', text: '#6B7280' };
+function getSeverityStyle(severity: string): { bg: string; text: string } {
+  const display = getSeverityDisplay(severity);
+  return { bg: display.bg, text: display.color };
 }
 
 // --- Section Components ---

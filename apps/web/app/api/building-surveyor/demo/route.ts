@@ -149,7 +149,7 @@ export const POST = withApiHandler(
         shadow_mode: true,
         cache_key: cacheKey,
         damage_type: 'pending',
-        severity: 'midway',
+        severity: 'developing',
         confidence: 0,
         safety_score: 50,
         compliance_score: 50,
@@ -199,7 +199,7 @@ export const POST = withApiHandler(
         .from('building_assessments')
         .update({
           damage_type: assessment.damageAssessment?.damageType || 'unknown',
-          severity: assessment.damageAssessment?.severity || 'midway',
+          severity: assessment.damageAssessment?.severity || 'developing',
           confidence: assessment.damageAssessment?.confidence || 0,
           safety_score: assessment.safetyHazards?.overallSafetyScore || 50,
           compliance_score: assessment.compliance?.complianceScore || 50,

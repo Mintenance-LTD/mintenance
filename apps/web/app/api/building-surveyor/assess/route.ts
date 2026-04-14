@@ -4,6 +4,9 @@ import crypto from 'crypto';
 import { LRUCache } from 'lru-cache';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { canonicalizeDamageType } from '@/lib/services/building-surveyor/normalization-utils';
+import { checkAICostBudget } from '@/lib/ai/cost-budget';
+import { loadDependencies } from './_deps';
+import { validateImageUrls } from './_image-validation';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -27,63 +30,6 @@ const assessmentCache = new LRUCache<string, Phase1BuildingAssessment>({
   updateAgeOnGet: true,
   allowStale: false,
 });
-
-/**
- * Dynamic imports helper - loads all heavy dependencies at runtime
- * to prevent module-level crashes that cause 405 on Vercel
- */
-async function loadDependencies() {
-  const [
-    auth,
-    bs,
-    hybrid,
-    agent,
-    config,
-    dc,
-    ab,
-    shared,
-    sb,
-    schemas,
-    csrf,
-    rl,
-    apiErr,
-  ] = await Promise.all([
-    import('@/lib/auth'),
-    import('@/lib/services/building-surveyor/BuildingSurveyorService'),
-    import('@/lib/services/building-surveyor/HybridInferenceService'),
-    import('@/lib/services/building-surveyor/agent/AgentRunner'),
-    import('@/lib/services/building-surveyor/config/BuildingSurveyorConfig'),
-    import('@/lib/services/building-surveyor/DataCollectionService'),
-    import('@/lib/services/building-surveyor/ab_test_harness'),
-    import('@mintenance/shared'),
-    import('@/lib/api/supabaseServer'),
-    import('@/lib/validation/schemas'),
-    import('@/lib/csrf'),
-    import('@/lib/rate-limiter'),
-    import('@/lib/errors/api-error'),
-  ]);
-
-  return {
-    getCurrentUserFromCookies: auth.getCurrentUserFromCookies,
-    BuildingSurveyorService: bs.BuildingSurveyorService,
-    HybridInferenceService: hybrid.HybridInferenceService,
-    runAgent: agent.runAgent,
-    getConfig: config.getConfig,
-    DataCollectionService: dc.DataCollectionService,
-    ABTestIntegration: ab.ABTestIntegration,
-    logger: shared.logger,
-    hashString: shared.hashString,
-    serverSupabase: sb.serverSupabase,
-    buildingAssessRequestSchema: schemas.buildingAssessRequestSchema,
-    requireCSRF: csrf.requireCSRF,
-    rateLimiter: rl.rateLimiter,
-    handleAPIError: apiErr.handleAPIError,
-    UnauthorizedError: apiErr.UnauthorizedError,
-    ForbiddenError: apiErr.ForbiddenError,
-    BadRequestError: apiErr.BadRequestError,
-    RateLimitError: apiErr.RateLimitError,
-  };
-}
 
 function generateCacheKey(imageUrls: string[]): string {
   // SHA-256 hex is exactly 64 chars, which fits the VARCHAR(64) cache_key column.
@@ -183,6 +129,30 @@ export const POST = withApiHandler(
       );
     }
 
+    // Sprint 5.3: per-user AI cost cap. Rate limit is the sprint cadence;
+    // this is the rolling-window budget guard. Checking ai_service_costs
+    // for the last 24h / 30d sum and rejecting if over cap.
+    const budget = await checkAICostBudget(user.id);
+    if (!budget.allowed) {
+      deps.logger.warn('Building surveyor cost cap reached', {
+        service: 'building-surveyor-api',
+        userId: user.id,
+        reason: budget.reason,
+        spent: budget.spent,
+        limits: budget.limits,
+      });
+      return NextResponse.json(
+        {
+          error:
+            budget.reason === 'monthly_cap_exceeded'
+              ? 'Monthly AI usage limit reached. Please contact support to increase your quota.'
+              : 'Daily AI usage limit reached. Please try again tomorrow or contact support.',
+          code: budget.reason,
+        },
+        { status: 429 }
+      );
+    }
+
     const body = await request.json();
     const validationResult = deps.buildingAssessRequestSchema.safeParse(body);
     if (!validationResult.success)
@@ -198,57 +168,12 @@ export const POST = withApiHandler(
       roomMetadata: bodyRoomMetadata,
     } = validationResult.data;
 
-    // SECURITY: Validate image URLs — whitelist domains, block SSRF
-    const ALLOWED_IMAGE_HOSTS = [
-      process.env.NEXT_PUBLIC_SUPABASE_URL
-        ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname
-        : '',
-      'storage.googleapis.com',
-      'images.unsplash.com',
-    ].filter(Boolean);
-
-    for (const url of imageUrls) {
-      if (!url.startsWith('https://'))
-        throw new deps.BadRequestError('Image URLs must use HTTPS');
-
-      let parsed: URL;
-      try {
-        parsed = new URL(url);
-      } catch {
-        throw new deps.BadRequestError('Invalid image URL format');
-      }
-
-      // Block internal/private IPs (SSRF protection)
-      const host = parsed.hostname;
-      if (
-        host === 'localhost' ||
-        host === '127.0.0.1' ||
-        host === '::1' ||
-        host.startsWith('10.') ||
-        host.startsWith('192.168.') ||
-        /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
-        host === '169.254.169.254' || // AWS metadata
-        host.endsWith('.internal') ||
-        host.endsWith('.local')
-      ) {
-        throw new deps.BadRequestError(
-          'Image URL points to a restricted address'
-        );
-      }
-
-      // Whitelist check (if configured)
-      if (
-        ALLOWED_IMAGE_HOSTS.length > 0 &&
-        !ALLOWED_IMAGE_HOSTS.some((allowed) => host.endsWith(allowed))
-      ) {
-        deps.logger.warn('Image URL from non-whitelisted host', {
-          service: 'building-surveyor-api',
-          host,
-          userId: user.id,
-        });
-        // Allow but log — don't hard-block to avoid breaking legitimate URLs
-      }
-    }
+    // SECURITY: HTTPS + SSRF validation extracted to _image-validation.ts
+    validateImageUrls(imageUrls, {
+      BadRequestError: deps.BadRequestError,
+      logger: deps.logger,
+      userId: user.id,
+    });
 
     // Check in-memory cache first
     const cacheKey = generateCacheKey(imageUrls);

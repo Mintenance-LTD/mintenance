@@ -4,6 +4,7 @@ import { MFAService } from '@/lib/mfa/mfa-service';
 import { rateLimiter } from '@/lib/rate-limiter';
 import { logger } from '@mintenance/shared';
 import { BadRequestError, RateLimitError } from '@/lib/errors/api-error';
+import { logAuditEvent, getClientIp } from '@/lib/audit';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -13,43 +14,59 @@ export const runtime = 'nodejs';
  * Start TOTP enrollment process
  * Returns QR code and backup codes
  */
-export const POST = withApiHandler({ rateLimit: false }, async (_request, { user }) => {
-  // Custom rate limiting - 3 enrollment attempts per hour
-  const rateLimitResult = await rateLimiter.checkRateLimit({
-    windowMs: 3600000,
-    maxRequests: 3,
-    identifier: `mfa-enroll:${user.id}`,
-  });
+export const POST = withApiHandler(
+  { rateLimit: false },
+  async (request, { user }) => {
+    // Custom rate limiting - 3 enrollment attempts per hour
+    const rateLimitResult = await rateLimiter.checkRateLimit({
+      windowMs: 3600000,
+      maxRequests: 3,
+      identifier: `mfa-enroll:${user.id}`,
+    });
 
-  if (!rateLimitResult.allowed) {
-    logger.warn('MFA enrollment rate limit exceeded', {
+    if (!rateLimitResult.allowed) {
+      logger.warn('MFA enrollment rate limit exceeded', {
+        service: 'mfa',
+        userId: user.id,
+      });
+      throw new RateLimitError(rateLimitResult.retryAfter ?? 3600);
+    }
+
+    // Check if MFA is already enabled
+    const mfaStatus = await MFAService.getMFAStatus(user.id);
+    if (mfaStatus.enabled) {
+      throw new BadRequestError(
+        'MFA is already enabled. Disable it first to re-enroll.'
+      );
+    }
+
+    // Start TOTP enrollment
+    const enrollmentData = await MFAService.enrollTOTP(user.id);
+
+    logger.info('TOTP enrollment started', {
       service: 'mfa',
       userId: user.id,
     });
-    throw new RateLimitError(rateLimitResult.retryAfter ?? 3600);
+
+    // Sprint 5.2: audit trail for sensitive auth events
+    await logAuditEvent({
+      actorId: user.id,
+      category: 'mfa',
+      action: 'enroll_totp_started',
+      targetId: user.id,
+      after: { method: 'totp' },
+      ipAddress: getClientIp(request),
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        secret: enrollmentData.secret,
+        qrCode: enrollmentData.qrCodeDataUrl,
+        backupCodes: enrollmentData.backupCodes,
+      },
+      message:
+        'Scan the QR code with your authenticator app and save the backup codes.',
+    });
   }
-
-  // Check if MFA is already enabled
-  const mfaStatus = await MFAService.getMFAStatus(user.id);
-  if (mfaStatus.enabled) {
-    throw new BadRequestError('MFA is already enabled. Disable it first to re-enroll.');
-  }
-
-  // Start TOTP enrollment
-  const enrollmentData = await MFAService.enrollTOTP(user.id);
-
-  logger.info('TOTP enrollment started', {
-    service: 'mfa',
-    userId: user.id,
-  });
-
-  return NextResponse.json({
-    success: true,
-    data: {
-      secret: enrollmentData.secret,
-      qrCode: enrollmentData.qrCodeDataUrl,
-      backupCodes: enrollmentData.backupCodes,
-    },
-    message: 'Scan the QR code with your authenticator app and save the backup codes.',
-  });
-});
+);

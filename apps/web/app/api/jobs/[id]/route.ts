@@ -1,10 +1,8 @@
-import { NextRequest } from 'next/server';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { handleGet } from './_handlers/get';
 import { handlePut } from './_handlers/put';
 import { handlePatch } from './_handlers/patch';
 import { handleDelete } from './_handlers/delete';
-import type { Params } from './_handlers/shared';
 
 export const GET = withApiHandler({ csrf: false }, handleGet);
 
@@ -13,10 +11,14 @@ export const GET = withApiHandler({ csrf: false }, handleGet);
  */
 export const PUT = withApiHandler({ roles: ['homeowner'] }, handlePut);
 
-export async function PATCH(request: NextRequest, context: Params) {
-  return handlePatch(request, context);
-}
+/**
+ * PATCH /api/jobs/[id] - Partial update (homeowner only).
+ * WBE-P1-1: previously bypassed withApiHandler with manual auth + CSRF.
+ */
+export const PATCH = withApiHandler({ roles: ['homeowner'] }, handlePatch);
 
-export async function DELETE(request: NextRequest, context: Params) {
-  return handleDelete(request, context);
-}
+/**
+ * DELETE /api/jobs/[id] - Delete a posted job (homeowner only).
+ * WBE-P1-1: previously bypassed withApiHandler with manual auth + CSRF.
+ */
+export const DELETE = withApiHandler({ roles: ['homeowner'] }, handleDelete);

@@ -7,11 +7,35 @@
 
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { ServiceUnavailableError } from '@/lib/errors/api-error';
 
 interface IdempotencyResult<T> {
   isDuplicate: boolean;
   cachedResult?: T;
   idempotencyKey: string;
+}
+
+/**
+ * Thrown when the idempotency store itself is unavailable (Postgres advisory
+ * lock failure, DB error, etc.). Extends ServiceUnavailableError so the
+ * existing handleAPIError pipeline returns the right 503 with a clean body.
+ *
+ * Sprint 5.1 (2026-04-13 remediation plan): previously checkIdempotency
+ * returned null on any exception, which the payment route interpreted as
+ * "no cached result, proceed" — fail-OPEN. Now any caller of checkIdempotency
+ * that hits a store error sees a 503 instead of double-processing.
+ */
+export class IdempotencyStoreUnavailableError extends ServiceUnavailableError {
+  constructor(
+    message: string,
+    public readonly idempotencyKey: string,
+    public readonly operation: string,
+    public readonly cause?: unknown
+  ) {
+    super('Idempotency store');
+    this.name = 'IdempotencyStoreUnavailableError';
+    this.userMessage = message;
+  }
 }
 
 /**
@@ -150,9 +174,20 @@ function hashStringToInt32(str: string): number {
 }
 
 /**
- * Check if an idempotency key has been used before
- * Returns cached result if found, otherwise null
- * Uses distributed locking to prevent race conditions
+ * Check if an idempotency key has been used before.
+ *
+ * Returns:
+ *   - { isDuplicate: true, cachedResult } when the key has already been processed
+ *   - null when the key has NOT been seen (caller should proceed with the operation)
+ *
+ * Throws `IdempotencyStoreUnavailableError` when the store itself is down
+ * (Postgres exception, advisory lock contention that exceeds retry, etc.).
+ * Sprint 5.1 made this fail-CLOSED: previously this function returned null on
+ * any exception, which the payment route interpreted as "no cached result,
+ * proceed" — creating a duplicate payment risk during transient DB issues.
+ *
+ * Callers in payment / escrow paths MUST catch the error and return 503 to the
+ * client instead of falling through to the side-effect operation.
  */
 export async function checkIdempotency<T>(
   idempotencyKey: string,
@@ -170,11 +205,10 @@ export async function checkIdempotency<T>(
       );
 
       if (!lockResult.acquired) {
-        // Lock not acquired - another request is processing this key
-        // Wait a bit and try to get the cached result
+        // Lock not acquired - another request is processing this key.
+        // Wait briefly and try to read the cached result it may have written.
         await new Promise((resolve) => setTimeout(resolve, 1000));
 
-        // Try to get the cached result (might be available now)
         const cachedCheck = await getCachedIdempotencyResult<T>(
           idempotencyKey,
           operation
@@ -183,34 +217,40 @@ export async function checkIdempotency<T>(
           return cachedCheck;
         }
 
-        // Still not available - return null to indicate lock contention
-        logger.warn('Lock contention - request will be retried', {
-          service: 'idempotency',
+        // Lock contention with no cached result is a fail-closed condition:
+        // we cannot prove this is a new request OR a duplicate. Throwing
+        // forces the caller to return 503 instead of double-processing.
+        logger.warn(
+          'Idempotency lock contention with no cached result — failing closed',
+          { service: 'idempotency', idempotencyKey, operation }
+        );
+        throw new IdempotencyStoreUnavailableError(
+          'Idempotency store is busy; another request holds the lock for this key',
           idempotencyKey,
-          operation,
-        });
-        return null;
+          operation
+        );
       }
 
       lockId = lockResult.lockId ? parseInt(lockResult.lockId) : undefined;
     }
 
-    // Check for existing result
-    const cachedResult = await getCachedIdempotencyResult<T>(
-      idempotencyKey,
-      operation
-    );
-
-    return cachedResult;
+    return await getCachedIdempotencyResult<T>(idempotencyKey, operation);
   } catch (error) {
-    logger.error('Exception checking idempotency', error, {
+    if (error instanceof IdempotencyStoreUnavailableError) {
+      throw error;
+    }
+    logger.error('Exception checking idempotency — failing closed', error, {
       service: 'idempotency',
       idempotencyKey,
       operation,
     });
-    return null;
+    throw new IdempotencyStoreUnavailableError(
+      'Idempotency store is unavailable',
+      idempotencyKey,
+      operation,
+      error
+    );
   } finally {
-    // Always release lock if acquired
     if (useLocking && lockId !== undefined) {
       await releaseDistributedLock(
         `idempotency:${operation}:${idempotencyKey}`,
@@ -221,7 +261,11 @@ export async function checkIdempotency<T>(
 }
 
 /**
- * Internal function to get cached idempotency result
+ * Internal function to get cached idempotency result.
+ *
+ * Returns null when the key is not found (new request).
+ * Throws IdempotencyStoreUnavailableError on any other DB error so the
+ * caller fails closed instead of treating a transient error as "new request".
  */
 async function getCachedIdempotencyResult<T>(
   idempotencyKey: string,
@@ -239,12 +283,17 @@ async function getCachedIdempotencyResult<T>(
       // Key doesn't exist - this is a new request
       return null;
     }
-    logger.error('Error checking idempotency', error, {
+    logger.error('Error reading idempotency_keys — failing closed', error, {
       service: 'idempotency',
       idempotencyKey,
       operation,
     });
-    return null;
+    throw new IdempotencyStoreUnavailableError(
+      `Failed to read idempotency_keys: ${error.message}`,
+      idempotencyKey,
+      operation,
+      error
+    );
   }
 
   if (data) {

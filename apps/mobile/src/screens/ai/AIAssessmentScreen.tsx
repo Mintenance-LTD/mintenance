@@ -16,6 +16,7 @@ import type { NavigationProp } from '@react-navigation/native';
 import { useMutation } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { ScreenHeader } from '../../components/shared';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -26,7 +27,8 @@ import { theme } from '../../theme';
 
 interface AnalysisResult {
   damageType: string;
-  severity: 'low' | 'medium' | 'high' | 'critical';
+  /** 4-tier severity: early, developing, significant, dangerous */
+  severity: 'early' | 'developing' | 'significant' | 'dangerous';
   estimatedCostMin: number;
   estimatedCostMax: number;
   recommendedActions: string[];
@@ -36,6 +38,7 @@ interface AnalysisResult {
 
 export const AIAssessmentScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
+  const { t } = useTranslation();
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [result, setResult] = useState<AnalysisResult | null>(null);
 
@@ -68,8 +71,8 @@ export const AIAssessmentScreen: React.FC = () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert(
-        'Permission Required',
-        'Camera roll access is needed to select photos.'
+        t('permissions.gallery.title'),
+        t('permissions.gallery.message')
       );
       return;
     }
@@ -92,8 +95,8 @@ export const AIAssessmentScreen: React.FC = () => {
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert(
-        'Permission Required',
-        'Camera access is needed to take photos.'
+        t('permissions.camera.title'),
+        t('permissions.camera.message')
       );
       return;
     }
@@ -197,9 +200,9 @@ export const AIAssessmentScreen: React.FC = () => {
                     <Text style={styles.resultTitle}>Assessment Result</Text>
                     <Badge
                       variant={
-                        result.severity === 'low'
+                        result.severity === 'early'
                           ? 'success'
-                          : result.severity === 'critical'
+                          : result.severity === 'dangerous'
                             ? 'error'
                             : 'warning'
                       }

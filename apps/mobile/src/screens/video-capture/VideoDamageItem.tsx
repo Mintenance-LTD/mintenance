@@ -7,6 +7,10 @@ import React from 'react';
 import { View, Text } from 'react-native';
 import { theme } from '../../theme';
 import { styles } from './videoProcessingStatusStyles';
+import {
+  normalizeSeverity,
+  type SeverityTier,
+} from '../../utils/severityUtils';
 
 export interface DamageData {
   instance_count: number;
@@ -15,16 +19,11 @@ export interface DamageData {
   severity_estimate: string;
 }
 
-// 4-tier severity colors + legacy aliases (midway→developing, full→dangerous)
-const severityColors: Record<string, string> = {
+const severityColors: Record<SeverityTier, string> = {
   early: theme.colors.primary,
   developing: '#A16207',
   significant: theme.colors.accent,
   dangerous: theme.colors.error,
-  // Legacy aliases for older video-processing results
-  midway: '#A16207',
-  full: theme.colors.error,
-  none: theme.colors.textTertiary,
 };
 
 interface Props {
@@ -41,8 +40,7 @@ export const VideoDamageItem: React.FC<Props> = ({ type, data }) => (
           styles.severityBadge,
           {
             backgroundColor:
-              severityColors[data.severity_estimate] ||
-              theme.colors.textTertiary,
+              severityColors[normalizeSeverity(data.severity_estimate)],
           },
         ]}
       >

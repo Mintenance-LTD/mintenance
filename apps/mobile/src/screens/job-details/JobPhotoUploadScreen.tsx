@@ -9,21 +9,22 @@ import {
   View,
   Text,
   ScrollView,
-  StyleSheet,
   TouchableOpacity,
   Image,
   Alert,
-  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
+import NetInfo from '@react-native-community/netinfo';
+import { useTranslation } from 'react-i18next';
 import { PhotoUploadService } from '../../services/PhotoUploadService';
 import { JobService } from '../../services/JobService';
 import { JobsStackParamList } from '../../navigation/types';
 import { theme } from '../../theme';
+import { styles } from './jobPhotoUploadStyles';
 
 type ScreenRouteProp = RouteProp<JobsStackParamList, 'PhotoUpload'>;
 type ScreenNavigationProp = NativeStackNavigationProp<
@@ -48,6 +49,7 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({
 }) => {
   const { jobId, photoType } = route.params;
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const [photos, setPhotos] = useState<SelectedPhoto[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -62,8 +64,8 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({
     const permissions = await PhotoUploadService.requestPermissions();
     if (!permissions.camera) {
       Alert.alert(
-        'Permission Required',
-        'Camera access is needed to take photos.'
+        t('permissions.camera.title'),
+        t('permissions.camera.message')
       );
       return;
     }
@@ -113,6 +115,19 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({
     const pending = photos.filter((p) => !p.uploaded);
     if (pending.length === 0) {
       Alert.alert('No Photos', 'Please select at least one photo to upload.');
+      return;
+    }
+
+    // MUI-P1-2: fail fast when offline instead of letting three retries of
+    // each photo all time out with a generic error. PhotoUploadService has
+    // its own per-photo retry (MSV-P1-8) for transient network failures;
+    // this covers the "clearly offline when user tapped Upload" case.
+    const netState = await NetInfo.fetch();
+    if (!netState.isConnected || !netState.isInternetReachable) {
+      Alert.alert(
+        'No Internet Connection',
+        'Photo upload requires an internet connection. Please reconnect and try again — your selected photos will remain here.'
+      );
       return;
     }
 
@@ -382,182 +397,5 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
-  },
-  backButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: theme.colors.backgroundSecondary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerText: {
-    flex: 1,
-    marginLeft: 10,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-  },
-  headerSubtitle: {
-    fontSize: 13,
-    color: theme.colors.textSecondary,
-    marginTop: 2,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 20,
-    paddingBottom: 120,
-  },
-  infoCard: {
-    flexDirection: 'row',
-    backgroundColor: theme.colors.surface,
-    borderRadius: 16,
-    padding: 16,
-    gap: 12,
-    marginBottom: 20,
-    alignItems: 'flex-start',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
-  },
-  infoText: {
-    flex: 1,
-    fontSize: 13,
-    color: theme.colors.textPrimary,
-    lineHeight: 20,
-  },
-  photoGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  photoItem: {
-    width: '47%',
-    aspectRatio: 1,
-    borderRadius: 16,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  photoImage: {
-    width: '100%',
-    height: '100%',
-  },
-  removeButton: {
-    position: 'absolute',
-    top: 6,
-    right: 6,
-    backgroundColor: 'rgba(255,255,255,0.8)',
-    borderRadius: 14,
-  },
-  uploadedBadge: {
-    position: 'absolute',
-    top: 6,
-    left: 6,
-    backgroundColor: 'rgba(255,255,255,0.8)',
-    borderRadius: 14,
-  },
-  addPhotoButton: {
-    width: '47%',
-    aspectRatio: 1,
-    borderRadius: 16,
-    borderWidth: 2,
-    borderStyle: 'dashed',
-    borderColor: theme.colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: theme.colors.surface,
-  },
-  addPhotoText: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: theme.colors.textSecondary,
-  },
-  photoCount: {
-    marginTop: 16,
-    fontSize: 13,
-    color: theme.colors.textSecondary,
-    textAlign: 'center',
-  },
-  bottomBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: theme.colors.surface,
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: theme.colors.border,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: -2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 12,
-      },
-      android: { elevation: 8 },
-    }),
-  },
-  uploadButton: {
-    backgroundColor: theme.colors.textPrimary,
-    borderRadius: 28,
-    paddingVertical: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    minHeight: 56,
-  },
-  uploadButtonDisabled: {
-    opacity: 0.5,
-  },
-  uploadButtonText: {
-    color: theme.colors.textInverse,
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  uploadProgressContainer: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 8,
-  },
-  progressBarTrack: {
-    width: '80%',
-    height: 4,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  progressBarFill: {
-    height: 4,
-    backgroundColor: theme.colors.surface,
-    borderRadius: 2,
-  },
-});
 
 export default JobPhotoUploadScreen;
