@@ -1,19 +1,34 @@
 import React from 'react';
-import { View, Text, TextInput, TouchableOpacity } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ScrollView,
+} from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import { theme } from '../../../theme';
-import { PropertyInfo, PROPERTY_TYPES } from './constants';
+import {
+  PropertyInfo,
+  PROPERTY_TYPES,
+  ROOM_OPTIONS,
+  RoomMetadata,
+} from './constants';
 import { styles } from './styles';
 
 interface Props {
   propertyInfo: PropertyInfo;
   setPropertyInfo: React.Dispatch<React.SetStateAction<PropertyInfo>>;
+  roomMetadata?: RoomMetadata;
+  setRoomMetadata?: React.Dispatch<React.SetStateAction<RoomMetadata>>;
   onSave: () => void;
 }
 
 export const PropertyInfoForm: React.FC<Props> = ({
   propertyInfo,
   setPropertyInfo,
+  roomMetadata,
+  setRoomMetadata,
   onSave,
 }) => (
   <View style={styles.formSection}>
@@ -51,9 +66,9 @@ export const PropertyInfoForm: React.FC<Props> = ({
       onChangeText={(t) =>
         setPropertyInfo((prev) => ({ ...prev, bedrooms: t }))
       }
-      placeholder="e.g. 3"
+      placeholder='e.g. 3'
       placeholderTextColor={theme.colors.textTertiary}
-      keyboardType="number-pad"
+      keyboardType='number-pad'
     />
 
     <Text style={styles.fieldLabel}>Year Built (approx)</Text>
@@ -63,9 +78,9 @@ export const PropertyInfoForm: React.FC<Props> = ({
       onChangeText={(t) =>
         setPropertyInfo((prev) => ({ ...prev, yearBuilt: t }))
       }
-      placeholder="e.g. 1985"
+      placeholder='e.g. 1985'
       placeholderTextColor={theme.colors.textTertiary}
-      keyboardType="number-pad"
+      keyboardType='number-pad'
     />
 
     <Text style={styles.fieldLabel}>Brief Description</Text>
@@ -75,14 +90,105 @@ export const PropertyInfoForm: React.FC<Props> = ({
       onChangeText={(t) =>
         setPropertyInfo((prev) => ({ ...prev, description: t }))
       }
-      placeholder="Describe the property and any known issues..."
+      placeholder='Describe the property and any known issues...'
       placeholderTextColor={theme.colors.textTertiary}
       multiline
-      textAlignVertical="top"
+      textAlignVertical='top'
     />
 
+    {/* Room metadata (optional) — improves AI accuracy with location context */}
+    {setRoomMetadata && (
+      <>
+        <Text style={styles.fieldLabel}>Room or Area (optional)</Text>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={{ marginBottom: 12 }}
+        >
+          <View style={styles.chipRow}>
+            {ROOM_OPTIONS.map((room) => (
+              <TouchableOpacity
+                key={room}
+                style={[
+                  styles.chip,
+                  roomMetadata?.room === room && styles.chipSelected,
+                ]}
+                onPress={() =>
+                  setRoomMetadata((prev) => ({
+                    ...prev,
+                    room: prev.room === room ? undefined : room,
+                  }))
+                }
+              >
+                <Text
+                  style={[
+                    styles.chipText,
+                    roomMetadata?.room === room && styles.chipTextSelected,
+                  ]}
+                >
+                  {room}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ScrollView>
+
+        <Text style={styles.fieldLabel}>Floor (optional)</Text>
+        <View
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 12,
+            marginBottom: 16,
+          }}
+        >
+          <TouchableOpacity
+            style={[styles.chip, { minWidth: 44, alignItems: 'center' }]}
+            onPress={() =>
+              setRoomMetadata((prev) => ({
+                ...prev,
+                floor: Math.max(-1, (prev.floor ?? 0) - 1),
+              }))
+            }
+          >
+            <Text style={styles.chipText}>−</Text>
+          </TouchableOpacity>
+          <Text
+            style={[
+              styles.chipText,
+              {
+                minWidth: 60,
+                textAlign: 'center',
+                fontSize: 16,
+                fontWeight: '600',
+              },
+            ]}
+          >
+            {roomMetadata?.floor != null
+              ? roomMetadata.floor === 0
+                ? 'Ground'
+                : roomMetadata.floor === -1
+                  ? 'Basement'
+                  : `Floor ${roomMetadata.floor}`
+              : 'Not set'}
+          </Text>
+          <TouchableOpacity
+            style={[styles.chip, { minWidth: 44, alignItems: 'center' }]}
+            onPress={() =>
+              setRoomMetadata((prev) => ({
+                ...prev,
+                floor: Math.min(10, (prev.floor ?? -1) + 1),
+              }))
+            }
+          >
+            <Text style={styles.chipText}>+</Text>
+          </TouchableOpacity>
+        </View>
+      </>
+    )}
+
     <TouchableOpacity style={styles.saveFormButton} onPress={onSave}>
-      <Icon name="check" size={18} color="#fff" />
+      <Icon name='check' size={18} color='#fff' />
       <Text style={styles.saveFormButtonText}>Save Property Info</Text>
     </TouchableOpacity>
   </View>
