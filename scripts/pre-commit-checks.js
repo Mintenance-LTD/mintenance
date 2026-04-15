@@ -61,6 +61,11 @@ const KNOWN_LARGE_FILES = new Set([
   'apps/web/app/api/building-surveyor/assess/route.ts',
   'apps/web/lib/services/building-surveyor/orchestration/AssessmentOrchestrator.ts',
   'apps/web/app/api/contractor/submit-bid/route.ts',
+  // Added 2026-04-16: pre-existing large files discovered during the
+  // Mint AI rename. Both need splitting in the Gate 3 schema/scale
+  // cleanup sprint per audit-reports/BETA_READINESS.md — not beta blockers.
+  'apps/web/app/admin/mint-ai/components/MintAIDashboardClient.tsx', // 705 lines
+  'apps/web/lib/services/building-surveyor/distillation/StudentShadowService.ts', // 510 lines
 ]);
 
 function countLines(filePath) {
