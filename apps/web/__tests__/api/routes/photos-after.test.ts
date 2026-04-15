@@ -84,24 +84,65 @@ vi.mock('@/lib/email-service', () => ({
 
 vi.mock('@/lib/errors/api-error', async () => {
   class APIError extends Error {
-    constructor(public code: string, public userMessage: string, public statusCode: number = 500, public details?: unknown) {
-      super(userMessage); this.name = 'APIError';
+    constructor(
+      public code: string,
+      public userMessage: string,
+      public statusCode: number = 500,
+      public details?: unknown
+    ) {
+      super(userMessage);
+      this.name = 'APIError';
     }
-    toResponse() { return { error: { code: this.code, message: this.userMessage }, timestamp: new Date().toISOString() }; }
+    toResponse() {
+      return {
+        error: { code: this.code, message: this.userMessage },
+        timestamp: new Date().toISOString(),
+      };
+    }
   }
-  class UnauthorizedError extends APIError { constructor(m = 'Unauthorized') { super('UNAUTHORIZED', m, 401); } }
-  class ForbiddenError extends APIError { constructor(m = 'Forbidden') { super('FORBIDDEN', m, 403); } }
-  class NotFoundError extends APIError { constructor(m = 'Resource not found') { super('NOT_FOUND', m, 404); } }
-  class BadRequestError extends APIError { constructor(m = 'Bad Request', d?: unknown) { super('BAD_REQUEST', m, 400, d); } }
+  class UnauthorizedError extends APIError {
+    constructor(m = 'Unauthorized') {
+      super('UNAUTHORIZED', m, 401);
+    }
+  }
+  class ForbiddenError extends APIError {
+    constructor(m = 'Forbidden') {
+      super('FORBIDDEN', m, 403);
+    }
+  }
+  class NotFoundError extends APIError {
+    constructor(m = 'Resource not found') {
+      super('NOT_FOUND', m, 404);
+    }
+  }
+  class BadRequestError extends APIError {
+    constructor(m = 'Bad Request', d?: unknown) {
+      super('BAD_REQUEST', m, 400, d);
+    }
+  }
   return {
-    APIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError,
+    APIError,
+    UnauthorizedError,
+    ForbiddenError,
+    NotFoundError,
+    BadRequestError,
     handleAPIError: vi.fn((error: unknown) => {
       if (error instanceof APIError) {
         const { NextResponse } = require('next/server');
-        return NextResponse.json(error.toResponse(), { status: error.statusCode });
+        return NextResponse.json(error.toResponse(), {
+          status: error.statusCode,
+        });
       }
       const { NextResponse } = require('next/server');
-      return NextResponse.json({ error: { code: 'INTERNAL_SERVER_ERROR', message: 'An unexpected error occurred' } }, { status: 500 });
+      return NextResponse.json(
+        {
+          error: {
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'An unexpected error occurred',
+          },
+        },
+        { status: 500 }
+      );
     }),
   };
 });
@@ -154,23 +195,40 @@ function setupDefaultMocks() {
   mocks.getCurrentUserFromCookies.mockResolvedValue(contractorUser);
   mocks.requireCSRF.mockResolvedValue(undefined);
   mocks.rateLimiterCheckRateLimit.mockResolvedValue({
-    allowed: true, remaining: 19, resetTime: Date.now() + 60000, retryAfter: 0,
+    allowed: true,
+    remaining: 19,
+    resetTime: Date.now() + 60000,
+    retryAfter: 0,
   });
-  mocks.verifyGeolocation.mockResolvedValue({ withinThreshold: true, distance: 10 });
-  mocks.validatePhotoQuality.mockResolvedValue({ passed: true, qualityScore: 85 });
-  mocks.validatePhotoRequirements.mockResolvedValue({ passed: true, missingAngles: [] });
+  mocks.verifyGeolocation.mockResolvedValue({
+    withinThreshold: true,
+    distance: 10,
+  });
+  mocks.validatePhotoQuality.mockResolvedValue({
+    passed: true,
+    qualityScore: 85,
+  });
+  mocks.validatePhotoRequirements.mockResolvedValue({
+    passed: true,
+    missingAngles: [],
+  });
   mocks.validateImageUpload.mockResolvedValue({ valid: true });
   mocks.createNotification.mockResolvedValue('notif-1');
   mocks.sendJobCompletedEmail.mockResolvedValue(true);
 }
 
-function setupPhotoMocks(overrides: {
-  jobData?: unknown;
-  jobError?: unknown;
-  escrowData?: unknown;
-  updateError?: unknown;
-} = {}) {
-  const jobResult = { data: overrides.jobData ?? inProgressJob, error: overrides.jobError ?? null };
+function setupPhotoMocks(
+  overrides: {
+    jobData?: unknown;
+    jobError?: unknown;
+    escrowData?: unknown;
+    updateError?: unknown;
+  } = {}
+) {
+  const jobResult = {
+    data: overrides.jobData ?? inProgressJob,
+    error: overrides.jobError ?? null,
+  };
   const escrowResult = {
     data: 'escrowData' in overrides ? overrides.escrowData : { id: 'escrow-1' },
     error: null,
@@ -213,7 +271,12 @@ function setupPhotoMocks(overrides: {
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
             single: vi.fn().mockResolvedValue({
-              data: { email: 'test@test.com', first_name: 'Test', last_name: 'User', company_name: 'Test Co' },
+              data: {
+                email: 'test@test.com',
+                first_name: 'Test',
+                last_name: 'User',
+                company_name: 'Test Co',
+              },
               error: null,
             }),
           }),
@@ -224,9 +287,24 @@ function setupPhotoMocks(overrides: {
   });
 
   // Storage mock
+  // Phase 2: routes now use createSignedUrl() instead of getPublicUrl().
   mocks.supabaseStorageFrom.mockReturnValue({
-    upload: vi.fn().mockResolvedValue({ data: { path: 'job-photos/job-1/after/photo.jpg' }, error: null }),
-    getPublicUrl: vi.fn().mockReturnValue({ data: { publicUrl: 'https://storage.example.com/photo.jpg' } }),
+    upload: vi
+      .fn()
+      .mockResolvedValue({
+        data: { path: 'job-photos/job-1/after/photo.jpg' },
+        error: null,
+      }),
+    getPublicUrl: vi
+      .fn()
+      .mockReturnValue({
+        data: { publicUrl: 'https://storage.example.com/photo.jpg' },
+      }),
+    createSignedUrl: vi.fn().mockResolvedValue({
+      data: { signedUrl: 'https://storage.example.com/photo.jpg?token=test' },
+      error: null,
+    }),
+    remove: vi.fn().mockResolvedValue({ data: null, error: null }),
   });
 }
 
@@ -248,7 +326,10 @@ describe('POST /api/jobs/[id]/photos/after', () => {
 
     const formData = new FormData();
     formData.append('photos', createFakeFile('photo.jpg', 'image/jpeg', 1024));
-    const req = createFormDataRequest('http://localhost:3000/api/jobs/job-1/photos/after', formData);
+    const req = createFormDataRequest(
+      'http://localhost:3000/api/jobs/job-1/photos/after',
+      formData
+    );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(401);
   });
@@ -259,7 +340,10 @@ describe('POST /api/jobs/[id]/photos/after', () => {
 
     const formData = new FormData();
     formData.append('photos', createFakeFile('photo.jpg', 'image/jpeg', 1024));
-    const req = createFormDataRequest('http://localhost:3000/api/jobs/bad-id/photos/after', formData);
+    const req = createFormDataRequest(
+      'http://localhost:3000/api/jobs/bad-id/photos/after',
+      formData
+    );
     const res = await POST(req, segmentData('bad-id'));
     expect(res.status).toBe(404);
   });
@@ -277,7 +361,10 @@ describe('POST /api/jobs/[id]/photos/after', () => {
 
     const formData = new FormData();
     formData.append('photos', createFakeFile('photo.jpg', 'image/jpeg', 1024));
-    const req = createFormDataRequest('http://localhost:3000/api/jobs/job-1/photos/after', formData);
+    const req = createFormDataRequest(
+      'http://localhost:3000/api/jobs/job-1/photos/after',
+      formData
+    );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(403);
 
@@ -291,7 +378,10 @@ describe('POST /api/jobs/[id]/photos/after', () => {
 
     const formData = new FormData();
     // no photos appended
-    const req = createFormDataRequest('http://localhost:3000/api/jobs/job-1/photos/after', formData);
+    const req = createFormDataRequest(
+      'http://localhost:3000/api/jobs/job-1/photos/after',
+      formData
+    );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(400);
 
@@ -305,9 +395,15 @@ describe('POST /api/jobs/[id]/photos/after', () => {
 
     const formData = new FormData();
     for (let i = 0; i < 11; i++) {
-      formData.append('photos', createFakeFile(`photo${i}.jpg`, 'image/jpeg', 1024));
+      formData.append(
+        'photos',
+        createFakeFile(`photo${i}.jpg`, 'image/jpeg', 1024)
+      );
     }
-    const req = createFormDataRequest('http://localhost:3000/api/jobs/job-1/photos/after', formData);
+    const req = createFormDataRequest(
+      'http://localhost:3000/api/jobs/job-1/photos/after',
+      formData
+    );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(400);
 
@@ -320,9 +416,16 @@ describe('POST /api/jobs/[id]/photos/after', () => {
     setupPhotoMocks();
 
     const formData = new FormData();
-    const largeFile = createFakeFile('huge.jpg', 'image/jpeg', 11 * 1024 * 1024);
+    const largeFile = createFakeFile(
+      'huge.jpg',
+      'image/jpeg',
+      11 * 1024 * 1024
+    );
     formData.append('photos', largeFile);
-    const req = createFormDataRequest('http://localhost:3000/api/jobs/job-1/photos/after', formData);
+    const req = createFormDataRequest(
+      'http://localhost:3000/api/jobs/job-1/photos/after',
+      formData
+    );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(400);
 
@@ -335,20 +438,32 @@ describe('POST /api/jobs/[id]/photos/after', () => {
     setupPhotoMocks();
 
     const formData = new FormData();
-    formData.append('photos', createFakeFile('doc.pdf', 'application/pdf', 1024));
-    const req = createFormDataRequest('http://localhost:3000/api/jobs/job-1/photos/after', formData);
+    formData.append(
+      'photos',
+      createFakeFile('doc.pdf', 'application/pdf', 1024)
+    );
+    const req = createFormDataRequest(
+      'http://localhost:3000/api/jobs/job-1/photos/after',
+      formData
+    );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(400);
   });
 
   // ---- Invalid magic bytes ----
   it('should return 400 when file magic bytes do not match image', async () => {
-    mocks.validateImageUpload.mockResolvedValue({ valid: false, error: 'Not a valid image file' });
+    mocks.validateImageUpload.mockResolvedValue({
+      valid: false,
+      error: 'Not a valid image file',
+    });
     setupPhotoMocks();
 
     const formData = new FormData();
     formData.append('photos', createFakeFile('photo.jpg', 'image/jpeg', 1024));
-    const req = createFormDataRequest('http://localhost:3000/api/jobs/job-1/photos/after', formData);
+    const req = createFormDataRequest(
+      'http://localhost:3000/api/jobs/job-1/photos/after',
+      formData
+    );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(400);
 
@@ -362,7 +477,10 @@ describe('POST /api/jobs/[id]/photos/after', () => {
 
     const formData = new FormData();
     formData.append('photos', createFakeFile('photo.jpg', 'image/jpeg', 1024));
-    const req = createFormDataRequest('http://localhost:3000/api/jobs/job-1/photos/after', formData);
+    const req = createFormDataRequest(
+      'http://localhost:3000/api/jobs/job-1/photos/after',
+      formData
+    );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(200);
 
@@ -378,7 +496,10 @@ describe('POST /api/jobs/[id]/photos/after', () => {
 
     const formData = new FormData();
     formData.append('photos', createFakeFile('photo.jpg', 'image/jpeg', 1024));
-    const req = createFormDataRequest('http://localhost:3000/api/jobs/job-1/photos/after', formData);
+    const req = createFormDataRequest(
+      'http://localhost:3000/api/jobs/job-1/photos/after',
+      formData
+    );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(200);
 
@@ -393,7 +514,10 @@ describe('POST /api/jobs/[id]/photos/after', () => {
 
     const formData = new FormData();
     formData.append('photos', createFakeFile('photo.jpg', 'image/jpeg', 1024));
-    const req = createFormDataRequest('http://localhost:3000/api/jobs/job-1/photos/after', formData);
+    const req = createFormDataRequest(
+      'http://localhost:3000/api/jobs/job-1/photos/after',
+      formData
+    );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(200);
 
@@ -414,7 +538,10 @@ describe('POST /api/jobs/[id]/photos/after', () => {
 
     const formData = new FormData();
     formData.append('photos', createFakeFile('photo.jpg', 'image/jpeg', 1024));
-    const req = createFormDataRequest('http://localhost:3000/api/jobs/job-1/photos/after', formData);
+    const req = createFormDataRequest(
+      'http://localhost:3000/api/jobs/job-1/photos/after',
+      formData
+    );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(200);
   });

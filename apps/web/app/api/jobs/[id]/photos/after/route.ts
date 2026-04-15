@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { signJobStoragePath } from '@/lib/api/job-storage';
 import { PhotoVerificationService } from '@/lib/services/escrow/PhotoVerificationService';
 import { logger } from '@mintenance/shared';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
@@ -171,24 +172,24 @@ export const POST = withApiHandler(
         continue;
       }
 
-      const { data: urlData } = serverSupabase.storage
-        .from('Job-storage')
-        .getPublicUrl(fileName);
-      if (!urlData?.publicUrl) {
+      // Phase 2 storage hardening: issue a signed URL (1yr TTL) instead of a
+      // public URL so the object stays reachable once `Job-storage` flips to
+      // `public=false`. See apps/web/lib/api/job-storage.ts for context.
+      const photoUrl = await signJobStoragePath(fileName);
+      if (!photoUrl) {
         continue;
       }
 
       // Validate photo quality (brightness, sharpness, resolution)
-      const qualityResult = await PhotoVerificationService.validatePhotoQuality(
-        urlData.publicUrl
-      );
+      const qualityResult =
+        await PhotoVerificationService.validatePhotoQuality(photoUrl);
 
       // ENFORCEMENT: reject photos that fail quality check.
       // Delete the uploaded file from storage so we don't accumulate garbage.
       if (!qualityResult.passed) {
         await serverSupabase.storage.from('Job-storage').remove([fileName]);
         rejectedPhotos.push({
-          url: urlData.publicUrl,
+          url: photoUrl,
           reason: qualityResult.issues.join('; ') || 'Photo quality too low',
         });
         logger.warn('Photo rejected: quality check failed', {
@@ -203,7 +204,7 @@ export const POST = withApiHandler(
       // Save metadata
       await serverSupabase.from('job_photos_metadata').insert({
         job_id: jobId,
-        photo_url: urlData.publicUrl,
+        photo_url: photoUrl,
         photo_type: 'after',
         geolocation: geolocation || null,
         geolocation_verified: geolocation ? geolocationVerified : null,
@@ -215,7 +216,7 @@ export const POST = withApiHandler(
       });
 
       uploadedPhotos.push({
-        url: urlData.publicUrl,
+        url: photoUrl,
         qualityScore: qualityResult.qualityScore,
         angleType,
       });
