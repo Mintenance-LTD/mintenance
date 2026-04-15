@@ -460,4 +460,66 @@ const nextConfig = {
   },
 };
 
-module.exports = withBundleAnalyzer(nextConfig);
+// Wrap with withSentryConfig so the build:
+//   1. Uploads source maps to Sentry at build time (requires SENTRY_AUTH_TOKEN
+//      at build time — set it in Vercel Env Vars for production/preview).
+//   2. Injects the Sentry bundler plugins for automatic instrumentation.
+//
+// When SENTRY_AUTH_TOKEN / SENTRY_DSN are not set the wrapper silently
+// skips source map upload, so this is safe for local dev and previews
+// without Sentry configured.
+//
+// See: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
+let exportedConfig = withBundleAnalyzer(nextConfig);
+try {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { withSentryConfig } = require('@sentry/nextjs');
+  exportedConfig = withSentryConfig(exportedConfig, {
+    // Sentry org + project — set via env to avoid hard-coding. Fall back
+    // to documented defaults so dev builds still work out of the box.
+    org: process.env.SENTRY_ORG || 'mintenance',
+    project: process.env.SENTRY_PROJECT || 'mintenance-web',
+
+    // Auth token for source map upload. Required in CI; absent locally.
+    authToken: process.env.SENTRY_AUTH_TOKEN,
+
+    // Suppress Sentry CLI logs when not in CI (they're noisy locally).
+    silent: !process.env.CI,
+
+    // Upload source maps of our own code + framework code, but widen the
+    // wrap to catch errors in vendored chunks too.
+    widenClientFileUpload: true,
+
+    // Do not inject the Sentry tunnel by default — it interacts with our
+    // strict CSP in `middleware.ts` (nonce per request). Tunnel can be
+    // enabled later if ad-blockers start swallowing Sentry events.
+    tunnelRoute: undefined,
+
+    // Hide source maps from the browser after upload (still sent to
+    // Sentry). Reduces surface area for reverse engineering.
+    hideSourceMaps: true,
+
+    // Webpack-level options (Sentry v10 moved these under `webpack`).
+    webpack: {
+      // Auto-instrument Vercel cron functions once we add them.
+      automaticVercelMonitors: true,
+      // Tree-shake Sentry debug logging out of the production bundle
+      // when no DSN is configured — avoids shipping dead code.
+      treeshake: {
+        removeDebugLogging:
+          !process.env.SENTRY_DSN && !process.env.NEXT_PUBLIC_SENTRY_DSN,
+      },
+    },
+  });
+} catch (sentryWrapError) {
+  // If @sentry/nextjs isn't installed (e.g. during a stripped-down CI
+  // job) fall through to the non-wrapped config. Never let Sentry
+  // integration break the build.
+  // eslint-disable-next-line no-console
+  console.warn(
+    '[next.config.js] withSentryConfig unavailable, skipping Sentry build integration:',
+    sentryWrapError && sentryWrapError.message
+  );
+}
+
+module.exports = exportedConfig;

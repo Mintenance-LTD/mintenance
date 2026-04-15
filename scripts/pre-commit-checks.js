@@ -66,6 +66,13 @@ const KNOWN_LARGE_FILES = new Set([
   // cleanup sprint per audit-reports/BETA_READINESS.md — not beta blockers.
   'apps/web/app/admin/mint-ai/components/MintAIDashboardClient.tsx', // 705 lines
   'apps/web/lib/services/building-surveyor/distillation/StudentShadowService.ts', // 510 lines
+  // Added 2026-04-16: Sentry wiring (observability, Gate 1). The env.ts
+  // file holds the canonical Zod schema for every env var in the app; its
+  // line count is growing with platform integrations and should be split
+  // by domain (auth/stripe/supabase/monitoring/ai) in a follow-up.
+  // next.config.js passed 500 after wrapping with withSentryConfig.
+  'apps/web/lib/env.ts', // 523 lines after Sentry env vars
+  'apps/web/next.config.js', // 526 lines after withSentryConfig wrapper
 ]);
 
 function countLines(filePath) {

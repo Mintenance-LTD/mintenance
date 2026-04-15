@@ -182,12 +182,41 @@ const envSchema = z.object({
     .optional()
     .describe('Upstash Redis token'),
 
-  // Optional Configuration
+  // Sentry error tracking (OPTIONAL — the SDK no-ops when unset).
+  // Set NEXT_PUBLIC_SENTRY_DSN in Vercel to enable browser + server
+  // error capture via the instrumentation-client.ts + sentry.*.config.ts
+  // files at the apps/web root.
   SENTRY_DSN: z
     .string()
     .url()
     .optional()
-    .describe('Sentry DSN for error tracking'),
+    .describe('Sentry DSN for server-side error tracking'),
+
+  NEXT_PUBLIC_SENTRY_DSN: z
+    .string()
+    .url()
+    .optional()
+    .describe(
+      'Sentry DSN for client-side error tracking (browser bundle). May be the same as SENTRY_DSN.'
+    ),
+
+  // Sentry build-time source map upload — only required in CI.
+  // Local dev and Vercel preview builds without these set will skip
+  // source map upload but everything else works.
+  SENTRY_AUTH_TOKEN: z
+    .string()
+    .optional()
+    .describe('Sentry auth token for source map upload at build time'),
+
+  SENTRY_ORG: z
+    .string()
+    .optional()
+    .describe('Sentry organization slug (used by withSentryConfig)'),
+
+  SENTRY_PROJECT: z
+    .string()
+    .optional()
+    .describe('Sentry project slug (used by withSentryConfig)'),
 
   NEXT_PUBLIC_APP_URL: z
     .string()
