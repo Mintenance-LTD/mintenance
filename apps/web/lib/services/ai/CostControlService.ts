@@ -30,22 +30,37 @@ interface UsageRecord {
 
 export class CostControlService {
   // Budget configuration from environment with sensible defaults
-  private static readonly DAILY_BUDGET = parseFloat(process.env.AI_DAILY_BUDGET || '100');
-  private static readonly MONTHLY_BUDGET = parseFloat(process.env.AI_MONTHLY_BUDGET || '2000');
-  private static readonly ALERT_THRESHOLD = parseFloat(process.env.AI_ALERT_THRESHOLD || '0.8');
-  private static readonly MAX_COST_PER_REQUEST = parseFloat(process.env.AI_MAX_COST_PER_REQUEST || '5');
+  private static readonly DAILY_BUDGET = parseFloat(
+    process.env.AI_DAILY_BUDGET || '100'
+  );
+  private static readonly MONTHLY_BUDGET = parseFloat(
+    process.env.AI_MONTHLY_BUDGET || '2000'
+  );
+  private static readonly ALERT_THRESHOLD = parseFloat(
+    process.env.AI_ALERT_THRESHOLD || '0.8'
+  );
+  private static readonly MAX_COST_PER_REQUEST = parseFloat(
+    process.env.AI_MAX_COST_PER_REQUEST || '5'
+  );
 
-  // Cost rates per model (in USD)
+  // Cost rates per model (in USD per 1K tokens).
+  //
+  // `mint-ai-vlm-v1` is our self-hosted fine-tune of Qwen2.5-VL-7B-Instruct.
+  // See apps/web/lib/services/ai/mint-ai-constants.ts for attribution.
+  // Legacy keys (`mint-ai-vlm`, `qwen2.5-vl-3b`) are retained as aliases so
+  // that historical rows in `ai_service_costs` still resolve after the
+  // 2026-04-15 rename.
   private static readonly COST_RATES = {
     'gpt-4o': { input: 0.005, output: 0.015 }, // per 1K tokens
-    'mint-ai-vlm': { input: 0.005, output: 0.015 }, // Phase 4: same as gpt-4o until in-house VLM
-    'qwen2.5-vl-3b': { input: 0.0002, output: 0.0006 }, // Student VLM (~25x cheaper than gpt-4o)
+    'mint-ai-vlm-v1': { input: 0.0002, output: 0.0006 }, // Mint AI (fine-tuned Qwen2.5-VL-7B), ~25x cheaper than gpt-4o
+    'mint-ai-vlm': { input: 0.0002, output: 0.0006 }, // Legacy alias — migrated to mint-ai-vlm-v1
+    'qwen2.5-vl-3b': { input: 0.0002, output: 0.0006 }, // Legacy alias — use mint-ai-vlm-v1 in new code
     'gpt-4-vision-preview': { input: 0.01, output: 0.03 }, // per 1K tokens
     'gpt-4': { input: 0.03, output: 0.06 }, // per 1K tokens
     'gpt-3.5-turbo': { input: 0.0005, output: 0.0015 }, // per 1K tokens
     'text-embedding-3-small': { input: 0.00002, output: 0 }, // per 1K tokens
     'google-vision': { perImage: 0.0015 }, // per image
-    'roboflow': { perImage: 0.001 }, // per image
+    roboflow: { perImage: 0.001 }, // per image
     'aws-rekognition': { perImage: 0.001 }, // per image
   };
 
@@ -79,14 +94,17 @@ export class CostControlService {
         logger.warn('AI request exceeds per-request limit', {
           service: estimate.service,
           estimatedCost: estimate.estimatedCost,
-          limit: this.MAX_COST_PER_REQUEST
+          limit: this.MAX_COST_PER_REQUEST,
         });
 
         return {
           allowed: false,
           reason: `Request cost ($${estimate.estimatedCost.toFixed(2)}) exceeds per-request limit ($${this.MAX_COST_PER_REQUEST})`,
           currentDailySpend: this.currentDaySpend,
-          dailyBudgetRemaining: Math.max(0, this.DAILY_BUDGET - this.currentDaySpend)
+          dailyBudgetRemaining: Math.max(
+            0,
+            this.DAILY_BUDGET - this.currentDaySpend
+          ),
         };
       }
 
@@ -95,57 +113,73 @@ export class CostControlService {
         logger.warn('AI daily budget would be exceeded', {
           currentSpend: this.currentDaySpend,
           attemptedCost: estimate.estimatedCost,
-          dailyBudget: this.DAILY_BUDGET
+          dailyBudget: this.DAILY_BUDGET,
         });
 
         return {
           allowed: false,
           reason: `Daily budget would be exceeded ($${this.currentDaySpend.toFixed(2)} + $${estimate.estimatedCost.toFixed(2)} > $${this.DAILY_BUDGET})`,
           currentDailySpend: this.currentDaySpend,
-          dailyBudgetRemaining: Math.max(0, this.DAILY_BUDGET - this.currentDaySpend)
+          dailyBudgetRemaining: Math.max(
+            0,
+            this.DAILY_BUDGET - this.currentDaySpend
+          ),
         };
       }
 
       // Check monthly budget
-      if (this.currentMonthSpend + estimate.estimatedCost > this.MONTHLY_BUDGET) {
+      if (
+        this.currentMonthSpend + estimate.estimatedCost >
+        this.MONTHLY_BUDGET
+      ) {
         logger.warn('AI monthly budget would be exceeded', {
           currentMonthSpend: this.currentMonthSpend,
           attemptedCost: estimate.estimatedCost,
-          monthlyBudget: this.MONTHLY_BUDGET
+          monthlyBudget: this.MONTHLY_BUDGET,
         });
 
         return {
           allowed: false,
           reason: `Monthly budget would be exceeded ($${this.currentMonthSpend.toFixed(2)} + $${estimate.estimatedCost.toFixed(2)} > $${this.MONTHLY_BUDGET})`,
           currentDailySpend: this.currentDaySpend,
-          dailyBudgetRemaining: Math.max(0, this.DAILY_BUDGET - this.currentDaySpend)
+          dailyBudgetRemaining: Math.max(
+            0,
+            this.DAILY_BUDGET - this.currentDaySpend
+          ),
         };
       }
 
       // Check if approaching threshold and log warning
-      const dailyPercentage = (this.currentDaySpend + estimate.estimatedCost) / this.DAILY_BUDGET;
+      const dailyPercentage =
+        (this.currentDaySpend + estimate.estimatedCost) / this.DAILY_BUDGET;
       if (dailyPercentage > this.ALERT_THRESHOLD) {
         logger.warn('AI spend approaching daily budget threshold', {
           percentage: (dailyPercentage * 100).toFixed(1),
-          threshold: (this.ALERT_THRESHOLD * 100).toFixed(0)
+          threshold: (this.ALERT_THRESHOLD * 100).toFixed(0),
         });
       }
 
       return {
         allowed: true,
         currentDailySpend: this.currentDaySpend,
-        dailyBudgetRemaining: Math.max(0, this.DAILY_BUDGET - this.currentDaySpend - estimate.estimatedCost)
+        dailyBudgetRemaining: Math.max(
+          0,
+          this.DAILY_BUDGET - this.currentDaySpend - estimate.estimatedCost
+        ),
       };
-
     } catch (error) {
-      logger.error('Failed to check AI budget — blocking request (fail-closed)', error);
+      logger.error(
+        'Failed to check AI budget — blocking request (fail-closed)',
+        error
+      );
       // P0 Security: Fail CLOSED when budget check fails (e.g. Supabase down)
       // to prevent unbounded spend when we can't verify budget state
       return {
         allowed: false,
-        reason: 'Budget check failed (service unavailable) — request blocked for safety',
+        reason:
+          'Budget check failed (service unavailable) — request blocked for safety',
         currentDailySpend: this.currentDaySpend,
-        dailyBudgetRemaining: 0
+        dailyBudgetRemaining: 0,
       };
     }
   }
@@ -170,18 +204,16 @@ export class CostControlService {
       this.currentMonthSpend += actualCost;
 
       // Store in database for tracking
-      const { error } = await serverSupabase
-        .from('ai_service_costs')
-        .insert({
-          service,
-          model,
-          cost: actualCost,
-          tokens: metadata?.tokens || 0,
-          user_id: metadata?.user_id,
-          job_id: metadata?.job_id,
-          success: metadata?.success ?? true,
-          timestamp: new Date().toISOString()
-        });
+      const { error } = await serverSupabase.from('ai_service_costs').insert({
+        service,
+        model,
+        cost: actualCost,
+        tokens: metadata?.tokens || 0,
+        user_id: metadata?.user_id,
+        job_id: metadata?.job_id,
+        success: metadata?.success ?? true,
+        timestamp: new Date().toISOString(),
+      });
 
       if (error) {
         logger.error('Failed to record AI usage in database', error);
@@ -194,9 +226,11 @@ export class CostControlService {
         cost: actualCost,
         dailySpend: this.currentDaySpend,
         monthlySpend: this.currentMonthSpend,
-        dailyBudgetRemaining: Math.max(0, this.DAILY_BUDGET - this.currentDaySpend)
+        dailyBudgetRemaining: Math.max(
+          0,
+          this.DAILY_BUDGET - this.currentDaySpend
+        ),
       });
-
     } catch (error) {
       logger.error('Failed to record AI usage', error);
     }
@@ -259,7 +293,8 @@ export class CostControlService {
     await this.resetCountersIfNeeded();
 
     const dailyPercentage = (this.currentDaySpend / this.DAILY_BUDGET) * 100;
-    const monthlyPercentage = (this.currentMonthSpend / this.MONTHLY_BUDGET) * 100;
+    const monthlyPercentage =
+      (this.currentMonthSpend / this.MONTHLY_BUDGET) * 100;
 
     const alerts: string[] = [];
 
@@ -268,7 +303,9 @@ export class CostControlService {
     }
 
     if (monthlyPercentage > this.ALERT_THRESHOLD * 100) {
-      alerts.push(`Monthly spend at ${monthlyPercentage.toFixed(1)}% of budget`);
+      alerts.push(
+        `Monthly spend at ${monthlyPercentage.toFixed(1)}% of budget`
+      );
     }
 
     return {
@@ -276,15 +313,15 @@ export class CostControlService {
         spent: this.currentDaySpend,
         budget: this.DAILY_BUDGET,
         remaining: Math.max(0, this.DAILY_BUDGET - this.currentDaySpend),
-        percentage: dailyPercentage
+        percentage: dailyPercentage,
       },
       monthly: {
         spent: this.currentMonthSpend,
         budget: this.MONTHLY_BUDGET,
         remaining: Math.max(0, this.MONTHLY_BUDGET - this.currentMonthSpend),
-        percentage: monthlyPercentage
+        percentage: monthlyPercentage,
       },
-      alerts
+      alerts,
     };
   }
 
@@ -345,7 +382,11 @@ export class CostControlService {
       // Use the first day of next month as the exclusive upper bound so the
       // query works correctly for all months (including Feb which has 28/29 days).
       const monthStart = new Date(`${thisMonth}-01T00:00:00`);
-      const nextMonthStart = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 1);
+      const nextMonthStart = new Date(
+        monthStart.getFullYear(),
+        monthStart.getMonth() + 1,
+        1
+      );
       const { data, error } = await serverSupabase
         .from('ai_service_costs')
         .select('cost')
@@ -373,10 +414,16 @@ export class CostControlService {
     this.emergencyStopActive = true;
 
     try {
-      await serverSupabase.from('system_config').upsert(
-        { key: 'ai_emergency_stop', value: 'true', updated_at: new Date().toISOString() },
-        { onConflict: 'key' },
-      );
+      await serverSupabase
+        .from('system_config')
+        .upsert(
+          {
+            key: 'ai_emergency_stop',
+            value: 'true',
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'key' }
+        );
     } catch (error) {
       logger.error('Failed to persist emergency stop to database', error);
     }
@@ -389,7 +436,10 @@ export class CostControlService {
    */
   static async isEmergencyStopped(): Promise<boolean> {
     const now = Date.now();
-    if (now - this.emergencyStopLastCheck > this.EMERGENCY_STOP_CHECK_INTERVAL_MS) {
+    if (
+      now - this.emergencyStopLastCheck >
+      this.EMERGENCY_STOP_CHECK_INTERVAL_MS
+    ) {
       await this.hydrateEmergencyStop();
     }
     return this.emergencyStopActive;
@@ -409,9 +459,12 @@ export class CostControlService {
 
       if (!error && data?.value === 'true') {
         this.emergencyStopActive = true;
-        logger.warn('Emergency stop hydrated from database — AI services remain disabled', {
-          service: 'CostControlService',
-        });
+        logger.warn(
+          'Emergency stop hydrated from database — AI services remain disabled',
+          {
+            service: 'CostControlService',
+          }
+        );
       } else {
         this.emergencyStopActive = false;
       }
@@ -431,10 +484,16 @@ export class CostControlService {
     this.emergencyStopActive = false;
 
     try {
-      await serverSupabase.from('system_config').upsert(
-        { key: 'ai_emergency_stop', value: 'false', updated_at: new Date().toISOString() },
-        { onConflict: 'key' },
-      );
+      await serverSupabase
+        .from('system_config')
+        .upsert(
+          {
+            key: 'ai_emergency_stop',
+            value: 'false',
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'key' }
+        );
     } catch (error) {
       logger.error('Failed to clear emergency stop in database', error);
     }

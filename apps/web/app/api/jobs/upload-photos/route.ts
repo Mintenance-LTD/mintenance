@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { signJobStoragePath } from '@/lib/api/job-storage';
 import { logger } from '@mintenance/shared';
 import {
   validateImageUpload,
@@ -158,17 +159,16 @@ export const POST = withApiHandler(
         continue;
       }
 
-      // Get public URL
-      const { data: urlData } = serverSupabase.storage
-        .from('Job-storage')
-        .getPublicUrl(fileName);
+      // Phase 2 storage hardening: issue a signed URL instead of a public URL
+      // so the object stays reachable once `Job-storage` flips to private.
+      const signedUrl = await signJobStoragePath(fileName);
 
-      if (urlData?.publicUrl) {
-        uploadedUrls.push(urlData.publicUrl);
+      if (signedUrl) {
+        uploadedUrls.push(signedUrl);
       } else {
         logger.error(
-          'Failed to get public URL for uploaded file',
-          new Error('URL generation failed'),
+          'Failed to sign URL for uploaded file',
+          new Error('Signed URL generation failed'),
           {
             service: 'jobs',
             fileName,

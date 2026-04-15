@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { signJobStoragePath } from '@/lib/api/job-storage';
 import { logger } from '@mintenance/shared';
 import { BadRequestError } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
@@ -63,15 +64,13 @@ export const POST = withApiHandler(
       throw new Error('Failed to upload video');
     }
 
-    const { data: urlData } = serverSupabase.storage
-      .from('Job-storage')
-      .getPublicUrl(storagePath);
+    // Phase 2 storage hardening: issue a signed URL so the video stays
+    // reachable once `Job-storage` flips to `public=false`.
+    const videoUrl = await signJobStoragePath(storagePath);
 
-    if (!urlData?.publicUrl) {
-      throw new Error('Failed to get video URL');
+    if (!videoUrl) {
+      throw new Error('Failed to sign video URL');
     }
-
-    const videoUrl = urlData.publicUrl;
 
     // Create or update assessment record
     let dbAssessmentId = assessmentId;
@@ -138,13 +137,15 @@ export const POST = withApiHandler(
     // The agent processes video frames and updates the assessment record.
     // Mobile polls GET /api/assessments/:id/status for results.
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+      const baseUrl =
+        process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
       fetch(`${baseUrl}/api/building-surveyor/assess`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           imageUrls: [videoUrl],
-          context: 'Video walkthrough assessment — extract key frames and analyze for building damage.',
+          context:
+            'Video walkthrough assessment — extract key frames and analyze for building damage.',
           propertyId: propertyId || undefined,
           domain: 'building',
         }),

@@ -24,7 +24,9 @@ import {
  * Train damage classifier from GPT-4 labels.
  * NOTE: This is a stub - actual training would happen in a background worker.
  */
-export async function trainDamageClassifier(jobId?: string): Promise<TrainingJobResult> {
+export async function trainDamageClassifier(
+  jobId?: string
+): Promise<TrainingJobResult> {
   try {
     const job = jobId
       ? await getJob(jobId)
@@ -142,7 +144,8 @@ export async function trainDamageClassifier(jobId?: string): Promise<TrainingJob
     // 8. Trigger evaluation and A/B test deployment if model was produced
     if (retrainingJob.onnxPath && retrainingJob.modelVersion) {
       try {
-        const { ContinuousLearningService } = await import('./ContinuousLearningService');
+        const { ContinuousLearningService } =
+          await import('./ContinuousLearningService');
         await ContinuousLearningService.evaluateAndDeploy(
           retrainingJob.onnxPath,
           retrainingJob.modelVersion
@@ -189,7 +192,8 @@ export async function trainStudentVLM(options?: {
   minQuality?: 'high' | 'medium';
   triggeredBy?: 'scheduled' | 'manual' | 'accuracy_drop' | 'threshold_reached';
 }): Promise<TrainingJobResult> {
-  const { TrainingDataExporter } = await import('./distillation/TrainingDataExporter');
+  const { TrainingDataExporter } =
+    await import('./distillation/TrainingDataExporter');
 
   const triggeredBy = options?.triggeredBy ?? 'manual';
   const maxExamples = options?.maxExamples ?? 5000;
@@ -210,10 +214,18 @@ export async function trainStudentVLM(options?: {
       minQuality,
     },
     trainingSamplesCount: 0,
-    modelVersion: 'mint-vlm-' + Date.now(),
-    baseModelVersion: 'qwen2.5-vl-3b',
+    // `modelVersion` identifies this specific training run's output artifact
+    // (ie. the weights produced by this job). `baseModelVersion` identifies
+    // the upstream HuggingFace model being fine-tuned — required for
+    // Apache 2.0 attribution. See apps/web/lib/services/ai/mint-ai-constants.ts.
+    modelVersion: 'mint-ai-vlm-v1-' + Date.now(),
+    baseModelVersion: 'Qwen/Qwen2.5-VL-7B-Instruct',
     triggeredBy,
-    notes: 'VLM distillation: max ' + maxExamples + ' examples, min quality ' + minQuality,
+    notes:
+      'Mint AI distillation: max ' +
+      maxExamples +
+      ' examples, min quality ' +
+      minQuality,
   };
 
   const jobId = await createTrainingJob(jobInput);
@@ -229,7 +241,10 @@ export async function trainStudentVLM(options?: {
 
     if (exportResult.count < 10) {
       await updateJobStatus(jobId, 'failed', {
-        errorMessage: 'Insufficient training data: ' + exportResult.count + ' examples (need >= 10)',
+        errorMessage:
+          'Insufficient training data: ' +
+          exportResult.count +
+          ' examples (need >= 10)',
       });
       return {
         jobId,
@@ -238,7 +253,8 @@ export async function trainStudentVLM(options?: {
         metrics: {},
         durationSeconds: (Date.now() - startTime) / 1000,
         samplesUsed: exportResult.count,
-        error: 'Insufficient training data: ' + exportResult.count + ' examples',
+        error:
+          'Insufficient training data: ' + exportResult.count + ' examples',
       };
     }
 
@@ -246,7 +262,10 @@ export async function trainStudentVLM(options?: {
     const storagePath = 'vlm-training/' + jobId + '/training_data.jsonl';
     const { error: uploadError } = await serverSupabase.storage
       .from('training-data')
-      .upload(storagePath, exportResult.jsonl, { contentType: 'application/jsonl', upsert: true });
+      .upload(storagePath, exportResult.jsonl, {
+        contentType: 'application/jsonl',
+        upsert: true,
+      });
 
     if (uploadError) {
       logger.warn('Failed to upload training JSONL to storage', {
@@ -261,14 +280,21 @@ export async function trainStudentVLM(options?: {
       let webhookValid = false;
       try {
         const parsed = new URL(webhookUrl);
-        webhookValid = parsed.protocol === 'https:' ||
-          (process.env.NODE_ENV !== 'production' && parsed.protocol === 'http:');
-      } catch { /* invalid URL */ }
+        webhookValid =
+          parsed.protocol === 'https:' ||
+          (process.env.NODE_ENV !== 'production' &&
+            parsed.protocol === 'http:');
+      } catch {
+        /* invalid URL */
+      }
 
       if (!webhookValid) {
-        logger.warn('VLM_TRAINING_WEBHOOK_URL is not a valid HTTPS URL, skipping', {
-          service: 'KnowledgeDistillationService',
-        });
+        logger.warn(
+          'VLM_TRAINING_WEBHOOK_URL is not a valid HTTPS URL, skipping',
+          {
+            service: 'KnowledgeDistillationService',
+          }
+        );
       } else {
         await serverSupabase.storage
           .from('training-data')
@@ -288,9 +314,15 @@ export async function trainStudentVLM(options?: {
         let authSignature = '';
         if (webhookSecret) {
           const { createHmac } = await import('crypto');
-          const sorted = Object.fromEntries(Object.entries(webhookPayload).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0));
+          const sorted = Object.fromEntries(
+            Object.entries(webhookPayload).sort(([a], [b]) =>
+              a < b ? -1 : a > b ? 1 : 0
+            )
+          );
           const canonical = JSON.stringify(sorted);
-          authSignature = createHmac('sha256', webhookSecret).update(canonical).digest('hex');
+          authSignature = createHmac('sha256', webhookSecret)
+            .update(canonical)
+            .digest('hex');
         }
 
         const webhookResponse = await fetch(webhookUrl, {
@@ -306,7 +338,9 @@ export async function trainStudentVLM(options?: {
             status: webhookResponse.status,
             error: errorText.substring(0, 500),
           });
-          throw new Error(`Training webhook failed: HTTP ${webhookResponse.status}`);
+          throw new Error(
+            `Training webhook failed: HTTP ${webhookResponse.status}`
+          );
         }
       }
     }

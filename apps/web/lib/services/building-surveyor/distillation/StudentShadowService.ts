@@ -13,11 +13,15 @@ import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { callMintAiVLM } from '../generator/AssessmentGenerator';
 import { CostControlService } from '../../ai/CostControlService';
+import { MINT_AI_MODEL_ID } from '../../ai/mint-ai-constants';
 import type { GeneratorMessage } from '../generator/AssessmentGenerator';
 import type { Phase1BuildingAssessment } from '../types';
 import type { ShadowComparisonResult } from './types';
 
-const STUDENT_MODEL_NAME = 'qwen2.5-vl-7b';
+// Product-facing model ID written to vlm_shadow_comparisons.student_model
+// and used as the lookup key in CostControlService. See mint-ai-constants.ts
+// for the base-model attribution.
+const STUDENT_MODEL_NAME = MINT_AI_MODEL_ID;
 
 export class StudentShadowService {
   /**

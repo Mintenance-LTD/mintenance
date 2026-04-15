@@ -551,7 +551,7 @@ export function MintAIDashboardClient() {
                       <StatusBadge status={job.status} />
                     </td>
                     <td className='py-2 text-[#566166] text-xs'>
-                      {job.baseModel ?? 'qwen2.5-vl-3b'}
+                      {job.baseModel ?? 'mint-ai-vlm-v1'}
                     </td>
                     <td className='py-2 text-right text-[#2a3439] font-medium'>
                       {job.samplesCount}

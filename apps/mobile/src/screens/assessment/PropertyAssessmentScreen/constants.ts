@@ -10,7 +10,36 @@ export interface PropertyInfo {
   description: string;
 }
 
-export const PROPERTY_TYPES = ['House', 'Flat', 'Bungalow', 'Commercial', 'Other'];
+export const PROPERTY_TYPES = [
+  'House',
+  'Flat',
+  'Bungalow',
+  'Commercial',
+  'Other',
+];
+
+// Room options for assessment room metadata (optional field)
+export const ROOM_OPTIONS = [
+  'Kitchen',
+  'Bathroom',
+  'Bedroom',
+  'Living Room',
+  'Hallway',
+  'Exterior',
+  'Roof',
+  'Basement',
+  'Garage',
+  'Utility',
+] as const;
+
+export type RoomOption = (typeof ROOM_OPTIONS)[number];
+
+export interface RoomMetadata {
+  room?: string;
+  floor?: number;
+  dimensions?: string;
+  orientation?: string;
+}
 
 // ---------------------------------------------------------------------------
 // Initial steps
