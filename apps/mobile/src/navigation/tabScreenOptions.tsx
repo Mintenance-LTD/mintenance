@@ -149,10 +149,15 @@ export function getMessagingTabOptions(
 }
 
 export function getProfileTabOptions(
-  handleTabPress: () => void
+  handleTabPress: () => void,
+  unreadNotificationCount?: number
 ): BottomTabNavigationOptions {
   return {
     tabBarLabel: 'Profile',
+    tabBarBadge:
+      unreadNotificationCount && unreadNotificationCount > 0
+        ? unreadNotificationCount
+        : undefined,
     tabBarIcon: ({ color, size }) => (
       <Ionicons name='person' size={size} color={color} />
     ),

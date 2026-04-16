@@ -384,13 +384,10 @@ const BusinessNavigator = () => {
         gestureEnabled: true,
         animation: 'slide_from_right',
       }}
-      initialRouteName={'BusinessHub' as keyof ProfileStackParamList}
+      initialRouteName='BusinessHub'
     >
-      {/* Hub screen (initial) — uses FinanceDashboard route name but renders the hub grid */}
-      <BusinessStack.Screen
-        name={'BusinessHub' as keyof ProfileStackParamList}
-        component={BusinessHubScreen}
-      />
+      {/* Hub screen (initial) — the contractor business tools grid */}
+      <BusinessStack.Screen name='BusinessHub' component={BusinessHubScreen} />
       {/* All business sub-screens */}
       <BusinessStack.Screen
         name='FinanceDashboard'

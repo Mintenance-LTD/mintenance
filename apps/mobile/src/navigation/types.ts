@@ -98,6 +98,10 @@ export type MessagingStackParamList = {
 export type ProfileStackParamList = {
   ProfileMain: undefined;
   EditProfile: undefined;
+  // BusinessHub is the initial screen of the BusinessNavigator (contractor
+  // "Business" tab). Listed here because BusinessNavigator re-uses
+  // ProfileStackParamList for type-safe screen registration.
+  BusinessHub: undefined;
   NotificationSettings: undefined;
   PaymentMethods: undefined;
   AddPaymentMethod: undefined;
