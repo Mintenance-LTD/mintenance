@@ -148,8 +148,14 @@ export const POST = withApiHandler(
         );
       }
 
-      // Validate payment amount against job budget or accepted bid
-      // First check if there's an accepted bid
+      // P0-2 FIX: Server-authoritative payment amount.
+      //
+      // Previously this route accepted a client-supplied `amount` and only
+      // capped it against the accepted bid — which still let homeowners
+      // UNDERPAY (e.g. submit £1 against a £500 bid). We now require an
+      // accepted bid and use its amount as the single source of truth for
+      // what goes to Stripe + escrow. The client-supplied amount is only
+      // used to detect tampering (logged, warning, but not trusted).
       const { data: acceptedBid } = await serverSupabase
         .from('bids')
         .select('amount, status')
@@ -158,72 +164,62 @@ export const POST = withApiHandler(
         .eq('status', 'accepted')
         .single();
 
-      // SECURITY FIX: Always set a maximum, even if no bid or budget exists
-      const DEFAULT_MAX_PAYMENT = 50000; // £50,000 fail-safe maximum
-      let maxAllowedAmount: number = DEFAULT_MAX_PAYMENT;
+      if (!acceptedBid || typeof acceptedBid.amount !== 'number') {
+        logger.warn('Payment intent attempted without accepted bid', {
+          service: 'payments',
+          userId: user.id,
+          jobId,
+          contractorId,
+        });
+        throw new BadRequestError(
+          'Cannot create payment: no accepted bid exists for this job and contractor.'
+        );
+      }
 
-      if (acceptedBid) {
-        // Use accepted bid amount as the maximum
-        maxAllowedAmount = acceptedBid.amount;
-      } else if (job.budget) {
-        // Fall back to job budget if no accepted bid
-        maxAllowedAmount = job.budget;
-      } else {
-        // No bid or budget - log warning and use fail-safe
-        logger.warn(
-          'Payment intent with no bid or budget - using fail-safe maximum',
+      if (acceptedBid.amount <= 0) {
+        logger.error(
+          'Accepted bid has non-positive amount — data integrity issue',
           {
             service: 'payments',
             userId: user.id,
             jobId,
-            requestedAmount: amount,
-            failSafeMax: DEFAULT_MAX_PAYMENT,
+            contractorId,
+            bidAmount: acceptedBid.amount,
+          }
+        );
+        throw new BadRequestError('Accepted bid has an invalid amount.');
+      }
+
+      // Absolute hard cap to guard against a data-entry error on the bid.
+      const ABSOLUTE_MAX_PAYMENT = 100000; // £100,000 hard cap
+      if (acceptedBid.amount > ABSOLUTE_MAX_PAYMENT) {
+        logger.error('Accepted bid exceeds absolute platform maximum', {
+          service: 'payments',
+          userId: user.id,
+          jobId,
+          bidAmount: acceptedBid.amount,
+          absoluteMax: ABSOLUTE_MAX_PAYMENT,
+        });
+        throw new BadRequestError('Bid amount exceeds platform maximum.');
+      }
+
+      // If the client supplied a different amount, record it for forensics
+      // but use the server-authoritative amount from the accepted bid.
+      if (Math.round(amount * 100) !== Math.round(acceptedBid.amount * 100)) {
+        logger.warn(
+          'Client-supplied payment amount diverged from accepted bid; using server amount',
+          {
+            service: 'payments',
+            userId: user.id,
+            jobId,
+            clientAmount: amount,
+            bidAmount: acceptedBid.amount,
           }
         );
       }
 
-      // Validate amount doesn't exceed maximum allowed
-      if (maxAllowedAmount) {
-        const amountCents = Math.round(amount * 100);
-        const maxAllowedCents = Math.round(maxAllowedAmount * 100);
-
-        if (amountCents > maxAllowedCents) {
-          logger.warn('Payment intent amount exceeds allowed maximum', {
-            service: 'payments',
-            userId: user.id,
-            jobId,
-            requestedAmount: amount,
-            maxAllowedAmount,
-            hasAcceptedBid: !!acceptedBid,
-          });
-          return NextResponse.json(
-            {
-              error: `Payment amount (£${amount.toFixed(2)}) cannot exceed ${acceptedBid ? 'accepted bid' : 'job budget'} (£${maxAllowedAmount.toFixed(2)})`,
-              maxAllowedAmount,
-            },
-            { status: 400 }
-          );
-        }
-      }
-
-      // Validate amount is positive and reasonable
-      if (amount <= 0) {
-        return NextResponse.json(
-          {
-            error: 'Payment amount must be greater than zero',
-          },
-          { status: 400 }
-        );
-      }
-
-      if (amount > 100000) {
-        return NextResponse.json(
-          {
-            error: 'Payment amount exceeds maximum allowed (£100,000)',
-          },
-          { status: 400 }
-        );
-      }
+      // From here on, this is THE amount — do not trust `amount` further.
+      const authoritativeAmount = acceptedBid.amount;
 
       // Idempotency check - prevent duplicate payment intent creation
       const idempotencyKey = getIdempotencyKeyFromRequest(
@@ -255,16 +251,16 @@ export const POST = withApiHandler(
         return NextResponse.json(idempotencyCheck.cachedResult);
       }
 
-      // Record payment attempt
+      // Record payment attempt using the server-authoritative amount
       await serverSupabase.from('payment_attempts').insert({
         user_id: user.id,
-        amount,
+        amount: authoritativeAmount,
         currency: currency || 'gbp',
         status: 'pending',
         ip_address:
           request.headers.get('x-forwarded-for')?.split(',')[0] || null,
         user_agent: request.headers.get('user-agent') || null,
-        metadata: { jobId, contractorId },
+        metadata: { jobId, contractorId, clientAmount: amount },
         created_at: new Date().toISOString(),
       });
 
@@ -275,12 +271,13 @@ export const POST = withApiHandler(
       // check prevents duplicates reaching Stripe; this is a second layer.
       const stripeIdempotencyKey = `payment_intent_${jobId}_${user.id}_${job.contractor_id}`;
 
-      // Create Stripe PaymentIntent with timeout to prevent hanging requests
+      // Create Stripe PaymentIntent with timeout to prevent hanging requests.
+      // Amount is derived server-side from the accepted bid, NOT the client payload.
       const paymentIntent = await stripeWithTimeout(
         () =>
           stripe.paymentIntents.create(
             {
-              amount: Math.round(amount * 100), // Convert to cents
+              amount: Math.round(authoritativeAmount * 100), // Convert to cents
               currency: (currency || 'gbp').toLowerCase(),
               description:
                 metadata?.description || `Payment for job: ${job.title}`,
@@ -288,6 +285,7 @@ export const POST = withApiHandler(
                 jobId,
                 homeownerId: user.id,
                 contractorId: job.contractor_id,
+                bidAmount: authoritativeAmount.toString(),
               },
               // Enable automatic payment methods
               automatic_payment_methods: {
@@ -317,15 +315,15 @@ export const POST = withApiHandler(
       let escrowError = null;
 
       if (!existingEscrow) {
-        // Create escrow transaction record
-        // CRITICAL FIX: Include payer_id (homeowner) and payee_id (contractor) so payment history queries work
+        // Create escrow transaction record. Amount is the server-authoritative
+        // bid amount — the source of truth for later release to contractor.
         const { data: newEscrow, error: insertError } = await serverSupabase
           .from('escrow_transactions')
           .insert({
             job_id: jobId,
             payer_id: user.id, // Homeowner who pays
             payee_id: job.contractor_id, // Contractor who receives
-            amount,
+            amount: authoritativeAmount,
             status: 'pending',
             payment_intent_id: paymentIntent.id,
             created_at: new Date().toISOString(),
@@ -375,7 +373,7 @@ export const POST = withApiHandler(
         service: 'payments',
         userId: user.id,
         jobId,
-        amount,
+        amount: authoritativeAmount,
         currency,
         escrowTransactionId: escrowTransaction.id,
       });
@@ -386,7 +384,7 @@ export const POST = withApiHandler(
         clientSecret: paymentIntent.client_secret,
         paymentIntentId: paymentIntent.id,
         escrowTransactionId: escrowTransaction.id,
-        amount,
+        amount: authoritativeAmount,
         currency,
       };
 
