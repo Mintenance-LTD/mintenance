@@ -12,6 +12,16 @@ jest.mock('react-native-safe-area-context', () => ({
 }));
 jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
 
+// Mock AISearchService to prevent mobileApiClient initialization at import time
+jest.mock('../../services/AISearchService', () => ({
+  AISearchService: {
+    search: jest.fn().mockResolvedValue([]),
+    getSearchSuggestions: jest.fn().mockResolvedValue([]),
+    getTrendingSearches: jest.fn().mockResolvedValue([]),
+    findSimilarJobs: jest.fn().mockResolvedValue([]),
+  },
+}));
+
 // Mock navigation
 const mockNavigation = {
   navigate: jest.fn(),

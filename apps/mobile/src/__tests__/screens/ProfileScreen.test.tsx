@@ -7,6 +7,40 @@ import { useAuth } from '../../contexts/AuthContext';
 import { JobService } from '../../services/JobService';
 import { useNavigation } from '@react-navigation/native';
 
+// Mock native dependencies that crash at import time without native modules
+jest.mock('react-native-safe-area-context', () => ({
+  SafeAreaProvider: ({ children }: { children: React.ReactNode }) => children,
+  SafeAreaView: ({ children }: { children: React.ReactNode }) => children,
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
+
+jest.mock('../../components/animations/primitives', () => ({
+  FadeIn: ({ children }: { children: React.ReactNode }) => children,
+  SlideIn: ({ children }: { children: React.ReactNode }) => children,
+  FadeInView: ({ children }: { children: React.ReactNode }) => children,
+  __esModule: true,
+}));
+
+jest.mock('../../screens/profile/components/ProfileHeader', () => ({
+  __esModule: true,
+  default: () => null,
+  ProfileHeader: () => null,
+}));
+
+jest.mock('../../screens/profile/components/ProfileMenuSection', () => ({
+  __esModule: true,
+  default: () => null,
+  ProfileMenuSection: () => null,
+}));
+
+jest.mock('../../screens/profile/hooks/useProfileStats', () => ({
+  useProfileStats: () => ({ unreadNotifications: 0, completedJobs: 0, activeJobs: 0 }),
+}));
+
+jest.mock('../../services/notifications/NotificationCRUD', () => ({
+  getUnreadCount: jest.fn().mockResolvedValue(0),
+}));
+
 // Mock dependencies
 jest.mock('../../contexts/AuthContext');
 jest.mock('../../services/JobService', () => ({
