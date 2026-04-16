@@ -24,6 +24,7 @@ import {
 import { requireCSRF } from '@/lib/csrf';
 import { rateLimiter } from '@/lib/rate-limiter';
 import { verifyAdminRoleFromDatabase } from '@/lib/admin-verification';
+import { hasValidStepUp } from '@/lib/auth/mfa-step-up';
 import {
   handleAPIError,
   UnauthorizedError,
@@ -53,6 +54,18 @@ interface HandlerConfig {
    * Defaults to true for admin-only mutating endpoints.
    */
   requireDbAdmin?: boolean;
+  /**
+   * Sprint 7 (3.1): step-up MFA gate. When set, the route requires a fresh
+   * MFA verification proof (via /api/auth/mfa/step-up) within the given
+   * number of minutes. Apply to sensitive admin mutations (escrow holds,
+   * settings, 1099 generation, etc.) so a long-lived session alone is not
+   * enough to execute them. Missing / expired step-up returns 403 with
+   * `requiresStepUp: true`; client should prompt for the code and retry.
+   *
+   * The gate is capped at 60 minutes regardless of the requested window
+   * (see lib/auth/mfa-step-up.ts MAX_WINDOW_SECONDS).
+   */
+  requireMfaVerifiedWithinMinutes?: number;
 }
 
 // ── Handler types ───────────────────────────────────────────────────
@@ -112,6 +125,7 @@ export function withApiHandler(
     csrf,
     roles,
     requireDbAdmin,
+    requireMfaVerifiedWithinMinutes,
   } = config;
 
   return async (
@@ -203,6 +217,31 @@ export function withApiHandler(
           const isVerifiedAdmin = await verifyAdminRoleFromDatabase(user.id);
           if (!isVerifiedAdmin) {
             throw new ForbiddenError('Admin role verification failed');
+          }
+        }
+
+        // 8. Sprint 7 (3.1): per-request MFA step-up gate. Routes opt in via
+        // `requireMfaVerifiedWithinMinutes`. If the caller has no valid
+        // step-up cookie, return 403 with requiresStepUp:true so the client
+        // can show a code prompt and retry.
+        if (
+          typeof requireMfaVerifiedWithinMinutes === 'number' &&
+          requireMfaVerifiedWithinMinutes > 0
+        ) {
+          const stepUpOk = hasValidStepUp(
+            request,
+            user.id,
+            requireMfaVerifiedWithinMinutes
+          );
+          if (!stepUpOk) {
+            return NextResponse.json(
+              {
+                error: 'Step-up MFA required',
+                requiresStepUp: true,
+                maxAgeMinutes: requireMfaVerifiedWithinMinutes,
+              },
+              { status: 403 }
+            );
           }
         }
 

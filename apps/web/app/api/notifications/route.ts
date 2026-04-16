@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { serverSupabase, createRequestScopedClient } from '@/lib/api/supabaseServer';
+import {
+  serverSupabase,
+  resolveRequestDbClient,
+} from '@/lib/api/supabaseServer';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
 import { logger } from '@mintenance/shared';
 import { validateRequest } from '@/lib/validation/validator';
@@ -20,14 +23,23 @@ export const GET = withApiHandler(
   async (request, { user }) => {
     const userId = user.id;
 
-    // Use RLS-enforced client for user-scoped reads; fall back to service role
-    const userDb = createRequestScopedClient(request) ?? serverSupabase;
+    // Sprint 7 (3.3): use the tagged resolver so telemetry flags when we fall
+    // back to service role. This file applies an explicit `.eq('user_id',
+    // userId)` filter below which is safe under either mode, but the helper
+    // now surfaces how often the RLS path is bypassed in production so we
+    // can prioritize migrating callers to Supabase-Auth if it is happening
+    // frequently. If you add new queries here you MUST still filter by
+    // user_id — service-role mode bypasses RLS entirely.
+    const { db: userDb, enforcesRls: _enforcesRls } = resolveRequestDbClient(
+      request,
+      { route: '/api/notifications' }
+    );
 
     // Calculate date 24 hours ago
     const twentyFourHoursAgo = new Date();
     twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
 
-    // Fetch notifications from database
+    // Fetch notifications from database (user_id filter REQUIRED — see note above)
     const { data: allUserNotifications, error: fetchError } = await userDb
       .from('notifications')
       .select('id, type, title, message, read, created_at, action_url, user_id')
@@ -44,15 +56,22 @@ export const GET = withApiHandler(
     }
 
     // Filter out social notification types
-    const socialTypes = ['post_liked', 'comment_added', 'comment_replied', 'new_follower'];
+    const socialTypes = [
+      'post_liked',
+      'comment_added',
+      'comment_replied',
+      'new_follower',
+    ];
 
     // Filter notifications: keep recent (24h) OR unread, exclude social types
-    const notifications = (allUserNotifications || []).filter(notif => {
-      if (socialTypes.includes(notif.type || '')) return false;
-      const isRecent = new Date(notif.created_at || 0) >= twentyFourHoursAgo;
-      const isUnread = notif.read === false || notif.read === 0;
-      return isRecent || isUnread;
-    }).slice(0, 7);
+    const notifications = (allUserNotifications || [])
+      .filter((notif) => {
+        if (socialTypes.includes(notif.type || '')) return false;
+        const isRecent = new Date(notif.created_at || 0) >= twentyFourHoursAgo;
+        const isUnread = notif.read === false || notif.read === 0;
+        return isRecent || isUnread;
+      })
+      .slice(0, 7);
 
     // Map database notifications to component format
     interface NotificationRecord {
@@ -76,22 +95,32 @@ export const GET = withApiHandler(
       action_url?: string;
     }
 
-    const mappedNotifications: MappedNotification[] = (notifications || []).map((notif: NotificationRecord) => ({
-      id: String(notif.id || ''),
-      type: notif.type || 'bid_received',
-      title: notif.title || 'Notification',
-      message: notif.message || '',
-      read: notif.read === true || notif.read === 1,
-      created_at: notif.created_at || new Date().toISOString(),
-      link: notif.action_url,
-      action_url: notif.action_url,
-    }));
+    const mappedNotifications: MappedNotification[] = (notifications || []).map(
+      (notif: NotificationRecord) => ({
+        id: String(notif.id || ''),
+        type: notif.type || 'bid_received',
+        title: notif.title || 'Notification',
+        message: notif.message || '',
+        read: notif.read === true || notif.read === 1,
+        created_at: notif.created_at || new Date().toISOString(),
+        link: notif.action_url,
+        action_url: notif.action_url,
+      })
+    );
 
     // Debug: Log specific notification types
-    const bidAcceptedNotifs = mappedNotifications.filter((n) => n.type === 'bid_accepted');
-    const jobViewedNotifs = mappedNotifications.filter((n) => n.type === 'job_viewed');
-    const jobNearbyNotifs = mappedNotifications.filter((n) => n.type === 'job_nearby');
-    const bidReceivedNotifs = mappedNotifications.filter((n) => n.type === 'bid_received');
+    const bidAcceptedNotifs = mappedNotifications.filter(
+      (n) => n.type === 'bid_accepted'
+    );
+    const jobViewedNotifs = mappedNotifications.filter(
+      (n) => n.type === 'job_viewed'
+    );
+    const jobNearbyNotifs = mappedNotifications.filter(
+      (n) => n.type === 'job_nearby'
+    );
+    const bidReceivedNotifs = mappedNotifications.filter(
+      (n) => n.type === 'bid_received'
+    );
 
     if (bidAcceptedNotifs.length > 0) {
       logger.info('Found bid_accepted notifications', {
@@ -158,7 +187,9 @@ export const GET = withApiHandler(
 
     if (viewedQuotes && viewedQuotes.length > 0) {
       viewedQuotes.forEach((quote: QuoteRecord) => {
-        const existingNotif = mappedNotifications.find(n => n.id === `quote-viewed-${quote.id}`);
+        const existingNotif = mappedNotifications.find(
+          (n) => n.id === `quote-viewed-${quote.id}`
+        );
         if (!existingNotif) {
           realTimeNotifications.push({
             id: `quote-viewed-${quote.id}`,
@@ -188,7 +219,9 @@ export const GET = withApiHandler(
 
     if (acceptedQuotes && acceptedQuotes.length > 0) {
       acceptedQuotes.forEach((quote: QuoteRecord) => {
-        const existingNotif = mappedNotifications.find(n => n.id === `quote-accepted-${quote.id}`);
+        const existingNotif = mappedNotifications.find(
+          (n) => n.id === `quote-accepted-${quote.id}`
+        );
         if (!existingNotif) {
           realTimeNotifications.push({
             id: `quote-accepted-${quote.id}`,
@@ -235,10 +268,14 @@ export const GET = withApiHandler(
         .gte('created_at', oneMonthAgo.toISOString())
         .order('created_at', { ascending: false })
         .limit(30);
-      unreadMessages = ((data ?? []) as unknown as (MessageRecord & { read_by?: string[] })[]).filter((m) => {
-        const readBy = Array.isArray(m.read_by) ? m.read_by : [];
-        return !readBy.includes(userId);
-      }).slice(0, 10);
+      unreadMessages = (
+        (data ?? []) as unknown as (MessageRecord & { read_by?: string[] })[]
+      )
+        .filter((m) => {
+          const readBy = Array.isArray(m.read_by) ? m.read_by : [];
+          return !readBy.includes(userId);
+        })
+        .slice(0, 10);
     }
 
     interface SenderRecord {
@@ -249,26 +286,32 @@ export const GET = withApiHandler(
     }
 
     if (unreadMessages && unreadMessages.length > 0) {
-      const senderIds = [...new Set(unreadMessages.map(m => m.sender_id))];
+      const senderIds = [...new Set(unreadMessages.map((m) => m.sender_id))];
       const { data: senders } = await serverSupabase
         .from('profiles')
         .select('id, first_name, last_name, company_name')
         .in('id', senderIds);
 
-      const senderMap = new Map<string, SenderRecord>((senders || []).map((s: SenderRecord) => [s.id, s]));
+      const senderMap = new Map<string, SenderRecord>(
+        (senders || []).map((s: SenderRecord) => [s.id, s])
+      );
 
       unreadMessages.forEach((msg) => {
-        const existingNotif = mappedNotifications.find(n => n.id === `msg-${msg.id}`);
+        const existingNotif = mappedNotifications.find(
+          (n) => n.id === `msg-${msg.id}`
+        );
         if (!existingNotif) {
           const sender = senderMap.get(msg.sender_id);
           const senderName = sender
-            ? (sender.first_name && sender.last_name
-                ? `${sender.first_name} ${sender.last_name}`
-                : sender.company_name || 'Someone')
+            ? sender.first_name && sender.last_name
+              ? `${sender.first_name} ${sender.last_name}`
+              : sender.company_name || 'Someone'
             : 'Someone';
 
           const messageContent = msg.content || '';
-          const jobId = msg.thread_id ? threadToJobId.get(msg.thread_id) : undefined;
+          const jobId = msg.thread_id
+            ? threadToJobId.get(msg.thread_id)
+            : undefined;
 
           const actionUrl = jobId
             ? `/messages/${jobId}?userId=${msg.sender_id}&userName=${encodeURIComponent(senderName)}&jobTitle=Job`
@@ -311,10 +354,14 @@ export const GET = withApiHandler(
 
     if (upcomingJobs && upcomingJobs.length > 0) {
       upcomingJobs.forEach((job: JobRecord) => {
-        const existingNotif = mappedNotifications.find(n => n.id === `project-reminder-${job.id}`);
+        const existingNotif = mappedNotifications.find(
+          (n) => n.id === `project-reminder-${job.id}`
+        );
         if (!existingNotif && job.scheduled_start_date) {
           const startDate = new Date(job.scheduled_start_date);
-          const hoursUntil = Math.round((startDate.getTime() - now.getTime()) / (1000 * 60 * 60));
+          const hoursUntil = Math.round(
+            (startDate.getTime() - now.getTime()) / (1000 * 60 * 60)
+          );
 
           realTimeNotifications.push({
             id: `project-reminder-${job.id}`,
@@ -331,12 +378,13 @@ export const GET = withApiHandler(
 
     // Combine and sort all notifications
     const allNotifications = [...mappedNotifications, ...realTimeNotifications];
-    allNotifications.sort((a, b) =>
-      new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    allNotifications.sort(
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     );
 
     return NextResponse.json({ notifications: allNotifications.slice(0, 20) });
-  },
+  }
 );
 
 /**
@@ -345,11 +393,16 @@ export const GET = withApiHandler(
 export const PATCH = withApiHandler(
   { rateLimit: { maxRequests: 120 } },
   async (request, { user }) => {
-    // Use RLS-enforced client for user-scoped writes; fall back to service role
-    const userDb = createRequestScopedClient(request) ?? serverSupabase;
+    // Use the tagged resolver for telemetry on service-role fallback (Sprint 7/3.3).
+    const { db: userDb } = resolveRequestDbClient(request, {
+      route: '/api/notifications',
+    });
 
     // Validate and sanitize input using Zod schema
-    const validation = await validateRequest(request, notificationEngagementSchema);
+    const validation = await validateRequest(
+      request,
+      notificationEngagementSchema
+    );
     if (validation instanceof NextResponse) return validation;
     const { data } = validation;
 
@@ -372,7 +425,7 @@ export const PATCH = withApiHandler(
     });
 
     return NextResponse.json({ success: true });
-  },
+  }
 );
 
 /**
@@ -387,15 +440,17 @@ export const POST = withApiHandler(
 
     const { data, error } = await serverSupabase
       .from('notifications')
-      .insert([{
-        user_id: payload.user_id,
-        type: payload.type,
-        title: payload.title,
-        message: payload.message,
-        action_url: payload.action_url,
-        read: false,
-        created_at: new Date().toISOString(),
-      }])
+      .insert([
+        {
+          user_id: payload.user_id,
+          type: payload.type,
+          title: payload.title,
+          message: payload.message,
+          action_url: payload.action_url,
+          read: false,
+          created_at: new Date().toISOString(),
+        },
+      ])
       .select()
       .single();
 
@@ -409,5 +464,5 @@ export const POST = withApiHandler(
     }
 
     return NextResponse.json({ data }, { status: 201 });
-  },
+  }
 );

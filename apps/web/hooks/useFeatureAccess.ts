@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useCurrentUser } from './useCurrentUser';
-import { supabase } from '@/lib/supabase'; // Use the default exported supabase client
 import {
   FEATURES,
   hasFeatureAccess,
@@ -13,6 +12,13 @@ import {
   type FeatureDefinition,
 } from '@/lib/feature-access-config';
 import { logger } from '@mintenance/shared';
+
+// Sprint 7 (3.2): subscription + usage now come from a server endpoint
+// (/api/subscriptions/feature-access) that runs under withApiHandler and
+// filters by the current user id server-side. This removes the need for
+// the browser to query homeowner_subscriptions / contractor_subscriptions
+// / feature_usage directly, so a single RLS misconfiguration can no longer
+// leak another user's data to the client.
 
 interface FeatureUsage {
   featureId: string;
@@ -46,139 +52,64 @@ export function useFeatureAccess() {
   const [loading, setLoading] = useState(true);
   // supabase client is already imported at the top of the file
 
-  // Fetch subscription info
+  // Fetch subscription + usage via the server endpoint (Sprint 7 / 3.2).
   useEffect(() => {
-    if (!user || (user.role !== 'contractor' && user.role !== 'homeowner')) {
+    if (
+      !user ||
+      (user.role !== 'contractor' &&
+        user.role !== 'homeowner' &&
+        user.role !== 'admin')
+    ) {
       setLoading(false);
       return;
     }
 
-    const fetchSubscription = async () => {
+    let cancelled = false;
+    const load = async () => {
       try {
-        // Server-side status endpoint includes early-access entitlement for both roles.
-        const statusResponse = await fetch('/api/subscriptions/status', {
+        const res = await fetch('/api/subscriptions/feature-access', {
           cache: 'no-store',
         });
-        if (statusResponse.ok) {
-          const statusPayload = await statusResponse.json();
-          if (statusPayload?.earlyAccess?.eligible) {
-            // Early access: max tier depends on role
-            const maxTier =
-              statusPayload.role === 'homeowner' ? 'agency' : 'enterprise';
-            setSubscription({
-              tier: maxTier,
-              status: 'active',
-            });
-            return;
-          }
-        }
-
-        // Homeowners: check homeowner_subscriptions
-        if (user.role === 'homeowner') {
-          const { data, error } = await supabase
-            .from('homeowner_subscriptions')
-            .select('plan_type, status, current_period_end')
-            .eq('homeowner_id', user.id)
-            .in('status', ['active', 'trial', 'past_due'])
-            .order('created_at', { ascending: false })
-            .limit(1)
-            .maybeSingle();
-
-          if (!error && data) {
-            setSubscription({
-              tier: data.plan_type as SubscriptionTier,
-              status: data.status as SubscriptionInfo['status'],
-              currentPeriodEnd: data.current_period_end,
-            });
-          } else {
+        if (!res.ok) {
+          logger.error('[FeatureAccess] server endpoint returned non-OK', {
+            status: res.status,
+          });
+          if (!cancelled) {
             setSubscription({ tier: 'free', status: 'free' });
+            setUsage(new Map());
           }
           return;
         }
+        const payload = await res.json();
+        if (cancelled) return;
 
-        // Contractors: check contractor_subscriptions
-        const { data, error } = await supabase
-          .from('contractor_subscriptions')
-          .select('plan_type, status, current_period_end')
-          .eq('contractor_id', user.id)
-          .in('status', ['free', 'active', 'past_due'])
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        if (error) {
-          logger.error('[FeatureAccess] Failed to fetch subscription', error);
-          setSubscription({
-            tier: 'free',
-            status: 'free',
-          });
-          return;
-        }
-
-        if (data) {
-          setSubscription({
-            tier: data.plan_type as SubscriptionTier,
-            status: data.status as SubscriptionInfo['status'],
-            currentPeriodEnd: data.current_period_end,
-          });
-        } else {
-          setSubscription({
-            tier: 'free',
-            status: 'free',
-          });
-        }
-      } catch (err) {
-        logger.error('[FeatureAccess] Error fetching subscription', err);
         setSubscription({
-          tier: 'free',
-          status: 'free',
+          tier: payload.tier as SubscriptionTier,
+          status: payload.status as SubscriptionInfo['status'],
+          currentPeriodEnd: payload.currentPeriodEnd ?? null,
         });
-      } finally {
-        setLoading(false);
-      }
-    };
 
-    fetchSubscription();
-  }, [user, supabase]);
-
-  // Fetch usage data for metered features
-  useEffect(() => {
-    if (!user || !subscription) {
-      return;
-    }
-
-    const fetchUsage = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('feature_usage')
-          .select('*')
-          .eq('user_id', user.id)
-          .gte('reset_date', new Date().toISOString());
-
-        if (error) {
-          logger.error('[FeatureAccess] Failed to fetch usage', error);
-          return;
+        const usageMap = new Map<string, FeatureUsage>();
+        for (const u of (payload.usage ?? []) as FeatureUsage[]) {
+          usageMap.set(u.featureId, u);
         }
-
-        if (data) {
-          const usageMap = new Map<string, FeatureUsage>();
-          data.forEach((item) => {
-            usageMap.set(item.feature_id, {
-              featureId: item.feature_id,
-              used: item.used_count,
-              limit: item.limit_count,
-              resetDate: item.reset_date,
-            });
-          });
-          setUsage(usageMap);
-        }
+        setUsage(usageMap);
       } catch (err) {
-        logger.error('[FeatureAccess] Error fetching usage', err);
+        logger.error('[FeatureAccess] feature-access fetch failed', err);
+        if (!cancelled) {
+          setSubscription({ tier: 'free', status: 'free' });
+          setUsage(new Map());
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     };
 
-    fetchUsage();
-  }, [user, subscription, supabase]);
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   /**
    * Check if user has access to a feature
@@ -279,15 +210,17 @@ export function useFeatureAccess() {
           return false;
         }
 
-        // Update usage in database
-        const { error } = await supabase.rpc('increment_feature_usage', {
-          p_user_id: user.id,
-          p_feature_id: featureId,
-          p_increment: incrementBy,
+        // Update usage via server endpoint (Sprint 7 / 3.2).
+        const res = await fetch('/api/subscriptions/feature-access/track', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ featureId, incrementBy }),
         });
 
-        if (error) {
-          logger.error('[FeatureAccess] Failed to track usage', error);
+        if (!res.ok) {
+          logger.error('[FeatureAccess] Failed to track usage', {
+            status: res.status,
+          });
           return false;
         }
 
@@ -312,7 +245,7 @@ export function useFeatureAccess() {
         return false;
       }
     },
-    [user, subscription, usage, checkAccess, supabase]
+    [user, subscription, usage, checkAccess]
   );
 
   /**
