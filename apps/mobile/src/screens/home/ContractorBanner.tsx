@@ -7,11 +7,18 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Platform,
+} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { User } from '@mintenance/types';
 import { theme, gradients } from '../../theme';
+import { formatCurrency } from '../../utils/formatCurrency';
 
 interface ContractorBannerProps {
   user: User | null;
@@ -53,7 +60,9 @@ export const ContractorBanner: React.FC<ContractorBannerProps> = ({
 
       <View style={styles.content}>
         <Text style={styles.greeting}>{getTimeGreeting()}</Text>
-        <Text style={styles.name} numberOfLines={1}>{businessName}</Text>
+        <Text style={styles.name} numberOfLines={1}>
+          {businessName}
+        </Text>
 
         {/* Live stats row */}
         <View style={styles.statsRow}>
@@ -63,7 +72,9 @@ export const ContractorBanner: React.FC<ContractorBannerProps> = ({
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
-            <Text style={styles.statValue}>£{monthlyEarnings.toFixed(0)}</Text>
+            <Text style={styles.statValue}>
+              {formatCurrency(monthlyEarnings)}
+            </Text>
             <Text style={styles.statLabel}>This Month</Text>
           </View>
         </View>
@@ -73,11 +84,15 @@ export const ContractorBanner: React.FC<ContractorBannerProps> = ({
           style={styles.ctaButton}
           onPress={onFindJobsPress}
           activeOpacity={0.85}
-          accessibilityRole="button"
-          accessibilityLabel="Browse available jobs"
+          accessibilityRole='button'
+          accessibilityLabel='Browse available jobs'
         >
           <Text style={styles.ctaText}>Browse Available Jobs</Text>
-          <Ionicons name="arrow-forward" size={16} color={theme.colors.primaryDark} />
+          <Ionicons
+            name='arrow-forward'
+            size={16}
+            color={theme.colors.primaryDark}
+          />
         </TouchableOpacity>
       </View>
     </LinearGradient>

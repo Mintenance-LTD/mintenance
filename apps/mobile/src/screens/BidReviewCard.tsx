@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Bid } from '../services/BidService';
 import { theme } from '../theme';
 import { styles } from './BidReviewStyles';
+import { formatCurrency } from '../utils/formatCurrency';
 
 interface QuoteLineItem {
   description: string;
@@ -78,14 +79,19 @@ export const BidReviewCard: React.FC<Props> = ({ bid, quoteData }) => {
             // Navigate to Modal stack: BidReviewCard → JobsStack → TabNavigator → RootStack
             // Need to traverse up to the root navigator that has 'Modal'
             const nav = navigation as {
-              getParent?: () => {
-                getParent?: () => {
-                  navigate: (name: string, params: unknown) => void;
-                } | undefined;
-                navigate: (name: string, params: unknown) => void;
-              } | undefined;
+              getParent?: () =>
+                | {
+                    getParent?: () =>
+                      | {
+                          navigate: (name: string, params: unknown) => void;
+                        }
+                      | undefined;
+                    navigate: (name: string, params: unknown) => void;
+                  }
+                | undefined;
             };
-            const rootNav = nav.getParent?.()?.getParent?.() || nav.getParent?.();
+            const rootNav =
+              nav.getParent?.()?.getParent?.() || nav.getParent?.();
             rootNav?.navigate('Modal', {
               screen: 'ContractorProfile',
               params: { contractorId: contractor.id },
@@ -151,14 +157,13 @@ export const BidReviewCard: React.FC<Props> = ({ bid, quoteData }) => {
                 <View style={styles.lineItemInfo}>
                   <Text style={styles.lineItemDesc}>{item.description}</Text>
                   <Text style={styles.lineItemQty}>
-                    {item.quantity} x £{item.unitPrice?.toFixed(2) || '0.00'}
+                    {item.quantity} x {formatCurrency(item.unitPrice ?? 0)}
                   </Text>
                 </View>
                 <Text style={styles.lineItemTotal}>
-                  £
-                  {(
+                  {formatCurrency(
                     item.total || item.quantity * (item.unitPrice || 0)
-                  ).toFixed(2)}
+                  )}
                 </Text>
               </View>
             ))}
@@ -166,10 +171,9 @@ export const BidReviewCard: React.FC<Props> = ({ bid, quoteData }) => {
               <View style={styles.quoteSummaryRow}>
                 <Text style={styles.quoteSummaryLabel}>Subtotal</Text>
                 <Text style={styles.quoteSummaryValue}>
-                  £
-                  {quoteData.line_items
-                    .reduce((s, i) => s + (i.total || 0), 0)
-                    .toFixed(2)}
+                  {formatCurrency(
+                    quoteData.line_items.reduce((s, i) => s + (i.total || 0), 0)
+                  )}
                 </Text>
               </View>
               {(quoteData.tax_amount ?? 0) > 0 && (
@@ -178,14 +182,14 @@ export const BidReviewCard: React.FC<Props> = ({ bid, quoteData }) => {
                     VAT ({quoteData.tax_rate || 20}%)
                   </Text>
                   <Text style={styles.quoteSummaryValue}>
-                    £{(quoteData.tax_amount || 0).toFixed(2)}
+                    {formatCurrency(quoteData.tax_amount || 0)}
                   </Text>
                 </View>
               )}
               <View style={styles.quoteTotalRow}>
                 <Text style={styles.quoteTotalLabel}>Total</Text>
                 <Text style={styles.quoteTotalValue}>
-                  £{bid.amount.toLocaleString()}
+                  {formatCurrency(bid.amount)}
                 </Text>
               </View>
             </View>
@@ -193,9 +197,7 @@ export const BidReviewCard: React.FC<Props> = ({ bid, quoteData }) => {
         ) : (
           <View style={styles.amountSection}>
             <Text style={styles.amountLabel}>Bid Amount</Text>
-            <Text style={styles.amountValue}>
-              £{bid.amount.toLocaleString()}
-            </Text>
+            <Text style={styles.amountValue}>{formatCurrency(bid.amount)}</Text>
           </View>
         )}
 
@@ -211,7 +213,7 @@ export const BidReviewCard: React.FC<Props> = ({ bid, quoteData }) => {
                   color={theme.colors.primary}
                 />
                 <Text style={styles.statText}>
-                  £{contractor.hourly_rate}/hr
+                  {formatCurrency(contractor.hourly_rate)}/hr
                 </Text>
               </View>
             )}

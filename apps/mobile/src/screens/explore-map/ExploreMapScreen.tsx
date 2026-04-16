@@ -7,6 +7,10 @@
 
 import React, { useRef, useEffect } from 'react';
 import {
+  formatCurrency,
+  formatCurrencyRange,
+} from '../../utils/formatCurrency';
+import {
   View,
   Text,
   StyleSheet,
@@ -93,9 +97,9 @@ const CarouselCard: React.FC<{
   const amt = job.budget_max ?? job.budget_min ?? job.budget;
   const budgetText =
     job.budget_min && job.budget_max && job.budget_max !== job.budget_min
-      ? `£${job.budget_min.toLocaleString()} – £${job.budget_max.toLocaleString()}`
+      ? formatCurrencyRange(job.budget_min, job.budget_max)
       : amt
-        ? `£${amt.toLocaleString()}`
+        ? formatCurrency(amt)
         : 'TBD';
   const catKey = job.category.toLowerCase();
   const catMarker = CATEGORY_MARKERS[catKey] ??

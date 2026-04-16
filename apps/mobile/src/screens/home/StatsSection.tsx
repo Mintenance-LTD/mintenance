@@ -12,6 +12,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { ContractorStats } from '../../services/UserService';
 import { theme, gradients } from '../../theme';
+import { formatCurrency } from '../../utils/formatCurrency';
 
 interface StatsSectionProps {
   stats: ContractorStats | null;
@@ -30,7 +31,7 @@ const STAT_CONFIG: StatConfig[] = [
     icon: 'cash',
     iconColor: theme.colors.primary,
     iconBg: theme.colors.primaryLight,
-    getValue: (s) => `\u00A3${s?.monthlyEarnings?.toFixed(0) || '0'}`,
+    getValue: (s) => formatCurrency(s?.monthlyEarnings ?? 0),
     label: 'Earnings',
   },
   {
@@ -84,7 +85,7 @@ export const StatsSection: React.FC<StatsSectionProps> = ({ stats }) => {
 
         <View style={styles.heroBottom}>
           <Text style={styles.heroPayoutValue}>
-            £{pendingPayouts.toFixed(0)}
+            {formatCurrency(pendingPayouts)}
           </Text>
           <Text style={styles.heroPayoutLabel}>Pending Payouts</Text>
         </View>

@@ -28,6 +28,7 @@ import {
   QuoteActions,
 } from './components';
 import { theme } from '../../theme';
+import { formatCurrency } from '../../utils/formatCurrency';
 
 interface CreateQuoteScreenProps {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'CreateQuote'>;
@@ -216,7 +217,7 @@ export const CreateQuoteScreen: React.FC<CreateQuoteScreenProps> = ({
             <View>
               <Text style={styles.floatingLabel}>Total</Text>
               <Text style={styles.floatingAmount}>
-                £{viewModel.totalAmount.toFixed(2)}
+                {formatCurrency(viewModel.totalAmount)}
               </Text>
             </View>
             <View style={styles.itemBadge}>
