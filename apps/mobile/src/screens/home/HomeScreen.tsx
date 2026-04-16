@@ -45,8 +45,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = () => {
       >
         {user?.role === 'homeowner' ? (
           <HomeownerDashboard />
-        ) : (
+        ) : user?.role === 'contractor' ? (
           <ContractorDashboard />
+        ) : (
+          // Fallback for admin or unknown roles — default to homeowner view
+          // which has the least privileged surface area.
+          <HomeownerDashboard />
         )}
       </ResponsiveContainer>
     </SafeAreaView>

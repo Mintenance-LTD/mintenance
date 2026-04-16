@@ -138,7 +138,9 @@ export class EscrowService {
         },
         {
           step: 'payment_released',
-          status: status === 'released' ? 'completed' : 'pending',
+          // DB uses 'completed' as the terminal escrow status, not 'released'.
+          // See CLAUDE.md → Key Status Transitions → Escrow.
+          status: status === 'completed' ? 'completed' : 'pending',
           completedAt: (row.released_at as string) ?? null,
           blockedReason: null,
         },

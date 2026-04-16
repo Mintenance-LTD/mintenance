@@ -14,6 +14,10 @@ import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import * as WebBrowser from 'expo-web-browser';
+import {
+  cacheDirectory,
+  downloadAsync,
+} from 'expo-file-system/build/legacy/FileSystem';
 import { HapticService } from '../../utils/haptics';
 import { useAuth } from '../../contexts/AuthContext';
 import { mobileApiClient, API_BASE_URL } from '../../utils/mobileApiClient';
@@ -218,15 +222,47 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
 
   const handleViewPdf = useCallback(async () => {
     if (!contract) return;
-    const pdfUrl = `${API_BASE_URL}/api/contracts/${contract.id}/pdf`;
     try {
-      const supported = await Linking.canOpenURL(pdfUrl);
-      if (supported) {
-        await WebBrowser.openBrowserAsync(pdfUrl);
+      // Ask the server for a short-lived signed PDF URL. The API route
+      // requires auth, so we use mobileApiClient (which injects the
+      // Bearer token) instead of opening a raw URL in the system browser
+      // (which has no auth cookies and would always 401).
+      const response = await mobileApiClient.get<{ url?: string }>(
+        `/api/contracts/${contract.id}/pdf`
+      );
+
+      if (response?.url) {
+        // Server returned a pre-signed URL — open it in the in-app browser.
+        // The signed URL is time-limited but doesn't require auth to download.
+        await WebBrowser.openBrowserAsync(response.url);
+        return;
+      }
+
+      // Fallback: download the raw binary via expo-file-system (which
+      // IS installed, unlike expo-sharing) and open with the system viewer.
+      const { supabase } = await import('../../config/supabase');
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token ?? '';
+
+      const localUri = `${cacheDirectory ?? ''}contract-${contract.id}.pdf`;
+      const downloadResult = await downloadAsync(
+        `${API_BASE_URL}/api/contracts/${contract.id}/pdf`,
+        localUri,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (downloadResult.status === 200) {
+        // Open the downloaded file with the system PDF viewer
+        const canOpen = await Linking.canOpenURL(downloadResult.uri);
+        if (canOpen) {
+          await Linking.openURL(downloadResult.uri);
+        } else {
+          Alert.alert('PDF Downloaded', `Contract saved to ${localUri}`);
+        }
       } else {
         Alert.alert(
           'Cannot Open PDF',
-          'Unable to open the contract PDF on this device.'
+          'Unable to download the contract PDF. Please try again.'
         );
       }
     } catch {

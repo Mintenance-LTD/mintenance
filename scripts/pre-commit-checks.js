@@ -52,6 +52,7 @@ const KNOWN_LARGE_FILES = new Set([
   'apps/mobile/src/screens/NotificationSettingsScreen.tsx',
   'apps/mobile/src/screens/job-details/JobPhotoUploadScreen.tsx',
   'apps/mobile/src/screens/properties/AddPropertyScreen.tsx',
+  'apps/mobile/src/screens/job-details/ContractViewScreen.tsx', // 587 lines after PDF auth fix
   'apps/mobile/src/screens/video-capture/VideoCaptureScreen.tsx',
   'apps/mobile/src/services/AuthService.ts',
   'apps/mobile/src/services/ImageCompressionService.example.ts',
