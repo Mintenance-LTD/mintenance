@@ -100,6 +100,12 @@ export interface AgentDecision {
   userFeedback?: 'accepted' | 'rejected' | 'modified' | null;
   outcomeSuccess?: boolean | null;
   createdAt?: string;
+  /**
+   * Sprint 7 (2.3): optional UUID dedup key for cron-driven writes.
+   * When provided, AgentLogger uses upsert with onConflict:idempotency_key
+   * so retried cron ticks do not create duplicate decisions.
+   */
+  idempotencyKey?: string;
 }
 
 export interface RiskPrediction {
@@ -113,6 +119,8 @@ export interface RiskPrediction {
   applied?: boolean;
   outcomeOccurred?: boolean | null;
   createdAt?: string;
+  /** Sprint 7 (2.3): optional UUID dedup key for cron-driven writes. */
+  idempotencyKey?: string;
 }
 
 export interface AgentContext {

@@ -32,11 +32,37 @@ const DELETE_ACCOUNT_RATE_LIMIT = {
 };
 
 /**
+ * Sprint 7 fix (2.5): when the rate limiter itself throws we used to
+ * fail OPEN and silently allow the request, which made these gates a
+ * DoS-assist. Production now fails CLOSED (returns 503) so abuse is
+ * blocked even when Redis is degraded. Development continues to fail
+ * open to preserve DX when the limiter store isn't configured locally.
+ */
+function failClosedResponse(
+  scope: 'admin' | 'gdpr' | 'delete'
+): NextResponse | null {
+  if (process.env.NODE_ENV !== 'production') {
+    return null;
+  }
+  return NextResponse.json(
+    {
+      error: 'Rate limiter temporarily unavailable',
+      message:
+        'We could not verify your request rate. Please try again shortly.',
+      scope,
+    },
+    { status: 503, headers: { 'Retry-After': '30' } }
+  );
+}
+
+/**
  * Check rate limit for admin endpoints
  * @param request - The NextRequest object
  * @returns Rate limit result or null if check passed
  */
-export async function checkAdminRateLimit(request: NextRequest): Promise<NextResponse | null> {
+export async function checkAdminRateLimit(
+  request: NextRequest
+): Promise<NextResponse | null> {
   try {
     const user = await getCurrentUserFromCookies();
     if (!user || user.role !== 'admin') {
@@ -78,8 +104,7 @@ export async function checkAdminRateLimit(request: NextRequest): Promise<NextRes
     return null; // Rate limit check passed
   } catch (error) {
     logger.error('Rate limit check failed', error, { service: 'rate-limiter' });
-    // Fail open - allow request if rate limiting fails
-    return null;
+    return failClosedResponse('admin');
   }
 }
 
@@ -88,7 +113,9 @@ export async function checkAdminRateLimit(request: NextRequest): Promise<NextRes
  * @param request - The NextRequest object
  * @returns Rate limit result or null if check passed
  */
-export async function checkGDPRRateLimit(request: NextRequest): Promise<NextResponse | null> {
+export async function checkGDPRRateLimit(
+  request: NextRequest
+): Promise<NextResponse | null> {
   try {
     const user = await getCurrentUserFromCookies();
     if (!user) {
@@ -129,9 +156,10 @@ export async function checkGDPRRateLimit(request: NextRequest): Promise<NextResp
 
     return null; // Rate limit check passed
   } catch (error) {
-    logger.error('GDPR rate limit check failed', error, { service: 'rate-limiter' });
-    // Fail open - allow request if rate limiting fails
-    return null;
+    logger.error('GDPR rate limit check failed', error, {
+      service: 'rate-limiter',
+    });
+    return failClosedResponse('gdpr');
   }
 }
 
@@ -140,7 +168,9 @@ export async function checkGDPRRateLimit(request: NextRequest): Promise<NextResp
  * @param request - The NextRequest object
  * @returns Rate limit result or null if check passed
  */
-export async function checkDeleteAccountRateLimit(request: NextRequest): Promise<NextResponse | null> {
+export async function checkDeleteAccountRateLimit(
+  request: NextRequest
+): Promise<NextResponse | null> {
   try {
     const user = await getCurrentUserFromCookies();
     if (!user) {
@@ -164,13 +194,15 @@ export async function checkDeleteAccountRateLimit(request: NextRequest): Promise
       return NextResponse.json(
         {
           error: 'Rate limit exceeded',
-          message: 'Account deletion is limited to once per day. Please try again later.',
+          message:
+            'Account deletion is limited to once per day. Please try again later.',
           retryAfter: result.retryAfter,
         },
         {
           status: 429,
           headers: {
-            'X-RateLimit-Limit': DELETE_ACCOUNT_RATE_LIMIT.maxRequests.toString(),
+            'X-RateLimit-Limit':
+              DELETE_ACCOUNT_RATE_LIMIT.maxRequests.toString(),
             'X-RateLimit-Remaining': result.remaining.toString(),
             'X-RateLimit-Reset': Math.ceil(result.resetTime / 1000).toString(),
             'Retry-After': result.retryAfter?.toString() || '86400',
@@ -181,9 +213,9 @@ export async function checkDeleteAccountRateLimit(request: NextRequest): Promise
 
     return null; // Rate limit check passed
   } catch (error) {
-    logger.error('Delete account rate limit check failed', error, { service: 'rate-limiter' });
-    // Fail open - allow request if rate limiting fails
-    return null;
+    logger.error('Delete account rate limit check failed', error, {
+      service: 'rate-limiter',
+    });
+    return failClosedResponse('delete');
   }
 }
-

@@ -157,81 +157,70 @@ export const POST = withApiHandler(
       JOB_STATUS.ASSIGNED as JobStatus
     );
 
-    // Step 1: Accept this bid (atomic — DB unique index prevents duplicates)
-    // The partial unique index idx_bids_one_accepted_per_job on (job_id)
-    // WHERE status = 'accepted' ensures only one bid per job can be accepted.
-    // If a concurrent request already accepted another bid, this UPDATE will
-    // fail with a unique constraint violation (code 23505).
-    const { error: acceptError } = await serverSupabase
-      .from('bids')
-      .update({
-        status: BID_STATUS.ACCEPTED,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', bidId)
-      .eq('job_id', jobId);
+    // Sprint 7 fix (2.1): atomic bid acceptance.
+    //
+    // Previously this block ran three separate UPDATEs (accept target bid,
+    // reject losers, assign job). Under concurrent acceptance attempts or a
+    // mid-sequence failure, we could end up with:
+    //   - Winner accepted but losers still 'pending'
+    //   - Winner accepted but job still 'posted' with no contractor
+    //   - Two winners (protected only by a partial unique index)
+    //
+    // The DB already has accept_bid_atomic(p_bid_id, p_job_id, p_contractor_id,
+    // p_homeowner_id) SECURITY DEFINER function that locks the job row FOR
+    // UPDATE, verifies ownership, ensures no prior accepted bid, and then
+    // performs all three writes inside a single implicit transaction. Switch
+    // to that RPC so the invariants hold even under race conditions.
+    interface AcceptBidResult {
+      success: boolean;
+      error_message: string | null;
+      accepted_bid_id: string | null;
+      job_status: string | null;
+    }
 
-    if (acceptError) {
-      // Postgres unique violation = another bid was accepted concurrently
-      if (acceptError.code === '23505') {
-        throw new ConflictError(
-          'A bid has already been accepted for this job. Please refresh the page.'
-        );
+    const { data: rpcRaw, error: rpcError } = await serverSupabase.rpc(
+      'accept_bid_atomic',
+      {
+        p_bid_id: bidId,
+        p_job_id: jobId,
+        p_contractor_id: bid.contractor_id,
+        p_homeowner_id: user.id,
       }
-      logger.error('Failed to accept bid - detailed error', {
-        service: 'jobs',
-        bidId,
-        jobId,
-        errorMessage: acceptError.message,
-        errorCode: acceptError.code,
-        errorDetails: acceptError.details,
-        errorHint: (acceptError as unknown as Record<string, unknown>).hint,
-      });
-      throw new InternalServerError(
-        `Failed to accept bid: ${acceptError.message} (code: ${acceptError.code})`
-      );
-    }
+    );
 
-    // Step 2: Reject other pending bids for this job
-    const { error: rejectError } = await serverSupabase
-      .from('bids')
-      .update({
-        status: BID_STATUS.REJECTED,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('job_id', jobId)
-      .eq('status', BID_STATUS.PENDING)
-      .neq('id', bidId);
-
-    if (rejectError) {
-      logger.warn('Failed to reject other bids', {
-        service: 'jobs',
-        jobId,
-        error: rejectError.message,
-      });
-    }
-
-    // Step 3: Update job status and assign contractor
-    const { error: jobUpdateError } = await serverSupabase
-      .from('jobs')
-      .update({
-        status: JOB_STATUS.ASSIGNED,
-        contractor_id: bid.contractor_id,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', jobId);
-
-    if (jobUpdateError) {
+    if (rpcError) {
       logger.error(
-        'Failed to update job status after bid acceptance',
-        jobUpdateError,
-        {
-          service: 'jobs',
-          jobId,
-          contractorId: bid.contractor_id,
-        }
+        'accept_bid_atomic RPC failed — bid acceptance aborted',
+        rpcError,
+        { service: 'jobs', bidId, jobId, contractorId: bid.contractor_id }
       );
-      // Don't throw - bid is already accepted, job status update is secondary
+      throw new InternalServerError(
+        `Failed to accept bid: ${rpcError.message}`
+      );
+    }
+
+    // RPC returns a setof row; grab the first
+    const rpcRow = Array.isArray(rpcRaw)
+      ? (rpcRaw[0] as AcceptBidResult | undefined)
+      : (rpcRaw as AcceptBidResult | null);
+    if (!rpcRow) {
+      throw new InternalServerError('accept_bid_atomic returned no rows');
+    }
+
+    if (!rpcRow.success) {
+      const msg = rpcRow.error_message ?? 'Unknown bid acceptance error';
+      // The RPC detects concurrent acceptance and reports it via error_message;
+      // treat it as a ConflictError so the client can retry cleanly.
+      if (msg.toLowerCase().includes('already')) {
+        throw new ConflictError(msg);
+      }
+      if (msg.toLowerCase().includes('not authorized')) {
+        throw new ForbiddenError(msg);
+      }
+      if (msg.toLowerCase().includes('not found')) {
+        throw new NotFoundError(msg);
+      }
+      throw new InternalServerError(msg);
     }
 
     // Fetch job title for notifications (after successful acceptance)
