@@ -170,6 +170,11 @@ const envSchema = z.object({
     .optional()
     .describe('Google Cloud API key for Vision API'),
 
+  GOOGLE_APPLICATION_CREDENTIALS: z
+    .string()
+    .optional()
+    .describe('Path to Google Cloud service-account JSON (used by Vision/Storage clients)'),
+
   // Redis Configuration (REQUIRED IN PRODUCTION)
   UPSTASH_REDIS_REST_URL: z
     .string()
@@ -242,6 +247,52 @@ const envSchema = z.object({
     .regex(/^VA/, 'TWILIO_VERIFY_SERVICE_SID must start with VA')
     .optional()
     .describe('Twilio Verify Service SID for SMS fallback'),
+
+  // Sprint 7 (5.4): email provider keys moved from direct process.env
+  // reads in EmailService. Priority: Brevo > SendGrid > Resend. All optional
+  // so a missing config degrades gracefully to "email provider not
+  // configured" instead of throwing at import time.
+  BREVO_API_KEY: z
+    .string()
+    .optional()
+    .describe('Brevo API key for email (free tier: 300/day)'),
+  SENDGRID_API_KEY: z
+    .string()
+    .optional()
+    .describe('SendGrid API key for email (second priority after Brevo)'),
+  RESEND_API_KEY: z
+    .string()
+    .optional()
+    .describe('Resend API key for email (third priority)'),
+  EMAIL_FROM: z
+    .string()
+    .email()
+    .default('noreply@mintenance.co.uk')
+    .describe('Default from address for outbound email'),
+  EMAIL_FROM_NAME: z
+    .string()
+    .default('Mintenance ltd')
+    .describe('Default from name for outbound email'),
+
+  // Sprint 7 (5.4): AI service env reads moved from UnifiedAIService.
+  // API_TIMEOUT_MS guards slow provider responses from blocking request
+  // threads. Default 30s matches the existing hardcoded fallback.
+  AI_API_TIMEOUT_MS: z
+    .string()
+    .transform((val) => parseInt(val, 10))
+    .pipe(z.number().positive())
+    .default('30000')
+    .describe('Timeout (ms) for outbound AI service HTTP calls'),
+
+  // Sprint 5 (1.9 follow-up): per-user AI spend cap. Enforced in
+  // lib/ai/cost-budget before invoking models; fallback model attempted
+  // when over. Expressed in USD to match provider invoicing.
+  AI_COST_CAP_USD: z
+    .string()
+    .transform((val) => parseFloat(val))
+    .pipe(z.number().nonnegative())
+    .default('5')
+    .describe('Per-user daily AI spend cap in USD'),
 });
 
 // Type inference from schema

@@ -3,6 +3,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 import { logger } from '@mintenance/shared';
+import { apiClient, type ApiClientError } from '@/lib/api/browser-client';
 
 interface NotificationCounts {
   messages: number;
@@ -12,29 +13,32 @@ interface NotificationCounts {
   quotes?: number;
 }
 
+interface NotificationCountsResponse {
+  success?: boolean;
+  counts?: NotificationCounts;
+}
+
 const EMPTY_COUNTS: NotificationCounts = { messages: 0 };
 
+// Sprint 7 (5.3): routed through the central apiClient so CSRF / retries
+// behave consistently with other client-side calls. 401 is treated as
+// "user not signed in, show empty" rather than an error, matching the
+// prior behavior.
 async function fetchNotificationCounts(): Promise<NotificationCounts> {
-  const response = await fetch('/api/notifications/counts', {
-    credentials: 'same-origin',
-  });
-
-  if (!response.ok) {
-    // If unauthorized, return empty counts instead of throwing
-    if (response.status === 401) {
+  try {
+    const data = await apiClient.get<NotificationCountsResponse>(
+      '/api/notifications/counts'
+    );
+    if (data?.success && data.counts) {
+      return data.counts;
+    }
+    return EMPTY_COUNTS;
+  } catch (err) {
+    if ((err as ApiClientError)?.status === 401) {
       return EMPTY_COUNTS;
     }
-    throw new Error(`Failed to fetch notification counts: ${response.status}`);
+    throw err;
   }
-
-  const data = await response.json();
-
-  if (data.success && data.counts) {
-    return data.counts as NotificationCounts;
-  }
-
-  // Fallback to empty counts if response format is unexpected
-  return EMPTY_COUNTS;
 }
 
 /**

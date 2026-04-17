@@ -5,6 +5,7 @@
  */
 
 import { logger } from '@mintenance/shared';
+import { env } from './env';
 import {
   escapeHtml,
   quoteNotificationTemplate,
@@ -40,14 +41,16 @@ interface EmailOptions {
  * Email Service for sending notifications
  */
 export class EmailService {
-  private static brevoKey = process.env.BREVO_API_KEY;
-  private static sendgridKey = process.env.SENDGRID_API_KEY;
-  private static resendKey = process.env.RESEND_API_KEY;
-  private static fromEmail =
-    process.env.EMAIL_FROM || 'noreply@mintenance.co.uk';
-  private static fromName = process.env.EMAIL_FROM_NAME || 'Mintenance ltd';
-  private static baseUrl =
-    process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.com';
+  // Sprint 7 (5.4): env values come from the validated `env` object in
+  // lib/env.ts rather than raw process.env, so defaults + shape are
+  // documented in one place and the schema fails fast if misconfigured
+  // in production.
+  private static brevoKey = env.BREVO_API_KEY;
+  private static sendgridKey = env.SENDGRID_API_KEY;
+  private static resendKey = env.RESEND_API_KEY;
+  private static fromEmail = env.EMAIL_FROM;
+  private static fromName = env.EMAIL_FROM_NAME;
+  private static baseUrl = env.NEXT_PUBLIC_APP_URL || 'https://mintenance.com';
 
   /** Escape HTML special characters to prevent XSS in email templates */
   private static escapeHtml = escapeHtml;
