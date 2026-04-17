@@ -9,6 +9,12 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { EscrowReleaseAgent } from '@/lib/services/agents/EscrowReleaseAgent';
+import { notifyAutoRelease } from './escrow-release-notifications';
+import {
+  getChargeId,
+  notifyMissingStripeAccount,
+  blockEscrow,
+} from './escrow-release-helpers';
 import {
   FeeCalculationService,
   type PaymentType,
@@ -211,7 +217,7 @@ export class EscrowAutoReleaseService {
     // follow the new contractor — they must go to the original payee (or
     // be blocked and reviewed). Reject the release if they diverged.
     if (!escrow.payee_id) {
-      await this.blockEscrow(escrow.id, 'missing_payee_id');
+      await blockEscrow(escrow.id, 'missing_payee_id');
       return false;
     }
     if (escrow.payee_id !== job.contractor_id) {
@@ -225,14 +231,14 @@ export class EscrowAutoReleaseService {
           jobContractorId: job.contractor_id,
         }
       );
-      await this.blockEscrow(escrow.id, 'payee_contractor_mismatch');
+      await blockEscrow(escrow.id, 'payee_contractor_mismatch');
       return false;
     }
 
     const contractorStripeAccountId = contractorStripeMap.get(escrow.payee_id);
 
     if (!contractorStripeAccountId) {
-      await this.notifyMissingStripeAccount(escrow, job);
+      await notifyMissingStripeAccount(escrow, job);
       return false;
     }
 
@@ -262,7 +268,7 @@ export class EscrowAutoReleaseService {
 
       // Still need to track platform fee + update escrow even though we
       // didn't transfer now. The fee-transfer is handled on actual payout.
-      const chargeIdAcc = await this.getChargeId(escrow.payment_intent_id);
+      const chargeIdAcc = await getChargeId(escrow.payment_intent_id);
       let feeTransferResultAcc;
       try {
         feeTransferResultAcc = await FeeTransferService.transferPlatformFee({
@@ -324,6 +330,15 @@ export class EscrowAutoReleaseService {
         contractorId: job.contractor_id,
         amountMinor: contractorAmountCents,
       });
+      await notifyAutoRelease({
+        escrowId: escrow.id,
+        jobId: job.id,
+        jobTitle: job.title,
+        contractorId: escrow.payee_id,
+        homeownerId: job.homeowner_id,
+        contractorAmount: feeBreakdown.contractorAmount,
+        mode: 'accumulated',
+      });
       return true;
     }
 
@@ -345,7 +360,7 @@ export class EscrowAutoReleaseService {
     });
 
     // Track platform fee
-    const chargeId = await this.getChargeId(escrow.payment_intent_id);
+    const chargeId = await getChargeId(escrow.payment_intent_id);
     let feeTransferResult;
     try {
       feeTransferResult = await FeeTransferService.transferPlatformFee({
@@ -422,90 +437,15 @@ export class EscrowAutoReleaseService {
       feeTransferId: feeTransferResult?.feeTransferId,
     });
 
-    return true;
-  }
-
-  /**
-   * Retrieve the charge ID from a payment intent for fee tracking.
-   */
-  private static async getChargeId(
-    paymentIntentId: string | null
-  ): Promise<string | undefined> {
-    if (!paymentIntentId) return undefined;
-
-    try {
-      const paymentIntent =
-        await stripe.paymentIntents.retrieve(paymentIntentId);
-      return typeof paymentIntent.latest_charge === 'string'
-        ? paymentIntent.latest_charge
-        : paymentIntent.latest_charge?.id;
-    } catch {
-      logger.warn('Failed to retrieve payment intent for fee tracking', {
-        service: 'EscrowAutoReleaseService',
-        paymentIntentId,
-      });
-      return undefined;
-    }
-  }
-
-  /**
-   * Notify contractor about missing Stripe Connect account.
-   */
-  private static async notifyMissingStripeAccount(
-    escrow: EligibleEscrow,
-    job: NonNullable<EligibleEscrow['jobs']>
-  ): Promise<void> {
-    try {
-      const { PaymentSetupNotificationService } =
-        await import('@/lib/services/contractor/PaymentSetupNotificationService');
-      await PaymentSetupNotificationService.notifyPaymentSetupRequired(
-        job.contractor_id,
-        escrow.id,
-        job.title,
-        escrow.amount || 0
-      );
-    } catch (error) {
-      logger.error('Failed to send payment setup notification', error);
-    }
-
-    logger.error('Contractor missing Stripe Connect account', {
-      service: 'EscrowAutoReleaseService',
-      contractorId: job.contractor_id,
+    await notifyAutoRelease({
       escrowId: escrow.id,
+      jobId: job.id,
+      jobTitle: job.title,
+      contractorId: escrow.payee_id,
+      homeownerId: job.homeowner_id,
+      contractorAmount: feeBreakdown.contractorAmount,
+      mode: 'direct',
     });
-  }
-
-  /**
-   * Mark an escrow as blocked for manual review. Used when the payee lock
-   * invariant is violated (see LFC-P1-1). Does NOT touch escrow.status so
-   * that an ops engineer can inspect before deciding how to resolve.
-   */
-  private static async blockEscrow(
-    escrowId: string,
-    reason: string
-  ): Promise<void> {
-    const { error } = await serverSupabase
-      .from('escrow_transactions')
-      .update({
-        release_blocked_reason: reason,
-        auto_release_enabled: false,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', escrowId);
-
-    if (error) {
-      logger.error('Failed to mark escrow as blocked', {
-        service: 'EscrowAutoReleaseService',
-        escrowId,
-        reason,
-        error: error.message,
-      });
-    } else {
-      logger.warn('Escrow auto-release blocked for review', {
-        service: 'EscrowAutoReleaseService',
-        escrowId,
-        reason,
-      });
-    }
+    return true;
   }
 }

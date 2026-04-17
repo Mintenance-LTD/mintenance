@@ -16,6 +16,10 @@ import { AnimatedSplash } from './src/components/AnimatedSplash';
 import { ThemeProvider } from './src/design-system/theme';
 import { HapticService } from './src/utils/haptics';
 import { BackgroundSyncService } from './src/services/BackgroundSyncService';
+// Side-effect import: registers the contractor background-location TaskManager
+// task at module-load so that Expo can resume delivery after the app relaunches
+// from a killed state. See BackgroundLocationTask.ts for details.
+import './src/services/BackgroundLocationTask';
 
 // ============================================================================
 // SPLASH SCREEN - prevent auto-hide so we control when it dismisses

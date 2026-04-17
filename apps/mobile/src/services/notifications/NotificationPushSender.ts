@@ -213,17 +213,19 @@ export async function savePushToken(
   token: string
 ): Promise<void> {
   try {
-    await mobileApiClient.post('/api/notifications', {
-      action: 'save_push_token',
-      user_id: userId,
-      push_token: token,
-      platform: Platform.OS,
+    // Correct endpoint + payload shape for /api/user/push-token.
+    // Platform must be 'ios' or 'android' per the server-side zod schema.
+    const platform: 'ios' | 'android' =
+      Platform.OS === 'android' ? 'android' : 'ios';
+    await mobileApiClient.post('/api/user/push-token', {
+      pushToken: token,
+      platform,
     });
 
     logger.info('Push token saved successfully', { userId });
     addBreadcrumb('Push token saved', 'info', {
       userId,
-      platform: Platform.OS,
+      platform,
     });
   } catch (error) {
     logger.error('Failed to save push token', error);

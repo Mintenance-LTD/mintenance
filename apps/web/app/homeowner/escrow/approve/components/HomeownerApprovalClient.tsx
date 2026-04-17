@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/Card.unified';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Spinner } from '@/components/ui/Spinner';
+import { BeforeAfterSlider } from '@/components/ui/BeforeAfterSlider';
 import { format, formatDistanceToNow } from 'date-fns';
 import { logger } from '@mintenance/shared';
 
@@ -17,8 +18,16 @@ interface ApprovalData {
   jobTitle: string;
   homeownerApproval: boolean;
   autoApprovalDate: string | null;
-  beforePhotos: Array<{ url: string; angleType?: string; qualityScore?: number }>;
-  afterPhotos: Array<{ url: string; angleType?: string; qualityScore?: number }>;
+  beforePhotos: Array<{
+    url: string;
+    angleType?: string;
+    qualityScore?: number;
+  }>;
+  afterPhotos: Array<{
+    url: string;
+    angleType?: string;
+    qualityScore?: number;
+  }>;
 }
 
 export function HomeownerApprovalClient() {
@@ -38,7 +47,9 @@ export function HomeownerApprovalClient() {
 
     setLoading(true);
     try {
-      const response = await fetch(`/api/escrow/${escrowId}/homeowner/pending-approval`);
+      const response = await fetch(
+        `/api/escrow/${escrowId}/homeowner/pending-approval`
+      );
       if (!response.ok) {
         throw new Error('Failed to fetch approval data');
       }
@@ -60,16 +71,21 @@ export function HomeownerApprovalClient() {
     if (!escrowId) return;
     setActionLoading(true);
     try {
-      const response = await fetch(`/api/escrow/${escrowId}/homeowner/approve`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ comments: comments || undefined }),
-      });
+      const response = await fetch(
+        `/api/escrow/${escrowId}/homeowner/approve`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ comments: comments || undefined }),
+        }
+      );
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Failed to approve');
       }
-      alert('Completion approved successfully! Funds will be released after a 48-hour cooling-off period.');
+      alert(
+        'Completion approved successfully! Funds will be released after a 48-hour cooling-off period.'
+      );
       await fetchApprovalData();
     } catch (error) {
       logger.error('Error approving:', error);
@@ -108,9 +124,12 @@ export function HomeownerApprovalClient() {
     if (!escrowId) return;
     setActionLoading(true);
     try {
-      const response = await fetch(`/api/escrow/${escrowId}/homeowner/inspect`, {
-        method: 'POST',
-      });
+      const response = await fetch(
+        `/api/escrow/${escrowId}/homeowner/inspect`,
+        {
+          method: 'POST',
+        }
+      );
       if (!response.ok) {
         throw new Error('Failed to mark inspection');
       }
@@ -134,7 +153,9 @@ export function HomeownerApprovalClient() {
     return (
       <div style={{ padding: theme.spacing.xl }}>
         <Card style={{ padding: theme.spacing.lg }}>
-          <p style={{ color: theme.colors.textSecondary }}>No escrow ID provided.</p>
+          <p style={{ color: theme.colors.textSecondary }}>
+            No escrow ID provided.
+          </p>
         </Card>
       </div>
     );
@@ -142,8 +163,14 @@ export function HomeownerApprovalClient() {
 
   if (loading) {
     return (
-      <div style={{ padding: theme.spacing.xl, display: 'flex', justifyContent: 'center' }}>
-        <Spinner size="lg" />
+      <div
+        style={{
+          padding: theme.spacing.xl,
+          display: 'flex',
+          justifyContent: 'center',
+        }}
+      >
+        <Spinner size='lg' />
       </div>
     );
   }
@@ -152,7 +179,9 @@ export function HomeownerApprovalClient() {
     return (
       <div style={{ padding: theme.spacing.xl }}>
         <Card style={{ padding: theme.spacing.lg }}>
-          <p style={{ color: theme.colors.textSecondary }}>Approval data not found.</p>
+          <p style={{ color: theme.colors.textSecondary }}>
+            Approval data not found.
+          </p>
         </Card>
       </div>
     );
@@ -162,11 +191,18 @@ export function HomeownerApprovalClient() {
     return (
       <div style={{ padding: theme.spacing.xl }}>
         <Card style={{ padding: theme.spacing.lg }}>
-          <h1 style={{ fontSize: theme.typography.fontSize['2xl'], fontWeight: theme.typography.fontWeight.bold, marginBottom: theme.spacing.md }}>
+          <h1
+            style={{
+              fontSize: theme.typography.fontSize['2xl'],
+              fontWeight: theme.typography.fontWeight.bold,
+              marginBottom: theme.spacing.md,
+            }}
+          >
             Already Approved
           </h1>
           <p style={{ color: theme.colors.textSecondary }}>
-            You have already approved this completion. Funds will be released after the cooling-off period.
+            You have already approved this completion. Funds will be released
+            after the cooling-off period.
           </p>
         </Card>
       </div>
@@ -174,44 +210,132 @@ export function HomeownerApprovalClient() {
   }
 
   return (
-    <div style={{ padding: theme.spacing.xl, maxWidth: '1200px', margin: '0 auto' }}>
-      <h1 style={{ fontSize: theme.typography.fontSize['2xl'], fontWeight: theme.typography.fontWeight.bold, marginBottom: theme.spacing.lg }}>
+    <div
+      style={{
+        padding: theme.spacing.xl,
+        maxWidth: '1200px',
+        margin: '0 auto',
+      }}
+    >
+      <h1
+        style={{
+          fontSize: theme.typography.fontSize['2xl'],
+          fontWeight: theme.typography.fontWeight.bold,
+          marginBottom: theme.spacing.lg,
+        }}
+      >
         Review Completion: {approvalData.jobTitle}
       </h1>
 
-      <Card style={{ padding: theme.spacing.lg, marginBottom: theme.spacing.lg }}>
+      <Card
+        style={{ padding: theme.spacing.lg, marginBottom: theme.spacing.lg }}
+      >
         <div style={{ marginBottom: theme.spacing.md }}>
           <strong>Escrow Amount:</strong> {formatCurrency(approvalData.amount)}
         </div>
         {approvalData.autoApprovalDate && (
-          <div style={{ marginBottom: theme.spacing.md, color: theme.colors.warning }}>
-            <strong>Auto-approval in:</strong> {formatDistanceToNow(new Date(approvalData.autoApprovalDate))}
+          <div
+            style={{
+              marginBottom: theme.spacing.md,
+              color: theme.colors.warning,
+            }}
+          >
+            <strong>Auto-approval in:</strong>{' '}
+            {formatDistanceToNow(new Date(approvalData.autoApprovalDate))}
             <br />
-            <small>If you don't respond, payment will be automatically released.</small>
+            <small>
+              If you don't respond, payment will be automatically released.
+            </small>
           </div>
         )}
       </Card>
 
       {/* Before/After Comparison */}
-      <Card style={{ padding: theme.spacing.lg, marginBottom: theme.spacing.lg }}>
-        <h2 style={{ fontSize: theme.typography.fontSize.xl, fontWeight: theme.typography.fontWeight.semibold, marginBottom: theme.spacing.md }}>
+      <Card
+        style={{ padding: theme.spacing.lg, marginBottom: theme.spacing.lg }}
+      >
+        <h2
+          style={{
+            fontSize: theme.typography.fontSize.xl,
+            fontWeight: theme.typography.fontWeight.semibold,
+            marginBottom: theme.spacing.md,
+          }}
+        >
           Before & After Comparison
         </h2>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: theme.spacing.lg }}>
+        {/* Interactive overlay slider — pairs the first before/after photos.
+            Homeowner drags the divider to compare. Mirrors the mobile UX. */}
+        {approvalData.beforePhotos[0]?.url &&
+          approvalData.afterPhotos[0]?.url && (
+            <div style={{ marginBottom: theme.spacing.lg }}>
+              <BeforeAfterSlider
+                beforeUrl={approvalData.beforePhotos[0].url}
+                afterUrl={approvalData.afterPhotos[0].url}
+                height={360}
+              />
+              <p
+                style={{
+                  marginTop: theme.spacing.sm,
+                  fontSize: theme.typography.fontSize.sm,
+                  color: theme.colors.textSecondary,
+                }}
+              >
+                Drag the divider (or use arrow keys) to compare before and
+                after.
+              </p>
+            </div>
+          )}
+
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '1fr 1fr',
+            gap: theme.spacing.lg,
+          }}
+        >
           <div>
-            <h3 style={{ fontSize: theme.typography.fontSize.md, fontWeight: theme.typography.fontWeight.semibold, marginBottom: theme.spacing.sm }}>
+            <h3
+              style={{
+                fontSize: theme.typography.fontSize.md,
+                fontWeight: theme.typography.fontWeight.semibold,
+                marginBottom: theme.spacing.sm,
+              }}
+            >
               Before Photos
             </h3>
             {approvalData.beforePhotos.length > 0 ? (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: theme.spacing.sm }}>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(2, 1fr)',
+                  gap: theme.spacing.sm,
+                }}
+              >
                 {approvalData.beforePhotos.map((photo, idx) => (
                   <div key={idx}>
-                    <div style={{ position: 'relative', height: '200px', overflow: 'hidden', borderRadius: theme.borderRadius.md }}>
-                    <Image src={photo.url} alt={`Before ${idx + 1}`} fill style={{ objectFit: 'cover' }} />
-                  </div>
+                    <div
+                      style={{
+                        position: 'relative',
+                        height: '200px',
+                        overflow: 'hidden',
+                        borderRadius: theme.borderRadius.md,
+                      }}
+                    >
+                      <Image
+                        src={photo.url}
+                        alt={`Before ${idx + 1}`}
+                        fill
+                        style={{ objectFit: 'cover' }}
+                      />
+                    </div>
                     {photo.qualityScore && (
-                      <div style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>
+                      <div
+                        style={{
+                          fontSize: theme.typography.fontSize.xs,
+                          color: theme.colors.textSecondary,
+                        }}
+                      >
                         Quality: {(photo.qualityScore * 100).toFixed(0)}%
                       </div>
                     )}
@@ -219,23 +343,54 @@ export function HomeownerApprovalClient() {
                 ))}
               </div>
             ) : (
-              <p style={{ color: theme.colors.textSecondary }}>No before photos available</p>
+              <p style={{ color: theme.colors.textSecondary }}>
+                No before photos available
+              </p>
             )}
           </div>
 
           <div>
-            <h3 style={{ fontSize: theme.typography.fontSize.md, fontWeight: theme.typography.fontWeight.semibold, marginBottom: theme.spacing.sm }}>
+            <h3
+              style={{
+                fontSize: theme.typography.fontSize.md,
+                fontWeight: theme.typography.fontWeight.semibold,
+                marginBottom: theme.spacing.sm,
+              }}
+            >
               After Photos
             </h3>
             {approvalData.afterPhotos.length > 0 ? (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: theme.spacing.sm }}>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(2, 1fr)',
+                  gap: theme.spacing.sm,
+                }}
+              >
                 {approvalData.afterPhotos.map((photo, idx) => (
                   <div key={idx}>
-                    <div style={{ position: 'relative', height: '200px', overflow: 'hidden', borderRadius: theme.borderRadius.md }}>
-                    <Image src={photo.url} alt={`After ${idx + 1}`} fill style={{ objectFit: 'cover' }} />
-                  </div>
+                    <div
+                      style={{
+                        position: 'relative',
+                        height: '200px',
+                        overflow: 'hidden',
+                        borderRadius: theme.borderRadius.md,
+                      }}
+                    >
+                      <Image
+                        src={photo.url}
+                        alt={`After ${idx + 1}`}
+                        fill
+                        style={{ objectFit: 'cover' }}
+                      />
+                    </div>
                     {photo.qualityScore && (
-                      <div style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>
+                      <div
+                        style={{
+                          fontSize: theme.typography.fontSize.xs,
+                          color: theme.colors.textSecondary,
+                        }}
+                      >
                         Quality: {(photo.qualityScore * 100).toFixed(0)}%
                       </div>
                     )}
@@ -243,61 +398,115 @@ export function HomeownerApprovalClient() {
                 ))}
               </div>
             ) : (
-              <p style={{ color: theme.colors.textSecondary }}>No after photos available</p>
+              <p style={{ color: theme.colors.textSecondary }}>
+                No after photos available
+              </p>
             )}
           </div>
         </div>
       </Card>
 
       {/* Inspection Checklist */}
-      <Card style={{ padding: theme.spacing.lg, marginBottom: theme.spacing.lg }}>
-        <h2 style={{ fontSize: theme.typography.fontSize.xl, fontWeight: theme.typography.fontWeight.semibold, marginBottom: theme.spacing.md }}>
+      <Card
+        style={{ padding: theme.spacing.lg, marginBottom: theme.spacing.lg }}
+      >
+        <h2
+          style={{
+            fontSize: theme.typography.fontSize.xl,
+            fontWeight: theme.typography.fontWeight.semibold,
+            marginBottom: theme.spacing.md,
+          }}
+        >
           Inspection Checklist
         </h2>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing.sm }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: theme.spacing.sm }}>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: theme.spacing.sm,
+          }}
+        >
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: theme.spacing.sm,
+            }}
+          >
             <input
-              type="checkbox"
+              type='checkbox'
               checked={inspectionCompleted}
               onChange={(e) => setInspectionCompleted(e.target.checked)}
             />
             <span>I have inspected the completed work</span>
           </label>
-          <label style={{ display: 'flex', alignItems: 'center', gap: theme.spacing.sm }}>
-            <input type="checkbox" />
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: theme.spacing.sm,
+            }}
+          >
+            <input type='checkbox' />
             <span>The work matches what was agreed upon</span>
           </label>
-          <label style={{ display: 'flex', alignItems: 'center', gap: theme.spacing.sm }}>
-            <input type="checkbox" />
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: theme.spacing.sm,
+            }}
+          >
+            <input type='checkbox' />
             <span>The work area is clean and tidy</span>
           </label>
-          <label style={{ display: 'flex', alignItems: 'center', gap: theme.spacing.sm }}>
-            <input type="checkbox" />
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: theme.spacing.sm,
+            }}
+          >
+            <input type='checkbox' />
             <span>I am satisfied with the quality of work</span>
           </label>
         </div>
         <Button
-          variant="outline"
+          variant='outline'
           onClick={handleMarkInspection}
           disabled={actionLoading || inspectionCompleted}
           style={{ marginTop: theme.spacing.md }}
         >
-          {inspectionCompleted ? 'Inspection Completed ✓' : 'Mark Inspection Completed'}
+          {inspectionCompleted
+            ? 'Inspection Completed ✓'
+            : 'Mark Inspection Completed'}
         </Button>
       </Card>
 
       {/* Approval Actions */}
       <Card style={{ padding: theme.spacing.lg }}>
-        <h2 style={{ fontSize: theme.typography.fontSize.xl, fontWeight: theme.typography.fontWeight.semibold, marginBottom: theme.spacing.md }}>
+        <h2
+          style={{
+            fontSize: theme.typography.fontSize.xl,
+            fontWeight: theme.typography.fontWeight.semibold,
+            marginBottom: theme.spacing.md,
+          }}
+        >
           Your Decision
         </h2>
 
         <div style={{ marginBottom: theme.spacing.md }}>
-          <label style={{ display: 'block', marginBottom: theme.spacing.xs, fontWeight: theme.typography.fontWeight.medium }}>
+          <label
+            style={{
+              display: 'block',
+              marginBottom: theme.spacing.xs,
+              fontWeight: theme.typography.fontWeight.medium,
+            }}
+          >
             Comments (optional):
           </label>
           <Input
-            placeholder="Add any comments about the completion..."
+            placeholder='Add any comments about the completion...'
             value={comments}
             onChange={(e) => setComments(e.target.value)}
             style={{ width: '100%' }}
@@ -305,16 +514,29 @@ export function HomeownerApprovalClient() {
         </div>
 
         <div style={{ display: 'flex', gap: theme.spacing.md }}>
-          <Button onClick={handleApprove} disabled={actionLoading || !inspectionCompleted}>
-            {actionLoading ? <Spinner size="sm" /> : 'Approve Completion'}
+          <Button
+            onClick={handleApprove}
+            disabled={actionLoading || !inspectionCompleted}
+          >
+            {actionLoading ? <Spinner size='sm' /> : 'Approve Completion'}
           </Button>
-          <Button variant="secondary" onClick={() => setShowRejectDialog(true)} disabled={actionLoading}>
+          <Button
+            variant='secondary'
+            onClick={() => setShowRejectDialog(true)}
+            disabled={actionLoading}
+          >
             Reject Completion
           </Button>
         </div>
 
         {!inspectionCompleted && (
-          <p style={{ marginTop: theme.spacing.md, color: theme.colors.warning, fontSize: theme.typography.fontSize.sm }}>
+          <p
+            style={{
+              marginTop: theme.spacing.md,
+              color: theme.colors.warning,
+              fontSize: theme.typography.fontSize.sm,
+            }}
+          >
             Please mark inspection as completed before approving.
           </p>
         )}
@@ -322,37 +544,66 @@ export function HomeownerApprovalClient() {
 
       {/* Reject Dialog */}
       {showRejectDialog && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-        }}>
-          <Card style={{ padding: theme.spacing.xl, maxWidth: '500px', width: '90%' }}>
-            <h3 style={{ fontSize: theme.typography.fontSize.lg, fontWeight: theme.typography.fontWeight.bold, marginBottom: theme.spacing.md }}>
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+          }}
+        >
+          <Card
+            style={{
+              padding: theme.spacing.xl,
+              maxWidth: '500px',
+              width: '90%',
+            }}
+          >
+            <h3
+              style={{
+                fontSize: theme.typography.fontSize.lg,
+                fontWeight: theme.typography.fontWeight.bold,
+                marginBottom: theme.spacing.md,
+              }}
+            >
               Reject Completion
             </h3>
-            <p style={{ marginBottom: theme.spacing.md, color: theme.colors.textSecondary }}>
-              Please provide a reason for rejecting this completion. An admin will review your concerns.
+            <p
+              style={{
+                marginBottom: theme.spacing.md,
+                color: theme.colors.textSecondary,
+              }}
+            >
+              Please provide a reason for rejecting this completion. An admin
+              will review your concerns.
             </p>
             <Input
-              placeholder="Reason for rejection (required)"
+              placeholder='Reason for rejection (required)'
               value={rejectionReason}
               onChange={(e) => setRejectionReason(e.target.value)}
               style={{ marginBottom: theme.spacing.md }}
             />
             <div style={{ display: 'flex', gap: theme.spacing.md }}>
-              <Button variant="outline" onClick={() => { setShowRejectDialog(false); setRejectionReason(''); }}>
+              <Button
+                variant='outline'
+                onClick={() => {
+                  setShowRejectDialog(false);
+                  setRejectionReason('');
+                }}
+              >
                 Cancel
               </Button>
-              <Button onClick={handleReject} disabled={!rejectionReason.trim() || actionLoading}>
-                {actionLoading ? <Spinner size="sm" /> : 'Submit Rejection'}
+              <Button
+                onClick={handleReject}
+                disabled={!rejectionReason.trim() || actionLoading}
+              >
+                {actionLoading ? <Spinner size='sm' /> : 'Submit Rejection'}
               </Button>
             </div>
           </Card>
@@ -361,4 +612,3 @@ export function HomeownerApprovalClient() {
     </div>
   );
 }
-

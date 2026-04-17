@@ -23,6 +23,7 @@ import {
 import { useAuth } from '../contexts/AuthContext';
 import { logger } from '../utils/logger';
 import { theme } from '../theme';
+import { supabase } from '../config/supabase';
 import {
   NotificationHeader,
   NotificationTabs,
@@ -109,6 +110,67 @@ export const NotificationScreen: React.FC = () => {
 
   useEffect(() => {
     loadNotifications();
+  }, [user]);
+
+  // Supabase Realtime — live updates for the inbox. New rows prepend,
+  // read-state updates from other devices reflect in place.
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel(`notifications:${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          try {
+            if (payload.eventType === 'INSERT') {
+              const row = payload.new as Record<string, unknown>;
+              const next = {
+                id: String(row.id),
+                title: (row.title as string) || 'Notification',
+                body: (row.message as string) || '',
+                data: row.metadata,
+                type: (row.type as NotificationData['type']) || 'system',
+                priority: 'normal' as const,
+                userId: String(row.user_id ?? user.id),
+                createdAt:
+                  (row.created_at as string) || new Date().toISOString(),
+                read: Boolean(row.read ?? false),
+              };
+              setNotifications((prev) =>
+                prev.some((n) => n.id === next.id) ? prev : [next, ...prev]
+              );
+              if (!next.read) setUnreadCount((c) => c + 1);
+            } else if (payload.eventType === 'UPDATE') {
+              const row = payload.new as Record<string, unknown>;
+              setNotifications((prev) =>
+                prev.map((n) =>
+                  n.id === String(row.id)
+                    ? { ...n, read: Boolean(row.read ?? n.read) }
+                    : n
+                )
+              );
+            } else if (payload.eventType === 'DELETE') {
+              const row = payload.old as Record<string, unknown>;
+              setNotifications((prev) =>
+                prev.filter((n) => n.id !== String(row.id))
+              );
+            }
+          } catch (err) {
+            logger.warn('Realtime notification handler failed', { err });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      channel.unsubscribe();
+    };
   }, [user]);
 
   if (loading) {

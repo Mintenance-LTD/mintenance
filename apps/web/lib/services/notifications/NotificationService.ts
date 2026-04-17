@@ -76,7 +76,9 @@ export class NotificationService {
    * Create a notification (intelligent routing)
    * This should be used instead of direct database inserts
    */
-  static async createNotification(params: CreateNotificationParams): Promise<string | null> {
+  static async createNotification(
+    params: CreateNotificationParams
+  ): Promise<string | null> {
     try {
       // Check if notification should be sent immediately or queued
       const sendDecision = await NotificationAgent.shouldSendImmediately(
@@ -86,11 +88,7 @@ export class NotificationService {
       );
 
       if (sendDecision.immediate) {
-        // Build the JSONB data field (merges actionUrl + metadata)
-        const notifData: Record<string, unknown> = {};
-        if (params.actionUrl) notifData.action_url = params.actionUrl;
-        if (params.metadata) Object.assign(notifData, params.metadata);
-
+        // notifications schema: action_url is a top-level column; metadata is JSONB.
         // Send immediately
         const { data, error } = await serverSupabase
           .from('notifications')
@@ -99,7 +97,10 @@ export class NotificationService {
             type: params.type,
             title: params.title,
             message: params.message,
-            ...(Object.keys(notifData).length > 0 && { data: notifData }),
+            action_url: params.actionUrl ?? null,
+            ...(params.metadata && Object.keys(params.metadata).length > 0
+              ? { metadata: params.metadata }
+              : {}),
             read: false,
             created_at: new Date().toISOString(),
           })
@@ -188,7 +189,12 @@ export class NotificationService {
       }
 
       // Track engagement via NotificationAgent
-      await NotificationAgent.trackEngagement(notificationId, userId, notification.type, engagement);
+      await NotificationAgent.trackEngagement(
+        notificationId,
+        userId,
+        notification.type,
+        engagement
+      );
     } catch (error) {
       logger.error('Error tracking notification engagement', error, {
         service: 'NotificationService',
@@ -201,8 +207,9 @@ export class NotificationService {
   /**
    * Get priority from notification type
    */
-  private static getPriorityFromType(type: string): 'urgent' | 'high' | 'medium' | 'low' {
+  private static getPriorityFromType(
+    type: string
+  ): 'urgent' | 'high' | 'medium' | 'low' {
     return NotificationAgent.getNotificationPriority(type);
   }
 }
-

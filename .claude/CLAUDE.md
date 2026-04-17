@@ -1,11 +1,17 @@
 # CLAUDE MANDATORY DEVELOPMENT CONTRACT (MDC) - MINTENANCE CODEBASE
 
-## CODE QUALITY AUDIT (Last audited: 2026-04-13, 7-sprint remediation complete)
+## CODE QUALITY AUDIT (Last audited: 2026-04-16, live-DB verified via Supabase MCP)
 
-**Current State: B+ Grade (85/100) after audit remediation Sprints 0-6**
+**Current State: B / B- Grade (~75/100)** — downgraded from B+ after live-DB audit surfaced 3 new P0
+security findings that were invisible to static code audits.
 
-Audit + remediation details in [docs/AUDIT_2026_04_13.md](../docs/AUDIT_2026_04_13.md) and the plan
-file `C:\Users\Djodjo.Nkouka.ERICCOLE\.claude\plans\purring-jumping-raccoon.md`.
+**2026-04-16 audit scope:** Feature-parity matrix (web↔mobile, 11 lifecycle phases), shared API + DB
+wiring, notification delivery across 10 canonical events, contractor-tracking end-to-end, live
+Postgres inspection on project `ukrjudtlvapiajkjbcrd` (324 public tables, 819 RLS policies, 154
+migrations).
+
+Prior audit + remediation details in [docs/AUDIT_2026_04_13.md](../docs/AUDIT_2026_04_13.md) and the
+plan file `C:\Users\Djodjo.Nkouka.ERICCOLE\.claude\plans\purring-jumping-raccoon.md`.
 
 ### Audit remediation summary (2026-04-13)
 
@@ -41,8 +47,12 @@ Seven-sprint branch `fix/mobile-audit-security-ux-features` closed:
   auth-flow failures fixed this session; ~4 pre-existing failures remain (rate-limiter, Card/Input
   mock, BudgetRangeSelector toast)
 - **Mobile tests: 9,743/10,393 pass (93.8%)** - healthy test infrastructure (597 test files)
-- **Security: CSRF protection, rate limiting, .env gitignored, RLS enabled** (334 tables with RLS,
-  806 policies)
+- **Security: CSRF protection, rate limiting, .env gitignored, RLS enabled** — verified live
+  2026-04-16: **324 public tables, 323 RLS-enabled (99.7%), 819 policies, 0 zero-policy tables**
+  (Sprint 1 fix held). Only `spatial_ref_sys` lacks RLS (PostGIS system table, ecosystem-blocked).
+  **154 migrations applied** (latest `20260416210509`). Production data scale: 22 jobs, 16 bids, 14
+  contracts, 4 escrow_transactions, 67 messages. **0 user_push_tokens, 0 contractor_locations** —
+  proving mobile push registration + live tracking have never fired in prod.
 - **Supabase imports: MOSTLY standardized** - 402 files use `@/lib/api/supabaseServer` BUT 10 files
   still use direct `createClient` from `@supabase/supabase-js` (see below)
 - **API routes: withApiHandler() migration NEARLY COMPLETE** — 290/310 routes (93.5%) migrated; 20
@@ -90,6 +100,134 @@ Seven-sprint branch `fix/mobile-audit-security-ux-features` closed:
 4. **MEDIUM**: Fix ~4 remaining pre-existing test failures (rate-limiter fallback, Card/Input
    shared-ui mock, BudgetRangeSelector toast)
 5. **LOW**: 27 console.\* statements remaining across web (7) and mobile (20) source code
+
+### 2026-04-17 — Audit Remediation Sprint (16-item run)
+
+Worked items 1–16 from the 2026-04-16 audit in a single sprint. Verified against live DB (project
+`ukrjudtlvapiajkjbcrd`).
+
+**Migrations applied live (4):**
+
+- `contractor_locations_select_scope` — scoped SELECT to contractor-own OR homeowner-of-active-job
+  via EXISTS on jobs
+- `private_doc_buckets` — `contractor-documents` + `job-attachments` flipped `public=false`; 4 web
+  caller files swapped from `getPublicUrl` to `createSignedUrl`
+- `user_notification_preferences` — table + RLS (select/insert/update own, service_role full) +
+  updated_at trigger
+- `tighten_public_bucket_listing` — dropped three "Anyone can view …" broad-SELECT policies on
+  storage.objects (avatars, contractor-portfolio, profile-images). Public URL access still works via
+  CDN; listing via SDK now blocked
+
+**Application-code fixes:**
+
+- `NotificationService.ts` had a latent bug: inserted to non-existent `data` column on
+  `notifications`. Corrected to `metadata`; also moved `action_url` to its top-level column. Events
+  3 (bid_accepted) and 9 (escrow_released) refactored to use the service instead of direct DB insert
+- Mobile `savePushToken` was hitting the wrong endpoint with the wrong payload
+  (`/api/notifications` + `{action, user_id}` instead of `/api/user/push-token`
+  - `{pushToken, platform}`). Root-cause fix for 0-row `user_push_tokens`
+- `EscrowAutoReleaseService.releaseEscrow` now fires `escrow_auto_released` notifications to both
+  parties (was silent)
+- Mobile `HomeownerDashboard` got a "Post a New Job" CTA in the hero (the screens existed but had no
+  entry point)
+- Web homeowner approval flow got a `BeforeAfterSlider` (web port of the mobile component) above the
+  existing photo grids
+- Web + mobile notification inboxes now subscribe to Supabase Realtime on `notifications` — live
+  updates, no refresh needed
+- Mobile contractor tracking gained a TaskManager-backed background location channel at
+  `apps/mobile/src/services/BackgroundLocationTask.ts`, wired into
+  `JobContextLocationService.start/stop` and side-effect-imported from `App.tsx` so cold-start
+  resumes work
+
+**Audit false-alarm downgrades:**
+
+- `setup-contractor-payout` edge function: `verify_jwt: false` is intentional (dual-mode: web API
+  route calls with service-role key + verified `user.id`; the function internally calls
+  `verifyAuth(req)` + ownership check for direct client calls). Not a real P0.
+- "Mobile homeowner screens missing": both `JobPostingScreen` and `BidReviewScreen` existed and
+  called the correct endpoints; the real gap was a missing entry point on the homeowner dashboard.
+
+**Dashboard / runbook items (still pending human action):**
+
+- `docs/SUPABASE_DASHBOARD_CHECKLIST.md` — HIBP leaked-password toggle + Postgres patch upgrade
+- `docs/RUNBOOK_extensions_schema_migration.md` — new runbook for moving
+  `postgis`/`vector`/`pg_trgm` out of `public` (Sprint 6.8 dedicated PR)
+
+**Advisor state after remediation** (re-run 2026-04-17):
+
+- Cleared: 3 × `public_bucket_allows_listing`
+- Unchanged (planned): 1 × `rls_disabled_in_public` (spatial_ref_sys), 3 × `extension_in_public`, 1
+  × `auth_leaked_password_protection`, 1 × `vulnerable_postgres_version`
+
+### 2026-04-16 — Live-DB + Full-Stack Audit Findings (NEW)
+
+Full details in session transcript. Below is the open-issue list surfaced by the 2026-04-16 audit
+that are NOT covered by Sprints 0-6. Listed in priority order.
+
+**P0 — Security / privacy (must fix before production):**
+
+1. **`contractor_locations.SELECT` RLS policy is `USING (true)`** — any authenticated user can read
+   every contractor's live GPS. INSERT/UPDATE are correctly scoped to `auth.uid() = contractor_id`,
+   but SELECT was never scoped. Table has 0 rows today; becomes a data leak the moment mobile
+   tracking starts writing. Fix: scope to `contractor_id = auth.uid()` OR
+   homeowner-with-active-assigned-job via `EXISTS` subquery on `public.jobs`.
+2. **Edge function `setup-contractor-payout` runs with `verify_jwt: false`** (version 20, active).
+   Payout-onboarding endpoint has no platform-level auth. Audit internal logic + flip JWT
+   verification on.
+3. **`contractor-documents` storage bucket is PUBLIC** (20MB limit, accepts PDF/Word/Excel/zip).
+   Contains sensitive contractor onboarding documents. Also `job-attachments` bucket is PUBLIC
+   (accepts images + PDFs up to 10MB). Both should be private + served via signed URLs.
+4. **Notifications: 2/10 canonical events silently drop on mobile**
+   ([bid-acceptance/route.ts:113](apps/web/app/api/agents/bid-acceptance/route.ts),
+   [admin/refunds/[id]/route.ts:146](apps/web/app/api/admin/refunds/[id]/route.ts)) use direct
+   `serverSupabase.from('notifications').insert()` bypassing
+   `NotificationService.createNotification()` — no push, no email. Fix: replace with service call.
+5. **Mobile push token never registered in prod** (`user_push_tokens` live row count = 0). Endpoint
+   `/api/user/push-token` exists, table + RLS exist, mobile has `getExpoPushTokenAsync()` in
+   `notificationsBridge.ts` but no app-launch hook POSTs to the registration endpoint. Every push
+   notification to mobile therefore silently drops.
+
+**P1 — Feature completeness:**
+
+6. **4/10 canonical notification events not implemented:** payment-secured-in-escrow, job-started,
+   homeowner-requested-changes, 7-day-auto-release.
+7. **`user_notification_preferences` table does not exist** — migration
+   `20260215000001_notification_system_fixes.sql` was intended to create it. Users have no
+   opt-in/opt-out control.
+8. **`notifications` table has no delivery-tracking columns** (`push_sent`, `email_sent`,
+   `delivered_at`) — no DB visibility into multi-channel delivery.
+9. **Mobile missing homeowner screens:** bid acceptance UI, job creation flow. Homeowner on mobile
+   must switch to web for both.
+10. **Web missing `BeforeAfterSlider`** in homeowner review flow. Mobile has `BeforeAfterSliderView`
+    in
+    [HomeownerPhotoReviewScreen.tsx:30](apps/mobile/src/screens/job-details/HomeownerPhotoReviewScreen.tsx).
+11. **Supabase Auth: leaked-password protection disabled** (HIBP check).
+12. **Postgres 17.4.1.074 has outstanding security patches.** Schedule upgrade.
+
+**P2 — UX / robustness:**
+
+13. **No Supabase Realtime subscriptions on notification inbox** (web + mobile) — users see stale
+    data until refresh.
+14. **No background location task on mobile** — tracking stops when contractor minimizes app. Need
+    `expo-location` TaskManager for true "contractor-is-coming" UX.
+15. **Public-bucket broad listing** flagged by advisor on `avatars`, `contractor-portfolio`,
+    `profile-images` (public access isn't needed for object URLs).
+
+**P3 — known / documented blockers:**
+
+16. `postgis 3.3.7`, `vector 0.8.0`, `pg_trgm 1.6` installed in `public` schema (Sprint 1 blocker
+    per CLAUDE.md — ecosystem ownership issue).
+
+**CLAUDE.md claim corrections (from live data):**
+
+- `withApiHandler 290/310 (93.5%)` — a re-count via grep on 2026-04-16 suggests significantly more
+  routes without `withApiHandler` than the 20 documented exceptions. Needs an accurate re-count
+  before trusting the 93.5% figure.
+- "334 tables with RLS, 806 policies" → live: 323/324 RLS-enabled, 819 policies. Close but update.
+- 146 migrations → live: 154 applied.
+- The "10 files with direct `createClient`" HIGH priority was already resolved; confirmed no
+  non-standard `createClient` on 2026-04-16 scan (modulo intentional factories at
+  `lib/api/supabaseServer.ts` and `lib/supabase.ts`).
 
 ## SECTION 1: ABSOLUTE VERIFICATION REQUIREMENTS - NO FALSE RESULTS
 

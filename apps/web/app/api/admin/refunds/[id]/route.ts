@@ -5,6 +5,7 @@ import { logger, ESCROW_STATUS } from '@mintenance/shared';
 import { stripe } from '@/lib/stripe';
 import { requireAdminFromDatabase } from '@/lib/admin-verification';
 import { BadRequestError, NotFoundError } from '@/lib/errors/api-error';
+import { NotificationService } from '@/lib/services/notifications/NotificationService';
 
 /**
  * POST /api/admin/refunds/[id]
@@ -141,23 +142,23 @@ export const POST = withApiHandler(
             })
             .eq('id', escrowId);
 
-          // Notify both parties
+          // Notify both parties via NotificationService (handles DB + push + email)
           await Promise.allSettled([
-            serverSupabase.from('notifications').insert({
-              user_id: job.contractor_id,
+            NotificationService.createNotification({
+              userId: job.contractor_id,
               type: 'escrow_released',
               title: 'Payment Released',
               message: `Payment of \u00a3${escrow.amount.toFixed(2)} for "${job.title}" has been released by admin.`,
-              data: { jobId: job.id, escrowId },
-              created_at: now,
+              actionUrl: `/contractor/jobs/${job.id}`,
+              metadata: { jobId: job.id, escrowId },
             }),
-            serverSupabase.from('notifications').insert({
-              user_id: job.homeowner_id,
+            NotificationService.createNotification({
+              userId: job.homeowner_id,
               type: 'escrow_released',
               title: 'Payment Released',
               message: `Payment of \u00a3${escrow.amount.toFixed(2)} for "${job.title}" has been released to the contractor.`,
-              data: { jobId: job.id, escrowId },
-              created_at: now,
+              actionUrl: `/jobs/${job.id}`,
+              metadata: { jobId: job.id, escrowId },
             }),
           ]);
 
