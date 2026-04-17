@@ -21,21 +21,33 @@ export class NotificationService {
   /**
    * Send a push notification to a user's device via Expo Push API.
    * Looks up push tokens from user_push_tokens table.
-   * Never throws — failures are logged and swallowed.
+   *
+   * Sprint 7 (5.6): returns a structured result and enqueues failures
+   * into notification_queue with status='failed_push' so the existing
+   * /api/cron/notification-processor cron can retry. Previously all
+   * failures were silently logged and dropped, which meant a transient
+   * Expo outage lost user-visible notifications permanently.
    */
   private static async sendPushToDevice(params: {
     userId: string;
     title: string;
     body: string;
     data?: Record<string, unknown>;
-  }): Promise<void> {
+    notificationType?: string;
+    actionUrl?: string;
+    metadata?: Record<string, unknown>;
+  }): Promise<{ sent: boolean; reason?: string }> {
+    let failureReason: string | null = null;
+
     try {
       const { data: tokens } = await serverSupabase
         .from('user_push_tokens')
         .select('push_token')
         .eq('user_id', params.userId);
 
-      if (!tokens || tokens.length === 0) return;
+      if (!tokens || tokens.length === 0) {
+        return { sent: false, reason: 'no_push_tokens' };
+      }
 
       const messages = tokens.map((t: { push_token: string }) => ({
         to: t.push_token,
@@ -57,19 +69,62 @@ export class NotificationService {
       });
 
       if (!response.ok) {
+        failureReason = `expo_http_${response.status}`;
         logger.warn('Expo push API returned non-OK status', {
           service: 'NotificationService',
           status: response.status,
           userId: params.userId,
         });
+      } else {
+        return { sent: true };
       }
     } catch (error) {
+      failureReason = error instanceof Error ? error.message : String(error);
       logger.warn('Failed to send push notification', {
         service: 'NotificationService',
         userId: params.userId,
-        error: error instanceof Error ? error.message : String(error),
+        error: failureReason,
       });
     }
+
+    // Sprint 7 (5.6): enqueue for retry. Only retry when we had tokens but
+    // the send failed — "no_push_tokens" is a terminal state (user never
+    // registered a device), not something a retry can fix.
+    if (failureReason && params.notificationType) {
+      try {
+        await serverSupabase.from('notification_queue').insert({
+          user_id: params.userId,
+          notification_type: params.notificationType,
+          priority: this.getPriorityFromType(params.notificationType),
+          title: params.title,
+          message: params.body,
+          action_url: params.actionUrl ?? null,
+          metadata: params.metadata ?? {},
+          scheduled_for: new Date().toISOString(),
+          status: 'failed_push',
+          retry_count: 0,
+          last_retry_at: null,
+          error_message: failureReason,
+        });
+        logger.info('Failed push enqueued for retry', {
+          service: 'NotificationService',
+          userId: params.userId,
+          failureReason,
+        });
+      } catch (enqueueError) {
+        logger.error(
+          'Failed to enqueue failed-push for retry — notification permanently lost',
+          enqueueError,
+          {
+            service: 'NotificationService',
+            userId: params.userId,
+            originalFailure: failureReason,
+          }
+        );
+      }
+    }
+
+    return { sent: false, reason: failureReason ?? 'unknown' };
   }
 
   /**
@@ -116,7 +171,10 @@ export class NotificationService {
           return null;
         }
 
-        // Send push notification to user's device (fire-and-forget)
+        // Send push notification to user's device (fire-and-forget).
+        // The call now passes through notificationType + action_url + metadata
+        // so sendPushToDevice can enqueue a retry with enough context if the
+        // Expo push fails (Sprint 7 / 5.6).
         void this.sendPushToDevice({
           userId: params.userId,
           title: params.title,
@@ -126,6 +184,9 @@ export class NotificationService {
             type: params.type,
             actionUrl: params.actionUrl,
           },
+          notificationType: params.type,
+          actionUrl: params.actionUrl,
+          metadata: params.metadata,
         });
 
         return data.id;
