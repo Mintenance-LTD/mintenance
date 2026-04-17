@@ -65,6 +65,24 @@ compromised WiFi network**, not "credentials exposed at rest" or "service role l
 4. **Env wiring**: read hashes from `EXPO_PUBLIC_API_CERT_HASH`, `EXPO_PUBLIC_API_CERT_HASH_BACKUP`,
    `EXPO_PUBLIC_SUPABASE_CERT_HASH`, `EXPO_PUBLIC_SUPABASE_CERT_HASH_BACKUP`. Do not hardcode.
 
+   The JS-side read-through is already in place as of Sprint 7 (4.1) —
+   `apps/mobile/src/utils/certPinning.ts` exports `getCertPinningConfig()` that surfaces these env
+   vars plus the `EXPO_PUBLIC_CERT_PINNING_ENABLED` flag. Operators can set the env vars today;
+   they're simply not enforced until the native module lands. Add these keys to `.env.example` in
+   the native-module PR (skipped here because the project's pre-commit hook blocks any edit that
+   looks like an env file — fine, but the native PR will be doing a holistic env-surface change
+   anyway).
+
+   Example (staging, once pinning is ready):
+
+   ```bash
+   EXPO_PUBLIC_CERT_PINNING_ENABLED=true
+   EXPO_PUBLIC_API_CERT_HASH=sha256/Base64PinOfTheLiveCertSPKI==
+   EXPO_PUBLIC_API_CERT_HASH_BACKUP=sha256/Base64PinOfTheNextCertSPKI==
+   EXPO_PUBLIC_SUPABASE_CERT_HASH=sha256/Base64PinOfSupabaseCertSPKI==
+   EXPO_PUBLIC_SUPABASE_CERT_HASH_BACKUP=sha256/Base64PinOfSupabaseNextSPKI==
+   ```
+
 5. **Rollout gating**: ship behind a feature flag (`EXPO_PUBLIC_CERT_PINNING_ENABLED`) so staging
    can validate without risking prod. Enable in staging first, soak for one release cycle, then
    enable in prod.
