@@ -83,30 +83,28 @@ export const POST = withApiHandler(
       );
     }
 
-    // For server-side, we'll use a mock detection or delegate to client-side
-    // Real YOLO detection with onnxruntime-web must be done client-side
-    const detections = await mockServerSideDetection(signedData.signedUrl);
+    // Sprint 7 (1.4): real YOLO inference with onnxruntime-web runs in the
+    // browser, not here — this endpoint historically called
+    // `mockServerSideDetection()` which returned a hardcoded `water_damage`
+    // at confidence 0.75 regardless of the image, so every caller got
+    // the same fake answer. We stopped doing that. The image is still
+    // uploaded + signed so the client can pick it up for its own
+    // inference, but we no longer fabricate detections server-side.
+    //
+    // The response now tells the client `server_detection_available:false`
+    // and returns zero detections. Existing frontends that expect a
+    // non-empty detections array will show the "no detections" path
+    // (or can fall back to /api/building-surveyor/assess for a real AI call).
+    const detections: Array<{
+      class: string;
+      confidence: number;
+      bbox: number[];
+      area: number;
+    }> = [];
 
-    // Process detections
-    let primaryIssue = 'general_damage';
-    let confidence = 0;
-    let severity = 'moderate';
-
-    if (detections && detections.length > 0) {
-      // Get highest confidence detection
-      const topDetection = detections.reduce((prev, current) =>
-        current.confidence > prev.confidence ? current : prev
-      );
-
-      primaryIssue = topDetection.class;
-      confidence = topDetection.confidence;
-
-      // Determine severity based on confidence and size
-      if (confidence > 0.9) severity = 'critical';
-      else if (confidence > 0.7) severity = 'major';
-      else if (confidence > 0.5) severity = 'moderate';
-      else severity = 'minor';
-    }
+    const primaryIssue = 'general_damage';
+    const confidence = 0;
+    const severity = 'minor';
 
     // Get contractor type
     const contractorType =
@@ -163,39 +161,19 @@ export const POST = withApiHandler(
       .select()
       .single();
 
-    // Return assessment result
+    // Sprint 7 (1.4): the mock detection is gone — we no longer fabricate
+    // confidence. Client is expected to run YOLO against `image_url` and
+    // render the result (or fall back to /api/building-surveyor/assess).
     return NextResponse.json({
       success: true,
+      server_detection_available: false,
+      image_url: signedData.signedUrl,
+      message:
+        'Image uploaded. Server-side detection is not available for this endpoint — the client should run YOLO inference against image_url, or call /api/building-surveyor/assess for a server-rendered AI assessment.',
       assessment,
-      message: `Detected ${primaryIssue.replace('_', ' ')} with ${Math.round(confidence * 100)}% confidence`,
-      next_steps: [
-        `We recommend hiring a ${contractorType.replace('_', ' ')}`,
-        `Estimated cost: £${assessment.estimated_cost.min}-${assessment.estimated_cost.max}`,
-        `Estimated time: ${assessment.estimated_hours} hours`,
-        assessment.urgency_level === 'high'
-          ? '⚠️ This issue requires urgent attention'
-          : null,
-      ].filter(Boolean),
     });
   }
 );
-
-// Mock detection function for server-side
-async function mockServerSideDetection(_imageUrl: string) {
-  // In production, this would call an external AI service or
-  // return a response telling the client to perform detection
-  // Real YOLO detection with onnxruntime-web must be done client-side
-
-  // Return mock detections for development
-  return [
-    {
-      class: 'water_damage',
-      confidence: 0.75,
-      bbox: [0.3, 0.4, 0.2, 0.3],
-      area: 0.06,
-    },
-  ];
-}
 
 // Helper functions
 function estimateCost(issueType: string, severity: string) {

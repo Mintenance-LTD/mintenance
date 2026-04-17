@@ -9,8 +9,20 @@ const approveEscrowSchema = z.object({
   notes: z.string().optional(),
 });
 
+/**
+ * POST /api/admin/escrow/approve — approve release of a held escrow.
+ *
+ * Sprint 7 (3.1 adoption): step-up MFA required within 15 minutes. See
+ * matching comment on /api/admin/escrow/hold — same rationale. Approving
+ * a held escrow moves real money to a contractor; a stale admin session
+ * must not be enough.
+ */
 export const POST = withApiHandler(
-  { roles: ['admin'], rateLimit: { maxRequests: 10 } },
+  {
+    roles: ['admin'],
+    rateLimit: { maxRequests: 10 },
+    requireMfaVerifiedWithinMinutes: 15,
+  },
   async (request, { user }) => {
     const validation = await validateRequest(request, approveEscrowSchema);
     if ('headers' in validation) {
