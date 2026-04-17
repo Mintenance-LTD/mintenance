@@ -60,13 +60,35 @@ trajectory_tracker: Optional[TrajectoryTracker] = None
 damage_aggregator: Optional[DamageAggregator] = None
 frame_extractor: Optional[FrameExtractor] = None
 
-# In-memory processing status store (use Redis in production)
+# In-memory processing status store (use Redis in production).
+# Sprint 7 (6.3): Redis-backed variant scaffolded at
+# app/services/status_store.py (import `build_status_store`). Swap this
+# dict for that store in the next dedicated PR — the migration is
+# non-trivial because every route handler references `processing_status`
+# directly, and the typed shape (VideoProcessingStatus) needs to pass
+# through json.dumps / json.loads without losing Pydantic validators.
+# Scaffolding lives separately so the integration PR can test end-to-end
+# without being mixed into unrelated changes.
 processing_status: Dict[str, VideoProcessingStatus] = {}
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifespan context manager for startup and shutdown"""
+    # Sprint 7 (6.6): fail fast at startup when API_KEY is unset so the
+    # orchestrator surfaces a clear boot error. Previously every request
+    # came back with an opaque 503 from the auth middleware. Opt-out via
+    # SAM2_ALLOW_UNAUTHENTICATED=true for local dev.
+    allow_insecure = (
+        os.environ.get("SAM2_ALLOW_UNAUTHENTICATED", "").lower() == "true"
+        or os.environ.get("NODE_ENV", "").lower() == "development"
+    )
+    if not os.environ.get("API_KEY") and not allow_insecure:
+        logger.error("SAM2 refusing to start: API_KEY is not set.")
+        logger.error("Set API_KEY in your environment, or set")
+        logger.error("SAM2_ALLOW_UNAUTHENTICATED=true for local development only.")
+        sys.exit(1)
+
     # Startup
     global sam2_client, video_processor, trajectory_tracker, damage_aggregator, frame_extractor
 
