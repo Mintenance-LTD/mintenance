@@ -285,6 +285,22 @@ export const HomeownerDashboard: React.FC = () => {
                   ? `You have ${activeJobIds.length} active project${activeJobIds.length !== 1 ? 's' : ''}`
                   : 'Ready to get something fixed?'}
             </Text>
+
+            {/* Primary CTA: Post a new job */}
+            <TouchableOpacity
+              style={styles.postJobButton}
+              onPress={() =>
+                navigation.navigate('JobsTab', {
+                  screen: 'JobPosting',
+                } as never)
+              }
+              accessibilityRole='button'
+              accessibilityLabel='Post a new job'
+              activeOpacity={0.85}
+            >
+              <Ionicons name='add-circle' size={22} color='#FFFFFF' />
+              <Text style={styles.postJobButtonText}>Post a New Job</Text>
+            </TouchableOpacity>
           </FadeIn>
         </LinearGradient>
 

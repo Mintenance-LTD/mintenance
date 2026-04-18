@@ -214,6 +214,8 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
         <TouchableOpacity
           style={styles.backBtn}
           onPress={() => navigation.goBack()}
+          accessibilityRole='button'
+          accessibilityLabel='Go back'
         >
           <Ionicons
             name='arrow-back'
@@ -261,6 +263,9 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
             <TouchableOpacity
               style={[styles.modeBtn, mode === 'quick' && styles.modeBtnActive]}
               onPress={() => setMode('quick')}
+              accessibilityRole='tab'
+              accessibilityLabel='Quick Bid'
+              accessibilityState={{ selected: mode === 'quick' }}
             >
               <Text
                 style={[
@@ -277,6 +282,9 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
                 mode === 'detailed' && styles.modeBtnActive,
               ]}
               onPress={() => setMode('detailed')}
+              accessibilityRole='tab'
+              accessibilityLabel='Detailed Quote'
+              accessibilityState={{ selected: mode === 'detailed' }}
             >
               <Text
                 style={[
@@ -306,6 +314,7 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
                     placeholder='e.g. 250'
                     placeholderTextColor={theme.colors.textTertiary}
                     keyboardType='decimal-pad'
+                    accessibilityLabel='Bid amount in pounds'
                   />
                 </View>
               </View>
@@ -374,6 +383,9 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
                       true: theme.colors.primary,
                     }}
                     thumbColor='#FFF'
+                    accessibilityRole='switch'
+                    accessibilityLabel='Include VAT at 20 percent'
+                    accessibilityState={{ checked: includeVAT }}
                   />
                 </View>
               </View>
@@ -446,6 +458,7 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
                 numberOfLines={6}
                 textAlignVertical='top'
                 maxLength={MAX_DESC}
+                accessibilityLabel='Proposal description'
               />
               <View style={styles.charCountRow}>
                 <Text
@@ -466,6 +479,7 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
                   placeholder='e.g. 3'
                   placeholderTextColor={theme.colors.textTertiary}
                   keyboardType='number-pad'
+                  accessibilityLabel='Estimated duration in days'
                 />
               </View>
               <View style={styles.rowSpacer} />
@@ -494,6 +508,7 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
                 multiline
                 numberOfLines={3}
                 textAlignVertical='top'
+                accessibilityLabel='Terms and conditions'
               />
             </View>
           )}
@@ -537,6 +552,9 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
           ]}
           onPress={handleSubmit}
           disabled={!isValid || submitting}
+          accessibilityRole='button'
+          accessibilityLabel='Submit bid'
+          accessibilityState={{ disabled: !isValid || submitting }}
         >
           <Ionicons
             name='send-outline'

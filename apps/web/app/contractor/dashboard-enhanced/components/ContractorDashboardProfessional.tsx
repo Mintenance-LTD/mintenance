@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { Bot, Settings } from 'lucide-react';
+import { ProtectedPaymentExplainerModal } from './ProtectedPaymentExplainerModal'; // R2 #21
 
 interface ContractorDashboardProfessionalProps {
   data: {
@@ -191,6 +192,7 @@ export function ContractorDashboardProfessional(
 
   return (
     <ContractorPageWrapper>
+      <ProtectedPaymentExplainerModal />
       <div className='space-y-8 pb-12'>
         {/* Professional Welcome Section - Birch Inspired */}
         <section className='bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 rounded-3xl p-8 md:p-10 text-white shadow-2xl relative overflow-hidden'>

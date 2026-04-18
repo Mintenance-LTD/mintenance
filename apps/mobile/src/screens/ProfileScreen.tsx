@@ -59,7 +59,10 @@ const ProfileScreen: React.FC = () => {
         iconColor: theme.colors.accent,
         iconBg: theme.colors.accentLight,
         badge: unreadNotifications,
-        onPress: () => navigation.navigate('NotificationSettings'),
+        // Navigate to the notification inbox (ModalNavigator → NotificationScreen),
+        // not to NotificationSettings (which is the preferences/toggle screen).
+        // NotificationSettings remains accessible from SettingsHub.
+        onPress: () => navigation.navigate('Notifications'),
       },
       {
         label: 'Payment Methods',

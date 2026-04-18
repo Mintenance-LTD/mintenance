@@ -126,14 +126,17 @@ module.exports = {
     version: '1.2.4',
     description:
       'Property maintenance made simple. Connect homeowners with trusted local contractors for repairs, renovations, and maintenance jobs. Get bids, manage projects, and pay securely.',
-    primaryColor: '#10B981',
+    // Align with src/theme/index.ts primary (#0D9488 teal-600) so the
+    // splash -> first-paint transition is seamless. Previously #10B981
+    // caused a visible color jump.
+    primaryColor: '#0D9488',
     orientation: 'portrait',
     icon: './assets/icon.png',
     userInterfaceStyle: 'automatic',
     splash: {
       image: './assets/splash.png',
       resizeMode: 'contain',
-      backgroundColor: '#10B981',
+      backgroundColor: '#0D9488',
     },
     assetBundlePatterns: ['**/*'],
     ios: {
@@ -155,6 +158,8 @@ module.exports = {
           'This app needs photo library access to select images for job posts and project galleries.',
         NSFaceIDUsageDescription:
           'This app uses Face ID for secure authentication.',
+        NSMicrophoneUsageDescription:
+          'This app needs microphone access to record voice notes on job updates and for video calls with contractors.',
         UIBackgroundModes: ['remote-notification'],
       },
       privacyManifests: {
@@ -175,7 +180,7 @@ module.exports = {
     android: {
       adaptiveIcon: {
         foregroundImage: './assets/adaptive-icon.png',
-        backgroundColor: '#10B981',
+        backgroundColor: '#0D9488',
       },
       config: {
         googleMaps: {
@@ -280,7 +285,7 @@ module.exports = {
         'expo-notifications',
         {
           icon: './assets/notification-icon.png',
-          color: '#10B981',
+          color: '#0D9488',
           defaultChannel: 'default',
           // FCM v1 is used automatically when google-services.json is present
           // For Android: requires google-services.json provided via EAS Secrets

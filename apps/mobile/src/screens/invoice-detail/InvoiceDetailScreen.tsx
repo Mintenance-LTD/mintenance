@@ -18,6 +18,7 @@ import { useToast } from '../../components/ui/Toast';
 import { FinancialManagementService } from '../../services/contractor-business';
 import type { Invoice } from '../../services/contractor-business/types';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
+import { formatCurrency } from '../../utils/formatCurrency';
 import type { ProfileStackParamList } from '../../navigation/types';
 import { theme } from '../../theme';
 
@@ -179,7 +180,7 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
             </Text>
           </View>
           <Text style={styles.invoiceTotal}>
-            £{invoice.total_amount.toFixed(2)}
+            {formatCurrency(invoice.total_amount)}
           </Text>
           <Text style={styles.dueDateText}>
             Due {formatDate(invoice.due_date)}
@@ -237,11 +238,11 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
               <View style={styles.lineItemLeft}>
                 <Text style={styles.lineItemDesc}>{item.description}</Text>
                 <Text style={styles.lineItemMeta}>
-                  {item.quantity} × £{item.rate.toFixed(2)}
+                  {item.quantity} × {formatCurrency(item.rate)}
                 </Text>
               </View>
               <Text style={styles.lineItemAmount}>
-                £{item.amount.toFixed(2)}
+                {formatCurrency(item.amount)}
               </Text>
             </View>
           ))}
@@ -252,19 +253,19 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>Subtotal</Text>
             <Text style={styles.totalValue}>
-              £{invoice.subtotal.toFixed(2)}
+              {formatCurrency(invoice.subtotal)}
             </Text>
           </View>
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>VAT</Text>
             <Text style={styles.totalValue}>
-              £{invoice.tax_amount.toFixed(2)}
+              {formatCurrency(invoice.tax_amount)}
             </Text>
           </View>
           <View style={[styles.totalRow, styles.totalRowFinal]}>
             <Text style={styles.grandTotalLabel}>Total</Text>
             <Text style={styles.grandTotalValue}>
-              £{invoice.total_amount.toFixed(2)}
+              {formatCurrency(invoice.total_amount)}
             </Text>
           </View>
         </View>

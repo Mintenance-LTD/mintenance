@@ -1,0 +1,79 @@
+name: Demo Video Render
+
+# Sprint 7 (6.5): render the Remotion marketing demo automatically on
+# release tags and on manual dispatch. Previously the demo video was
+# rendered by hand ad-hoc which meant every new release shipped with
+# stale footage (old screenshots, out-of-date features). Automating here
+# means every tagged release produces a fresh .mp4 artifact that
+# marketing can download and push to the landing page without engaging
+# engineering.
+#
+# The artifact is attached to the workflow run for 30 days and (on
+# release tags) uploaded to the GitHub Release as a downloadable asset.
+
+on:
+  release:
+    types: [published]
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      composition:
+        description: 'Remotion composition id to render (default: MintenanceDemo)'
+        required: false
+        default: 'MintenanceDemo'
+
+jobs:
+  render:
+    name: Render demo video
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.19.4'
+          cache: 'npm'
+
+      # Remotion uses Chromium for frame rendering; GitHub-hosted ubuntu-latest
+      # already includes it but we still need the system libs ffmpeg depends on.
+      - name: Install ffmpeg + fonts
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg fonts-liberation
+
+      - name: Install dependencies
+        run: |
+          npm ci --no-audit --no-fund --legacy-peer-deps
+
+      - name: Build shared packages (Remotion composition imports @mintenance/*)
+        run: |
+          npm run build:packages
+
+      - name: Render
+        working-directory: apps/demo-video
+        env:
+          COMPOSITION: ${{ github.event.inputs.composition || 'MintenanceDemo' }}
+        run: |
+          mkdir -p out
+          npx remotion render src/index.tsx "$COMPOSITION" "out/demo-${{ github.ref_name }}.mp4"
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: demo-video-${{ github.ref_name }}
+          path: apps/demo-video/out/demo-*.mp4
+          retention-days: 30
+
+      - name: Attach to GitHub Release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: apps/demo-video/out/demo-*.mp4
+          fail_on_unmatched_files: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

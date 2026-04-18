@@ -9,6 +9,7 @@ import React from 'react';
 import { View, Text, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../../theme';
+import { formatCurrency } from '../../../utils/formatCurrency';
 
 interface PricingSummaryProps {
   subtotal: number;
@@ -29,7 +30,8 @@ export const PricingSummary: React.FC<PricingSummaryProps> = ({
   taxRate,
   totalAmount,
 }) => {
-  const subtotalWithMarkup = subtotal * (1 + parseFloat(markupPercentage) / 100);
+  const subtotalWithMarkup =
+    subtotal * (1 + parseFloat(markupPercentage) / 100);
   const markupAmount = subtotalWithMarkup - subtotal;
   const hasDiscount = parseFloat(discountPercentage) > 0;
 
@@ -37,24 +39,24 @@ export const PricingSummary: React.FC<PricingSummaryProps> = ({
     <View style={styles.container}>
       <View style={styles.sectionHeader}>
         <View style={styles.sectionIconWrap}>
-          <Ionicons name="calculator" size={16} color={theme.colors.primary} />
+          <Ionicons name='calculator' size={16} color={theme.colors.primary} />
         </View>
         <Text style={styles.sectionTitle}>Pricing Summary</Text>
       </View>
 
       {/* Breakdown rows */}
       <View style={styles.breakdownSection}>
-        <PriceRow label="Subtotal" value={subtotal} testID="subtotal-value" />
+        <PriceRow label='Subtotal' value={subtotal} testID='subtotal-value' />
         <PriceRow
           label={`Markup (${markupPercentage}%)`}
           value={markupAmount}
-          testID="markup-value"
-          accent="#10B981"
+          testID='markup-value'
+          accent='#10B981'
         />
         <PriceRow
-          label="After Markup"
+          label='After Markup'
           value={subtotalWithMarkup}
-          testID="after-markup-value"
+          testID='after-markup-value'
           bold
         />
 
@@ -62,15 +64,15 @@ export const PricingSummary: React.FC<PricingSummaryProps> = ({
           <PriceRow
             label={`Discount (${discountPercentage}%)`}
             value={-discountAmount}
-            testID="discount-value"
-            accent="#EF4444"
+            testID='discount-value'
+            accent='#EF4444'
           />
         )}
 
         <PriceRow
           label={`VAT (${taxRate}%)`}
           value={taxAmount}
-          testID="tax-value"
+          testID='tax-value'
         />
       </View>
 
@@ -80,8 +82,8 @@ export const PricingSummary: React.FC<PricingSummaryProps> = ({
           <Text style={styles.totalLabel}>Quote Total</Text>
           <Text style={styles.totalSubtext}>Incl. VAT</Text>
         </View>
-        <Text style={styles.totalValue} testID="total-value">
-          £{totalAmount.toFixed(2)}
+        <Text style={styles.totalValue} testID='total-value'>
+          {formatCurrency(totalAmount)}
         </Text>
       </View>
     </View>
@@ -97,7 +99,9 @@ const PriceRow: React.FC<{
   bold?: boolean;
 }> = ({ label, value, testID, accent, bold }) => (
   <View style={styles.pricingRow}>
-    <Text style={[styles.pricingLabel, bold && styles.pricingLabelBold]}>{label}</Text>
+    <Text style={[styles.pricingLabel, bold && styles.pricingLabelBold]}>
+      {label}
+    </Text>
     <Text
       style={[
         styles.pricingValue,
@@ -106,7 +110,7 @@ const PriceRow: React.FC<{
       ]}
       testID={testID}
     >
-      {value < 0 ? '-' : ''}£{Math.abs(value).toFixed(2)}
+      {formatCurrency(value)}
     </Text>
   </View>
 );
@@ -118,7 +122,12 @@ const styles = StyleSheet.create({
     padding: 20,
     marginBottom: 12,
     ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 6 },
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.04,
+        shadowRadius: 6,
+      },
       android: { elevation: 1 },
     }),
   },

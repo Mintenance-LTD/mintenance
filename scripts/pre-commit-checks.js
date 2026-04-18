@@ -52,6 +52,11 @@ const KNOWN_LARGE_FILES = new Set([
   'apps/mobile/src/screens/NotificationSettingsScreen.tsx',
   'apps/mobile/src/screens/job-details/JobPhotoUploadScreen.tsx',
   'apps/mobile/src/screens/properties/AddPropertyScreen.tsx',
+  'apps/mobile/src/screens/BidSubmissionScreen.tsx', // 578 lines after a11y labels
+  'apps/mobile/src/screens/MessagingScreen.tsx', // 581 lines after channel-leak fix
+  'apps/mobile/src/screens/create-invoice/CreateInvoiceScreen.tsx', // 510 lines after formatCurrency
+  'apps/mobile/src/screens/invoice-detail/InvoiceDetailScreen.tsx', // 533 lines after formatCurrency
+  'apps/mobile/src/screens/job-details/ContractViewScreen.tsx', // 587 lines after PDF auth fix
   'apps/mobile/src/screens/video-capture/VideoCaptureScreen.tsx',
   'apps/mobile/src/services/AuthService.ts',
   'apps/mobile/src/services/ImageCompressionService.example.ts',

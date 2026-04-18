@@ -3,6 +3,13 @@
 import React from 'react';
 import type { ButtonProps } from './types';
 
+/**
+ * @deprecated Sprint 7 (5.1) — use `@mintenance/shared-ui`'s `Button`
+ * instead. This button lives under `components/airbnb-system/` which is
+ * the landing-page-only component library; a generic Button does not
+ * belong here. See `components/airbnb-system/README.md` for the migration
+ * plan. Only 2 call sites currently use this symbol — do not add more.
+ */
 export const Button: React.FC<ButtonProps> = ({
   children,
   variant = 'primary',

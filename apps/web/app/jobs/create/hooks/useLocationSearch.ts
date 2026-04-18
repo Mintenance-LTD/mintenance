@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { logger } from '@mintenance/shared';
 
 interface LocationSuggestion {
@@ -39,6 +39,12 @@ export function useLocationSearch({
   const [isLoading, setIsLoading] = useState(false);
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
 
+  // Sprint 7 (6.2): AbortController so in-flight geocode requests are
+  // cancelled when the user types another character (debounce re-fires)
+  // or the component unmounts. Without this we get "setState on unmounted
+  // component" warnings and stale results clobbering newer ones.
+  const abortRef = useRef<AbortController | null>(null);
+
   // Debounced address search
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -53,13 +59,26 @@ export function useLocationSearch({
     return () => clearTimeout(timer);
   }, [location, debounceMs]);
 
+  // Abort any in-flight request on unmount.
+  useEffect(() => {
+    return () => {
+      abortRef.current?.abort();
+    };
+  }, []);
+
   const searchAddresses = useCallback(async (query: string) => {
     if (query.length < 3) return;
+
+    // Cancel any previous in-flight search first
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
 
     setIsLoading(true);
     try {
       const response = await fetch(
-        `/api/geocoding/search?q=${encodeURIComponent(query)}`
+        `/api/geocoding/search?q=${encodeURIComponent(query)}`,
+        { signal: controller.signal }
       );
 
       if (!response.ok) {
@@ -68,15 +87,25 @@ export function useLocationSearch({
       }
 
       const data = await response.json();
+      // If another search superseded us before the response came back,
+      // do not overwrite its state.
+      if (abortRef.current !== controller) return;
       setSuggestions(data);
       setShowSuggestions(data.length > 0);
     } catch (error) {
+      // Aborted requests arrive as a DOMException — these are expected
+      // and should be silent.
+      if ((error as { name?: string })?.name === 'AbortError') return;
       logger.error('Error searching addresses:', error);
-      setSuggestions([]);
-      setShowSuggestions(false);
+      if (abortRef.current === controller) {
+        setSuggestions([]);
+        setShowSuggestions(false);
+      }
       // Don't show error to user - just silently fail (autocomplete is optional)
     } finally {
-      setIsLoading(false);
+      if (abortRef.current === controller) {
+        setIsLoading(false);
+      }
     }
   }, []);
 

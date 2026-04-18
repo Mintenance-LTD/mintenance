@@ -27,10 +27,16 @@ const generate1099Schema = z.object({
  * - If `contractorIds` is provided, generates for those specific contractors.
  * - If omitted, generates for ALL contractors requiring a 1099 for the given year.
  *
- * Requires admin role.
+ * Requires admin role + fresh MFA step-up (Sprint 7 / 3.1 adoption).
+ * 1099 generation writes tax-authority-facing records — a stolen admin
+ * session should not be able to fire this en masse.
  */
 export const POST = withApiHandler(
-  { roles: ['admin'], rateLimit: { maxRequests: 5, windowMs: 60_000 } },
+  {
+    roles: ['admin'],
+    rateLimit: { maxRequests: 5, windowMs: 60_000 },
+    requireMfaVerifiedWithinMinutes: 15,
+  },
   async (request, { user }) => {
     const validation = await validateRequest(request, generate1099Schema);
     if ('headers' in validation) {

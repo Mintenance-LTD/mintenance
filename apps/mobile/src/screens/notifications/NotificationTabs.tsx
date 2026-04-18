@@ -5,7 +5,13 @@
  */
 
 import React from 'react';
-import { Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+} from 'react-native';
 import { theme } from '../../theme';
 import { FILTER_TABS, FilterTab } from './notificationConfig';
 
@@ -39,10 +45,18 @@ export const NotificationTabs: React.FC<NotificationTabsProps> = ({
             accessibilityLabel={`Filter ${tab.label}${count != null && count > 0 ? `, ${count} notifications` : ''}`}
             accessibilityState={{ selected: isActive }}
           >
-            <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
-              {tab.label}
-              {count != null && count > 0 ? ` ${count}` : ''}
-            </Text>
+            <View style={styles.tabInner}>
+              <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
+                {tab.label}
+              </Text>
+              {count != null && count > 0 && (
+                <View style={styles.countBadge}>
+                  <Text style={styles.countBadgeText}>
+                    {count > 99 ? '99+' : count}
+                  </Text>
+                </View>
+              )}
+            </View>
           </TouchableOpacity>
         );
       })}
@@ -75,6 +89,11 @@ const styles = StyleSheet.create({
   tabActive: {
     backgroundColor: theme.colors.primary,
   },
+  tabInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   tabText: {
     fontSize: 13,
     fontWeight: '500',
@@ -83,5 +102,20 @@ const styles = StyleSheet.create({
   tabTextActive: {
     color: theme.colors.textInverse,
     fontWeight: '600',
+  },
+  countBadge: {
+    backgroundColor: theme.colors.error,
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    paddingHorizontal: 6,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  countBadgeText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '700',
+    textAlign: 'center',
   },
 });

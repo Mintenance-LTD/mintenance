@@ -28,15 +28,42 @@ jest.mock('expo-constants', () => ({
   },
 }));
 
-// Mock Platform
 // Mock Supabase with simple pattern
 jest.mock('../../config/supabase', () => ({
   supabase: {
     from: jest.fn(),
+    auth: { getUser: jest.fn().mockResolvedValue({ data: { user: null } }) },
+  },
+}));
+
+// Mock mobileApiClient (used by savePushToken, sendPushNotification, markAsRead, etc.)
+jest.mock('../../utils/mobileApiClient', () => ({
+  mobileApiClient: {
+    get: jest.fn(),
+    post: jest.fn(),
+    put: jest.fn(),
+    delete: jest.fn(),
+  },
+  API_BASE_URL: 'http://localhost:3000',
+}));
+
+// Mock sentry
+jest.mock('../../config/sentry', () => ({
+  addBreadcrumb: jest.fn(),
+}));
+
+// Mock logger
+jest.mock('../../utils/logger', () => ({
+  logger: {
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    debug: jest.fn(),
   },
 }));
 
 const { supabase } = require('../../config/supabase');
+const { mobileApiClient } = require('../../utils/mobileApiClient');
 
 // Mock fetch
 global.fetch = jest.fn();
@@ -123,48 +150,39 @@ describe('NotificationService', () => {
   });
 
   describe('savePushToken', () => {
-    it('should save push token to user profile', async () => {
-      const mockChain = {
-        update: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockResolvedValue({ error: null }),
-      };
-      supabase.from.mockReturnValue(mockChain);
+    it('should save push token via mobileApiClient', async () => {
+      mobileApiClient.post.mockResolvedValueOnce({});
 
       await NotificationService.savePushToken('user-1', 'test-token');
 
-      expect(supabase.from).toHaveBeenCalledWith('users');
-      expect(mockChain.update).toHaveBeenCalledWith({
-        push_token: 'test-token',
-      });
-      expect(mockChain.eq).toHaveBeenCalledWith('id', 'user-1');
+      expect(mobileApiClient.post).toHaveBeenCalledWith(
+        '/api/notifications',
+        expect.objectContaining({
+          action: 'save_push_token',
+          user_id: 'user-1',
+          push_token: 'test-token',
+        })
+      );
     });
   });
 
-  describe('sendNotificationToUser', () => {
+  describe('sendPushNotification', () => {
     it('should send push notification to user with valid token', async () => {
-      const mockUser = {
+      // mobileApiClient.get returns the push token
+      mobileApiClient.get.mockResolvedValueOnce({
         push_token: 'ExponentPushToken[user-token]',
-        notification_settings: { jobUpdates: true },
-      };
+      });
 
-      const mockChain = {
+      // getNotificationPreferences uses supabase.from('profiles')
+      const prefsChain = {
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
         single: jest.fn().mockResolvedValue({
-          data: mockUser,
+          data: { notification_preferences: { pushEnabled: true, jobUpdates: true } },
           error: null,
         }),
       };
-      
-      const saveChain = {
-        insert: jest.fn().mockReturnThis(),
-        select: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({ data: null, error: null }),
-      };
-      
-      supabase.from
-        .mockReturnValueOnce(mockChain)
-        .mockReturnValueOnce(saveChain);
+      supabase.from.mockReturnValueOnce(prefsChain);
 
       (fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
@@ -173,11 +191,15 @@ describe('NotificationService', () => {
         }),
       });
 
-      await NotificationService.sendNotificationToUser(
+      // saveNotification uses mobileApiClient.post
+      mobileApiClient.post.mockResolvedValueOnce({});
+
+      await NotificationService.sendPushNotification(
         'user-1',
         'Test Notification',
         'This is a test message',
-        'job'
+        { key: 'value' },
+        'job_update'
       );
 
       expect(fetch).toHaveBeenCalledWith(
@@ -192,121 +214,83 @@ describe('NotificationService', () => {
       );
     });
 
-    it('should not send notification if user settings block it', async () => {
-      const mockUser = {
-        push_token: 'ExponentPushToken[user-token]',
-        notification_settings: { jobUpdates: false },
-      };
+    it('should not send notification if user has no push token', async () => {
+      // mobileApiClient.get throws (no token found)
+      mobileApiClient.get.mockRejectedValueOnce(new Error('No token'));
 
-      const mockChain = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({
-          data: mockUser,
-          error: null,
-        }),
-      };
-      supabase.from.mockReturnValue(mockChain);
-
-      await NotificationService.sendNotificationToUser(
+      await NotificationService.sendPushNotification(
         'user-1',
         'Test Notification',
-        'This is a test message',
-        'job'
+        'This is a test message'
       );
 
       expect(fetch).not.toHaveBeenCalled();
     });
 
-    it('should handle invalid push token', async () => {
-      const mockUser = {
-        push_token: 'ExponentPushToken[invalid-token]',
-        notification_settings: { jobUpdates: true },
-      };
-
-      const getUserChain = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({ data: mockUser, error: null }),
-      };
-      
-      const updateTokenChain = {
-        update: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockResolvedValue({ error: null }),
-      };
-      
-      supabase.from
-        .mockReturnValueOnce(getUserChain)
-        .mockReturnValueOnce(updateTokenChain);
-
-      (fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          data: [
-            { status: 'error', details: { error: 'DeviceNotRegistered' } },
-          ],
-        }),
+    it('should not send notification if blocked by preferences', async () => {
+      mobileApiClient.get.mockResolvedValueOnce({
+        push_token: 'ExponentPushToken[user-token]',
       });
 
-      await NotificationService.sendNotificationToUser(
+      // Return preferences that block job_update
+      const prefsChain = {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({
+          data: { notification_preferences: { pushEnabled: false } },
+          error: null,
+        }),
+      };
+      supabase.from.mockReturnValueOnce(prefsChain);
+
+      await NotificationService.sendPushNotification(
         'user-1',
         'Test Notification',
         'This is a test message',
-        'job'
+        {},
+        'job_update'
       );
 
-      // Should attempt to remove invalid token
-      expect(updateTokenChain.update).toHaveBeenCalledWith({
-        push_token: null,
-      });
+      expect(fetch).not.toHaveBeenCalled();
     });
   });
 
-  describe('sendNotificationToUsers', () => {
-    it('should send batch notifications to multiple users', async () => {
-      const mockUsers = [
-        {
-          id: 'user-1',
-          push_token: 'token-1',
-          notification_settings: { jobUpdates: true },
-        },
-        {
-          id: 'user-2',
-          push_token: 'token-2',
-          notification_settings: { jobUpdates: true },
-        },
-      ];
+  describe('sendBulkNotification', () => {
+    it('should send notifications to multiple users via sendPushNotification', async () => {
+      // Each call to sendPushNotification calls mobileApiClient.get for the token
+      mobileApiClient.get
+        .mockResolvedValueOnce({ push_token: 'token-1' })
+        .mockResolvedValueOnce({ push_token: 'token-2' });
 
-      const mockChain = {
+      // Each call fetches preferences from supabase
+      const prefsChain = {
         select: jest.fn().mockReturnThis(),
-        in: jest.fn().mockReturnThis(),
-        not: jest.fn().mockResolvedValue({ data: mockUsers, error: null }),
-      };
-      supabase.from.mockReturnValue(mockChain);
-
-      (fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          data: [
-            { status: 'ok', id: 'notif-1' },
-            { status: 'ok', id: 'notif-2' },
-          ],
+        eq: jest.fn().mockReturnThis(),
+        single: jest.fn().mockResolvedValue({
+          data: { notification_preferences: { pushEnabled: true } },
+          error: null,
         }),
+      };
+      supabase.from.mockReturnValue(prefsChain);
+
+      (fetch as jest.Mock).mockResolvedValue({
+        ok: true,
+        json: async () => ({ data: [{ status: 'ok' }] }),
       });
 
-      await NotificationService.sendNotificationToUsers(
+      // saveNotification calls mobileApiClient.post
+      mobileApiClient.post.mockResolvedValue({});
+
+      await NotificationService.sendBulkNotification(
         ['user-1', 'user-2'],
         'Batch Notification',
         'This is a batch message',
+        undefined,
         'system'
       );
 
-      expect(fetch).toHaveBeenCalledWith(
-        'https://exp.host/--/api/v2/push/send',
-        expect.objectContaining({
-          body: expect.stringContaining('Batch Notification'),
-        })
-      );
+      // sendBulkNotification delegates to sendPushNotification for each user
+      expect(mobileApiClient.get).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -316,10 +300,11 @@ describe('NotificationService', () => {
         'notification-id'
       );
 
+      const trigger = { seconds: 3600 };
       const identifier = await NotificationService.scheduleLocalNotification(
         'Reminder',
         'Check your job progress',
-        3600, // 1 hour
+        trigger,
         { type: 'reminder' }
       );
 
@@ -330,7 +315,7 @@ describe('NotificationService', () => {
           data: { type: 'reminder' },
           sound: 'default',
         },
-        trigger: { seconds: 3600 },
+        trigger,
       });
 
       expect(identifier).toBe('notification-id');
@@ -396,38 +381,38 @@ describe('NotificationService', () => {
     });
   });
 
-  describe('markNotificationAsRead', () => {
-    it('should mark a notification as read', async () => {
-      const mockChain = {
-        update: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockResolvedValue({ error: null }),
-      };
-      supabase.from.mockReturnValue(mockChain);
+  describe('markAsRead', () => {
+    it('should mark a notification as read via mobileApiClient', async () => {
+      mobileApiClient.post.mockResolvedValueOnce({});
 
-      await NotificationService.markNotificationAsRead('notif-1');
+      await NotificationService.markAsRead('notif-1');
 
-      expect(supabase.from).toHaveBeenCalledWith('notifications');
-      expect(mockChain.update).toHaveBeenCalledWith({ read: true });
+      expect(mobileApiClient.post).toHaveBeenCalledWith(
+        '/api/notifications/notif-1/read'
+      );
     });
   });
 
-  describe('getUnreadNotificationCount', () => {
+  describe('getUnreadCount', () => {
     it('should return unread notification count', async () => {
+      // Real code: supabase.from('notifications').select('*', { count: 'exact', head: true }).eq('user_id', userId).eq('read', false)
       const mockChain = {
         select: jest.fn().mockReturnThis(),
-        eq: jest.fn((column: string, value: any) => {
-          if (column === 'read') {
-            return mockChain;
-          }
-          return {
-            eq: jest.fn().mockResolvedValue({ count: 7, error: null }),
-          };
-        }),
+        eq: jest.fn().mockReturnThis(),
       };
+      // The final .eq('read', false) resolves the chain
+      let eqCallCount = 0;
+      mockChain.eq.mockImplementation(() => {
+        eqCallCount++;
+        if (eqCallCount >= 2) {
+          // Second .eq() call returns the final result
+          return Promise.resolve({ count: 7, error: null });
+        }
+        return mockChain;
+      });
       supabase.from.mockReturnValue(mockChain);
 
-      const count =
-        await NotificationService.getUnreadNotificationCount('user-1');
+      const count = await NotificationService.getUnreadCount('user-1');
 
       expect(count).toBe(7);
     });
@@ -435,22 +420,22 @@ describe('NotificationService', () => {
     it('should return 0 on error', async () => {
       const mockChain = {
         select: jest.fn().mockReturnThis(),
-        eq: jest.fn((column: string, value: any) => {
-          if (column === 'read') {
-            return mockChain;
-          }
-          return {
-            eq: jest.fn().mockResolvedValue({
-              count: null,
-              error: { message: 'Database error' },
-            }),
-          };
-        }),
+        eq: jest.fn().mockReturnThis(),
       };
+      let eqCallCount = 0;
+      mockChain.eq.mockImplementation(() => {
+        eqCallCount++;
+        if (eqCallCount >= 2) {
+          return Promise.resolve({
+            count: null,
+            error: { message: 'Database error' },
+          });
+        }
+        return mockChain;
+      });
       supabase.from.mockReturnValue(mockChain);
 
-      const count =
-        await NotificationService.getUnreadNotificationCount('user-1');
+      const count = await NotificationService.getUnreadCount('user-1');
 
       expect(count).toBe(0);
     });
@@ -464,49 +449,8 @@ describe('NotificationService', () => {
     });
   });
 
-  describe('helper methods', () => {
-    it('should provide quick notification methods', async () => {
-      const mockUser = {
-        push_token: 'token',
-        notification_settings: {
-          jobUpdates: true,
-          payments: true,
-          messages: true,
-        },
-      };
-
-      const mockChain = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({ data: mockUser, error: null }),
-      };
-      supabase.from.mockReturnValue(mockChain);
-
-      (fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: async () => ({ data: [{ status: 'ok' }] }),
-      });
-
-      // Test job update notification
-      await NotificationService.notifyJobUpdate(
-        'contractor-1',
-        'Kitchen Repair',
-        'in_progress'
-      );
-
-      // Test new message notification
-      await NotificationService.notifyNewMessage(
-        'user-1',
-        'John Contractor',
-        'Kitchen Repair'
-      );
-
-      // Test payment notification
-      await NotificationService.notifyPaymentReceived('contractor-1', 150.0);
-
-      expect(fetch).toHaveBeenCalledTimes(3);
-    });
-  });
+  // Note: notifyJobUpdate, notifyNewMessage, notifyPaymentReceived convenience helpers
+  // were removed during the refactor. sendPushNotification with a type param replaces them.
 
   describe('error handling', () => {
     it('should handle notification initialization errors', async () => {
@@ -519,30 +463,33 @@ describe('NotificationService', () => {
       expect(token).toBeNull();
     });
 
-    it('should handle push service errors gracefully', async () => {
-      const mockUser = {
+    it('should handle push service errors by throwing', async () => {
+      // mobileApiClient.get returns a valid token
+      mobileApiClient.get.mockResolvedValueOnce({
         push_token: 'token',
-        notification_settings: { jobUpdates: true },
-      };
+      });
 
-      const mockChain = {
+      // Preferences allow notification
+      const prefsChain = {
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({ data: mockUser, error: null }),
+        single: jest.fn().mockResolvedValue({
+          data: { notification_preferences: { pushEnabled: true } },
+          error: null,
+        }),
       };
-      supabase.from.mockReturnValue(mockChain);
+      supabase.from.mockReturnValueOnce(prefsChain);
 
       (fetch as jest.Mock).mockRejectedValueOnce(new Error('Network error'));
 
-      // Should not throw
+      // The real code re-throws fetch errors from sendToExpo
       await expect(
-        NotificationService.sendNotificationToUser(
+        NotificationService.sendPushNotification(
           'user-1',
           'Test',
-          'Message',
-          'job'
+          'Message'
         )
-      ).resolves.toBeUndefined();
+      ).rejects.toThrow('Network error');
     });
   });
 });

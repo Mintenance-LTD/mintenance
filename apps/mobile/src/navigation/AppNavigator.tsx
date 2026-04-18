@@ -125,7 +125,33 @@ const TabNavigator: React.FC = () => {
   const haptics = useHaptics();
   const [showQuickJobModal, setShowQuickJobModal] = useState(false);
   const { data: unreadMessageCount } = useUnreadMessageCount();
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState<
+    number | undefined
+  >();
   const onboarding = useOnboardingGate();
+
+  // Fetch unread notification count for the Profile tab badge.
+  // Re-fetches whenever the user changes (login/logout) or focus returns.
+  useEffect(() => {
+    if (!user?.id) {
+      setUnreadNotificationCount(undefined);
+      return;
+    }
+    const fetchCount = async () => {
+      try {
+        const { getUnreadCount } =
+          await import('../services/notifications/NotificationCRUD');
+        const count = await getUnreadCount(user.id);
+        setUnreadNotificationCount(count > 0 ? count : undefined);
+      } catch {
+        // Non-fatal — badge won't show, that's fine
+      }
+    };
+    fetchCount();
+    // Re-fetch every 30s while the tab navigator is mounted
+    const interval = setInterval(fetchCount, 30_000);
+    return () => clearInterval(interval);
+  }, [user?.id]);
 
   // Store root navigation ref for QuickJobModal search callback
   const rootNavRef = React.useRef<NavigationProp<RootStackParamList> | null>(
@@ -239,7 +265,10 @@ const TabNavigator: React.FC = () => {
         <Tab.Screen
           name='ProfileTab'
           component={ProfileNavigator}
-          options={getProfileTabOptions(handleTabPress)}
+          options={getProfileTabOptions(
+            handleTabPress,
+            unreadNotificationCount
+          )}
         />
       </Tab.Navigator>
     </>

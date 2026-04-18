@@ -32,10 +32,17 @@ RUN pip install --no-cache-dir --upgrade pip && \
     httpx==0.25.0 \
     pydantic==2.4.2
 
-# Download SAM model weights during build
+# Download SAM model weights during build and verify SHA-256 to defend
+# against upstream supply-chain compromise. The hash below is the published
+# Meta/Facebook AI Research checkpoint for sam_vit_h_4b8939.pth (~2.56 GB).
+# Fail the build if the hash does not match.
+ARG SAM_VIT_H_SHA256=a7bf3b02f3ebf1267aba913ff637d9a2d5c33d3173bb679e46d9f338c26f262e
 RUN mkdir -p /build/model_cache && \
     wget -q https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth \
-    -O /build/model_cache/sam_vit_h_4b8939.pth
+    -O /build/model_cache/sam_vit_h_4b8939.pth && \
+    echo "${SAM_VIT_H_SHA256}  /build/model_cache/sam_vit_h_4b8939.pth" \
+      | sha256sum --check - \
+    || (echo "SAM3 model weight hash mismatch — refusing to build" && exit 1)
 
 # Stage 2: Runtime - minimal production image
 FROM python:3.10-slim

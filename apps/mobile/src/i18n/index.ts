@@ -4,38 +4,23 @@ import * as RNLocalize from 'react-native-localize';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { logger } from '../utils/logger';
 
-// Import translations
+// Import translations.
+// Sprint 7 (4.3): pruned to only the locales that have meaningful coverage.
+// The 9 other locales (pt/de/it/nl/pl/ru/zh/ja/ko/ar/hi) were stubs with
+// 1–3 keys and would silently fall back to English for every string —
+// worse UX than just falling back to English. Detector now routes any
+// unsupported device locale straight to 'en'. If/when real translations
+// land, re-add the import, the `availableLanguages` entry, and the
+// `resources` entry below.
 import en from './locales/en.json';
 import es from './locales/es.json';
 import fr from './locales/fr.json';
-import pt from './locales/pt.json';
-import de from './locales/de.json';
-import it from './locales/it.json';
-import nl from './locales/nl.json';
-import pl from './locales/pl.json';
-import ru from './locales/ru.json';
-import zh from './locales/zh.json';
-import ja from './locales/ja.json';
-import ko from './locales/ko.json';
-import ar from './locales/ar.json';
-import hi from './locales/hi.json';
 
 // Define available languages with RTL support
 export const availableLanguages = {
   en: { name: 'English', nativeName: 'English', isRTL: false },
   es: { name: 'Spanish', nativeName: 'Español', isRTL: false },
   fr: { name: 'French', nativeName: 'Français', isRTL: false },
-  pt: { name: 'Portuguese', nativeName: 'Português', isRTL: false },
-  de: { name: 'German', nativeName: 'Deutsch', isRTL: false },
-  it: { name: 'Italian', nativeName: 'Italiano', isRTL: false },
-  nl: { name: 'Dutch', nativeName: 'Nederlands', isRTL: false },
-  pl: { name: 'Polish', nativeName: 'Polski', isRTL: false },
-  ru: { name: 'Russian', nativeName: 'Русский', isRTL: false },
-  zh: { name: 'Chinese', nativeName: '中文', isRTL: false },
-  ja: { name: 'Japanese', nativeName: '日本語', isRTL: false },
-  ko: { name: 'Korean', nativeName: '한국어', isRTL: false },
-  ar: { name: 'Arabic', nativeName: 'العربية', isRTL: true },
-  hi: { name: 'Hindi', nativeName: 'हिन्दी', isRTL: false },
 } as const;
 
 export type Language = keyof typeof availableLanguages;
@@ -117,22 +102,11 @@ i18n
     // Supported languages
     supportedLngs: Object.keys(availableLanguages) as Language[],
 
-    // Language resources
+    // Language resources (Sprint 7 / 4.3: only en/es/fr have real coverage)
     resources: {
       en: { translation: en },
       es: { translation: es },
       fr: { translation: fr },
-      pt: { translation: pt },
-      de: { translation: de },
-      it: { translation: it },
-      nl: { translation: nl },
-      pl: { translation: pl },
-      ru: { translation: ru },
-      zh: { translation: zh },
-      ja: { translation: ja },
-      ko: { translation: ko },
-      ar: { translation: ar },
-      hi: { translation: hi },
     },
 
     // Interpolation settings

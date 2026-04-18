@@ -51,6 +51,24 @@ sam3_client: Optional[SAM3Client] = None
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Lifespan context manager for startup and shutdown"""
+    # Sprint 7 (6.6): fail fast at startup when API_KEY is unset instead of
+    # rejecting every request with 503 at runtime. Previously an ops mistake
+    # (missing env var in staging / prod) manifested as an opaque 503 on the
+    # first call; now the container exits immediately and the orchestrator
+    # can surface a clear boot-failure signal. Dev mode (NODE_ENV=development
+    # OR explicit SAM3_ALLOW_UNAUTHENTICATED=true) keeps the old lenient
+    # behaviour so local testing against a freshly-cloned repo still works.
+    allow_insecure = (
+        os.environ.get("SAM3_ALLOW_UNAUTHENTICATED", "").lower() == "true"
+        or os.environ.get("NODE_ENV", "").lower() == "development"
+    )
+    if not os.environ.get("API_KEY") and not allow_insecure:
+        print("❌ SAM3 refusing to start: API_KEY is not set.")
+        print("   Set API_KEY in your environment, or set")
+        print("   SAM3_ALLOW_UNAUTHENTICATED=true for local development only.")
+        # Exit non-zero so the supervisor treats this as a boot failure.
+        sys.exit(1)
+
     # Startup
     global sam3_client
     try:
@@ -61,9 +79,9 @@ async def lifespan(app: FastAPI):
         print(f"❌ Failed to initialize SAM 3: {e}")
         print("⚠️  Service will start but segmentation will be unavailable")
         # Don't raise - allow service to start even if model fails
-    
+
     yield
-    
+
     # Shutdown
     if sam3_client is not None:
         sam3_client.cleanup()

@@ -8,17 +8,24 @@ export const EscrowInfoCard: React.FC = () => {
     <View style={styles.escrowCard}>
       <View style={styles.escrowHeader}>
         <View style={styles.shieldIcon}>
-          <Ionicons name="shield-checkmark-outline" size={20} color={theme.colors.primary} />
+          <Ionicons
+            name='shield-checkmark-outline'
+            size={20}
+            color={theme.colors.primary}
+          />
         </View>
-        <Text style={styles.escrowTitle}>Escrow Protection</Text>
+        <Text style={styles.escrowTitle}>Protected Payment</Text>
       </View>
       <Text style={styles.escrowDescription}>
-        Your payment is protected by escrow. Funds will be released to the contractor only after:
+        Your payment is held securely. Funds will be released to the contractor
+        only after:
       </Text>
       <View style={styles.escrowConditions}>
         <Text style={styles.conditionItem}>Job is marked as completed</Text>
         <Text style={styles.conditionItem}>You approve the work</Text>
-        <Text style={styles.conditionItem}>No disputes are raised within 48 hours</Text>
+        <Text style={styles.conditionItem}>
+          No disputes are raised within 48 hours
+        </Text>
       </View>
     </View>
   );
@@ -33,7 +40,12 @@ const styles = StyleSheet.create({
     borderLeftWidth: 4,
     borderLeftColor: theme.colors.primary,
     ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
       android: { elevation: 2 },
     }),
   },

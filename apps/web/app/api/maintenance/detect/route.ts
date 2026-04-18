@@ -11,196 +11,195 @@ import { withApiHandler } from '@/lib/api/with-api-handler';
 
 // Maintenance issue to contractor mapping
 const ISSUE_TO_CONTRACTOR: Record<string, string> = {
-  'pipe_leak': 'plumber',
-  'water_damage': 'water_restoration',
-  'wall_crack': 'structural_engineer',
-  'roof_damage': 'roofer',
-  'electrical_fault': 'electrician',
-  'mold_damp': 'mold_specialist',
-  'fire_damage': 'restoration_contractor',
-  'window_broken': 'glazier',
-  'door_damaged': 'carpenter',
-  'floor_damage': 'flooring_contractor',
-  'ceiling_damage': 'ceiling_specialist',
-  'foundation_crack': 'foundation_specialist',
-  'hvac_issue': 'hvac_technician',
-  'gutter_blocked': 'gutter_specialist',
-  'general_damage': 'general_contractor',
+  pipe_leak: 'plumber',
+  water_damage: 'water_restoration',
+  wall_crack: 'structural_engineer',
+  roof_damage: 'roofer',
+  electrical_fault: 'electrician',
+  mold_damp: 'mold_specialist',
+  fire_damage: 'restoration_contractor',
+  window_broken: 'glazier',
+  door_damaged: 'carpenter',
+  floor_damage: 'flooring_contractor',
+  ceiling_damage: 'ceiling_specialist',
+  foundation_crack: 'foundation_specialist',
+  hvac_issue: 'hvac_technician',
+  gutter_blocked: 'gutter_specialist',
+  general_damage: 'general_contractor',
 };
 
-export const POST = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (request, { user }) => {
-  // Get image from form data
-  const formData = await request.formData();
-  const imageFile = formData.get('image') as File;
+export const POST = withApiHandler(
+  { rateLimit: { maxRequests: 30 } },
+  async (request, { user }) => {
+    // Get image from form data
+    const formData = await request.formData();
+    const imageFile = formData.get('image') as File;
 
-  if (!imageFile) {
-    return NextResponse.json({ error: 'No image provided' }, { status: 400 });
-  }
+    if (!imageFile) {
+      return NextResponse.json({ error: 'No image provided' }, { status: 400 });
+    }
 
-  // Validate and sanitize form text fields using Zod schema
-  const fieldValidation = maintenanceDetectSchema.safeParse({
-    description: (formData.get('description') as string) || '',
-    urgency: (formData.get('urgency') as string) || 'normal',
-  });
+    // Validate and sanitize form text fields using Zod schema
+    const fieldValidation = maintenanceDetectSchema.safeParse({
+      description: (formData.get('description') as string) || '',
+      urgency: (formData.get('urgency') as string) || 'normal',
+    });
 
-  if (!fieldValidation.success) {
-    return NextResponse.json(
-      { error: 'Invalid input data', details: fieldValidation.error.flatten().fieldErrors },
-      { status: 400 }
-    );
-  }
+    if (!fieldValidation.success) {
+      return NextResponse.json(
+        {
+          error: 'Invalid input data',
+          details: fieldValidation.error.flatten().fieldErrors,
+        },
+        { status: 400 }
+      );
+    }
 
-  const { description, urgency } = fieldValidation.data;
+    const { description, urgency } = fieldValidation.data;
 
-  // Upload image to Supabase Storage
-  const fileName = `${user.id}/${Date.now()}_${imageFile.name}`;
-  const { error: uploadError } = await serverSupabase.storage
-    .from('job-attachments')
-    .upload(fileName, imageFile);
+    // Upload image to Supabase Storage
+    const fileName = `${user.id}/${Date.now()}_${imageFile.name}`;
+    const { error: uploadError } = await serverSupabase.storage
+      .from('job-attachments')
+      .upload(fileName, imageFile);
 
-  if (uploadError) {
-    return NextResponse.json({ error: 'Failed to upload image' }, { status: 500 });
-  }
+    if (uploadError) {
+      return NextResponse.json(
+        { error: 'Failed to upload image' },
+        { status: 500 }
+      );
+    }
 
-  // Get public URL
-  const { data: { publicUrl } } = serverSupabase.storage
-    .from('job-attachments')
-    .getPublicUrl(fileName);
+    // Bucket is private — short-lived signed URL for AI inference only
+    const { data: signedData, error: signedError } =
+      await serverSupabase.storage
+        .from('job-attachments')
+        .createSignedUrl(fileName, 5 * 60);
 
-  // For server-side, we'll use a mock detection or delegate to client-side
-  // Real YOLO detection with onnxruntime-web must be done client-side
-  const detections = await mockServerSideDetection(publicUrl);
+    if (signedError || !signedData) {
+      return NextResponse.json(
+        { error: 'Failed to generate image access URL' },
+        { status: 500 }
+      );
+    }
 
-  // Process detections
-  let primaryIssue = 'general_damage';
-  let confidence = 0;
-  let severity = 'moderate';
+    // Sprint 7 (1.4): real YOLO inference with onnxruntime-web runs in the
+    // browser, not here — this endpoint historically called
+    // `mockServerSideDetection()` which returned a hardcoded `water_damage`
+    // at confidence 0.75 regardless of the image, so every caller got
+    // the same fake answer. We stopped doing that. The image is still
+    // uploaded + signed so the client can pick it up for its own
+    // inference, but we no longer fabricate detections server-side.
+    //
+    // The response now tells the client `server_detection_available:false`
+    // and returns zero detections. Existing frontends that expect a
+    // non-empty detections array will show the "no detections" path
+    // (or can fall back to /api/building-surveyor/assess for a real AI call).
+    const detections: Array<{
+      class: string;
+      confidence: number;
+      bbox: number[];
+      area: number;
+    }> = [];
 
-  if (detections && detections.length > 0) {
-    // Get highest confidence detection
-    const topDetection = detections.reduce((prev, current) =>
-      (current.confidence > prev.confidence) ? current : prev
-    );
+    const primaryIssue = 'general_damage';
+    const confidence = 0;
+    const severity = 'minor';
 
-    primaryIssue = topDetection.class;
-    confidence = topDetection.confidence;
+    // Get contractor type
+    const contractorType =
+      ISSUE_TO_CONTRACTOR[primaryIssue] || 'general_contractor';
 
-    // Determine severity based on confidence and size
-    if (confidence > 0.9) severity = 'critical';
-    else if (confidence > 0.7) severity = 'major';
-    else if (confidence > 0.5) severity = 'moderate';
-    else severity = 'minor';
-  }
-
-  // Get contractor type
-  const contractorType = ISSUE_TO_CONTRACTOR[primaryIssue] || 'general_contractor';
-
-  // Generate assessment
-  const assessment = {
-    id: crypto.randomUUID(),
-    issue_type: primaryIssue,
-    confidence: Math.round(confidence * 100),
-    severity,
-    contractor_type: contractorType,
-    detections: detections || [],
-    image_url: publicUrl,
-
-    // Estimates based on issue type and severity
-    estimated_cost: estimateCost(primaryIssue, severity),
-    estimated_hours: estimateHours(primaryIssue, severity),
-
-    // Materials and tools
-    materials_needed: getMaterials(primaryIssue),
-    tools_required: getTools(primaryIssue),
-
-    // Safety and urgency
-    safety_notes: getSafetyNotes(primaryIssue),
-    urgency_level: determineUrgency(primaryIssue, severity, urgency),
-
-    // AI insights
-    ai_insights: {
-      detection_count: detections?.length || 0,
-      primary_issue: primaryIssue,
-      secondary_issues: detections?.slice(1).map(d => d.class) || [],
-      confidence_level: confidence > 0.8 ? 'high' : confidence > 0.5 ? 'medium' : 'low',
-      recommended_action: getRecommendedAction(primaryIssue, severity),
-    },
-
-    processed_at: new Date().toISOString(),
-  };
-
-  // Save assessment to database
-  await serverSupabase
-    .from('ai_assessments')
-    .insert({
-      user_id: user.id,
-      image_url: publicUrl,
+    // Generate assessment
+    const assessment = {
+      id: crypto.randomUUID(),
       issue_type: primaryIssue,
-      confidence,
+      confidence: Math.round(confidence * 100),
       severity,
       contractor_type: contractorType,
-      assessment_data: assessment,
-      description,
-    })
-    .select()
-    .single();
+      detections: detections || [],
+      image_url: signedData.signedUrl,
 
-  // Return assessment result
-  return NextResponse.json({
-    success: true,
-    assessment,
-    message: `Detected ${primaryIssue.replace('_', ' ')} with ${Math.round(confidence * 100)}% confidence`,
-    next_steps: [
-      `We recommend hiring a ${contractorType.replace('_', ' ')}`,
-      `Estimated cost: £${assessment.estimated_cost.min}-${assessment.estimated_cost.max}`,
-      `Estimated time: ${assessment.estimated_hours} hours`,
-      assessment.urgency_level === 'high' ? '⚠️ This issue requires urgent attention' : null,
-    ].filter(Boolean),
-  });
-});
+      // Estimates based on issue type and severity
+      estimated_cost: estimateCost(primaryIssue, severity),
+      estimated_hours: estimateHours(primaryIssue, severity),
 
-// Mock detection function for server-side
-async function mockServerSideDetection(_imageUrl: string) {
-  // In production, this would call an external AI service or
-  // return a response telling the client to perform detection
-  // Real YOLO detection with onnxruntime-web must be done client-side
+      // Materials and tools
+      materials_needed: getMaterials(primaryIssue),
+      tools_required: getTools(primaryIssue),
 
-  // Return mock detections for development
-  return [
-    {
-      class: 'water_damage',
-      confidence: 0.75,
-      bbox: [0.3, 0.4, 0.2, 0.3],
-      area: 0.06,
-    },
-  ];
-}
+      // Safety and urgency
+      safety_notes: getSafetyNotes(primaryIssue),
+      urgency_level: determineUrgency(primaryIssue, severity, urgency),
+
+      // AI insights
+      ai_insights: {
+        detection_count: detections?.length || 0,
+        primary_issue: primaryIssue,
+        secondary_issues: detections?.slice(1).map((d) => d.class) || [],
+        confidence_level:
+          confidence > 0.8 ? 'high' : confidence > 0.5 ? 'medium' : 'low',
+        recommended_action: getRecommendedAction(primaryIssue, severity),
+      },
+
+      processed_at: new Date().toISOString(),
+    };
+
+    // Save assessment to database
+    await serverSupabase
+      .from('ai_assessments')
+      .insert({
+        user_id: user.id,
+        image_url: signedData.signedUrl,
+        issue_type: primaryIssue,
+        confidence,
+        severity,
+        contractor_type: contractorType,
+        assessment_data: assessment,
+        description,
+      })
+      .select()
+      .single();
+
+    // Sprint 7 (1.4): the mock detection is gone — we no longer fabricate
+    // confidence. Client is expected to run YOLO against `image_url` and
+    // render the result (or fall back to /api/building-surveyor/assess).
+    return NextResponse.json({
+      success: true,
+      server_detection_available: false,
+      image_url: signedData.signedUrl,
+      message:
+        'Image uploaded. Server-side detection is not available for this endpoint — the client should run YOLO inference against image_url, or call /api/building-surveyor/assess for a server-rendered AI assessment.',
+      assessment,
+    });
+  }
+);
 
 // Helper functions
 function estimateCost(issueType: string, severity: string) {
   const baseCosts: Record<string, number> = {
-    'pipe_leak': 200,
-    'water_damage': 500,
-    'wall_crack': 300,
-    'roof_damage': 800,
-    'electrical_fault': 250,
-    'mold_damp': 400,
-    'fire_damage': 2000,
-    'window_broken': 150,
-    'door_damaged': 200,
-    'floor_damage': 600,
-    'ceiling_damage': 400,
-    'foundation_crack': 1500,
-    'hvac_issue': 350,
-    'gutter_blocked': 100,
-    'general_damage': 200,
+    pipe_leak: 200,
+    water_damage: 500,
+    wall_crack: 300,
+    roof_damage: 800,
+    electrical_fault: 250,
+    mold_damp: 400,
+    fire_damage: 2000,
+    window_broken: 150,
+    door_damaged: 200,
+    floor_damage: 600,
+    ceiling_damage: 400,
+    foundation_crack: 1500,
+    hvac_issue: 350,
+    gutter_blocked: 100,
+    general_damage: 200,
   };
 
   const severityMultiplier: Record<string, number> = {
-    'minor': 0.5,
-    'moderate': 1,
-    'major': 2,
-    'critical': 3,
+    minor: 0.5,
+    moderate: 1,
+    major: 2,
+    critical: 3,
   };
 
   const base = baseCosts[issueType] || 200;
@@ -216,28 +215,28 @@ function estimateCost(issueType: string, severity: string) {
 
 function estimateHours(issueType: string, severity: string) {
   const baseHours: Record<string, number> = {
-    'pipe_leak': 2,
-    'water_damage': 8,
-    'wall_crack': 4,
-    'roof_damage': 12,
-    'electrical_fault': 3,
-    'mold_damp': 6,
-    'fire_damage': 48,
-    'window_broken': 2,
-    'door_damaged': 3,
-    'floor_damage': 10,
-    'ceiling_damage': 6,
-    'foundation_crack': 24,
-    'hvac_issue': 4,
-    'gutter_blocked': 1,
-    'general_damage': 4,
+    pipe_leak: 2,
+    water_damage: 8,
+    wall_crack: 4,
+    roof_damage: 12,
+    electrical_fault: 3,
+    mold_damp: 6,
+    fire_damage: 48,
+    window_broken: 2,
+    door_damaged: 3,
+    floor_damage: 10,
+    ceiling_damage: 6,
+    foundation_crack: 24,
+    hvac_issue: 4,
+    gutter_blocked: 1,
+    general_damage: 4,
   };
 
   const severityMultiplier: Record<string, number> = {
-    'minor': 0.5,
-    'moderate': 1,
-    'major': 1.5,
-    'critical': 2,
+    minor: 0.5,
+    moderate: 1,
+    major: 1.5,
+    critical: 2,
   };
 
   const base = baseHours[issueType] || 4;
@@ -248,21 +247,25 @@ function estimateHours(issueType: string, severity: string) {
 
 function getMaterials(issueType: string): string[] {
   const materials: Record<string, string[]> = {
-    'pipe_leak': ['Pipe sealant', 'Replacement fittings', 'PTFE tape'],
-    'water_damage': ['Dehumidifier', 'Anti-mold treatment', 'Replacement drywall'],
-    'wall_crack': ['Crack filler', 'Mesh tape', 'Paint'],
-    'roof_damage': ['Roof tiles', 'Roofing felt', 'Flashing'],
-    'electrical_fault': ['Wire', 'Outlets', 'Circuit breakers'],
-    'mold_damp': ['Anti-mold spray', 'Sealant', 'Ventilation'],
-    'fire_damage': ['Cleaning supplies', 'Replacement materials', 'Paint'],
-    'window_broken': ['Glass pane', 'Putty', 'Glazing points'],
-    'door_damaged': ['Wood filler', 'Hinges', 'Lock set'],
-    'floor_damage': ['Flooring material', 'Underlayment', 'Adhesive'],
-    'ceiling_damage': ['Plasterboard', 'Joint compound', 'Paint'],
-    'foundation_crack': ['Concrete', 'Waterproofing', 'Reinforcement'],
-    'hvac_issue': ['Filters', 'Refrigerant', 'Replacement parts'],
-    'gutter_blocked': ['Gutter guards', 'Sealant', 'Brackets'],
-    'general_damage': ['Various materials as needed'],
+    pipe_leak: ['Pipe sealant', 'Replacement fittings', 'PTFE tape'],
+    water_damage: [
+      'Dehumidifier',
+      'Anti-mold treatment',
+      'Replacement drywall',
+    ],
+    wall_crack: ['Crack filler', 'Mesh tape', 'Paint'],
+    roof_damage: ['Roof tiles', 'Roofing felt', 'Flashing'],
+    electrical_fault: ['Wire', 'Outlets', 'Circuit breakers'],
+    mold_damp: ['Anti-mold spray', 'Sealant', 'Ventilation'],
+    fire_damage: ['Cleaning supplies', 'Replacement materials', 'Paint'],
+    window_broken: ['Glass pane', 'Putty', 'Glazing points'],
+    door_damaged: ['Wood filler', 'Hinges', 'Lock set'],
+    floor_damage: ['Flooring material', 'Underlayment', 'Adhesive'],
+    ceiling_damage: ['Plasterboard', 'Joint compound', 'Paint'],
+    foundation_crack: ['Concrete', 'Waterproofing', 'Reinforcement'],
+    hvac_issue: ['Filters', 'Refrigerant', 'Replacement parts'],
+    gutter_blocked: ['Gutter guards', 'Sealant', 'Brackets'],
+    general_damage: ['Various materials as needed'],
   };
 
   return materials[issueType] || materials['general_damage'];
@@ -270,21 +273,25 @@ function getMaterials(issueType: string): string[] {
 
 function getTools(issueType: string): string[] {
   const tools: Record<string, string[]> = {
-    'pipe_leak': ['Pipe wrench', 'Torch', 'Pipe cutter'],
-    'water_damage': ['Moisture meter', 'Fans', 'Dehumidifier'],
-    'wall_crack': ['Trowel', 'Scraper', 'Sandpaper'],
-    'roof_damage': ['Ladder', 'Hammer', 'Roofing nailer'],
-    'electrical_fault': ['Multimeter', 'Wire strippers', 'Screwdrivers'],
-    'mold_damp': ['Respirator', 'Scrub brushes', 'Sprayer'],
-    'fire_damage': ['Safety equipment', 'Cleaning tools', 'Restoration equipment'],
-    'window_broken': ['Glass cutter', 'Putty knife', 'Glazing tool'],
-    'door_damaged': ['Drill', 'Saw', 'Chisel'],
-    'floor_damage': ['Floor nailer', 'Saw', 'Level'],
-    'ceiling_damage': ['Drywall lift', 'Taping knife', 'Sander'],
-    'foundation_crack': ['Concrete mixer', 'Trowel', 'Injection gun'],
-    'hvac_issue': ['Gauges', 'Vacuum pump', 'Thermometer'],
-    'gutter_blocked': ['Ladder', 'Scoop', 'Hose'],
-    'general_damage': ['Basic hand tools'],
+    pipe_leak: ['Pipe wrench', 'Torch', 'Pipe cutter'],
+    water_damage: ['Moisture meter', 'Fans', 'Dehumidifier'],
+    wall_crack: ['Trowel', 'Scraper', 'Sandpaper'],
+    roof_damage: ['Ladder', 'Hammer', 'Roofing nailer'],
+    electrical_fault: ['Multimeter', 'Wire strippers', 'Screwdrivers'],
+    mold_damp: ['Respirator', 'Scrub brushes', 'Sprayer'],
+    fire_damage: [
+      'Safety equipment',
+      'Cleaning tools',
+      'Restoration equipment',
+    ],
+    window_broken: ['Glass cutter', 'Putty knife', 'Glazing tool'],
+    door_damaged: ['Drill', 'Saw', 'Chisel'],
+    floor_damage: ['Floor nailer', 'Saw', 'Level'],
+    ceiling_damage: ['Drywall lift', 'Taping knife', 'Sander'],
+    foundation_crack: ['Concrete mixer', 'Trowel', 'Injection gun'],
+    hvac_issue: ['Gauges', 'Vacuum pump', 'Thermometer'],
+    gutter_blocked: ['Ladder', 'Scoop', 'Hose'],
+    general_damage: ['Basic hand tools'],
   };
 
   return tools[issueType] || tools['general_damage'];
@@ -292,18 +299,47 @@ function getTools(issueType: string): string[] {
 
 function getSafetyNotes(issueType: string): string[] {
   const safety: Record<string, string[]> = {
-    'electrical_fault': ['⚠️ Turn off power at breaker', 'Use insulated tools', 'Test with multimeter first'],
-    'mold_damp': ['⚠️ Wear respirator', 'Use protective clothing', 'Ensure ventilation'],
-    'roof_damage': ['⚠️ Use safety harness', 'Check weather conditions', 'Secure ladder'],
-    'fire_damage': ['⚠️ Check structural integrity', 'Wear protective gear', 'Test air quality'],
-    'foundation_crack': ['⚠️ Monitor for movement', 'Shore if necessary', 'Check for gas leaks'],
+    electrical_fault: [
+      '⚠️ Turn off power at breaker',
+      'Use insulated tools',
+      'Test with multimeter first',
+    ],
+    mold_damp: [
+      '⚠️ Wear respirator',
+      'Use protective clothing',
+      'Ensure ventilation',
+    ],
+    roof_damage: [
+      '⚠️ Use safety harness',
+      'Check weather conditions',
+      'Secure ladder',
+    ],
+    fire_damage: [
+      '⚠️ Check structural integrity',
+      'Wear protective gear',
+      'Test air quality',
+    ],
+    foundation_crack: [
+      '⚠️ Monitor for movement',
+      'Shore if necessary',
+      'Check for gas leaks',
+    ],
   };
 
   return safety[issueType] || ['Follow standard safety procedures'];
 }
 
-function determineUrgency(issueType: string, severity: string, userUrgency: string): string {
-  const highUrgencyIssues = ['pipe_leak', 'electrical_fault', 'fire_damage', 'roof_damage'];
+function determineUrgency(
+  issueType: string,
+  severity: string,
+  userUrgency: string
+): string {
+  const highUrgencyIssues = [
+    'pipe_leak',
+    'electrical_fault',
+    'fire_damage',
+    'roof_damage',
+  ];
 
   if (highUrgencyIssues.includes(issueType) || severity === 'critical') {
     return 'high';

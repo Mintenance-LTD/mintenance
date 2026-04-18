@@ -591,11 +591,25 @@ class VideoService {
   }
 
   /**
-   * Get SAM2 service URL
+   * Get SAM2 service URL.
+   *
+   * Uses EXPO_PUBLIC_ prefix so the value is bundled by Expo at build time.
+   * The old env var (SAM2_VIDEO_SERVICE_URL without the prefix) was never
+   * injected into the Expo bundle, silently falling back to localhost:8002
+   * in production builds.
+   *
+   * Throws when the var is missing so callers can show a graceful
+   * "SAM2 video analysis unavailable" message rather than silently
+   * connecting to an unreachable localhost.
    */
   private getSAM2ServiceUrl(): string {
-    // In production, this would come from environment config
-    return process.env.SAM2_VIDEO_SERVICE_URL || 'http://localhost:8002';
+    const url = process.env.EXPO_PUBLIC_SAM2_VIDEO_SERVICE_URL;
+    if (!url) {
+      throw new Error(
+        'SAM2 video analysis unavailable — EXPO_PUBLIC_SAM2_VIDEO_SERVICE_URL not configured'
+      );
+    }
+    return url;
   }
 
   /**

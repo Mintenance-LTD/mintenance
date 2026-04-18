@@ -89,12 +89,34 @@ export class SAM3Service {
   private static readonly CIRCUIT_BREAKER_RESET_TIME = 300000; // 5 minutes
 
   /**
-   * Check if SAM 3 should be used based on rollout percentage
+   * Check if SAM 3 should be used based on rollout percentage.
+   *
+   * If a stableId (e.g. user id, property id, or assessment id) is supplied
+   * the decision is deterministic for that id — same user always gets the
+   * same side of the canary, so we see consistent performance results and
+   * users do not flip between variants on refresh.
+   *
+   * Without a stableId we fall back to Math.random() to preserve the legacy
+   * call sites that do not yet plumb an id through.
    */
-  static shouldUseSAM3(): boolean {
+  static shouldUseSAM3(stableId?: string): boolean {
     const rollout = Number(process.env.SAM3_ROLLOUT_PERCENTAGE || 0);
-    if (rollout === 0) return false;
+    if (!Number.isFinite(rollout) || rollout <= 0) return false;
     if (rollout >= 100) return true;
+
+    if (stableId) {
+      // FNV-1a 32-bit hash — small, deterministic, no crypto dep needed
+      // for an A/B bucketing decision.
+      let hash = 0x811c9dc5;
+      const input = `sam3:${stableId}`;
+      for (let i = 0; i < input.length; i++) {
+        hash ^= input.charCodeAt(i);
+        hash = Math.imul(hash, 0x01000193) >>> 0;
+      }
+      const bucket = hash % 100; // 0..99
+      return bucket < rollout;
+    }
+
     return Math.random() * 100 < rollout;
   }
 

@@ -34,11 +34,40 @@ export function SessionMonitor() {
     isExtending,
     hasShownWarning,
     hasShownCriticalWarning,
+    error,
     extendSession,
     markWarningShown,
   } = useSessionMonitor({ enabled: !isPublicPage });
 
   const [showCriticalModal, setShowCriticalModal] = useState(false);
+  const [ratelimitToastShown, setRatelimitToastShown] = useState(false);
+
+  /**
+   * Sprint 7 (6.1): surface the 429 back-off to the user.
+   * The hook silently flips `error` to "Polling paused for 2 minutes." when
+   * rate-limited, but the user had no way to see this so session expiry
+   * could surprise them. Show a single toast on the transition into the
+   * paused state, and clear the flag once polling resumes.
+   */
+  useEffect(() => {
+    const paused = !!error && /paused/i.test(error);
+    if (paused && !ratelimitToastShown) {
+      // Using native alert here to match the existing warning-toast style
+      // in this component. When the shared ToastProvider is wired up we
+      // can swap to that — low priority.
+      if (typeof window !== 'undefined') {
+        // Fire-and-forget notification so polling does not stall.
+        window.setTimeout(() => {
+          window.alert(
+            'Session check paused for 2 minutes (rate-limited). We will retry automatically. If you are about to be signed out, click "Extend Session" when the warning appears.'
+          );
+        }, 0);
+      }
+      setRatelimitToastShown(true);
+    } else if (!paused && ratelimitToastShown) {
+      setRatelimitToastShown(false);
+    }
+  }, [error, ratelimitToastShown]);
 
   /**
    * Handle warning toast (5 minutes remaining)

@@ -39,3 +39,5 @@ export { messageNotificationTemplate } from './messages';
 export { newsletterWelcomeTemplate } from './newsletter';
 
 export { tenantInviteTemplate, tenantJobNotificationTemplate } from './tenant';
+
+export { cashFlowDigestTemplate } from './cashflow-digest';

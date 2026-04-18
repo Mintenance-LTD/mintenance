@@ -274,10 +274,39 @@ export async function createTestEscrow(opts: {
  * Wipe all rows in a table whose text columns start with the itest_ prefix.
  * Safety net in case a test crashes without calling cleanup.
  */
-async function wipeTestData(
+export async function wipeTestData(
   admin: SupabaseClient,
   table: string,
   column: string
 ): Promise<void> {
   await admin.from(table).delete().like(column, `${TEST_PREFIX}%`);
+}
+
+/**
+ * Sprint 7 (5.5): global safety-net cleanup for every table a test can touch.
+ * Call this from a file's afterAll so any rows leaked by a crashed test
+ * are wiped before the next run. Deletes are keyed on the `itest_` prefix
+ * so real data is never affected.
+ *
+ * Order matters — delete child rows before parents to respect FKs.
+ */
+export async function sweepAllIntegrationTestData(): Promise<void> {
+  const admin = createServiceClient();
+
+  // Children first (reviews, bids, messages reference jobs)
+  await wipeTestData(admin, 'reviews', 'comment');
+  await wipeTestData(admin, 'messages', 'content');
+  await wipeTestData(admin, 'bids', 'message');
+  await wipeTestData(admin, 'escrow_transactions', 'notes');
+  await wipeTestData(admin, 'notifications', 'title');
+  await wipeTestData(admin, 'contracts', 'title');
+
+  // Then parents
+  await wipeTestData(admin, 'jobs', 'title');
+  await wipeTestData(admin, 'properties', 'property_name');
+
+  // Profiles last — the auth.users cascade takes care of the auth side.
+  // Only delete profiles whose email matches the itest_ prefix; first_name
+  // is also safe because we seed it with `${TEST_PREFIX}${role}`.
+  await wipeTestData(admin, 'profiles', 'email');
 }

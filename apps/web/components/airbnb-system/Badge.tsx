@@ -3,6 +3,11 @@
 import React from 'react';
 import type { BadgeProps } from './types';
 
+/**
+ * @deprecated Sprint 7 (5.1) — use `@mintenance/shared-ui`'s `Badge` or
+ * `StatusBadge` instead. This one duplicates the primitive; see
+ * `components/airbnb-system/README.md` for the migration path.
+ */
 export const Badge: React.FC<BadgeProps> = ({
   children,
   variant = 'neutral',

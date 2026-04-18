@@ -78,6 +78,9 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
   const flatListRef = useRef<FlatList>(null);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const typingBroadcastRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(
+    null
+  );
 
   const {
     data: rawMessages,
@@ -163,6 +166,7 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
     if (!user?.id) return;
 
     const channel = supabase.channel(`typing:${jobId}`);
+    typingChannelRef.current = channel;
     channel
       .on(
         'broadcast',
@@ -182,6 +186,7 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
       .subscribe();
 
     return () => {
+      typingChannelRef.current = null;
       if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
       if (typingBroadcastRef.current) clearTimeout(typingBroadcastRef.current);
       supabase.removeChannel(channel);
@@ -191,22 +196,26 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
   const broadcastTyping = useCallback(() => {
     if (!user?.id) return;
     if (typingBroadcastRef.current) return;
+    // Use the already-subscribed channel ref; skip if not yet ready.
+    if (!typingChannelRef.current) return;
 
     typingBroadcastRef.current = setTimeout(() => {
       typingBroadcastRef.current = null;
     }, 2000);
 
-    supabase
-      .channel(`typing:${jobId}`)
+    typingChannelRef.current
       .send({
         type: 'broadcast',
         event: 'typing',
         payload: { userId: user.id },
       })
-      .catch(() => {
-        /* ignore realtime errors */
+      .catch((err: unknown) => {
+        logger.error(
+          'Failed to broadcast typing event to realtime channel',
+          err
+        );
       });
-  }, [jobId, user?.id]);
+  }, [user?.id]);
 
   useEffect(() => {
     if (user?.id && messages.length > 0) {

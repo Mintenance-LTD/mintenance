@@ -16,6 +16,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Skeleton } from '../../components/skeletons/Skeleton';
 import { theme } from '../../theme';
+import { formatCurrency } from '../../utils/formatCurrency';
 
 const AVATAR_COLORS = [
   '#EF4444',
@@ -184,9 +185,7 @@ export const BidsReceived: React.FC<BidsReceivedProps> = ({
               </Text>
             </View>
             <View style={styles.bidRight}>
-              <Text style={styles.bidAmount}>
-                £{bid.amount.toLocaleString()}
-              </Text>
+              <Text style={styles.bidAmount}>{formatCurrency(bid.amount)}</Text>
               {onReviewPress && (
                 <TouchableOpacity
                   style={styles.reviewButton}

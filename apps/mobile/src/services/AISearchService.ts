@@ -4,9 +4,14 @@
  * HTTP client for AI-powered semantic search.
  * All AI operations route through Next.js API routes (no direct Supabase calls).
  * Types are shared from @mintenance/ai-core.
+ *
+ * Fixed 2026-04-16: Previously used raw `fetch()` without auth token injection,
+ * retries, or timeout handling. Now uses `mobileApiClient` which handles all of
+ * these automatically via the token-refresh queue in MobileApiClient.request().
  */
 
 import { logger } from '../utils/logger';
+import { mobileApiClient } from '../utils/mobileApiClient';
 import type {
   SearchResult,
   SearchFilters,
@@ -18,19 +23,6 @@ export type {
   SearchFilters,
   SearchSuggestion,
 } from '@mintenance/ai-core';
-
-const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api';
-
-async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
-    ...options,
-  });
-  if (!response.ok) {
-    throw new Error(`API request failed: ${response.status}`);
-  }
-  return response.json() as Promise<T>;
-}
 
 export class AISearchService {
   /**
@@ -44,10 +36,10 @@ export class AISearchService {
     try {
       const startTime = Date.now();
 
-      const data = await apiFetch<{ results: SearchResult[] }>('/ai/search', {
-        method: 'POST',
-        body: JSON.stringify({ query, filters, limit }),
-      });
+      const data = await mobileApiClient.post<{ results: SearchResult[] }>(
+        '/api/ai/search',
+        { query, filters, limit }
+      );
 
       logger.info('AI search completed', {
         query,
@@ -74,13 +66,9 @@ export class AISearchService {
         return this.getPopularSearches(limit);
       }
 
-      const data = await apiFetch<{ suggestions: SearchSuggestion[] }>(
-        '/ai/search-suggestions',
-        {
-          method: 'POST',
-          body: JSON.stringify({ query: partialQuery, limit }),
-        }
-      );
+      const data = await mobileApiClient.post<{
+        suggestions: SearchSuggestion[];
+      }>('/api/ai/search-suggestions', { query: partialQuery, limit });
 
       return data.suggestions;
     } catch (error) {
@@ -96,9 +84,9 @@ export class AISearchService {
     limit: number = 10
   ): Promise<SearchSuggestion[]> {
     try {
-      const data = await apiFetch<{ trending: SearchSuggestion[] }>(
-        `/ai/trending-searches?limit=${limit}`
-      );
+      const data = await mobileApiClient.get<{
+        trending: SearchSuggestion[];
+      }>(`/api/ai/trending-searches?limit=${limit}`);
       return data.trending;
     } catch (error) {
       logger.error('Failed to get trending searches', error);
@@ -114,8 +102,8 @@ export class AISearchService {
     limit: number = 5
   ): Promise<SearchResult[]> {
     try {
-      const data = await apiFetch<{ similar: SearchResult[] }>(
-        `/ai/similar-jobs/${jobId}?limit=${limit}`
+      const data = await mobileApiClient.get<{ similar: SearchResult[] }>(
+        `/api/ai/similar-jobs/${jobId}?limit=${limit}`
       );
       return data.similar;
     } catch (error) {
@@ -125,7 +113,7 @@ export class AISearchService {
   }
 
   /**
-   * Get popular searches (fallback)
+   * Get popular searches (fallback — no API call, static data)
    */
   private static getPopularSearches(limit: number): SearchSuggestion[] {
     const popularSearches = [

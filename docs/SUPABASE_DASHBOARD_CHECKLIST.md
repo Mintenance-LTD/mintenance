@@ -5,6 +5,21 @@ part of the pre-production release gate.
 
 Project ref: `ukrjudtlvapiajkjbcrd`
 
+## Changelog
+
+- **2026-04-17:** `contractor-documents` and `job-attachments` buckets flipped to PRIVATE via
+  migration `20260417000004_private_doc_buckets.sql`. Callers updated in `apps/web/app/api/upload`,
+  `apps/web/app/api/contractor/documents`, `apps/web/app/api/maintenance/detect`, and
+  `JobSignOffClient.tsx` to use `createSignedUrl` instead of `getPublicUrl`. Section 3 below now
+  only applies to the four remaining public buckets (`avatars`, `contractor-portfolio`,
+  `profile-images`, `training-images`).
+- **2026-04-17:** `contractor_locations` SELECT policy scoped to contractor-own or active-job
+  homeowner via migration `20260417000003_contractor_locations_select_scope.sql`.
+- **2026-04-17:** `user_notification_preferences` table created via migration
+  `20260417000005_user_notification_preferences.sql`. Supersedes drift item
+  `20260406071552_drop_unused_user_notification_preferences_table` — re-introduced now that
+  NotificationService opt-outs can be wired.
+
 ## Pre-production (Sprint 1.5 + remaining audit items)
 
 ### 1. Enable leaked password protection
