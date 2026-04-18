@@ -139,6 +139,13 @@ export type ProfileStackParamList = {
   PhotoUpload: { jobId: string; photoType: 'before' | 'after' };
   Calendar: undefined;
   Reviews: undefined;
+  // R7 #19 — contractor right-of-reply (48h moderation).
+  ReplyToReview: {
+    reviewId: string;
+    reviewerName: string;
+    reviewComment: string;
+    rating: number;
+  };
   PaymentHistory: undefined;
   Subscription: undefined;
   Financials: undefined;

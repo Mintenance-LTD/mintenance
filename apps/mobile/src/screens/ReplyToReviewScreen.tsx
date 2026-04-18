@@ -17,23 +17,14 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { mobileApiClient as apiClient } from '../utils/mobileApiClient';
 import { theme } from '../theme';
+import type { ProfileStackParamList } from '../navigation/types';
 
-interface RouteParams {
-  reviewId: string;
-  reviewerName: string;
-  reviewComment: string;
-  rating: number;
-}
-
-interface Props {
-  route: { params: RouteParams };
-  navigation: NativeStackNavigationProp<Record<string, object | undefined>>;
-}
+type Props = NativeStackScreenProps<ProfileStackParamList, 'ReplyToReview'>;
 
 export const ReplyToReviewScreen: React.FC<Props> = ({ route, navigation }) => {
   const { reviewId, reviewerName, reviewComment, rating } = route.params;

@@ -54,6 +54,7 @@ import {
   SafeBusinessProfileScreen,
   SafeCalendarScreen,
   SafeReviewsScreen,
+  SafeReplyToReviewScreen,
   SafeExpensesScreen,
   SafeDocumentsScreen,
   SafeCertificationsScreen,
@@ -237,6 +238,11 @@ const ProfileNavigator = () => {
         name='Reviews'
         component={SafeReviewsScreen}
         options={{ headerShown: false }}
+      />
+      <ProfileStack.Screen
+        name='ReplyToReview'
+        component={SafeReplyToReviewScreen}
+        options={{ headerShown: false, presentation: 'modal' }}
       />
       <ProfileStack.Screen
         name='PaymentHistory'

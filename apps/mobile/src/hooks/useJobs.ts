@@ -78,6 +78,9 @@ export const useCreateJob = () => {
       subcategory?: string;
       priority?: 'low' | 'medium' | 'high';
       photos?: string[];
+      // R6 #19 landlord / tenancy — optional forwarding to the server
+      is_rental_property?: boolean;
+      tenancy_metadata?: Record<string, unknown>;
     }) => {
       // Server-side validation (backup for client validation)
       if (!jobData.title.trim()) {
