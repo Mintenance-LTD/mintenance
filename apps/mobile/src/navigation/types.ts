@@ -53,6 +53,10 @@ export type JobsStackParamList = {
   JobsList: undefined;
   JobDetails: { jobId: string };
   JobPosting: undefined;
+  // R3 deferred #7 — Silver-mode-friendly assisted wizard (3 steps,
+  // larger touch targets, fewer fields). Auto-routed when
+  // useSilverMode().silverMode is true.
+  PostJobWizard: undefined;
   ExploreMap: undefined;
   BidSubmission: { jobId: string; existingBidId?: string };
   JobPayment: {

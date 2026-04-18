@@ -29,6 +29,7 @@ import { JobPostingFormFields } from './job-form/JobPostingFormFields';
 import { TenancyFields, type TenancyState } from './job-form/TenancyFields';
 import { JOB_CATEGORIES } from './job-form/constants';
 import { theme } from '../theme';
+import { useSilverMode } from '../hooks/useSilverMode';
 
 interface Props {
   navigation: NativeStackNavigationProp<JobsStackParamList, 'JobPosting'>;
@@ -62,12 +63,17 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
   });
 
   const createJobMutation = useCreateJob();
+  const { silverMode, loading: silverLoading } = useSilverMode();
 
   useEffect(() => {
     if (user && user.role !== 'homeowner') {
       navigation.navigate('HomeTab' as never);
     }
-  }, [user, navigation]);
+    // R3 deferred #7 — Silver-mode users go to the simplified 3-step wizard.
+    if (!silverLoading && silverMode) {
+      navigation.navigate('PostJobWizard' as never);
+    }
+  }, [user, navigation, silverMode, silverLoading]);
 
   const handlePricingUpdate = (analysis: PricingAnalysis) => {
     setAIPricingAnalysis(analysis);
