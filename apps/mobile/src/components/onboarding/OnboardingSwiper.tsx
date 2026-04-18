@@ -318,8 +318,19 @@ export const contractorSlides: OnboardingSlide[] = [
     id: 'get-paid',
     title: 'Get Paid Faster',
     description:
-      'Secure escrow system ensures you get paid for completed work. No more payment delays.',
+      'Homeowner payment is secured before you arrive. Complete the work, upload after-photos — money releases to your Stripe account.',
     icon: '💰',
     backgroundColor: '#F3E8FF',
+  },
+  {
+    // R2 of docs/RETENTION_ROADMAP_2026.md — the "Protected Payment
+    // protects you too" beat. Counter to the PDF §4.3 mental model
+    // "who protects me if the homeowner is the dodgy one?".
+    id: 'protected-payment-contractor',
+    title: 'Protected Payment works for you too',
+    description:
+      'Funds are held before you arrive and released on homeowner approval (or automatically after the 7-day review window). No chasing invoices.',
+    icon: '🛡️',
+    backgroundColor: theme.colors.primaryLight,
   },
 ];

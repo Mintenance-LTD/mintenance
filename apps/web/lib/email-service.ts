@@ -28,6 +28,7 @@ import {
   newsletterWelcomeTemplate,
   tenantInviteTemplate,
   tenantJobNotificationTemplate,
+  cashFlowDigestTemplate,
 } from './email-templates';
 // Re-export data interfaces for consumers that import them from this module
 interface EmailOptions {
@@ -244,6 +245,21 @@ export class EmailService {
       this.getUnsubscribeFooter()
     );
     return this.sendEmail({ to: homeownerEmail, subject, html, text });
+  }
+
+  /**
+   * Send Friday cash-flow digest to a contractor.
+   * R2 #16 of docs/RETENTION_ROADMAP_2026.md.
+   */
+  static async sendCashFlowDigestEmail(
+    contractorEmail: string,
+    data: Parameters<typeof cashFlowDigestTemplate>[0]
+  ): Promise<boolean> {
+    const { subject, html, text } = cashFlowDigestTemplate(
+      data,
+      this.getUnsubscribeFooter()
+    );
+    return this.sendEmail({ to: contractorEmail, subject, html, text });
   }
 
   /** Send payment received notification email to the contractor */

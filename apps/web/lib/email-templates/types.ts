@@ -127,6 +127,22 @@ export interface TenantInviteData {
   inviteUrl: string;
 }
 
+/**
+ * Friday cash-flow digest for contractors (R2 of the retention roadmap).
+ * Payload is aggregated per week so the template stays pure-render.
+ */
+export interface CashFlowDigestData {
+  contractorName: string;
+  weekStart: string; // ISO date (Monday of the digest week)
+  weekEnd: string; // ISO date (Sunday)
+  earnedThisWeek: number;
+  releasingNextWeek: number;
+  jobsCompleted: number;
+  activeEscrowCount: number;
+  activeEscrowTotal: number;
+  viewUrl: string;
+}
+
 export interface InvoiceNotificationData {
   clientName: string;
   contractorName: string;
