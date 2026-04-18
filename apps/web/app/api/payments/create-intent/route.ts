@@ -90,10 +90,15 @@ export const POST = withApiHandler(
         );
       }
 
-      // Verify job exists and user is the homeowner
+      // Verify job exists and user is the designated payer
+      // R6 #19: when payer_user_id is set on the job (landlord / agency
+      // flow), only THAT user can fund escrow. When NULL, fall back to
+      // homeowner_id (the poster).
       const { data: job, error: jobError } = await serverSupabase
         .from('jobs')
-        .select('id, homeowner_id, title, contractor_id, budget, status')
+        .select(
+          'id, homeowner_id, payer_user_id, is_rental_property, title, contractor_id, budget, status'
+        )
         .eq('id', jobId)
         .single();
 
@@ -106,15 +111,19 @@ export const POST = withApiHandler(
         throw new NotFoundError('Job not found');
       }
 
-      if (job.homeowner_id !== user.id) {
+      const authorizedPayerId =
+        (job.payer_user_id as string | null) || job.homeowner_id;
+
+      if (authorizedPayerId !== user.id) {
         logger.warn('Unauthorized payment intent creation attempt', {
           service: 'payments',
           userId: user.id,
           jobId,
           homeownerId: job.homeowner_id,
+          payerUserId: job.payer_user_id,
         });
         return NextResponse.json(
-          { error: 'Only the homeowner can create payments' },
+          { error: 'Only the designated payer can fund this job' },
           { status: 403 }
         );
       }
@@ -219,7 +228,39 @@ export const POST = withApiHandler(
       }
 
       // From here on, this is THE amount — do not trust `amount` further.
-      const authoritativeAmount = acceptedBid.amount;
+      let authoritativeAmount = acceptedBid.amount;
+
+      // R7 #8 neighbour referral: spend any accrued credit before the
+      // Stripe charge. Amounts on this route are in pounds — convert to
+      // pence, cap at the amount due, then translate back. A tiny
+      // minimum of £1 is left on the card so Stripe always has a
+      // reserve to hold escrow against.
+      let creditAppliedPence = 0;
+      try {
+        const { NeighbourhoodReferralService } =
+          await import('@/lib/services/referrals/NeighbourhoodReferralService');
+        const amountPence = Math.round(authoritativeAmount * 100);
+        const maxSpendPence = Math.max(0, amountPence - 100); // keep £1 floor
+        if (maxSpendPence > 0) {
+          creditAppliedPence = await NeighbourhoodReferralService.spendCredit(
+            user.id,
+            maxSpendPence,
+            'escrow_payment',
+            jobId
+          );
+          if (creditAppliedPence > 0) {
+            authoritativeAmount = (amountPence - creditAppliedPence) / 100;
+          }
+        }
+      } catch (creditErr) {
+        logger.warn('Credit spend hook failed, continuing at full price', {
+          service: 'payments',
+          userId: user.id,
+          jobId,
+          err:
+            creditErr instanceof Error ? creditErr.message : String(creditErr),
+        });
+      }
 
       // Idempotency check - prevent duplicate payment intent creation
       const idempotencyKey = getIdempotencyKeyFromRequest(
@@ -283,9 +324,12 @@ export const POST = withApiHandler(
                 metadata?.description || `Payment for job: ${job.title}`,
               metadata: {
                 jobId,
-                homeownerId: user.id,
+                homeownerId: job.homeowner_id,
+                payerId: user.id,
                 contractorId: job.contractor_id,
                 bidAmount: authoritativeAmount.toString(),
+                isRentalProperty: String(Boolean(job.is_rental_property)),
+                creditAppliedPence: String(creditAppliedPence),
               },
               // Enable automatic payment methods
               automatic_payment_methods: {

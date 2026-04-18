@@ -16,7 +16,10 @@ export const GET = withApiHandler(
   { auth: false, rateLimit: false },
   async (request, { params }) => {
     // Custom IP-based rate limiting (contractor ID in URL makes each request unique)
-    const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous';
+    const ip =
+      request.headers.get('x-forwarded-for')?.split(',')[0] ||
+      request.headers.get('x-real-ip') ||
+      'anonymous';
     const rateLimitResult = await rateLimiter.checkRateLimit({
       identifier: `contractor-profile:${ip}`,
       windowMs: 60000,
@@ -32,30 +35,49 @@ export const GET = withApiHandler(
             'Retry-After': String(rateLimitResult.retryAfter || 60),
             'X-RateLimit-Limit': String(30),
             'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-            'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString(),
+            'X-RateLimit-Reset': new Date(
+              rateLimitResult.resetTime
+            ).toISOString(),
           },
-        },
+        }
       );
     }
 
-    return withPublicRateLimit(request, async () => {
-      const { id } = params;
-      if (!id) {
-        logger.warn('Contractor ID missing in request', { service: 'contractors' });
-        throw new BadRequestError('Contractor id missing');
-      }
+    return withPublicRateLimit(
+      request,
+      async () => {
+        const { id } = params;
+        if (!id) {
+          logger.warn('Contractor ID missing in request', {
+            service: 'contractors',
+          });
+          throw new BadRequestError('Contractor id missing');
+        }
 
-      // First check if user exists at all (without role filter)
-      const { data: userCheck } = await serverSupabase
-        .from('profiles')
-        .select('id, role')
-        .eq('id', id)
-        .single();
+        // R7 #9 postcode-proof badge — optional caller-supplied postcode to
+        // surface "Hired by N households on <PREFIX> in the last 12 months".
+        const rawPostcode = (
+          request.nextUrl.searchParams.get('postcode') || ''
+        ).trim();
+        const postcodePrefix = rawPostcode
+          ? (rawPostcode
+              .replace(/\s+/g, '')
+              .toUpperCase()
+              .match(/^[A-Z]{1,2}\d[A-Z\d]?/)?.[0] ?? '')
+          : '';
 
-      // Fetch contractor from database with all relevant fields
-      const { data: contractor, error } = await serverSupabase
-        .from('profiles')
-        .select(`
+        // First check if user exists at all (without role filter)
+        const { data: userCheck } = await serverSupabase
+          .from('profiles')
+          .select('id, role')
+          .eq('id', id)
+          .single();
+
+        // Fetch contractor from database with all relevant fields
+        const { data: contractor, error } = await serverSupabase
+          .from('profiles')
+          .select(
+            `
           id,
           first_name,
           last_name,
@@ -75,89 +97,159 @@ export const GET = withApiHandler(
           is_available,
           total_jobs_completed,
           created_at
-        `)
-        .eq('id', id)
-        .eq('role', 'contractor')
-        .single();
+        `
+          )
+          .eq('id', id)
+          .eq('role', 'contractor')
+          .single();
 
-      // Fetch skills separately from contractor_skills table
-      const { data: skillsData } = await serverSupabase
-        .from('contractor_skills')
-        .select('skill_name')
-        .eq('contractor_id', id);
+        // Fetch skills separately from contractor_skills table
+        const { data: skillsData } = await serverSupabase
+          .from('contractor_skills')
+          .select('skill_name')
+          .eq('contractor_id', id);
 
-      // Fetch hourly rate from contractor_profiles
-      const { data: contractorProfileData } = await serverSupabase
-        .from('contractor_profiles')
-        .select('hourly_rate')
-        .eq('id', id)
-        .single();
+        // Fetch hourly rate from contractor_profiles
+        const { data: contractorProfileData } = await serverSupabase
+          .from('contractor_profiles')
+          .select('hourly_rate')
+          .eq('id', id)
+          .single();
 
-      const skills = skillsData?.map(s => s.skill_name) || [];
+        const skills = skillsData?.map((s) => s.skill_name) || [];
 
-      // Fetch review count from reviews table
-      const { count: reviewCount } = await serverSupabase
-        .from('reviews')
-        .select('*', { count: 'exact', head: true })
-        .eq('contractor_id', id)
-        .eq('is_visible', true);
+        // Fetch review count from reviews table
+        const { count: reviewCount } = await serverSupabase
+          .from('reviews')
+          .select('*', { count: 'exact', head: true })
+          .eq('contractor_id', id)
+          .eq('is_visible', true);
 
-      if (error || !contractor) {
-        logger.info('Contractor not found', {
+        if (error || !contractor) {
+          logger.info('Contractor not found', {
+            service: 'contractors',
+            contractorId: id,
+            error: error?.message,
+            userExists: !!userCheck,
+            userRole: userCheck?.role,
+          });
+          throw new NotFoundError('Contractor not found');
+        }
+
+        // R7 #9 — postcode proof: COUNT(DISTINCT homeowner_id) on this
+        // contractor's completed jobs within 12mo + matching postcode prefix.
+        // We only return the counter when >= 2 (privacy — single-job
+        // identifying a specific homeowner is not useful).
+        let postcodeProofCount: number | null = null;
+        if (postcodePrefix) {
+          const { data: proofRows } = await serverSupabase
+            .from('jobs')
+            .select('homeowner_id, postcode')
+            .eq('contractor_id', id)
+            .eq('status', 'completed')
+            .gte(
+              'completed_at',
+              new Date(Date.now() - 365 * 24 * 3600 * 1000).toISOString()
+            );
+          const distinct = new Set<string>();
+          for (const r of proofRows || []) {
+            const pc = ((r.postcode as string | null) || '')
+              .replace(/\s+/g, '')
+              .toUpperCase();
+            if (pc.startsWith(postcodePrefix)) {
+              distinct.add(r.homeowner_id as string);
+            }
+          }
+          postcodeProofCount = distinct.size >= 2 ? distinct.size : null;
+        }
+
+        // R7 #11 — dispute history: counts + mean resolution time against
+        // this contractor. `disputes.against` references the contractor.
+        const { data: disputeRows } = await serverSupabase
+          .from('disputes')
+          .select('id, status, created_at, resolved_at')
+          .eq('against', id);
+        const resolved = (disputeRows || []).filter(
+          (d) => d.status === 'resolved' && d.resolved_at
+        );
+        const unresolvedCount = (disputeRows || []).length - resolved.length;
+        const avgResolutionHours =
+          resolved.length > 0
+            ? Math.round(
+                resolved.reduce((acc, d) => {
+                  const ms =
+                    new Date(d.resolved_at as string).getTime() -
+                    new Date(d.created_at as string).getTime();
+                  return acc + ms;
+                }, 0) /
+                  resolved.length /
+                  (1000 * 60 * 60)
+              )
+            : null;
+
+        // Transform to ContractorProfile format with extended fields
+        const contractorProfile: ContractorProfile & {
+          company_name?: string;
+          city?: string;
+          country?: string;
+          address?: string;
+          latitude?: number;
+          longitude?: number;
+          is_available?: boolean;
+          total_jobs_completed?: number;
+          phone?: string;
+          email?: string;
+          skills?: string[];
+          hourly_rate?: number;
+          created_at?: string;
+          verified?: boolean;
+          postcode_prefix?: string;
+          postcode_proof_count?: number | null;
+          dispute_history?: {
+            resolved_count: number;
+            unresolved_count: number;
+            avg_resolution_hours: number | null;
+          };
+        } = {
+          id: contractor.id,
+          name:
+            `${contractor.first_name || ''} ${contractor.last_name || ''}`.trim() ||
+            contractor.email,
+          avatarUrl: contractor.profile_image_url,
+          rating: contractor.rating || 0,
+          reviewCount: reviewCount || 0,
+          bio: contractor.bio,
+          company_name: contractor.company_name,
+          city: contractor.city,
+          country: contractor.country,
+          address: contractor.address,
+          latitude: contractor.latitude,
+          longitude: contractor.longitude,
+          is_available: contractor.is_available,
+          total_jobs_completed: contractor.total_jobs_completed || 0,
+          phone: contractor.phone,
+          email: contractor.email,
+          skills: skills,
+          hourly_rate: contractorProfileData?.hourly_rate ?? undefined,
+          created_at: contractor.created_at,
+          verified: contractor.admin_verified || false,
+          postcode_prefix: postcodePrefix || undefined,
+          postcode_proof_count: postcodeProofCount,
+          dispute_history: {
+            resolved_count: resolved.length,
+            unresolved_count: unresolvedCount,
+            avg_resolution_hours: avgResolutionHours,
+          },
+        };
+
+        logger.info('Contractor retrieved successfully', {
           service: 'contractors',
           contractorId: id,
-          error: error?.message,
-          userExists: !!userCheck,
-          userRole: userCheck?.role,
         });
-        throw new NotFoundError('Contractor not found');
-      }
 
-      // Transform to ContractorProfile format with extended fields
-      const contractorProfile: ContractorProfile & {
-        company_name?: string;
-        city?: string;
-        country?: string;
-        address?: string;
-        latitude?: number;
-        longitude?: number;
-        is_available?: boolean;
-        total_jobs_completed?: number;
-        phone?: string;
-        email?: string;
-        skills?: string[];
-        hourly_rate?: number;
-        created_at?: string;
-        verified?: boolean;
-      } = {
-        id: contractor.id,
-        name: `${contractor.first_name || ''} ${contractor.last_name || ''}`.trim() || contractor.email,
-        avatarUrl: contractor.profile_image_url,
-        rating: contractor.rating || 0,
-        reviewCount: reviewCount || 0,
-        bio: contractor.bio,
-        company_name: contractor.company_name,
-        city: contractor.city,
-        country: contractor.country,
-        address: contractor.address,
-        latitude: contractor.latitude,
-        longitude: contractor.longitude,
-        is_available: contractor.is_available,
-        total_jobs_completed: contractor.total_jobs_completed || 0,
-        phone: contractor.phone,
-        email: contractor.email,
-        skills: skills,
-        hourly_rate: contractorProfileData?.hourly_rate ?? undefined,
-        created_at: contractor.created_at,
-        verified: contractor.admin_verified || false,
-      };
-
-      logger.info('Contractor retrieved successfully', {
-        service: 'contractors',
-        contractorId: id,
-      });
-
-      return NextResponse.json({ contractor: contractorProfile });
-    }, 'resource');
-  },
+        return NextResponse.json({ contractor: contractorProfile });
+      },
+      'resource'
+    );
+  }
 );

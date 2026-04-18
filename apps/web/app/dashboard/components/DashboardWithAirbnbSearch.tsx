@@ -21,6 +21,8 @@ import { logger } from '@/lib/logger';
 import { PredictiveRecommendations } from './PredictiveRecommendations';
 import { BidsReceivedSection } from './BidsReceivedSection';
 import { categoryImages } from './dashboard-search-types';
+import { ReferralCard } from '@/components/referrals/ReferralCard';
+import { LandlordPayerJobsCard } from '@/components/landlord/LandlordPayerJobsCard';
 import type {
   DashboardWithAirbnbSearchProps,
   PortfolioAccessState,
@@ -372,6 +374,13 @@ export function DashboardWithAirbnbSearch({
 
           {/* Right Column - Recommendations & Activity */}
           <div className='space-y-6'>
+            {/* Deferred follow-up #4 — landlord / agency inbound payer view.
+                Self-hides when there are no delegated-payer jobs. */}
+            <LandlordPayerJobsCard />
+
+            {/* R7 #8 neighbour referral */}
+            <ReferralCard />
+
             {/* Property Health Recommendations */}
             <PredictiveRecommendations recommendations={recommendations} />
 

@@ -48,6 +48,11 @@ export class JobCRUDService {
     property_id?: string;
     latitude?: number;
     longitude?: number;
+    // R6 #19 landlord / tenancy fields — forwarded to the server which
+    // sets jobs.is_rental_property + jobs.tenancy_metadata + resolves
+    // payer_user_id from tenancy_metadata.payer_email.
+    is_rental_property?: boolean;
+    tenancy_metadata?: Record<string, unknown>;
   }): Promise<Job> {
     const context = {
       service: 'JobCRUDService',
@@ -100,6 +105,11 @@ export class JobCRUDService {
           property_id: jobData.property_id,
           latitude: jobData.latitude,
           longitude: jobData.longitude,
+          // R6 #19 landlord / tenancy — only forward when set
+          ...(jobData.is_rental_property ? { is_rental_property: true } : {}),
+          ...(jobData.tenancy_metadata
+            ? { tenancy_metadata: jobData.tenancy_metadata }
+            : {}),
         }
       );
 

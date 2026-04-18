@@ -49,6 +49,9 @@
     { "path": "/api/cron/model-retraining",             "schedule": "0 5 * * *"   },
     { "path": "/api/cron/vlm-retraining",               "schedule": "0 5 * * *"   },
     { "path": "/api/cron/contractor-payouts",           "schedule": "0 9 * * 5"   },
-    { "path": "/api/cron/contractor-cashflow-digest",   "schedule": "0 9 * * 5"   }
+    { "path": "/api/cron/contractor-cashflow-digest",   "schedule": "0 9 * * 5"   },
+    { "path": "/api/cron/annual-home-mot",              "schedule": "0 7 * * *"   },
+    { "path": "/api/cron/post-job-nudge",               "schedule": "0 8 * * *"   },
+    { "path": "/api/cron/publish-review-replies",       "schedule": "0 * * * *"   }
   ]
 }

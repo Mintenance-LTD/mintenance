@@ -290,6 +290,60 @@ export const POST = withApiHandler(
           if (!completeError) {
             jobCompleted = true;
 
+            // R7 #8 neighbour referral: if the homeowner redeemed a
+            // referral and this is their first completed job, credit
+            // £20 to both parties. Non-fatal if it fails.
+            try {
+              const { NeighbourhoodReferralService } =
+                await import('@/lib/services/referrals/NeighbourhoodReferralService');
+              await NeighbourhoodReferralService.applyRewardOnFirstJob(
+                job.homeowner_id,
+                jobId
+              );
+            } catch (refErr) {
+              logger.warn('Referral reward hook failed', {
+                service: 'jobs',
+                jobId,
+                err: refErr instanceof Error ? refErr.message : String(refErr),
+              });
+            }
+
+            // R6 #5 deferred: tenant + payer fan-out on completion. The
+            // homeowner + contractor pings still happen in the Promise.all
+            // block below; this only notifies the NEW R6 roles so rental
+            // tenants and landlord payers learn the job is done.
+            try {
+              const { notifyStakeholders } =
+                await import('@/lib/services/notifications/JobStakeholderNotifier');
+              const titleSafe = job.title || 'your job';
+              await notifyStakeholders({
+                jobId,
+                type: 'job_completed',
+                onlyRoles: ['payer', 'tenant'],
+                titleFor: (role) =>
+                  role === 'tenant'
+                    ? 'Work finished at your home'
+                    : 'Work completed',
+                messageFor: (role) =>
+                  role === 'tenant'
+                    ? `The contractor has finished work on "${titleSafe}". If anything needs attention, let your landlord know.`
+                    : `Work on "${titleSafe}" has been marked complete. Review the photos and release payment when you're happy.`,
+                actionUrlFor: () => `/jobs/${jobId}`,
+                emailTenants: true,
+                tenantJobStatus: 'completed',
+                skipUserId: user.id,
+              });
+            } catch (fanoutErr) {
+              logger.warn('Stakeholder fan-out on job completion failed', {
+                service: 'jobs',
+                jobId,
+                err:
+                  fanoutErr instanceof Error
+                    ? fanoutErr.message
+                    : String(fanoutErr),
+              });
+            }
+
             // Notify homeowner to review and contractor of completion
             await Promise.all([
               NotificationService.createNotification({

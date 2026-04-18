@@ -1,509 +1,319 @@
 'use client';
 
-import React, { useState } from 'react';
-import { AnimatePresence } from 'framer-motion';;
-import {
-  Users,
-  Plus,
-  Edit,
-  Trash2,
-  Mail,
-  Phone,
-  Shield,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
-  Star,
-  Briefcase,
-  Settings,
-  Key,
-} from 'lucide-react';
+/**
+ * Contractor Team page — R6 #18 of docs/RETENTION_ROADMAP_2026.md.
+ *
+ * Live-wired against /api/organizations/:id/members + /invite. The
+ * signed-in user needs to belong to at least one contractor_company
+ * organization. If they don't yet, we show an onboarding prompt.
+ */
+
+import React, { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
-import { MotionButton, MotionDiv } from '@/components/ui/MotionDiv';
+import { Users, Plus, Trash2, Mail, ShieldCheck } from 'lucide-react';
+import { InviteMemberDialog, type OrgRole } from './InviteMemberDialog';
 
-// Animation variants
-const fadeIn = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0 },
-};
-
-const staggerContainer = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.1 },
-  },
-};
-
-const staggerItem = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0 },
-};
-
-interface TeamMember {
+interface Org {
   id: string;
   name: string;
-  email: string;
-  phone: string;
-  role: 'admin' | 'manager' | 'technician' | 'apprentice';
-  status: 'active' | 'inactive' | 'pending';
-  joinDate: string;
-  completedJobs: number;
-  rating: number;
-  specialties: string[];
-  permissions: {
-    manageJobs: boolean;
-    manageBids: boolean;
-    manageFinances: boolean;
-    manageTeam: boolean;
-  };
+  organization_type: string;
+  myRole: OrgRole;
 }
 
-export default function ContractorTeamPage2025() {
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
-  const [showPermissions, setShowPermissions] = useState(false);
+interface MemberProfile {
+  id: string;
+  first_name: string | null;
+  last_name: string | null;
+  email: string | null;
+  company_name: string | null;
+}
 
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+interface Member {
+  id: string;
+  user_id: string;
+  org_role: OrgRole;
+  status: string;
+  created_at: string;
+  profile: MemberProfile | null;
+}
 
-  const stats = {
-    totalMembers: teamMembers.length,
-    activeMembers: teamMembers.filter((m) => m.status === 'active').length,
-    pendingInvites: teamMembers.filter((m) => m.status === 'pending').length,
-    averageRating: teamMembers.reduce((sum, m) => sum + m.rating, 0) / teamMembers.filter((m) => m.rating > 0).length,
-  };
+interface PendingInvite {
+  id: string;
+  invited_email: string;
+  org_role: OrgRole;
+  created_at: string;
+}
 
-  const getRoleColor = (role: string) => {
-    switch (role) {
-      case 'admin':
-        return 'bg-purple-100 text-purple-700 border-purple-200';
-      case 'manager':
-        return 'bg-blue-100 text-blue-700 border-blue-200';
-      case 'technician':
-        return 'bg-emerald-100 text-emerald-700 border-emerald-200';
-      case 'apprentice':
-        return 'bg-green-100 text-green-700 border-green-200';
-      default:
-        return 'bg-gray-100 text-gray-700 border-gray-200';
+function roleBadgeClass(role: OrgRole): string {
+  switch (role) {
+    case 'owner':
+      return 'bg-purple-100 text-purple-700 border-purple-200';
+    case 'manager':
+      return 'bg-blue-100 text-blue-700 border-blue-200';
+    case 'dispatcher':
+    case 'maintenance_coordinator':
+      return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+    case 'accountant':
+      return 'bg-amber-100 text-amber-700 border-amber-200';
+    default:
+      return 'bg-gray-100 text-gray-700 border-gray-200';
+  }
+}
+
+export default function ContractorTeamPage() {
+  const [orgs, setOrgs] = useState<Org[]>([]);
+  const [activeOrg, setActiveOrg] = useState<Org | null>(null);
+  const [members, setMembers] = useState<Member[]>([]);
+  const [pending, setPending] = useState<PendingInvite[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showInvite, setShowInvite] = useState(false);
+
+  const loadMembers = useCallback(async (orgId: string) => {
+    const res = await fetch(`/api/organizations/${orgId}/members`, {
+      credentials: 'same-origin',
+    });
+    if (!res.ok) {
+      setMembers([]);
+      setPending([]);
+      return;
     }
-  };
+    const json = await res.json();
+    setMembers((json.members || []) as Member[]);
+    setPending((json.pendingInvitations || []) as PendingInvite[]);
+  }, []);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active':
-        return 'bg-green-100 text-green-700';
-      case 'inactive':
-        return 'bg-gray-100 text-gray-700';
-      case 'pending':
-        return 'bg-yellow-100 text-yellow-700';
-      default:
-        return 'bg-gray-100 text-gray-700';
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      try {
+        const res = await fetch('/api/user/organizations', {
+          credentials: 'same-origin',
+        });
+        if (!res.ok) {
+          if (!cancelled) setOrgs([]);
+          return;
+        }
+        const json = await res.json();
+        const list = (json.organizations || []) as Org[];
+        if (cancelled) return;
+        setOrgs(list);
+        const contractorOrg =
+          list.find((o) => o.organization_type === 'contractor_company') ||
+          list[0] ||
+          null;
+        setActiveOrg(contractorOrg);
+        if (contractorOrg) {
+          await loadMembers(contractorOrg.id);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [loadMembers]);
+
+  async function remove(member: Member) {
+    if (!activeOrg) return;
+    if (
+      !window.confirm(
+        `Remove ${member.profile?.email ?? member.user_id} from ${activeOrg.name}?`
+      )
+    ) {
+      return;
     }
-  };
+    const res = await fetch(
+      `/api/organizations/${activeOrg.id}/members?userId=${member.user_id}`,
+      { method: 'DELETE', credentials: 'same-origin' }
+    );
+    if (!res.ok) {
+      const j = await res.json().catch(() => ({}));
+      toast.error(j?.error?.message || 'Could not remove member');
+      return;
+    }
+    toast.success('Member removed');
+    await loadMembers(activeOrg.id);
+  }
 
-  const handleAddMember = () => {
-    setShowAddForm(true);
-  };
+  async function revokeInvite(inv: PendingInvite) {
+    if (!activeOrg) return;
+    const res = await fetch(
+      `/api/organizations/${activeOrg.id}/invite?invitationId=${inv.id}`,
+      { method: 'DELETE', credentials: 'same-origin' }
+    );
+    if (!res.ok) {
+      toast.error('Could not revoke invite');
+      return;
+    }
+    toast.success('Invitation revoked');
+    await loadMembers(activeOrg.id);
+  }
 
-  const handleEditPermissions = (member: TeamMember) => {
-    setSelectedMember(member);
-    setShowPermissions(true);
-  };
+  if (loading) {
+    return (
+      <div className='min-h-screen flex items-center justify-center text-gray-500'>
+        Loading your team…
+      </div>
+    );
+  }
 
-  const handleRemoveMember = (id: string) => {
-    setTeamMembers(teamMembers.filter((m) => m.id !== id));
-    toast.success('Team member removed');
-  };
+  if (!activeOrg) {
+    return (
+      <div className='max-w-2xl mx-auto px-4 py-16 text-center'>
+        <Users className='w-12 h-12 text-gray-400 mx-auto mb-4' />
+        <h1 className='text-2xl font-bold text-gray-900 mb-2'>
+          You don&apos;t have a team yet
+        </h1>
+        <p className='text-gray-600 mb-6'>
+          Create a contractor company to invite teammates, share jobs, and keep
+          a dispatcher / field-crew workflow.
+        </p>
+        <a
+          href='/contractor/onboarding/company'
+          className='inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-lg font-semibold hover:bg-emerald-700'
+        >
+          <Plus className='w-4 h-4' /> Create company
+        </a>
+      </div>
+    );
+  }
 
-  const handleSavePermissions = () => {
-    toast.success('Permissions updated successfully!');
-    setShowPermissions(false);
-    setSelectedMember(null);
-  };
+  const canManage =
+    activeOrg.myRole === 'owner' || activeOrg.myRole === 'manager';
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-amber-50">
-      {/* Hero Header */}
-      <MotionDiv
-        initial="hidden"
-        animate="visible"
-        variants={fadeIn}
-        className="bg-gradient-to-r from-emerald-600 via-amber-600 to-emerald-700 text-white"
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-3 mb-4">
-                <div className="bg-white/20 backdrop-blur-sm p-3 rounded-xl">
-                  <Users className="w-8 h-8" />
-                </div>
-                <h1 className="text-4xl font-bold">Team Management</h1>
-              </div>
-              <p className="text-emerald-100 text-lg">
-                Manage your team members, roles, and permissions
-              </p>
+    <div className='min-h-screen bg-gradient-to-br from-emerald-50 via-white to-amber-50 pb-12'>
+      <header className='bg-gradient-to-r from-emerald-600 to-emerald-700 text-white'>
+        <div className='max-w-5xl mx-auto px-4 py-10 flex items-center justify-between'>
+          <div>
+            <div className='flex items-center gap-2 text-emerald-100 text-sm mb-1'>
+              <ShieldCheck className='w-4 h-4' />
+              <span>{activeOrg.name}</span>
             </div>
-
-            <MotionButton
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={handleAddMember}
-              className="bg-white text-emerald-600 px-6 py-3 rounded-xl font-semibold hover:shadow-lg transition-shadow flex items-center gap-2"
-            >
-              <Plus className="w-5 h-5" />
-              Add Team Member
-            </MotionButton>
+            <h1 className='text-3xl font-bold'>Team</h1>
+            <p className='text-emerald-100 text-sm mt-1'>
+              {members.length} member{members.length === 1 ? '' : 's'}
+              {pending.length > 0
+                ? ` · ${pending.length} pending invite${pending.length === 1 ? '' : 's'}`
+                : ''}
+            </p>
           </div>
-
-          {/* Stats Grid */}
-          <MotionDiv
-            variants={staggerContainer}
-            initial="hidden"
-            animate="visible"
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-8"
-          >
-            <MotionDiv
-              variants={staggerItem}
-              className="bg-white/20 backdrop-blur-sm rounded-xl p-4"
+          {canManage && (
+            <button
+              onClick={() => setShowInvite(true)}
+              className='bg-white text-emerald-700 px-4 py-2 rounded-lg font-semibold flex items-center gap-2 hover:shadow'
             >
-              <div className="flex items-center gap-2 mb-2">
-                <Users className="w-5 h-5 text-emerald-200" />
-                <p className="text-emerald-100 text-sm">Total Team</p>
-              </div>
-              <p className="text-3xl font-bold">{stats.totalMembers}</p>
-            </MotionDiv>
-
-            <MotionDiv
-              variants={staggerItem}
-              className="bg-white/20 backdrop-blur-sm rounded-xl p-4"
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <CheckCircle className="w-5 h-5 text-green-200" />
-                <p className="text-emerald-100 text-sm">Active</p>
-              </div>
-              <p className="text-3xl font-bold">{stats.activeMembers}</p>
-            </MotionDiv>
-
-            <MotionDiv
-              variants={staggerItem}
-              className="bg-white/20 backdrop-blur-sm rounded-xl p-4"
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <AlertCircle className="w-5 h-5 text-yellow-200" />
-                <p className="text-emerald-100 text-sm">Pending</p>
-              </div>
-              <p className="text-3xl font-bold">{stats.pendingInvites}</p>
-            </MotionDiv>
-
-            <MotionDiv
-              variants={staggerItem}
-              className="bg-white/20 backdrop-blur-sm rounded-xl p-4"
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <Star className="w-5 h-5 text-yellow-200" />
-                <p className="text-emerald-100 text-sm">Avg Rating</p>
-              </div>
-              <p className="text-3xl font-bold">{stats.averageRating.toFixed(1)}</p>
-            </MotionDiv>
-          </MotionDiv>
+              <Plus className='w-4 h-4' /> Invite teammate
+            </button>
+          )}
         </div>
-      </MotionDiv>
+      </header>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Add Member Form */}
-        <AnimatePresence>
-          {showAddForm && (
-            <MotionDiv
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 mb-8"
-            >
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">Add Team Member</h2>
-                <button
-                  onClick={() => setShowAddForm(false)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  ✕
-                </button>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Full Name</label>
-                  <input
-                    type="text"
-                    placeholder="Full name"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
-                  <input
-                    type="email"
-                    placeholder="name@company.co.uk"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Phone</label>
-                  <input
-                    type="tel"
-                    placeholder="+44 7700 900000"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Role</label>
-                  <select className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent">
-                    <option value="technician">Technician</option>
-                    <option value="apprentice">Apprentice</option>
-                    <option value="manager">Manager</option>
-                    <option value="admin">Admin</option>
-                  </select>
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Specialties</label>
-                  <input
-                    type="text"
-                    placeholder="e.g., Plumbing, Heating, Gas Safety"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                  />
-                </div>
-              </div>
-
-              <div className="flex gap-3 mt-6">
-                <MotionButton
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => {
-                    toast.success('Invitation sent to team member');
-                    setShowAddForm(false);
-                  }}
-                  className="flex-1 px-6 py-3 bg-emerald-600 text-white rounded-xl font-semibold hover:bg-emerald-700 transition-colors"
-                >
-                  Send Invitation
-                </MotionButton>
-                <MotionButton
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => setShowAddForm(false)}
-                  className="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors"
-                >
-                  Cancel
-                </MotionButton>
-              </div>
-            </MotionDiv>
-          )}
-        </AnimatePresence>
-
-        {/* Permissions Modal */}
-        <AnimatePresence>
-          {showPermissions && selectedMember && (
-            <MotionDiv
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-              onClick={() => setShowPermissions(false)}
-            >
-              <MotionDiv
-                initial={{ scale: 0.95, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.95, opacity: 0 }}
-                onClick={(e) => e.stopPropagation()}
-                className="bg-white rounded-xl shadow-xl max-w-md w-full p-6"
+      <div className='max-w-5xl mx-auto px-4 mt-8 space-y-8'>
+        <section className='bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden'>
+          <h2 className='px-6 py-4 border-b border-gray-200 text-lg font-semibold text-gray-900'>
+            Members
+          </h2>
+          <ul className='divide-y divide-gray-100'>
+            {members.map((m) => (
+              <li
+                key={m.id}
+                className='px-6 py-4 flex items-center justify-between'
               >
-                <h3 className="text-xl font-bold text-gray-900 mb-4">
-                  Permissions for {selectedMember.name}
-                </h3>
-
-                <div className="space-y-4">
-                  {Object.entries(selectedMember.permissions).map(([key, value]) => (
-                    <div key={key} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <span className="text-gray-700 capitalize">
-                        {key.replace(/([A-Z])/g, ' $1').trim()}
-                      </span>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={value}
-                          onChange={(e) => {
-                            setSelectedMember({
-                              ...selectedMember,
-                              permissions: {
-                                ...selectedMember.permissions,
-                                [key]: e.target.checked,
-                              },
-                            });
-                          }}
-                          className="sr-only peer"
-                        />
-                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
-                      </label>
-                    </div>
-                  ))}
+                <div className='min-w-0'>
+                  <p className='font-medium text-gray-900 truncate'>
+                    {m.profile?.first_name || m.profile?.last_name
+                      ? `${m.profile?.first_name ?? ''} ${m.profile?.last_name ?? ''}`.trim()
+                      : m.profile?.email || m.user_id}
+                  </p>
+                  <p className='text-sm text-gray-500 truncate'>
+                    {m.profile?.email ?? ''}
+                  </p>
                 </div>
-
-                <div className="flex gap-3 mt-6">
-                  <MotionButton
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={handleSavePermissions}
-                    className="flex-1 px-6 py-3 bg-emerald-600 text-white rounded-xl font-semibold hover:bg-emerald-700 transition-colors"
+                <div className='flex items-center gap-3'>
+                  <span
+                    className={`px-2 py-1 rounded-full text-xs font-medium border ${roleBadgeClass(m.org_role)}`}
                   >
-                    Save Changes
-                  </MotionButton>
-                  <MotionButton
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => setShowPermissions(false)}
-                    className="px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-colors"
-                  >
-                    Cancel
-                  </MotionButton>
-                </div>
-              </MotionDiv>
-            </MotionDiv>
-          )}
-        </AnimatePresence>
-
-        {/* Team Members Grid */}
-        <MotionDiv
-          variants={staggerContainer}
-          initial="hidden"
-          animate="visible"
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-        >
-          {teamMembers.map((member) => (
-            <MotionDiv
-              key={member.id}
-              variants={staggerItem}
-              whileHover={{ y: -4 }}
-              className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg transition-all"
-            >
-              {/* Member Header */}
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="bg-emerald-100 p-3 rounded-full">
-                    <Users className="w-6 h-6 text-emerald-600" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{member.name}</h3>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getRoleColor(member.role)}`}>
-                        {member.role}
-                      </span>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(member.status)}`}>
-                        {member.status}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Contact Info */}
-              <div className="space-y-2 mb-4">
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <Mail className="w-4 h-4" />
-                  <span className="truncate">{member.email}</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <Phone className="w-4 h-4" />
-                  <span>{member.phone}</span>
-                </div>
-              </div>
-
-              {/* Stats */}
-              <div className="grid grid-cols-2 gap-4 mb-4 p-3 bg-gray-50 rounded-lg">
-                <div>
-                  <p className="text-xs text-gray-500 mb-1">Jobs</p>
-                  <p className="text-lg font-bold text-gray-900">{member.completedJobs}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500 mb-1">Rating</p>
-                  <div className="flex items-center gap-1">
-                    <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                    <p className="text-lg font-bold text-gray-900">{member.rating > 0 ? member.rating.toFixed(1) : 'N/A'}</p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Specialties */}
-              <div className="mb-4">
-                <p className="text-xs text-gray-500 mb-2">Specialties</p>
-                <div className="flex flex-wrap gap-2">
-                  {member.specialties.map((specialty) => (
-                    <span
-                      key={specialty}
-                      className="px-2 py-1 bg-emerald-50 text-emerald-700 rounded text-xs"
+                    {m.org_role.replace('_', ' ')}
+                  </span>
+                  {canManage && m.org_role !== 'owner' && (
+                    <button
+                      onClick={() => remove(m)}
+                      title='Remove'
+                      className='p-2 text-red-600 hover:bg-red-50 rounded-lg'
                     >
-                      {specialty}
-                    </span>
-                  ))}
+                      <Trash2 className='w-4 h-4' />
+                    </button>
+                  )}
                 </div>
-              </div>
+              </li>
+            ))}
+            {members.length === 0 && (
+              <li className='px-6 py-8 text-center text-gray-500'>
+                No members yet.
+              </li>
+            )}
+          </ul>
+        </section>
 
-              {/* Actions */}
-              <div className="flex gap-2 pt-4 border-t border-gray-200">
-                <MotionButton
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => handleEditPermissions(member)}
-                  className="flex-1 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2"
+        {canManage && pending.length > 0 && (
+          <section className='bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden'>
+            <h2 className='px-6 py-4 border-b border-gray-200 text-lg font-semibold text-gray-900'>
+              Pending invitations
+            </h2>
+            <ul className='divide-y divide-gray-100'>
+              {pending.map((p) => (
+                <li
+                  key={p.id}
+                  className='px-6 py-4 flex items-center justify-between'
                 >
-                  <Key className="w-4 h-4" />
-                  Permissions
-                </MotionButton>
-                <MotionButton
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                  title="Edit"
-                >
-                  <Edit className="w-4 h-4" />
-                </MotionButton>
-                <MotionButton
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => handleRemoveMember(member.id)}
-                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                  title="Remove"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </MotionButton>
-              </div>
-            </MotionDiv>
-          ))}
-        </MotionDiv>
+                  <div className='flex items-center gap-3 min-w-0'>
+                    <Mail className='w-5 h-5 text-gray-400' />
+                    <div className='min-w-0'>
+                      <p className='font-medium text-gray-900 truncate'>
+                        {p.invited_email}
+                      </p>
+                      <p className='text-xs text-gray-500'>
+                        Invited {new Date(p.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                  <div className='flex items-center gap-3'>
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs font-medium border ${roleBadgeClass(p.org_role)}`}
+                    >
+                      {p.org_role.replace('_', ' ')}
+                    </span>
+                    <button
+                      onClick={() => revokeInvite(p)}
+                      className='text-sm text-red-600 hover:underline'
+                    >
+                      Revoke
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
-        {teamMembers.length === 0 && (
-          <MotionDiv
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="bg-white rounded-xl border-2 border-dashed border-gray-300 p-12 text-center"
-          >
-            <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">No team members yet</h3>
-            <p className="text-gray-500 mb-6">Start building your team by adding members</p>
-            <MotionButton
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={handleAddMember}
-              className="px-6 py-3 bg-emerald-600 text-white rounded-xl font-semibold hover:bg-emerald-700 transition-colors inline-flex items-center gap-2"
-            >
-              <Plus className="w-5 h-5" />
-              Add First Team Member
-            </MotionButton>
-          </MotionDiv>
+        {orgs.length > 1 && (
+          <p className='text-sm text-gray-500'>
+            You belong to {orgs.length} organizations. Switching org-context UI
+            coming soon.
+          </p>
         )}
       </div>
+
+      <InviteMemberDialog
+        orgId={activeOrg.id}
+        actorRole={activeOrg.myRole}
+        open={showInvite}
+        onClose={() => setShowInvite(false)}
+        onInvited={() => loadMembers(activeOrg.id)}
+      />
     </div>
   );
 }

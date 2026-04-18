@@ -1,13 +1,7 @@
 'use client';
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import {
-  Star,
-  Search,
-  Briefcase,
-  Reply,
-  Loader2,
-} from 'lucide-react';
+import { Star, Search, Briefcase, Reply, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { MotionButton, MotionDiv } from '@/components/ui/MotionDiv';
 import { getCsrfHeaders } from '@/lib/csrf-client';
@@ -39,6 +33,10 @@ interface Review {
   comment: string;
   response: string | null;
   responded: boolean;
+  // R7 #19 — moderation state
+  responseAt?: string | null;
+  responsePublishedAt?: string | null;
+  responseBlockedByAdmin?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -57,17 +55,25 @@ export default function ContractorReviewsPage() {
   const [submittingResponse, setSubmittingResponse] = useState(false);
 
   const [reviews, setReviews] = useState<Review[]>([]);
-  const [stats, setStats] = useState<ReviewStats>({ totalReviews: 0, averageRating: 0, responseRate: 0 });
+  const [stats, setStats] = useState<ReviewStats>({
+    totalReviews: 0,
+    averageRating: 0,
+    responseRate: 0,
+  });
   const [loading, setLoading] = useState(true);
 
   const fetchReviews = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch('/api/contractor/reviews', { credentials: 'include' });
+      const res = await fetch('/api/contractor/reviews', {
+        credentials: 'include',
+      });
       if (!res.ok) throw new Error('Failed to fetch reviews');
       const data = await res.json();
       setReviews(data.reviews || []);
-      setStats(data.stats || { totalReviews: 0, averageRating: 0, responseRate: 0 });
+      setStats(
+        data.stats || { totalReviews: 0, averageRating: 0, responseRate: 0 }
+      );
     } catch (error) {
       logger.error('Error fetching reviews:', error, { service: 'app' });
       toast.error('Failed to load reviews');
@@ -76,7 +82,9 @@ export default function ContractorReviewsPage() {
     }
   }, []);
 
-  useEffect(() => { fetchReviews(); }, [fetchReviews]);
+  useEffect(() => {
+    fetchReviews();
+  }, [fetchReviews]);
 
   const ratingDistribution = useMemo(() => {
     return [5, 4, 3, 2, 1].map((stars) => ({
@@ -87,7 +95,8 @@ export default function ContractorReviewsPage() {
 
   const filteredReviews = useMemo(() => {
     return reviews.filter((review) => {
-      const matchesRating = selectedRating === 'all' || review.rating.toString() === selectedRating;
+      const matchesRating =
+        selectedRating === 'all' || review.rating.toString() === selectedRating;
       const matchesSearch =
         searchQuery === '' ||
         review.client.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -118,20 +127,25 @@ export default function ContractorReviewsPage() {
       // Update local state
       setReviews((prev) =>
         prev.map((r) =>
-          r.id === reviewId ? { ...r, response: responseText.trim(), responded: true } : r
+          r.id === reviewId
+            ? { ...r, response: responseText.trim(), responded: true }
+            : r
         )
       );
       setStats((prev) => ({
         ...prev,
         responseRate: Math.round(
-          ((reviews.filter((r) => r.responded).length + 1) / reviews.length) * 100
+          ((reviews.filter((r) => r.responded).length + 1) / reviews.length) *
+            100
         ),
       }));
       toast.success('Response posted');
       setShowResponseForm(null);
       setResponseText('');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to submit response');
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to submit response'
+      );
     } finally {
       setSubmittingResponse(false);
     }
@@ -145,35 +159,44 @@ export default function ContractorReviewsPage() {
     if (diffDays < 1) return 'Today';
     if (diffDays === 1) return 'Yesterday';
     if (diffDays < 7) return `${diffDays} days ago`;
-    if (diffDays < 30) return `${Math.floor(diffDays / 7)} week${Math.floor(diffDays / 7) > 1 ? 's' : ''} ago`;
-    if (diffDays < 365) return `${Math.floor(diffDays / 30)} month${Math.floor(diffDays / 30) > 1 ? 's' : ''} ago`;
+    if (diffDays < 30)
+      return `${Math.floor(diffDays / 7)} week${Math.floor(diffDays / 7) > 1 ? 's' : ''} ago`;
+    if (diffDays < 365)
+      return `${Math.floor(diffDays / 30)} month${Math.floor(diffDays / 30) > 1 ? 's' : ''} ago`;
     return `${Math.floor(diffDays / 365)} year${Math.floor(diffDays / 365) > 1 ? 's' : ''} ago`;
   };
 
   if (loading) {
     return (
-      <div className="min-h-0 bg-gray-50 flex items-center justify-center py-24">
-        <Loader2 className="w-8 h-8 animate-spin text-teal-600" />
+      <div className='min-h-0 bg-gray-50 flex items-center justify-center py-24'>
+        <Loader2 className='w-8 h-8 animate-spin text-teal-600' />
       </div>
     );
   }
 
   return (
-    <div className="min-h-0 bg-gray-50">
+    <div className='min-h-0 bg-gray-50'>
       {/* Hero Header */}
-      <MotionDiv initial="hidden" animate="visible" variants={fadeIn} className="bg-white border-b border-gray-200">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-8">Reviews & Ratings</h1>
+      <MotionDiv
+        initial='hidden'
+        animate='visible'
+        variants={fadeIn}
+        className='bg-white border-b border-gray-200'
+      >
+        <div className='max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
+          <h1 className='text-3xl font-bold text-gray-900 mb-8'>
+            Reviews & Ratings
+          </h1>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <div className="flex flex-col justify-center">
-              <div className="flex items-baseline gap-2 mb-4">
-                <span className="text-6xl font-bold text-gray-900">
+          <div className='grid grid-cols-1 lg:grid-cols-2 gap-8'>
+            <div className='flex flex-col justify-center'>
+              <div className='flex items-baseline gap-2 mb-4'>
+                <span className='text-6xl font-bold text-gray-900'>
                   {stats.averageRating.toFixed(1)}
                 </span>
-                <Star className="w-10 h-10 fill-amber-400 text-amber-400" />
+                <Star className='w-10 h-10 fill-amber-400 text-amber-400' />
               </div>
-              <div className="flex items-center gap-2 mb-2">
+              <div className='flex items-center gap-2 mb-2'>
                 {[1, 2, 3, 4, 5].map((star) => (
                   <Star
                     key={star}
@@ -185,22 +208,29 @@ export default function ContractorReviewsPage() {
                   />
                 ))}
               </div>
-              <p className="text-gray-600 text-lg">{stats.totalReviews} review{stats.totalReviews !== 1 ? 's' : ''}</p>
+              <p className='text-gray-600 text-lg'>
+                {stats.totalReviews} review{stats.totalReviews !== 1 ? 's' : ''}
+              </p>
             </div>
 
-            <div className="space-y-3">
+            <div className='space-y-3'>
               {ratingDistribution.map((item) => {
-                const percentage = stats.totalReviews > 0 ? (item.count / stats.totalReviews) * 100 : 0;
+                const percentage =
+                  stats.totalReviews > 0
+                    ? (item.count / stats.totalReviews) * 100
+                    : 0;
                 return (
-                  <div key={item.stars} className="flex items-center gap-3">
-                    <span className="text-sm text-gray-700 w-12">{item.stars} star</span>
-                    <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                  <div key={item.stars} className='flex items-center gap-3'>
+                    <span className='text-sm text-gray-700 w-12'>
+                      {item.stars} star
+                    </span>
+                    <div className='flex-1 h-2 bg-gray-200 rounded-full overflow-hidden'>
                       <div
-                        className="h-full bg-amber-400 transition-all duration-500"
+                        className='h-full bg-amber-400 transition-all duration-500'
                         style={{ width: `${percentage}%` }}
                       />
                     </div>
-                    <span className="text-sm text-gray-600 w-12 text-right">
+                    <span className='text-sm text-gray-600 w-12 text-right'>
                       {percentage.toFixed(0)}%
                     </span>
                   </div>
@@ -212,15 +242,15 @@ export default function ContractorReviewsPage() {
       </MotionDiv>
 
       {/* Main Content */}
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className='max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
         {/* Filter Tabs */}
         <MotionDiv
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="mb-8"
+          className='mb-8'
         >
-          <div className="flex items-center gap-2 mb-6 pb-4 border-b border-gray-200 overflow-x-auto">
+          <div className='flex items-center gap-2 mb-6 pb-4 border-b border-gray-200 overflow-x-auto'>
             <button
               onClick={() => setSelectedRating('all')}
               className={`px-4 py-2 rounded-full border transition-all whitespace-nowrap ${
@@ -242,69 +272,122 @@ export default function ContractorReviewsPage() {
                 }`}
               >
                 <span>{rating}</span>
-                <Star className="w-4 h-4 fill-current" />
+                <Star className='w-4 h-4 fill-current' />
               </button>
             ))}
           </div>
 
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+          <div className='relative'>
+            <Search className='absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5' />
             <input
-              type="text"
-              placeholder="Search reviews..."
+              type='text'
+              placeholder='Search reviews...'
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+              className='w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent'
             />
           </div>
         </MotionDiv>
 
         {/* Reviews List */}
-        <MotionDiv variants={staggerContainer} initial="hidden" animate="visible" className="space-y-8">
+        <MotionDiv
+          variants={staggerContainer}
+          initial='hidden'
+          animate='visible'
+          className='space-y-8'
+        >
           {filteredReviews.map((review) => (
-            <MotionDiv key={review.id} variants={staggerItem} className="pb-8 border-b border-gray-200 last:border-0">
+            <MotionDiv
+              key={review.id}
+              variants={staggerItem}
+              className='pb-8 border-b border-gray-200 last:border-0'
+            >
               {/* Review Header */}
-              <div className="flex items-start gap-4 mb-4">
-                <div className="w-12 h-12 rounded-full bg-teal-100 flex items-center justify-center text-teal-700 font-bold text-lg flex-shrink-0">
+              <div className='flex items-start gap-4 mb-4'>
+                <div className='w-12 h-12 rounded-full bg-teal-100 flex items-center justify-center text-teal-700 font-bold text-lg flex-shrink-0'>
                   {review.client.charAt(0).toUpperCase()}
                 </div>
-                <div className="flex-1">
-                  <h3 className="font-semibold text-gray-900">{review.client}</h3>
-                  <p className="text-sm text-gray-500">{formatRelativeDate(review.createdAt)}</p>
+                <div className='flex-1'>
+                  <h3 className='font-semibold text-gray-900'>
+                    {review.client}
+                  </h3>
+                  <p className='text-sm text-gray-500'>
+                    {formatRelativeDate(review.createdAt)}
+                  </p>
                 </div>
               </div>
 
               {/* Job Badge */}
-              <div className="mb-4">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-teal-50 text-teal-700 rounded-full text-sm font-medium">
-                  <Briefcase className="w-3.5 h-3.5" />
+              <div className='mb-4'>
+                <span className='inline-flex items-center gap-1.5 px-3 py-1 bg-teal-50 text-teal-700 rounded-full text-sm font-medium'>
+                  <Briefcase className='w-3.5 h-3.5' />
                   {review.jobTitle}
                 </span>
               </div>
 
               {/* Rating Stars */}
-              <div className="flex items-center gap-1 mb-4">
+              <div className='flex items-center gap-1 mb-4'>
                 {[1, 2, 3, 4, 5].map((star) => (
                   <Star
                     key={star}
                     className={`w-5 h-5 ${
-                      star <= review.rating ? 'fill-amber-400 text-amber-400' : 'text-gray-300'
+                      star <= review.rating
+                        ? 'fill-amber-400 text-amber-400'
+                        : 'text-gray-300'
                     }`}
                   />
                 ))}
               </div>
 
               {/* Comment */}
-              <p className="text-gray-700 leading-relaxed mb-4">{review.comment}</p>
+              <p className='text-gray-700 leading-relaxed mb-4'>
+                {review.comment}
+              </p>
 
               {/* Contractor Response */}
               {review.responded && review.response && (
-                <div className="ml-16 mt-4 p-4 bg-gray-50 rounded-lg border-l-2 border-teal-600">
-                  <div className="flex items-start gap-3">
-                    <Reply className="w-5 h-5 text-teal-600 flex-shrink-0 mt-0.5" />
-                    <div className="flex-1">
-                      <p className="font-semibold text-gray-900 mb-1">Response from contractor</p>
-                      <p className="text-gray-700">{review.response}</p>
+                <div className='ml-16 mt-4 p-4 bg-gray-50 rounded-lg border-l-2 border-teal-600'>
+                  <div className='flex items-start gap-3'>
+                    <Reply className='w-5 h-5 text-teal-600 flex-shrink-0 mt-0.5' />
+                    <div className='flex-1'>
+                      <p className='font-semibold text-gray-900 mb-1'>
+                        Response from contractor
+                      </p>
+                      <p className='text-gray-700'>{review.response}</p>
+                      {/* R7 #19 — 48h moderation status */}
+                      {(() => {
+                        if (review.responseBlockedByAdmin) {
+                          return (
+                            <p className='mt-2 text-xs text-red-700'>
+                              An admin has blocked this reply from publication.
+                              Reach out to support for details.
+                            </p>
+                          );
+                        }
+                        if (!review.responsePublishedAt && review.responseAt) {
+                          const publishAt = new Date(
+                            new Date(review.responseAt).getTime() +
+                              48 * 3600 * 1000
+                          );
+                          return (
+                            <p className='mt-2 text-xs text-amber-700'>
+                              Pending moderation — visible to homeowners on{' '}
+                              {publishAt.toLocaleString()}
+                            </p>
+                          );
+                        }
+                        if (review.responsePublishedAt) {
+                          return (
+                            <p className='mt-2 text-xs text-gray-500'>
+                              Published{' '}
+                              {new Date(
+                                review.responsePublishedAt
+                              ).toLocaleDateString()}
+                            </p>
+                          );
+                        }
+                        return null;
+                      })()}
                     </div>
                   </div>
                 </div>
@@ -312,30 +395,35 @@ export default function ContractorReviewsPage() {
 
               {/* Response Form */}
               {showResponseForm === review.id && (
-                <div className="ml-16 mt-4 p-4 bg-gray-50 rounded-lg">
+                <div className='ml-16 mt-4 p-4 bg-gray-50 rounded-lg'>
                   <textarea
                     value={responseText}
                     onChange={(e) => setResponseText(e.target.value)}
-                    placeholder="Write your response..."
+                    placeholder='Write your response...'
                     rows={3}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent mb-3"
+                    className='w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent mb-3'
                   />
-                  <div className="flex gap-2">
+                  <div className='flex gap-2'>
                     <MotionButton
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => handleSubmitResponse(review.id)}
                       disabled={submittingResponse}
-                      className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors font-medium disabled:opacity-50 flex items-center gap-2"
+                      className='px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors font-medium disabled:opacity-50 flex items-center gap-2'
                     >
-                      {submittingResponse && <Loader2 className="w-4 h-4 animate-spin" />}
+                      {submittingResponse && (
+                        <Loader2 className='w-4 h-4 animate-spin' />
+                      )}
                       Post reply
                     </MotionButton>
                     <MotionButton
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
-                      onClick={() => { setShowResponseForm(null); setResponseText(''); }}
-                      className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+                      onClick={() => {
+                        setShowResponseForm(null);
+                        setResponseText('');
+                      }}
+                      className='px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium'
                     >
                       Cancel
                     </MotionButton>
@@ -345,14 +433,17 @@ export default function ContractorReviewsPage() {
 
               {/* Reply button for unresponded reviews */}
               {!review.responded && showResponseForm !== review.id && (
-                <div className="mt-4">
+                <div className='mt-4'>
                   <MotionButton
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    onClick={() => { setShowResponseForm(review.id); setResponseText(''); }}
-                    className="text-teal-600 font-semibold hover:underline flex items-center gap-2"
+                    onClick={() => {
+                      setShowResponseForm(review.id);
+                      setResponseText('');
+                    }}
+                    className='text-teal-600 font-semibold hover:underline flex items-center gap-2'
                   >
-                    <Reply className="w-4 h-4" />
+                    <Reply className='w-4 h-4' />
                     Reply
                   </MotionButton>
                 </div>
@@ -362,10 +453,16 @@ export default function ContractorReviewsPage() {
         </MotionDiv>
 
         {filteredReviews.length === 0 && !loading && (
-          <MotionDiv initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-12">
-            <Star className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">No reviews found</h3>
-            <p className="text-gray-500">
+          <MotionDiv
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className='text-center py-12'
+          >
+            <Star className='w-16 h-16 text-gray-400 mx-auto mb-4' />
+            <h3 className='text-xl font-semibold text-gray-900 mb-2'>
+              No reviews found
+            </h3>
+            <p className='text-gray-500'>
               {reviews.length === 0
                 ? 'Complete jobs to receive reviews from homeowners'
                 : 'Try adjusting your filters or search query'}

@@ -26,6 +26,9 @@ export class JobService {
     property_id?: string;
     latitude?: number;
     longitude?: number;
+    // R6 #19 landlord / tenancy — optional forwarding
+    is_rental_property?: boolean;
+    tenancy_metadata?: Record<string, unknown>;
   }): Promise<Job> {
     return JobCRUDService.createJob(jobData);
   }

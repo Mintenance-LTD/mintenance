@@ -23,7 +23,9 @@ export async function handlePaymentIntentSucceeded(
         payment_intent_id: paymentIntent.id,
         updated_at: new Date().toISOString(),
       })
-      .or(`payment_intent_id.eq.${paymentIntent.id},stripe_payment_intent_id.eq.${paymentIntent.id}`)
+      .or(
+        `payment_intent_id.eq.${paymentIntent.id},stripe_payment_intent_id.eq.${paymentIntent.id}`
+      )
       .select()
       .single();
 
@@ -103,8 +105,48 @@ export async function handlePaymentIntentSucceeded(
         jobId: escrowTransaction.job_id,
       });
     }
+
+    // R6 #5 deferred: tell every stakeholder the job is funded. This is
+    // where the 'payment_secured' canonical event fires — homeowner,
+    // payer (landlord), contractor, and tenants (on rental properties)
+    // all learn escrow is held and work can start.
+    try {
+      const { notifyStakeholders } =
+        await import('@/lib/services/notifications/JobStakeholderNotifier');
+      const jobIdForFanout = escrowTransaction.job_id as string;
+      await notifyStakeholders({
+        jobId: jobIdForFanout,
+        type: 'payment_secured',
+        titleFor: (role) =>
+          role === 'contractor'
+            ? 'Payment secured — you can start'
+            : role === 'tenant'
+              ? 'Your repair is funded'
+              : 'Payment secured in escrow',
+        messageFor: (role) => {
+          if (role === 'contractor')
+            return 'The homeowner has funded this job. Payment is held in escrow until you complete the work.';
+          if (role === 'tenant')
+            return 'The contractor can now schedule a visit. You\u2019ll get another update when they start on site.';
+          if (role === 'payer')
+            return 'Your payment has been secured in escrow and will be released once the work is approved.';
+          return 'Your payment has been secured in escrow and will be released after you approve the completed work.';
+        },
+        actionUrlFor: () => `/jobs/${jobIdForFanout}`,
+        emailTenants: true,
+        tenantJobStatus: 'assigned',
+      });
+    } catch (fanoutErr) {
+      logger.warn('Stakeholder fan-out on payment secured failed', {
+        service: 'stripe-webhook',
+        jobId: escrowTransaction.job_id,
+        err: fanoutErr instanceof Error ? fanoutErr.message : String(fanoutErr),
+      });
+    }
   } catch (error) {
-    logger.error('Error in handlePaymentIntentSucceeded', error, { service: 'stripe-webhook' });
+    logger.error('Error in handlePaymentIntentSucceeded', error, {
+      service: 'stripe-webhook',
+    });
     throw error;
   }
 }
@@ -128,7 +170,9 @@ export async function handlePaymentIntentFailed(
         status: 'failed',
         updated_at: new Date().toISOString(),
       })
-      .or(`payment_intent_id.eq.${paymentIntent.id},stripe_payment_intent_id.eq.${paymentIntent.id}`)
+      .or(
+        `payment_intent_id.eq.${paymentIntent.id},stripe_payment_intent_id.eq.${paymentIntent.id}`
+      )
       .select()
       .single();
 
@@ -149,7 +193,8 @@ export async function handlePaymentIntentFailed(
         })
         .eq('id', jobId);
 
-      const homeownerId = escrowTransaction?.payer_id || paymentIntent.metadata?.homeownerId;
+      const homeownerId =
+        escrowTransaction?.payer_id || paymentIntent.metadata?.homeownerId;
       if (homeownerId) {
         await sendNotification(
           homeownerId,
@@ -166,7 +211,9 @@ export async function handlePaymentIntentFailed(
       jobId,
     });
   } catch (error) {
-    logger.error('Error in handlePaymentIntentFailed', error, { service: 'stripe-webhook' });
+    logger.error('Error in handlePaymentIntentFailed', error, {
+      service: 'stripe-webhook',
+    });
     throw error;
   }
 }
@@ -190,7 +237,9 @@ export async function handlePaymentIntentCanceled(
         status: 'canceled',
         updated_at: new Date().toISOString(),
       })
-      .or(`payment_intent_id.eq.${paymentIntent.id},stripe_payment_intent_id.eq.${paymentIntent.id}`)
+      .or(
+        `payment_intent_id.eq.${paymentIntent.id},stripe_payment_intent_id.eq.${paymentIntent.id}`
+      )
       .select()
       .single();
 
@@ -217,7 +266,9 @@ export async function handlePaymentIntentCanceled(
       paymentIntentId: paymentIntent.id,
     });
   } catch (error) {
-    logger.error('Error in handlePaymentIntentCanceled', error, { service: 'stripe-webhook' });
+    logger.error('Error in handlePaymentIntentCanceled', error, {
+      service: 'stripe-webhook',
+    });
     throw error;
   }
 }
@@ -252,7 +303,9 @@ export async function handleChargeRefunded(
         refunded_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })
-      .or(`payment_intent_id.eq.${paymentIntentId},stripe_payment_intent_id.eq.${paymentIntentId}`)
+      .or(
+        `payment_intent_id.eq.${paymentIntentId},stripe_payment_intent_id.eq.${paymentIntentId}`
+      )
       .select()
       .single();
 
@@ -277,9 +330,8 @@ export async function handleChargeRefunded(
     // Record in refunds table
     const refundAmount = charge.amount_refunded;
     try {
-      await serverSupabase
-        .from('refunds')
-        .upsert({
+      await serverSupabase.from('refunds').upsert(
+        {
           charge_id: charge.id,
           payment_intent_id: paymentIntentId,
           amount: refundAmount,
@@ -289,7 +341,9 @@ export async function handleChargeRefunded(
           escrow_transaction_id: escrowTransaction?.id || null,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
-        }, { onConflict: 'charge_id' });
+        },
+        { onConflict: 'charge_id' }
+      );
     } catch (refundRecordError) {
       logger.error('Failed to record refund', refundRecordError, {
         service: 'stripe-webhook',
@@ -325,7 +379,9 @@ export async function handleChargeRefunded(
       amountRefunded: refundAmount,
     });
   } catch (error) {
-    logger.error('Error in handleChargeRefunded', error, { service: 'stripe-webhook' });
+    logger.error('Error in handleChargeRefunded', error, {
+      service: 'stripe-webhook',
+    });
     throw error;
   }
 }
@@ -362,7 +418,9 @@ export async function handlePaymentIntentRequiresAction(
       jobId,
     });
   } catch (error) {
-    logger.error('Error in handlePaymentIntentRequiresAction', error, { service: 'stripe-webhook' });
+    logger.error('Error in handlePaymentIntentRequiresAction', error, {
+      service: 'stripe-webhook',
+    });
     throw error;
   }
 }
@@ -407,11 +465,14 @@ export async function handleChargeFailed(
         status: 'failed',
         updated_at: new Date().toISOString(),
       })
-      .or(`payment_intent_id.eq.${paymentIntentId},stripe_payment_intent_id.eq.${paymentIntentId}`)
+      .or(
+        `payment_intent_id.eq.${paymentIntentId},stripe_payment_intent_id.eq.${paymentIntentId}`
+      )
       .select()
       .single();
 
-    const homeownerId = escrowTransaction?.payer_id || charge.metadata?.homeownerId;
+    const homeownerId =
+      escrowTransaction?.payer_id || charge.metadata?.homeownerId;
     if (homeownerId) {
       const reason = charge.failure_message || 'Your card was declined';
       await sendNotification(
@@ -428,7 +489,9 @@ export async function handleChargeFailed(
       failureCode: charge.failure_code,
     });
   } catch (error) {
-    logger.error('Error in handleChargeFailed', error, { service: 'stripe-webhook' });
+    logger.error('Error in handleChargeFailed', error, {
+      service: 'stripe-webhook',
+    });
     throw error;
   }
 }

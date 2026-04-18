@@ -17,6 +17,10 @@ export interface JobFormData {
   require_itemized_bids?: boolean; // Whether to require cost breakdown (default: true for >£500)
   requiredSkills: string[];
   property_id?: string;
+  // R6 #19 landlord / tenancy step
+  is_rental_property?: boolean; // Is this a rental? drives tenant-comms UI
+  who_pays?: 'me' | 'someone_else'; // UI radio — if "someone_else", need email
+  payer_email?: string; // Email of the distinct payer if who_pays==='someone_else'
 }
 
 interface ValidationErrors {
