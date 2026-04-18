@@ -308,6 +308,42 @@ export const POST = withApiHandler(
               });
             }
 
+            // R6 #5 deferred: tenant + payer fan-out on completion. The
+            // homeowner + contractor pings still happen in the Promise.all
+            // block below; this only notifies the NEW R6 roles so rental
+            // tenants and landlord payers learn the job is done.
+            try {
+              const { notifyStakeholders } =
+                await import('@/lib/services/notifications/JobStakeholderNotifier');
+              const titleSafe = job.title || 'your job';
+              await notifyStakeholders({
+                jobId,
+                type: 'job_completed',
+                onlyRoles: ['payer', 'tenant'],
+                titleFor: (role) =>
+                  role === 'tenant'
+                    ? 'Work finished at your home'
+                    : 'Work completed',
+                messageFor: (role) =>
+                  role === 'tenant'
+                    ? `The contractor has finished work on "${titleSafe}". If anything needs attention, let your landlord know.`
+                    : `Work on "${titleSafe}" has been marked complete. Review the photos and release payment when you're happy.`,
+                actionUrlFor: () => `/jobs/${jobId}`,
+                emailTenants: true,
+                tenantJobStatus: 'completed',
+                skipUserId: user.id,
+              });
+            } catch (fanoutErr) {
+              logger.warn('Stakeholder fan-out on job completion failed', {
+                service: 'jobs',
+                jobId,
+                err:
+                  fanoutErr instanceof Error
+                    ? fanoutErr.message
+                    : String(fanoutErr),
+              });
+            }
+
             // Notify homeowner to review and contractor of completion
             await Promise.all([
               NotificationService.createNotification({
