@@ -35,6 +35,7 @@ import { styles } from './homeownerDashboardStyles';
 import { DashboardProfileMenu } from './components/DashboardProfileMenu';
 import { DashboardAppointmentsSection } from './components/DashboardAppointmentsSection';
 import { ReferralCard } from './components/ReferralCard';
+import { LandlordPayerJobsCard } from './components/LandlordPayerJobsCard';
 
 const appIcon = require('../../../assets/icon.png');
 
@@ -394,6 +395,11 @@ export const HomeownerDashboard: React.FC = () => {
 
           {/* Appointments */}
           <DashboardAppointmentsSection appointments={appointments} />
+
+          {/* Deferred #4 — landlord inbound payer card (self-hides when empty) */}
+          <FadeIn duration={400} delay={420}>
+            <LandlordPayerJobsCard />
+          </FadeIn>
 
           {/* R7 #8 neighbour referral */}
           <FadeIn duration={400} delay={450}>
