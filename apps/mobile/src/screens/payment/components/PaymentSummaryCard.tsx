@@ -32,27 +32,39 @@ export const PaymentSummaryCard: React.FC<PaymentSummaryCardProps> = ({
       <View style={styles.amountBreakdown}>
         <View style={styles.amountRow}>
           <Text style={styles.amountLabel}>Job Amount</Text>
-          <Text style={styles.amountValue}>{'\u00A3'}{amount.toFixed(2)}</Text>
+          <Text style={styles.amountValue}>
+            {'\u00A3'}
+            {amount.toFixed(2)}
+          </Text>
         </View>
 
         {useEscrow && (
           <>
             <View style={styles.amountRow}>
               <Text style={styles.amountLabel}>Platform Fee</Text>
-              <Text style={styles.amountValue}>{'\u00A3'}{platformFee.toFixed(2)}</Text>
+              <Text style={styles.amountValue}>
+                {'\u00A3'}
+                {platformFee.toFixed(2)}
+              </Text>
             </View>
             <View style={styles.amountRow}>
               <Text style={styles.amountLabel}>Contractor Payout</Text>
-              <Text style={styles.amountValue}>{'\u00A3'}{contractorPayout.toFixed(2)}</Text>
+              <Text style={styles.amountValue}>
+                {'\u00A3'}
+                {contractorPayout.toFixed(2)}
+              </Text>
             </View>
           </>
         )}
 
         <View style={[styles.amountRow, styles.totalRow]}>
           <Text style={styles.totalLabel}>
-            {useEscrow ? 'Total (Escrow)' : 'Total'}
+            {useEscrow ? 'Total (Protected)' : 'Total'}
           </Text>
-          <Text style={styles.totalValue}>{'\u00A3'}{totalAmount.toFixed(2)}</Text>
+          <Text style={styles.totalValue}>
+            {'\u00A3'}
+            {totalAmount.toFixed(2)}
+          </Text>
         </View>
       </View>
     </View>
@@ -67,7 +79,12 @@ const styles = StyleSheet.create({
     marginTop: 16,
     marginBottom: 20,
     ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
       android: { elevation: 2 },
     }),
   },

@@ -44,7 +44,7 @@ export default function AboutPageClient() {
   const stats = [
     { label: 'Founded', value: '2025', icon: Award },
     { label: 'Based In', value: 'Manchester', icon: Globe },
-    { label: 'Escrow Protected', value: '100%', icon: Shield },
+    { label: 'Protected Payment', value: '100%', icon: Shield },
     { label: 'AI Powered', value: 'Mint AI', icon: Zap },
   ];
 
@@ -277,9 +277,9 @@ export default function AboutPageClient() {
               </p>
               <p>
                 So we built a platform where every contractor is verified, every
-                payment is held in escrow until the work is done, and AI helps
-                match the right professional to the right job. No surprises, no
-                disputes — just quality work, paid fairly.
+                payment is held with Protected Payment until the work is done,
+                and AI helps match the right professional to the right job. No
+                surprises, no disputes — just quality work, paid fairly.
               </p>
               <p className='font-medium text-gray-900'>
                 We are a small, focused team based in Greater Manchester, and we

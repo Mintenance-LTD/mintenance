@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Spinner } from '@/components/ui/Spinner';
 import { BeforeAfterSlider } from '@/components/ui/BeforeAfterSlider';
+import { RejectCompletionDialog } from './RejectCompletionDialog';
+import { InspectionChecklist } from './InspectionChecklist';
 import { format, formatDistanceToNow } from 'date-fns';
 import { logger } from '@mintenance/shared';
 
@@ -154,7 +156,7 @@ export function HomeownerApprovalClient() {
       <div style={{ padding: theme.spacing.xl }}>
         <Card style={{ padding: theme.spacing.lg }}>
           <p style={{ color: theme.colors.textSecondary }}>
-            No escrow ID provided.
+            No payment reference provided.
           </p>
         </Card>
       </div>
@@ -231,7 +233,8 @@ export function HomeownerApprovalClient() {
         style={{ padding: theme.spacing.lg, marginBottom: theme.spacing.lg }}
       >
         <div style={{ marginBottom: theme.spacing.md }}>
-          <strong>Escrow Amount:</strong> {formatCurrency(approvalData.amount)}
+          <strong>Protected Payment:</strong>{' '}
+          {formatCurrency(approvalData.amount)}
         </div>
         {approvalData.autoApprovalDate && (
           <div
@@ -406,82 +409,12 @@ export function HomeownerApprovalClient() {
         </div>
       </Card>
 
-      {/* Inspection Checklist */}
-      <Card
-        style={{ padding: theme.spacing.lg, marginBottom: theme.spacing.lg }}
-      >
-        <h2
-          style={{
-            fontSize: theme.typography.fontSize.xl,
-            fontWeight: theme.typography.fontWeight.semibold,
-            marginBottom: theme.spacing.md,
-          }}
-        >
-          Inspection Checklist
-        </h2>
-        <div
-          style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: theme.spacing.sm,
-          }}
-        >
-          <label
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: theme.spacing.sm,
-            }}
-          >
-            <input
-              type='checkbox'
-              checked={inspectionCompleted}
-              onChange={(e) => setInspectionCompleted(e.target.checked)}
-            />
-            <span>I have inspected the completed work</span>
-          </label>
-          <label
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: theme.spacing.sm,
-            }}
-          >
-            <input type='checkbox' />
-            <span>The work matches what was agreed upon</span>
-          </label>
-          <label
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: theme.spacing.sm,
-            }}
-          >
-            <input type='checkbox' />
-            <span>The work area is clean and tidy</span>
-          </label>
-          <label
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: theme.spacing.sm,
-            }}
-          >
-            <input type='checkbox' />
-            <span>I am satisfied with the quality of work</span>
-          </label>
-        </div>
-        <Button
-          variant='outline'
-          onClick={handleMarkInspection}
-          disabled={actionLoading || inspectionCompleted}
-          style={{ marginTop: theme.spacing.md }}
-        >
-          {inspectionCompleted
-            ? 'Inspection Completed ✓'
-            : 'Mark Inspection Completed'}
-        </Button>
-      </Card>
+      <InspectionChecklist
+        completed={inspectionCompleted}
+        actionLoading={actionLoading}
+        onInspectionChange={setInspectionCompleted}
+        onMarkCompleted={handleMarkInspection}
+      />
 
       {/* Approval Actions */}
       <Card style={{ padding: theme.spacing.lg }}>
@@ -542,73 +475,17 @@ export function HomeownerApprovalClient() {
         )}
       </Card>
 
-      {/* Reject Dialog */}
-      {showRejectDialog && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000,
-          }}
-        >
-          <Card
-            style={{
-              padding: theme.spacing.xl,
-              maxWidth: '500px',
-              width: '90%',
-            }}
-          >
-            <h3
-              style={{
-                fontSize: theme.typography.fontSize.lg,
-                fontWeight: theme.typography.fontWeight.bold,
-                marginBottom: theme.spacing.md,
-              }}
-            >
-              Reject Completion
-            </h3>
-            <p
-              style={{
-                marginBottom: theme.spacing.md,
-                color: theme.colors.textSecondary,
-              }}
-            >
-              Please provide a reason for rejecting this completion. An admin
-              will review your concerns.
-            </p>
-            <Input
-              placeholder='Reason for rejection (required)'
-              value={rejectionReason}
-              onChange={(e) => setRejectionReason(e.target.value)}
-              style={{ marginBottom: theme.spacing.md }}
-            />
-            <div style={{ display: 'flex', gap: theme.spacing.md }}>
-              <Button
-                variant='outline'
-                onClick={() => {
-                  setShowRejectDialog(false);
-                  setRejectionReason('');
-                }}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleReject}
-                disabled={!rejectionReason.trim() || actionLoading}
-              >
-                {actionLoading ? <Spinner size='sm' /> : 'Submit Rejection'}
-              </Button>
-            </div>
-          </Card>
-        </div>
-      )}
+      <RejectCompletionDialog
+        open={showRejectDialog}
+        rejectionReason={rejectionReason}
+        actionLoading={actionLoading}
+        onReasonChange={setRejectionReason}
+        onCancel={() => {
+          setShowRejectDialog(false);
+          setRejectionReason('');
+        }}
+        onSubmit={handleReject}
+      />
     </div>
   );
 }

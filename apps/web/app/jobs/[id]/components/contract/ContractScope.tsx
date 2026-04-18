@@ -69,7 +69,7 @@ export function ContractScope({ contract, visibleTerms }: ContractScopeProps) {
               <div className='inline-flex items-center gap-1.5 bg-teal-50 border border-teal-100 rounded-lg px-3 py-1.5'>
                 <Scale className='w-3.5 h-3.5 text-teal-600' />
                 <span className='text-xs font-semibold text-teal-700'>
-                  Escrow Protected
+                  Protected Payment
                 </span>
               </div>
               <p className='text-[10px] text-gray-400 mt-1.5'>

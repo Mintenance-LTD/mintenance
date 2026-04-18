@@ -280,9 +280,9 @@ export const homeownerSlides: OnboardingSlide[] = [
   },
   {
     id: 'secure-payment',
-    title: 'Secure Payments',
+    title: 'Protected Payment',
     description:
-      'Your money is protected in escrow. Release payments milestone by milestone.',
+      'Your money is held securely until you approve the work. Release payments milestone by milestone.',
     icon: '💳',
     backgroundColor: '#F3E8FF',
   },

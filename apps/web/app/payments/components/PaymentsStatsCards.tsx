@@ -28,7 +28,7 @@ export function PaymentsStatsCards({
       accent: 'border-l-emerald-500',
     },
     {
-      label: 'In Escrow',
+      label: 'Protected',
       value: formatMoney(pendingAmount, 'GBP'),
       icon: Clock,
       iconColor: 'text-amber-600',
@@ -54,7 +54,7 @@ export function PaymentsStatsCards({
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8'>
       {stats.map((stat, index) => {
         const Icon = stat.icon;
         return (
@@ -65,13 +65,17 @@ export function PaymentsStatsCards({
             transition={{ delay: index * 0.08 }}
             className={`bg-white rounded-xl border border-gray-200 border-l-4 ${stat.accent} p-5 hover:shadow-md transition-shadow`}
           >
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">{stat.label}</span>
-              <div className={`w-9 h-9 rounded-lg ${stat.bgIcon} flex items-center justify-center`}>
+            <div className='flex items-center justify-between mb-3'>
+              <span className='text-xs font-semibold uppercase tracking-wider text-gray-400'>
+                {stat.label}
+              </span>
+              <div
+                className={`w-9 h-9 rounded-lg ${stat.bgIcon} flex items-center justify-center`}
+              >
                 <Icon size={18} className={stat.iconColor} />
               </div>
             </div>
-            <div className="text-2xl font-bold text-gray-900">{stat.value}</div>
+            <div className='text-2xl font-bold text-gray-900'>{stat.value}</div>
           </MotionDiv>
         );
       })}
