@@ -14,6 +14,7 @@ import {
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
 import { EmailService } from '@/lib/email-service';
+import { ContractSignatoriesService } from '@/lib/services/contracts/ContractSignatoriesService';
 
 export const POST = withApiHandler(
   { roles: ['homeowner', 'contractor'] },
@@ -81,18 +82,22 @@ export const POST = withApiHandler(
       updated_at: new Date().toISOString(),
     };
 
+    // R3 #4: a contract is only ACCEPTED when BOTH legacy parties have
+    // signed AND every co-signer (if any) has signed. Contracts with
+    // no contract_signatories rows behave exactly as before.
+    const allCosignersSigned =
+      await ContractSignatoriesService.areAllCosignersSigned(contractId);
+
     if (isContractor) {
       updateData.contractor_signed_at = new Date().toISOString();
-      // If homeowner already signed, contract is accepted
-      if (contract.homeowner_signed_at) {
+      if (contract.homeowner_signed_at && allCosignersSigned) {
         updateData.status = CONTRACT_STATUS.ACCEPTED;
       } else {
         updateData.status = CONTRACT_STATUS.PENDING_HOMEOWNER;
       }
     } else if (isHomeowner) {
       updateData.homeowner_signed_at = new Date().toISOString();
-      // If contractor already signed, contract is accepted
-      if (contract.contractor_signed_at) {
+      if (contract.contractor_signed_at && allCosignersSigned) {
         updateData.status = CONTRACT_STATUS.ACCEPTED;
       } else {
         updateData.status = CONTRACT_STATUS.PENDING_CONTRACTOR;
