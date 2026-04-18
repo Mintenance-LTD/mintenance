@@ -90,10 +90,15 @@ export const POST = withApiHandler(
         );
       }
 
-      // Verify job exists and user is the homeowner
+      // Verify job exists and user is the designated payer
+      // R6 #19: when payer_user_id is set on the job (landlord / agency
+      // flow), only THAT user can fund escrow. When NULL, fall back to
+      // homeowner_id (the poster).
       const { data: job, error: jobError } = await serverSupabase
         .from('jobs')
-        .select('id, homeowner_id, title, contractor_id, budget, status')
+        .select(
+          'id, homeowner_id, payer_user_id, is_rental_property, title, contractor_id, budget, status'
+        )
         .eq('id', jobId)
         .single();
 
@@ -106,15 +111,19 @@ export const POST = withApiHandler(
         throw new NotFoundError('Job not found');
       }
 
-      if (job.homeowner_id !== user.id) {
+      const authorizedPayerId =
+        (job.payer_user_id as string | null) || job.homeowner_id;
+
+      if (authorizedPayerId !== user.id) {
         logger.warn('Unauthorized payment intent creation attempt', {
           service: 'payments',
           userId: user.id,
           jobId,
           homeownerId: job.homeowner_id,
+          payerUserId: job.payer_user_id,
         });
         return NextResponse.json(
-          { error: 'Only the homeowner can create payments' },
+          { error: 'Only the designated payer can fund this job' },
           { status: 403 }
         );
       }
@@ -283,9 +292,11 @@ export const POST = withApiHandler(
                 metadata?.description || `Payment for job: ${job.title}`,
               metadata: {
                 jobId,
-                homeownerId: user.id,
+                homeownerId: job.homeowner_id,
+                payerId: user.id,
                 contractorId: job.contractor_id,
                 bidAmount: authoritativeAmount.toString(),
+                isRentalProperty: String(Boolean(job.is_rental_property)),
               },
               // Enable automatic payment methods
               automatic_payment_methods: {
