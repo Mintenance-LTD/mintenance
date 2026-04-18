@@ -152,6 +152,8 @@ export type ProfileStackParamList = {
   };
   PaymentHistory: undefined;
   Subscription: undefined;
+  // R5 deferred #6 — mobile Home Health (£9.99/mo) subscribe flow
+  HomeHealthSubscribe: undefined;
   Financials: undefined;
   SettingsHub: undefined;
   Expenses: undefined;

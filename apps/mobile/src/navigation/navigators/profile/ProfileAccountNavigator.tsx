@@ -18,6 +18,7 @@ import { VideoProcessingStatusScreen } from '../../../screens/video-capture/Vide
 import { JobPhotoUploadScreen } from '../../../screens/job-details/JobPhotoUploadScreen';
 import { PaymentHistoryScreen } from '../../../screens/payment/PaymentHistoryScreen';
 import { SubscriptionScreen } from '../../../screens/subscription/SubscriptionScreen';
+import { HomeHealthSubscribeScreen } from '../../../screens/subscription/HomeHealthSubscribeScreen';
 import { FinancialsScreen } from '../../../screens/financials/FinancialsScreen';
 import { SettingsHubScreen } from '../../../screens/settings/SettingsHubScreen';
 import { BookingStatusScreen } from '../../../screens/booking/BookingStatusScreen';
@@ -129,6 +130,11 @@ export const SafePaymentHistoryScreen = withScreenErrorBoundary(
 export const SafeSubscriptionScreen = withScreenErrorBoundary(
   SubscriptionScreen,
   'Subscription',
+  { fallbackRoute: 'ProfileMain' }
+);
+export const SafeHomeHealthSubscribeScreen = withScreenErrorBoundary(
+  HomeHealthSubscribeScreen,
+  'Home Health Subscribe',
   { fallbackRoute: 'ProfileMain' }
 );
 export const SafeFinancialsScreen = withScreenErrorBoundary(
