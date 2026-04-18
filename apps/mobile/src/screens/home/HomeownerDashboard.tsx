@@ -34,6 +34,7 @@ import { theme, gradients } from '../../theme';
 import { styles } from './homeownerDashboardStyles';
 import { DashboardProfileMenu } from './components/DashboardProfileMenu';
 import { DashboardAppointmentsSection } from './components/DashboardAppointmentsSection';
+import { ReferralCard } from './components/ReferralCard';
 
 const appIcon = require('../../../assets/icon.png');
 
@@ -393,6 +394,11 @@ export const HomeownerDashboard: React.FC = () => {
 
           {/* Appointments */}
           <DashboardAppointmentsSection appointments={appointments} />
+
+          {/* R7 #8 neighbour referral */}
+          <FadeIn duration={400} delay={450}>
+            <ReferralCard />
+          </FadeIn>
 
           {/* Recent Jobs */}
           <FadeIn duration={400} delay={500}>

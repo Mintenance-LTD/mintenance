@@ -290,6 +290,24 @@ export const POST = withApiHandler(
           if (!completeError) {
             jobCompleted = true;
 
+            // R7 #8 neighbour referral: if the homeowner redeemed a
+            // referral and this is their first completed job, credit
+            // £20 to both parties. Non-fatal if it fails.
+            try {
+              const { NeighbourhoodReferralService } =
+                await import('@/lib/services/referrals/NeighbourhoodReferralService');
+              await NeighbourhoodReferralService.applyRewardOnFirstJob(
+                job.homeowner_id,
+                jobId
+              );
+            } catch (refErr) {
+              logger.warn('Referral reward hook failed', {
+                service: 'jobs',
+                jobId,
+                err: refErr instanceof Error ? refErr.message : String(refErr),
+              });
+            }
+
             // Notify homeowner to review and contractor of completion
             await Promise.all([
               NotificationService.createNotification({

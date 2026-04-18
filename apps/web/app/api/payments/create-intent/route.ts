@@ -228,7 +228,39 @@ export const POST = withApiHandler(
       }
 
       // From here on, this is THE amount — do not trust `amount` further.
-      const authoritativeAmount = acceptedBid.amount;
+      let authoritativeAmount = acceptedBid.amount;
+
+      // R7 #8 neighbour referral: spend any accrued credit before the
+      // Stripe charge. Amounts on this route are in pounds — convert to
+      // pence, cap at the amount due, then translate back. A tiny
+      // minimum of £1 is left on the card so Stripe always has a
+      // reserve to hold escrow against.
+      let creditAppliedPence = 0;
+      try {
+        const { NeighbourhoodReferralService } =
+          await import('@/lib/services/referrals/NeighbourhoodReferralService');
+        const amountPence = Math.round(authoritativeAmount * 100);
+        const maxSpendPence = Math.max(0, amountPence - 100); // keep £1 floor
+        if (maxSpendPence > 0) {
+          creditAppliedPence = await NeighbourhoodReferralService.spendCredit(
+            user.id,
+            maxSpendPence,
+            'escrow_payment',
+            jobId
+          );
+          if (creditAppliedPence > 0) {
+            authoritativeAmount = (amountPence - creditAppliedPence) / 100;
+          }
+        }
+      } catch (creditErr) {
+        logger.warn('Credit spend hook failed, continuing at full price', {
+          service: 'payments',
+          userId: user.id,
+          jobId,
+          err:
+            creditErr instanceof Error ? creditErr.message : String(creditErr),
+        });
+      }
 
       // Idempotency check - prevent duplicate payment intent creation
       const idempotencyKey = getIdempotencyKeyFromRequest(
@@ -297,6 +329,7 @@ export const POST = withApiHandler(
                 contractorId: job.contractor_id,
                 bidAmount: authoritativeAmount.toString(),
                 isRentalProperty: String(Boolean(job.is_rental_property)),
+                creditAppliedPence: String(creditAppliedPence),
               },
               // Enable automatic payment methods
               automatic_payment_methods: {

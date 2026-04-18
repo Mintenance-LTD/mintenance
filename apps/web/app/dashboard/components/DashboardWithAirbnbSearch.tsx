@@ -21,6 +21,7 @@ import { logger } from '@/lib/logger';
 import { PredictiveRecommendations } from './PredictiveRecommendations';
 import { BidsReceivedSection } from './BidsReceivedSection';
 import { categoryImages } from './dashboard-search-types';
+import { ReferralCard } from '@/components/referrals/ReferralCard';
 import type {
   DashboardWithAirbnbSearchProps,
   PortfolioAccessState,
@@ -372,6 +373,9 @@ export function DashboardWithAirbnbSearch({
 
           {/* Right Column - Recommendations & Activity */}
           <div className='space-y-6'>
+            {/* R7 #8 neighbour referral */}
+            <ReferralCard />
+
             {/* Property Health Recommendations */}
             <PredictiveRecommendations recommendations={recommendations} />
 

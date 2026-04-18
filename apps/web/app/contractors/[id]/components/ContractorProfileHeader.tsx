@@ -3,6 +3,8 @@
 import Image from 'next/image';
 import { Star, MapPin, Briefcase, Share2, Heart, Shield } from 'lucide-react';
 import { VerifiedCredentialsBadge } from '@/components/contractors/VerifiedCredentialsBadge';
+import { PostcodeProofLine } from './PostcodeProofLine';
+import { DisputeHistoryLine } from './DisputeHistoryLine';
 
 interface Contractor {
   id: string;
@@ -15,6 +17,13 @@ interface Contractor {
   location: string;
   verified: boolean;
   premium: boolean;
+  postcodePrefix?: string | null;
+  postcodeProofCount?: number | null;
+  disputeHistory?: {
+    resolvedCount: number;
+    unresolvedCount: number;
+    avgResolutionHours?: number | null;
+  };
 }
 
 interface ContractorProfileHeaderProps {
@@ -86,8 +95,26 @@ export function ContractorProfileHeader({
                 {/* R4 — public register-verified badges (Gas Safe / NICEIC / TrustMark). */}
                 <VerifiedCredentialsBadge
                   contractorId={contractor.id}
-                  className='mb-4'
+                  className='mb-2'
                 />
+                {/* R7 #9 + #11 — postcode-proof + dispute transparency */}
+                <div className='flex flex-col gap-1 mb-4'>
+                  <PostcodeProofLine
+                    count={contractor.postcodeProofCount}
+                    postcodePrefix={contractor.postcodePrefix}
+                  />
+                  {contractor.disputeHistory && (
+                    <DisputeHistoryLine
+                      resolvedCount={contractor.disputeHistory.resolvedCount}
+                      unresolvedCount={
+                        contractor.disputeHistory.unresolvedCount
+                      }
+                      avgResolutionHours={
+                        contractor.disputeHistory.avgResolutionHours
+                      }
+                    />
+                  )}
+                </div>
                 <div className='flex items-center gap-4 flex-wrap mb-6'>
                   <div className='flex items-center gap-2'>
                     <Star className='w-5 h-5 fill-gray-900 text-gray-900' />

@@ -140,6 +140,9 @@ export const ContractorProfileScreen: React.FC<
           topInset={insets.top}
           onBack={() => navigation.goBack()}
           onShare={viewModel.handleShare}
+          postcodePrefix={viewModel.contractor.postcodePrefix}
+          postcodeProofCount={viewModel.contractor.postcodeProofCount}
+          disputeHistory={viewModel.contractor.disputeHistory}
         />
 
         {/* Impact stats */}
