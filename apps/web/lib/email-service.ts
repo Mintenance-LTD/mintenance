@@ -29,6 +29,8 @@ import {
   tenantInviteTemplate,
   tenantJobNotificationTemplate,
   cashFlowDigestTemplate,
+  annualHomeMOTTemplate,
+  postJobNudgeTemplate,
 } from './email-templates';
 // Re-export data interfaces for consumers that import them from this module
 interface EmailOptions {
@@ -260,6 +262,36 @@ export class EmailService {
       this.getUnsubscribeFooter()
     );
     return this.sendEmail({ to: contractorEmail, subject, html, text });
+  }
+
+  /**
+   * Send Annual Home MOT email to a homeowner.
+   * R5 #6 of docs/RETENTION_ROADMAP_2026.md.
+   */
+  static async sendAnnualHomeMOTEmail(
+    homeownerEmail: string,
+    data: Parameters<typeof annualHomeMOTTemplate>[0]
+  ): Promise<boolean> {
+    const { subject, html, text } = annualHomeMOTTemplate(
+      data,
+      this.getUnsubscribeFooter()
+    );
+    return this.sendEmail({ to: homeownerEmail, subject, html, text });
+  }
+
+  /**
+   * Send +90-day post-job nudge to a homeowner.
+   * R5 #7 of docs/RETENTION_ROADMAP_2026.md.
+   */
+  static async sendPostJobNudgeEmail(
+    homeownerEmail: string,
+    data: Parameters<typeof postJobNudgeTemplate>[0]
+  ): Promise<boolean> {
+    const { subject, html, text } = postJobNudgeTemplate(
+      data,
+      this.getUnsubscribeFooter()
+    );
+    return this.sendEmail({ to: homeownerEmail, subject, html, text });
   }
 
   /** Send payment received notification email to the contractor */
