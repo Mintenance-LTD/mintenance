@@ -137,30 +137,29 @@ export const GET = withApiHandler(
         }
 
         // R7 #9 — postcode proof: COUNT(DISTINCT homeowner_id) on this
-        // contractor's completed jobs within 12mo + matching postcode prefix.
-        // We only return the counter when >= 2 (privacy — single-job
-        // identifying a specific homeowner is not useful).
+        // contractor's completed jobs within 12mo + matching postcode
+        // prefix. Deferred #8: the DISTINCT now runs in Postgres via
+        // `contractor_postcode_proof_count` (SECURITY DEFINER) backed
+        // by a partial index — no in-memory aggregation. Still gated
+        // at >= 2 for privacy.
         let postcodeProofCount: number | null = null;
         if (postcodePrefix) {
-          const { data: proofRows } = await serverSupabase
-            .from('jobs')
-            .select('homeowner_id, postcode')
-            .eq('contractor_id', id)
-            .eq('status', 'completed')
-            .gte(
-              'completed_at',
-              new Date(Date.now() - 365 * 24 * 3600 * 1000).toISOString()
-            );
-          const distinct = new Set<string>();
-          for (const r of proofRows || []) {
-            const pc = ((r.postcode as string | null) || '')
-              .replace(/\s+/g, '')
-              .toUpperCase();
-            if (pc.startsWith(postcodePrefix)) {
-              distinct.add(r.homeowner_id as string);
+          const { data: rpcCount, error: rpcErr } = await serverSupabase.rpc(
+            'contractor_postcode_proof_count',
+            {
+              p_contractor_id: id,
+              p_postcode_prefix: postcodePrefix,
             }
+          );
+          if (rpcErr) {
+            logger.warn('postcode_proof rpc failed', {
+              service: 'contractors',
+              contractorId: id,
+              err: rpcErr.message,
+            });
+          } else if (typeof rpcCount === 'number' && rpcCount >= 2) {
+            postcodeProofCount = rpcCount;
           }
-          postcodeProofCount = distinct.size >= 2 ? distinct.size : null;
         }
 
         // R7 #11 — dispute history: counts + mean resolution time against
