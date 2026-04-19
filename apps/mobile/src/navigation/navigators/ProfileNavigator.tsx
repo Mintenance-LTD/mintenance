@@ -21,6 +21,7 @@ import {
   SafeAddPropertyScreen,
   SafePaymentHistoryScreen,
   SafeSubscriptionScreen,
+  SafeHomeHealthSubscribeScreen,
   SafeFinancialsScreen,
   SafeSettingsHubScreen,
   SafeBookingStatusScreen,
@@ -253,6 +254,11 @@ const ProfileNavigator = () => {
         name='Subscription'
         component={SafeSubscriptionScreen}
         options={{ headerShown: false }}
+      />
+      <ProfileStack.Screen
+        name='HomeHealthSubscribe'
+        component={SafeHomeHealthSubscribeScreen}
+        options={{ headerShown: false, presentation: 'modal' }}
       />
       <ProfileStack.Screen
         name='Financials'
