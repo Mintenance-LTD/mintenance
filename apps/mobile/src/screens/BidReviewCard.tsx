@@ -1,10 +1,13 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import type { NavigationProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { Bid } from '../services/BidService';
 import { theme } from '../theme';
 import { styles } from './BidReviewStyles';
+import { formatCurrency } from '../utils/formatCurrency';
+import type { RootStackParamList } from '../navigation/types';
 
 interface QuoteLineItem {
   description: string;
@@ -54,7 +57,10 @@ interface Props {
 }
 
 export const BidReviewCard: React.FC<Props> = ({ bid, quoteData }) => {
-  const navigation = useNavigation();
+  // Type the navigation against the root stack so we can navigate to Modal/ContractorProfile
+  // without traversing parent chains. React Navigation walks up the tree itself when the
+  // target screen lives on an ancestor navigator.
+  const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const contractor = bid.contractor;
   const avatarUri =
     contractor?.profile_picture || contractor?.profile_image_url;
@@ -75,18 +81,7 @@ export const BidReviewCard: React.FC<Props> = ({ bid, quoteData }) => {
           style={styles.contractorHeader}
           onPress={() => {
             if (!contractor?.id) return;
-            // Navigate to Modal stack: BidReviewCard → JobsStack → TabNavigator → RootStack
-            // Need to traverse up to the root navigator that has 'Modal'
-            const nav = navigation as {
-              getParent?: () => {
-                getParent?: () => {
-                  navigate: (name: string, params: unknown) => void;
-                } | undefined;
-                navigate: (name: string, params: unknown) => void;
-              } | undefined;
-            };
-            const rootNav = nav.getParent?.()?.getParent?.() || nav.getParent?.();
-            rootNav?.navigate('Modal', {
+            navigation.navigate('Modal', {
               screen: 'ContractorProfile',
               params: { contractorId: contractor.id },
             });
@@ -113,7 +108,7 @@ export const BidReviewCard: React.FC<Props> = ({ bid, quoteData }) => {
             {contractor?.company_name ? (
               <Text style={styles.companyName}>{contractor.company_name}</Text>
             ) : null}
-            {contractor?.rating != null && (
+            {contractor?.rating != null ? (
               <View style={styles.ratingRow}>
                 <View style={styles.stars}>
                   {renderStars(contractor.rating)}
@@ -122,6 +117,15 @@ export const BidReviewCard: React.FC<Props> = ({ bid, quoteData }) => {
                   {contractor.rating.toFixed(1)} (
                   {contractor.reviews_count || 0} reviews)
                 </Text>
+              </View>
+            ) : (
+              <View style={styles.newBadge}>
+                <Ionicons
+                  name='sparkles'
+                  size={12}
+                  color={theme.colors.primary}
+                />
+                <Text style={styles.newBadgeText}>New on Mintenance</Text>
               </View>
             )}
             {contractor?.city ? (
@@ -151,14 +155,13 @@ export const BidReviewCard: React.FC<Props> = ({ bid, quoteData }) => {
                 <View style={styles.lineItemInfo}>
                   <Text style={styles.lineItemDesc}>{item.description}</Text>
                   <Text style={styles.lineItemQty}>
-                    {item.quantity} x £{item.unitPrice?.toFixed(2) || '0.00'}
+                    {item.quantity} x {formatCurrency(item.unitPrice ?? 0)}
                   </Text>
                 </View>
                 <Text style={styles.lineItemTotal}>
-                  £
-                  {(
+                  {formatCurrency(
                     item.total || item.quantity * (item.unitPrice || 0)
-                  ).toFixed(2)}
+                  )}
                 </Text>
               </View>
             ))}
@@ -166,10 +169,9 @@ export const BidReviewCard: React.FC<Props> = ({ bid, quoteData }) => {
               <View style={styles.quoteSummaryRow}>
                 <Text style={styles.quoteSummaryLabel}>Subtotal</Text>
                 <Text style={styles.quoteSummaryValue}>
-                  £
-                  {quoteData.line_items
-                    .reduce((s, i) => s + (i.total || 0), 0)
-                    .toFixed(2)}
+                  {formatCurrency(
+                    quoteData.line_items.reduce((s, i) => s + (i.total || 0), 0)
+                  )}
                 </Text>
               </View>
               {(quoteData.tax_amount ?? 0) > 0 && (
@@ -178,14 +180,14 @@ export const BidReviewCard: React.FC<Props> = ({ bid, quoteData }) => {
                     VAT ({quoteData.tax_rate || 20}%)
                   </Text>
                   <Text style={styles.quoteSummaryValue}>
-                    £{(quoteData.tax_amount || 0).toFixed(2)}
+                    {formatCurrency(quoteData.tax_amount || 0)}
                   </Text>
                 </View>
               )}
               <View style={styles.quoteTotalRow}>
                 <Text style={styles.quoteTotalLabel}>Total</Text>
                 <Text style={styles.quoteTotalValue}>
-                  £{bid.amount.toLocaleString()}
+                  {formatCurrency(bid.amount)}
                 </Text>
               </View>
             </View>
@@ -193,9 +195,7 @@ export const BidReviewCard: React.FC<Props> = ({ bid, quoteData }) => {
         ) : (
           <View style={styles.amountSection}>
             <Text style={styles.amountLabel}>Bid Amount</Text>
-            <Text style={styles.amountValue}>
-              £{bid.amount.toLocaleString()}
-            </Text>
+            <Text style={styles.amountValue}>{formatCurrency(bid.amount)}</Text>
           </View>
         )}
 
@@ -211,7 +211,7 @@ export const BidReviewCard: React.FC<Props> = ({ bid, quoteData }) => {
                   color={theme.colors.primary}
                 />
                 <Text style={styles.statText}>
-                  £{contractor.hourly_rate}/hr
+                  {formatCurrency(contractor.hourly_rate)}/hr
                 </Text>
               </View>
             )}

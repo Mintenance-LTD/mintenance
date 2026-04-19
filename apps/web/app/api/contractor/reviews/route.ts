@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { serverSupabase, createRequestScopedClient } from '@/lib/api/supabaseServer';
+import {
+  serverSupabase,
+  createRequestScopedClient,
+} from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { InternalServerError } from '@/lib/errors/api-error';
@@ -15,22 +18,30 @@ export const GET = withApiHandler(
 
     const { data: reviews, error } = await userDb
       .from('reviews')
-      .select(`
+      .select(
+        `
         id,
         job_id,
         rating,
         comment,
         response,
+        response_at,
+        response_published_at,
+        response_blocked_by_admin,
         created_at,
         updated_at,
         reviewer:profiles!reviews_reviewer_id_fkey(id, first_name, last_name, profile_image_url),
         job:jobs!reviews_job_id_fkey(id, title, category)
-      `)
+      `
+      )
       .eq('reviewee_id', user.id)
       .order('created_at', { ascending: false });
 
     if (error) {
-      logger.error('Error fetching contractor reviews', error, { service: 'reviews', userId: user.id });
+      logger.error('Error fetching contractor reviews', error, {
+        service: 'reviews',
+        userId: user.id,
+      });
       throw new InternalServerError('Failed to fetch reviews');
     }
 
@@ -50,6 +61,11 @@ export const GET = withApiHandler(
         comment: r.comment || '',
         response: r.response || null,
         responded: !!r.response,
+        // R7 #19 — moderation state
+        responseAt: (r.response_at as string | null) ?? null,
+        responsePublishedAt: (r.response_published_at as string | null) ?? null,
+        responseBlockedByAdmin:
+          (r.response_blocked_by_admin as boolean | null) ?? false,
         createdAt: r.created_at,
         updatedAt: r.updated_at,
       };
@@ -101,23 +117,42 @@ export const POST = withApiHandler(
     }
 
     if (review.reviewee_id !== user.id) {
-      return NextResponse.json({ error: 'Not authorized to respond to this review' }, { status: 403 });
+      return NextResponse.json(
+        { error: 'Not authorized to respond to this review' },
+        { status: 403 }
+      );
     }
 
     if (review.response) {
-      return NextResponse.json({ error: 'Already responded to this review' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Already responded to this review' },
+        { status: 400 }
+      );
     }
 
+    // R7 #19: set response_at so the 48h moderation cron picks it up.
+    // response_published_at stays NULL until the cron promotes it or an
+    // admin overrides.
     const { error: updateError } = await userDb
       .from('reviews')
-      .update({ response, updated_at: new Date().toISOString() })
+      .update({
+        response,
+        response_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
       .eq('id', reviewId);
 
     if (updateError) {
-      logger.error('Error submitting review response', updateError, { service: 'reviews', userId: user.id });
+      logger.error('Error submitting review response', updateError, {
+        service: 'reviews',
+        userId: user.id,
+      });
       throw new InternalServerError('Failed to submit response');
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({
+      success: true,
+      publishedIn: '48 hours',
+    });
   }
 );

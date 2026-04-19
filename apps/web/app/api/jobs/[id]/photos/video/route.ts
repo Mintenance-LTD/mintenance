@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { signJobStoragePath } from '@/lib/api/job-storage';
 import { logger } from '@mintenance/shared';
 import {
   ForbiddenError,
@@ -77,17 +78,17 @@ export const POST = withApiHandler(
       throw uploadError;
     }
 
-    const { data: urlData } = serverSupabase.storage
-      .from('Job-storage')
-      .getPublicUrl(fileName);
-    if (!urlData?.publicUrl) {
+    // Phase 2 storage hardening: issue a signed URL instead of a public URL
+    // so the video stays reachable once `Job-storage` flips to `public=false`.
+    const videoUrl = await signJobStoragePath(fileName);
+    if (!videoUrl) {
       throw new Error('Failed to get video URL');
     }
 
     // Save metadata
     await serverSupabase.from('job_photos_metadata').insert({
       job_id: jobId,
-      photo_url: urlData.publicUrl,
+      photo_url: videoUrl,
       photo_type: 'video',
       timestamp: new Date().toISOString(),
       verified: false,
@@ -97,7 +98,7 @@ export const POST = withApiHandler(
     return NextResponse.json({
       success: true,
       photoId: fileName,
-      url: urlData.publicUrl,
+      url: videoUrl,
     });
   }
 );

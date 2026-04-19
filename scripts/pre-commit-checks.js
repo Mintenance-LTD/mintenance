@@ -52,6 +52,11 @@ const KNOWN_LARGE_FILES = new Set([
   'apps/mobile/src/screens/NotificationSettingsScreen.tsx',
   'apps/mobile/src/screens/job-details/JobPhotoUploadScreen.tsx',
   'apps/mobile/src/screens/properties/AddPropertyScreen.tsx',
+  'apps/mobile/src/screens/BidSubmissionScreen.tsx', // 578 lines after a11y labels
+  'apps/mobile/src/screens/MessagingScreen.tsx', // 581 lines after channel-leak fix
+  'apps/mobile/src/screens/create-invoice/CreateInvoiceScreen.tsx', // 510 lines after formatCurrency
+  'apps/mobile/src/screens/invoice-detail/InvoiceDetailScreen.tsx', // 533 lines after formatCurrency
+  'apps/mobile/src/screens/job-details/ContractViewScreen.tsx', // 587 lines after PDF auth fix
   'apps/mobile/src/screens/video-capture/VideoCaptureScreen.tsx',
   'apps/mobile/src/services/AuthService.ts',
   'apps/mobile/src/services/ImageCompressionService.example.ts',
@@ -61,6 +66,18 @@ const KNOWN_LARGE_FILES = new Set([
   'apps/web/app/api/building-surveyor/assess/route.ts',
   'apps/web/lib/services/building-surveyor/orchestration/AssessmentOrchestrator.ts',
   'apps/web/app/api/contractor/submit-bid/route.ts',
+  // Added 2026-04-16: pre-existing large files discovered during the
+  // Mint AI rename. Both need splitting in the Gate 3 schema/scale
+  // cleanup sprint per audit-reports/BETA_READINESS.md — not beta blockers.
+  'apps/web/app/admin/mint-ai/components/MintAIDashboardClient.tsx', // 705 lines
+  'apps/web/lib/services/building-surveyor/distillation/StudentShadowService.ts', // 510 lines
+  // Added 2026-04-16: Sentry wiring (observability, Gate 1). The env.ts
+  // file holds the canonical Zod schema for every env var in the app; its
+  // line count is growing with platform integrations and should be split
+  // by domain (auth/stripe/supabase/monitoring/ai) in a follow-up.
+  // next.config.js passed 500 after wrapping with withSentryConfig.
+  'apps/web/lib/env.ts', // 523 lines after Sentry env vars
+  'apps/web/next.config.js', // 526 lines after withSentryConfig wrapper
 ]);
 
 function countLines(filePath) {

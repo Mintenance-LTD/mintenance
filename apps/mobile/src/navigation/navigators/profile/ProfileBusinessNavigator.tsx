@@ -16,8 +16,9 @@ import { ContractorCardEditorScreen } from '../../../screens/ContractorCardEdito
 import { ContractorVerificationScreen } from '../../../screens/contractor-verification/ContractorVerificationScreen';
 import { CalendarScreen } from '../../../screens/CalendarScreen';
 import { ReviewsScreen } from '../../../screens/ReviewsScreen';
+import { ReplyToReviewScreen } from '../../../screens/ReplyToReviewScreen';
 import { ExpensesScreen } from '../../../screens/contractor/ExpensesScreen';
-import { DocumentsScreen } from '../../../screens/contractor/DocumentsScreen';
+import { DocumentsScreenRouter } from '../../../screens/DocumentsScreenRouter';
 import { CertificationsScreen } from '../../../screens/contractor/CertificationsScreen';
 import { TimeTrackingScreen } from '../../../screens/contractor/TimeTrackingScreen';
 import { AddTimeEntryScreen } from '../../../screens/contractor/AddTimeEntryScreen';
@@ -113,13 +114,18 @@ export const SafeReviewsScreen = withScreenErrorBoundary(
   'Reviews',
   { fallbackRoute: 'ProfileMain' }
 );
+export const SafeReplyToReviewScreen = withScreenErrorBoundary(
+  ReplyToReviewScreen,
+  'ReplyToReview',
+  { fallbackRoute: 'Reviews' }
+);
 export const SafeExpensesScreen = withScreenErrorBoundary(
   ExpensesScreen,
   'Expenses',
   { fallbackRoute: 'ProfileMain' }
 );
 export const SafeDocumentsScreen = withScreenErrorBoundary(
-  DocumentsScreen,
+  DocumentsScreenRouter,
   'Documents',
   { fallbackRoute: 'ProfileMain' }
 );

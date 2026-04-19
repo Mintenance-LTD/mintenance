@@ -1,5 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, StatusBar } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+  StatusBar,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,9 +22,20 @@ import { PersonalInfoSection } from './EditProfileSections/PersonalInfoSection';
 import { LocationSection } from './EditProfileSections/LocationSection';
 import { AvailabilitySection } from './EditProfileSections/AvailabilitySection';
 import { theme } from '../theme';
+import { logger } from '../utils/logger';
 
-interface GeoAddr { house_number?: string; road?: string; city?: string; town?: string; village?: string; postcode?: string }
-interface NominatimResult { lat: string; lon: string }
+interface GeoAddr {
+  house_number?: string;
+  road?: string;
+  city?: string;
+  town?: string;
+  village?: string;
+  postcode?: string;
+}
+interface NominatimResult {
+  lat: string;
+  lon: string;
+}
 
 const EditProfileScreen: React.FC = () => {
   const navigation = useNavigation();
@@ -25,13 +44,17 @@ const EditProfileScreen: React.FC = () => {
   const [photoUri, setPhotoUri] = useState<string | null>(null);
 
   // Form state - pre-filled from profile on mount
-  const [firstName, setFirstName] = useState(user?.first_name || user?.firstName || "");
-  const [lastName, setLastName] = useState(user?.last_name || user?.lastName || "");
-  const [phone, setPhone] = useState(user?.phone || "");
-  const [bio, setBio] = useState("");
-  const [address, setAddress] = useState("");
-  const [city, setCity] = useState("");
-  const [postcode, setPostcode] = useState("");
+  const [firstName, setFirstName] = useState(
+    user?.first_name || user?.firstName || ''
+  );
+  const [lastName, setLastName] = useState(
+    user?.last_name || user?.lastName || ''
+  );
+  const [phone, setPhone] = useState(user?.phone || '');
+  const [bio, setBio] = useState('');
+  const [address, setAddress] = useState('');
+  const [city, setCity] = useState('');
+  const [postcode, setPostcode] = useState('');
   const [locating, setLocating] = useState(false);
   const [gpsLat, setGpsLat] = useState<number | null>(null);
   const [gpsLng, setGpsLng] = useState<number | null>(null);
@@ -49,8 +72,9 @@ const EditProfileScreen: React.FC = () => {
         if (data?.address) setAddress(data.address as string);
         if (data?.city) setCity(data.city as string);
         if (data?.postcode) setPostcode(data.postcode as string);
-      } catch {
+      } catch (err) {
         // Non-critical — fields remain empty, user can type manually
+        logger.error('Failed to pre-fill profile fields from Supabase', err);
       }
     })();
   }, [user?.id]);
@@ -59,10 +83,15 @@ const EditProfileScreen: React.FC = () => {
       setLocating(true);
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission required', 'Please allow location access to use this feature.');
+        Alert.alert(
+          'Permission required',
+          'Please allow location access to use this feature.'
+        );
         return;
       }
-      const { coords } = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+      const { coords } = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
       setGpsLat(coords.latitude);
       setGpsLng(coords.longitude);
 
@@ -78,7 +107,10 @@ const EditProfileScreen: React.FC = () => {
         if (addr.postcode) setPostcode(addr.postcode.toUpperCase());
       }
     } catch {
-      Alert.alert('Error', 'Could not fetch your location. Please enter your address manually.');
+      Alert.alert(
+        'Error',
+        'Could not fetch your location. Please enter your address manually.'
+      );
     } finally {
       setLocating(false);
     }
@@ -91,9 +123,14 @@ const EditProfileScreen: React.FC = () => {
       let latitude: number | undefined = gpsLat ?? undefined;
       let longitude: number | undefined = gpsLng ?? undefined;
 
-      if (latitude == null && (address.trim() || city.trim() || postcode.trim())) {
+      if (
+        latitude == null &&
+        (address.trim() || city.trim() || postcode.trim())
+      ) {
         try {
-          const q = [address.trim(), city.trim(), postcode.trim()].filter(Boolean).join(', ');
+          const q = [address.trim(), city.trim(), postcode.trim()]
+            .filter(Boolean)
+            .join(', ');
           const results = await mobileApiClient.get<NominatimResult[]>(
             `/api/geocoding/search?q=${encodeURIComponent(q)}`
           );
@@ -101,12 +138,23 @@ const EditProfileScreen: React.FC = () => {
             latitude = parseFloat(results[0].lat);
             longitude = parseFloat(results[0].lon);
           }
-        } catch {
+        } catch (geoErr) {
           // Geocoding failed — save address text without coordinates
+          logger.error('Failed to geocode address for profile save', geoErr);
         }
       }
 
-      const updates: Partial<{ first_name: string; last_name: string; phone: string; bio: string; address: string; city: string; postcode: string; latitude: number; longitude: number }> = {
+      const updates: Partial<{
+        first_name: string;
+        last_name: string;
+        phone: string;
+        bio: string;
+        address: string;
+        city: string;
+        postcode: string;
+        latitude: number;
+        longitude: number;
+      }> = {
         first_name: firstName.trim() || undefined,
         last_name: lastName.trim() || undefined,
         phone: phone.trim() || undefined,
@@ -123,7 +171,10 @@ const EditProfileScreen: React.FC = () => {
       );
 
       if (user && Object.keys(filteredUpdates).length > 0) {
-        await AuthService.updateUserProfile(user.id, filteredUpdates as Parameters<typeof AuthService.updateUserProfile>[1]);
+        await AuthService.updateUserProfile(
+          user.id,
+          filteredUpdates as Parameters<typeof AuthService.updateUserProfile>[1]
+        );
         // Refresh auth context so dashboard/header picks up name/phone changes
         await refreshUser();
         Alert.alert('Success', 'Profile updated successfully!', [
@@ -133,7 +184,8 @@ const EditProfileScreen: React.FC = () => {
         navigation.goBack();
       }
     } catch (error) {
-      const msg = error instanceof Error ? error.message : 'Failed to update profile';
+      const msg =
+        error instanceof Error ? error.message : 'Failed to update profile';
       Alert.alert('Error', msg);
     } finally {
       setLoading(false);
@@ -156,9 +208,15 @@ const EditProfileScreen: React.FC = () => {
           onPress: async () => {
             try {
               await AuthService.resetPassword(email);
-              Alert.alert('Email Sent', 'Check your inbox for the password reset link.');
+              Alert.alert(
+                'Email Sent',
+                'Check your inbox for the password reset link.'
+              );
             } catch {
-              Alert.alert('Error', 'Failed to send password reset email. Please try again.');
+              Alert.alert(
+                'Error',
+                'Failed to send password reset email. Please try again.'
+              );
             }
           },
         },
@@ -177,7 +235,10 @@ const EditProfileScreen: React.FC = () => {
   const handlePickPhoto = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert('Permission required', 'Please allow access to your photo library.');
+      Alert.alert(
+        'Permission required',
+        'Please allow access to your photo library.'
+      );
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -192,21 +253,74 @@ const EditProfileScreen: React.FC = () => {
   };
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={theme.colors.backgroundSecondary} />
+      <StatusBar
+        barStyle='dark-content'
+        backgroundColor={theme.colors.backgroundSecondary}
+      />
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()} accessibilityRole='button' accessibilityLabel='Go back'>
-          <Ionicons name='arrow-back' size={24} color={theme.colors.textPrimary} />
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+          accessibilityRole='button'
+          accessibilityLabel='Go back'
+        >
+          <Ionicons
+            name='arrow-back'
+            size={24}
+            color={theme.colors.textPrimary}
+          />
         </TouchableOpacity>
-        <Text style={styles.headerTitle} accessibilityRole='header'>Edit Profile</Text>
-        <TouchableOpacity style={styles.saveButton} onPress={handleSave} disabled={loading} accessibilityRole='button' accessibilityLabel={loading ? 'Saving profile changes' : 'Save profile changes'}>
-          <Text style={styles.saveButtonText}>{loading ? 'Saving...' : 'Save'}</Text>
+        <Text style={styles.headerTitle} accessibilityRole='header'>
+          Edit Profile
+        </Text>
+        <TouchableOpacity
+          style={styles.saveButton}
+          onPress={handleSave}
+          disabled={loading}
+          accessibilityRole='button'
+          accessibilityLabel={
+            loading ? 'Saving profile changes' : 'Save profile changes'
+          }
+        >
+          <Text style={styles.saveButtonText}>
+            {loading ? 'Saving...' : 'Save'}
+          </Text>
         </TouchableOpacity>
       </View>
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <PhotoSection photoUri={photoUri} firstName={firstName} lastName={lastName} profileImageUrl={user?.profile_image_url} onPickPhoto={handlePickPhoto} />
-        <PersonalInfoSection firstName={firstName} setFirstName={setFirstName} lastName={lastName} setLastName={setLastName} email={user?.email || ''} phone={phone} setPhone={setPhone} bio={bio} setBio={setBio} userRole={user?.role} />
-        <LocationSection address={address} setAddress={setAddress} city={city} setCity={setCity} postcode={postcode} setPostcode={setPostcode} locating={locating} onUseMyLocation={handleUseMyLocation} />
-        <AvailabilitySection onChangePassword={handleChangePassword} onDeleteAccount={handleDeleteAccount} />
+        <PhotoSection
+          photoUri={photoUri}
+          firstName={firstName}
+          lastName={lastName}
+          profileImageUrl={user?.profile_image_url}
+          onPickPhoto={handlePickPhoto}
+        />
+        <PersonalInfoSection
+          firstName={firstName}
+          setFirstName={setFirstName}
+          lastName={lastName}
+          setLastName={setLastName}
+          email={user?.email || ''}
+          phone={phone}
+          setPhone={setPhone}
+          bio={bio}
+          setBio={setBio}
+          userRole={user?.role}
+        />
+        <LocationSection
+          address={address}
+          setAddress={setAddress}
+          city={city}
+          setCity={setCity}
+          postcode={postcode}
+          setPostcode={setPostcode}
+          locating={locating}
+          onUseMyLocation={handleUseMyLocation}
+        />
+        <AvailabilitySection
+          onChangePassword={handleChangePassword}
+          onDeleteAccount={handleDeleteAccount}
+        />
       </ScrollView>
     </SafeAreaView>
   );

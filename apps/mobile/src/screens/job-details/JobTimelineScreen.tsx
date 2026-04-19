@@ -18,7 +18,7 @@ import type { JobsStackParamList } from '../../navigation/types';
 import { theme } from '../../theme';
 
 type Props = {
-  route: RouteProp<JobsStackParamList, 'JobDetails'>;
+  route: RouteProp<JobsStackParamList, 'JobTimeline'>;
   navigation: NativeStackNavigationProp<JobsStackParamList>;
 };
 

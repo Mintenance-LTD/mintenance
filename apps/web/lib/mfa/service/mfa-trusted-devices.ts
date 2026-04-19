@@ -11,6 +11,16 @@ import { generateSecureToken } from './tokens';
 import type { TrustedDeviceData } from './types';
 
 /**
+ * Sprint 7 (4.9): cap on concurrent trusted devices per user.
+ * A spamming client could otherwise check "remember this device" from
+ * every browser / incognito / VPN session and pile up unbounded rows
+ * in trusted_devices — each one a 30-day MFA bypass. We keep at most
+ * MAX_TRUSTED_DEVICES_PER_USER and rotate the oldest out when a new
+ * enrollment would exceed the cap.
+ */
+const MAX_TRUSTED_DEVICES_PER_USER = 5;
+
+/**
  * Create trusted device token
  * Allows user to skip MFA on this device for 30 days
  */
@@ -22,6 +32,44 @@ export async function createTrustedDevice(
   userAgent?: string
 ): Promise<TrustedDeviceData> {
   try {
+    // Sprint 7 (4.9): enforce a hard cap by pruning oldest-first.
+    // Run as a lightweight pre-insert maintenance step so the cap holds
+    // across concurrent enrollments without needing a DB constraint.
+    const { data: existing } = await serverSupabase
+      .from('trusted_devices')
+      .select('id, device_token, created_at, last_used_at')
+      .eq('user_id', userId)
+      .order('last_used_at', { ascending: true, nullsFirst: true })
+      .order('created_at', { ascending: true });
+
+    const overflow = (existing ?? []).slice(
+      0,
+      Math.max(0, (existing?.length ?? 0) - (MAX_TRUSTED_DEVICES_PER_USER - 1))
+    );
+    if (overflow.length > 0) {
+      const idsToEvict = overflow.map((row: { id: string }) => row.id);
+      const { error: deleteError } = await serverSupabase
+        .from('trusted_devices')
+        .delete()
+        .in('id', idsToEvict);
+
+      if (deleteError) {
+        logger.warn('Failed to evict oldest trusted devices (continuing)', {
+          service: 'mfa',
+          userId,
+          idsToEvict,
+          error: deleteError.message,
+        });
+      } else {
+        logger.info('Evicted oldest trusted devices to enforce per-user cap', {
+          service: 'mfa',
+          userId,
+          cap: MAX_TRUSTED_DEVICES_PER_USER,
+          evictedCount: idsToEvict.length,
+        });
+      }
+    }
+
     const deviceToken = generateSecureToken();
     const expiresAt = new Date(Date.now() + TRUSTED_DEVICE_DURATION);
 

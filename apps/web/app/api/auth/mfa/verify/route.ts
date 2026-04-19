@@ -17,65 +17,161 @@ const verifyMFASchema = z.object({
   rememberDevice: z.boolean().optional().default(false),
 });
 
-export const POST = withApiHandler({ auth: false, rateLimit: false }, async (request) => {
-  const body = await request.json();
-  const validation = verifyMFASchema.safeParse(body);
-  if (!validation.success) {
-    return NextResponse.json({ error: 'Invalid request', details: validation.error.errors }, { status: 400 });
+export const POST = withApiHandler(
+  { auth: false, rateLimit: false },
+  async (request) => {
+    const body = await request.json();
+    const validation = verifyMFASchema.safeParse(body);
+    if (!validation.success) {
+      return NextResponse.json(
+        { error: 'Invalid request', details: validation.error.errors },
+        { status: 400 }
+      );
+    }
+    const { preMfaToken, code, method, rememberDevice } = validation.data;
+
+    // Rate limit BEFORE session validation so we can't be used as an oracle for
+    // enumerating valid pre-MFA tokens (and to cap brute-force on the code).
+    // Key on IP + a short prefix of the pre-MFA token so attackers cannot easily
+    // sidestep by rotating one or the other.
+    const clientIp =
+      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+      request.headers.get('x-real-ip') ||
+      'unknown';
+    const tokenPrefix = preMfaToken.slice(0, 16);
+    const ipTokenLimit = await rateLimiter.checkRateLimit({
+      windowMs: 900000,
+      maxRequests: 10,
+      identifier: `mfa-verify-pre:${clientIp}:${tokenPrefix}`,
+    });
+    if (!ipTokenLimit.allowed) {
+      logger.warn('MFA pre-session rate limit exceeded', {
+        service: 'mfa',
+        clientIp,
+      });
+      return NextResponse.json(
+        {
+          error: 'Too many verification attempts. Please try again later.',
+          retryAfter: ipTokenLimit.retryAfter,
+        },
+        { status: 429 }
+      );
+    }
+
+    const userId = await MFAService.validatePreMFASession(preMfaToken);
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Invalid or expired session. Please login again.' },
+        { status: 401 }
+      );
+    }
+
+    // Per-user rate limit — prevents cross-IP brute force on a single user's session
+    const rateLimitResult = await rateLimiter.checkRateLimit({
+      windowMs: 900000,
+      maxRequests: 5,
+      identifier: `mfa-verify:${userId}`,
+    });
+    if (!rateLimitResult.allowed) {
+      logger.warn('MFA verification rate limit exceeded', {
+        service: 'mfa',
+        userId,
+      });
+      return NextResponse.json(
+        {
+          error: 'Too many verification attempts. Please try again later.',
+          retryAfter: rateLimitResult.retryAfter,
+        },
+        { status: 429 }
+      );
+    }
+
+    const ipAddress =
+      request.headers.get('x-forwarded-for')?.split(',')[0] ||
+      request.headers.get('x-real-ip') ||
+      undefined;
+    const userAgent = request.headers.get('user-agent') || undefined;
+
+    const verificationResult = await MFAService.verifyMFA(
+      userId,
+      code,
+      method,
+      ipAddress,
+      userAgent
+    );
+    if (!verificationResult.success) {
+      return NextResponse.json(
+        { error: verificationResult.error || 'Invalid verification code' },
+        { status: 401 }
+      );
+    }
+
+    await MFAService.deletePreMFASession(preMfaToken);
+
+    const user = await DatabaseManager.getUserById(userId);
+    if (!user) {
+      logger.error('User not found after MFA verification', {
+        service: 'mfa',
+        userId,
+      });
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    const { accessToken, refreshToken } = await createTokenPair(
+      { id: user.id, email: user.email, role: user.role },
+      { userAgent },
+      ipAddress
+    );
+
+    let trustedDeviceToken: string | undefined;
+    if (rememberDevice) {
+      const trustedDevice = await MFAService.createTrustedDevice(
+        userId,
+        'Web Browser',
+        undefined,
+        ipAddress,
+        userAgent
+      );
+      trustedDeviceToken = trustedDevice.deviceToken;
+    }
+
+    logger.info('MFA verification successful', {
+      service: 'mfa',
+      userId,
+      method,
+      rememberDevice,
+    });
+
+    const response = NextResponse.json({
+      success: true,
+      message: 'Login successful',
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        emailVerified: user.verified,
+      },
+      requiresNewBackupCodes: verificationResult.requiresNewBackupCodes,
+    });
+
+    const cookieHeaders = createAuthCookieHeaders(
+      accessToken,
+      false,
+      refreshToken
+    );
+    cookieHeaders.forEach((value, key) => response.headers.append(key, value));
+
+    if (trustedDeviceToken) {
+      const maxAge = 30 * 24 * 60 * 60;
+      const isProduction = process.env.NODE_ENV === 'production';
+      response.headers.append(
+        'Set-Cookie',
+        `mintenance-trusted-device=${trustedDeviceToken}; HttpOnly; Path=/; Max-Age=${maxAge}; SameSite=Strict${isProduction ? '; Secure' : ''}`
+      );
+    }
+
+    return response;
   }
-  const { preMfaToken, code, method, rememberDevice } = validation.data;
-
-  const userId = await MFAService.validatePreMFASession(preMfaToken);
-  if (!userId) {
-    return NextResponse.json({ error: 'Invalid or expired session. Please login again.' }, { status: 401 });
-  }
-
-  const rateLimitResult = await rateLimiter.checkRateLimit({ windowMs: 900000, maxRequests: 5, identifier: `mfa-verify:${userId}` });
-  if (!rateLimitResult.allowed) {
-    logger.warn('MFA verification rate limit exceeded', { service: 'mfa', userId });
-    return NextResponse.json({ error: 'Too many verification attempts. Please try again later.', retryAfter: rateLimitResult.retryAfter }, { status: 429 });
-  }
-
-  const ipAddress = request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || undefined;
-  const userAgent = request.headers.get('user-agent') || undefined;
-
-  const verificationResult = await MFAService.verifyMFA(userId, code, method, ipAddress, userAgent);
-  if (!verificationResult.success) {
-    return NextResponse.json({ error: verificationResult.error || 'Invalid verification code' }, { status: 401 });
-  }
-
-  await MFAService.deletePreMFASession(preMfaToken);
-
-  const user = await DatabaseManager.getUserById(userId);
-  if (!user) {
-    logger.error('User not found after MFA verification', { service: 'mfa', userId });
-    return NextResponse.json({ error: 'User not found' }, { status: 404 });
-  }
-
-  const { accessToken, refreshToken } = await createTokenPair({ id: user.id, email: user.email, role: user.role }, { userAgent }, ipAddress);
-
-  let trustedDeviceToken: string | undefined;
-  if (rememberDevice) {
-    const trustedDevice = await MFAService.createTrustedDevice(userId, 'Web Browser', undefined, ipAddress, userAgent);
-    trustedDeviceToken = trustedDevice.deviceToken;
-  }
-
-  logger.info('MFA verification successful', { service: 'mfa', userId, method, rememberDevice });
-
-  const response = NextResponse.json({
-    success: true, message: 'Login successful',
-    user: { id: user.id, email: user.email, role: user.role, firstName: user.first_name, lastName: user.last_name, emailVerified: user.verified },
-    requiresNewBackupCodes: verificationResult.requiresNewBackupCodes,
-  });
-
-  const cookieHeaders = createAuthCookieHeaders(accessToken, false, refreshToken);
-  cookieHeaders.forEach((value, key) => response.headers.append(key, value));
-
-  if (trustedDeviceToken) {
-    const maxAge = 30 * 24 * 60 * 60;
-    const isProduction = process.env.NODE_ENV === 'production';
-    response.headers.append('Set-Cookie', `mintenance-trusted-device=${trustedDeviceToken}; HttpOnly; Path=/; Max-Age=${maxAge}; SameSite=Strict${isProduction ? '; Secure' : ''}`);
-  }
-
-  return response;
-});
+);

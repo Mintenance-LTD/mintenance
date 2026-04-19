@@ -26,24 +26,14 @@ import {
   ErrorSeverity,
 } from '../utils/ErrorManager';
 import { JobPostingFormFields } from './job-form/JobPostingFormFields';
+import { TenancyFields, type TenancyState } from './job-form/TenancyFields';
+import { JOB_CATEGORIES } from './job-form/constants';
 import { theme } from '../theme';
+import { useSilverMode } from '../hooks/useSilverMode';
 
 interface Props {
   navigation: NativeStackNavigationProp<JobsStackParamList, 'JobPosting'>;
 }
-
-const JOB_CATEGORIES = [
-  { label: 'Handyman', value: 'handyman' },
-  { label: 'Plumbing', value: 'plumbing' },
-  { label: 'Electrical', value: 'electrical' },
-  { label: 'Painting & Decorating', value: 'painting' },
-  { label: 'Carpentry', value: 'carpentry' },
-  { label: 'Cleaning', value: 'cleaning' },
-  { label: 'Gardening', value: 'gardening' },
-  { label: 'Roofing', value: 'roofing' },
-  { label: 'Heating & Gas', value: 'heating' },
-  { label: 'Flooring', value: 'flooring' },
-];
 
 const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
@@ -65,14 +55,25 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
   const [submissionSuccess, setSubmissionSuccess] = useState(false);
+  // R6 #19 landlord / tenancy fields
+  const [tenancy, setTenancy] = useState<TenancyState>({
+    isRentalProperty: false,
+    whoPays: 'me',
+    payerEmail: '',
+  });
 
   const createJobMutation = useCreateJob();
+  const { silverMode, loading: silverLoading } = useSilverMode();
 
   useEffect(() => {
     if (user && user.role !== 'homeowner') {
       navigation.navigate('HomeTab' as never);
     }
-  }, [user, navigation]);
+    // R3 deferred #7 — Silver-mode users go to the simplified 3-step wizard.
+    if (!silverLoading && silverMode) {
+      navigation.navigate('PostJobWizard' as never);
+    }
+  }, [user, navigation, silverMode, silverLoading]);
 
   const handlePricingUpdate = (analysis: PricingAnalysis) => {
     setAIPricingAnalysis(analysis);
@@ -258,6 +259,14 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
         urgency,
         budget: budgetNumber,
       });
+      // R6 #19 tenancy metadata — only attached when the user opted in.
+      const tenancyMetadata =
+        tenancy.whoPays === 'someone_else' && tenancy.payerEmail.trim()
+          ? {
+              who_pays: 'someone_else',
+              payer_email: tenancy.payerEmail.trim().toLowerCase(),
+            }
+          : undefined;
       const result = await createJobMutation.mutateAsync({
         title: title.trim(),
         description: description.trim(),
@@ -267,6 +276,8 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
         category,
         priority: urgency,
         photos: photos.length > 0 ? photos : undefined,
+        is_rental_property: tenancy.isRentalProperty || undefined,
+        tenancy_metadata: tenancyMetadata,
       });
       setSubmissionSuccess(true);
       const delay = process.env.NODE_ENV === 'test' ? 0 : 1500;
@@ -337,6 +348,9 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
             });
           }}
         />
+
+        {/* R6 #19 landlord / tenancy optional fields */}
+        <TenancyFields value={tenancy} onChange={setTenancy} />
       </ScrollView>
 
       <View style={styles.footer}>

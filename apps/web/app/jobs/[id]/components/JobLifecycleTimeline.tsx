@@ -87,7 +87,7 @@ export function JobLifecycleTimeline({
   );
   const isPaymentStep = contractSigned && !paymentSecured;
   steps.push({
-    label: 'Payment in Escrow',
+    label: 'Protected Payment',
     status: isPaymentStep
       ? 'current'
       : paymentSecured
@@ -225,7 +225,7 @@ export function NextActionCard({
     !['held', 'release_pending', 'released'].includes(escrowStatus)
   ) {
     message =
-      'Both parties have signed the contract. Make payment to secure funds in escrow so work can begin.';
+      'Both parties have signed the contract. Make payment so your funds are held with Protected Payment and work can begin.';
     ctaLabel = 'Make Payment';
     ctaHref = `/jobs/${jobId}/payment`;
     urgency = 'urgent';

@@ -558,6 +558,38 @@ export const POST = withApiHandler(
           );
         }
 
+        // Shadow-mode data collection: record GPT-4o teacher output to
+        // gpt4_training_labels so the student VLM has a training corpus to
+        // fine-tune on once MINT_AI_VLM_ENDPOINT is deployed. Fire-and-forget
+        // because capture must never block or fail a live assessment.
+        //
+        // Historical context: before this call, the hybrid inference path
+        // (HybridInferenceService.assessDamage, which is the default prod
+        // path) never populated gpt4_training_labels — only the non-hybrid
+        // AssessmentOrchestrator branch called recordGPT4Output via
+        // captureTrainingDataAsync. That gap meant prod had 1 row in
+        // gpt4_training_labels after 473 real assessments. This hook closes
+        // the gap on both branches.
+        deps.KnowledgeDistillationService.recordGPT4Output(
+          savedAssessmentId,
+          assessment,
+          imageUrls,
+          context
+            ? {
+                location: context.location,
+                propertyType: context.propertyType,
+                ageOfProperty: context.ageOfProperty,
+                propertyDetails: context.propertyDetails,
+              }
+            : undefined
+        ).catch((err) => {
+          deps.logger.warn('Training data capture failed (non-critical)', {
+            service: 'building-surveyor-api',
+            assessmentId: savedAssessmentId,
+            error: err instanceof Error ? err.message : String(err),
+          });
+        });
+
         const autoValidationResult =
           await deps.DataCollectionService.autoValidateIfHighConfidence(
             assessment,

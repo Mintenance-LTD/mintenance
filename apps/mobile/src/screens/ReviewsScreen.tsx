@@ -22,110 +22,27 @@ import { useQuery } from '@tanstack/react-query';
 import { mobileApiClient as apiClient } from '../utils/mobileApiClient';
 import { theme } from '../theme';
 
-interface Review {
-  id: string;
-  job_id: string;
-  job_title: string;
-  reviewer_name: string;
-  rating: number;
-  comment: string;
-  created_at: string;
-}
+import { ReviewCard, StarRating, type Review } from './reviews/ReviewCard';
 
 interface ReviewsResponse {
   reviews: Array<{
     id: string;
-    author: string;
+    jobId?: string;
+    jobTitle?: string;
+    client?: string;
     rating: number;
-    date: string;
     comment: string;
-    jobType?: string;
+    createdAt?: string;
+    response?: string | null;
+    responseAt?: string | null;
+    responsePublishedAt?: string | null;
+    responseBlockedByAdmin?: boolean;
   }>;
 }
 
 interface Props {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'Reviews'>;
 }
-
-const StarRating: React.FC<{ rating: number; size?: number }> = ({
-  rating,
-  size = 16,
-}) => (
-  <View style={styles.starRow}>
-    {[1, 2, 3, 4, 5].map((star) => (
-      <Ionicons
-        key={star}
-        name={
-          star <= rating
-            ? 'star'
-            : star - 0.5 <= rating
-              ? 'star-half'
-              : 'star-outline'
-        }
-        size={size}
-        color={
-          star <= rating || star - 0.5 <= rating
-            ? theme.colors.accent
-            : theme.colors.border
-        }
-      />
-    ))}
-  </View>
-);
-
-const AVATAR_COLORS = [
-  '#222222',
-  '#10B981',
-  '#3B82F6',
-  '#8B5CF6',
-  '#F59E0B',
-  '#EF4444',
-];
-
-const ReviewCard: React.FC<{ review: Review; index: number }> = ({
-  review,
-  index,
-}) => (
-  <View style={styles.reviewCard}>
-    <View style={styles.reviewHeader}>
-      <View style={styles.reviewerInfo}>
-        <View
-          style={[
-            styles.avatarCircle,
-            { backgroundColor: AVATAR_COLORS[index % AVATAR_COLORS.length] },
-          ]}
-        >
-          <Text style={styles.avatarText}>
-            {review.reviewer_name.charAt(0).toUpperCase()}
-          </Text>
-        </View>
-        <View>
-          <Text style={styles.reviewerName}>{review.reviewer_name}</Text>
-          <Text style={styles.reviewDate}>
-            {new Date(review.created_at).toLocaleDateString('en-GB', {
-              day: 'numeric',
-              month: 'short',
-              year: 'numeric',
-            })}
-          </Text>
-        </View>
-      </View>
-      <StarRating rating={review.rating} />
-    </View>
-
-    <View style={styles.jobChip}>
-      <Ionicons
-        name='briefcase-outline'
-        size={12}
-        color={theme.colors.textSecondary}
-      />
-      <Text style={styles.jobLabel}>{review.job_title}</Text>
-    </View>
-    {review.comment && (
-      <Text style={styles.reviewComment}>{review.comment}</Text>
-    )}
-  </View>
-);
 
 type ReviewFilter = 'all' | 'positive' | 'negative';
 
@@ -146,17 +63,23 @@ export const ReviewsScreen: React.FC<Props> = ({ navigation }) => {
         return [];
       }
 
+      // R7 #19 — use the private contractor endpoint so we get moderation
+      // state (responseAt, responsePublishedAt, responseBlockedByAdmin).
       const response = await apiClient.get<ReviewsResponse>(
-        `/api/contractors/${user.id}/reviews`
+        `/api/contractor/reviews`
       );
       return (response.reviews || []).map((review) => ({
         id: review.id,
-        job_id: '',
-        job_title: review.jobType || 'Completed job',
-        reviewer_name: review.author || 'Anonymous',
+        job_id: (review.jobId as string) || '',
+        job_title: review.jobTitle || 'Completed job',
+        reviewer_name: review.client || 'Anonymous',
         rating: review.rating,
         comment: review.comment || '',
-        created_at: review.date,
+        created_at: review.createdAt || new Date().toISOString(),
+        response: review.response ?? null,
+        responseAt: review.responseAt ?? null,
+        responsePublishedAt: review.responsePublishedAt ?? null,
+        responseBlockedByAdmin: review.responseBlockedByAdmin ?? false,
       })) as Review[];
     },
     enabled: !!user,
@@ -264,7 +187,18 @@ export const ReviewsScreen: React.FC<Props> = ({ navigation }) => {
           })}
           keyExtractor={(item) => item.id}
           renderItem={({ item, index }) => (
-            <ReviewCard review={item} index={index} />
+            <ReviewCard
+              review={item}
+              index={index}
+              onReply={(r) =>
+                navigation.navigate('ReplyToReview', {
+                  reviewId: r.id,
+                  reviewerName: r.reviewer_name,
+                  reviewComment: r.comment,
+                  rating: r.rating,
+                })
+              }
+            />
           )}
           refreshControl={
             <RefreshControl
@@ -318,77 +252,6 @@ const styles = StyleSheet.create({
   listContainer: {
     padding: 16,
     gap: 10,
-  },
-  reviewCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 16,
-    padding: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
-  },
-  reviewHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 10,
-  },
-  reviewerInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  avatarCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: theme.colors.textInverse,
-  },
-  reviewerName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: theme.colors.textPrimary,
-  },
-  reviewDate: {
-    fontSize: 12,
-    color: theme.colors.textTertiary,
-  },
-  starRow: {
-    flexDirection: 'row',
-    gap: 2,
-  },
-  jobChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: theme.colors.backgroundSecondary,
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    alignSelf: 'flex-start',
-    marginBottom: 8,
-  },
-  jobLabel: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-    fontWeight: '500',
-  },
-  reviewComment: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-    lineHeight: 21,
   },
   distributionCard: {
     backgroundColor: theme.colors.surface,

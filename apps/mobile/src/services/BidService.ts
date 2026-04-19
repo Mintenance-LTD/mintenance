@@ -201,13 +201,14 @@ export class BidService {
     return response.bid;
   }
 
-  static async getBidStatistics(jobId: string): Promise<void> {
+  // TODO: unused — consider removing
+  static async getBidStatistics(jobId: string): Promise<number> {
     const { supabase } = await import('../config/supabase');
     const { count, error } = await supabase
       .from('bids')
       .select('*', { count: 'exact', head: true })
       .eq('job_id', jobId);
     if (error) throw new Error(error.message);
-    return undefined as unknown as void;
+    return count ?? 0;
   }
 }

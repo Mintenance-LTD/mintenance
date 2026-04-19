@@ -95,6 +95,22 @@ export const styles = StyleSheet.create({
   ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   stars: { flexDirection: 'row' },
   ratingText: { fontSize: 13, color: theme.colors.textSecondary },
+  newBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: theme.colors.primaryLight,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+    alignSelf: 'flex-start',
+    marginTop: 2,
+  },
+  newBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: theme.colors.primary,
+  },
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',

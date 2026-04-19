@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { signJobStoragePath } from '@/lib/api/job-storage';
 import { PhotoVerificationService } from '@/lib/services/escrow/PhotoVerificationService';
 import { logger } from '@mintenance/shared';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
@@ -171,24 +172,24 @@ export const POST = withApiHandler(
         continue;
       }
 
-      const { data: urlData } = serverSupabase.storage
-        .from('Job-storage')
-        .getPublicUrl(fileName);
-      if (!urlData?.publicUrl) {
+      // Phase 2 storage hardening: issue a signed URL (1yr TTL) instead of a
+      // public URL so the object stays reachable once `Job-storage` flips to
+      // `public=false`. See apps/web/lib/api/job-storage.ts for context.
+      const photoUrl = await signJobStoragePath(fileName);
+      if (!photoUrl) {
         continue;
       }
 
       // Validate photo quality (brightness, sharpness, resolution)
-      const qualityResult = await PhotoVerificationService.validatePhotoQuality(
-        urlData.publicUrl
-      );
+      const qualityResult =
+        await PhotoVerificationService.validatePhotoQuality(photoUrl);
 
       // ENFORCEMENT: reject photos that fail quality check.
       // Delete the uploaded file from storage so we don't accumulate garbage.
       if (!qualityResult.passed) {
         await serverSupabase.storage.from('Job-storage').remove([fileName]);
         rejectedPhotos.push({
-          url: urlData.publicUrl,
+          url: photoUrl,
           reason: qualityResult.issues.join('; ') || 'Photo quality too low',
         });
         logger.warn('Photo rejected: quality check failed', {
@@ -203,7 +204,7 @@ export const POST = withApiHandler(
       // Save metadata
       await serverSupabase.from('job_photos_metadata').insert({
         job_id: jobId,
-        photo_url: urlData.publicUrl,
+        photo_url: photoUrl,
         photo_type: 'after',
         geolocation: geolocation || null,
         geolocation_verified: geolocation ? geolocationVerified : null,
@@ -215,7 +216,7 @@ export const POST = withApiHandler(
       });
 
       uploadedPhotos.push({
-        url: urlData.publicUrl,
+        url: photoUrl,
         qualityScore: qualityResult.qualityScore,
         angleType,
       });
@@ -288,6 +289,60 @@ export const POST = withApiHandler(
 
           if (!completeError) {
             jobCompleted = true;
+
+            // R7 #8 neighbour referral: if the homeowner redeemed a
+            // referral and this is their first completed job, credit
+            // £20 to both parties. Non-fatal if it fails.
+            try {
+              const { NeighbourhoodReferralService } =
+                await import('@/lib/services/referrals/NeighbourhoodReferralService');
+              await NeighbourhoodReferralService.applyRewardOnFirstJob(
+                job.homeowner_id,
+                jobId
+              );
+            } catch (refErr) {
+              logger.warn('Referral reward hook failed', {
+                service: 'jobs',
+                jobId,
+                err: refErr instanceof Error ? refErr.message : String(refErr),
+              });
+            }
+
+            // R6 #5 deferred: tenant + payer fan-out on completion. The
+            // homeowner + contractor pings still happen in the Promise.all
+            // block below; this only notifies the NEW R6 roles so rental
+            // tenants and landlord payers learn the job is done.
+            try {
+              const { notifyStakeholders } =
+                await import('@/lib/services/notifications/JobStakeholderNotifier');
+              const titleSafe = job.title || 'your job';
+              await notifyStakeholders({
+                jobId,
+                type: 'job_completed',
+                onlyRoles: ['payer', 'tenant'],
+                titleFor: (role) =>
+                  role === 'tenant'
+                    ? 'Work finished at your home'
+                    : 'Work completed',
+                messageFor: (role) =>
+                  role === 'tenant'
+                    ? `The contractor has finished work on "${titleSafe}". If anything needs attention, let your landlord know.`
+                    : `Work on "${titleSafe}" has been marked complete. Review the photos and release payment when you're happy.`,
+                actionUrlFor: () => `/jobs/${jobId}`,
+                emailTenants: true,
+                tenantJobStatus: 'completed',
+                skipUserId: user.id,
+              });
+            } catch (fanoutErr) {
+              logger.warn('Stakeholder fan-out on job completion failed', {
+                service: 'jobs',
+                jobId,
+                err:
+                  fanoutErr instanceof Error
+                    ? fanoutErr.message
+                    : String(fanoutErr),
+              });
+            }
 
             // Notify homeowner to review and contractor of completion
             await Promise.all([

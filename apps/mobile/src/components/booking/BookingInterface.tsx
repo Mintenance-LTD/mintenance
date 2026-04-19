@@ -8,6 +8,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { styles } from './bookingInterfaceStyles';
+import { formatCurrency } from '../../utils/formatCurrency';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -95,8 +96,8 @@ export const BookingInterface: React.FC<BookingInterfaceProps> = ({
     },
   ];
 
-  const selectedServiceData = services.find(s => s.id === selectedService);
-  const selectedTimeData = timeSlots.find(t => t.id === selectedTimeSlot);
+  const selectedServiceData = services.find((s) => s.id === selectedService);
+  const selectedTimeData = timeSlots.find((t) => t.id === selectedTimeSlot);
 
   const handleNext = () => {
     if (currentStep < steps.length - 1) {
@@ -127,7 +128,11 @@ export const BookingInterface: React.FC<BookingInterfaceProps> = ({
       case 0:
         return !!selectedService;
       case 1:
-        return !!(jobDetails.title && jobDetails.description && jobDetails.location);
+        return !!(
+          jobDetails.title &&
+          jobDetails.description &&
+          jobDetails.location
+        );
       case 2:
         return !!selectedTimeSlot;
       case 3:
@@ -228,20 +233,26 @@ const StepIndicator: React.FC<{
   return (
     <View style={styles.stepContainer}>
       <View style={styles.stepContent}>
-        <View style={[
-          styles.stepCircle,
-          step.completed && styles.completedCircle,
-          step.active && styles.activeCircle,
-        ]}>
-          <Text style={[
-            styles.stepNumber,
-            (step.completed || step.active) && styles.activeStepNumber,
-          ]}>
+        <View
+          style={[
+            styles.stepCircle,
+            step.completed && styles.completedCircle,
+            step.active && styles.activeCircle,
+          ]}
+        >
+          <Text
+            style={[
+              styles.stepNumber,
+              (step.completed || step.active) && styles.activeStepNumber,
+            ]}
+          >
             {step.completed ? '✓' : index + 1}
           </Text>
         </View>
         <View style={styles.stepText}>
-          <Text style={[styles.stepTitle, step.active && styles.activeStepTitle]}>
+          <Text
+            style={[styles.stepTitle, step.active && styles.activeStepTitle]}
+          >
             {step.title}
           </Text>
           <Text style={styles.stepSubtitle}>{step.subtitle}</Text>
@@ -285,7 +296,9 @@ const ServiceSelection: React.FC<{
 
             <View style={styles.serviceFooter}>
               <Text style={styles.serviceDuration}>{service.duration}</Text>
-              <Text style={styles.servicePrice}>From ${service.price}</Text>
+              <Text style={styles.servicePrice}>
+                From {formatCurrency(service.price)}
+              </Text>
             </View>
           </TouchableOpacity>
         ))}
@@ -323,7 +336,7 @@ const JobDetailsForm: React.FC<{
           <Text style={styles.inputLabel}>Project Title *</Text>
           <TextInput
             style={styles.textInput}
-            placeholder="e.g., Fix leaky kitchen faucet"
+            placeholder='e.g., Fix leaky kitchen faucet'
             value={details.title}
             onChangeText={(text) => updateDetail('title', text)}
           />
@@ -333,7 +346,7 @@ const JobDetailsForm: React.FC<{
           <Text style={styles.inputLabel}>Description *</Text>
           <TextInput
             style={[styles.textInput, styles.textArea]}
-            placeholder="Describe the work needed, any specific requirements, materials, etc."
+            placeholder='Describe the work needed, any specific requirements, materials, etc.'
             value={details.description}
             onChangeText={(text) => updateDetail('description', text)}
             multiline
@@ -345,7 +358,7 @@ const JobDetailsForm: React.FC<{
           <Text style={styles.inputLabel}>Location *</Text>
           <TextInput
             style={styles.textInput}
-            placeholder="Enter your address"
+            placeholder='Enter your address'
             value={details.location}
             onChangeText={(text) => updateDetail('location', text)}
           />
@@ -355,7 +368,7 @@ const JobDetailsForm: React.FC<{
           <Text style={styles.inputLabel}>Budget Range</Text>
           <TextInput
             style={styles.textInput}
-            placeholder="e.g., $100-200"
+            placeholder='e.g., £100-200'
             value={details.budget}
             onChangeText={(text) => updateDetail('budget', text)}
           />
@@ -373,10 +386,12 @@ const JobDetailsForm: React.FC<{
                 ]}
                 onPress={() => updateDetail('urgency', urgency)}
               >
-                <Text style={[
-                  styles.urgencyText,
-                  details.urgency === urgency && styles.selectedUrgencyText,
-                ]}>
+                <Text
+                  style={[
+                    styles.urgencyText,
+                    details.urgency === urgency && styles.selectedUrgencyText,
+                  ]}
+                >
                   {urgency.charAt(0).toUpperCase() + urgency.slice(1)}
                 </Text>
               </TouchableOpacity>
@@ -412,15 +427,19 @@ const TimeSlotSelection: React.FC<{
             onPress={() => slot.available && onTimeSlotSelect(slot.id)}
             disabled={!slot.available}
           >
-            <Text style={[
-              styles.timeSlotText,
-              !slot.available && styles.unavailableTimeSlotText,
-              selectedTimeSlot === slot.id && styles.selectedTimeSlotText,
-            ]}>
+            <Text
+              style={[
+                styles.timeSlotText,
+                !slot.available && styles.unavailableTimeSlotText,
+                selectedTimeSlot === slot.id && styles.selectedTimeSlotText,
+              ]}
+            >
               {slot.time}
             </Text>
             {slot.price && (
-              <Text style={styles.timeSlotPrice}>+${slot.price}</Text>
+              <Text style={styles.timeSlotPrice}>
+                +{formatCurrency(slot.price)}
+              </Text>
             )}
           </TouchableOpacity>
         ))}
@@ -475,11 +494,11 @@ const BookingConfirmation: React.FC<{
         <View style={styles.confirmationSection}>
           <Text style={styles.confirmationLabel}>Estimated Cost</Text>
           <Text style={styles.confirmationPrice}>
-            From ${service?.price}{timeSlot?.price && ` + $${timeSlot.price}`}
+            From {formatCurrency(service?.price ?? 0)}
+            {timeSlot?.price ? ` + ${formatCurrency(timeSlot.price)}` : ''}
           </Text>
         </View>
       </View>
     </View>
   );
 };
-

@@ -37,6 +37,14 @@ interface ContractorProfileState {
     verified?: boolean;
     companyName?: string;
     phone?: string;
+    // R7 #9 + #11 trust signals (lazy-loaded from /api/contractors/:id)
+    postcodePrefix?: string | null;
+    postcodeProofCount?: number | null;
+    disputeHistory?: {
+      resolvedCount: number;
+      unresolvedCount: number;
+      avgResolutionHours?: number | null;
+    };
   };
   photos: string[];
   reviews: Review[];
@@ -153,6 +161,43 @@ export const useContractorProfileViewModel = (
       });
 
       setPhotos(data.portfolio_images || []);
+
+      // R7 #9 + #11 — hydrate trust signals from the public API.
+      // Non-fatal if it fails; the basic profile is already rendered.
+      (async () => {
+        try {
+          const { mobileApiClient } =
+            await import('../../../utils/mobileApiClient');
+          const trust = await mobileApiClient.get<{
+            contractor: {
+              postcode_prefix?: string | null;
+              postcode_proof_count?: number | null;
+              dispute_history?: {
+                resolved_count: number;
+                unresolved_count: number;
+                avg_resolution_hours: number | null;
+              };
+            };
+          }>(`/api/contractors/${contractorId}`);
+          const c = trust?.contractor;
+          if (c) {
+            setContractor((prev) => ({
+              ...prev,
+              postcodePrefix: c.postcode_prefix ?? null,
+              postcodeProofCount: c.postcode_proof_count ?? null,
+              disputeHistory: c.dispute_history
+                ? {
+                    resolvedCount: c.dispute_history.resolved_count,
+                    unresolvedCount: c.dispute_history.unresolved_count,
+                    avgResolutionHours: c.dispute_history.avg_resolution_hours,
+                  }
+                : undefined,
+            }));
+          }
+        } catch (trustErr) {
+          logger.warn('Failed to hydrate trust lines', trustErr);
+        }
+      })();
 
       // Fetch reviews
       try {

@@ -295,3 +295,5 @@ __pycache__/
 # SAM service artifacts
 apps/sam3-service/model_cache/
 apps/sam3-service/sam3_repo/
+# Local training data export artifacts (run scripts/vlm-training/export_bootstrap_dataset.mjs to regenerate)
+training_data*.jsonl

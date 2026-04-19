@@ -9,6 +9,7 @@ import {
   sendFinalWarningNotification,
 } from './homeowner-approval/notifications';
 import { checkAutoApprovalEligibility } from './homeowner-approval/auto-approval';
+import { fetchAfterPhotoGate } from './homeowner-approval/photo-gate';
 import { logAuditEvent } from '@/lib/audit';
 
 const AUTO_APPROVAL_DAYS = 7;
@@ -119,13 +120,12 @@ export class HomeownerApprovalService {
     }
   }
 
-  /**
-   * Homeowner approves completion
-   */
+  /** Approve completion. internal=true skips photo gate (auto-release path). */
   static async approveCompletion(
     escrowId: string,
     homeownerId: string,
-    comments?: string
+    comments?: string,
+    options: { internal?: boolean } = {}
   ): Promise<void> {
     try {
       // Verify homeowner has permission
@@ -155,14 +155,24 @@ export class HomeownerApprovalService {
         throw new Error('Unauthorized: Not the homeowner for this escrow');
       }
 
-      // Get photo URLs for this escrow
-      const { data: photos } = await serverSupabase
-        .from('job_photos_metadata')
-        .select('photo_url')
-        .eq('job_id', job.id)
-        .eq('photo_type', 'after');
-
-      const photoUrls = (photos || []).map((p: PhotoMetadata) => p.photo_url);
+      // LFC-P0-1: require verified after-photos for the explicit path.
+      const { photoUrls, hasVerifiedAfterPhotos } = await fetchAfterPhotoGate(
+        job.id
+      );
+      if (!options.internal && !hasVerifiedAfterPhotos) {
+        logger.warn(
+          'Homeowner approval blocked: no verified after-photos on file',
+          {
+            service: 'HomeownerApprovalService',
+            escrowId,
+            homeownerId,
+            jobId: job.id,
+          }
+        );
+        throw new Error(
+          'Cannot approve completion: contractor has not uploaded verified after-photos yet.'
+        );
+      }
 
       // Record approval in history
       await serverSupabase.from('homeowner_approval_history').insert({
@@ -458,13 +468,13 @@ export class HomeownerApprovalService {
         return false;
       }
 
-      // Auto-approve (safety net, NOT homeowner consent). Logged with a
-      // distinct reason string so ops + audit log queries can distinguish
-      // the 7-day timeout path from explicit homeowner approval.
+      // Auto-approve safety-net path. internal=true skips the photo gate
+      // because checkAutoApprovalEligibility already verified quality >=0.7.
       await this.approveCompletion(
         escrowId,
         homeownerId,
-        'auto_approved_7d_timeout: homeowner did not respond within the 7-day safety-net window'
+        'auto_approved_7d_timeout: homeowner did not respond within the 7-day safety-net window',
+        { internal: true }
       );
 
       logger.info('Escrow auto-approved via 7-day safety net', {

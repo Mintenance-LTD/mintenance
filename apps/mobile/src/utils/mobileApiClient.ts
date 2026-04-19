@@ -12,6 +12,19 @@ import { logger } from './logger';
 export const API_BASE_URL =
   process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
 
+// Safety: log a loud warning if EXPO_PUBLIC_API_URL is missing in production.
+// Don't throw — that would crash the app on startup — but make it visible.
+if (
+  !process.env.EXPO_PUBLIC_API_URL &&
+  typeof __DEV__ !== 'undefined' &&
+  !__DEV__
+) {
+  logger.error(
+    '[CONFIG] EXPO_PUBLIC_API_URL is not set — API calls will target localhost, which is unreachable on a real device',
+    new Error('Missing EXPO_PUBLIC_API_URL')
+  );
+}
+
 /**
  * Get authentication token from Supabase session.
  * Falls back to SecureStore if the Supabase client session is null

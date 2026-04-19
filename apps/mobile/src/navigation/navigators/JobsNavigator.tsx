@@ -6,6 +6,7 @@ import type { JobsStackParamList } from '../types';
 import JobsScreen from '../../screens/JobsScreen';
 import { JobDetailsScreen } from '../../screens/job-details';
 import JobPostingScreen from '../../screens/JobPostingScreen';
+import { PostJobWizardScreen } from '../../screens/home/PostJobWizardScreen';
 import BidSubmissionScreen from '../../screens/BidSubmissionScreen';
 import { PaymentScreen } from '../../screens/PaymentScreen';
 import { JobTimelineScreen } from '../../screens/job-details/JobTimelineScreen';
@@ -40,6 +41,12 @@ const SafeJobDetailsScreen = withScreenErrorBoundary(
 const SafeJobPostingScreen = withScreenErrorBoundary(
   JobPostingScreen,
   'Job Posting',
+  { fallbackRoute: 'JobsList' }
+);
+
+const SafePostJobWizardScreen = withScreenErrorBoundary(
+  PostJobWizardScreen,
+  'Job Posting Wizard',
   { fallbackRoute: 'JobsList' }
 );
 
@@ -157,6 +164,16 @@ const JobsNavigator: React.FC = () => {
           title: 'Post a Job',
           presentation: 'modal',
           gestureEnabled: true,
+        }}
+      />
+      <JobsStack.Screen
+        name='PostJobWizard'
+        component={SafePostJobWizardScreen}
+        options={{
+          title: 'Post a Job',
+          presentation: 'modal',
+          gestureEnabled: true,
+          headerShown: false,
         }}
       />
       <JobsStack.Screen

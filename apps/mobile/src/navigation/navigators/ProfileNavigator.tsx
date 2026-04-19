@@ -21,6 +21,7 @@ import {
   SafeAddPropertyScreen,
   SafePaymentHistoryScreen,
   SafeSubscriptionScreen,
+  SafeHomeHealthSubscribeScreen,
   SafeFinancialsScreen,
   SafeSettingsHubScreen,
   SafeBookingStatusScreen,
@@ -54,6 +55,7 @@ import {
   SafeBusinessProfileScreen,
   SafeCalendarScreen,
   SafeReviewsScreen,
+  SafeReplyToReviewScreen,
   SafeExpensesScreen,
   SafeDocumentsScreen,
   SafeCertificationsScreen,
@@ -239,6 +241,11 @@ const ProfileNavigator = () => {
         options={{ headerShown: false }}
       />
       <ProfileStack.Screen
+        name='ReplyToReview'
+        component={SafeReplyToReviewScreen}
+        options={{ headerShown: false, presentation: 'modal' }}
+      />
+      <ProfileStack.Screen
         name='PaymentHistory'
         component={SafePaymentHistoryScreen}
         options={{ headerShown: false }}
@@ -247,6 +254,11 @@ const ProfileNavigator = () => {
         name='Subscription'
         component={SafeSubscriptionScreen}
         options={{ headerShown: false }}
+      />
+      <ProfileStack.Screen
+        name='HomeHealthSubscribe'
+        component={SafeHomeHealthSubscribeScreen}
+        options={{ headerShown: false, presentation: 'modal' }}
       />
       <ProfileStack.Screen
         name='Financials'

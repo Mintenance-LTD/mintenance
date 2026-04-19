@@ -90,8 +90,10 @@ export class EscrowService {
 
   static async getUserPaymentHistory(userId: string): Promise<unknown[]> {
     try {
+      // userId is intentionally not sent as a query param; the server derives
+      // the caller's identity from the Bearer token injected by mobileApiClient.
       const response = await mobileApiClient.get<{ payments: unknown[] }>(
-        `/api/payments/history?userId=${encodeURIComponent(userId)}`
+        `/api/payments/history`
       );
       return response.payments ?? [];
     } catch (error) {
@@ -100,13 +102,13 @@ export class EscrowService {
     }
   }
 
-  static async getJobEscrowTransactions(jobId: string): Promise<
-    (EscrowTransactionRow & { jobId: string })[]
-  > {
+  static async getJobEscrowTransactions(
+    jobId: string
+  ): Promise<(EscrowTransactionRow & { jobId: string })[]> {
     try {
-      const response = await mobileApiClient.get<{ escrow: EscrowTransactionRow[] }>(
-        `/api/jobs/${jobId}/escrow`
-      );
+      const response = await mobileApiClient.get<{
+        escrow: EscrowTransactionRow[];
+      }>(`/api/jobs/${jobId}/escrow`);
       return (response.escrow ?? []).map((transaction) => ({
         ...transaction,
         jobId: transaction.job_id,

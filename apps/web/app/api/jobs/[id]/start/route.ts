@@ -6,12 +6,22 @@
 
 import { NextResponse } from 'next/server';
 import { withApiHandler } from '@/lib/api/with-api-handler';
-import { serverSupabase, createRequestScopedClient } from '@/lib/api/supabaseServer';
-import { validateStatusTransition, type JobStatus } from '@/lib/job-state-machine';
+import {
+  serverSupabase,
+  createRequestScopedClient,
+} from '@/lib/api/supabaseServer';
+import {
+  validateStatusTransition,
+  type JobStatus,
+} from '@/lib/job-state-machine';
 import { notifyJobStatusChange } from '@/lib/services/notifications/NotificationHelper';
 import { EmailService } from '@/lib/email-service';
 import { logger } from '@mintenance/shared';
-import { NotFoundError, BadRequestError, ForbiddenError } from '@/lib/errors/api-error';
+import {
+  NotFoundError,
+  BadRequestError,
+  ForbiddenError,
+} from '@/lib/errors/api-error';
 
 export const POST = withApiHandler(
   { roles: ['contractor'] },
@@ -32,7 +42,9 @@ export const POST = withApiHandler(
 
     // 2. Verify contractor is assigned to this job
     if (job.contractor_id !== user.id) {
-      throw new ForbiddenError('Only the assigned contractor can start this job');
+      throw new ForbiddenError(
+        'Only the assigned contractor can start this job'
+      );
     }
 
     // 3. Validate state transition (assigned → in_progress)
@@ -88,11 +100,15 @@ export const POST = withApiHandler(
       .eq('id', jobId);
 
     if (updateError) {
-      logger.error('Failed to update job status', { service: 'jobs', jobId, error: updateError });
+      logger.error('Failed to update job status', {
+        service: 'jobs',
+        jobId,
+        error: updateError,
+      });
       throw new Error('Failed to start job');
     }
 
-    // 6. Notify both parties
+    // 6. Notify both parties (homeowner + contractor)
     await notifyJobStatusChange({
       jobId,
       jobTitle: job.title || 'Job',
@@ -101,6 +117,37 @@ export const POST = withApiHandler(
       homeownerId: job.homeowner_id,
       contractorId: user.id,
     });
+
+    // R6 #5 deferred: fan out to the NEW stakeholder roles that
+    // notifyJobStatusChange doesn't know about — the designated payer
+    // (landlord / agency) and any active tenants on the property.
+    // Emails are sent to email-only tenants (no account yet) too.
+    try {
+      const { notifyStakeholders } =
+        await import('@/lib/services/notifications/JobStakeholderNotifier');
+      const title = job.title || 'your job';
+      await notifyStakeholders({
+        jobId,
+        type: 'job_started',
+        onlyRoles: ['payer', 'tenant'],
+        titleFor: (role) =>
+          role === 'tenant' ? 'Work started at your home' : 'Work started',
+        messageFor: (role) =>
+          role === 'tenant'
+            ? `A contractor has started work on "${title}". They'll be at the property today.`
+            : `Work has started on "${title}".`,
+        actionUrlFor: () => `/jobs/${jobId}`,
+        emailTenants: true,
+        tenantJobStatus: 'in_progress',
+        skipUserId: user.id,
+      });
+    } catch (fanoutErr) {
+      logger.warn('Stakeholder fan-out on job start failed', {
+        service: 'jobs',
+        jobId,
+        err: fanoutErr instanceof Error ? fanoutErr.message : String(fanoutErr),
+      });
+    }
 
     // Send email to homeowner that work has started
     try {
@@ -117,13 +164,14 @@ export const POST = withApiHandler(
         .single();
 
       if (homeownerProfile?.email) {
-        const homeownerName = homeownerProfile.first_name && homeownerProfile.last_name
-          ? `${homeownerProfile.first_name} ${homeownerProfile.last_name}`
-          : 'there';
+        const homeownerName =
+          homeownerProfile.first_name && homeownerProfile.last_name
+            ? `${homeownerProfile.first_name} ${homeownerProfile.last_name}`
+            : 'there';
         const contractorName = contractorProfile
-          ? (contractorProfile.first_name && contractorProfile.last_name
-              ? `${contractorProfile.first_name} ${contractorProfile.last_name}`
-              : contractorProfile.company_name || 'Your contractor')
+          ? contractorProfile.first_name && contractorProfile.last_name
+            ? `${contractorProfile.first_name} ${contractorProfile.last_name}`
+            : contractorProfile.company_name || 'Your contractor'
           : 'Your contractor';
 
         await EmailService.sendJobStartedEmail(homeownerProfile.email, {
@@ -134,7 +182,10 @@ export const POST = withApiHandler(
         });
       }
     } catch (emailError) {
-      logger.error('Failed to send job started email', emailError, { service: 'jobs', jobId });
+      logger.error('Failed to send job started email', emailError, {
+        service: 'jobs',
+        jobId,
+      });
     }
 
     logger.info('Job started by contractor', {

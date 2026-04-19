@@ -1,7 +1,11 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { validateURLs } from '@/lib/security/url-validation';
 import { logger, BUSINESS_RULES } from '@mintenance/shared';
-import { BadRequestError, ForbiddenError, InternalServerError } from '@/lib/errors/api-error';
+import {
+  BadRequestError,
+  ForbiddenError,
+  InternalServerError,
+} from '@/lib/errors/api-error';
 import type { JobDetail, JobSummary, User } from '@mintenance/types';
 import { JobNotificationService } from './job-notification-service';
 
@@ -22,6 +26,10 @@ interface JobCreationPayload {
   urgency?: string;
   latitude?: number;
   longitude?: number;
+  // R6 #19 landlord / tenancy fields
+  is_rental_property?: boolean;
+  payer_user_id?: string;
+  tenancy_metadata?: Record<string, unknown>;
 }
 
 type JobRow = {
@@ -50,7 +58,9 @@ const jobSelectFields = `
   longitude,
   created_at,
   updated_at
-`.replace(/\s+/g, ' ').trim();
+`
+  .replace(/\s+/g, ' ')
+  .trim();
 
 const mapRowToJobDetail = (row: JobRow): JobDetail => ({
   id: row.id,
@@ -74,16 +84,24 @@ export class JobCreationService {
     return JobCreationService.instance;
   }
 
-  async createJob(user: Pick<User, 'id' | 'role'>, payload: JobCreationPayload): Promise<JobDetail> {
+  async createJob(
+    user: Pick<User, 'id' | 'role'>,
+    payload: JobCreationPayload
+  ): Promise<JobDetail> {
     this.enforceBudgetPhotoRule(user.id, payload);
     await this.validatePhotoUrls(user.id, payload);
     await this.validatePropertyOwnership(user.id, payload);
+    await this.resolvePayerFromEmail(payload);
 
     const insertPayload = this.buildInsertPayload(user, payload);
 
     // Server-side geocoding: if location text provided but no coordinates,
     // geocode the address so the job appears at the correct map position
-    if (insertPayload.location && !insertPayload.latitude && !insertPayload.longitude) {
+    if (
+      insertPayload.location &&
+      !insertPayload.latitude &&
+      !insertPayload.longitude
+    ) {
       try {
         const coords = await this.geocodeAddress(insertPayload.location);
         if (coords) {
@@ -95,7 +113,8 @@ export class JobCreationService {
         logger.warn('Failed to geocode job location', {
           service: 'job-creation',
           location: insertPayload.location,
-          error: geoError instanceof Error ? geoError.message : String(geoError),
+          error:
+            geoError instanceof Error ? geoError.message : String(geoError),
         });
       }
     }
@@ -125,23 +144,34 @@ export class JobCreationService {
     return mapRowToJobDetail(jobRow);
   }
 
-  private enforceBudgetPhotoRule(userId: string, payload: JobCreationPayload): void {
+  private enforceBudgetPhotoRule(
+    userId: string,
+    payload: JobCreationPayload
+  ): void {
     const budgetThreshold = BUSINESS_RULES.BUDGET_REQUIRES_PHOTOS_THRESHOLD;
     if (payload.budget && payload.budget > budgetThreshold) {
       const hasImages = payload.photoUrls && payload.photoUrls.length > 0;
       if (!hasImages) {
-        logger.warn(`Job creation rejected: Budget >£${budgetThreshold} requires images`, {
-          service: 'jobs',
-          userId,
-          budget: payload.budget,
-          photoCount: 0,
-        });
-        throw new BadRequestError(`Jobs with a budget over £${budgetThreshold} must include at least one photo`);
+        logger.warn(
+          `Job creation rejected: Budget >£${budgetThreshold} requires images`,
+          {
+            service: 'jobs',
+            userId,
+            budget: payload.budget,
+            photoCount: 0,
+          }
+        );
+        throw new BadRequestError(
+          `Jobs with a budget over £${budgetThreshold} must include at least one photo`
+        );
       }
     }
   }
 
-  private async validatePhotoUrls(userId: string, payload: JobCreationPayload): Promise<void> {
+  private async validatePhotoUrls(
+    userId: string,
+    payload: JobCreationPayload
+  ): Promise<void> {
     if (!payload.photoUrls || payload.photoUrls.length === 0) {
       return;
     }
@@ -153,13 +183,46 @@ export class JobCreationService {
         userId,
         invalidUrls: urlValidation.invalid,
       });
-      throw new BadRequestError(`Invalid photo URLs: ${urlValidation.invalid.map((i: { error: string }) => i.error).join(', ')}`);
+      throw new BadRequestError(
+        `Invalid photo URLs: ${urlValidation.invalid.map((i: { error: string }) => i.error).join(', ')}`
+      );
     }
 
     payload.photoUrls = urlValidation.valid;
   }
 
-  private async validatePropertyOwnership(userId: string, payload: JobCreationPayload): Promise<void> {
+  /**
+   * R6 #19: when the client passes tenancy_metadata.payer_email (landlord
+   * flow), resolve that email to a profiles.id and set payload.payer_user_id.
+   * If no matching profile exists, we leave payer_user_id NULL — the
+   * poster will still be allowed to fund escrow, and the metadata row
+   * records the intended payer email for an outreach flow.
+   */
+  private async resolvePayerFromEmail(
+    payload: JobCreationPayload
+  ): Promise<void> {
+    if (payload.payer_user_id) return;
+    const meta = payload.tenancy_metadata;
+    const email =
+      meta && typeof meta === 'object' && typeof meta.payer_email === 'string'
+        ? meta.payer_email
+        : null;
+    if (!email) return;
+
+    const { data: profile } = await serverSupabase
+      .from('profiles')
+      .select('id')
+      .ilike('email', email.trim().toLowerCase())
+      .maybeSingle();
+    if (profile?.id) {
+      payload.payer_user_id = profile.id as string;
+    }
+  }
+
+  private async validatePropertyOwnership(
+    userId: string,
+    payload: JobCreationPayload
+  ): Promise<void> {
     if (!payload.property_id) return;
 
     const { data: property, error } = await serverSupabase
@@ -183,7 +246,10 @@ export class JobCreationService {
     }
   }
 
-  private buildInsertPayload(user: Pick<User, 'id'>, payload: JobCreationPayload): {
+  private buildInsertPayload(
+    user: Pick<User, 'id'>,
+    payload: JobCreationPayload
+  ): {
     title: string;
     homeowner_id: string;
     status: string;
@@ -200,6 +266,9 @@ export class JobCreationService {
     property_id?: string | null;
     latitude?: number | null;
     longitude?: number | null;
+    is_rental_property?: boolean;
+    payer_user_id?: string | null;
+    tenancy_metadata?: Record<string, unknown>;
   } {
     const budgetThreshold = BUSINESS_RULES.BUDGET_REQUIRES_PHOTOS_THRESHOLD;
     const insertPayload: {
@@ -219,10 +288,13 @@ export class JobCreationService {
       property_id?: string | null;
       latitude?: number | null;
       longitude?: number | null;
+      is_rental_property?: boolean;
+      payer_user_id?: string | null;
+      tenancy_metadata?: Record<string, unknown>;
     } = {
       title: payload.title.trim(),
       homeowner_id: user.id,
-      status: (payload.status ? payload.status.trim() : 'posted'),
+      status: payload.status ? payload.status.trim() : 'posted',
     };
 
     if (typeof payload.description === 'string') {
@@ -235,10 +307,13 @@ export class JobCreationService {
       insertPayload.urgency = payload.urgency;
     }
     if (payload.budget !== undefined) insertPayload.budget = payload.budget;
-    if (payload.budget_min !== undefined) insertPayload.budget_min = payload.budget_min;
-    if (payload.budget_max !== undefined) insertPayload.budget_max = payload.budget_max;
+    if (payload.budget_min !== undefined)
+      insertPayload.budget_min = payload.budget_min;
+    if (payload.budget_max !== undefined)
+      insertPayload.budget_max = payload.budget_max;
     if (payload.show_budget_to_contractors !== undefined) {
-      insertPayload.show_budget_to_contractors = payload.show_budget_to_contractors;
+      insertPayload.show_budget_to_contractors =
+        payload.show_budget_to_contractors;
     }
     if (payload.require_itemized_bids !== undefined) {
       insertPayload.require_itemized_bids = payload.require_itemized_bids;
@@ -248,7 +323,11 @@ export class JobCreationService {
     if (payload.location !== undefined) {
       insertPayload.location = payload.location?.trim() ?? null;
     }
-    if (payload.requiredSkills !== undefined && Array.isArray(payload.requiredSkills) && payload.requiredSkills.length > 0) {
+    if (
+      payload.requiredSkills !== undefined &&
+      Array.isArray(payload.requiredSkills) &&
+      payload.requiredSkills.length > 0
+    ) {
       insertPayload.required_skills = payload.requiredSkills;
     }
     if (payload.property_id !== undefined) {
@@ -259,6 +338,19 @@ export class JobCreationService {
     }
     if (payload.longitude !== undefined && payload.longitude !== null) {
       insertPayload.longitude = payload.longitude;
+    }
+    // R6 #19 landlord / tenancy flags.
+    if (payload.is_rental_property !== undefined) {
+      insertPayload.is_rental_property = payload.is_rental_property;
+    }
+    if (payload.payer_user_id) {
+      insertPayload.payer_user_id = payload.payer_user_id;
+    }
+    if (
+      payload.tenancy_metadata &&
+      typeof payload.tenancy_metadata === 'object'
+    ) {
+      insertPayload.tenancy_metadata = payload.tenancy_metadata;
     }
 
     return insertPayload;
@@ -282,6 +374,9 @@ export class JobCreationService {
       property_id?: string | null;
       latitude?: number | null;
       longitude?: number | null;
+      is_rental_property?: boolean;
+      payer_user_id?: string | null;
+      tenancy_metadata?: Record<string, unknown>;
     }
   ): Promise<JobRow> {
     let result = await serverSupabase
@@ -293,18 +388,23 @@ export class JobCreationService {
     let data = result.data;
     let error = result.error;
 
-    const errorMessage = error && typeof error === 'object' && 'message' in error
-      ? String(error.message)
-      : '';
-    const errorCode = error && typeof error === 'object' && 'code' in error
-      ? String(error.code)
-      : '';
+    const errorMessage =
+      error && typeof error === 'object' && 'message' in error
+        ? String(error.message)
+        : '';
+    const errorCode =
+      error && typeof error === 'object' && 'code' in error
+        ? String(error.code)
+        : '';
 
-    if (error && insertPayload.required_skills && (
-      errorMessage.includes('required_skills') ||
-      errorCode === '42703' ||
-      (errorMessage.includes('column') && errorMessage.includes('required_skills'))
-    )) {
+    if (
+      error &&
+      insertPayload.required_skills &&
+      (errorMessage.includes('required_skills') ||
+        errorCode === '42703' ||
+        (errorMessage.includes('column') &&
+          errorMessage.includes('required_skills')))
+    ) {
       logger.warn('Required_skills column not found, retrying without it', {
         service: 'jobs',
         userId,
@@ -340,7 +440,8 @@ export class JobCreationService {
     payload: JobCreationPayload
   ): Promise<void> {
     try {
-      const { SeriousBuyerService } = await import('@/lib/services/jobs/SeriousBuyerService');
+      const { SeriousBuyerService } =
+        await import('@/lib/services/jobs/SeriousBuyerService');
       const photoUrls = payload.photoUrls || [];
       await SeriousBuyerService.updateScore(jobId, userId, {
         description: payload.description,
@@ -398,10 +499,14 @@ export class JobCreationService {
    * Geocode a location string to lat/lng using Google Maps API.
    * Returns null if geocoding fails or API key is not configured.
    */
-  private async geocodeAddress(address: string): Promise<{ latitude: number; longitude: number } | null> {
+  private async geocodeAddress(
+    address: string
+  ): Promise<{ latitude: number; longitude: number } | null> {
     const apiKey = process.env.GOOGLE_MAPS_API_KEY;
     if (!apiKey) {
-      logger.warn('GOOGLE_MAPS_API_KEY not configured — skipping geocoding', { service: 'job-creation' });
+      logger.warn('GOOGLE_MAPS_API_KEY not configured — skipping geocoding', {
+        service: 'job-creation',
+      });
       return null;
     }
 

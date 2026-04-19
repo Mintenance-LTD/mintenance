@@ -13,6 +13,11 @@ import { ContractorReviews } from './components/ContractorReviews';
 import { ContractorBookingWidget } from './components/ContractorBookingWidget';
 import { ContractorContactModal } from './components/ContractorContactModal';
 import { ContractorPortfolio } from './components/ContractorPortfolio';
+import {
+  transformContractorData,
+  type Contractor,
+  type RawContractorData,
+} from './transform-contractor';
 
 interface Review {
   id: string;
@@ -34,94 +39,6 @@ interface PortfolioItem {
   completionDate: string;
   cost?: number;
   featured: boolean;
-}
-
-interface Contractor {
-  id: string;
-  name: string;
-  company: string;
-  avatar: string;
-  coverImage: string;
-  rating: number;
-  reviewCount: number;
-  completedJobs: number;
-  yearsExperience: number;
-  responseTime: string;
-  acceptanceRate: number;
-  location: string;
-  serviceArea: string[];
-  specialties: string[];
-  description: string;
-  phone: string;
-  email: string;
-  website?: string;
-  verified: boolean;
-  premium: boolean;
-  joinDate: string;
-  stats: {
-    onTimeCompletion: number;
-    repeatCustomers: number;
-    avgProjectValue: number;
-  };
-}
-
-interface RawContractorData {
-  id: string;
-  name?: string;
-  company_name?: string;
-  city?: string;
-  country?: string;
-  created_at?: string;
-  avatarUrl?: string;
-  rating?: number;
-  reviewCount?: number;
-  total_jobs_completed?: number;
-  skills?: string[];
-  bio?: string;
-  phone?: string;
-  email?: string;
-  verified?: boolean;
-}
-
-function transformContractorData(contractorData: RawContractorData, id: string): Contractor {
-  const location = contractorData.city && contractorData.country
-    ? `${contractorData.city}, ${contractorData.country}`
-    : contractorData.city || contractorData.country || 'Location not specified';
-
-  const joinDate = contractorData.created_at ? new Date(contractorData.created_at) : new Date();
-  const now = new Date();
-  const yearsExperience = joinDate <= now
-    ? Math.max(0, Math.floor((now.getTime() - joinDate.getTime()) / (1000 * 60 * 60 * 24 * 365)))
-    : 0;
-
-  return {
-    id: contractorData.id,
-    name: contractorData.name || 'Contractor',
-    company: contractorData.company_name || 'Independent Contractor',
-    avatar: contractorData.avatarUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${id}`,
-    coverImage: '/images/contractor-cover.jpg',
-    rating: contractorData.rating || 0,
-    reviewCount: contractorData.reviewCount || 0,
-    completedJobs: contractorData.total_jobs_completed || 0,
-    yearsExperience: yearsExperience || 0,
-    responseTime: '< 24 hours',
-    acceptanceRate: 0,
-    location,
-    serviceArea: [],
-    specialties: contractorData.skills || [],
-    description: (contractorData.bio &&
-      !contractorData.bio.toLowerCase().includes('blalal') &&
-      !contractorData.bio.toLowerCase().includes('lorem') &&
-      contractorData.bio.trim().length > 10
-    ) ? contractorData.bio : 'No description available.',
-    phone: contractorData.phone || '',
-    email: contractorData.email || '',
-    website: undefined,
-    verified: contractorData.verified || false,
-    premium: false,
-    joinDate: contractorData.created_at || new Date().toISOString(),
-    stats: { onTimeCompletion: 0, repeatCustomers: 0, avgProjectValue: 0 },
-  };
 }
 
 function ContractorPublicProfilePage2025() {
@@ -177,19 +94,38 @@ function ContractorPublicProfilePage2025() {
         setLoading(true);
         setError(null);
 
-        const [contractorResponse, reviewsResponse, metricsResponse] = await Promise.all([
-          fetch(`/api/contractors/${contractorId}`, { credentials: 'include' }),
-          fetch(`/api/contractors/${contractorId}/reviews`, { credentials: 'include' }).catch(() => null),
-          fetch(`/api/contractors/${contractorId}/metrics`, { credentials: 'include' }).catch(() => null),
-        ]);
+        // R7 #9 — pass ?postcode= so the API can resolve postcode-proof count.
+        // Prefer ?postcode= on the URL (from search result) → fall back to user's stored postcode.
+        const urlPostcode =
+          typeof window !== 'undefined'
+            ? new URLSearchParams(window.location.search).get('postcode') || ''
+            : '';
+        const postcodeQuery = urlPostcode
+          ? `?postcode=${encodeURIComponent(urlPostcode)}`
+          : '';
+        const [contractorResponse, reviewsResponse, metricsResponse] =
+          await Promise.all([
+            fetch(`/api/contractors/${contractorId}${postcodeQuery}`, {
+              credentials: 'include',
+            }),
+            fetch(`/api/contractors/${contractorId}/reviews`, {
+              credentials: 'include',
+            }).catch(() => null),
+            fetch(`/api/contractors/${contractorId}/metrics`, {
+              credentials: 'include',
+            }).catch(() => null),
+          ]);
 
         if (!contractorResponse.ok) {
-          throw new Error(`Failed to fetch contractor (${contractorResponse.status})`);
+          throw new Error(
+            `Failed to fetch contractor (${contractorResponse.status})`
+          );
         }
 
         const contractorData = await contractorResponse.json();
         const rawContractor = contractorData.contractor as RawContractorData;
-        if (!rawContractor) throw new Error('Contractor data not found in response');
+        if (!rawContractor)
+          throw new Error('Contractor data not found in response');
 
         let reviews: Review[] = [];
         if (reviewsResponse && reviewsResponse.ok) {
@@ -197,24 +133,42 @@ function ContractorPublicProfilePage2025() {
           reviews = reviewsData.reviews || [];
         }
 
-        let metrics: { winRate?: number; responseTime?: string; onTimeCompletion?: number; repeatCustomers?: number; avgProjectValue?: number } = {};
+        let metrics: {
+          winRate?: number;
+          responseTime?: string;
+          onTimeCompletion?: number;
+          repeatCustomers?: number;
+          avgProjectValue?: number;
+        } = {};
         if (metricsResponse && metricsResponse.ok) {
           const metricsData = await metricsResponse.json();
           metrics = metricsData.metrics || {};
         }
 
-        const transformed = transformContractorData(rawContractor, contractorId);
-        if (metrics.onTimeCompletion !== undefined) transformed.stats.onTimeCompletion = metrics.onTimeCompletion;
-        if (metrics.repeatCustomers !== undefined) transformed.stats.repeatCustomers = metrics.repeatCustomers;
-        if (metrics.avgProjectValue !== undefined) transformed.stats.avgProjectValue = metrics.avgProjectValue;
-        if (metrics.responseTime) transformed.responseTime = metrics.responseTime;
-        if (metrics.winRate !== undefined) transformed.acceptanceRate = metrics.winRate;
+        const transformed = transformContractorData(
+          rawContractor,
+          contractorId
+        );
+        if (metrics.onTimeCompletion !== undefined)
+          transformed.stats.onTimeCompletion = metrics.onTimeCompletion;
+        if (metrics.repeatCustomers !== undefined)
+          transformed.stats.repeatCustomers = metrics.repeatCustomers;
+        if (metrics.avgProjectValue !== undefined)
+          transformed.stats.avgProjectValue = metrics.avgProjectValue;
+        if (metrics.responseTime)
+          transformed.responseTime = metrics.responseTime;
+        if (metrics.winRate !== undefined)
+          transformed.acceptanceRate = metrics.winRate;
 
         setContractor(transformed);
         if (reviews.length > 0) setFetchedReviews(reviews);
       } catch (err) {
         logger.error('Error fetching contractor:', err, { service: 'app' });
-        setError(err instanceof Error ? err.message : 'Failed to load contractor profile');
+        setError(
+          err instanceof Error
+            ? err.message
+            : 'Failed to load contractor profile'
+        );
         toast.error('Failed to load contractor profile');
       } finally {
         setLoading(false);
@@ -232,17 +186,18 @@ function ContractorPublicProfilePage2025() {
   const backButtonText = useMemo(() => {
     if (typeof window !== 'undefined') {
       const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get('returnTo') === 'job' && urlParams.get('jobId')) return 'Back to Job';
+      if (urlParams.get('returnTo') === 'job' && urlParams.get('jobId'))
+        return 'Back to Job';
     }
-    return (returnTo === 'job' && jobId) ? 'Back to Job' : 'Back to Contractors';
+    return returnTo === 'job' && jobId ? 'Back to Job' : 'Back to Contractors';
   }, [returnTo, jobId]);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading contractor profile...</p>
+      <div className='min-h-screen bg-white flex items-center justify-center'>
+        <div className='text-center'>
+          <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto mb-4'></div>
+          <p className='text-gray-600'>Loading contractor profile...</p>
         </div>
       </div>
     );
@@ -250,29 +205,59 @@ function ContractorPublicProfilePage2025() {
 
   if (error || !contractor) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center max-w-md px-4">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Failed to Load Profile</h2>
-          <p className="text-gray-600 mb-6">{error || 'Contractor not found'}</p>
-          <div className="flex gap-3 justify-center">
-            <button onClick={() => router.back()} className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors">Go Back</button>
+      <div className='min-h-screen bg-white flex items-center justify-center'>
+        <div className='text-center max-w-md px-4'>
+          <h2 className='text-2xl font-bold text-gray-900 mb-2'>
+            Failed to Load Profile
+          </h2>
+          <p className='text-gray-600 mb-6'>
+            {error || 'Contractor not found'}
+          </p>
+          <div className='flex gap-3 justify-center'>
+            <button
+              onClick={() => router.back()}
+              className='px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors'
+            >
+              Go Back
+            </button>
             <button
               onClick={async () => {
                 setError(null);
                 setLoading(true);
                 try {
-                  const response = await fetch(`/api/contractors/${contractorId}`, { credentials: 'include' });
-                  if (!response.ok) throw new Error(`Failed to fetch contractor (${response.status})`);
+                  const response = await fetch(
+                    `/api/contractors/${contractorId}`,
+                    { credentials: 'include' }
+                  );
+                  if (!response.ok)
+                    throw new Error(
+                      `Failed to fetch contractor (${response.status})`
+                    );
                   const data = await response.json();
-                  if (data.contractor) { setContractor(transformContractorData(data.contractor as RawContractorData, contractorId)); setError(null); }
-                  else setError('Contractor data not found');
+                  if (data.contractor) {
+                    setContractor(
+                      transformContractorData(
+                        data.contractor as RawContractorData,
+                        contractorId
+                      )
+                    );
+                    setError(null);
+                  } else setError('Contractor data not found');
                 } catch (err) {
-                  setError(err instanceof Error ? err.message : 'Failed to load contractor');
+                  setError(
+                    err instanceof Error
+                      ? err.message
+                      : 'Failed to load contractor'
+                  );
                   toast.error('Failed to load contractor profile');
-                } finally { setLoading(false); }
+                } finally {
+                  setLoading(false);
+                }
               }}
-              className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
-            >Try Again</button>
+              className='px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors'
+            >
+              Try Again
+            </button>
           </div>
         </div>
       </div>
@@ -307,19 +292,49 @@ function ContractorPublicProfilePage2025() {
   };
 
   const navigateToMessageFlow = () => {
-    if (loadingUser) { toast.loading('Loading...', { id: 'loading-user' }); return; }
-    if (!user) { toast.error('Please log in to send a message'); router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`); return; }
-    if (user.role !== 'homeowner') { toast.error('Only homeowners can message contractors'); return; }
+    if (loadingUser) {
+      toast.loading('Loading...', { id: 'loading-user' });
+      return;
+    }
+    if (!user) {
+      toast.error('Please log in to send a message');
+      router.push(
+        `/login?redirect=${encodeURIComponent(window.location.pathname)}`
+      );
+      return;
+    }
+    if (user.role !== 'homeowner') {
+      toast.error('Only homeowners can message contractors');
+      return;
+    }
     toast('Create a job first to message this contractor');
     router.push(`/jobs/create?contractorId=${contractor.id}&action=message`);
   };
 
   const handleRequestQuote = () => {
-    if (loadingUser) { toast.loading('Loading...', { id: 'loading-user' }); return; }
-    if (!user) { toast.error('Please log in to request a quote'); router.push(`/login?redirect=${encodeURIComponent(window.location.pathname)}`); return; }
-    if (user.role !== 'homeowner') { toast.error('Only homeowners can request quotes'); return; }
-    if (jobId) { toast('Returning to job to request quote'); router.push(`/jobs/${jobId}`); return; }
-    router.push(`/jobs/create?contractorId=${contractor.id}&action=request-quote`);
+    if (loadingUser) {
+      toast.loading('Loading...', { id: 'loading-user' });
+      return;
+    }
+    if (!user) {
+      toast.error('Please log in to request a quote');
+      router.push(
+        `/login?redirect=${encodeURIComponent(window.location.pathname)}`
+      );
+      return;
+    }
+    if (user.role !== 'homeowner') {
+      toast.error('Only homeowners can request quotes');
+      return;
+    }
+    if (jobId) {
+      toast('Returning to job to request quote');
+      router.push(`/jobs/${jobId}`);
+      return;
+    }
+    router.push(
+      `/jobs/create?contractorId=${contractor.id}&action=request-quote`
+    );
   };
 
   const handleAcceptBid = async () => {
@@ -336,7 +351,9 @@ function ContractorPublicProfilePage2025() {
       });
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.error?.message || data.error || 'Failed to accept bid');
+        throw new Error(
+          data.error?.message || data.error || 'Failed to accept bid'
+        );
       }
       toast.success('Bid accepted! The contractor has been notified.');
       router.push(`/jobs/${jobId}`);
@@ -361,7 +378,9 @@ function ContractorPublicProfilePage2025() {
       });
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.error?.message || data.error || 'Failed to decline bid');
+        throw new Error(
+          data.error?.message || data.error || 'Failed to decline bid'
+        );
       }
       toast.success('Bid declined.');
       router.push(`/jobs/${jobId}`);
@@ -373,12 +392,16 @@ function ContractorPublicProfilePage2025() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className='min-h-screen bg-white'>
       {/* Back Navigation */}
-      <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <button onClick={handleBack} className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition-colors" aria-label={backButtonText}>
-            <ChevronLeft className="w-4 h-4" aria-hidden="true" />
+      <div className='bg-white border-b border-gray-200'>
+        <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4'>
+          <button
+            onClick={handleBack}
+            className='inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition-colors'
+            aria-label={backButtonText}
+          >
+            <ChevronLeft className='w-4 h-4' aria-hidden='true' />
             {backButtonText}
           </button>
         </div>
@@ -392,13 +415,17 @@ function ContractorPublicProfilePage2025() {
       />
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12'>
+        <div className='grid grid-cols-1 lg:grid-cols-3 gap-8'>
           {/* Left Column */}
-          <div className="lg:col-span-2 space-y-8">
-            <div className="border-b border-gray-200 pb-8">
-              <h2 className="text-2xl font-semibold text-gray-900 mb-4">About {contractor.name}</h2>
-              <p className="text-gray-700 leading-relaxed text-lg">{contractor.description}</p>
+          <div className='lg:col-span-2 space-y-8'>
+            <div className='border-b border-gray-200 pb-8'>
+              <h2 className='text-2xl font-semibold text-gray-900 mb-4'>
+                About {contractor.name}
+              </h2>
+              <p className='text-gray-700 leading-relaxed text-lg'>
+                {contractor.description}
+              </p>
             </div>
 
             <ContractorPerformanceStats
@@ -409,11 +436,16 @@ function ContractorPublicProfilePage2025() {
             />
 
             {contractor.specialties.length > 0 && (
-              <div className="border-b border-gray-200 pb-8">
-                <h2 className="text-2xl font-semibold text-gray-900 mb-4">Specialties</h2>
-                <div className="flex flex-wrap gap-3">
+              <div className='border-b border-gray-200 pb-8'>
+                <h2 className='text-2xl font-semibold text-gray-900 mb-4'>
+                  Specialties
+                </h2>
+                <div className='flex flex-wrap gap-3'>
                   {contractor.specialties.map((specialty, index) => (
-                    <span key={index} className="px-4 py-2 bg-gray-100 text-gray-900 rounded-xl font-medium border border-gray-200">
+                    <span
+                      key={index}
+                      className='px-4 py-2 bg-gray-100 text-gray-900 rounded-xl font-medium border border-gray-200'
+                    >
                       {specialty}
                     </span>
                   ))}
@@ -431,7 +463,7 @@ function ContractorPublicProfilePage2025() {
           </div>
 
           {/* Right Column */}
-          <div className="lg:col-span-1">
+          <div className='lg:col-span-1'>
             <ContractorBookingWidget
               rating={contractor.rating}
               reviewCount={contractor.reviewCount}
@@ -440,13 +472,17 @@ function ContractorPublicProfilePage2025() {
               yearsExperience={contractor.yearsExperience}
               onRequestQuote={handleRequestQuote}
               onSendMessage={navigateToMessageFlow}
-              bidContext={bidId && jobId && bidAmount ? {
-                bidId,
-                bidAmount,
-                onAccept: handleAcceptBid,
-                onDecline: handleDeclineBid,
-                processing: bidProcessing,
-              } : undefined}
+              bidContext={
+                bidId && jobId && bidAmount
+                  ? {
+                      bidId,
+                      bidAmount,
+                      onAccept: handleAcceptBid,
+                      onDecline: handleDeclineBid,
+                      processing: bidProcessing,
+                    }
+                  : undefined
+              }
             />
           </div>
         </div>
@@ -458,7 +494,10 @@ function ContractorPublicProfilePage2025() {
           phone={contractor.phone}
           email={contractor.email}
           onClose={() => setShowContactModal(false)}
-          onSendMessage={() => { setShowContactModal(false); navigateToMessageFlow(); }}
+          onSendMessage={() => {
+            setShowContactModal(false);
+            navigateToMessageFlow();
+          }}
         />
       )}
     </div>
@@ -468,14 +507,16 @@ function ContractorPublicProfilePage2025() {
 export default function ContractorPublicProfilePage2025Wrapper() {
   const stableKey = 'contractor-profile-page';
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading contractor profile...</p>
+    <Suspense
+      fallback={
+        <div className='min-h-screen bg-white flex items-center justify-center'>
+          <div className='text-center'>
+            <div className='animate-spin rounded-full h-12 w-12 border-b-2 border-teal-600 mx-auto mb-4'></div>
+            <p className='text-gray-600'>Loading contractor profile...</p>
+          </div>
         </div>
-      </div>
-    }>
+      }
+    >
       <ContractorPublicProfilePage2025 key={stableKey} />
     </Suspense>
   );

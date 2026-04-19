@@ -144,8 +144,8 @@ export function ContractManagement(props: ContractManagementProps) {
         />
         <ContractTimeline contract={contract} />
         <p className='text-[10px] text-gray-300 text-center pt-4 border-t border-gray-50'>
-          Facilitated by Mintenance. Payments held in escrow. By signing, both
-          parties agree to the above terms.
+          Facilitated by Mintenance. Payments held with Protected Payment. By
+          signing, both parties agree to the above terms.
         </p>
       </div>
     </div>

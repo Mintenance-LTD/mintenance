@@ -217,15 +217,20 @@ function setupDefaultMocks() {
   });
 
   // Storage mock
+  // Phase 2: routes now use createSignedUrl() instead of getPublicUrl().
+  // Keep getPublicUrl in the mock so any legacy callers still work.
   mocks.supabaseStorageFrom.mockReturnValue({
     upload: vi
       .fn()
       .mockResolvedValue({ data: { path: 'test-path.jpg' }, error: null }),
-    getPublicUrl: vi
-      .fn()
-      .mockReturnValue({
-        data: { publicUrl: 'https://example.com/photo.jpg' },
-      }),
+    getPublicUrl: vi.fn().mockReturnValue({
+      data: { publicUrl: 'https://example.com/photo.jpg' },
+    }),
+    createSignedUrl: vi.fn().mockResolvedValue({
+      data: { signedUrl: 'https://example.com/photo.jpg?token=test' },
+      error: null,
+    }),
+    remove: vi.fn().mockResolvedValue({ data: null, error: null }),
   });
 }
 
@@ -442,7 +447,8 @@ describe('POST /api/jobs/[id]/photos/before', () => {
     expect(body.success).toBe(true);
     expect(body.count).toBe(1);
     expect(body.photos).toHaveLength(1);
-    expect(body.photos[0].url).toBe('https://example.com/photo.jpg');
+    // Phase 2: route now returns a signed URL (base URL + ?token=...)
+    expect(body.photos[0].url).toBe('https://example.com/photo.jpg?token=test');
     expect(body.photos[0].qualityScore).toBe(85);
   });
 
@@ -519,6 +525,11 @@ describe('POST /api/jobs/[id]/photos/before', () => {
         .fn()
         .mockResolvedValue({ data: null, error: { message: 'Storage error' } }),
       getPublicUrl: vi.fn().mockReturnValue({ data: { publicUrl: null } }),
+      createSignedUrl: vi.fn().mockResolvedValue({
+        data: null,
+        error: { message: 'Storage error' },
+      }),
+      remove: vi.fn().mockResolvedValue({ data: null, error: null }),
     });
 
     const file = createMockFile('photo.jpg', 1024, 'image/jpeg');

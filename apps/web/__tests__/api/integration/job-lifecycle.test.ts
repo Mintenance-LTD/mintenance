@@ -498,7 +498,9 @@ function setupInfrastructureMocks(user = homeownerUser) {
   });
   mocks.validateImageUpload.mockResolvedValue({ valid: true });
 
-  // Storage mock: serverSupabase.storage.from('Job-storage').upload() / .getPublicUrl()
+  // Storage mock: serverSupabase.storage.from('Job-storage').upload() /
+  // .createSignedUrl() — Phase 2 storage hardening switched writer routes
+  // from getPublicUrl() to createSignedUrl(). Keep both mocked for legacy.
   mocks.supabaseStorageFrom.mockReturnValue({
     upload: vi
       .fn()
@@ -506,6 +508,11 @@ function setupInfrastructureMocks(user = homeownerUser) {
     getPublicUrl: vi.fn().mockReturnValue({
       data: { publicUrl: 'https://storage.example.com/test.jpg' },
     }),
+    createSignedUrl: vi.fn().mockResolvedValue({
+      data: { signedUrl: 'https://storage.example.com/test.jpg?token=test' },
+      error: null,
+    }),
+    remove: vi.fn().mockResolvedValue({ data: null, error: null }),
   });
   mocks.isValidUUID.mockReturnValue(true);
   mocks.requireSubscriptionForAction.mockResolvedValue(null);

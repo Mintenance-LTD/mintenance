@@ -53,6 +53,10 @@ export type JobsStackParamList = {
   JobsList: undefined;
   JobDetails: { jobId: string };
   JobPosting: undefined;
+  // R3 deferred #7 — Silver-mode-friendly assisted wizard (3 steps,
+  // larger touch targets, fewer fields). Auto-routed when
+  // useSilverMode().silverMode is true.
+  PostJobWizard: undefined;
   ExploreMap: undefined;
   BidSubmission: { jobId: string; existingBidId?: string };
   JobPayment: {
@@ -98,6 +102,10 @@ export type MessagingStackParamList = {
 export type ProfileStackParamList = {
   ProfileMain: undefined;
   EditProfile: undefined;
+  // BusinessHub is the initial screen of the BusinessNavigator (contractor
+  // "Business" tab). Listed here because BusinessNavigator re-uses
+  // ProfileStackParamList for type-safe screen registration.
+  BusinessHub: undefined;
   NotificationSettings: undefined;
   PaymentMethods: undefined;
   AddPaymentMethod: undefined;
@@ -135,8 +143,17 @@ export type ProfileStackParamList = {
   PhotoUpload: { jobId: string; photoType: 'before' | 'after' };
   Calendar: undefined;
   Reviews: undefined;
+  // R7 #19 — contractor right-of-reply (48h moderation).
+  ReplyToReview: {
+    reviewId: string;
+    reviewerName: string;
+    reviewComment: string;
+    rating: number;
+  };
   PaymentHistory: undefined;
   Subscription: undefined;
+  // R5 deferred #6 — mobile Home Health (£9.99/mo) subscribe flow
+  HomeHealthSubscribe: undefined;
   Financials: undefined;
   SettingsHub: undefined;
   Expenses: undefined;

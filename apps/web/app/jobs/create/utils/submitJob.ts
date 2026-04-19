@@ -8,11 +8,15 @@ import { logger } from '@mintenance/shared';
 /**
  * Geocode an address using Google Maps Geocoding API
  */
-async function geocodeAddress(address: string): Promise<{ latitude: number; longitude: number } | null> {
+async function geocodeAddress(
+  address: string
+): Promise<{ latitude: number; longitude: number } | null> {
   try {
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
     if (!apiKey) {
-      logger.warn('Google Maps API key not configured, skipping geocoding', { service: 'app' });
+      logger.warn('Google Maps API key not configured, skipping geocoding', {
+        service: 'app',
+      });
       return null;
     }
 
@@ -35,7 +39,10 @@ async function geocodeAddress(address: string): Promise<{ latitude: number; long
       };
     }
 
-    logger.warn(`Geocoding failed: ${data.status} ${data.error_message || ''}`, { service: 'app' });
+    logger.warn(
+      `Geocoding failed: ${data.status} ${data.error_message || ''}`,
+      { service: 'app' }
+    );
     return null;
   } catch (error) {
     logger.error('Error geocoding address:', error, { service: 'app' });
@@ -94,14 +101,20 @@ export async function submitJob({
     if (tokenResponse.ok) {
       const tokenData = await tokenResponse.json();
       tokenToUse = tokenData.token;
-      
+
       // Small delay to ensure cookie is processed by browser before next request
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 50));
     } else {
-      logger.warn('[Submit] Failed to fetch fresh CSRF token, using provided token', { service: 'app' });
+      logger.warn(
+        '[Submit] Failed to fetch fresh CSRF token, using provided token',
+        { service: 'app' }
+      );
     }
   } catch (tokenError) {
-    logger.warn(`[Submit] Error fetching fresh CSRF token, using provided token: ${tokenError}`, { service: 'app' });
+    logger.warn(
+      `[Submit] Error fetching fresh CSRF token, using provided token: ${tokenError}`,
+      { service: 'app' }
+    );
   }
 
   if (!tokenToUse) {
@@ -111,9 +124,10 @@ export async function submitJob({
   // Geocode the location before submitting
   const coordinates = await geocodeAddress(formData.location?.trim() || '');
 
-  const budgetValue = typeof formData.budget === 'number'
-    ? formData.budget
-    : parseFloat(String(formData.budget));
+  const budgetValue =
+    typeof formData.budget === 'number'
+      ? formData.budget
+      : parseFloat(String(formData.budget));
   const propertyIdValue = formData.property_id || null;
 
   const requestBody: {
@@ -128,6 +142,8 @@ export async function submitJob({
     latitude?: number;
     longitude?: number;
     aiAssessmentMetadata?: BuildingAssessmentData;
+    is_rental_property?: boolean;
+    tenancy_metadata?: Record<string, unknown>;
   } = {
     title: formData.title.trim(),
     description: formData.description?.trim() || '',
@@ -138,6 +154,19 @@ export async function submitJob({
     property_id: propertyIdValue,
     photoUrls,
   };
+
+  // R6 #19 landlord / tenancy fields. We forward the booleans + email
+  // intent; the server can look up payer_user_id from the email in a
+  // follow-up step (or leave NULL so the poster pays).
+  if (formData.is_rental_property === true) {
+    requestBody.is_rental_property = true;
+  }
+  if (formData.who_pays === 'someone_else' && formData.payer_email) {
+    requestBody.tenancy_metadata = {
+      who_pays: 'someone_else',
+      payer_email: formData.payer_email.trim().toLowerCase(),
+    };
+  }
 
   // Add geocoded coordinates if available
   if (coordinates) {
@@ -157,7 +186,7 @@ export async function submitJob({
       credentials: 'include', // Ensure cookies are sent
       headers: {
         'Content-Type': 'application/json',
-        'x-csrf-token': tokenToUse,  // Use the fresh token
+        'x-csrf-token': tokenToUse, // Use the fresh token
       },
       body: JSON.stringify(requestBody),
     });
@@ -171,20 +200,28 @@ export async function submitJob({
         } catch (parseError) {
           // If JSON parsing fails, read as text
           const textError = await response.text().catch(() => 'Unknown error');
-          errorData = { error: textError || `Failed to create job (${response.status})` };
+          errorData = {
+            error: textError || `Failed to create job (${response.status})`,
+          };
         }
       } else {
         // Non-JSON response
         const textError = await response.text().catch(() => 'Unknown error');
-        errorData = { error: textError || `Failed to create job (${response.status})` };
+        errorData = {
+          error: textError || `Failed to create job (${response.status})`,
+        };
       }
 
-      logger.error('Job submission failed:', {
-        status: response.status,
-        statusText: response.statusText,
-        contentType,
-        error: errorData
-      }, { service: 'app' });
+      logger.error(
+        'Job submission failed:',
+        {
+          status: response.status,
+          statusText: response.statusText,
+          contentType,
+          error: errorData,
+        },
+        { service: 'app' }
+      );
 
       // Safely extract error message from error data object
       let errorMessage = `Failed to create job (${response.status})`;
@@ -211,7 +248,11 @@ export async function submitJob({
     const jobId = data.job?.id || data.jobId || data.id;
 
     if (!jobId) {
-      logger.error('No job ID in response. Full response data:', JSON.stringify(data, null, 2), { service: 'app' });
+      logger.error(
+        'No job ID in response. Full response data:',
+        JSON.stringify(data, null, 2),
+        { service: 'app' }
+      );
       return {
         success: false,
         error: 'Job created but no ID returned',
@@ -237,9 +278,11 @@ export async function submitJob({
             propertyType: 'residential',
           },
         }),
-      }).catch(error => {
+      }).catch((error) => {
         // Don't fail job creation if assessment fails
-        logger.warn(`Failed to trigger AI assessment: ${error}`, { service: 'app' });
+        logger.warn(`Failed to trigger AI assessment: ${error}`, {
+          service: 'app',
+        });
       });
     }
 
@@ -251,8 +294,8 @@ export async function submitJob({
     logger.error('Job submission exception:', error, { service: 'app' });
     return {
       success: false,
-      error: error instanceof Error ? error.message : 'An unexpected error occurred',
+      error:
+        error instanceof Error ? error.message : 'An unexpected error occurred',
     };
   }
 }
-

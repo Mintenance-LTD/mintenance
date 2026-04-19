@@ -6,10 +6,17 @@
  */
 
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Platform,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { LineItem } from '../viewmodels/CreateQuoteViewModel';
 import { theme } from '../../../theme';
+import { formatCurrency } from '../../../utils/formatCurrency';
 
 interface QuoteItemsListProps {
   lineItems: LineItem[];
@@ -18,16 +25,37 @@ interface QuoteItemsListProps {
   onRemoveItem: (index: number) => void;
 }
 
-const CATEGORY_ACCENT: Record<string, { color: string; bg: string; label: string }> = {
-  labour:    { color: theme.colors.primary, bg: theme.colors.primaryLight, label: 'Labour' },
-  labor:     { color: theme.colors.primary, bg: theme.colors.primaryLight, label: 'Labour' },
+const CATEGORY_ACCENT: Record<
+  string,
+  { color: string; bg: string; label: string }
+> = {
+  labour: {
+    color: theme.colors.primary,
+    bg: theme.colors.primaryLight,
+    label: 'Labour',
+  },
+  labor: {
+    color: theme.colors.primary,
+    bg: theme.colors.primaryLight,
+    label: 'Labour',
+  },
   materials: { color: '#3B82F6', bg: '#DBEAFE', label: 'Materials' },
-  equipment: { color: theme.colors.accent, bg: theme.colors.accentLight, label: 'Equipment' },
+  equipment: {
+    color: theme.colors.accent,
+    bg: theme.colors.accentLight,
+    label: 'Equipment',
+  },
 };
 
 const getAccent = (category: string) => {
   const key = category?.toLowerCase() || '';
-  return CATEGORY_ACCENT[key] || { color: theme.colors.textSecondary, bg: theme.colors.backgroundTertiary, label: category || 'Item' };
+  return (
+    CATEGORY_ACCENT[key] || {
+      color: theme.colors.textSecondary,
+      bg: theme.colors.backgroundTertiary,
+      label: category || 'Item',
+    }
+  );
 };
 
 export const QuoteItemsList: React.FC<QuoteItemsListProps> = ({
@@ -41,7 +69,7 @@ export const QuoteItemsList: React.FC<QuoteItemsListProps> = ({
       <View style={styles.sectionHeader}>
         <View style={styles.sectionLeft}>
           <View style={styles.sectionIconWrap}>
-            <Ionicons name="list" size={16} color={theme.colors.accent} />
+            <Ionicons name='list' size={16} color={theme.colors.accent} />
           </View>
           <Text style={styles.sectionTitle}>Line Items</Text>
           {lineItems.length > 0 && (
@@ -51,18 +79,28 @@ export const QuoteItemsList: React.FC<QuoteItemsListProps> = ({
           )}
         </View>
         <TouchableOpacity style={styles.addButton} onPress={onAddItem}>
-          <Ionicons name="add" size={18} color={theme.colors.textInverse} />
+          <Ionicons name='add' size={18} color={theme.colors.textInverse} />
           <Text style={styles.addButtonText}>Add</Text>
         </TouchableOpacity>
       </View>
 
       {lineItems.length === 0 ? (
-        <TouchableOpacity style={styles.emptyState} onPress={onAddItem} activeOpacity={0.7}>
+        <TouchableOpacity
+          style={styles.emptyState}
+          onPress={onAddItem}
+          activeOpacity={0.7}
+        >
           <View style={styles.emptyIconWrap}>
-            <Ionicons name="add-circle-outline" size={32} color={theme.colors.primary} />
+            <Ionicons
+              name='add-circle-outline'
+              size={32}
+              color={theme.colors.primary}
+            />
           </View>
           <Text style={styles.emptyTitle}>No items yet</Text>
-          <Text style={styles.emptySubtext}>Tap to add your first line item</Text>
+          <Text style={styles.emptySubtext}>
+            Tap to add your first line item
+          </Text>
         </TouchableOpacity>
       ) : (
         <View style={styles.itemsContainer}>
@@ -72,30 +110,49 @@ export const QuoteItemsList: React.FC<QuoteItemsListProps> = ({
             return (
               <View key={index} style={styles.itemCard}>
                 {/* Left accent bar */}
-                <View style={[styles.accentBar, { backgroundColor: accent.color }]} />
+                <View
+                  style={[styles.accentBar, { backgroundColor: accent.color }]}
+                />
 
                 <View style={styles.itemContent}>
                   <View style={styles.itemTopRow}>
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.itemName} numberOfLines={1}>{item.item_name}</Text>
+                      <Text style={styles.itemName} numberOfLines={1}>
+                        {item.item_name}
+                      </Text>
                       <View style={styles.itemCategoryRow}>
-                        <View style={[styles.categoryPill, { backgroundColor: accent.bg }]}>
-                          <Text style={[styles.categoryPillText, { color: accent.color }]}>
+                        <View
+                          style={[
+                            styles.categoryPill,
+                            { backgroundColor: accent.bg },
+                          ]}
+                        >
+                          <Text
+                            style={[
+                              styles.categoryPillText,
+                              { color: accent.color },
+                            ]}
+                          >
                             {accent.label}
                           </Text>
                         </View>
                       </View>
                     </View>
-                    <Text style={styles.itemTotal}>£{itemTotal.toFixed(2)}</Text>
+                    <Text style={styles.itemTotal}>
+                      {formatCurrency(itemTotal)}
+                    </Text>
                   </View>
 
                   {item.item_description ? (
-                    <Text style={styles.itemDescription} numberOfLines={2}>{item.item_description}</Text>
+                    <Text style={styles.itemDescription} numberOfLines={2}>
+                      {item.item_description}
+                    </Text>
                   ) : null}
 
                   <View style={styles.itemBottomRow}>
                     <Text style={styles.itemQty}>
-                      {item.quantity} {item.unit} × £{item.unit_price.toFixed(2)}
+                      {item.quantity} {item.unit} ×{' '}
+                      {formatCurrency(item.unit_price)}
                     </Text>
                     <View style={styles.itemActions}>
                       <TouchableOpacity
@@ -103,14 +160,22 @@ export const QuoteItemsList: React.FC<QuoteItemsListProps> = ({
                         onPress={() => onEditItem(index)}
                         accessibilityLabel={`Edit ${item.item_name}`}
                       >
-                        <Ionicons name="pencil-outline" size={16} color={theme.colors.textSecondary} />
+                        <Ionicons
+                          name='pencil-outline'
+                          size={16}
+                          color={theme.colors.textSecondary}
+                        />
                       </TouchableOpacity>
                       <TouchableOpacity
                         style={styles.actionBtn}
                         onPress={() => onRemoveItem(index)}
                         accessibilityLabel={`Remove ${item.item_name}`}
                       >
-                        <Ionicons name="trash-outline" size={16} color={theme.colors.error} />
+                        <Ionicons
+                          name='trash-outline'
+                          size={16}
+                          color={theme.colors.error}
+                        />
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -131,7 +196,12 @@ const styles = StyleSheet.create({
     padding: 20,
     marginBottom: 12,
     ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 6 },
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.04,
+        shadowRadius: 6,
+      },
       android: { elevation: 1 },
     }),
   },

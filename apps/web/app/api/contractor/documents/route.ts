@@ -19,11 +19,30 @@ export const GET = withApiHandler(
 
     if (error) {
       logger.error('Failed to fetch contractor documents', error);
-      return NextResponse.json({ error: 'Failed to fetch documents' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Failed to fetch documents' },
+        { status: 500 }
+      );
     }
 
-    const documents = (data || []).map((doc: Record<string, unknown>) => ({
+    // Bucket is private — regenerate short-lived signed URLs from storage_path.
+    const rawDocs = (data || []) as Array<Record<string, unknown>>;
+    const paths = rawDocs
+      .map((d) => d.storage_path as string | undefined)
+      .filter((p): p is string => !!p);
+    const signedMap = new Map<string, string>();
+    if (paths.length) {
+      const { data: signed } = await serverSupabase.storage
+        .from('contractor-documents')
+        .createSignedUrls(paths, 60 * 60);
+      signed?.forEach((s) => {
+        if (s.path && s.signedUrl) signedMap.set(s.path, s.signedUrl);
+      });
+    }
+
+    const documents = rawDocs.map((doc) => ({
       ...doc,
+      public_url: signedMap.get(doc.storage_path as string) ?? null,
       jobTitle: (doc.jobs as { title?: string } | null)?.title || null,
       jobs: undefined,
     }));
@@ -31,15 +50,22 @@ export const GET = withApiHandler(
     // Also fetch contracts as virtual documents
     const { data: contracts } = await serverSupabase
       .from('contracts')
-      .select('id, job_id, title, status, amount, created_at, updated_at, contractor_signed_at, homeowner_signed_at, homeowner:profiles!homeowner_id(first_name, last_name)')
+      .select(
+        'id, job_id, title, status, amount, created_at, updated_at, contractor_signed_at, homeowner_signed_at, homeowner:profiles!homeowner_id(first_name, last_name)'
+      )
       .eq('contractor_id', user.id)
       .neq('status', 'draft')
       .order('created_at', { ascending: false });
 
     const contractDocs = (contracts || []).map((c: Record<string, unknown>) => {
-      const homeowner = c.homeowner as { first_name?: string; last_name?: string } | null;
-      const homeownerName = homeowner?.first_name && homeowner?.last_name
-        ? `${homeowner.first_name} ${homeowner.last_name}` : 'Homeowner';
+      const homeowner = c.homeowner as {
+        first_name?: string;
+        last_name?: string;
+      } | null;
+      const homeownerName =
+        homeowner?.first_name && homeowner?.last_name
+          ? `${homeowner.first_name} ${homeowner.last_name}`
+          : 'Homeowner';
       return {
         id: `contract-${c.id}`,
         contract_id: c.id,
@@ -64,7 +90,7 @@ export const GET = withApiHandler(
     });
 
     return NextResponse.json({ documents: [...contractDocs, ...documents] });
-  },
+  }
 );
 
 /**
@@ -87,11 +113,22 @@ export const POST = withApiHandler(
 
     // Validate file size (max 20MB)
     if (file.size > 20 * 1024 * 1024) {
-      return NextResponse.json({ error: 'File too large. Maximum size is 20MB.' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'File too large. Maximum size is 20MB.' },
+        { status: 400 }
+      );
     }
 
     // Validate category
-    const validCategories = ['contracts', 'photos', 'certifications', 'insurance', 'receipts', 'templates', 'other'];
+    const validCategories = [
+      'contracts',
+      'photos',
+      'certifications',
+      'insurance',
+      'receipts',
+      'templates',
+      'other',
+    ];
     if (!validCategories.includes(category)) {
       return NextResponse.json({ error: 'Invalid category' }, { status: 400 });
     }
@@ -104,24 +141,24 @@ export const POST = withApiHandler(
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    const { data: uploadData, error: uploadError } = await serverSupabase.storage
-      .from('contractor-documents')
-      .upload(safeFileName, buffer, {
-        contentType: file.type,
-        upsert: false,
-      });
+    const { data: uploadData, error: uploadError } =
+      await serverSupabase.storage
+        .from('contractor-documents')
+        .upload(safeFileName, buffer, {
+          contentType: file.type,
+          upsert: false,
+        });
 
     if (uploadError) {
       logger.error('Failed to upload contractor document', uploadError);
-      return NextResponse.json({ error: 'Failed to upload file' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Failed to upload file' },
+        { status: 500 }
+      );
     }
 
-    // Get public URL
-    const { data: urlData } = serverSupabase.storage
-      .from('contractor-documents')
-      .getPublicUrl(uploadData.path);
-
-    // Insert document record
+    // Bucket is private — storage_path is the source of truth; a fresh signed URL is
+    // regenerated on every GET. Store null for public_url (retained for back-compat).
     const { data: doc, error: insertError } = await serverSupabase
       .from('contractor_documents')
       .insert({
@@ -131,23 +168,30 @@ export const POST = withApiHandler(
         category,
         size_bytes: file.size,
         storage_path: uploadData.path,
-        public_url: urlData.publicUrl,
+        public_url: null,
         job_id: jobId || null,
         tags: tags ? tags.split(',').map((t: string) => t.trim()) : [],
-        ...(verificationType ? { verification_type: verificationType, review_status: 'pending' } : {}),
+        ...(verificationType
+          ? { verification_type: verificationType, review_status: 'pending' }
+          : {}),
       })
       .select()
       .single();
 
     if (insertError) {
       // Cleanup uploaded file on DB insert failure
-      await serverSupabase.storage.from('contractor-documents').remove([safeFileName]);
+      await serverSupabase.storage
+        .from('contractor-documents')
+        .remove([safeFileName]);
       logger.error('Failed to insert document record', insertError);
-      return NextResponse.json({ error: 'Failed to save document' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Failed to save document' },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({ document: doc }, { status: 201 });
-  },
+  }
 );
 
 /**
@@ -161,7 +205,10 @@ export const DELETE = withApiHandler(
     const docId = searchParams.get('id');
 
     if (!docId) {
-      return NextResponse.json({ error: 'Document ID required' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Document ID required' },
+        { status: 400 }
+      );
     }
 
     // Fetch document to verify ownership and get storage path
@@ -173,7 +220,10 @@ export const DELETE = withApiHandler(
       .single();
 
     if (fetchError || !doc) {
-      return NextResponse.json({ error: 'Document not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Document not found' },
+        { status: 404 }
+      );
     }
 
     // Delete from storage
@@ -196,11 +246,14 @@ export const DELETE = withApiHandler(
 
     if (deleteError) {
       logger.error('Failed to delete document record', deleteError);
-      return NextResponse.json({ error: 'Failed to delete document' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Failed to delete document' },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({ success: true });
-  },
+  }
 );
 
 /**
@@ -214,10 +267,15 @@ export const PATCH = withApiHandler(
     const { id, starred, tags, category } = body;
 
     if (!id) {
-      return NextResponse.json({ error: 'Document ID required' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Document ID required' },
+        { status: 400 }
+      );
     }
 
-    const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    const updates: Record<string, unknown> = {
+      updated_at: new Date().toISOString(),
+    };
     if (starred !== undefined) updates.starred = starred;
     if (tags !== undefined) updates.tags = tags;
     if (category !== undefined) updates.category = category;
@@ -232,9 +290,12 @@ export const PATCH = withApiHandler(
 
     if (error) {
       logger.error('Failed to update document', error);
-      return NextResponse.json({ error: 'Failed to update document' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Failed to update document' },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({ document: doc });
-  },
+  }
 );

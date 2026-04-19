@@ -18,6 +18,7 @@ import { FinancialManagementService } from '../../services/contractor-business';
 import type { InvoiceLineItem } from '../../services/contractor-business/types';
 import type { ProfileStackParamList } from '../../navigation/types';
 import { theme } from '../../theme';
+import { formatCurrency } from '../../utils/formatCurrency';
 
 interface CreateInvoiceScreenProps {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'CreateInvoice'>;
@@ -287,11 +288,10 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({
                   <Text style={styles.fieldLabel}>Amount</Text>
                   <View style={[styles.input, styles.amountDisplay]}>
                     <Text style={styles.amountText}>
-                      £
-                      {(
+                      {formatCurrency(
                         (parseFloat(item.quantity) || 0) *
-                        (parseFloat(item.rate) || 0)
-                      ).toFixed(2)}
+                          (parseFloat(item.rate) || 0)
+                      )}
                     </Text>
                   </View>
                 </View>
@@ -319,15 +319,15 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({
         <View style={styles.totalsSection}>
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>Subtotal</Text>
-            <Text style={styles.totalValue}>£{subtotal.toFixed(2)}</Text>
+            <Text style={styles.totalValue}>{formatCurrency(subtotal)}</Text>
           </View>
           <View style={styles.totalRow}>
             <Text style={styles.totalLabel}>VAT (20%)</Text>
-            <Text style={styles.totalValue}>£{taxAmount.toFixed(2)}</Text>
+            <Text style={styles.totalValue}>{formatCurrency(taxAmount)}</Text>
           </View>
           <View style={[styles.totalRow, styles.totalRowFinal]}>
             <Text style={styles.grandTotalLabel}>Total</Text>
-            <Text style={styles.grandTotalValue}>£{total.toFixed(2)}</Text>
+            <Text style={styles.grandTotalValue}>{formatCurrency(total)}</Text>
           </View>
         </View>
 

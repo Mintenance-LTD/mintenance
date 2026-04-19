@@ -1,6 +1,15 @@
 // State machines — canonical lifecycle transitions for all entities
 export * from './state-machines';
 
+// Shared copy constants (user-facing language)
+export {
+  PROTECTED_PAYMENT,
+  PROTECTED_PAYMENT_LOWER,
+  PROTECTED_PAYMENT_BADGE,
+  PROTECTED_PAYMENT_EXPLAINER,
+  PROTECTED_PAYMENT_CONTRACTOR_EXPLAINER,
+} from './copy/payment-terms';
+
 // Shared utilities and helpers
 export { logger } from './logger';
 export { formatDate, formatCurrency, formatPhone } from './formatters';

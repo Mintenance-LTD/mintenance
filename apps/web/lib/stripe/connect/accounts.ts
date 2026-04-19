@@ -14,7 +14,7 @@ import type { ConnectAccountStatus } from './types';
  */
 export async function ensureConnectAccount(
   contractorId: string,
-  email: string,
+  email: string
 ): Promise<string> {
   const { data: profile, error } = await serverSupabase
     .from('profiles')
@@ -50,16 +50,42 @@ export async function ensureConnectAccount(
     .eq('id', contractorId);
 
   if (updateError) {
-    // Orphaned Stripe account — log for cleanup
+    // Sprint 7 fix (3.5): actively delete the orphan Stripe account before
+    // bubbling. Previously we only logged for later manual cleanup, which
+    // piled up no-op accounts under the platform and made the Stripe
+    // Connect dashboard harder to audit.
     logger.error(
-      'Failed to persist stripe_connect_account_id after account creation',
+      'Failed to persist stripe_connect_account_id — deleting orphan Stripe account',
       updateError,
       {
         service: 'stripe-connect',
         contractorId,
         stripeAccountId: account.id,
-      },
+      }
     );
+
+    try {
+      await stripe.accounts.del(account.id);
+      logger.info('Orphan Stripe Connect account deleted', {
+        service: 'stripe-connect',
+        contractorId,
+        stripeAccountId: account.id,
+      });
+    } catch (deleteError) {
+      // If the delete also fails we still surface the original error so the
+      // caller can retry. Operators can reconcile via the Stripe dashboard;
+      // the account metadata carries the contractor_id so it's identifiable.
+      logger.error(
+        'Failed to delete orphan Stripe Connect account — manual cleanup required',
+        deleteError,
+        {
+          service: 'stripe-connect',
+          contractorId,
+          stripeAccountId: account.id,
+        }
+      );
+    }
+
     throw new Error('Failed to link Connect account to profile');
   }
 
@@ -77,7 +103,7 @@ export async function ensureConnectAccount(
  * Call this after onboarding completion and on-demand from UI.
  */
 export async function syncAccountStatus(
-  contractorId: string,
+  contractorId: string
 ): Promise<ConnectAccountStatus> {
   const { data: profile } = await serverSupabase
     .from('profiles')
@@ -90,14 +116,13 @@ export async function syncAccountStatus(
   }
 
   const account = await stripe.accounts.retrieve(
-    profile.stripe_connect_account_id,
+    profile.stripe_connect_account_id
   );
 
   const chargesEnabled = account.charges_enabled;
   const payoutsEnabled = account.payouts_enabled;
   const detailsSubmitted = account.details_submitted;
-  const transfersActive =
-    account.capabilities?.transfers === 'active' || false;
+  const transfersActive = account.capabilities?.transfers === 'active' || false;
   const requirementsPending = [
     ...(account.requirements?.currently_due ?? []),
     ...(account.requirements?.past_due ?? []),
@@ -137,12 +162,12 @@ export async function syncAccountStatus(
  * Use for UI displays; use syncAccountStatus() after state changes.
  */
 export async function getCachedAccountStatus(
-  contractorId: string,
+  contractorId: string
 ): Promise<ConnectAccountStatus | null> {
   const { data, error } = await serverSupabase
     .from('profiles')
     .select(
-      'stripe_connect_account_id, stripe_charges_enabled, stripe_payouts_enabled, stripe_transfers_active, stripe_details_submitted, stripe_onboarding_completed_at, stripe_requirements_pending',
+      'stripe_connect_account_id, stripe_charges_enabled, stripe_payouts_enabled, stripe_transfers_active, stripe_details_submitted, stripe_onboarding_completed_at, stripe_requirements_pending'
     )
     .eq('id', contractorId)
     .single();

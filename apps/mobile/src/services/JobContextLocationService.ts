@@ -1,12 +1,12 @@
 /**
  * Job Context Location Service
- * 
+ *
  * Context-aware location tracking for Mintenance contractors.
  * Unlike Uber's 24/7 tracking, we track contractors ONLY when:
  * 1. They're traveling to a scheduled job/meeting
  * 2. They're on an active job
  * 3. They opt-in to "Available" mode for discovery
- * 
+ *
  * @filesize Target: <300 lines
  * @compliance Single Responsibility - Location tracking only
  */
@@ -15,12 +15,13 @@ import * as Location from 'expo-location';
 import { supabase } from '../config/supabase';
 import { logger } from '../utils/logger';
 import { encodeGeohash } from '../utils/geohash';
+import { BackgroundLocationTask } from './BackgroundLocationTask';
 
 export enum ContractorLocationContext {
-  AVAILABLE = 'available',        // Contractor is available (opt-in)
+  AVAILABLE = 'available', // Contractor is available (opt-in)
   TRAVELING_TO_JOB = 'traveling', // En route to scheduled job/meeting
-  ON_JOB = 'on_job',              // Currently at job site
-  OFF_DUTY = 'off_duty',           // Not tracking
+  ON_JOB = 'on_job', // Currently at job site
+  OFF_DUTY = 'off_duty', // Not tracking
 }
 
 interface TrackingConfig {
@@ -35,7 +36,8 @@ interface LocationUpdateCallback {
 
 export class JobContextLocationService {
   private watchSubscription: Location.LocationSubscription | null = null;
-  private currentContext: ContractorLocationContext = ContractorLocationContext.OFF_DUTY;
+  private currentContext: ContractorLocationContext =
+    ContractorLocationContext.OFF_DUTY;
   private activeJobId: string | null = null;
   private activeMeetingId: string | null = null;
   private destination: { latitude: number; longitude: number } | null = null;
@@ -75,9 +77,14 @@ export class JobContextLocationService {
 
       // Calculate initial ETA
       const initialETA = await this.calculateETA(initialLocation, destination);
-      
+
       // Update database immediately
-      await this.updateContractorLocation(jobId, meetingId, initialLocation, initialETA);
+      await this.updateContractorLocation(
+        jobId,
+        meetingId,
+        initialLocation,
+        initialETA
+      );
 
       // Start watching position
       const config = this.getAdaptiveConfig();
@@ -90,22 +97,32 @@ export class JobContextLocationService {
         },
         async (location) => {
           this.updateMovementState(location);
-          
+
           const eta = await this.calculateETA(location, destination);
-          
+
           // Update contractor location in database
           await this.updateContractorLocation(jobId, meetingId, location, eta);
-          
+
           // Notify via callback
           if (onLocationUpdate) {
             onLocationUpdate(location, eta);
           }
-          
+
           this.lastLocation = location;
         }
       );
 
       logger.info('Started job travel tracking', {
+        contractorId,
+        jobId,
+        meetingId,
+        destination,
+      });
+
+      // Audit 2026-04-16 P2 #14: also engage background task so tracking
+      // survives app minimization. Fail-soft — foreground watcher stays up
+      // even if background permission is denied.
+      void BackgroundLocationTask.start({
         contractorId,
         jobId,
         meetingId,
@@ -154,6 +171,9 @@ export class JobContextLocationService {
         .eq('job_id', this.activeJobId);
     }
 
+    // Stop background task + clear persisted context.
+    await BackgroundLocationTask.stop();
+
     this.currentContext = ContractorLocationContext.OFF_DUTY;
     this.activeJobId = null;
     this.activeMeetingId = null;
@@ -180,7 +200,7 @@ export class JobContextLocationService {
 
     // Use speed from location if available, otherwise estimate based on movement
     let speed = currentLocation.coords.speed; // m/s
-    
+
     if (!speed || speed === 0) {
       // Estimate speed based on movement state
       speed = this.isMoving ? 13.9 : 0; // ~50 km/h when moving, 0 when stationary
@@ -188,7 +208,7 @@ export class JobContextLocationService {
 
     // Convert m/s to km/h
     const speedKmh = speed * 3.6;
-    
+
     // Calculate base ETA (distance in km / speed in km/h * 60 minutes)
     const baseETA = speedKmh > 0 ? (distance / speedKmh) * 60 : 999; // minutes
 
@@ -285,9 +305,8 @@ export class JobContextLocationService {
       7
     );
 
-    const { error } = await supabase
-      .from('contractor_locations')
-      .upsert({
+    const { error } = await supabase.from('contractor_locations').upsert(
+      {
         contractor_id: this.contractorId,
         job_id: jobId,
         meeting_id: meetingId,
@@ -302,9 +321,11 @@ export class JobContextLocationService {
         timestamp: new Date().toISOString(),
         is_active: true,
         updated_at: new Date().toISOString(),
-      }, {
+      },
+      {
         onConflict: 'contractor_id',
-      });
+      }
+    );
 
     if (error) {
       logger.error('Error updating contractor location', error);

@@ -170,6 +170,11 @@ const envSchema = z.object({
     .optional()
     .describe('Google Cloud API key for Vision API'),
 
+  GOOGLE_APPLICATION_CREDENTIALS: z
+    .string()
+    .optional()
+    .describe('Path to Google Cloud service-account JSON (used by Vision/Storage clients)'),
+
   // Redis Configuration (REQUIRED IN PRODUCTION)
   UPSTASH_REDIS_REST_URL: z
     .string()
@@ -182,12 +187,41 @@ const envSchema = z.object({
     .optional()
     .describe('Upstash Redis token'),
 
-  // Optional Configuration
+  // Sentry error tracking (OPTIONAL — the SDK no-ops when unset).
+  // Set NEXT_PUBLIC_SENTRY_DSN in Vercel to enable browser + server
+  // error capture via the instrumentation-client.ts + sentry.*.config.ts
+  // files at the apps/web root.
   SENTRY_DSN: z
     .string()
     .url()
     .optional()
-    .describe('Sentry DSN for error tracking'),
+    .describe('Sentry DSN for server-side error tracking'),
+
+  NEXT_PUBLIC_SENTRY_DSN: z
+    .string()
+    .url()
+    .optional()
+    .describe(
+      'Sentry DSN for client-side error tracking (browser bundle). May be the same as SENTRY_DSN.'
+    ),
+
+  // Sentry build-time source map upload — only required in CI.
+  // Local dev and Vercel preview builds without these set will skip
+  // source map upload but everything else works.
+  SENTRY_AUTH_TOKEN: z
+    .string()
+    .optional()
+    .describe('Sentry auth token for source map upload at build time'),
+
+  SENTRY_ORG: z
+    .string()
+    .optional()
+    .describe('Sentry organization slug (used by withSentryConfig)'),
+
+  SENTRY_PROJECT: z
+    .string()
+    .optional()
+    .describe('Sentry project slug (used by withSentryConfig)'),
 
   NEXT_PUBLIC_APP_URL: z
     .string()
@@ -213,6 +247,52 @@ const envSchema = z.object({
     .regex(/^VA/, 'TWILIO_VERIFY_SERVICE_SID must start with VA')
     .optional()
     .describe('Twilio Verify Service SID for SMS fallback'),
+
+  // Sprint 7 (5.4): email provider keys moved from direct process.env
+  // reads in EmailService. Priority: Brevo > SendGrid > Resend. All optional
+  // so a missing config degrades gracefully to "email provider not
+  // configured" instead of throwing at import time.
+  BREVO_API_KEY: z
+    .string()
+    .optional()
+    .describe('Brevo API key for email (free tier: 300/day)'),
+  SENDGRID_API_KEY: z
+    .string()
+    .optional()
+    .describe('SendGrid API key for email (second priority after Brevo)'),
+  RESEND_API_KEY: z
+    .string()
+    .optional()
+    .describe('Resend API key for email (third priority)'),
+  EMAIL_FROM: z
+    .string()
+    .email()
+    .default('noreply@mintenance.co.uk')
+    .describe('Default from address for outbound email'),
+  EMAIL_FROM_NAME: z
+    .string()
+    .default('Mintenance ltd')
+    .describe('Default from name for outbound email'),
+
+  // Sprint 7 (5.4): AI service env reads moved from UnifiedAIService.
+  // API_TIMEOUT_MS guards slow provider responses from blocking request
+  // threads. Default 30s matches the existing hardcoded fallback.
+  AI_API_TIMEOUT_MS: z
+    .string()
+    .transform((val) => parseInt(val, 10))
+    .pipe(z.number().positive())
+    .default('30000')
+    .describe('Timeout (ms) for outbound AI service HTTP calls'),
+
+  // Sprint 5 (1.9 follow-up): per-user AI spend cap. Enforced in
+  // lib/ai/cost-budget before invoking models; fallback model attempted
+  // when over. Expressed in USD to match provider invoicing.
+  AI_COST_CAP_USD: z
+    .string()
+    .transform((val) => parseFloat(val))
+    .pipe(z.number().nonnegative())
+    .default('5')
+    .describe('Per-user daily AI spend cap in USD'),
 });
 
 // Type inference from schema

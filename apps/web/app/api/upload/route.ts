@@ -1,10 +1,17 @@
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
-import { validateImageUpload, createValidationErrorResponse, generateSecureFilename } from '@/lib/security/file-validator';
+import {
+  validateImageUpload,
+  createValidationErrorResponse,
+  generateSecureFilename,
+} from '@/lib/security/file-validator';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { BadRequestError } from '@/lib/errors/api-error';
-import { checkRateLimit, createRateLimitHeaders } from '@/lib/rate-limiter-enhanced';
+import {
+  checkRateLimit,
+  createRateLimitHeaders,
+} from '@/lib/rate-limiter-enhanced';
 
 /**
  * POST /api/upload
@@ -15,11 +22,16 @@ export const POST = withApiHandler(
   { rateLimit: false },
   async (request, { user }) => {
     // SECURITY: Enhanced rate limiting with user-tier based limits
-    const rateLimitResult = await checkRateLimit(request, { path: '/api/upload' });
+    const rateLimitResult = await checkRateLimit(request, {
+      path: '/api/upload',
+    });
 
     if (!rateLimitResult.allowed) {
       return NextResponse.json(
-        { error: 'Upload rate limit exceeded. Please wait before uploading more files.' },
+        {
+          error:
+            'Upload rate limit exceeded. Please wait before uploading more files.',
+        },
         { status: 429, headers: createRateLimitHeaders(rateLimitResult) }
       );
     }
@@ -63,12 +75,13 @@ export const POST = withApiHandler(
     const buffer = Buffer.from(arrayBuffer);
 
     // Upload to Supabase storage
-    const { data: uploadData, error: uploadError } = await serverSupabase.storage
-      .from('job-attachments')
-      .upload(fileName, buffer, {
-        contentType: file.type,
-        upsert: false,
-      });
+    const { data: uploadData, error: uploadError } =
+      await serverSupabase.storage
+        .from('job-attachments')
+        .upload(fileName, buffer, {
+          contentType: file.type,
+          upsert: false,
+        });
 
     if (uploadError) {
       logger.error('Failed to upload file to storage', uploadError, {
@@ -82,22 +95,34 @@ export const POST = withApiHandler(
       );
     }
 
-    // Get public URL
-    const { data: urlData } = serverSupabase.storage
-      .from('job-attachments')
-      .getPublicUrl(uploadData.path);
+    // Bucket is private — return a 1-hour signed URL. Consumers that need longer
+    // access should regenerate a signed URL from `path` on demand.
+    const { data: signedData, error: signedError } =
+      await serverSupabase.storage
+        .from('job-attachments')
+        .createSignedUrl(uploadData.path, 60 * 60);
+
+    if (signedError || !signedData) {
+      logger.error('Failed to create signed URL', signedError, {
+        service: 'upload',
+        userId: user.id,
+      });
+      return NextResponse.json(
+        { error: 'File uploaded but could not generate access URL' },
+        { status: 500 }
+      );
+    }
 
     logger.info('File uploaded successfully', {
       service: 'upload',
       userId: user.id,
       fileName,
       path: uploadData.path,
-      url: urlData.publicUrl,
     });
 
     return NextResponse.json({
       success: true,
-      url: urlData.publicUrl,
+      url: signedData.signedUrl,
       path: uploadData.path,
     });
   }

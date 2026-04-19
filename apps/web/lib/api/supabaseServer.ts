@@ -1,4 +1,8 @@
-import { createClient, SupabaseClient, SupabaseClientOptions } from '@supabase/supabase-js';
+import {
+  createClient,
+  SupabaseClient,
+  SupabaseClientOptions,
+} from '@supabase/supabase-js';
 import type { NextRequest } from 'next/server';
 
 // Read env vars lazily at client creation time (not module load time).
@@ -7,14 +11,18 @@ import type { NextRequest } from 'next/server';
 function getSupabaseUrl(): string {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   if (!url) {
-    throw new Error('[Supabase] Missing NEXT_PUBLIC_SUPABASE_URL environment variable.');
+    throw new Error(
+      '[Supabase] Missing NEXT_PUBLIC_SUPABASE_URL environment variable.'
+    );
   }
   return url;
 }
 function getSupabaseServiceKey(): string {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!key) {
-    throw new Error('[Supabase] Missing SUPABASE_SERVICE_ROLE_KEY environment variable. Server operations will fail without the service role key.');
+    throw new Error(
+      '[Supabase] Missing SUPABASE_SERVICE_ROLE_KEY environment variable. Server operations will fail without the service role key.'
+    );
   }
   return key;
 }
@@ -54,7 +62,9 @@ const clientOptions: SupabaseClientOptions<'public'> = {
         if (upstream.aborted) {
           controller.abort();
         } else {
-          upstream.addEventListener('abort', () => controller.abort(), { once: true });
+          upstream.addEventListener('abort', () => controller.abort(), {
+            once: true,
+          });
         }
       }
       return fetch(url, {
@@ -88,7 +98,11 @@ let _serverSupabase: SupabaseClient | null = null;
 
 function getServerSupabaseInstance(): SupabaseClient {
   if (!_serverSupabase) {
-    _serverSupabase = createClient(getSupabaseUrl(), getSupabaseServiceKey(), clientOptions);
+    _serverSupabase = createClient(
+      getSupabaseUrl(),
+      getSupabaseServiceKey(),
+      clientOptions
+    );
   }
   return _serverSupabase;
 }
@@ -111,7 +125,11 @@ export const serverSupabase: SupabaseClient = new Proxy({} as SupabaseClient, {
  * SECURITY WARNING: Bypasses ALL RLS — prefer createUserScopedClient() for user requests.
  */
 export function createServerSupabaseClient() {
-  return createClient(getSupabaseUrl(), getSupabaseServiceKey(), clientOptions as unknown as Parameters<typeof createClient>[2]);
+  return createClient(
+    getSupabaseUrl(),
+    getSupabaseServiceKey(),
+    clientOptions as unknown as Parameters<typeof createClient>[2]
+  );
 }
 
 /**
@@ -121,10 +139,12 @@ export function createServerSupabaseClient() {
 export function createUserScopedClient(userJwt: string) {
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!anonKey) {
-    throw new Error('[Supabase] Missing NEXT_PUBLIC_SUPABASE_ANON_KEY for user-scoped client');
+    throw new Error(
+      '[Supabase] Missing NEXT_PUBLIC_SUPABASE_ANON_KEY for user-scoped client'
+    );
   }
   return createClient(getSupabaseUrl(), anonKey, {
-    ...clientOptions as unknown as Parameters<typeof createClient>[2],
+    ...(clientOptions as unknown as Parameters<typeof createClient>[2]),
     global: {
       ...clientOptions.global,
       headers: {
@@ -202,9 +222,85 @@ export function getUserJwtFromRequest(request: NextRequest): string | null {
  * @param request - The NextRequest object from the route handler
  * @returns A Supabase client scoped to the user (RLS-enforced), or null if no JWT found
  */
-export function createRequestScopedClient(request: NextRequest): SupabaseClient | null {
+export function createRequestScopedClient(
+  request: NextRequest
+): SupabaseClient | null {
   const jwt = getUserJwtFromRequest(request);
   if (!jwt) return null;
+  return createUserScopedClient(jwt) as SupabaseClient;
+}
+
+/**
+ * Sprint 7 (3.3): Resolve a DB client for a request with explicit awareness
+ * of whether RLS is in effect.
+ *
+ * The historical pattern is:
+ *    const userDb = createRequestScopedClient(request) ?? serverSupabase;
+ * which silently falls back to service-role when the request auths via our
+ * custom JWT cookie (not a Supabase session). Routes that forget to also
+ * apply an explicit `.eq('owner_id', user.id)` filter leak cross-tenant
+ * data whenever that fallback fires.
+ *
+ * This helper returns a tagged result so callers can branch on
+ * `enforcesRls` and know they MUST apply app-level filters when it is
+ * false. We also emit a low-volume telemetry warning on fallback, so
+ * operators can see how often service-role kicks in per route.
+ */
+export interface ResolvedRequestClient {
+  db: SupabaseClient;
+  /** true = Supabase RLS applies. false = service-role; caller MUST filter. */
+  enforcesRls: boolean;
+}
+
+export function resolveRequestDbClient(
+  request: NextRequest,
+  opts: { route?: string } = {}
+): ResolvedRequestClient {
+  const jwt = getUserJwtFromRequest(request);
+  if (jwt) {
+    return {
+      db: createUserScopedClient(jwt) as SupabaseClient,
+      enforcesRls: true,
+    };
+  }
+
+  // No Supabase JWT (user likely authed via our custom JWT cookie).
+  // Dynamic import to avoid bundling logger in every caller.
+  import('@mintenance/shared')
+    .then(({ logger }) => {
+      logger.warn(
+        'DB access falling back to service role — caller must apply explicit filters',
+        {
+          service: 'supabaseServer',
+          route: opts.route ?? request.nextUrl.pathname,
+        }
+      );
+    })
+    .catch(() => {
+      // swallow: logging must never block the request path
+    });
+
+  return {
+    db: serverSupabase,
+    enforcesRls: false,
+  };
+}
+
+/**
+ * Sprint 7 (3.3): Strict variant — returns a user-scoped RLS-enforced
+ * client or THROWS. Use in routes where you are certain the caller
+ * should always have a Supabase JWT available (e.g. mobile-only APIs,
+ * or explicitly Supabase-Auth pages). Never falls back to service role.
+ */
+export function requireUserScopedClient(request: NextRequest): SupabaseClient {
+  const jwt = getUserJwtFromRequest(request);
+  if (!jwt) {
+    throw new Error(
+      'requireUserScopedClient: no Supabase JWT on request. This route ' +
+        'refuses service-role fallback. If the caller authed via our custom ' +
+        'JWT cookie, use createRequestScopedClient() + explicit filters instead.'
+    );
+  }
   return createUserScopedClient(jwt) as SupabaseClient;
 }
 
@@ -217,7 +313,13 @@ export function createRequestScopedClient(request: NextRequest): SupabaseClient 
 export function createAnonClient() {
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!anonKey) {
-    throw new Error('[Supabase] Missing NEXT_PUBLIC_SUPABASE_ANON_KEY for anon client');
+    throw new Error(
+      '[Supabase] Missing NEXT_PUBLIC_SUPABASE_ANON_KEY for anon client'
+    );
   }
-  return createClient(getSupabaseUrl(), anonKey, clientOptions as unknown as Parameters<typeof createClient>[2]);
+  return createClient(
+    getSupabaseUrl(),
+    anonKey,
+    clientOptions as unknown as Parameters<typeof createClient>[2]
+  );
 }

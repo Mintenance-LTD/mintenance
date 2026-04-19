@@ -175,22 +175,32 @@ const useJobsMapViewModel = (): JobsMapViewModel => {
     setLoading(true);
     try {
       // Fetch posted jobs, then filter out ones this contractor already bid on
-      const [jobsResult, bidsResult] = await Promise.all([
-        supabase
-          .from('jobs')
-          .select(
-            `
-            id, title, category, urgency, budget, budget_min, budget_max,
-            latitude, longitude, created_at,
-            homeowner:homeowner_id ( first_name )
+      // Build the jobs query — add a server-side category filter when one is
+      // selected so we don't hit the 50-row limit before any matching jobs
+      // appear. The client-side `filteredJobs` below acts as a second pass
+      // for the text-search filter which is too complex for a Supabase `.ilike`.
+      let jobsQuery = supabase
+        .from('jobs')
+        .select(
           `
-          )
-          .eq('status', 'posted')
-          .is('contractor_id', null)
-          .not('latitude', 'is', null)
-          .not('longitude', 'is', null)
-          .order('created_at', { ascending: false })
-          .limit(50),
+          id, title, category, urgency, budget, budget_min, budget_max,
+          latitude, longitude, created_at,
+          homeowner:homeowner_id ( first_name )
+        `
+        )
+        .eq('status', 'posted')
+        .is('contractor_id', null)
+        .not('latitude', 'is', null)
+        .not('longitude', 'is', null);
+
+      if (selectedCategory) {
+        jobsQuery = jobsQuery.ilike('category', selectedCategory);
+      }
+
+      jobsQuery = jobsQuery.order('created_at', { ascending: false }).limit(50);
+
+      const [jobsResult, bidsResult] = await Promise.all([
+        jobsQuery,
         user?.id
           ? supabase.from('bids').select('job_id').eq('contractor_id', user.id)
           : Promise.resolve({ data: [] as { job_id: string }[], error: null }),
@@ -261,7 +271,7 @@ const useJobsMapViewModel = (): JobsMapViewModel => {
     } finally {
       if (isMounted.current) setLoading(false);
     }
-  }, [userLocation, user?.id]); // Depends on userLocation + user (to filter out own bids)
+  }, [userLocation, user?.id, selectedCategory]); // Depends on userLocation + user + category
 
   useEffect(() => {
     fetchJobs();

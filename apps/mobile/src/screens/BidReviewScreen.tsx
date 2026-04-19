@@ -25,6 +25,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
+import { formatCurrency } from '../utils/formatCurrency';
 import { BidService, Bid } from '../services/BidService';
 import { supabase } from '../config/supabase';
 import SwipeableCardWrapper, {
@@ -138,7 +139,7 @@ export const BidReviewScreen: React.FC = () => {
       await BidService.acceptBid(bid.id, user.id);
       Alert.alert(
         'Bid Accepted',
-        `You accepted ${bid.contractor?.first_name || 'the contractor'}'s bid of £${bid.amount}.`,
+        `You accepted ${bid.contractor?.first_name || 'the contractor'}'s bid of ${formatCurrency(bid.amount)}.`,
         [
           {
             text: 'Message Contractor',
@@ -291,21 +292,23 @@ export const BidReviewScreen: React.FC = () => {
           {[
             {
               label: 'Low',
-              value: `£${Math.min(...bids.map((b) => b.amount)).toLocaleString()}`,
+              value: formatCurrency(Math.min(...bids.map((b) => b.amount))),
               iconColor: theme.colors.primary,
               iconBg: theme.colors.primaryLight,
               icon: 'trending-down-outline' as const,
             },
             {
               label: 'Avg',
-              value: `£${Math.round(bids.reduce((s, b) => s + b.amount, 0) / bids.length).toLocaleString()}`,
+              value: formatCurrency(
+                Math.round(bids.reduce((s, b) => s + b.amount, 0) / bids.length)
+              ),
               iconColor: '#3B82F6',
               iconBg: '#DBEAFE',
               icon: 'analytics-outline' as const,
             },
             {
               label: 'High',
-              value: `£${Math.max(...bids.map((b) => b.amount)).toLocaleString()}`,
+              value: formatCurrency(Math.max(...bids.map((b) => b.amount))),
               iconColor: theme.colors.error,
               iconBg: '#FEE2E2',
               icon: 'trending-up-outline' as const,

@@ -1,7 +1,17 @@
 import { useState, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
 import { logger } from '@mintenance/shared';
+import { queryKeys } from '@/lib/react-query-client';
+
+/**
+ * Sprint 7 (4.6): replaced router.refresh() with React Query invalidation.
+ * router.refresh() reloaded the whole route tree which blew away the form's
+ * own state — users editing a second field while Save was in flight lost
+ * their input on success. invalidateQueries targets only the contractor's
+ * detail cache, so the page re-fetches data without a full component tree
+ * remount and local form state survives.
+ */
 export interface ContractorData {
   id: string;
   first_name?: string;
@@ -39,7 +49,7 @@ export function useContractorProfile(
   initialContractor: ContractorData,
   initialMetrics: ContractorMetrics
 ) {
-  const router = useRouter();
+  const queryClient = useQueryClient();
   const [contractor, setContractor] = useState(initialContractor);
   const [metrics, setMetrics] = useState(initialMetrics);
   const [isEditing, setIsEditing] = useState(false);
@@ -87,8 +97,14 @@ export function useContractorProfile(
         }));
         toast.success('Profile updated successfully!');
         setIsEditing(false);
-        // Refresh to get updated metrics
-        router.refresh();
+        // Sprint 7 (4.6): scoped cache invalidation instead of full route
+        // refresh. Keeps any concurrently-edited form state alive.
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.contractors.details(contractor.id),
+        });
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.contractors.all,
+        });
         logger.info('Profile updated', {
           contractorId: contractor.id,
           fields: Object.keys(formData),
@@ -105,7 +121,7 @@ export function useContractorProfile(
         setIsSaving(false);
       }
     },
-    [contractor.id, formData, router]
+    [contractor.id, formData, queryClient]
   );
   const uploadProfileImage = useCallback(
     async (file: File, csrfToken: string) => {
@@ -132,7 +148,13 @@ export function useContractorProfile(
           profile_image_url: url,
         }));
         toast.success('Profile photo updated!');
-        router.refresh();
+        // Sprint 7 (4.6): scoped invalidation instead of router.refresh()
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.contractors.details(contractor.id),
+        });
+        queryClient.invalidateQueries({
+          queryKey: queryKeys.contractors.all,
+        });
         return url;
       } catch (error) {
         logger.error('Failed to upload profile image', {
@@ -143,7 +165,7 @@ export function useContractorProfile(
         return null;
       }
     },
-    [contractor.id, router]
+    [contractor.id, queryClient]
   );
   const cancelEdit = useCallback(() => {
     setFormData({

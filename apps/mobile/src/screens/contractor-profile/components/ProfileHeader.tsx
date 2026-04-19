@@ -6,10 +6,17 @@
  */
 
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Platform,
+} from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { theme, gradients } from '../../../theme';
+import { TrustLines } from './TrustLines';
 
 interface ProfileHeaderProps {
   name: string;
@@ -22,6 +29,14 @@ interface ProfileHeaderProps {
   onShare?: () => void;
   onEditPress?: () => void;
   showEditButton?: boolean;
+  // R7 #9 + #11 trust signals
+  postcodePrefix?: string | null;
+  postcodeProofCount?: number | null;
+  disputeHistory?: {
+    resolvedCount: number;
+    unresolvedCount: number;
+    avgResolutionHours?: number | null;
+  };
 }
 
 export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
@@ -33,6 +48,9 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   topInset = 0,
   onBack,
   onShare,
+  postcodePrefix,
+  postcodeProofCount,
+  disputeHistory,
 }) => {
   const primarySkill = skills?.[0];
   const tradeLabel = primarySkill
@@ -58,10 +76,14 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             <TouchableOpacity
               style={styles.navBtn}
               onPress={onBack}
-              accessibilityRole="button"
-              accessibilityLabel="Go back"
+              accessibilityRole='button'
+              accessibilityLabel='Go back'
             >
-              <Ionicons name="arrow-back" size={20} color={theme.colors.textInverse} />
+              <Ionicons
+                name='arrow-back'
+                size={20}
+                color={theme.colors.textInverse}
+              />
             </TouchableOpacity>
           )}
           <View style={{ flex: 1 }} />
@@ -69,10 +91,14 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             <TouchableOpacity
               style={styles.navBtn}
               onPress={onShare}
-              accessibilityRole="button"
-              accessibilityLabel="Share profile"
+              accessibilityRole='button'
+              accessibilityLabel='Share profile'
             >
-              <Ionicons name="share-outline" size={20} color={theme.colors.textInverse} />
+              <Ionicons
+                name='share-outline'
+                size={20}
+                color={theme.colors.textInverse}
+              />
             </TouchableOpacity>
           )}
         </View>
@@ -85,11 +111,19 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       <View style={styles.avatarSection}>
         <View style={styles.avatarWrapper}>
           <View style={styles.avatar}>
-            <Ionicons name="person" size={40} color={theme.colors.textTertiary} />
+            <Ionicons
+              name='person'
+              size={40}
+              color={theme.colors.textTertiary}
+            />
           </View>
           {verified && (
             <View style={styles.verifiedBadge}>
-              <Ionicons name="checkmark" size={14} color={theme.colors.textInverse} />
+              <Ionicons
+                name='checkmark'
+                size={14}
+                color={theme.colors.textInverse}
+              />
             </View>
           )}
         </View>
@@ -100,30 +134,47 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 
         {location ? (
           <View style={styles.locationRow}>
-            <Ionicons name="location-outline" size={14} color={theme.colors.textSecondary} />
+            <Ionicons
+              name='location-outline'
+              size={14}
+              color={theme.colors.textSecondary}
+            />
             <Text style={styles.locationText}>{location}</Text>
           </View>
         ) : null}
 
         {/* Bio */}
         {bio ? (
-          <Text style={styles.bio} numberOfLines={3}>{bio}</Text>
+          <Text style={styles.bio} numberOfLines={3}>
+            {bio}
+          </Text>
         ) : null}
+
+        {/* R7 #9 + #11 trust lines */}
+        <TrustLines
+          postcodePrefix={postcodePrefix}
+          postcodeProofCount={postcodeProofCount}
+          disputeHistory={disputeHistory}
+        />
 
         {/* Trust signals */}
         <View style={styles.trustRow}>
           {verified && (
             <View style={styles.trustPill}>
-              <Ionicons name="shield-checkmark" size={14} color={theme.colors.primary} />
+              <Ionicons
+                name='shield-checkmark'
+                size={14}
+                color={theme.colors.primary}
+              />
               <Text style={styles.trustText}>Verified</Text>
             </View>
           )}
           <View style={styles.trustPill}>
-            <Ionicons name="flash" size={14} color={theme.colors.accent} />
+            <Ionicons name='flash' size={14} color={theme.colors.accent} />
             <Text style={styles.trustText}>{'< 1hr Response'}</Text>
           </View>
           <View style={styles.trustPill}>
-            <Ionicons name="ribbon" size={14} color="#3B82F6" />
+            <Ionicons name='ribbon' size={14} color='#3B82F6' />
             <Text style={styles.trustText}>Insured</Text>
           </View>
         </View>
@@ -202,7 +253,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8 },
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 8,
+      },
       android: { elevation: 4 },
     }),
   },

@@ -6,6 +6,7 @@
  */
 
 import { logger } from '@mintenance/shared';
+import { env } from '@/lib/env';
 import { CostControlService } from './CostControlService';
 import { analyzeBuildingDamage } from './analyzers/building-damage-analyzer';
 import { analyzeGeneralImage } from './analyzers/general-image-analyzer';
@@ -98,12 +99,14 @@ export class UnifiedAIService {
     return {
       operational: !isEmergencyStopped && budgetStatus.daily.remaining > 0,
       budget: budgetStatus,
+      // Sprint 7 (5.4): reads routed through `env` (validated by zod in
+      // lib/env.ts) rather than raw process.env, so the set of known keys
+      // is declared in one place.
       services: {
-        'building-surveyor':
-          !isEmergencyStopped && !!process.env.OPENAI_API_KEY,
+        'building-surveyor': !isEmergencyStopped && !!env.OPENAI_API_KEY,
         'image-analysis':
-          !isEmergencyStopped && !!process.env.GOOGLE_APPLICATION_CREDENTIALS,
-        'job-analysis': !isEmergencyStopped && !!process.env.OPENAI_API_KEY,
+          !isEmergencyStopped && !!env.GOOGLE_APPLICATION_CREDENTIALS,
+        'job-analysis': !isEmergencyStopped && !!env.OPENAI_API_KEY,
         fallback: true,
       },
     };

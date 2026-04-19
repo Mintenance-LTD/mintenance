@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { render, waitFor, fireEvent } from '../..//test-utils';
-import { ProfileScreen } from '../ProfileScreen';
+import ProfileScreen from '../ProfileScreen';
 import { NavigationContainer } from '@react-navigation/native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 

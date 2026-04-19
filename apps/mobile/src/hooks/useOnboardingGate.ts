@@ -12,6 +12,15 @@
  * - Refreshes auth context so the flag propagates
  *
  * Non-forced: user can dismiss at any time. Never shows again.
+ *
+ * Sprint 7 (4.5) note: an audit flagged AsyncStorage use here as
+ * "unencrypted progress in DevTools". That was a false alarm — mobile
+ * AsyncStorage writes to app-private storage (NSUserDefaults on iOS,
+ * SharedPreferences on Android), not a DevTools-visible bucket, and
+ * we only persist a single dismissal flag `'1'`, not step-by-step
+ * progress. Source of truth remains `profiles.onboarding_completed`
+ * on the server; the local flag is just an offline / cross-session
+ * optimization. No SecureStore migration needed.
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -67,7 +76,9 @@ export function useOnboardingGate() {
       await mobileApiClient.post('/api/onboarding/complete', {});
       await refreshUser();
     } catch (err) {
-      logger.warn('Failed to sync onboarding completion to server', { error: err });
+      logger.warn('Failed to sync onboarding completion to server', {
+        error: err,
+      });
       // Local flag is set — won't show again even if API fails
     }
   }, [refreshUser]);

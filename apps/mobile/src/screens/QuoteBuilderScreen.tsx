@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { ProfileStackParamList } from '../navigation/types';
 import { logger } from '../utils/logger';
+import { formatCurrency } from '../utils/formatCurrency';
 import { useAuth } from '../contexts/AuthContext';
 import {
   QuoteBuilderService,
@@ -163,7 +164,7 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
           icon: 'checkmark-circle-outline' as const,
         },
         {
-          value: `£${stats.total_value.toFixed(0)}`,
+          value: formatCurrency(stats.total_value),
           label: 'Value',
           iconColor: theme.colors.accent,
           iconBg: theme.colors.accentLight,
@@ -385,10 +386,9 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
               </View>
               <View style={styles.analyticsStat}>
                 <Text style={styles.analyticsValue}>
-                  £
                   {stats.total_value
-                    ? Math.round(stats.total_value / 1000) + 'k'
-                    : '0'}
+                    ? formatCurrency(stats.total_value)
+                    : formatCurrency(0)}
                 </Text>
                 <Text style={styles.analyticsLabel}>Total Value</Text>
               </View>

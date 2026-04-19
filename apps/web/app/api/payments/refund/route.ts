@@ -2,8 +2,16 @@ import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { checkApiRateLimit } from '@/lib/rate-limiter';
-import { getIdempotencyKeyFromRequest, checkIdempotency, storeIdempotencyResult } from '@/lib/idempotency';
-import { ForbiddenError, NotFoundError, RateLimitError } from '@/lib/errors/api-error';
+import {
+  getIdempotencyKeyFromRequest,
+  checkIdempotency,
+  storeIdempotencyResult,
+} from '@/lib/idempotency';
+import {
+  ForbiddenError,
+  NotFoundError,
+  RateLimitError,
+} from '@/lib/errors/api-error';
 import { validateRequest } from '@/lib/validation/validator';
 import { refundRequestSchema } from '@/lib/validation/schemas';
 import { stripe } from '@/lib/stripe';
@@ -17,9 +25,10 @@ export const POST = withApiHandler(
   { rateLimit: false },
   async (request, { user }) => {
     // Custom rate limiting - key on userId + IP to prevent both enumeration and per-user abuse
-    const ip = request.headers.get('x-real-ip')
-      || request.headers.get('x-forwarded-for')?.split(',')[0]
-      || 'unknown';
+    const ip =
+      request.headers.get('x-real-ip') ||
+      request.headers.get('x-forwarded-for')?.split(',')[0] ||
+      'unknown';
     const rateLimitResult = await checkApiRateLimit(`refund:${user.id}:${ip}`);
 
     if (!rateLimitResult.allowed) {
@@ -45,14 +54,21 @@ export const POST = withApiHandler(
     );
 
     // Use distributed locking for idempotency check
-    const idempotencyCheck = await checkIdempotency(idempotencyKey, 'refund_payment', true);
+    const idempotencyCheck = await checkIdempotency(
+      idempotencyKey,
+      'refund_payment',
+      true
+    );
     if (idempotencyCheck?.isDuplicate && idempotencyCheck.cachedResult) {
-      logger.info('Duplicate refund request detected, returning cached result', {
-        service: 'payments',
-        idempotencyKey,
-        userId: user.id,
-        escrowTransactionId,
-      });
+      logger.info(
+        'Duplicate refund request detected, returning cached result',
+        {
+          service: 'payments',
+          idempotencyKey,
+          userId: user.id,
+          escrowTransactionId,
+        }
+      );
       return NextResponse.json(idempotencyCheck.cachedResult);
     }
 
@@ -91,7 +107,9 @@ export const POST = withApiHandler(
     // Get escrow transaction (query both column names for payment intent ID)
     const { data: escrow, error: escrowError } = await serverSupabase
       .from('escrow_transactions')
-      .select('id, job_id, amount, status, payment_intent_id, stripe_payment_intent_id, created_at, released_at, refunded_at')
+      .select(
+        'id, job_id, amount, status, payment_intent_id, stripe_payment_intent_id, created_at, released_at, refunded_at'
+      )
       .eq('id', escrowTransactionId)
       .eq('job_id', jobId)
       .single();
@@ -106,7 +124,7 @@ export const POST = withApiHandler(
         service: 'payments',
         userId: user.id,
         role: user.role,
-        jobId
+        jobId,
       });
       return NextResponse.json(
         { error: 'Only the homeowner who paid can request a refund' },
@@ -126,13 +144,16 @@ export const POST = withApiHandler(
     // Can only refund held payments (not released to contractor)
     if (escrow.status !== 'held') {
       return NextResponse.json(
-        { error: `Cannot refund payment with status: ${escrow.status}. Only held payments can be refunded.` },
+        {
+          error: `Cannot refund payment with status: ${escrow.status}. Only held payments can be refunded.`,
+        },
         { status: 400 }
       );
     }
 
     // Use whichever column has the payment intent ID
-    const paymentIntentId = escrow.payment_intent_id || escrow.stripe_payment_intent_id;
+    const paymentIntentId =
+      escrow.payment_intent_id || escrow.stripe_payment_intent_id;
     if (!paymentIntentId) {
       return NextResponse.json(
         { error: 'No payment intent ID found' },
@@ -140,15 +161,40 @@ export const POST = withApiHandler(
       );
     }
 
-    // Calculate refund amount (full or partial) — use toFixed(0) to avoid float drift
-    const refundAmount = amount
-      ? Math.min(Math.round(Number((amount * 100).toFixed(0))), Math.round(Number((escrow.amount * 100).toFixed(0))))
-      : Math.round(Number((escrow.amount * 100).toFixed(0)));
+    // Calculate refund amount (full or partial).
+    // Guard against negative / zero / NaN client input — fall back to full
+    // refund. Cap at escrow.amount so client can never inflate the refund.
+    const escrowAmountCents = Math.round(
+      Number((escrow.amount * 100).toFixed(0))
+    );
+    let refundAmount: number;
+    if (typeof amount === 'number' && Number.isFinite(amount) && amount > 0) {
+      const requestedCents = Math.round(Number((amount * 100).toFixed(0)));
+      refundAmount = Math.min(requestedCents, escrowAmountCents);
+    } else {
+      // No amount supplied, non-positive, or NaN → default to full refund
+      refundAmount = escrowAmountCents;
+    }
+
+    if (refundAmount <= 0) {
+      logger.error('Refund amount computed as non-positive — data integrity', {
+        service: 'payments',
+        userId: user.id,
+        escrowTransactionId,
+        escrowAmount: escrow.amount,
+        requestedAmount: amount,
+      });
+      return NextResponse.json(
+        { error: 'Invalid refund amount' },
+        { status: 400 }
+      );
+    }
 
     const refundAmountDollars = refundAmount / 100;
 
     // MFA requirement check for high-risk refunds
-    const { requiresMFA, HighRiskOperation } = await import('@/lib/payments/high-risk-checks');
+    const { requiresMFA, HighRiskOperation } =
+      await import('@/lib/payments/high-risk-checks');
     const mfaCheck = await requiresMFA(
       HighRiskOperation.REFUND,
       refundAmountDollars,
@@ -176,7 +222,8 @@ export const POST = withApiHandler(
         );
       }
 
-      const { validateMFAForPayment } = await import('@/lib/payments/high-risk-checks');
+      const { validateMFAForPayment } =
+        await import('@/lib/payments/high-risk-checks');
       const mfaValidation = await validateMFAForPayment(
         user.id,
         mfaToken,
@@ -210,18 +257,22 @@ export const POST = withApiHandler(
     }
 
     // Monitor refund for anomalies
-    const { PaymentMonitoringService } = await import('@/lib/monitoring/payment-monitor');
-    const anomalyCheck = await PaymentMonitoringService.detectAnomalies(user.id, {
-      userId: user.id,
-      amount: refundAmountDollars,
-      currency: 'gbp',
-      type: 'refund',
-      metadata: {
-        jobId,
-        escrowTransactionId,
-        ip: request.headers.get('x-forwarded-for') || undefined,
-      },
-    });
+    const { PaymentMonitoringService } =
+      await import('@/lib/monitoring/payment-monitor');
+    const anomalyCheck = await PaymentMonitoringService.detectAnomalies(
+      user.id,
+      {
+        userId: user.id,
+        amount: refundAmountDollars,
+        currency: 'gbp',
+        type: 'refund',
+        metadata: {
+          jobId,
+          escrowTransactionId,
+          ip: request.headers.get('x-forwarded-for') || undefined,
+        },
+      }
+    );
 
     // Block if high risk
     if (anomalyCheck.blockedReasons.length > 0) {
@@ -281,28 +332,36 @@ export const POST = withApiHandler(
       }
 
       updateError = result.error;
-      logger.error(`Escrow DB update failed (attempt ${attempt}/3)`, result.error, {
-        service: 'payments',
-        userId: user.id,
-        jobId,
-        escrowTransactionId,
-        refundId: refund.id,
-      });
+      logger.error(
+        `Escrow DB update failed (attempt ${attempt}/3)`,
+        result.error,
+        {
+          service: 'payments',
+          userId: user.id,
+          jobId,
+          escrowTransactionId,
+          refundId: refund.id,
+        }
+      );
 
       if (attempt < 3) {
-        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+        await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
       }
     }
 
     if (updateError) {
-      logger.error('CRITICAL: Stripe refund succeeded but escrow DB update failed after 3 retries', updateError, {
-        service: 'payments',
-        userId: user.id,
-        jobId,
-        escrowTransactionId,
-        refundId: refund.id,
-        stripeRefundStatus: refund.status,
-      });
+      logger.error(
+        'CRITICAL: Stripe refund succeeded but escrow DB update failed after 3 retries',
+        updateError,
+        {
+          service: 'payments',
+          userId: user.id,
+          jobId,
+          escrowTransactionId,
+          refundId: refund.id,
+          stripeRefundStatus: refund.status,
+        }
+      );
 
       // Attempt to create a reconciliation record
       await serverSupabase
@@ -325,7 +384,7 @@ export const POST = withApiHandler(
       userId: user.id,
       jobId,
       refundId: refund.id,
-      amount: refundAmount / 100
+      amount: refundAmount / 100,
     });
 
     const responseData = {

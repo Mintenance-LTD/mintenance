@@ -28,9 +28,9 @@ export const EscrowInfoModal: React.FC<EscrowInfoModalProps> = ({
       <View
         style={styles.modalContent}
         accessibilityRole='none'
-        accessibilityLabel='Escrow protection information'
+        accessibilityLabel='Protected Payment information'
       >
-        <Text style={styles.modalTitle}>How Escrow Protection Works</Text>
+        <Text style={styles.modalTitle}>How Protected Payment Works</Text>
 
         <View style={styles.escrowStep}>
           <View
@@ -48,7 +48,8 @@ export const EscrowInfoModal: React.FC<EscrowInfoModalProps> = ({
           <View style={styles.escrowStepContent}>
             <Text style={styles.escrowStepTitle}>Payment Held Securely</Text>
             <Text style={styles.escrowStepDescription}>
-              Your payment is held in escrow until the job is complete
+              Your payment is held with Protected Payment until the job is
+              complete
             </Text>
           </View>
         </View>
@@ -99,7 +100,7 @@ export const EscrowInfoModal: React.FC<EscrowInfoModalProps> = ({
           style={styles.escrowModalButton}
           onPress={onClose}
           accessibilityRole='button'
-          accessibilityLabel='Close escrow information'
+          accessibilityLabel='Close Protected Payment information'
         >
           <Text style={styles.escrowModalButtonText}>Got it</Text>
         </TouchableOpacity>
