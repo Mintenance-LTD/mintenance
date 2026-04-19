@@ -89,10 +89,10 @@ export function DashboardWithAirbnbSearch({
   };
 
   return (
-    <div className='space-y-6 pb-12'>
+    <div className='space-y-6 pb-12 overflow-x-hidden'>
       {/* Airbnb-Style Search Section */}
       <section className='bg-gradient-to-b from-white to-gray-50 px-4 sm:px-6 lg:px-8 py-8'>
-        <div className='max-w-6xl mx-auto'>
+        <div className='max-w-6xl mx-auto min-w-0'>
           <div className='mb-8 text-center'>
             <h1 className='text-3xl font-bold text-gray-900 mb-2'>
               Welcome back,{' '}
@@ -210,7 +210,7 @@ export function DashboardWithAirbnbSearch({
       <div className='px-4 sm:px-6 lg:px-8'>
         <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
           {/* Left Column - Active Jobs & Upcoming */}
-          <div className='lg:col-span-2 space-y-6'>
+          <div className='lg:col-span-2 space-y-6 min-w-0'>
             {/* Active Jobs - Nice card design with images */}
             <div>
               <div className='flex items-center justify-between mb-4'>
@@ -229,7 +229,7 @@ export function DashboardWithAirbnbSearch({
               </p>
 
               {activeJobs.length > 0 ? (
-                <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+                <div className='grid grid-cols-1 md:grid-cols-2 gap-4 min-w-0'>
                   {activeJobs.slice(0, 4).map((job) => {
                     // Determine image source: use actual job photo, fallback to category image, then default
                     const imageSrc = job.photoUrl

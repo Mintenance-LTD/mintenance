@@ -18,7 +18,7 @@ import { CalendarScreen } from '../../../screens/CalendarScreen';
 import { ReviewsScreen } from '../../../screens/ReviewsScreen';
 import { ReplyToReviewScreen } from '../../../screens/ReplyToReviewScreen';
 import { ExpensesScreen } from '../../../screens/contractor/ExpensesScreen';
-import { DocumentsScreen } from '../../../screens/contractor/DocumentsScreen';
+import { DocumentsScreenRouter } from '../../../screens/DocumentsScreenRouter';
 import { CertificationsScreen } from '../../../screens/contractor/CertificationsScreen';
 import { TimeTrackingScreen } from '../../../screens/contractor/TimeTrackingScreen';
 import { AddTimeEntryScreen } from '../../../screens/contractor/AddTimeEntryScreen';
@@ -125,7 +125,7 @@ export const SafeExpensesScreen = withScreenErrorBoundary(
   { fallbackRoute: 'ProfileMain' }
 );
 export const SafeDocumentsScreen = withScreenErrorBoundary(
-  DocumentsScreen,
+  DocumentsScreenRouter,
   'Documents',
   { fallbackRoute: 'ProfileMain' }
 );

@@ -177,11 +177,15 @@ export const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
     backgroundColor: theme.colors.surface,
     borderRadius: 16,
-    padding: 16,
-    justifyContent: 'space-between',
-    minHeight: 100,
+    padding: 14,
+    minHeight: 76,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
     ...Platform.select({
       ios: {
         shadowColor: '#000000',
@@ -193,30 +197,35 @@ export const styles = StyleSheet.create({
     }),
   },
   statCardTop: {
+    // legacy — kept so any external consumer doesn't crash; no longer used in HomeownerDashboard
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
+  },
+  statCardTextCol: {
+    flex: 1,
+    minWidth: 0,
   },
   statCardLabel: {
     fontSize: 11,
     color: theme.colors.textSecondary,
     fontWeight: '600',
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
+    marginTop: 2,
   },
   statCardIconWrap: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   statCardValue: {
-    fontSize: 32,
+    fontSize: 22,
     fontWeight: '800',
     color: theme.colors.textPrimary,
-    letterSpacing: -1,
-    lineHeight: 36,
+    letterSpacing: -0.5,
+    lineHeight: 26,
   },
 
   mainContent: {

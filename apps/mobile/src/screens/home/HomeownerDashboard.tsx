@@ -31,6 +31,7 @@ import { logger } from '../../utils/logger';
 import { RecentJobs } from './RecentJobs';
 import { BidsReceived } from './BidsReceived';
 import { theme, gradients } from '../../theme';
+import { STATUS_COLORS } from '@mintenance/design-tokens';
 import { styles } from './homeownerDashboardStyles';
 import { DashboardProfileMenu } from './components/DashboardProfileMenu';
 import { DashboardAppointmentsSection } from './components/DashboardAppointmentsSection';
@@ -311,66 +312,64 @@ export const HomeownerDashboard: React.FC = () => {
         <SlideIn direction='up' distance={20} duration={400} delay={100}>
           <View style={styles.statsCardsRow}>
             <View style={styles.statCard}>
-              <View style={styles.statCardTop}>
-                <Text style={styles.statCardLabel}>Active</Text>
-                <View
-                  style={[
-                    styles.statCardIconWrap,
-                    { backgroundColor: theme.colors.primaryLight },
-                  ]}
-                >
-                  <Ionicons
-                    name='pulse-outline'
-                    size={16}
-                    color={theme.colors.primary}
-                  />
-                </View>
-              </View>
-              <Text
-                style={[styles.statCardValue, { color: theme.colors.primary }]}
+              <View
+                style={[
+                  styles.statCardIconWrap,
+                  { backgroundColor: theme.colors.primaryLight },
+                ]}
               >
-                {jobsLoading ? '–' : activeCount}
-              </Text>
+                <Ionicons
+                  name='briefcase'
+                  size={20}
+                  color={theme.colors.primary}
+                />
+              </View>
+              <View style={styles.statCardTextCol}>
+                <Text style={styles.statCardValue}>
+                  {jobsLoading ? '–' : activeCount}
+                </Text>
+                <Text style={styles.statCardLabel}>Active</Text>
+              </View>
             </View>
             <View style={styles.statCard}>
-              <View style={styles.statCardTop}>
+              <View
+                style={[
+                  styles.statCardIconWrap,
+                  { backgroundColor: STATUS_COLORS.completed.bg },
+                ]}
+              >
+                <Ionicons
+                  name='checkmark-circle'
+                  size={20}
+                  color={STATUS_COLORS.completed.text}
+                />
+              </View>
+              <View style={styles.statCardTextCol}>
+                <Text style={styles.statCardValue}>
+                  {jobsLoading ? '–' : completedCount}
+                </Text>
                 <Text style={styles.statCardLabel}>Done</Text>
-                <View
-                  style={[
-                    styles.statCardIconWrap,
-                    { backgroundColor: '#E8F5E9' },
-                  ]}
-                >
-                  <Ionicons
-                    name='checkmark-circle-outline'
-                    size={16}
-                    color='#43A047'
-                  />
-                </View>
               </View>
-              <Text style={styles.statCardValue}>
-                {jobsLoading ? '–' : completedCount}
-              </Text>
             </View>
             <View style={styles.statCard}>
-              <View style={styles.statCardTop}>
-                <Text style={styles.statCardLabel}>Posted</Text>
-                <View
-                  style={[
-                    styles.statCardIconWrap,
-                    { backgroundColor: theme.colors.backgroundSecondary },
-                  ]}
-                >
-                  <Ionicons
-                    name='document-text-outline'
-                    size={16}
-                    color={theme.colors.textSecondary}
-                  />
-                </View>
+              <View
+                style={[
+                  styles.statCardIconWrap,
+                  { backgroundColor: STATUS_COLORS.assigned.bg },
+                ]}
+              >
+                <Ionicons
+                  name='document-text'
+                  size={20}
+                  color={STATUS_COLORS.assigned.text}
+                />
               </View>
-              <Text style={styles.statCardValue}>
-                {jobsLoading ? '–' : postedCount}
-              </Text>
+              <View style={styles.statCardTextCol}>
+                <Text style={styles.statCardValue}>
+                  {jobsLoading ? '–' : postedCount}
+                </Text>
+                <Text style={styles.statCardLabel}>Posted</Text>
+              </View>
             </View>
           </View>
         </SlideIn>

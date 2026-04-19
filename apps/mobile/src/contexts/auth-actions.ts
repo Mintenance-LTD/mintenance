@@ -10,6 +10,7 @@ import {
   addBreadcrumb,
   measureAsyncPerformance,
 } from '../utils/sentryUtils';
+import { captureException } from '../config/sentry';
 
 import type { AuthSession, SignUpUserData } from './auth-types';
 import {
@@ -34,10 +35,26 @@ export const initializePushNotifications = async (
     const token = await NotificationService.initialize();
     if (token) {
       await NotificationService.savePushToken(userId, token);
+      addBreadcrumb('Push token registered for user', 'auth');
+    } else {
+      // Token null = simulator OR FCM/permissions issue. Surface so we know in prod.
+      const reason =
+        'Push token initialize returned null (simulator or FCM/permission issue)';
+      logger.warn(`[AUTH] ${reason}`, { userId });
+      addBreadcrumb(reason, 'auth');
+      captureException(new Error(reason), {
+        userId,
+        source: 'initializePushNotifications',
+      });
     }
   } catch (error) {
-    // Firebase/FCM may not be configured in dev; downgrade to warn
-    logger.warn('Push notification init skipped (FCM not configured?):', error);
+    logger.error('[AUTH] Push token registration failed', { userId, error });
+    addBreadcrumb('Push token registration failed', 'auth');
+    captureException(error as Error, {
+      userId,
+      source: 'initializePushNotifications',
+    });
+    // Don't rethrow — push failure must not block auth.
   }
 };
 
