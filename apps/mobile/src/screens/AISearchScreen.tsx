@@ -18,6 +18,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { ScreenHeader, ErrorView } from '../components/shared';
+import { formatCurrency } from '../utils/formatCurrency';
 import {
   AISearchService,
   SearchResult,
@@ -182,7 +183,9 @@ export const AISearchScreen: React.FC = () => {
                   size={13}
                   color={theme.colors.textTertiary}
                 />
-                <Text style={styles.metadataText}>${item.metadata.price}</Text>
+                <Text style={styles.metadataText}>
+                  {formatCurrency(Number(item.metadata.price))}
+                </Text>
               </View>
             )}
             {item.metadata.rating && (
