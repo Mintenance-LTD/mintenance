@@ -1,10 +1,40 @@
 # Runbook — Move `postgis`, `vector`, `pg_trgm` out of `public` schema
 
-**Status:** Planned (Sprint 6.8). Not executed. This runbook captures the exact steps and known
-landmines so an engineer can pick it up and ship it as a dedicated PR.
+**Status:** Phase 0 + Phase 1 prepared (migrations `20260419000002`, `20260419000003`). **Not yet
+applied to production live DB** — pending engineer go-ahead. Phase 2 (vector) blocked by 3 dependent
+tables; Phase 3 (postgis) deferred per Option A (leave in public, patch dependent functions).
 
 **Audit finding IDs:** DB-P0-3 (`spatial_ref_sys` RLS), DB-P1-1 (`extension_in_public` ×3). Tracked
 by advisors `rls_disabled_in_public` and `extension_in_public`.
+
+## 2026-04-19 status snapshot (live DB inspection)
+
+| Extension   | Current schema | Version | Move plan                                           | Blocker                                                                                                                                                                                                                                                 |
+| ----------- | -------------- | ------- | --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pgcrypto`  | `extensions`   | 1.3     | done (historical)                                   | none                                                                                                                                                                                                                                                    |
+| `uuid-ossp` | `extensions`   | 1.1     | done (historical)                                   | none                                                                                                                                                                                                                                                    |
+| `pg_trgm`   | **`public`**   | 1.6     | Phase 1 — migration `20260419000003` ready          | none                                                                                                                                                                                                                                                    |
+| `vector`    | **`public`**   | 0.8.0   | Phase 2 — **BLOCKED**                               | 3 tables have `vector` columns: `building_pathology_knowledge.embedding`, `jobs.embedding`, `search_analytics.embedding`. Plus 2 HNSW indexes. ALTER EXTENSION SET SCHEMA fails when the type is in use; needs explicit type-requalification migration. |
+| `postgis`   | **`public`**   | 3.3.7   | Phase 3 Option A — leave in public, patch functions | Same fundamental problem (geometry/geography columns on 5 tables); per runbook, Option A patches dependent functions instead of moving the extension.                                                                                                   |
+
+PostGIS-dependent tables (informational): `building_assessments.location`, `service_areas.boundary`,
+`service_areas.center`, `valid_detail.location`, `geometry_dump.geom`.
+
+User-defined functions in `public` that call PostGIS functions:
+
+| Function                         | Original `search_path` | After Phase 0                 |
+| -------------------------------- | ---------------------- | ----------------------------- |
+| `calculate_distance_km`          | `''`                   | `public, extensions, pg_temp` |
+| `find_contractors_for_location`  | `''`                   | `public, extensions, pg_temp` |
+| `find_nearby_assessments`        | `'public'`             | `public, extensions, pg_temp` |
+| `is_location_in_service_area`    | `''`                   | `public, extensions, pg_temp` |
+| `get_contractor_recommendations` | `'public, extensions'` | unchanged (already safe)      |
+| `get_jobs_paginated`             | `'public, extensions'` | unchanged (already safe)      |
+
+The four functions with restrictive search_path work today only because PostgreSQL caches the
+PostGIS function OIDs after first parse. Any extension move would invalidate that cache. Migration
+`20260419000002` makes them future-safe by adding `extensions` to their search_path without changing
+observable behaviour (public is still searched first; PostGIS still lives there).
 
 ## Why this is hard
 
@@ -74,18 +104,27 @@ ALTER EXTENSION pg_trgm SET SCHEMA extensions;
 
 Then add `extensions` to search_path in any function using `similarity()`.
 
-Phase 2 — `vector` (easy — no user-column dependencies unless pgvector columns already exist;
-inspect `pg_attribute` for `vector` type before moving):
+Phase 2 — `vector` (**BLOCKED — needs separate strategy**):
 
-```sql
-CREATE SCHEMA IF NOT EXISTS embeddings;
--- Check for vector-typed columns first:
-SELECT table_schema, table_name, column_name
-FROM information_schema.columns
-WHERE udt_name = 'vector';
--- If empty, safe to move:
-ALTER EXTENSION vector SET SCHEMA embeddings;
-```
+Inspection on 2026-04-19 returned 3 dependent tables with `vector` columns:
+`public.building_pathology_knowledge.embedding`, `public.jobs.embedding`,
+`public.search_analytics.embedding` (plus the two HNSW indexes that depend on them).
+
+`ALTER EXTENSION vector SET SCHEMA embeddings` will fail because the column type is referenced
+unqualified. Two viable strategies for a future PR:
+
+1. **DB-wide search_path approach (low risk).** Add `embeddings` to the database's default
+   search_path _before_ moving the extension; columns will then resolve `vector` against the new
+   schema automatically. Requires:
+   `ALTER DATABASE postgres SET search_path = public, extensions, embeddings;` followed by the
+   extension move. Risk: changes resolution for every session — confirm no table has a column
+   literally named `vector` first.
+2. **Type-requalification approach (higher risk, cleaner).** Drop the embedding columns, move the
+   extension, recreate columns as `embeddings.vector(N)`. Needs a backup-and-restore of the
+   embedding data because the column type is being changed; HNSW indexes must be rebuilt. Estimate
+   ~30 min downtime in a maintenance window.
+
+Don't ship Phase 2 without a dedicated PR + maintenance window + backup snapshot.
 
 Phase 3 — `postgis` (HARD — dedicated PR, maintenance window):
 
