@@ -4,6 +4,7 @@ import { Session } from '@supabase/supabase-js';
 import { ServiceErrorHandler } from '../utils/serviceErrorHandler';
 import { logger } from '../utils/logger';
 import { checkRateLimit, resetRateLimit } from '../middleware/RateLimiter';
+import { mobileApiClient } from '../utils/mobileApiClient';
 
 // Validation functions matching @mintenance/auth rules
 // (can't import @mintenance/auth directly — bcryptjs requires Node's crypto module)
@@ -116,6 +117,32 @@ export class AuthService {
         'Last name',
         context
       );
+
+      // SECURITY: HIBP breach check via web API (mobile cannot run SHA-1 + range
+      // fetch locally without adding a crypto dependency). Mirrors the inline
+      // check in /api/auth/register on web. Fails open on network error so a
+      // flaky connection doesn't lock users out of signup.
+      try {
+        const breachResult = await mobileApiClient.post<{
+          isBreached: boolean;
+          occurrences: number | null;
+        }>('/api/auth/check-password-breach', { password: userData.password });
+        if (breachResult.isBreached) {
+          throw new Error(
+            `This password has been exposed in ${(breachResult.occurrences ?? 0).toLocaleString()} data breaches. ` +
+              `Please choose a different, more secure password.`
+          );
+        }
+      } catch (err) {
+        // Re-throw breach errors verbatim; swallow only network/rate-limit errors.
+        if (err instanceof Error && err.message.startsWith('This password')) {
+          throw err;
+        }
+        logger.warn(
+          '[AUTH] Password breach check failed, proceeding (fail-open)',
+          err
+        );
+      }
 
       const { data, error } = await supabase.auth.signUp({
         email: userData.email,
