@@ -1,8 +1,16 @@
 # Runbook — Move `postgis`, `vector`, `pg_trgm` out of `public` schema
 
-**Status:** Phase 0 + Phase 1 prepared (migrations `20260419000002`, `20260419000003`). **Not yet
-applied to production live DB** — pending engineer go-ahead. Phase 2 (vector) blocked by 3 dependent
-tables; Phase 3 (postgis) deferred per Option A (leave in public, patch dependent functions).
+**Status:** Phase 0 + Phase 1 **APPLIED to production live DB on 2026-04-19** (migrations
+`20260419000002`, `20260419000003`). Verified via Supabase MCP:
+
+- All 4 functions now report `search_path=public, extensions, pg_temp`.
+- `pg_trgm` 1.6 now in `extensions` schema. Both GIN indexes (`idx_jobs_location_trgm`,
+  `idx_materials_name`) still report `gin_trgm_ops`.
+- Security advisor count: 6 → 5 (one `extension_in_public` lint for `pg_trgm` cleared).
+- Smoke test: `calculate_distance_km(51.5, -0.1, 51.6, -0.15)` returns 11.65 km as expected.
+
+Phase 2 (vector) blocked by 3 dependent tables; Phase 3 (postgis) deferred per Option A (leave in
+public, patch dependent functions).
 
 **Audit finding IDs:** DB-P0-3 (`spatial_ref_sys` RLS), DB-P1-1 (`extension_in_public` ×3). Tracked
 by advisors `rls_disabled_in_public` and `extension_in_public`.
@@ -114,7 +122,7 @@ Inspection on 2026-04-19 returned 3 dependent tables with `vector` columns:
 unqualified. Two viable strategies for a future PR:
 
 1. **DB-wide search_path approach (low risk).** Add `embeddings` to the database's default
-   search_path _before_ moving the extension; columns will then resolve `vector` against the new
+   search*path \_before* moving the extension; columns will then resolve `vector` against the new
    schema automatically. Requires:
    `ALTER DATABASE postgres SET search_path = public, extensions, embeddings;` followed by the
    extension move. Risk: changes resolution for every session — confirm no table has a column
