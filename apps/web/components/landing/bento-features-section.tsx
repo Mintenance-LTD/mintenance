@@ -63,25 +63,6 @@ export function BentoFeaturesSection() {
             <div className='absolute inset-0 bg-gradient-to-br from-teal-500 via-teal-600 to-teal-700 rounded-3xl opacity-100 group-hover:opacity-90 transition-opacity' />
             <div className='absolute inset-0 bg-gradient-to-br from-teal-400/20 to-transparent rounded-3xl' />
 
-            {/* Animated gradient border on hover */}
-            <div className='absolute inset-0 rounded-3xl overflow-hidden'>
-              <motion.div
-                className='absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500'
-                style={{
-                  background:
-                    'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)',
-                }}
-                animate={{
-                  x: ['-100%', '100%'],
-                }}
-                transition={{
-                  repeat: Infinity,
-                  duration: 2,
-                  ease: 'linear',
-                }}
-              />
-            </div>
-
             <div className='relative h-full p-10 flex flex-col justify-between min-h-[500px]'>
               <div>
                 <div className='inline-flex items-center gap-2 px-4 py-2 rounded-full bg-amber-500 text-white text-sm font-bold mb-6 shadow-lg'>
@@ -97,15 +78,9 @@ export function BentoFeaturesSection() {
                 </h3>
                 <p className='text-xl text-white/90 mb-6 leading-relaxed max-w-xl'>
                   Upload property photos and receive instant damage assessment
-                  with cost estimates. Mint AI detects 71 damage types
-                  automatically with 95%+ accuracy.
+                  with cost estimates. Detects 71 damage types automatically
+                  with 95%+ accuracy.
                 </p>
-
-                <div className='flex flex-wrap gap-3 mb-8'>
-                  <div className='px-6 py-3 rounded-xl bg-white/20 backdrop-blur-sm text-white text-base font-bold'>
-                    Mint AI Technology
-                  </div>
-                </div>
               </div>
 
               {/* AI Preview Demo */}
