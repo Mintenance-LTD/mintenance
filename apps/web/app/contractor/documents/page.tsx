@@ -274,6 +274,23 @@ export default function DocumentManagementPage() {
     toast.success(`Downloading ${doc.name}...`);
   };
 
+  // View document inline in a new tab (PDFs render in browser; images/docs open)
+  const handleView = (doc: Document) => {
+    if (doc.is_contract && doc.contract_id) {
+      window.open(
+        `/api/contracts/${doc.contract_id}/pdf`,
+        '_blank',
+        'noopener,noreferrer'
+      );
+      return;
+    }
+    if (!doc.public_url) {
+      toast.error('No preview available for this document');
+      return;
+    }
+    window.open(doc.public_url, '_blank', 'noopener,noreferrer');
+  };
+
   // Share document
   const handleShare = (doc: Document) => {
     if (shareRecipient.id && shareRecipient.name) {
@@ -347,6 +364,7 @@ export default function DocumentManagementPage() {
             onSelectCategory={setSelectedCategory}
             recentDocuments={recentDocuments}
             onDownload={handleDownload}
+            onView={handleView}
           />
 
           <DocumentsView
@@ -358,6 +376,7 @@ export default function DocumentManagementPage() {
             selectedCategory={selectedCategory}
             onUploadClick={() => setShowUploadModal(true)}
             onToggleStar={handleToggleStar}
+            onView={handleView}
             onDownload={handleDownload}
             onShare={handleShare}
             onDelete={handleDelete}
