@@ -12,7 +12,8 @@ import {
 import { FadeIn, SlideIn } from '../components/animations/primitives';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import type { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { AuthStackParamList } from '../navigation/types';
 
@@ -37,6 +38,13 @@ interface Props {
 
 const RegisterScreen: React.FC<Props> = () => {
   const navigation = useNavigation<RegisterScreenNavigationProp>();
+  const route = useRoute<RouteProp<AuthStackParamList, 'Register'>>();
+  // Phase 2 — WelcomeScreen hands off a role when the user taps a
+  // tile. Direct deep-links to Register (e.g. legacy "Sign up" link
+  // on LoginScreen) don't pass one; the hook falls back to its
+  // default 'homeowner'. The user can still change role inside the
+  // form via RoleSelector.
+  const initialRole = route.params?.role;
   const {
     form,
     fieldErrors,
@@ -53,6 +61,7 @@ const RegisterScreen: React.FC<Props> = () => {
     togglePasswordVisibility,
     handleRegister,
   } = useRegistrationForm({
+    initialRole,
     // Phase 1.2 — on successful signUp, go to the email-confirmation
     // pending screen so the user has a clear next step. Email-confirm
     // is ON in prod; they can't sign in until they click the link.

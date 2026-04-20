@@ -69,11 +69,20 @@ export interface UseRegistrationFormOptions {
    * existing fallback-success-banner path still work.
    */
   onSignUpSuccess?: (email: string) => void;
+  /**
+   * Initial role, used by the Phase 2 WelcomeScreen to pre-select
+   * whichever tile the user tapped. Falls back to INITIAL_STATE.role
+   * ('homeowner') when absent, preserving the pre-Phase-2 default
+   * for any caller that doesn't specify one.
+   */
+  initialRole?: 'homeowner' | 'contractor';
 }
 
 export function useRegistrationForm(options: UseRegistrationFormOptions = {}) {
-  const { onSignUpSuccess } = options;
-  const [form, setForm] = useState<RegistrationFormState>(INITIAL_STATE);
+  const { onSignUpSuccess, initialRole } = options;
+  const [form, setForm] = useState<RegistrationFormState>(() =>
+    initialRole ? { ...INITIAL_STATE, role: initialRole } : INITIAL_STATE
+  );
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [submissionError, setSubmissionError] = useState<string | null>(null);
   const [submissionSuccess, setSubmissionSuccess] = useState<string | null>(
