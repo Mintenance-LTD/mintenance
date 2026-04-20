@@ -44,6 +44,15 @@ interface TransactionListProps {
   onViewReceipt: (transaction: Transaction) => void;
 }
 
+function humaniseStatus(raw: string): string {
+  if (!raw) return 'Unknown';
+  return raw
+    .split(/[_\s]+/)
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join(' ');
+}
+
 function getStatusConfig(status: string) {
   switch (status) {
     case 'completed':
@@ -53,6 +62,13 @@ function getStatusConfig(status: string) {
         icon: CheckCircle2,
         classes: 'bg-emerald-50 text-emerald-700 border-emerald-200',
         dot: 'bg-emerald-500',
+      };
+    case 'release_pending':
+      return {
+        label: 'Releasing',
+        icon: Clock,
+        classes: 'bg-amber-50 text-amber-700 border-amber-200',
+        dot: 'bg-amber-500',
       };
     case 'pending':
     case 'held':
@@ -71,7 +87,7 @@ function getStatusConfig(status: string) {
       };
     default:
       return {
-        label: status,
+        label: humaniseStatus(status),
         icon: FileText,
         classes: 'bg-gray-50 text-gray-700 border-gray-200',
         dot: 'bg-gray-500',

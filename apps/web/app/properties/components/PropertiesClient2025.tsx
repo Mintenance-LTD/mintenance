@@ -47,6 +47,7 @@ interface PropertiesClient2025Props {
   properties: Property[];
   propertyLimit: number | 'unlimited';
   tier: string;
+  isEarlyAccess?: boolean;
   userInfo: {
     name: string;
     email: string;
@@ -64,6 +65,7 @@ export function PropertiesClient2025({
   properties,
   propertyLimit,
   tier,
+  isEarlyAccess,
   userInfo,
 }: PropertiesClient2025Props) {
   const router = useRouter();
@@ -220,7 +222,9 @@ export function PropertiesClient2025({
             My Properties
           </h1>
           <span className='px-3 py-1 rounded-full text-xs font-semibold bg-teal-100 text-teal-700'>
-            {TIER_LABELS[tier] || 'Free'} plan
+            {isEarlyAccess
+              ? 'Early access'
+              : `${TIER_LABELS[tier] || 'Free'} plan`}
           </span>
         </div>
         <p className='text-gray-600'>

@@ -40,6 +40,7 @@ import {
   Star,
   X,
   ChevronLeft,
+  ImageOff,
 } from 'lucide-react';
 
 // Extracted sub-components
@@ -123,6 +124,7 @@ export function JobDetailsProfessional({
   lifecycleData,
 }: JobDetailsProfessionalProps) {
   const [selectedImage, setSelectedImage] = useState<number | null>(null);
+  const [heroBroken, setHeroBroken] = useState(false);
   const isOwner = userRole === 'homeowner';
   const canEdit = isOwner && job.status === 'posted';
 
@@ -164,8 +166,8 @@ export function JobDetailsProfessional({
             {/* Hero Section */}
             <div className='bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden'>
               {/* Photo Gallery */}
-              {photos.length > 0 && (
-                <div className='relative h-80 bg-gray-900'>
+              {photos.length > 0 && !heroBroken && (
+                <div className='relative h-80 bg-gray-100'>
                   <Image
                     src={photos[0]}
                     alt={job.title}
@@ -173,6 +175,7 @@ export function JobDetailsProfessional({
                     className='object-cover'
                     sizes='(max-width: 768px) 100vw, 66vw'
                     priority
+                    onError={() => setHeroBroken(true)}
                   />
                   {photos.length > 1 && (
                     <button
@@ -182,6 +185,23 @@ export function JobDetailsProfessional({
                       View all {photos.length} photos
                     </button>
                   )}
+                </div>
+              )}
+              {photos.length > 0 && heroBroken && (
+                <div className='relative h-80 bg-gradient-to-br from-teal-50 to-emerald-50 flex items-center justify-center text-center px-6'>
+                  <div>
+                    <div className='mx-auto w-14 h-14 rounded-full bg-white border border-teal-200 flex items-center justify-center mb-3'>
+                      <ImageOff className='w-7 h-7 text-teal-600' />
+                    </div>
+                    <p className='text-sm font-medium text-gray-700'>
+                      Photos couldn&apos;t be loaded
+                    </p>
+                    <p className='text-xs text-gray-500 mt-1'>
+                      The job was posted with {photos.length}{' '}
+                      {photos.length === 1 ? 'photo' : 'photos'}, but the URLs
+                      aren&apos;t reachable right now.
+                    </p>
+                  </div>
                 </div>
               )}
 
