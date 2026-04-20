@@ -1,5 +1,8 @@
 'use client';
 
+// Reads share-context query params via useSearchParams — dynamic per user.
+export const dynamic = 'force-dynamic';
+
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { getCsrfToken } from '@/lib/csrf-client';
@@ -26,7 +29,11 @@ export default function DocumentManagementPage() {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [uploadCategory, setUploadCategory] = useState('other');
   const [uploadTags, setUploadTags] = useState('');
-  const [shareRecipient, setShareRecipient] = useState({ id: '', name: '', jobId: '' });
+  const [shareRecipient, setShareRecipient] = useState({
+    id: '',
+    name: '',
+    jobId: '',
+  });
 
   // Fetch documents from API
   const fetchDocuments = useCallback(async () => {
@@ -66,9 +73,10 @@ export default function DocumentManagementPage() {
   const categories = useMemo(() => {
     return CATEGORIES.map((cat) => ({
       ...cat,
-      count: cat.value === 'all'
-        ? documents.length
-        : documents.filter((d) => d.category === cat.value).length,
+      count:
+        cat.value === 'all'
+          ? documents.length
+          : documents.filter((d) => d.category === cat.value).length,
     }));
   }, [documents]);
 
@@ -77,7 +85,9 @@ export default function DocumentManagementPage() {
       const matchesSearch =
         searchQuery === '' ||
         doc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        doc.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()));
+        doc.tags.some((tag) =>
+          tag.toLowerCase().includes(searchQuery.toLowerCase())
+        );
 
       const matchesCategory =
         selectedCategory === 'all' || doc.category === selectedCategory;
@@ -86,15 +96,24 @@ export default function DocumentManagementPage() {
     });
   }, [documents, searchQuery, selectedCategory]);
 
-  const starredDocuments = useMemo(() => documents.filter((d) => d.starred), [documents]);
+  const starredDocuments = useMemo(
+    () => documents.filter((d) => d.starred),
+    [documents]
+  );
 
   const recentDocuments = useMemo(() => {
     return [...documents]
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .sort(
+        (a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      )
       .slice(0, 3);
   }, [documents]);
 
-  const totalSize = useMemo(() => documents.reduce((sum, doc) => sum + doc.size_bytes, 0), [documents]);
+  const totalSize = useMemo(
+    () => documents.reduce((sum, doc) => sum + doc.size_bytes, 0),
+    [documents]
+  );
 
   // Upload file
   const handleUpload = async (files: FileList | null) => {
@@ -125,7 +144,9 @@ export default function DocumentManagementPage() {
           successCount++;
         } else {
           const err = await res.json();
-          toast.error(`Failed to upload ${file.name}: ${err.error || 'Unknown error'}`);
+          toast.error(
+            `Failed to upload ${file.name}: ${err.error || 'Unknown error'}`
+          );
         }
       } catch {
         toast.error(`Failed to upload ${file.name}`);
@@ -133,7 +154,9 @@ export default function DocumentManagementPage() {
     }
 
     if (successCount > 0) {
-      toast.success(`${successCount} document${successCount > 1 ? 's' : ''} uploaded`);
+      toast.success(
+        `${successCount} document${successCount > 1 ? 's' : ''} uploaded`
+      );
     }
 
     setUploading(false);
@@ -150,7 +173,9 @@ export default function DocumentManagementPage() {
   const handleToggleStar = async (doc: Document) => {
     const newStarred = !doc.starred;
     // Optimistic update
-    setDocuments((prev) => prev.map((d) => d.id === doc.id ? { ...d, starred: newStarred } : d));
+    setDocuments((prev) =>
+      prev.map((d) => (d.id === doc.id ? { ...d, starred: newStarred } : d))
+    );
 
     try {
       const csrfToken = await getCsrfToken();
@@ -165,11 +190,17 @@ export default function DocumentManagementPage() {
 
       if (!res.ok) {
         // Revert on failure
-        setDocuments((prev) => prev.map((d) => d.id === doc.id ? { ...d, starred: !newStarred } : d));
+        setDocuments((prev) =>
+          prev.map((d) =>
+            d.id === doc.id ? { ...d, starred: !newStarred } : d
+          )
+        );
         toast.error('Failed to update');
       }
     } catch {
-      setDocuments((prev) => prev.map((d) => d.id === doc.id ? { ...d, starred: !newStarred } : d));
+      setDocuments((prev) =>
+        prev.map((d) => (d.id === doc.id ? { ...d, starred: !newStarred } : d))
+      );
       toast.error('Failed to update');
     }
   };
@@ -206,9 +237,13 @@ export default function DocumentManagementPage() {
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
         setDocuments((prev) => [...prev, doc]);
-        toast.error(errorData.error?.message || errorData.error || 'Failed to delete');
+        toast.error(
+          errorData.error?.message || errorData.error || 'Failed to delete'
+        );
       } else {
-        toast.success(doc.is_contract ? 'Contract deleted' : 'Document deleted');
+        toast.success(
+          doc.is_contract ? 'Contract deleted' : 'Document deleted'
+        );
       }
     } catch {
       setDocuments((prev) => [...prev, doc]);
@@ -258,44 +293,44 @@ export default function DocumentManagementPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-emerald-600 mx-auto mb-3" />
-          <p className="text-gray-600">Loading documents...</p>
+      <div className='min-h-screen bg-gray-50 flex items-center justify-center'>
+        <div className='text-center'>
+          <Loader2 className='w-8 h-8 animate-spin text-emerald-600 mx-auto mb-3' />
+          <p className='text-gray-600'>Loading documents...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-0 bg-gradient-to-br from-emerald-50 via-white to-red-50">
+    <div className='min-h-0 bg-gradient-to-br from-emerald-50 via-white to-red-50'>
       {/* Header */}
       <MotionDiv
-        initial="hidden"
-        animate="visible"
+        initial='hidden'
+        animate='visible'
         variants={fadeIn}
-        className="bg-gradient-to-r from-emerald-600 to-red-600 text-white"
+        className='bg-gradient-to-r from-emerald-600 to-red-600 text-white'
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12'>
+          <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'>
             <div>
-              <h1 className="text-4xl font-bold mb-2">Document Management</h1>
-              <p className="text-emerald-100">
+              <h1 className='text-4xl font-bold mb-2'>Document Management</h1>
+              <p className='text-emerald-100'>
                 Store and manage all your business documents in one place
               </p>
             </div>
             <button
               onClick={() => setShowUploadModal(true)}
-              className="flex items-center gap-2 px-6 py-3 bg-white text-emerald-600 rounded-lg hover:bg-emerald-50 transition-colors font-medium"
+              className='flex items-center gap-2 px-6 py-3 bg-white text-emerald-600 rounded-lg hover:bg-emerald-50 transition-colors font-medium'
             >
-              <Upload className="w-5 h-5" />
+              <Upload className='w-5 h-5' />
               Upload Document
             </button>
           </div>
         </div>
       </MotionDiv>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
         {/* Stats */}
         <StatsCards
           totalDocuments={documents.length}
@@ -305,7 +340,7 @@ export default function DocumentManagementPage() {
         />
 
         {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <div className='grid grid-cols-1 lg:grid-cols-4 gap-6'>
           <Sidebar
             categories={categories}
             selectedCategory={selectedCategory}

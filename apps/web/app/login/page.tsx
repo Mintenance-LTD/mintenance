@@ -1,5 +1,10 @@
 'use client';
 
+// Reads `redirect` via useSearchParams at render time — no benefit
+// from static pre-rendering, and skipping it avoids the CSR-bailout
+// Suspense requirement in Next 16 + Turbopack.
+export const dynamic = 'force-dynamic';
+
 import React from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -19,14 +24,11 @@ import {
   AuthInput,
   PasswordInput,
   AuthBrandSide,
-  AuthLink
+  AuthLink,
 } from '@/components/auth';
 
 const loginFormSchema = z.object({
-  email: z
-    .string()
-    .min(1, 'Email is required')
-    .email('Invalid email address'),
+  email: z.string().min(1, 'Email is required').email('Invalid email address'),
   password: z.string().min(1, 'Password is required'),
   rememberMe: z.boolean().optional(),
 });
@@ -37,7 +39,9 @@ export default function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { csrfToken, loading: csrfLoading } = useCSRF();
-  const [submitStatus, setSubmitStatus] = React.useState<'idle' | 'success' | 'error'>('idle');
+  const [submitStatus, setSubmitStatus] = React.useState<
+    'idle' | 'success' | 'error'
+  >('idle');
   const [errorMessage, setErrorMessage] = React.useState('');
   const [mounted, setMounted] = React.useState(false);
 
@@ -99,7 +103,7 @@ export default function LoginPage() {
       ];
 
       // Check if pathname starts with any allowed path
-      return allowedPaths.some(path => parsedUrl.pathname.startsWith(path));
+      return allowedPaths.some((path) => parsedUrl.pathname.startsWith(path));
     } catch {
       // Invalid URL format
       return false;
@@ -134,40 +138,74 @@ export default function LoginPage() {
       const contentType = response.headers.get('content-type');
       if (!contentType || !contentType.includes('application/json')) {
         const text = await response.text();
-        logger.error('Non-JSON response from login API', new Error('Invalid response format'), {
-          service: 'login',
-          responsePreview: text.substring(0, 500),
-        });
-        throw new Error('Server error: Invalid response format. Please try again.');
+        logger.error(
+          'Non-JSON response from login API',
+          new Error('Invalid response format'),
+          {
+            service: 'login',
+            responsePreview: text.substring(0, 500),
+          }
+        );
+        throw new Error(
+          'Server error: Invalid response format. Please try again.'
+        );
       }
 
       const responseData = await response.json();
 
       if (!response.ok) {
         if (response.status === 429) {
-          throw new Error('Too many login attempts. Please wait a few minutes and try again.');
+          throw new Error(
+            'Too many login attempts. Please wait a few minutes and try again.'
+          );
         } else if (response.status === 401) {
           // Ensure errorMsg is always a string
           let errorMsg = responseData.error || responseData.message || '';
           if (typeof errorMsg !== 'string') {
-            errorMsg = typeof errorMsg === 'object' ? JSON.stringify(errorMsg) : String(errorMsg);
+            errorMsg =
+              typeof errorMsg === 'object'
+                ? JSON.stringify(errorMsg)
+                : String(errorMsg);
           }
           // Check for email verification requirement FIRST (before generic email check)
-          if (errorMsg.toLowerCase().includes('verify') || errorMsg.toLowerCase().includes('confirm') || errorMsg.toLowerCase().includes('email_not_confirmed')) {
-            throw new Error('Please verify your email address before signing in. Check your inbox for a confirmation email.');
+          if (
+            errorMsg.toLowerCase().includes('verify') ||
+            errorMsg.toLowerCase().includes('confirm') ||
+            errorMsg.toLowerCase().includes('email_not_confirmed')
+          ) {
+            throw new Error(
+              'Please verify your email address before signing in. Check your inbox for a confirmation email.'
+            );
           } else if (errorMsg.toLowerCase().includes('not found')) {
-            throw new Error('No account found with this email address. Please check your email or sign up for a new account.');
-          } else if (errorMsg.toLowerCase().includes('password') || errorMsg.toLowerCase().includes('invalid')) {
-            throw new Error('Incorrect password. Please check your password or use "Forgot password" to reset it.');
+            throw new Error(
+              'No account found with this email address. Please check your email or sign up for a new account.'
+            );
+          } else if (
+            errorMsg.toLowerCase().includes('password') ||
+            errorMsg.toLowerCase().includes('invalid')
+          ) {
+            throw new Error(
+              'Incorrect password. Please check your password or use "Forgot password" to reset it.'
+            );
           } else {
-            throw new Error('Invalid email or password. Please check your credentials and try again.');
+            throw new Error(
+              'Invalid email or password. Please check your credentials and try again.'
+            );
           }
         } else if (response.status === 403) {
-          throw new Error('Access denied. Please refresh the page and try again.');
+          throw new Error(
+            'Access denied. Please refresh the page and try again.'
+          );
         } else if (response.status === 400) {
-          throw new Error(responseData.error || 'Invalid request. Please check your email and password format.');
+          throw new Error(
+            responseData.error ||
+              'Invalid request. Please check your email and password format.'
+          );
         } else {
-          throw new Error(responseData.error || 'Login failed. Please try again or contact support if the problem persists.');
+          throw new Error(
+            responseData.error ||
+              'Login failed. Please try again or contact support if the problem persists.'
+          );
         }
       }
 
@@ -193,41 +231,46 @@ export default function LoginPage() {
         router.refresh();
       }, 500);
     } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : 'Login failed. Please try again.');
+      setErrorMessage(
+        err instanceof Error ? err.message : 'Login failed. Please try again.'
+      );
       setSubmitStatus('error');
     }
   };
 
   return (
-    <div className="min-h-screen flex bg-[#F9FAFB]">
+    <div className='min-h-screen flex bg-[#F9FAFB]'>
       {/* Left Side - Brand */}
       <AuthBrandSide
-        title="Welcome Back!"
-        description="Sign in to manage your projects and connect with top-tier professionals."
+        title='Welcome Back!'
+        description='Sign in to manage your projects and connect with top-tier professionals.'
         role={null}
       />
 
       {/* Right Side - Form */}
-      <div className="flex-1 flex items-center justify-center p-6 sm:p-8 lg:p-12 bg-[#F9FAFB]">
-        <div className="w-full max-w-md">
+      <div className='flex-1 flex items-center justify-center p-6 sm:p-8 lg:p-12 bg-[#F9FAFB]'>
+        <div className='w-full max-w-md'>
           {/* Mobile Logo */}
-          <div className="lg:hidden mb-8 text-center">
-            <Link href="/" className="inline-flex items-center space-x-2 mb-4">
+          <div className='lg:hidden mb-8 text-center'>
+            <Link href='/' className='inline-flex items-center space-x-2 mb-4'>
               <Logo width={32} height={32} />
-              <h1 className="text-2xl font-bold text-[#1F2937]">Mintenance</h1>
+              <h1 className='text-2xl font-bold text-[#1F2937]'>Mintenance</h1>
             </Link>
           </div>
 
           {/* Card */}
           <AuthCard>
             {/* Header */}
-            <div className="mb-8">
-              <h2 id="login-heading" className="text-3xl sm:text-4xl font-bold text-[#111827] mb-3 tracking-tight">
+            <div className='mb-8'>
+              <h2
+                id='login-heading'
+                className='text-3xl sm:text-4xl font-bold text-[#111827] mb-3 tracking-tight'
+              >
                 Sign in
               </h2>
-              <p className="text-base text-[#6B7280]">
+              <p className='text-base text-[#6B7280]'>
                 New to Mintenance?{' '}
-                <AuthLink href="/register" variant="primary">
+                <AuthLink href='/register' variant='primary'>
                   Create an account
                 </AuthLink>
               </p>
@@ -235,10 +278,12 @@ export default function LoginPage() {
 
             {/* Success Alert */}
             {submitStatus === 'success' && (
-              <Alert className="mb-6 border-teal-500 bg-teal-50" role="status">
-                <CheckCircle2 className="h-4 w-4 text-teal-600" />
-                <AlertTitle className="text-teal-800">Login Successful!</AlertTitle>
-                <AlertDescription className="text-teal-700">
+              <Alert className='mb-6 border-teal-500 bg-teal-50' role='status'>
+                <CheckCircle2 className='h-4 w-4 text-teal-600' />
+                <AlertTitle className='text-teal-800'>
+                  Login Successful!
+                </AlertTitle>
+                <AlertDescription className='text-teal-700'>
                   Redirecting to your dashboard...
                 </AlertDescription>
               </Alert>
@@ -246,40 +291,54 @@ export default function LoginPage() {
 
             {/* Error Alert */}
             {submitStatus === 'error' && errorMessage && (
-              <Alert variant="destructive" className="mb-6" role="alert">
-                <AlertCircle className="h-4 w-4" />
+              <Alert variant='destructive' className='mb-6' role='alert'>
+                <AlertCircle className='h-4 w-4' />
                 <AlertTitle>Login Failed</AlertTitle>
                 <AlertDescription>
                   {errorMessage}
-                  {(errorMessage.toLowerCase().includes('password') || errorMessage.toLowerCase().includes('incorrect')) && (
-                    <div className="mt-2">
-                      <AuthLink href="/forgot-password" variant="primary" className="text-sm underline">
+                  {(errorMessage.toLowerCase().includes('password') ||
+                    errorMessage.toLowerCase().includes('incorrect')) && (
+                    <div className='mt-2'>
+                      <AuthLink
+                        href='/forgot-password'
+                        variant='primary'
+                        className='text-sm underline'
+                      >
                         Reset your password
                       </AuthLink>
                     </div>
                   )}
-                  {errorMessage.toLowerCase().includes('email') && !errorMessage.toLowerCase().includes('password') && (
-                    <div className="mt-2">
-                      <AuthLink href="/register" variant="primary" className="text-sm underline">
-                        Create an account
-                      </AuthLink>
-                    </div>
-                  )}
+                  {errorMessage.toLowerCase().includes('email') &&
+                    !errorMessage.toLowerCase().includes('password') && (
+                      <div className='mt-2'>
+                        <AuthLink
+                          href='/register'
+                          variant='primary'
+                          className='text-sm underline'
+                        >
+                          Create an account
+                        </AuthLink>
+                      </div>
+                    )}
                 </AlertDescription>
               </Alert>
             )}
 
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-5" aria-labelledby="login-heading">
+            <form
+              onSubmit={handleSubmit(onSubmit)}
+              className='space-y-5'
+              aria-labelledby='login-heading'
+            >
               {/* Email Input */}
               <AuthInput
-                label="Email address"
-                type="email"
-                icon={<Mail className="w-5 h-5" />}
-                placeholder="you@example.com"
-                autoComplete="email"
+                label='Email address'
+                type='email'
+                icon={<Mail className='w-5 h-5' />}
+                placeholder='you@example.com'
+                autoComplete='email'
                 autoFocus
                 showSuccess={!!email && !errors.email}
-                aria-required="true"
+                aria-required='true'
                 aria-invalid={!!errors.email}
                 aria-describedby={errors.email ? 'email-error' : undefined}
                 {...register('email')}
@@ -288,61 +347,70 @@ export default function LoginPage() {
 
               {/* Password Input */}
               <PasswordInput
-                label="Password"
-                placeholder="Enter your password"
-                autoComplete="current-password"
-                aria-required="true"
+                label='Password'
+                placeholder='Enter your password'
+                autoComplete='current-password'
+                aria-required='true'
                 aria-invalid={!!errors.password}
-                aria-describedby={errors.password ? 'password-error' : undefined}
+                aria-describedby={
+                  errors.password ? 'password-error' : undefined
+                }
                 {...register('password')}
                 error={errors.password?.message}
                 value={password}
               />
 
               {/* Remember Me & Forgot Password */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
+              <div className='flex items-center justify-between'>
+                <div className='flex items-center space-x-2'>
                   <Checkbox
-                    id="remember-me"
+                    id='remember-me'
                     {...register('rememberMe')}
                     checked={rememberMe}
-                    className="focus-visible:ring-teal-500 data-[state=checked]:bg-teal-600 data-[state=checked]:border-teal-600"
+                    className='focus-visible:ring-teal-500 data-[state=checked]:bg-teal-600 data-[state=checked]:border-teal-600'
                   />
-                  <Label htmlFor="remember-me" className="font-normal cursor-pointer text-sm text-[#6B7280]">
+                  <Label
+                    htmlFor='remember-me'
+                    className='font-normal cursor-pointer text-sm text-[#6B7280]'
+                  >
                     Remember me
                   </Label>
                 </div>
-                <AuthLink href="/forgot-password" variant="primary" className="text-sm">
+                <AuthLink
+                  href='/forgot-password'
+                  variant='primary'
+                  className='text-sm'
+                >
                   Forgot password?
                 </AuthLink>
               </div>
 
               {/* Submit Button */}
               <Button
-                type="submit"
-                variant="primary"
-                size="lg"
+                type='submit'
+                variant='primary'
+                size='lg'
                 fullWidth
                 loading={isSubmitting || csrfLoading}
                 disabled={isSubmitting || csrfLoading || !csrfToken}
-                className="mt-6 bg-gradient-to-r from-teal-600 to-teal-500 hover:from-teal-500 hover:to-teal-400 text-white shadow-lg hover:shadow-xl transition-all duration-200 focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 border-0"
+                className='mt-6 bg-gradient-to-r from-teal-600 to-teal-500 hover:from-teal-500 hover:to-teal-400 text-white shadow-lg hover:shadow-xl transition-all duration-200 focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 border-0'
               >
                 {isSubmitting ? 'Signing in...' : 'Sign in'}
               </Button>
 
               {mounted && !csrfToken && !isSubmitting && !csrfLoading && (
-                <p className="text-xs text-[#6B7280] text-center mt-2 flex items-center justify-center gap-1">
-                  <span className="inline-block w-2 h-2 bg-teal-500 rounded-full animate-pulse" />
+                <p className='text-xs text-[#6B7280] text-center mt-2 flex items-center justify-center gap-1'>
+                  <span className='inline-block w-2 h-2 bg-teal-500 rounded-full animate-pulse' />
                   Loading security settings...
                 </p>
               )}
             </form>
 
             {/* Footer Links */}
-            <div className="mt-8 text-center">
-              <p className="text-sm text-[#6B7280]">
+            <div className='mt-8 text-center'>
+              <p className='text-sm text-[#6B7280]'>
                 Don't have an account?{' '}
-                <AuthLink href="/register" variant="primary">
+                <AuthLink href='/register' variant='primary'>
                   Sign up for free
                 </AuthLink>
               </p>
@@ -350,13 +418,19 @@ export default function LoginPage() {
           </AuthCard>
 
           {/* Legal Links */}
-          <div className="mt-6 text-center">
-            <div className="flex items-center justify-center gap-4 text-xs text-[#6B7280]">
-              <AuthLink href="/terms" variant="muted">Terms</AuthLink>
+          <div className='mt-6 text-center'>
+            <div className='flex items-center justify-center gap-4 text-xs text-[#6B7280]'>
+              <AuthLink href='/terms' variant='muted'>
+                Terms
+              </AuthLink>
               <span>•</span>
-              <AuthLink href="/privacy" variant="muted">Privacy</AuthLink>
+              <AuthLink href='/privacy' variant='muted'>
+                Privacy
+              </AuthLink>
               <span>•</span>
-              <AuthLink href="/help" variant="muted">Help</AuthLink>
+              <AuthLink href='/help' variant='muted'>
+                Help
+              </AuthLink>
             </div>
           </div>
         </div>

@@ -8,7 +8,7 @@
  * session's email doesn't match the invited email, we explain what to do.
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { CheckCircle2, ShieldAlert } from 'lucide-react';
@@ -23,6 +23,23 @@ interface Preview {
 }
 
 export default function AcceptInvitePage() {
+  // useSearchParams() in Next.js 14+ requires a Suspense boundary when
+  // the page is CSR-bailed out (as here, with 'use client'). Splitting
+  // into an Inner component keeps the hook call inside Suspense.
+  return (
+    <Suspense
+      fallback={
+        <div className='min-h-screen flex items-center justify-center text-gray-500'>
+          Checking your invitation…
+        </div>
+      }
+    >
+      <AcceptInviteInner />
+    </Suspense>
+  );
+}
+
+function AcceptInviteInner() {
   const router = useRouter();
   const params = useSearchParams();
   const token = params.get('token') || '';
