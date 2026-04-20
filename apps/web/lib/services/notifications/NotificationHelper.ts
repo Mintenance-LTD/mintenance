@@ -27,11 +27,32 @@ interface PaymentNotificationParams {
 }
 
 /**
- * Create notification for job status change
+ * Result of notifyJobStatusChange — maps each recipient kind to the
+ * `notifications.id` that was created (or null when no row was
+ * inserted because of user preferences / failure). Callers that also
+ * send an email to the same recipient can pass the matching id to
+ * `NotificationService.markEmailSent` after the email provider
+ * accepts the message, closing the email_sent observability loop.
+ *
+ * Callers that don't care about the ids simply `await` and ignore
+ * the return value — behaviour-preserving for every prior call site.
+ */
+export interface JobStatusNotificationIds {
+  homeownerNotifId: string | null;
+  contractorNotifId: string | null;
+}
+
+/**
+ * Create notification for job status change.
+ *
+ * Return shape added 2026-04-20 so API routes can thread the
+ * homeowner / contractor notification ids into their matching
+ * EmailService calls and flip email_sent on success. See
+ * /api/payments/confirm-intent for the pattern this enables.
  */
 export async function notifyJobStatusChange(
   params: JobStatusNotificationParams
-): Promise<void> {
+): Promise<JobStatusNotificationIds> {
   try {
     const { jobId, jobTitle, oldStatus, newStatus, homeownerId, contractorId } =
       params;
@@ -139,9 +160,14 @@ export async function notifyJobStatusChange(
         });
     }
 
-    // Create all notifications
+    // Create all notifications. Track ids so the caller can flip
+    // email_sent after its matching EmailService call.
+    const ids: JobStatusNotificationIds = {
+      homeownerNotifId: null,
+      contractorNotifId: null,
+    };
     for (const notification of notifications) {
-      await NotificationService.createNotification({
+      const id = await NotificationService.createNotification({
         userId: notification.user_id,
         type: notification.type,
         title: notification.title,
@@ -154,13 +180,21 @@ export async function notifyJobStatusChange(
           userId: notification.user_id,
           status: newStatus,
         });
+        return null;
       });
+      if (notification.user_id === homeownerId) {
+        ids.homeownerNotifId = id ?? null;
+      } else if (contractorId && notification.user_id === contractorId) {
+        ids.contractorNotifId = id ?? null;
+      }
     }
+    return ids;
   } catch (error) {
     logger.error('Error in notifyJobStatusChange', error, {
       service: 'NotificationHelper',
       jobId: params.jobId,
     });
+    return { homeownerNotifId: null, contractorNotifId: null };
   }
 }
 
