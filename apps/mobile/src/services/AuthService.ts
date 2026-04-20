@@ -4,6 +4,7 @@ import { Session } from '@supabase/supabase-js';
 import { ServiceErrorHandler } from '../utils/serviceErrorHandler';
 import { logger } from '../utils/logger';
 import { checkRateLimit, resetRateLimit } from '../middleware/RateLimiter';
+import { mobileApiClient } from '../utils/mobileApiClient';
 
 // Validation functions matching @mintenance/auth rules
 // (can't import @mintenance/auth directly — bcryptjs requires Node's crypto module)
@@ -117,6 +118,32 @@ export class AuthService {
         context
       );
 
+      // SECURITY: HIBP breach check via web API (mobile cannot run SHA-1 + range
+      // fetch locally without adding a crypto dependency). Mirrors the inline
+      // check in /api/auth/register on web. Fails open on network error so a
+      // flaky connection doesn't lock users out of signup.
+      try {
+        const breachResult = await mobileApiClient.post<{
+          isBreached: boolean;
+          occurrences: number | null;
+        }>('/api/auth/check-password-breach', { password: userData.password });
+        if (breachResult.isBreached) {
+          throw new Error(
+            `This password has been exposed in ${(breachResult.occurrences ?? 0).toLocaleString()} data breaches. ` +
+              `Please choose a different, more secure password.`
+          );
+        }
+      } catch (err) {
+        // Re-throw breach errors verbatim; swallow only network/rate-limit errors.
+        if (err instanceof Error && err.message.startsWith('This password')) {
+          throw err;
+        }
+        logger.warn(
+          '[AUTH] Password breach check failed, proceeding (fail-open)',
+          err
+        );
+      }
+
       const { data, error } = await supabase.auth.signUp({
         email: userData.email,
         password: userData.password,
@@ -145,6 +172,48 @@ export class AuthService {
     }
 
     return result.data;
+  }
+
+  /**
+   * Re-issue the email-confirmation link for an unverified signup.
+   *
+   * Supabase throttles resends on the server (default ~60s). The
+   * mobile UI should additionally rate-limit the button on the
+   * client for a visible countdown, but this method intentionally
+   * does NOT enforce that — the caller decides.
+   *
+   * Returns nothing on success; throws on rate-limit or transport
+   * failure so the UI can show the correct toast.
+   */
+  static async resendSignupConfirmation(email: string): Promise<void> {
+    const context = {
+      service: 'AuthService',
+      method: 'resendSignupConfirmation',
+      userId: undefined,
+      params: { email },
+    };
+
+    const result = await ServiceErrorHandler.executeOperation(async () => {
+      ServiceErrorHandler.validateRequired(email, 'Email', context);
+      if (!validateEmailFormat(email)) {
+        throw new Error('Please enter a valid email address');
+      }
+
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+      });
+      if (error) {
+        // Supabase throws "Email rate limit exceeded" on rapid resends.
+        throw ServiceErrorHandler.handleDatabaseError(error, context);
+      }
+      logger.info('[AUTH] Resent signup confirmation email');
+      return null;
+    }, context);
+
+    if (!result.success) {
+      throw new Error(result.error?.message || 'Failed to resend email');
+    }
   }
 
   static async signIn(

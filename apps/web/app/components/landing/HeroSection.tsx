@@ -12,7 +12,7 @@ import {
   Zap,
   Camera,
 } from 'lucide-react';
-import { HeroCard } from './HeroCard';
+import { HeroVisual } from './HeroVisual';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 
 /** Hero categories; values match jobs/create serviceCategories for query-param prefilling */
@@ -104,37 +104,15 @@ export function HeroSection({
         />
       </div>
 
-      {/* Floating Orbs */}
-      {!prefersReducedMotion && mounted && (
-        <>
-          <motion.div
-            className='absolute top-20 left-10 w-72 h-72 bg-teal-500 rounded-full filter blur-3xl opacity-20'
-            animate={{
-              x: [0, 50, 0],
-              y: [0, 30, 0],
-              scale: [1, 1.1, 1],
-            }}
-            transition={{
-              duration: 10,
-              repeat: Infinity,
-              ease: 'easeInOut',
-            }}
-          />
-          <motion.div
-            className='absolute bottom-20 right-10 w-96 h-96 bg-amber-500 rounded-full filter blur-3xl opacity-20'
-            animate={{
-              x: [0, -30, 0],
-              y: [0, -50, 0],
-              scale: [1, 1.2, 1],
-            }}
-            transition={{
-              duration: 12,
-              repeat: Infinity,
-              ease: 'easeInOut',
-            }}
-          />
-        </>
-      )}
+      {/* Static glow accents (decorative, no animation) */}
+      <div
+        aria-hidden='true'
+        className='absolute top-20 left-10 w-72 h-72 bg-teal-500 rounded-full filter blur-3xl opacity-10 pointer-events-none'
+      />
+      <div
+        aria-hidden='true'
+        className='absolute bottom-20 right-10 w-96 h-96 bg-amber-500 rounded-full filter blur-3xl opacity-10 pointer-events-none'
+      />
 
       <div className='container mx-auto px-4 sm:px-6 lg:px-8 relative z-10 pt-32 pb-20'>
         <motion.div
@@ -163,14 +141,14 @@ export function HeroSection({
             <motion.div
               variants={!prefersReducedMotion ? itemVariants : undefined}
             >
-              <h1 className='text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-white leading-[1.1] mb-6'>
+              <h1 className='text-5xl sm:text-6xl lg:text-[5.5rem] font-bold tracking-tight text-white leading-[1.02] mb-6'>
                 Your Money{' '}
                 <span className='text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-teal-200'>
                   Protected
                 </span>
                 . Your Home Sorted.
               </h1>
-              <p className='text-xl text-blue-100 leading-relaxed max-w-2xl mx-auto lg:mx-0'>
+              <p className='text-xl text-slate-300 leading-relaxed max-w-2xl mx-auto lg:mx-0'>
                 Verified contractors. Protected payments. Photo proof of every
                 job. You stay in control from first quote to final sign-off.
               </p>
@@ -263,13 +241,12 @@ export function HeroSection({
               >
                 <Camera className='w-5 h-5' />
                 Upload a Photo &mdash; Free Assessment
-                <motion.span
-                  className='inline-block'
-                  animate={!prefersReducedMotion ? { x: [0, 4, 0] } : undefined}
-                  transition={{ duration: 1.5, repeat: Infinity }}
+                <span
+                  className='inline-block transition-transform duration-300 group-hover:translate-x-1'
+                  aria-hidden='true'
                 >
                   →
-                </motion.span>
+                </span>
               </Link>
               <Link
                 href='/login?redirect=/contractor/dashboard-enhanced'
@@ -280,17 +257,13 @@ export function HeroSection({
             </motion.div>
           </div>
 
-          {/* Right Column: Hero. SSR-safe: same placeholder until mounted to avoid hydration mismatch. */}
+          {/* Right Column: authentic product visual (not stock photo). SSR-safe placeholder until mounted. */}
           <motion.div
             variants={!prefersReducedMotion ? itemVariants : undefined}
             className='relative lg:h-[600px] flex items-center justify-center'
           >
             {mounted ? (
-              <HeroCard
-                activeContractors={activeContractors}
-                hasRealStats={hasRealStats}
-                variant='contractor-hero' // ← Contractor with mint fresh smile + thumbs up
-              />
+              <HeroVisual />
             ) : (
               <div
                 className='relative w-full h-[600px] min-h-[520px] rounded-2xl bg-slate-900/40 border border-white/10 flex items-center justify-center overflow-hidden'

@@ -2,7 +2,12 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import Stripe from 'stripe';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { logger, ESCROW_STATUS, validateEscrowTransition, type EscrowStatusValue } from '@mintenance/shared';
+import {
+  logger,
+  ESCROW_STATUS,
+  validateEscrowTransition,
+  type EscrowStatusValue,
+} from '@mintenance/shared';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
 import { EmailService } from '@/lib/email-service';
 import { ForbiddenError, NotFoundError } from '@/lib/errors/api-error';
@@ -11,7 +16,9 @@ import { stripe } from '@/lib/stripe';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 
 const confirmIntentSchema = z.object({
-  paymentIntentId: z.string().regex(/^pi_[a-zA-Z0-9]+$/, 'Invalid payment intent ID'),
+  paymentIntentId: z
+    .string()
+    .regex(/^pi_[a-zA-Z0-9]+$/, 'Invalid payment intent ID'),
   jobId: z.string().uuid('Invalid job ID'),
 });
 
@@ -50,7 +57,7 @@ export const POST = withApiHandler(
         service: 'payments',
         userId: user.id,
         paymentIntentId,
-        status: paymentIntent.status
+        status: paymentIntent.status,
       });
       return NextResponse.json(
         {
@@ -80,7 +87,9 @@ export const POST = withApiHandler(
     // Get current escrow transaction for optimistic locking
     const { data: currentEscrow, error: fetchError } = await serverSupabase
       .from('escrow_transactions')
-      .select('id, job_id, amount, status, stripe_payment_intent_id, payment_intent_id, version, created_at, updated_at')
+      .select(
+        'id, job_id, amount, status, stripe_payment_intent_id, payment_intent_id, version, created_at, updated_at'
+      )
       .eq('payment_intent_id', paymentIntentId)
       .eq('job_id', jobId)
       .single();
@@ -90,7 +99,7 @@ export const POST = withApiHandler(
         service: 'payments',
         userId: user.id,
         paymentIntentId,
-        jobId
+        jobId,
       });
       return NextResponse.json(
         { error: 'Escrow transaction not found' },
@@ -113,7 +122,10 @@ export const POST = withApiHandler(
       });
     } else if (currentEscrow.status === ESCROW_STATUS.PENDING) {
       // Validate escrow transition: pending -> held
-      validateEscrowTransition(currentEscrow.status as EscrowStatusValue, ESCROW_STATUS.HELD as EscrowStatusValue);
+      validateEscrowTransition(
+        currentEscrow.status as EscrowStatusValue,
+        ESCROW_STATUS.HELD as EscrowStatusValue
+      );
 
       // Webhook hasn't arrived yet — update as fallback
       const { data: updatedEscrow, error: escrowError } = await serverSupabase
@@ -132,7 +144,9 @@ export const POST = withApiHandler(
         // Likely the webhook updated it between our read and write — re-fetch
         const { data: refetched } = await serverSupabase
           .from('escrow_transactions')
-          .select('id, job_id, amount, status, stripe_payment_intent_id, payment_intent_id, version, created_at, updated_at')
+          .select(
+            'id, job_id, amount, status, stripe_payment_intent_id, payment_intent_id, version, created_at, updated_at'
+          )
           .eq('payment_intent_id', paymentIntentId)
           .eq('job_id', jobId)
           .single();
@@ -157,7 +171,9 @@ export const POST = withApiHandler(
     } else {
       // Escrow is in an unexpected state (failed, cancelled, etc.)
       return NextResponse.json(
-        { error: `Payment cannot be confirmed. Current status: ${currentEscrow.status}` },
+        {
+          error: `Payment cannot be confirmed. Current status: ${currentEscrow.status}`,
+        },
         { status: 400 }
       );
     }
@@ -168,41 +184,49 @@ export const POST = withApiHandler(
       paymentIntentId,
       jobId,
       escrowTransactionId: escrowTransaction.id,
-      amount: escrowTransaction.amount
+      amount: escrowTransaction.amount,
     });
 
-    // Notify both parties about successful payment
+    // Notify both parties about successful payment.
+    //
+    // Capture the notification ids from createNotification() so we can
+    // flip `email_sent = true` on each row after the corresponding
+    // EmailService call succeeds — closes the observability story
+    // opened by the 2026-04-20 multi-channel delivery tracking
+    // migration (push_sent / email_sent / delivered_at). This is the
+    // first call-site that fans out a notifications row across both
+    // channels; the pattern used here should be replicated at the
+    // other ~14 sites that also send email.
     try {
       const amount = escrowTransaction.amount;
       const jobTitle = job.title || 'your job';
-      const notificationPromises = [];
 
-      if (job.contractor_id) {
-        notificationPromises.push(
-          NotificationService.createNotification({
+      const contractorNotifPromise = job.contractor_id
+        ? NotificationService.createNotification({
             userId: job.contractor_id,
             title: 'Payment Secured in Escrow',
             message: `Payment of £${Number(amount).toLocaleString()} for "${jobTitle}" has been secured in escrow. You can now start work.`,
             type: 'payment',
             actionUrl: `/contractor/jobs/${jobId}`,
           })
-        );
-      }
+        : Promise.resolve<string | null>(null);
 
-      notificationPromises.push(
-        NotificationService.createNotification({
-          userId: user.id,
-          title: 'Payment Confirmed',
-          message: `Your payment of £${Number(amount).toLocaleString()} for "${jobTitle}" is now held securely in escrow until the job is completed.`,
-          type: 'payment',
-          actionUrl: `/jobs/${jobId}`,
-        })
-      );
+      const homeownerNotifPromise = NotificationService.createNotification({
+        userId: user.id,
+        title: 'Payment Confirmed',
+        message: `Your payment of £${Number(amount).toLocaleString()} for "${jobTitle}" is now held securely in escrow until the job is completed.`,
+        type: 'payment',
+        actionUrl: `/jobs/${jobId}`,
+      });
 
-      await Promise.all(notificationPromises);
+      const [contractorNotifId, homeownerNotifId] = await Promise.all([
+        contractorNotifPromise,
+        homeownerNotifPromise,
+      ]);
 
       // Send email notifications (non-blocking)
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.mintenance.co.uk';
+      const baseUrl =
+        process.env.NEXT_PUBLIC_APP_URL || 'https://www.mintenance.co.uk';
       const { data: homeownerProfile } = await serverSupabase
         .from('profiles')
         .select('first_name, last_name, email')
@@ -218,35 +242,59 @@ export const POST = withApiHandler(
         : { data: null };
 
       const homeownerName = homeownerProfile
-        ? `${homeownerProfile.first_name || ''} ${homeownerProfile.last_name || ''}`.trim() || 'Homeowner'
+        ? `${homeownerProfile.first_name || ''} ${homeownerProfile.last_name || ''}`.trim() ||
+          'Homeowner'
         : 'Homeowner';
       const contractorName = contractorProfile
-        ? `${contractorProfile.first_name || ''} ${contractorProfile.last_name || ''}`.trim() || 'Contractor'
+        ? `${contractorProfile.first_name || ''} ${contractorProfile.last_name || ''}`.trim() ||
+          'Contractor'
         : 'Contractor';
 
-      const emailPromises: Promise<boolean>[] = [];
+      // Each email-send + email_sent-flag is wrapped in its own
+      // async block so one provider failure doesn't hold up the
+      // other side's flag. Promise.allSettled tolerates per-promise
+      // rejections without rolling back the whole payment-confirm.
+      const emailPromises: Promise<unknown>[] = [];
 
       if (homeownerProfile?.email) {
         emailPromises.push(
-          EmailService.sendPaymentConfirmationEmail(homeownerProfile.email, {
-            homeownerName,
-            jobTitle,
-            amount: Number(amount),
-            contractorName,
-            viewUrl: `${baseUrl}/payments`,
-          })
+          (async () => {
+            const ok = await EmailService.sendPaymentConfirmationEmail(
+              homeownerProfile.email,
+              {
+                homeownerName,
+                jobTitle,
+                amount: Number(amount),
+                contractorName,
+                viewUrl: `${baseUrl}/payments`,
+              }
+            );
+            if (ok) {
+              await NotificationService.markEmailSent(homeownerNotifId);
+            }
+            return ok;
+          })()
         );
       }
 
       if (contractorProfile?.email && job.contractor_id) {
         emailPromises.push(
-          EmailService.sendPaymentReceivedEmail(contractorProfile.email, {
-            contractorName,
-            jobTitle,
-            amount: Number(amount),
-            homeownerName,
-            viewUrl: `${baseUrl}/contractor/jobs/${jobId}`,
-          })
+          (async () => {
+            const ok = await EmailService.sendPaymentReceivedEmail(
+              contractorProfile.email,
+              {
+                contractorName,
+                jobTitle,
+                amount: Number(amount),
+                homeownerName,
+                viewUrl: `${baseUrl}/contractor/jobs/${jobId}`,
+              }
+            );
+            if (ok) {
+              await NotificationService.markEmailSent(contractorNotifId);
+            }
+            return ok;
+          })()
         );
       }
 
@@ -254,7 +302,11 @@ export const POST = withApiHandler(
         await Promise.allSettled(emailPromises);
       }
     } catch (notifError) {
-      logger.error('Failed to create payment confirmation notifications', notifError, { service: 'payments', jobId });
+      logger.error(
+        'Failed to create payment confirmation notifications',
+        notifError,
+        { service: 'payments', jobId }
+      );
     }
 
     // NOTE: Job status is NOT updated here. Per the canonical workflow (Phase 6),

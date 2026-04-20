@@ -99,11 +99,18 @@ async function setupAndroidChannels(): Promise<void> {
  * configure Android notification channels.
  *
  * @param deviceOverride - optional override for `Device.isDevice` (used in tests)
+ * @param options.promptIfUndetermined - when true, fire the system
+ *   permission dialog if current status is 'undetermined'. Default
+ *   `false` so silent call-sites (auth-actions on signIn /
+ *   restoreSession) NEVER burn the iOS one-shot for first-time users.
+ *   Only the explicit PushSoftAskModal CTA should pass `true`.
  * @returns the Expo push token string, or `null` if unavailable
  */
 export async function initializePushNotifications(
-  deviceOverride: boolean | null
+  deviceOverride: boolean | null,
+  options: { promptIfUndetermined?: boolean } = {}
 ): Promise<string | null> {
+  const { promptIfUndetermined = false } = options;
   try {
     const isDevice =
       deviceOverride !== null ? deviceOverride : (Device.isDevice as boolean);
@@ -122,6 +129,21 @@ export async function initializePushNotifications(
     let finalStatus = existingStatus;
 
     if (existingStatus !== 'granted') {
+      // Audit 2026-04-19 / R5 deferred #5: silent call-sites MUST NOT
+      // prompt — that burns the one-shot iOS dialog for every new user
+      // before we've shown them rationale. Only the soft-ask modal
+      // should trigger the system dialog.
+      if (!promptIfUndetermined) {
+        logger.info(
+          'Push permission not granted and promptIfUndetermined=false; deferring to soft-ask'
+        );
+        addBreadcrumb(
+          'Push permission deferred (no prompt, soft-ask gated)',
+          'info',
+          { existingStatus }
+        );
+        return null;
+      }
       const { status } = await Notifications.requestPermissionsAsync();
       finalStatus = status;
     }

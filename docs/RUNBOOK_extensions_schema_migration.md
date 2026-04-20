@@ -112,14 +112,30 @@ ALTER EXTENSION pg_trgm SET SCHEMA extensions;
 
 Then add `extensions` to search_path in any function using `similarity()`.
 
-Phase 2 — `vector` (**BLOCKED — needs separate strategy**):
+Phase 2 — `vector` (**migration prepared, awaiting maintenance window — see `20260419000004`**):
 
-Inspection on 2026-04-19 returned 3 dependent tables with `vector` columns:
-`public.building_pathology_knowledge.embedding`, `public.jobs.embedding`,
-`public.search_analytics.embedding` (plus the two HNSW indexes that depend on them).
+Re-inspection on 2026-04-19 (afternoon) overturned the earlier "BLOCKED" assessment. The key facts:
 
-`ALTER EXTENSION vector SET SCHEMA embeddings` will fail because the column type is referenced
-unqualified. Two viable strategies for a future PR:
+- 3 tables hold `embedding vector(1536)` columns — but only 30 rows total carry an actual embedding
+  (all in `building_pathology_knowledge`). `jobs` (22 rows) and `search_analytics` (0 rows) have
+  zero embeddings.
+- 2 HNSW indexes (`idx_bpk_embedding_hnsw`, `idx_jobs_embedding_hnsw`) use `vector_cosine_ops`.
+- DB-wide `search_path` already includes `extensions`, so unqualified `vector` references in future
+  SQL will continue to resolve after the move.
+- Postgres tracks type usage by OID (not by schema-qualified name). Existing column references stay
+  bound across the schema move — same mechanism that made pg_trgm safe.
+
+Migration `20260419000004_move_vector_to_extensions.sql` therefore performs:
+
+1. Snapshot all 30 embeddings into `public.archive_vector_embeddings_pre_2026_04_19` (RLS-locked to
+   service_role only) as a safety net.
+2. `ALTER EXTENSION vector SET SCHEMA extensions;` — single statement, takes <1s.
+3. Sanity verification (queries embedded as comments).
+
+Drop the snapshot table after 24 hours of clean operation.
+
+If the move unexpectedly fails (e.g., older Postgres semantics), fall back to the original
+worst-case strategy:
 
 1. **DB-wide search_path approach (low risk).** Add `embeddings` to the database's default
    search*path \_before* moving the extension; columns will then resolve `vector` against the new

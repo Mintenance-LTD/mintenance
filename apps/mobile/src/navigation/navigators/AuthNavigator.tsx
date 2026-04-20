@@ -8,6 +8,8 @@ import RegisterScreen from '../../screens/RegisterScreen';
 import ForgotPasswordScreen from '../../screens/ForgotPasswordScreen';
 import ResetPasswordScreen from '../../screens/auth/ResetPasswordScreen';
 import MFAVerificationScreen from '../../screens/auth/MFAVerificationScreen';
+// Phase 1.2 (Branch B) — shown after signUp until email-confirmation lands.
+import EmailVerificationPendingScreen from '../../screens/auth/EmailVerificationPendingScreen';
 
 // Import error boundary wrapper
 import { withScreenErrorBoundary } from '../../components/ErrorBoundaryProvider';
@@ -39,6 +41,12 @@ const SafeResetPasswordScreen = withScreenErrorBoundary(
 const SafeMFAVerificationScreen = withScreenErrorBoundary(
   MFAVerificationScreen,
   'MFA Verification',
+  { fallbackRoute: 'Login' }
+);
+
+const SafeEmailVerificationPendingScreen = withScreenErrorBoundary(
+  EmailVerificationPendingScreen,
+  'Email Verification Pending',
   { fallbackRoute: 'Login' }
 );
 
@@ -82,6 +90,11 @@ const AuthNavigator: React.FC = () => {
         name='MFAVerification'
         component={SafeMFAVerificationScreen}
         options={{ title: 'Verify Identity', gestureEnabled: false }}
+      />
+      <AuthStack.Screen
+        name='EmailVerificationPending'
+        component={SafeEmailVerificationPendingScreen}
+        options={{ title: 'Check Your Email' }}
       />
     </AuthStack.Navigator>
   );

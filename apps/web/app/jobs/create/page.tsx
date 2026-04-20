@@ -1,5 +1,8 @@
 'use client';
 
+// Reads AI-prefill query params via useSearchParams — per-request.
+export const dynamic = 'force-dynamic';
+
 import React, { useState, useEffect, useRef } from 'react';
 import { logger } from '@mintenance/shared';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -7,7 +10,11 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { HomeownerPageWrapper } from '@/app/dashboard/components/HomeownerPageWrapper';
 import { useImageUpload } from './hooks/useImageUpload';
 import { useBuildingAssessment } from './hooks/useBuildingAssessment';
-import { validateJobForm, isFormValid, type JobFormData } from './utils/validation';
+import {
+  validateJobForm,
+  isFormValid,
+  type JobFormData,
+} from './utils/validation';
 import { submitJob } from './utils/submitJob';
 import { useCSRF } from '@/lib/hooks/useCSRF';
 import toast from 'react-hot-toast';
@@ -26,29 +33,50 @@ import { StepNavigation } from './_components/step-navigation';
 function mapDamageTypeToCategory(damageType: string): string | null {
   const t = damageType.toLowerCase().replace(/[_-]/g, ' ');
   const map: [string, string[]][] = [
-    ['plumbing', ['water', 'pipe', 'leak', 'plumbing', 'drain', 'burst', 'flood', 'damp']],
-    ['electrical', ['electrical', 'wiring', 'circuit', 'power', 'socket', 'light']],
+    [
+      'plumbing',
+      ['water', 'pipe', 'leak', 'plumbing', 'drain', 'burst', 'flood', 'damp'],
+    ],
+    [
+      'electrical',
+      ['electrical', 'wiring', 'circuit', 'power', 'socket', 'light'],
+    ],
     ['heating', ['heating', 'boiler', 'radiator', 'gas', 'thermostat']],
     ['roofing', ['roof', 'tile', 'gutter', 'chimney', 'flashing', 'slate']],
-    ['carpentry', ['wood', 'timber', 'door', 'window', 'frame', 'rot', 'carpentry']],
+    [
+      'carpentry',
+      ['wood', 'timber', 'door', 'window', 'frame', 'rot', 'carpentry'],
+    ],
     ['painting', ['paint', 'decorat', 'render', 'plaster']],
     ['flooring', ['floor', 'laminate', 'carpet', 'vinyl']],
     ['hvac', ['hvac', 'ventilation', 'air condition', 'ductwork']],
-    ['handyman', ['structural', 'foundation', 'crack', 'subsidence', 'general', 'minor']],
+    [
+      'handyman',
+      ['structural', 'foundation', 'crack', 'subsidence', 'general', 'minor'],
+    ],
   ];
   for (const [cat, keywords] of map) {
-    if (keywords.some(kw => t.includes(kw))) return cat;
+    if (keywords.some((kw) => t.includes(kw))) return cat;
   }
   return null;
 }
 
 /** Map AI urgency string to form urgency value */
-function mapAIUrgency(aiUrgency: string): 'low' | 'medium' | 'high' | 'emergency' | null {
+function mapAIUrgency(
+  aiUrgency: string
+): 'low' | 'medium' | 'high' | 'emergency' | null {
   const u = aiUrgency.toLowerCase();
-  if (['emergency', 'critical', 'immediate', 'dangerous'].some(k => u.includes(k))) return 'emergency';
-  if (['urgent', 'high'].some(k => u.includes(k))) return 'high';
-  if (['moderate', 'medium', 'soon'].some(k => u.includes(k))) return 'medium';
-  if (['low', 'minor', 'routine', 'flexible'].some(k => u.includes(k))) return 'low';
+  if (
+    ['emergency', 'critical', 'immediate', 'dangerous'].some((k) =>
+      u.includes(k)
+    )
+  )
+    return 'emergency';
+  if (['urgent', 'high'].some((k) => u.includes(k))) return 'high';
+  if (['moderate', 'medium', 'soon'].some((k) => u.includes(k)))
+    return 'medium';
+  if (['low', 'minor', 'routine', 'flexible'].some((k) => u.includes(k)))
+    return 'low';
   return null;
 }
 
@@ -77,7 +105,9 @@ export default function CreateJobPage2025() {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loadingProperties, setLoadingProperties] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [validationErrors, setValidationErrors] = useState<
+    Record<string, string>
+  >({});
   const [preferredDate, setPreferredDate] = useState('');
   const aiAutoFilledRef = useRef(false);
 
@@ -97,7 +127,7 @@ export default function CreateJobPage2025() {
     const qCategory = searchParams?.get('category');
     const qLocation = searchParams?.get('location');
     if (qCategory || qLocation) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
         ...(qCategory && { category: qCategory }),
         ...(qLocation && { location: qLocation }),
@@ -109,15 +139,17 @@ export default function CreateJobPage2025() {
     if (user && user.role === 'homeowner') {
       setLoadingProperties(true);
       fetch('/api/properties')
-        .then(res => res.json())
-        .then(data => {
+        .then((res) => res.json())
+        .then((data) => {
           if (data.properties) {
             setProperties(data.properties);
             const urlPropertyId = searchParams?.get('property_id');
             if (urlPropertyId && data.properties.length > 0) {
-              const selectedProperty = data.properties.find((p: Property) => p.id === urlPropertyId);
+              const selectedProperty = data.properties.find(
+                (p: Property) => p.id === urlPropertyId
+              );
               if (selectedProperty) {
-                setFormData(prev => ({
+                setFormData((prev) => ({
                   ...prev,
                   property_id: urlPropertyId,
                   location: selectedProperty.address || prev.location,
@@ -139,16 +171,21 @@ export default function CreateJobPage2025() {
 
   useEffect(() => {
     const runAssessment = async () => {
-      if (imageUpload.uploadedImages.length > 0 && !buildingAssessment.isAssessing) {
-        const selectedProp = properties.find(p => p.id === formData.property_id);
-        await buildingAssessment.assessBuilding(
-          imageUpload.uploadedImages,
-          {
-            location: formData.location || selectedProp?.address || undefined,
-            propertyType: selectedProp?.property_type as 'residential' | 'commercial' | undefined,
-            ageOfProperty: undefined,
-          }
+      if (
+        imageUpload.uploadedImages.length > 0 &&
+        !buildingAssessment.isAssessing
+      ) {
+        const selectedProp = properties.find(
+          (p) => p.id === formData.property_id
         );
+        await buildingAssessment.assessBuilding(imageUpload.uploadedImages, {
+          location: formData.location || selectedProp?.address || undefined,
+          propertyType: selectedProp?.property_type as
+            | 'residential'
+            | 'commercial'
+            | undefined,
+          ageOfProperty: undefined,
+        });
       }
     };
 
@@ -162,10 +199,12 @@ export default function CreateJobPage2025() {
 
     const assessment = buildingAssessment.assessment;
     const suggestions: string[] = [];
-    const suggestedCategory = mapDamageTypeToCategory(assessment.damageAssessment.damageType);
+    const suggestedCategory = mapDamageTypeToCategory(
+      assessment.damageAssessment.damageType
+    );
     const suggestedUrgency = mapAIUrgency(assessment.urgency.urgency);
 
-    setFormData(prev => {
+    setFormData((prev) => {
       const updates: Partial<JobFormData> = {};
 
       if (!prev.category && suggestedCategory) {
@@ -190,19 +229,29 @@ export default function CreateJobPage2025() {
     if (suggestedCategory) suggestions.push(suggestedCategory);
     if (suggestedUrgency) suggestions.push(suggestedUrgency);
     if (assessment.estimatedCost) {
-      suggestions.push(`£${Math.round(assessment.estimatedCost.min)}-£${Math.round(assessment.estimatedCost.max)}`);
+      suggestions.push(
+        `£${Math.round(assessment.estimatedCost.min)}-£${Math.round(assessment.estimatedCost.max)}`
+      );
     }
 
     if (suggestions.length > 0) {
-      toast.success(`Mint AI suggested: ${suggestions.join(' · ')}`, { duration: 5000 });
+      toast.success(`Mint AI suggested: ${suggestions.join(' · ')}`, {
+        duration: 5000,
+      });
     }
   }, [buildingAssessment.assessment]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSubmit = async () => {
-    const errors = validateJobForm(formData, imageUpload.uploadedImages, imageUpload.imagePreviews.length);
+    const errors = validateJobForm(
+      formData,
+      imageUpload.uploadedImages,
+      imageUpload.imagePreviews.length
+    );
     if (!isFormValid(errors)) {
       setValidationErrors(errors);
-      const errorMessages = Object.entries(errors).map(([field, message]) => `${field}: ${message}`);
+      const errorMessages = Object.entries(errors).map(
+        ([field, message]) => `${field}: ${message}`
+      );
       logger.error('Validation failed:', errorMessages);
       toast.error(errorMessages[0] || 'Please fix validation errors');
       return;
@@ -212,7 +261,9 @@ export default function CreateJobPage2025() {
     try {
       let imageUrls = imageUpload.uploadedImages;
       if (imageUpload.imagePreviews.length > 0 && imageUrls.length === 0) {
-        logger.info('[Submit] Need to upload images', { csrfTokenAvailable: !!csrfToken });
+        logger.info('[Submit] Need to upload images', {
+          csrfTokenAvailable: !!csrfToken,
+        });
         if (!csrfToken) {
           toast.error('Security token not available. Please refresh the page.');
           setIsSubmitting(false);
@@ -222,10 +273,17 @@ export default function CreateJobPage2025() {
         try {
           logger.info('[Submit] Calling uploadImages with token');
           imageUrls = await imageUpload.uploadImages(csrfToken);
-          logger.info('[Submit] Upload completed', { urlCount: imageUrls.length });
+          logger.info('[Submit] Upload completed', {
+            urlCount: imageUrls.length,
+          });
         } catch (uploadError) {
-          logger.error('[Submit] Image upload failed, continuing without images', uploadError);
-          toast.error('Image upload failed. Continuing to create job without images.');
+          logger.error(
+            '[Submit] Image upload failed, continuing without images',
+            uploadError
+          );
+          toast.error(
+            'Image upload failed. Continuing to create job without images.'
+          );
           imageUrls = [];
         }
       }
@@ -247,11 +305,14 @@ export default function CreateJobPage2025() {
       logger.error('Error submitting job:', error);
       const errorMessage = (error as Error).message || 'Failed to post job';
 
-      if (errorMessage.toLowerCase().includes('phone verification required') || errorMessage.toLowerCase().includes('verify your phone')) {
+      if (
+        errorMessage.toLowerCase().includes('phone verification required') ||
+        errorMessage.toLowerCase().includes('verify your phone')
+      ) {
         toast.error('Phone verification required to post jobs');
         toast.custom((t) => (
-          <div className="flex items-center gap-2 bg-white px-4 py-3 rounded-lg shadow-lg border border-gray-200">
-            <Info className="w-5 h-5 text-blue-600" />
+          <div className='flex items-center gap-2 bg-white px-4 py-3 rounded-lg shadow-lg border border-gray-200'>
+            <Info className='w-5 h-5 text-blue-600' />
             <span>Redirecting to settings for verification...</span>
           </div>
         ));
@@ -272,19 +333,33 @@ export default function CreateJobPage2025() {
 
   if (loadingUser) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-gray-600" />
+      <div className='flex items-center justify-center min-h-screen'>
+        <div className='h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-gray-600' />
       </div>
     );
   }
 
   if (!user) return null;
 
-  const selectedProperty = properties.find(p => p.id === formData.property_id);
-  const hasImages = imageUpload.imagePreviews.length > 0 || imageUpload.uploadedImages.length > 0;
-  const canProceedStep1 = !!(formData.property_id && formData.category && formData.title && formData.description && formData.description.length >= 50);
+  const selectedProperty = properties.find(
+    (p) => p.id === formData.property_id
+  );
+  const hasImages =
+    imageUpload.imagePreviews.length > 0 ||
+    imageUpload.uploadedImages.length > 0;
+  const canProceedStep1 = !!(
+    formData.property_id &&
+    formData.category &&
+    formData.title &&
+    formData.description &&
+    formData.description.length >= 50
+  );
   const canProceedStep2 = true;
-  const canProceedStep3 = !!(formData.urgency && formData.budget && (parseFloat(String(formData.budget)) <= 500 || hasImages));
+  const canProceedStep3 = !!(
+    formData.urgency &&
+    formData.budget &&
+    (parseFloat(String(formData.budget)) <= 500 || hasImages)
+  );
 
   const canProceedNext =
     (currentStep === 1 && canProceedStep1) ||
@@ -292,23 +367,26 @@ export default function CreateJobPage2025() {
     (currentStep === 3 && canProceedStep3);
 
   return (
-    <ErrorBoundary componentName="CreateJobPage">
+    <ErrorBoundary componentName='CreateJobPage'>
       <HomeownerPageWrapper>
         {/* Back to Jobs Button */}
         <button
           onClick={() => router.push('/jobs')}
-          className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors mb-4"
+          className='flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors mb-4'
         >
-          <ArrowLeft className="w-5 h-5" />
-          <span className="font-medium">Back to Jobs</span>
+          <ArrowLeft className='w-5 h-5' />
+          <span className='font-medium'>Back to Jobs</span>
         </button>
 
-        <div className="min-h-screen bg-gray-50 py-8">
-          <div className="max-w-3xl mx-auto px-4">
+        <div className='min-h-screen bg-gray-50 py-8'>
+          <div className='max-w-3xl mx-auto px-4'>
             <ProgressBar currentStep={currentStep} steps={STEPS} />
 
             {/* Main Card */}
-            <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-6 md:p-8 mb-6" data-testid="job-create-form">
+            <div
+              className='bg-white rounded-xl border border-gray-200 p-4 sm:p-6 md:p-8 mb-6'
+              data-testid='job-create-form'
+            >
               {currentStep === 1 && (
                 <DetailsStep
                   formData={formData}
@@ -338,7 +416,9 @@ export default function CreateJobPage2025() {
                   hasImages={hasImages}
                   preferredDate={preferredDate}
                   setPreferredDate={setPreferredDate}
-                  aiSuggestedBudget={buildingAssessment.assessment?.estimatedCost || null}
+                  aiSuggestedBudget={
+                    buildingAssessment.assessment?.estimatedCost || null
+                  }
                 />
               )}
 
