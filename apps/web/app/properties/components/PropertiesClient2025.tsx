@@ -225,8 +225,8 @@ export function PropertiesClient2025({
         </div>
         <p className='text-gray-600'>
           {propertyLimit === 'unlimited'
-            ? `${properties.length} properties`
-            : `${properties.length}/${propertyLimit} properties`}{' '}
+            ? `${properties.length} ${properties.length === 1 ? 'property' : 'properties'}`
+            : `${properties.length}/${propertyLimit} ${propertyLimit === 1 ? 'property' : 'properties'}`}{' '}
           &middot; Manage your properties and maintenance
         </p>
       </div>
