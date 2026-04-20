@@ -38,8 +38,19 @@ export type RootTabParamList = {
 // ============================================================================
 
 export type AuthStackParamList = {
-  Login: undefined;
+  // `email` is set when arriving from EmailVerificationPending after a
+  // successful signUp, so the user doesn't re-type their address on the
+  // sign-in step. We never forward the password: email-confirm is ON,
+  // so the user must click their email link before any sign-in works,
+  // and stashing the cleartext password in nav params is a leak risk
+  // because React Navigation may serialize state to storage when
+  // deep-linking is enabled.
+  Login: { email?: string } | undefined;
   Register: undefined;
+  // Phase 1.2 (Branch B) — shown after signUp while the Supabase-issued
+  // confirmation email is pending. Entirely driven by user action; no
+  // silent polling, no session state mutations.
+  EmailVerificationPending: { email: string };
   ForgotPassword: undefined;
   ResetPassword: { token?: string } | undefined;
   MFAVerification: { preMfaToken: string; redirectScreen?: string };

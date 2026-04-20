@@ -14,7 +14,10 @@ import { FadeIn, SlideIn } from '../components/animations/primitives';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type {
+  NativeStackNavigationProp,
+  NativeStackScreenProps,
+} from '@react-navigation/native-stack';
 import { useAuth } from '../contexts/AuthContext';
 import { AuthStackParamList } from '../navigation/types';
 
@@ -31,8 +34,14 @@ type LoginScreenNavigationProp = NativeStackNavigationProp<
   'Login'
 >;
 
+// Phase 1.2 — EmailVerificationPendingScreen may hand off a `{ email }`
+// param so the user doesn't re-type their address. All other entries
+// (deep links, tab resets, etc.) pass no params.
+type LoginScreenProps = NativeStackScreenProps<AuthStackParamList, 'Login'>;
+
 interface Props {
   navigation: LoginScreenNavigationProp;
+  route?: LoginScreenProps['route'];
 }
 
 const TRUST_ITEMS = [
@@ -41,9 +50,11 @@ const TRUST_ITEMS = [
   { icon: 'people-outline' as const, label: 'Trusted' },
 ];
 
-const LoginScreen: React.FC<Props> = ({ navigation }) => {
+const LoginScreen: React.FC<Props> = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
-  const [email, setEmail] = useState('');
+  // Pre-fill email when redirected from EmailVerificationPendingScreen.
+  // Falls back to '' for every other entry.
+  const [email, setEmail] = useState(route?.params?.email ?? '');
   const [password, setPassword] = useState('');
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
