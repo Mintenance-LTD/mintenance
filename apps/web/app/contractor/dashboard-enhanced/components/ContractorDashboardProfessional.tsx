@@ -233,7 +233,6 @@ export function ContractorDashboardProfessional(
                     {contractor.location}
                   </p>
                 )}
-                <p className='text-slate-400 text-sm'>{contractor.location}</p>
               </div>
             </div>
 

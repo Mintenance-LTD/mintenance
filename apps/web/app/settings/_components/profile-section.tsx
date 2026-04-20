@@ -159,7 +159,7 @@ export function ProfileSection({
               Location
             </h3>
             <p className='text-sm text-gray-600 mb-6'>
-              Your location helps us match you with nearby contractors.
+              Your location helps us match you with nearby jobs and homeowners.
             </p>
 
             <div className='space-y-4'>
