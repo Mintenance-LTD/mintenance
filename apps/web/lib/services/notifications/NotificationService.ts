@@ -205,6 +205,61 @@ export class NotificationService {
   }
 
   /**
+   * Flip `email_sent = true` on a notifications row once an email
+   * provider accepted the message. Mirrors the push-side path that
+   * NotificationPushDispatcher.markNotificationPushSent handles
+   * internally. Also populates `delivered_at` only when it's still
+   * null — whichever channel lands first wins that timestamp.
+   *
+   * Safe to call with a null/undefined id (no-op); saves every
+   * call-site from guarding around the "notification insert failed
+   * so we have no id" case.
+   *
+   * Intentionally best-effort: an UPDATE failure logs a warning but
+   * never throws. Observability must not break user-visible email
+   * delivery paths.
+   */
+  static async markEmailSent(
+    notificationId: string | null | undefined
+  ): Promise<void> {
+    if (!notificationId) return;
+    try {
+      const { error } = await serverSupabase
+        .from('notifications')
+        .update({
+          email_sent: true,
+          delivered_at: new Date().toISOString(),
+        })
+        .eq('id', notificationId)
+        .is('delivered_at', null);
+      if (error) {
+        // Try again without the delivered_at guard so email_sent
+        // still flips even if push got there first.
+        const { error: flagOnlyError } = await serverSupabase
+          .from('notifications')
+          .update({ email_sent: true })
+          .eq('id', notificationId);
+        if (flagOnlyError) {
+          logger.warn(
+            'Failed to mark notification email_sent=true (non-fatal)',
+            {
+              service: 'NotificationService',
+              notificationId,
+              error: flagOnlyError.message,
+            }
+          );
+        }
+      }
+    } catch (err) {
+      logger.warn('markEmailSent threw', {
+        service: 'NotificationService',
+        notificationId,
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+  }
+
+  /**
    * Track notification engagement (opened, clicked, dismissed).
    * Kept here (and not in a dispatcher) because engagement data feeds
    * back into NotificationAgent's timing model.
