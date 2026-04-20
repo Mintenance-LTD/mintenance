@@ -147,7 +147,10 @@ export class NotificationService {
 
     if (prefs.push_enabled) {
       // Fire-and-forget. Failures are logged + enqueued for retry in
-      // the push dispatcher.
+      // the push dispatcher. On success, the dispatcher also flips
+      // push_sent + delivered_at on the `notifications` row via
+      // the notificationId we thread through below (added 2026-04-20
+      // for observability of multi-channel delivery).
       void sendPushToDevice({
         userId: params.userId,
         title: params.title,
@@ -160,6 +163,7 @@ export class NotificationService {
         notificationType: params.type,
         actionUrl: params.actionUrl,
         metadata: params.metadata,
+        notificationId: notificationId ?? undefined,
       });
     }
 
