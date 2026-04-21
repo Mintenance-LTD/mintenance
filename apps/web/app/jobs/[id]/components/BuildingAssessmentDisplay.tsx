@@ -19,6 +19,12 @@ import {
 import type { Phase1BuildingAssessment } from '@/lib/services/building-surveyor/types';
 import { formatMoney } from '@/lib/utils/currency';
 import { getCsrfToken } from '@/lib/csrf-client';
+import {
+  damageMatchesCategory,
+  getSeverityColor,
+  getRiskIcon,
+  getRiskLevelFromScore,
+} from './building-assessment-helpers';
 
 interface BuildingAssessmentDisplayProps {
   assessment: Phase1BuildingAssessment | null;
@@ -26,6 +32,14 @@ interface BuildingAssessmentDisplayProps {
   onCorrection?: (assessmentId: string, corrections: unknown[]) => void;
   jobId?: string;
   photoUrls?: string[];
+  /**
+   * The job's declared category (plumbing / electrical / roofing / ...).
+   * Passed in so the display can warn the user when the AI-detected
+   * damageType doesn't match the category the user actually posted under.
+   * The AI only sees the photos, so it can confidently label a photo of a
+   * wall crack as "wall_crack" even on a job titled "leaking kitchen".
+   */
+  jobCategory?: string | null;
 }
 
 export function BuildingAssessmentDisplay({
@@ -34,6 +48,7 @@ export function BuildingAssessmentDisplay({
   onCorrection: _onCorrection,
   jobId,
   photoUrls,
+  jobCategory,
 }: BuildingAssessmentDisplayProps) {
   const [expanded, setExpanded] = useState(true);
   const [_showCorrections, setShowCorrections] = useState(false);
@@ -133,54 +148,21 @@ export function BuildingAssessmentDisplay({
     return null;
   }
 
-  const getSeverityColor = (severity: string) => {
-    switch (severity) {
-      case 'critical':
-      case 'full':
-        return 'text-red-600 bg-red-50';
-      case 'severe':
-      case 'midway':
-        return 'text-orange-600 bg-orange-50';
-      case 'moderate':
-      case 'medium':
-        return 'text-yellow-800 bg-yellow-50';
-      case 'minimal':
-      case 'early':
-      case 'low':
-      case 'none':
-        return 'text-green-600 bg-green-50';
-      default:
-        return 'text-gray-600 bg-gray-50';
-    }
-  };
-
-  const getRiskIcon = (level: string) => {
-    switch (level) {
-      case 'critical':
-      case 'high':
-        return <AlertCircle className='w-5 h-5 text-red-500' />;
-      case 'medium':
-        return <AlertTriangle className='w-5 h-5 text-yellow-500' />;
-      case 'low':
-        return <CheckCircle className='w-5 h-5 text-green-500' />;
-      default:
-        return <Info className='w-5 h-5 text-gray-500' />;
-    }
-  };
-
-  // Derive risk level from numeric score
-  const getRiskLevelFromScore = (score: number): string => {
-    if (score >= 75) return 'critical';
-    if (score >= 50) return 'high';
-    if (score >= 25) return 'medium';
-    return 'low';
-  };
-
   const safetyRiskLevel = getRiskLevelFromScore(
     100 - (assessment.safetyHazards.overallSafetyScore ?? 80)
   );
   const confidence = assessment.damageAssessment.confidence ?? 0;
   const estimatedCost = assessment.contractorAdvice?.estimatedCost;
+
+  // Category mismatch caveat: if the AI-detected damageType looks unrelated
+  // to the job's declared category, the user shouldn't take the confidence
+  // score at face value — it's photo-only. We surface this rather than
+  // silently damping the percentage so the original model output stays
+  // auditable.
+  const categoryMismatch = !damageMatchesCategory(
+    assessment.damageAssessment.damageType,
+    jobCategory
+  );
 
   return (
     <div className='bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden'>
@@ -218,6 +200,40 @@ export function BuildingAssessmentDisplay({
 
       {expanded && (
         <div className='border-t border-gray-200'>
+          {/* Category-mismatch caveat */}
+          {categoryMismatch && (
+            <div className='px-6 pt-6'>
+              <div className='flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-lg p-4'>
+                <AlertTriangle
+                  className='w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5'
+                  aria-hidden='true'
+                />
+                <div className='text-sm text-amber-900'>
+                  <p className='font-semibold mb-1'>
+                    Assessment may not match the job you posted
+                  </p>
+                  <p>
+                    You posted this job under{' '}
+                    <span className='font-medium capitalize'>
+                      {jobCategory?.replace(/_/g, ' ')}
+                    </span>
+                    , but the AI detected{' '}
+                    <span className='font-medium capitalize'>
+                      {assessment.damageAssessment.damageType.replace(
+                        /_/g,
+                        ' '
+                      )}
+                    </span>{' '}
+                    in your photos. The {Math.round(confidence)}% confidence
+                    reflects photo analysis only. Please check the details below
+                    and correct the category or re-upload photos if the AI
+                    picked up the wrong issue.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Damage Assessment */}
           <div className='p-6'>
             <h4 className='font-medium text-gray-900 mb-4'>

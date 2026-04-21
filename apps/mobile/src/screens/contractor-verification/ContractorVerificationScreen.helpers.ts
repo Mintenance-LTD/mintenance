@@ -63,21 +63,28 @@ export const VERIFICATION_BENEFITS = [
  * Parse the legacy free-text license_expiry value persisted in
  * profiles. Accepts YYYY-MM-DD, ISO timestamps, or DD/MM/YYYY.
  * Returns null for anything we cannot confidently parse.
+ *
+ * Ordering matters: the DD/MM/YYYY regex MUST run before
+ * Date.parse, because V8 interprets "07/04/2029" as MM/DD/YYYY
+ * (US format) and silently returns July 4 instead of April 7.
+ * Caught by the 2026-04-20 helper unit test suite.
  */
 export function parseLegacyExpiry(raw: string | null | undefined): Date | null {
   if (!raw) return null;
   const trimmed = raw.trim();
   if (!trimmed) return null;
 
-  const iso = Date.parse(trimmed);
-  if (!Number.isNaN(iso)) return new Date(iso);
-
+  // UK-format first so Date.parse doesn't claim it as US MM/DD/YYYY.
   const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(trimmed);
   if (match) {
     const [, dd, mm, yyyy] = match;
     const d = new Date(`${yyyy}-${mm}-${dd}T00:00:00Z`);
     return Number.isNaN(d.getTime()) ? null : d;
   }
+
+  const iso = Date.parse(trimmed);
+  if (!Number.isNaN(iso)) return new Date(iso);
+
   return null;
 }
 

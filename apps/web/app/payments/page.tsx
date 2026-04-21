@@ -18,7 +18,13 @@ import { PaymentsReceiptModal } from './components/PaymentsReceiptModal';
 interface Transaction {
   id: string;
   amount: number;
-  status: 'pending' | 'held' | 'released' | 'refunded' | 'completed';
+  status:
+    | 'pending'
+    | 'held'
+    | 'release_pending'
+    | 'released'
+    | 'refunded'
+    | 'completed';
   type: 'payment' | 'refund' | 'escrow';
   created_at: string;
   updated_at: string;
@@ -62,11 +68,16 @@ export default function PaymentsPage2025() {
   const { csrfToken } = useCSRF();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loadingTransactions, setLoadingTransactions] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'pending' | 'completed' | 'refunded'>('all');
-  const [dateRange, setDateRange] = useState<'7d' | '30d' | '90d' | 'all'>('all');
+  const [filter, setFilter] = useState<
+    'all' | 'pending' | 'completed' | 'refunded'
+  >('all');
+  const [dateRange, setDateRange] = useState<'7d' | '30d' | '90d' | 'all'>(
+    'all'
+  );
   const [showRefundModal, setShowRefundModal] = useState(false);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
-  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [selectedTransaction, setSelectedTransaction] =
+    useState<Transaction | null>(null);
   const [refundReason, setRefundReason] = useState('');
 
   useEffect(() => {
@@ -78,33 +89,38 @@ export default function PaymentsPage2025() {
         if (!response.ok) throw new Error('Failed to fetch transactions');
 
         const { payments } = await response.json();
-        const transformedTransactions: Transaction[] = (payments || []).map((t: PaymentData) => {
-          const amount = Number(t.amount) || 0;
-          const platformFee = amount * 0.05;
-          const processingFee = amount * 0.02;
+        const transformedTransactions: Transaction[] = (payments || []).map(
+          (t: PaymentData) => {
+            const amount = Number(t.amount) || 0;
+            const platformFee = amount * 0.05;
+            const processingFee = amount * 0.02;
 
-          const contractorName = t.contractor_name
-            || (t.payee ? `${t.payee.first_name || ''} ${t.payee.last_name || ''}`.trim() : undefined);
+            const contractorName =
+              t.contractor_name ||
+              (t.payee
+                ? `${t.payee.first_name || ''} ${t.payee.last_name || ''}`.trim()
+                : undefined);
 
-          const jobTitle = t.job_title || t.job?.title;
+            const jobTitle = t.job_title || t.job?.title;
 
-          return {
-            id: t.id,
-            amount,
-            status: t.status,
-            type: (t.transaction_type || 'payment') as Transaction['type'],
-            created_at: t.created_at || t.createdAt,
-            updated_at: t.updated_at || t.updatedAt,
-            job_title: jobTitle,
-            job_id: t.job_id || t.jobId,
-            contractor_name: contractorName || undefined,
-            contractor_id: t.contractor_id || t.payeeId,
-            release_reason: t.release_reason,
-            refund_reason: t.refund_reason,
-            platformFee,
-            processingFee,
-          };
-        });
+            return {
+              id: t.id,
+              amount,
+              status: t.status,
+              type: (t.transaction_type || 'payment') as Transaction['type'],
+              created_at: t.created_at || t.createdAt,
+              updated_at: t.updated_at || t.updatedAt,
+              job_title: jobTitle,
+              job_id: t.job_id || t.jobId,
+              contractor_name: contractorName || undefined,
+              contractor_id: t.contractor_id || t.payeeId,
+              release_reason: t.release_reason,
+              refund_reason: t.refund_reason,
+              platformFee,
+              processingFee,
+            };
+          }
+        );
         setTransactions(transformedTransactions);
       } catch {
         toast.error('Failed to load payment history');
@@ -121,14 +137,24 @@ export default function PaymentsPage2025() {
       toast.error('Security token not loaded. Please refresh.');
       return;
     }
-    if (!confirm('Are you sure you want to release this payment? This action cannot be undone.')) {
+    if (
+      !confirm(
+        'Are you sure you want to release this payment? This action cannot be undone.'
+      )
+    ) {
       return;
     }
     try {
       const response = await fetch('/api/payments/release-escrow', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken },
-        body: JSON.stringify({ escrowTransactionId: transactionId, releaseReason: 'job_completed' }),
+        headers: {
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken,
+        },
+        body: JSON.stringify({
+          escrowTransactionId: transactionId,
+          releaseReason: 'job_completed',
+        }),
       });
       if (!response.ok) {
         const data = await response.json();
@@ -151,8 +177,14 @@ export default function PaymentsPage2025() {
     try {
       const response = await fetch('/api/payments/refund', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken },
-        body: JSON.stringify({ transactionId: selectedTransaction.id, reason: refundReason }),
+        headers: {
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken,
+        },
+        body: JSON.stringify({
+          transactionId: selectedTransaction.id,
+          reason: refundReason,
+        }),
       });
       if (!response.ok) {
         const data = await response.json();
@@ -179,28 +211,45 @@ export default function PaymentsPage2025() {
   }
   if (!user) return null;
 
+  // Escrow statuses — see /api/payments/history for the full set.
+  // From the homeowner's perspective `held` and `release_pending`
+  // are "money I've already parted with" — the only state where the
+  // homeowner still owns the funds is `pending` (pre-charge) or
+  // `refunded`. The previous filter put `release_pending` rows into
+  // neither bucket so they silently disappeared from the stats and
+  // the filter menu both.
   const filteredTransactions = transactions.filter((t) => {
     let matchesStatus = true;
-    if (filter === 'pending') matchesStatus = t.status === 'pending' || t.status === 'held';
-    else if (filter === 'completed') matchesStatus = t.status === 'completed' || t.status === 'released';
-    else if (filter === 'refunded') matchesStatus = t.status === 'refunded';
+    if (filter === 'pending') {
+      matchesStatus = t.status === 'pending' || t.status === 'held';
+    } else if (filter === 'completed') {
+      matchesStatus = ['completed', 'released', 'release_pending'].includes(
+        t.status
+      );
+    } else if (filter === 'refunded') {
+      matchesStatus = t.status === 'refunded';
+    }
 
     let matchesDateRange = true;
     if (dateRange !== 'all') {
       const transactionDate = new Date(t.created_at);
       const now = new Date();
       const daysAgo = dateRange === '7d' ? 7 : dateRange === '30d' ? 30 : 90;
-      const cutoffDate = new Date(now.getTime() - daysAgo * 24 * 60 * 60 * 1000);
+      const cutoffDate = new Date(
+        now.getTime() - daysAgo * 24 * 60 * 60 * 1000
+      );
       matchesDateRange = transactionDate >= cutoffDate;
     }
     return matchesStatus && matchesDateRange;
   });
 
   const totalPaid = transactions
-    .filter((t) => t.status === 'completed' || t.status === 'released')
+    .filter((t) =>
+      ['completed', 'released', 'release_pending', 'held'].includes(t.status)
+    )
     .reduce((sum, t) => sum + t.amount, 0);
   const pendingAmount = transactions
-    .filter((t) => t.status === 'pending' || t.status === 'held')
+    .filter((t) => t.status === 'pending')
     .reduce((sum, t) => sum + t.amount, 0);
   const refundedAmount = transactions
     .filter((t) => t.status === 'refunded')
@@ -214,11 +263,19 @@ export default function PaymentsPage2025() {
     const csvHeaders = ['Date', 'Description', 'Amount (GBP)', 'Status'];
     const csvRows = filteredTransactions.map((t) => {
       const date = new Date(t.created_at).toLocaleDateString('en-GB', {
-        day: '2-digit', month: '2-digit', year: 'numeric',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
       });
       const description = (t.job_title || 'Payment').replace(/"/g, '""');
-      const amount = (t.amount / 100).toFixed(2);
-      const status = t.status.charAt(0).toUpperCase() + t.status.slice(1);
+      // escrow_transactions.amount is stored as a DECIMAL in pounds — the
+      // previous `amount / 100` treated it as pence and exported £100 as
+      // £1.00 (off by 100x). formatMoney on the stat cards already knew
+      // this; the CSV path didn't.
+      const amount = t.amount.toFixed(2);
+      const status = t.status
+        .replace(/_/g, ' ')
+        .replace(/\b\w/g, (c) => c.toUpperCase());
       return `"${date}","${description}","${amount}","${status}"`;
     });
     const csvContent = [csvHeaders.join(','), ...csvRows].join('\n');
@@ -234,13 +291,16 @@ export default function PaymentsPage2025() {
 
   return (
     <HomeownerPageWrapper>
-      <div className="max-w-6xl mx-auto">
+      <div className='max-w-6xl mx-auto'>
         {/* Back link */}
         <button
           onClick={() => router.push('/dashboard')}
-          className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors mb-6 group"
+          className='inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors mb-6 group'
         >
-          <ChevronLeft size={16} className="group-hover:-translate-x-0.5 transition-transform" />
+          <ChevronLeft
+            size={16}
+            className='group-hover:-translate-x-0.5 transition-transform'
+          />
           Back to Dashboard
         </button>
 
@@ -281,7 +341,10 @@ export default function PaymentsPage2025() {
           amount={selectedTransaction?.amount || 0}
           refundReason={refundReason}
           onReasonChange={setRefundReason}
-          onClose={() => { setShowRefundModal(false); setRefundReason(''); }}
+          onClose={() => {
+            setShowRefundModal(false);
+            setRefundReason('');
+          }}
           onConfirm={handleRefundPayment}
         />
 

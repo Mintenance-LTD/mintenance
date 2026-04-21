@@ -249,31 +249,37 @@ export const POST = withApiHandler(
             })
             .eq('id', escrowId);
 
-          // Notify both parties
+          // Notify both parties via NotificationService (in-app + push +
+          // preference checks). The previous direct inserts used a
+          // `data` column that does not exist on the notifications table,
+          // which made PostgREST reject the whole INSERT — both refund
+          // notifications silently dropped to the floor in prod. Also
+          // the refund happens after a successful Stripe call so
+          // users absolutely need to know.
           await Promise.allSettled([
-            serverSupabase.from('notifications').insert({
-              user_id: job.homeowner_id,
+            NotificationService.createNotification({
+              userId: job.homeowner_id,
               type: 'escrow_refunded',
               title: 'Payment Refunded',
               message: `A refund of \u00a3${refundAmountValue.toFixed(2)} for "${job.title}" has been processed. It may take 5-10 business days to appear.`,
-              data: {
+              actionUrl: `/jobs/${job.id}`,
+              metadata: {
                 jobId: job.id,
                 escrowId,
                 refundAmount: refundAmountValue,
               },
-              created_at: now,
             }),
-            serverSupabase.from('notifications').insert({
-              user_id: job.contractor_id,
+            NotificationService.createNotification({
+              userId: job.contractor_id,
               type: 'escrow_refunded',
               title: 'Job Payment Refunded',
               message: `The payment of \u00a3${refundAmountValue.toFixed(2)} for "${job.title}" has been refunded to the homeowner.`,
-              data: {
+              actionUrl: `/contractor/jobs/${job.id}`,
+              metadata: {
                 jobId: job.id,
                 escrowId,
                 refundAmount: refundAmountValue,
               },
-              created_at: now,
             }),
           ]);
 
@@ -342,23 +348,25 @@ export const POST = withApiHandler(
           throw new BadRequestError('Failed to place hold on escrow');
         }
 
-        // Notify both parties
+        // Notify both parties through NotificationService — same
+        // `data` vs `metadata` bug as the refund branch above meant the
+        // hold notification was silently rejected.
         await Promise.allSettled([
-          serverSupabase.from('notifications').insert({
-            user_id: job.homeowner_id,
+          NotificationService.createNotification({
+            userId: job.homeowner_id,
             type: 'escrow_hold',
             title: 'Payment Under Review',
             message: `The payment for "${job.title}" is under admin review.`,
-            data: { jobId: job.id, escrowId },
-            created_at: now,
+            actionUrl: `/jobs/${job.id}`,
+            metadata: { jobId: job.id, escrowId },
           }),
-          serverSupabase.from('notifications').insert({
-            user_id: job.contractor_id,
+          NotificationService.createNotification({
+            userId: job.contractor_id,
             type: 'escrow_hold',
             title: 'Payment Under Review',
             message: `The payment for "${job.title}" is under admin review.`,
-            data: { jobId: job.id, escrowId },
-            created_at: now,
+            actionUrl: `/contractor/jobs/${job.id}`,
+            metadata: { jobId: job.id, escrowId },
           }),
         ]);
 

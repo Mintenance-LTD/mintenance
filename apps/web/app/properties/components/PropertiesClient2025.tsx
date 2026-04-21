@@ -47,6 +47,7 @@ interface PropertiesClient2025Props {
   properties: Property[];
   propertyLimit: number | 'unlimited';
   tier: string;
+  isEarlyAccess?: boolean;
   userInfo: {
     name: string;
     email: string;
@@ -64,6 +65,7 @@ export function PropertiesClient2025({
   properties,
   propertyLimit,
   tier,
+  isEarlyAccess,
   userInfo,
 }: PropertiesClient2025Props) {
   const router = useRouter();
@@ -220,13 +222,15 @@ export function PropertiesClient2025({
             My Properties
           </h1>
           <span className='px-3 py-1 rounded-full text-xs font-semibold bg-teal-100 text-teal-700'>
-            {TIER_LABELS[tier] || 'Free'} plan
+            {isEarlyAccess
+              ? 'Early access'
+              : `${TIER_LABELS[tier] || 'Free'} plan`}
           </span>
         </div>
         <p className='text-gray-600'>
           {propertyLimit === 'unlimited'
-            ? `${properties.length} properties`
-            : `${properties.length}/${propertyLimit} properties`}{' '}
+            ? `${properties.length} ${properties.length === 1 ? 'property' : 'properties'}`
+            : `${properties.length}/${propertyLimit} ${propertyLimit === 1 ? 'property' : 'properties'}`}{' '}
           &middot; Manage your properties and maintenance
         </p>
       </div>
@@ -363,7 +367,8 @@ export function PropertiesClient2025({
                   {/* Stats */}
                   <div className='flex items-center justify-between pt-4 border-t border-gray-200'>
                     <div className='text-sm text-gray-600'>
-                      {property.completedJobs} completed jobs
+                      {property.completedJobs} completed{' '}
+                      {property.completedJobs === 1 ? 'job' : 'jobs'}
                     </div>
                     <div className='text-sm font-semibold text-gray-900'>
                       {formatMoney(property.totalSpent, 'GBP')} spent

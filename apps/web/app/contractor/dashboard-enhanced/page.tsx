@@ -18,7 +18,9 @@ export default async function ContractorDashboard2025() {
     redirect('/login');
   }
 
-  const onboardingStatus = await OnboardingService.checkOnboardingStatus(user.id);
+  const onboardingStatus = await OnboardingService.checkOnboardingStatus(
+    user.id
+  );
 
   // Fetch all data in parallel
   const [
@@ -34,15 +36,19 @@ export default async function ContractorDashboard2025() {
   ] = await Promise.all([
     serverSupabase
       .from('profiles')
-      .select('first_name, last_name, company_name, profile_image_url, city, country, email, stripe_connect_account_id')
+      .select(
+        'first_name, last_name, company_name, profile_image_url, city, country, email, stripe_connect_account_id'
+      )
       .eq('id', user.id)
       .single(),
     serverSupabase
       .from('jobs')
-      .select(`
+      .select(
+        `
         id,
         title,
         status,
+        budget,
         budget_min,
         budget_max,
         created_at,
@@ -54,16 +60,19 @@ export default async function ContractorDashboard2025() {
           last_name,
           email
         )
-      `)
+      `
+      )
       .eq('contractor_id', user.id)
       .order('updated_at', { ascending: false })
       .limit(20),
     serverSupabase
       .from('jobs')
-      .select(`
+      .select(
+        `
         id,
         title,
         status,
+        budget,
         budget_min,
         budget_max,
         created_at,
@@ -74,7 +83,8 @@ export default async function ContractorDashboard2025() {
           last_name,
           email
         )
-      `)
+      `
+      )
       .is('contractor_id', null)
       .in('status', ['open', 'posted'])
       .order('created_at', { ascending: false })
@@ -99,7 +109,12 @@ export default async function ContractorDashboard2025() {
       .from('escrow_transactions')
       .select('id, amount, status')
       .eq('payee_id', user.id)
-      .in('status', ['held', 'awaiting_homeowner_approval', 'pending_review', 'pending'])
+      .in('status', [
+        'held',
+        'awaiting_homeowner_approval',
+        'pending_review',
+        'pending',
+      ])
       .limit(20),
     serverSupabase
       .from('notifications')
@@ -119,11 +134,14 @@ export default async function ContractorDashboard2025() {
   const notifications = notificationsResponse.data || [];
 
   const completedJobs = jobs.filter((j) => j.status === 'completed');
-  const activeJobs = jobs.filter((j) => j.status === 'in_progress' || j.status === 'assigned');
+  const activeJobs = jobs.filter(
+    (j) => j.status === 'in_progress' || j.status === 'assigned'
+  );
   const pendingBids = bids.filter((b) => b.status === 'pending');
 
   // ✅ FIXED: Use real monthly revenue aggregation instead of manual calculations
-  const { getMonthlyRevenue, getRevenueStats } = await import('@/app/dashboard/lib/revenue-queries');
+  const { getMonthlyRevenue, getRevenueStats } =
+    await import('@/app/dashboard/lib/revenue-queries');
   const monthlyRevenue = await getMonthlyRevenue(user.id, 6, 'earnings');
   const revenueStats = await getRevenueStats(user.id, 'earnings');
   const totalRevenue = revenueStats.total;
@@ -133,10 +151,14 @@ export default async function ContractorDashboard2025() {
 
   // Calculate completion rate
   const totalProjects = jobs.length;
-  const completionRate = totalProjects > 0 ? (completedJobs.length / totalProjects) * 100 : 0;
+  const completionRate =
+    totalProjects > 0 ? (completedJobs.length / totalProjects) * 100 : 0;
 
   // Pending escrow
-  const pendingEscrowAmount = escrows.reduce((sum, e) => sum + (e.amount || 0), 0);
+  const pendingEscrowAmount = escrows.reduce(
+    (sum, e) => sum + (e.amount || 0),
+    0
+  );
   const pendingEscrowCount = escrows.length;
   const hasPaymentSetup = !!contractor?.stripe_connect_account_id;
 
@@ -144,17 +166,25 @@ export default async function ContractorDashboard2025() {
   const now = new Date();
   const progressTrendData = monthlyRevenue.map((monthData, index) => {
     // Count jobs created in this month
-    const monthStart = new Date(monthData.year, parseInt(monthData.monthKey.split('-')[1]) - 1, 1);
-    const monthEnd = new Date(monthData.year, parseInt(monthData.monthKey.split('-')[1]), 0);
-    
-    const monthJobs = jobs.filter(
-      (j) => {
-        const jobDate = new Date(j.created_at);
-        return jobDate >= monthStart && jobDate <= monthEnd;
-      }
+    const monthStart = new Date(
+      monthData.year,
+      parseInt(monthData.monthKey.split('-')[1]) - 1,
+      1
+    );
+    const monthEnd = new Date(
+      monthData.year,
+      parseInt(monthData.monthKey.split('-')[1]),
+      0
     );
 
-    const monthCompleted = monthJobs.filter((j) => j.status === 'completed').length;
+    const monthJobs = jobs.filter((j) => {
+      const jobDate = new Date(j.created_at);
+      return jobDate >= monthStart && jobDate <= monthEnd;
+    });
+
+    const monthCompleted = monthJobs.filter(
+      (j) => j.status === 'completed'
+    ).length;
 
     return {
       month: monthData.month,
@@ -166,26 +196,41 @@ export default async function ContractorDashboard2025() {
 
   // Recent jobs data (contractor's own jobs)
   const recentJobs = jobs.slice(0, 5).map((job) => {
-    const homeowner = Array.isArray(job.homeowner) ? job.homeowner[0] : job.homeowner;
+    const homeowner = Array.isArray(job.homeowner)
+      ? job.homeowner[0]
+      : job.homeowner;
 
     let progress: number;
     switch (job.status) {
-      case 'completed': progress = 100; break;
-      case 'in_progress': progress = 50; break;
-      case 'assigned': progress = 25; break;
-      default: progress = 0;
+      case 'completed':
+        progress = 100;
+        break;
+      case 'in_progress':
+        progress = 50;
+        break;
+      case 'assigned':
+        progress = 25;
+        break;
+      default:
+        progress = 0;
     }
 
     return {
       id: job.id,
       title: job.title,
       status: job.status,
-      budget: job.budget_max || job.budget_min || 0,
+      budget:
+        (job as { budget?: number; budget_max?: number; budget_min?: number })
+          .budget ||
+        job.budget_max ||
+        job.budget_min ||
+        0,
       progress,
       category: job.category,
       priority: job.urgency || 'medium',
       homeowner: homeowner
-        ? `${homeowner.first_name || ''} ${homeowner.last_name || ''}`.trim() || homeowner.email
+        ? `${homeowner.first_name || ''} ${homeowner.last_name || ''}`.trim() ||
+          homeowner.email
         : 'Unknown',
       dueDate: job.updated_at,
     };
@@ -193,18 +238,26 @@ export default async function ContractorDashboard2025() {
 
   // Available jobs data (jobs contractors can bid on)
   const availableJobsData = availableJobs.map((job) => {
-    const homeowner = Array.isArray(job.homeowner) ? job.homeowner[0] : job.homeowner;
+    const homeowner = Array.isArray(job.homeowner)
+      ? job.homeowner[0]
+      : job.homeowner;
 
     return {
       id: job.id,
       title: job.title,
       status: job.status,
-      budget: job.budget_max || job.budget_min || 0,
+      budget:
+        (job as { budget?: number; budget_max?: number; budget_min?: number })
+          .budget ||
+        job.budget_max ||
+        job.budget_min ||
+        0,
       progress: 0,
       category: job.category,
       priority: job.urgency || 'medium',
       homeowner: homeowner
-        ? `${homeowner.first_name || ''} ${homeowner.last_name || ''}`.trim() || homeowner.email
+        ? `${homeowner.first_name || ''} ${homeowner.last_name || ''}`.trim() ||
+          homeowner.email
         : 'Unknown',
       dueDate: job.created_at,
     };
@@ -216,11 +269,17 @@ export default async function ContractorDashboard2025() {
       id: user.id,
       // Prioritize company name, then full name, then email
       name: (contractor
-        ? contractor.company_name || `${contractor.first_name || ''} ${contractor.last_name || ''}`.trim() || contractor.email || user.email || 'Unknown'
+        ? contractor.company_name ||
+          `${contractor.first_name || ''} ${contractor.last_name || ''}`.trim() ||
+          contractor.email ||
+          user.email ||
+          'Unknown'
         : user.email || 'Unknown') as string,
       company: contractor?.company_name as string | undefined,
       avatar: contractor?.profile_image_url as string | undefined,
-      location: (contractor ? `${contractor.city || ''}, ${contractor.country || ''}`.trim() : '') as string,
+      location: (contractor
+        ? `${contractor.city || ''}, ${contractor.country || ''}`.trim()
+        : '') as string,
       email: (contractor?.email || user.email || '') as string,
     },
     metrics: {
@@ -236,25 +295,35 @@ export default async function ContractorDashboard2025() {
     progressTrendData,
     recentJobs,
     availableJobs: availableJobsData,
-    notifications: notifications.map(n => ({
+    notifications: notifications.map((n) => ({
       id: n.id,
       type: n.type,
       message: n.message,
       timestamp: n.created_at,
       isRead: n.read,
     })),
-    subscriptionInfo: trialStatus && trialStatus.isTrialActive ? {
-      tier: 'free' as const,
-      bidsUsed: bids.filter(b => {
-        const bidDate = new Date(b.created_at);
-        const now = new Date();
-        return bidDate.getMonth() === now.getMonth() && bidDate.getFullYear() === now.getFullYear();
-      }).length,
-      bidsLimit: 5,
-      bidsResetDate: undefined,
-    } : null,
+    subscriptionInfo:
+      trialStatus && trialStatus.isTrialActive
+        ? {
+            tier: 'free' as const,
+            bidsUsed: bids.filter((b) => {
+              const bidDate = new Date(b.created_at);
+              const now = new Date();
+              return (
+                bidDate.getMonth() === now.getMonth() &&
+                bidDate.getFullYear() === now.getFullYear()
+              );
+            }).length,
+            bidsLimit: 5,
+            bidsResetDate: undefined,
+          }
+        : null,
     hasPaymentSetup,
-    onboardingStatus: onboardingStatus as { stepsCompleted?: number; totalSteps?: number; isComplete?: boolean } | null,
+    onboardingStatus: onboardingStatus as {
+      stepsCompleted?: number;
+      totalSteps?: number;
+      isComplete?: boolean;
+    } | null,
   };
 
   return <ContractorDashboardProfessional data={dashboardData} />;

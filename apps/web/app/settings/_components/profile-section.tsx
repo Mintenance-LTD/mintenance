@@ -159,7 +159,7 @@ export function ProfileSection({
               Location
             </h3>
             <p className='text-sm text-gray-600 mb-6'>
-              Your location helps us match you with nearby contractors.
+              Your location helps us match you with nearby jobs and homeowners.
             </p>
 
             <div className='space-y-4'>
@@ -209,10 +209,12 @@ export function ProfileSection({
                     onChange={(e) =>
                       setProfileData((prev) => ({
                         ...prev,
-                        postcode: e.target.value,
+                        postcode: e.target.value.toUpperCase(),
                       }))
                     }
-                    className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-600 focus:border-transparent bg-white text-gray-900'
+                    className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-600 focus:border-transparent bg-white text-gray-900 uppercase'
+                    autoCapitalize='characters'
+                    spellCheck={false}
                     placeholder='SW1A 1AA'
                   />
                 </div>

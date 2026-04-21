@@ -15,6 +15,7 @@ import {
   calculateKpiData,
 } from './lib/data-processing';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { fetchNotificationFeed } from '@/lib/notifications/feed';
 
 export const metadata: Metadata = {
   title: 'Dashboard | Mintenance',
@@ -74,22 +75,24 @@ export default async function DashboardPage2025() {
       user.email
     : user.email;
 
-  // Calculate total spent from actual payments (escrow transactions), not job budgets
-  const totalSpent =
-    payments.length > 0
-      ? payments
-          .filter(
-            (p: { status?: string }) =>
-              p.status === 'released' ||
-              p.status === 'held' ||
-              p.status === 'completed'
-          )
-          .reduce(
-            (sum: number, p: { amount?: number }) =>
-              sum + (Number(p.amount) || 0),
-            0
-          )
-      : kpiData.jobsData.totalRevenue; // Fallback to budget sum if no payment records
+  // Calculate total spent from actual payments (escrow transactions), not job
+  // budgets. The previous fallback of "kpiData.jobsData.totalRevenue" when
+  // payments were empty lied to the user: the homeowner Financials page
+  // reads "Total Spent £0.00" for the same data, so the two numbers
+  // disagreed. Now we only count payments in a paid/held/released state.
+  // For a pure budget-sum view the user can look at /financials "Total
+  // Budget".
+  const totalSpent = payments
+    .filter(
+      (p: { status?: string }) =>
+        p.status === 'released' ||
+        p.status === 'held' ||
+        p.status === 'completed'
+    )
+    .reduce(
+      (sum: number, p: { amount?: number }) => sum + (Number(p.amount) || 0),
+      0
+    );
 
   // PERFORMANCE FIX: Batch queries instead of N+1
   // Collect all job and contractor IDs
@@ -171,7 +174,9 @@ export default async function DashboardPage2025() {
       progress: progress ? parseFloat(progress.toString()) : 0,
       bidsCount: job.contractor_id ? 0 : bidsCount,
       scheduledDate:
-        typeof job.scheduled_date === 'string' ? job.scheduled_date : undefined,
+        typeof job.scheduled_start_date === 'string'
+          ? job.scheduled_start_date
+          : undefined,
       photoUrl,
     };
   });
@@ -197,30 +202,20 @@ export default async function DashboardPage2025() {
       createdAt: bid.created_at,
     }));
 
-  // Fetch real notifications for recent activity
-  const { data: notifications } = await serverSupabase
-    .from('notifications')
-    .select('id, type, title, message, created_at')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
-    .limit(10);
-
+  // Recent activity feed — shares the filtering/mapping rules used by
+  // `/api/notifications` via fetchNotificationFeed, so this card and the
+  // /notifications page no longer drift apart (previously the dashboard
+  // ran its own unfiltered SELECT and could show social-type rows or
+  // older read items that the dedicated page deliberately hid).
+  const feedItems = await fetchNotificationFeed(user.id, { limit: 10 });
   const recentActivity =
-    notifications && notifications.length > 0
-      ? notifications.map(
-          (n: {
-            id: string;
-            type?: string;
-            title?: string;
-            message?: string;
-            created_at: string;
-          }) => ({
-            id: n.id,
-            type: n.type || 'info',
-            message: n.message || n.title || 'Notification',
-            timestamp: n.created_at,
-          })
-        )
+    feedItems.length > 0
+      ? feedItems.map((n) => ({
+          id: n.id,
+          type: n.type,
+          message: n.message || n.title || 'Notification',
+          timestamp: n.created_at,
+        }))
       : [
           // Fallback: derive from jobs + bids if no notifications exist yet
           ...jobs.slice(0, 5).map((job) => ({

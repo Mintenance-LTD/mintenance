@@ -51,7 +51,7 @@ export const GET = withApiHandler(
     const { data: contracts } = await serverSupabase
       .from('contracts')
       .select(
-        'id, job_id, title, status, amount, created_at, updated_at, contractor_signed_at, homeowner_signed_at, homeowner:profiles!homeowner_id(first_name, last_name)'
+        'id, job_id, title, status, amount, created_at, updated_at, contractor_signed_at, homeowner_signed_at, homeowner:profiles!homeowner_id(first_name, last_name), job:jobs!job_id(title)'
       )
       .eq('contractor_id', user.id)
       .neq('status', 'draft')
@@ -66,16 +66,30 @@ export const GET = withApiHandler(
         homeowner?.first_name && homeowner?.last_name
           ? `${homeowner.first_name} ${homeowner.last_name}`
           : 'Homeowner';
+      // Contracts historically got the literal title "Contract for Job" at
+      // creation time before job-title passthrough existed. Swap those (and
+      // any blank title) for the real job title so the list stays readable.
+      const rawTitle = typeof c.title === 'string' ? c.title.trim() : '';
+      const jobTitle = (c.job as { title?: string } | null)?.title?.trim();
+      const isGeneric =
+        !rawTitle ||
+        rawTitle.toLowerCase() === 'contract' ||
+        rawTitle.toLowerCase() === 'contract for job';
+      const displayName = isGeneric
+        ? jobTitle
+          ? `Contract for ${jobTitle}`
+          : 'Contract'
+        : rawTitle;
       return {
         id: `contract-${c.id}`,
         contract_id: c.id,
-        name: c.title || 'Contract',
+        name: displayName,
         file_type: 'contract',
         category: 'contracts',
         size_bytes: 0,
         public_url: `/jobs/${c.job_id}`,
         job_id: c.job_id,
-        jobTitle: c.title,
+        jobTitle: jobTitle || rawTitle || null,
         starred: false,
         tags: [c.status as string],
         created_at: c.created_at,

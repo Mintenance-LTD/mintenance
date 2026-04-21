@@ -103,7 +103,10 @@ export default function CreateJobPage2025() {
   });
 
   const [properties, setProperties] = useState<Property[]>([]);
-  const [loadingProperties, setLoadingProperties] = useState(false);
+  // Start loading=true so the first render shows "Loading…" instead of flashing
+  // "No properties found" before the /api/properties fetch resolves (the
+  // useEffect that hits the API only fires once the user context is known).
+  const [loadingProperties, setLoadingProperties] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [validationErrors, setValidationErrors] = useState<
     Record<string, string>

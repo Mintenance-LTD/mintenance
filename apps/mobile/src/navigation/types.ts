@@ -38,6 +38,12 @@ export type RootTabParamList = {
 // ============================================================================
 
 export type AuthStackParamList = {
+  // Phase 2 Screen 0 (2026-04-20) — pre-signup welcome/role-tile
+  // landing. Replaces Login as the AuthStack initialRouteName.
+  // Users who only want to sign in tap the "Sign in" link at the
+  // bottom of this screen; users who select a role tile go to
+  // Register with that role pre-chosen.
+  Welcome: undefined;
   // `email` is set when arriving from EmailVerificationPending after a
   // successful signUp, so the user doesn't re-type their address on the
   // sign-in step. We never forward the password: email-confirm is ON,
@@ -46,7 +52,11 @@ export type AuthStackParamList = {
   // because React Navigation may serialize state to storage when
   // deep-linking is enabled.
   Login: { email?: string } | undefined;
-  Register: undefined;
+  // `role` is populated by the Welcome screen tile tap (Phase 2) so
+  // the registration form opens with the selected role already set.
+  // When null/absent (e.g. deep-link straight to Register) the form
+  // falls back to the default 'homeowner'.
+  Register: { role?: 'homeowner' | 'contractor' } | undefined;
   // Phase 1.2 (Branch B) — shown after signUp while the Supabase-issued
   // confirmation email is pending. Entirely driven by user action; no
   // silent polling, no session state mutations.

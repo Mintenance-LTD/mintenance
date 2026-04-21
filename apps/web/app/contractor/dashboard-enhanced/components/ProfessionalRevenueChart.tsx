@@ -65,7 +65,7 @@ export function ProfessionalRevenueChart({
                       {item.month}
                     </span>
                     <span className='text-xs text-slate-500'>
-                      {item.jobs} jobs
+                      {item.jobs} {item.jobs === 1 ? 'job' : 'jobs'}
                     </span>
                   </div>
                   <span className='text-sm font-bold text-slate-900'>

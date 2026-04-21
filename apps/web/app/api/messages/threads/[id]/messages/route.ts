@@ -9,6 +9,7 @@ import {
   ForbiddenError,
 } from '@/lib/errors/api-error';
 import { EmailService } from '@/lib/email-service';
+import { NotificationService } from '@/lib/services/notifications/NotificationService';
 import { sanitizeMessage } from '@/lib/sanitizer';
 import {
   MESSAGE_TYPES,
@@ -322,14 +323,17 @@ export const POST = withApiHandler(
 
         const messagePreview = messageText.substring(0, 80);
 
-        await serverSupabase.from('notifications').insert({
-          user_id: receiverId,
+        // Route through NotificationService so push goes out alongside
+        // the in-app row, and the user's preference/quiet-hours settings
+        // are honoured. Direct `.from('notifications').insert(...)` here
+        // silently skipped push for every message for months.
+        await NotificationService.createNotification({
+          userId: receiverId,
+          type: 'message_received',
           title: 'New Message',
           message: `${senderName}: ${messagePreview}${messageText.length > 80 ? '...' : ''}`,
-          type: 'message_received',
-          read: false,
-          action_url: `/messages?jobId=${jobId}`,
-          created_at: new Date().toISOString(),
+          actionUrl: `/messages?jobId=${jobId}`,
+          metadata: { jobId, senderId: user.id },
         });
         // Send email notification to the receiver
         try {

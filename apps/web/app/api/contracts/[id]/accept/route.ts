@@ -302,25 +302,20 @@ export const POST = withApiHandler(
         });
       }
 
-      // Update job with contract dates and schedule on both calendars
+      // Update job with contract dates and schedule on both calendars.
+      // Historical note: this used to also set `scheduled_date`, but that
+      // column does not exist on `jobs` — including it caused Supabase to
+      // reject the whole update, so the schedule silently never landed
+      // when a contract was accepted. Calendars were blank as a result.
       if (updatedContract.start_date || updatedContract.end_date) {
         const jobUpdateData: {
           updated_at: string;
-          scheduled_date?: string;
           scheduled_start_date?: string;
           scheduled_end_date?: string;
         } = {
           updated_at: new Date().toISOString(),
         };
 
-        // Set scheduled_date to start_date for calendar display
-        // This will appear on both homeowner and contractor calendars
-        if (updatedContract.start_date) {
-          jobUpdateData.scheduled_date = updatedContract.start_date;
-        }
-
-        // Also store start and end dates if they exist in the jobs table
-        // (Some schemas have these fields)
         if (updatedContract.start_date) {
           jobUpdateData.scheduled_start_date = updatedContract.start_date;
         }

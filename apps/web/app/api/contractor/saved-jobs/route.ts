@@ -1,8 +1,13 @@
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
-import { BadRequestError, NotFoundError, ConflictError } from '@/lib/errors/api-error';
+import {
+  BadRequestError,
+  NotFoundError,
+  ConflictError,
+} from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { NotificationService } from '@/lib/services/notifications/NotificationService';
 
 /**
  * GET /api/contractor/saved-jobs - Get list of saved job IDs
@@ -14,7 +19,8 @@ export const GET = withApiHandler(
   async (_request, { user }) => {
     const { data: savedJobs, error: savedJobsError } = await serverSupabase
       .from('saved_jobs')
-      .select(`
+      .select(
+        `
         id,
         job_id,
         created_at,
@@ -38,16 +44,22 @@ export const GET = withApiHandler(
             profile_image_url
           )
         )
-      `)
+      `
+      )
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 
     if (savedJobsError) {
-      logger.error('Error fetching saved jobs', savedJobsError, { service: 'saved_jobs', userId: user.id });
+      logger.error('Error fetching saved jobs', savedJobsError, {
+        service: 'saved_jobs',
+        userId: user.id,
+      });
       throw savedJobsError;
     }
 
-    const jobIds = (savedJobs || []).map(saved => saved.job_id).filter(Boolean);
+    const jobIds = (savedJobs || [])
+      .map((saved) => saved.job_id)
+      .filter(Boolean);
 
     return NextResponse.json({ jobIds, savedJobs: savedJobs || [] });
   }
@@ -57,14 +69,19 @@ export const POST = withApiHandler(
   { roles: ['contractor'], rateLimit: { maxRequests: 30 } },
   async (request, { user }) => {
     // Check subscription requirement
-    const { requireSubscriptionForAction } = await import('@/lib/middleware/subscription-check');
-    const subscriptionCheck = await requireSubscriptionForAction(request, 'save_job');
+    const { requireSubscriptionForAction } =
+      await import('@/lib/middleware/subscription-check');
+    const subscriptionCheck = await requireSubscriptionForAction(
+      request,
+      'save_job'
+    );
     if (subscriptionCheck) return subscriptionCheck;
 
     const body = await request.json();
     const { jobId } = body;
 
-    if (!jobId || typeof jobId !== 'string') throw new BadRequestError('Job ID is required');
+    if (!jobId || typeof jobId !== 'string')
+      throw new BadRequestError('Job ID is required');
 
     // Verify job exists
     const { data: job, error: jobError } = await serverSupabase
@@ -87,10 +104,18 @@ export const POST = withApiHandler(
 
     const { error: saveError } = await serverSupabase
       .from('saved_jobs')
-      .insert({ user_id: user.id, job_id: jobId, created_at: new Date().toISOString() });
+      .insert({
+        user_id: user.id,
+        job_id: jobId,
+        created_at: new Date().toISOString(),
+      });
 
     if (saveError) {
-      logger.error('Error saving job', saveError, { service: 'saved_jobs', userId: user.id, jobId });
+      logger.error('Error saving job', saveError, {
+        service: 'saved_jobs',
+        userId: user.id,
+        jobId,
+      });
       throw saveError;
     }
 
@@ -102,18 +127,25 @@ export const POST = withApiHandler(
       .single();
 
     if (jobDetails?.homeowner_id) {
-      await serverSupabase.from('notifications').insert({
-        user_id: jobDetails.homeowner_id,
+      // Direct insert used two columns that don't exist on notifications
+      // — `data` (the canonical name is `metadata`) and `is_read` (the
+      // canonical name is `read`). Both typos together meant PostgREST
+      // rejected every insert. Routing through NotificationService also
+      // adds push and preference handling.
+      await NotificationService.createNotification({
+        userId: jobDetails.homeowner_id,
         type: 'job_saved',
         title: 'Your job was saved',
         message: `A contractor saved your job "${jobDetails.title}"`,
-        data: { job_id: jobId, contractor_id: user.id, action: 'saved' },
-        is_read: false,
-        created_at: new Date().toISOString(),
+        actionUrl: `/jobs/${jobId}`,
+        metadata: { job_id: jobId, contractor_id: user.id, action: 'saved' },
       });
     }
 
-    return NextResponse.json({ success: true, message: 'Job saved successfully' });
+    return NextResponse.json({
+      success: true,
+      message: 'Job saved successfully',
+    });
   }
 );
 
@@ -132,10 +164,17 @@ export const DELETE = withApiHandler(
       .eq('job_id', jobId);
 
     if (deleteError) {
-      logger.error('Error unsaving job', deleteError, { service: 'saved_jobs', userId: user.id, jobId });
+      logger.error('Error unsaving job', deleteError, {
+        service: 'saved_jobs',
+        userId: user.id,
+        jobId,
+      });
       throw deleteError;
     }
 
-    return NextResponse.json({ success: true, message: 'Job unsaved successfully' });
+    return NextResponse.json({
+      success: true,
+      message: 'Job unsaved successfully',
+    });
   }
 );

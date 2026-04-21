@@ -367,28 +367,38 @@ export default async function JobDetailPage2025({
             completionConfirmed: !!job.completion_confirmed_by_homeowner,
           }}
         />
-        {job.status === 'completed' && afterPhotos.length > 0 && (
-          <div style={{ marginTop: '24px' }}>
-            <HomeownerPhotoReview
-              jobId={job.id}
-              beforePhotos={beforePhotos}
-              afterPhotos={afterPhotos}
-              isConfirmed={!!job.completion_confirmed_by_homeowner}
-            />
+        {/* The Photo Review and Contract panels need to align with the
+            Bids Received card inside JobDetailsProfessional, not with
+            the full page. JobDetailsProfessional renders a 12-col grid
+            inside `max-w-7xl mx-auto px-6 py-8`, where the main content
+            (including Bids Received) lives in `col-span-12 lg:col-span-8`.
+            Mirror that same outer container + grid here so these two
+            cards sit directly under the Bids Received column at the
+            same width on wide viewports, and stack full-width on mobile
+            just like everything else. */}
+        <div className='max-w-7xl mx-auto px-6'>
+          <div className='grid grid-cols-12 gap-8'>
+            <div className='col-span-12 lg:col-span-8 space-y-6'>
+              {job.status === 'completed' && afterPhotos.length > 0 && (
+                <HomeownerPhotoReview
+                  jobId={job.id}
+                  beforePhotos={beforePhotos}
+                  afterPhotos={afterPhotos}
+                  isConfirmed={!!job.completion_confirmed_by_homeowner}
+                />
+              )}
+              {job.contractor_id && (
+                <div id='contract-section'>
+                  <ContractManagement
+                    jobId={job.id}
+                    userRole='homeowner'
+                    userId={user.id}
+                  />
+                </div>
+              )}
+            </div>
           </div>
-        )}
-        {job.contractor_id && (
-          <div
-            id='contract-section'
-            style={{ marginTop: '24px', maxWidth: '768px' }}
-          >
-            <ContractManagement
-              jobId={job.id}
-              userRole='homeowner'
-              userId={user.id}
-            />
-          </div>
-        )}
+        </div>
       </HomeownerPageWrapper>
     </>
   );

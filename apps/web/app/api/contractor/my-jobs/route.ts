@@ -21,23 +21,27 @@ interface JobApiResponse {
   status: string;
   photos?: string[];
   created_at: string;
+  scheduled_start_date?: string | null;
+  scheduled_end_date?: string | null;
   homeowner_id: string;
-  homeowner?: {
-    first_name?: string;
-    last_name?: string;
-    profile_image_url?: string;
-  } | Array<{
-    first_name?: string;
-    last_name?: string;
-    profile_image_url?: string;
-  }>;
+  homeowner?:
+    | {
+        first_name?: string;
+        last_name?: string;
+        profile_image_url?: string;
+      }
+    | Array<{
+        first_name?: string;
+        last_name?: string;
+        profile_image_url?: string;
+      }>;
   job_attachments?: Array<{ file_url: string }>;
 }
 
 function getJobPhotos(job: JobApiResponse): string[] {
   if (job.photos && job.photos.length > 0) return job.photos;
   if (job.job_attachments && job.job_attachments.length > 0) {
-    return job.job_attachments.map(a => a.file_url);
+    return job.job_attachments.map((a) => a.file_url);
   }
   return [];
 }
@@ -54,14 +58,22 @@ function transformJob(job: JobApiResponse) {
     status: job.status,
     photos: getJobPhotos(job),
     created_at: job.created_at,
+    scheduled_start_date: job.scheduled_start_date ?? null,
+    scheduled_end_date: job.scheduled_end_date ?? null,
     homeowner_id: job.homeowner_id,
-    homeowner: Array.isArray(job.homeowner) ? job.homeowner[0] || null : job.homeowner || null,
+    homeowner: Array.isArray(job.homeowner)
+      ? job.homeowner[0] || null
+      : job.homeowner || null,
     homeowner_name: job.homeowner
       ? Array.isArray(job.homeowner)
-        ? `${job.homeowner[0]?.first_name || ''} ${job.homeowner[0]?.last_name || ''}`.trim() || 'Unknown'
-        : `${job.homeowner.first_name || ''} ${job.homeowner.last_name || ''}`.trim() || 'Unknown'
+        ? `${job.homeowner[0]?.first_name || ''} ${job.homeowner[0]?.last_name || ''}`.trim() ||
+          'Unknown'
+        : `${job.homeowner.first_name || ''} ${job.homeowner.last_name || ''}`.trim() ||
+          'Unknown'
       : 'Unknown',
-    homeowner_avatar: Array.isArray(job.homeowner) ? job.homeowner[0]?.profile_image_url : job.homeowner?.profile_image_url,
+    homeowner_avatar: Array.isArray(job.homeowner)
+      ? job.homeowner[0]?.profile_image_url
+      : job.homeowner?.profile_image_url,
   };
 }
 
@@ -79,6 +91,8 @@ const JOB_SELECT_FIELDS = `
   status,
   photos,
   created_at,
+  scheduled_start_date,
+  scheduled_end_date,
   homeowner_id,
   homeowner:profiles!homeowner_id (
     id,
@@ -110,7 +124,9 @@ export const GET = withApiHandler(
       try {
         status = statusSchema.parse(statusParam);
       } catch {
-        throw new BadRequestError('Invalid status parameter. Must be: active, bid, completed, or all');
+        throw new BadRequestError(
+          'Invalid status parameter. Must be: active, bid, completed, or all'
+        );
       }
     }
 
@@ -130,7 +146,7 @@ export const GET = withApiHandler(
         throw bidsError;
       }
 
-      const jobIds = (bids || []).map(b => b.job_id).filter(Boolean);
+      const jobIds = (bids || []).map((b) => b.job_id).filter(Boolean);
 
       if (jobIds.length === 0) {
         return NextResponse.json({ jobs: [] });
@@ -183,5 +199,5 @@ export const GET = withApiHandler(
         jobs: (jobs || []).map((job: JobApiResponse) => transformJob(job)),
       });
     }
-  },
+  }
 );

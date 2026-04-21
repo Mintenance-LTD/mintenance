@@ -9,6 +9,7 @@ interface SidebarProps {
   onSelectCategory: (value: string) => void;
   recentDocuments: Document[];
   onDownload: (doc: Document) => void;
+  onView?: (doc: Document) => void;
 }
 
 export function Sidebar({
@@ -17,13 +18,17 @@ export function Sidebar({
   onSelectCategory,
   recentDocuments,
   onDownload,
+  onView,
 }: SidebarProps) {
   return (
-    <div className="lg:col-span-1 space-y-6">
+    <div className='lg:col-span-1 space-y-6'>
       {/* Categories */}
-      <MotionDiv variants={fadeIn} className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
-        <h3 className="font-semibold text-gray-900 mb-4">Categories</h3>
-        <div className="space-y-2">
+      <MotionDiv
+        variants={fadeIn}
+        className='bg-white rounded-xl shadow-lg border border-gray-200 p-6'
+      >
+        <h3 className='font-semibold text-gray-900 mb-4'>Categories</h3>
+        <div className='space-y-2'>
           {categories.map((cat) => (
             <button
               key={cat.value}
@@ -34,7 +39,7 @@ export function Sidebar({
                   : 'text-gray-700 hover:bg-gray-100'
               }`}
             >
-              <span className="text-sm font-medium">{cat.label}</span>
+              <span className='text-sm font-medium'>{cat.label}</span>
               <span
                 className={`text-xs px-2 py-0.5 rounded-full ${
                   selectedCategory === cat.value
@@ -50,27 +55,38 @@ export function Sidebar({
       </MotionDiv>
 
       {/* Recent */}
-      <MotionDiv variants={fadeIn} className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
-        <h3 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-          <Clock className="w-4 h-4" />
+      <MotionDiv
+        variants={fadeIn}
+        className='bg-white rounded-xl shadow-lg border border-gray-200 p-6'
+      >
+        <h3 className='font-semibold text-gray-900 mb-4 flex items-center gap-2'>
+          <Clock className='w-4 h-4' />
           Recent
         </h3>
         {recentDocuments.length === 0 ? (
-          <p className="text-sm text-gray-500">No documents yet</p>
+          <p className='text-sm text-gray-500'>No documents yet</p>
         ) : (
-          <div className="space-y-3">
+          <div className='space-y-3'>
             {recentDocuments.map((doc) => (
-              <div
+              <button
                 key={doc.id}
-                className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg cursor-pointer"
-                onClick={() => onDownload(doc)}
+                type='button'
+                aria-label={`Preview ${doc.name}`}
+                className='w-full text-left flex items-center gap-3 p-2 hover:bg-gray-50 rounded-lg'
+                onClick={() => (onView ? onView(doc) : onDownload(doc))}
               >
-                <div className="flex-shrink-0">{getFileIcon(doc.file_type)}</div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">{doc.name}</p>
-                  <p className="text-xs text-gray-500">{formatFileSize(doc.size_bytes)}</p>
+                <div className='flex-shrink-0'>
+                  {getFileIcon(doc.file_type)}
                 </div>
-              </div>
+                <div className='flex-1 min-w-0'>
+                  <p className='text-sm font-medium text-gray-900 truncate'>
+                    {doc.name}
+                  </p>
+                  <p className='text-xs text-gray-500'>
+                    {formatFileSize(doc.size_bytes)}
+                  </p>
+                </div>
+              </button>
             ))}
           </div>
         )}

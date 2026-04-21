@@ -8,6 +8,7 @@ import { logger } from '@mintenance/shared';
 import { validateRequest } from '@/lib/validation/validator';
 import { notificationEngagementSchema } from '@/lib/validation/schemas';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { fetchNotificationFeed } from '@/lib/notifications/feed';
 import { z } from 'zod';
 
 const createNotificationSchema = z.object({
@@ -35,78 +36,14 @@ export const GET = withApiHandler(
       { route: '/api/notifications' }
     );
 
-    // Calculate date 24 hours ago
-    const twentyFourHoursAgo = new Date();
-    twentyFourHoursAgo.setHours(twentyFourHoursAgo.getHours() - 24);
-
-    // Fetch notifications from database (user_id filter REQUIRED — see note above)
-    const { data: allUserNotifications, error: fetchError } = await userDb
-      .from('notifications')
-      .select('id, type, title, message, read, created_at, action_url, user_id')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false })
-      .limit(50);
-
-    if (fetchError) {
-      logger.error('Error fetching notifications', fetchError, {
-        service: 'notifications',
-        userId,
-      });
-      throw fetchError;
-    }
-
-    // Filter out social notification types
-    const socialTypes = [
-      'post_liked',
-      'comment_added',
-      'comment_replied',
-      'new_follower',
-    ];
-
-    // Filter notifications: keep recent (24h) OR unread, exclude social types
-    const notifications = (allUserNotifications || [])
-      .filter((notif) => {
-        if (socialTypes.includes(notif.type || '')) return false;
-        const isRecent = new Date(notif.created_at || 0) >= twentyFourHoursAgo;
-        const isUnread = notif.read === false || notif.read === 0;
-        return isRecent || isUnread;
-      })
-      .slice(0, 7);
-
-    // Map database notifications to component format
-    interface NotificationRecord {
-      id: string;
-      type?: string;
-      title?: string;
-      message?: string;
-      read?: boolean | number;
-      created_at?: string;
-      action_url?: string;
-    }
-
-    interface MappedNotification {
-      id: string;
-      type: string;
-      title: string;
-      message: string;
-      read: boolean;
-      created_at: string;
-      link?: string;
-      action_url?: string;
-    }
-
-    const mappedNotifications: MappedNotification[] = (notifications || []).map(
-      (notif: NotificationRecord) => ({
-        id: String(notif.id || ''),
-        type: notif.type || 'bid_received',
-        title: notif.title || 'Notification',
-        message: notif.message || '',
-        read: notif.read === true || notif.read === 1,
-        created_at: notif.created_at || new Date().toISOString(),
-        link: notif.action_url,
-        action_url: notif.action_url,
-      })
-    );
+    // Shared with the dashboard activity feed — see lib/notifications/feed.ts
+    // for the filtering rules (excludes social types, keeps items recent
+    // or unread). Moving the filter into one place stops the two views
+    // from drifting apart on every schema/policy tweak.
+    const mappedNotifications = await fetchNotificationFeed(userId, {
+      db: userDb,
+      limit: 7,
+    });
 
     // Debug: Log specific notification types
     const bidAcceptedNotifs = mappedNotifications.filter(

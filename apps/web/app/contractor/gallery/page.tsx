@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
 
 export default function GalleryPage() {
-  redirect('/contractor/dashboard-enhanced');
+  redirect('/contractor/profile');
 }

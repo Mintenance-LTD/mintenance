@@ -22,6 +22,7 @@ import {
 } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { EmailService } from '@/lib/email-service';
+import { NotificationService } from '@/lib/services/notifications/NotificationService';
 
 // Generate invoice number
 async function generateInvoiceNumber(contractorId: string): Promise<string> {
@@ -239,12 +240,18 @@ export const POST = withApiHandler(
             .single();
 
           if (job) {
-            await serverSupabase.from('notifications').insert({
-              user_id: job.homeowner_id,
+            // Route through NotificationService so push + preference
+            // checks apply. Direct insert used a `data` column that
+            // doesn't exist on notifications — PostgREST rejects the
+            // whole INSERT, so invoice-received notifications never
+            // reached homeowners.
+            await NotificationService.createNotification({
+              userId: job.homeowner_id,
               type: 'invoice_received',
               title: 'New Invoice Received',
               message: `You have received an invoice (${invoiceNumber}) for ${validatedData.title}`,
-              data: {
+              actionUrl: `/jobs/${validatedData.jobId}`,
+              metadata: {
                 invoice_id: invoice.id,
                 invoice_number: invoiceNumber,
                 amount: totalAmount,

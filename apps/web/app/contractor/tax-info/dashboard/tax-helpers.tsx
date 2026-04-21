@@ -85,14 +85,15 @@ export function getW9StatusDisplay(status: W9Status | undefined) {
           <ShieldCheck className='w-6 h-6 text-green-600' aria-hidden='true' />
         ),
         label: 'Verified',
-        description: 'Your W-9 has been verified and is on file.',
+        description: 'Your tax information has been verified and is on file.',
         badgeClass: 'bg-green-100 text-green-800',
       };
     case 'submitted':
       return {
         icon: <Clock className='w-6 h-6 text-blue-600' aria-hidden='true' />,
         label: 'Under Review',
-        description: 'Your W-9 has been submitted and is being reviewed.',
+        description:
+          'Your tax information has been submitted and is being reviewed.',
         badgeClass: 'bg-blue-100 text-blue-800',
       };
     default:
@@ -101,7 +102,8 @@ export function getW9StatusDisplay(status: W9Status | undefined) {
           <ShieldAlert className='w-6 h-6 text-amber-600' aria-hidden='true' />
         ),
         label: 'Not Submitted',
-        description: 'Please submit your W-9 form for tax reporting.',
+        description:
+          'Please submit your tax information so we can provide end-of-year earnings summaries.',
         badgeClass: 'bg-amber-100 text-amber-800',
       };
   }
@@ -113,7 +115,7 @@ export function get1099StatusBadge(status: Form1099Status) {
       return (
         <span className='inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800'>
           <CheckCircle className='w-3 h-3' aria-hidden='true' />
-          Filed
+          Issued
         </span>
       );
     case 'generated':
