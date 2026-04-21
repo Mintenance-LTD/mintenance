@@ -24,35 +24,33 @@ export default async function PropertiesPage2025() {
     redirect('/login?redirect=/properties');
   }
 
-  // Fetch properties
-  const properties = await unstable_cache(
-    async () => {
-      const { data, error } = await serverSupabase
-        .from('properties')
-        .select('*')
-        .eq('owner_id', user.id)
-        .order('is_primary', { ascending: false })
-        .order('created_at', { ascending: false });
-      return error ? [] : data || [];
-    },
-    [`properties-${user.id}`],
-    { revalidate: 300 }
-  )();
+  // Fetch properties.
+  //
+  // The previous 300s unstable_cache around this query caused a stale-data
+  // bug on the property grid: when a homeowner linked an existing job to a
+  // new property, the cached rows still read `property_id = null` for up
+  // to 5 minutes, and the per-card "X completed jobs / £Y spent" panel
+  // stayed at 0/£0.00 even though the underlying data had been fixed.
+  // Cache key was only scoped by user.id, so nothing in the mutation path
+  // could bust it. The query itself is ~10ms against a normal-sized
+  // homeowner account; the cache was saving nothing measurable.
+  const { data: propertiesData } = await serverSupabase
+    .from('properties')
+    .select('*')
+    .eq('owner_id', user.id)
+    .order('is_primary', { ascending: false })
+    .order('created_at', { ascending: false });
+  const properties = propertiesData || [];
 
-  // Fetch jobs for stats
-  const jobs = await unstable_cache(
-    async () => {
-      const { data } = await serverSupabase
-        .from('jobs')
-        .select(
-          'id, property_id, status, budget, scheduled_date, created_at, category'
-        )
-        .eq('homeowner_id', user.id);
-      return data || [];
-    },
-    [`properties-jobs-${user.id}`],
-    { revalidate: 60 }
-  )();
+  // Jobs for the per-property stats. Same reasoning as above — the 60s
+  // unstable_cache was hiding property_id updates.
+  const { data: jobsData } = await serverSupabase
+    .from('jobs')
+    .select(
+      'id, property_id, status, budget, scheduled_date, created_at, category'
+    )
+    .eq('homeowner_id', user.id);
+  const jobs = jobsData || [];
 
   // Fetch user's favorites
   const favorites = await unstable_cache(
@@ -80,10 +78,13 @@ export default async function PropertiesPage2025() {
     const completedJobs = propertyJobs.filter(
       (j) => j.status === 'completed'
     ).length;
-    const totalSpent = propertyJobs.reduce(
-      (sum, job) => sum + (Number(job.budget) || 0),
-      0
-    );
+    // "Spent" should mean money that has actually moved, not budgets on
+    // in-flight work. The /properties/[id] detail page already filters to
+    // completed for its totalSpent; align the grid card with that so the
+    // two views don't disagree.
+    const totalSpent = propertyJobs
+      .filter((j) => j.status === 'completed')
+      .reduce((sum, job) => sum + (Number(job.budget) || 0), 0);
     const lastJob = propertyJobs.sort(
       (a, b) =>
         new Date(b.scheduled_date || b.created_at).getTime() -

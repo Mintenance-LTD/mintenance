@@ -74,22 +74,24 @@ export default async function DashboardPage2025() {
       user.email
     : user.email;
 
-  // Calculate total spent from actual payments (escrow transactions), not job budgets
-  const totalSpent =
-    payments.length > 0
-      ? payments
-          .filter(
-            (p: { status?: string }) =>
-              p.status === 'released' ||
-              p.status === 'held' ||
-              p.status === 'completed'
-          )
-          .reduce(
-            (sum: number, p: { amount?: number }) =>
-              sum + (Number(p.amount) || 0),
-            0
-          )
-      : kpiData.jobsData.totalRevenue; // Fallback to budget sum if no payment records
+  // Calculate total spent from actual payments (escrow transactions), not job
+  // budgets. The previous fallback of "kpiData.jobsData.totalRevenue" when
+  // payments were empty lied to the user: the homeowner Financials page
+  // reads "Total Spent £0.00" for the same data, so the two numbers
+  // disagreed. Now we only count payments in a paid/held/released state.
+  // For a pure budget-sum view the user can look at /financials "Total
+  // Budget".
+  const totalSpent = payments
+    .filter(
+      (p: { status?: string }) =>
+        p.status === 'released' ||
+        p.status === 'held' ||
+        p.status === 'completed'
+    )
+    .reduce(
+      (sum: number, p: { amount?: number }) => sum + (Number(p.amount) || 0),
+      0
+    );
 
   // PERFORMANCE FIX: Batch queries instead of N+1
   // Collect all job and contractor IDs

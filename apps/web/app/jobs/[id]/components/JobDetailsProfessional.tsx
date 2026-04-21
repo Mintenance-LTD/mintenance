@@ -261,6 +261,7 @@ export function JobDetailsProfessional({
                     null
                   }
                   jobId={job.id}
+                  jobCategory={job.category}
                   photoUrls={photos}
                   onCorrection={(assessmentId, corrections) => {
                     logger.info('Training data corrections submitted:', {
