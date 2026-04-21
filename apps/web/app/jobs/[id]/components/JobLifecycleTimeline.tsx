@@ -258,8 +258,14 @@ export function NextActionCard({
     ctaHref = '#photo-review';
     urgency = 'urgent';
   } else if (completionConfirmed) {
-    message =
-      'This job is complete. Payment has been released to the contractor.';
+    // Same state-machine nuance as the "Releasing funds" timeline step:
+    // homeowner approval moves escrow held → release_pending, not
+    // released. Until Stripe confirms the transfer (escrow flips to
+    // `released`/`completed`) the money is still in flight.
+    const escrowReleased = ['released', 'completed'].includes(escrowStatus);
+    message = escrowReleased
+      ? 'This job is complete. Payment has been released to the contractor.'
+      : 'Work approved. The payment is in transit to the contractor and will settle shortly.';
     urgency = 'info';
   } else {
     return null;
