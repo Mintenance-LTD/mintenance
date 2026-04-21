@@ -17,6 +17,13 @@ export const metadata: Metadata = {
     'Manage your properties, view maintenance history, and track active jobs for each location.',
 };
 
+// The per-property job aggregation depends on row-level state that can
+// change at any time (a job moves to 'completed', property_id gets linked
+// to a job, etc). Next.js' default ISR would happily serve the last
+// rendered HTML for 5–10 minutes; pin to force-dynamic so the stats are
+// always current.
+export const dynamic = 'force-dynamic';
+
 export default async function PropertiesPage2025() {
   const user = await getCurrentUserFromCookies();
 
