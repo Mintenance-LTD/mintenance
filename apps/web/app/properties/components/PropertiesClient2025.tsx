@@ -367,7 +367,8 @@ export function PropertiesClient2025({
                   {/* Stats */}
                   <div className='flex items-center justify-between pt-4 border-t border-gray-200'>
                     <div className='text-sm text-gray-600'>
-                      {property.completedJobs} completed jobs
+                      {property.completedJobs} completed{' '}
+                      {property.completedJobs === 1 ? 'job' : 'jobs'}
                     </div>
                     <div className='text-sm font-semibold text-gray-900'>
                       {formatMoney(property.totalSpent, 'GBP')} spent
