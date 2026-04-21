@@ -367,28 +367,37 @@ export default async function JobDetailPage2025({
             completionConfirmed: !!job.completion_confirmed_by_homeowner,
           }}
         />
-        {job.status === 'completed' && afterPhotos.length > 0 && (
-          <div style={{ marginTop: '24px' }}>
-            <HomeownerPhotoReview
-              jobId={job.id}
-              beforePhotos={beforePhotos}
-              afterPhotos={afterPhotos}
-              isConfirmed={!!job.completion_confirmed_by_homeowner}
-            />
-          </div>
-        )}
-        {job.contractor_id && (
-          <div
-            id='contract-section'
-            style={{ marginTop: '24px', maxWidth: '768px' }}
-          >
-            <ContractManagement
-              jobId={job.id}
-              userRole='homeowner'
-              userId={user.id}
-            />
-          </div>
-        )}
+        {/* The Photo Review and Contract panels used to sit at the
+            outer HomeownerPageWrapper's left padding while the main
+            JobDetailsProfessional block was centered inside a
+            max-w-7xl container. That left the two cards visibly
+            detached on wide viewports — the user screenshot from
+            2026-04-21 showed the Contract Agreement card floating
+            off to the left margin while Bids Received was centered.
+            Wrap both sections in the same max-w-7xl / mx-auto
+            container so they live directly under the rest of the
+            job detail. */}
+        <div className='max-w-7xl mx-auto px-6'>
+          {job.status === 'completed' && afterPhotos.length > 0 && (
+            <div className='mt-6'>
+              <HomeownerPhotoReview
+                jobId={job.id}
+                beforePhotos={beforePhotos}
+                afterPhotos={afterPhotos}
+                isConfirmed={!!job.completion_confirmed_by_homeowner}
+              />
+            </div>
+          )}
+          {job.contractor_id && (
+            <div id='contract-section' className='mt-6'>
+              <ContractManagement
+                jobId={job.id}
+                userRole='homeowner'
+                userId={user.id}
+              />
+            </div>
+          )}
+        </div>
       </HomeownerPageWrapper>
     </>
   );
