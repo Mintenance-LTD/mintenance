@@ -51,10 +51,15 @@ export default async function PropertiesPage2025() {
 
   // Jobs for the per-property stats. Same reasoning as above — the 60s
   // unstable_cache was hiding property_id updates.
+  // `scheduled_date` doesn't exist on jobs — the correct column is
+  // `scheduled_start_date`. Asking Supabase for a nonexistent column
+  // returns a 400 with `data = null`, which we silently coerced to `[]`,
+  // which made every property card read "0 completed jobs / £0.00 spent"
+  // regardless of the actual data.
   const { data: jobsData } = await serverSupabase
     .from('jobs')
     .select(
-      'id, property_id, status, budget, scheduled_date, created_at, category'
+      'id, property_id, status, budget, scheduled_start_date, created_at, category'
     )
     .eq('homeowner_id', user.id);
   const jobs = jobsData || [];
@@ -94,11 +99,13 @@ export default async function PropertiesPage2025() {
       .reduce((sum, job) => sum + (Number(job.budget) || 0), 0);
     const lastJob = propertyJobs.sort(
       (a, b) =>
-        new Date(b.scheduled_date || b.created_at).getTime() -
-        new Date(a.scheduled_date || a.created_at).getTime()
+        new Date(b.scheduled_start_date || b.created_at).getTime() -
+        new Date(a.scheduled_start_date || a.created_at).getTime()
     )[0];
     const lastServiceDate = lastJob
-      ? new Date(lastJob.scheduled_date || lastJob.created_at).toISOString()
+      ? new Date(
+          lastJob.scheduled_start_date || lastJob.created_at
+        ).toISOString()
       : null;
 
     // Recent job categories

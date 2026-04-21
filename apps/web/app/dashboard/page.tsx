@@ -173,7 +173,9 @@ export default async function DashboardPage2025() {
       progress: progress ? parseFloat(progress.toString()) : 0,
       bidsCount: job.contractor_id ? 0 : bidsCount,
       scheduledDate:
-        typeof job.scheduled_date === 'string' ? job.scheduled_date : undefined,
+        typeof job.scheduled_start_date === 'string'
+          ? job.scheduled_start_date
+          : undefined,
       photoUrl,
     };
   });
