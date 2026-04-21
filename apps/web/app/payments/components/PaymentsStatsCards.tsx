@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Banknote, Clock, RotateCcw, Receipt } from 'lucide-react';
+import { Banknote, Clock, RotateCcw, ReceiptPoundSterling } from 'lucide-react';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import { formatMoney } from '@/lib/utils/currency';
 
@@ -46,7 +46,7 @@ export function PaymentsStatsCards({
     {
       label: 'Transactions',
       value: String(transactionCount),
-      icon: Receipt,
+      icon: ReceiptPoundSterling,
       iconColor: 'text-violet-600',
       bgIcon: 'bg-violet-50',
       accent: 'border-l-violet-500',

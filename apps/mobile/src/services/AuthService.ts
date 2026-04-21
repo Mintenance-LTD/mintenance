@@ -174,6 +174,48 @@ export class AuthService {
     return result.data;
   }
 
+  /**
+   * Re-issue the email-confirmation link for an unverified signup.
+   *
+   * Supabase throttles resends on the server (default ~60s). The
+   * mobile UI should additionally rate-limit the button on the
+   * client for a visible countdown, but this method intentionally
+   * does NOT enforce that — the caller decides.
+   *
+   * Returns nothing on success; throws on rate-limit or transport
+   * failure so the UI can show the correct toast.
+   */
+  static async resendSignupConfirmation(email: string): Promise<void> {
+    const context = {
+      service: 'AuthService',
+      method: 'resendSignupConfirmation',
+      userId: undefined,
+      params: { email },
+    };
+
+    const result = await ServiceErrorHandler.executeOperation(async () => {
+      ServiceErrorHandler.validateRequired(email, 'Email', context);
+      if (!validateEmailFormat(email)) {
+        throw new Error('Please enter a valid email address');
+      }
+
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+      });
+      if (error) {
+        // Supabase throws "Email rate limit exceeded" on rapid resends.
+        throw ServiceErrorHandler.handleDatabaseError(error, context);
+      }
+      logger.info('[AUTH] Resent signup confirmation email');
+      return null;
+    }, context);
+
+    if (!result.success) {
+      throw new Error(result.error?.message || 'Failed to resend email');
+    }
+  }
+
   static async signIn(
     email: string,
     password: string

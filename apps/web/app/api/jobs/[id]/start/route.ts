@@ -15,6 +15,7 @@ import {
   type JobStatus,
 } from '@/lib/job-state-machine';
 import { notifyJobStatusChange } from '@/lib/services/notifications/NotificationHelper';
+import { NotificationService } from '@/lib/services/notifications/NotificationService';
 import { EmailService } from '@/lib/email-service';
 import { logger } from '@mintenance/shared';
 import {
@@ -108,8 +109,11 @@ export const POST = withApiHandler(
       throw new Error('Failed to start job');
     }
 
-    // 6. Notify both parties (homeowner + contractor)
-    await notifyJobStatusChange({
+    // 6. Notify both parties (homeowner + contractor). Capture the
+    //    homeowner notification id so we can flip `email_sent = true`
+    //    on that row once the job-started email is accepted below —
+    //    same pattern as /api/payments/confirm-intent.
+    const { homeownerNotifId } = await notifyJobStatusChange({
       jobId,
       jobTitle: job.title || 'Job',
       oldStatus: job.status,
@@ -174,12 +178,18 @@ export const POST = withApiHandler(
             : contractorProfile.company_name || 'Your contractor'
           : 'Your contractor';
 
-        await EmailService.sendJobStartedEmail(homeownerProfile.email, {
-          homeownerName,
-          contractorName,
-          jobTitle: job.title || 'Job',
-          viewUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.com'}/jobs/${jobId}`,
-        });
+        const emailOk = await EmailService.sendJobStartedEmail(
+          homeownerProfile.email,
+          {
+            homeownerName,
+            contractorName,
+            jobTitle: job.title || 'Job',
+            viewUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.com'}/jobs/${jobId}`,
+          }
+        );
+        if (emailOk) {
+          await NotificationService.markEmailSent(homeownerNotifId);
+        }
       }
     } catch (emailError) {
       logger.error('Failed to send job started email', emailError, {

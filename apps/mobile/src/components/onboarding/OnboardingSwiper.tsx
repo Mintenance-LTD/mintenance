@@ -17,6 +17,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Swiper from 'react-native-swiper';
 import { theme } from '../../theme';
+import { JobsNearYouPreview } from './JobsNearYouPreview';
 
 const { width, height } = Dimensions.get('window');
 
@@ -27,6 +28,15 @@ interface OnboardingSlide {
   image?: ImageSourcePropType;
   icon?: string; // Emoji or icon name
   backgroundColor?: string;
+  /**
+   * Optional custom body renderer — replaces the default icon +
+   * title + description layout. Used by the contractor onboarding's
+   * final "jobs near you" preview slide (Phase 1 closeout of the
+   * 2026-04-19 audit) so the swiper can show sample-data job cards
+   * instead of a single emoji. Title + description still render
+   * above the custom content.
+   */
+  renderBody?: () => React.ReactNode;
 }
 
 interface OnboardingSwiperProps {
@@ -94,7 +104,7 @@ export function OnboardingSwiper({
         showsPagination={false}
         onIndexChanged={handleIndexChanged}
       >
-        {slides.map((slide, index) => (
+        {slides.map((slide) => (
           <View
             key={slide.id}
             style={[
@@ -105,17 +115,28 @@ export function OnboardingSwiper({
               },
             ]}
           >
-            {/* Icon or Image */}
-            <View style={styles.imageContainer}>
-              {slide.icon && <Text style={styles.icon}>{slide.icon}</Text>}
-              {/* Could render Image component here if slide.image is provided */}
-            </View>
+            {slide.renderBody ? (
+              <>
+                <View style={styles.content}>
+                  <Text style={styles.title}>{slide.title}</Text>
+                  <Text style={styles.description}>{slide.description}</Text>
+                </View>
+                <View style={styles.customBody}>{slide.renderBody()}</View>
+              </>
+            ) : (
+              <>
+                {/* Icon or Image */}
+                <View style={styles.imageContainer}>
+                  {slide.icon && <Text style={styles.icon}>{slide.icon}</Text>}
+                </View>
 
-            {/* Content */}
-            <View style={styles.content}>
-              <Text style={styles.title}>{slide.title}</Text>
-              <Text style={styles.description}>{slide.description}</Text>
-            </View>
+                {/* Content */}
+                <View style={styles.content}>
+                  <Text style={styles.title}>{slide.title}</Text>
+                  <Text style={styles.description}>{slide.description}</Text>
+                </View>
+              </>
+            )}
           </View>
         ))}
       </Swiper>
@@ -176,6 +197,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 40,
+  },
+  customBody: {
+    width: '100%',
+    maxWidth: width * 0.9,
+    marginTop: 24,
+    alignItems: 'stretch',
   },
   imageContainer: {
     width: width * 0.6,
@@ -332,5 +359,18 @@ export const contractorSlides: OnboardingSlide[] = [
       'Funds are held before you arrive and released on homeowner approval (or automatically after the 7-day review window). No chasing invoices.',
     icon: '🛡️',
     backgroundColor: theme.colors.primaryLight,
+  },
+  {
+    // Phase 1 closeout of 2026-04-19 mobile-onboarding-audit PDF
+    // (§5.3 Tier 1 step 4 — "First value moment. No bid button yet.").
+    // The contractor sees demand BEFORE investing in verification,
+    // which is the biggest retention lever the audit identified for
+    // the contractor side.
+    id: 'jobs-near-you-preview',
+    title: 'Jobs waiting for you',
+    description:
+      'A preview of the kind of work homeowners are posting in your area right now. Finish verification to start bidding.',
+    renderBody: () => <JobsNearYouPreview />,
+    backgroundColor: theme.colors.backgroundSecondary,
   },
 ];

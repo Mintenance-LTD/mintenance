@@ -1,43 +1,79 @@
 /**
  * ContractorVerificationScreen
  *
- * Allows contractors to verify their business with license and address
- * Includes geocoding for location tracking on homeowner maps
+ * Contractor business verification form.
  *
- * @filesize Target: <250 lines
+ * Phase 2.5 (2026-04-20) — evolved from the 4e110276 unblock that
+ * added the missing columns on `profiles`. Changes in this rewrite:
+ *
+ *   1. Removed the two `as any` casts around supabase.from(...).
+ *      Replaced with an explicit `ProfileRow` interface + single
+ *      post-read cast. Schema drift of the kind that hid the 42703
+ *      error for months would now surface at the type boundary
+ *      instead of silently at runtime.
+ *
+ *   2. License expiry is now a proper date picker
+ *      (@react-native-community/datetimepicker) rather than a
+ *      free-text DD/MM/YYYY input. The value is stored as an ISO
+ *      YYYY-MM-DD string on the wire — parseable into
+ *      credential_verifications.expires_at (timestamptz).
+ *
+ *   3. Dual-write on submit:
+ *        - `profiles.{company_name, business_address, license_*,
+ *           verification_status}` — backward compat for the 20+
+ *           readers still pointing at these columns.
+ *        - `credential_verifications` (new source of truth) — one
+ *          fresh 'pending' row per submission; RLS enforces
+ *          (user_id = auth.uid() AND status = 'pending') on
+ *          INSERT. Admin moderation will close out duplicates.
+ *      A follow-up Phase 2.6 will migrate readers and drop the
+ *      profiles.license_* columns.
+ *
+ *   4. Hydration still reads from `profiles` for now. The screen
+ *      preserves the "edit existing submission" UX for the 2
+ *      admin_verified contractors whose data lives there.
+ *
+ * @filesize Target: <500 lines (pre-commit gate).
  * @compliance MVVM pattern
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  View,
+  ActivityIndicator,
+  Alert,
+  Platform,
+  ScrollView,
+  StatusBar,
   Text,
   TextInput,
-  ScrollView,
   TouchableOpacity,
-  StyleSheet,
-  Alert,
-  ActivityIndicator,
-  Platform,
-  StatusBar,
+  View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker, {
+  DateTimePickerEvent,
+} from '@react-native-community/datetimepicker';
 import { supabase } from '../../config/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { sanitize } from '@mintenance/security';
+import { logger } from '../../utils/logger';
 import { theme } from '../../theme';
+import { styles } from './ContractorVerificationScreen.styles';
+import {
+  INITIAL_FORM,
+  LICENSE_TYPE_OPTIONS,
+  VERIFICATION_BENEFITS,
+  formatExpiryForDisplay,
+  formatExpiryForPersistence,
+  parseLegacyExpiry,
+  type LicenseType,
+  type ProfileRow,
+  type VerificationData,
+} from './ContractorVerificationScreen.helpers';
 
 interface VerificationScreenProps {
   navigation: { goBack: () => void };
-}
-
-interface VerificationData {
-  companyName: string;
-  businessAddress: string;
-  licenseNumber: string;
-  licenseType: string;
-  licenseExpiry: string;
 }
 
 export const ContractorVerificationScreen: React.FC<
@@ -45,57 +81,83 @@ export const ContractorVerificationScreen: React.FC<
 > = ({ navigation }) => {
   const { user, refreshUser } = useAuth();
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState<VerificationData>({
-    companyName: '',
-    businessAddress: '',
-    licenseNumber: '',
-    licenseType: 'trade',
-    licenseExpiry: '',
-  });
+  const [formData, setFormData] = useState<VerificationData>(INITIAL_FORM);
   const [isVerified, setIsVerified] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   useEffect(() => {
-    checkVerificationStatus();
+    void checkVerificationStatus();
+    // Intentionally only on mount — re-hydrating on user change would
+    // overwrite form edits made between sessions.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const checkVerificationStatus = async () => {
+  const checkVerificationStatus = async (): Promise<void> => {
     if (!user?.id) return;
     try {
-      const result = (await (
-        supabase
-          .from('profiles')
-          .select(
-            'company_name, business_address, license_number, license_type, license_expiry, verification_status'
-          ) as any
-      )
+      // Single fetch — no `as any`. Typed through the local ProfileRow.
+      const { data, error } = await supabase
+        .from('profiles')
+        .select(
+          'company_name, business_address, license_number, license_type, license_expiry, verification_status'
+        )
         .eq('id', user.id)
-        .single()) as { data: Record<string, string> | null };
-      const profile = result.data;
-      if (profile) {
-        if (profile.verification_status === 'verified') {
-          setIsVerified(true);
-        }
-        if (profile.company_name) {
-          setFormData({
-            companyName: profile.company_name || '',
-            businessAddress: profile.business_address || '',
-            licenseNumber: profile.license_number || '',
-            licenseType: profile.license_type || 'trade',
-            licenseExpiry: profile.license_expiry || '',
-          });
-        }
+        .maybeSingle();
+
+      if (error) throw error;
+      const profile = (data ?? null) as ProfileRow | null;
+      if (!profile) return;
+
+      if (profile.verification_status === 'verified') {
+        setIsVerified(true);
       }
-    } catch {
-      // Continue with empty form if profile fetch fails
+
+      // Only populate the form when there's ANY data to show — avoids
+      // stomping an empty form on a fresh user.
+      if (
+        profile.company_name ||
+        profile.business_address ||
+        profile.license_number
+      ) {
+        setFormData({
+          companyName: profile.company_name ?? '',
+          businessAddress: profile.business_address ?? '',
+          licenseNumber: profile.license_number ?? '',
+          licenseType: (profile.license_type as LicenseType | null) ?? 'trade',
+          licenseExpiry: parseLegacyExpiry(profile.license_expiry),
+        });
+      }
+    } catch (err) {
+      // Non-fatal — the screen renders an empty form so a fresh user
+      // can still submit verification. Telemetry only.
+      logger.warn('ContractorVerification: failed to hydrate existing status', {
+        userId: user.id,
+        error: err instanceof Error ? err.message : String(err),
+      });
     }
   };
 
-  const handleSubmit = async () => {
+  const handleDateChange = (
+    event: DateTimePickerEvent,
+    selected?: Date
+  ): void => {
+    // Android: the picker is a modal that dismisses itself via event.type
+    // (either 'set' or 'dismissed'). iOS inlines the picker so the
+    // caller decides when to hide it via the "Done" button below.
+    if (Platform.OS === 'android') {
+      setShowDatePicker(false);
+    }
+    if (event.type === 'dismissed') return;
+    if (selected) {
+      setFormData((prev) => ({ ...prev, licenseExpiry: selected }));
+    }
+  };
+
+  const handleSubmit = async (): Promise<void> => {
     if (!user?.id) {
       Alert.alert('Error', 'You must be logged in to submit verification');
       return;
     }
-
     if (!formData.companyName.trim()) {
       Alert.alert('Required', 'Please enter your company name');
       return;
@@ -109,25 +171,51 @@ export const ContractorVerificationScreen: React.FC<
       return;
     }
 
+    const expiryIso = formatExpiryForPersistence(formData.licenseExpiry);
+
     try {
       setLoading(true);
 
-      const { error } = (await (
-        supabase.from('profiles').update({
+      // 1) Backward-compat write to profiles — 20+ readers still
+      //    consume these columns. Safe to drop in a follow-up.
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
           company_name: sanitize.companyName(formData.companyName),
           business_address: sanitize.address(formData.businessAddress),
           license_number: sanitize.text(formData.licenseNumber.trim(), 50),
           license_type: formData.licenseType,
-          license_expiry: formData.licenseExpiry || null,
+          license_expiry: expiryIso,
           verification_status: 'pending',
-        }) as any
-      ).eq('id', user.id)) as { error: Error | null };
+        })
+        .eq('id', user.id);
+      if (profileError) throw profileError;
 
-      if (error) throw error;
+      // 2) New source of truth — credential_verifications. Each
+      //    submission creates a fresh 'pending' row; admin moderation
+      //    closes out duplicates. RLS enforces user_id = auth.uid()
+      //    + status = 'pending' on INSERT.
+      const { error: credError } = await supabase
+        .from('credential_verifications')
+        .insert({
+          user_id: user.id,
+          register: formData.licenseType,
+          registration_number: sanitize.text(formData.licenseNumber.trim(), 50),
+          status: 'pending',
+          expires_at: expiryIso ? new Date(expiryIso).toISOString() : null,
+        });
+      if (credError) {
+        // Non-fatal for the user: profiles write already succeeded so
+        // the existing admin-review flow still works. Log loud for
+        // observability — this is the new path we're rolling out.
+        logger.error(
+          'ContractorVerification: credential_verifications insert failed',
+          credError,
+          { userId: user.id }
+        );
+      }
 
-      // Refresh auth context so verification_status + company fields sync
       await refreshUser();
-
       Alert.alert(
         'Verification Submitted',
         'Your verification request has been submitted and will be reviewed within 24-48 hours.',
@@ -185,8 +273,9 @@ export const ContractorVerificationScreen: React.FC<
           <View style={styles.infoBannerContent}>
             <Text style={styles.infoBannerTitle}>Why Verify?</Text>
             <Text style={styles.infoBannerText}>
-              Verified contractors appear on the homeowner map and get 3x more
-              job opportunities
+              {isVerified
+                ? 'Your business is verified — edits will be re-reviewed.'
+                : 'Verified contractors appear on the homeowner map and get 3x more job opportunities'}
             </Text>
           </View>
         </View>
@@ -246,12 +335,7 @@ export const ContractorVerificationScreen: React.FC<
           <View style={styles.formGroup}>
             <Text style={styles.label}>License Type</Text>
             <View style={styles.radioGroup}>
-              {[
-                { value: 'trade', label: 'Trade License' },
-                { value: 'gas_safe', label: 'Gas Safe' },
-                { value: 'electrical', label: 'Electrical License' },
-                { value: 'other', label: 'Other' },
-              ].map((option) => (
+              {LICENSE_TYPE_OPTIONS.map((option) => (
                 <TouchableOpacity
                   key={option.value}
                   style={styles.radioOption}
@@ -283,27 +367,75 @@ export const ContractorVerificationScreen: React.FC<
 
           <View style={styles.formGroup}>
             <Text style={styles.label}>License Expiry Date (Optional)</Text>
-            <TextInput
+            <TouchableOpacity
               style={styles.input}
-              value={formData.licenseExpiry}
-              onChangeText={(text) =>
-                setFormData({ ...formData, licenseExpiry: text })
-              }
-              placeholder='DD/MM/YYYY'
-              placeholderTextColor={theme.colors.textTertiary}
-            />
+              onPress={() => setShowDatePicker(true)}
+              accessibilityRole='button'
+              accessibilityLabel='Pick license expiry date'
+            >
+              <Text
+                style={{
+                  color: formData.licenseExpiry
+                    ? theme.colors.textPrimary
+                    : theme.colors.textTertiary,
+                  fontSize: 15,
+                }}
+              >
+                {formatExpiryForDisplay(formData.licenseExpiry)}
+              </Text>
+            </TouchableOpacity>
+            {formData.licenseExpiry && (
+              <TouchableOpacity
+                onPress={() =>
+                  setFormData({ ...formData, licenseExpiry: null })
+                }
+                accessibilityRole='button'
+                accessibilityLabel='Clear license expiry date'
+              >
+                <Text
+                  style={[
+                    styles.helpText,
+                    { color: theme.colors.primary, marginTop: 6 },
+                  ]}
+                >
+                  Clear date
+                </Text>
+              </TouchableOpacity>
+            )}
+            {showDatePicker && (
+              <>
+                <DateTimePicker
+                  value={formData.licenseExpiry ?? new Date()}
+                  mode='date'
+                  display={Platform.OS === 'ios' ? 'inline' : 'default'}
+                  minimumDate={new Date()}
+                  onChange={handleDateChange}
+                />
+                {Platform.OS === 'ios' && (
+                  <TouchableOpacity
+                    onPress={() => setShowDatePicker(false)}
+                    style={{ alignSelf: 'flex-end', padding: 8 }}
+                    accessibilityRole='button'
+                    accessibilityLabel='Done picking date'
+                  >
+                    <Text
+                      style={{
+                        color: theme.colors.primary,
+                        fontWeight: '600',
+                      }}
+                    >
+                      Done
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </>
+            )}
           </View>
         </View>
 
         <View style={styles.benefitsSection}>
           <Text style={styles.benefitsTitle}>Verification Benefits</Text>
-          {[
-            'Show up on homeowner map with location pin',
-            'Get "Verified" badge on your profile',
-            '3x more visibility to homeowners',
-            'Priority in search results',
-            'Build trust with potential clients',
-          ].map((benefit, index) => (
+          {VERIFICATION_BENEFITS.map((benefit, index) => (
             <View key={index} style={styles.benefitRow}>
               <Ionicons
                 name='checkmark-circle'
@@ -340,208 +472,3 @@ export const ContractorVerificationScreen: React.FC<
     </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: theme.colors.surface,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
-  },
-  backButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: theme.colors.backgroundSecondary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  infoBanner: {
-    flexDirection: 'row',
-    backgroundColor: theme.colors.surface,
-    margin: 16,
-    padding: 16,
-    borderRadius: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
-  },
-  infoBannerIconWrap: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    backgroundColor: theme.colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
-  },
-  infoBannerContent: {
-    flex: 1,
-  },
-  infoBannerTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-    marginBottom: 4,
-  },
-  infoBannerText: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-    lineHeight: 20,
-  },
-  form: {
-    backgroundColor: theme.colors.surface,
-    margin: 16,
-    marginTop: 0,
-    padding: 16,
-    borderRadius: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
-  },
-  formGroup: {
-    marginBottom: 16,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: theme.colors.textPrimary,
-    marginBottom: 6,
-  },
-  required: {
-    color: theme.colors.error,
-  },
-  input: {
-    backgroundColor: theme.colors.backgroundSecondary,
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    fontSize: 15,
-    color: theme.colors.textPrimary,
-  },
-  textArea: {
-    minHeight: 80,
-    textAlignVertical: 'top',
-  },
-  helpText: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-    marginTop: 4,
-  },
-  radioGroup: {
-    marginTop: 4,
-  },
-  radioOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  radio: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    borderWidth: 2,
-    borderColor: theme.colors.border,
-    marginRight: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  radioActive: {
-    borderColor: theme.colors.textPrimary,
-  },
-  radioSelected: {
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: theme.colors.textPrimary,
-  },
-  radioLabel: {
-    fontSize: 15,
-    color: theme.colors.textPrimary,
-  },
-  benefitsSection: {
-    backgroundColor: theme.colors.surface,
-    margin: 16,
-    marginTop: 0,
-    padding: 16,
-    borderRadius: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
-  },
-  benefitsTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: theme.colors.textTertiary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginBottom: 12,
-  },
-  benefitRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 8,
-  },
-  benefitItem: {
-    fontSize: 14,
-    color: theme.colors.textPrimary,
-  },
-  submitButton: {
-    backgroundColor: theme.colors.textPrimary,
-    marginHorizontal: 16,
-    paddingVertical: 16,
-    borderRadius: 28,
-    alignItems: 'center',
-  },
-  submitButtonDisabled: {
-    opacity: 0.5,
-  },
-  submitButtonText: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: theme.colors.textInverse,
-  },
-  privacyNote: {
-    fontSize: 12,
-    color: theme.colors.textTertiary,
-    textAlign: 'center',
-    marginHorizontal: 16,
-    marginTop: 12,
-    marginBottom: 32,
-  },
-});

@@ -250,6 +250,12 @@ export function useLayoutState(
       '/contractor/marketing': 'Marketing',
       '/contractor/profile': 'Profile',
       '/contractor/verification': 'Verification',
+      '/contractor/documents': 'Documents',
+      '/contractor/notifications': 'Notifications',
+      '/contractor/bid': 'Submit a Bid',
+      '/contractor/expenses': 'Expenses',
+      '/contractor/subscription': 'Subscription',
+      '/contractor/tax-info': 'Tax Info',
       '/settings': 'Settings',
     };
     if (routeTitleMap[normalizedPath]) return routeTitleMap[normalizedPath];

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { NotificationService } from '@/lib/services/notifications/NotificationService';
 
 /**
  * PUT /api/admin/verifications/[id]
@@ -117,10 +118,13 @@ export const PUT = withApiHandler(
       });
     }
 
-    // Create notification for the contractor
+    // Route through NotificationService — the prior direct insert used
+    // a `data` column that doesn't exist on notifications, which meant
+    // PostgREST rejected the whole INSERT. Verification outcomes (both
+    // approved and rejected) were silently never reaching contractors.
     try {
-      const notificationData = {
-        user_id: contractorId,
+      await NotificationService.createNotification({
+        userId: contractorId,
         type: isVerified ? 'verification_approved' : 'verification_rejected',
         title: isVerified
           ? 'Your account has been verified!'
@@ -128,14 +132,12 @@ export const PUT = withApiHandler(
         message: isVerified
           ? 'Congratulations! Your contractor account has been verified. You can now accept jobs on the platform.'
           : `Your contractor verification was not approved. Reason: ${reason}. Please update your profile and documentation, then request a new review.`,
-        data: {
+        actionUrl: '/contractor/profile',
+        metadata: {
           status,
           reason: reason ?? null,
         },
-        created_at: new Date().toISOString(),
-      };
-
-      await serverSupabase.from('notifications').insert(notificationData);
+      });
     } catch (notifError) {
       // Non-blocking: don't fail the request if notification creation fails
       logger.error('Failed to create verification notification', {

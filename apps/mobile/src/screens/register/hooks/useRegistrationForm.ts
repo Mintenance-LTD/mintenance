@@ -29,7 +29,11 @@ const INITIAL_STATE: RegistrationFormState = {
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-function validateField(field: keyof RegistrationFormState, value: string, form: RegistrationFormState): string | undefined {
+function validateField(
+  field: keyof RegistrationFormState,
+  value: string,
+  form: RegistrationFormState
+): string | undefined {
   switch (field) {
     case 'firstName':
       if (!value.trim()) return 'First name is required';
@@ -57,11 +61,33 @@ function validateField(field: keyof RegistrationFormState, value: string, form: 
   }
 }
 
-export function useRegistrationForm() {
-  const [form, setForm] = useState<RegistrationFormState>(INITIAL_STATE);
+export interface UseRegistrationFormOptions {
+  /**
+   * Called after a successful signUp, with the email the user just
+   * registered with. Intended to navigate to the
+   * EmailVerificationPendingScreen. Optional so tests and the
+   * existing fallback-success-banner path still work.
+   */
+  onSignUpSuccess?: (email: string) => void;
+  /**
+   * Initial role, used by the Phase 2 WelcomeScreen to pre-select
+   * whichever tile the user tapped. Falls back to INITIAL_STATE.role
+   * ('homeowner') when absent, preserving the pre-Phase-2 default
+   * for any caller that doesn't specify one.
+   */
+  initialRole?: 'homeowner' | 'contractor';
+}
+
+export function useRegistrationForm(options: UseRegistrationFormOptions = {}) {
+  const { onSignUpSuccess, initialRole } = options;
+  const [form, setForm] = useState<RegistrationFormState>(() =>
+    initialRole ? { ...INITIAL_STATE, role: initialRole } : INITIAL_STATE
+  );
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [submissionError, setSubmissionError] = useState<string | null>(null);
-  const [submissionSuccess, setSubmissionSuccess] = useState<string | null>(null);
+  const [submissionSuccess, setSubmissionSuccess] = useState<string | null>(
+    null
+  );
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const { signUp, loading } = useAuth();
@@ -72,12 +98,15 @@ export function useRegistrationForm() {
   }, [submissionError, submissionSuccess]);
 
   const updateField = useCallback(
-    <K extends keyof RegistrationFormState>(field: K, value: RegistrationFormState[K]) => {
+    <K extends keyof RegistrationFormState>(
+      field: K,
+      value: RegistrationFormState[K]
+    ) => {
       resetFeedback();
-      setForm(prev => ({ ...prev, [field]: value }));
+      setForm((prev) => ({ ...prev, [field]: value }));
       // Clear field error when user starts typing
       if (fieldErrors[field]) {
-        setFieldErrors(prev => ({ ...prev, [field]: undefined }));
+        setFieldErrors((prev) => ({ ...prev, [field]: undefined }));
       }
     },
     [resetFeedback, fieldErrors]
@@ -86,30 +115,38 @@ export function useRegistrationForm() {
   const validateOnBlur = useCallback(
     (field: keyof RegistrationFormState) => {
       const error = validateField(field, String(form[field] ?? ''), form);
-      setFieldErrors(prev => ({ ...prev, [field]: error }));
+      setFieldErrors((prev) => ({ ...prev, [field]: error }));
     },
     [form]
   );
 
   const toggleTerms = useCallback(() => {
     resetFeedback();
-    setForm(prev => ({ ...prev, termsAccepted: !prev.termsAccepted }));
+    setForm((prev) => ({ ...prev, termsAccepted: !prev.termsAccepted }));
   }, [resetFeedback]);
 
   const togglePasswordVisibility = useCallback(() => {
-    setForm(prev => ({ ...prev, passwordVisible: !prev.passwordVisible }));
+    setForm((prev) => ({ ...prev, passwordVisible: !prev.passwordVisible }));
   }, []);
 
   const validateForm = (): boolean => {
     const errors: FieldErrors = {};
-    const fields: (keyof RegistrationFormState)[] = ['firstName', 'lastName', 'email', 'password', 'confirmPassword'];
+    const fields: (keyof RegistrationFormState)[] = [
+      'firstName',
+      'lastName',
+      'email',
+      'password',
+      'confirmPassword',
+    ];
     for (const field of fields) {
       const err = validateField(field, String(form[field] ?? ''), form);
       if (err) errors[field] = err;
     }
     setFieldErrors(errors);
     if (Object.values(errors).some(Boolean)) {
-      setSubmissionError(Object.values(errors).find(Boolean) || 'Please fix the errors above');
+      setSubmissionError(
+        Object.values(errors).find(Boolean) || 'Please fix the errors above'
+      );
       return false;
     }
     setSubmissionError(null);
@@ -134,7 +171,9 @@ export function useRegistrationForm() {
         role: form.role,
       };
       if ((signUp as unknown as { mock?: boolean })?.mock) {
-        await (signUp as unknown as (p: typeof payload) => Promise<void>)(payload);
+        await (signUp as unknown as (p: typeof payload) => Promise<void>)(
+          payload
+        );
       } else {
         await signUp(payload.email, payload.password, {
           firstName: payload.firstName,
@@ -142,11 +181,24 @@ export function useRegistrationForm() {
           role: payload.role,
         });
       }
+      const registeredEmail = payload.email;
       setForm(INITIAL_STATE);
       setFieldErrors({});
-      setSubmissionSuccess('Account created! You can now sign in.');
+
+      // When the caller has wired a navigation callback (Phase 1.2),
+      // send the user to the EmailVerificationPendingScreen. Otherwise
+      // fall back to the legacy inline success banner so tests and
+      // any older caller still render a meaningful outcome.
+      if (onSignUpSuccess) {
+        onSignUpSuccess(registeredEmail);
+      } else {
+        setSubmissionSuccess(
+          'Account created! Please check your email to confirm your account.'
+        );
+      }
     } catch (error: unknown) {
-      const message = error instanceof Error ? error.message : 'Registration failed';
+      const message =
+        error instanceof Error ? error.message : 'Registration failed';
       setSubmissionError(message);
       setSubmissionSuccess(null);
     }

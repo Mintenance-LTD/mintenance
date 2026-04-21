@@ -8,6 +8,10 @@ import RegisterScreen from '../../screens/RegisterScreen';
 import ForgotPasswordScreen from '../../screens/ForgotPasswordScreen';
 import ResetPasswordScreen from '../../screens/auth/ResetPasswordScreen';
 import MFAVerificationScreen from '../../screens/auth/MFAVerificationScreen';
+// Phase 1.2 (Branch B) — shown after signUp until email-confirmation lands.
+import EmailVerificationPendingScreen from '../../screens/auth/EmailVerificationPendingScreen';
+// Phase 2 Screen 0 — role-tile pre-signup landing (new initialRouteName).
+import { WelcomeScreen } from '../../screens/auth/WelcomeScreen';
 
 // Import error boundary wrapper
 import { withScreenErrorBoundary } from '../../components/ErrorBoundaryProvider';
@@ -42,6 +46,16 @@ const SafeMFAVerificationScreen = withScreenErrorBoundary(
   { fallbackRoute: 'Login' }
 );
 
+const SafeEmailVerificationPendingScreen = withScreenErrorBoundary(
+  EmailVerificationPendingScreen,
+  'Email Verification Pending',
+  { fallbackRoute: 'Login' }
+);
+
+const SafeWelcomeScreen = withScreenErrorBoundary(WelcomeScreen, 'Welcome', {
+  fallbackRoute: 'Login',
+});
+
 // ============================================================================
 // AUTH NAVIGATOR
 // ============================================================================
@@ -56,8 +70,15 @@ const AuthNavigator: React.FC = () => {
         gestureEnabled: true,
         animation: 'slide_from_right',
       }}
-      initialRouteName='Login'
+      // Phase 2 (2026-04-20) — pre-signup Welcome/role-tile landing is
+      // the new entry point. Sign-in is one tap away from Welcome.
+      initialRouteName='Welcome'
     >
+      <AuthStack.Screen
+        name='Welcome'
+        component={SafeWelcomeScreen}
+        options={{ title: 'Welcome' }}
+      />
       <AuthStack.Screen
         name='Login'
         component={SafeLoginScreen}
@@ -82,6 +103,11 @@ const AuthNavigator: React.FC = () => {
         name='MFAVerification'
         component={SafeMFAVerificationScreen}
         options={{ title: 'Verify Identity', gestureEnabled: false }}
+      />
+      <AuthStack.Screen
+        name='EmailVerificationPending'
+        component={SafeEmailVerificationPendingScreen}
+        options={{ title: 'Check Your Email' }}
       />
     </AuthStack.Navigator>
   );

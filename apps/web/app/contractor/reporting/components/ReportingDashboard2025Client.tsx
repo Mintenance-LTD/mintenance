@@ -18,10 +18,7 @@ import { MetricCard } from './ReportingDashboard/MetricCard';
 import { DashboardHeader } from './ReportingDashboard/DashboardHeader';
 import { ChartsSection } from './ReportingDashboard/ChartsSection';
 import { TablesSection } from './ReportingDashboard/TablesSection';
-import type {
-  DateRange,
-  ReportingAnalytics,
-} from './ReportingDashboard/types';
+import type { DateRange, ReportingAnalytics } from './ReportingDashboard/types';
 
 interface ReportingDashboard2025ClientProps {
   analytics: ReportingAnalytics;
@@ -173,27 +170,39 @@ export function ReportingDashboard2025Client({
             <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4'>
               <MetricCard
                 label='Quote Acceptance Rate'
-                value={Math.round(
-                  (analytics.acceptedBids / analytics.totalBids) * 100
-                )}
+                value={
+                  analytics.totalBids > 0
+                    ? Math.round(
+                        (analytics.acceptedBids / analytics.totalBids) * 100
+                      )
+                    : 0
+                }
                 max={100}
                 color='text-teal-500'
                 icon={<CheckCircle className='w-5 h-5' />}
               />
               <MetricCard
                 label='Job Completion Rate'
-                value={Math.round(
-                  (analytics.completedJobs / analytics.totalJobs) * 100
-                )}
+                value={
+                  analytics.totalJobs > 0
+                    ? Math.round(
+                        (analytics.completedJobs / analytics.totalJobs) * 100
+                      )
+                    : 0
+                }
                 max={100}
                 color='text-green-500'
                 icon={<Target className='w-5 h-5' />}
               />
               <MetricCard
                 label='Customer Retention'
-                value={Math.round(
-                  (analytics.activeClients / analytics.totalClients) * 100
-                )}
+                value={
+                  analytics.totalClients > 0
+                    ? Math.round(
+                        (analytics.activeClients / analytics.totalClients) * 100
+                      )
+                    : 0
+                }
                 max={100}
                 color='text-blue-500'
                 icon={<Users className='w-5 h-5' />}

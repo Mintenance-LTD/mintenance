@@ -1,8 +1,15 @@
 'use client';
 
 import React, { useState } from 'react';
-import { SubscriptionService, SubscriptionPlanDetails, Subscription } from '@/lib/services/subscription/SubscriptionService';
-import { TrialService, TrialStatus } from '@/lib/services/subscription/TrialService';
+import {
+  SubscriptionService,
+  SubscriptionPlanDetails,
+  Subscription,
+} from '@/lib/services/subscription/SubscriptionService';
+import {
+  TrialService,
+  TrialStatus,
+} from '@/lib/services/subscription/TrialService';
 import { SubscriptionPlans } from './SubscriptionPlans';
 import { TrialStatusBanner } from './TrialStatusBanner';
 import { theme } from '@/lib/theme';
@@ -46,9 +53,14 @@ export function SubscriptionClient({
     onConfirm?: () => void;
   }>({ open: false, title: '', message: '' });
   const [cancelDialog, setCancelDialog] = useState(false);
-  const [successAlert, setSuccessAlert] = useState<{ show: boolean; message: string }>({ show: false, message: '' });
+  const [successAlert, setSuccessAlert] = useState<{
+    show: boolean;
+    message: string;
+  }>({ show: false, message: '' });
 
-  const handleSubscribe = async (planType: SubscriptionPlanDetails['planType']) => {
+  const handleSubscribe = async (
+    planType: SubscriptionPlanDetails['planType']
+  ) => {
     if (!csrfToken) {
       setAlertDialog({
         open: true,
@@ -76,7 +88,9 @@ export function SubscriptionClient({
         // Include details if available for better debugging
         const errorMessage = data.error || 'Failed to create subscription';
         const details = data.details ? `: ${data.details}` : '';
-        const debugInfo = data.debug ? ` (Debug: ${JSON.stringify(data.debug)})` : '';
+        const debugInfo = data.debug
+          ? ` (Debug: ${JSON.stringify(data.debug)})`
+          : '';
         throw new Error(`${errorMessage}${details}${debugInfo}`);
       }
 
@@ -91,21 +105,27 @@ export function SubscriptionClient({
         const statusResponse = await fetch('/api/subscriptions/status');
         const statusData = await statusResponse.json();
         setCurrentSubscription(statusData.subscription);
-        
+
         // Show success message
         if (data.isUpgrade) {
-          setSuccessAlert({ 
-            show: true, 
-            message: `Successfully ${planType === currentSubscription?.planType ? 'updated' : 'upgraded'} to ${planType} plan!` 
+          setSuccessAlert({
+            show: true,
+            message: `Successfully ${planType === currentSubscription?.planType ? 'updated' : 'upgraded'} to ${planType} plan!`,
           });
         } else {
-          setSuccessAlert({ show: true, message: 'Subscription created successfully!' });
+          setSuccessAlert({
+            show: true,
+            message: 'Subscription created successfully!',
+          });
         }
         setTimeout(() => setSuccessAlert({ show: false, message: '' }), 5000);
       }
     } catch (error) {
       logger.error('Error subscribing:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create subscription. Please try again.';
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : 'Failed to create subscription. Please try again.';
       setAlertDialog({
         open: true,
         title: 'Error',
@@ -157,7 +177,10 @@ export function SubscriptionClient({
       const statusData = await statusResponse.json();
       setCurrentSubscription(statusData.subscription);
       setCancelDialog(false);
-      setSuccessAlert({ show: true, message: 'Subscription cancellation scheduled successfully.' });
+      setSuccessAlert({
+        show: true,
+        message: 'Subscription cancellation scheduled successfully.',
+      });
       setTimeout(() => setSuccessAlert({ show: false, message: '' }), 5000);
     } catch (error) {
       logger.error('Error canceling subscription:', error);
@@ -173,24 +196,30 @@ export function SubscriptionClient({
   };
 
   return (
-    <div style={{
-      padding: theme.spacing[8],
-      maxWidth: '1200px',
-      margin: '0 auto',
-    }}>
+    <div
+      style={{
+        padding: theme.spacing[8],
+        maxWidth: '1200px',
+        margin: '0 auto',
+      }}
+    >
       <div style={{ marginBottom: theme.spacing[8] }}>
-        <h1 style={{
-          fontSize: theme.typography.fontSize['3xl'],
-          fontWeight: theme.typography.fontWeight.bold,
-          color: theme.colors.textPrimary,
-          marginBottom: theme.spacing[2],
-        }}>
+        <h1
+          style={{
+            fontSize: theme.typography.fontSize['3xl'],
+            fontWeight: theme.typography.fontWeight.bold,
+            color: theme.colors.textPrimary,
+            marginBottom: theme.spacing[2],
+          }}
+        >
           Subscription & Billing
         </h1>
-        <p style={{
-          fontSize: theme.typography.fontSize.base,
-          color: theme.colors.textSecondary,
-        }}>
+        <p
+          style={{
+            fontSize: theme.typography.fontSize.base,
+            color: theme.colors.textSecondary,
+          }}
+        >
           Manage your subscription plan and billing preferences
         </p>
       </div>
@@ -205,97 +234,125 @@ export function SubscriptionClient({
 
       {/* Success Alert */}
       {successAlert.show && (
-        <Alert className="mb-4 border-green-200 bg-green-50">
-          <CheckCircle2 className="h-4 w-4 text-green-600" />
-          <AlertTitle className="text-green-800">Success</AlertTitle>
-          <AlertDescription className="text-green-700">
+        <Alert className='mb-4 border-green-200 bg-green-50'>
+          <CheckCircle2 className='h-4 w-4 text-green-600' />
+          <AlertTitle className='text-green-800'>Success</AlertTitle>
+          <AlertDescription className='text-green-700'>
             {successAlert.message}
           </AlertDescription>
         </Alert>
       )}
 
-      {/* Current Subscription */}
-      {currentSubscription && (
-        <div style={{
-          backgroundColor: theme.colors.surface,
-          borderRadius: theme.borderRadius.xl,
-          padding: theme.spacing[6],
-          marginBottom: theme.spacing[6],
-          border: `1px solid ${theme.colors.border}`,
-        }}>
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: theme.spacing[4],
-          }}>
-            <div>
-              <h2 style={{
-                fontSize: theme.typography.fontSize.xl,
-                fontWeight: theme.typography.fontWeight.bold,
-                color: theme.colors.textPrimary,
-                marginBottom: theme.spacing[1],
-              }}>
-                Current Plan: {currentSubscription.planName}
-              </h2>
-              <p style={{
-                fontSize: theme.typography.fontSize.base,
-                color: theme.colors.textSecondary,
-              }}>
-                {formatCurrency(currentSubscription.amount)}/{currentSubscription.currency === 'gbp' ? 'month' : 'mo'}
-              </p>
-            </div>
-            <div style={{
-              padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
-              backgroundColor: currentSubscription.status === 'active' 
-                ? theme.colors.success + '20' 
-                : theme.colors.warning + '20',
-              borderRadius: theme.borderRadius.full,
-              fontSize: theme.typography.fontSize.sm,
-              fontWeight: theme.typography.fontWeight.semibold,
-              color: currentSubscription.status === 'active' 
-                ? theme.colors.success 
-                : theme.colors.warning,
-            }}>
-              {currentSubscription.status.charAt(0).toUpperCase() + currentSubscription.status.slice(1)}
-            </div>
-          </div>
-
-          {currentSubscription.currentPeriodEnd && (
-            <p style={{
-              fontSize: theme.typography.fontSize.sm,
-              color: theme.colors.textSecondary,
-              marginBottom: theme.spacing[4],
-            }}>
-              Next billing date: {new Date(currentSubscription.currentPeriodEnd).toLocaleDateString('en-GB')}
-            </p>
-          )}
-
-          {currentSubscription.cancelAtPeriodEnd && (
-            <div style={{
-              padding: theme.spacing[3],
-              backgroundColor: theme.colors.warning + '20',
-              borderRadius: theme.borderRadius.md,
-              marginBottom: theme.spacing[4],
-            }}>
-              <p style={{
-                fontSize: theme.typography.fontSize.sm,
-                color: theme.colors.warning,
-              }}>
-                Your subscription will be canceled at the end of the current billing period.
-              </p>
-            </div>
-          )}
-
-          <Button
-            variant="destructive"
-            onClick={handleCancel}
-            disabled={isLoading || currentSubscription.cancelAtPeriodEnd}
+      {/* Current Subscription — only render card + cancel UI for paid plans */}
+      {currentSubscription &&
+        currentSubscription.planType !== 'basic' &&
+        currentSubscription.amount > 0 && (
+          <div
+            style={{
+              backgroundColor: theme.colors.surface,
+              borderRadius: theme.borderRadius.xl,
+              padding: theme.spacing[6],
+              marginBottom: theme.spacing[6],
+              border: `1px solid ${theme.colors.border}`,
+            }}
           >
-            {currentSubscription.cancelAtPeriodEnd ? 'Cancelation Scheduled' : 'Cancel Subscription'}
-          </Button>
-        </div>
-      )}
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                marginBottom: theme.spacing[4],
+              }}
+            >
+              <div>
+                <h2
+                  style={{
+                    fontSize: theme.typography.fontSize.xl,
+                    fontWeight: theme.typography.fontWeight.bold,
+                    color: theme.colors.textPrimary,
+                    marginBottom: theme.spacing[1],
+                  }}
+                >
+                  Current Plan: {currentSubscription.planName}
+                </h2>
+                <p
+                  style={{
+                    fontSize: theme.typography.fontSize.base,
+                    color: theme.colors.textSecondary,
+                  }}
+                >
+                  {formatCurrency(currentSubscription.amount)}/
+                  {currentSubscription.currency === 'gbp' ? 'month' : 'mo'}
+                </p>
+              </div>
+              <div
+                style={{
+                  padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
+                  backgroundColor:
+                    currentSubscription.status === 'active'
+                      ? theme.colors.success + '20'
+                      : theme.colors.warning + '20',
+                  borderRadius: theme.borderRadius.full,
+                  fontSize: theme.typography.fontSize.sm,
+                  fontWeight: theme.typography.fontWeight.semibold,
+                  color:
+                    currentSubscription.status === 'active'
+                      ? theme.colors.success
+                      : theme.colors.warning,
+                }}
+              >
+                {currentSubscription.status.charAt(0).toUpperCase() +
+                  currentSubscription.status.slice(1)}
+              </div>
+            </div>
+
+            {currentSubscription.currentPeriodEnd && (
+              <p
+                style={{
+                  fontSize: theme.typography.fontSize.sm,
+                  color: theme.colors.textSecondary,
+                  marginBottom: theme.spacing[4],
+                }}
+              >
+                Next billing date:{' '}
+                {new Date(
+                  currentSubscription.currentPeriodEnd
+                ).toLocaleDateString('en-GB')}
+              </p>
+            )}
+
+            {currentSubscription.cancelAtPeriodEnd && (
+              <div
+                style={{
+                  padding: theme.spacing[3],
+                  backgroundColor: theme.colors.warning + '20',
+                  borderRadius: theme.borderRadius.md,
+                  marginBottom: theme.spacing[4],
+                }}
+              >
+                <p
+                  style={{
+                    fontSize: theme.typography.fontSize.sm,
+                    color: theme.colors.warning,
+                  }}
+                >
+                  Your subscription will be cancelled at the end of the current
+                  billing period.
+                </p>
+              </div>
+            )}
+
+            <Button
+              variant='destructive'
+              onClick={handleCancel}
+              disabled={isLoading || currentSubscription.cancelAtPeriodEnd}
+            >
+              {currentSubscription.cancelAtPeriodEnd
+                ? 'Cancellation Scheduled'
+                : 'Cancel Subscription'}
+            </Button>
+          </div>
+        )}
 
       {/* Subscription Plans */}
       <SubscriptionPlans
@@ -306,14 +363,25 @@ export function SubscriptionClient({
       />
 
       {/* Alert Dialog */}
-      <AlertDialog open={alertDialog.open} onOpenChange={(open: boolean) => setAlertDialog({ ...alertDialog, open })}>
+      <AlertDialog
+        open={alertDialog.open}
+        onOpenChange={(open: boolean) =>
+          setAlertDialog({ ...alertDialog, open })
+        }
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{alertDialog.title}</AlertDialogTitle>
-            <AlertDialogDescription>{alertDialog.message}</AlertDialogDescription>
+            <AlertDialogDescription>
+              {alertDialog.message}
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setAlertDialog({ open: false, title: '', message: '' })}>
+            <AlertDialogCancel
+              onClick={() =>
+                setAlertDialog({ open: false, title: '', message: '' })
+              }
+            >
               OK
             </AlertDialogCancel>
           </AlertDialogFooter>
@@ -321,19 +389,26 @@ export function SubscriptionClient({
       </AlertDialog>
 
       {/* Cancel Subscription Confirmation Dialog */}
-      <AlertDialog open={cancelDialog} onOpenChange={(open: boolean) => setCancelDialog(open)}>
+      <AlertDialog
+        open={cancelDialog}
+        onOpenChange={(open: boolean) => setCancelDialog(open)}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Cancel Subscription</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to cancel your subscription? You will lose access when the current period ends.
+              Are you sure you want to cancel your subscription? You will lose
+              access when the current period ends.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel onClick={() => setCancelDialog(false)}>
               Keep Subscription
             </AlertDialogCancel>
-            <AlertDialogAction onClick={confirmCancel} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction
+              onClick={confirmCancel}
+              className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
+            >
               Cancel Subscription
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -349,4 +424,3 @@ function formatCurrency(amount: number): string {
     currency: 'GBP',
   }).format(amount);
 }
-

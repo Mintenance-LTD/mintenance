@@ -1,11 +1,6 @@
 import React from 'react';
 import Image from 'next/image';
-import {
-  User,
-  Phone,
-  Mail,
-  Shield,
-} from 'lucide-react';
+import { User, Phone, Mail, Shield } from 'lucide-react';
 
 /* ==========================================
    TYPE DEFINITIONS
@@ -54,7 +49,8 @@ export function StatusBadge({ status, icon }: StatusBadgeProps) {
   return (
     <span
       className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-semibold border ${
-        colorClasses[status.color as keyof typeof colorClasses] || colorClasses.gray
+        colorClasses[status.color as keyof typeof colorClasses] ||
+        colorClasses.gray
       }`}
     >
       {icon}
@@ -71,10 +67,14 @@ export function PriorityBadge({ priority }: { priority: string }) {
     emergency: { label: 'Emergency', color: 'bg-rose-100 text-rose-700' },
   };
 
-  const config = priorityConfig[priority as keyof typeof priorityConfig] || priorityConfig.medium;
+  const config =
+    priorityConfig[priority as keyof typeof priorityConfig] ||
+    priorityConfig.medium;
 
   return (
-    <span className={`px-3 py-1 rounded-full text-sm font-semibold ${config.color}`}>
+    <span
+      className={`px-3 py-1 rounded-full text-sm font-semibold ${config.color}`}
+    >
       {config.label}
     </span>
   );
@@ -84,26 +84,42 @@ export function PriorityBadge({ priority }: { priority: string }) {
    LAYOUT COMPONENTS
    ========================================== */
 
-export function InfoItem({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+export function InfoItem({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+}) {
   return (
-    <div className="flex items-start gap-3">
-      <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center flex-shrink-0 border border-gray-200">
-        {React.isValidElement<{ className?: string }>(icon) ? React.cloneElement(icon, {
-          className: 'w-5 h-5 text-gray-600',
-        }) : icon}
+    <div className='flex items-start gap-3'>
+      <div className='w-10 h-10 bg-white rounded-lg flex items-center justify-center flex-shrink-0 border border-gray-200'>
+        {React.isValidElement<{ className?: string }>(icon)
+          ? React.cloneElement(icon, {
+              className: 'w-5 h-5 text-gray-600',
+            })
+          : icon}
       </div>
       <div>
-        <div className="text-sm text-gray-600">{label}</div>
-        <div className="font-semibold text-gray-900">{value}</div>
+        <div className='text-sm text-gray-600'>{label}</div>
+        <div className='font-semibold text-gray-900'>{value}</div>
       </div>
     </div>
   );
 }
 
-export function ContentCard({ title, children }: { title: string; children: React.ReactNode }) {
+export function ContentCard({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-8">
-      <h2 className="text-xl font-semibold text-gray-900 mb-6">{title}</h2>
+    <div className='bg-white rounded-xl border border-gray-200 shadow-sm p-8'>
+      <h2 className='text-xl font-semibold text-gray-900 mb-6'>{title}</h2>
       {children}
     </div>
   );
@@ -111,9 +127,9 @@ export function ContentCard({ title, children }: { title: string; children: Reac
 
 export function StatItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex justify-between items-center py-2 border-b border-gray-100 last:border-0">
-      <span className="text-sm text-gray-600">{label}</span>
-      <span className="font-semibold text-gray-900">{value}</span>
+    <div className='flex justify-between items-center py-2 border-b border-gray-100 last:border-0'>
+      <span className='text-sm text-gray-600'>{label}</span>
+      <span className='font-semibold text-gray-900'>{value}</span>
     </div>
   );
 }
@@ -122,65 +138,78 @@ export function StatItem({ label, value }: { label: string; value: string }) {
    USER CARD COMPONENT
    ========================================== */
 
-export function UserCard({ user, isContractor = false }: { user: Homeowner | Contractor; isContractor?: boolean }) {
-  const name = user.first_name && user.last_name
-    ? `${user.first_name} ${user.last_name}`
-    : 'company_name' in user && user.company_name
-    ? user.company_name
-    : user.email;
+export function UserCard({
+  user,
+  isContractor = false,
+}: {
+  user: Homeowner | Contractor;
+  isContractor?: boolean;
+}) {
+  const name =
+    user.first_name && user.last_name
+      ? `${user.first_name} ${user.last_name}`
+      : 'company_name' in user && user.company_name
+        ? user.company_name
+        : user.email;
 
-  const isVerified = isContractor && 'admin_verified' in user && user.admin_verified;
+  const isVerified =
+    isContractor && 'admin_verified' in user && user.admin_verified;
 
   return (
-    <div className="flex items-start gap-4">
+    <div className='flex items-start gap-4'>
       {/* Avatar */}
       {user.profile_image_url ? (
-        <div className="relative w-16 h-16 rounded-full overflow-hidden border-2 border-gray-200 flex-shrink-0">
+        <div className='relative w-16 h-16 rounded-full overflow-hidden border-2 border-gray-200 flex-shrink-0'>
           <Image
             src={user.profile_image_url}
             alt={name}
             fill
-            className="object-cover"
-            sizes="64px"
+            className='object-cover'
+            sizes='64px'
           />
         </div>
       ) : (
-        <div className="w-16 h-16 rounded-full bg-teal-100 flex items-center justify-center border-2 border-gray-200 flex-shrink-0">
-          <User className="w-8 h-8 text-teal-600" />
+        <div className='w-16 h-16 rounded-full bg-teal-100 flex items-center justify-center border-2 border-gray-200 flex-shrink-0'>
+          <User className='w-8 h-8 text-teal-600' />
         </div>
       )}
 
       {/* Details */}
-      <div className="flex-1">
-        <div className="flex items-center gap-2 mb-1">
-          <h4 className="font-semibold text-gray-900">{name}</h4>
+      <div className='flex-1'>
+        <div className='flex items-center gap-2 mb-1'>
+          <h4 className='font-semibold text-gray-900'>{name}</h4>
           {isVerified && (
-            <div className="flex items-center gap-1 px-2 py-0.5 bg-teal-100 text-teal-700 rounded-full text-xs font-semibold">
-              <Shield className="w-3 h-3" />
+            <div className='flex items-center gap-1 px-2 py-0.5 bg-teal-100 text-teal-700 rounded-full text-xs font-semibold'>
+              <Shield className='w-3 h-3' />
               Verified
             </div>
           )}
         </div>
 
         {isContractor && 'license_number' in user && user.license_number && (
-          <p className="text-sm text-gray-600 mb-2">License: {user.license_number}</p>
+          <p className='text-sm text-gray-600 mb-2'>
+            License: {user.license_number}
+          </p>
         )}
 
-        <div className="space-y-1.5 text-sm">
-          <div className="flex items-center gap-2 text-gray-600">
-            <Mail className="w-4 h-4" />
-            <a href={`mailto:${user.email}`} className="hover:text-teal-600 transition-colors">
-              {user.email}
-            </a>
-          </div>
+        <div className='space-y-1.5 text-sm'>
           {user.phone && (
-            <div className="flex items-center gap-2 text-gray-600">
-              <Phone className="w-4 h-4" />
-              <a href={`tel:${user.phone}`} className="hover:text-teal-600 transition-colors">
+            <div className='flex items-center gap-2 text-gray-600'>
+              <Phone className='w-4 h-4' />
+              <a
+                href={`tel:${user.phone}`}
+                className='hover:text-teal-600 transition-colors'
+              >
                 {user.phone}
               </a>
             </div>
           )}
+          <p className='text-xs text-gray-500'>
+            <Mail className='w-3.5 h-3.5 inline-block mr-1 align-[-2px]' />
+            Use the in-app message thread to contact{' '}
+            {isContractor ? 'this contractor' : 'this homeowner'} — we route
+            replies through the platform so a thread stays with the job.
+          </p>
         </div>
       </div>
     </div>
@@ -205,13 +234,16 @@ export function formatDate(dateString: string): string {
   if (date > now) {
     const diffInSeconds = Math.floor((date.getTime() - now.getTime()) / 1000);
     if (diffInSeconds < 86400) return 'Today';
-    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)} days from now`;
+    if (diffInSeconds < 604800)
+      return `${Math.floor(diffInSeconds / 86400)} days from now`;
     // For far future dates, show the date but indicate it's unusual
-    return date.toLocaleDateString('en-GB', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    }) + ' (future date)';
+    return (
+      date.toLocaleDateString('en-GB', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      }) + ' (future date)'
+    );
   }
 
   return date.toLocaleDateString('en-GB', {
@@ -234,9 +266,12 @@ export function formatRelativeDate(dateString: string): string {
   const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
   if (diffInSeconds < 60) return 'just now';
-  if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes ago`;
-  if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`;
-  if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)} days ago`;
+  if (diffInSeconds < 3600)
+    return `${Math.floor(diffInSeconds / 60)} minutes ago`;
+  if (diffInSeconds < 86400)
+    return `${Math.floor(diffInSeconds / 3600)} hours ago`;
+  if (diffInSeconds < 604800)
+    return `${Math.floor(diffInSeconds / 86400)} days ago`;
 
   // For dates older than a week, use absolute format
   const formattedDate = date.toLocaleDateString('en-GB', {

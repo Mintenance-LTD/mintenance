@@ -25,11 +25,51 @@ export interface PushDispatchParams {
   notificationType?: string;
   actionUrl?: string;
   metadata?: Record<string, unknown>;
+  /**
+   * Optional id of the `notifications` row that will be flagged
+   * push_sent + delivered_at on successful dispatch. Omitted
+   * for out-of-band push (e.g. bulk broadcasts that skip the
+   * in-app row entirely).
+   */
+  notificationId?: string;
 }
 
 export interface PushDispatchResult {
   sent: boolean;
   reason?: string;
+}
+
+/**
+ * Mark a notification row as pushed once Expo accepted the message.
+ * Uses `delivered_at IS NULL` in the WHERE clause so we never
+ * overwrite an earlier channel's timestamp — whichever channel
+ * reaches the user first wins the delivered_at race.
+ */
+async function markNotificationPushSent(notificationId: string): Promise<void> {
+  try {
+    const { error } = await serverSupabase
+      .from('notifications')
+      .update({
+        push_sent: true,
+        delivered_at: new Date().toISOString(),
+      })
+      .eq('id', notificationId)
+      .is('delivered_at', null);
+    if (error) {
+      logger.warn('Failed to mark notification push_sent=true (non-fatal)', {
+        service: 'NotificationPushDispatcher',
+        notificationId,
+        error: error.message,
+      });
+    }
+  } catch (err) {
+    // Best-effort observability — never fail the push path on this.
+    logger.warn('markNotificationPushSent threw', {
+      service: 'NotificationPushDispatcher',
+      notificationId,
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
 }
 
 export async function sendPushToDevice(
@@ -74,6 +114,9 @@ export async function sendPushToDevice(
         userId: params.userId,
       });
     } else {
+      if (params.notificationId) {
+        await markNotificationPushSent(params.notificationId);
+      }
       return { sent: true };
     }
   } catch (error) {

@@ -88,8 +88,22 @@ export class NotificationService {
     sentry.addBreadcrumb(message, 'notification', breadcrumbData);
   }
 
-  static async initialize(): Promise<string | null> {
-    const token = await initializePushNotifications(this.deviceOverride);
+  /**
+   * Fetch (or refresh) this device's Expo push token.
+   *
+   * @param options.promptIfUndetermined - when true AND the current iOS
+   *   permission is 'undetermined', show the system dialog. Only the
+   *   PushSoftAskModal passes true; all silent call-sites (auth-actions
+   *   on signIn / restoreSession) pass false so we preserve the
+   *   one-shot iOS dialog for an explicit rationale screen.
+   */
+  static async initialize(
+    options: { promptIfUndetermined?: boolean } = {}
+  ): Promise<string | null> {
+    const token = await initializePushNotifications(
+      this.deviceOverride,
+      options
+    );
     if (token) this.expoPushToken = token;
     return token;
   }

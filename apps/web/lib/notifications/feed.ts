@@ -1,0 +1,94 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { logger } from '@mintenance/shared';
+import { serverSupabase } from '@/lib/api/supabaseServer';
+
+export interface FeedNotification {
+  id: string;
+  type: string;
+  title: string;
+  message: string;
+  read: boolean;
+  created_at: string;
+  link?: string;
+  action_url?: string;
+}
+
+/**
+ * Social-graph notification types that the app no longer surfaces in the
+ * notifications feed. Kept in sync with `/api/notifications`.
+ */
+const SOCIAL_NOTIFICATION_TYPES = new Set([
+  'post_liked',
+  'comment_added',
+  'comment_replied',
+  'new_follower',
+]);
+
+interface NotificationRow {
+  id: string;
+  type: string | null;
+  title: string | null;
+  message: string | null;
+  read: boolean | number | null;
+  created_at: string | null;
+  action_url: string | null;
+  user_id: string;
+}
+
+/**
+ * Fetches and filters notifications using the same rules the API route applies,
+ * so the dashboard activity feed and the /notifications page show the same
+ * items. Previously the dashboard ran its own unfiltered SELECT and could
+ * include social-type rows or old read items the /notifications page hid,
+ * which made the two views visibly disagree.
+ *
+ * Filters: excludes social types; keeps rows that are either recent (< 24h)
+ * OR unread. Sorted by `created_at DESC`, capped at `limit` (default 7 to
+ * match the API's default cap).
+ */
+export async function fetchNotificationFeed(
+  userId: string,
+  opts: { limit?: number; db?: SupabaseClient } = {}
+): Promise<FeedNotification[]> {
+  const { limit = 7, db = serverSupabase } = opts;
+
+  const { data, error } = await db
+    .from('notifications')
+    .select('id, type, title, message, read, created_at, action_url, user_id')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(50);
+
+  if (error) {
+    logger.error('Error fetching notification feed', error, {
+      service: 'notifications',
+      userId,
+    });
+    return [];
+  }
+
+  const now = Date.now();
+  const twentyFourHoursAgoMs = now - 24 * 60 * 60 * 1000;
+
+  const rows = (data as NotificationRow[] | null) || [];
+  const filtered = rows
+    .filter((row) => {
+      if (SOCIAL_NOTIFICATION_TYPES.has(row.type || '')) return false;
+      const createdAt = new Date(row.created_at || 0).getTime();
+      const isRecent = createdAt >= twentyFourHoursAgoMs;
+      const isUnread = row.read === false || row.read === 0;
+      return isRecent || isUnread;
+    })
+    .slice(0, limit);
+
+  return filtered.map<FeedNotification>((row) => ({
+    id: String(row.id || ''),
+    type: row.type || 'bid_received',
+    title: row.title || 'Notification',
+    message: row.message || '',
+    read: row.read === true || row.read === 1,
+    created_at: row.created_at || new Date().toISOString(),
+    link: row.action_url || undefined,
+    action_url: row.action_url || undefined,
+  }));
+}

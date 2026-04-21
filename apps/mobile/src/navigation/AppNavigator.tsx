@@ -38,7 +38,9 @@ import { ExploreMapScreen } from '../screens/explore-map/ExploreMapScreen';
 import { useAuth } from '../contexts/AuthContext';
 import { useHaptics } from '../utils/haptics';
 import { useOnboardingGate } from '../hooks/useOnboardingGate';
+import { usePushSoftAskGate } from '../hooks/usePushSoftAskGate';
 import { OnboardingModal } from '../components/onboarding/OnboardingModal';
+import { PushSoftAskModal } from '../components/onboarding/PushSoftAskModal';
 import { theme } from '../theme';
 import { useTheme } from '../design-system/theme';
 import {
@@ -129,6 +131,7 @@ const TabNavigator: React.FC = () => {
     number | undefined
   >();
   const onboarding = useOnboardingGate();
+  const pushSoftAsk = usePushSoftAskGate();
 
   // Fetch unread notification count for the Profile tab badge.
   // Re-fetches whenever the user changes (login/logout) or focus returns.
@@ -190,6 +193,13 @@ const TabNavigator: React.FC = () => {
         visible={onboarding.shouldShow}
         userRole={user?.role || 'homeowner'}
         onDismiss={onboarding.dismiss}
+      />
+      <PushSoftAskModal
+        visible={pushSoftAsk.shouldShow}
+        permissionStatus={pushSoftAsk.permissionStatus}
+        onAllow={pushSoftAsk.allowNotifications}
+        onDismiss={pushSoftAsk.dismiss}
+        onOpenSettings={pushSoftAsk.openSystemSettings}
       />
       <QuickJobModal
         visible={showQuickJobModal}

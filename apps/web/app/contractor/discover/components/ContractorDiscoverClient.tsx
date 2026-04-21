@@ -278,9 +278,12 @@ export function ContractorDiscoverClient({
           <h3 className='text-base font-semibold text-gray-900'>
             Available Jobs ({filteredJobs.length})
             {hasLocation && (
-              <span className='text-sm text-gray-400 font-normal ml-1.5'>
-                within {selectedRadius}km
-              </span>
+              <>
+                {' '}
+                <span className='text-sm text-gray-400 font-normal'>
+                  within {selectedRadius}km
+                </span>
+              </>
             )}
           </h3>
 

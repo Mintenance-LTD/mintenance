@@ -14,6 +14,7 @@ import {
 } from '@/lib/validation/schemas';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { EmailService } from '@/lib/email-service';
+import { NotificationService } from '@/lib/services/notifications/NotificationService';
 
 // Type definitions for contracts
 interface ContractTerms {
@@ -230,16 +231,19 @@ export const POST = withApiHandler(
       throw new InternalServerError('Failed to create contract');
     }
 
-    // Create notification for homeowner
+    // Notify homeowner through the service so push + preference checks
+    // fire alongside the in-app row. Direct `.from('notifications').
+    // insert(...)` was silently skipping push — homeowners only learned
+    // a contract existed from email (if enabled) or by opening the
+    // app manually.
     try {
-      await serverSupabase.from('notifications').insert({
-        user_id: job.homeowner_id,
+      await NotificationService.createNotification({
+        userId: job.homeowner_id,
+        type: 'contract_created',
         title: 'New Contract Created',
         message: `Contractor has created a contract for "${job.title || 'your job'}". Please review and sign.`,
-        type: 'contract_created',
-        read: false,
-        action_url: `/jobs/${job_id}`,
-        created_at: new Date().toISOString(),
+        actionUrl: `/jobs/${job_id}`,
+        metadata: { jobId: job_id, contractorId: user.id },
       });
     } catch (notificationError) {
       logger.error('Failed to create notification', notificationError, {

@@ -116,9 +116,23 @@ export function JobLifecycleTimeline({
   });
 
   // Step 8: Approved & Paid
+  //
+  // "Paid" here means money actually moved to the contractor — the Stripe
+  // transfer has settled and the escrow row has flipped to a terminal
+  // state. Previously we marked this step completed as soon as the
+  // homeowner clicked Approve Work, which moves escrow from
+  // `held` → `release_pending`. The contractor still hasn't been paid
+  // at that point, so the timeline happily read "Approved & Paid"
+  // while the Payments tab on the same job still showed "Releasing".
+  // Contradictory on one screen.
+  const escrowReleased = ['released', 'completed'].includes(escrowStatus);
+  const releasing =
+    completionConfirmed &&
+    escrowStatus === 'release_pending' &&
+    !escrowReleased;
   steps.push({
-    label: 'Approved & Paid',
-    status: completionConfirmed ? 'completed' : 'upcoming',
+    label: releasing ? 'Releasing funds' : 'Approved & Paid',
+    status: escrowReleased ? 'completed' : releasing ? 'current' : 'upcoming',
   });
 
   return (
@@ -244,8 +258,14 @@ export function NextActionCard({
     ctaHref = '#photo-review';
     urgency = 'urgent';
   } else if (completionConfirmed) {
-    message =
-      'This job is complete. Payment has been released to the contractor.';
+    // Same state-machine nuance as the "Releasing funds" timeline step:
+    // homeowner approval moves escrow held → release_pending, not
+    // released. Until Stripe confirms the transfer (escrow flips to
+    // `released`/`completed`) the money is still in flight.
+    const escrowReleased = ['released', 'completed'].includes(escrowStatus);
+    message = escrowReleased
+      ? 'This job is complete. Payment has been released to the contractor.'
+      : 'Work approved. The payment is in transit to the contractor and will settle shortly.';
     urgency = 'info';
   } else {
     return null;

@@ -16,6 +16,12 @@ export function KpiCards({
   allTimeRevenue,
   avgJobValue,
 }: KpiCardsProps) {
+  const fmt = (n: number) =>
+    n.toLocaleString('en-GB', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
+
   return (
     <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8'>
       {/* This Month Revenue */}
@@ -25,7 +31,7 @@ export function KpiCards({
           <p className='text-gray-600 text-sm font-medium'>This Month</p>
         </div>
         <p className='text-2xl font-semibold text-gray-900'>
-          £{thisMonthRevenue.toLocaleString()}
+          £{fmt(thisMonthRevenue)}
         </p>
       </div>
 
@@ -36,7 +42,7 @@ export function KpiCards({
           <p className='text-gray-600 text-sm font-medium'>Pending</p>
         </div>
         <p className='text-2xl font-semibold text-gray-900'>
-          £{pendingPayouts.toLocaleString()}
+          £{fmt(pendingPayouts)}
         </p>
       </div>
 
@@ -47,7 +53,7 @@ export function KpiCards({
           <p className='text-gray-600 text-sm font-medium'>All Time</p>
         </div>
         <p className='text-2xl font-semibold text-gray-900'>
-          £{allTimeRevenue.toLocaleString()}
+          £{fmt(allTimeRevenue)}
         </p>
       </div>
 
@@ -58,7 +64,7 @@ export function KpiCards({
           <p className='text-gray-600 text-sm font-medium'>Avg Job Value</p>
         </div>
         <p className='text-2xl font-semibold text-gray-900'>
-          £{avgJobValue.toLocaleString()}
+          £{fmt(avgJobValue)}
         </p>
       </div>
     </div>

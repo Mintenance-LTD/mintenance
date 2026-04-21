@@ -12,7 +12,8 @@ import {
 import { FadeIn, SlideIn } from '../components/animations/primitives';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import type { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { AuthStackParamList } from '../navigation/types';
 
@@ -21,130 +22,10 @@ import { Input } from '../components/ui/Input';
 import { Banner } from '../components/ui/Banner';
 import { RoleSelector } from './register/components/RoleSelector';
 import { TermsSection, TermsModal } from './register/components/TermsSection';
+import { FormProgress } from './register/components/FormProgress';
 import { useRegistrationForm } from './register/hooks/useRegistrationForm';
 import { PasswordStrengthBar } from '../components/ui/PasswordStrengthBar';
 import { theme } from '../theme';
-
-const STEPS = [
-  { number: 1, label: 'Personal' },
-  { number: 2, label: 'Contact' },
-  { number: 3, label: 'Password' },
-] as const;
-
-interface FormProgressProps {
-  currentStep: number;
-}
-
-const FormProgress: React.FC<FormProgressProps> = ({ currentStep }) => {
-  return (
-    <View style={progressStyles.container}>
-      <View style={progressStyles.row}>
-        {STEPS.map((step, index) => {
-          const isCompleted = step.number < currentStep;
-          const isActive = step.number === currentStep;
-          const isFuture = step.number > currentStep;
-
-          return (
-            <React.Fragment key={step.number}>
-              {index > 0 && (
-                <View
-                  style={[
-                    progressStyles.line,
-                    {
-                      backgroundColor:
-                        isCompleted || isActive
-                          ? theme.colors.primary
-                          : theme.colors.border,
-                    },
-                  ]}
-                />
-              )}
-              <View style={progressStyles.stepColumn}>
-                <View
-                  style={[
-                    progressStyles.circle,
-                    isCompleted || isActive
-                      ? { backgroundColor: theme.colors.primary }
-                      : { backgroundColor: theme.colors.backgroundSecondary },
-                  ]}
-                >
-                  {isCompleted ? (
-                    <Ionicons
-                      name='checkmark'
-                      size={16}
-                      color={theme.colors.textInverse}
-                    />
-                  ) : (
-                    <Text
-                      style={[
-                        progressStyles.circleText,
-                        isActive
-                          ? { color: theme.colors.textInverse }
-                          : { color: theme.colors.textTertiary },
-                      ]}
-                    >
-                      {step.number}
-                    </Text>
-                  )}
-                </View>
-                <Text
-                  style={[
-                    progressStyles.label,
-                    isActive
-                      ? { color: theme.colors.primary, fontWeight: '600' }
-                      : isFuture
-                        ? { color: theme.colors.textTertiary }
-                        : { color: theme.colors.textSecondary },
-                  ]}
-                >
-                  {step.label}
-                </Text>
-              </View>
-            </React.Fragment>
-          );
-        })}
-      </View>
-    </View>
-  );
-};
-
-const progressStyles = StyleSheet.create({
-  container: {
-    paddingHorizontal: 24,
-    marginBottom: 16,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'center',
-  },
-  line: {
-    height: 2,
-    flex: 1,
-    marginTop: 14,
-    borderRadius: 1,
-  },
-  stepColumn: {
-    alignItems: 'center',
-    width: 56,
-  },
-  circle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  circleText: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  label: {
-    fontSize: 11,
-    textAlign: 'center',
-    marginTop: 4,
-  },
-});
 
 type RegisterScreenNavigationProp = NativeStackNavigationProp<
   AuthStackParamList,
@@ -157,6 +38,13 @@ interface Props {
 
 const RegisterScreen: React.FC<Props> = () => {
   const navigation = useNavigation<RegisterScreenNavigationProp>();
+  const route = useRoute<RouteProp<AuthStackParamList, 'Register'>>();
+  // Phase 2 — WelcomeScreen hands off a role when the user taps a
+  // tile. Direct deep-links to Register (e.g. legacy "Sign up" link
+  // on LoginScreen) don't pass one; the hook falls back to its
+  // default 'homeowner'. The user can still change role inside the
+  // form via RoleSelector.
+  const initialRole = route.params?.role;
   const {
     form,
     fieldErrors,
@@ -172,7 +60,15 @@ const RegisterScreen: React.FC<Props> = () => {
     toggleTerms,
     togglePasswordVisibility,
     handleRegister,
-  } = useRegistrationForm();
+  } = useRegistrationForm({
+    initialRole,
+    // Phase 1.2 — on successful signUp, go to the email-confirmation
+    // pending screen so the user has a clear next step. Email-confirm
+    // is ON in prod; they can't sign in until they click the link.
+    onSignUpSuccess: (email) => {
+      navigation.replace('EmailVerificationPending', { email });
+    },
+  });
 
   const currentStep = useMemo(() => {
     if (form.email.trim().length > 0) return 3;

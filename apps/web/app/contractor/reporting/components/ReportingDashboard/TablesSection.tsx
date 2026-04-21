@@ -49,7 +49,9 @@ export const TablesSection: React.FC<TablesSectionProps> = ({ analytics }) => {
                 .sort((a, b) => b.revenue - a.revenue)
                 .map((category, index) => {
                   const percentage =
-                    (category.revenue / analytics.totalRevenue) * 100;
+                    analytics.totalRevenue > 0
+                      ? (category.revenue / analytics.totalRevenue) * 100
+                      : 0;
                   const avgValue =
                     category.count > 0 ? category.revenue / category.count : 0;
 
