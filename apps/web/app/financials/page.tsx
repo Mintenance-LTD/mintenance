@@ -13,6 +13,10 @@ import { Icon } from '@/components/ui/Icon';
 import { formatMoney } from '@/lib/utils/currency';
 import Link from 'next/link';
 import { InvoiceLink } from './components/InvoiceLink';
+import {
+  RecentPaymentsList,
+  getFinancialsStatusColor,
+} from './components/RecentPaymentsList';
 
 export default async function FinancialsPage() {
   const user = await getCurrentUserFromCookies();
@@ -26,22 +30,27 @@ export default async function FinancialsPage() {
     redirect('/contractor/finance');
   }
 
-  // Fetch financial data in parallel
+  // Fetch financial data in parallel. The legacy `payments` table has
+  // 0 rows in production — all real money flows live in
+  // `escrow_transactions` (verified live 2026-04-21 via Supabase MCP).
+  // Pulling from `payments` gave users "£0.00 Total Spent" and
+  // "No payments yet" on /financials even though /payments read escrow
+  // and correctly showed their transactions. Bridge the two by
+  // projecting escrow rows into the payments shape this page expects.
   const [paymentsResult, subscriptionsResult, jobsResult, invoicesResult] =
     await Promise.all([
-      // Payments made by homeowner
       serverSupabase
-        .from('payments')
+        .from('escrow_transactions')
         .select(
           `
         id,
         amount,
         status,
-        payment_date,
         created_at,
-        due_date,
-        description,
-        job:jobs!payments_job_id_fkey (
+        updated_at,
+        released_at,
+        refunded_at,
+        job:jobs!escrow_transactions_job_id_fkey (
           id,
           title
         )
@@ -118,20 +127,31 @@ export default async function FinancialsPage() {
     }
   );
 
-  // Calculate billing overview stats
+  // Calculate billing overview stats. Escrow statuses we fold into
+  // "spent" = money the homeowner has actually parted with:
+  //   held / release_pending / released / completed. Only `pending`
+  //   (pre-charge) and `refunded` stay out. Matches the logic on
+  //   /payments (see batch `5904938f`).
   const now = new Date();
+  const SPENT_STATUSES = new Set([
+    'held',
+    'release_pending',
+    'released',
+    'completed',
+  ]);
   const totalSpent = paymentsList
-    .filter((p) => p.status === 'completed')
+    .filter((p) => SPENT_STATUSES.has(p.status || ''))
     .reduce((sum, p) => sum + Number(p.amount || 0), 0);
 
   const pendingPayments = paymentsList
-    .filter((p) => ['pending', 'processing'].includes(p.status || ''))
+    .filter((p) => p.status === 'pending')
     .reduce((sum, p) => sum + Number(p.amount || 0), 0);
 
-  const overduePayments = paymentsList.filter((p) => {
-    if (!p.due_date || p.status === 'completed') return false;
-    return new Date(p.due_date) < now && p.status !== 'completed';
-  }).length;
+  // escrow_transactions has no due_date; the concept doesn't apply —
+  // money is either in escrow or it isn't. Leave the count at 0 for
+  // now so the existing UI card just renders "0 overdue" instead of
+  // blowing up on a missing column.
+  const overduePayments = 0;
 
   const activeSubscriptions = subscriptionsList.filter(
     (s) => s.status === 'active'
@@ -153,31 +173,7 @@ export default async function FinancialsPage() {
     return new Date(i.due_date) < now && i.status !== 'paid';
   }).length;
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed':
-      case 'paid':
-      case 'active':
-        return {
-          bg: 'bg-emerald-100',
-          text: 'text-emerald-800',
-          icon: 'checkCircle',
-        };
-      case 'pending':
-      case 'processing':
-      case 'sent':
-      case 'viewed':
-        return { bg: 'bg-amber-100', text: 'text-amber-800', icon: 'clock' };
-      case 'overdue':
-      case 'failed':
-        return { bg: 'bg-red-100', text: 'text-red-800', icon: 'xCircle' };
-      case 'cancelled':
-      case 'refunded':
-        return { bg: 'bg-gray-100', text: 'text-gray-600', icon: 'x' };
-      default:
-        return { bg: 'bg-gray-100', text: 'text-gray-600', icon: 'info' };
-    }
-  };
+  const getStatusColor = getFinancialsStatusColor;
 
   return (
     <HomeownerLayoutShell currentPath='/financials'>
@@ -225,8 +221,11 @@ export default async function FinancialsPage() {
             {totalSpent > 0 && (
               <div className='text-xs text-gray-400 mt-2 relative z-10'>
                 From{' '}
-                {paymentsList.filter((p) => p.status === 'completed').length}{' '}
-                completed payments
+                {
+                  paymentsList.filter((p) => SPENT_STATUSES.has(p.status || ''))
+                    .length
+                }{' '}
+                payments
               </div>
             )}
           </div>
@@ -468,89 +467,7 @@ export default async function FinancialsPage() {
         </div>
 
         {/* Recent Payments Section */}
-        <div className='bg-white border border-gray-200 rounded-xl p-6 shadow-sm'>
-          <h2 className='text-xl font-semibold text-gray-900 mb-4 flex items-center gap-2'>
-            Recent Payments{' '}
-            <span className='text-gray-400 font-normal text-base'>
-              ({paymentsList.length})
-            </span>
-          </h2>
-
-          {paymentsList.length === 0 ? (
-            <Link
-              href='/jobs/create'
-              className='flex items-center justify-between py-4 px-4 bg-gray-50 rounded-lg text-gray-500 hover:bg-gray-100 transition-colors no-underline'
-            >
-              <div className='flex items-center gap-3'>
-                <Icon
-                  name='currencyPound'
-                  size={20}
-                  className='text-gray-400'
-                />
-                <span className='text-sm text-gray-500'>No payments yet</span>
-              </div>
-              <span className='text-xs text-primary-600 font-medium flex items-center gap-1'>
-                Post a job <Icon name='arrowRight' size={12} />
-              </span>
-            </Link>
-          ) : (
-            <div className='flex flex-col gap-3'>
-              {paymentsList.slice(0, 10).map((payment) => {
-                const statusConfig = getStatusColor(
-                  payment.status || 'pending'
-                );
-                const job = Array.isArray(payment.job)
-                  ? payment.job[0]
-                  : payment.job;
-                const paymentDate =
-                  payment.payment_date || payment.created_at
-                    ? new Date(
-                        payment.payment_date || payment.created_at
-                      ).toLocaleDateString('en-GB', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric',
-                      })
-                    : 'N/A';
-
-                return (
-                  <div
-                    key={payment.id}
-                    className='p-4 rounded-lg border border-gray-200 flex flex-wrap justify-between items-center gap-3 hover:bg-gray-50 transition-colors'
-                  >
-                    <div className='flex-1 min-w-[200px]'>
-                      <div className='flex items-center gap-2 mb-1'>
-                        <h3 className='text-base font-semibold text-gray-900'>
-                          {payment.description || job?.title || 'Payment'}
-                        </h3>
-                        <span
-                          className={`px-2 py-0.5 rounded-full text-xs font-semibold flex items-center gap-1 ${statusConfig.bg} ${statusConfig.text}`}
-                        >
-                          <Icon name={statusConfig.icon} size={12} />
-                          {payment.status || 'pending'}
-                        </span>
-                      </div>
-                      <p className='text-sm text-gray-500 flex items-center gap-2'>
-                        {paymentDate}
-                        {job && (
-                          <Link
-                            href={`/jobs/${job.id}`}
-                            className='text-primary-600 hover:text-primary-700 hover:underline flex items-center gap-1'
-                          >
-                            View Job <Icon name='arrowRight' size={12} />
-                          </Link>
-                        )}
-                      </p>
-                    </div>
-                    <div className='text-lg font-bold text-gray-900'>
-                      {formatMoney(Number(payment.amount || 0))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
+        <RecentPaymentsList payments={paymentsList} />
       </div>
     </HomeownerLayoutShell>
   );

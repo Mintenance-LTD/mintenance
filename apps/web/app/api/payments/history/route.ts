@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import type { EscrowTransaction } from '@mintenance/types';
-import { serverSupabase, createRequestScopedClient } from '@/lib/api/supabaseServer';
+import {
+  serverSupabase,
+  createRequestScopedClient,
+} from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
@@ -24,8 +27,8 @@ const selectFields = `
   created_at,
   updated_at,
   job:jobs!escrow_transactions_job_id_fkey(id, title, description),
-  payer:profiles!escrow_transactions_payer_id_fkey(first_name, last_name),
-  payee:profiles!escrow_transactions_payee_id_fkey(first_name, last_name)
+  payer:profiles!escrow_transactions_payer_id_fkey(first_name, last_name, company_name),
+  payee:profiles!escrow_transactions_payee_id_fkey(first_name, last_name, company_name)
 `;
 
 type EscrowRow = {
@@ -39,9 +42,21 @@ type EscrowRow = {
   refunded_at?: string | null;
   created_at: string;
   updated_at: string;
-  job?: { id?: string; title?: string | null; description?: string | null } | null;
-  payer?: { first_name?: string | null; last_name?: string | null } | null;
-  payee?: { first_name?: string | null; last_name?: string | null } | null;
+  job?: {
+    id?: string;
+    title?: string | null;
+    description?: string | null;
+  } | null;
+  payer?: {
+    first_name?: string | null;
+    last_name?: string | null;
+    company_name?: string | null;
+  } | null;
+  payee?: {
+    first_name?: string | null;
+    last_name?: string | null;
+    company_name?: string | null;
+  } | null;
 };
 
 const mapEscrowRow = (row: EscrowRow): EscrowTransaction => ({
@@ -50,9 +65,15 @@ const mapEscrowRow = (row: EscrowRow): EscrowTransaction => ({
   payerId: row.payer_id,
   payeeId: row.payee_id,
   amount: Number(row.amount ?? 0),
-  status: (['pending','held','release_pending','released','refunded'].includes(row.status)
+  status: [
+    'pending',
+    'held',
+    'release_pending',
+    'released',
+    'refunded',
+  ].includes(row.status)
     ? (row.status as EscrowTransaction['status'])
-    : 'pending'),
+    : 'pending',
   createdAt: row.created_at,
   updatedAt: row.updated_at,
   releasedAt: row.released_at ?? undefined,
@@ -67,12 +88,14 @@ const mapEscrowRow = (row: EscrowRow): EscrowTransaction => ({
     ? {
         first_name: row.payer.first_name ?? '',
         last_name: row.payer.last_name ?? '',
+        company_name: row.payer.company_name ?? undefined,
       }
     : undefined,
   payee: row.payee
     ? {
         first_name: row.payee.first_name ?? '',
         last_name: row.payee.last_name ?? '',
+        company_name: row.payee.company_name ?? undefined,
       }
     : undefined,
 });
@@ -128,7 +151,7 @@ export const GET = withApiHandler(
     if (error) {
       logger.error('Failed to load payment history', error, {
         service: 'payments',
-        userId: user.id
+        userId: user.id,
       });
       throw new InternalServerError('Failed to load payments');
     }
@@ -145,7 +168,7 @@ export const GET = withApiHandler(
       service: 'payments',
       userId: user.id,
       paymentCount: payments.length,
-      hasMore
+      hasMore,
     });
 
     return NextResponse.json({ payments, nextCursor: nextCursorValue, limit });

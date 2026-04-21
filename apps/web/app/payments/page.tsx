@@ -49,8 +49,16 @@ interface PaymentData {
   payerId?: string;
   payeeId?: string;
   job?: { title: string; description?: string } | null;
-  payer?: { first_name: string; last_name: string } | null;
-  payee?: { first_name: string; last_name: string } | null;
+  payer?: {
+    first_name: string;
+    last_name: string;
+    company_name?: string;
+  } | null;
+  payee?: {
+    first_name: string;
+    last_name: string;
+    company_name?: string;
+  } | null;
   created_at?: string;
   updated_at?: string;
   job_id?: string;
@@ -95,8 +103,14 @@ export default function PaymentsPage2025() {
             const platformFee = amount * 0.05;
             const processingFee = amount * 0.02;
 
+            // Prefer `company_name` when the payee has one set — a
+            // contractor trading as "my Company LTD" should display that
+            // over their personal Djodjo Nkouka name on the homeowner's
+            // transaction list. Fall back to the first+last name when the
+            // company field is empty.
             const contractorName =
               t.contractor_name ||
+              t.payee?.company_name ||
               (t.payee
                 ? `${t.payee.first_name || ''} ${t.payee.last_name || ''}`.trim()
                 : undefined);
