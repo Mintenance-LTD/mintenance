@@ -367,36 +367,37 @@ export default async function JobDetailPage2025({
             completionConfirmed: !!job.completion_confirmed_by_homeowner,
           }}
         />
-        {/* The Photo Review and Contract panels used to sit at the
-            outer HomeownerPageWrapper's left padding while the main
-            JobDetailsProfessional block was centered inside a
-            max-w-7xl container. That left the two cards visibly
-            detached on wide viewports — the user screenshot from
-            2026-04-21 showed the Contract Agreement card floating
-            off to the left margin while Bids Received was centered.
-            Wrap both sections in the same max-w-7xl / mx-auto
-            container so they live directly under the rest of the
-            job detail. */}
+        {/* The Photo Review and Contract panels need to align with the
+            Bids Received card inside JobDetailsProfessional, not with
+            the full page. JobDetailsProfessional renders a 12-col grid
+            inside `max-w-7xl mx-auto px-6 py-8`, where the main content
+            (including Bids Received) lives in `col-span-12 lg:col-span-8`.
+            Mirror that same outer container + grid here so these two
+            cards sit directly under the Bids Received column at the
+            same width on wide viewports, and stack full-width on mobile
+            just like everything else. */}
         <div className='max-w-7xl mx-auto px-6'>
-          {job.status === 'completed' && afterPhotos.length > 0 && (
-            <div className='mt-6'>
-              <HomeownerPhotoReview
-                jobId={job.id}
-                beforePhotos={beforePhotos}
-                afterPhotos={afterPhotos}
-                isConfirmed={!!job.completion_confirmed_by_homeowner}
-              />
+          <div className='grid grid-cols-12 gap-8'>
+            <div className='col-span-12 lg:col-span-8 space-y-6'>
+              {job.status === 'completed' && afterPhotos.length > 0 && (
+                <HomeownerPhotoReview
+                  jobId={job.id}
+                  beforePhotos={beforePhotos}
+                  afterPhotos={afterPhotos}
+                  isConfirmed={!!job.completion_confirmed_by_homeowner}
+                />
+              )}
+              {job.contractor_id && (
+                <div id='contract-section'>
+                  <ContractManagement
+                    jobId={job.id}
+                    userRole='homeowner'
+                    userId={user.id}
+                  />
+                </div>
+              )}
             </div>
-          )}
-          {job.contractor_id && (
-            <div id='contract-section' className='mt-6'>
-              <ContractManagement
-                jobId={job.id}
-                userRole='homeowner'
-                userId={user.id}
-              />
-            </div>
-          )}
+          </div>
         </div>
       </HomeownerPageWrapper>
     </>
