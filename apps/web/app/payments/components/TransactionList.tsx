@@ -19,7 +19,13 @@ import {
 interface Transaction {
   id: string;
   amount: number;
-  status: 'pending' | 'held' | 'released' | 'refunded' | 'completed';
+  status:
+    | 'pending'
+    | 'held'
+    | 'release_pending'
+    | 'released'
+    | 'refunded'
+    | 'completed';
   type: 'payment' | 'refund' | 'escrow';
   created_at: string;
   updated_at: string;
