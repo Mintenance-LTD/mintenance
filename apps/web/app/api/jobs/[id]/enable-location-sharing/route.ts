@@ -6,6 +6,7 @@ import { validateRequest } from '@/lib/validation/validator';
 import { enableLocationSharingSchema } from '@/lib/validation/schemas';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { EmailService } from '@/lib/email-service';
+import { NotificationService } from '@/lib/services/notifications/NotificationService';
 
 /**
  * POST /api/jobs/[id]/enable-location-sharing - toggle location sharing for a job.
@@ -15,7 +16,10 @@ export const POST = withApiHandler(
   async (request, { user, params }) => {
     const jobId = params.id;
 
-    const validation = await validateRequest(request, enableLocationSharingSchema);
+    const validation = await validateRequest(
+      request,
+      enableLocationSharingSchema
+    );
     if ('headers' in validation) return validation;
     const { enabled } = validation.data;
 
@@ -31,7 +35,9 @@ export const POST = withApiHandler(
     }
 
     if (job.contractor_id !== user.id) {
-      throw new ForbiddenError('Not authorized to enable location sharing for this job');
+      throw new ForbiddenError(
+        'Not authorized to enable location sharing for this job'
+      );
     }
 
     if (!enabled) {
@@ -42,17 +48,20 @@ export const POST = withApiHandler(
         .eq('job_id', jobId);
     }
 
-    // Create notification for homeowner
+    // "Contractor is on the way" is one of the most time-sensitive
+    // notifications the platform fires — without push, a homeowner who
+    // isn't actively watching the app has no signal that someone's
+    // arriving. Route through NotificationService for push + preference
+    // checks. Previously the direct table insert silently skipped push.
     if (enabled) {
       try {
-        await serverSupabase.from('notifications').insert({
-          user_id: job.homeowner_id,
+        await NotificationService.createNotification({
+          userId: job.homeowner_id,
+          type: 'location_sharing_enabled',
           title: 'Location Sharing Enabled',
           message: `Contractor has enabled location sharing for "${job.title || 'the job'}". You can now track their location.`,
-          type: 'location_sharing_enabled',
-          read: false,
-          action_url: `/jobs/${jobId}`,
-          created_at: new Date().toISOString(),
+          actionUrl: `/jobs/${jobId}`,
+          metadata: { jobId, contractorId: user.id },
         });
       } catch (notificationError) {
         logger.error('Failed to create notification', notificationError, {
@@ -78,12 +87,14 @@ export const POST = withApiHandler(
           .single();
 
         if (homeownerProfile?.email) {
-          const homeownerName = homeownerProfile.first_name && homeownerProfile.last_name
-            ? `${homeownerProfile.first_name} ${homeownerProfile.last_name}` : 'there';
+          const homeownerName =
+            homeownerProfile.first_name && homeownerProfile.last_name
+              ? `${homeownerProfile.first_name} ${homeownerProfile.last_name}`
+              : 'there';
           const contractorName = contractorProfile
-            ? (contractorProfile.first_name && contractorProfile.last_name
-                ? `${contractorProfile.first_name} ${contractorProfile.last_name}`
-                : contractorProfile.company_name || 'Your contractor')
+            ? contractorProfile.first_name && contractorProfile.last_name
+              ? `${contractorProfile.first_name} ${contractorProfile.last_name}`
+              : contractorProfile.company_name || 'Your contractor'
             : 'Your contractor';
 
           await EmailService.sendLocationSharingEmail(homeownerProfile.email, {
@@ -94,7 +105,10 @@ export const POST = withApiHandler(
           });
         }
       } catch (emailError) {
-        logger.error('Failed to send location sharing email', emailError, { service: 'jobs', jobId });
+        logger.error('Failed to send location sharing email', emailError, {
+          service: 'jobs',
+          jobId,
+        });
       }
     }
 
@@ -105,5 +119,5 @@ export const POST = withApiHandler(
         ? 'Location sharing enabled. Start updating your location to allow tracking.'
         : 'Location sharing disabled.',
     });
-  },
+  }
 );

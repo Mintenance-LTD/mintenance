@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { EmailService } from '@/lib/email-service';
+import { NotificationService } from '@/lib/services/notifications/NotificationService';
 import { logger } from '@mintenance/shared';
 
 /**
@@ -152,13 +153,16 @@ export const POST = withApiHandler(
           );
         }
 
-        // Notify the existing user
-        await serverSupabase.from('notifications').insert({
-          user_id: existingUser.id,
+        // Notify the existing user. Previous direct insert used a
+        // `data` column that doesn't exist — PostgREST rejected the
+        // INSERT, so tenants were never told their access was granted.
+        await NotificationService.createNotification({
+          userId: existingUser.id,
           type: 'tenant_linked',
           title: 'Property Access Granted',
           message: `You've been added as a tenant at ${property.address || property.name || 'a property'}. You can now submit maintenance requests.`,
-          data: { property_id: propertyId },
+          actionUrl: `/properties/${propertyId}`,
+          metadata: { property_id: propertyId },
         });
 
         return NextResponse.json({ tenant, linked: true }, { status: 201 });
