@@ -39,8 +39,10 @@ import { useAuth } from '../contexts/AuthContext';
 import { useHaptics } from '../utils/haptics';
 import { useOnboardingGate } from '../hooks/useOnboardingGate';
 import { usePushSoftAskGate } from '../hooks/usePushSoftAskGate';
+import { useFirstPropertyGate } from '../hooks/useFirstPropertyGate';
 import { OnboardingModal } from '../components/onboarding/OnboardingModal';
 import { PushSoftAskModal } from '../components/onboarding/PushSoftAskModal';
+import { FirstPropertyPromptModal } from '../components/onboarding/FirstPropertyPromptModal';
 import { theme } from '../theme';
 import { useTheme } from '../design-system/theme';
 import {
@@ -132,6 +134,7 @@ const TabNavigator: React.FC = () => {
   >();
   const onboarding = useOnboardingGate();
   const pushSoftAsk = usePushSoftAskGate();
+  const firstProperty = useFirstPropertyGate();
 
   // Fetch unread notification count for the Profile tab badge.
   // Re-fetches whenever the user changes (login/logout) or focus returns.
@@ -194,8 +197,24 @@ const TabNavigator: React.FC = () => {
         userRole={user?.role || 'homeowner'}
         onDismiss={onboarding.dismiss}
       />
+      {/*
+        Phase 2 first-property gate (homeowners only, after swiper).
+        Stacking order: OnboardingModal > FirstPropertyPromptModal >
+        PushSoftAskModal. Each lower-priority modal suppresses itself
+        while any higher-priority modal is visible so the user only
+        ever sees one onboarding prompt at a time.
+      */}
+      <FirstPropertyPromptModal
+        visible={!onboarding.shouldShow && firstProperty.shouldShow}
+        onDismiss={firstProperty.dismiss}
+        onAfterNavigate={firstProperty.refresh}
+      />
       <PushSoftAskModal
-        visible={pushSoftAsk.shouldShow}
+        visible={
+          !onboarding.shouldShow &&
+          !firstProperty.shouldShow &&
+          pushSoftAsk.shouldShow
+        }
         permissionStatus={pushSoftAsk.permissionStatus}
         onAllow={pushSoftAsk.allowNotifications}
         onDismiss={pushSoftAsk.dismiss}
