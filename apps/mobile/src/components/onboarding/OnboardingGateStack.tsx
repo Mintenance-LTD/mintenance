@@ -33,12 +33,14 @@ import { useFirstPropertyGate } from '../../hooks/useFirstPropertyGate';
 import { useLocationSoftAskGate } from '../../hooks/useLocationSoftAskGate';
 import { useServiceAreaGate } from '../../hooks/useServiceAreaGate';
 import { useIdentitySetupGate } from '../../hooks/useIdentitySetupGate';
+import { useBackgroundCheckGate } from '../../hooks/useBackgroundCheckGate';
 import { OnboardingModal } from './OnboardingModal';
 import { PushSoftAskModal } from './PushSoftAskModal';
 import { FirstPropertyPromptModal } from './FirstPropertyPromptModal';
 import { LocationSoftAskModal } from './LocationSoftAskModal';
 import { ServiceAreaPromptModal } from './ServiceAreaPromptModal';
 import { IdentitySetupPromptModal } from './IdentitySetupPromptModal';
+import { BackgroundCheckPromptModal } from './BackgroundCheckPromptModal';
 
 export const OnboardingGateStack: React.FC = () => {
   const { user } = useAuth();
@@ -47,6 +49,7 @@ export const OnboardingGateStack: React.FC = () => {
   const locationSoftAsk = useLocationSoftAskGate();
   const serviceArea = useServiceAreaGate();
   const identitySetup = useIdentitySetupGate();
+  const backgroundCheck = useBackgroundCheckGate();
   const pushSoftAsk = usePushSoftAskGate();
 
   // Pre-compute the stacking conditions so the JSX below stays
@@ -62,12 +65,19 @@ export const OnboardingGateStack: React.FC = () => {
     !showLocationSoftAsk &&
     !showServiceArea &&
     identitySetup.shouldShow;
+  const showBackgroundCheck =
+    !showOnboarding &&
+    !showLocationSoftAsk &&
+    !showServiceArea &&
+    !showIdentitySetup &&
+    backgroundCheck.shouldShow;
   const showPushSoftAsk =
     !showOnboarding &&
     !showFirstProperty &&
     !showLocationSoftAsk &&
     !showServiceArea &&
     !showIdentitySetup &&
+    !showBackgroundCheck &&
     pushSoftAsk.shouldShow;
 
   return (
@@ -98,6 +108,11 @@ export const OnboardingGateStack: React.FC = () => {
         visible={showIdentitySetup}
         onDismiss={identitySetup.dismiss}
         onAfterNavigate={identitySetup.refresh}
+      />
+      <BackgroundCheckPromptModal
+        visible={showBackgroundCheck}
+        onDismiss={backgroundCheck.dismiss}
+        onAfterNavigate={backgroundCheck.refresh}
       />
       <PushSoftAskModal
         visible={showPushSoftAsk}
