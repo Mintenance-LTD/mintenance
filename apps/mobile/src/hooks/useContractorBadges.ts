@@ -40,7 +40,12 @@ export interface ContractorBadgesResult {
 
 const SELECT_FIELDS =
   'admin_verified, verification_status, background_check_status, ' +
-  'license_type, license_expiry, rating, total_jobs_completed';
+  'license_type, license_expiry, rating, total_jobs_completed, ' +
+  // Added 2026-04-22 by the Phase 3 migration that landed these
+  // columns (20260422000001_contractor_insurance_dbs_badge_fields).
+  // The utility already reads them — fetching them here flips the
+  // Insured + DBS Checked badges on once data arrives.
+  'insurance_expiry, dbs_expiry';
 
 export function useContractorBadges(): ContractorBadgesResult {
   const { user } = useAuth();
