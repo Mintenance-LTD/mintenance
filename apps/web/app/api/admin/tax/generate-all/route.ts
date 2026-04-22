@@ -24,10 +24,17 @@ const generateAllSchema = z.object({
  * tax year. Eligible means the contractor requires a 1099 but one has not
  * yet been generated.
  *
- * Requires admin role.
+ * Requires admin role + fresh MFA step-up (15-minute window). Same
+ * rationale as /api/admin/tax/generate-1099 — produces tax-authority
+ * records + contractor PII at scale. A stolen admin session must not
+ * be sufficient to trigger a bulk generation.
  */
 export const POST = withApiHandler(
-  { roles: ['admin'], rateLimit: { maxRequests: 3, windowMs: 60_000 } },
+  {
+    roles: ['admin'],
+    rateLimit: { maxRequests: 3, windowMs: 60_000 },
+    requireMfaVerifiedWithinMinutes: 15,
+  },
   async (request, { user }) => {
     const validation = await validateRequest(request, generateAllSchema);
     if ('headers' in validation) {

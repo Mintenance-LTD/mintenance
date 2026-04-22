@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { sanitizeIlikePattern } from '@/lib/utils/sanitize-postgrest';
 
 /**
  * GET /api/admin/jobs
@@ -61,9 +62,16 @@ export const GET = withApiHandler(
       query = query.eq('status', status);
     }
 
-    // Search filter: match on title or homeowner/contractor email via ilike
+    // Search filter: match on title via ilike.
+    // SECURITY: sanitize input — PostgREST .or() accepts a filter-DSL
+    // string where commas/dots/parens separate clauses. Raw interpolation
+    // of querystring input lets a caller inject extra filters and read
+    // rows outside their intended scope. See lib/utils/sanitize-postgrest.ts.
     if (search) {
-      query = query.or(`title.ilike.%${search}%`);
+      const safeSearch = sanitizeIlikePattern(search);
+      if (safeSearch) {
+        query = query.or(`title.ilike.%${safeSearch}%`);
+      }
     }
 
     // Sorting

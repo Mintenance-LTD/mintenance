@@ -12,10 +12,16 @@ const holdFeeTransferSchema = z.object({
 
 /**
  * POST /api/admin/escrow/fee-transfer/hold
- * Admin endpoint to hold a fee transfer
+ * Admin endpoint to hold a fee transfer. Moves platform-fee funds into
+ * a hold state — requires fresh MFA step-up (15-minute window), matching
+ * the release / approve / refund policy.
  */
 export const POST = withApiHandler(
-  { roles: ['admin'], rateLimit: { maxRequests: 10 } },
+  {
+    roles: ['admin'],
+    rateLimit: { maxRequests: 10 },
+    requireMfaVerifiedWithinMinutes: 15,
+  },
   async (request, { user }) => {
     const validation = await validateRequest(request, holdFeeTransferSchema);
     if ('headers' in validation) return validation;
@@ -30,6 +36,9 @@ export const POST = withApiHandler(
       reason,
     });
 
-    return NextResponse.json({ success: true, message: 'Fee transfer held successfully' });
+    return NextResponse.json({
+      success: true,
+      message: 'Fee transfer held successfully',
+    });
   }
 );

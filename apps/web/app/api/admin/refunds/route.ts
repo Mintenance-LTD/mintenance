@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { logger } from '@mintenance/shared';
+import { sanitizeIlikePattern } from '@/lib/utils/sanitize-postgrest';
 
 /**
  * GET /api/admin/refunds
@@ -83,9 +84,13 @@ export const GET = withApiHandler(
         query = query.lte('created_at', dateTo);
       }
 
-      // Apply search filter (search in job title)
+      // Apply search filter (search in job title).
+      // SECURITY: sanitize before .ilike() — see lib/utils/sanitize-postgrest.ts.
       if (search) {
-        query = query.ilike('jobs.title', `%${search}%`);
+        const safeSearch = sanitizeIlikePattern(search);
+        if (safeSearch) {
+          query = query.ilike('jobs.title', `%${safeSearch}%`);
+        }
       }
 
       const { data: escrows, error, count } = await query;

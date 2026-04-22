@@ -11,16 +11,25 @@ const batchTransferSchema = z.object({
 
 /**
  * POST /api/admin/escrow/fee-transfer/batch
- * Admin endpoint to batch transfer multiple fees
+ * Admin endpoint to batch transfer multiple fees. Highest-value mutation
+ * in the fee-transfer suite (N records at once) — requires fresh MFA
+ * step-up (15-minute window).
  */
 export const POST = withApiHandler(
-  { roles: ['admin'], rateLimit: { maxRequests: 10 } },
+  {
+    roles: ['admin'],
+    rateLimit: { maxRequests: 10 },
+    requireMfaVerifiedWithinMinutes: 15,
+  },
   async (request, { user }) => {
     const validation = await validateRequest(request, batchTransferSchema);
     if ('headers' in validation) return validation;
 
     const { feeTransferIds } = validation.data;
-    const result = await FeeTransferService.batchTransferFees(feeTransferIds, user.id);
+    const result = await FeeTransferService.batchTransferFees(
+      feeTransferIds,
+      user.id
+    );
 
     logger.info('Batch fee transfer completed', {
       service: 'admin',

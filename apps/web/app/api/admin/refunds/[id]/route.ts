@@ -15,6 +15,10 @@ export const POST = withApiHandler(
   {
     roles: ['admin'],
     rateLimit: { maxRequests: 20 },
+    // Moves funds (refund / release / hold on escrow) — never safe to
+    // execute on a stale admin session. Match the 15-minute window used
+    // by /api/admin/escrow/approve and /api/admin/escrow/hold.
+    requireMfaVerifiedWithinMinutes: 15,
   },
   async (request: NextRequest, { user, params }) => {
     const escrowId = params.id;
