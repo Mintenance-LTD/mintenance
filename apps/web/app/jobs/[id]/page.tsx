@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { resignJobStorageUrls } from '@/lib/api/job-storage';
 import { redirect } from 'next/navigation';
 import { HomeownerPageWrapper } from '@/app/dashboard/components/HomeownerPageWrapper';
 import { logger } from '@/lib/logger';
@@ -186,6 +187,15 @@ export default async function JobDetailPage2025({
     .eq('job_id', resolvedParams.id)
     .order('uploaded_at', { ascending: false });
 
+  // Re-sign any `Job-storage` URLs at render time. The bucket is now
+  // `public=false` (2026-04-17 storage-hardening migration), so legacy
+  // public URLs 404 and old signed URLs expire. Re-signing on read
+  // keeps display working without touching stored rows or forcing a
+  // backfill migration. External URLs pass through.
+  const jobPhotoUrls = await resignJobStorageUrls(
+    (photos ?? []).map((p) => p.file_url as string | null)
+  );
+
   // Fetch before/after photo evidence
   const { data: photoEvidence } = await serverSupabase
     .from('job_photos_metadata')
@@ -353,7 +363,7 @@ export default async function JobDetailPage2025({
           bids={
             formattedBids as unknown as import('./components/JobDetailsProfessional').JobDetailsProfessionalProps['bids']
           }
-          photos={photos?.map((p) => p.file_url) || []}
+          photos={jobPhotoUrls}
           currentUserId={user.id}
           userRole='homeowner'
           buildingAssessment={buildingAssessment}
