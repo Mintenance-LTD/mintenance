@@ -79,7 +79,13 @@ export async function middleware(request: NextRequest) {
     });
 
     if (!isDevelopment) {
-      response.headers.set('Content-Security-Policy', buildPublicCSP());
+      // Nonce consumed only when ENABLE_CSP_NONCE=true (see middleware/csp.ts).
+      // Default behavior preserves 'unsafe-inline' without a nonce so
+      // framework-injected hydration scripts keep working.
+      response.headers.set(
+        'Content-Security-Policy',
+        buildPublicCSP(publicNonce)
+      );
     }
 
     return response;
@@ -221,13 +227,19 @@ export async function middleware(request: NextRequest) {
 
     setCsrfCookie(response, request, isDevelopment);
 
+    // `nonce` is generated above (line ~211) and attached to
+    // `x-csp-nonce` on the request headers — the root layout reads that
+    // header to forward to inline scripts. The CSP builders wire the
+    // same nonce into `script-src 'nonce-...'` only when
+    // `ENABLE_CSP_NONCE=true`; otherwise legacy `'unsafe-inline'`-only
+    // behavior is preserved (see middleware/csp.ts).
     response.headers.set(
       'Content-Security-Policy',
-      buildAuthenticatedCSP(isDevelopment)
+      buildAuthenticatedCSP(isDevelopment, nonce)
     );
     response.headers.set(
       'Content-Security-Policy-Report-Only',
-      buildStrictReportOnlyCSP(isDevelopment)
+      buildStrictReportOnlyCSP(isDevelopment, nonce)
     );
 
     // API versioning header for all /api/ routes
