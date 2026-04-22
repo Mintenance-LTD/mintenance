@@ -12,6 +12,7 @@ import { NotFoundError, BadRequestError } from '@/lib/errors/api-error';
 import { stripeWithTimeout } from '@/lib/utils/api-timeout';
 import { stripe } from '@/lib/stripe';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { getClientIp } from '@/lib/request-ip';
 
 export const POST = withApiHandler(
   { roles: ['homeowner'], rateLimit: { maxRequests: 20 } },
@@ -298,8 +299,7 @@ export const POST = withApiHandler(
         amount: authoritativeAmount,
         currency: currency || 'gbp',
         status: 'pending',
-        ip_address:
-          request.headers.get('x-forwarded-for')?.split(',')[0] || null,
+        ip_address: getClientIp(request),
         user_agent: request.headers.get('user-agent') || null,
         metadata: { jobId, contractorId, clientAmount: amount },
         created_at: new Date().toISOString(),

@@ -7,13 +7,33 @@ import { checkApiRateLimit } from '@/lib/rate-limiter';
 import { RateLimitError, InternalServerError } from '@/lib/errors/api-error';
 import { sanitizeText, sanitizeMessage, sanitizeEmail } from '@/lib/sanitizer';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { getClientIp } from '@/lib/request-ip';
 
 const contactFormSchema = z.object({
-  name: z.string().min(2, 'Name must be at least 2 characters').transform(val => sanitizeText(val, 100)),
-  email: z.string().email('Invalid email address').transform(val => sanitizeEmail(val)),
-  subject: z.string().min(5, 'Subject must be at least 5 characters').transform(val => sanitizeText(val, 200)),
-  category: z.enum(['general', 'technical', 'billing', 'partnerships', 'press', 'feedback']),
-  message: z.string().min(10, 'Message must be at least 10 characters').transform(val => sanitizeMessage(val)),
+  name: z
+    .string()
+    .min(2, 'Name must be at least 2 characters')
+    .transform((val) => sanitizeText(val, 100)),
+  email: z
+    .string()
+    .email('Invalid email address')
+    .transform((val) => sanitizeEmail(val)),
+  subject: z
+    .string()
+    .min(5, 'Subject must be at least 5 characters')
+    .transform((val) => sanitizeText(val, 200)),
+  category: z.enum([
+    'general',
+    'technical',
+    'billing',
+    'partnerships',
+    'press',
+    'feedback',
+  ]),
+  message: z
+    .string()
+    .min(10, 'Message must be at least 10 characters')
+    .transform((val) => sanitizeMessage(val)),
   consent: z.boolean().refine((val) => val === true, {
     message: 'You must agree to the Privacy Policy',
   }),
@@ -27,9 +47,7 @@ export const POST = withApiHandler(
   { auth: false, rateLimit: false },
   async (request) => {
     // Custom rate limiting
-    const ip = request.headers.get('x-forwarded-for')?.split(',')[0] ||
-               request.headers.get('x-real-ip') ||
-               'unknown';
+    const ip = getClientIp(request);
     const rateLimitResult = await checkApiRateLimit(`contact-form:${ip}`);
 
     if (!rateLimitResult.allowed) {
@@ -42,7 +60,10 @@ export const POST = withApiHandler(
 
     if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Invalid form data', details: parsed.error.flatten().fieldErrors },
+        {
+          error: 'Invalid form data',
+          details: parsed.error.flatten().fieldErrors,
+        },
         { status: 400 }
       );
     }
@@ -56,9 +77,10 @@ export const POST = withApiHandler(
       .eq('setting_key', 'admin_email')
       .single();
 
-    const adminEmail = setting?.setting_value ||
-                      process.env.ADMIN_EMAIL ||
-                      'admin@mintenance.co.uk';
+    const adminEmail =
+      setting?.setting_value ||
+      process.env.ADMIN_EMAIL ||
+      'admin@mintenance.co.uk';
 
     const categoryLabels: Record<string, string> = {
       general: 'General Enquiry',
@@ -69,7 +91,8 @@ export const POST = withApiHandler(
       feedback: 'Feedback & Suggestions',
     };
 
-    const categoryLabel = categoryLabels[formData.category] || formData.category;
+    const categoryLabel =
+      categoryLabels[formData.category] || formData.category;
     const subject = `Contact Form: ${categoryLabel} - ${formData.subject}`;
 
     const html = `
@@ -125,15 +148,26 @@ This message was submitted through the Mintenance contact form.
 You can reply directly to: ${formData.email}
     `;
 
-    const emailSent = await EmailService.sendEmail({ to: adminEmail, subject, html, text });
+    const emailSent = await EmailService.sendEmail({
+      to: adminEmail,
+      subject,
+      html,
+      text,
+    });
 
     if (!emailSent) {
       logger.error('Failed to send contact form email', {
         service: 'contact',
         adminEmail,
-        formData: { name: formData.name, email: formData.email, category: formData.category },
+        formData: {
+          name: formData.name,
+          email: formData.email,
+          category: formData.category,
+        },
       });
-      throw new InternalServerError('Failed to send message. Please try again later.');
+      throw new InternalServerError(
+        'Failed to send message. Please try again later.'
+      );
     }
 
     logger.info('Contact form submission received', {
@@ -143,7 +177,11 @@ You can reply directly to: ${formData.email}
     });
 
     return NextResponse.json(
-      { success: true, message: 'Your message has been sent successfully. We\'ll get back to you within 24 hours.' },
+      {
+        success: true,
+        message:
+          "Your message has been sent successfully. We'll get back to you within 24 hours.",
+      },
       { status: 200 }
     );
   }

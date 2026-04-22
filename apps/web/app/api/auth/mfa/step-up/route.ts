@@ -21,6 +21,7 @@ import { MFAService } from '@/lib/mfa/mfa-service';
 import { setStepUpCookie } from '@/lib/auth/mfa-step-up';
 import { rateLimiter } from '@/lib/rate-limiter';
 import { logger } from '@mintenance/shared';
+import { getClientIp } from '@/lib/request-ip';
 
 const stepUpSchema = z.object({
   code: z.string().min(6).max(16),
@@ -62,10 +63,8 @@ export const POST = withApiHandler(
       );
     }
 
-    const ip =
-      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-      request.headers.get('x-real-ip') ||
-      undefined;
+    const ipRaw = getClientIp(request);
+    const ip = ipRaw === 'unknown' ? undefined : ipRaw;
     const userAgent = request.headers.get('user-agent') || undefined;
 
     const result = await MFAService.verifyMFA(

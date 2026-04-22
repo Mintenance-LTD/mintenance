@@ -10,6 +10,7 @@ import {
   InternalServerError,
 } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
+import { getClientIp } from '@/lib/request-ip';
 import { StripeWebhookEventHandler } from './stripe-webhook-event-handler';
 
 interface IdempotencyResultRow {
@@ -121,10 +122,7 @@ export class StripeWebhookService {
     //   2. A burst of failed signature-verification attempts from one IP
     //      is the only realistic abuse pattern, and 1000/min still bounds
     //      the worst case.
-    const ip =
-      request.headers.get('x-forwarded-for')?.split(',')[0] ||
-      request.headers.get('x-real-ip') ||
-      'anonymous';
+    const ip = getClientIp(request);
     const rateLimitResult = await rateLimiter.checkRateLimit({
       identifier: `stripe-webhook:${ip}`,
       windowMs: 60_000,

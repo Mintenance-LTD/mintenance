@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@mintenance/shared';
 import { Ratelimit } from '@upstash/ratelimit';
 import { Redis } from '@upstash/redis';
+import { getClientIp } from '@/lib/request-ip';
 
 const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
 const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
@@ -69,12 +70,9 @@ function getClientIdentifier(request: NextRequest): string {
     return `user:${userId}`;
   }
 
-  // Fall back to IP address for unauthenticated requests
-  const forwardedFor = request.headers.get('x-forwarded-for');
-  const realIp = request.headers.get('x-real-ip');
-  const ip = forwardedFor?.split(',')[0] || realIp || 'unknown';
-
-  return `ip:${ip}`;
+  // SECURITY: Vercel-trusted IP (see lib/request-ip.ts). Never the first
+  // x-forwarded-for entry — it is client-settable and bypasses per-IP limits.
+  return `ip:${getClientIp(request)}`;
 }
 
 /**

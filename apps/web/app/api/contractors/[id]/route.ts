@@ -6,6 +6,7 @@ import { withPublicRateLimit } from '@/lib/middleware/public-rate-limiter';
 import { BadRequestError, NotFoundError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { getClientIp } from '@/lib/request-ip';
 
 /**
  * GET /api/contractors/[id]
@@ -16,10 +17,7 @@ export const GET = withApiHandler(
   { auth: false, rateLimit: false },
   async (request, { params }) => {
     // Custom IP-based rate limiting (contractor ID in URL makes each request unique)
-    const ip =
-      request.headers.get('x-forwarded-for')?.split(',')[0] ||
-      request.headers.get('x-real-ip') ||
-      'anonymous';
+    const ip = getClientIp(request);
     const rateLimitResult = await rateLimiter.checkRateLimit({
       identifier: `contractor-profile:${ip}`,
       windowMs: 60000,

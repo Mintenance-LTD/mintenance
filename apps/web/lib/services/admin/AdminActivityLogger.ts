@@ -1,6 +1,7 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { NextRequest } from 'next/server';
+import { getClientIp } from '@/lib/request-ip';
 
 type AdminActionCategory =
   | 'user_management'
@@ -89,10 +90,7 @@ export class AdminActivityLogger {
     targetId?: string,
     metadata?: Record<string, unknown>
   ): Promise<void> {
-    const ipAddress =
-      request.headers.get('x-forwarded-for')?.split(',')[0] ||
-      request.headers.get('x-real-ip') ||
-      'unknown';
+    const ipAddress = getClientIp(request);
     const userAgent = request.headers.get('user-agent') || 'unknown';
 
     await this.logActivity({

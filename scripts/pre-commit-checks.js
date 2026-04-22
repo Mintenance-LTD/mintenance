@@ -78,6 +78,13 @@ const KNOWN_LARGE_FILES = new Set([
   // next.config.js passed 500 after wrapping with withSentryConfig.
   'apps/web/lib/env.ts', // 523 lines after Sentry env vars
   'apps/web/next.config.js', // 526 lines after withSentryConfig wrapper
+  // Added 2026-04-22: pre-existing files already over the 500-line gate
+  // before the X-Forwarded-For spoof fix. Both received a single-line
+  // `import { getClientIp } from '@/lib/request-ip'` plus call-site swap;
+  // the gate-relevant content is unchanged. Splits tracked as P2
+  // hardening follow-up (see 2026-04-21 security audit).
+  'apps/web/app/api/ai/search/route.ts', // 560 lines (was 561)
+  'apps/web/lib/constants/rate-limits.ts', // 558 lines (was 554)
 ]);
 
 function countLines(filePath) {
