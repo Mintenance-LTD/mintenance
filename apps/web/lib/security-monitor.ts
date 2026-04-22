@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { serverSupabase } from './api/supabaseServer';
 import { logger } from './logger';
+import { getClientIp } from './request-ip';
 
 interface SecurityEvent {
   id?: string;
@@ -395,19 +396,7 @@ class SecurityMonitor {
    * Get client IP address
    */
   private getClientIP(request: NextRequest): string {
-    const forwarded = request.headers.get('x-forwarded-for');
-    const realIP = request.headers.get('x-real-ip');
-
-    if (forwarded) {
-      return forwarded.split(',')[0].trim();
-    }
-
-    if (realIP) {
-      return realIP;
-    }
-
-    // Return unknown if no IP headers available (avoid unsafe type assertion)
-    return 'unknown';
+    return getClientIp(request);
   }
 
   /**

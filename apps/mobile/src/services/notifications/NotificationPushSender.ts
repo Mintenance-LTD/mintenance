@@ -5,15 +5,14 @@ import { Platform } from 'react-native';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import { logger } from '../../utils/logger';
 import * as sentry from '../../config/sentry';
-import * as notificationCrud from './NotificationCRUD';
 
 import type { NotificationData } from './types';
 
-import {
-  getNotificationPreferences,
-  shouldSendNotification,
-  getChannelId,
-} from './NotificationPreferencesManager';
+// NOTE: NotificationCRUD, NotificationPreferencesManager imports were
+// previously consumed by the now-stubbed sendPushNotification(). Removed
+// here because the client-side send is a no-op (see 2026-04-21 security
+// fix below). If the functions are needed again in a future server-side
+// routed flow, re-add them at that point.
 
 type BreadcrumbFn = (
   message: string,
@@ -263,129 +262,66 @@ export async function savePushToken(
 // ---------------------------------------------------------------------------
 // Sending push notifications
 // ---------------------------------------------------------------------------
-
-async function sendToExpo(message: unknown, userId: string): Promise<void> {
-  const timeoutMs = 10000;
-  let timeoutId: ReturnType<typeof setTimeout> | undefined;
-
-  const fetchPromise = fetch('https://exp.host/--/api/v2/push/send', {
-    method: 'POST',
-    headers: {
-      Accept: 'application/json',
-      'Accept-encoding': 'gzip, deflate',
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(message),
-  });
-  const timeoutPromise = new Promise<never>((_, reject) => {
-    timeoutId = setTimeout(
-      () => reject(new Error('Push notification request timed out')),
-      timeoutMs
-    );
-  });
-
-  try {
-    const response = await Promise.race([fetchPromise, timeoutPromise]);
-    if (timeoutId) clearTimeout(timeoutId);
-    if (!response.ok)
-      throw new Error(`Push notification failed: ${response.status}`);
-  } catch (error) {
-    if (timeoutId) clearTimeout(timeoutId);
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    addBreadcrumb(
-      errorMessage.includes('timed out')
-        ? 'Push notification timeout'
-        : 'Failed to send push notification',
-      'error',
-      { userId, error: errorMessage }
-    );
-    throw error;
-  }
-}
+//
+// SECURITY (2026-04-21 audit, P0):
+//
+// The previous implementation fetched another user's push token via
+// `/api/notifications?action=get_push_token&user_id=<uuid>` and then POSTed
+// directly to `https://exp.host/--/api/v2/push/send`. That endpoint has no
+// recipient-auth, so any authenticated Mintenance user could have
+// enumerated UUIDs and sent arbitrary push payloads to other users — a
+// cross-user phishing primitive.
+//
+// The `get_push_token` API action does not exist on the web (the client
+// call has been silently no-op'ing), so this is "dead code that reads
+// as broken" rather than an actively exploitable hole today. Still
+// stubbing the functions so:
+//   (a) the attack surface is PERMANENTLY removed — future devs can't
+//       re-enable by restoring the server action;
+//   (b) the signature stays stable so callers (CallNotifier,
+//       NotificationServiceExample) keep compiling;
+//   (c) a warning breadcrumb makes the no-op visible in Sentry so the
+//       replacement server-side channel is obvious when it's built.
+//
+// Server-side replacement path (to be built separately):
+//   POST /api/notifications/send  → server-side NotificationService
+//   resolves the recipient's stored push token from user_push_tokens
+//   (RLS-guarded) and uses the Expo server-side API. Clients never
+//   touch another user's token.
 
 export async function sendPushNotification(
   userId: string,
   title: string,
-  body: string,
-  data?: unknown,
+  _body: string,
+  _data?: unknown,
   type: NotificationData['type'] = 'system'
 ): Promise<void> {
-  try {
-    let pushToken: string | null = null;
-    try {
-      const tokenResponse = await mobileApiClient.get<{
-        token?: string;
-        push_token?: string;
-      }>(
-        `/api/notifications?action=get_push_token&user_id=${encodeURIComponent(userId)}`
-      );
-      pushToken = tokenResponse.push_token ?? tokenResponse.token ?? null;
-    } catch {
-      // Token fetch failed
-    }
-
-    if (!pushToken) {
-      logger.warn('No push token found for user', { userId });
-      addBreadcrumb('No push token found for user', 'warning', { userId });
-      return;
-    }
-
-    const preferences = await getNotificationPreferences(userId);
-    if (!shouldSendNotification(preferences, type)) {
-      logger.info('Notification blocked by user preferences', {
-        userId,
-        type,
-      });
-      addBreadcrumb('Notification blocked by user preferences', 'info', {
-        userId,
-        type,
-      });
-      return;
-    }
-
-    const messageData =
-      data && typeof data === 'object' && !Array.isArray(data)
-        ? { ...(data as Record<string, unknown>), type, userId }
-        : { type, userId };
-
-    const message = {
-      to: pushToken,
-      sound: 'default' as const,
-      title,
-      body,
-      data: messageData,
-      channelId: getChannelId(type),
-    };
-
-    await sendToExpo(message, userId);
-
-    await notificationCrud.saveNotification({
-      title,
-      body,
-      data,
-      type,
-      userId,
-      priority: 'normal',
-      read: false,
-    });
-
-    logger.info('Push notification sent successfully', { userId, type });
-    addBreadcrumb('Push notification sent', 'info', { userId, type, title });
-  } catch (error) {
-    logger.error('Failed to send push notification', error);
-    throw error;
-  }
+  logger.warn(
+    '[push-sender] client-side sendPushNotification is a no-op (2026-04-21 ' +
+      'security fix). Route the send through a server endpoint that looks up ' +
+      "the recipient's token from user_push_tokens.",
+    { userId, type, title }
+  );
+  addBreadcrumb('Client-side push send refused', 'warning', {
+    userId,
+    type,
+  });
 }
 
 export async function sendBulkNotification(
   userIds: string[],
   title: string,
-  body: string,
-  data?: unknown,
+  _body: string,
+  _data?: unknown,
   type: NotificationData['type'] = 'system'
 ): Promise<void> {
-  const promises = userIds.map((uid) =>
-    sendPushNotification(uid, title, body, data, type)
+  logger.warn(
+    '[push-sender] client-side sendBulkNotification is a no-op (2026-04-21 ' +
+      'security fix). See sendPushNotification for rationale.',
+    { userCount: userIds.length, type, title }
   );
-  await Promise.allSettled(promises);
+  addBreadcrumb('Client-side bulk push send refused', 'warning', {
+    userCount: userIds.length,
+    type,
+  });
 }

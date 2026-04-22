@@ -22,20 +22,43 @@ import { logger } from '../utils/logger';
 import { mobileApiClient } from '../utils/mobileApiClient';
 import { useToast } from '../components/ui/Toast';
 import { theme } from '../theme';
+import { useScreenCaptureGuard } from '../hooks/useScreenCaptureGuard';
 
 const PAYMENT_TYPES = [
-  { key: 'card' as const, label: 'Credit/Debit Card', icon: 'card' as const, enabled: true },
-  { key: 'paypal' as const, label: 'PayPal', icon: 'logo-paypal' as const, enabled: false, badge: 'Soon' },
-  { key: 'bank' as const, label: 'Bank Account', icon: 'business' as const, enabled: true },
+  {
+    key: 'card' as const,
+    label: 'Credit/Debit Card',
+    icon: 'card' as const,
+    enabled: true,
+  },
+  {
+    key: 'paypal' as const,
+    label: 'PayPal',
+    icon: 'logo-paypal' as const,
+    enabled: false,
+    badge: 'Soon',
+  },
+  {
+    key: 'bank' as const,
+    label: 'Bank Account',
+    icon: 'business' as const,
+    enabled: true,
+  },
 ];
 
 const AddPaymentMethodScreen: React.FC = () => {
+  // SECURITY: prevent screenshots / screen recording while raw card
+  // fields are on-screen.
+  useScreenCaptureGuard();
+
   const navigation = useNavigation();
   const { user } = useAuth();
   const { createPaymentMethod } = useStripe();
   const toast = useToast();
 
-  const [paymentType, setPaymentType] = useState<'card' | 'bank' | 'paypal'>('card');
+  const [paymentType, setPaymentType] = useState<'card' | 'bank' | 'paypal'>(
+    'card'
+  );
   const [loading, setLoading] = useState(false);
   const [cardComplete, setCardComplete] = useState(false);
   const [cardBrand, setCardBrand] = useState<string>('');
@@ -96,7 +119,9 @@ const AddPaymentMethodScreen: React.FC = () => {
         logger.error('Failed to add payment method', error);
         Alert.alert(
           'Error',
-          error instanceof Error ? error.message : 'Failed to add payment method. Please try again.',
+          error instanceof Error
+            ? error.message
+            : 'Failed to add payment method. Please try again.',
           [{ text: 'OK' }]
         );
       } finally {
@@ -104,7 +129,10 @@ const AddPaymentMethodScreen: React.FC = () => {
       }
     } else if (paymentType === 'bank') {
       if (!bankName.trim() || !sortCode.trim() || !accountNumber.trim()) {
-        Alert.alert('Missing Details', 'Please fill in all bank account fields.');
+        Alert.alert(
+          'Missing Details',
+          'Please fill in all bank account fields.'
+        );
         return;
       }
       setLoading(true);
@@ -114,9 +142,11 @@ const AddPaymentMethodScreen: React.FC = () => {
           sortCode: sortCode.replace(/-/g, ''),
           accountNumber: accountNumber.trim(),
         });
-        Alert.alert('Bank Account Added', 'Your bank account has been linked successfully.', [
-          { text: 'OK', onPress: () => navigation.goBack() },
-        ]);
+        Alert.alert(
+          'Bank Account Added',
+          'Your bank account has been linked successfully.',
+          [{ text: 'OK', onPress: () => navigation.goBack() }]
+        );
       } catch (error) {
         logger.error('Failed to add bank account', error);
         Alert.alert('Error', 'Failed to link bank account. Please try again.');
@@ -157,23 +187,42 @@ const AddPaymentMethodScreen: React.FC = () => {
   const renderPayPalForm = () => (
     <View style={styles.paypalContainer}>
       <View style={styles.paypalIconWrap}>
-        <Ionicons name="logo-paypal" size={32} color="#3B82F6" />
+        <Ionicons name='logo-paypal' size={32} color='#3B82F6' />
       </View>
       <Text style={styles.paypalText}>PayPal is coming soon</Text>
       <Text style={styles.paypalSubtext}>
         We're working on PayPal integration. Get notified when it's available.
       </Text>
       <TouchableOpacity
-        style={[styles.notifyButton, notifyMePayPal && styles.notifyButtonActive]}
+        style={[
+          styles.notifyButton,
+          notifyMePayPal && styles.notifyButtonActive,
+        ]}
         onPress={() => {
           setNotifyMePayPal(true);
-          toast.success('You\'re on the list!', 'We\'ll notify you when PayPal is available.');
+          toast.success(
+            "You're on the list!",
+            "We'll notify you when PayPal is available."
+          );
         }}
         disabled={notifyMePayPal}
       >
-        <Ionicons name={notifyMePayPal ? 'checkmark-circle' : 'notifications-outline'} size={18} color={notifyMePayPal ? theme.colors.primary : theme.colors.textSecondary} />
-        <Text style={[styles.notifyButtonText, notifyMePayPal && { color: theme.colors.primary }]}>
-          {notifyMePayPal ? 'Notifications enabled' : 'Notify me when available'}
+        <Ionicons
+          name={notifyMePayPal ? 'checkmark-circle' : 'notifications-outline'}
+          size={18}
+          color={
+            notifyMePayPal ? theme.colors.primary : theme.colors.textSecondary
+          }
+        />
+        <Text
+          style={[
+            styles.notifyButtonText,
+            notifyMePayPal && { color: theme.colors.primary },
+          ]}
+        >
+          {notifyMePayPal
+            ? 'Notifications enabled'
+            : 'Notify me when available'}
         </Text>
       </TouchableOpacity>
     </View>
@@ -185,22 +234,22 @@ const AddPaymentMethodScreen: React.FC = () => {
         <Text style={styles.label}>Account Holder Name</Text>
         <TextInput
           style={styles.input}
-          placeholder="Full name on account"
+          placeholder='Full name on account'
           placeholderTextColor={theme.colors.textTertiary}
           value={bankName}
           onChangeText={setBankName}
-          autoCapitalize="words"
+          autoCapitalize='words'
         />
       </View>
       <View style={styles.inputGroup}>
         <Text style={styles.label}>Sort Code</Text>
         <TextInput
           style={styles.input}
-          placeholder="00-00-00"
+          placeholder='00-00-00'
           placeholderTextColor={theme.colors.textTertiary}
           value={sortCode}
           onChangeText={setSortCode}
-          keyboardType="numbers-and-punctuation"
+          keyboardType='numbers-and-punctuation'
           maxLength={8}
         />
       </View>
@@ -208,11 +257,11 @@ const AddPaymentMethodScreen: React.FC = () => {
         <Text style={styles.label}>Account Number</Text>
         <TextInput
           style={styles.input}
-          placeholder="00000000"
+          placeholder='00000000'
           placeholderTextColor={theme.colors.textTertiary}
           value={accountNumber}
           onChangeText={setAccountNumber}
-          keyboardType="number-pad"
+          keyboardType='number-pad'
           maxLength={8}
         />
       </View>
@@ -220,104 +269,165 @@ const AddPaymentMethodScreen: React.FC = () => {
   );
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.backgroundSecondary }]}>
-    <StatusBar barStyle="dark-content" backgroundColor={theme.colors.backgroundSecondary} />
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    <SafeAreaView
+      style={[
+        styles.container,
+        { backgroundColor: theme.colors.backgroundSecondary },
+      ]}
     >
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
-        >
-          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
-        </TouchableOpacity>
-        <Text style={styles.title}>Add Payment Method</Text>
-        <View style={styles.placeholder} />
-      </View>
+      <StatusBar
+        barStyle='dark-content'
+        backgroundColor={theme.colors.backgroundSecondary}
+      />
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
+        <View style={styles.header}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+            accessibilityRole='button'
+            accessibilityLabel='Go back'
+          >
+            <Ionicons
+              name='arrow-back'
+              size={24}
+              color={theme.colors.textPrimary}
+            />
+          </TouchableOpacity>
+          <Text style={styles.title}>Add Payment Method</Text>
+          <View style={styles.placeholder} />
+        </View>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.subtitle}>Choose your preferred payment method</Text>
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          <Text style={styles.subtitle}>
+            Choose your preferred payment method
+          </Text>
 
-        {/* Payment Type Selector */}
-        <View style={styles.paymentTypeContainer}>
-          {PAYMENT_TYPES.map((pt) => {
-            const isActive = paymentType === pt.key;
-            return (
-              <TouchableOpacity
-                key={pt.key}
-                style={[
-                  styles.paymentTypeButton,
-                  isActive && styles.paymentTypeButtonActive,
-                  !pt.enabled && styles.paymentTypeDisabled,
-                ]}
-                onPress={() => pt.enabled && setPaymentType(pt.key)}
-                disabled={!pt.enabled}
-                accessibilityRole="button"
-                accessibilityLabel={`${pt.label}${!pt.enabled ? ' (coming soon)' : ''}`}
-                accessibilityState={{ selected: isActive }}
-              >
-                <View style={[styles.paymentIconWrap, { backgroundColor: isActive ? 'rgba(255,255,255,0.2)' : theme.colors.backgroundSecondary }]}>
-                  <Ionicons
-                    name={pt.icon}
-                    size={20}
-                    color={isActive ? theme.colors.textInverse : theme.colors.textSecondary}
-                  />
-                </View>
-                <Text style={[
-                  styles.paymentTypeText,
-                  isActive && styles.paymentTypeTextActive
-                ]}>
-                  {pt.label}
-                </Text>
-                {pt.badge && (
-                  <View style={styles.comingSoonBadge}>
-                    <Text style={styles.comingSoonText}>{pt.badge}</Text>
+          {/* Payment Type Selector */}
+          <View style={styles.paymentTypeContainer}>
+            {PAYMENT_TYPES.map((pt) => {
+              const isActive = paymentType === pt.key;
+              return (
+                <TouchableOpacity
+                  key={pt.key}
+                  style={[
+                    styles.paymentTypeButton,
+                    isActive && styles.paymentTypeButtonActive,
+                    !pt.enabled && styles.paymentTypeDisabled,
+                  ]}
+                  onPress={() => pt.enabled && setPaymentType(pt.key)}
+                  disabled={!pt.enabled}
+                  accessibilityRole='button'
+                  accessibilityLabel={`${pt.label}${!pt.enabled ? ' (coming soon)' : ''}`}
+                  accessibilityState={{ selected: isActive }}
+                >
+                  <View
+                    style={[
+                      styles.paymentIconWrap,
+                      {
+                        backgroundColor: isActive
+                          ? 'rgba(255,255,255,0.2)'
+                          : theme.colors.backgroundSecondary,
+                      },
+                    ]}
+                  >
+                    <Ionicons
+                      name={pt.icon}
+                      size={20}
+                      color={
+                        isActive
+                          ? theme.colors.textInverse
+                          : theme.colors.textSecondary
+                      }
+                    />
                   </View>
-                )}
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-
-        {/* Form Content */}
-        <View style={styles.formContainer}>
-          {paymentType === 'card' && renderCardForm()}
-          {paymentType === 'paypal' && renderPayPalForm()}
-          {paymentType === 'bank' && renderBankForm()}
-        </View>
-
-        {/* Security Info */}
-        <View style={styles.securityInfo}>
-          <View style={styles.securityHeader}>
-            <View style={styles.securityIconWrap}>
-              <Ionicons name="shield-checkmark" size={16} color={theme.colors.primary} />
-            </View>
-            <Text style={styles.securityTitle}>Your information is secure</Text>
+                  <Text
+                    style={[
+                      styles.paymentTypeText,
+                      isActive && styles.paymentTypeTextActive,
+                    ]}
+                  >
+                    {pt.label}
+                  </Text>
+                  {pt.badge && (
+                    <View style={styles.comingSoonBadge}>
+                      <Text style={styles.comingSoonText}>{pt.badge}</Text>
+                    </View>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
           </View>
-          <Text style={styles.securityText}>
-            All payment information is encrypted and processed securely. We never store your full card details.
-          </Text>
-        </View>
 
-        <TouchableOpacity
-          style={[styles.submitButton, (loading || paymentType === 'paypal') && styles.submitButtonDisabled]}
-          onPress={handleSubmit}
-          disabled={loading || paymentType === 'paypal'}
-          accessibilityRole="button"
-          accessibilityLabel={paymentType === 'card' ? 'Add Card' : paymentType === 'paypal' ? 'Connect PayPal' : 'Link Bank Account'}
-          accessibilityState={{ disabled: loading || paymentType === 'paypal' }}
-        >
-          <Ionicons name={paymentType === 'card' ? 'card-outline' : 'business-outline'} size={18} color={theme.colors.textInverse} style={{ marginRight: 8 }} />
-          <Text style={styles.submitButtonText}>
-            {loading ? 'Processing...' : paymentType === 'card' ? 'Add Card' : paymentType === 'paypal' ? 'Connect PayPal' : 'Link Bank Account'}
-          </Text>
-        </TouchableOpacity>
-      </ScrollView>
-    </KeyboardAvoidingView>
+          {/* Form Content */}
+          <View style={styles.formContainer}>
+            {paymentType === 'card' && renderCardForm()}
+            {paymentType === 'paypal' && renderPayPalForm()}
+            {paymentType === 'bank' && renderBankForm()}
+          </View>
+
+          {/* Security Info */}
+          <View style={styles.securityInfo}>
+            <View style={styles.securityHeader}>
+              <View style={styles.securityIconWrap}>
+                <Ionicons
+                  name='shield-checkmark'
+                  size={16}
+                  color={theme.colors.primary}
+                />
+              </View>
+              <Text style={styles.securityTitle}>
+                Your information is secure
+              </Text>
+            </View>
+            <Text style={styles.securityText}>
+              All payment information is encrypted and processed securely. We
+              never store your full card details.
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            style={[
+              styles.submitButton,
+              (loading || paymentType === 'paypal') &&
+                styles.submitButtonDisabled,
+            ]}
+            onPress={handleSubmit}
+            disabled={loading || paymentType === 'paypal'}
+            accessibilityRole='button'
+            accessibilityLabel={
+              paymentType === 'card'
+                ? 'Add Card'
+                : paymentType === 'paypal'
+                  ? 'Connect PayPal'
+                  : 'Link Bank Account'
+            }
+            accessibilityState={{
+              disabled: loading || paymentType === 'paypal',
+            }}
+          >
+            <Ionicons
+              name={
+                paymentType === 'card' ? 'card-outline' : 'business-outline'
+              }
+              size={18}
+              color={theme.colors.textInverse}
+              style={{ marginRight: 8 }}
+            />
+            <Text style={styles.submitButtonText}>
+              {loading
+                ? 'Processing...'
+                : paymentType === 'card'
+                  ? 'Add Card'
+                  : paymentType === 'paypal'
+                    ? 'Connect PayPal'
+                    : 'Link Bank Account'}
+            </Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
@@ -551,7 +661,11 @@ const styles = StyleSheet.create({
   notifyButtonActive: {
     backgroundColor: theme.colors.primaryLight,
   },
-  notifyButtonText: { fontSize: 14, fontWeight: '600', color: theme.colors.textSecondary },
+  notifyButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.textSecondary,
+  },
 });
 
 export default AddPaymentMethodScreen;

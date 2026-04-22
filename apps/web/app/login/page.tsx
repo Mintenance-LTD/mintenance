@@ -26,6 +26,7 @@ import {
   AuthBrandSide,
   AuthLink,
 } from '@/components/auth';
+import { isAllowedRedirect } from '@/lib/utils/safe-redirect';
 
 const loginFormSchema = z.object({
   email: z.string().min(1, 'Email is required').email('Invalid email address'),
@@ -75,40 +76,10 @@ export default function LoginPage() {
   const password = watch('password');
   const rememberMe = watch('rememberMe');
 
-  // SECURITY: Validate redirect URL to prevent open redirect attacks
-  const isAllowedRedirect = (url: string | null): boolean => {
-    if (!url) return false;
-
-    try {
-      // Parse URL to validate it
-      const parsedUrl = new URL(url, window.location.origin);
-
-      // Must be same origin
-      if (parsedUrl.origin !== window.location.origin) {
-        return false;
-      }
-
-      // Allowlist of valid redirect paths
-      const allowedPaths = [
-        '/dashboard',
-        '/contractor',
-        '/jobs',
-        '/profile',
-        '/settings',
-        '/checkout',
-        '/favorites',
-        '/notifications',
-        '/messages',
-        '/video-calls',
-      ];
-
-      // Check if pathname starts with any allowed path
-      return allowedPaths.some((path) => parsedUrl.pathname.startsWith(path));
-    } catch {
-      // Invalid URL format
-      return false;
-    }
-  };
+  // SECURITY: Open-redirect allowlist lives in `@/lib/utils/safe-redirect`
+  // so /login and /auth/mfa-verify share one source of truth. Historically
+  // this was a local copy on /login only, which left MFA verify as a
+  // bypass path.
 
   const onSubmit = async (data: LoginFormData) => {
     if (!csrfToken) {

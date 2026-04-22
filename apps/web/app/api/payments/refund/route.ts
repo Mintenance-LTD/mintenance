@@ -16,6 +16,7 @@ import { validateRequest } from '@/lib/validation/validator';
 import { refundRequestSchema } from '@/lib/validation/schemas';
 import { stripe } from '@/lib/stripe';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { getClientIp } from '@/lib/request-ip';
 
 /**
  * POST /api/payments/refund
@@ -25,10 +26,7 @@ export const POST = withApiHandler(
   { rateLimit: false },
   async (request, { user }) => {
     // Custom rate limiting - key on userId + IP to prevent both enumeration and per-user abuse
-    const ip =
-      request.headers.get('x-real-ip') ||
-      request.headers.get('x-forwarded-for')?.split(',')[0] ||
-      'unknown';
+    const ip = getClientIp(request);
     const rateLimitResult = await checkApiRateLimit(`refund:${user.id}:${ip}`);
 
     if (!rateLimitResult.allowed) {

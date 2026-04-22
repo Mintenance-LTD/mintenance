@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Network Security Config - Mintenance Android app.
+
+  - cleartextTrafficPermitted=false everywhere: no http:// requests.
+  - Trust only system CAs: user-installed CAs (corporate MITM proxies,
+    rogue captive portal CAs) are NOT trusted for any app traffic.
+    Combined with cert pinning at the network client layer, this
+    prevents TLS interception of payment/escrow flows.
+
+  Referenced from AndroidManifest.xml via:
+    android:networkSecurityConfig="@xml/network_security_config"
+
+  Source of truth: apps/mobile/plugins/android-security/xml/.
+  This file is COPIED into android/app/src/main/res/xml/ by the
+  android-security Expo config plugin on every `expo prebuild`.
+-->
+<network-security-config>
+  <base-config cleartextTrafficPermitted="false">
+    <trust-anchors>
+      <certificates src="system"/>
+    </trust-anchors>
+  </base-config>
+</network-security-config>

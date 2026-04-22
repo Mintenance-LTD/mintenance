@@ -6,6 +6,7 @@ import { rateLimiter } from '@/lib/rate-limiter';
 import { DatabaseManager } from '@/lib/database';
 import { logger } from '@mintenance/shared';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { getClientIp } from '@/lib/request-ip';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -34,10 +35,7 @@ export const POST = withApiHandler(
     // enumerating valid pre-MFA tokens (and to cap brute-force on the code).
     // Key on IP + a short prefix of the pre-MFA token so attackers cannot easily
     // sidestep by rotating one or the other.
-    const clientIp =
-      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-      request.headers.get('x-real-ip') ||
-      'unknown';
+    const clientIp = getClientIp(request);
     const tokenPrefix = preMfaToken.slice(0, 16);
     const ipTokenLimit = await rateLimiter.checkRateLimit({
       windowMs: 900000,
@@ -86,10 +84,8 @@ export const POST = withApiHandler(
       );
     }
 
-    const ipAddress =
-      request.headers.get('x-forwarded-for')?.split(',')[0] ||
-      request.headers.get('x-real-ip') ||
-      undefined;
+    const ipAddressRaw = getClientIp(request);
+    const ipAddress = ipAddressRaw === 'unknown' ? undefined : ipAddressRaw;
     const userAgent = request.headers.get('user-agent') || undefined;
 
     const verificationResult = await MFAService.verifyMFA(

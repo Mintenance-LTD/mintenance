@@ -1,6 +1,7 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import Constants from 'expo-constants';
 import { logger } from '../utils/logger';
+import { ExpoSecureStoreAdapter } from './supabaseStorageAdapter';
 
 type SupabaseLike = SupabaseClient | MockSupabase;
 
@@ -109,6 +110,13 @@ try {
 
   supabase = createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
+      // SECURITY (2026-04-21 audit P0): persist the session to
+      // expo-secure-store (Keychain / Keystore) rather than the
+      // default AsyncStorage. AsyncStorage is plaintext on disk at
+      // /data/data/com.mintenance.app/files/RKStorage/ and is readable
+      // via ADB backup on any unlocked device. See
+      // ./supabaseStorageAdapter.ts for the chunking logic.
+      storage: ExpoSecureStoreAdapter,
       autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: false,

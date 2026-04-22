@@ -17,6 +17,7 @@ import {
   InternalServerError,
 } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { getClientIp } from '@/lib/request-ip';
 
 // Route segment config to ensure proper error handling
 export const dynamic = 'force-dynamic';
@@ -133,10 +134,8 @@ export const POST = withApiHandler(
 
     let isTrustedDevice = false;
     if (trustedDeviceToken && mfaEnabled) {
-      const requestIp =
-        request.headers.get('x-forwarded-for')?.split(',')[0] ||
-        request.headers.get('x-real-ip') ||
-        undefined;
+      const clientIp = getClientIp(request);
+      const requestIp = clientIp === 'unknown' ? undefined : clientIp;
       const requestUa = request.headers.get('user-agent') || undefined;
       const validatedUserId = await MFAService.validateTrustedDevice(
         trustedDeviceToken,
@@ -155,10 +154,8 @@ export const POST = withApiHandler(
 
     // If MFA is enabled and not a trusted device, create pre-MFA session
     if (mfaEnabled && !isTrustedDevice) {
-      const ipAddress =
-        request.headers.get('x-forwarded-for')?.split(',')[0] ||
-        request.headers.get('x-real-ip') ||
-        undefined;
+      const clientIp = getClientIp(request);
+      const ipAddress = clientIp === 'unknown' ? undefined : clientIp;
       const userAgent = request.headers.get('user-agent') || undefined;
 
       const preMfaSession = await MFAService.createPreMFASession(

@@ -26,6 +26,7 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import type { NextRequest } from 'next/server';
+import { getClientIp as getTrustedClientIp } from '@/lib/request-ip';
 
 export interface AuditEvent {
   /** The user performing the action (null for system/cron actions) */
@@ -49,11 +50,8 @@ export interface AuditEvent {
  * Use this when calling logAuditEvent from inside a route handler.
  */
 export function getClientIp(request: NextRequest): string | null {
-  return (
-    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-    request.headers.get('x-real-ip') ||
-    null
-  );
+  const ip = getTrustedClientIp(request);
+  return ip === 'unknown' ? null : ip;
 }
 
 /**

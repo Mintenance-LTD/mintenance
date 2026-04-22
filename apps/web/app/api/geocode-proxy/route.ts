@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@mintenance/shared';
 import { rateLimiter } from '@/lib/rate-limiter';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { getClientIp } from '@/lib/request-ip';
 
 /**
  * Secure Server-Side Geocoding Proxy
@@ -225,7 +226,7 @@ export const GET = withApiHandler(
   async (request, { user }) => {
     // Legacy GET uses IP-based rate limiting (30/min)
     const rateLimitResult = await rateLimiter.checkRateLimit({
-      identifier: `${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}:${request.url}`,
+      identifier: `${getClientIp(request)}:${request.url}`,
       windowMs: 60000,
       maxRequests: 30,
     });

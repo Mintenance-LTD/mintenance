@@ -227,9 +227,15 @@ export class EnhancedHybridInferenceService {
     severity: SeverityLevel,
     interval: ConformalPredictionInterval
   ): number {
-    const baseCosts = {
-      full: 1000, // High cost for missing severe damage
-      midway: 500, // Moderate cost
+    // Names match the SeverityLevel union defined in
+    // conformal-prediction.ts: 'early' | 'developing' |
+    // 'significant' | 'dangerous'. Earlier versions of this
+    // file used 'full' / 'midway' aliases which don't exist
+    // on the enum — tsc blocked on it.
+    const baseCosts: Record<SeverityLevel, number> = {
+      dangerous: 1000, // High cost for missing severe damage
+      significant: 700,
+      developing: 400,
       early: 100, // Low cost for early-stage issues
     };
     // Adjust based on interval uncertainty
@@ -351,28 +357,29 @@ export class EnhancedHybridInferenceService {
   }
   private determineUrgency(severity: SeverityLevel): string {
     switch (severity) {
-      case 'full':
+      case 'dangerous':
         return 'immediate';
-      case 'midway':
+      case 'significant':
         return 'urgent';
-      case 'early':
+      case 'developing':
         return 'soon';
-      default:
+      case 'early':
         return 'planned';
     }
   }
   private convertToScores(assessment: DamageAssessment): PredictionScores {
     const scores: PredictionScores = {
       early: 0,
-      midway: 0,
-      full: 0,
+      developing: 0,
+      significant: 0,
+      dangerous: 0,
     };
     // Set score for predicted severity
     scores[assessment.severity] = assessment.confidence;
     // Distribute remaining probability
     const remaining = 1 - assessment.confidence;
     const otherSeverities = (
-      ['early', 'midway', 'full'] as SeverityLevel[]
+      ['early', 'developing', 'significant', 'dangerous'] as SeverityLevel[]
     ).filter((s) => s !== assessment.severity);
     otherSeverities.forEach((severity) => {
       scores[severity] = remaining / otherSeverities.length;

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Data Extraction Rules (Android 12+) - same protections as backup_rules.xml
+  but applied to cloud + device-transfer extraction paths introduced in API 31.
+
+  Referenced from AndroidManifest.xml via:
+    android:dataExtractionRules="@xml/data_extraction_rules"
+
+  Source of truth: apps/mobile/plugins/android-security/xml/.
+  This file is COPIED into android/app/src/main/res/xml/ by the
+  android-security Expo config plugin on every `expo prebuild`.
+-->
+<data-extraction-rules>
+  <cloud-backup>
+    <exclude domain="file" path="RKStorage/"/>
+    <exclude domain="sharedpref" path="secure_store.xml"/>
+    <exclude domain="database" path="mintenance_local.db"/>
+    <exclude domain="database" path="mintenance_local.db-journal"/>
+    <exclude domain="database" path="mintenance_local.db-wal"/>
+    <exclude domain="database" path="mintenance_local.db-shm"/>
+    <exclude domain="file" path="sync_state/"/>
+  </cloud-backup>
+  <device-transfer>
+    <exclude domain="file" path="RKStorage/"/>
+    <exclude domain="sharedpref" path="secure_store.xml"/>
+    <exclude domain="database" path="mintenance_local.db"/>
+    <exclude domain="database" path="mintenance_local.db-journal"/>
+    <exclude domain="database" path="mintenance_local.db-wal"/>
+    <exclude domain="database" path="mintenance_local.db-shm"/>
+    <exclude domain="file" path="sync_state/"/>
+  </device-transfer>
+</data-extraction-rules>

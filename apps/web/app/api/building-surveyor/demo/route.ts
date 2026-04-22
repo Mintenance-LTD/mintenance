@@ -2,6 +2,7 @@ import type { Phase1BuildingAssessment } from '@/lib/services/building-surveyor/
 import { z } from 'zod';
 import * as crypto from 'crypto';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { getClientIp } from '@/lib/request-ip';
 import { NextResponse } from 'next/server';
 import { logger as fallbackLogger } from '@/lib/logger';
 
@@ -85,10 +86,7 @@ export const POST = withApiHandler(
       service: 'mint-ai-demo',
     });
 
-    const identifier =
-      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-      request.headers.get('x-real-ip') ||
-      'anonymous';
+    const identifier = getClientIp(request);
     const rateLimitResult = await rateLimiter.checkRateLimit({
       identifier: `mint-ai-demo:${identifier}`,
       windowMs: 60000,

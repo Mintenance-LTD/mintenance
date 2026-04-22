@@ -88,6 +88,9 @@ export const POST = withApiHandler(
       .single();
 
     if (jobError || !job) {
+      // Full DB error is logged server-side. The client-visible 404
+      // intentionally drops schema-leaking detail (constraint / column /
+      // table names that help an attacker fingerprint the DB).
       logger.error('Failed to fetch job for bid acceptance', {
         service: 'jobs',
         jobId,
@@ -96,9 +99,7 @@ export const POST = withApiHandler(
         errorDetails: jobError?.details,
         hasData: !!job,
       });
-      throw new NotFoundError(
-        `Job (${jobError?.message || 'not found in database'})`
-      );
+      throw new NotFoundError('Job not found');
     }
 
     if (job.homeowner_id !== user.id) {
@@ -124,9 +125,7 @@ export const POST = withApiHandler(
         errorCode: bidError?.code,
         hasData: !!bidData,
       });
-      throw new NotFoundError(
-        `Bid (${bidError?.message || 'not found in database'})`
-      );
+      throw new NotFoundError('Bid not found');
     }
 
     // Log Stripe payment setup status (non-blocking - payment enforcement comes later)

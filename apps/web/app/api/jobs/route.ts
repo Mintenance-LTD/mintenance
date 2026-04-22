@@ -49,57 +49,62 @@ const VALID_CATEGORIES = [
   'handyman',
 ] as const;
 
-const createJobSchema = z.object({
-  title: z
-    .string()
-    .min(5, 'Title must be at least 5 characters')
-    .max(200, 'Title must be 200 characters or fewer')
-    .transform((val) => sanitizeText(val, 200)),
-  description: z
-    .string()
-    .min(20, 'Description must be at least 20 characters')
-    .max(5000, 'Description must be 5000 characters or fewer')
-    .optional()
-    .transform((val) => (val ? sanitizeText(val, 5000) : val)),
-  status: z
-    .string()
-    .optional()
-    .transform((val) => (val ? sanitizeText(val, 50) : val)),
-  category: z
-    .enum(VALID_CATEGORIES, {
-      errorMap: () => ({
-        message: `Category must be one of: ${VALID_CATEGORIES.join(', ')}`,
-      }),
-    })
-    .optional(),
-  budget: z.coerce
-    .number()
-    .positive('Budget must be positive')
-    .max(1_000_000, 'Budget cannot exceed £1,000,000')
-    .optional(),
-  budget_min: z.coerce.number().positive().max(1_000_000).optional(),
-  budget_max: z.coerce.number().positive().max(1_000_000).optional(),
-  show_budget_to_contractors: z.boolean().optional(),
-  require_itemized_bids: z.boolean().optional(),
-  location: z
-    .string()
-    .min(3, 'Location must be at least 3 characters')
-    .max(256, 'Location must be 256 characters or fewer')
-    .optional()
-    .transform((val) => (val ? sanitizeText(val, 256) : val)),
-  photoUrls: z
-    .array(z.string().url())
-    .max(20, 'Maximum 20 photos allowed')
-    .optional(),
-  requiredSkills: z.array(z.string().max(100)).max(10).optional(),
-  property_id: z.string().uuid().optional(),
-  latitude: z.coerce.number().min(-90).max(90).optional(),
-  longitude: z.coerce.number().min(-180).max(180).optional(),
-  // R6 #19 landlord / tenancy
-  is_rental_property: z.boolean().optional(),
-  payer_user_id: z.string().uuid().optional(),
-  tenancy_metadata: z.record(z.string(), z.unknown()).optional(),
-});
+const createJobSchema = z
+  .object({
+    title: z
+      .string()
+      .min(5, 'Title must be at least 5 characters')
+      .max(200, 'Title must be 200 characters or fewer')
+      .transform((val) => sanitizeText(val, 200)),
+    description: z
+      .string()
+      .min(20, 'Description must be at least 20 characters')
+      .max(5000, 'Description must be 5000 characters or fewer')
+      .optional()
+      .transform((val) => (val ? sanitizeText(val, 5000) : val)),
+    status: z
+      .string()
+      .optional()
+      .transform((val) => (val ? sanitizeText(val, 50) : val)),
+    category: z
+      .enum(VALID_CATEGORIES, {
+        errorMap: () => ({
+          message: `Category must be one of: ${VALID_CATEGORIES.join(', ')}`,
+        }),
+      })
+      .optional(),
+    budget: z.coerce
+      .number()
+      .positive('Budget must be positive')
+      .max(1_000_000, 'Budget cannot exceed £1,000,000')
+      .optional(),
+    budget_min: z.coerce.number().positive().max(1_000_000).optional(),
+    budget_max: z.coerce.number().positive().max(1_000_000).optional(),
+    show_budget_to_contractors: z.boolean().optional(),
+    require_itemized_bids: z.boolean().optional(),
+    location: z
+      .string()
+      .min(3, 'Location must be at least 3 characters')
+      .max(256, 'Location must be 256 characters or fewer')
+      .optional()
+      .transform((val) => (val ? sanitizeText(val, 256) : val)),
+    photoUrls: z
+      .array(z.string().url())
+      .max(20, 'Maximum 20 photos allowed')
+      .optional(),
+    requiredSkills: z.array(z.string().max(100)).max(10).optional(),
+    property_id: z.string().uuid().optional(),
+    latitude: z.coerce.number().min(-90).max(90).optional(),
+    longitude: z.coerce.number().min(-180).max(180).optional(),
+    // R6 #19 landlord / tenancy
+    is_rental_property: z.boolean().optional(),
+    payer_user_id: z.string().uuid().optional(),
+    tenancy_metadata: z.record(z.string(), z.unknown()).optional(),
+  })
+  .strict(); // SECURITY: reject unknown keys to block mass-assignment.
+// Adding a new input field here is the source of truth — if a caller
+// sends something unexpected (e.g., `homeowner_id` to impersonate, or
+// `status: "completed"` to skip the workflow), validation fails fast.
 
 export const GET = withApiHandler(
   { csrf: false },

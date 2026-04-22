@@ -5,6 +5,7 @@
 
 import { logger } from '@mintenance/shared';
 import { NextRequest } from 'next/server';
+import { timingSafeEqual } from 'crypto';
 import { ForbiddenError } from '@/lib/errors/api-error';
 
 /**
@@ -12,16 +13,16 @@ import { ForbiddenError } from '@/lib/errors/api-error';
  */
 function parseCookie(cookieString: string): Record<string, string> {
   const cookies: Record<string, string> = {};
-  
+
   if (!cookieString) return cookies;
-  
-  cookieString.split(';').forEach(cookie => {
+
+  cookieString.split(';').forEach((cookie) => {
     const [name, value] = cookie.trim().split('=');
     if (name && value) {
       cookies[name] = decodeURIComponent(value);
     }
   });
-  
+
   return cookies;
 }
 
@@ -56,7 +57,12 @@ export async function validateCSRF(request: NextRequest): Promise<boolean> {
       return false;
     }
 
-    return headerToken === cookieToken;
+    // SECURITY: constant-time compare. Short-circuit on length mismatch
+    // first (timingSafeEqual throws on unequal lengths). Without this,
+    // `===` leaks token length/prefix via timing side channel (OWASP
+    // ASVS 2.1.11).
+    if (headerToken.length !== cookieToken.length) return false;
+    return timingSafeEqual(Buffer.from(headerToken), Buffer.from(cookieToken));
   } catch (error) {
     logger.error('CSRF validation error', {
       service: 'csrf',
@@ -71,7 +77,7 @@ export async function validateCSRF(request: NextRequest): Promise<boolean> {
  */
 export async function requireCSRF(request: NextRequest): Promise<void> {
   const isValid = await validateCSRF(request);
-  
+
   if (!isValid) {
     throw new ForbiddenError('CSRF validation failed');
   }
@@ -88,7 +94,9 @@ export function hasBearerAuth(request: NextRequest): boolean {
 /**
  * Enforce CSRF protection for cookie-authenticated requests while allowing bearer-token clients (mobile).
  */
-export async function requireCSRFFromCookieAuth(request: NextRequest): Promise<void> {
+export async function requireCSRFFromCookieAuth(
+  request: NextRequest
+): Promise<void> {
   if (hasBearerAuth(request)) {
     return;
   }
@@ -103,7 +111,9 @@ export function generateCSRFToken(): string {
   // Generate a cryptographically secure random token
   const array = new Uint8Array(32);
   crypto.getRandomValues(array);
-  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+  return Array.from(array, (byte) => byte.toString(16).padStart(2, '0')).join(
+    ''
+  );
 }
 
 /**

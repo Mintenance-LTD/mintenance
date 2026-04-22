@@ -7,7 +7,9 @@ interface JosePayload extends JoseJWTPayload {
 /** Minimal crypto interface for refresh token (Node.js only) */
 interface CryptoLike {
   randomBytes(size: number): { toString(encoding: 'hex'): string };
-  createHash(algorithm: string): { update(data: string): { digest(encoding: 'hex'): string } };
+  createHash(algorithm: string): {
+    update(data: string): { digest(encoding: 'hex'): string };
+  };
 }
 
 let cryptoPromise: Promise<CryptoLike> | null = null;
@@ -18,7 +20,9 @@ const getCrypto = async (): Promise<CryptoLike> => {
   if (typeof window !== 'undefined' || typeof process === 'undefined') {
     throw new Error('Refresh token generation not available in Edge Runtime');
   }
-  cryptoPromise = import('crypto').then((module) => module as unknown as CryptoLike);
+  cryptoPromise = import('crypto').then(
+    (module) => module as unknown as CryptoLike
+  );
   return cryptoPromise;
 };
 import type { JWTPayload } from '@mintenance/types';
@@ -86,7 +90,13 @@ export async function generateTokenPair(
   sessionStart?: number,
   lastActivity?: number
 ): Promise<{ accessToken: string; refreshToken: string }> {
-  const accessToken = await generateJWT(payload, secret, '1h', sessionStart, lastActivity);
+  const accessToken = await generateJWT(
+    payload,
+    secret,
+    '1h',
+    sessionStart,
+    lastActivity
+  );
   const refreshToken = await generateRefreshToken();
   return { accessToken, refreshToken };
 }
@@ -95,10 +105,22 @@ export async function generateTokenPair(
  *
  * VULN-009: Returns session tracking fields if present
  */
-export async function verifyJWT(token: string, secret: string): Promise<JWTPayload | null> {
+export async function verifyJWT(
+  token: string,
+  secret: string
+): Promise<JWTPayload | null> {
   try {
     const secretKey = new TextEncoder().encode(secret);
-    const { payload } = await jwtVerify<JosePayload & { sessionStart?: number; lastActivity?: number }>(token, secretKey);
+    // SECURITY: explicit algorithms allowlist is defense-in-depth against
+    // algorithm-confusion attacks. `jose` does reject `alg: "none"` by
+    // default, but pinning HS256 protects us from accidental library
+    // changes or a future verifier swap that would accept RS/ES tokens
+    // signed with a leaked public key.
+    const { payload } = await jwtVerify<
+      JosePayload & { sessionStart?: number; lastActivity?: number }
+    >(token, secretKey, {
+      algorithms: ['HS256'],
+    });
     return {
       sub: payload.sub!,
       email: payload.email,
@@ -125,7 +147,9 @@ export function decodeJWTPayload(token: string): Partial<JWTPayload> | null {
     const base64Url = parts[1].replace(/-/g, '+').replace(/_/g, '/');
     let decoded = '';
     // Type-safe global access
-    const g = globalThis as typeof globalThis & { atob?: (data: string) => string };
+    const g = globalThis as typeof globalThis & {
+      atob?: (data: string) => string;
+    };
     if (typeof g.atob === 'function') {
       decoded = g.atob(base64Url);
     } else if (typeof Buffer !== 'undefined') {
@@ -151,10 +175,18 @@ export function decodeJWTPayload(token: string): Partial<JWTPayload> | null {
       role,
       iat,
       exp,
-      first_name: typeof payload.first_name === 'string' ? payload.first_name : undefined,
-      last_name: typeof payload.last_name === 'string' ? payload.last_name : undefined,
-      sessionStart: typeof payload.sessionStart === 'number' ? payload.sessionStart : undefined,
-      lastActivity: typeof payload.lastActivity === 'number' ? payload.lastActivity : undefined,
+      first_name:
+        typeof payload.first_name === 'string' ? payload.first_name : undefined,
+      last_name:
+        typeof payload.last_name === 'string' ? payload.last_name : undefined,
+      sessionStart:
+        typeof payload.sessionStart === 'number'
+          ? payload.sessionStart
+          : undefined,
+      lastActivity:
+        typeof payload.lastActivity === 'number'
+          ? payload.lastActivity
+          : undefined,
     };
   } catch {
     return null;

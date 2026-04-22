@@ -149,15 +149,16 @@ async function handleFormDataUpdate(request: Request, user: { id: string }) {
     .eq('id', user.id);
 
   if (updateError) {
+    // Log full DB error server-side for triage; NEVER surface it to the
+    // client. Supabase error messages include column names + constraint
+    // names that help an attacker fingerprint the schema.
     logger.error('Profile update error', updateError, {
       service: 'user',
       userId: user.id,
       updateData,
     });
     return NextResponse.json(
-      {
-        error: `Failed to update profile: ${updateError.message || updateError.details || 'Unknown error'}`,
-      },
+      { error: 'Failed to update profile. Please try again.' },
       { status: 500 }
     );
   }
@@ -246,15 +247,16 @@ async function handleJsonUpdate(request: Request, user: { id: string }) {
     .eq('id', user.id);
 
   if (updateError) {
+    // Log full DB error server-side for triage; NEVER surface it to the
+    // client. Supabase error messages include column names + constraint
+    // names that help an attacker fingerprint the schema.
     logger.error('Profile update error', updateError, {
       service: 'user',
       userId: user.id,
       updateData,
     });
     return NextResponse.json(
-      {
-        error: `Failed to update profile: ${updateError.message || updateError.details || 'Unknown error'}`,
-      },
+      { error: 'Failed to update profile. Please try again.' },
       { status: 500 }
     );
   }

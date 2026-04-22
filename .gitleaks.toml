@@ -139,3 +139,29 @@ title = "Mintenance Gitleaks Configuration"
   description = "Google Service Account Key"
   regex = '''"type"\s*:\s*"service_account"'''
   tags = ["google", "service-account"]
+
+[[rules]]
+  id = "google-api-key"
+  description = "Google API Key (Maps, Places, Geocoding, etc.)"
+  # AIza-prefixed keys are Google Cloud API keys. These MUST be injected at
+  # build time (Expo prebuild pulls from process.env.GOOGLE_MAPS_API_KEY) and
+  # never hardcoded in source / generated manifests.
+  regex = '''AIza[0-9A-Za-z_-]{35}'''
+  tags = ["google", "key", "api"]
+  [rules.allowlist]
+    regexes = [
+      # Placeholder values in examples only
+      '''AIzaXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXxXx''',
+    ]
+
+[[rules]]
+  id = "firebase-cloud-messaging-server-key"
+  description = "Firebase Cloud Messaging legacy server key"
+  regex = '''AAAA[A-Za-z0-9_-]{7}:[A-Za-z0-9_-]{140,}'''
+  tags = ["firebase", "fcm", "key"]
+
+[[rules]]
+  id = "expo-push-access-token"
+  description = "Expo Push Access Token"
+  regex = '''ExponentPushToken\[[A-Za-z0-9_-]{22}\]'''
+  tags = ["expo", "push"]

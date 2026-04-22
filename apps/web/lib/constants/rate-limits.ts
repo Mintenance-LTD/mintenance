@@ -9,6 +9,8 @@
  * - PUBLIC: Public endpoints - 20-50 requests per window
  */
 
+import { getClientIp } from '@/lib/request-ip';
+
 export type RateLimitTier = 'anonymous' | 'authenticated' | 'admin' | 'premium';
 
 export interface RateLimitConfig {
@@ -91,7 +93,7 @@ export const RATE_LIMITS: Record<string, RateLimitConfig> = {
   '/api/auth/session-status': {
     windowMs: 60 * 1000, // 1 minute
     max: {
-      anonymous: 60,      // 1/s max — far above any legitimate polling schedule
+      anonymous: 60, // 1/s max — far above any legitimate polling schedule
       authenticated: 120, // Future-proofed if x-user-id is ever forwarded
       admin: 300,
       premium: 150,
@@ -169,7 +171,8 @@ export const RATE_LIMITS: Record<string, RateLimitConfig> = {
     },
     standardHeaders: true,
     handler: 'throttle',
-    message: 'Profile update rate limit exceeded. Please wait before making more changes.',
+    message:
+      'Profile update rate limit exceeded. Please wait before making more changes.',
   },
 
   '/api/user/profile': {
@@ -293,7 +296,8 @@ export const RATE_LIMITS: Record<string, RateLimitConfig> = {
     },
     standardHeaders: true,
     handler: 'throttle',
-    message: 'AI search rate limit exceeded. Please wait before searching again.',
+    message:
+      'AI search rate limit exceeded. Please wait before searching again.',
   },
 
   '/api/ai/generate-embedding': {
@@ -335,7 +339,8 @@ export const RATE_LIMITS: Record<string, RateLimitConfig> = {
     },
     standardHeaders: true,
     handler: 'block',
-    message: 'Upload rate limit exceeded. Please wait before uploading more files.',
+    message:
+      'Upload rate limit exceeded. Please wait before uploading more files.',
   },
 
   '/api/contractor/upload-photos': {
@@ -457,7 +462,7 @@ export const RATE_LIMITS: Record<string, RateLimitConfig> = {
   // DEFAULT FALLBACK (MODERATE)
   // ============================================================================
 
-  'DEFAULT': {
+  DEFAULT: {
     windowMs: 60 * 1000, // 1 minute
     max: {
       anonymous: 20,
@@ -498,7 +503,10 @@ export function getRateLimitConfig(path: string): RateLimitConfig {
 /**
  * Get user tier from request context
  */
-export function getUserTier(user?: { role?: string; premium?: boolean }): RateLimitTier {
+export function getUserTier(user?: {
+  role?: string;
+  premium?: boolean;
+}): RateLimitTier {
   if (!user) return 'anonymous';
   if (user.role === 'admin') return 'admin';
   if (user.premium) return 'premium';
@@ -534,20 +542,32 @@ export function shouldBypassRateLimit(request: {
 }): boolean {
   // Check user agent for health check services
   const userAgent = request.headers.get('user-agent') || '';
-  if (RATE_LIMIT_BYPASS.healthCheckUserAgents.some(agent => userAgent.includes(agent))) {
+  if (
+    RATE_LIMIT_BYPASS.healthCheckUserAgents.some((agent) =>
+      userAgent.includes(agent)
+    )
+  ) {
     return true;
   }
 
   // Check for internal service token
   const serviceToken = request.headers.get('x-service-token');
-  if (serviceToken && RATE_LIMIT_BYPASS.internalServiceTokens.includes(serviceToken)) {
+  if (
+    serviceToken &&
+    RATE_LIMIT_BYPASS.internalServiceTokens.includes(serviceToken)
+  ) {
     return true;
   }
 
-  // Check IP whitelist
-  const clientIP = request.headers.get('x-forwarded-for')?.split(',')[0] ||
-                   request.headers.get('x-real-ip') || '';
-  if (RATE_LIMIT_BYPASS.whitelistedIPs.includes(clientIP)) {
+  // Check IP whitelist — MUST use the Vercel-trusted IP. The previous
+  // implementation read the first `x-forwarded-for` entry, which is
+  // client-settable and let any caller bypass rate limits by spoofing
+  // `X-Forwarded-For: <whitelisted-ip>`.
+  const clientIP = getClientIp(request);
+  if (
+    clientIP !== 'unknown' &&
+    RATE_LIMIT_BYPASS.whitelistedIPs.includes(clientIP)
+  ) {
     return true;
   }
 

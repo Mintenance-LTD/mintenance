@@ -11,10 +11,16 @@ const rejectEscrowSchema = z.object({
 
 /**
  * POST /api/admin/escrow/reject
- * Admin endpoint to reject an escrow release
+ * Admin endpoint to reject an escrow release. The inverse of approve,
+ * and just as sensitive — locks up contractor funds. Requires fresh MFA
+ * step-up (15-minute window), matching /api/admin/escrow/approve.
  */
 export const POST = withApiHandler(
-  { roles: ['admin'], rateLimit: { maxRequests: 10 } },
+  {
+    roles: ['admin'],
+    rateLimit: { maxRequests: 10 },
+    requireMfaVerifiedWithinMinutes: 15,
+  },
   async (request, { user }) => {
     const validation = await validateRequest(request, rejectEscrowSchema);
     if ('headers' in validation) return validation;
