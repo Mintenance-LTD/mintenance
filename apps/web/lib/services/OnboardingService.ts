@@ -54,15 +54,34 @@ export class OnboardingService {
   }
 
   /**
-   * Mark onboarding as complete for a user
+   * Mark onboarding (the intro swiper) as complete for a user.
+   *
+   * Writes three columns in lock-step:
+   *   - onboarding_completed            — preserved flag the existing
+   *     gate hooks key on ("swiper dismissed, ok to stack Tier 1
+   *     gates").
+   *   - onboarding_completed_at         — preserved timestamp.
+   *   - intro_swiper_dismissed_at       — Phase 3 #5 analytics
+   *     split (PDF §5.7). Today this duplicates
+   *     onboarding_completed_at because the swiper is the sole
+   *     writer; once the "onboarding_completed" flag is promoted
+   *     to mean "full Tier 1 ladder complete" in a future PR,
+   *     this column stays pinned to the swiper-dismissal moment.
+   *
+   * activated_at is NOT set here. It's stamped via Postgres
+   * triggers on first jobs INSERT (homeowner) or first bids
+   * accepted/won UPDATE (contractor) — migration
+   * 20260422000002_onboarding_analytics_split.sql.
    */
   static async markOnboardingComplete(userId: string): Promise<boolean> {
     try {
+      const now = new Date().toISOString();
       const { error } = await serverSupabase
         .from('profiles')
         .update({
           onboarding_completed: true,
-          onboarding_completed_at: new Date().toISOString(),
+          onboarding_completed_at: now,
+          intro_swiper_dismissed_at: now,
         })
         .eq('id', userId);
 

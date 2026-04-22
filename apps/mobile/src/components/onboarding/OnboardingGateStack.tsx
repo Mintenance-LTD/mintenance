@@ -17,7 +17,13 @@
  *      LocationSoftAskModal   (contractor only)
  *   3. ServiceAreaPromptModal (contractor, after location)
  *   4. IdentitySetupPromptModal (contractor, PDF §5.3 step 5)
- *   5. PushSoftAskModal       — any role, last
+ *   5. BackgroundCheckPromptModal (contractor, PDF §5.3 step 6)
+ *   6. SelfieCapturePromptModal   (contractor, PDF §5.3 step 7)
+ *   7. PushSoftAskModal       — any role, last Tier 1 gate
+ *   8. StripeConnectPromptModal (contractor, Tier 2 — post-first-
+ *      winning-bid money moment, PDF §5.3 Tier 2)
+ *   9. AlwaysLocationSoftAskModal (contractor, Tier 2 — post-
+ *      first-assigned-job, PDF §5.4 "Always" permission)
  *
  * Homeowner and contractor variants at the same level are
  * mutually exclusive by role; each lower tier suppresses itself
@@ -35,6 +41,8 @@ import { useServiceAreaGate } from '../../hooks/useServiceAreaGate';
 import { useIdentitySetupGate } from '../../hooks/useIdentitySetupGate';
 import { useBackgroundCheckGate } from '../../hooks/useBackgroundCheckGate';
 import { useSelfieCaptureGate } from '../../hooks/useSelfieCaptureGate';
+import { useStripeConnectPromptGate } from '../../hooks/useStripeConnectPromptGate';
+import { useAlwaysLocationSoftAskGate } from '../../hooks/useAlwaysLocationSoftAskGate';
 import { OnboardingModal } from './OnboardingModal';
 import { PushSoftAskModal } from './PushSoftAskModal';
 import { FirstPropertyPromptModal } from './FirstPropertyPromptModal';
@@ -43,6 +51,8 @@ import { ServiceAreaPromptModal } from './ServiceAreaPromptModal';
 import { IdentitySetupPromptModal } from './IdentitySetupPromptModal';
 import { BackgroundCheckPromptModal } from './BackgroundCheckPromptModal';
 import { SelfieCapturePromptModal } from './SelfieCapturePromptModal';
+import { StripeConnectPromptModal } from './StripeConnectPromptModal';
+import { AlwaysLocationSoftAskModal } from './AlwaysLocationSoftAskModal';
 
 export const OnboardingGateStack: React.FC = () => {
   const { user } = useAuth();
@@ -54,6 +64,8 @@ export const OnboardingGateStack: React.FC = () => {
   const backgroundCheck = useBackgroundCheckGate();
   const selfieCapture = useSelfieCaptureGate();
   const pushSoftAsk = usePushSoftAskGate();
+  const stripeConnect = useStripeConnectPromptGate();
+  const alwaysLocation = useAlwaysLocationSoftAskGate();
 
   // Pre-compute the stacking conditions so the JSX below stays
   // readable. Each lower tier checks its own condition AND that
@@ -90,6 +102,36 @@ export const OnboardingGateStack: React.FC = () => {
     !showBackgroundCheck &&
     !showSelfieCapture &&
     pushSoftAsk.shouldShow;
+  // Tier 2 — contractor post-first-winning-bid money moment.
+  // Deliberately positioned after all Tier 1 gates so a fresh
+  // contractor who somehow wins a bid mid-intro doesn't get
+  // Stripe thrown at them while the swiper is still open.
+  const showStripeConnect =
+    !showOnboarding &&
+    !showFirstProperty &&
+    !showLocationSoftAsk &&
+    !showServiceArea &&
+    !showIdentitySetup &&
+    !showBackgroundCheck &&
+    !showSelfieCapture &&
+    !showPushSoftAsk &&
+    stripeConnect.shouldShow;
+  // Tier 2 — contractor post-first-assigned-job "Always" location
+  // ask. Sits below StripeConnect because a contractor whose first
+  // bid just won (Stripe trigger) may not yet have the job set to
+  // 'assigned' by the bid-acceptance pipeline; this gate waits
+  // for the actual live job before asking for background tracking.
+  const showAlwaysLocation =
+    !showOnboarding &&
+    !showFirstProperty &&
+    !showLocationSoftAsk &&
+    !showServiceArea &&
+    !showIdentitySetup &&
+    !showBackgroundCheck &&
+    !showSelfieCapture &&
+    !showPushSoftAsk &&
+    !showStripeConnect &&
+    alwaysLocation.shouldShow;
 
   return (
     <>
@@ -136,6 +178,18 @@ export const OnboardingGateStack: React.FC = () => {
         onAllow={pushSoftAsk.allowNotifications}
         onDismiss={pushSoftAsk.dismiss}
         onOpenSettings={pushSoftAsk.openSystemSettings}
+      />
+      <StripeConnectPromptModal
+        visible={showStripeConnect}
+        onDismiss={stripeConnect.dismiss}
+        onAfterNavigate={stripeConnect.refresh}
+      />
+      <AlwaysLocationSoftAskModal
+        visible={showAlwaysLocation}
+        permissionStatus={alwaysLocation.permissionStatus}
+        onAllow={alwaysLocation.allowAlways}
+        onDismiss={alwaysLocation.dismiss}
+        onOpenSettings={alwaysLocation.openSystemSettings}
       />
     </>
   );
