@@ -34,6 +34,7 @@ import { QuickActions } from './QuickActions';
 import { StatsSection } from './StatsSection';
 import { ScheduleSection } from './ScheduleSection';
 import { FinishSetupCard } from './components/FinishSetupCard';
+import { ContractorBadgesCard } from './components/ContractorBadgesCard';
 import { styles } from './contractorDashboardStyles';
 import { NotificationService } from '../../services/NotificationService';
 import { theme, gradients, semanticBg } from '../../theme';
@@ -317,6 +318,11 @@ export const ContractorDashboard: React.FC = () => {
           {/* Phase 1.3 — Finish-setup checklist. Self-hides when done. */}
           <FadeIn duration={400} delay={200}>
             <FinishSetupCard />
+          </FadeIn>
+
+          {/* Phase 3 — earned trust-badge ladder (self-hides on probe failure). */}
+          <FadeIn duration={400} delay={250}>
+            <ContractorBadgesCard />
           </FadeIn>
 
           <SlideIn direction='up' distance={20} duration={400} delay={300}>
