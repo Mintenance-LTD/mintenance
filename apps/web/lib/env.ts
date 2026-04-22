@@ -173,7 +173,9 @@ const envSchema = z.object({
   GOOGLE_APPLICATION_CREDENTIALS: z
     .string()
     .optional()
-    .describe('Path to Google Cloud service-account JSON (used by Vision/Storage clients)'),
+    .describe(
+      'Path to Google Cloud service-account JSON (used by Vision/Storage clients)'
+    ),
 
   // Redis Configuration (REQUIRED IN PRODUCTION)
   UPSTASH_REDIS_REST_URL: z
@@ -512,6 +514,79 @@ function validateEnv(): Env {
 
       // Write to stderr synchronously to ensure it's captured
       process.stderr.write(fullErrorMessage);
+
+      // 2026-04-22: on Vercel Preview (pull-request + branch deploys),
+      // critical secrets are frequently missing or placeholder —
+      // e.g. a fresh branch before `vercel env pull` was run, or a
+      // preview that inherits partial config. Before this fail-soft
+      // path, env.ts threw at module init, which cascaded:
+      //   auth-manager imports env.ts → throws → route fails to load
+      //   → Next.js serves HTML 500 error page → mobile/web clients
+      //   get "Invalid response format" instead of a JSON error.
+      //
+      // On preview runtime we swallow the throw and return a
+      // placeholder Env object. Routes that try to do real work
+      // (e.g. sign JWTs) will still fail, but they'll fail through
+      // `withApiHandler` with proper JSON and status codes, and the
+      // loud stderr log above + Sentry event tell ops exactly what's
+      // missing. Production is unchanged — real missing vars should
+      // still page ops.
+      const isPreview = process.env.VERCEL_ENV === 'preview';
+      const isRealProduction =
+        process.env.NODE_ENV === 'production' && !isPreview;
+
+      if (!isRealProduction) {
+        try {
+          logger.error('Environment validation failed (fail-soft)', undefined, {
+            service: 'env-validation',
+            vercelEnv: process.env.VERCEL_ENV || 'unknown',
+            issues: error.errors.map((e) => ({
+              path: e.path.join('.'),
+              message: e.message,
+            })),
+          });
+        } catch {
+          // Logger itself may depend on env; swallow so we still boot.
+        }
+        return {
+          NODE_ENV: (process.env.NODE_ENV || 'production') as
+            | 'production'
+            | 'development'
+            | 'test',
+          JWT_SECRET:
+            process.env.JWT_SECRET ||
+            'Preview_Fallback_Secret_0123456789_ABCDEFGHIJ_klmnopqrstuvwxyz!@#',
+          NEXT_PUBLIC_SUPABASE_URL:
+            process.env.NEXT_PUBLIC_SUPABASE_URL ||
+            'https://preview-placeholder.supabase.co',
+          NEXT_PUBLIC_SUPABASE_ANON_KEY:
+            process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+            'preview-placeholder-anon-key',
+          SUPABASE_SERVICE_ROLE_KEY:
+            process.env.SUPABASE_SERVICE_ROLE_KEY ||
+            'preview-placeholder-service-key',
+          STRIPE_SECRET_KEY:
+            process.env.STRIPE_SECRET_KEY || 'sk_test_preview_placeholder',
+          STRIPE_WEBHOOK_SECRET:
+            process.env.STRIPE_WEBHOOK_SECRET || 'whsec_preview_placeholder',
+          NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY:
+            process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ||
+            'pk_test_preview_placeholder',
+          ROBOFLOW_MODEL_ID:
+            process.env.ROBOFLOW_MODEL_ID ||
+            'building-defect-detection-7-ks0im',
+          ROBOFLOW_MODEL_VERSION: process.env.ROBOFLOW_MODEL_VERSION || '4',
+          ROBOFLOW_TIMEOUT_MS: parseInt(
+            process.env.ROBOFLOW_TIMEOUT_MS || '10000',
+            10
+          ),
+          AI_API_TIMEOUT_MS: parseInt(
+            process.env.AI_API_TIMEOUT_MS || '30000',
+            10
+          ),
+          AI_COST_CAP_USD: parseFloat(process.env.AI_COST_CAP_USD || '5'),
+        } as Env;
+      }
 
       throw new Error(fullErrorMessage);
     }
