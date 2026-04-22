@@ -12,10 +12,12 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../../theme';
 
+// Phase 2 wizard — labels match the three steps the user actually
+// clicks through: Identity (email + password) → Name → Contact (phone).
 const STEPS = [
-  { number: 1, label: 'Personal' },
-  { number: 2, label: 'Contact' },
-  { number: 3, label: 'Password' },
+  { number: 1, label: 'Identity' },
+  { number: 2, label: 'Name' },
+  { number: 3, label: 'Contact' },
 ] as const;
 
 export interface FormProgressProps {

@@ -75,12 +75,17 @@ export async function getMonthlyRevenue(
   const userIdColumn = type === 'earnings' ? 'payee_id' : 'payer_id';
 
   try {
-    // Query payments from database
+    // Query from escrow_transactions — the legacy `payments` table
+    // has 0 rows in prod (verified 2026-04-21). Count any row where
+    // money has actually moved out of the payer's account and into
+    // the platform's custody: held, release_pending, released,
+    // completed. Matches the SPENT_STATUSES set used by /payments
+    // and /financials so all three surfaces agree.
     const { data: payments, error } = await supabase
-      .from('payments')
+      .from('escrow_transactions')
       .select('amount, created_at, status')
       .eq(userIdColumn, userId)
-      .eq('status', 'completed') // Only count completed payments
+      .in('status', ['held', 'release_pending', 'released', 'completed'])
       .gte('created_at', startDate.toISOString())
       .order('created_at', { ascending: true });
 

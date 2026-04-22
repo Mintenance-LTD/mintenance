@@ -4,16 +4,24 @@ export interface PaymentIntent {
   amount: number;
   currency: string;
   status:
-  | 'requires_payment_method'
-  | 'requires_confirmation'
-  | 'succeeded'
-  | 'canceled';
+    | 'requires_payment_method'
+    | 'requires_confirmation'
+    | 'succeeded'
+    | 'canceled';
   client_secret: string;
 }
 
 // Status values matching DB CHECK constraint on escrow_transactions
-export type EscrowStatus = 'pending' | 'held' | 'release_pending' | 'released' | 'refunded'
-  | 'awaiting_homeowner_approval' | 'pending_review' | 'failed' | 'cancelled';
+export type EscrowStatus =
+  | 'pending'
+  | 'held'
+  | 'release_pending'
+  | 'released'
+  | 'refunded'
+  | 'awaiting_homeowner_approval'
+  | 'pending_review'
+  | 'failed'
+  | 'cancelled';
 
 export interface EscrowTransaction {
   id: string;
@@ -47,10 +55,12 @@ export interface EscrowTransaction {
   payer?: {
     first_name: string;
     last_name: string;
+    company_name?: string;
   };
   payee?: {
     first_name: string;
     last_name: string;
+    company_name?: string;
   };
 }
 

@@ -28,6 +28,26 @@ const INITIAL_STATE: RegistrationFormState = {
 };
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+// Permissive UK phone — digits / spaces / +, 7-15 chars after stripping.
+// Not a full libphonenumber check; that's tracked for when we wire SMS OTP
+// (Phase 3 per the 2026-04-19 audit PDF).
+const PHONE_REGEX = /^[+0-9][0-9 ]{6,14}$/;
+
+/**
+ * Wizard step definitions (Phase 2 of the 2026-04-19 audit).
+ * Step 1 includes confirmPassword — PDF §5.1 specifies only 3 taps
+ * (email + password + terms) but the existing tests + safety posture
+ * keep confirmPassword one step longer. Dropping it + updating tests
+ * is a follow-up commit.
+ */
+export type WizardStep = 1 | 2 | 3;
+const TOTAL_STEPS: WizardStep = 3;
+
+const STEP_FIELDS: Record<WizardStep, Array<keyof RegistrationFormState>> = {
+  1: ['email', 'password', 'confirmPassword'],
+  2: ['firstName', 'lastName'],
+  3: ['phoneNumber'],
+};
 
 function validateField(
   field: keyof RegistrationFormState,
@@ -56,6 +76,19 @@ function validateField(
     case 'confirmPassword':
       if (value !== form.password) return 'Passwords do not match';
       return undefined;
+    case 'phoneNumber': {
+      const trimmed = value.trim();
+      // Required for contractors (they need to be reachable on-site).
+      // Optional for homeowners — empty is acceptable.
+      if (!trimmed) {
+        return form.role === 'contractor'
+          ? 'Phone number is required for contractors'
+          : undefined;
+      }
+      if (!PHONE_REGEX.test(trimmed))
+        return 'Please enter a valid phone number';
+      return undefined;
+    }
     default:
       return undefined;
   }
@@ -90,6 +123,7 @@ export function useRegistrationForm(options: UseRegistrationFormOptions = {}) {
   );
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
+  const [currentStep, setCurrentStep] = useState<WizardStep>(1);
   const { signUp, loading } = useAuth();
 
   const resetFeedback = useCallback(() => {
@@ -129,37 +163,64 @@ export function useRegistrationForm(options: UseRegistrationFormOptions = {}) {
     setForm((prev) => ({ ...prev, passwordVisible: !prev.passwordVisible }));
   }, []);
 
-  const validateForm = (): boolean => {
-    const errors: FieldErrors = {};
-    const fields: (keyof RegistrationFormState)[] = [
-      'firstName',
-      'lastName',
-      'email',
-      'password',
-      'confirmPassword',
-    ];
-    for (const field of fields) {
-      const err = validateField(field, String(form[field] ?? ''), form);
-      if (err) errors[field] = err;
-    }
-    setFieldErrors(errors);
-    if (Object.values(errors).some(Boolean)) {
-      setSubmissionError(
-        Object.values(errors).find(Boolean) || 'Please fix the errors above'
-      );
-      return false;
-    }
+  /**
+   * Validate only the fields owned by a given wizard step. Used by
+   * `goToNextStep` so a user can't skip past an invalid step.
+   */
+  const validateStep = useCallback(
+    (step: WizardStep): boolean => {
+      const errors: FieldErrors = {};
+      for (const field of STEP_FIELDS[step]) {
+        const err = validateField(field, String(form[field] ?? ''), form);
+        if (err) errors[field] = err;
+      }
+
+      // Step 1 also gates on terms accepted — a field but not a text
+      // input, so it doesn't flow through validateField.
+      if (step === 1 && !form.termsAccepted) {
+        setFieldErrors((prev) => ({ ...prev, ...errors }));
+        setSubmissionError('Please accept the terms and conditions');
+        return false;
+      }
+
+      setFieldErrors((prev) => ({ ...prev, ...errors }));
+      if (Object.values(errors).some(Boolean)) {
+        setSubmissionError(
+          Object.values(errors).find(Boolean) || 'Please fix the errors above'
+        );
+        return false;
+      }
+      setSubmissionError(null);
+      return true;
+    },
+    [form]
+  );
+
+  const goToNextStep = useCallback(() => {
+    if (!validateStep(currentStep)) return;
+    setCurrentStep((prev) =>
+      prev < TOTAL_STEPS ? ((prev + 1) as WizardStep) : prev
+    );
+  }, [currentStep, validateStep]);
+
+  const goToPreviousStep = useCallback(() => {
     setSubmissionError(null);
-    return true;
-  };
+    setCurrentStep((prev) => (prev > 1 ? ((prev - 1) as WizardStep) : prev));
+  }, []);
 
   const handleRegister = async () => {
     setSubmissionError(null);
     setSubmissionSuccess(null);
-    if (!validateForm()) return;
-    if (!form.termsAccepted) {
-      setSubmissionError('Please accept the terms and conditions');
-      return;
+    // Final submit happens from step 3 — re-validate all steps to
+    // catch anything that slipped through (e.g., user changed role
+    // on step 2 and that makes phone required on step 3).
+    for (const step of [1, 2, 3] as WizardStep[]) {
+      if (!validateStep(step)) {
+        // Jump back to the first step with errors so the user sees
+        // where to fix.
+        setCurrentStep(step);
+        return;
+      }
     }
 
     try {
@@ -184,6 +245,7 @@ export function useRegistrationForm(options: UseRegistrationFormOptions = {}) {
       const registeredEmail = payload.email;
       setForm(INITIAL_STATE);
       setFieldErrors({});
+      setCurrentStep(1);
 
       // When the caller has wired a navigation callback (Phase 1.2),
       // send the user to the EmailVerificationPendingScreen. Otherwise
@@ -212,12 +274,16 @@ export function useRegistrationForm(options: UseRegistrationFormOptions = {}) {
     submissionSuccess,
     showTermsModal,
     showPrivacyModal,
+    currentStep,
+    totalSteps: TOTAL_STEPS,
     setShowTermsModal,
     setShowPrivacyModal,
     updateField,
     validateOnBlur,
     toggleTerms,
     togglePasswordVisibility,
+    goToNextStep,
+    goToPreviousStep,
     handleRegister,
     resetFeedback,
   };

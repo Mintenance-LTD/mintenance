@@ -7,7 +7,8 @@ import PropertyDetailsClient from './components/PropertyDetailsClient';
 
 export const metadata: Metadata = {
   title: 'Property Details | Mintenance',
-  description: 'View property details, maintenance history, job stats, and manage upkeep for your property.',
+  description:
+    'View property details, maintenance history, job stats, and manage upkeep for your property.',
 };
 
 interface ContractorProfile {
@@ -21,7 +22,11 @@ interface ContractorBid {
   status: string;
 }
 
-export default async function PropertyDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function PropertyDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const resolvedParams = await params;
   const user = await getCurrentUserFromCookies();
 
@@ -44,7 +49,8 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
   // Fetch jobs linked to this specific property
   const { data: jobs, error: jobsError } = await serverSupabase
     .from('jobs')
-    .select(`
+    .select(
+      `
       id,
       title,
       status,
@@ -59,20 +65,30 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
         ),
         status
       )
-    `)
+    `
+    )
     .eq('homeowner_id', user.id)
     .eq('property_id', resolvedParams.id)
     .order('created_at', { ascending: false });
 
-  // Calculate stats
-  const completedJobs = jobs?.filter(job => job.status === 'completed').length || 0;
-  const activeJobs = jobs?.filter(job => job.status === 'in_progress').length || 0;
-  const totalSpent = jobs?.reduce((sum, job) => {
-    if (job.status === 'completed') {
-      return sum + (parseFloat(job.budget) || 0);
-    }
-    return sum;
-  }, 0) || 0;
+  // Calculate stats. The property grid (/properties) counts any job
+  // not yet completed as "active" (posted + assigned + in_progress).
+  // The detail page used to only match 'in_progress', so a homeowner
+  // with 8 open jobs against a property saw "8 Active Jobs" on the
+  // grid and "Active: 0" on the same property's detail page. Aligned.
+  const completedJobs =
+    jobs?.filter((job) => job.status === 'completed').length || 0;
+  const activeJobs =
+    jobs?.filter((job) =>
+      ['posted', 'assigned', 'in_progress'].includes(job.status || '')
+    ).length || 0;
+  const totalSpent =
+    jobs?.reduce((sum, job) => {
+      if (job.status === 'completed') {
+        return sum + (parseFloat(job.budget) || 0);
+      }
+      return sum;
+    }, 0) || 0;
 
   // Format property data
   const formattedProperty = {
@@ -86,16 +102,19 @@ export default async function PropertyDetailPage({ params }: { params: Promise<{
     bathrooms: property.bathrooms || 0,
     squareFeet: property.square_footage || 0,
     yearBuilt: property.year_built || new Date().getFullYear(),
-    images: property.photos && property.photos.length > 0 ? property.photos : [],
+    images:
+      property.photos && property.photos.length > 0 ? property.photos : [],
   };
 
   // Format jobs data
-  const formattedJobs = (jobs || []).map(job => {
+  const formattedJobs = (jobs || []).map((job) => {
     // Find an accepted bid if any
-    const acceptedBid = (job.contractor_bids as ContractorBid[] | undefined)?.find((bid) => bid.status === 'accepted');
-    const contractor = acceptedBid?.contractor ?
-      `${acceptedBid.contractor?.[0]?.first_name || ''} ${acceptedBid.contractor?.[0]?.last_name || ''}`.trim() :
-      null;
+    const acceptedBid = (
+      job.contractor_bids as ContractorBid[] | undefined
+    )?.find((bid) => bid.status === 'accepted');
+    const contractor = acceptedBid?.contractor
+      ? `${acceptedBid.contractor?.[0]?.first_name || ''} ${acceptedBid.contractor?.[0]?.last_name || ''}`.trim()
+      : null;
 
     return {
       id: job.id,
