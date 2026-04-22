@@ -85,6 +85,12 @@ const KNOWN_LARGE_FILES = new Set([
   // hardening follow-up (see 2026-04-21 security audit).
   'apps/web/app/api/ai/search/route.ts', // 560 lines (was 561)
   'apps/web/lib/constants/rate-limits.ts', // 558 lines (was 554)
+  // Added 2026-04-22: two mobile auth/payment screens after adding
+  // useScreenCaptureGuard(). The guard is a 3-line import + hook call;
+  // splitting these screens to pass the gate is not worth blocking the
+  // FLAG_SECURE rollout. Tracked as P2 hardening follow-up.
+  'apps/mobile/src/screens/AddPaymentMethodScreen.tsx', // 562 lines (was 557)
+  'apps/mobile/src/screens/auth/MFAVerificationScreen.tsx', // 502 lines (was 497)
 ]);
 
 function countLines(filePath) {
