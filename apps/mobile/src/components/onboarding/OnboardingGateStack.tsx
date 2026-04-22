@@ -34,6 +34,7 @@ import { useLocationSoftAskGate } from '../../hooks/useLocationSoftAskGate';
 import { useServiceAreaGate } from '../../hooks/useServiceAreaGate';
 import { useIdentitySetupGate } from '../../hooks/useIdentitySetupGate';
 import { useBackgroundCheckGate } from '../../hooks/useBackgroundCheckGate';
+import { useSelfieCaptureGate } from '../../hooks/useSelfieCaptureGate';
 import { OnboardingModal } from './OnboardingModal';
 import { PushSoftAskModal } from './PushSoftAskModal';
 import { FirstPropertyPromptModal } from './FirstPropertyPromptModal';
@@ -41,6 +42,7 @@ import { LocationSoftAskModal } from './LocationSoftAskModal';
 import { ServiceAreaPromptModal } from './ServiceAreaPromptModal';
 import { IdentitySetupPromptModal } from './IdentitySetupPromptModal';
 import { BackgroundCheckPromptModal } from './BackgroundCheckPromptModal';
+import { SelfieCapturePromptModal } from './SelfieCapturePromptModal';
 
 export const OnboardingGateStack: React.FC = () => {
   const { user } = useAuth();
@@ -50,6 +52,7 @@ export const OnboardingGateStack: React.FC = () => {
   const serviceArea = useServiceAreaGate();
   const identitySetup = useIdentitySetupGate();
   const backgroundCheck = useBackgroundCheckGate();
+  const selfieCapture = useSelfieCaptureGate();
   const pushSoftAsk = usePushSoftAskGate();
 
   // Pre-compute the stacking conditions so the JSX below stays
@@ -71,6 +74,13 @@ export const OnboardingGateStack: React.FC = () => {
     !showServiceArea &&
     !showIdentitySetup &&
     backgroundCheck.shouldShow;
+  const showSelfieCapture =
+    !showOnboarding &&
+    !showLocationSoftAsk &&
+    !showServiceArea &&
+    !showIdentitySetup &&
+    !showBackgroundCheck &&
+    selfieCapture.shouldShow;
   const showPushSoftAsk =
     !showOnboarding &&
     !showFirstProperty &&
@@ -78,6 +88,7 @@ export const OnboardingGateStack: React.FC = () => {
     !showServiceArea &&
     !showIdentitySetup &&
     !showBackgroundCheck &&
+    !showSelfieCapture &&
     pushSoftAsk.shouldShow;
 
   return (
@@ -113,6 +124,11 @@ export const OnboardingGateStack: React.FC = () => {
         visible={showBackgroundCheck}
         onDismiss={backgroundCheck.dismiss}
         onAfterNavigate={backgroundCheck.refresh}
+      />
+      <SelfieCapturePromptModal
+        visible={showSelfieCapture}
+        onDismiss={selfieCapture.dismiss}
+        onAfterNavigate={selfieCapture.refresh}
       />
       <PushSoftAskModal
         visible={showPushSoftAsk}
