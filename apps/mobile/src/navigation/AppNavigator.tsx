@@ -39,8 +39,14 @@ import { useAuth } from '../contexts/AuthContext';
 import { useHaptics } from '../utils/haptics';
 import { useOnboardingGate } from '../hooks/useOnboardingGate';
 import { usePushSoftAskGate } from '../hooks/usePushSoftAskGate';
+import { useFirstPropertyGate } from '../hooks/useFirstPropertyGate';
+import { useLocationSoftAskGate } from '../hooks/useLocationSoftAskGate';
+import { useServiceAreaGate } from '../hooks/useServiceAreaGate';
 import { OnboardingModal } from '../components/onboarding/OnboardingModal';
 import { PushSoftAskModal } from '../components/onboarding/PushSoftAskModal';
+import { FirstPropertyPromptModal } from '../components/onboarding/FirstPropertyPromptModal';
+import { LocationSoftAskModal } from '../components/onboarding/LocationSoftAskModal';
+import { ServiceAreaPromptModal } from '../components/onboarding/ServiceAreaPromptModal';
 import { theme } from '../theme';
 import { useTheme } from '../design-system/theme';
 import {
@@ -132,6 +138,9 @@ const TabNavigator: React.FC = () => {
   >();
   const onboarding = useOnboardingGate();
   const pushSoftAsk = usePushSoftAskGate();
+  const firstProperty = useFirstPropertyGate();
+  const locationSoftAsk = useLocationSoftAskGate();
+  const serviceArea = useServiceAreaGate();
 
   // Fetch unread notification count for the Profile tab badge.
   // Re-fetches whenever the user changes (login/logout) or focus returns.
@@ -194,8 +203,36 @@ const TabNavigator: React.FC = () => {
         userRole={user?.role || 'homeowner'}
         onDismiss={onboarding.dismiss}
       />
+      {/* Chain: Onboarding > FirstProperty(HO)|LocationSoftAsk(C) > ServiceArea(C) > PushSoftAsk. */}
+      <FirstPropertyPromptModal
+        visible={!onboarding.shouldShow && firstProperty.shouldShow}
+        onDismiss={firstProperty.dismiss}
+        onAfterNavigate={firstProperty.refresh}
+      />
+      <LocationSoftAskModal
+        visible={!onboarding.shouldShow && locationSoftAsk.shouldShow}
+        permissionStatus={locationSoftAsk.permissionStatus}
+        onAllow={locationSoftAsk.allowLocation}
+        onDismiss={locationSoftAsk.dismiss}
+        onOpenSettings={locationSoftAsk.openSystemSettings}
+      />
+      <ServiceAreaPromptModal
+        visible={
+          !onboarding.shouldShow &&
+          !locationSoftAsk.shouldShow &&
+          serviceArea.shouldShow
+        }
+        onDismiss={serviceArea.dismiss}
+        onAfterNavigate={serviceArea.refresh}
+      />
       <PushSoftAskModal
-        visible={pushSoftAsk.shouldShow}
+        visible={
+          !onboarding.shouldShow &&
+          !firstProperty.shouldShow &&
+          !locationSoftAsk.shouldShow &&
+          !serviceArea.shouldShow &&
+          pushSoftAsk.shouldShow
+        }
         permissionStatus={pushSoftAsk.permissionStatus}
         onAllow={pushSoftAsk.allowNotifications}
         onDismiss={pushSoftAsk.dismiss}

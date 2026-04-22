@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import {
   View,
   Text,
@@ -18,13 +18,13 @@ import { Ionicons } from '@expo/vector-icons';
 import { AuthStackParamList } from '../navigation/types';
 
 import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
 import { Banner } from '../components/ui/Banner';
-import { RoleSelector } from './register/components/RoleSelector';
-import { TermsSection, TermsModal } from './register/components/TermsSection';
+import { TermsModal } from './register/components/TermsSection';
 import { FormProgress } from './register/components/FormProgress';
+import { WizardStep1Identity } from './register/components/WizardStep1Identity';
+import { WizardStep2Name } from './register/components/WizardStep2Name';
+import { WizardStep3Contact } from './register/components/WizardStep3Contact';
 import { useRegistrationForm } from './register/hooks/useRegistrationForm';
-import { PasswordStrengthBar } from '../components/ui/PasswordStrengthBar';
 import { theme } from '../theme';
 
 type RegisterScreenNavigationProp = NativeStackNavigationProp<
@@ -40,10 +40,8 @@ const RegisterScreen: React.FC<Props> = () => {
   const navigation = useNavigation<RegisterScreenNavigationProp>();
   const route = useRoute<RouteProp<AuthStackParamList, 'Register'>>();
   // Phase 2 — WelcomeScreen hands off a role when the user taps a
-  // tile. Direct deep-links to Register (e.g. legacy "Sign up" link
-  // on LoginScreen) don't pass one; the hook falls back to its
-  // default 'homeowner'. The user can still change role inside the
-  // form via RoleSelector.
+  // tile. Direct deep-links to Register don't pass one; the hook
+  // falls back to its default ('homeowner').
   const initialRole = route.params?.role;
   const {
     form,
@@ -53,12 +51,16 @@ const RegisterScreen: React.FC<Props> = () => {
     submissionSuccess,
     showTermsModal,
     showPrivacyModal,
+    currentStep,
+    totalSteps,
     setShowTermsModal,
     setShowPrivacyModal,
     updateField,
     validateOnBlur,
     toggleTerms,
     togglePasswordVisibility,
+    goToNextStep,
+    goToPreviousStep,
     handleRegister,
   } = useRegistrationForm({
     initialRole,
@@ -70,12 +72,22 @@ const RegisterScreen: React.FC<Props> = () => {
     },
   });
 
-  const currentStep = useMemo(() => {
-    if (form.email.trim().length > 0) return 3;
-    if (form.firstName.trim().length > 0 && form.lastName.trim().length > 0)
-      return 2;
-    return 1;
-  }, [form.firstName, form.lastName, form.email]);
+  const isFirstStep = currentStep === 1;
+  const isLastStep = currentStep === totalSteps;
+
+  const primaryLabel = isLastStep
+    ? loading
+      ? 'Creating Account...'
+      : 'Create Account'
+    : 'Continue';
+
+  const handlePrimary = () => {
+    if (isLastStep) {
+      void handleRegister();
+    } else {
+      goToNextStep();
+    }
+  };
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
@@ -108,9 +120,15 @@ const RegisterScreen: React.FC<Props> = () => {
           >
             <SlideIn direction='up' distance={20} duration={400} delay={200}>
               <View style={styles.formHeading}>
-                <Text style={styles.formTitle}>Get Started</Text>
+                <Text style={styles.formTitle}>
+                  Step {currentStep} of {totalSteps}
+                </Text>
                 <Text style={styles.formSubtitle}>
-                  Fill in your details to create an account
+                  {currentStep === 1
+                    ? 'Choose the email and password for your account.'
+                    : currentStep === 2
+                      ? 'Tell us who we should address you as.'
+                      : 'How contractors / homeowners reach you.'}
                 </Text>
               </View>
             </SlideIn>
@@ -133,154 +151,103 @@ const RegisterScreen: React.FC<Props> = () => {
                 />
               ) : null}
 
-              <RoleSelector
-                role={form.role}
-                onRoleChange={(role) => updateField('role', role)}
-              />
+              {currentStep === 1 && (
+                <WizardStep1Identity
+                  email={form.email}
+                  password={form.password}
+                  confirmPassword={form.confirmPassword}
+                  passwordVisible={form.passwordVisible}
+                  termsAccepted={form.termsAccepted}
+                  errors={{
+                    email: fieldErrors.email,
+                    password: fieldErrors.password,
+                    confirmPassword: fieldErrors.confirmPassword,
+                  }}
+                  onChangeEmail={(v) => updateField('email', v)}
+                  onChangePassword={(v) => updateField('password', v)}
+                  onChangeConfirmPassword={(v) =>
+                    updateField('confirmPassword', v)
+                  }
+                  onBlurEmail={() => validateOnBlur('email')}
+                  onBlurPassword={() => validateOnBlur('password')}
+                  onBlurConfirmPassword={() =>
+                    validateOnBlur('confirmPassword')
+                  }
+                  onTogglePasswordVisibility={togglePasswordVisibility}
+                  onToggleTerms={toggleTerms}
+                  onShowTerms={() => setShowTermsModal(true)}
+                  onShowPrivacy={() => setShowPrivacyModal(true)}
+                />
+              )}
 
-              <Text style={styles.sectionLabel}>Personal Details</Text>
+              {currentStep === 2 && (
+                <WizardStep2Name
+                  firstName={form.firstName}
+                  lastName={form.lastName}
+                  role={form.role}
+                  errors={{
+                    firstName: fieldErrors.firstName,
+                    lastName: fieldErrors.lastName,
+                  }}
+                  onChangeFirstName={(v) => updateField('firstName', v)}
+                  onChangeLastName={(v) => updateField('lastName', v)}
+                  onBlurFirstName={() => validateOnBlur('firstName')}
+                  onBlurLastName={() => validateOnBlur('lastName')}
+                  onChangeRole={(role) => updateField('role', role)}
+                />
+              )}
 
-              <Input
-                testID='first-name-input'
-                label='First Name'
-                placeholder='First Name'
-                value={form.firstName}
-                onChangeText={(v) => updateField('firstName', v)}
-                onBlur={() => validateOnBlur('firstName')}
-                errorText={fieldErrors.firstName}
-                leftIcon='person-outline'
-                autoCapitalize='words'
-                accessibilityHint='Enter your first name'
-                textContentType='givenName'
-                autoComplete='given-name'
-                variant='outline'
-                size='lg'
-                fullWidth
-                required
-              />
+              {currentStep === 3 && (
+                <WizardStep3Contact
+                  phoneNumber={form.phoneNumber}
+                  role={form.role}
+                  errors={{ phoneNumber: fieldErrors.phoneNumber }}
+                  onChangePhoneNumber={(v) => updateField('phoneNumber', v)}
+                  onBlurPhoneNumber={() => validateOnBlur('phoneNumber')}
+                />
+              )}
 
-              <Input
-                testID='last-name-input'
-                label='Last Name'
-                placeholder='Last Name'
-                value={form.lastName}
-                onChangeText={(v) => updateField('lastName', v)}
-                onBlur={() => validateOnBlur('lastName')}
-                errorText={fieldErrors.lastName}
-                leftIcon='person-outline'
-                autoCapitalize='words'
-                accessibilityHint='Enter your last name'
-                textContentType='familyName'
-                autoComplete='family-name'
-                variant='outline'
-                size='lg'
-                fullWidth
-                required
-              />
-
-              <Text style={styles.sectionLabel}>Contact Information</Text>
-
-              <Input
-                testID='email-input'
-                label='Email'
-                placeholder='Email'
-                value={form.email}
-                onChangeText={(v) => updateField('email', v)}
-                onBlur={() => validateOnBlur('email')}
-                errorText={fieldErrors.email}
-                leftIcon='mail-outline'
-                keyboardType='email-address'
-                autoCapitalize='none'
-                autoCorrect={false}
-                accessibilityHint='Enter your email address for account creation'
-                textContentType='emailAddress'
-                autoComplete='email'
-                variant='outline'
-                size='lg'
-                fullWidth
-                required
-              />
-
-              <Input
-                label='Phone Number'
-                placeholder='Phone Number'
-                value={form.phoneNumber}
-                onChangeText={(v) => updateField('phoneNumber', v)}
-                leftIcon='call-outline'
-                keyboardType='phone-pad'
-                accessibilityHint='Enter your phone number for account verification'
-                textContentType='telephoneNumber'
-                autoComplete='tel'
-                variant='outline'
-                size='lg'
-                fullWidth
-              />
-
-              <Text style={styles.sectionLabel}>Create Password</Text>
-
-              <Input
-                testID='password-input'
-                label='Password'
-                placeholder='Password'
-                value={form.password}
-                onChangeText={(v) => updateField('password', v)}
-                onBlur={() => validateOnBlur('password')}
-                errorText={fieldErrors.password}
-                leftIcon='lock-closed-outline'
-                rightIcon={
-                  form.passwordVisible ? 'eye-off-outline' : 'eye-outline'
-                }
-                onRightIconPress={togglePasswordVisibility}
-                secureTextEntry={!form.passwordVisible}
-                accessibilityHint='Create a secure password with at least 8 characters'
-                textContentType='newPassword'
-                autoComplete='password-new'
-                variant='outline'
-                size='lg'
-                fullWidth
-                required
-              />
-              <PasswordStrengthBar password={form.password} />
-
-              <Input
-                testID='confirm-password-input'
-                label='Confirm Password'
-                placeholder='Confirm Password'
-                value={form.confirmPassword}
-                onChangeText={(v) => updateField('confirmPassword', v)}
-                onBlur={() => validateOnBlur('confirmPassword')}
-                errorText={fieldErrors.confirmPassword}
-                leftIcon='lock-closed-outline'
-                secureTextEntry
-                accessibilityHint='Re-enter your password to confirm it matches'
-                textContentType='newPassword'
-                autoComplete='password-new'
-                variant='outline'
-                size='lg'
-                fullWidth
-                required
-              />
-
-              <TermsSection
-                termsAccepted={form.termsAccepted}
-                onToggleTerms={toggleTerms}
-                onShowTerms={() => setShowTermsModal(true)}
-                onShowPrivacy={() => setShowPrivacyModal(true)}
-              />
-
-              <Button
-                testID={loading ? 'loading-spinner' : 'register-button'}
-                variant='primary'
-                title={loading ? 'Creating Account...' : 'Create Account'}
-                onPress={handleRegister}
-                disabled={loading}
-                loading={loading}
-                accessibilityLabel={
-                  loading ? 'Creating account' : 'Create account'
-                }
-                fullWidth
-                style={{ borderRadius: 28, marginBottom: 16 }}
-              />
+              <View style={styles.navRow}>
+                {!isFirstStep && (
+                  <TouchableOpacity
+                    onPress={goToPreviousStep}
+                    style={styles.backButton}
+                    accessibilityRole='button'
+                    accessibilityLabel='Go to previous step'
+                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                  >
+                    <Ionicons
+                      name='chevron-back'
+                      size={20}
+                      color={theme.colors.textPrimary}
+                    />
+                    <Text style={styles.backButtonText}>Back</Text>
+                  </TouchableOpacity>
+                )}
+                <View style={styles.primaryWrap}>
+                  <Button
+                    testID={
+                      loading && isLastStep
+                        ? 'loading-spinner'
+                        : 'register-button'
+                    }
+                    variant='primary'
+                    title={primaryLabel}
+                    onPress={handlePrimary}
+                    disabled={loading}
+                    loading={loading && isLastStep}
+                    accessibilityLabel={
+                      isLastStep
+                        ? loading
+                          ? 'Creating account'
+                          : 'Create account'
+                        : 'Continue to next step'
+                    }
+                    fullWidth
+                    style={{ borderRadius: 28 }}
+                  />
+                </View>
+              </View>
 
               <View style={styles.loginSection}>
                 <View style={styles.loginDivider} />
@@ -370,7 +337,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   formTitle: {
-    fontSize: 26,
+    fontSize: 22,
     fontWeight: '700',
     color: theme.colors.textPrimary,
     marginBottom: 4,
@@ -383,14 +350,27 @@ const styles = StyleSheet.create({
   formContainer: {
     paddingHorizontal: 24,
   },
-  sectionLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: theme.colors.textTertiary,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+  navRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
     marginTop: 20,
-    marginBottom: 8,
+    marginBottom: 16,
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    gap: 4,
+  },
+  backButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+  },
+  primaryWrap: {
+    flex: 1,
   },
   loginSection: {
     marginTop: 8,

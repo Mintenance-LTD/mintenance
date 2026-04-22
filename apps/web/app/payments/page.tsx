@@ -49,8 +49,16 @@ interface PaymentData {
   payerId?: string;
   payeeId?: string;
   job?: { title: string; description?: string } | null;
-  payer?: { first_name: string; last_name: string } | null;
-  payee?: { first_name: string; last_name: string } | null;
+  payer?: {
+    first_name: string;
+    last_name: string;
+    company_name?: string;
+  } | null;
+  payee?: {
+    first_name: string;
+    last_name: string;
+    company_name?: string;
+  } | null;
   created_at?: string;
   updated_at?: string;
   job_id?: string;
@@ -95,8 +103,14 @@ export default function PaymentsPage2025() {
             const platformFee = amount * 0.05;
             const processingFee = amount * 0.02;
 
+            // Prefer `company_name` when the payee has one set — a
+            // contractor trading as "my Company LTD" should display that
+            // over their personal Djodjo Nkouka name on the homeowner's
+            // transaction list. Fall back to the first+last name when the
+            // company field is empty.
             const contractorName =
               t.contractor_name ||
+              t.payee?.company_name ||
               (t.payee
                 ? `${t.payee.first_name || ''} ${t.payee.last_name || ''}`.trim()
                 : undefined);
@@ -248,8 +262,14 @@ export default function PaymentsPage2025() {
       ['completed', 'released', 'release_pending', 'held'].includes(t.status)
     )
     .reduce((sum, t) => sum + t.amount, 0);
-  const pendingAmount = transactions
-    .filter((t) => t.status === 'pending')
+  // The "Protected" stat card previously showed pre-charge `pending`
+  // rows — money that hadn't actually hit Mintenance's escrow yet. Now
+  // it reflects the real "held in escrow by the platform" total:
+  // `held` (waiting for the contractor to finish) + `release_pending`
+  // (Stripe transfer is mid-flight back to the contractor). `pending`
+  // stays out because nothing has moved for those rows.
+  const inEscrowAmount = transactions
+    .filter((t) => ['held', 'release_pending'].includes(t.status))
     .reduce((sum, t) => sum + t.amount, 0);
   const refundedAmount = transactions
     .filter((t) => t.status === 'refunded')
@@ -308,7 +328,7 @@ export default function PaymentsPage2025() {
 
         <PaymentsStatsCards
           totalPaid={totalPaid}
-          pendingAmount={pendingAmount}
+          pendingAmount={inEscrowAmount}
           refundedAmount={refundedAmount}
           transactionCount={transactions.length}
         />
