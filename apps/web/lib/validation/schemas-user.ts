@@ -4,54 +4,62 @@
 import { z } from 'zod';
 import { sanitizeText, sanitizeEmail } from '@/lib/sanitizer';
 
-// User Profile Schemas
-export const updateProfileSchema = z.object({
-  firstName: z
-    .string()
-    .min(1, 'First name required')
-    .max(100, 'First name too long')
-    // Allow Unicode letters (accents, non-Latin), spaces, hyphens, apostrophes
-    .regex(/^[\p{L}\s'-]+$/u, 'First name contains invalid characters')
-    .transform((val) => sanitizeText(val, 100))
-    .optional(),
-  lastName: z
-    .string()
-    .min(1, 'Last name required')
-    .max(100, 'Last name too long')
-    .regex(/^[\p{L}\s'-]+$/u, 'Last name contains invalid characters')
-    .transform((val) => sanitizeText(val, 100))
-    .optional(),
-  phone: z
-    .string()
-    .transform((val) => {
-      const stripped = val.replace(/[\s\-()]/g, '');
-      if (/^0\d{9,10}$/.test(stripped)) return '+44' + stripped.slice(1);
-      return stripped;
-    })
-    .pipe(z.string().regex(/^\+?[1-9]\d{9,14}$/, 'Invalid phone number'))
-    .optional(),
-  bio: z
-    .string()
-    .max(1000, 'Bio too long')
-    .transform((val) => sanitizeText(val, 1000))
-    .optional(),
-  profileImageUrl: z.string().url('Invalid profile image URL').optional(),
-  address: z
-    .string()
-    .max(500, 'Address too long')
-    .transform((val) => sanitizeText(val, 500))
-    .optional(),
-  city: z
-    .string()
-    .max(100, 'City too long')
-    .transform((val) => sanitizeText(val, 100))
-    .optional(),
-  postcode: z
-    .string()
-    .max(20, 'Postcode too long')
-    .transform((val) => sanitizeText(val, 20))
-    .optional(),
-});
+// User Profile Schemas.
+// SECURITY: `.strict()` rejects unknown keys with a 400 instead of
+// silently stripping them (zod's default). This blocks mass-assignment
+// attempts — a client can no longer POST `{role: "admin"}` or
+// `{admin_verified: true}` hoping the downstream handler will pass it
+// through. Every field a legitimate client can set must be enumerated
+// here; adding a new editable field is a one-line addition.
+export const updateProfileSchema = z
+  .object({
+    firstName: z
+      .string()
+      .min(1, 'First name required')
+      .max(100, 'First name too long')
+      // Allow Unicode letters (accents, non-Latin), spaces, hyphens, apostrophes
+      .regex(/^[\p{L}\s'-]+$/u, 'First name contains invalid characters')
+      .transform((val) => sanitizeText(val, 100))
+      .optional(),
+    lastName: z
+      .string()
+      .min(1, 'Last name required')
+      .max(100, 'Last name too long')
+      .regex(/^[\p{L}\s'-]+$/u, 'Last name contains invalid characters')
+      .transform((val) => sanitizeText(val, 100))
+      .optional(),
+    phone: z
+      .string()
+      .transform((val) => {
+        const stripped = val.replace(/[\s\-()]/g, '');
+        if (/^0\d{9,10}$/.test(stripped)) return '+44' + stripped.slice(1);
+        return stripped;
+      })
+      .pipe(z.string().regex(/^\+?[1-9]\d{9,14}$/, 'Invalid phone number'))
+      .optional(),
+    bio: z
+      .string()
+      .max(1000, 'Bio too long')
+      .transform((val) => sanitizeText(val, 1000))
+      .optional(),
+    profileImageUrl: z.string().url('Invalid profile image URL').optional(),
+    address: z
+      .string()
+      .max(500, 'Address too long')
+      .transform((val) => sanitizeText(val, 500))
+      .optional(),
+    city: z
+      .string()
+      .max(100, 'City too long')
+      .transform((val) => sanitizeText(val, 100))
+      .optional(),
+    postcode: z
+      .string()
+      .max(20, 'Postcode too long')
+      .transform((val) => sanitizeText(val, 20))
+      .optional(),
+  })
+  .strict();
 
 // Common ID Schemas
 export const uuidSchema = z.string().uuid('Invalid ID format');

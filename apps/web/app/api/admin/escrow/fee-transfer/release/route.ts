@@ -11,10 +11,16 @@ const releaseFeeTransferSchema = z.object({
 
 /**
  * POST /api/admin/escrow/fee-transfer/release
- * Admin endpoint to release a held fee transfer
+ * Admin endpoint to release a held fee transfer. Moves platform-fee
+ * funds — requires fresh MFA step-up (15-minute window), same policy
+ * as /api/admin/escrow/approve and /api/admin/refunds/[id].
  */
 export const POST = withApiHandler(
-  { roles: ['admin'], rateLimit: { maxRequests: 10 } },
+  {
+    roles: ['admin'],
+    rateLimit: { maxRequests: 10 },
+    requireMfaVerifiedWithinMinutes: 15,
+  },
   async (request, { user }) => {
     const validation = await validateRequest(request, releaseFeeTransferSchema);
     if ('headers' in validation) return validation;
@@ -28,6 +34,9 @@ export const POST = withApiHandler(
       feeTransferId,
     });
 
-    return NextResponse.json({ success: true, message: 'Fee transfer released successfully' });
+    return NextResponse.json({
+      success: true,
+      message: 'Fee transfer released successfully',
+    });
   }
 );

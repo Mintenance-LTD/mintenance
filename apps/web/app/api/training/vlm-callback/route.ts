@@ -20,6 +20,7 @@ import { logger } from '@mintenance/shared';
 import { rateLimiter } from '@/lib/rate-limiter';
 import { BadRequestError, UnauthorizedError } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { getClientIp } from '@/lib/request-ip';
 
 export const runtime = 'nodejs';
 
@@ -77,9 +78,7 @@ export const POST = withApiHandler(
   { auth: false, rateLimit: false },
   async (request) => {
     // Rate limit: 60/min — high limit because this is machine-to-machine
-    const ip =
-      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
-      '127.0.0.1';
+    const ip = getClientIp(request);
     const limitResult = await rateLimiter.checkRateLimit({
       identifier: `${ip}:vlm-callback`,
       maxRequests: 60,

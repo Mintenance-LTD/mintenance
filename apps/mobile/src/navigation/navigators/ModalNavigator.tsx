@@ -14,6 +14,8 @@ import { NotificationScreen } from '../../screens/NotificationScreen';
 import { AIAssessmentScreen } from '../../screens/ai/AIAssessmentScreen';
 import { AISearchScreen } from '../../screens/AISearchScreen';
 import { QuickJobPostScreen } from '../../screens/job-posting/QuickJobPostScreen';
+// Tier 1 step 7 — live-capture selfie modal.
+import { SelfieCaptureScreen } from '../../screens/onboarding/SelfieCaptureScreen';
 
 // Import error boundary wrapper
 import { withScreenErrorBoundary } from '../../components/ErrorBoundaryProvider';
@@ -180,6 +182,16 @@ const ModalNavigator: React.FC = () => {
         }}
       />
 
+      <ModalStack.Screen
+        name='SelfieCapture'
+        component={SelfieCaptureScreen}
+        options={{
+          title: 'Take Selfie',
+          gestureEnabled: true,
+          // Dark chrome matches the camera screen's full-bleed background.
+          headerShown: false,
+        }}
+      />
       <ModalStack.Screen
         name='QuickJobPost'
         component={SafeQuickJobPostScreen}

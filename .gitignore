@@ -242,6 +242,8 @@ yolo11n.pt
 !lighthouserc.js
 !mcp-server.js
 !mcp-server.ts
+# Expo config plugins (hand-written source, not generated output)
+!apps/mobile/plugins/**/*.js
 
 # Test files and debug artifacts in root
 test-*.js

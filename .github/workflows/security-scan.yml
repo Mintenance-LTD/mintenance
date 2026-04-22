@@ -61,13 +61,26 @@ jobs:
         cd apps/web
         npx eslint . --ext .ts,.tsx --format json --output-file eslint-security-report.json || true
 
-    - name: Check for secrets
+    - name: Check for secrets (TruffleHog)
       uses: trufflesecurity/trufflehog@bff3d2670b362bbb4a0bcdeffea146cbc2ad3abd # main
       with:
         path: ./
         base: main
         head: HEAD
         extra_args: --debug --only-verified
+
+    # Gitleaks runs our custom .gitleaks.toml which catches Google AIza keys,
+    # Firebase FCM legacy server keys, Expo push tokens, and other patterns
+    # TruffleHog's --only-verified mode does not detect. Does NOT block PRs
+    # (continue-on-error) — use the artifact to triage findings.
+    - name: Check for secrets (Gitleaks)
+      uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.6
+      continue-on-error: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GITLEAKS_CONFIG: .gitleaks.toml
+        GITLEAKS_ENABLE_UPLOAD_ARTIFACT: true
+        GITLEAKS_ENABLE_COMMENTS: true
 
     - name: Run dependency check
       run: |

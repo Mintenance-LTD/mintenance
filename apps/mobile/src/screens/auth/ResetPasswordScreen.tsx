@@ -22,6 +22,7 @@ import type { AuthStackParamList } from '../../navigation/types';
 import { supabase } from '../../config/supabase';
 import { logger } from '../../utils/logger';
 import { theme } from '../../theme';
+import { useScreenCaptureGuard } from '../../hooks/useScreenCaptureGuard';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'ResetPassword'>;
 
@@ -44,6 +45,10 @@ function isPasswordValid(strength: PasswordStrength): boolean {
 }
 
 const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
+  // SECURITY: prevent screenshots / screen recording of the new-password
+  // entry form.
+  useScreenCaptureGuard();
+
   const insets = useSafeAreaInsets();
   const _token = route.params?.token;
 

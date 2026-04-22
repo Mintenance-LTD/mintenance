@@ -23,6 +23,7 @@ import {
 } from '@/lib/auth';
 import { requireCSRF } from '@/lib/csrf';
 import { rateLimiter } from '@/lib/rate-limiter';
+import { getClientIp } from '@/lib/request-ip';
 import { verifyAdminRoleFromDatabase } from '@/lib/admin-verification';
 import { hasValidStepUp } from '@/lib/auth/mfa-step-up';
 import {
@@ -137,10 +138,10 @@ export function withApiHandler(
       if (rateLimitCfg !== false) {
         const maxRequests = rateLimitCfg?.maxRequests ?? 30;
         const windowMs = rateLimitCfg?.windowMs ?? 60_000;
-        const ip =
-          request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-          request.headers.get('x-real-ip') ||
-          'anonymous';
+        // SECURITY: use trusted IP (Vercel-verified) — NEVER the first XFF
+        // entry, which is client-controllable and lets attackers bypass
+        // per-IP limits by sending their own X-Forwarded-For header.
+        const ip = getClientIp(request);
 
         const result = await rateLimiter.checkRateLimit({
           identifier: `${ip}:${request.url}`,

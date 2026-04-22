@@ -5,6 +5,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@mintenance/shared';
+import { getClientIp } from '@/lib/request-ip';
 
 interface RateLimitConfig {
   interval: number; // Time window in milliseconds
@@ -43,12 +44,10 @@ function getDefaultIdentifier(req: NextRequest): string {
   const userId = req.headers.get('x-user-id');
   if (userId) return `user:${userId}`;
 
-  // Fall back to IP address
-  const forwardedFor = req.headers.get('x-forwarded-for');
-  const realIp = req.headers.get('x-real-ip');
-  const ip = forwardedFor?.split(',')[0] || realIp || 'unknown';
-
-  return `ip:${ip}`;
+  // SECURITY: use Vercel-trusted IP. Must NOT use the first `x-forwarded-for`
+  // entry because it is client-controllable and lets attackers bypass
+  // per-IP limits via header spoofing. See lib/request-ip.ts.
+  return `ip:${getClientIp(req)}`;
 }
 
 /**

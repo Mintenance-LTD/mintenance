@@ -24,10 +24,16 @@ const markFiledSchema = z.object({
  * Mark a contractor's 1099-NEC as filed with the IRS for the given year.
  * Updates the tax_year_summaries record to set filed status and timestamp.
  *
- * Requires admin role.
+ * Requires admin role + fresh MFA step-up (15-minute window). Marking
+ * a 1099 as filed is a compliance-log state change — a stolen admin
+ * session should not be able to fraudulently mark forms as filed.
  */
 export const POST = withApiHandler(
-  { roles: ['admin'], rateLimit: { maxRequests: 20, windowMs: 60_000 } },
+  {
+    roles: ['admin'],
+    rateLimit: { maxRequests: 20, windowMs: 60_000 },
+    requireMfaVerifiedWithinMinutes: 15,
+  },
   async (request, { user }) => {
     const validation = await validateRequest(request, markFiledSchema);
     if ('headers' in validation) {

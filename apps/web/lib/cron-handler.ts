@@ -23,6 +23,7 @@ import { requireCronAuth } from '@/lib/cron-auth';
 import { handleAPIError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { getClientIp } from '@/lib/request-ip';
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -115,8 +116,15 @@ function extractRecordCount(result?: CronResult | null): number | null {
 
   // Check common count field names
   const countFields = [
-    'sent', 'processed', 'checked', 'evaluated', 'total',
-    'released', 'matched', 'records', 'count',
+    'sent',
+    'processed',
+    'checked',
+    'evaluated',
+    'total',
+    'released',
+    'matched',
+    'records',
+    'count',
   ];
 
   for (const field of countFields) {
@@ -150,10 +158,7 @@ export function withCronHandler(
 
   return async (request: NextRequest): Promise<NextResponse> => {
     // 1. Rate limiting
-    const ip =
-      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-      request.headers.get('x-real-ip') ||
-      'anonymous';
+    const ip = getClientIp(request);
 
     const rateLimitResult = await rateLimiter.checkRateLimit({
       identifier: `${ip}:cron:${jobName}`,
@@ -170,7 +175,9 @@ export function withCronHandler(
             'Retry-After': String(rateLimitResult.retryAfter || 60),
             'X-RateLimit-Limit': String(maxRequests),
             'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-            'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString(),
+            'X-RateLimit-Reset': new Date(
+              rateLimitResult.resetTime
+            ).toISOString(),
           },
         }
       );
@@ -209,10 +216,18 @@ export function withCronHandler(
       return NextResponse.json({ success: true, results: result });
     } catch (error) {
       const durationMs = Date.now() - startTime;
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
 
       // 6. Log failure
-      await completeCronRun(runId, jobName, 'failed', durationMs, null, errorMessage);
+      await completeCronRun(
+        runId,
+        jobName,
+        'failed',
+        durationMs,
+        null,
+        errorMessage
+      );
 
       logger.error(`Cron job failed: ${jobName}`, error, {
         service: jobName,

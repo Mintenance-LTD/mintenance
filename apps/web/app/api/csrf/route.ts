@@ -10,6 +10,7 @@ import { generateCSRFToken } from '@/lib/csrf';
 import { logger } from '@mintenance/shared';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { rateLimiter } from '@/lib/rate-limiter';
+import { getClientIp } from '@/lib/request-ip';
 
 /**
  * Parse cookie string into key-value pairs
@@ -18,7 +19,7 @@ function parseCookie(cookieString: string): Record<string, string> {
   const cookies: Record<string, string> = {};
   if (!cookieString) return cookies;
 
-  cookieString.split(';').forEach(cookie => {
+  cookieString.split(';').forEach((cookie) => {
     const [name, value] = cookie.trim().split('=');
     if (name && value) {
       cookies[name] = decodeURIComponent(value);
@@ -37,7 +38,7 @@ export const GET = withApiHandler(
   async (request) => {
     // Custom rate limit: CSRF is fetched often (every form load, save, delete, etc.)
     const rateLimitResult = await rateLimiter.checkRateLimit({
-      identifier: `csrf:${request.headers.get('x-forwarded-for')?.split(',')[0] || request.headers.get('x-real-ip') || 'anonymous'}`,
+      identifier: `csrf:${getClientIp(request)}`,
       windowMs: 60000,
       maxRequests: 120,
     });
@@ -51,7 +52,9 @@ export const GET = withApiHandler(
             'Retry-After': String(rateLimitResult.retryAfter || 60),
             'X-RateLimit-Limit': String(120),
             'X-RateLimit-Remaining': String(rateLimitResult.remaining),
-            'X-RateLimit-Reset': new Date(rateLimitResult.resetTime).toISOString(),
+            'X-RateLimit-Reset': new Date(
+              rateLimitResult.resetTime
+            ).toISOString(),
           },
         }
       );
@@ -101,7 +104,9 @@ export const GET = withApiHandler(
       `SameSite=${cookieSameSite}`,
       'Path=/',
       'Max-Age=3600',
-    ].filter(Boolean).join('; ');
+    ]
+      .filter(Boolean)
+      .join('; ');
 
     response.headers.set('Set-Cookie', cookieOptions);
 

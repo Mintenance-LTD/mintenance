@@ -3,18 +3,17 @@
  * Extracted from middleware.ts.
  */
 import { NextRequest, NextResponse } from 'next/server';
+import { getClientIp } from '@/lib/request-ip';
 
 const JWT_FORMAT_RE = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
 
 /**
- * Extract the client IP from standard proxy headers, falling back to 'unknown'.
+ * Extract the trusted client IP from standard proxy headers.
+ * Delegates to the canonical `getClientIp` helper which refuses the
+ * client-controllable first XFF entry and prefers `x-vercel-forwarded-for`.
  */
 export function getClientIP(request: NextRequest): string {
-  return (
-    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-    request.headers.get('x-real-ip') ||
-    'unknown'
-  );
+  return getClientIp(request);
 }
 
 /**

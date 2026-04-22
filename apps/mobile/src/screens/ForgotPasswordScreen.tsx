@@ -22,6 +22,7 @@ import { AuthService } from '../services/AuthService';
 import { AuthStackParamList } from '../navigation/types';
 import { logger } from '../utils/logger';
 import { theme } from '../theme';
+import { useScreenCaptureGuard } from '../hooks/useScreenCaptureGuard';
 
 type ForgotPasswordScreenNavigationProp = NativeStackNavigationProp<
   AuthStackParamList,
@@ -33,6 +34,10 @@ interface Props {
 }
 
 const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
+  // SECURITY: prevent screenshots / screen recording on password-reset
+  // flows so reset codes / links aren't captured by third-party apps.
+  useScreenCaptureGuard();
+
   const insets = useSafeAreaInsets();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);

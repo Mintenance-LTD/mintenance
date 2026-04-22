@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
 import { toast } from 'react-hot-toast';
 import { logger } from '@mintenance/shared';
+import { safeRedirect } from '@/lib/utils/safe-redirect';
 
 export default function MFAVerifyPage() {
   const router = useRouter();
@@ -100,12 +101,19 @@ export default function MFAVerifyPage() {
         );
       }
 
-      // Redirect based on role
-      const redirectUrl =
-        searchParams.get('redirect') ||
-        (data.user.role === 'contractor'
+      // SECURITY: `redirect` is user-supplied. Guard against open redirect
+      // (e.g. /login?redirect=//evil.example or javascript: payloads) by
+      // passing it through the shared allowlist. `/login` applies the same
+      // allowlist; without this, the MFA step was a bypass for the guard
+      // already in place at the password step.
+      const defaultUrl =
+        data.user.role === 'contractor'
           ? '/contractor/dashboard-enhanced'
-          : '/dashboard');
+          : '/dashboard';
+      const redirectUrl = safeRedirect(
+        searchParams.get('redirect'),
+        defaultUrl
+      );
 
       router.push(redirectUrl);
     } catch (error) {

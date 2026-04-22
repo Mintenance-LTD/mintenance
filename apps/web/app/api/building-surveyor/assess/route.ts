@@ -3,6 +3,7 @@ import type { Phase1BuildingAssessment } from '@/lib/services/building-surveyor/
 import crypto from 'crypto';
 import { LRUCache } from 'lru-cache';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { getClientIp } from '@/lib/request-ip';
 import { canonicalizeDamageType } from '@/lib/services/building-surveyor/normalization-utils';
 import { checkAICostBudget } from '@/lib/ai/cost-budget';
 import { loadDependencies } from './_deps';
@@ -100,10 +101,7 @@ export const POST = withApiHandler(
 
     // Custom rate limit for expensive AI operations (5/min)
     // SECURITY: Use authenticated user ID as primary identifier (not spoofable x-forwarded-for)
-    const identifier =
-      user.id ||
-      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-      'anonymous';
+    const identifier = user.id || getClientIp(request);
 
     const rateLimitResult = await deps.rateLimiter.checkRateLimit({
       identifier: `building-surveyor:${identifier}`,
