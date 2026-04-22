@@ -25,6 +25,7 @@ import { EscrowInfoCard } from './payment/components/EscrowInfoCard';
 import { PaymentMethodOption } from './payment/components/PaymentMethodOption';
 import { usePayment } from './payment/hooks/usePayment';
 import { theme } from '../theme';
+import { useScreenCaptureGuard } from '../hooks/useScreenCaptureGuard';
 
 interface PaymentScreenProps {
   route: {
@@ -43,6 +44,10 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
   route,
   navigation,
 }) => {
+  // SECURITY: payment summary + method selection should never leak via
+  // screenshots or screen recording (Stripe amounts, escrow terms).
+  useScreenCaptureGuard();
+
   const { user } = useAuth();
   const rootNavigation = useNavigation();
   const {

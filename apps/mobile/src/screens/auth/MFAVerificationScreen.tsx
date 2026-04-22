@@ -28,6 +28,7 @@ import * as SecureStore from 'expo-secure-store';
 import { logger } from '@mintenance/shared';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import { theme } from '../../theme';
+import { useScreenCaptureGuard } from '../../hooks/useScreenCaptureGuard';
 
 interface MFAVerificationScreenProps {
   preMfaToken: string;
@@ -37,9 +38,14 @@ interface MFAVerificationScreenProps {
 type VerificationMethod = 'totp' | 'backup_code';
 
 export default function MFAVerificationScreen() {
+  // SECURITY: critical — prevent screenshots and screen recording while
+  // a 6-digit TOTP code / backup code is visible and being entered.
+  useScreenCaptureGuard();
+
   const navigation = useNavigation();
   const route = useRoute();
-  const { preMfaToken, redirectScreen } = route.params as MFAVerificationScreenProps;
+  const { preMfaToken, redirectScreen } =
+    route.params as MFAVerificationScreenProps;
 
   const [code, setCode] = useState('');
   const [method, setMethod] = useState<VerificationMethod>('totp');
@@ -75,7 +81,9 @@ export default function MFAVerificationScreen() {
       const enrolled = await LocalAuthentication.isEnrolledAsync();
       setBiometricAvailable(compatible && enrolled);
     } catch (error) {
-      logger.error('Failed to check biometric availability', error, { service: 'mobile' });
+      logger.error('Failed to check biometric availability', error, {
+        service: 'mobile',
+      });
     }
   };
 
@@ -91,7 +99,9 @@ export default function MFAVerificationScreen() {
         setBiometricVerified(true);
       }
     } catch (error) {
-      logger.error('Biometric authentication failed', error, { service: 'mobile' });
+      logger.error('Biometric authentication failed', error, {
+        service: 'mobile',
+      });
     }
   };
 
@@ -146,11 +156,13 @@ export default function MFAVerificationScreen() {
       if (redirectScreen) {
         navigation.navigate(redirectScreen as never);
       } else {
-        const defaultScreen = data.user.role === 'contractor' ? 'ContractorDashboard' : 'Dashboard';
+        const defaultScreen =
+          data.user.role === 'contractor' ? 'ContractorDashboard' : 'Dashboard';
         navigation.navigate(defaultScreen as never);
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Verification failed';
+      const message =
+        error instanceof Error ? error.message : 'Verification failed';
       Alert.alert('Verification Failed', message);
       logger.error('MFA verification error', error, { service: 'mobile' });
     } finally {
@@ -161,9 +173,10 @@ export default function MFAVerificationScreen() {
   const handleCodeChange = (text: string) => {
     // Remove non-alphanumeric characters for backup codes
     // Remove non-numeric for TOTP
-    const sanitized = method === 'totp'
-      ? text.replace(/\D/g, '')
-      : text.replace(/[^A-Z0-9]/gi, '').toUpperCase();
+    const sanitized =
+      method === 'totp'
+        ? text.replace(/\D/g, '')
+        : text.replace(/[^A-Z0-9]/gi, '').toUpperCase();
     setCode(sanitized);
   };
 
@@ -174,155 +187,176 @@ export default function MFAVerificationScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.lockIconWrap}>
-            <View style={styles.lockIcon}>
-              <Text style={styles.lockEmoji}>{'\uD83D\uDD12'}</Text>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps='handled'
+        >
+          {/* Header */}
+          <View style={styles.header}>
+            <View style={styles.lockIconWrap}>
+              <View style={styles.lockIcon}>
+                <Text style={styles.lockEmoji}>{'\uD83D\uDD12'}</Text>
+              </View>
             </View>
+            <Text style={styles.title} accessibilityRole='header'>
+              Two-Factor Authentication
+            </Text>
+            <Text style={styles.subtitle}>
+              Enter your verification code to complete login
+            </Text>
           </View>
-          <Text style={styles.title} accessibilityRole='header'>Two-Factor Authentication</Text>
-          <Text style={styles.subtitle}>
-            Enter your verification code to complete login
-          </Text>
-        </View>
 
-        {/* Method selector */}
-        <View style={styles.methodSelector}>
-          <TouchableOpacity
-            style={[
-              styles.methodButton,
-              method === 'totp' && styles.methodButtonActive,
-            ]}
-            onPress={() => switchMethod('totp')}
-            accessibilityRole='tab'
-            accessibilityLabel='Authenticator app verification'
-            accessibilityState={{ selected: method === 'totp' }}
-          >
-            <Text
+          {/* Method selector */}
+          <View style={styles.methodSelector}>
+            <TouchableOpacity
               style={[
-                styles.methodButtonText,
-                method === 'totp' && styles.methodButtonTextActive,
+                styles.methodButton,
+                method === 'totp' && styles.methodButtonActive,
+              ]}
+              onPress={() => switchMethod('totp')}
+              accessibilityRole='tab'
+              accessibilityLabel='Authenticator app verification'
+              accessibilityState={{ selected: method === 'totp' }}
+            >
+              <Text
+                style={[
+                  styles.methodButtonText,
+                  method === 'totp' && styles.methodButtonTextActive,
+                ]}
+              >
+                Authenticator App
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[
+                styles.methodButton,
+                method === 'backup_code' && styles.methodButtonActive,
+              ]}
+              onPress={() => switchMethod('backup_code')}
+              accessibilityRole='tab'
+              accessibilityLabel='Backup code verification'
+              accessibilityState={{ selected: method === 'backup_code' }}
+            >
+              <Text
+                style={[
+                  styles.methodButtonText,
+                  method === 'backup_code' && styles.methodButtonTextActive,
+                ]}
+              >
+                Backup Code
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Code input */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>
+              {method === 'totp' ? '6-DIGIT CODE' : 'BACKUP CODE'}
+            </Text>
+            <TextInput
+              ref={inputRef}
+              style={styles.input}
+              value={code}
+              onChangeText={handleCodeChange}
+              placeholder={method === 'totp' ? '000000' : 'XXXXXXXX'}
+              placeholderTextColor={theme.colors.textTertiary}
+              maxLength={method === 'totp' ? 6 : 8}
+              keyboardType={method === 'totp' ? 'number-pad' : 'default'}
+              autoCapitalize='characters'
+              autoComplete='off'
+              autoCorrect={false}
+              editable={!loading}
+              accessibilityLabel={
+                method === 'totp'
+                  ? 'Enter 6-digit verification code'
+                  : 'Enter backup code'
+              }
+              accessibilityHint={
+                method === 'totp'
+                  ? 'Enter the code from your authenticator app'
+                  : 'Enter one of your backup codes'
+              }
+            />
+            <Text style={styles.hint}>
+              {method === 'totp'
+                ? 'Open your authenticator app and enter the 6-digit code'
+                : 'Enter one of your backup codes (use each code only once)'}
+            </Text>
+          </View>
+
+          {/* Remember device checkbox */}
+          <TouchableOpacity
+            style={styles.checkboxContainer}
+            onPress={() => setRememberDevice(!rememberDevice)}
+            disabled={loading}
+            accessibilityRole='checkbox'
+            accessibilityLabel='Trust this device for 30 days'
+            accessibilityState={{ checked: rememberDevice }}
+          >
+            <View
+              style={[
+                styles.checkbox,
+                rememberDevice && styles.checkboxChecked,
               ]}
             >
-              Authenticator App
+              {rememberDevice && (
+                <Text style={styles.checkmark}>{'\u2713'}</Text>
+              )}
+            </View>
+            <Text style={styles.checkboxLabel}>
+              Trust this device for 30 days
             </Text>
           </TouchableOpacity>
 
+          {/* Verify button */}
           <TouchableOpacity
             style={[
-              styles.methodButton,
-              method === 'backup_code' && styles.methodButtonActive,
+              styles.button,
+              (loading || !code || code.length < 6) && styles.buttonDisabled,
             ]}
-            onPress={() => switchMethod('backup_code')}
-            accessibilityRole='tab'
-            accessibilityLabel='Backup code verification'
-            accessibilityState={{ selected: method === 'backup_code' }}
+            onPress={handleVerify}
+            disabled={loading || !code || code.length < 6}
+            accessibilityRole='button'
+            accessibilityLabel={loading ? 'Verifying code' : 'Verify code'}
           >
-            <Text
-              style={[
-                styles.methodButtonText,
-                method === 'backup_code' && styles.methodButtonTextActive,
-              ]}
-            >
-              Backup Code
-            </Text>
+            {loading ? (
+              <ActivityIndicator color={theme.colors.textInverse} />
+            ) : (
+              <Text style={styles.buttonText}>Verify</Text>
+            )}
           </TouchableOpacity>
-        </View>
 
-        {/* Code input */}
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>
-            {method === 'totp' ? '6-DIGIT CODE' : 'BACKUP CODE'}
-          </Text>
-          <TextInput
-            ref={inputRef}
-            style={styles.input}
-            value={code}
-            onChangeText={handleCodeChange}
-            placeholder={method === 'totp' ? '000000' : 'XXXXXXXX'}
-            placeholderTextColor={theme.colors.textTertiary}
-            maxLength={method === 'totp' ? 6 : 8}
-            keyboardType={method === 'totp' ? 'number-pad' : 'default'}
-            autoCapitalize="characters"
-            autoComplete="off"
-            autoCorrect={false}
-            editable={!loading}
-            accessibilityLabel={method === 'totp' ? 'Enter 6-digit verification code' : 'Enter backup code'}
-            accessibilityHint={method === 'totp' ? 'Enter the code from your authenticator app' : 'Enter one of your backup codes'}
-          />
-          <Text style={styles.hint}>
-            {method === 'totp'
-              ? 'Open your authenticator app and enter the 6-digit code'
-              : 'Enter one of your backup codes (use each code only once)'}
-          </Text>
-        </View>
-
-        {/* Remember device checkbox */}
-        <TouchableOpacity
-          style={styles.checkboxContainer}
-          onPress={() => setRememberDevice(!rememberDevice)}
-          disabled={loading}
-          accessibilityRole='checkbox'
-          accessibilityLabel='Trust this device for 30 days'
-          accessibilityState={{ checked: rememberDevice }}
-        >
-          <View style={[styles.checkbox, rememberDevice && styles.checkboxChecked]}>
-            {rememberDevice && <Text style={styles.checkmark}>{'\u2713'}</Text>}
+          {/* Help text */}
+          <View style={styles.helpContainer}>
+            <Text style={styles.helpText}>
+              Lost access to your authenticator app?
+            </Text>
+            <TouchableOpacity
+              onPress={() => switchMethod('backup_code')}
+              accessibilityRole='link'
+              accessibilityLabel='Switch to backup code verification'
+            >
+              <Text style={styles.helpLink}>Use a backup code instead</Text>
+            </TouchableOpacity>
           </View>
-          <Text style={styles.checkboxLabel}>Trust this device for 30 days</Text>
-        </TouchableOpacity>
 
-        {/* Verify button */}
-        <TouchableOpacity
-          style={[
-            styles.button,
-            (loading || !code || code.length < 6) && styles.buttonDisabled,
-          ]}
-          onPress={handleVerify}
-          disabled={loading || !code || code.length < 6}
-          accessibilityRole='button'
-          accessibilityLabel={loading ? 'Verifying code' : 'Verify code'}
-        >
-          {loading ? (
-            <ActivityIndicator color={theme.colors.textInverse} />
-          ) : (
-            <Text style={styles.buttonText}>Verify</Text>
-          )}
-        </TouchableOpacity>
-
-        {/* Help text */}
-        <View style={styles.helpContainer}>
-          <Text style={styles.helpText}>Lost access to your authenticator app?</Text>
+          {/* Back to login */}
           <TouchableOpacity
-            onPress={() => switchMethod('backup_code')}
+            style={styles.backButton}
+            onPress={() => navigation.navigate('Login' as never)}
+            disabled={loading}
             accessibilityRole='link'
-            accessibilityLabel='Switch to backup code verification'
+            accessibilityLabel='Back to login'
           >
-            <Text style={styles.helpLink}>Use a backup code instead</Text>
+            <Text style={styles.backButtonText}>Back to login</Text>
           </TouchableOpacity>
-        </View>
-
-        {/* Back to login */}
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.navigate('Login' as never)}
-          disabled={loading}
-          accessibilityRole='link'
-          accessibilityLabel='Back to login'
-        >
-          <Text style={styles.backButtonText}>Back to login</Text>
-        </TouchableOpacity>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -374,7 +408,12 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 4,
     ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
       android: { elevation: 2 },
     }),
   },
@@ -416,7 +455,12 @@ const styles = StyleSheet.create({
     letterSpacing: 4,
     color: theme.colors.textPrimary,
     ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
       android: { elevation: 2 },
     }),
   },

@@ -13,6 +13,7 @@ import { mobileApiClient } from '../../utils/mobileApiClient';
 import { logger } from '../../utils/logger';
 import { useToast } from '../../components/ui/Toast';
 import { theme } from '../../theme';
+import { useScreenCaptureGuard } from '../../hooks/useScreenCaptureGuard';
 
 /**
  * Add payment method screen using Stripe's PaymentSheet flow.
@@ -29,6 +30,10 @@ import { theme } from '../../theme';
  * and didn't support BACS Direct Debit.
  */
 const AddPaymentMethodV2Screen: React.FC = () => {
+  // SECURITY: Stripe PaymentSheet fields should never appear in
+  // screenshots or screen recordings.
+  useScreenCaptureGuard();
+
   const navigation = useNavigation();
   const { initPaymentSheet, presentPaymentSheet } = useStripe();
   const toast = useToast();

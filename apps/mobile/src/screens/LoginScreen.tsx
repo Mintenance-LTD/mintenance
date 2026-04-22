@@ -28,6 +28,7 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Banner } from '../components/ui/Banner';
 import { theme, gradients } from '../theme';
+import { useScreenCaptureGuard } from '../hooks/useScreenCaptureGuard';
 
 type LoginScreenNavigationProp = NativeStackNavigationProp<
   AuthStackParamList,
@@ -51,6 +52,10 @@ const TRUST_ITEMS = [
 ];
 
 const LoginScreen: React.FC<Props> = ({ navigation, route }) => {
+  // SECURITY: prevent screenshots / screen recording while the password
+  // field is on-screen. See apps/mobile/src/hooks/useScreenCaptureGuard.ts.
+  useScreenCaptureGuard();
+
   const insets = useSafeAreaInsets();
   // Pre-fill email when redirected from EmailVerificationPendingScreen.
   // Falls back to '' for every other entry.

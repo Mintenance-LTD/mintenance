@@ -26,6 +26,7 @@ import { WizardStep2Name } from './register/components/WizardStep2Name';
 import { WizardStep3Contact } from './register/components/WizardStep3Contact';
 import { useRegistrationForm } from './register/hooks/useRegistrationForm';
 import { theme } from '../theme';
+import { useScreenCaptureGuard } from '../hooks/useScreenCaptureGuard';
 
 type RegisterScreenNavigationProp = NativeStackNavigationProp<
   AuthStackParamList,
@@ -37,6 +38,10 @@ interface Props {
 }
 
 const RegisterScreen: React.FC<Props> = () => {
+  // SECURITY: prevent screenshots / screen recording of the password
+  // field during registration.
+  useScreenCaptureGuard();
+
   const navigation = useNavigation<RegisterScreenNavigationProp>();
   const route = useRoute<RouteProp<AuthStackParamList, 'Register'>>();
   // Phase 2 — WelcomeScreen hands off a role when the user taps a

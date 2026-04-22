@@ -236,6 +236,11 @@ module.exports = {
     },
     runtimeVersion: '1.2.4',
     plugins: [
+      // Android security hardening: allowBackup=false, usesCleartextTraffic=false,
+      // NSC (reject user CAs), backup/data-extraction exclusions for session
+      // storage / SQLite / AsyncStorage, and SYSTEM_ALERT_WINDOW stripping.
+      // Applied on every `expo prebuild`. See apps/mobile/plugins/android-security/.
+      './plugins/android-security',
       [
         'expo-build-properties',
         {

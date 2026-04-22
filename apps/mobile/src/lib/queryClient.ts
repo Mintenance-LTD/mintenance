@@ -135,15 +135,49 @@ export const queryClient = new QueryClient({
 const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
 const CACHE_MAX_ENTRIES = 500; // keep most recent 500 entries
 
-// Keys that must never be persisted to unencrypted AsyncStorage (PII / financial data)
+// Keys that must never be persisted to unencrypted AsyncStorage.
+//
+// SECURITY (2026-04-21 audit P0 deepening): the original denylist covered
+// user-profile + payment + subscription prefixes. The audit confirmed the
+// persisted AsyncStorage file is readable via ADB backup on unlocked
+// Android devices even with allowBackup=false pending prebuild, and that
+// the cache routinely contained full message threads, contract contents,
+// bid data, notification bodies, and contractor/homeowner documents —
+// none of which should ever land in a plaintext on-disk cache.
+//
+// Policy: if a query touches PII, financial detail, messages, or
+// document metadata, its key must have a prefix here. When in doubt,
+// add it — a stale UI refetch on restore is cheap; a leaked message
+// thread is not.
 const EXCLUDED_CACHE_PREFIXES = [
+  // User identity + financial profile
   '["user","profile"',
   '["user","stats"',
+  '["users_me"',
   '["payment-history"',
+  '["payment-methods"',
   '["payment"',
+  '["payments"',
   '["escrow"',
   '["financial"',
   '["subscription"',
+  '["subscriptions"',
+  '["tax"',
+  // Communications (every message thread touched the cache before)
+  '["messages"',
+  '["message"',
+  '["message_thread"',
+  '["conversation"',
+  '["notifications"',
+  '["notification"',
+  // Contracts, bids, and documents carry counterparty PII
+  '["contracts"',
+  '["contract"',
+  '["bids"',
+  '["bid"',
+  '["contractor_documents"',
+  '["contractor-documents"',
+  '["documents"',
 ];
 
 const isSensitiveQuery = (key: string): boolean =>
