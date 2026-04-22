@@ -262,8 +262,14 @@ export default function PaymentsPage2025() {
       ['completed', 'released', 'release_pending', 'held'].includes(t.status)
     )
     .reduce((sum, t) => sum + t.amount, 0);
-  const pendingAmount = transactions
-    .filter((t) => t.status === 'pending')
+  // The "Protected" stat card previously showed pre-charge `pending`
+  // rows — money that hadn't actually hit Mintenance's escrow yet. Now
+  // it reflects the real "held in escrow by the platform" total:
+  // `held` (waiting for the contractor to finish) + `release_pending`
+  // (Stripe transfer is mid-flight back to the contractor). `pending`
+  // stays out because nothing has moved for those rows.
+  const inEscrowAmount = transactions
+    .filter((t) => ['held', 'release_pending'].includes(t.status))
     .reduce((sum, t) => sum + t.amount, 0);
   const refundedAmount = transactions
     .filter((t) => t.status === 'refunded')
@@ -322,7 +328,7 @@ export default function PaymentsPage2025() {
 
         <PaymentsStatsCards
           totalPaid={totalPaid}
-          pendingAmount={pendingAmount}
+          pendingAmount={inEscrowAmount}
           refundedAmount={refundedAmount}
           transactionCount={transactions.length}
         />
