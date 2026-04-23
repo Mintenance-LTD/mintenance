@@ -113,9 +113,24 @@ const BUDGET_RANGES = [
 
 const URGENCY_OPTIONS = [
   { label: 'Today', value: 'today', color: '#FEE2E2', textColor: '#991B1B' },
-  { label: 'Tomorrow', value: 'tomorrow', color: '#FEE2E2', textColor: theme.colors.error },
-  { label: 'This Week', value: 'this_week', color: theme.colors.accentLight, textColor: theme.colors.accent },
-  { label: 'Not Urgent', value: 'not_urgent', color: theme.colors.backgroundSecondary, textColor: theme.colors.textSecondary },
+  {
+    label: 'Tomorrow',
+    value: 'tomorrow',
+    color: '#FEE2E2',
+    textColor: theme.colors.error,
+  },
+  {
+    label: 'This Week',
+    value: 'this_week',
+    color: theme.colors.accentLight,
+    textColor: theme.colors.accent,
+  },
+  {
+    label: 'Not Urgent',
+    value: 'not_urgent',
+    color: theme.colors.backgroundSecondary,
+    textColor: theme.colors.textSecondary,
+  },
 ];
 
 interface RouteParams {
@@ -155,16 +170,22 @@ export const QuickJobPostScreen: React.FC = () => {
 
   useUnsavedChanges(!!(title || description));
 
-  const handleTemplateSelect = useCallback((template: typeof REPAIR_TEMPLATES[0]) => {
-    setSelectedTemplate(template.id);
-    setTitle(template.title);
-    setDescription(template.description);
-    setBudget(template.budget);
-  }, []);
+  const handleTemplateSelect = useCallback(
+    (template: (typeof REPAIR_TEMPLATES)[0]) => {
+      setSelectedTemplate(template.id);
+      setTitle(template.title);
+      setDescription(template.description);
+      setBudget(template.budget);
+    },
+    []
+  );
 
   const handleSubmit = async () => {
     if (!title || title.length < 5) {
-      Alert.alert('Missing Title', 'Please enter a job title (at least 5 characters)');
+      Alert.alert(
+        'Missing Title',
+        'Please enter a job title (at least 5 characters)'
+      );
       return;
     }
     if (!user) {
@@ -175,9 +196,12 @@ export const QuickJobPostScreen: React.FC = () => {
     setSubmitting(true);
     try {
       let fullDescription = description || title;
-      if (urgency === 'today') fullDescription = `URGENT - Needed today! ${fullDescription}`;
-      else if (urgency === 'tomorrow') fullDescription = `Needed tomorrow. ${fullDescription}`;
-      else if (urgency === 'this_week') fullDescription = `Needed this week. ${fullDescription}`;
+      if (urgency === 'today')
+        fullDescription = `URGENT - Needed today! ${fullDescription}`;
+      else if (urgency === 'tomorrow')
+        fullDescription = `Needed tomorrow. ${fullDescription}`;
+      else if (urgency === 'this_week')
+        fullDescription = `Needed this week. ${fullDescription}`;
 
       while (fullDescription.length < 50) {
         fullDescription += ' - Please see title for details.';
@@ -190,14 +214,19 @@ export const QuickJobPostScreen: React.FC = () => {
         budget: parseFloat(budget) || 150,
         homeownerId: user.id,
         category: params?.category || 'general',
-        priority: urgency === 'today' ? 'high' : urgency === 'tomorrow' ? 'medium' : 'low',
+        priority:
+          urgency === 'today'
+            ? 'high'
+            : urgency === 'tomorrow'
+              ? 'medium'
+              : 'low',
         property_id: params?.propertyId,
       });
 
       Alert.alert(
         'Job Posted!',
         'Your job has been posted. Contractors in your area will be notified.',
-        [{ text: 'OK', onPress: () => navigation.goBack() }],
+        [{ text: 'OK', onPress: () => navigation.goBack() }]
       );
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Failed to post job';
@@ -214,10 +243,14 @@ export const QuickJobPostScreen: React.FC = () => {
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
-          accessibilityRole="button"
-          accessibilityLabel="Go back"
+          accessibilityRole='button'
+          accessibilityLabel='Go back'
         >
-          <Ionicons name="arrow-back" size={22} color={theme.colors.textPrimary} />
+          <Ionicons
+            name='arrow-back'
+            size={22}
+            color={theme.colors.textPrimary}
+          />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Post a Quick Job</Text>
         <View style={styles.headerSpacer} />
@@ -226,7 +259,7 @@ export const QuickJobPostScreen: React.FC = () => {
       <ScrollView
         style={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
+        keyboardShouldPersistTaps='handled'
       >
         <Text style={styles.subtitle}>
           Get your repair fixed fast - select a template or describe your issue
@@ -236,9 +269,15 @@ export const QuickJobPostScreen: React.FC = () => {
         <View style={styles.propertyBanner}>
           <Text style={styles.propertyLabel}>Property</Text>
           <View style={styles.propertyRow}>
-            <Ionicons name="home" size={20} color={theme.colors.textSecondary} />
+            <Ionicons
+              name='home'
+              size={20}
+              color={theme.colors.textSecondary}
+            />
             <View style={styles.propertyText}>
-              <Text style={styles.propertyNameText}>{params?.propertyName || 'My Property'}</Text>
+              <Text style={styles.propertyNameText}>
+                {params?.propertyName || 'My Property'}
+              </Text>
               <Text style={styles.propertyAddressText} numberOfLines={1}>
                 {params?.propertyAddress || ''}
               </Text>
@@ -259,7 +298,12 @@ export const QuickJobPostScreen: React.FC = () => {
                 ]}
                 onPress={() => handleTemplateSelect(template)}
               >
-                <View style={[styles.templateIconCircle, { backgroundColor: template.iconBg }]}>
+                <View
+                  style={[
+                    styles.templateIconCircle,
+                    { backgroundColor: template.iconBg },
+                  ]}
+                >
                   <Ionicons
                     name={template.icon as keyof typeof Ionicons.glyphMap}
                     size={20}
@@ -267,37 +311,55 @@ export const QuickJobPostScreen: React.FC = () => {
                   />
                 </View>
                 <Text
-                  style={[styles.templateTitle, selectedTemplate === template.id && styles.templateTitleActive]}
+                  style={[
+                    styles.templateTitle,
+                    selectedTemplate === template.id &&
+                      styles.templateTitleActive,
+                  ]}
                 >
                   {template.title}
                 </Text>
-                <Text style={styles.templateBudget}>{template.budgetRange}</Text>
+                <Text style={styles.templateBudget}>
+                  {template.budgetRange}
+                </Text>
               </TouchableOpacity>
             ))}
           </View>
         </View>
 
-        {/* Describe Your Issue */}
+        {/* Describe Your Issue
+            The "What needs fixing?" title input is hidden whenever a
+            template is selected OR the user arrived with a category
+            pre-filled from the Where/When/What search modal — in both
+            cases `title` already has a sensible default (the template
+            name, or e.g. "Carpentry issue") and asking the user to
+            re-confirm it was the "I'm forced to do that again" gripe
+            on the quick-post flow. When they DID start from a blank
+            slate, we keep the title field since we need 5+ chars. */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Describe Your Issue</Text>
-          <Text style={styles.inputLabel}>What needs fixing?</Text>
-          <TextInput
-            style={styles.input}
-            value={title}
-            onChangeText={setTitle}
-            placeholder="e.g., Leaking kitchen tap"
-            placeholderTextColor={theme.colors.textTertiary}
-          />
+          {!selectedTemplate && !params?.category ? (
+            <>
+              <Text style={styles.inputLabel}>What needs fixing?</Text>
+              <TextInput
+                style={styles.input}
+                value={title}
+                onChangeText={setTitle}
+                placeholder='e.g., Leaking kitchen tap'
+                placeholderTextColor={theme.colors.textTertiary}
+              />
+            </>
+          ) : null}
           <Text style={styles.inputLabel}>Brief description (optional)</Text>
           <TextInput
             style={[styles.input, styles.textArea]}
             value={description}
             onChangeText={setDescription}
-            placeholder="Add any helpful details..."
+            placeholder='Add any helpful details...'
             placeholderTextColor={theme.colors.textTertiary}
             multiline
             numberOfLines={3}
-            textAlignVertical="top"
+            textAlignVertical='top'
           />
         </View>
 
@@ -315,7 +377,10 @@ export const QuickJobPostScreen: React.FC = () => {
                 onPress={() => setBudget(range.value)}
               >
                 <Text
-                  style={[styles.budgetText, budget === range.value && styles.budgetTextActive]}
+                  style={[
+                    styles.budgetText,
+                    budget === range.value && styles.budgetTextActive,
+                  ]}
                 >
                   {range.label}
                 </Text>
@@ -338,9 +403,11 @@ export const QuickJobPostScreen: React.FC = () => {
                 ]}
                 onPress={() => setUrgency(opt.value)}
               >
-                <Text style={[styles.urgencyText, { color: opt.textColor }]}>{opt.label}</Text>
+                <Text style={[styles.urgencyText, { color: opt.textColor }]}>
+                  {opt.label}
+                </Text>
                 {urgency === opt.value && (
-                  <Ionicons name="checkmark" size={16} color={opt.textColor} />
+                  <Ionicons name='checkmark' size={16} color={opt.textColor} />
                 )}
               </TouchableOpacity>
             ))}
@@ -353,12 +420,20 @@ export const QuickJobPostScreen: React.FC = () => {
           onPress={() => {
             navigation.goBack();
             setTimeout(() => {
-              navigation.navigate('Modal', { screen: 'ServiceRequest' } as never);
+              navigation.navigate('Modal', {
+                screen: 'ServiceRequest',
+              } as never);
             }, 300);
           }}
         >
-          <Text style={styles.moreOptionsText}>Need more options? Use the full form</Text>
-          <Ionicons name="arrow-forward" size={16} color={theme.colors.textTertiary} />
+          <Text style={styles.moreOptionsText}>
+            Need more options? Use the full form
+          </Text>
+          <Ionicons
+            name='arrow-forward'
+            size={16}
+            color={theme.colors.textTertiary}
+          />
         </TouchableOpacity>
 
         <View style={{ height: 100 }} />
@@ -367,17 +442,24 @@ export const QuickJobPostScreen: React.FC = () => {
       {/* Submit Footer */}
       <View style={[styles.footer, { paddingBottom: insets.bottom + 12 }]}>
         <TouchableOpacity
-          style={[styles.submitButton, submitting && styles.submitButtonDisabled]}
+          style={[
+            styles.submitButton,
+            submitting && styles.submitButtonDisabled,
+          ]}
           onPress={handleSubmit}
           disabled={submitting}
-          accessibilityRole="button"
+          accessibilityRole='button'
           accessibilityLabel={submitting ? 'Posting job' : 'Post job'}
         >
           {submitting ? (
             <ActivityIndicator color={theme.colors.textInverse} />
           ) : (
             <>
-              <Ionicons name="paper-plane" size={18} color={theme.colors.textInverse} />
+              <Ionicons
+                name='paper-plane'
+                size={18}
+                color={theme.colors.textInverse}
+              />
               <Text style={styles.submitText}>Post Job</Text>
             </>
           )}
@@ -440,7 +522,12 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 24,
     ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
       android: { elevation: 2 },
     }),
   },
@@ -496,7 +583,12 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     minHeight: 110,
     ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
       android: { elevation: 2 },
     }),
   },
@@ -559,7 +651,12 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.surface,
     alignItems: 'center',
     ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 6 },
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.04,
+        shadowRadius: 6,
+      },
       android: { elevation: 1 },
     }),
   },
@@ -627,7 +724,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 12,
     ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: -2 }, shadowOpacity: 0.08, shadowRadius: 12 },
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: -2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+      },
       android: { elevation: 8 },
     }),
   },

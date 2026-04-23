@@ -30,7 +30,14 @@ export const JobCard: React.FC<JobCardProps> = ({
       new Date(item.created_at || item.createdAt || Date.now()).getTime()) /
       (1000 * 3600 * 24)
   );
-  const photos = item.photos || item.images || [];
+  // Drop null / undefined / empty-string entries — a broken photos
+  // array shouldn't fool the `hasPhotos` check into rendering an
+  // ImageCarousel with empty `uri`s (which 404 or hang without
+  // triggering expo-image's onError, leaving a gray void).
+  const rawPhotos = item.photos || item.images || [];
+  const photos = rawPhotos.filter(
+    (p): p is string => typeof p === 'string' && p.length > 0
+  );
   const hasPhotos = photos.length > 0;
 
   const rawLocation =
