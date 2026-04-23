@@ -68,48 +68,53 @@ export const paginationSchema = z.object({
   limit: z.coerce.number().int().positive().max(100).default(20),
 });
 
-// Admin Schemas
-export const adminSettingUpdateSchema = z.object({
-  key: z
-    .string()
-    .min(1, 'Setting key is required')
-    .max(255, 'Setting key too long')
-    .regex(/^[a-zA-Z0-9._-]+$/, 'Setting key contains invalid characters'),
-  value: z.union([
-    z.string().max(10000, 'String value too long'),
-    z.number().finite('Number must be finite'),
-    z.boolean(),
-    z.record(z.any()),
-    z.array(z.any()),
-  ]),
-  oldValue: z.any().optional(),
-});
+// Admin Schemas — both mutations are admin-only, strict rejects any
+// unknown keys on the request body (mass-assignment guard).
+export const adminSettingUpdateSchema = z
+  .object({
+    key: z
+      .string()
+      .min(1, 'Setting key is required')
+      .max(255, 'Setting key too long')
+      .regex(/^[a-zA-Z0-9._-]+$/, 'Setting key contains invalid characters'),
+    value: z.union([
+      z.string().max(10000, 'String value too long'),
+      z.number().finite('Number must be finite'),
+      z.boolean(),
+      z.record(z.any()),
+      z.array(z.any()),
+    ]),
+    oldValue: z.any().optional(),
+  })
+  .strict();
 
-export const adminSettingCreateSchema = z.object({
-  key: z
-    .string()
-    .min(1, 'Setting key is required')
-    .max(255, 'Setting key too long')
-    .regex(/^[a-zA-Z0-9._-]+$/, 'Setting key contains invalid characters'),
-  value: z.union([
-    z.string().max(10000, 'String value too long'),
-    z.number().finite('Number must be finite'),
-    z.boolean(),
-    z.record(z.any()),
-    z.array(z.any()),
-  ]),
-  type: z.enum(['string', 'number', 'boolean', 'json', 'array']),
-  category: z.enum([
-    'general',
-    'email',
-    'security',
-    'features',
-    'payment',
-    'notifications',
-  ]),
-  description: z.string().max(1000, 'Description too long').optional(),
-  isPublic: z.boolean().default(false),
-});
+export const adminSettingCreateSchema = z
+  .object({
+    key: z
+      .string()
+      .min(1, 'Setting key is required')
+      .max(255, 'Setting key too long')
+      .regex(/^[a-zA-Z0-9._-]+$/, 'Setting key contains invalid characters'),
+    value: z.union([
+      z.string().max(10000, 'String value too long'),
+      z.number().finite('Number must be finite'),
+      z.boolean(),
+      z.record(z.any()),
+      z.array(z.any()),
+    ]),
+    type: z.enum(['string', 'number', 'boolean', 'json', 'array']),
+    category: z.enum([
+      'general',
+      'email',
+      'security',
+      'features',
+      'payment',
+      'notifications',
+    ]),
+    description: z.string().max(1000, 'Description too long').optional(),
+    isPublic: z.boolean().default(false),
+  })
+  .strict();
 
 // Contract Schemas
 export const createContractSchema = z.object({
