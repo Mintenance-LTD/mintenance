@@ -37,7 +37,7 @@ export const POST = withApiHandler(
     } catch (rateLimitError) {
       logger.error('Rate limit check failed', rateLimitError, {
         service: 'auth',
-        ip: request.headers.get('x-forwarded-for') || 'unknown',
+        ip: getClientIp(request),
       });
       // Fail closed: deny request when rate limiting is unavailable (security-first)
       throw new InternalServerError(
@@ -48,7 +48,7 @@ export const POST = withApiHandler(
     if (!rateLimitResult.allowed) {
       logger.warn('Login rate limit exceeded', {
         service: 'auth',
-        ip: request.headers.get('x-forwarded-for') || 'unknown',
+        ip: getClientIp(request),
       });
       throw new RateLimitError();
     }

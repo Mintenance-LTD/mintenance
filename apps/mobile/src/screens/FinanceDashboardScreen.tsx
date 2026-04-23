@@ -44,7 +44,20 @@ const FinanceDashboardScreen: React.FC<FinanceDashboardScreenProps> = ({
   const fmt = (amount: number) => formatters.currency(amount);
 
   if (loading) {
-    return <SkeletonDashboard />;
+    // SkeletonDashboard's root is `flex: 1, padding: 16` with no own
+    // backgroundColor — returning it bare lets whatever the parent
+    // navigator paints behind show through, which on OS-dark-mode
+    // surfaces reads as a black screen with floating light skeleton
+    // bars (the user-reported "finance screen is broken"). Wrap in
+    // the screen's own container style so the loading state matches
+    // the rest of the app — `styles.container` was captured at
+    // module load time (light mode) so it's guaranteed light even
+    // when dark mode is on.
+    return (
+      <View style={styles.container}>
+        <SkeletonDashboard />
+      </View>
+    );
   }
 
   const totalRevenue = (financialData?.monthly_revenue ?? []).reduce(

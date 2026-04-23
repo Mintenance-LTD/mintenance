@@ -26,20 +26,26 @@ export const paymentMethodSchema = z.object({
   isDefault: z.boolean().default(false),
 });
 
-export const refundSchema = z.object({
-  paymentIntentId: z
-    .string()
-    .regex(/^pi_[a-zA-Z0-9]+$/, 'Invalid payment intent ID'),
-  amount: z.number().positive('Amount must be positive').optional(),
-  reason: z.string().max(500, 'Reason too long').optional(),
-});
+// `.strict()` rejects unknown keys with a 400 — this schema backs admin
+// refund flows where extra fields on the request body would be suspicious.
+export const refundSchema = z
+  .object({
+    paymentIntentId: z
+      .string()
+      .regex(/^pi_[a-zA-Z0-9]+$/, 'Invalid payment intent ID'),
+    amount: z.number().positive('Amount must be positive').optional(),
+    reason: z.string().max(500, 'Reason too long').optional(),
+  })
+  .strict();
 
-// Escrow Schemas
-export const releaseEscrowSchema = z.object({
-  escrowTransactionId: z.string().uuid('Invalid escrow transaction ID'),
-  releaseReason: z.enum(['job_completed', 'dispute_resolved', 'timeout']),
-  adminJustification: z.string().max(500).optional(),
-});
+// Escrow Schemas — admin-only mutation, strict rejects mass-assignment.
+export const releaseEscrowSchema = z
+  .object({
+    escrowTransactionId: z.string().uuid('Invalid escrow transaction ID'),
+    releaseReason: z.enum(['job_completed', 'dispute_resolved', 'timeout']),
+    adminJustification: z.string().max(500).optional(),
+  })
+  .strict();
 
 export const refundRequestSchema = z.object({
   jobId: z.string().uuid('Invalid job ID'),

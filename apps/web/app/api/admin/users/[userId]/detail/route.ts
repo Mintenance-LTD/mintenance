@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
-import { NotFoundError } from '@/lib/errors/api-error';
+import { BadRequestError, NotFoundError } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+
+// UUID v4 pattern. Line 59 interpolates `userId` into a PostgREST `.or()`
+// filter DSL string, which is NOT auto-escaped by supabase-js. A non-UUID
+// path segment could inject extra filter clauses (commas, dots, parens).
+// Admin-only route so threat model is narrow, but we still validate at
+// the boundary — cheaper than reasoning about every interpolation site.
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * GET /api/admin/users/[userId]/detail
@@ -14,6 +22,10 @@ export const GET = withApiHandler(
   { roles: ['admin'], rateLimit: { maxRequests: 10 }, csrf: false },
   async (request: NextRequest, { params }) => {
     const { userId } = params;
+
+    if (typeof userId !== 'string' || !UUID_RE.test(userId)) {
+      throw new BadRequestError('userId must be a valid UUID');
+    }
 
     // 1. Fetch user profile
     const { data: profile, error: profileError } = await serverSupabase
