@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { resignJobStorageUrls } from '@/lib/api/job-storage';
 import { redirect } from 'next/navigation';
 import React from 'react';
 import { theme } from '@/lib/theme';
@@ -94,7 +95,10 @@ export default async function ContractorJobDetailPage({
     escrowStatus
   );
 
-  // Fetch job photos for AI assessment display
+  // Fetch job photos for AI assessment display.
+  // Re-sign Job-storage URLs at render time — the bucket is now private
+  // (2026-04-17 storage-hardening migration), so legacy public URLs 404
+  // and old signed URLs eventually expire.
   const { data: jobAttachments } = await serverSupabase
     .from('job_attachments')
     .select('file_url')
@@ -102,8 +106,8 @@ export default async function ContractorJobDetailPage({
     .eq('file_type', 'image')
     .order('uploaded_at', { ascending: false });
 
-  const jobPhotoUrls = (jobAttachments || []).map(
-    (a: { file_url: string }) => a.file_url
+  const jobPhotoUrls = await resignJobStorageUrls(
+    (jobAttachments ?? []).map((a: { file_url: string | null }) => a.file_url)
   );
 
   // Fetch AI building assessment if one exists

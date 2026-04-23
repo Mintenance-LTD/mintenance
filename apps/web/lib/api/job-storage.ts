@@ -51,3 +51,72 @@ export async function signJobStoragePath(
 
   return data.signedUrl;
 }
+
+/**
+ * Extract the object key inside `Job-storage` from a stored `file_url`.
+ *
+ * Supports three historical shapes because `job_attachments.file_url`
+ * accumulated rows from multiple eras:
+ *   1. Legacy public URL: `/storage/v1/object/public/Job-storage/<path>`
+ *      — broken after the 2026-04-17 audit flipped the bucket to
+ *      `public=false`.
+ *   2. Signed URL:        `/storage/v1/object/sign/Job-storage/<path>?token=…`
+ *      — works until the embedded `expires` stamp.
+ *   3. Bare object path:  `job-photos/<file>.jpeg` or `<jobId>/<file>.jpeg`.
+ *
+ * Returns null if the URL doesn't reference the Job-storage bucket (e.g.
+ * an external CDN link that a seeded dataset used).
+ */
+export function extractJobStoragePath(fileUrl: string): string | null {
+  if (!fileUrl) return null;
+
+  // Bare path — already an object key.
+  if (!fileUrl.startsWith('http')) {
+    return fileUrl.replace(/^\/+/, '');
+  }
+
+  // Match both public and signed URL shapes with a single regex. The
+  // `?token=` query string on signed URLs drops off because capture
+  // group 1 stops at `?`.
+  const match = fileUrl.match(
+    /\/storage\/v1\/object\/(?:public|sign)\/Job-storage\/([^?]+)/
+  );
+  if (match && match[1]) {
+    return decodeURIComponent(match[1]);
+  }
+  return null;
+}
+
+/**
+ * Re-sign one or more persisted `file_url` values into fresh signed URLs.
+ *
+ * Use this on server-rendered pages that display job photos. Legacy rows
+ * (public URLs from before the bucket flip) become reachable again, and
+ * signed-URL rows get a fresh TTL without forcing a schema migration on
+ * `job_attachments`. Unrecognised URLs pass through unchanged so the
+ * caller's render doesn't lose external images.
+ *
+ * Skips the re-sign round-trip for empty/null inputs.
+ */
+export async function resignJobStorageUrls(
+  fileUrls: Array<string | null | undefined>,
+  ttlSeconds: number = DEFAULT_TTL_SECONDS
+): Promise<string[]> {
+  const results = await Promise.all(
+    fileUrls.map(async (url) => {
+      if (!url) return null;
+      const path = extractJobStoragePath(url);
+      if (!path) {
+        // Not a Job-storage URL — pass through (external image, CDN, etc.)
+        return url;
+      }
+      const signed = await signJobStoragePath(path, ttlSeconds);
+      // Fall back to the original (possibly broken) URL rather than
+      // dropping the photo entirely — the UI already shows a graceful
+      // "couldn't be loaded" state and dropping would hide that it
+      // was supposed to render.
+      return signed ?? url;
+    })
+  );
+  return results.filter((u): u is string => Boolean(u));
+}

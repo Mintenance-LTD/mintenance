@@ -39,14 +39,26 @@ function buildScriptSrc(
   return `script-src 'self' 'unsafe-inline' ${baseHosts}`;
 }
 
-const CONNECT_SRC_DEV =
-  "connect-src 'self' https://*.supabase.co https://api.stripe.com https://connect-js.stripe.com https://connect.stripe.com https://maps.googleapis.com http://localhost:* http://127.0.0.1:* ws: wss:";
+// Sentry JS SDK POSTs error envelopes to
+//   https://o<ORG>.ingest.<REGION>.sentry.io
+// The region subdomain is per-org (de.sentry.io, us.sentry.io, etc.)
+// so we allow the wildcard. Without this, the browser blocks every
+// envelope POST and we lose all client-side error telemetry.
+const SENTRY_INGEST =
+  'https://*.ingest.sentry.io https://*.ingest.de.sentry.io https://*.ingest.us.sentry.io';
 
-const CONNECT_SRC_PROD =
-  "connect-src 'self' https://*.supabase.co https://api.stripe.com https://connect-js.stripe.com https://connect.stripe.com https://maps.googleapis.com https://vercel.live wss: wss://ws-us3.pusher.com";
+const CONNECT_SRC_DEV = `connect-src 'self' https://*.supabase.co https://api.stripe.com https://connect-js.stripe.com https://connect.stripe.com https://maps.googleapis.com ${SENTRY_INGEST} http://localhost:* http://127.0.0.1:* ws: wss:`;
 
-const CONNECT_SRC_PUBLIC =
-  "connect-src 'self' https://*.supabase.co https://api.stripe.com https://connect-js.stripe.com https://connect.stripe.com https://maps.googleapis.com https://vercel.live wss://ws-us3.pusher.com";
+const CONNECT_SRC_PROD = `connect-src 'self' https://*.supabase.co https://api.stripe.com https://connect-js.stripe.com https://connect.stripe.com https://maps.googleapis.com ${SENTRY_INGEST} https://vercel.live wss: wss://ws-us3.pusher.com`;
+
+const CONNECT_SRC_PUBLIC = `connect-src 'self' https://*.supabase.co https://api.stripe.com https://connect-js.stripe.com https://connect.stripe.com https://maps.googleapis.com ${SENTRY_INGEST} https://vercel.live wss://ws-us3.pusher.com`;
+
+// Vercel Live toolbar + some bundlers (Next dev, Turbopack HMR) spin
+// up blob:-URL workers. Without an explicit `worker-src`, browsers
+// fall back to `script-src`, which doesn't allow blob: — so the
+// worker creation is blocked. Setting worker-src with blob: fixes
+// that and does NOT loosen script-src for non-worker scripts.
+const WORKER_SRC = "worker-src 'self' blob:";
 
 /**
  * Enforced CSP for public (unauthenticated) routes.
@@ -65,6 +77,7 @@ export function buildPublicCSP(nonce?: string): string {
     "font-src 'self' data: https://fonts.gstatic.com",
     CONNECT_SRC_PUBLIC,
     'frame-src https://js.stripe.com https://connect-js.stripe.com https://connect.stripe.com https://www.openstreetmap.org https://vercel.live',
+    WORKER_SRC,
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
@@ -93,6 +106,7 @@ export function buildAuthenticatedCSP(
     "font-src 'self' data: https://fonts.gstatic.com",
     connectSrc,
     'frame-src https://js.stripe.com https://connect-js.stripe.com https://connect.stripe.com https://www.openstreetmap.org https://vercel.live',
+    WORKER_SRC,
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
@@ -120,6 +134,7 @@ export function buildStrictReportOnlyCSP(
     "font-src 'self' data: https://fonts.gstatic.com",
     connectSrc,
     'frame-src https://js.stripe.com https://connect-js.stripe.com https://connect.stripe.com https://www.openstreetmap.org',
+    WORKER_SRC,
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",

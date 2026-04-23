@@ -14,10 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import * as WebBrowser from 'expo-web-browser';
-import {
-  cacheDirectory,
-  downloadAsync,
-} from 'expo-file-system/build/legacy/FileSystem';
+import { cacheDirectory, downloadAsync } from 'expo-file-system/legacy';
 import { HapticService } from '../../utils/haptics';
 import { useAuth } from '../../contexts/AuthContext';
 import { mobileApiClient, API_BASE_URL } from '../../utils/mobileApiClient';

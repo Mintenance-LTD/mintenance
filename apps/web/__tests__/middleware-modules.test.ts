@@ -12,10 +12,7 @@ import {
   buildAuthenticatedCSP,
   buildStrictReportOnlyCSP,
 } from '../middleware/csp';
-import {
-  isValidJwtFormat,
-  extractBearerToken,
-} from '../middleware/helpers';
+import { isValidJwtFormat, extractBearerToken } from '../middleware/helpers';
 import { NextRequest } from 'next/server';
 
 describe('isPublicRoute', () => {
@@ -53,7 +50,7 @@ describe('isPublicRoute', () => {
 
   it('returns true for UUID-formatted contractor profile paths', () => {
     expect(
-      isPublicRoute('/contractor/12345678-1234-1234-1234-123456789012'),
+      isPublicRoute('/contractor/12345678-1234-1234-1234-123456789012')
     ).toBe(true);
   });
 
@@ -122,12 +119,41 @@ describe('CSP builders', () => {
       expect(csp).toContain("frame-ancestors 'none'");
     }
   });
+
+  it('allows Sentry ingest endpoints in connect-src', () => {
+    // Regression guard (2026-04-22): without these allowances the
+    // browser silently blocks every Sentry envelope POST and we lose
+    // client-side error telemetry.
+    for (const csp of [
+      buildPublicCSP(),
+      buildAuthenticatedCSP(true),
+      buildAuthenticatedCSP(false),
+      buildStrictReportOnlyCSP(false),
+    ]) {
+      expect(csp).toContain('*.ingest.sentry.io');
+      expect(csp).toContain('*.ingest.de.sentry.io');
+      expect(csp).toContain('*.ingest.us.sentry.io');
+    }
+  });
+
+  it('sets worker-src with blob: so Vercel Live + bundler workers boot', () => {
+    // Regression guard: without worker-src, browsers fall back to
+    // script-src which has no blob: allowance and blocks worker
+    // creation.
+    for (const csp of [
+      buildPublicCSP(),
+      buildAuthenticatedCSP(true),
+      buildAuthenticatedCSP(false),
+      buildStrictReportOnlyCSP(false),
+    ]) {
+      expect(csp).toContain("worker-src 'self' blob:");
+    }
+  });
 });
 
 describe('JWT format check', () => {
   it('accepts a well-formed JWT (3 base64url parts)', () => {
-    const token =
-      'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjMifQ.signature-part-here';
+    const token = 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjMifQ.signature-part-here';
     expect(isValidJwtFormat(token)).toBe(true);
   });
 
