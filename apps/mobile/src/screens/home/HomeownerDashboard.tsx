@@ -290,22 +290,14 @@ export const HomeownerDashboard: React.FC = () => {
                   ? `You have ${activeJobIds.length} active project${activeJobIds.length !== 1 ? 's' : ''}`
                   : 'Ready to get something fixed?'}
             </Text>
-
-            {/* Primary CTA: Post a new job */}
-            <TouchableOpacity
-              style={styles.postJobButton}
-              onPress={() =>
-                navigation.navigate('JobsTab', {
-                  screen: 'JobPosting',
-                } as never)
-              }
-              accessibilityRole='button'
-              accessibilityLabel='Post a new job'
-              activeOpacity={0.85}
-            >
-              <Ionicons name='add-circle' size={22} color='#FFFFFF' />
-              <Text style={styles.postJobButtonText}>Post a New Job</Text>
-            </TouchableOpacity>
+            {/*
+              The hero "Post a New Job" button was removed after user
+              flagged it as redundant with the bottom-tab "Post Job"
+              entry. Keeping one canonical entry point avoids the
+              double-CTA that briefly existed when the tab was added
+              (04-17 session added the button because there was no
+              entry point; the tab later replaced that need).
+            */}
           </FadeIn>
         </LinearGradient>
 
