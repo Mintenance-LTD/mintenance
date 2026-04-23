@@ -143,7 +143,14 @@ export const PaymentMethodsScreen: React.FC<PaymentMethodsScreenProps> = ({
               </View>
             </TouchableOpacity>
           ))
-        ) : !vm.loading ? (
+        ) : !vm.loading && !vm.error ? (
+          // Only show the "No cards saved yet" empty state when we
+          // actually got an empty-but-successful response. Previously
+          // this rendered alongside `vm.error` as well, producing the
+          // confusing "No cards saved yet + An unexpected error
+          // occurred" combo the user screenshotted — the API call had
+          // actually failed, but the UI also claimed the user had
+          // zero cards. Show the error banner alone in that case.
           <View style={styles.emptyBox}>
             <View style={styles.emptyIconWrap}>
               <Ionicons

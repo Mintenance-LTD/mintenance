@@ -22,6 +22,7 @@ import { ContractorPerformance } from './profile/components/ContractorPerformanc
 import { ProfileMenuSection } from './profile/components/ProfileMenuSection';
 import { ProfileCompleteness } from './profile/components/ProfileCompleteness';
 import { useProfileStats } from './profile/hooks/useProfileStats';
+import { useContractorVerification } from './profile/hooks/useContractorVerification';
 import { NotificationService } from '../services/NotificationService';
 import { theme } from '../theme';
 
@@ -30,6 +31,7 @@ const ProfileScreen: React.FC = () => {
   const navigation = useNavigation<{ navigate: (screen: string) => void }>();
   const { user, signOut } = useAuth();
   const { userStats } = useProfileStats(user);
+  const verification = useContractorVerification(user);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
 
   useEffect(() => {
@@ -360,6 +362,10 @@ const ProfileScreen: React.FC = () => {
               rating={userStats.rating}
               responseTime={userStats.responseTime}
               completedJobs={userStats.completedJobs}
+              identityVerified={verification.identityVerified}
+              licenseVerified={verification.licenseVerified}
+              paymentMethodLinked={verification.paymentMethodLinked}
+              phoneVerified={verification.phoneVerified}
             />
           )}
 

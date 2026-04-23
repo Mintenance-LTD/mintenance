@@ -7,6 +7,15 @@ interface ContractorPerformanceProps {
   rating: number;
   responseTime: string;
   completedJobs?: number;
+  // Verification flags from public.profiles. Previously hardcoded to
+  // true, producing "Verified" badges on a brand-new unverified
+  // contractor. Each is optional so callers that haven't wired the
+  // data yet render the legacy always-verified badges — but the
+  // ProfileScreen caller now passes all four.
+  identityVerified?: boolean;
+  licenseVerified?: boolean;
+  paymentMethodLinked?: boolean;
+  phoneVerified?: boolean;
 }
 
 interface MetricCard {
@@ -22,6 +31,10 @@ export const ContractorPerformance: React.FC<ContractorPerformanceProps> = ({
   rating,
   responseTime,
   completedJobs = 0,
+  identityVerified = false,
+  licenseVerified = false,
+  paymentMethodLinked = false,
+  phoneVerified = false,
 }) => {
   const metrics: MetricCard[] = [
     {
@@ -36,7 +49,10 @@ export const ContractorPerformance: React.FC<ContractorPerformanceProps> = ({
       icon: 'checkmark-circle',
       iconColor: theme.colors.primary,
       iconBg: theme.colors.primaryLight,
-      value: completedJobs > 0 ? `${Math.min(99, 88 + Math.round(completedJobs / 10))}%` : '—',
+      value:
+        completedJobs > 0
+          ? `${Math.min(99, 88 + Math.round(completedJobs / 10))}%`
+          : '—',
       label: 'Success Rate',
       sublabel: 'Jobs completed',
     },
@@ -60,13 +76,17 @@ export const ContractorPerformance: React.FC<ContractorPerformanceProps> = ({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionTitle} accessibilityRole="header">
+      <Text style={styles.sectionTitle} accessibilityRole='header'>
         Performance
       </Text>
 
       <View style={styles.grid}>
         {metrics.map((m) => (
-          <View key={m.label} style={styles.card} accessibilityLabel={`${m.label}: ${m.value}`}>
+          <View
+            key={m.label}
+            style={styles.card}
+            accessibilityLabel={`${m.label}: ${m.value}`}
+          >
             <View style={[styles.iconChip, { backgroundColor: m.iconBg }]}>
               <Ionicons name={m.icon} size={18} color={m.iconColor} />
             </View>
@@ -79,10 +99,26 @@ export const ContractorPerformance: React.FC<ContractorPerformanceProps> = ({
 
       <View style={styles.verificationCard}>
         <Text style={styles.verificationTitle}>Verification Status</Text>
-        <VerificationItem label="Identity Verified" icon="checkmark-circle" verified />
-        <VerificationItem label="Licensed & Insured" icon="shield-checkmark" verified />
-        <VerificationItem label="Payment Method" icon="card" verified />
-        <VerificationItem label="Phone Number" icon="call" verified />
+        <VerificationItem
+          label='Identity Verified'
+          icon='checkmark-circle'
+          verified={identityVerified}
+        />
+        <VerificationItem
+          label='Licensed & Insured'
+          icon='shield-checkmark'
+          verified={licenseVerified}
+        />
+        <VerificationItem
+          label='Payment Method'
+          icon='card'
+          verified={paymentMethodLinked}
+        />
+        <VerificationItem
+          label='Phone Number'
+          icon='call'
+          verified={phoneVerified}
+        />
       </View>
     </View>
   );
@@ -94,14 +130,50 @@ interface VerificationItemProps {
   verified: boolean;
 }
 
-const VerificationItem: React.FC<VerificationItemProps> = ({ label, icon, verified }) => (
-  <View style={styles.verificationRow} accessibilityLabel={`${label}: ${verified ? 'verified' : 'not verified'}`}>
-    <View style={[styles.verifyIcon, { backgroundColor: verified ? theme.colors.primaryLight : theme.colors.backgroundSecondary }]}>
-      <Ionicons name={icon} size={15} color={verified ? theme.colors.primary : theme.colors.textTertiary} />
+const VerificationItem: React.FC<VerificationItemProps> = ({
+  label,
+  icon,
+  verified,
+}) => (
+  <View
+    style={styles.verificationRow}
+    accessibilityLabel={`${label}: ${verified ? 'verified' : 'not verified'}`}
+  >
+    <View
+      style={[
+        styles.verifyIcon,
+        {
+          backgroundColor: verified
+            ? theme.colors.primaryLight
+            : theme.colors.backgroundSecondary,
+        },
+      ]}
+    >
+      <Ionicons
+        name={icon}
+        size={15}
+        color={verified ? theme.colors.primary : theme.colors.textTertiary}
+      />
     </View>
     <Text style={styles.verificationText}>{label}</Text>
-    <View style={[styles.verifyBadge, { backgroundColor: verified ? theme.colors.primaryLight : theme.colors.backgroundSecondary }]}>
-      <Text style={[styles.verifyBadgeText, { color: verified ? theme.colors.primary : theme.colors.textTertiary }]}>
+    <View
+      style={[
+        styles.verifyBadge,
+        {
+          backgroundColor: verified
+            ? theme.colors.primaryLight
+            : theme.colors.backgroundSecondary,
+        },
+      ]}
+    >
+      <Text
+        style={[
+          styles.verifyBadgeText,
+          {
+            color: verified ? theme.colors.primary : theme.colors.textTertiary,
+          },
+        ]}
+      >
         {verified ? 'Verified' : 'Pending'}
       </Text>
     </View>
