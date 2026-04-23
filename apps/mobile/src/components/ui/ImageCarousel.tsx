@@ -13,9 +13,32 @@ import {
   TouchableOpacity,
   ViewStyle,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { OptimizedImage } from '../optimized/OptimizedImage';
 import { theme } from '../../theme';
+
+// Shown when expo-image fails to resolve a URL — previously a stale
+// signed Job-storage URL 403'd silently and the JobCard displayed a
+// featureless gray void. Now: neutral fill + "image unavailable"
+// glyph so users know it's missing data, not a loading freeze.
+const imageFallback = (width: number, height: number): React.ReactElement => (
+  <View
+    style={{
+      width,
+      height,
+      backgroundColor: theme.colors.backgroundSecondary,
+      alignItems: 'center',
+      justifyContent: 'center',
+    }}
+  >
+    <Ionicons
+      name='image-outline'
+      size={36}
+      color={theme.colors.textTertiary}
+    />
+  </View>
+);
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -72,6 +95,7 @@ export const ImageCarousel: React.FC<ImageCarouselProps> = memo(
             cachePolicy='memory-disk'
             quality='low'
             testID={`${testID}-image-${index}`}
+            errorComponent={imageFallback(carouselWidth, height)}
           />
         </TouchableOpacity>
       ),
@@ -95,6 +119,7 @@ export const ImageCarousel: React.FC<ImageCarouselProps> = memo(
               contentFit='cover'
               priority='high'
               cachePolicy='memory-disk'
+              errorComponent={imageFallback(carouselWidth, height)}
             />
           </TouchableOpacity>
           {gradientOverlay && (

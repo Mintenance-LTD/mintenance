@@ -86,11 +86,16 @@ export const ContractorVerificationScreen: React.FC<
   const [showDatePicker, setShowDatePicker] = useState(false);
 
   useEffect(() => {
+    // AuthContext resolves `user` asynchronously from SecureStore.
+    // Running on `[]` alone meant `checkVerificationStatus` short-circuited
+    // at the `!user?.id` guard on cold-mount and never re-ran, leaving
+    // the form blank even when `profiles.company_name` was populated.
+    // Key on `user.id` so the fetch fires exactly once as soon as the
+    // auth session is resolved.
+    if (!user?.id) return;
     void checkVerificationStatus();
-    // Intentionally only on mount — re-hydrating on user change would
-    // overwrite form edits made between sessions.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [user?.id]);
 
   const checkVerificationStatus = async (): Promise<void> => {
     if (!user?.id) return;

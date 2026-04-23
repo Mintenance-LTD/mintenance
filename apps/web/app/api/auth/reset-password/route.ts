@@ -3,9 +3,14 @@ import { createAnonClient } from '@/lib/api/supabaseServer';
 import { checkPasswordResetRateLimit } from '@/lib/rate-limiter';
 import { logger } from '@mintenance/shared';
 import { isSupabaseConfigured } from '@/lib/supabase';
-import { BadRequestError, RateLimitError, InternalServerError } from '@/lib/errors/api-error';
+import {
+  BadRequestError,
+  RateLimitError,
+  InternalServerError,
+} from '@/lib/errors/api-error';
 import { PasswordValidator, checkPasswordBreach } from '@mintenance/auth';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { getClientIp } from '@/lib/request-ip';
 
 /**
  * POST /api/auth/reset-password
@@ -17,8 +22,12 @@ export const POST = withApiHandler(
   async (request) => {
     // Check Supabase configuration early
     if (!isSupabaseConfigured) {
-      logger.error('Missing Supabase configuration', undefined, { service: 'auth' });
-      throw new InternalServerError('Service configuration error. Please contact support.');
+      logger.error('Missing Supabase configuration', undefined, {
+        service: 'auth',
+      });
+      throw new InternalServerError(
+        'Service configuration error. Please contact support.'
+      );
     }
 
     // Custom rate limiting to prevent abuse
@@ -27,7 +36,7 @@ export const POST = withApiHandler(
     if (!rateLimitResult.allowed) {
       logger.warn('Password reset rate limit exceeded', {
         service: 'auth',
-        ip: request.headers.get('x-forwarded-for') || 'unknown'
+        ip: getClientIp(request),
       });
       throw new RateLimitError();
     }
@@ -37,19 +46,29 @@ export const POST = withApiHandler(
 
     // Validate access token format (must be a non-empty JWT-like string)
     if (!accessToken || typeof accessToken !== 'string') {
-      logger.warn('Password reset attempted without access token', { service: 'auth' });
-      throw new BadRequestError('Invalid reset link. Please request a new password reset.');
+      logger.warn('Password reset attempted without access token', {
+        service: 'auth',
+      });
+      throw new BadRequestError(
+        'Invalid reset link. Please request a new password reset.'
+      );
     }
 
     // JWT format: three base64url segments separated by dots
     const jwtPattern = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
-    if (!jwtPattern.test(accessToken) || accessToken.length < 50 || accessToken.length > 4096) {
+    if (
+      !jwtPattern.test(accessToken) ||
+      accessToken.length < 50 ||
+      accessToken.length > 4096
+    ) {
       logger.warn('Password reset token failed format validation', {
         service: 'auth',
         tokenLength: accessToken.length,
-        ip: request.headers.get('x-forwarded-for') || 'unknown',
+        ip: getClientIp(request),
       });
-      throw new BadRequestError('Invalid reset link. Please request a new password reset.');
+      throw new BadRequestError(
+        'Invalid reset link. Please request a new password reset.'
+      );
     }
 
     // Validate password - accept either password or newPassword from frontend
@@ -66,14 +85,14 @@ export const POST = withApiHandler(
       requireLowercase: true,
       requireNumbers: true,
       requireSpecialChars: true,
-      maxLength: 128
+      maxLength: 128,
     });
 
     if (!validationResult.isValid) {
       logger.warn('[SECURITY] Password reset blocked - validation failed', {
         service: 'auth',
         errors: validationResult.errors,
-        ip: request.headers.get('x-forwarded-for') || 'unknown'
+        ip: getClientIp(request),
       });
       throw new BadRequestError(validationResult.errors.join(', '));
     }
@@ -81,14 +100,17 @@ export const POST = withApiHandler(
     // SECURITY: Check if password has been exposed in data breaches
     const breachResult = await checkPasswordBreach(newPassword);
     if (breachResult.isBreached) {
-      logger.warn('[SECURITY] Password reset blocked - breached password detected', {
-        service: 'auth',
-        occurrences: breachResult.occurrences,
-        ip: request.headers.get('x-forwarded-for') || 'unknown'
-      });
+      logger.warn(
+        '[SECURITY] Password reset blocked - breached password detected',
+        {
+          service: 'auth',
+          occurrences: breachResult.occurrences,
+          ip: getClientIp(request),
+        }
+      );
       throw new BadRequestError(
         `This password has been exposed in ${breachResult.occurrences?.toLocaleString()} data breaches. ` +
-        `Please choose a different, more secure password.`
+          `Please choose a different, more secure password.`
       );
     }
 
@@ -105,19 +127,24 @@ export const POST = withApiHandler(
     if (sessionError) {
       logger.warn('Invalid or expired password reset token', {
         service: 'auth',
-        error: sessionError.message
+        error: sessionError.message,
       });
-      throw new BadRequestError('Invalid or expired reset link. Please request a new one.');
+      throw new BadRequestError(
+        'Invalid or expired reset link. Please request a new one.'
+      );
     }
 
     // Update the password
-    const { data: userData, error: updateError } = await supabase.auth.updateUser({
-      password: newPassword,
-    });
+    const { data: userData, error: updateError } =
+      await supabase.auth.updateUser({
+        password: newPassword,
+      });
 
     if (updateError) {
       logger.error('Password update error', updateError, { service: 'auth' });
-      throw new BadRequestError(updateError.message || 'Failed to reset password');
+      throw new BadRequestError(
+        updateError.message || 'Failed to reset password'
+      );
     }
 
     // Sign out the user
@@ -125,13 +152,14 @@ export const POST = withApiHandler(
 
     logger.info('Password reset successful', {
       service: 'auth',
-      userId: userData?.user?.id
+      userId: userData?.user?.id,
     });
 
     return NextResponse.json(
       {
         success: true,
-        message: 'Password reset successful. Please log in with your new password.'
+        message:
+          'Password reset successful. Please log in with your new password.',
       },
       { status: 200 }
     );

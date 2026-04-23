@@ -7,6 +7,7 @@ import { logger } from '@mintenance/shared';
 import { BadRequestError, RateLimitError } from '@/lib/errors/api-error';
 import { checkPasswordBreach } from '@mintenance/auth';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { getClientIp } from '@/lib/request-ip';
 
 /**
  * POST /api/auth/register
@@ -21,7 +22,7 @@ export const POST = withApiHandler(
     if (!rateLimitResult.allowed) {
       logger.warn('Registration rate limit exceeded', {
         service: 'auth',
-        ip: request.headers.get('x-forwarded-for') || 'unknown'
+        ip: getClientIp(request),
       });
       throw new RateLimitError();
     }
@@ -33,20 +34,24 @@ export const POST = withApiHandler(
       return validation;
     }
 
-    const { email, password, firstName, lastName, role, phone } = validation.data;
+    const { email, password, firstName, lastName, role, phone } =
+      validation.data;
 
     // SECURITY: Check if password has been exposed in data breaches
     const breachResult = await checkPasswordBreach(password);
     if (breachResult.isBreached) {
-      logger.warn('[SECURITY] Registration blocked - breached password detected', {
-        service: 'auth',
-        email,
-        occurrences: breachResult.occurrences,
-        ip: request.headers.get('x-forwarded-for') || 'unknown'
-      });
+      logger.warn(
+        '[SECURITY] Registration blocked - breached password detected',
+        {
+          service: 'auth',
+          email,
+          occurrences: breachResult.occurrences,
+          ip: getClientIp(request),
+        }
+      );
       throw new BadRequestError(
         `This password has been exposed in ${breachResult.occurrences?.toLocaleString()} data breaches. ` +
-        `Please choose a different, more secure password.`
+          `Please choose a different, more secure password.`
       );
     }
 
@@ -57,9 +62,11 @@ export const POST = withApiHandler(
       logger.warn('[SECURITY] Attempt to self-register as admin blocked', {
         service: 'auth',
         email,
-        ip: request.headers.get('x-forwarded-for') || 'unknown'
+        ip: getClientIp(request),
       });
-      throw new BadRequestError('Admin accounts cannot be created via self-registration');
+      throw new BadRequestError(
+        'Admin accounts cannot be created via self-registration'
+      );
     }
 
     // Register user with AuthManager
@@ -76,7 +83,7 @@ export const POST = withApiHandler(
       logger.warn('Registration failed', {
         service: 'auth',
         email,
-        reason: result.error
+        reason: result.error,
       });
       throw new BadRequestError(result.error || 'Registration failed');
     }
@@ -85,13 +92,14 @@ export const POST = withApiHandler(
       service: 'auth',
       userId: result.user.id,
       email: result.user.email,
-      role: result.user.role
+      role: result.user.role,
     });
 
     // Initialize trial for contractors (non-blocking)
     if (role === 'contractor') {
       try {
-        const { TrialService } = await import('@/lib/services/subscription/TrialService');
+        const { TrialService } =
+          await import('@/lib/services/subscription/TrialService');
         await TrialService.initializeTrial(result.user.id);
         logger.info('Trial initialized for new contractor', {
           service: 'auth',
@@ -101,7 +109,10 @@ export const POST = withApiHandler(
         logger.error('Failed to initialize trial for new contractor', {
           service: 'auth',
           userId: result.user.id,
-          error: trialError instanceof Error ? trialError.message : String(trialError),
+          error:
+            trialError instanceof Error
+              ? trialError.message
+              : String(trialError),
         });
       }
     }
@@ -116,8 +127,8 @@ export const POST = withApiHandler(
           role: result.user.role,
           firstName: result.user.first_name,
           lastName: result.user.last_name,
-          emailVerified: result.user.verified
-        }
+          emailVerified: result.user.verified,
+        },
       },
       { status: 201 }
     );

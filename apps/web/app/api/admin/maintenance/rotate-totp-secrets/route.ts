@@ -10,7 +10,15 @@ import { logger } from '@mintenance/shared';
  * Idempotent: safe to run multiple times (only processes flagged rows).
  */
 export const POST = withApiHandler(
-  { roles: ['admin'], rateLimit: { maxRequests: 5 } },
+  {
+    roles: ['admin'],
+    rateLimit: { maxRequests: 5 },
+    // Rotates every flagged admin's TOTP secret at once. If this endpoint
+    // fires on a stolen admin session the whole MFA layer is silently
+    // re-keyed — demand fresh MFA proof within 15 min, matching the
+    // escrow/refund precedent in apps/web/app/api/admin/refunds/[id]/route.ts.
+    requireMfaVerifiedWithinMinutes: 15,
+  },
   async (_request, { user }) => {
     // Fetch flagged profiles (batch limit to prevent memory exhaustion)
     const { data: profiles, error: fetchError } = await serverSupabase

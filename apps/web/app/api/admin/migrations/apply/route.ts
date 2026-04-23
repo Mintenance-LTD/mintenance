@@ -7,10 +7,14 @@ import { logger } from '@mintenance/shared';
 import { BadRequestError, NotFoundError } from '@/lib/errors/api-error';
 
 const applyMigrationSchema = z.object({
-  migrationFile: z.string()
+  migrationFile: z
+    .string()
     .min(1)
     .max(200)
-    .regex(/^[a-zA-Z0-9_\-]+\.sql$/, 'Migration file must be a valid .sql filename (no path separators)'),
+    .regex(
+      /^[a-zA-Z0-9_\-]+\.sql$/,
+      'Migration file must be a valid .sql filename (no path separators)'
+    ),
 });
 
 /**
@@ -18,16 +22,30 @@ const applyMigrationSchema = z.object({
  * Prepare SQL migration for execution
  */
 export const POST = withApiHandler(
-  { roles: ['admin'], rateLimit: { maxRequests: 10 } },
+  {
+    roles: ['admin'],
+    rateLimit: { maxRequests: 10 },
+    // Gatekeeper for arbitrary-SQL prep. A compromised admin session
+    // could dry-run any migration file before execution; require fresh
+    // MFA proof so stolen cookies alone can't inspect migration contents.
+    requireMfaVerifiedWithinMinutes: 15,
+  },
   async (request) => {
     const body = await request.json();
     const parsed = applyMigrationSchema.safeParse(body);
     if (!parsed.success) {
-      throw new BadRequestError('migrationFile must be a valid .sql filename (no path separators)');
+      throw new BadRequestError(
+        'migrationFile must be a valid .sql filename (no path separators)'
+      );
     }
 
     const { migrationFile } = parsed.data;
-    const filePath = join(process.cwd(), 'supabase', 'migrations', migrationFile);
+    const filePath = join(
+      process.cwd(),
+      'supabase',
+      'migrations',
+      migrationFile
+    );
 
     let sql: string;
     try {
@@ -41,14 +59,19 @@ export const POST = withApiHandler(
       throw new NotFoundError('Migration file not found');
     }
 
-    logger.info('Migration SQL prepared', { service: 'migrations', file: migrationFile, sqlLength: sql.length });
+    logger.info('Migration SQL prepared', {
+      service: 'migrations',
+      file: migrationFile,
+      sqlLength: sql.length,
+    });
 
     // SECURITY FIX: Never return raw SQL in response — it leaks the full DB schema
     // to any compromised admin account. Admins must execute via Supabase Dashboard.
     return NextResponse.json({
       success: true,
       file: migrationFile,
-      message: 'Migration file validated. Copy SQL from Supabase Dashboard to execute.',
+      message:
+        'Migration file validated. Copy SQL from Supabase Dashboard to execute.',
     });
   }
 );

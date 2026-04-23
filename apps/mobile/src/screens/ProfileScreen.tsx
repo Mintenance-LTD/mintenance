@@ -22,6 +22,7 @@ import { ContractorPerformance } from './profile/components/ContractorPerformanc
 import { ProfileMenuSection } from './profile/components/ProfileMenuSection';
 import { ProfileCompleteness } from './profile/components/ProfileCompleteness';
 import { useProfileStats } from './profile/hooks/useProfileStats';
+import { useContractorVerification } from './profile/hooks/useContractorVerification';
 import { NotificationService } from '../services/NotificationService';
 import { theme } from '../theme';
 
@@ -30,6 +31,7 @@ const ProfileScreen: React.FC = () => {
   const navigation = useNavigation<{ navigate: (screen: string) => void }>();
   const { user, signOut } = useAuth();
   const { userStats } = useProfileStats(user);
+  const verification = useContractorVerification(user);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
 
   useEffect(() => {
@@ -59,10 +61,27 @@ const ProfileScreen: React.FC = () => {
         iconColor: theme.colors.accent,
         iconBg: theme.colors.accentLight,
         badge: unreadNotifications,
-        // Navigate to the notification inbox (ModalNavigator → NotificationScreen),
-        // not to NotificationSettings (which is the preferences/toggle screen).
-        // NotificationSettings remains accessible from SettingsHub.
-        onPress: () => navigation.navigate('Notifications'),
+        // `Notifications` lives in the Modal stack which is a sibling
+        // of the tabs on RootStack. A plain `navigate('Notifications')`
+        // from ProfileStack bubbled up to the tabs and stopped there
+        // (no route of that name on the tab nav), so the row looked
+        // tappable but did nothing. Walk up two parents to RootStack
+        // and target the nested `Modal` → `Notifications` path.
+        onPress: () => {
+          const nav = navigation as unknown as {
+            getParent?: () =>
+              | {
+                  getParent?: () =>
+                    | {
+                        navigate: (s: string, p: { screen: string }) => void;
+                      }
+                    | undefined;
+                }
+              | undefined;
+          };
+          const rootNav = nav.getParent?.()?.getParent?.();
+          rootNav?.navigate('Modal', { screen: 'Notifications' });
+        },
       },
       {
         label: 'Payment Methods',
@@ -343,6 +362,10 @@ const ProfileScreen: React.FC = () => {
               rating={userStats.rating}
               responseTime={userStats.responseTime}
               completedJobs={userStats.completedJobs}
+              identityVerified={verification.identityVerified}
+              licenseVerified={verification.licenseVerified}
+              paymentMethodLinked={verification.paymentMethodLinked}
+              phoneVerified={verification.phoneVerified}
             />
           )}
 

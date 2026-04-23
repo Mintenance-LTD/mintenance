@@ -1,11 +1,15 @@
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { checkPasswordResetRateLimit, createRateLimitHeaders } from '@/lib/rate-limiter';
+import {
+  checkPasswordResetRateLimit,
+  createRateLimitHeaders,
+} from '@/lib/rate-limiter';
 import { validateRequest } from '@/lib/validation/validator';
 import { passwordResetSchema } from '@/lib/validation/schemas';
 import { logger } from '@mintenance/shared';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { RateLimitError } from '@/lib/errors/api-error';
+import { getClientIp } from '@/lib/request-ip';
 
 /**
  * POST /api/auth/forgot-password
@@ -20,7 +24,7 @@ export const POST = withApiHandler(
     if (!rateLimitResult.allowed) {
       logger.warn('Password reset rate limit exceeded', {
         service: 'auth',
-        ip: request.headers.get('x-forwarded-for') || 'unknown',
+        ip: getClientIp(request),
       });
       throw new RateLimitError();
     }
@@ -35,7 +39,9 @@ export const POST = withApiHandler(
 
     // Check if user exists (for better error handling internally)
     const { data: userData } = await supabase.auth.admin.listUsers();
-    const user = userData?.users?.find(u => u.email?.toLowerCase() === email.toLowerCase());
+    const user = userData?.users?.find(
+      (u) => u.email?.toLowerCase() === email.toLowerCase()
+    );
     const userExists = !!user;
 
     // Send password reset email
@@ -55,52 +61,84 @@ export const POST = withApiHandler(
         emailConfirmed: user?.email_confirmed_at ? true : false,
       });
 
-      if (error.message.includes('Network request failed') || error.message.includes('fetch')) {
+      if (
+        error.message.includes('Network request failed') ||
+        error.message.includes('fetch')
+      ) {
         return NextResponse.json(
-          { error: 'Network error. Please check your connection and try again.' },
+          {
+            error: 'Network error. Please check your connection and try again.',
+          },
           { status: 503 }
         );
       }
 
-      if (error.message.includes('email rate limit') || error.message.includes('rate_limit_exceeded')) {
+      if (
+        error.message.includes('email rate limit') ||
+        error.message.includes('rate_limit_exceeded')
+      ) {
         return NextResponse.json(
-          { error: 'Too many email requests. Please wait a few minutes and try again.' },
+          {
+            error:
+              'Too many email requests. Please wait a few minutes and try again.',
+          },
           { status: 429 }
         );
       }
 
       // If email not confirmed, try to confirm then retry
       if (user && !user.email_confirmed_at) {
-        logger.info('Attempting to confirm email before password reset', { email, userId: user.id, service: 'auth' });
+        logger.info('Attempting to confirm email before password reset', {
+          email,
+          userId: user.id,
+          service: 'auth',
+        });
         try {
-          const { error: confirmError } = await supabase.auth.admin.updateUserById(user.id, {
-            email_confirm: true,
-          });
-          if (!confirmError) {
-            const { error: retryError } = await supabase.auth.resetPasswordForEmail(email, {
-              redirectTo: redirectUrl,
+          const { error: confirmError } =
+            await supabase.auth.admin.updateUserById(user.id, {
+              email_confirm: true,
             });
+          if (!confirmError) {
+            const { error: retryError } =
+              await supabase.auth.resetPasswordForEmail(email, {
+                redirectTo: redirectUrl,
+              });
             if (!retryError) {
-              logger.info('Password reset email sent after confirming email', { email, service: 'auth' });
+              logger.info('Password reset email sent after confirming email', {
+                email,
+                service: 'auth',
+              });
             }
           }
         } catch (confirmErr) {
-          logger.error('Failed to confirm email for password reset', confirmErr, { email, service: 'auth' });
+          logger.error(
+            'Failed to confirm email for password reset',
+            confirmErr,
+            { email, service: 'auth' }
+          );
         }
       }
 
       if (!userExists) {
-        logger.warn('Password reset requested for non-existent email', { email, service: 'auth' });
+        logger.warn('Password reset requested for non-existent email', {
+          email,
+          service: 'auth',
+        });
       }
     }
 
-    logger.info('Password reset email requested', { service: 'auth', email, success: !error });
+    logger.info('Password reset email requested', {
+      service: 'auth',
+      email,
+      success: !error,
+    });
 
     // Always return success to prevent email enumeration attacks
     const response = NextResponse.json(
       {
         success: true,
-        message: 'If an account exists with this email, you will receive a password reset link shortly.',
+        message:
+          'If an account exists with this email, you will receive a password reset link shortly.',
       },
       { status: 200 }
     );

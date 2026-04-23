@@ -393,12 +393,15 @@ export class AuthService {
     }
 
     const { mobileApiClient } = await import('../utils/mobileApiClient');
-    const response = await mobileApiClient.put<{ user: User }>(
-      '/api/users/profile',
-      updates
-    );
-    if (!response.user) throw new Error('No user returned from API');
-    return response.user;
+    // PUT /api/users/profile returns `{ success, profile }`, not `{ user }`.
+    // The legacy `response.user` check caused every save to fail with
+    // "No user returned from API" even on a 200 response.
+    const response = await mobileApiClient.put<{
+      success?: boolean;
+      profile?: User;
+    }>('/api/users/profile', updates);
+    if (!response.profile) throw new Error('No profile returned from API');
+    return response.profile;
   }
 
   static async resetPassword(email: string): Promise<void> {

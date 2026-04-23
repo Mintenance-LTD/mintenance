@@ -17,30 +17,43 @@ const generateSyntheticDataSchema = z.object({
  * Generate synthetic training data using GPT-4
  * Requires admin authentication
  */
-export const POST = withApiHandler({ roles: ['admin'], rateLimit: { maxRequests: 10 } }, async (request, { user }) => {
-  const body = await request.json();
-  const parsed = generateSyntheticDataSchema.safeParse(body);
-  if (!parsed.success) {
-    throw new BadRequestError('imageUrls (array of valid URLs, 1-50) is required');
+export const POST = withApiHandler(
+  {
+    roles: ['admin'],
+    rateLimit: { maxRequests: 10 },
+    // Burns GPT-4 credits per call and writes labels that feed Mint AI
+    // training. Stolen cookie = cost exfiltration + training-data
+    // poisoning vector. Same 15-min MFA window as other admin mutations.
+    requireMfaVerifiedWithinMinutes: 15,
+  },
+  async (request, { user }) => {
+    const body = await request.json();
+    const parsed = generateSyntheticDataSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestError(
+        'imageUrls (array of valid URLs, 1-50) is required'
+      );
+    }
+    const { imageUrls, variationsPerImage, includeEdgeCases } = parsed.data;
+
+    const syntheticAssessments =
+      await SyntheticDataService.generateTrainingBatch(
+        imageUrls,
+        variationsPerImage,
+        includeEdgeCases
+      );
+
+    logger.info('Synthetic data generated', {
+      service: 'synthetic-data-api',
+      userId: user.id,
+      imageCount: imageUrls.length,
+      generatedCount: syntheticAssessments.length,
+    });
+
+    return NextResponse.json({
+      success: true,
+      count: syntheticAssessments.length,
+      assessments: syntheticAssessments,
+    });
   }
-  const { imageUrls, variationsPerImage, includeEdgeCases } = parsed.data;
-
-  const syntheticAssessments = await SyntheticDataService.generateTrainingBatch(
-    imageUrls,
-    variationsPerImage,
-    includeEdgeCases
-  );
-
-  logger.info('Synthetic data generated', {
-    service: 'synthetic-data-api',
-    userId: user.id,
-    imageCount: imageUrls.length,
-    generatedCount: syntheticAssessments.length,
-  });
-
-  return NextResponse.json({
-    success: true,
-    count: syntheticAssessments.length,
-    assessments: syntheticAssessments,
-  });
-});
+);
