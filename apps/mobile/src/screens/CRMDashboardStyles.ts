@@ -12,7 +12,13 @@ const shadow = Platform.select({
 }) as Record<string, unknown>;
 
 export const styles = StyleSheet.create({
-  root: { flex: 1 },
+  // Bake the light-mode background in at module load so we don't end up
+  // with a dark reactive backgroundColor rendering under static-light
+  // text colors captured elsewhere in this StyleSheet — which is exactly
+  // what produced the invisible-dark-on-dark rendering in the earlier
+  // user-reported screenshot. Keeping this screen light until the
+  // whole app is dark-mode-aware.
+  root: { flex: 1, backgroundColor: theme.colors.background },
   hdr: {
     flexDirection: 'row',
     alignItems: 'center',

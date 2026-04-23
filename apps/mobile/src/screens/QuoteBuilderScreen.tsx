@@ -286,7 +286,18 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
                       color={item.iconColor}
                     />
                   </View>
-                  <Text style={styles.statValue}>{item.value}</Text>
+                  {/* Long currency values like "£7,817.05" wrap onto two
+                      lines inside the narrow flex-1 stat cell and push
+                      the label below the card. Let the value shrink to
+                      fit on one line instead. */}
+                  <Text
+                    style={styles.statValue}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.6}
+                  >
+                    {item.value}
+                  </Text>
                   <Text style={styles.statLabel}>{item.label}</Text>
                 </View>
               ))}

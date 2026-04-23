@@ -228,7 +228,7 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
   if (loading) return <LoadingSpinner message='Loading clients...' />;
 
   return (
-    <View style={[s.root, { backgroundColor: theme.colors.background }]}>
+    <View style={s.root}>
       {/* Header */}
       <View style={[s.hdr, { paddingTop: insets.top + 8 }]}>
         <TouchableOpacity

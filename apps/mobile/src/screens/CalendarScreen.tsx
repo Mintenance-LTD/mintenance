@@ -564,21 +564,6 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
           showsVerticalScrollIndicator={false}
         />
       )}
-
-      {/* ── Green FAB ── */}
-      <TouchableOpacity
-        style={[styles.fab, { bottom: insets.bottom + 20 }]}
-        onPress={() =>
-          (navigation as never as { navigate: (s: string) => void }).navigate(
-            'MeetingSchedule'
-          )
-        }
-        accessibilityRole='button'
-        accessibilityLabel='Schedule new event'
-        activeOpacity={0.85}
-      >
-        <Ionicons name='add' size={26} color={theme.colors.textInverse} />
-      </TouchableOpacity>
     </View>
   );
 };
