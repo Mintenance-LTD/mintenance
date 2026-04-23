@@ -91,6 +91,13 @@ const KNOWN_LARGE_FILES = new Set([
   // FLAG_SECURE rollout. Tracked as P2 hardening follow-up.
   'apps/mobile/src/screens/AddPaymentMethodScreen.tsx', // 562 lines (was 557)
   'apps/mobile/src/screens/auth/MFAVerificationScreen.tsx', // 502 lines (was 497)
+  // Added 2026-04-23: QuickJobPostScreen was already 655 lines before
+  // the "hide title field on preset category" UX tweak. The file
+  // bundles template data, budget/urgency grids, form state, and the
+  // full StyleSheet — splitting it is a dedicated P2, not a blocker
+  // on the two-line conditional that stops the redundant title
+  // re-entry.
+  'apps/mobile/src/screens/job-posting/QuickJobPostScreen.tsx', // 666 lines (was 655)
 ]);
 
 function countLines(filePath) {
