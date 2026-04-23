@@ -10,7 +10,13 @@ import { NotFoundError } from '@/lib/errors/api-error';
  * Prepare the combined platform enhancements migration SQL
  */
 export const POST = withApiHandler(
-  { roles: ['admin'], rateLimit: { maxRequests: 10 } },
+  {
+    roles: ['admin'],
+    rateLimit: { maxRequests: 10 },
+    // Same threat model as /api/admin/migrations/apply — require fresh
+    // MFA proof before surfacing any migration metadata to the caller.
+    requireMfaVerifiedWithinMinutes: 15,
+  },
   async () => {
     const filePath = join(
       process.cwd(),
