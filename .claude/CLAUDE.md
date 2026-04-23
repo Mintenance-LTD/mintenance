@@ -1,14 +1,18 @@
 # CLAUDE MANDATORY DEVELOPMENT CONTRACT (MDC) - MINTENANCE CODEBASE
 
-## CODE QUALITY AUDIT (Last audited: 2026-04-16, live-DB verified via Supabase MCP)
+## CODE QUALITY AUDIT (Last audited: 2026-04-23, live-DB verified via Supabase MCP)
 
-**Current State: B / B- Grade (~75/100)** — downgraded from B+ after live-DB audit surfaced 3 new P0
-security findings that were invisible to static code audits.
+**Current State: B / B- Grade (~75/100)** — unchanged from 04-16. Security baseline strong after the
+7-sprint remediation, but three production-critical data anomalies persist and doc drift keeps
+widening.
 
-**2026-04-16 audit scope:** Feature-parity matrix (web↔mobile, 11 lifecycle phases), shared API + DB
-wiring, notification delivery across 10 canonical events, contractor-tracking end-to-end, live
-Postgres inspection on project `ukrjudtlvapiajkjbcrd` (324 public tables, 819 RLS policies, 154
-migrations).
+**2026-04-23 audit scope:** Full-stack re-inventory — every page + route + screen + package + live
+DB via Supabase MCP on project `ukrjudtlvapiajkjbcrd` (331 public tables, 835 RLS policies, 174
+migrations, 0 zero-policy tables). Compared against CLAUDE.md + 16 prior memory files to surface
+drift.
+
+**2026-04-16 audit scope (prior):** Feature-parity matrix (web↔mobile, 11 lifecycle phases), shared
+API + DB wiring, notification delivery across 10 canonical events, contractor-tracking end-to-end.
 
 Prior audit + remediation details in [docs/AUDIT_2026_04_13.md](../docs/AUDIT_2026_04_13.md) and the
 plan file `C:\Users\Djodjo.Nkouka.ERICCOLE\.claude\plans\purring-jumping-raccoon.md`.
@@ -30,46 +34,61 @@ Seven-sprint branch `fix/mobile-audit-security-ux-features` closed:
 - **Sprint 6**: Storage bucket policies, security types narrowed, api-client service-role guard,
   building-surveyor route partial split
 
-### Verified Metrics (measured, not estimated):
+### Verified Metrics (measured live 2026-04-23):
 
-- **`any` types in source code: ~26 occurrences / 21 files** (down from 56 on Feb 13; excludes
-  mocks, test-utils, **mocks** dirs)
-- **`console.*` in app code: ~27 total** (7 in web, 20 in mobile source; down from 42; web only in
-  catch blocks/build-time)
-- **Largest file: 905 lines**
-  (apps/web/lib/services/building-surveyor/orchestration/AssessmentOrchestrator.ts) - **0
-  files >1,000 lines** (down from 17 on Feb 13, then 1 on Feb 26 morning)
-- **Build: PASSES clean** (Next.js production build; `ignoreBuildErrors: false` — TypeScript errors
-  will fail the build)
-- **TypeScript strict mode: ON** in all packages (web, mobile, shared, types) — confirmed in all
-  tsconfig.json files
-- **Web tests: ~178/183 suites PASS (~97%)** - Vitest v4 with globals:true; payment-flow and
-  auth-flow failures fixed this session; ~4 pre-existing failures remain (rate-limiter, Card/Input
-  mock, BudgetRangeSelector toast)
-- **Mobile tests: 9,743/10,393 pass (93.8%)** - healthy test infrastructure (597 test files)
-- **Security: CSRF protection, rate limiting, .env gitignored, RLS enabled** — verified live
-  2026-04-16: **324 public tables, 323 RLS-enabled (99.7%), 819 policies, 0 zero-policy tables**
-  (Sprint 1 fix held). Only `spatial_ref_sys` lacks RLS (PostGIS system table, ecosystem-blocked).
-  **154 migrations applied** (latest `20260416210509`). Production data scale: 22 jobs, 16 bids, 14
-  contracts, 4 escrow_transactions, 67 messages. **0 user_push_tokens, 0 contractor_locations** —
-  proving mobile push registration + live tracking have never fired in prod.
-- **Supabase imports: MOSTLY standardized** - 402 files use `@/lib/api/supabaseServer` BUT 10 files
-  still use direct `createClient` from `@supabase/supabase-js` (see below)
-- **API routes: withApiHandler() migration NEARLY COMPLETE** — 290/310 routes (93.5%) migrated; 20
-  remaining are intentional exceptions (18 cron jobs use `withCronHandler`, 1 Stripe webhook needs
-  raw body, 1 OAuth callback)
+- **Web pages: 195** (Next.js App Router, under `apps/web/app/` excluding `/api`). 66/195 have
+  `loading.tsx`, 64/195 have `error.tsx`. Largest page: `contractor/[id]/page.tsx` 671 lines.
+- **Web API routes: 405** (`apps/web/app/api/**/route.ts`). **374/405 (92.3%)** wrapped in
+  `withApiHandler`. 4 legitimate raw exceptions (stripe webhook raw body, email unsubscribe GDPR
+  token, contract/reviews re-export aliases). 28 cron routes use `withCronHandler`.
+- **Mobile .tsx files: 250** (~150-170 actual reachable screens; rest are nested components/modals).
+  15 screens >500 lines. 135 services, 5 services >500 lines (VideoService 677, SyncManager 640,
+  AuthService 617, RealtimeService 593, BusinessAnalyticsService 576).
+- **Packages: 10, Apps: 4** (web, mobile, demo-video, sam2-video-service, sam3-service — CLAUDE.md
+  previously claimed 5). All packages TypeScript strict ON.
+- **`any` types in source**: ~0 in web pages (all in test mocks), **~169 in mobile** (concentrated
+  in services + tests). CLAUDE.md previously claimed "~26" — accurate for web, undercount for
+  mobile.
+- **`console.*` in app code: 1 web** (`admin/retention/error.tsx:14`), **~76 mobile** (most in
+  dev/util scaffolding). Previous "~27 total" claim was optimistic.
+- **Largest web file: 704 lines** (`apps/web/lib/services/subscriptions/SubscriptionService.ts`).
+  AssessmentOrchestrator is now **652 lines** (down from 905). 0 files >1,000 lines confirmed.
+- **Build: PASSES clean** (Next.js production build, `ignoreBuildErrors: false`).
+- **Hex color literals: 625+ across 117 web files** — pre-commit hook enforces incrementally, legacy
+  hex bleeds through design-tokens adoption.
+- **TypeScript strict mode: ON** in all packages + both apps.
+- **Web tests: ~178/183 suites PASS (~97%)** — Vitest v4. **Mobile tests: 9,743/10,393 (93.8%)**.
+- **Security: live 2026-04-23: 331 public tables, 330 RLS-enabled (99.7%), 835 RLS policies, 0
+  zero-policy tables** (Sprint 1 fix holds). Only `spatial_ref_sys` lacks RLS (ecosystem-blocked).
+  **174 migrations applied** (latest `20260422000002_onboarding_analytics_split`; local folder
+  matches live count). Production data scale: 22 jobs, 16 bids, 15 contracts, 4 escrow, 75
+  notifications, 69 messages, 10 profiles, 479 building_assessments. **Still 0 `user_push_tokens`, 0
+  `contractor_locations`, 0 `vlm_shadow_comparisons`** — these three production flows have never
+  fired despite multiple rounds of fixes.
+- **Supabase imports: 0 direct `createClient` in source** — canonical `@/lib/api/supabaseServer`
+  verified adopted everywhere. Previous "10 files" issue closed.
+- **Storage buckets**: 5 public (avatars, contractor-portfolio, profile-images, training-images,
+  mint-ai-training-public — all intentional), 6 private (contractor-documents, job-attachments,
+  Job-storage, training-data, yolo-models, models_best_model_final_v2_v2.0). ✅ contractor-documents
+  - job-attachments flipped private 2026-04-17.
+- **Edge functions: 2 active** — setup-contractor-payout (verify_jwt:false, intentional dual-mode),
+  test-payout (verify_jwt:true, neutralized). Both verified safe.
 
 ### What Changed Since Feb 13 Audit:
 
-| Metric                  | Feb 13 State                             | Feb 26 Actual                             | Change                                                              |
-| ----------------------- | ---------------------------------------- | ----------------------------------------- | ------------------------------------------------------------------- |
-| Files >1,000 lines      | **17**                                   | **0**                                     | ✅ All split (16 before Feb 26, +1 this session: OfflineManager.ts) |
-| Largest file            | **1,413 lines** (NotificationService.ts) | **905 lines** (AssessmentOrchestrator.ts) | ✅ Improved                                                         |
-| withApiHandler routes   | **2/249 (< 1%)**                         | **290/310 (93.5%)**                       | ✅ Effectively complete                                             |
-| `any` types             | **56**                                   | **~26**                                   | ✅ Improved                                                         |
-| `console.*` in app code | **42**                                   | **~27**                                   | ✅ Improved                                                         |
-| Supabase imports        | claimed "all standardized"               | **10 files non-standard**                 | ❌ Never fully true                                                 |
-| Web test failures       | **7 failing**                            | **~4 failing**                            | ✅ payment-flow + auth-flow fixed this session                      |
+| Metric                  | Feb 13 State                             | 04-23 Actual                           | Trend                                |
+| ----------------------- | ---------------------------------------- | -------------------------------------- | ------------------------------------ |
+| Files >1,000 lines      | **17**                                   | **0**                                  | ✅ All split                         |
+| Largest file            | **1,413 lines** (NotificationService.ts) | **704 lines** (SubscriptionService.ts) | ✅ Improved                          |
+| withApiHandler routes   | **2/249 (< 1%)**                         | **374/405 (92.3%)**                    | ✅ Effectively complete              |
+| Total routes            | 249                                      | **405** (+95 in 10 weeks)              | Growth real                          |
+| Total pages             | —                                        | **195**                                | +14 since 04-16 claim                |
+| Migrations              | —                                        | **174**                                | +28 since 04-16                      |
+| RLS policies            | —                                        | **835**                                | +16 since 04-16                      |
+| `any` types (web)       | 56                                       | **~0 in pages, ~169 in mobile**        | Mixed (web fixed, mobile leaky)      |
+| `console.*` in app code | 42                                       | **1 web, ~76 mobile**                  | Mobile regressed or was undercounted |
+| Supabase imports        | claimed "all standardized"               | **0 direct createClient** (resolved)   | ✅                                   |
+| Web test pass rate      | —                                        | **~178/183 (~97%)**                    | Stable                               |
 
 ### What Changed in Feb 26 Session (this session):
 
@@ -81,25 +100,143 @@ Seven-sprint branch `fix/mobile-audit-security-ux-features` closed:
 | payment-flow test failures   | **3 failing**   | **0 failing** (fixed rate limit body, contracts mock, stripe.customers.list) |
 | auth-flow test failures      | **11 failing**  | **0 failing** (fixed fetch mock, password selector, text assertions)         |
 
-### Real Priority Issues (as of 2026-04-13 end of Sprint 3):
+### Real Priority Issues (as of 2026-04-23 audit):
 
-1. ~~**HIGH**: Fix 10 files using non-standard direct `createClient`~~ — **RESOLVED 2026-04-13
-   (audit Sprint 3.6 / XC-P0-1)**. Investigation showed:
-   - `reset-password/route.ts` and `lib/database.ts` were already migrated in earlier work (verified
-     Sprint 0.3).
-   - The 8 contractor pages never used direct `createClient` — they all import canonical
-     `serverSupabase` and enforce authorization via explicit `.eq('contractor_id', user.id)` /
-     `.eq('id', user.id)` filters plus `redirect` on ownership mismatch. Functionally secure. RLS
-     would be a second layer.
-   - Full RLS enforcement for these pages would require migrating Mintenance auth from the custom
-     JWT system to Supabase Auth, which is out of scope for the audit remediation.
-2. **MEDIUM**: Split remaining large files (not yet split): AssessmentOrchestrator.ts (905),
-   EscrowReleaseAgent.ts (886), ServiceRequestScreen.tsx (904), several ~800-850 line files
-3. **MEDIUM**: Reduce ~26 remaining `any` types (top offenders: packages/security/src adapters,
-   shared-ui DataTable)
-4. **MEDIUM**: Fix ~4 remaining pre-existing test failures (rate-limiter fallback, Card/Input
-   shared-ui mock, BudgetRangeSelector toast)
-5. **LOW**: 27 console.\* statements remaining across web (7) and mobile (20) source code
+1. ~~**HIGH**: 10 files using non-standard direct `createClient`~~ — **RESOLVED** (Sprint 3.6 /
+   XC-P0-1). 2026-04-23 rescan confirms 0 direct `createClient` in source.
+2. **P0 (new 04-23)**: 3 admin mutation routes missing MFA step-up —
+   `/api/admin/maintenance/rotate-totp-secrets`, `/api/admin/migrations/apply`,
+   `/api/admin/migrations/apply-combined`. A compromised admin session = total system compromise.
+   Add `requireMfaVerifiedWithinMinutes: 15` to each.
+3. **P0 (persistent)**: `user_push_tokens = 0` in prod despite 04-17 endpoint fix + 04-21 fail-loud
+   Sentry wiring. Mobile push registration call chain still not completing on app launch. Needs
+   traced end-to-end from `initializePushNotifications()` → `savePushToken()` call site.
+4. **P0 (persistent)**: `contractor_locations = 0` in prod despite 04-16 SELECT-scope fix + 04-17
+   BackgroundLocationTask wiring. Foreground tracking isn't being triggered on contractor accept.
+5. **P1**: Reviews RLS — `reviews_select_policy` has `qual=true, roles={public}` (all reviews
+   visible to anonymous users). Likely intentional for marketplace trust, but verify explicitly.
+6. **P1**: Mobile `NotificationPushSender.sendPushNotification()` is a no-op stub (04-22 security
+   fix removed client-side cross-user send). Server-side replacement not yet built —
+   client-triggered CTA notifications silently drop.
+7. **P1**: 5 files uncommitted in working tree from the 04-19 Mint AI session —
+   `AssessmentGenerator.ts` lost its `frequency_penalty: 0.5` patch, production repetition risk when
+   Mint AI goes out of shadow mode. Also `PropertyAssessmentScreen.tsx`, `AIAssessmentScreen.tsx`,
+   `yolo-class-names.ts`, `upload-yolo-to-storage.ts`.
+8. **P1**: 10+ "Coming soon" pages are routable dead-ends on web (contractor/connections, resources,
+   social, team, video-calls, learn, admin/review-moderation, admin/api-documentation). Gate or
+   redirect.
+9. **P1**: Vector extension still in `public` schema — migration
+   `20260419000004_move_vector_to_extensions` prepared but unapplied. Needs Postgres patch upgrade
+   first.
+10. **P1**: Postgres 17.4.1.074 patch upgrade pending (~5 min window via dashboard).
+11. **P2**: Split remaining large files (web: SubscriptionService 704, ContinuousLearningService
+    687, PredictiveAgent 669, LocationPricingService 667, AssessmentOrchestrator 652; mobile:
+    DocumentsScreen 694, AISearchScreen 692, ExpensesScreen 679, VideoService 677).
+12. **P2**: 625+ inline hex colors across 117 web files bypass the design-tokens system. Incremental
+    pre-commit hook only catches new additions.
+13. **P2**: Duplicate auth routes (`/auth/login` + `/login`, etc.) and dual payment-method flows
+    (`AddPaymentMethodScreen` + `AddPaymentMethodV2Screen`) — consolidate.
+14. **P2**: Only 1 Zod schema uses `.strict()` (`updateProfileSchema`); CLAUDE.md previously
+    claimed 2. Silent mass-assignment risk elsewhere, partially mitigated by withApiHandler body
+    validation.
+15. **P2**: `sanitize-postgrest.ts` helper exists but 0 callers — 15 `.ilike()`/`.or()` routes
+    inline ad-hoc regex sanitization instead. Either adopt the helper or delete it.
+16. **P2**: 8 auth routes use raw `x-forwarded-for` in logging (not enforcement). Replace with
+    `getClientIp()` for consistency.
+17. **P2**: 6 orphan mobile screens unclear reachability (HelpCenter, ServiceRequest, ServiceAreas,
+    PerformanceDashboard, MeetingDetails, PropertyAssessment) — wire into nav or delete.
+18. **P2**: No `turbo.json` — CI build uses manual npm workspace ordering, no caching.
+19. **P3 (deferred)**: PostGIS schema move (Option A accepted — functions patched, extension stays
+    in `public`), mobile TLS cert pinning (runbook in `docs/MOBILE_CERT_PINNING_RUNBOOK.md`),
+    SQLCipher for `mintenance_local.db`, CSP nonce rollout (scaffold ready behind `ENABLE_CSP_NONCE`
+    flag), Sentry `beforeSend` scrub on mobile, Job type snake_case/camelCase consolidation
+    (PKG-P1-4).
+
+### 2026-04-23 — Full-Stack Re-Audit (live-DB + every page/route/screen)
+
+**Scope:** Inventory of every page (195), API route (405), mobile screen (250 .tsx files), package
+(10), and comparison against live Supabase (331 tables, 835 policies, 174 migrations). Focus on
+drift detection vs prior CLAUDE.md claims.
+
+**Live DB deltas since 04-16:**
+
+- Tables: 324 → **331** (+7)
+- RLS policies: 819 → **835** (+16)
+- Migrations: 154 → **174** (+20)
+- Local migration folder matches live DB ✅
+- Zero-policy tables: still **0** ✅
+
+**Still-broken production chains (persistent across 3+ audit cycles):**
+
+1. **`user_push_tokens = 0`** — mobile push token registration still never fires in prod despite
+   04-17 endpoint fix, 04-21 Sentry fail-loud wiring. `initializePushNotifications()` +
+   `savePushToken()` exist but call chain from app-launch post-login is incomplete.
+2. **`contractor_locations = 0`** — live tracking still never fires despite 04-16 SELECT-scope fix
+   and 04-17 BackgroundLocationTask wiring. Foreground `JobContextLocationService.start()` isn't
+   being triggered on contractor job accept.
+3. **`vlm_shadow_comparisons = 0`** — Mint AI shadow mode gated off (`VLM_ROUTING_MODE=shadow_only`
+   but `USE_MINT_AI_VLM=false`). Intentional until env flip.
+
+**New P0 findings (not in prior audits):**
+
+1. **Admin MFA gaps**: `/api/admin/maintenance/rotate-totp-secrets`, `/api/admin/migrations/apply`,
+   `/api/admin/migrations/apply-combined` — all wrapped in `withApiHandler` with `roles: ['admin']`
+   but no `requireMfaVerifiedWithinMinutes`. Rotating TOTP secrets or executing arbitrary SQL
+   without step-up is high-impact. Also applies to `/api/admin/synthetic-data/generate`.
+2. **Uncommitted Mint AI session work** — 5 files in working tree from 2026-04-19 session
+   (`AssessmentGenerator.ts`, `yolo-class-names.ts`, `upload-yolo-to-storage.ts`,
+   `PropertyAssessmentScreen.tsx`, `AIAssessmentScreen.tsx`). `AssessmentGenerator.ts` lost its
+   `frequency_penalty: 0.5` patch — production repetition loop risk once Mint AI routes traffic.
+
+**New P1 findings:**
+
+3. **`reviews_select_policy` is `qual=true, roles={public}`** — all reviews publicly readable by
+   anonymous users. Likely intentional for marketplace trust but should be explicitly confirmed.
+4. **`sanitize-postgrest.ts` helper exists but 0 callers** — 15 `.ilike()`/`.or()` routes inline
+   ad-hoc regex instead.
+5. **Mobile `sendPushNotification()` is a no-op stub** after 04-22 cross-user phishing fix. No
+   server-side replacement built — client-triggered CTA notifications silently drop.
+6. **10+ "Coming soon" dead-end pages** on web (contractor/connections, resources, social, team,
+   video-calls, learn, admin/review-moderation, admin/api-documentation). Routable but
+   non-functional.
+7. **8 auth routes use raw `x-forwarded-for` in logging** (not rate-limit enforcement) — consistency
+   issue, replace with `getClientIp()`.
+
+**Drift corrections from prior CLAUDE.md state:**
+
+| CLAUDE.md claim        | 04-23 reality                  | Delta                                        |
+| ---------------------- | ------------------------------ | -------------------------------------------- |
+| 181 web pages          | **195**                        | +14                                          |
+| ~310 API routes        | **405**                        | +95                                          |
+| withApiHandler 93.5%   | **92.3%** (374/405)            | Still strong                                 |
+| 154 migrations         | **174**                        | +20                                          |
+| 324 tables / 819 RLS   | **331 / 835**                  | +7 / +16                                     |
+| 157 mobile screens     | **~150-170 reachable**         | Inflated count valid if counting nested .tsx |
+| Largest file 905 lines | **704** SubscriptionService.ts | AssessmentOrchestrator down to 652           |
+| ~26 any types          | **~0 web, ~169 mobile**        | Mobile underreported                         |
+| ~27 console.\*         | **1 web, ~76 mobile**          | Mobile underreported                         |
+| 9 onboarding gates     | **10** (+AlwaysLocation 04-22) | +1                                           |
+| 2 Zod `.strict()`      | **1**                          | Over-reported                                |
+| 10 direct createClient | **0**                          | Resolved                                     |
+| 5 apps                 | **4**                          | Over-reported                                |
+
+**Resolved since 04-16 (no longer in priority list):**
+
+- ✅ `contractor_locations.SELECT` RLS scoped (migration `20260416223651`)
+- ✅ `contractor-documents` + `job-attachments` buckets flipped private (migration `20260416223952`)
+- ✅ `user_notification_preferences` table created (migration `20260417000616`)
+- ✅ Notification `data` column bug in `bid-acceptance` + `refunds/[id]` (fixed in
+  NotificationService)
+- ✅ Public bucket broad-listing on avatars/portfolio/profile-images (migration `20260417001856`)
+- ✅ Web `BeforeAfterSlider` added to homeowner approval flow
+- ✅ Web + mobile notification inbox Realtime subscriptions wired
+- ✅ Mobile `BackgroundLocationTask` side-effect imported in `App.tsx`
+- ✅ 7 security PRs shipped 04-22 (XFF spoof, CSRF timing-safe, JWT algo pin, logger redaction
+  expanded, Zod `.strict()` on updateProfile, CSP nonce scaffold, ML-ops tables admin-only,
+  training-images bucket scoped, Android `allowBackup=false`, chunked SecureStore, screen-capture
+  guards on 8 auth/payment screens)
+- ✅ Mint AI v2 deployed to Modal — 78% damageType accuracy, 98% pipe_leak, shadow mode wired
+- ✅ Mobile HIBP parity via `/api/auth/check-password-breach` endpoint
 
 ### 2026-04-17 — Audit Remediation Sprint (16-item run)
 
@@ -262,17 +399,22 @@ npm run build 2>&1
 
 ### HARD LIMITS (NO EXCEPTIONS):
 
-| Metric                    | Maximum     | Current State (2026-02-26)                          | Priority |
-| ------------------------- | ----------- | --------------------------------------------------- | -------- |
-| File size                 | 300 lines   | 905 lines max (0 files >1K; ~8 files 800-905 lines) | MEDIUM   |
-| Function size             | 50 lines    | 200-400+ line route handlers remain                 | MEDIUM   |
-| Class methods             | 7           | Still large in some services                        | MEDIUM   |
-| `any` types (source)      | 0           | ~26 occurrences / 21 files                          | MEDIUM   |
-| console.\* (app code)     | 0           | ~27 total (7 web, 20 mobile)                        | LOW      |
-| Web test suites           | 80% pass    | ~97% (~178/183) — Vitest v4                         | OK       |
-| Mobile test coverage      | 80% pass    | 93.8% (9,743/10,393)                                | OK       |
-| withApiHandler            | 100% routes | 93.5% (290/310; 20 intentional exceptions)          | OK       |
-| Supabase canonical import | 100% files  | ~98% (10 files use direct createClient)             | HIGH     |
+| Metric                    | Maximum     | Current State (2026-04-23)                             | Priority |
+| ------------------------- | ----------- | ------------------------------------------------------ | -------- |
+| File size                 | 300 lines   | 704 lines max (0 files >1K; ~15 web + 15 mobile >500)  | MEDIUM   |
+| Function size             | 50 lines    | 200-400+ line route handlers remain                    | MEDIUM   |
+| Class methods             | 7           | Still large in some services                           | MEDIUM   |
+| `any` types (web source)  | 0           | ~0 in pages (excl. test mocks)                         | OK       |
+| `any` types (mobile)      | 0           | ~169 (services + tests)                                | MEDIUM   |
+| console.\* (web app code) | 0           | 1 (`admin/retention/error.tsx:14`)                     | LOW      |
+| console.\* (mobile)       | 0           | ~76                                                    | MEDIUM   |
+| Hex literals (web)        | 0           | 625+ across 117 files (design-tokens adoption partial) | MEDIUM   |
+| Web test suites           | 80% pass    | ~97% (~178/183) — Vitest v4                            | OK       |
+| Mobile test coverage      | 80% pass    | 93.8% (9,743/10,393)                                   | OK       |
+| withApiHandler            | 100% routes | 92.3% (374/405; 4 legit exceptions + 28 cron handlers) | OK       |
+| Supabase canonical import | 100% files  | 100% (0 direct createClient in source)                 | OK       |
+| Zod `.strict()` schemas   | 100%        | 1 / 112 (updateProfileSchema only)                     | MEDIUM   |
+| RLS coverage              | 100%        | 99.7% (330/331; `spatial_ref_sys` ecosystem-blocked)   | OK       |
 
 ## SECTION 3: MANDATORY SUB-AGENT USAGE RULES
 
