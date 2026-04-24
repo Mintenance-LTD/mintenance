@@ -104,6 +104,11 @@ const KNOWN_LARGE_FILES = new Set([
   // filter chips, form, and full StyleSheet — split is a dedicated
   // P2, not a blocker on the FAB redundancy fix.
   'apps/mobile/src/screens/contractor/ExpensesScreen.tsx', // 681 lines (was 678)
+  // Added 2026-04-24: JobDetailsScreen was 576 lines before the 4-line
+  // comment + icon-color swap that fixes the hero back/share button
+  // contrast on the gray placeholder gradient. Split is a dedicated
+  // P2 — the file bundles the full view + all hero overlays.
+  'apps/mobile/src/screens/job-details/JobDetailsScreen.tsx', // 581 lines
 ]);
 
 function countLines(filePath) {

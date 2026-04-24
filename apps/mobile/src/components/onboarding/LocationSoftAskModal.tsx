@@ -89,7 +89,7 @@ export const LocationSoftAskModal: React.FC<LocationSoftAskModalProps> = ({
 
           <Text style={styles.subtitle}>
             {isDenied
-              ? 'Location is turned off for Mintenance. To see nearby jobs and appear on the homeowner map, enable it in Settings.'
+              ? 'Location is turned off for Mintenance. Enable it in Settings to see jobs near you and get matched based on your area.'
               : 'Allow location access while you use the app — we only read your location when Mintenance is open.'}
           </Text>
 

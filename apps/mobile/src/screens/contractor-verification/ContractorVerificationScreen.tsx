@@ -280,7 +280,7 @@ export const ContractorVerificationScreen: React.FC<
             <Text style={styles.infoBannerText}>
               {isVerified
                 ? 'Your business is verified — edits will be re-reviewed.'
-                : 'Verified contractors appear on the homeowner map and get 3x more job opportunities'}
+                : 'Verified contractors get priority placement in homeowner search and 3x more job opportunities'}
             </Text>
           </View>
         </View>
@@ -317,8 +317,8 @@ export const ContractorVerificationScreen: React.FC<
               numberOfLines={3}
             />
             <Text style={styles.helpText}>
-              This address will be used to show your location on the homeowner
-              map
+              This address is used to match you with nearby jobs and appears to
+              homeowners who view your profile
             </Text>
           </View>
 
