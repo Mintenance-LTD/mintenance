@@ -330,14 +330,28 @@ export async function getFinancialSummary(
       context
     );
 
-    const monthlyRevenue = await getMonthlyRevenue(contractorId, 12);
+    // Parallelize the five independent Supabase round-trips. Previously
+    // these ran sequentially, so total latency was the SUM of every
+    // query — producing the user-reported "this screen is very slow to
+    // load". They have no data dependencies on each other; only the
+    // two sync calculations below depend on monthlyRevenue.
+    const [
+      monthlyRevenue,
+      invoicesSummary,
+      profitTrends,
+      taxObligations,
+      cashFlowForecast,
+    ] = await Promise.all([
+      getMonthlyRevenue(contractorId, 12),
+      getInvoicesSummary(contractorId),
+      getProfitTrends(contractorId, 6),
+      calculateTaxObligations(contractorId),
+      generateCashFlowForecast(contractorId, 8),
+    ]);
+
     const quarterlyGrowth = calculateQuarterlyGrowth(monthlyRevenue);
     const yearlyProjection = projectYearlyRevenue(monthlyRevenue);
-    const { outstandingInvoices, overdueAmount } =
-      await getInvoicesSummary(contractorId);
-    const profitTrends = await getProfitTrends(contractorId, 6);
-    const taxObligations = await calculateTaxObligations(contractorId);
-    const cashFlowForecast = await generateCashFlowForecast(contractorId, 8);
+    const { outstandingInvoices, overdueAmount } = invoicesSummary;
 
     return {
       monthly_revenue: monthlyRevenue,

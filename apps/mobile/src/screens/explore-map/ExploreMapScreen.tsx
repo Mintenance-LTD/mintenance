@@ -101,7 +101,11 @@ const CarouselCard: React.FC<{
       : amt
         ? formatCurrency(amt)
         : 'TBD';
-  const catKey = job.category.toLowerCase();
+  // Null-safe toLowerCase: a job row with category=NULL would crash the
+  // whole map (TypeError propagates up FlatList into MapView) — which
+  // is one candidate cause of the user-reported "every time I click
+  // Find Jobs the app crashes".
+  const catKey = (job.category ?? 'general').toLowerCase();
   const catMarker = CATEGORY_MARKERS[catKey] ??
     CATEGORY_MARKERS.general ?? { icon: 'construct' as const, bg: '#6B7280' };
 
@@ -237,8 +241,23 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({
         )}
 
         {viewModel.jobs.map((job) => {
+          // Defensive guards — any of these can crash react-native-maps
+          // mid-render: null category → TypeError on toLowerCase(),
+          // NaN/undefined lat-lng → native Marker throws on coord parse.
+          // Skipping an invalid row is preferable to crashing the whole
+          // Find Jobs tab.
+          const lat =
+            typeof job.latitude === 'number' && Number.isFinite(job.latitude)
+              ? job.latitude
+              : null;
+          const lng =
+            typeof job.longitude === 'number' && Number.isFinite(job.longitude)
+              ? job.longitude
+              : null;
+          if (lat === null || lng === null) return null;
           const isSelected = viewModel.selectedJob?.id === job.id;
-          const cat = CATEGORY_MARKERS[job.category.toLowerCase()] ??
+          const catKey = (job.category ?? 'general').toLowerCase();
+          const cat = CATEGORY_MARKERS[catKey] ??
             CATEGORY_MARKERS.general ?? {
               icon: 'construct' as const,
               bg: '#6B7280',
@@ -248,7 +267,7 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({
           return (
             <Marker
               key={job.id}
-              coordinate={{ latitude: job.latitude, longitude: job.longitude }}
+              coordinate={{ latitude: lat, longitude: lng }}
               onPress={() => {
                 viewModel.handleJobSelect(job);
                 const index = viewModel.jobs.findIndex((j) => j.id === job.id);
