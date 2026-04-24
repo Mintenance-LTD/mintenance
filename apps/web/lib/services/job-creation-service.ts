@@ -209,10 +209,18 @@ export class JobCreationService {
         : null;
     if (!email) return;
 
+    // Audit P2 (2026-04-23): the previous `.ilike('email', email...)`
+    // was case-insensitive but interpreted `%`/`_` in the input as
+    // LIKE wildcards. A homeowner setting `tenancy_metadata.payer_email
+    // = '%@gmail.com'` could enumerate Gmail-using profiles via the
+    // returned id. `.eq()` removes the wildcard interpretation
+    // entirely. Live DB scan (2026-04-25) confirmed 10/10 profiles
+    // have lowercase emails, so case-insensitivity is no longer
+    // required — emails are normalized at insert time elsewhere.
     const { data: profile } = await serverSupabase
       .from('profiles')
       .select('id')
-      .ilike('email', email.trim().toLowerCase())
+      .eq('email', email.trim().toLowerCase())
       .maybeSingle();
     if (profile?.id) {
       payload.payer_user_id = profile.id as string;

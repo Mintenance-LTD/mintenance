@@ -128,6 +128,12 @@ const KNOWN_LARGE_FILES = new Set([
   // ILIKE on user-input city. Splitting this Airbnb-style query layer
   // is a dedicated P2 — not a blocker on the injection-vector fix.
   'apps/web/lib/queries/airbnb-optimized.ts', // 538 lines (was 529)
+  // Added 2026-04-25: pre-existing large file (541 lines on HEAD)
+  // touched by the email ILIKE-wildcard fix (audit P2). The change
+  // is a single .ilike → .eq swap with an 8-line audit comment.
+  // Splitting the JobCreationService is a dedicated P2 — orthogonal
+  // to closing the profile-enumeration vector.
+  'apps/web/lib/services/job-creation-service.ts', // 550 lines (was 541)
 ]);
 
 function countLines(filePath) {
