@@ -3,6 +3,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { rateLimiter, checkAIUserRateLimit } from '@/lib/rate-limiter';
 import { sanitizeText } from '@/lib/sanitizer';
+import { sanitizeIlikePattern } from '@/lib/utils/sanitize-postgrest';
 import type { SearchFilters } from '@mintenance/ai-core';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { getAppUrl } from '@/lib/env';
@@ -240,10 +241,12 @@ async function fullTextSearchJobs(
   limit: number
 ): Promise<SearchResult[]> {
   try {
-    const sanitizedQuery = query
-      .replace(/[^a-zA-Z0-9\s\-']/g, '')
-      .substring(0, 200)
-      .trim();
+    // Audit P2 (2026-04-23): swapped inline regex for the shared
+    // sanitizeIlikePattern helper. Net effect identical (same charset,
+    // same trim) but the cap moves to 80 chars (helper default) which
+    // is fine for full-text search input. ALSO: filters.location was
+    // unsanitized below — same PostgREST-DSL injection vector.
+    const sanitizedQuery = sanitizeIlikePattern(query, 200);
 
     if (!sanitizedQuery) return [];
 
@@ -257,8 +260,12 @@ async function fullTextSearchJobs(
 
     if (filters.category)
       queryBuilder = queryBuilder.eq('category', filters.category);
-    if (filters.location)
-      queryBuilder = queryBuilder.ilike('location', `%${filters.location}%`);
+    if (filters.location) {
+      const safeLocation = sanitizeIlikePattern(filters.location);
+      if (safeLocation) {
+        queryBuilder = queryBuilder.ilike('location', `%${safeLocation}%`);
+      }
+    }
     if (filters.priceRange?.min !== undefined)
       queryBuilder = queryBuilder.gte('budget', filters.priceRange.min);
     if (filters.priceRange?.max !== undefined)
@@ -304,10 +311,10 @@ async function fullTextSearchContractors(
   limit: number
 ): Promise<SearchResult[]> {
   try {
-    const sanitizedQuery = query
-      .replace(/[^a-zA-Z0-9\s\-']/g, '')
-      .substring(0, 200)
-      .trim();
+    // Audit P2 (2026-04-23): same swap as fullTextSearchJobs above —
+    // share the helper instead of inlining the regex twice. Also
+    // sanitize filters.location which was a real injection vector.
+    const sanitizedQuery = sanitizeIlikePattern(query, 200);
 
     if (!sanitizedQuery) return [];
 
@@ -320,8 +327,12 @@ async function fullTextSearchContractors(
       )
       .limit(limit);
 
-    if (filters.location)
-      queryBuilder = queryBuilder.ilike('location', `%${filters.location}%`);
+    if (filters.location) {
+      const safeLocation = sanitizeIlikePattern(filters.location);
+      if (safeLocation) {
+        queryBuilder = queryBuilder.ilike('location', `%${safeLocation}%`);
+      }
+    }
     if (filters.rating !== undefined)
       queryBuilder = queryBuilder.gte('rating', filters.rating);
 

@@ -122,6 +122,12 @@ const KNOWN_LARGE_FILES = new Set([
   // split-as-a-P2 candidates — not a blocker on the nav cleanup.
   'apps/web/app/dashboard/components/ProfessionalHomeownerLayout.tsx', // 592 lines
   'apps/web/components/ui/EmptyStateEducational.tsx', // 645 lines
+  // Added 2026-04-25: pre-existing large file (529 lines on HEAD)
+  // touched by the sanitize-postgrest adoption sweep (audit P2). The
+  // change adds a 5-line safeLocation guard around an unsanitized
+  // ILIKE on user-input city. Splitting this Airbnb-style query layer
+  // is a dedicated P2 — not a blocker on the injection-vector fix.
+  'apps/web/lib/queries/airbnb-optimized.ts', // 538 lines (was 529)
 ]);
 
 function countLines(filePath) {

@@ -1,6 +1,7 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { resignJobStorageUrls } from '@/lib/api/job-storage';
+import { sanitizeIlikePattern } from '@/lib/utils/sanitize-postgrest';
 import type { JobDetail, JobSummary, User } from '@mintenance/types';
 
 interface AssessmentData {
@@ -254,7 +255,18 @@ export class JobQueryService {
     }
 
     if (search) {
-      query = query.or(`title.ilike.%${search}%,description.ilike.%${search}%`);
+      // Audit P2 (2026-04-23): the previous template literal interpolated
+      // user-controlled `search` directly into the PostgREST OR-DSL string,
+      // letting an attacker inject extra `.or()` clauses via a comma
+      // (e.g. `foo,status.eq.cancelled`) to read jobs they shouldn't see,
+      // or wildcard the whole table with `%%%`. Sanitize first; skip the
+      // filter entirely if nothing usable survives.
+      const safeSearch = sanitizeIlikePattern(search);
+      if (safeSearch) {
+        query = query.or(
+          `title.ilike.%${safeSearch}%,description.ilike.%${safeSearch}%`
+        );
+      }
     }
 
     if (category) {
