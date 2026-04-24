@@ -25,6 +25,13 @@ export interface Contractor {
   profile_image_url?: string;
   admin_verified?: boolean;
   license_number?: string;
+  // Surfaced on the bid card so the homeowner can weigh quality
+  // alongside price/verification before accepting. `rating` is on
+  // profiles; `reviews_count` is computed at page-load by counting
+  // public.reviews where reviewee_id = contractor.id.
+  rating?: number;
+  reviews_count?: number;
+  total_jobs_completed?: number;
 }
 
 /* ==========================================

@@ -24,6 +24,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { ScreenHeader } from '../../components/shared';
 import { usePaymentMethodsViewModel } from './viewmodels/PaymentMethodsViewModel';
+import { useAuth } from '../../contexts/AuthContext';
 // PaymentMethodOption removed - only Stripe cards are supported
 import type { NavigationProp } from '@react-navigation/native';
 import { theme } from '../../theme';
@@ -43,6 +44,13 @@ export const PaymentMethodsScreen: React.FC<PaymentMethodsScreenProps> = ({
   navigation,
 }) => {
   const vm = usePaymentMethodsViewModel();
+  const { user } = useAuth();
+  // Role-specific purpose copy so the screen isn't a blank
+  // "Your Cards" page with no explanation of what the cards are for.
+  const purposeCopy =
+    user?.role === 'contractor'
+      ? 'Used for your Mintenance subscription, DBS checks, and any platform fees. Homeowner escrow payouts go through your Stripe Connect account (set up under Business → Payouts).'
+      : 'Used to pay into escrow when you accept a contractor\u2019s bid. Payment is held by Mintenance until you approve the finished work.';
 
   const handleDeleteCard = (cardId: string, last4: string) => {
     Alert.alert('Remove Card', `Remove card ending in ${last4}?`, [
@@ -84,6 +92,19 @@ export const PaymentMethodsScreen: React.FC<PaymentMethodsScreenProps> = ({
           />
         }
       >
+        {/* Purpose banner — role-specific copy so homeowner vs
+            contractor understand what the cards are for. */}
+        <View style={styles.purposeBanner}>
+          <View style={styles.purposeIconWrap}>
+            <Ionicons
+              name='information-circle-outline'
+              size={18}
+              color={theme.colors.primary}
+            />
+          </View>
+          <Text style={styles.purposeText}>{purposeCopy}</Text>
+        </View>
+
         {/* Saved Cards */}
         <Text style={styles.sectionTitle}>Your Cards</Text>
 
@@ -185,6 +206,29 @@ export const PaymentMethodsScreen: React.FC<PaymentMethodsScreenProps> = ({
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
   content: { flex: 1, padding: 20 },
+  purposeBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    backgroundColor: theme.colors.primaryLight,
+    borderRadius: 14,
+    padding: 12,
+    marginTop: 12,
+  },
+  purposeIconWrap: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: theme.colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  purposeText: {
+    flex: 1,
+    fontSize: 12,
+    lineHeight: 17,
+    color: theme.colors.textPrimary,
+  },
   sectionTitle: {
     fontSize: 15,
     fontWeight: '600',
