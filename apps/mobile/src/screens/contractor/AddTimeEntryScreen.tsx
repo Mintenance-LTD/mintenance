@@ -157,10 +157,10 @@ export const AddTimeEntryScreen: React.FC<Props> = ({ navigation }) => {
           </View>
 
           <Text style={[styles.fieldLabel, { marginTop: 16 }]}>
-            Hourly Rate (\u00A3)
+            Hourly Rate (£)
           </Text>
           <View style={styles.inputRow}>
-            <Text style={styles.inputPrefix}>\u00A3</Text>
+            <Text style={styles.inputPrefix}>£</Text>
             <TextInput
               style={[styles.input, styles.inputSmall]}
               placeholder='0.00'
@@ -175,7 +175,7 @@ export const AddTimeEntryScreen: React.FC<Props> = ({ navigation }) => {
             <View style={styles.totalRow}>
               <Text style={styles.totalLabel}>Estimated total</Text>
               <Text style={styles.totalValue}>
-                \u00A3
+                £
                 {(
                   parseFloat(hours || '0') * parseFloat(hourlyRate || '0')
                 ).toFixed(2)}

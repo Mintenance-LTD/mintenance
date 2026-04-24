@@ -98,6 +98,12 @@ const KNOWN_LARGE_FILES = new Set([
   // on the two-line conditional that stops the redundant title
   // re-entry.
   'apps/mobile/src/screens/job-posting/QuickJobPostScreen.tsx', // 666 lines (was 655)
+  // Added 2026-04-24: ExpensesScreen was 678 lines before the 3-line
+  // gate (`&& filtered.length > 0`) that hides the FAB on empty state.
+  // File bundles query/mutation, undo-delete snackbar, stats row,
+  // filter chips, form, and full StyleSheet — split is a dedicated
+  // P2, not a blocker on the FAB redundancy fix.
+  'apps/mobile/src/screens/contractor/ExpensesScreen.tsx', // 681 lines (was 678)
 ]);
 
 function countLines(filePath) {

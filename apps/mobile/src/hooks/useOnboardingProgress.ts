@@ -283,12 +283,30 @@ export function useOnboardingProgress(): OnboardingProgress {
         fetchProfileBits(user.id, user.role),
         getPushPermissionGranted(),
       ]);
+      // Fallback for the "Add a profile photo" step. When the
+      // Supabase client's session and the Mintenance custom-JWT
+      // session are out of sync, RLS silently blocks the profiles
+      // SELECT and bits.profile_image_url stays null — which was
+      // producing the user-reported "Add a profile photo" showing
+      // as incomplete on Home despite the photo being set in
+      // profiles.profile_image_url (and visible on Edit Profile).
+      // The authenticated user object already carries the URL, so
+      // use it as a secondary source of truth.
+      const userRec = user as unknown as Record<string, unknown>;
+      if (!nextBits.profile_image_url) {
+        const fallback =
+          (userRec.profile_image_url as string | undefined) ??
+          (userRec.profileImageUrl as string | undefined) ??
+          (userRec.avatar_url as string | undefined) ??
+          null;
+        if (fallback) nextBits.profile_image_url = fallback;
+      }
       setBits(nextBits);
       setPushGranted(nextPush);
     } finally {
       setLoading(false);
     }
-  }, [user?.id, user?.role]);
+  }, [user?.id, user?.role, user]);
 
   useEffect(() => {
     let cancelled = false;
