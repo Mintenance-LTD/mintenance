@@ -42,7 +42,7 @@ export const POST = withApiHandler(
             metadata: {
               jobId,
               contractorId,
-              ip: request.headers.get('x-forwarded-for') || undefined,
+              ip: getClientIp(request),
             },
           }
         );
@@ -454,7 +454,7 @@ export const POST = withApiHandler(
       const errorResponse = createPaymentErrorResponse(error, {
         operation: 'create_payment_intent',
         userId: user.id,
-        ip: request.headers.get('x-forwarded-for') || undefined,
+        ip: getClientIp(request),
       });
 
       return NextResponse.json(
