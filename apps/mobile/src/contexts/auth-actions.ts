@@ -233,6 +233,17 @@ export const performSignUp = async (
       });
       addBreadcrumb(`New user registered: ${newUser.email}`, 'auth');
 
+      // Audit P0 (2026-04-23): persistent `user_push_tokens = 0` in
+      // production. The signUp flow never invoked push registration —
+      // only signIn / restoreSession / signInWithBiometrics did. New
+      // users had to wait until their next sign-in to even attempt
+      // token registration. Silent path inside still bails when
+      // `existingStatus !== 'granted'`, so the actual permission
+      // grant must come from PushSoftAskModal — but at least the
+      // attempt fires once permission lands without requiring a
+      // sign-out / sign-in cycle.
+      initializePushNotifications(newUser.id);
+
       if (
         biometricAuth.biometricAvailable &&
         authSession?.access_token &&
