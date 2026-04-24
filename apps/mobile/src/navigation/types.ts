@@ -130,7 +130,9 @@ export type ProfileStackParamList = {
   NotificationSettings: undefined;
   PaymentMethods: undefined;
   AddPaymentMethod: undefined;
-  AddPaymentMethodV2: undefined;
+  // AddPaymentMethodV2: removed 2026-04-25. V2 became the canonical
+  // AddPaymentMethod screen — the legacy raw-CardField implementation
+  // was the only thing that needed the V2 disambiguator.
   // ContractorPayouts: removed — Payouts in BusinessNavigator handles this
   HelpCenter: undefined;
   InvoiceManagement: undefined;

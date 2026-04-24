@@ -9,7 +9,6 @@ import {
   SafeNotificationSettingsScreen,
   SafePaymentMethodsScreen,
   SafeAddPaymentMethodScreen,
-  SafeAddPaymentMethodV2Screen,
   SafeHelpCenterScreen,
   SafePropertiesScreen,
   SafePropertyDetailScreen,
@@ -104,11 +103,10 @@ const ProfileNavigator = () => {
         component={SafeAddPaymentMethodScreen}
         options={{ headerShown: false }}
       />
-      <ProfileStack.Screen
-        name='AddPaymentMethodV2'
-        component={SafeAddPaymentMethodV2Screen}
-        options={{ headerShown: false }}
-      />
+      {/* AddPaymentMethodV2 route: removed 2026-04-25 — V2 was the canonical
+          implementation but PaymentMethodsScreen was navigating to the
+          legacy V1. Legacy file deleted, V2 renamed to canonical name,
+          this duplicate route entry no longer needed. */}
       {/* ContractorPayouts: removed — Payouts route in BusinessNavigator handles this */}
       <ProfileStack.Screen
         name='HelpCenter'
