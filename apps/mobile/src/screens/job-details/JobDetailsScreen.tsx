@@ -202,7 +202,9 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           </View>
         )}
 
-        {/* Back button overlay */}
+        {/* Back button overlay — white icon on dark-semi-transparent
+            fill so it reads on both the photo hero and the light
+            gradient placeholder. */}
         <TouchableOpacity
           style={[styles.backButton, { top: insets.top + 8 }]}
           onPress={() => navigation.goBack()}
@@ -212,11 +214,11 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           <Ionicons
             name='arrow-back'
             size={24}
-            color={theme.colors.textPrimary}
+            color={theme.colors.textInverse}
           />
         </TouchableOpacity>
 
-        {/* Share button overlay */}
+        {/* Share button overlay — same contrast treatment as back. */}
         <TouchableOpacity
           style={[styles.shareButton, { top: insets.top + 8 }]}
           onPress={() => {
@@ -230,7 +232,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           <Ionicons
             name='share-outline'
             size={22}
-            color={theme.colors.textPrimary}
+            color={theme.colors.textInverse}
           />
         </TouchableOpacity>
 
@@ -504,12 +506,22 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           {/* Timeline — always visible */}
           <TouchableOpacity
             style={styles.quickActionRow}
-            onPress={() => navigation.navigate('JobTimeline', { jobId: job.id })}
+            onPress={() =>
+              navigation.navigate('JobTimeline', { jobId: job.id })
+            }
             accessibilityRole='button'
           >
-            <Ionicons name='time-outline' size={20} color={theme.colors.textSecondary} />
+            <Ionicons
+              name='time-outline'
+              size={20}
+              color={theme.colors.textSecondary}
+            />
             <Text style={styles.quickActionText}>View Timeline</Text>
-            <Ionicons name='chevron-forward' size={18} color={theme.colors.textTertiary} />
+            <Ionicons
+              name='chevron-forward'
+              size={18}
+              color={theme.colors.textTertiary}
+            />
           </TouchableOpacity>
 
           {/* Edit job — homeowner, only if posted */}
@@ -519,35 +531,74 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
               onPress={() => navigation.navigate('JobEdit', { jobId: job.id })}
               accessibilityRole='button'
             >
-              <Ionicons name='create-outline' size={20} color={theme.colors.textSecondary} />
+              <Ionicons
+                name='create-outline'
+                size={20}
+                color={theme.colors.textSecondary}
+              />
               <Text style={styles.quickActionText}>Edit Job</Text>
-              <Ionicons name='chevron-forward' size={18} color={theme.colors.textTertiary} />
+              <Ionicons
+                name='chevron-forward'
+                size={18}
+                color={theme.colors.textTertiary}
+              />
             </TouchableOpacity>
           )}
 
           {/* Sign-off — homeowner, when completed but not yet confirmed */}
-          {isOwner && job.status === 'completed' && !(job as CTAContext['job']).completion_confirmed_by_homeowner && (
-            <TouchableOpacity
-              style={styles.quickActionRow}
-              onPress={() => navigation.navigate('JobSignOff', { jobId: job.id })}
-              accessibilityRole='button'
-            >
-              <Ionicons name='checkmark-done-outline' size={20} color={theme.colors.primary} />
-              <Text style={styles.quickActionText}>Approve / Request Changes</Text>
-              <Ionicons name='chevron-forward' size={18} color={theme.colors.textTertiary} />
-            </TouchableOpacity>
-          )}
+          {isOwner &&
+            job.status === 'completed' &&
+            !(job as CTAContext['job']).completion_confirmed_by_homeowner && (
+              <TouchableOpacity
+                style={styles.quickActionRow}
+                onPress={() =>
+                  navigation.navigate('JobSignOff', { jobId: job.id })
+                }
+                accessibilityRole='button'
+              >
+                <Ionicons
+                  name='checkmark-done-outline'
+                  size={20}
+                  color={theme.colors.primary}
+                />
+                <Text style={styles.quickActionText}>
+                  Approve / Request Changes
+                </Text>
+                <Ionicons
+                  name='chevron-forward'
+                  size={18}
+                  color={theme.colors.textTertiary}
+                />
+              </TouchableOpacity>
+            )}
 
           {/* Dispute — either party, when in_progress or completed */}
           {(job.status === 'in_progress' || job.status === 'completed') && (
             <TouchableOpacity
               style={styles.quickActionRow}
-              onPress={() => navigation.navigate('Dispute', { jobId: job.id, jobTitle: job.title })}
+              onPress={() =>
+                navigation.navigate('Dispute', {
+                  jobId: job.id,
+                  jobTitle: job.title,
+                })
+              }
               accessibilityRole='button'
             >
-              <Ionicons name='warning-outline' size={20} color={theme.colors.error} />
-              <Text style={[styles.quickActionText, { color: theme.colors.error }]}>Report a Problem</Text>
-              <Ionicons name='chevron-forward' size={18} color={theme.colors.textTertiary} />
+              <Ionicons
+                name='warning-outline'
+                size={20}
+                color={theme.colors.error}
+              />
+              <Text
+                style={[styles.quickActionText, { color: theme.colors.error }]}
+              >
+                Report a Problem
+              </Text>
+              <Ionicons
+                name='chevron-forward'
+                size={18}
+                color={theme.colors.textTertiary}
+              />
             </TouchableOpacity>
           )}
         </View>

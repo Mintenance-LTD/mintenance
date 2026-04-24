@@ -1,6 +1,13 @@
-import React from "react";
-import { View, Text, TouchableOpacity, Image, StyleSheet, Platform } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Image,
+  StyleSheet,
+  Platform,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../theme';
 
 interface PhotoSectionProps {
@@ -12,28 +19,48 @@ interface PhotoSectionProps {
 }
 
 export const PhotoSection: React.FC<PhotoSectionProps> = ({
-  photoUri, firstName, lastName, profileImageUrl, onPickPhoto,
+  photoUri,
+  firstName,
+  lastName,
+  profileImageUrl,
+  onPickPhoto,
 }) => {
-  const initials = `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase();
+  const initials =
+    `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase();
+  const activeUri = photoUri || profileImageUrl;
+  // If the upstream photo URL 404s (stale bucket URL, expired signed
+  // link, etc.) React Native's <Image> renders nothing / a broken
+  // icon by default. Track load errors so we gracefully fall back
+  // to the initials placeholder the same way the no-url path does.
+  const [imageFailed, setImageFailed] = useState(false);
+  // Reset the failed flag whenever the URL itself changes so a
+  // freshly picked photo gets a chance to load.
+  useEffect(() => {
+    setImageFailed(false);
+  }, [activeUri]);
 
   return (
     <View style={styles.photoSection}>
       <TouchableOpacity
         style={styles.avatarContainer}
         onPress={onPickPhoto}
-        accessibilityRole="button"
-        accessibilityLabel="Change profile photo"
+        accessibilityRole='button'
+        accessibilityLabel='Change profile photo'
         activeOpacity={0.8}
       >
-        {(photoUri || profileImageUrl) ? (
-          <Image source={{ uri: photoUri || profileImageUrl }} style={styles.avatar} />
+        {activeUri && !imageFailed ? (
+          <Image
+            source={{ uri: activeUri }}
+            style={styles.avatar}
+            onError={() => setImageFailed(true)}
+          />
         ) : (
           <View style={styles.avatarPlaceholder}>
             <Text style={styles.avatarText}>{initials}</Text>
           </View>
         )}
         <View style={styles.photoEditButton}>
-          <Ionicons name="camera" size={16} color={theme.colors.textInverse} />
+          <Ionicons name='camera' size={16} color={theme.colors.textInverse} />
         </View>
       </TouchableOpacity>
       <TouchableOpacity onPress={onPickPhoto} style={styles.changePhotoButton}>
@@ -45,12 +72,12 @@ export const PhotoSection: React.FC<PhotoSectionProps> = ({
 
 const styles = StyleSheet.create({
   photoSection: {
-    alignItems: "center",
+    alignItems: 'center',
     paddingVertical: 24,
     paddingBottom: 16,
   },
   avatarContainer: {
-    position: "relative",
+    position: 'relative',
     marginBottom: 12,
   },
   avatar: {
@@ -60,7 +87,12 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderColor: theme.colors.surface,
     ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 12 },
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.12,
+        shadowRadius: 12,
+      },
       android: { elevation: 4 },
     }),
   },
@@ -69,30 +101,35 @@ const styles = StyleSheet.create({
     height: 96,
     borderRadius: 48,
     backgroundColor: theme.colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 3,
     borderColor: theme.colors.surface,
     ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.12, shadowRadius: 12 },
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.12,
+        shadowRadius: 12,
+      },
       android: { elevation: 4 },
     }),
   },
   avatarText: {
     fontSize: 32,
-    fontWeight: "700",
+    fontWeight: '700',
     color: theme.colors.textInverse,
   },
   photoEditButton: {
-    position: "absolute",
+    position: 'absolute',
     bottom: 2,
     right: 2,
     width: 30,
     height: 30,
     borderRadius: 15,
     backgroundColor: theme.colors.primary,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 2,
     borderColor: theme.colors.surface,
   },
@@ -103,6 +140,6 @@ const styles = StyleSheet.create({
   changePhotoText: {
     fontSize: 14,
     color: theme.colors.primary,
-    fontWeight: "600",
+    fontWeight: '600',
   },
 });

@@ -103,7 +103,9 @@ export default async function JobDetailPage2025({
         profile_image_url,
         admin_verified,
         company_name,
-        license_number
+        license_number,
+        rating,
+        total_jobs_completed
       ),
       quote:contractor_quotes!quote_id (
         id,
@@ -147,6 +149,22 @@ export default async function JobDetailPage2025({
     });
   }
 
+  // Fetch review counts per contractor in one round-trip so the bid
+  // card can show "4.5 ★ (12 reviews)" instead of just the rating
+  // number. Mirrors the mobile BidReviewCard which already renders
+  // reviews_count; web was showing only avatar + name + amount.
+  const reviewCountMap = new Map<string, number>();
+  if (contractorIds.length > 0) {
+    const { data: reviewRows } = await serverSupabase
+      .from('reviews')
+      .select('reviewee_id')
+      .in('reviewee_id', contractorIds);
+    for (const row of reviewRows ?? []) {
+      const id = row.reviewee_id as string | null;
+      if (id) reviewCountMap.set(id, (reviewCountMap.get(id) || 0) + 1);
+    }
+  }
+
   // Process bids (WFE-P1-3: drop bids whose contractor relationship is null
   // so downstream components never receive `contractor: null` and crash on
   // deep access like `bid.contractor.first_name`).
@@ -173,7 +191,11 @@ export default async function JobDetailPage2025({
 
       return {
         ...bid,
-        contractor: { ...contractor, portfolioImages },
+        contractor: {
+          ...contractor,
+          portfolioImages,
+          reviews_count: reviewCountMap.get(contractor.id) || 0,
+        },
         lineItems,
       };
     })

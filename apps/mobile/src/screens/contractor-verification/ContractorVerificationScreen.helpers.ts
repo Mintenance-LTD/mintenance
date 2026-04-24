@@ -51,11 +51,15 @@ export const LICENSE_TYPE_OPTIONS: ReadonlyArray<{
   { value: 'other', label: 'Other' },
 ];
 
+// No homeowner-facing contractor map exists in the app today, so
+// the earlier "Show up on homeowner map" bullet was misleading.
+// These benefits describe what verification ACTUALLY unlocks: the
+// trust badge on the profile card, priority placement in search
+// (which homeowners DO use), and the general trust signal.
 export const VERIFICATION_BENEFITS = [
-  'Show up on homeowner map with location pin',
-  'Get "Verified" badge on your profile',
+  'Get a "Verified" badge on your profile',
+  'Priority placement in homeowner search',
   '3x more visibility to homeowners',
-  'Priority in search results',
   'Build trust with potential clients',
 ];
 

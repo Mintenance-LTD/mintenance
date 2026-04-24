@@ -98,6 +98,23 @@ const KNOWN_LARGE_FILES = new Set([
   // on the two-line conditional that stops the redundant title
   // re-entry.
   'apps/mobile/src/screens/job-posting/QuickJobPostScreen.tsx', // 666 lines (was 655)
+  // Added 2026-04-24: ExpensesScreen was 678 lines before the 3-line
+  // gate (`&& filtered.length > 0`) that hides the FAB on empty state.
+  // File bundles query/mutation, undo-delete snackbar, stats row,
+  // filter chips, form, and full StyleSheet — split is a dedicated
+  // P2, not a blocker on the FAB redundancy fix.
+  'apps/mobile/src/screens/contractor/ExpensesScreen.tsx', // 681 lines (was 678)
+  // Added 2026-04-24: JobDetailsScreen was 576 lines before the 4-line
+  // comment + icon-color swap that fixes the hero back/share button
+  // contrast on the gray placeholder gradient. Split is a dedicated
+  // P2 — the file bundles the full view + all hero overlays.
+  'apps/mobile/src/screens/job-details/JobDetailsScreen.tsx', // 581 lines
+  // Added 2026-04-24: PropertyAssessmentScreen grew from 501 to 510
+  // lines via the Mint AI wiring (triggerAIAnalysis fire-and-forget
+  // + success-message branching). Split is a dedicated P2 — the file
+  // bundles the 5-step wizard, photo grid, review summary, and
+  // submit handler.
+  'apps/mobile/src/screens/assessment/PropertyAssessmentScreen.tsx', // 510 lines (was 501)
 ]);
 
 function countLines(filePath) {

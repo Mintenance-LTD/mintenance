@@ -21,6 +21,8 @@ import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import { supabase } from '../../config/supabase';
+import { PaymentService } from '../../services/PaymentService';
+import { logger } from '../../utils/logger';
 import { theme } from '../../theme';
 import type { SubscriptionPlan, SubscriptionStatus } from './types';
 import { getFeatureStrings } from './types';
@@ -222,7 +224,57 @@ export const SubscriptionScreen: React.FC = () => {
     },
   });
 
-  const handleSubscribe = (planType: string) => {
+  const handleSubscribe = async (planType: string) => {
+    // Free tier — no card required, just subscribe.
+    if (planType === 'free') {
+      Alert.alert('Subscribe', `Subscribe to the ${planType} plan?`, [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Subscribe',
+          onPress: () => subscribeMutation.mutate(planType),
+        },
+      ]);
+      return;
+    }
+
+    // Paid tiers — contractor pays a monthly subscription to Mintenance
+    // via Stripe, which requires a saved card on their Stripe customer.
+    // Pre-check so we don't bounce the user to a generic "Payment
+    // Required" alert after the /subscriptions/create call — instead,
+    // route them straight to Payment Methods to add a card first.
+    let hasCard = false;
+    try {
+      const result = await PaymentService.getPaymentMethods();
+      hasCard = (result.methods || []).some((m) => m.type === 'card');
+    } catch (err) {
+      // If the fetch fails (preview env missing STRIPE_SECRET_KEY, or
+      // transient network blip), let the backend respond — it returns
+      // requiresPayment:true and the existing alert path handles it.
+      logger.warn('Failed to pre-check payment methods before subscribe', {
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+
+    if (!hasCard) {
+      Alert.alert(
+        'Payment Method Required',
+        `The ${planType} plan is a monthly subscription. Add a card to continue.`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Add Card',
+            onPress: () =>
+              (
+                navigation as unknown as {
+                  navigate: (screen: string) => void;
+                }
+              ).navigate('PaymentMethods'),
+          },
+        ]
+      );
+      return;
+    }
+
     Alert.alert('Subscribe', `Subscribe to the ${planType} plan?`, [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Subscribe', onPress: () => subscribeMutation.mutate(planType) },

@@ -18,23 +18,28 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  // The hero overlay buttons sit on top of either a job photo
+  // (dark-ish) or the placeholder gray gradient (light-ish). A
+  // white-90% circle disappears against the latter — user flagged
+  // both back + share as "hard to read". A dark semi-transparent
+  // fill with a white icon (Airbnb-pattern) reads on both.
   backButton: {
     position: 'absolute',
     left: 12,
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.9)',
+    backgroundColor: 'rgba(0,0,0,0.45)',
     alignItems: 'center',
     justifyContent: 'center',
     ...Platform.select({
       ios: {
         shadowColor: '#000000',
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
+        shadowOpacity: 0.2,
         shadowRadius: 10,
       },
-      android: { elevation: 2 },
+      android: { elevation: 3 },
     }),
   },
   shareButton: {
@@ -43,17 +48,17 @@ export const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.9)',
+    backgroundColor: 'rgba(0,0,0,0.45)',
     alignItems: 'center',
     justifyContent: 'center',
     ...Platform.select({
       ios: {
         shadowColor: '#000000',
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
+        shadowOpacity: 0.2,
         shadowRadius: 10,
       },
-      android: { elevation: 2 },
+      android: { elevation: 3 },
     }),
   },
 

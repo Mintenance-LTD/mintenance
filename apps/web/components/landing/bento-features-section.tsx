@@ -78,8 +78,9 @@ export function BentoFeaturesSection() {
                 </h3>
                 <p className='text-xl text-white/90 mb-6 leading-relaxed max-w-xl'>
                   Upload property photos and receive instant damage assessment
-                  with cost estimates. Detects 71 damage types automatically
-                  with 95%+ accuracy.
+                  with cost estimates. Trained on thousands of UK building
+                  defects &mdash; 98% accuracy on pipe leaks, fast results on
+                  cracks, damp, mould and more.
                 </p>
               </div>
 

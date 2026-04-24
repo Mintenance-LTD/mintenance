@@ -4,6 +4,7 @@ import { logger } from '@mintenance/shared';
 import { z } from 'zod';
 import { BadRequestError } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { resignJobStorageUrls } from '@/lib/api/job-storage';
 
 const statusSchema = z.enum(['active', 'bid', 'completed', 'all']).optional();
 
@@ -167,7 +168,9 @@ export const GET = withApiHandler(
       }
 
       return NextResponse.json({
-        jobs: (jobs || []).map((job: JobApiResponse) => transformJob(job)),
+        jobs: await attachSignedPhotos(
+          (jobs || []).map((job: JobApiResponse) => transformJob(job))
+        ),
       });
     } else {
       // Get jobs assigned to contractor or filter by status
@@ -196,8 +199,29 @@ export const GET = withApiHandler(
       }
 
       return NextResponse.json({
-        jobs: (jobs || []).map((job: JobApiResponse) => transformJob(job)),
+        jobs: await attachSignedPhotos(
+          (jobs || []).map((job: JobApiResponse) => transformJob(job))
+        ),
       });
     }
   }
 );
+
+// Re-sign Job-storage URLs in-place so mobile/web list views don't
+// render broken gray thumbnails when a row was saved with a legacy
+// `public` URL (the bucket flipped `public=false` on 2026-04-17). The
+// helper leaves non-Job-storage URLs alone, so seeded external CDN
+// images pass through untouched. Deferred from f507c639 —
+// landed now that the list-endpoint pattern is stable.
+async function attachSignedPhotos<T extends { photos: string[] }>(
+  jobs: T[]
+): Promise<T[]> {
+  await Promise.all(
+    jobs.map(async (job) => {
+      if (job.photos.length > 0) {
+        job.photos = await resignJobStorageUrls(job.photos);
+      }
+    })
+  );
+  return jobs;
+}

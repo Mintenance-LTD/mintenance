@@ -2,14 +2,14 @@
  * YOLO Class Names Loader
  *
  * Loads class names from data.yaml file for mapping class indices to names.
- * This matches the 71 classes defined in "Building Defect Detection 7.v2i.yolov11/data.yaml"
+ * This matches the 70 classes defined in "Building Defect Detection 7.v2i.yolov11/data.yaml"
  */
 
 import { logger } from '@mintenance/shared';
 
 /**
  * Default class names (from data.yaml)
- * These are the 71 classes for building defect detection
+ * These are the 70 classes for building defect detection
  */
 const DEFAULT_CLASS_NAMES = [
   'bare_electrical_wire',
