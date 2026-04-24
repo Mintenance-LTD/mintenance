@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -21,51 +21,55 @@ import { ScreenHeader } from '../../components/shared';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
-import { mobileApiClient } from '../../utils/mobileApiClient';
 import type { RootStackParamList } from '../../navigation/types';
 import { theme } from '../../theme';
-
-interface AnalysisResult {
-  damageType: string;
-  /** 4-tier severity: early, developing, significant, dangerous */
-  severity: 'early' | 'developing' | 'significant' | 'dangerous';
-  estimatedCostMin: number;
-  estimatedCostMax: number;
-  recommendedActions: string[];
-  category: string;
-  confidence: number;
-}
+import { analyzeWithMintAI, type AnalysisResult } from './analyzeWithMintAI';
 
 export const AIAssessmentScreen: React.FC = () => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const { t } = useTranslation();
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [result, setResult] = useState<AnalysisResult | null>(null);
+  // Tracks how long the current analysis has been running. Mint AI on
+  // scale-to-zero infra has a ~60-90s cold start on the first request of
+  // the day; we update the label after 10s / 30s so the user understands
+  // the wait is expected behaviour, not a stuck request.
+  const [analysisElapsedMs, setAnalysisElapsedMs] = useState(0);
 
   const analyzeMutation = useMutation({
-    mutationFn: async (uri: string) => {
-      const formData = new FormData();
-      formData.append('photo', {
-        uri,
-        type: 'image/jpeg',
-        name: 'assessment.jpg',
-      } as unknown as Blob);
-
-      return mobileApiClient.postFormData<{ analysis: AnalysisResult }>(
-        '/api/ai/analyze',
-        formData
-      );
-    },
+    // Routes through /api/building-surveyor/assess → AssessmentGenerator
+    // → Mint AI (shadow mode) + GPT-4o fallback. See analyzeWithMintAI.ts.
+    mutationFn: analyzeWithMintAI,
     onSuccess: (data) => {
-      setResult(data.analysis);
+      setResult(data);
     },
     onError: (err: Error) => {
+      const isAuth =
+        err.message?.includes('401') ||
+        err.message?.toLowerCase().includes('unauthorized');
       Alert.alert(
-        'Analysis Failed',
-        err.message || 'Could not analyze the image. Please try again.'
+        isAuth ? 'Session Expired' : 'Analysis Failed',
+        isAuth
+          ? 'Please sign in again to run an AI assessment.'
+          : err.message || 'Could not analyze the image. Please try again.'
       );
     },
   });
+
+  // Tick the elapsed counter every second while analysis is pending.
+  // Declared AFTER analyzeMutation so we don't hit a TDZ on the
+  // `analyzeMutation.isPending` read (previous ordering tripped strict tsc).
+  useEffect(() => {
+    if (!analyzeMutation.isPending) {
+      setAnalysisElapsedMs(0);
+      return;
+    }
+    const started = Date.now();
+    const interval = setInterval(() => {
+      setAnalysisElapsedMs(Date.now() - started);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [analyzeMutation.isPending]);
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -189,7 +193,13 @@ export const AIAssessmentScreen: React.FC = () => {
             {analyzeMutation.isPending && (
               <Card variant='elevated' padding='md' style={styles.loadingCard}>
                 <Ionicons name='sparkles' size={24} color='#8B5CF6' />
-                <Text style={styles.loadingText}>Analyzing image...</Text>
+                <Text style={styles.loadingText}>
+                  {analysisElapsedMs < 10_000
+                    ? 'Analyzing image...'
+                    : analysisElapsedMs < 30_000
+                      ? 'Still analyzing — first request of the session takes longer...'
+                      : 'Warming up the AI (this only happens once per hour) — hang on...'}
+                </Text>
               </Card>
             )}
 

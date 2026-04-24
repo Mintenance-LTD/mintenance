@@ -29,6 +29,7 @@ import { PropertyInfoForm } from './PropertyAssessmentScreen/PropertyInfoForm';
 import { PhotosGrid } from './PropertyAssessmentScreen/PhotosGrid';
 import { ReviewSummary } from './PropertyAssessmentScreen/ReviewSummary';
 import { uploadPhotosToStorage } from './PropertyAssessmentScreen/uploadPhotos';
+import { triggerAIAnalysis } from './PropertyAssessmentScreen/triggerAIAnalysis';
 import { useAssessmentLocation } from './PropertyAssessmentScreen/useAssessmentLocation';
 
 interface Props {
@@ -331,8 +332,9 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({
       }
 
       // Upload photos and save references
+      let uploadedUrls: string[] = [];
       if (photos.length > 0 && assessment?.id) {
-        const uploadedUrls = await uploadPhotosToStorage(photos, assessment.id);
+        uploadedUrls = await uploadPhotosToStorage(photos, assessment.id);
         if (uploadedUrls.length > 0) {
           const imageInserts = uploadedUrls.map((url, idx) => ({
             assessment_id: assessment.id,
@@ -349,9 +351,26 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({
         userId: user.id,
       });
 
+      // Kick off Mint AI analysis in the background. Fire-and-forget — the
+      // user doesn't wait. Analysis takes ~10-60s; when it completes, the
+      // assessment row gets enriched with real damage_type, severity,
+      // confidence, and a full AI breakdown stored in assessment_data.
+      // See triggerAIAnalysis.ts for the contract and failure handling.
+      if (assessment?.id && uploadedUrls.length > 0) {
+        void triggerAIAnalysis(assessment.id, uploadedUrls, {
+          propertyId: propertyId || undefined,
+          propertyType: propertyInfo.propertyType,
+          domain: 'building',
+          gps: gpsLocation,
+          roomMetadata,
+        });
+      }
+
       Alert.alert(
         'Assessment Submitted',
-        'Your property assessment has been saved and will be reviewed.',
+        uploadedUrls.length > 0
+          ? 'Your assessment is saved. AI analysis runs in the background — results will appear on this assessment shortly.'
+          : 'Your property assessment has been saved and will be reviewed.',
         [{ text: 'OK', onPress: () => navigation.goBack() }]
       );
     } catch (error) {

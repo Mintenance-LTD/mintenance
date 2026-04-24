@@ -84,7 +84,10 @@ async function uploadModelToStorage() {
   console.log('===========================================\n');
 
   // Validate environment variables
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  if (
+    !process.env.NEXT_PUBLIC_SUPABASE_URL ||
+    !process.env.SUPABASE_SERVICE_ROLE_KEY
+  ) {
     console.error('❌ Missing required environment variables');
     process.exit(1);
   }
@@ -96,7 +99,7 @@ async function uploadModelToStorage() {
       auth: {
         persistSession: false,
         autoRefreshToken: false,
-      }
+      },
     }
   );
 
@@ -111,7 +114,7 @@ async function uploadModelToStorage() {
       join(__dirname, '..', 'apps', 'web', 'models', basename(modelPath)),
     ];
 
-    const foundPath = alternativePaths.find(p => existsSync(p));
+    const foundPath = alternativePaths.find((p) => existsSync(p));
     if (foundPath) {
       modelPath = foundPath;
     } else {
@@ -133,10 +136,11 @@ async function uploadModelToStorage() {
     console.log(`📊 File size: ${fileSizeMB} MB`);
     console.log(`🔐 Checksum: ${checksum.substring(0, 16)}...`);
 
-    const modelName = values.name as string || 'yolov11';
-    const modelVersion = values.version as string || '1.0';
-    const description = values.description as string ||
-      `YOLO11n building defect detection model (71 classes) - Uploaded via Storage`;
+    const modelName = (values.name as string) || 'yolov11';
+    const modelVersion = (values.version as string) || '1.0';
+    const description =
+      (values.description as string) ||
+      `YOLO11n building defect detection model (70 classes) - Uploaded via Storage`;
 
     // Storage path convention: models/{name}/{version}/model.onnx
     const storagePath = `models/${modelName}/${modelVersion}/model.onnx`;
@@ -152,14 +156,20 @@ async function uploadModelToStorage() {
 
     if (fileSize > LARGE_FILE_THRESHOLD) {
       console.log(`   ⚠️  Large file detected (${fileSizeMB} MB)`);
-      console.log(`   Supabase has a default 50MB upload limit for direct uploads.`);
-      console.log(`   Please increase the upload limit in your Supabase project settings:`);
+      console.log(
+        `   Supabase has a default 50MB upload limit for direct uploads.`
+      );
+      console.log(
+        `   Please increase the upload limit in your Supabase project settings:`
+      );
       console.log(`   1. Go to Project Settings > Storage`);
       console.log(`   2. Increase "Global file size limit" to at least 100MB`);
       console.log(`   3. Or use S3 protocol for large file uploads`);
-      console.log(`   \n   Attempting upload anyway (may fail if limit not increased)...\n`);
+      console.log(
+        `   \n   Attempting upload anyway (may fail if limit not increased)...\n`
+      );
     }
-    
+
     {
       // Use standard upload for smaller files
       const result = await supabase.storage
@@ -172,7 +182,7 @@ async function uploadModelToStorage() {
 
       uploadData = result.data;
       uploadError = result.error;
-      
+
       if (!uploadError) {
         console.log('✅ Upload successful!');
       }
@@ -204,8 +214,10 @@ async function uploadModelToStorage() {
     console.log('\n📝 Updating database record...');
 
     // Normalize version format (ensure it starts with 'v')
-    const normalizedVersion = modelVersion.startsWith('v') ? modelVersion : `v${modelVersion}`;
-    
+    const normalizedVersion = modelVersion.startsWith('v')
+      ? modelVersion
+      : `v${modelVersion}`;
+
     // Check if model already exists by version (unique field)
     const { data: existingModel } = await supabase
       .from('yolo_models')
@@ -300,11 +312,15 @@ async function uploadModelToStorage() {
       .download(storagePath);
 
     if (downloadError) {
-      throw new Error(`Verification failed - cannot download: ${downloadError.message}`);
+      throw new Error(
+        `Verification failed - cannot download: ${downloadError.message}`
+      );
     }
 
     const downloadedBuffer = Buffer.from(await downloadData.arrayBuffer());
-    const downloadedChecksum = createHash('sha256').update(downloadedBuffer).digest('hex');
+    const downloadedChecksum = createHash('sha256')
+      .update(downloadedBuffer)
+      .digest('hex');
 
     if (downloadedChecksum === checksum) {
       console.log('✅ Verification successful - checksums match!');
@@ -321,7 +337,6 @@ async function uploadModelToStorage() {
     console.log('   3. Set YOLO_LOAD_FROM_DATABASE=true');
     console.log(`   4. Set YOLO_DATABASE_MODEL_NAME=${modelName}`);
     console.log('   5. Restart your application');
-
   } catch (error) {
     console.error('\n❌ Upload failed:', error.message);
     console.error('\nStack trace:', error.stack);

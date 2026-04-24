@@ -109,6 +109,12 @@ const KNOWN_LARGE_FILES = new Set([
   // contrast on the gray placeholder gradient. Split is a dedicated
   // P2 — the file bundles the full view + all hero overlays.
   'apps/mobile/src/screens/job-details/JobDetailsScreen.tsx', // 581 lines
+  // Added 2026-04-24: PropertyAssessmentScreen grew from 501 to 510
+  // lines via the Mint AI wiring (triggerAIAnalysis fire-and-forget
+  // + success-message branching). Split is a dedicated P2 — the file
+  // bundles the 5-step wizard, photo grid, review summary, and
+  // submit handler.
+  'apps/mobile/src/screens/assessment/PropertyAssessmentScreen.tsx', // 510 lines (was 501)
 ]);
 
 function countLines(filePath) {

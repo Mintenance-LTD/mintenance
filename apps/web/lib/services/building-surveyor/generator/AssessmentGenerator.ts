@@ -188,10 +188,16 @@ export async function callMintAiVLM(
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'mint-ai-vlm',
+        // `mint-ai-served` is the LoRA module name configured in the Modal
+        // vLLM server (scripts/vlm-training/modal_serve.py). Must match.
+        model: 'mint-ai-served',
         messages,
-        max_tokens: 2000,
-        temperature: 0.1,
+        max_tokens: 1500,
+        temperature: 0.2,
+        // frequency_penalty=0.5 prevents the repetition loop observed in v1
+        // diagnostic testing, where the model emitted the same detection 30+
+        // times filling max_tokens. Confirmed safe via smoke tests on v2.
+        frequency_penalty: 0.5,
         response_format: { type: 'json_object' },
       }),
     },
