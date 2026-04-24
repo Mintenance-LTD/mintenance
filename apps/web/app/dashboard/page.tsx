@@ -16,6 +16,7 @@ import {
 } from './lib/data-processing';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { fetchNotificationFeed } from '@/lib/notifications/feed';
+import { resignJobStorageUrls } from '@/lib/api/job-storage';
 
 export const metadata: Metadata = {
   title: 'Dashboard | Mintenance',
@@ -130,12 +131,25 @@ export default async function DashboardPage2025() {
     .select('job_id, progress_percentage')
     .in('job_id', jobIds);
 
-  // Create lookup maps for O(1) access
-  const photoMap = new Map<string, string>();
+  // Create lookup maps for O(1) access. Re-sign Job-storage URLs in
+  // batch so stale `public` URLs don't 404 after the 2026-04-17 bucket
+  // flip — same pattern as /api/contractor/my-jobs. External CDN URLs
+  // pass through untouched.
+  const rawPhotoUrls: string[] = [];
+  const photoOrder: string[] = []; // job_id order, 1:1 with rawPhotoUrls
+  const firstPhotoByJob = new Map<string, string>();
   allJobPhotos?.forEach((photo) => {
-    if (!photoMap.has(photo.job_id)) {
-      photoMap.set(photo.job_id, photo.file_url);
+    if (!firstPhotoByJob.has(photo.job_id)) {
+      firstPhotoByJob.set(photo.job_id, photo.file_url);
+      rawPhotoUrls.push(photo.file_url);
+      photoOrder.push(photo.job_id);
     }
+  });
+  const signedPhotoUrls = await resignJobStorageUrls(rawPhotoUrls);
+  const photoMap = new Map<string, string>();
+  photoOrder.forEach((jobId, idx) => {
+    const signed = signedPhotoUrls[idx];
+    if (signed) photoMap.set(jobId, signed);
   });
 
   const bidCountMap = new Map<string, number>();

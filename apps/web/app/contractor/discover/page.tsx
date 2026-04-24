@@ -2,6 +2,7 @@ import { getCurrentUserFromCookies } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { ContractorDiscoverClient } from './components/ContractorDiscoverClient';
+import { resignJobStorageUrls } from '@/lib/api/job-storage';
 import { logger } from '@mintenance/shared';
 
 interface Job {
@@ -34,7 +35,13 @@ export const metadata = {
 
 // Calculate match score based on various factors
 function calculateMatchScore(
-  job: { category?: string | null; property?: { address?: string } | null; budget?: number; priority?: string | null; created_at: string },
+  job: {
+    category?: string | null;
+    property?: { address?: string } | null;
+    budget?: number;
+    priority?: string | null;
+    created_at: string;
+  },
   contractorSkills: string[],
   contractorCity: string | null
 ): number {
@@ -43,8 +50,10 @@ function calculateMatchScore(
   // Category/skill match (40 points max)
   if (job.category && contractorSkills.length > 0) {
     const categoryLower = job.category.toLowerCase();
-    const hasMatchingSkill = contractorSkills.some(skill =>
-      categoryLower.includes(skill.toLowerCase()) || skill.toLowerCase().includes(categoryLower)
+    const hasMatchingSkill = contractorSkills.some(
+      (skill) =>
+        categoryLower.includes(skill.toLowerCase()) ||
+        skill.toLowerCase().includes(categoryLower)
     );
     if (hasMatchingSkill) {
       score += 40;
@@ -66,8 +75,10 @@ function calculateMatchScore(
 
   // Budget alignment (15 points max)
   if (job.budget) {
-    if (job.budget >= 5000) score += 15; // High value jobs
-    else if (job.budget >= 1000) score += 10; // Medium value
+    if (job.budget >= 5000)
+      score += 15; // High value jobs
+    else if (job.budget >= 1000)
+      score += 10; // Medium value
     else score += 5; // Lower value
   }
 
@@ -93,20 +104,21 @@ export default async function ContractorDiscoverPage2025() {
   }
 
   // Fetch contractor's skills and location in parallel
-  const [contractorSkillsResponse, contractorProfileResponse] = await Promise.all([
-    serverSupabase
-      .from('contractor_skills')
-      .select('skill_name')
-      .eq('contractor_id', user.id),
-    serverSupabase
-      .from('profiles')
-      .select('city, address, postcode, latitude, longitude')
-      .eq('id', user.id)
-      .single(),
-  ]);
+  const [contractorSkillsResponse, contractorProfileResponse] =
+    await Promise.all([
+      serverSupabase
+        .from('contractor_skills')
+        .select('skill_name')
+        .eq('contractor_id', user.id),
+      serverSupabase
+        .from('profiles')
+        .select('city, address, postcode, latitude, longitude')
+        .eq('id', user.id)
+        .single(),
+    ]);
 
   const contractorSkills =
-    contractorSkillsResponse.data?.map(s => s.skill_name) || [];
+    contractorSkillsResponse.data?.map((s) => s.skill_name) || [];
   const contractorCity = contractorProfileResponse.data?.city || null;
   const contractorLocation = contractorProfileResponse.data || null;
 
@@ -153,24 +165,39 @@ export default async function ContractorDiscoverPage2025() {
 
   // Fetch homeowner data separately for better error handling
   const jobsWithDetails = await Promise.all(
-    (jobs || []).map(async job => {
+    (jobs || []).map(async (job) => {
       const homeownerResponse = await serverSupabase
         .from('profiles')
         .select('first_name, last_name, profile_image_url, rating')
         .eq('id', job.homeowner_id)
         .single();
 
-      // Resolve photo URLs: prefer jobs.photos (legacy), fall back to job_attachments
-      const attachmentPhotos = (job.job_attachments as { file_url: string; file_type: string }[] | null)
-        ?.filter(a => a.file_type === 'image')
-        .map(a => a.file_url) ?? [];
-      const resolvedPhotos =
-        (job.photos && job.photos.length > 0)
+      // Resolve photo URLs: prefer jobs.photos (legacy), fall back to
+      // job_attachments. Re-sign every URL through resignJobStorageUrls
+      // so stale `public` URLs become fresh signed URLs post the
+      // 2026-04-17 Job-storage bucket flip. External CDN URLs (legacy
+      // seed data) pass through unchanged.
+      const attachmentPhotos =
+        (
+          job.job_attachments as
+            | { file_url: string; file_type: string }[]
+            | null
+        )
+          ?.filter((a) => a.file_type === 'image')
+          .map((a) => a.file_url) ?? [];
+      const rawPhotos =
+        job.photos && job.photos.length > 0
           ? job.photos
-          : attachmentPhotos.length > 0 ? attachmentPhotos : null;
+          : attachmentPhotos.length > 0
+            ? attachmentPhotos
+            : null;
+      const resolvedPhotos = rawPhotos
+        ? await resignJobStorageUrls(rawPhotos)
+        : null;
 
       // Extract bid count from embedded aggregate
-      const bidCount = (job.bids as { count: number }[] | null)?.[0]?.count ?? 0;
+      const bidCount =
+        (job.bids as { count: number }[] | null)?.[0]?.count ?? 0;
 
       return {
         ...job,
@@ -178,14 +205,21 @@ export default async function ContractorDiscoverPage2025() {
         priority: job.priority || null,
         photos: resolvedPhotos,
         bidCount,
-        homeowner: homeownerResponse.data ? {
-          ...homeownerResponse.data,
-          rating: homeownerResponse.data.rating || null
-        } : null,
-        property: job.location ? {
-          address: job.location,
-          postcode: job.location.match(/[A-Z]{1,2}[0-9][A-Z0-9]? ?[0-9][A-Z]{2}/gi)?.[0] || ''
-        } : null,
+        homeowner: homeownerResponse.data
+          ? {
+              ...homeownerResponse.data,
+              rating: homeownerResponse.data.rating || null,
+            }
+          : null,
+        property: job.location
+          ? {
+              address: job.location,
+              postcode:
+                job.location.match(
+                  /[A-Z]{1,2}[0-9][A-Z0-9]? ?[0-9][A-Z]{2}/gi
+                )?.[0] || '',
+            }
+          : null,
       };
     })
   );
@@ -205,7 +239,7 @@ export default async function ContractorDiscoverPage2025() {
 
   const bidJobIds = new Set(
     existingBids
-      ?.filter(bid => {
+      ?.filter((bid) => {
         // Always hide jobs with active bids
         if (bid.status === 'pending' || bid.status === 'accepted') {
           return true;
@@ -213,7 +247,9 @@ export default async function ContractorDiscoverPage2025() {
 
         // For rejected bids, only hide if within 48h cooldown period
         if (bid.status === 'rejected') {
-          const rejectionTime = new Date(bid.updated_at || bid.created_at).getTime();
+          const rejectionTime = new Date(
+            bid.updated_at || bid.created_at
+          ).getTime();
           const timeSinceRejection = now - rejectionTime;
           return timeSinceRejection < REJECTION_COOLDOWN_MS; // Hide if within 48h
         }
@@ -221,13 +257,13 @@ export default async function ContractorDiscoverPage2025() {
         // Don't filter out other statuses (withdrawn, expired, etc.)
         return false;
       })
-      .map(b => b.job_id) || []
+      .map((b) => b.job_id) || []
   );
 
   // Calculate match scores and filter
   const availableJobs: Job[] = jobsWithDetails
-    .filter(job => !bidJobIds.has(job.id))
-    .map(job => ({
+    .filter((job) => !bidJobIds.has(job.id))
+    .map((job) => ({
       ...job,
       matchScore: calculateMatchScore(job, contractorSkills, contractorCity),
     }))

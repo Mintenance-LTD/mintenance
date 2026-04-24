@@ -1,5 +1,6 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { resignJobStorageUrls } from '@/lib/api/job-storage';
 import type { JobDetail, JobSummary, User } from '@mintenance/types';
 
 interface AssessmentData {
@@ -146,7 +147,15 @@ export class JobQueryService {
     })[];
     nextCursor?: string;
   }> {
-    const query = this.buildJobQuery(user, params.status, params.propertyId, params.search, params.category, params.minBudget, params.maxBudget);
+    const query = this.buildJobQuery(
+      user,
+      params.status,
+      params.propertyId,
+      params.search,
+      params.category,
+      params.minBudget,
+      params.maxBudget
+    );
     const { rows, nextCursor } = await this.fetchJobs(
       query,
       params.limit,
@@ -161,7 +170,13 @@ export class JobQueryService {
         this.fetchAssessments(jobIds),
       ]);
 
-    const items = rows.map((row) => {
+    // Build raw photos arrays per job, then re-sign every Job-storage
+    // URL in one batch. Stale `public` URLs returned after the
+    // 2026-04-17 bucket flip would otherwise render as gray thumbnails
+    // on every list view that calls this service (web /jobs,
+    // /contractor/jobs via /api/jobs, web/mobile JobService callers).
+    // External CDN URLs pass through resignJobStorageUrls untouched.
+    const rawItems = rows.map((row) => {
       const jobAttachments = attachmentsByJobId.get(row.id) || [];
       const photos = jobAttachments
         .filter((att) => att.file_type === 'image')
@@ -169,12 +184,26 @@ export class JobQueryService {
       const viewCount = viewCountsByJobId.get(row.id) || 0;
       const jobSummary = mapRowToJobSummary(row);
       const aiAssessment = assessmentsByJobId.get(row.id) || null;
-
       return {
-        ...jobSummary,
-        photos: photos.length > 0 ? photos : undefined,
-        view_count: viewCount > 0 ? viewCount : undefined,
-        ai_assessment: aiAssessment,
+        jobSummary,
+        photos,
+        viewCount,
+        aiAssessment,
+      };
+    });
+    const allRawPhotos = rawItems.flatMap((i) => i.photos);
+    const allSignedPhotos = await resignJobStorageUrls(allRawPhotos);
+    // Re-chunk the flat signed array back per-item using the same
+    // slice offsets we implicitly built when flattening.
+    let offset = 0;
+    const items = rawItems.map((i) => {
+      const signed = allSignedPhotos.slice(offset, offset + i.photos.length);
+      offset += i.photos.length;
+      return {
+        ...i.jobSummary,
+        photos: signed.length > 0 ? signed : undefined,
+        view_count: i.viewCount > 0 ? i.viewCount : undefined,
+        ai_assessment: i.aiAssessment,
       };
     });
 
