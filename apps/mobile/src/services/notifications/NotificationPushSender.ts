@@ -263,64 +263,140 @@ export async function savePushToken(
 // Sending push notifications
 // ---------------------------------------------------------------------------
 //
-// SECURITY (2026-04-21 audit, P0):
+// SECURITY (2026-04-21 audit, P0 — replaced 2026-04-24):
 //
-// The previous implementation fetched another user's push token via
-// `/api/notifications?action=get_push_token&user_id=<uuid>` and then POSTed
-// directly to `https://exp.host/--/api/v2/push/send`. That endpoint has no
-// recipient-auth, so any authenticated Mintenance user could have
-// enumerated UUIDs and sent arbitrary push payloads to other users — a
-// cross-user phishing primitive.
+// Original flaw (pre-2026-04-21): the implementation fetched another
+// user's push token via `/api/notifications?action=get_push_token&user_id=...`
+// then POSTed directly to `https://exp.host/--/api/v2/push/send`. That
+// let any authenticated Mintenance user enumerate UUIDs and send
+// arbitrary push payloads to anyone — a cross-user phishing primitive.
 //
-// The `get_push_token` API action does not exist on the web (the client
-// call has been silently no-op'ing), so this is "dead code that reads
-// as broken" rather than an actively exploitable hole today. Still
-// stubbing the functions so:
-//   (a) the attack surface is PERMANENTLY removed — future devs can't
-//       re-enable by restoring the server action;
-//   (b) the signature stays stable so callers (CallNotifier,
-//       NotificationServiceExample) keep compiling;
-//   (c) a warning breadcrumb makes the no-op visible in Sentry so the
-//       replacement server-side channel is obvious when it's built.
+// Interim fix (2026-04-21): both senders stubbed to no-op so the attack
+// surface was removed. This also silently dropped legitimate CTA pushes
+// (video-call invitations from CallNotifier, new-bid / new-message
+// prompts). Tracked as audit P1 item #13.
 //
-// Server-side replacement path (to be built separately):
-//   POST /api/notifications/send  → server-side NotificationService
-//   resolves the recipient's stored push token from user_push_tokens
-//   (RLS-guarded) and uses the Expo server-side API. Clients never
-//   touch another user's token.
+// Current implementation (2026-04-24 — this file): forwards to the
+// server-side endpoint `POST /api/notifications/send`, which:
+//   1. Re-authenticates the caller (session cookie or bearer token)
+//   2. Verifies caller has a legitimate business relationship with the
+//      recipient (shared video_calls row, job, or bid)
+//   3. Runs the full NotificationService.createNotification() pipeline
+//      server-side — user_notification_preferences, quiet hours, Expo
+//      push, retry queue
+// The client never touches another user's push token. A 403 from the
+// endpoint means the sender has no legitimate reason to push to the
+// target and the client logs the refusal instead of retrying.
+
+const DEFAULT_NOTIFICATION_TYPE: NotificationData['type'] = 'system';
+
+async function dispatchPushViaServer(
+  recipientId: string,
+  title: string,
+  body: string,
+  data: unknown,
+  type: NotificationData['type']
+): Promise<void> {
+  try {
+    const response = await mobileApiClient.post<{
+      success: boolean;
+      notificationId: string | null;
+      suppressed?: boolean;
+    }>('/api/notifications/send', {
+      recipientId,
+      type,
+      title,
+      body,
+      data: isRecord(data) ? data : undefined,
+    });
+
+    if (response.suppressed) {
+      addBreadcrumb('Push send suppressed by recipient preferences', 'info', {
+        recipientId,
+        type,
+      });
+      return;
+    }
+
+    addBreadcrumb('Push send dispatched', 'info', {
+      recipientId,
+      type,
+      notificationId: response.notificationId ?? undefined,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    // 403 means "no business relationship" — caller should not have
+    // attempted this send. Log as warning so it surfaces in Sentry but
+    // does not pollute error dashboards.
+    const isForbidden = /\b403\b/.test(message);
+    if (isForbidden) {
+      logger.warn(
+        '[push-sender] server refused push — no business relationship with recipient',
+        { recipientId, type, title }
+      );
+      addBreadcrumb('Push send refused (403)', 'warning', {
+        recipientId,
+        type,
+      });
+      return;
+    }
+    logger.error('[push-sender] server push dispatch failed', error, {
+      recipientId,
+      type,
+    });
+    addBreadcrumb('Push send dispatch failed', 'error', {
+      recipientId,
+      type,
+      error: message,
+    });
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
 
 export async function sendPushNotification(
   userId: string,
   title: string,
-  _body: string,
-  _data?: unknown,
-  type: NotificationData['type'] = 'system'
+  body: string,
+  data?: unknown,
+  type: NotificationData['type'] = DEFAULT_NOTIFICATION_TYPE
 ): Promise<void> {
-  logger.warn(
-    '[push-sender] client-side sendPushNotification is a no-op (2026-04-21 ' +
-      'security fix). Route the send through a server endpoint that looks up ' +
-      "the recipient's token from user_push_tokens.",
-    { userId, type, title }
-  );
-  addBreadcrumb('Client-side push send refused', 'warning', {
-    userId,
-    type,
-  });
+  if (!userId) {
+    logger.warn('[push-sender] sendPushNotification skipped — missing userId', {
+      type,
+      title,
+    });
+    return;
+  }
+  await dispatchPushViaServer(userId, title, body, data, type);
 }
 
 export async function sendBulkNotification(
   userIds: string[],
   title: string,
-  _body: string,
-  _data?: unknown,
-  type: NotificationData['type'] = 'system'
+  body: string,
+  data?: unknown,
+  type: NotificationData['type'] = DEFAULT_NOTIFICATION_TYPE
 ): Promise<void> {
-  logger.warn(
-    '[push-sender] client-side sendBulkNotification is a no-op (2026-04-21 ' +
-      'security fix). See sendPushNotification for rationale.',
-    { userCount: userIds.length, type, title }
-  );
-  addBreadcrumb('Client-side bulk push send refused', 'warning', {
+  if (userIds.length === 0) return;
+
+  // Fan-out serially so one failure doesn't abort the batch — each
+  // dispatchPushViaServer already swallows its own errors. Small
+  // concurrency cap (5) to avoid bursting past the endpoint's 30/min
+  // rate limit for a caller fan-out to a meeting with many guests.
+  const BATCH_SIZE = 5;
+  for (let i = 0; i < userIds.length; i += BATCH_SIZE) {
+    const batch = userIds.slice(i, i + BATCH_SIZE);
+    await Promise.all(
+      batch.map((recipientId) =>
+        dispatchPushViaServer(recipientId, title, body, data, type)
+      )
+    );
+  }
+
+  addBreadcrumb('Bulk push dispatch completed', 'info', {
     userCount: userIds.length,
     type,
   });
