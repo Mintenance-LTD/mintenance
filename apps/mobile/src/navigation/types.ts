@@ -136,7 +136,26 @@ export type ProfileStackParamList = {
   // ContractorPayouts: removed — Payouts in BusinessNavigator handles this
   HelpCenter: undefined;
   InvoiceManagement: undefined;
-  CreateInvoice: { invoiceId?: string } | undefined;
+  // CreateInvoice can be opened blank, in edit mode (`invoiceId`), or
+  // pre-filled from time-tracking (`initialLineItems`). The two pre-fill
+  // modes are mutually exclusive but the type doesn't enforce that —
+  // CreateInvoiceScreen prefers `invoiceId` if both are passed.
+  CreateInvoice:
+    | {
+        invoiceId?: string;
+        // Audit P1 #14 (2026-04-25): wired from TimeTrackingScreen so a
+        // contractor can pre-fill an invoice from their billable hours.
+        initialLineItems?: {
+          description: string;
+          quantity: string;
+          rate: string;
+        }[];
+        // Optional contextual prefill — sourced from the most-tracked
+        // job in the time-entry aggregate.
+        clientName?: string;
+        jobRef?: string;
+      }
+    | undefined;
   InvoiceDetail: { invoiceId: string };
   CRMDashboard: undefined;
   AddClient: undefined;

@@ -134,6 +134,12 @@ const KNOWN_LARGE_FILES = new Set([
   // Splitting the JobCreationService is a dedicated P2 — orthogonal
   // to closing the profile-enumeration vector.
   'apps/web/lib/services/job-creation-service.ts', // 550 lines (was 541)
+  // Added 2026-04-25: TimeTrackingScreen grew from 489 → 547 lines via
+  // the Time-Tracking → Invoice bridge (audit P1 #14). The added code
+  // is the aggregation logic + CTA banner + matching styles, all
+  // single-purpose. Splitting this screen is a dedicated P2 once the
+  // full feature lands (filter chips, multi-week selector, etc.).
+  'apps/mobile/src/screens/contractor/TimeTrackingScreen.tsx', // 547 lines (was 489)
 ]);
 
 function countLines(filePath) {
