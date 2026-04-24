@@ -9,13 +9,13 @@ const FAQ_ITEMS = [
   {
     title: 'How does the AI damage detection work?',
     content:
-      'Our Mint AI uses advanced computer vision to analyse property photos and detect 71 different types of damage. Simply upload images, and within 60 seconds, you\'ll receive a detailed assessment with estimated repair costs. The AI has been trained on thousands of property images and maintains a 95%+ accuracy rate.',
+      'Our Mint AI is a vision-language model fine-tuned on thousands of UK building defect photos. Upload images and, within about a minute, receive a detailed assessment with damage type, severity, urgency, recommended trades and estimated repair costs. Accuracy varies by defect type &mdash; 98% on common issues like pipe leaks, with stronger and weaker areas clearly surfaced in the assessment. Every result is labelled "AI-assisted" and we recommend a qualified surveyor verify before major works.',
     hasBorder: true,
   },
   {
     title: 'How does the protected payment system work?',
     content:
-      'When you accept a contractor\'s bid, your payment is held securely by Mintenance. The contractor completes the work, you approve it, and then funds are released. If there\'s any issue, our mediation team steps in to resolve it fairly. This protects both homeowners and contractors.',
+      "When you accept a contractor's bid, your payment is held securely by Mintenance. The contractor completes the work, you approve it, and then funds are released. If there's any issue, our mediation team steps in to resolve it fairly. This protects both homeowners and contractors.",
     hasBorder: true,
   },
   {
@@ -49,16 +49,18 @@ const FAQ_ITEMS = [
  */
 export function FAQSection() {
   return (
-    <section className="py-24 bg-white">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+    <section className='py-24 bg-white'>
+      <div className='max-w-4xl mx-auto px-4 sm:px-6 lg:px-8'>
         <motion.div
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6 }}
-          className="text-center mb-16"
+          className='text-center mb-16'
         >
-          <h2 className="text-5xl font-bold text-gray-900 mb-4">Frequently Asked Questions</h2>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+          <h2 className='text-5xl font-bold text-gray-900 mb-4'>
+            Frequently Asked Questions
+          </h2>
+          <p className='text-xl text-gray-600 max-w-2xl mx-auto'>
             Get answers to common questions about using Mintenance
           </p>
         </motion.div>
@@ -67,18 +69,20 @@ export function FAQSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6, delay: 0.2 }}
-          className="bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden"
+          className='bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden'
         >
           {FAQ_ITEMS.map((item) => (
             <AccordionItem
               key={item.title}
               title={item.title}
               content={
-                <p className="text-gray-700 leading-relaxed">{item.content}</p>
+                <p className='text-gray-700 leading-relaxed'>{item.content}</p>
               }
-              className={item.hasBorder ? 'border-b border-gray-200' : undefined}
-              titleClassName="px-6 text-lg"
-              contentClassName="px-6"
+              className={
+                item.hasBorder ? 'border-b border-gray-200' : undefined
+              }
+              titleClassName='px-6 text-lg'
+              contentClassName='px-6'
             />
           ))}
         </motion.div>
@@ -87,16 +91,27 @@ export function FAQSection() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.6, delay: 0.4 }}
-          className="text-center mt-12"
+          className='text-center mt-12'
         >
-          <p className="text-gray-600 mb-4">Still have questions?</p>
+          <p className='text-gray-600 mb-4'>Still have questions?</p>
           <Link
-            href="/faq"
-            className="inline-flex items-center gap-2 px-6 py-3 text-teal-600 hover:text-teal-700 font-semibold transition-colors"
+            href='/faq'
+            className='inline-flex items-center gap-2 px-6 py-3 text-teal-600 hover:text-teal-700 font-semibold transition-colors'
           >
             View All FAQs
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+            <svg
+              className='w-5 h-5'
+              fill='none'
+              stroke='currentColor'
+              viewBox='0 0 24 24'
+              aria-hidden='true'
+            >
+              <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                strokeWidth={2}
+                d='M13 7l5 5m0 0l-5 5m5-5H6'
+              />
             </svg>
           </Link>
         </motion.div>

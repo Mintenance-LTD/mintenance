@@ -5,7 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { getCsrfHeaders } from '@/lib/csrf-client';
 import { logger } from '@mintenance/shared';
-import { User, Shield } from 'lucide-react';
+import { Star, User, Shield } from 'lucide-react';
 import { formatRelativeDate } from './JobDetailHelpers';
 import type { Contractor } from './JobDetailHelpers';
 
@@ -151,6 +151,27 @@ export function BidCard({ bid, jobId }: { bid: Bid; jobId: string }) {
                 <Shield className='w-4 h-4 text-teal-600' />
               )}
             </div>
+            {/* Rating + reviews line — shows quality signal alongside price
+                so the homeowner can weigh the bid before accepting.
+                Falls back to "New on Mintenance" when the contractor
+                hasn't completed a reviewed job yet. */}
+            {bid.contractor.rating != null && bid.contractor.rating > 0 ? (
+              <div className='flex items-center gap-1.5 mb-1 text-sm'>
+                <Star className='w-4 h-4 fill-amber-400 text-amber-400' />
+                <span className='font-semibold text-gray-900'>
+                  {bid.contractor.rating.toFixed(1)}
+                </span>
+                <span className='text-gray-500'>
+                  ({bid.contractor.reviews_count ?? 0}{' '}
+                  {bid.contractor.reviews_count === 1 ? 'review' : 'reviews'})
+                </span>
+              </div>
+            ) : (
+              <div className='flex items-center gap-1 mb-1 text-sm text-teal-700'>
+                <Star className='w-3.5 h-3.5 text-teal-600' />
+                <span>New on Mintenance</span>
+              </div>
+            )}
             <p className='text-sm text-gray-600'>
               Bid submitted {formatRelativeDate(bid.created_at)}
             </p>

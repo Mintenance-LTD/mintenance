@@ -115,6 +115,31 @@ export const AddTimeEntryScreen: React.FC<Props> = ({ navigation }) => {
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps='handled'
       >
+        {/* Purpose banner — Mintenance job payment is fixed-price
+            escrow, not hourly billing, so this screen is specifically
+            for the contractor's own work log / schedule tracking.
+            The Billable toggle only matters for manual invoices you
+            generate through the Invoice Builder outside the escrow
+            flow. */}
+        <View style={styles.purposeBanner}>
+          <View style={styles.purposeBannerIcon}>
+            <Ionicons
+              name='time-outline'
+              size={20}
+              color={theme.colors.primary}
+            />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.purposeBannerTitle}>
+              Your personal work log
+            </Text>
+            <Text style={styles.purposeBannerText}>
+              Track how long you spend on jobs for your own records. Job
+              payments go through escrow on the fixed price you bid.
+            </Text>
+          </View>
+        </View>
+
         <View style={styles.card}>
           <Text style={styles.fieldLabel}>Task Description *</Text>
           <TextInput
@@ -157,10 +182,10 @@ export const AddTimeEntryScreen: React.FC<Props> = ({ navigation }) => {
           </View>
 
           <Text style={[styles.fieldLabel, { marginTop: 16 }]}>
-            Hourly Rate (\u00A3)
+            Hourly Rate (£)
           </Text>
           <View style={styles.inputRow}>
-            <Text style={styles.inputPrefix}>\u00A3</Text>
+            <Text style={styles.inputPrefix}>£</Text>
             <TextInput
               style={[styles.input, styles.inputSmall]}
               placeholder='0.00'
@@ -175,7 +200,7 @@ export const AddTimeEntryScreen: React.FC<Props> = ({ navigation }) => {
             <View style={styles.totalRow}>
               <Text style={styles.totalLabel}>Estimated total</Text>
               <Text style={styles.totalValue}>
-                \u00A3
+                £
                 {(
                   parseFloat(hours || '0') * parseFloat(hourlyRate || '0')
                 ).toFixed(2)}
@@ -184,10 +209,12 @@ export const AddTimeEntryScreen: React.FC<Props> = ({ navigation }) => {
           ) : null}
 
           <View style={styles.switchRow}>
-            <View>
+            <View style={{ flex: 1, paddingRight: 12 }}>
               <Text style={styles.fieldLabel}>Billable</Text>
               <Text style={styles.switchSubtitle}>
-                Include this time in client invoices
+                Flag this entry so the Invoice Builder can pull it into an
+                ad-hoc client invoice (for work outside Mintenance's escrow
+                flow).
               </Text>
             </View>
             <Switch
@@ -245,6 +272,34 @@ const styles = StyleSheet.create({
       },
       android: { elevation: 2 },
     }),
+  },
+  purposeBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    backgroundColor: theme.colors.primaryLight,
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 14,
+  },
+  purposeBannerIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: theme.colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  purposeBannerTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+    marginBottom: 4,
+  },
+  purposeBannerText: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    lineHeight: 17,
   },
   fieldLabel: {
     fontSize: 12,

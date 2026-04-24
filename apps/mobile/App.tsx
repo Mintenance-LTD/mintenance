@@ -31,6 +31,72 @@ SplashScreen.preventAutoHideAsync().catch(() => {
 // ============================================================================
 // SENTRY - error tracking initialization
 // ============================================================================
+
+// Mirrored from packages/shared/src/logger.ts redaction list. Any
+// object key matching one of these (case-insensitive) is replaced
+// with '[REDACTED]' before the event / breadcrumb is shipped to
+// Sentry. Keeps secrets out of third-party observability even if a
+// caller accidentally extras them into a breadcrumb payload.
+const SENSITIVE_KEY_PATTERNS: RegExp[] = [
+  /password/i,
+  /secret/i,
+  /token/i,
+  /authorization/i,
+  /cookie/i,
+  /session/i,
+  /bearer/i,
+  /jwt/i,
+  /api[_-]?key/i,
+  /mfa/i,
+  /totp/i,
+  /^stripe_/i,
+  /auth[_-]?tag/i,
+  /^iv$/i,
+  /credit[_-]?card/i,
+  /^cc[_-]?num/i,
+  /tax[_-]?id/i,
+  /national[_-]?insurance/i,
+  /dob|date[_-]?of[_-]?birth/i,
+];
+
+const JWT_SHAPE =
+  /\beyJ[A-Za-z0-9_-]{5,}\.[A-Za-z0-9_-]{5,}\.[A-Za-z0-9_-]{5,}\b/g;
+const CC_NUMBER_SHAPE = /\b(?:\d[ -]?){13,19}\b/g;
+
+function scrubString(value: string): string {
+  return value
+    .replace(JWT_SHAPE, '[REDACTED_JWT]')
+    .replace(CC_NUMBER_SHAPE, (match) => {
+      // CC-number regex overlaps with phone numbers and IDs — only
+      // redact when the digit count matches a real card (13–19 digits).
+      const digits = match.replace(/[^0-9]/g, '');
+      if (digits.length >= 13 && digits.length <= 19) {
+        return '[REDACTED_CC]';
+      }
+      return match;
+    });
+}
+
+function scrubValue(value: unknown, depth = 0): unknown {
+  if (depth > 6 || value == null) return value;
+  if (typeof value === 'string') return scrubString(value);
+  if (Array.isArray(value)) {
+    return value.map((item) => scrubValue(item, depth + 1));
+  }
+  if (typeof value === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      if (SENSITIVE_KEY_PATTERNS.some((re) => re.test(k))) {
+        out[k] = '[REDACTED]';
+      } else {
+        out[k] = scrubValue(v, depth + 1);
+      }
+    }
+    return out;
+  }
+  return value;
+}
+
 Sentry.init({
   dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
   environment: process.env.EXPO_PUBLIC_ENVIRONMENT || 'development',
@@ -54,6 +120,27 @@ Sentry.init({
       ) {
         return null;
       }
+    }
+
+    // Scrub sensitive keys from extras, contexts, request payloads and
+    // breadcrumb data before shipping to Sentry. Mirrors the server
+    // logger redaction set so mobile doesn't leak anything the web
+    // side already hides.
+    if (event.extra) {
+      event.extra = scrubValue(event.extra) as typeof event.extra;
+    }
+    if (event.contexts) {
+      event.contexts = scrubValue(event.contexts) as typeof event.contexts;
+    }
+    if (event.request) {
+      event.request = scrubValue(event.request) as typeof event.request;
+    }
+    if (event.breadcrumbs) {
+      event.breadcrumbs = event.breadcrumbs.map((b) => ({
+        ...b,
+        message: b.message ? scrubString(b.message) : b.message,
+        data: b.data ? (scrubValue(b.data) as typeof b.data) : b.data,
+      }));
     }
 
     return event;

@@ -79,7 +79,8 @@ export class BidService {
         created_at, updated_at,
         contractor:profiles!bids_contractor_id_fkey(
           id, first_name, last_name, email, profile_image_url,
-          company_name, city, bio, hourly_rate, years_experience
+          company_name, city, bio, hourly_rate, years_experience,
+          rating, total_jobs_completed
         )
       `
       )
@@ -90,7 +91,34 @@ export class BidService {
     }
     const { data, error } = await query;
     if (error) throw new Error(error.message);
-    return (data ?? []) as unknown as Bid[];
+    const bids = (data ?? []) as unknown as Bid[];
+
+    // Attach reviews_count per contractor so BidReviewCard can render
+    // "4.5 ★ (12 reviews)". profiles has `rating` but no aggregate
+    // count column, so we roll up public.reviews in one extra query.
+    const contractorIds = Array.from(
+      new Set(bids.map((b) => b.contractor_id).filter(Boolean))
+    );
+    if (contractorIds.length > 0) {
+      const { data: reviewRows } = await supabase
+        .from('reviews')
+        .select('reviewee_id')
+        .in('reviewee_id', contractorIds);
+      const counts = new Map<string, number>();
+      for (const row of reviewRows ?? []) {
+        const id = (row as { reviewee_id: string | null }).reviewee_id;
+        if (id) counts.set(id, (counts.get(id) || 0) + 1);
+      }
+      for (const bid of bids) {
+        if (bid.contractor && bid.contractor_id) {
+          (
+            bid.contractor as unknown as { reviews_count?: number }
+          ).reviews_count = counts.get(bid.contractor_id) || 0;
+        }
+      }
+    }
+
+    return bids;
   }
 
   static async getBidsByJobs(

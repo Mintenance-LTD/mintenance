@@ -103,7 +103,7 @@ export function AIPreviewDemo() {
             </span>
           )}
           {stage === 'complete' && (
-            <span className='text-teal-600'>✓ 71 damage types found</span>
+            <span className='text-teal-600'>✓ Damage detected</span>
           )}
         </div>
       </div>

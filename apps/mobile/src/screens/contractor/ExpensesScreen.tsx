@@ -466,8 +466,10 @@ export const ExpensesScreen: React.FC = () => {
           </Animated.View>
         )}
 
-        {/* FAB */}
-        {!showForm && (
+        {/* FAB — hidden on empty state since the "Log First Expense"
+            CTA already owns that space. Only surfaces when there ARE
+            expenses and the user needs a quick "+" to log another. */}
+        {!showForm && filtered.length > 0 && (
           <TouchableOpacity
             style={styles.fab}
             onPress={() => setShowForm(true)}

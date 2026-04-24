@@ -88,8 +88,33 @@ export const CustomTabBar: React.FC<BottomTabBarProps> = ({
 
             if (!event.defaultPrevented) {
               if (isFocused) {
-                // Already on this tab — pop nested stack to root (standard tab behavior)
-                navigation.navigate(route.name, { screen: undefined });
+                // Already on this tab — pop the nested stack back to its
+                // root screen. `navigation.navigate(name, { screen: undefined })`
+                // is a no-op (React Navigation requires a real screen name
+                // in nested navigation actions), which left users stranded
+                // on deep-stack screens like EditProfile and JobDetails —
+                // tapping the tab did nothing and they thought they were
+                // locked. Target the first route in the focused tab's
+                // own stack state to actually pop back to root.
+                const focusedRouteState = state.routes[index]?.state;
+                const rootScreenName = focusedRouteState?.routes?.[0]?.name;
+                if (
+                  focusedRouteState &&
+                  rootScreenName &&
+                  // Only dispatch when the stack has pushed at least one
+                  // screen on top of the root — otherwise this would loop
+                  // the tab back to itself with no effect.
+                  (focusedRouteState.index ?? 0) > 0
+                ) {
+                  (
+                    navigation as unknown as {
+                      navigate: (
+                        name: string,
+                        params: { screen: string }
+                      ) => void;
+                    }
+                  ).navigate(route.name, { screen: rootScreenName });
+                }
               } else {
                 navigation.navigate(route.name);
               }
