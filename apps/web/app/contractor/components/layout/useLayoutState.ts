@@ -23,7 +23,6 @@ import {
   Shield,
   PoundSterling,
   FolderOpen,
-  Video,
   Pencil,
 } from 'lucide-react';
 
@@ -150,7 +149,9 @@ export function useLayoutState(
             href: '/contractor/documents',
             icon: FolderOpen,
           },
-          { label: 'Video Calls', href: '/video-calls', icon: Video },
+          // Audit P1 (2026-04-23): Video Calls is a dead-end placeholder.
+          // Removed from contractor nav alongside the homeowner sidebar
+          // change; /video-calls page stays as a direct-URL fallback.
         ],
       },
       {

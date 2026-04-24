@@ -15,7 +15,11 @@ interface ProfileDropdownProps {
   initials: string;
 }
 
-export function ProfileDropdown({ contractorName, profileImageUrl, initials }: ProfileDropdownProps) {
+export function ProfileDropdown({
+  contractorName,
+  profileImageUrl,
+  initials,
+}: ProfileDropdownProps) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -29,14 +33,18 @@ export function ProfileDropdown({ contractorName, profileImageUrl, initials }: P
   // Close dropdown when clicking outside
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     }
 
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
+      return () =>
+        document.removeEventListener('mousedown', handleClickOutside);
     }
   }, [isOpen]);
 
@@ -83,13 +91,15 @@ export function ProfileDropdown({ contractorName, profileImageUrl, initials }: P
       {/* Profile Button */}
       <button
         onClick={toggleDropdown}
-        type="button"
+        type='button'
         style={{
           width: '44px',
           height: '44px',
           borderRadius: '14px',
           border: `1px solid ${theme.colors.border}`,
-          backgroundColor: profileImageUrl ? 'transparent' : theme.colors.primary,
+          backgroundColor: profileImageUrl
+            ? 'transparent'
+            : theme.colors.primary,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -98,9 +108,9 @@ export function ProfileDropdown({ contractorName, profileImageUrl, initials }: P
           padding: 0,
           overflow: 'hidden',
         }}
-        aria-label="Profile"
+        aria-label='Profile'
         aria-expanded={isOpen}
-        aria-haspopup="true"
+        aria-haspopup='true'
         onMouseEnter={(e) => {
           e.currentTarget.style.transform = 'scale(1.05)';
           e.currentTarget.style.boxShadow = theme.shadows.sm;
@@ -115,7 +125,7 @@ export function ProfileDropdown({ contractorName, profileImageUrl, initials }: P
             src={profileImageUrl}
             alt={contractorName}
             fill
-            sizes="44px"
+            sizes='44px'
             style={{ objectFit: 'cover' }}
           />
         ) : (
@@ -176,7 +186,7 @@ export function ProfileDropdown({ contractorName, profileImageUrl, initials }: P
 
           {/* Menu Items */}
           <button
-            type="button"
+            type='button'
             onClick={() => handleMenuItemClick('/contractor/profile')}
             style={{
               width: '100%',
@@ -192,7 +202,8 @@ export function ProfileDropdown({ contractorName, profileImageUrl, initials }: P
               textAlign: 'left',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
+              e.currentTarget.style.backgroundColor =
+                theme.colors.backgroundSecondary;
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.backgroundColor = 'transparent';
@@ -210,7 +221,7 @@ export function ProfileDropdown({ contractorName, profileImageUrl, initials }: P
                 flexShrink: 0,
               }}
             >
-              <Icon name="user" size={18} color="#1f2937" />
+              <Icon name='user' size={18} color='#1f2937' />
             </div>
             <div style={{ flex: 1 }}>
               <div
@@ -245,14 +256,30 @@ export function ProfileDropdown({ contractorName, profileImageUrl, initials }: P
 
           {/* Quick Actions */}
           {[
-            { label: 'View All Jobs', href: '/contractor/bid', icon: 'briefcase' },
-            { label: 'Manage Quotes', href: '/contractor/quotes', icon: 'fileText' },
-            { label: 'Finance Dashboard', href: '/contractor/finance', icon: 'currencyPound' },
-            { label: 'View Analytics', href: '/contractor/reporting', icon: 'chart' },
+            {
+              label: 'View All Jobs',
+              href: '/contractor/bid',
+              icon: 'briefcase',
+            },
+            {
+              label: 'Manage Quotes',
+              href: '/contractor/quotes',
+              icon: 'fileText',
+            },
+            {
+              label: 'Finance Dashboard',
+              href: '/contractor/finance',
+              icon: 'currencyPound',
+            },
+            {
+              label: 'View Analytics',
+              href: '/contractor/reporting',
+              icon: 'chart',
+            },
           ].map((action) => (
             <button
               key={action.href}
-              type="button"
+              type='button'
               onClick={() => handleMenuItemClick(action.href)}
               style={{
                 width: '100%',
@@ -268,7 +295,8 @@ export function ProfileDropdown({ contractorName, profileImageUrl, initials }: P
                 textAlign: 'left',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
+                e.currentTarget.style.backgroundColor =
+                  theme.colors.backgroundSecondary;
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.backgroundColor = 'transparent';
@@ -286,7 +314,7 @@ export function ProfileDropdown({ contractorName, profileImageUrl, initials }: P
                   flexShrink: 0,
                 }}
               >
-                <Icon name={action.icon} size={18} color="#1f2937" />
+                <Icon name={action.icon} size={18} color='#1f2937' />
               </div>
               <div
                 style={{
@@ -300,64 +328,10 @@ export function ProfileDropdown({ contractorName, profileImageUrl, initials }: P
             </button>
           ))}
 
-          <button
-            type="button"
-            onClick={() => handleMenuItemClick('/contractor/social')}
-            style={{
-              width: '100%',
-              display: 'flex',
-              alignItems: 'center',
-              gap: theme.spacing[3],
-              padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
-              borderRadius: theme.borderRadius.md,
-              border: 'none',
-              backgroundColor: 'transparent',
-              cursor: 'pointer',
-              transition: 'background-color 0.2s',
-              textAlign: 'left',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'transparent';
-            }}
-          >
-            <div
-              style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: '50%',
-                backgroundColor: '#e5e7eb',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-              }}
-            >
-              <Icon name="users" size={18} color="#1f2937" />
-            </div>
-            <div style={{ flex: 1 }}>
-              <div
-                style={{
-                  fontSize: theme.typography.fontSize.sm,
-                  fontWeight: theme.typography.fontWeight.medium,
-                  color: theme.colors.textPrimary,
-                }}
-              >
-                Social Media
-              </div>
-              <div
-                style={{
-                  fontSize: theme.typography.fontSize.xs,
-                  color: theme.colors.textSecondary,
-                  marginTop: '2px',
-                }}
-              >
-                Community feed & posts
-              </div>
-            </div>
-          </button>
+          {/* Audit P1 (2026-04-23): "Social Media" dropdown entry pointed at
+              /contractor/social, a dead-end placeholder. Removed from the
+              dropdown until the social feed ships. The page itself is
+              preserved at /contractor/social for direct-URL fallback. */}
 
           {/* Logout Separator */}
           <div
@@ -370,7 +344,7 @@ export function ProfileDropdown({ contractorName, profileImageUrl, initials }: P
 
           {/* Logout Button */}
           <button
-            type="button"
+            type='button'
             onClick={handleLogout}
             style={{
               width: '100%',
@@ -404,7 +378,7 @@ export function ProfileDropdown({ contractorName, profileImageUrl, initials }: P
                 flexShrink: 0,
               }}
             >
-              <Icon name="logOut" size={18} color="#dc2626" />
+              <Icon name='logOut' size={18} color='#dc2626' />
             </div>
             <div
               style={{
@@ -421,4 +395,3 @@ export function ProfileDropdown({ contractorName, profileImageUrl, initials }: P
     </div>
   );
 }
-

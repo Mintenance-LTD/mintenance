@@ -115,6 +115,13 @@ const KNOWN_LARGE_FILES = new Set([
   // bundles the 5-step wizard, photo grid, review summary, and
   // submit handler.
   'apps/mobile/src/screens/assessment/PropertyAssessmentScreen.tsx', // 510 lines (was 501)
+  // Added 2026-04-24: pre-existing large files touched by the dead-end
+  // Coming-Soon nav cleanup (audit P1). Each only changed by 4-6 lines
+  // (single nav entry deletion + a deprecation comment). Both files
+  // bundle theme-styled layout shells / config tables that are
+  // split-as-a-P2 candidates — not a blocker on the nav cleanup.
+  'apps/web/app/dashboard/components/ProfessionalHomeownerLayout.tsx', // 592 lines
+  'apps/web/components/ui/EmptyStateEducational.tsx', // 645 lines
 ]);
 
 function countLines(filePath) {

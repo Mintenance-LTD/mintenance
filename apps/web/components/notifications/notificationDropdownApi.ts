@@ -9,8 +9,10 @@ interface FetchNotificationsResult {
 export async function fetchNotificationsApi(
   userId: string
 ): Promise<FetchNotificationsResult> {
-  // Fetch contractor-relevant notifications only (bids, jobs, messages, payments)
-  // Social notifications are deprecated and available on dedicated /contractor/social page
+  // Fetch contractor-relevant notifications only (bids, jobs, messages, payments).
+  // Social notifications are deprecated; the /contractor/social page is currently
+  // a dead-end placeholder (audit P1, 2026-04-23) so we never surface social
+  // events here.
   // Security fix: API now uses authenticated user, no userId param needed
   const regularResponse = await fetch('/api/notifications', {
     credentials: 'include',
