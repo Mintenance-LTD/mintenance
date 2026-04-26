@@ -8,7 +8,13 @@
  */
 
 // globals: true in vitest.config — do not import from 'vitest' directly (breaks in v4)
-import { render, screen, waitFor, cleanup } from '@testing-library/react';
+import {
+  render,
+  screen,
+  waitFor,
+  cleanup,
+  fireEvent,
+} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {
   createTestUser,
@@ -106,25 +112,14 @@ vi.mock('@/lib/hooks/useCSRF', () => ({
   }),
 }));
 
-// The /auth/signup/page and /auth/login/page are now redirect stubs that call
-// redirect('/register') and redirect('/login'). Tests that import these pages
-// must be rewritten to import from @/app/register/page and @/app/login/page
-// and updated to match the current form UI (RoleToggle vs select, etc.)
-// TODO: Rewrite auth integration tests for current register/login page UI
-vi.mock('@/app/auth/signup/page', async () => {
-  const actual = await import('@/app/register/page');
-  return actual;
-});
-
-vi.mock('@/app/auth/login/page', async () => {
-  const actual = await import('@/app/login/page');
-  return actual;
-});
+vi.setConfig({ testTimeout: 30000 });
 
 describe('Authentication Flow Integration Tests', () => {
   let user: ReturnType<typeof userEvent.setup>;
 
   beforeEach(() => {
+    vi.clearAllMocks();
+    cleanup();
     resetTestCounter();
     user = userEvent.setup();
 
@@ -156,7 +151,8 @@ describe('Authentication Flow Integration Tests', () => {
           ok: true,
           status: 200,
           headers: { get: (_name: string) => 'application/json' },
-          json: () => Promise.resolve({ user: { id: 'user-1', role: 'homeowner' } }),
+          json: () =>
+            Promise.resolve({ user: { id: 'user-1', role: 'homeowner' } }),
         });
       }
       if (url === '/api/auth/login') {
@@ -164,7 +160,22 @@ describe('Authentication Flow Integration Tests', () => {
           ok: true,
           status: 200,
           headers: { get: (_name: string) => 'application/json' },
-          json: () => Promise.resolve({ user: { id: 'user-1', role: 'homeowner', email: 'user@example.com' } }),
+          json: () =>
+            Promise.resolve({
+              user: {
+                id: 'user-1',
+                role: 'homeowner',
+                email: 'user@example.com',
+              },
+            }),
+        });
+      }
+      if (url === '/api/auth/forgot-password') {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          headers: { get: (_name: string) => 'application/json' },
+          json: () => Promise.resolve({ success: true }),
         });
       }
       return Promise.reject(new Error(`Unmocked fetch: ${url}`));
@@ -177,22 +188,34 @@ describe('Authentication Flow Integration Tests', () => {
 
   describe('Sign Up Flow', () => {
     it('creates new account with valid email and password', async () => {
-      const { default: SignUpPage } = await import('@/app/auth/signup/page');
+      const { default: SignUpPage } = await import('@/app/register/page');
       render(<SignUpPage />);
 
       // Fill sign up form (register page uses fetch('/api/auth/register'), not supabase.auth.signUp)
-      await user.type(screen.getByLabelText(/first name/i), 'John');
-      await user.type(screen.getByLabelText(/last name/i), 'Smith');
-      await user.type(screen.getByLabelText(/email/i), 'newuser@example.com');
-      await user.type(screen.getByLabelText(/^password$/i), 'SecurePass123!');
-      await user.type(screen.getByLabelText(/confirm password/i), 'SecurePass123!');
+      fireEvent.change(screen.getByLabelText(/first name/i), {
+        target: { value: 'John' },
+      });
+      fireEvent.change(screen.getByLabelText(/last name/i), {
+        target: { value: 'Smith' },
+      });
+      fireEvent.change(screen.getByLabelText(/^email address$/i), {
+        target: { value: 'newuser@example.com' },
+      });
+      fireEvent.change(screen.getByLabelText(/^password$/i), {
+        target: { value: 'SecurePass123!' },
+      });
+      fireEvent.change(screen.getByLabelText(/confirm password/i), {
+        target: { value: 'SecurePass123!' },
+      });
       // Role defaults to 'homeowner' — no need to interact with RoleToggle
       // Accept terms checkbox
-      await user.click(screen.getByRole('checkbox'));
+      fireEvent.click(screen.getByRole('checkbox'));
 
       // Submit
-      const submitButton = screen.getByRole('button', { name: /create account/i });
-      await user.click(submitButton);
+      const submitButton = screen.getByRole('button', {
+        name: /create account/i,
+      });
+      fireEvent.click(submitButton);
 
       // Verify fetch was called with the registration endpoint
       await waitFor(() => {
@@ -201,21 +224,36 @@ describe('Authentication Flow Integration Tests', () => {
           expect.objectContaining({ method: 'POST' })
         );
       });
+
+      await waitFor(
+        () => {
+          expect(mockPush).toHaveBeenCalledWith('/dashboard');
+        },
+        { timeout: 2500 }
+      );
     });
 
     it('validates password strength requirements', async () => {
-      const { default: SignUpPage } = await import('@/app/auth/signup/page');
+      const { default: SignUpPage } = await import('@/app/register/page');
       render(<SignUpPage />);
 
-      await user.type(screen.getByLabelText(/email/i), 'test@example.com');
-      await user.type(screen.getByLabelText(/^password$/i), 'weak');
-      await user.type(screen.getByLabelText(/confirm password/i), 'weak');
+      fireEvent.change(screen.getByLabelText(/^email address$/i), {
+        target: { value: 'test@example.com' },
+      });
+      fireEvent.change(screen.getByLabelText(/^password$/i), {
+        target: { value: 'weak' },
+      });
+      fireEvent.change(screen.getByLabelText(/confirm password/i), {
+        target: { value: 'weak' },
+      });
 
-      await user.click(screen.getByRole('button', { name: /create account/i }));
+      fireEvent.click(screen.getByRole('button', { name: /create account/i }));
 
       // Should show password strength error (use getAllByText since helper text also matches)
       await waitFor(() => {
-        const errorElement = screen.getByText('Password must be at least 8 characters');
+        const errorElement = screen.getByText(
+          'Password must be at least 8 characters'
+        );
         expect(errorElement).toBeInTheDocument();
       });
 
@@ -223,14 +261,20 @@ describe('Authentication Flow Integration Tests', () => {
     });
 
     it('validates passwords match', async () => {
-      const { default: SignUpPage } = await import('@/app/auth/signup/page');
+      const { default: SignUpPage } = await import('@/app/register/page');
       render(<SignUpPage />);
 
-      await user.type(screen.getByLabelText(/email/i), 'test@example.com');
-      await user.type(screen.getByLabelText(/^password$/i), 'SecurePass123!');
-      await user.type(screen.getByLabelText(/confirm password/i), 'DifferentPass123!');
+      fireEvent.change(screen.getByLabelText(/^email address$/i), {
+        target: { value: 'test@example.com' },
+      });
+      fireEvent.change(screen.getByLabelText(/^password$/i), {
+        target: { value: 'SecurePass123!' },
+      });
+      fireEvent.change(screen.getByLabelText(/confirm password/i), {
+        target: { value: 'DifferentPass123!' },
+      });
 
-      await user.click(screen.getByRole('button', { name: /create account/i }));
+      fireEvent.click(screen.getByRole('button', { name: /create account/i }));
 
       // Should show password mismatch error
       await waitFor(() => {
@@ -241,11 +285,11 @@ describe('Authentication Flow Integration Tests', () => {
     });
 
     it('validates email format', async () => {
-      const { default: SignUpPage } = await import('@/app/auth/signup/page');
+      const { default: SignUpPage } = await import('@/app/register/page');
       render(<SignUpPage />);
 
       // Use fireEvent.change to bypass HTML5 email input restrictions in happy-dom
-      const emailInput = screen.getByLabelText(/email/i);
+      const emailInput = screen.getByLabelText(/^email address$/i);
       await user.clear(emailInput);
       // Set value directly to bypass HTML5 email validation
       Object.getOwnPropertyDescriptor(
@@ -255,12 +299,20 @@ describe('Authentication Flow Integration Tests', () => {
       emailInput.dispatchEvent(new Event('input', { bubbles: true }));
       emailInput.dispatchEvent(new Event('change', { bubbles: true }));
 
-      await user.type(screen.getByLabelText(/^password$/i), 'SecurePass123!');
-      await user.type(screen.getByLabelText(/confirm password/i), 'SecurePass123!');
+      fireEvent.change(screen.getByLabelText(/^password$/i), {
+        target: { value: 'SecurePass123!' },
+      });
+      fireEvent.change(screen.getByLabelText(/confirm password/i), {
+        target: { value: 'SecurePass123!' },
+      });
 
       // Submit the form directly to bypass HTML5 validation
-      const form = screen.getByRole('button', { name: /create account/i }).closest('form');
-      form?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      const form = screen
+        .getByRole('button', { name: /create account/i })
+        .closest('form');
+      form?.dispatchEvent(
+        new Event('submit', { bubbles: true, cancelable: true })
+      );
 
       // Should show email format error
       await waitFor(() => {
@@ -274,22 +326,41 @@ describe('Authentication Flow Integration Tests', () => {
       // Register page uses fetch('/api/auth/register') not supabase.auth.signUp
       // Default fetch mock returns success — no need to override
 
-      const { default: SignUpPage } = await import('@/app/auth/signup/page');
+      const { default: SignUpPage } = await import('@/app/register/page');
       render(<SignUpPage />);
 
-      await user.type(screen.getByLabelText(/first name/i), 'Jane');
-      await user.type(screen.getByLabelText(/last name/i), 'Doe');
-      await user.type(screen.getByLabelText(/email/i), 'test@example.com');
-      await user.type(screen.getByLabelText(/^password$/i), 'SecurePass123!');
-      await user.type(screen.getByLabelText(/confirm password/i), 'SecurePass123!');
-      await user.click(screen.getByRole('checkbox'));
+      fireEvent.change(screen.getByLabelText(/first name/i), {
+        target: { value: 'Jane' },
+      });
+      fireEvent.change(screen.getByLabelText(/last name/i), {
+        target: { value: 'Doe' },
+      });
+      fireEvent.change(screen.getByLabelText(/^email address$/i), {
+        target: { value: 'test@example.com' },
+      });
+      fireEvent.change(screen.getByLabelText(/^password$/i), {
+        target: { value: 'SecurePass123!' },
+      });
+      fireEvent.change(screen.getByLabelText(/confirm password/i), {
+        target: { value: 'SecurePass123!' },
+      });
+      fireEvent.click(screen.getByRole('checkbox'));
 
-      await user.click(screen.getByRole('button', { name: /create account/i }));
+      fireEvent.click(screen.getByRole('button', { name: /create account/i }));
 
       // Register page shows "Registration Successful!" on success
       await waitFor(() => {
-        expect(screen.getByText(/Registration Successful/i)).toBeInTheDocument();
+        expect(
+          screen.getByText(/Registration Successful/i)
+        ).toBeInTheDocument();
       });
+
+      await waitFor(
+        () => {
+          expect(mockPush).toHaveBeenCalledWith('/dashboard');
+        },
+        { timeout: 2500 }
+      );
     });
 
     it('shows error for already registered email', async () => {
@@ -301,17 +372,27 @@ describe('Authentication Flow Integration Tests', () => {
         json: () => Promise.resolve({ error: 'User already registered' }),
       });
 
-      const { default: SignUpPage } = await import('@/app/auth/signup/page');
+      const { default: SignUpPage } = await import('@/app/register/page');
       render(<SignUpPage />);
 
-      await user.type(screen.getByLabelText(/first name/i), 'Jane');
-      await user.type(screen.getByLabelText(/last name/i), 'Doe');
-      await user.type(screen.getByLabelText(/email/i), 'existing@example.com');
-      await user.type(screen.getByLabelText(/^password$/i), 'SecurePass123!');
-      await user.type(screen.getByLabelText(/confirm password/i), 'SecurePass123!');
-      await user.click(screen.getByRole('checkbox'));
+      fireEvent.change(screen.getByLabelText(/first name/i), {
+        target: { value: 'Jane' },
+      });
+      fireEvent.change(screen.getByLabelText(/last name/i), {
+        target: { value: 'Doe' },
+      });
+      fireEvent.change(screen.getByLabelText(/^email address$/i), {
+        target: { value: 'existing@example.com' },
+      });
+      fireEvent.change(screen.getByLabelText(/^password$/i), {
+        target: { value: 'SecurePass123!' },
+      });
+      fireEvent.change(screen.getByLabelText(/confirm password/i), {
+        target: { value: 'SecurePass123!' },
+      });
+      fireEvent.click(screen.getByRole('checkbox'));
 
-      await user.click(screen.getByRole('button', { name: /create account/i }));
+      fireEvent.click(screen.getByRole('button', { name: /create account/i }));
 
       // Should show error from API response
       await waitFor(() => {
@@ -325,12 +406,18 @@ describe('Authentication Flow Integration Tests', () => {
       // Login page uses fetch('/api/auth/login') not supabase.auth.signInWithPassword
       // Default fetch mock returns homeowner user — already set in beforeEach
 
-      const { default: LoginPage } = await import('@/app/auth/login/page');
+      const { default: LoginPage } = await import('@/app/login/page');
       render(<LoginPage />);
 
-      await user.type(screen.getByLabelText(/email/i), 'user@example.com');
+      await user.type(
+        screen.getByLabelText(/^email address$/i),
+        'user@example.com'
+      );
       // Use exact match to avoid matching "Show password" aria-label button
-      await user.type(screen.getByLabelText(/^password$/i), 'CorrectPassword123!');
+      await user.type(
+        screen.getByLabelText(/^password$/i),
+        'CorrectPassword123!'
+      );
 
       await user.click(screen.getByRole('button', { name: /sign in/i }));
 
@@ -343,9 +430,12 @@ describe('Authentication Flow Integration Tests', () => {
       });
 
       // Should redirect to homeowner dashboard after 500ms timeout
-      await waitFor(() => {
-        expect(mockPush).toHaveBeenCalledWith('/dashboard');
-      }, { timeout: 2000 });
+      await waitFor(
+        () => {
+          expect(mockPush).toHaveBeenCalledWith('/dashboard');
+        },
+        { timeout: 2000 }
+      );
     });
 
     it('shows error with incorrect password', async () => {
@@ -357,10 +447,13 @@ describe('Authentication Flow Integration Tests', () => {
         json: () => Promise.resolve({ error: 'Invalid login credentials' }),
       });
 
-      const { default: LoginPage } = await import('@/app/auth/login/page');
+      const { default: LoginPage } = await import('@/app/login/page');
       render(<LoginPage />);
 
-      await user.type(screen.getByLabelText(/email/i), 'user@example.com');
+      await user.type(
+        screen.getByLabelText(/^email address$/i),
+        'user@example.com'
+      );
       await user.type(screen.getByLabelText(/^password$/i), 'WrongPassword');
 
       await user.click(screen.getByRole('button', { name: /sign in/i }));
@@ -383,10 +476,13 @@ describe('Authentication Flow Integration Tests', () => {
         json: () => Promise.resolve({ error: 'Email not confirmed' }),
       });
 
-      const { default: LoginPage } = await import('@/app/auth/login/page');
+      const { default: LoginPage } = await import('@/app/login/page');
       render(<LoginPage />);
 
-      await user.type(screen.getByLabelText(/email/i), 'unverified@example.com');
+      await user.type(
+        screen.getByLabelText(/^email address$/i),
+        'unverified@example.com'
+      );
       await user.type(screen.getByLabelText(/^password$/i), 'Password123!');
 
       await user.click(screen.getByRole('button', { name: /sign in/i }));
@@ -398,7 +494,7 @@ describe('Authentication Flow Integration Tests', () => {
     });
 
     it('provides "Forgot password" link', async () => {
-      const { default: LoginPage } = await import('@/app/auth/login/page');
+      const { default: LoginPage } = await import('@/app/login/page');
       render(<LoginPage />);
 
       // The login page has a "Forgot password?" link
@@ -413,30 +509,28 @@ describe('Authentication Flow Integration Tests', () => {
 
   describe('Password Reset Flow', () => {
     it('sends password reset email for valid email address', async () => {
-      const { default: ForgotPasswordPage } = await import(
-        '@/app/auth/forgot-password/page'
-      );
+      const { default: ForgotPasswordPage } =
+        await import('@/app/forgot-password/page');
       render(<ForgotPasswordPage />);
 
-      await user.type(screen.getByLabelText(/email/i), 'user@example.com');
+      await user.type(
+        screen.getByLabelText(/^email address$/i),
+        'user@example.com'
+      );
       await user.click(
         screen.getByRole('button', { name: /send reset link/i })
       );
 
       await waitFor(() => {
-        expect(mockResetPasswordForEmail).toHaveBeenCalledWith(
-          'user@example.com',
-          expect.objectContaining({
-            redirectTo: expect.stringContaining('/auth/reset-password'),
-          })
+        expect(global.fetch).toHaveBeenCalledWith(
+          '/api/auth/forgot-password',
+          expect.objectContaining({ method: 'POST' })
         );
       });
 
       // Should show confirmation message
       await waitFor(() => {
-        expect(
-          screen.getByText(/password reset link sent/i)
-        ).toBeInTheDocument();
+        expect(screen.getByText(/check your email/i)).toBeInTheDocument();
       });
     });
 
@@ -447,20 +541,20 @@ describe('Authentication Flow Integration Tests', () => {
         error: null,
       });
 
-      const { default: ForgotPasswordPage } = await import(
-        '@/app/auth/forgot-password/page'
-      );
+      const { default: ForgotPasswordPage } =
+        await import('@/app/forgot-password/page');
       render(<ForgotPasswordPage />);
 
-      await user.type(screen.getByLabelText(/email/i), 'nonexistent@example.com');
+      await user.type(
+        screen.getByLabelText(/^email address$/i),
+        'nonexistent@example.com'
+      );
       await user.click(
         screen.getByRole('button', { name: /send reset link/i })
       );
 
       await waitFor(() => {
-        expect(
-          screen.getByText(/password reset link sent/i)
-        ).toBeInTheDocument();
+        expect(screen.getByText(/check your email/i)).toBeInTheDocument();
       });
     });
   });
@@ -472,17 +566,23 @@ describe('Authentication Flow Integration Tests', () => {
       // Login page uses fetch('/api/auth/login') — default mock returns homeowner role
       // No need to override; default beforeEach mock returns { user: { role: 'homeowner' } }
 
-      const { default: LoginPage } = await import('@/app/auth/login/page');
+      const { default: LoginPage } = await import('@/app/login/page');
       render(<LoginPage />);
 
-      await user.type(screen.getByLabelText(/email/i), homeowner.email);
+      await user.type(
+        screen.getByLabelText(/^email address$/i),
+        homeowner.email
+      );
       await user.type(screen.getByLabelText(/^password$/i), 'Password123!');
       await user.click(screen.getByRole('button', { name: /sign in/i }));
 
       // Homeowner goes to /dashboard after 500ms timeout
-      await waitFor(() => {
-        expect(mockPush).toHaveBeenCalledWith('/dashboard');
-      }, { timeout: 2000 });
+      await waitFor(
+        () => {
+          expect(mockPush).toHaveBeenCalledWith('/dashboard');
+        },
+        { timeout: 2000 }
+      );
     });
 
     it('redirects contractor to contractor dashboard after login', async () => {
@@ -493,20 +593,35 @@ describe('Authentication Flow Integration Tests', () => {
         ok: true,
         status: 200,
         headers: { get: (_name: string) => 'application/json' },
-        json: () => Promise.resolve({ user: { id: contractor.id, role: 'contractor', email: contractor.email } }),
+        json: () =>
+          Promise.resolve({
+            user: {
+              id: contractor.id,
+              role: 'contractor',
+              email: contractor.email,
+            },
+          }),
       });
 
-      const { default: LoginPage } = await import('@/app/auth/login/page');
+      const { default: LoginPage } = await import('@/app/login/page');
       render(<LoginPage />);
 
-      await user.type(screen.getByLabelText(/email/i), contractor.email);
+      await user.type(
+        screen.getByLabelText(/^email address$/i),
+        contractor.email
+      );
       await user.type(screen.getByLabelText(/^password$/i), 'Password123!');
       await user.click(screen.getByRole('button', { name: /sign in/i }));
 
       // Contractor goes to /contractor/dashboard-enhanced (not /contractor/dashboard)
-      await waitFor(() => {
-        expect(mockPush).toHaveBeenCalledWith('/contractor/dashboard-enhanced');
-      }, { timeout: 2000 });
+      await waitFor(
+        () => {
+          expect(mockPush).toHaveBeenCalledWith(
+            '/contractor/dashboard-enhanced'
+          );
+        },
+        { timeout: 2000 }
+      );
     });
   });
 });

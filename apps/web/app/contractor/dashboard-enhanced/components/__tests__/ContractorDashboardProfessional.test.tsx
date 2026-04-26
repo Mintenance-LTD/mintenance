@@ -13,31 +13,35 @@ vi.mock('next/image', () => ({
 }));
 
 vi.mock('lucide-react', () => ({
-  TrendingUp: () => <span data-testid="icon-trending-up" />,
-  TrendingDown: () => <span data-testid="icon-trending-down" />,
-  Briefcase: () => <span data-testid="icon-briefcase" />,
-  Clock: () => <span data-testid="icon-clock" />,
-  Target: () => <span data-testid="icon-target" />,
-  Eye: () => <span data-testid="icon-eye" />,
-  PoundSterling: () => <span data-testid="icon-pound" />,
-  CheckCircle: () => <span data-testid="icon-check" />,
-  AlertCircle: () => <span data-testid="icon-alert" />,
-  ArrowRight: () => <span data-testid="icon-arrow" />,
-  Calendar: () => <span data-testid="icon-calendar" />,
-  Award: () => <span data-testid="icon-award" />,
-  Zap: () => <span data-testid="icon-zap" />,
-  FileText: () => <span data-testid="icon-file" />,
-  Search: () => <span data-testid="icon-search" />,
-  Upload: () => <span data-testid="icon-upload" />,
-  MessageSquare: () => <span data-testid="icon-message" />,
-  BarChart3: () => <span data-testid="icon-chart" />,
-  Activity: () => <span data-testid="icon-activity" />,
-  Bot: () => <span data-testid="icon-bot" />,
-  Settings: () => <span data-testid="icon-settings" />,
+  TrendingUp: () => <span data-testid='icon-trending-up' />,
+  TrendingDown: () => <span data-testid='icon-trending-down' />,
+  Briefcase: () => <span data-testid='icon-briefcase' />,
+  Clock: () => <span data-testid='icon-clock' />,
+  Target: () => <span data-testid='icon-target' />,
+  Eye: () => <span data-testid='icon-eye' />,
+  PoundSterling: () => <span data-testid='icon-pound' />,
+  CheckCircle: () => <span data-testid='icon-check' />,
+  AlertCircle: () => <span data-testid='icon-alert' />,
+  ArrowRight: () => <span data-testid='icon-arrow' />,
+  Calendar: () => <span data-testid='icon-calendar' />,
+  Award: () => <span data-testid='icon-award' />,
+  Zap: () => <span data-testid='icon-zap' />,
+  FileText: () => <span data-testid='icon-file' />,
+  Search: () => <span data-testid='icon-search' />,
+  Upload: () => <span data-testid='icon-upload' />,
+  MessageSquare: () => <span data-testid='icon-message' />,
+  BarChart3: () => <span data-testid='icon-chart' />,
+  Activity: () => <span data-testid='icon-activity' />,
+  Bot: () => <span data-testid='icon-bot' />,
+  Settings: () => <span data-testid='icon-settings' />,
+  Shield: () => <span data-testid='icon-shield' />,
+  X: () => <span data-testid='icon-x' />,
 }));
 
 vi.mock('@/app/contractor/components/ContractorPageWrapper', () => ({
-  ContractorPageWrapper: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  ContractorPageWrapper: ({ children }: { children: React.ReactNode }) => (
+    <div>{children}</div>
+  ),
 }));
 
 describe('ContractorDashboardProfessional', () => {
@@ -105,7 +109,9 @@ describe('ContractorDashboardProfessional', () => {
   });
 
   it('should render without crashing', () => {
-    const { container } = render(<ContractorDashboardProfessional data={mockData} />);
+    const { container } = render(
+      <ContractorDashboardProfessional data={mockData} />
+    );
     expect(container).toBeDefined();
   });
 
@@ -116,7 +122,9 @@ describe('ContractorDashboardProfessional', () => {
   });
 
   it('should display metrics', () => {
-    const { container } = render(<ContractorDashboardProfessional data={mockData} />);
+    const { container } = render(
+      <ContractorDashboardProfessional data={mockData} />
+    );
     // Just verify the dashboard renders with metrics data
     expect(container.textContent).toContain('5'); // Active jobs somewhere in the dashboard
     expect(container.textContent).toContain('23'); // Completed jobs somewhere in the dashboard
@@ -130,7 +138,9 @@ describe('ContractorDashboardProfessional', () => {
       subscriptionInfo: null,
       onboardingStatus: null,
     };
-    const { container } = render(<ContractorDashboardProfessional data={minimalData} />);
+    const { container } = render(
+      <ContractorDashboardProfessional data={minimalData} />
+    );
     expect(container).toBeDefined();
   });
 });

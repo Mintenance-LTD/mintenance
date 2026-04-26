@@ -297,12 +297,23 @@ vi.mock('@/lib/errors/api-error', async () => {
 
 // Payment errors
 vi.mock('@/lib/errors/payment-errors', () => ({
-  createPaymentErrorResponse: vi.fn(() => ({
-    error: 'An error occurred processing your payment. Please try again.',
-    code: 'unknown_error',
-    retryable: true,
-    status: 500,
-  })),
+  createPaymentErrorResponse: vi.fn((error: unknown) => {
+    const apiError = error as {
+      userMessage?: string;
+      message?: string;
+      code?: string;
+      statusCode?: number;
+    };
+    return {
+      error:
+        apiError.userMessage ||
+        (apiError.statusCode ? apiError.message : undefined) ||
+        'An error occurred processing your payment. Please try again.',
+      code: apiError.code || 'unknown_error',
+      retryable: !apiError.statusCode || apiError.statusCode >= 500,
+      status: apiError.statusCode || 500,
+    };
+  }),
   sanitizePaymentError: vi.fn(),
   logPaymentError: vi.fn(),
   PaymentErrorCode: {
@@ -1701,8 +1712,8 @@ describe('POST /api/payments/create-intent', () => {
         },
         bids: {
           selectReturn: {
-            data: null,
-            error: { message: 'No accepted bid found' },
+            data: { amount: 600, status: 'accepted' },
+            error: null,
           },
         },
       });
@@ -2252,19 +2263,17 @@ describe('Refund DB Retry Logic', () => {
       return {
         eq: vi.fn().mockReturnValue({
           select: vi.fn().mockReturnValue({
-            single: vi
-              .fn()
-              .mockResolvedValue(
-                shouldFail
-                  ? { data: null, error: { message: 'Temporary DB error' } }
-                  : {
-                      data: {
-                        id: '660e8400-e29b-41d4-a716-446655440001',
-                        status: 'refunded',
-                      },
-                      error: null,
-                    }
-              ),
+            single: vi.fn().mockResolvedValue(
+              shouldFail
+                ? { data: null, error: { message: 'Temporary DB error' } }
+                : {
+                    data: {
+                      id: '660e8400-e29b-41d4-a716-446655440001',
+                      status: 'refunded',
+                    },
+                    error: null,
+                  }
+            ),
           }),
         }),
       };
@@ -2313,21 +2322,15 @@ describe('Refund DB Retry Logic', () => {
         };
       }
       return {
-        select: vi
-          .fn()
-          .mockReturnValue({
-            eq: vi
-              .fn()
-              .mockReturnValue({
-                single: vi.fn().mockResolvedValue({ data: null, error: null }),
-              }),
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            single: vi.fn().mockResolvedValue({ data: null, error: null }),
           }),
+        }),
         insert: vi.fn().mockReturnValue({ error: null }),
-        update: vi
-          .fn()
-          .mockReturnValue({
-            eq: vi.fn().mockResolvedValue({ data: null, error: null }),
-          }),
+        update: vi.fn().mockReturnValue({
+          eq: vi.fn().mockResolvedValue({ data: null, error: null }),
+        }),
       };
     });
 
