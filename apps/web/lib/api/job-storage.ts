@@ -37,15 +37,27 @@ export async function signJobStoragePath(
     .createSignedUrl(path, ttlSeconds);
 
   if (error || !data?.signedUrl) {
-    logger.error(
-      'Failed to sign Job-storage URL',
-      error ?? new Error('no signedUrl'),
-      {
-        service: 'job-storage',
-        path,
-        ttlSeconds,
-      }
-    );
+    // "Object not found" is an expected condition: production has 12+
+    // job_attachments rows referencing seeded building-surveyor demo
+    // images (Rotten_*, Penetrating_*) whose actual files were never
+    // uploaded to the Job-storage bucket. The caller (resignJobStorageUrls)
+    // already falls back to the original URL so the UI handles it
+    // gracefully — demote to `warn` so prod logs aren't noisy with
+    // false-alarm errors. Other signing failures (auth, network) keep
+    // the `error` level so they surface properly.
+    const isMissingObject =
+      error != null && /object not found/i.test(error.message ?? '');
+    const meta = { service: 'job-storage', path, ttlSeconds };
+
+    if (isMissingObject) {
+      logger.warn('Job-storage object missing — orphan attachment row', meta);
+    } else {
+      logger.error(
+        'Failed to sign Job-storage URL',
+        error ?? new Error('no signedUrl'),
+        meta
+      );
+    }
     return null;
   }
 
