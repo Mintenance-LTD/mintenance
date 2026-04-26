@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import type { NavigationProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useQuery } from '@tanstack/react-query';
@@ -19,6 +20,7 @@ import { Badge } from '../../components/ui/Badge';
 import { supabase } from '../../config/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { theme, gradients } from '../../theme';
+import type { ProfileStackParamList } from '../../navigation/types';
 
 interface TimeEntry {
   id: string;
@@ -32,7 +34,7 @@ interface TimeEntry {
 
 export const TimeTrackingScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavigationProp<ProfileStackParamList>>();
   const { user } = useAuth();
 
   const { data, isLoading, error, refetch } = useQuery({
@@ -95,6 +97,75 @@ export const TimeTrackingScreen: React.FC = () => {
     .filter((e) => e.billable)
     .reduce((sum, e) => sum + e.hours * e.hourly_rate, 0);
 
+  // Audit P1 #14 (2026-04-25): Time-Tracking → Invoice bridge.
+  //
+  // Aggregate this-week's billable entries by `job_title` (or
+  // "General labor" when no job is attached) so the contractor can
+  // pre-fill an invoice in one tap. Each line item is one job.
+  // Quantity = total hours, rate = the hourly_rate of the most
+  // recent entry in that group (rates can drift over time, so
+  // pick the latest as a sensible default — the contractor can
+  // edit on the next screen).
+  //
+  // We deliberately do NOT mark entries as "invoiced" yet — that
+  // would require a DB schema change (invoice_id column on
+  // contractor_time_entries) and a back-end mutation. For the
+  // MVP, contractors visually track which weeks they've already
+  // invoiced. A follow-up commit can add invoice_id linkage.
+  const invoiceLineItems = useMemo(() => {
+    const groups = new Map<
+      string,
+      { hours: number; rate: number; latestDate: string }
+    >();
+    for (const entry of thisWeekEntries) {
+      if (!entry.billable) continue;
+      const key = entry.job_title || 'General labor';
+      const existing = groups.get(key);
+      if (!existing) {
+        groups.set(key, {
+          hours: entry.hours,
+          rate: entry.hourly_rate,
+          latestDate: entry.date,
+        });
+      } else {
+        existing.hours += entry.hours;
+        // Keep the most recent rate as the line-item default.
+        if (entry.date > existing.latestDate) {
+          existing.rate = entry.hourly_rate;
+          existing.latestDate = entry.date;
+        }
+      }
+    }
+    return Array.from(groups.entries()).map(([jobKey, agg]) => ({
+      description:
+        jobKey === 'General labor' ? 'Labor (this week)' : `Labor — ${jobKey}`,
+      quantity: agg.hours.toFixed(2),
+      rate: agg.rate.toFixed(2),
+    }));
+  }, [thisWeekEntries]);
+
+  const canCreateInvoice = invoiceLineItems.length > 0;
+
+  const handleCreateInvoice = () => {
+    if (!canCreateInvoice) return;
+    // Pick the most-tracked job as a default jobRef hint.
+    const dominantJob = thisWeekEntries
+      .filter((e) => e.billable && e.job_title)
+      .reduce<Record<string, number>>((acc, e) => {
+        const k = e.job_title as string;
+        acc[k] = (acc[k] || 0) + e.hours;
+        return acc;
+      }, {});
+    const dominantJobKey = Object.entries(dominantJob).sort(
+      (a, b) => b[1] - a[1]
+    )[0]?.[0];
+
+    navigation.navigate('CreateInvoice', {
+      initialLineItems: invoiceLineItems,
+      jobRef: dominantJobKey,
+    });
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar
@@ -149,6 +220,38 @@ export const TimeTrackingScreen: React.FC = () => {
           </View>
         </View>
       </LinearGradient>
+
+      {/* Audit P1 #14 (2026-04-25): Create-Invoice CTA when there are
+          billable hours this week. Sits above the entries list so it's
+          discoverable without scrolling, and is dismissible by simply
+          not having any billable hours (the bar disappears). */}
+      {canCreateInvoice && (
+        <View style={styles.invoiceBanner}>
+          <View style={styles.invoiceBannerText}>
+            <Text style={styles.invoiceBannerTitle}>
+              {"Bill this week's hours"}
+            </Text>
+            <Text style={styles.invoiceBannerSubtitle}>
+              {billableHoursWeek.toFixed(1)}h across {invoiceLineItems.length}{' '}
+              {invoiceLineItems.length === 1 ? 'job' : 'jobs'} · {'£'}
+              {estimatedEarnings.toFixed(0)}
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={styles.invoiceBannerCta}
+            onPress={handleCreateInvoice}
+            accessibilityRole='button'
+            accessibilityLabel='Create invoice from billable hours'
+          >
+            <Ionicons
+              name='document-text-outline'
+              size={16}
+              color={theme.colors.textInverse}
+            />
+            <Text style={styles.invoiceBannerCtaText}>Create Invoice</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Content */}
       {isLoading ? (
@@ -402,5 +505,42 @@ const styles = StyleSheet.create({
       },
       android: { elevation: 8 },
     }),
+  },
+  // Audit P1 #14 (2026-04-25): Time-Tracking → Invoice CTA banner.
+  invoiceBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: theme.colors.surface,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: theme.colors.border,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 12,
+  },
+  invoiceBannerText: { flex: 1, gap: 2 },
+  invoiceBannerTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+  },
+  invoiceBannerSubtitle: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+  },
+  invoiceBannerCta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: theme.colors.primary,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 20,
+  },
+  invoiceBannerCtaText: {
+    color: theme.colors.textInverse,
+    fontSize: 13,
+    fontWeight: '600',
   },
 });

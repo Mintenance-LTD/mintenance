@@ -12,6 +12,7 @@
  */
 import type { NextRequest } from 'next/server';
 import { logger } from '@mintenance/shared';
+import { getClientIp } from '@/lib/request-ip';
 
 /** Deterministic 32-bit string hash for user bucketing. */
 function simpleHash(str: string): number {
@@ -53,10 +54,14 @@ export function is2025FeatureEnabled(request: NextRequest): boolean {
 
   const rolloutPercentage = getRolloutPercentage();
   if (rolloutPercentage > 0) {
+    // Audit P2 (2026-04-23): use trusted Vercel-verified IP for the
+    // rollout-bucket fallback. Spoofable XFF lets a single client
+    // toggle in/out of the 2025 UI by sending different
+    // `X-Forwarded-For` values per request, splintering A/B
+    // measurements. `getClientIp` falls through to `'unknown'` when
+    // no header is present, which is a stable bucket.
     const userIdentifier =
-      request.cookies.get('session-id')?.value ||
-      request.headers.get('x-forwarded-for') ||
-      'anonymous';
+      request.cookies.get('session-id')?.value || getClientIp(request);
     const hash = simpleHash(userIdentifier);
     const userPercentile = hash % 100;
     if (userPercentile < rolloutPercentage) return true;

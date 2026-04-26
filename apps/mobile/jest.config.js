@@ -9,7 +9,7 @@ module.exports = {
   // preventing jest-haste-map from walking into .claude/worktrees/ copies
   // and reporting "duplicate manual mock found" errors.
   rootDir: __dirname,
-  roots: ['<rootDir>/src', '<rootDir>/test', '<rootDir>/__mocks__'],
+  roots: ['<rootDir>/src', '<rootDir>/__tests__', '<rootDir>/__mocks__'],
   // Opt out of haste-map's automatic module/mock collection for worktrees.
   // With rootDir + roots correctly set, haste-map stays within apps/mobile/.
   haste: {

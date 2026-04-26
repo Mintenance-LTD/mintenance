@@ -267,7 +267,7 @@ export const POST = withApiHandler(
         metadata: {
           jobId,
           escrowTransactionId,
-          ip: request.headers.get('x-forwarded-for') || undefined,
+          ip: getClientIp(request),
         },
       }
     );

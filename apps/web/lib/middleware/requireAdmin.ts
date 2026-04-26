@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@/lib/logger';
+import { getClientIp } from '@/lib/request-ip';
 import type { User } from '@mintenance/types';
 
 /**
@@ -36,9 +37,13 @@ export async function requireAdmin(request: NextRequest): Promise<
     if (!user) {
       logger.warn('[SECURITY] Unauthenticated admin access attempt', {
         service: 'requireAdmin',
-        ip:
-          request.headers.get('x-forwarded-for') ||
-          request.headers.get('x-real-ip'),
+        // Audit P2 (2026-04-23): use trusted Vercel-verified IP
+        // (`x-vercel-forwarded-for`) rather than the client-controllable
+        // first XFF entry. Spoofable XFF was the audit's #16 finding —
+        // this swap closes the consistency gap with `with-api-handler`,
+        // `rate-limiter`, and `middleware/helpers.ts` which already use
+        // `getClientIp()`.
+        ip: getClientIp(request),
         path: request.nextUrl.pathname,
       });
 
@@ -56,9 +61,7 @@ export async function requireAdmin(request: NextRequest): Promise<
         userId: user.id,
         email: user.email,
         jwtRole: user.role,
-        ip:
-          request.headers.get('x-forwarded-for') ||
-          request.headers.get('x-real-ip'),
+        ip: getClientIp(request),
         path: request.nextUrl.pathname,
       });
 

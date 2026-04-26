@@ -16,6 +16,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { isOriginAllowed, isCorsEnabled } from './config';
 import { securityMonitor } from '@/lib/security-monitor';
 import { logger } from '@mintenance/shared';
+import { getClientIp } from '@/lib/request-ip';
 
 /**
  * Get CORS headers for API response
@@ -38,7 +39,7 @@ export function getCorsHeaders(request: NextRequest): Record<string, string> {
     'Access-Control-Allow-Headers':
       'Content-Type, Authorization, X-CSRF-Token, X-Request-ID, X-Client-Info, ApiKey',
     'Access-Control-Max-Age': '86400', // 24 hours (reduce preflight overhead)
-    'Vary': 'Origin', // Important for CDN/browser caching
+    Vary: 'Origin', // Important for CDN/browser caching
   };
 
   // Only set Access-Control-Allow-Origin if origin is whitelisted
@@ -52,14 +53,18 @@ export function getCorsHeaders(request: NextRequest): Record<string, string> {
       path: request.nextUrl.pathname,
     });
   } else if (origin) {
-    // SECURITY: Log rejected origin attempt for monitoring
+    // SECURITY: Log rejected origin attempt for monitoring.
+    // Audit P2 (2026-04-23): use trusted Vercel-verified IP — see
+    // `lib/request-ip.ts`. Logging the spoofable first XFF entry
+    // would let an attacker overwrite the audit trail with arbitrary
+    // values during a CORS bypass attempt.
     logger.warn('[SECURITY] CORS rejected origin', {
       service: 'cors',
       origin,
       path: request.nextUrl.pathname,
       method: request.method,
       userAgent: request.headers.get('user-agent'),
-      ip: request.headers.get('x-forwarded-for') || 'unknown',
+      ip: getClientIp(request),
     });
 
     // Log to security monitoring system
@@ -171,9 +176,9 @@ export function createCorsResponse(
 export function shouldSkipCors(pathname: string): boolean {
   const skipPatterns = [
     '/api/webhooks/', // Server-to-server webhooks
-    '/api/health',     // Public health check
-    '/api/oauth/',     // OAuth callbacks (redirects)
+    '/api/health', // Public health check
+    '/api/oauth/', // OAuth callbacks (redirects)
   ];
 
-  return skipPatterns.some(pattern => pathname.startsWith(pattern));
+  return skipPatterns.some((pattern) => pathname.startsWith(pattern));
 }

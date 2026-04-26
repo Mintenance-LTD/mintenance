@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { logger } from '@mintenance/shared';
 import { checkPublicRateLimit } from '@/lib/middleware/public-rate-limiter-redis';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { getClientIp } from '@/lib/request-ip';
 
 /**
  * GET /api/geocode?address=...
@@ -21,12 +22,17 @@ export const GET = withApiHandler(
     if (!rateLimitResult.allowed) {
       logger.warn('Geocode rate limit exceeded', {
         service: 'geocoding',
-        ip: request.headers.get('x-forwarded-for') || 'unknown',
+        ip: getClientIp(request),
         remaining: rateLimitResult.remaining,
       });
-      const retryAfterSec = rateLimitResult.retryAfter ?? Math.ceil((rateLimitResult.reset - Date.now()) / 1000);
+      const retryAfterSec =
+        rateLimitResult.retryAfter ??
+        Math.ceil((rateLimitResult.reset - Date.now()) / 1000);
       return NextResponse.json(
-        { error: 'Rate limit exceeded. Please try again later.', retryAfter: retryAfterSec },
+        {
+          error: 'Rate limit exceeded. Please try again later.',
+          retryAfter: retryAfterSec,
+        },
         {
           status: 429,
           headers: {
@@ -57,9 +63,13 @@ export const GET = withApiHandler(
 
     const apiKey = process.env.GOOGLE_MAPS_API_KEY;
     if (!apiKey) {
-      logger.error('GOOGLE_MAPS_API_KEY not configured', new Error('Missing API key'), {
-        service: 'geocoding',
-      });
+      logger.error(
+        'GOOGLE_MAPS_API_KEY not configured',
+        new Error('Missing API key'),
+        {
+          service: 'geocoding',
+        }
+      );
       return NextResponse.json(
         { error: 'Geocoding service not configured' },
         { status: 500 }
@@ -77,7 +87,7 @@ export const GET = withApiHandler(
 
       logger.info('Geocode request successful', {
         service: 'geocoding',
-        ip: request.headers.get('x-forwarded-for') || 'unknown',
+        ip: getClientIp(request),
         userAgent: request.headers.get('user-agent') || 'unknown',
         address: address.substring(0, 100),
         status: data.status,
@@ -89,17 +99,18 @@ export const GET = withApiHandler(
         formatted_address: data.results[0].formatted_address,
       });
     } else {
-      logger.error('Geocoding error', new Error(`Geocoding status: ${data.status}`), {
-        service: 'geocoding',
-        status: data.status,
-        errorMessage: data.error_message,
-        address,
-        ip: request.headers.get('x-forwarded-for') || 'unknown',
-      });
-      return NextResponse.json(
-        { error: 'Address not found' },
-        { status: 404 }
+      logger.error(
+        'Geocoding error',
+        new Error(`Geocoding status: ${data.status}`),
+        {
+          service: 'geocoding',
+          status: data.status,
+          errorMessage: data.error_message,
+          address,
+          ip: getClientIp(request),
+        }
       );
+      return NextResponse.json({ error: 'Address not found' }, { status: 404 });
     }
   }
 );

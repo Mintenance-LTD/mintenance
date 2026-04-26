@@ -6,6 +6,7 @@
 
 import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { sanitizeIlikePattern } from '@/lib/utils/sanitize-postgrest';
 
 // Create server-side client (using service role key to bypass RLS)
 export const createServerClient = () => {
@@ -236,9 +237,17 @@ export async function searchContractors(params: {
       )
       .eq('role', 'contractor');
 
-    // Apply filters
+    // Apply filters.
+    // Audit P2 (2026-04-23): `location` flows from a public search
+    // form (searchContractors is exported and called by the
+    // /find-contractors page). Sanitize before interpolating into
+    // ILIKE so a `%,role.eq.admin` payload cannot escape and
+    // surface admin profiles.
     if (location) {
-      query = query.ilike('city', `%${location}%`);
+      const safeLocation = sanitizeIlikePattern(location);
+      if (safeLocation) {
+        query = query.ilike('city', `%${safeLocation}%`);
+      }
     }
 
     // Note: hourly_rate and skills filtering would need additional joins

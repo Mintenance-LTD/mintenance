@@ -9,12 +9,13 @@ vi.mock('next/navigation', () => ({
 }));
 
 vi.mock('lucide-react', () => ({
-  TrendingUp: () => <span data-testid="icon" />,
-  Star: () => <span data-testid="icon" />,
-  Briefcase: () => <span data-testid="icon" />,
-  DollarSign: () => <span data-testid="icon" />,
-  Award: () => <span data-testid="icon" />,
-  Clock: () => <span data-testid="icon" />,
+  TrendingUp: () => <span data-testid='icon' />,
+  Star: () => <span data-testid='icon' />,
+  Briefcase: () => <span data-testid='icon' />,
+  DollarSign: () => <span data-testid='icon' />,
+  PoundSterling: () => <span data-testid='icon' />,
+  Award: () => <span data-testid='icon' />,
+  Clock: () => <span data-testid='icon' />,
 }));
 
 vi.mock('@/components/ui/MotionDiv', () => ({

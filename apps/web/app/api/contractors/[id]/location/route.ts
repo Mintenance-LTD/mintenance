@@ -2,7 +2,11 @@ import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { z } from 'zod';
 import { logger } from '@mintenance/shared';
-import { ForbiddenError, NotFoundError, InternalServerError } from '@/lib/errors/api-error';
+import {
+  ForbiddenError,
+  NotFoundError,
+  InternalServerError,
+} from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 
 const updateLocationSchema = z.object({
@@ -38,47 +42,63 @@ export const POST = withApiHandler(
 
     if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Invalid request data', details: parsed.error.flatten().fieldErrors },
-        { status: 400 },
+        {
+          error: 'Invalid request data',
+          details: parsed.error.flatten().fieldErrors,
+        },
+        { status: 400 }
       );
     }
 
-    const { latitude, longitude, accuracy, altitude, heading, speed, job_id } = parsed.data;
+    const { latitude, longitude, accuracy, altitude, heading, speed, job_id } =
+      parsed.data;
 
-    // Verify contractor is sharing location for this job (if job_id provided)
+    // Verify the contractor is assigned to this job before accepting a
+    // job-scoped location ping. The first ping creates the sharing row, so
+    // checking contractor_locations here would block the initial write.
     if (job_id) {
-      const { data: locationCheck } = await serverSupabase
-        .from('contractor_locations')
-        .select('is_sharing_location')
+      const { data: assignedJob } = await serverSupabase
+        .from('jobs')
+        .select('id')
+        .eq('id', job_id)
         .eq('contractor_id', contractorId)
-        .eq('job_id', job_id)
-        .eq('is_active', true)
-        .order('timestamp', { ascending: false })
-        .limit(1)
-        .single();
+        .in('status', ['assigned', 'in_progress'])
+        .maybeSingle();
 
-      if (!locationCheck?.is_sharing_location) {
-        throw new ForbiddenError('Location sharing not enabled for this job');
+      if (!assignedJob) {
+        throw new ForbiddenError(
+          'Not authorized to share location for this job'
+        );
       }
     }
 
-    // Insert new location record
-    const { data: location, error: locationError } = await serverSupabase
-      .from('contractor_locations')
-      .insert({
-        contractor_id: contractorId,
-        job_id: job_id || null,
-        latitude,
-        longitude,
-        accuracy: accuracy || null,
-        altitude: altitude || null,
-        heading: heading || null,
-        speed: speed || null,
-        is_active: true,
-        is_sharing_location: true,
-        location_timestamp: new Date().toISOString(),
-        created_at: new Date().toISOString(),
-      })
+    const locationPayload = {
+      contractor_id: contractorId,
+      job_id: job_id || null,
+      latitude,
+      longitude,
+      accuracy: accuracy || null,
+      altitude: altitude || null,
+      heading: heading || null,
+      speed: speed || null,
+      is_active: true,
+      is_sharing_location: true,
+      location_timestamp: new Date().toISOString(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    // For job-scoped sharing, keep one active row per contractor/job so
+    // realtime subscribers and "latest location" reads do not fan out over
+    // historical duplicate rows. Non-job availability pings can still insert
+    // separate rows because the unique index intentionally excludes null job_id.
+    const locationWrite = job_id
+      ? serverSupabase
+          .from('contractor_locations')
+          .upsert(locationPayload, { onConflict: 'contractor_id,job_id' })
+      : serverSupabase.from('contractor_locations').insert(locationPayload);
+
+    const { data: location, error: locationError } = await locationWrite
       .select()
       .single();
 
@@ -101,7 +121,7 @@ export const POST = withApiHandler(
         timestamp: location.location_timestamp,
       },
     });
-  },
+  }
 );
 
 /**
@@ -139,7 +159,9 @@ export const GET = withApiHandler(
     // Get latest location
     let query = serverSupabase
       .from('contractor_locations')
-      .select('id, latitude, longitude, accuracy, location_timestamp, is_sharing_location')
+      .select(
+        'id, latitude, longitude, accuracy, location_timestamp, is_sharing_location'
+      )
       .eq('contractor_id', contractorId)
       .eq('is_active', true)
       .eq('is_sharing_location', true)
@@ -169,5 +191,5 @@ export const GET = withApiHandler(
     return NextResponse.json({
       location: locations[0],
     });
-  },
+  }
 );

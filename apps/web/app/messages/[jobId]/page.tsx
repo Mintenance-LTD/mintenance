@@ -166,13 +166,14 @@ function ChatContent({ params }: ChatPageProps) {
           initialJobId={jobId}
           onScheduled={() => {
             chat.setShowVideoCallDialog(false);
-            if (
-              confirm(
-                'Video call scheduled! Go to Video Calls page to view details?'
-              )
-            ) {
-              router.push('/video-calls');
-            }
+            // Audit P1 (2026-04-23): the prior path prompted the user to
+            // navigate to /video-calls for "details" but that page is a
+            // dead-end placeholder. Drop the redirect and fall back to
+            // a simple confirmation alert; the schedule itself is real
+            // (created via VideoCallScheduler against video_calls table).
+            alert(
+              'Video call scheduled. The call detail surface is coming soon.'
+            );
           }}
         />
       )}

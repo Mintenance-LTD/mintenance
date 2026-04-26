@@ -13,17 +13,14 @@ import {
   Users,
   TrendingUp,
   PoundSterling,
-  Video,
   FileText,
   Star,
   Receipt,
   CreditCard,
   Shield,
   Sparkles,
-  Heart,
   Compass,
   Pencil,
-  Package,
   ClipboardCheck,
   Link2,
   RefreshCw,
@@ -88,12 +85,11 @@ export function useNavSections(
             icon: Calendar,
             shortcut: 'g s',
           },
-          {
-            label: 'Video Calls',
-            href: '/video-calls',
-            icon: Video,
-            shortcut: 'g v',
-          },
+          // Audit P1 (2026-04-23): Video Calls page is a dead-end placeholder.
+          // Removed from primary nav so users can't randomly stumble in. The
+          // /video-calls page itself is preserved for direct-URL fallback +
+          // legacy bookmarks. Re-add this entry once VideoCallScheduler is
+          // wired into a real /video-calls landing route.
         ],
       },
       {
@@ -217,24 +213,19 @@ export function useNavSections(
             href: '/contractor/documents',
             icon: FolderOpen,
           },
-          {
-            label: 'Video Calls',
-            href: '/video-calls',
-            icon: Video,
-            shortcut: 'g v',
-          },
+          // Audit P1 (2026-04-23): Video Calls page is a dead-end placeholder.
+          // See homeowner section above for the full rationale.
         ],
       },
       {
         name: 'BUSINESS',
         items: [
-          { label: 'Social Feed', href: '/contractor/social', icon: Heart },
-          {
-            label: 'Connections',
-            href: '/contractor/connections',
-            icon: Users,
-          },
-          { label: 'Resources', href: '/contractor/resources', icon: Package },
+          // Audit P1 (2026-04-23): Social Feed, Connections, Resources are
+          // dead-end "Coming soon" pages. Removed from primary nav so the
+          // contractor sidebar only surfaces working features. Page files
+          // are preserved at /contractor/{social,connections,resources}
+          // for direct-URL fallback. Re-add these once the underlying
+          // features ship.
           { label: 'Portfolio', href: '/contractor/portfolio', icon: Pencil },
           { label: 'Reviews', href: '/contractor/reviews', icon: Star },
           { label: 'Customers', href: '/contractor/customers', icon: Users },

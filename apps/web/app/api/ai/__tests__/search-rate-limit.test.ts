@@ -170,7 +170,9 @@ describe('POST /api/ai/search - Rate Limiting', () => {
 
       const response = await POST(request);
 
-      expect(response.headers.get('Retry-After')).toBe(String(retryAfterSeconds));
+      expect(response.headers.get('Retry-After')).toBe(
+        String(retryAfterSeconds)
+      );
     });
   });
 
@@ -247,7 +249,7 @@ describe('POST /api/ai/search - Rate Limiting', () => {
       );
     });
 
-    it('should use "anonymous" identifier when no IP headers present', async () => {
+    it('should use "unknown" identifier when no IP headers present', async () => {
       vi.mocked(rateLimiter.checkRateLimit).mockResolvedValue({
         allowed: true,
         remaining: 9,
@@ -276,7 +278,7 @@ describe('POST /api/ai/search - Rate Limiting', () => {
 
       expect(rateLimiter.checkRateLimit).toHaveBeenCalledWith(
         expect.objectContaining({
-          identifier: 'ai-search:anonymous',
+          identifier: 'ai-search:unknown',
         })
       );
     });
@@ -309,10 +311,10 @@ describe('POST /api/ai/search - Rate Limiting', () => {
 
       await POST(request);
 
-      // Should use the first (client) IP in the chain
+      // Should use the last trusted proxy-observed IP in the chain
       expect(rateLimiter.checkRateLimit).toHaveBeenCalledWith(
         expect.objectContaining({
-          identifier: 'ai-search:203.0.113.195',
+          identifier: 'ai-search:150.172.238.178',
         })
       );
     });

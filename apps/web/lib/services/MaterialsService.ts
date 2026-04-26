@@ -1,5 +1,6 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { sanitizeIlikePattern } from '@/lib/utils/sanitize-postgrest';
 import type {
   Material,
   MaterialCategory,
@@ -50,9 +51,7 @@ export class MaterialsService {
       min_similarity = 0.3,
     } = options;
 
-    let queryBuilder = this.supabase
-      .from('materials')
-      .select('*');
+    let queryBuilder = this.supabase.from('materials').select('*');
 
     // Apply filters
     if (category) {
@@ -63,8 +62,17 @@ export class MaterialsService {
     }
 
     // Use ILIKE for simple substring matching (trigram similarity requires raw SQL)
-    // For better fuzzy matching, we use ILIKE with wildcards
-    queryBuilder = queryBuilder.ilike('name', `%${query}%`);
+    // For better fuzzy matching, we use ILIKE with wildcards.
+    // Audit P2 (2026-04-23): sanitize before interpolating — the
+    // `query` arg flows from /api/materials and was a PostgREST
+    // filter-injection vector (e.g. `%,unit_price.gte.0` to bypass
+    // intended filters).
+    const safeQuery = sanitizeIlikePattern(query);
+    if (!safeQuery) {
+      // No usable search input after sanitization → return empty.
+      return [];
+    }
+    queryBuilder = queryBuilder.ilike('name', `%${safeQuery}%`);
     queryBuilder = queryBuilder.limit(limit);
     queryBuilder = queryBuilder.order('unit_price', { ascending: true });
 
@@ -119,12 +127,17 @@ export class MaterialsService {
 
       const queryWords = queryLower.split(/\s+/);
       const nameWords = nameLower.split(/\s+/);
-      const wordOverlap = queryWords.filter(word =>
-        nameWords.some(nameWord => nameWord.includes(word) || word.includes(nameWord))
+      const wordOverlap = queryWords.filter((word) =>
+        nameWords.some(
+          (nameWord) => nameWord.includes(word) || word.includes(nameWord)
+        )
       ).length;
       score += (wordOverlap / queryWords.length) * 0.3;
 
-      const lengthSimilarity = 1 - Math.abs(nameLower.length - queryLower.length) / Math.max(nameLower.length, queryLower.length);
+      const lengthSimilarity =
+        1 -
+        Math.abs(nameLower.length - queryLower.length) /
+          Math.max(nameLower.length, queryLower.length);
       score += lengthSimilarity * 0.1;
 
       return { ...material, similarity: Math.min(score, 1.0), rank: index + 1 };
@@ -171,7 +184,12 @@ export class MaterialsService {
     }
 
     if (search) {
-      queryBuilder = queryBuilder.ilike('name', `%${search}%`);
+      // Audit P2 (2026-04-23): see searchMaterials above — same
+      // injection vector via the listMaterials filter.
+      const safeSearch = sanitizeIlikePattern(search);
+      if (safeSearch) {
+        queryBuilder = queryBuilder.ilike('name', `%${safeSearch}%`);
+      }
     }
 
     if (min_price !== undefined) {
@@ -248,7 +266,10 @@ export class MaterialsService {
    * Calculate total cost for a material with quantity
    * Takes bulk pricing into account
    */
-  calculateCost(material: Material, quantity: number): {
+  calculateCost(
+    material: Material,
+    quantity: number
+  ): {
     unit_price: number;
     effective_unit_price: number;
     total_cost: number;
@@ -285,7 +306,7 @@ export class MaterialsService {
     }
 
     // Get unique categories
-    const uniqueCategories = [...new Set(data?.map(d => d.category) || [])];
+    const uniqueCategories = [...new Set(data?.map((d) => d.category) || [])];
     return uniqueCategories as MaterialCategory[];
   }
 
@@ -303,7 +324,7 @@ export class MaterialsService {
     }
 
     const counts: Record<string, number> = {};
-    data?.forEach(item => {
+    data?.forEach((item) => {
       counts[item.category] = (counts[item.category] || 0) + 1;
     });
 
@@ -331,7 +352,9 @@ export class MaterialsService {
 
     if (error) {
       logger.error('MaterialsService.getMaterialsByCategories error', error);
-      throw new Error(`Failed to get materials by categories: ${error.message}`);
+      throw new Error(
+        `Failed to get materials by categories: ${error.message}`
+      );
     }
 
     return data || [];
@@ -356,7 +379,7 @@ export class MaterialsService {
       return { average_price: 0, median_price: 0, count: 0 };
     }
 
-    const prices = data.map(m => m.unit_price).sort((a, b) => a - b);
+    const prices = data.map((m) => m.unit_price).sort((a, b) => a - b);
     const average_price = prices.reduce((sum, p) => sum + p, 0) / prices.length;
     const median_price = prices[Math.floor(prices.length / 2)];
 

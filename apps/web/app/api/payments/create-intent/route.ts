@@ -42,7 +42,7 @@ export const POST = withApiHandler(
             metadata: {
               jobId,
               contractorId,
-              ip: request.headers.get('x-forwarded-for') || undefined,
+              ip: getClientIp(request),
             },
           }
         );
@@ -198,6 +198,21 @@ export const POST = withApiHandler(
           }
         );
         throw new BadRequestError('Accepted bid has an invalid amount.');
+      }
+
+      if (
+        typeof job.budget === 'number' &&
+        job.budget > 0 &&
+        acceptedBid.amount > job.budget
+      ) {
+        logger.warn('Accepted bid exceeds job budget', {
+          service: 'payments',
+          userId: user.id,
+          jobId,
+          bidAmount: acceptedBid.amount,
+          jobBudget: job.budget,
+        });
+        throw new BadRequestError('Payment amount cannot exceed job budget.');
       }
 
       // Absolute hard cap to guard against a data-entry error on the bid.
@@ -454,7 +469,7 @@ export const POST = withApiHandler(
       const errorResponse = createPaymentErrorResponse(error, {
         operation: 'create_payment_intent',
         userId: user.id,
-        ip: request.headers.get('x-forwarded-for') || undefined,
+        ip: getClientIp(request),
       });
 
       return NextResponse.json(

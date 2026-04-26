@@ -305,6 +305,17 @@ export class JobContextLocationService {
       7
     );
 
+    // Audit P0 (2026-04-23): two bugs were silent-failing every write
+    // since the feature shipped, hence prod metric `contractor_locations
+    // = 0`:
+    //   (1) sent `timestamp:` — column doesn't exist on the table; the
+    //       real columns are `location_timestamp` + `created_at` /
+    //       `updated_at`. PostgREST returned 400 "column does not exist".
+    //   (2) used `onConflict: 'contractor_id'` but no unique constraint
+    //       existed on `contractor_id` (or any subset). PostgREST 42P10.
+    // Migration `contractor_locations_onconflict_index` adds the partial
+    // unique index `(contractor_id, job_id) WHERE is_active = true`, which
+    // matches the BackgroundLocationTask upsert as well.
     const { error } = await supabase.from('contractor_locations').upsert(
       {
         contractor_id: this.contractorId,
@@ -318,12 +329,13 @@ export class JobContextLocationService {
         eta_minutes: eta,
         context: this.currentContext,
         geohash,
-        timestamp: new Date().toISOString(),
+        location_timestamp: new Date().toISOString(),
         is_active: true,
+        is_sharing_location: true,
         updated_at: new Date().toISOString(),
       },
       {
-        onConflict: 'contractor_id',
+        onConflict: 'contractor_id,job_id',
       }
     );
 

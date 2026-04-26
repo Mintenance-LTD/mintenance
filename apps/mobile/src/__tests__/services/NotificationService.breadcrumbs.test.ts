@@ -76,7 +76,9 @@ describe('NotificationService with Sentry Breadcrumbs', () => {
       data: 'ExponentPushToken[test-token-123]',
     });
 
-    (Notifications.setNotificationChannelAsync as jest.Mock).mockResolvedValue(undefined);
+    (Notifications.setNotificationChannelAsync as jest.Mock).mockResolvedValue(
+      undefined
+    );
   });
 
   describe('Breadcrumb Tracking for Initialization', () => {
@@ -115,7 +117,13 @@ describe('NotificationService with Sentry Breadcrumbs', () => {
         status: 'denied',
       });
 
-      const token = await NotificationService.initialize();
+      // Opt in to the prompt path (PushSoftAskModal CTA flow) so the
+      // 'permission denied' breadcrumb fires — silent default would
+      // emit 'Push permission deferred' instead. See the matching
+      // change in NotificationService.test.ts.
+      const token = await NotificationService.initialize({
+        promptIfUndetermined: true,
+      });
 
       expect(mockAddBreadcrumb).toHaveBeenCalledWith(
         'Push notification permission denied',
@@ -150,7 +158,9 @@ describe('NotificationService with Sentry Breadcrumbs', () => {
 
     it('should add error breadcrumb on initialization exception', async () => {
       const error = new Error('Token generation failed');
-      (Notifications.getExpoPushTokenAsync as jest.Mock).mockRejectedValue(error);
+      (Notifications.getExpoPushTokenAsync as jest.Mock).mockRejectedValue(
+        error
+      );
 
       const token = await NotificationService.initialize();
 
@@ -204,39 +214,18 @@ describe('NotificationService with Sentry Breadcrumbs', () => {
   });
 
   describe('Breadcrumb Tracking for Sending Notifications', () => {
+    // 2026-04-24: sendPushNotification now forwards to
+    // POST /api/notifications/send (server-side Expo dispatch). The
+    // breadcrumbs emitted by the client wrap the HTTP call, not the
+    // Expo send — that happens on the server.
     beforeEach(() => {
-      // Mock fetch for push notification sending
-      global.fetch = jest.fn().mockResolvedValue({
-        ok: true,
-        json: async () => ({ data: { status: 'ok' } }),
+      mobileApiClient.post.mockResolvedValue({
+        success: true,
+        notificationId: 'notif-42',
       });
-
-      // mobileApiClient.get returns push token by default
-      mobileApiClient.get.mockResolvedValue({
-        push_token: 'ExponentPushToken[user-token]',
-      });
-
-      // getNotificationPreferences uses supabase.from('profiles')
-      (supabase.from as jest.Mock).mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({
-          data: {
-            notification_preferences: {
-              pushEnabled: true,
-              jobUpdates: true,
-              newJobs: true,
-            },
-          },
-          error: null,
-        }),
-      });
-
-      // saveNotification uses mobileApiClient.post
-      mobileApiClient.post.mockResolvedValue({});
     });
 
-    it('should add breadcrumb when sending notification succeeds', async () => {
+    it('should add breadcrumb when dispatch succeeds', async () => {
       await NotificationService.sendPushNotification(
         'user-123',
         'Test Title',
@@ -246,51 +235,22 @@ describe('NotificationService with Sentry Breadcrumbs', () => {
       );
 
       expect(mockAddBreadcrumb).toHaveBeenCalledWith(
-        'Push notification sent',
+        'Push send dispatched',
         'notification',
         expect.objectContaining({
-          userId: 'user-123',
+          recipientId: 'user-123',
           type: 'job_update',
-          title: 'Test Title',
+          notificationId: 'notif-42',
           level: 'info',
         })
       );
     });
 
-    it('should add breadcrumb when user has no push token', async () => {
-      // mobileApiClient.get fails -> no token
-      mobileApiClient.get.mockRejectedValueOnce(new Error('No token found'));
-
-      await NotificationService.sendPushNotification(
-        'user-123',
-        'Test Title',
-        'Test Body'
-      );
-
-      expect(mockAddBreadcrumb).toHaveBeenCalledWith(
-        'No push token found for user',
-        'notification',
-        expect.objectContaining({
-          userId: 'user-123',
-          level: 'warning',
-        })
-      );
-    });
-
-    it('should add breadcrumb when notification is blocked by preferences', async () => {
-      // Return preferences that block job_update
-      (supabase.from as jest.Mock).mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({
-          data: {
-            notification_preferences: {
-              pushEnabled: true,
-              jobUpdates: false,
-            },
-          },
-          error: null,
-        }),
+    it('should add breadcrumb when recipient has suppressed this type', async () => {
+      mobileApiClient.post.mockResolvedValueOnce({
+        success: true,
+        notificationId: null,
+        suppressed: true,
       });
 
       await NotificationService.sendPushNotification(
@@ -302,66 +262,55 @@ describe('NotificationService with Sentry Breadcrumbs', () => {
       );
 
       expect(mockAddBreadcrumb).toHaveBeenCalledWith(
-        'Notification blocked by user preferences',
+        'Push send suppressed by recipient preferences',
         'notification',
         expect.objectContaining({
-          userId: 'user-123',
+          recipientId: 'user-123',
           type: 'job_update',
           level: 'info',
         })
       );
     });
 
-    it('should add error breadcrumb when push notification fails', async () => {
-      global.fetch = jest.fn().mockResolvedValue({
-        ok: false,
-        status: 500,
-      });
+    it('should add warning breadcrumb on 403 (no business relationship)', async () => {
+      mobileApiClient.post.mockRejectedValueOnce(
+        new Error('Request failed with status 403: Forbidden')
+      );
 
-      await expect(
-        NotificationService.sendPushNotification('user-123', 'Title', 'Body')
-      ).rejects.toThrow('Push notification failed: 500');
+      await NotificationService.sendPushNotification(
+        'stranger-id',
+        'Hello',
+        'This should not deliver'
+      );
 
       expect(mockAddBreadcrumb).toHaveBeenCalledWith(
-        'Failed to send push notification',
+        'Push send refused (403)',
         'notification',
         expect.objectContaining({
-          userId: 'user-123',
-          error: 'Push notification failed: 500',
-          level: 'error',
+          recipientId: 'stranger-id',
+          level: 'warning',
         })
       );
     });
 
-    it('should add breadcrumb on push notification timeout', async () => {
-      jest.useFakeTimers();
+    it('should add error breadcrumb when dispatch fails', async () => {
+      mobileApiClient.post.mockRejectedValueOnce(new Error('Network error'));
 
-      global.fetch = jest.fn().mockImplementation(
-        () => new Promise((resolve) => setTimeout(resolve, 15000))
-      );
-
-      const promise = NotificationService.sendPushNotification(
+      await NotificationService.sendPushNotification(
         'user-123',
         'Title',
         'Body'
       );
-      const expectation = expect(promise).rejects.toThrow(
-        'Push notification request timed out'
-      );
-
-      await jest.advanceTimersByTimeAsync(10001); // Advance past the 10 second timeout
-      await expectation;
 
       expect(mockAddBreadcrumb).toHaveBeenCalledWith(
-        'Push notification timeout',
+        'Push send dispatch failed',
         'notification',
         expect.objectContaining({
-          userId: 'user-123',
+          recipientId: 'user-123',
+          error: 'Network error',
           level: 'error',
         })
       );
-
-      jest.useRealTimers();
     });
   });
 
@@ -470,7 +419,8 @@ describe('NotificationService with Sentry Breadcrumbs', () => {
       });
       (supabase.from as jest.Mock) = mockFrom;
 
-      const prefs = await NotificationService.getNotificationPreferences('user-123');
+      const prefs =
+        await NotificationService.getNotificationPreferences('user-123');
 
       expect(mockAddBreadcrumb).toHaveBeenCalledWith(
         'Fetched notification preferences',
@@ -483,26 +433,43 @@ describe('NotificationService with Sentry Breadcrumbs', () => {
     });
 
     it('should add breadcrumb when updating preferences', async () => {
-      // updateNotificationPreferences first reads current preferences, then updates
-      const mockChain = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
+      // updateNotificationPreferences first reads current preferences,
+      // then updates. The READ chain ends in .single() (returns data);
+      // the UPDATE chain ends in .eq() (returns { error }). The earlier
+      // mock conflated both by setting eq() to mockResolvedValue once,
+      // breaking the read chain. Use mockReturnValueOnce for the read
+      // and mockResolvedValueOnce for the update so the chain resolves
+      // correctly per call.
+      const readChain: Record<string, jest.Mock> = {
+        select: jest.fn(),
+        eq: jest.fn(),
         single: jest.fn().mockResolvedValue({
           data: { notification_preferences: {} },
           error: null,
         }),
-        update: jest.fn().mockReturnThis(),
       };
-      (supabase.from as jest.Mock).mockReturnValue(mockChain);
-      // The update call resolves via .eq() which needs to resolve with { error: null }
-      mockChain.eq.mockResolvedValue({ error: null });
+      readChain.select.mockReturnValue(readChain);
+      readChain.eq.mockReturnValue(readChain);
+
+      const updateChain: Record<string, jest.Mock> = {
+        update: jest.fn(),
+        eq: jest.fn().mockResolvedValue({ error: null }),
+      };
+      updateChain.update.mockReturnValue(updateChain);
+
+      (supabase.from as jest.Mock)
+        .mockReturnValueOnce(readChain)
+        .mockReturnValueOnce(updateChain);
 
       const newPrefs = {
         jobUpdates: false,
         quietHoursEnabled: true,
       };
 
-      await NotificationService.updateNotificationPreferences('user-123', newPrefs);
+      await NotificationService.updateNotificationPreferences(
+        'user-123',
+        newPrefs
+      );
 
       expect(mockAddBreadcrumb).toHaveBeenCalledWith(
         'Updated notification preferences',
@@ -518,7 +485,9 @@ describe('NotificationService with Sentry Breadcrumbs', () => {
 
   describe('Breadcrumb Tracking for Badge Management', () => {
     it('should add breadcrumb when updating badge count', async () => {
-      (Notifications.setBadgeCountAsync as jest.Mock).mockResolvedValue(undefined);
+      (Notifications.setBadgeCountAsync as jest.Mock).mockResolvedValue(
+        undefined
+      );
 
       await NotificationService.setBadgeCount(5);
 
@@ -533,7 +502,9 @@ describe('NotificationService with Sentry Breadcrumbs', () => {
     });
 
     it('should add breadcrumb when clearing badge', async () => {
-      (Notifications.setBadgeCountAsync as jest.Mock).mockResolvedValue(undefined);
+      (Notifications.setBadgeCountAsync as jest.Mock).mockResolvedValue(
+        undefined
+      );
 
       await NotificationService.clearBadge();
 
@@ -556,12 +527,12 @@ describe('NotificationService with Sentry Breadcrumbs', () => {
       const mockReceivedListener = { remove: jest.fn() };
       const mockResponseListener = { remove: jest.fn() };
 
-      (Notifications.addNotificationReceivedListener as jest.Mock).mockReturnValue(
-        mockReceivedListener
-      );
-      (Notifications.addNotificationResponseReceivedListener as jest.Mock).mockReturnValue(
-        mockResponseListener
-      );
+      (
+        Notifications.addNotificationReceivedListener as jest.Mock
+      ).mockReturnValue(mockReceivedListener);
+      (
+        Notifications.addNotificationResponseReceivedListener as jest.Mock
+      ).mockReturnValue(mockResponseListener);
 
       NotificationService.registerListeners(mockNavigationRef);
 
@@ -580,13 +551,15 @@ describe('NotificationService with Sentry Breadcrumbs', () => {
       };
 
       let responseHandler: any;
-      (Notifications.addNotificationResponseReceivedListener as jest.Mock).mockImplementation(
-        (handler) => {
-          responseHandler = handler;
-          return { remove: jest.fn() };
-        }
-      );
-      (Notifications.addNotificationReceivedListener as jest.Mock).mockReturnValue({ remove: jest.fn() });
+      (
+        Notifications.addNotificationResponseReceivedListener as jest.Mock
+      ).mockImplementation((handler) => {
+        responseHandler = handler;
+        return { remove: jest.fn() };
+      });
+      (
+        Notifications.addNotificationReceivedListener as jest.Mock
+      ).mockReturnValue({ remove: jest.fn() });
 
       // Mock markAsRead (uses mobileApiClient.post)
       mobileApiClient.post.mockResolvedValue({});
@@ -677,9 +650,9 @@ describe('NotificationService with Sentry Breadcrumbs', () => {
     });
 
     it('should add breadcrumb when canceling scheduled notification', async () => {
-      (Notifications.cancelScheduledNotificationAsync as jest.Mock).mockResolvedValue(
-        undefined
-      );
+      (
+        Notifications.cancelScheduledNotificationAsync as jest.Mock
+      ).mockResolvedValue(undefined);
 
       await NotificationService.cancelScheduledNotification('scheduled-id-456');
 
@@ -695,14 +668,15 @@ describe('NotificationService with Sentry Breadcrumbs', () => {
 
     it('should throw when scheduling fails (no breadcrumb on error path)', async () => {
       const error = new Error('Scheduling failed');
-      (Notifications.scheduleNotificationAsync as jest.Mock).mockRejectedValue(error);
+      (Notifications.scheduleNotificationAsync as jest.Mock).mockRejectedValue(
+        error
+      );
 
       await expect(
-        NotificationService.scheduleLocalNotification(
-          'Title',
-          'Body',
-          { seconds: 30, repeats: false }
-        )
+        NotificationService.scheduleLocalNotification('Title', 'Body', {
+          seconds: 30,
+          repeats: false,
+        })
       ).rejects.toThrow(error);
 
       // The real code logs the error but does NOT emit a breadcrumb on the error path
@@ -719,26 +693,10 @@ describe('NotificationService with Sentry Breadcrumbs', () => {
       mobileApiClient.post.mockResolvedValueOnce({});
       await NotificationService.savePushToken('user-123', 'token-123');
 
-      // Send notification
-      // mobileApiClient.get returns push token
-      mobileApiClient.get.mockResolvedValueOnce({ push_token: 'token-123' });
-
-      // getNotificationPreferences uses supabase.from('profiles')
-      (supabase.from as jest.Mock).mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({
-          data: { notification_preferences: { pushEnabled: true } },
-          error: null,
-        }),
-      });
-
-      // saveNotification uses mobileApiClient.post
-      mobileApiClient.post.mockResolvedValueOnce({});
-
-      global.fetch = jest.fn().mockResolvedValue({
-        ok: true,
-        json: async () => ({ data: { status: 'ok' } }),
+      // Send notification — server-routed path (2026-04-24+).
+      mobileApiClient.post.mockResolvedValueOnce({
+        success: true,
+        notificationId: 'notif-success',
       });
 
       await NotificationService.sendPushNotification(
@@ -749,10 +707,9 @@ describe('NotificationService with Sentry Breadcrumbs', () => {
         'system'
       );
 
-      // Verify breadcrumb trail (3-arg format: message, category, data-with-level)
       const breadcrumbCalls = mockAddBreadcrumb.mock.calls;
 
-      // Should have breadcrumbs for initialization, token save, and notification send
+      // Should have breadcrumbs for initialization, token save, and push dispatch
       expect(breadcrumbCalls).toContainEqual([
         'Notification Service initialized',
         'notification',
@@ -766,7 +723,7 @@ describe('NotificationService with Sentry Breadcrumbs', () => {
       ]);
 
       expect(breadcrumbCalls).toContainEqual([
-        'Push notification sent',
+        'Push send dispatched',
         'notification',
         expect.objectContaining({ level: 'info' }),
       ]);
@@ -778,12 +735,17 @@ describe('NotificationService with Sentry Breadcrumbs', () => {
 
       await NotificationService.initialize();
 
-      // Try to send notification — mobileApiClient.get fails -> no token
-      mobileApiClient.get.mockRejectedValueOnce(new Error('No user found'));
+      // Server refuses — caller has no relationship with recipient.
+      mobileApiClient.post.mockRejectedValueOnce(
+        new Error('Request failed with status 403: Forbidden')
+      );
 
-      await NotificationService.sendPushNotification('user-999', 'Test', 'Body');
+      await NotificationService.sendPushNotification(
+        'user-999',
+        'Test',
+        'Body'
+      );
 
-      // Verify error breadcrumb trail (3-arg format)
       const breadcrumbCalls = mockAddBreadcrumb.mock.calls;
 
       expect(breadcrumbCalls).toContainEqual([
@@ -793,7 +755,7 @@ describe('NotificationService with Sentry Breadcrumbs', () => {
       ]);
 
       expect(breadcrumbCalls).toContainEqual([
-        'No push token found for user',
+        'Push send refused (403)',
         'notification',
         expect.objectContaining({ level: 'warning' }),
       ]);
