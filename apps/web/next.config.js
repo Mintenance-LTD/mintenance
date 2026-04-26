@@ -103,6 +103,16 @@ const nextConfig = {
   ],
 
   experimental: {
+    // Node.js runtime for middleware. Required because @mintenance/auth
+    // pulls in `password-security.ts` (Node `crypto` + argon2) via its
+    // index re-exports — Edge runtime crashes on the `crypto` import,
+    // which was causing every protected route to redirect to /login
+    // (see prod logs 2026-04-26 16:58: "The edge runtime does not
+    // support Node.js 'crypto' module" on /api/building-surveyor/assess).
+    // Per Vercel docs (https://vercel.com/docs/functions/runtimes/node-js)
+    // setting this flag is the supported way as of Next.js 16. Must be
+    // paired with `runtime: 'nodejs'` in middleware.ts's config export.
+    nodeMiddleware: true,
     // Optimize imports for faster builds and smaller bundles
     optimizePackageImports: [
       '@mintenance/shared',
