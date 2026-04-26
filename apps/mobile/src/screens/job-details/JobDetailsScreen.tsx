@@ -485,7 +485,17 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
             <>
               <View style={styles.divider} />
               <View style={styles.sectionPadded}>
-                <ContractorLocationSection jobId={job.id} />
+                <ContractorLocationSection
+                  jobId={job.id}
+                  destination={
+                    job.latitude != null && job.longitude != null
+                      ? {
+                          latitude: job.latitude,
+                          longitude: job.longitude,
+                        }
+                      : undefined
+                  }
+                />
               </View>
             </>
           )}

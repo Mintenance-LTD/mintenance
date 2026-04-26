@@ -12,14 +12,28 @@ import { theme } from '../../../theme';
 
 interface Props {
   jobId: string;
+  destination?: {
+    latitude: number;
+    longitude: number;
+  };
 }
 
-export const ContractorLocationSection: React.FC<Props> = ({ jobId }) => {
+export const ContractorLocationSection: React.FC<Props> = ({
+  jobId,
+  destination,
+}) => {
+  const hasDestination =
+    !!destination &&
+    Number.isFinite(destination.latitude) &&
+    Number.isFinite(destination.longitude);
+
   const { isTracking, eta, startTracking, stopTracking, markArrived, error } =
     useJobTravelTracking({
-      meetingId: jobId,
       jobId,
-      destination: { latitude: 0, longitude: 0 },
+      destination: destination ?? {
+        latitude: Number.NaN,
+        longitude: Number.NaN,
+      },
     });
 
   const formatEta = (minutes: number) => {
@@ -81,8 +95,9 @@ export const ContractorLocationSection: React.FC<Props> = ({ jobId }) => {
         </View>
       ) : (
         <TouchableOpacity
-          style={styles.startButton}
+          style={[styles.startButton, !hasDestination && styles.disabledButton]}
           onPress={startTracking}
+          disabled={!hasDestination}
           accessibilityRole='button'
           accessibilityLabel='Start location tracking'
         >
@@ -91,7 +106,9 @@ export const ContractorLocationSection: React.FC<Props> = ({ jobId }) => {
             size={18}
             color={theme.colors.textInverse}
           />
-          <Text style={styles.startButtonText}>Share My Location</Text>
+          <Text style={styles.startButtonText}>
+            {hasDestination ? 'Share My Location' : 'Job location unavailable'}
+          </Text>
         </TouchableOpacity>
       )}
     </View>
@@ -181,6 +198,9 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.textPrimary,
     borderRadius: 28,
     paddingVertical: 14,
+  },
+  disabledButton: {
+    opacity: 0.5,
   },
   startButtonText: {
     color: theme.colors.textInverse,
