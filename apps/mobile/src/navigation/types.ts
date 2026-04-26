@@ -198,7 +198,11 @@ export type ProfileStackParamList = {
   HomeHealthSubscribe: undefined;
   Financials: undefined;
   SettingsHub: undefined;
-  Expenses: undefined;
+  // Optional jobId opens the form pre-bound to a specific job — used
+  // by the contractor job-detail "Log Expense for this Job" CTA so the
+  // expense lands with `contractor_expenses.job_id` set instead of as a
+  // standalone bookkeeping row (audit finding #9).
+  Expenses: { jobId?: string; jobTitle?: string } | undefined;
   Documents: undefined;
   Certifications: undefined;
   DBSCheck: undefined;

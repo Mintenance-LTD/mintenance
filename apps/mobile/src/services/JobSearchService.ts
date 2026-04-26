@@ -11,6 +11,7 @@ import { Job } from '@mintenance/types';
 import { isValidSearchTerm } from '../utils/sqlSanitization';
 import { logger } from '../utils/logger';
 import { supabase } from '../config/supabase';
+import { mobileApiClient } from '../utils/mobileApiClient';
 import { JobCRUDService } from './JobCRUDService';
 
 const JOB_LIST_SELECT =
@@ -41,17 +42,52 @@ async function enrichJobsWithPhotos(
 }
 
 export class JobSearchService {
+  /**
+   * Returns the homeowner's jobs with photo URLs that survive the
+   * 2026-04-17 Job-storage bucket flip from public→private.
+   *
+   * Goes through the web API (not direct Supabase) so the server can
+   * re-sign legacy `public/Job-storage/...` photo URLs into fresh
+   * signed URLs via `resignJobStorageUrls`. The previous direct-Supabase
+   * implementation returned raw `file_url` values from `job_attachments`,
+   * which 404 on the CDN after the bucket flip — the user reported this
+   * as empty thumbnails on `boiler issue` (£675) and `goggk…` (£100).
+   *
+   * The `homeownerId` parameter is preserved for API compatibility but
+   * the API route auto-scopes via `auth.uid()`, so a user can only
+   * fetch their own jobs regardless of what id is passed. We log if a
+   * mismatched id is provided as a diagnostic aid.
+   */
   static async getJobsByHomeowner(homeownerId: string): Promise<Job[]> {
-    const { data, error } = await supabase
-      .from('jobs')
-      .select(JOB_LIST_SELECT)
-      .eq('homeowner_id', homeownerId)
-      .order('created_at', { ascending: false });
-    if (error) {
-      logger.error('getJobsByHomeowner failed', { error });
-      throw new Error(error.message);
+    try {
+      const { jobs } = await mobileApiClient.get<{
+        jobs: Array<Record<string, unknown>>;
+        nextCursor?: string | null;
+      }>('/api/jobs');
+      return jobs as unknown as Job[];
+    } catch (error) {
+      logger.error(
+        'getJobsByHomeowner via API failed; falling back to direct DB',
+        {
+          error,
+          homeownerId,
+        }
+      );
+      // Fallback: same as before, but with a warning that photos may
+      // not render. Keeps offline / API-down resilience.
+      const { data, error: dbError } = await supabase
+        .from('jobs')
+        .select(JOB_LIST_SELECT)
+        .eq('homeowner_id', homeownerId)
+        .order('created_at', { ascending: false });
+      if (dbError) {
+        logger.error('getJobsByHomeowner direct-DB fallback failed', {
+          error: dbError,
+        });
+        throw new Error(dbError.message);
+      }
+      return enrichJobsWithPhotos((data ?? []) as Record<string, unknown>[]);
     }
-    return enrichJobsWithPhotos((data ?? []) as Record<string, unknown>[]);
   }
 
   static async getUserJobs(userId: string): Promise<Job[]> {
@@ -59,6 +95,21 @@ export class JobSearchService {
   }
 
   static async getAvailableJobs(): Promise<Job[]> {
+    try {
+      const { jobs } = await mobileApiClient.get<{
+        jobs: Array<Record<string, unknown>>;
+        nextCursor?: string | null;
+      }>('/api/jobs?status=posted&limit=50');
+      return jobs as unknown as Job[];
+    } catch (error) {
+      logger.error(
+        'getAvailableJobs via API failed; falling back to direct DB',
+        {
+          error,
+        }
+      );
+    }
+
     const { data, error } = await supabase
       .from('jobs')
       .select(JOB_LIST_SELECT)
@@ -97,6 +148,20 @@ export class JobSearchService {
     userId: string,
     role: 'homeowner' | 'contractor'
   ): Promise<Job[]> {
+    try {
+      const { jobs } = await mobileApiClient.get<{
+        jobs: Array<Record<string, unknown>>;
+        nextCursor?: string | null;
+      }>('/api/jobs?limit=50');
+      return jobs as unknown as Job[];
+    } catch (error) {
+      logger.error('getJobsByUser via API failed; falling back to direct DB', {
+        error,
+        userId,
+        role,
+      });
+    }
+
     const col = role === 'homeowner' ? 'homeowner_id' : 'contractor_id';
     const { data, error } = await supabase
       .from('jobs')

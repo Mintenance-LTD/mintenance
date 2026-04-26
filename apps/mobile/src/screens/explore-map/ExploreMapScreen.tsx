@@ -21,6 +21,7 @@ import {
   Easing,
   StatusBar,
   FlatList,
+  Platform,
 } from 'react-native';
 import type { NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -28,6 +29,9 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { JobsStackParamList } from '../../navigation/types';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+
+// Force Google Maps only on Android (iOS uses Apple Maps, no key needed).
+const MAP_PROVIDER = Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined;
 import { Ionicons } from '@expo/vector-icons';
 import {
   useExploreMapViewModel,
@@ -176,6 +180,10 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({
     useNavigation<NativeStackNavigationProp<JobsStackParamList>>();
   const mapRef = useRef<MapView>(null);
   const carouselRef = useRef<FlatList<JobMapItem>>(null);
+  const googleMapsApiKey =
+    process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ||
+    process.env.GOOGLE_MAPS_API_KEY;
+  const shouldRenderNativeMap = Platform.OS !== 'android' || !!googleMapsApiKey;
 
   const handleCarouselScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const index = Math.round(e.nativeEvent.contentOffset.x / (CARD_WIDTH + 12));
@@ -214,98 +222,115 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({
       <StatusBar barStyle='dark-content' />
 
       {/* FULL-BLEED MAP — fills entire screen */}
-      <MapView
-        ref={mapRef}
-        provider={PROVIDER_GOOGLE}
-        style={StyleSheet.absoluteFillObject}
-        region={viewModel.region}
-        onRegionChangeComplete={viewModel.handleRegionChange}
-        onPress={() => viewModel.handleJobSelect(null)}
-        showsUserLocation={viewModel.locationGranted}
-        showsMyLocationButton={false}
-      >
-        {/* Contractor location pin */}
-        {viewModel.userLocation && (
-          <Marker
-            coordinate={viewModel.userLocation}
-            anchor={{ x: 0.5, y: 0.5 }}
-            zIndex={100}
-          >
-            <View style={styles.userMarker}>
-              <View style={styles.userMarkerInner}>
-                <Ionicons name='person' size={14} color='#FFFFFF' />
-              </View>
-              <Text style={styles.userMarkerLabel}>You</Text>
-            </View>
-          </Marker>
-        )}
-
-        {viewModel.jobs.map((job) => {
-          // Defensive guards — any of these can crash react-native-maps
-          // mid-render: null category → TypeError on toLowerCase(),
-          // NaN/undefined lat-lng → native Marker throws on coord parse.
-          // Skipping an invalid row is preferable to crashing the whole
-          // Find Jobs tab.
-          const lat =
-            typeof job.latitude === 'number' && Number.isFinite(job.latitude)
-              ? job.latitude
-              : null;
-          const lng =
-            typeof job.longitude === 'number' && Number.isFinite(job.longitude)
-              ? job.longitude
-              : null;
-          if (lat === null || lng === null) return null;
-          const isSelected = viewModel.selectedJob?.id === job.id;
-          const catKey = (job.category ?? 'general').toLowerCase();
-          const cat = CATEGORY_MARKERS[catKey] ??
-            CATEGORY_MARKERS.general ?? {
-              icon: 'construct' as const,
-              bg: '#6B7280',
-            };
-          const isUrgent = job.urgency === 'urgent';
-
-          return (
+      {shouldRenderNativeMap ? (
+        <MapView
+          ref={mapRef}
+          provider={MAP_PROVIDER}
+          style={StyleSheet.absoluteFillObject}
+          region={viewModel.region}
+          onRegionChangeComplete={viewModel.handleRegionChange}
+          onPress={() => viewModel.handleJobSelect(null)}
+          showsUserLocation={viewModel.locationGranted}
+          showsMyLocationButton={false}
+        >
+          {/* Contractor location pin */}
+          {viewModel.userLocation && (
             <Marker
-              key={job.id}
-              coordinate={{ latitude: lat, longitude: lng }}
-              onPress={() => {
-                viewModel.handleJobSelect(job);
-                const index = viewModel.jobs.findIndex((j) => j.id === job.id);
-                if (index >= 0 && carouselRef.current) {
-                  carouselRef.current.scrollToIndex({ index, animated: true });
-                }
-              }}
-              anchor={{ x: 0.5, y: 1 }}
+              coordinate={viewModel.userLocation}
+              anchor={{ x: 0.5, y: 0.5 }}
+              zIndex={100}
             >
-              <View style={styles.markerWrapper}>
-                {/* Outer ring when selected */}
-                <View
-                  style={[
-                    styles.markerPin,
-                    { backgroundColor: isSelected ? '#FFFFFF' : cat.bg },
-                    isSelected && { borderColor: cat.bg, borderWidth: 3 },
-                  ]}
-                >
-                  <Ionicons
-                    name={cat.icon}
-                    size={isSelected ? 18 : 16}
-                    color={isSelected ? cat.bg : theme.colors.textInverse}
-                  />
+              <View style={styles.userMarker}>
+                <View style={styles.userMarkerInner}>
+                  <Ionicons name='person' size={14} color='#FFFFFF' />
                 </View>
-                {/* Arrow */}
-                <View
-                  style={[
-                    styles.markerArrow,
-                    { borderTopColor: isSelected ? '#FFFFFF' : cat.bg },
-                  ]}
-                />
-                {/* Urgent pulse dot */}
-                {isUrgent && <View style={styles.urgentDot} />}
+                <Text style={styles.userMarkerLabel}>You</Text>
               </View>
             </Marker>
-          );
-        })}
-      </MapView>
+          )}
+
+          {viewModel.jobs.map((job) => {
+            // Defensive guards — any of these can crash react-native-maps
+            // mid-render: null category → TypeError on toLowerCase(),
+            // NaN/undefined lat-lng → native Marker throws on coord parse.
+            // Skipping an invalid row is preferable to crashing the whole
+            // Find Jobs tab.
+            const lat =
+              typeof job.latitude === 'number' && Number.isFinite(job.latitude)
+                ? job.latitude
+                : null;
+            const lng =
+              typeof job.longitude === 'number' &&
+              Number.isFinite(job.longitude)
+                ? job.longitude
+                : null;
+            if (lat === null || lng === null) return null;
+            const isSelected = viewModel.selectedJob?.id === job.id;
+            const catKey = (job.category ?? 'general').toLowerCase();
+            const cat = CATEGORY_MARKERS[catKey] ??
+              CATEGORY_MARKERS.general ?? {
+                icon: 'construct' as const,
+                bg: '#6B7280',
+              };
+            const isUrgent = job.urgency === 'urgent';
+
+            return (
+              <Marker
+                key={job.id}
+                coordinate={{ latitude: lat, longitude: lng }}
+                onPress={() => {
+                  viewModel.handleJobSelect(job);
+                  const index = viewModel.jobs.findIndex(
+                    (j) => j.id === job.id
+                  );
+                  if (index >= 0 && carouselRef.current) {
+                    carouselRef.current.scrollToIndex({
+                      index,
+                      animated: true,
+                    });
+                  }
+                }}
+                anchor={{ x: 0.5, y: 1 }}
+              >
+                <View style={styles.markerWrapper}>
+                  {/* Outer ring when selected */}
+                  <View
+                    style={[
+                      styles.markerPin,
+                      { backgroundColor: isSelected ? '#FFFFFF' : cat.bg },
+                      isSelected && { borderColor: cat.bg, borderWidth: 3 },
+                    ]}
+                  >
+                    <Ionicons
+                      name={cat.icon}
+                      size={isSelected ? 18 : 16}
+                      color={isSelected ? cat.bg : theme.colors.textInverse}
+                    />
+                  </View>
+                  {/* Arrow */}
+                  <View
+                    style={[
+                      styles.markerArrow,
+                      { borderTopColor: isSelected ? '#FFFFFF' : cat.bg },
+                    ]}
+                  />
+                  {/* Urgent pulse dot */}
+                  {isUrgent && <View style={styles.urgentDot} />}
+                </View>
+              </Marker>
+            );
+          })}
+        </MapView>
+      ) : (
+        <View style={styles.mapUnavailable}>
+          <Ionicons name='map-outline' size={34} color={theme.colors.primary} />
+          <Text style={styles.mapUnavailableTitle}>Map unavailable</Text>
+          <Text style={styles.mapUnavailableText}>
+            Google Maps not configured for this build. Review jobs from the
+            cards below.
+          </Text>
+        </View>
+      )}
 
       {/* ── FLOATING TOP BAR ─────────────────────────────────────────────── */}
       <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>

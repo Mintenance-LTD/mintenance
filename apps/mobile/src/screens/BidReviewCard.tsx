@@ -70,6 +70,20 @@ export const BidReviewCard: React.FC<Props> = ({ bid, quoteData }) => {
       : contractor.bio
     : null;
 
+  // Single source of truth for opening the contractor profile so the
+  // tap zone on "View Full Profile →" and the broader header tap both
+  // route through the same code path. The user reported the
+  // header-wrapping TouchableOpacity not firing — wrapping the link
+  // text in its own Pressable side-steps the known RN gotcha where a
+  // ScrollView's pan responder absorbs taps on long-form children.
+  const openContractorProfile = React.useCallback(() => {
+    if (!contractor?.id) return;
+    navigation.navigate('Modal', {
+      screen: 'ContractorProfile',
+      params: { contractorId: contractor.id },
+    });
+  }, [contractor?.id, navigation]);
+
   return (
     <View style={styles.bidCard}>
       <ScrollView
@@ -79,13 +93,7 @@ export const BidReviewCard: React.FC<Props> = ({ bid, quoteData }) => {
         {/* Contractor header */}
         <TouchableOpacity
           style={styles.contractorHeader}
-          onPress={() => {
-            if (!contractor?.id) return;
-            navigation.navigate('Modal', {
-              screen: 'ContractorProfile',
-              params: { contractorId: contractor.id },
-            });
-          }}
+          onPress={openContractorProfile}
           activeOpacity={0.7}
         >
           {avatarUri ? (
@@ -138,8 +146,20 @@ export const BidReviewCard: React.FC<Props> = ({ bid, quoteData }) => {
                 <Text style={styles.locationText}>{contractor.city}</Text>
               </View>
             ) : null}
-            <Text style={styles.viewProfileLink}>View Full Profile →</Text>
           </View>
+        </TouchableOpacity>
+        {/* Dedicated, full-width tap zone for "View Full Profile" so the
+            link is independently pressable (defends against the
+            ScrollView pan-responder swallowing taps inside the header
+            TouchableOpacity above). */}
+        <TouchableOpacity
+          onPress={openContractorProfile}
+          activeOpacity={0.6}
+          hitSlop={{ top: 8, bottom: 8, left: 16, right: 16 }}
+          accessibilityRole='link'
+          accessibilityLabel='View full contractor profile'
+        >
+          <Text style={styles.viewProfileLink}>View Full Profile →</Text>
         </TouchableOpacity>
 
         {truncatedBio ? (

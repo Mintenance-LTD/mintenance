@@ -510,6 +510,55 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           </>
         )}
 
+        {/* 10c. Contractor: Log expense for this job — closes the audit
+            #9 gap where contractor_expenses.job_id existed in the schema
+            but no UI ever set it. Available on assigned + in_progress
+            so contractors can log materials/fuel before and during
+            the job. The Expenses screen accepts { jobId, jobTitle }
+            and auto-opens its create form pre-bound to this job. */}
+        {isContractor &&
+          job.contractor_id === user?.id &&
+          (job.status === 'assigned' || job.status === 'in_progress') && (
+            <>
+              <View style={styles.divider} />
+              <View style={styles.sectionPadded}>
+                <TouchableOpacity
+                  onPress={() => {
+                    // Expenses lives under ProfileTab → ProfileStack →
+                    // Expenses. Cross-stack navigate through the parent
+                    // tab navigator. Cast the parent to a generic
+                    // navigate-only shape — typing the full root tab is
+                    // out of scope for this screen.
+                    const parent = navigation.getParent?.() as
+                      | { navigate: (name: string, params?: unknown) => void }
+                      | undefined;
+                    parent?.navigate('ProfileTab', {
+                      screen: 'Expenses',
+                      params: { jobId: job.id, jobTitle: job.title },
+                    });
+                  }}
+                  style={styles.logExpenseRow}
+                  accessibilityRole='button'
+                  accessibilityLabel='Log expense for this job'
+                >
+                  <Ionicons
+                    name='receipt-outline'
+                    size={18}
+                    color={theme.colors.primary}
+                  />
+                  <Text style={styles.logExpenseText}>
+                    Log Expense for this Job
+                  </Text>
+                  <Ionicons
+                    name='chevron-forward'
+                    size={18}
+                    color={theme.colors.textTertiary}
+                  />
+                </TouchableOpacity>
+              </View>
+            </>
+          )}
+
         {/* === Quick Actions === */}
         <View style={styles.divider} />
         <View style={styles.quickActionsSection}>

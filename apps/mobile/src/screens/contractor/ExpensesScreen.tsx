@@ -15,7 +15,12 @@ import {
   KeyboardAvoidingView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import {
+  useNavigation,
+  useRoute,
+  type RouteProp,
+} from '@react-navigation/native';
+import type { ProfileStackParamList } from '../../navigation/types';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -64,15 +69,23 @@ const CATEGORY_COLORS: Record<string, string> = {
 
 export const ExpensesScreen: React.FC = () => {
   const navigation = useNavigation();
+  const route = useRoute<RouteProp<ProfileStackParamList, 'Expenses'>>();
+  const jobIdParam = route.params?.jobId;
+  const jobTitleParam = route.params?.jobTitle;
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const [filter, setFilter] = useState<CategoryFilter>('all');
-  const [showForm, setShowForm] = useState(false);
+  // Auto-open the form when entering with a jobId so the contractor
+  // lands directly in expense capture (the entry point CTA on the job
+  // detail screen says "Log Expense for this Job"). Default `billable`
+  // to true on this path — almost every job-scoped expense (materials,
+  // fuel, parts) is intended to be invoiced back.
+  const [showForm, setShowForm] = useState(!!jobIdParam);
   const [formData, setFormData] = useState({
     description: '',
     category: 'materials',
     amount: '',
-    billable: false,
+    billable: !!jobIdParam,
   });
 
   const { data, isLoading, error, refetch } = useQuery({
@@ -115,6 +128,11 @@ export const ExpensesScreen: React.FC = () => {
         amount: expense.amount,
         billable: expense.billable,
         date: new Date().toISOString(),
+        // Pipes the job-scoped param through so contractor_expenses.job_id
+        // is set when the form was opened from a job detail screen. The
+        // /api/contractor/expenses route already accepts jobId via Zod
+        // schema (zod-validated as optional uuid).
+        jobId: jobIdParam,
       });
     },
     onSuccess: () => {
@@ -316,6 +334,18 @@ export const ExpensesScreen: React.FC = () => {
         {/* Add Form */}
         {showForm && (
           <Card variant='elevated' padding='md' style={styles.formCard}>
+            {jobIdParam && (
+              <View style={styles.jobScopeBanner}>
+                <Ionicons
+                  name='briefcase-outline'
+                  size={14}
+                  color={theme.colors.primary}
+                />
+                <Text style={styles.jobScopeBannerText} numberOfLines={1}>
+                  For: {jobTitleParam || 'selected job'}
+                </Text>
+              </View>
+            )}
             <TextInput
               style={styles.input}
               placeholder='Description'
@@ -555,6 +585,21 @@ const styles = StyleSheet.create({
   },
   filterChipTextActive: { color: theme.colors.textInverse },
   formCard: { marginHorizontal: 16, marginBottom: 12 },
+  jobScopeBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    backgroundColor: theme.colors.backgroundSecondary,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  jobScopeBannerText: {
+    fontSize: 13,
+    color: theme.colors.textSecondary,
+    flex: 1,
+  },
   input: {
     backgroundColor: theme.colors.backgroundSecondary,
     borderRadius: 12,
