@@ -75,10 +75,16 @@ export const POST = withApiHandler(
     const propertyId = params.id;
     const body = await req.json();
 
-    // Verify ownership
+    // Verify ownership.
+    // Column is `property_name` in the DB; aliasing it to `name` here so the
+    // downstream usages at the email-template / notification sites stay
+    // unchanged. Selecting the literal `name` column was the cause of the
+    // HTTP 500 the user saw on this endpoint — PostgREST rejected the SELECT
+    // because no such column exists, supabase-js threw, and withApiHandler
+    // fell through to a 500.
     const { data: property } = await serverSupabase
       .from('properties')
-      .select('id, owner_id, address, name')
+      .select('id, owner_id, address, name:property_name')
       .eq('id', propertyId)
       .maybeSingle();
 
