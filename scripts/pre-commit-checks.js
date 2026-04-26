@@ -38,7 +38,9 @@ const KNOWN_LARGE_FILES = new Set([
   'apps/mobile/src/screens/job-details/ContractPreparationScreen.tsx',
   'apps/mobile/src/screens/subscription/SubscriptionScreen.tsx',
   'apps/web/components/examples/FeatureAccessExamples.tsx',
-  'apps/web/lib/services/subscription/SubscriptionService.ts',
+  // SubscriptionService.ts removed from allowlist 2026-04-26: split
+  // into ./types, ./stripe-client, ./plan-pricing, ./queries,
+  // ./stripe-operations, ./persistence. Facade is now 81 lines.
   'apps/web/app/api/contracts/route.ts',
   'apps/web/lib/rate-limiter-enhanced.ts',
   'apps/mobile/src/components/JobStatusTracker.tsx',
