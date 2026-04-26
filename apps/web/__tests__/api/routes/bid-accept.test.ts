@@ -20,6 +20,7 @@ const mocks = vi.hoisted(() => ({
   getCurrentUserFromCookies: vi.fn(),
   getCurrentUserFromBearerToken: vi.fn(),
   supabaseFrom: vi.fn(),
+  supabaseRpc: vi.fn(),
   requireCSRF: vi.fn(),
   rateLimiterCheckRateLimit: vi.fn(),
   getIdempotencyKeyFromRequest: vi.fn(),
@@ -46,9 +47,11 @@ vi.mock('@/lib/auth', () => ({
 vi.mock('@/lib/api/supabaseServer', () => ({
   serverSupabase: {
     from: (...args: unknown[]) => mocks.supabaseFrom(...args),
+    rpc: (...args: unknown[]) => mocks.supabaseRpc(...args),
   },
   createServerSupabaseClient: () => ({
     from: (...args: unknown[]) => mocks.supabaseFrom(...args),
+    rpc: (...args: unknown[]) => mocks.supabaseRpc(...args),
   }),
   createRequestScopedClient: () => null, // falls back to serverSupabase in route
 }));
@@ -252,6 +255,17 @@ function setupDefaultMocks() {
   mocks.sendBidAcceptedEmail.mockResolvedValue(true);
   mocks.learnFromAcceptance.mockResolvedValue(undefined);
   mocks.learnFromBidOutcome.mockResolvedValue(undefined);
+  mocks.supabaseRpc.mockResolvedValue({
+    data: [
+      {
+        success: true,
+        error_message: null,
+        accepted_bid_id: 'bid-1',
+        job_status: 'assigned',
+      },
+    ],
+    error: null,
+  });
 }
 
 /**
@@ -331,6 +345,20 @@ function setupAcceptMocks(
   };
   const existingAccepted = overrides.existingAccepted ?? [];
   const acceptError = overrides.acceptError ?? null;
+
+  mocks.supabaseRpc.mockResolvedValue({
+    data: acceptError
+      ? null
+      : [
+          {
+            success: true,
+            error_message: null,
+            accepted_bid_id: 'bid-1',
+            job_status: 'assigned',
+          },
+        ],
+    error: acceptError,
+  });
 
   mocks.supabaseFrom.mockImplementation((table: string) => {
     if (table === 'jobs') {

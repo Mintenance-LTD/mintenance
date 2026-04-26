@@ -38,7 +38,9 @@ const KNOWN_LARGE_FILES = new Set([
   'apps/mobile/src/screens/job-details/ContractPreparationScreen.tsx',
   'apps/mobile/src/screens/subscription/SubscriptionScreen.tsx',
   'apps/web/components/examples/FeatureAccessExamples.tsx',
-  'apps/web/lib/services/subscription/SubscriptionService.ts',
+  // SubscriptionService.ts removed from allowlist 2026-04-26: split
+  // into ./types, ./stripe-client, ./plan-pricing, ./queries,
+  // ./stripe-operations, ./persistence. Facade is now 81 lines.
   'apps/web/app/api/contracts/route.ts',
   'apps/web/lib/rate-limiter-enhanced.ts',
   'apps/mobile/src/components/JobStatusTracker.tsx',
@@ -115,6 +117,31 @@ const KNOWN_LARGE_FILES = new Set([
   // bundles the 5-step wizard, photo grid, review summary, and
   // submit handler.
   'apps/mobile/src/screens/assessment/PropertyAssessmentScreen.tsx', // 510 lines (was 501)
+  // Added 2026-04-24: pre-existing large files touched by the dead-end
+  // Coming-Soon nav cleanup (audit P1). Each only changed by 4-6 lines
+  // (single nav entry deletion + a deprecation comment). Both files
+  // bundle theme-styled layout shells / config tables that are
+  // split-as-a-P2 candidates — not a blocker on the nav cleanup.
+  'apps/web/app/dashboard/components/ProfessionalHomeownerLayout.tsx', // 592 lines
+  'apps/web/components/ui/EmptyStateEducational.tsx', // 645 lines
+  // Added 2026-04-25: pre-existing large file (529 lines on HEAD)
+  // touched by the sanitize-postgrest adoption sweep (audit P2). The
+  // change adds a 5-line safeLocation guard around an unsanitized
+  // ILIKE on user-input city. Splitting this Airbnb-style query layer
+  // is a dedicated P2 — not a blocker on the injection-vector fix.
+  'apps/web/lib/queries/airbnb-optimized.ts', // 538 lines (was 529)
+  // Added 2026-04-25: pre-existing large file (541 lines on HEAD)
+  // touched by the email ILIKE-wildcard fix (audit P2). The change
+  // is a single .ilike → .eq swap with an 8-line audit comment.
+  // Splitting the JobCreationService is a dedicated P2 — orthogonal
+  // to closing the profile-enumeration vector.
+  'apps/web/lib/services/job-creation-service.ts', // 550 lines (was 541)
+  // Added 2026-04-25: TimeTrackingScreen grew from 489 → 547 lines via
+  // the Time-Tracking → Invoice bridge (audit P1 #14). The added code
+  // is the aggregation logic + CTA banner + matching styles, all
+  // single-purpose. Splitting this screen is a dedicated P2 once the
+  // full feature lands (filter chips, multi-week selector, etc.).
+  'apps/mobile/src/screens/contractor/TimeTrackingScreen.tsx', // 547 lines (was 489)
 ]);
 
 function countLines(filePath) {

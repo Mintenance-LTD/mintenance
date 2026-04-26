@@ -29,6 +29,7 @@ const mocks = vi.hoisted(() => ({
 
   // Supabase
   supabaseFrom: vi.fn(),
+  supabaseRpc: vi.fn(),
   supabaseStorageFrom: vi.fn(),
   supabaseStorageUpload: vi.fn(),
   supabaseStorageGetPublicUrl: vi.fn(),
@@ -105,6 +106,7 @@ vi.mock('@/lib/auth', () => ({
 vi.mock('@/lib/api/supabaseServer', () => ({
   serverSupabase: {
     from: (...args: unknown[]) => mocks.supabaseFrom(...args),
+    rpc: (...args: unknown[]) => mocks.supabaseRpc(...args),
     get storage() {
       return {
         from: (...args: unknown[]) => mocks.supabaseStorageFrom(...args),
@@ -113,6 +115,7 @@ vi.mock('@/lib/api/supabaseServer', () => ({
   },
   createServerSupabaseClient: () => ({
     from: (...args: unknown[]) => mocks.supabaseFrom(...args),
+    rpc: (...args: unknown[]) => mocks.supabaseRpc(...args),
     get storage() {
       return {
         from: (...args: unknown[]) => mocks.supabaseStorageFrom(...args),
@@ -196,6 +199,7 @@ vi.mock('@/lib/services/job-creation-service', () => ({
 vi.mock('@/lib/services/notifications/NotificationService', () => ({
   NotificationService: {
     createNotification: mocks.createNotification,
+    markEmailSent: vi.fn().mockResolvedValue(undefined),
   },
 }));
 
@@ -479,7 +483,9 @@ function setupInfrastructureMocks(user = homeownerUser) {
   mocks.sendJobCompletedEmail.mockResolvedValue(true);
   mocks.sendWorkApprovedEmail.mockResolvedValue(true);
   mocks.sendContractSignedEmail.mockResolvedValue(true);
-  mocks.notifyJobStatusChange.mockResolvedValue(undefined);
+  mocks.notifyJobStatusChange.mockResolvedValue({
+    homeownerNotifId: 'homeowner-notif-id',
+  });
   mocks.notifyJobConfirmed.mockResolvedValue(undefined);
   mocks.getIdempotencyKeyFromRequest.mockReturnValue('idem-key-1');
   mocks.checkIdempotency.mockResolvedValue({ isDuplicate: false });
@@ -519,6 +525,17 @@ function setupInfrastructureMocks(user = homeownerUser) {
   mocks.checkSubscriptionLimits.mockResolvedValue({ allowed: true });
   mocks.learnFromAcceptance.mockResolvedValue(undefined);
   mocks.learnFromBidOutcome.mockResolvedValue(undefined);
+  mocks.supabaseRpc.mockResolvedValue({
+    data: [
+      {
+        success: true,
+        error_message: null,
+        accepted_bid_id: BID_ID,
+        job_status: 'assigned',
+      },
+    ],
+    error: null,
+  });
   mocks.generateRecommendation.mockResolvedValue(null);
   mocks.evaluateAutoAccept.mockResolvedValue(undefined);
   mocks.prepareQuoteData.mockReturnValue({});

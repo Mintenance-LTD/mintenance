@@ -26,10 +26,15 @@ import { useScreenCaptureGuard } from '../../hooks/useScreenCaptureGuard';
  *   4. On success, Stripe attaches the PM to the customer and fires the
  *      setup_intent.succeeded webhook, which persists the PM server-side
  *
- * This replaces the legacy AddPaymentMethodScreen which used raw CardField
- * and didn't support BACS Direct Debit.
+ * History (audit P2 cleanup, 2026-04-25): this file used to be called
+ * AddPaymentMethodV2Screen and lived alongside a 671-line legacy V1 that
+ * used raw CardField and didn't support BACS. The legacy V1 was the one
+ * that PaymentMethodsScreen actually navigated to, leaving V2 as dead
+ * code in the navigator since 2026-02. Deleted V1, dropped the V2
+ * suffix, repointed the navigator + the only caller. There is now one
+ * payment-method add screen and it uses Stripe's hosted PaymentSheet.
  */
-const AddPaymentMethodV2Screen: React.FC = () => {
+const AddPaymentMethodScreen: React.FC = () => {
   // SECURITY: Stripe PaymentSheet fields should never appear in
   // screenshots or screen recordings.
   useScreenCaptureGuard();
@@ -184,4 +189,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default AddPaymentMethodV2Screen;
+export default AddPaymentMethodScreen;

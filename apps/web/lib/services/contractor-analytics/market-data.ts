@@ -1,4 +1,5 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { sanitizeIlikePattern } from '@/lib/utils/sanitize-postgrest';
 import type {
   ContractorSkillRow,
   SkillJobRow,
@@ -19,6 +20,13 @@ export async function getMarketData(contractorId: string) {
 
   const topSkills: SkillPerformance[] = [];
   for (const skill of skills.slice(0, 5)) {
+    // Audit P2 (2026-04-23): `skill` originates from
+    // `contractor_skills.skill_name`, which is contractor-set free-text
+    // (their own profile). Defensive sanitization here — a contractor
+    // can't escape their own analytics view, but the same code path
+    // could be reused with looser input later. Cheap insurance.
+    const safeSkill = sanitizeIlikePattern(skill);
+    if (!safeSkill) continue;
     const { data: skillJobs } = await serverSupabase
       .from('jobs')
       .select(
@@ -28,7 +36,7 @@ export async function getMarketData(contractorId: string) {
       `
       )
       .eq('contractor_id', contractorId)
-      .ilike('description', `%${skill}%`)
+      .ilike('description', `%${safeSkill}%`)
       .returns<SkillJobRow[]>();
 
     const skillJobRows = skillJobs ?? [];

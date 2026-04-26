@@ -4,8 +4,7 @@ import ProfileScreen from '../../../screens/ProfileScreen';
 import EditProfileScreen from '../../../screens/EditProfileScreen';
 import NotificationSettingsScreen from '../../../screens/NotificationSettingsScreen';
 import { PaymentMethodsScreen } from '../../../screens/payment-methods';
-import AddPaymentMethodScreen from '../../../screens/AddPaymentMethodScreen';
-import AddPaymentMethodV2Screen from '../../../screens/payment-methods/AddPaymentMethodV2Screen';
+import AddPaymentMethodScreen from '../../../screens/payment-methods/AddPaymentMethodScreen';
 import ContractorPayoutsScreen from '../../../screens/contractor/ContractorPayoutsScreen';
 import HelpCenterScreen from '../../../screens/HelpCenterScreen';
 import { PropertiesScreen } from '../../../screens/properties/PropertiesScreen';
@@ -61,11 +60,9 @@ export const SafeAddPaymentMethodScreen = withScreenErrorBoundary(
   'Add Payment Method',
   { fallbackRoute: 'PaymentMethods' }
 );
-export const SafeAddPaymentMethodV2Screen = withScreenErrorBoundary(
-  AddPaymentMethodV2Screen,
-  'Add Payment Method',
-  { fallbackRoute: 'PaymentMethods' }
-);
+// SafeAddPaymentMethodV2Screen: REMOVED 2026-04-25. The V2 file became
+// the canonical AddPaymentMethodScreen (the legacy raw-CardField
+// implementation was deleted). One screen, one wrapper.
 const SafeContractorPayoutsScreen = withScreenErrorBoundary(
   ContractorPayoutsScreen,
   'Contractor Payouts',

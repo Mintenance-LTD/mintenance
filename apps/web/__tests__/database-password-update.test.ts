@@ -52,9 +52,19 @@ vi.mock('@/lib/api/supabaseServer', () => ({
           }),
         };
       }
-      return { update: vi.fn().mockReturnThis(), eq: vi.fn().mockResolvedValue({ error: null }) };
+      return {
+        update: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockResolvedValue({ error: null }),
+      };
     }),
     rpc: mocks.rpc.mockResolvedValue({ data: null, error: null }),
+  },
+}));
+
+vi.mock('bcryptjs', () => ({
+  default: {
+    compare: vi.fn().mockResolvedValue(false),
+    hash: vi.fn().mockResolvedValue('hashed-test-password'),
   },
 }));
 
@@ -73,7 +83,7 @@ describe('DatabaseManager.updateUserPassword (regression)', () => {
     const strongPassword = 'Xyz9-Test-Password!@#StrongEnough';
     const result = await DatabaseManager.updateUserPassword(
       'user-abc',
-      strongPassword,
+      strongPassword
     );
 
     expect(result).toBe(true);
@@ -92,7 +102,7 @@ describe('DatabaseManager.updateUserPassword (regression)', () => {
     const { DatabaseManager } = await import('@/lib/database');
     const result = await DatabaseManager.updateUserPassword(
       'missing-user',
-      'Xyz9-Test-Password!@#StrongEnough',
+      'Xyz9-Test-Password!@#StrongEnough'
     );
 
     expect(result).toBe(false);
@@ -103,7 +113,7 @@ describe('DatabaseManager.updateUserPassword (regression)', () => {
     const { DatabaseManager } = await import('@/lib/database');
 
     await expect(
-      DatabaseManager.updateUserPassword('user-abc', 'weak'),
+      DatabaseManager.updateUserPassword('user-abc', 'weak')
     ).rejects.toThrow();
     expect(mocks.updateUserById).not.toHaveBeenCalled();
   });

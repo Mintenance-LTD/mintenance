@@ -75,10 +75,18 @@ export const POST = withApiHandler(
     }
 
     // Fast path: email already maps to a profile → add directly.
+    // Audit P2 (2026-04-23): switched from `.ilike()` to `.eq()` —
+    // an org-admin could otherwise pass `normalizedEmail = '%@%.com'`
+    // (after slipping past the schema's email regex via crafted
+    // input) and find the highest-id user matching that pattern.
+    // `.eq()` removes the LIKE-wildcard interpretation. See live DB
+    // case-normalization scan in the matching job-creation-service
+    // commit. Profile inserts elsewhere normalize email at write,
+    // so the case-sensitivity loss is intentional.
     const { data: existingProfile } = await serverSupabase
       .from('profiles')
       .select('id, first_name, last_name, email')
-      .ilike('email', normalizedEmail)
+      .eq('email', normalizedEmail)
       .maybeSingle();
 
     if (existingProfile?.id) {

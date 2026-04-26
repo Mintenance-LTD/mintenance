@@ -21,6 +21,7 @@ const mocks = vi.hoisted(() => ({
   rateLimiterCheckRateLimit: vi.fn(),
   validateStatusTransition: vi.fn(),
   notifyJobStatusChange: vi.fn(),
+  markEmailSent: vi.fn(),
   sendJobStartedEmail: vi.fn(),
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
@@ -61,6 +62,12 @@ vi.mock('@/lib/services/notifications/NotificationHelper', () => ({
   notifyJobStatusChange: mocks.notifyJobStatusChange,
 }));
 
+vi.mock('@/lib/services/notifications/NotificationService', () => ({
+  NotificationService: {
+    markEmailSent: mocks.markEmailSent,
+  },
+}));
+
 vi.mock('@/lib/email-service', () => ({
   EmailService: {
     sendJobStartedEmail: mocks.sendJobStartedEmail,
@@ -69,24 +76,65 @@ vi.mock('@/lib/email-service', () => ({
 
 vi.mock('@/lib/errors/api-error', async () => {
   class APIError extends Error {
-    constructor(public code: string, public userMessage: string, public statusCode: number = 500, public details?: unknown) {
-      super(userMessage); this.name = 'APIError';
+    constructor(
+      public code: string,
+      public userMessage: string,
+      public statusCode: number = 500,
+      public details?: unknown
+    ) {
+      super(userMessage);
+      this.name = 'APIError';
     }
-    toResponse() { return { error: { code: this.code, message: this.userMessage }, timestamp: new Date().toISOString() }; }
+    toResponse() {
+      return {
+        error: { code: this.code, message: this.userMessage },
+        timestamp: new Date().toISOString(),
+      };
+    }
   }
-  class UnauthorizedError extends APIError { constructor(m = 'Unauthorized') { super('UNAUTHORIZED', m, 401); } }
-  class ForbiddenError extends APIError { constructor(m = 'Forbidden') { super('FORBIDDEN', m, 403); } }
-  class NotFoundError extends APIError { constructor(m = 'Resource not found') { super('NOT_FOUND', m, 404); } }
-  class BadRequestError extends APIError { constructor(m = 'Bad Request', d?: unknown) { super('BAD_REQUEST', m, 400, d); } }
+  class UnauthorizedError extends APIError {
+    constructor(m = 'Unauthorized') {
+      super('UNAUTHORIZED', m, 401);
+    }
+  }
+  class ForbiddenError extends APIError {
+    constructor(m = 'Forbidden') {
+      super('FORBIDDEN', m, 403);
+    }
+  }
+  class NotFoundError extends APIError {
+    constructor(m = 'Resource not found') {
+      super('NOT_FOUND', m, 404);
+    }
+  }
+  class BadRequestError extends APIError {
+    constructor(m = 'Bad Request', d?: unknown) {
+      super('BAD_REQUEST', m, 400, d);
+    }
+  }
   return {
-    APIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError,
+    APIError,
+    UnauthorizedError,
+    ForbiddenError,
+    NotFoundError,
+    BadRequestError,
     handleAPIError: vi.fn((error: unknown) => {
       if (error instanceof APIError) {
         const { NextResponse } = require('next/server');
-        return NextResponse.json(error.toResponse(), { status: error.statusCode });
+        return NextResponse.json(error.toResponse(), {
+          status: error.statusCode,
+        });
       }
       const { NextResponse } = require('next/server');
-      return NextResponse.json({ error: { code: 'INTERNAL_SERVER_ERROR', message: 'An unexpected error occurred' } }, { status: 500 });
+      return NextResponse.json(
+        {
+          error: {
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'An unexpected error occurred',
+          },
+        },
+        { status: 500 }
+      );
     }),
   };
 });
@@ -131,10 +179,16 @@ function setupDefaultMocks() {
   mocks.getCurrentUserFromCookies.mockResolvedValue(contractorUser);
   mocks.requireCSRF.mockResolvedValue(undefined);
   mocks.rateLimiterCheckRateLimit.mockResolvedValue({
-    allowed: true, remaining: 19, resetTime: Date.now() + 60000, retryAfter: 0,
+    allowed: true,
+    remaining: 19,
+    resetTime: Date.now() + 60000,
+    retryAfter: 0,
   });
   mocks.validateStatusTransition.mockReturnValue(undefined); // no error
-  mocks.notifyJobStatusChange.mockResolvedValue(undefined);
+  mocks.notifyJobStatusChange.mockResolvedValue({
+    homeownerNotifId: 'homeowner-notification-1',
+  });
+  mocks.markEmailSent.mockResolvedValue(undefined);
   mocks.sendJobStartedEmail.mockResolvedValue(true);
 }
 
@@ -143,21 +197,32 @@ function setupDefaultMocks() {
  * The route queries: jobs, contracts, escrow_transactions, job_photos_metadata,
  * then updates jobs, and reads profiles for email.
  */
-function setupStartJobMocks(overrides: {
-  jobData?: unknown;
-  jobError?: unknown;
-  contractData?: unknown;
-  escrowData?: unknown;
-  photoCount?: number;
-  updateError?: unknown;
-} = {}) {
-  const jobResult = { data: overrides.jobData ?? assignedJob, error: overrides.jobError ?? null };
+function setupStartJobMocks(
+  overrides: {
+    jobData?: unknown;
+    jobError?: unknown;
+    contractData?: unknown;
+    escrowData?: unknown;
+    photoCount?: number;
+    updateError?: unknown;
+  } = {}
+) {
+  const jobResult = {
+    data: overrides.jobData ?? assignedJob,
+    error: overrides.jobError ?? null,
+  };
   const contractResult = {
-    data: 'contractData' in overrides ? overrides.contractData : { id: 'contract-1', status: 'accepted' },
+    data:
+      'contractData' in overrides
+        ? overrides.contractData
+        : { id: 'contract-1', status: 'accepted' },
     error: null,
   };
   const escrowResult = {
-    data: 'escrowData' in overrides ? overrides.escrowData : { id: 'escrow-1', status: 'held' },
+    data:
+      'escrowData' in overrides
+        ? overrides.escrowData
+        : { id: 'escrow-1', status: 'held' },
     error: null,
   };
   const photoCountResult = { count: overrides.photoCount ?? 2, error: null };
@@ -216,7 +281,12 @@ function setupStartJobMocks(overrides: {
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
             single: vi.fn().mockResolvedValue({
-              data: { email: 'test@test.com', first_name: 'Test', last_name: 'User', company_name: 'Test Co' },
+              data: {
+                email: 'test@test.com',
+                first_name: 'Test',
+                last_name: 'User',
+                company_name: 'Test Co',
+              },
               error: null,
             }),
           }),
@@ -267,7 +337,9 @@ describe('POST /api/jobs/[id]/start', () => {
   it('should return 404 when job does not exist', async () => {
     setupStartJobMocks({ jobData: null, jobError: { message: 'not found' } });
 
-    const req = createPostRequest('http://localhost:3000/api/jobs/bad-id/start');
+    const req = createPostRequest(
+      'http://localhost:3000/api/jobs/bad-id/start'
+    );
     const res = await POST(req, segmentData('bad-id'));
     expect(res.status).toBe(404);
   });
@@ -362,7 +434,7 @@ describe('POST /api/jobs/[id]/start', () => {
         newStatus: 'in_progress',
         homeownerId: 'homeowner-1',
         contractorId: 'contractor-1',
-      }),
+      })
     );
   });
 

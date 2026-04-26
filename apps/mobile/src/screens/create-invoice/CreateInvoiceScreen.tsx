@@ -11,6 +11,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useRoute, type RouteProp } from '@react-navigation/native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../components/ui/Toast';
@@ -37,9 +38,24 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({
   const { user } = useAuth();
   const toast = useToast();
 
-  const [clientName, setClientName] = useState('');
+  // Audit P1 #14 (2026-04-25): pre-fill from time-tracking. The
+  // TimeTrackingScreen "Create Invoice" CTA hands us aggregated
+  // billable hours grouped by job; we seed the form state once on
+  // first render so the contractor can edit before saving. invoiceId
+  // (edit mode) takes precedence — never overwrite an existing draft.
+  const route = useRoute<RouteProp<ProfileStackParamList, 'CreateInvoice'>>();
+  const seededFromTimeTracking =
+    !route.params?.invoiceId &&
+    Array.isArray(route.params?.initialLineItems) &&
+    route.params.initialLineItems.length > 0;
+
+  const [clientName, setClientName] = useState(
+    seededFromTimeTracking ? (route.params?.clientName ?? '') : ''
+  );
   const [clientId, setClientId] = useState('');
-  const [jobRef, setJobRef] = useState('');
+  const [jobRef, setJobRef] = useState(
+    seededFromTimeTracking ? (route.params?.jobRef ?? '') : ''
+  );
   const [notes, setNotes] = useState('');
   const [dueDate, setDueDate] = useState(() => {
     const d = new Date();
@@ -47,9 +63,13 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({
     return d;
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [lineItems, setLineItems] = useState<LineItemDraft[]>([
-    { description: '', quantity: '1', rate: '' },
-  ]);
+  const [lineItems, setLineItems] = useState<LineItemDraft[]>(() => {
+    if (seededFromTimeTracking) {
+      // Defensive copy — never mutate route params.
+      return route.params!.initialLineItems!.map((i) => ({ ...i }));
+    }
+    return [{ description: '', quantity: '1', rate: '' }];
+  });
   const [submitting, setSubmitting] = useState(false);
 
   const addLineItem = () => {
@@ -176,6 +196,24 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps='handled'
       >
+        {/* Audit P1 #14 (2026-04-25): tell the contractor we pre-filled
+            line items from their time tracking, so they aren't surprised
+            by the populated form. */}
+        {seededFromTimeTracking && (
+          <View style={styles.timeTrackingHint}>
+            <Ionicons
+              name='time-outline'
+              size={16}
+              color={theme.colors.primary}
+            />
+            <Text style={styles.timeTrackingHintText}>
+              {
+                "Pre-filled from this week's billable hours. Edit before saving."
+              }
+            </Text>
+          </View>
+        )}
+
         {/* Client Section */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Client</Text>
@@ -508,5 +546,23 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     color: theme.colors.textPrimary,
+  },
+  // Audit P1 #14 (2026-04-25): pre-fill-from-time-tracking hint banner.
+  timeTrackingHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: theme.colors.primaryLight,
+    marginHorizontal: 16,
+    marginTop: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  timeTrackingHintText: {
+    flex: 1,
+    fontSize: 13,
+    color: theme.colors.textPrimary,
+    fontWeight: '500',
   },
 });

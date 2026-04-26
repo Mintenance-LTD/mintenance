@@ -31,7 +31,6 @@ import {
   HelpCircle,
   PoundSterling,
   CreditCard,
-  Video,
   Crown,
   FolderOpen,
 } from 'lucide-react';
@@ -148,7 +147,10 @@ export function ProfessionalHomeownerLayout({
           },
           { label: 'Documents', href: '/documents', icon: FolderOpen },
           { label: 'Calendar', href: '/scheduling', icon: Calendar },
-          { label: 'Video Calls', href: '/video-calls', icon: Video },
+          // Audit P1 (2026-04-23): Video Calls is a dead-end placeholder
+          // page. Removed from primary nav until the call surface ships;
+          // the page itself stays mounted as a fallback for direct URL
+          // visits and legacy bookmarks.
         ],
       },
       {

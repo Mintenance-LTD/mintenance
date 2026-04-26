@@ -193,6 +193,9 @@ export const POST = withApiHandler(
         rpcError,
         { service: 'jobs', bidId, jobId, contractorId: bid.contractor_id }
       );
+      if (rpcError.code === '23505') {
+        throw new ConflictError('Bid has already been accepted for this job');
+      }
       throw new InternalServerError(
         `Failed to accept bid: ${rpcError.message}`
       );

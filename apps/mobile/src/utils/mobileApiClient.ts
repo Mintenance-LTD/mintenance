@@ -10,18 +10,23 @@ import { supabase } from '../config/supabase';
 import { logger } from './logger';
 
 export const API_BASE_URL =
-  process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
+  process.env.EXPO_PUBLIC_API_URL ||
+  process.env.EXPO_PUBLIC_API_BASE_URL ||
+  'http://localhost:3000';
 
-// Safety: log a loud warning if EXPO_PUBLIC_API_URL is missing in production.
+// Safety: log a loud warning if both supported API URL vars are missing in
+// production. EAS profiles historically used EXPO_PUBLIC_API_BASE_URL while
+// this client read EXPO_PUBLIC_API_URL; support both to avoid localhost builds.
 // Don't throw — that would crash the app on startup — but make it visible.
 if (
   !process.env.EXPO_PUBLIC_API_URL &&
+  !process.env.EXPO_PUBLIC_API_BASE_URL &&
   typeof __DEV__ !== 'undefined' &&
   !__DEV__
 ) {
   logger.error(
-    '[CONFIG] EXPO_PUBLIC_API_URL is not set — API calls will target localhost, which is unreachable on a real device',
-    new Error('Missing EXPO_PUBLIC_API_URL')
+    '[CONFIG] EXPO_PUBLIC_API_URL / EXPO_PUBLIC_API_BASE_URL is not set — API calls will target localhost, which is unreachable on a real device',
+    new Error('Missing mobile API base URL')
   );
 }
 

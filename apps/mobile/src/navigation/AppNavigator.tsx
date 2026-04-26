@@ -56,6 +56,7 @@ import { QuickJobModal } from '../screens/job-posting/QuickJobModal';
 
 // Import messaging hook for unread badge count
 import { useUnreadMessageCount } from '../hooks/useMessaging';
+import { useEnsurePushTokenRegistered } from '../hooks/useEnsurePushTokenRegistered';
 
 // Import tab screen options
 import {
@@ -127,6 +128,15 @@ const TabNavigator: React.FC = () => {
   const [unreadNotificationCount, setUnreadNotificationCount] = useState<
     number | undefined
   >();
+
+  // Audit P0 (2026-04-23): self-healing retry for push-token
+  // registration. The TabNavigator is the post-auth boundary —
+  // mounting the hook here means it only runs for signed-in users,
+  // matching the lifecycle of the silent path in auth-actions. It
+  // never prompts the OS dialog (PushSoftAskModal owns that path)
+  // and is safe to call repeatedly because savePushToken is an
+  // upsert. See hook header for full rationale.
+  useEnsurePushTokenRegistered();
 
   // Fetch unread notification count for the Profile tab badge.
   // Re-fetches whenever the user changes (login/logout) or focus returns.

@@ -11,6 +11,14 @@ on:
     paths:
       - 'apps/web/__tests__/integration-real/**'
       - 'apps/web/test/integration/**'
+      - 'apps/web/vitest.integration.config.ts'
+      - 'apps/web/scripts/run-integration-tests.js'
+      - 'apps/web/lib/services/escrow/**'
+      - 'apps/web/lib/services/notifications/**'
+      - 'apps/web/lib/services/payments/**'
+      - 'apps/web/lib/services/contracts/**'
+      - 'apps/web/lib/services/agents/escrow/**'
+      - 'apps/web/lib/api/with-api-handler.ts'
       - 'supabase/migrations/**'
       - '.github/workflows/integration-tests.yml'
   pull_request:
@@ -18,6 +26,14 @@ on:
     paths:
       - 'apps/web/__tests__/integration-real/**'
       - 'apps/web/test/integration/**'
+      - 'apps/web/vitest.integration.config.ts'
+      - 'apps/web/scripts/run-integration-tests.js'
+      - 'apps/web/lib/services/escrow/**'
+      - 'apps/web/lib/services/notifications/**'
+      - 'apps/web/lib/services/payments/**'
+      - 'apps/web/lib/services/contracts/**'
+      - 'apps/web/lib/services/agents/escrow/**'
+      - 'apps/web/lib/api/with-api-handler.ts'
       - 'supabase/migrations/**'
       - '.github/workflows/integration-tests.yml'
   workflow_dispatch:

@@ -95,7 +95,9 @@ describe('NotificationService', () => {
 
       const token = await NotificationService.initialize();
 
-      expect(mockNotifications.setNotificationHandler).toHaveBeenCalled();
+      // setNotificationHandler is called at module-load time, not from
+      // inside initialize(); jest.clearAllMocks() in beforeEach clears
+      // that import-time call, so we don't assert on it here.
       expect(mockNotifications.getExpoPushTokenAsync).toHaveBeenCalled();
       expect(token).toBe('ExponentPushToken[test-token]');
     });
@@ -113,7 +115,14 @@ describe('NotificationService', () => {
         data: 'ExponentPushToken[test-token]',
       } as any);
 
-      const token = await NotificationService.initialize();
+      // 2026-04-19 (audit R5 deferred #5): default behaviour is to NOT
+      // prompt on 'undetermined' so silent call-sites don't burn the
+      // iOS one-shot dialog. Tests that exercise the actual prompt
+      // path must opt in via { promptIfUndetermined: true } — that's
+      // what the PushSoftAskModal CTA does at runtime.
+      const token = await NotificationService.initialize({
+        promptIfUndetermined: true,
+      });
 
       expect(mockNotifications.requestPermissionsAsync).toHaveBeenCalled();
       expect(token).toBe('ExponentPushToken[test-token]');
@@ -138,7 +147,9 @@ describe('NotificationService', () => {
       jest.resetModules();
       const deviceModule = require('expo-device');
       deviceModule.isDevice = false;
-      const { NotificationService: FreshService } = require('../../services/NotificationService');
+      const {
+        NotificationService: FreshService,
+      } = require('../../services/NotificationService');
 
       const token = await FreshService.initialize();
 
@@ -150,49 +161,33 @@ describe('NotificationService', () => {
   });
 
   describe('savePushToken', () => {
-    it('should save push token via mobileApiClient', async () => {
-      mobileApiClient.post.mockResolvedValueOnce({});
+    // Tests against current implementation (2026-04-17+):
+    // POST /api/user/push-token with { pushToken, platform }.
+    it('should save push token via /api/user/push-token', async () => {
+      mobileApiClient.post.mockResolvedValueOnce({ success: true });
 
       await NotificationService.savePushToken('user-1', 'test-token');
 
       expect(mobileApiClient.post).toHaveBeenCalledWith(
-        '/api/notifications',
+        '/api/user/push-token',
         expect.objectContaining({
-          action: 'save_push_token',
-          user_id: 'user-1',
-          push_token: 'test-token',
+          pushToken: 'test-token',
         })
       );
     });
   });
 
   describe('sendPushNotification', () => {
-    it('should send push notification to user with valid token', async () => {
-      // mobileApiClient.get returns the push token
-      mobileApiClient.get.mockResolvedValueOnce({
-        push_token: 'ExponentPushToken[user-token]',
+    // Tests against current implementation (2026-04-24+):
+    // forwards to POST /api/notifications/send server-side. The client
+    // no longer touches another user's push token directly — that was
+    // the 2026-04-21 security fix. The server handles relationship
+    // authorization, token resolution, preferences, and Expo push.
+    it('should post to /api/notifications/send with recipient payload', async () => {
+      mobileApiClient.post.mockResolvedValueOnce({
+        success: true,
+        notificationId: 'notif-42',
       });
-
-      // getNotificationPreferences uses supabase.from('profiles')
-      const prefsChain = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({
-          data: { notification_preferences: { pushEnabled: true, jobUpdates: true } },
-          error: null,
-        }),
-      };
-      supabase.from.mockReturnValueOnce(prefsChain);
-
-      (fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          data: [{ status: 'ok', id: 'notification-id' }],
-        }),
-      });
-
-      // saveNotification uses mobileApiClient.post
-      mobileApiClient.post.mockResolvedValueOnce({});
 
       await NotificationService.sendPushNotification(
         'user-1',
@@ -202,84 +197,60 @@ describe('NotificationService', () => {
         'job_update'
       );
 
-      expect(fetch).toHaveBeenCalledWith(
-        'https://exp.host/--/api/v2/push/send',
+      expect(mobileApiClient.post).toHaveBeenCalledWith(
+        '/api/notifications/send',
         expect.objectContaining({
-          method: 'POST',
-          headers: expect.objectContaining({
-            'Content-Type': 'application/json',
-          }),
-          body: expect.stringContaining('Test Notification'),
+          recipientId: 'user-1',
+          type: 'job_update',
+          title: 'Test Notification',
+          body: 'This is a test message',
+          data: { key: 'value' },
         })
       );
+      // Client must NEVER hit Expo directly (2026-04-21 security fix).
+      expect(fetch).not.toHaveBeenCalledWith(
+        'https://exp.host/--/api/v2/push/send',
+        expect.anything()
+      );
     });
 
-    it('should not send notification if user has no push token', async () => {
-      // mobileApiClient.get throws (no token found)
-      mobileApiClient.get.mockRejectedValueOnce(new Error('No token'));
+    it('should no-op when userId is missing', async () => {
+      await NotificationService.sendPushNotification('', 'Title', 'Body');
 
-      await NotificationService.sendPushNotification(
-        'user-1',
-        'Test Notification',
-        'This is a test message'
-      );
-
-      expect(fetch).not.toHaveBeenCalled();
+      expect(mobileApiClient.post).not.toHaveBeenCalled();
     });
 
-    it('should not send notification if blocked by preferences', async () => {
-      mobileApiClient.get.mockResolvedValueOnce({
-        push_token: 'ExponentPushToken[user-token]',
-      });
-
-      // Return preferences that block job_update
-      const prefsChain = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({
-          data: { notification_preferences: { pushEnabled: false } },
-          error: null,
-        }),
-      };
-      supabase.from.mockReturnValueOnce(prefsChain);
-
-      await NotificationService.sendPushNotification(
-        'user-1',
-        'Test Notification',
-        'This is a test message',
-        {},
-        'job_update'
+    it('should swallow 403 responses (no business relationship)', async () => {
+      mobileApiClient.post.mockRejectedValueOnce(
+        new Error('Request failed with status 403: Forbidden')
       );
 
-      expect(fetch).not.toHaveBeenCalled();
+      // Must not re-throw — otherwise a single refused recipient would
+      // break bulk fan-out from CallNotifier.notifyParticipants.
+      await expect(
+        NotificationService.sendPushNotification(
+          'stranger-id',
+          'Hello',
+          'This should not deliver'
+        )
+      ).resolves.toBeUndefined();
+    });
+
+    it('should swallow non-403 errors without throwing', async () => {
+      mobileApiClient.post.mockRejectedValueOnce(new Error('Network error'));
+
+      await expect(
+        NotificationService.sendPushNotification('user-1', 'Title', 'Body')
+      ).resolves.toBeUndefined();
     });
   });
 
   describe('sendBulkNotification', () => {
-    it('should send notifications to multiple users via sendPushNotification', async () => {
-      // Each call to sendPushNotification calls mobileApiClient.get for the token
-      mobileApiClient.get
-        .mockResolvedValueOnce({ push_token: 'token-1' })
-        .mockResolvedValueOnce({ push_token: 'token-2' });
-
-      // Each call fetches preferences from supabase
-      const prefsChain = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({
-          data: { notification_preferences: { pushEnabled: true } },
-          error: null,
-        }),
-      };
-      supabase.from.mockReturnValue(prefsChain);
-
-      (fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: async () => ({ data: [{ status: 'ok' }] }),
+    it('should post once per recipient to /api/notifications/send', async () => {
+      mobileApiClient.post.mockResolvedValue({
+        success: true,
+        notificationId: 'n-x',
       });
-
-      // saveNotification calls mobileApiClient.post
-      mobileApiClient.post.mockResolvedValue({});
 
       await NotificationService.sendBulkNotification(
         ['user-1', 'user-2'],
@@ -289,8 +260,27 @@ describe('NotificationService', () => {
         'system'
       );
 
-      // sendBulkNotification delegates to sendPushNotification for each user
-      expect(mobileApiClient.get).toHaveBeenCalledTimes(2);
+      expect(mobileApiClient.post).toHaveBeenCalledTimes(2);
+      expect(mobileApiClient.post).toHaveBeenNthCalledWith(
+        1,
+        '/api/notifications/send',
+        expect.objectContaining({ recipientId: 'user-1', type: 'system' })
+      );
+      expect(mobileApiClient.post).toHaveBeenNthCalledWith(
+        2,
+        '/api/notifications/send',
+        expect.objectContaining({ recipientId: 'user-2', type: 'system' })
+      );
+    });
+
+    it('should short-circuit on empty user list', async () => {
+      await NotificationService.sendBulkNotification(
+        [],
+        'No recipients',
+        'Body'
+      );
+
+      expect(mobileApiClient.post).not.toHaveBeenCalled();
     });
   });
 
@@ -365,7 +355,9 @@ describe('NotificationService', () => {
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
         order: jest.fn().mockReturnThis(),
-        range: jest.fn().mockResolvedValue({ data: mockNotifications, error: null }),
+        range: jest
+          .fn()
+          .mockResolvedValue({ data: mockNotifications, error: null }),
       };
       supabase.from.mockReturnValue(mockChain);
 
@@ -463,33 +455,16 @@ describe('NotificationService', () => {
       expect(token).toBeNull();
     });
 
-    it('should handle push service errors by throwing', async () => {
-      // mobileApiClient.get returns a valid token
-      mobileApiClient.get.mockResolvedValueOnce({
-        push_token: 'token',
-      });
+    it('should never throw for push service errors', async () => {
+      // Post-2026-04-24 client-side sendPushNotification is a fire-and-
+      // forget wrapper over mobileApiClient.post — any server error is
+      // logged and swallowed so a single failed push does not abort
+      // the caller's flow (e.g., CallNotifier.notifyParticipants).
+      mobileApiClient.post.mockRejectedValueOnce(new Error('Network error'));
 
-      // Preferences allow notification
-      const prefsChain = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({
-          data: { notification_preferences: { pushEnabled: true } },
-          error: null,
-        }),
-      };
-      supabase.from.mockReturnValueOnce(prefsChain);
-
-      (fetch as jest.Mock).mockRejectedValueOnce(new Error('Network error'));
-
-      // The real code re-throws fetch errors from sendToExpo
       await expect(
-        NotificationService.sendPushNotification(
-          'user-1',
-          'Test',
-          'Message'
-        )
-      ).rejects.toThrow('Network error');
+        NotificationService.sendPushNotification('user-1', 'Test', 'Message')
+      ).resolves.toBeUndefined();
     });
   });
 });

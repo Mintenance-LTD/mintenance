@@ -1,5 +1,6 @@
 import { logger } from '@/lib/logger';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { sanitizeIlikePattern } from '@/lib/utils/sanitize-postgrest';
 
 export interface PricingTrend {
   month: string;
@@ -70,7 +71,8 @@ export class MarketInsightsService {
         .eq('id', contractorId)
         .single();
 
-      const contractorLocation = location || `${contractor?.city || ''}, ${contractor?.country || 'UK'}`;
+      const contractorLocation =
+        location || `${contractor?.city || ''}, ${contractor?.country || 'UK'}`;
 
       // Get contractor's skills if service types not provided
       if (!serviceTypes || serviceTypes.length === 0) {
@@ -78,17 +80,24 @@ export class MarketInsightsService {
           .from('contractor_skills')
           .select('skill_name')
           .eq('contractor_id', contractorId);
-        serviceTypes = (skills || []).map((s: { skill_name: string }) => s.skill_name);
+        serviceTypes = (skills || []).map(
+          (s: { skill_name: string }) => s.skill_name
+        );
       }
 
-      const [pricingTrends, demandForecast, marketAnalysis, seasonalTrends, serviceTypeInsights] =
-        await Promise.all([
-          this.getPricingTrends(contractorId, contractorLocation, serviceTypes),
-          this.getDemandForecast(contractorLocation, serviceTypes),
-          this.getMarketAnalysis(contractorId, contractorLocation, serviceTypes),
-          this.getSeasonalTrends(contractorLocation, serviceTypes),
-          this.getServiceTypeInsights(contractorLocation, serviceTypes),
-        ]);
+      const [
+        pricingTrends,
+        demandForecast,
+        marketAnalysis,
+        seasonalTrends,
+        serviceTypeInsights,
+      ] = await Promise.all([
+        this.getPricingTrends(contractorId, contractorLocation, serviceTypes),
+        this.getDemandForecast(contractorLocation, serviceTypes),
+        this.getMarketAnalysis(contractorId, contractorLocation, serviceTypes),
+        this.getSeasonalTrends(contractorLocation, serviceTypes),
+        this.getServiceTypeInsights(contractorLocation, serviceTypes),
+      ]);
 
       return {
         pricingTrends,
@@ -147,7 +156,9 @@ export class MarketInsightsService {
             job.budget
         ) || [];
 
-      const budgets = monthMarketJobs.map((job) => parseFloat(job.budget as string));
+      const budgets = monthMarketJobs.map((job) =>
+        parseFloat(job.budget as string)
+      );
       const jobCount = budgets.length;
 
       if (jobCount > 0) {
@@ -159,7 +170,9 @@ export class MarketInsightsService {
 
         const previousTrend = trends[trends.length - 1];
         const change = previousTrend
-          ? ((averagePrice - previousTrend.averagePrice) / previousTrend.averagePrice) * 100
+          ? ((averagePrice - previousTrend.averagePrice) /
+              previousTrend.averagePrice) *
+            100
           : 0;
 
         trends.push({
@@ -228,7 +241,10 @@ export class MarketInsightsService {
         seasonalAdjustment = -10;
       }
 
-      const adjustedDemand = Math.min(100, Math.max(0, predictedDemand + seasonalAdjustment));
+      const adjustedDemand = Math.min(
+        100,
+        Math.max(0, predictedDemand + seasonalAdjustment)
+      );
       const confidence = i <= 3 ? 85 : i <= 6 ? 70 : 60; // Higher confidence for near-term
 
       forecast.push({
@@ -258,10 +274,13 @@ export class MarketInsightsService {
       .eq('contractor_id', contractorId)
       .not('budget', 'is', null);
 
-    const contractorBudgets = (contractorJobs || []).map((job) => parseFloat(job.budget as string));
+    const contractorBudgets = (contractorJobs || []).map((job) =>
+      parseFloat(job.budget as string)
+    );
     const yourAverageRate =
       contractorBudgets.length > 0
-        ? contractorBudgets.reduce((sum, b) => sum + b, 0) / contractorBudgets.length
+        ? contractorBudgets.reduce((sum, b) => sum + b, 0) /
+          contractorBudgets.length
         : 0;
 
     // Get market average pricing
@@ -271,7 +290,9 @@ export class MarketInsightsService {
       .not('budget', 'is', null)
       .limit(500);
 
-    const marketBudgets = (marketJobs || []).map((job) => parseFloat(job.budget as string));
+    const marketBudgets = (marketJobs || []).map((job) =>
+      parseFloat(job.budget as string)
+    );
     const averageMarketRate =
       marketBudgets.length > 0
         ? marketBudgets.reduce((sum, b) => sum + b, 0) / marketBudgets.length
@@ -287,7 +308,8 @@ export class MarketInsightsService {
     const competitorCount = (competitors || []).length;
 
     // Calculate market position
-    let marketPosition: 'above_average' | 'average' | 'below_average' = 'average';
+    let marketPosition: 'above_average' | 'average' | 'below_average' =
+      'average';
     if (yourAverageRate > averageMarketRate * 1.1) {
       marketPosition = 'above_average';
     } else if (yourAverageRate < averageMarketRate * 0.9) {
@@ -368,7 +390,9 @@ export class MarketInsightsService {
       .order('created_at', { ascending: false })
       .limit(1000);
 
-    const monthlyData: { [key: number]: { count: number; totalBudget: number } } = {};
+    const monthlyData: {
+      [key: number]: { count: number; totalBudget: number };
+    } = {};
     historicalJobs?.forEach((job) => {
       const date = new Date(job.created_at);
       const month = date.getMonth();
@@ -431,18 +455,28 @@ export class MarketInsightsService {
       growthRate: number;
     }[] = [];
 
-    // Get jobs by service type (using job descriptions/categories)
+    // Get jobs by service type (using job descriptions/categories).
+    // Audit P2 (2026-04-23): defensive sanitize — `serviceType` is
+    // typically a server-generated category string, but the helper
+    // is cheap and the consistent pattern protects against future
+    // refactors that route user input here.
     for (const serviceType of serviceTypes.slice(0, 5)) {
+      const safeServiceType = sanitizeIlikePattern(serviceType);
+      if (!safeServiceType) continue;
       const { data: jobs } = await serverSupabase
         .from('jobs')
         .select('budget, created_at')
-        .ilike('description', `%${serviceType}%`)
+        .ilike('description', `%${safeServiceType}%`)
         .not('budget', 'is', null)
         .limit(100);
 
-      const budgets = (jobs || []).map((job) => parseFloat(job.budget as string));
+      const budgets = (jobs || []).map((job) =>
+        parseFloat(job.budget as string)
+      );
       const averagePrice =
-        budgets.length > 0 ? budgets.reduce((sum, b) => sum + b, 0) / budgets.length : 0;
+        budgets.length > 0
+          ? budgets.reduce((sum, b) => sum + b, 0) / budgets.length
+          : 0;
 
       // Determine demand level
       let demandLevel: 'high' | 'medium' | 'low' = 'medium';
@@ -453,11 +487,15 @@ export class MarketInsightsService {
       }
 
       // Calculate growth rate (simplified)
-      const recentJobs = jobs?.filter(
-        (job) => new Date(job.created_at) > new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
-      ).length || 0;
+      const recentJobs =
+        jobs?.filter(
+          (job) =>
+            new Date(job.created_at) >
+            new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
+        ).length || 0;
       const olderJobs = (jobs?.length || 0) - recentJobs;
-      const growthRate = olderJobs > 0 ? ((recentJobs - olderJobs) / olderJobs) * 100 : 0;
+      const growthRate =
+        olderJobs > 0 ? ((recentJobs - olderJobs) / olderJobs) * 100 : 0;
 
       insights.push({
         serviceType,
@@ -470,4 +508,3 @@ export class MarketInsightsService {
     return insights;
   }
 }
-

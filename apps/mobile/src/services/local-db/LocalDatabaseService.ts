@@ -1,6 +1,7 @@
 import * as SQLite from 'expo-sqlite';
 import { logger } from '../../utils/logger';
 import type { User, Job, Message } from '@mintenance/types';
+import { getDatabaseOpenOptions } from './encryption';
 import { saveUser, getUser, getAllUsers } from './UserStore';
 import {
   saveJob,
@@ -36,7 +37,8 @@ class LocalDatabaseService {
   async init(): Promise<void> {
     if (this.isInitialized) return;
     try {
-      this.db = await SQLite.openDatabaseAsync(this.DB_NAME);
+      const openOptions = await getDatabaseOpenOptions();
+      this.db = await SQLite.openDatabaseAsync(this.DB_NAME, openOptions);
       await this.createTables();
       await this.runMigrations();
       this.isInitialized = true;
