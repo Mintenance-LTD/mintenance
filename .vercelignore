@@ -26,7 +26,11 @@ e2e
 *.spec.tsx
 apps/demo-video/out
 apps/demo-video/public
-apps/web/public/screenshots
+# NOTE: do NOT add `apps/web/public/screenshots` here — those PNGs are
+# referenced by the marketing pages (for-homeowners, for-contractors,
+# app-preview-section, contractor-cta, AppScreenshotCarousel) and
+# excluding them produces 404s on the deployed site. Fixed Apr 7
+# (daf25375), regressed Apr 26 (cf3bbe1c), restored.
 outputs
 audit-reports
 *.docx
