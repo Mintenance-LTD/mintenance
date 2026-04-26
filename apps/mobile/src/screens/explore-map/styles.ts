@@ -398,4 +398,24 @@ export const styles = StyleSheet.create({
     color: theme.colors.textPrimary,
     marginTop: 2,
   },
+  mapUnavailable: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: theme.colors.backgroundSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+  },
+  mapUnavailableTitle: {
+    marginTop: 12,
+    fontSize: 18,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+  },
+  mapUnavailableText: {
+    marginTop: 6,
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
+    color: theme.colors.textSecondary,
+  },
 });

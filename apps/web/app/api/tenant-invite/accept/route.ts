@@ -62,10 +62,15 @@ export const POST = withApiHandler({ csrf: false }, async (req, { user }) => {
     );
   }
 
-  // Get property details for the notification
+  // Get property details for the notification.
+  // Column is `property_name` in the DB; aliasing it to `name` here so the
+  // downstream notification template at `${property.address || property.name}`
+  // continues to render. Selecting the literal `name` column was rejected
+  // by PostgREST (column does not exist) — the same root cause as the
+  // /api/properties/[id]/tenants HTTP 500 fix.
   const { data: property } = await serverSupabase
     .from('properties')
-    .select('id, name, address, owner_id')
+    .select('id, address, owner_id, name:property_name')
     .eq('id', tenant.property_id)
     .single();
 

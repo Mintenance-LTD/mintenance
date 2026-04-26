@@ -42,6 +42,7 @@ import {
   ActivityIndicator,
   Alert,
   Platform,
+  Pressable,
   ScrollView,
   StatusBar,
   Text,
@@ -73,7 +74,13 @@ import {
 } from './ContractorVerificationScreen.helpers';
 
 interface VerificationScreenProps {
-  navigation: { goBack: () => void };
+  // navigate added so the soft-deprecation banner can deep-link to
+  // BusinessProfile (the canonical edit surface) without requiring an
+  // additional useNavigation() hook on this 500-line screen.
+  navigation: {
+    goBack: () => void;
+    navigate: (screen: string, params?: Record<string, unknown>) => void;
+  };
 }
 
 export const ContractorVerificationScreen: React.FC<
@@ -267,7 +274,17 @@ export const ContractorVerificationScreen: React.FC<
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.infoBanner}>
+        {/* Soft-deprecation notice baked into the existing banner —
+            Business Profile is the canonical edit surface for company /
+            license / insurance fields. We keep the inputs here for
+            back-compat but signpost users to the single source of truth
+            so they stop entering the same data twice (audit finding #6). */}
+        <Pressable
+          style={styles.infoBanner}
+          onPress={() => navigation.navigate('BusinessProfile')}
+          accessibilityRole='link'
+          accessibilityLabel='Open Business Profile to edit company details'
+        >
           <View style={styles.infoBannerIconWrap}>
             <Ionicons
               name='shield-checkmark'
@@ -279,11 +296,11 @@ export const ContractorVerificationScreen: React.FC<
             <Text style={styles.infoBannerTitle}>Why Verify?</Text>
             <Text style={styles.infoBannerText}>
               {isVerified
-                ? 'Your business is verified — edits will be re-reviewed.'
-                : 'Verified contractors get priority placement in homeowner search and 3x more job opportunities'}
+                ? 'Verified — edits will be re-reviewed. Manage company / insurance details on Business Profile →'
+                : 'Verified contractors get priority placement and 3x more jobs. Edit details on Business Profile →'}
             </Text>
           </View>
-        </View>
+        </Pressable>
 
         <View style={styles.form}>
           <View style={styles.formGroup}>
