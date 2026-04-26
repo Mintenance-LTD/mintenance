@@ -342,4 +342,19 @@ export const styles = StyleSheet.create({
     fontWeight: '500' as const,
     color: theme.colors.textPrimary,
   },
+  logExpenseRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 12,
+    backgroundColor: theme.colors.backgroundSecondary,
+  },
+  logExpenseText: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: '600' as const,
+    color: theme.colors.textPrimary,
+  },
 });
