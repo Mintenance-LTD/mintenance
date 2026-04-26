@@ -195,10 +195,15 @@ jobs:
     runs-on: ubuntu-latest
     if: failure() && github.event_name == 'schedule'
     needs: [security-scan, database-security-scan]
+    env:
+      # secrets context isn't allowed inside step-level `if:` expressions, so
+      # lift the presence check into a job-level env (same pattern as HAS_SNYK
+      # on line 21). Without this, the whole workflow fails YAML validation.
+      HAS_SLACK: ${{ secrets.SLACK_WEBHOOK != '' }}
 
     steps:
     - name: Notify security team
-      if: ${{ secrets.SLACK_WEBHOOK != '' }}
+      if: env.HAS_SLACK == 'true'
       uses: 8398a7/action-slack@77eaa4f1c608a7d68b38af4e3f739dcd8cba273e # v3
       with:
         status: failure
