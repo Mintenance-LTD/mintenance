@@ -86,7 +86,7 @@
     "next": "^16.0.4",
     "node-cache": "^5.1.2",
     "node-fetch": "^2.7.0",
-    "onnxruntime-node": "^1.17.3",
+    "onnxruntime-node": "^1.24.3",
     "openai": "^4.73.0",
     "otpauth": "^9.3.5",
     "qrcode": "^1.5.4",
