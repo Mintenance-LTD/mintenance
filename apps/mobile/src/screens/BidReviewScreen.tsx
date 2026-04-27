@@ -365,7 +365,13 @@ export const BidReviewScreen: React.FC = () => {
         ))}
       </View>
 
-      {/* Swipe Area */}
+      {/* Swipe Area — IndiGo-style fanned-deck visual: stackSize=3 so up
+          to two bids peek behind the active one, with alternating
+          rotation + horizontal offset per depth so the deck looks
+          like a hand of cards. Single-bid case still renders a flat
+          single card (no fake ghost peeks). User-asked redesign;
+          deeper redesign steps (media-first card layout, gesture-
+          driven swipe, accept polish) tracked separately. */}
       <View style={styles.swiperContainer}>
         <SwipeableCardWrapper
           ref={swiperRef}
@@ -374,7 +380,10 @@ export const BidReviewScreen: React.FC = () => {
           onSwipedRight={handleAccept}
           onSwipedLeft={handleReject}
           onSwipedAll={handleAllSwiped}
-          stackSize={2}
+          stackSize={3}
+          stackSeparation={14}
+          stackRotationDeg={2}
+          stackTranslateX={6}
           overlayLabels={{
             left: {
               element: (

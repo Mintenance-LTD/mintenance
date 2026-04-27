@@ -27,6 +27,17 @@ interface SwipeableCardWrapperProps<T = unknown> {
   showSecondCard?: boolean;
   stackScale?: number;
   stackSeparation?: number;
+  /**
+   * Subtle alternating rotation for stacked cards (IndiGo-style fanned
+   * deck). Degrees per stack-depth, alternating sign so the deck fans
+   * outward. 0 = no rotation (default keeps backward compat).
+   */
+  stackRotationDeg?: number;
+  /**
+   * Horizontal offset per stack-depth (alternating sign with rotation).
+   * Helps the fanned-deck look without committing to a heavy redesign.
+   */
+  stackTranslateX?: number;
   overlayLabels?: {
     left?: { element: React.ReactNode };
     right?: { element: React.ReactNode };
@@ -39,7 +50,10 @@ export interface SwipeableCardRef {
   swipeLeft: () => void;
   swipeRight: () => void;
 }
-const SwipeableCardWrapper = forwardRef<SwipeableCardRef, SwipeableCardWrapperProps<unknown>>(
+const SwipeableCardWrapper = forwardRef<
+  SwipeableCardRef,
+  SwipeableCardWrapperProps<unknown>
+>(
   (
     {
       cards,
@@ -56,6 +70,8 @@ const SwipeableCardWrapper = forwardRef<SwipeableCardRef, SwipeableCardWrapperPr
       showSecondCard = true,
       stackScale = 5,
       stackSeparation = 8,
+      stackRotationDeg = 0,
+      stackTranslateX = 0,
       overlayLabels,
       containerStyle,
       cardStyle,
@@ -112,7 +128,9 @@ const SwipeableCardWrapper = forwardRef<SwipeableCardRef, SwipeableCardWrapperPr
         scaleAnim.setValue(1);
       });
     };
-    const panResponderRef = React.useRef<ReturnType<typeof PanResponder.create> | undefined>(undefined);
+    const panResponderRef = React.useRef<
+      ReturnType<typeof PanResponder.create> | undefined
+    >(undefined);
     if (!panResponderRef.current) {
       const created = PanResponder.create({
         onStartShouldSetPanResponder: () => true,
@@ -165,6 +183,13 @@ const SwipeableCardWrapper = forwardRef<SwipeableCardRef, SwipeableCardWrapperPr
         const scale = 1 - (i * stackScale) / 100;
         const translateY = i * stackSeparation;
         const opacity = showSecondCard || isTopCard ? 1 : 0;
+        // IndiGo-style fanned-deck behind cards: alternating rotation +
+        // horizontal offset per depth so the stack looks like a hand of
+        // cards rather than a straight pile. Defaults to 0 (no fan)
+        // for backward compat with other callers.
+        const fanSign = i % 2 === 0 ? 1 : -1;
+        const fanRotation = stackRotationDeg * i * fanSign;
+        const fanTranslateX = stackTranslateX * i * fanSign;
         const animatedStyle = isTopCard
           ? {
               transform: [
@@ -178,6 +203,8 @@ const SwipeableCardWrapper = forwardRef<SwipeableCardRef, SwipeableCardWrapperPr
               transform: [
                 { scale },
                 { translateY },
+                { translateX: fanTranslateX },
+                { rotate: `${fanRotation}deg` },
               ],
               opacity,
             };
