@@ -61,6 +61,13 @@ interface SwipeableCardWrapperProps<T = unknown> {
 export interface SwipeableCardRef {
   swipeLeft: () => void;
   swipeRight: () => void;
+  /**
+   * Step back one card so a recently-swiped card re-enters the deck.
+   * Used by the BidReview undo banner (#1 step 4d) — fires after the
+   * server-side unrejectBid succeeds. Decrements `currentIndex` if
+   * possible; no-op when already at 0.
+   */
+  unswipe: () => void;
 }
 const SwipeableCardWrapper = forwardRef<
   SwipeableCardRef,
@@ -96,6 +103,13 @@ const SwipeableCardWrapper = forwardRef<
     const pan = useRef(new Animated.ValueXY()).current;
     const fadeAnim = useRef(new Animated.Value(1)).current;
     const scaleAnim = useRef(new Animated.Value(1)).current;
+    // Drives the snap-to-stack choreography: 0 while idle, animates
+    // to 1 alongside the swipe-out, then resets to 0 when currentIndex
+    // advances. Each non-top card interpolates its scale / translateY /
+    // rotation / translateX from its current depth toward depth-1, so
+    // the deck visually shifts up as the active card flies away.
+    // (#1 step 4c.)
+    const transitionProgress = useRef(new Animated.Value(0)).current;
     const resetPosition = () => {
       Animated.spring(pan, {
         toValue: { x: 0, y: 0 },
@@ -119,6 +133,13 @@ const SwipeableCardWrapper = forwardRef<
           duration: 300,
           useNativeDriver: false,
         }),
+        // Step 4c: animate the stack rearrangement in parallel so the
+        // next-in-stack card slides into the active slot smoothly.
+        Animated.timing(transitionProgress, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: false,
+        }),
       ]).start(() => {
         if (direction === 'left') {
           onSwipedLeft?.(currentIndex);
@@ -135,10 +156,14 @@ const SwipeableCardWrapper = forwardRef<
         } else {
           setCurrentIndex(nextIndex);
         }
-        // Reset animations
+        // Reset animations. transitionProgress goes back to 0 so the
+        // freshly-rendered cards sit at their new static depths
+        // (matches what they were at progress=1 before the index jump
+        // — no flicker).
         pan.setValue({ x: 0, y: 0 });
         fadeAnim.setValue(1);
         scaleAnim.setValue(1);
+        transitionProgress.setValue(0);
       });
     };
     const panResponderRef = React.useRef<
@@ -182,6 +207,16 @@ const SwipeableCardWrapper = forwardRef<
     useImperativeHandle(ref, () => ({
       swipeLeft: () => swipeCard('left'),
       swipeRight: () => swipeCard('right'),
+      unswipe: () => {
+        // Reset any in-flight gesture/swipe-out state before stepping
+        // back, otherwise the previously-active card would re-mount
+        // mid-fade-out.
+        pan.setValue({ x: 0, y: 0 });
+        fadeAnim.setValue(1);
+        scaleAnim.setValue(1);
+        transitionProgress.setValue(0);
+        setCurrentIndex((prev) => (prev > 0 ? prev - 1 : 0));
+      },
     }));
     const renderCards = () => {
       if (currentIndex >= cards.length) {
@@ -218,6 +253,20 @@ const SwipeableCardWrapper = forwardRef<
           ],
           extrapolate: 'clamp',
         });
+        // Step 4c — snap-to-stack: each non-top card interpolates from
+        // its depth-i transform (progress=0) toward its depth-(i-1)
+        // transform (progress=1) as the active card swipes off. The
+        // result is the rest of the deck shifting up smoothly into
+        // the slot the swiped card vacated. A no-op while idle
+        // (progress=0).
+        const targetDepth = Math.max(0, i - 1);
+        const targetScale = 1 - (targetDepth * stackScale) / 100;
+        const targetTranslateY = targetDepth * stackSeparation;
+        const targetFanSign = targetDepth % 2 === 0 ? 1 : -1;
+        const targetFanRotation =
+          stackRotationDeg * targetDepth * targetFanSign;
+        const targetFanTranslateX =
+          stackTranslateX * targetDepth * targetFanSign;
         const animatedStyle = isTopCard
           ? {
               transform: [
@@ -230,10 +279,33 @@ const SwipeableCardWrapper = forwardRef<
             }
           : {
               transform: [
-                { scale },
-                { translateY },
-                { translateX: fanTranslateX },
-                { rotate: `${fanRotation}deg` },
+                {
+                  scale: transitionProgress.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [scale, targetScale],
+                  }),
+                },
+                {
+                  translateY: transitionProgress.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [translateY, targetTranslateY],
+                  }),
+                },
+                {
+                  translateX: transitionProgress.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [fanTranslateX, targetFanTranslateX],
+                  }),
+                },
+                {
+                  rotate: transitionProgress.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [
+                      `${fanRotation}deg`,
+                      `${targetFanRotation}deg`,
+                    ],
+                  }),
+                },
               ],
               opacity,
             };

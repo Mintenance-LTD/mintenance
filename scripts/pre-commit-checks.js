@@ -127,11 +127,17 @@ const KNOWN_LARGE_FILES = new Set([
   'apps/mobile/src/screens/explore-map/ExploreMapScreen.tsx', // 510 lines
   // Added 2026-04-26: BidReviewStyles grew during the IndiGo-style
   // redesign (steps 1-4: fanned-deck stack, media-first hero,
-  // drag-tilt, accept-celebration). 11 visual sections of styles
-  // tightly coupled to the screen + card components — splitting
-  // requires extracting per-section style modules which is a
-  // dedicated P2.
-  'apps/mobile/src/screens/BidReviewStyles.ts', // 517 lines
+  // drag-tilt, accept-celebration, undo snackbar). 12 visual sections
+  // of styles tightly coupled to the screen + card components —
+  // splitting requires extracting per-section style modules which is
+  // a dedicated P2.
+  'apps/mobile/src/screens/BidReviewStyles.ts', // 545 lines (was 517)
+  // Added 2026-04-26: BidReviewScreen grew during the IndiGo redesign
+  // — accept-celebration sequence + undo-banner state machine added
+  // ~70 lines on top of the earlier swipe + sort + stats layout.
+  // Splitting requires extracting the celebration / snackbar into
+  // sub-components which is a dedicated P2.
+  'apps/mobile/src/screens/BidReviewScreen.tsx', // 566 lines
   // Added 2026-04-24: pre-existing large files touched by the dead-end
   // Coming-Soon nav cleanup (audit P1). Each only changed by 4-6 lines
   // (single nav entry deletion + a deprecation comment). Both files

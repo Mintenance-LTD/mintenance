@@ -378,6 +378,34 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  // Undo snackbar (step 4d). Sits above the action buttons so the
+  // user's thumb is naturally near the UNDO target.
+  undoSnackbar: {
+    position: 'absolute',
+    bottom: 96,
+    left: 16,
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: theme.colors.textPrimary,
+    borderRadius: 14,
+    zIndex: 50,
+  },
+  undoSnackbarText: {
+    flex: 1,
+    fontSize: 14,
+    color: theme.colors.textInverse,
+    fontWeight: '500',
+  },
+  undoSnackbarAction: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: theme.colors.accent,
+    marginLeft: 12,
+  },
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
