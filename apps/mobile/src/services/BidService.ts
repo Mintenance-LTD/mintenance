@@ -102,18 +102,33 @@ export class BidService {
     if (contractorIds.length > 0) {
       const { data: reviewRows } = await supabase
         .from('reviews')
-        .select('reviewee_id')
+        .select('reviewee_id, rating')
         .in('reviewee_id', contractorIds);
       const counts = new Map<string, number>();
+      const ratingTotals = new Map<string, number>();
       for (const row of reviewRows ?? []) {
-        const id = (row as { reviewee_id: string | null }).reviewee_id;
-        if (id) counts.set(id, (counts.get(id) || 0) + 1);
+        const review = row as { reviewee_id: string | null; rating: number | null };
+        const id = review.reviewee_id;
+        if (!id) continue;
+
+        counts.set(id, (counts.get(id) || 0) + 1);
+        if (typeof review.rating === 'number') {
+          ratingTotals.set(id, (ratingTotals.get(id) || 0) + review.rating);
+        }
       }
       for (const bid of bids) {
         if (bid.contractor && bid.contractor_id) {
-          (
-            bid.contractor as unknown as { reviews_count?: number }
-          ).reviews_count = counts.get(bid.contractor_id) || 0;
+          const count = counts.get(bid.contractor_id) || 0;
+          const aggregateRating =
+            count > 0 ? (ratingTotals.get(bid.contractor_id) || 0) / count : 0;
+          const contractor = bid.contractor as unknown as {
+            reviews_count?: number;
+            rating?: number | null;
+          };
+          contractor.reviews_count = count;
+          if (!contractor.rating && aggregateRating > 0) {
+            contractor.rating = Number(aggregateRating.toFixed(1));
+          }
         }
       }
     }

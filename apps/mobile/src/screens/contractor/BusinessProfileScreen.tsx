@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -32,6 +32,26 @@ const LICENSE_TYPES = [
   'Other',
 ] as const;
 
+const toProfileLicenseType = (type: string): string | null => {
+  const normalized = type.trim().toLowerCase().replace(/[\s-]+/g, '_');
+  if (!normalized) return null;
+  if (normalized === 'general_contractor') return 'trade';
+  if (normalized === 'electrical') return 'electrical';
+  if (normalized === 'plumbing') return 'plumbing';
+  if (normalized === 'hvac') return 'hvac';
+  if (normalized === 'roofing') return 'roofing';
+  return 'other';
+};
+
+const toDisplayLicenseType = (type: string | null | undefined): string => {
+  const normalized = toProfileLicenseType(type || '');
+  if (!normalized) return '';
+  const match = LICENSE_TYPES.find(
+    (option) => toProfileLicenseType(option) === normalized
+  );
+  return match || 'Other';
+};
+
 export const BusinessProfileScreen: React.FC = () => {
   const navigation = useNavigation();
   const { user, refreshUser } = useAuth();
@@ -52,7 +72,7 @@ export const BusinessProfileScreen: React.FC = () => {
       const [profileRes, insuranceRes, licenseRes] = await Promise.all([
         supabase
           .from('profiles')
-          .select('company_name, business_address, license_number')
+          .select('company_name, business_address, license_number, license_type')
           .eq('id', user.id)
           .single(),
         supabase
@@ -80,7 +100,11 @@ export const BusinessProfileScreen: React.FC = () => {
         setInsuranceProvider(insuranceRes.data.provider);
       if (insuranceRes.data?.policy_number)
         setPolicyNumber(insuranceRes.data.policy_number);
-      if (licenseRes.data?.name) setLicenseType(licenseRes.data.name);
+      if (licenseRes.data?.name || p?.license_type) {
+        setLicenseType(
+          toDisplayLicenseType(licenseRes.data?.name || p?.license_type)
+        );
+      }
       return {
         profile: p,
         insurance: insuranceRes.data,
@@ -100,6 +124,7 @@ export const BusinessProfileScreen: React.FC = () => {
           company_name: companyName.trim() || null,
           business_address: businessAddress.trim() || null,
           license_number: licenseNumber.trim() || null,
+          license_type: toProfileLicenseType(licenseType),
         })
         .eq('id', user.id);
       if (profileErr) throw new Error(profileErr.message);

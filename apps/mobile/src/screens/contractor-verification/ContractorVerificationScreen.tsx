@@ -67,8 +67,8 @@ import {
   VERIFICATION_BENEFITS,
   formatExpiryForDisplay,
   formatExpiryForPersistence,
+  normalizeLicenseType,
   parseLegacyExpiry,
-  type LicenseType,
   type ProfileRow,
   type VerificationData,
 } from './ContractorVerificationScreen.helpers';
@@ -101,7 +101,6 @@ export const ContractorVerificationScreen: React.FC<
     // auth session is resolved.
     if (!user?.id) return;
     void checkVerificationStatus();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
   const checkVerificationStatus = async (): Promise<void> => {
@@ -135,7 +134,7 @@ export const ContractorVerificationScreen: React.FC<
           companyName: profile.company_name ?? '',
           businessAddress: profile.business_address ?? '',
           licenseNumber: profile.license_number ?? '',
-          licenseType: (profile.license_type as LicenseType | null) ?? 'trade',
+          licenseType: normalizeLicenseType(profile.license_type),
           licenseExpiry: parseLegacyExpiry(profile.license_expiry),
         });
       }

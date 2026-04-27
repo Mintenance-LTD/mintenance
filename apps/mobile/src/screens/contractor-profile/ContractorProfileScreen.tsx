@@ -5,7 +5,7 @@
  * impact stats, primary CTA, portfolio gallery, and review breakdown.
  */
 
-import React, { useMemo } from 'react';
+import React from 'react';
 import {
   ScrollView,
   View,
@@ -15,7 +15,6 @@ import {
   StyleSheet,
   RefreshControl,
   StatusBar,
-  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -54,11 +53,12 @@ export const ContractorProfileScreen: React.FC<
   const { data: activeJobs = [] } = useQuery({
     queryKey: ['contractorActiveJobs', user?.id, contractorId],
     queryFn: async () => {
+      if (!user?.id || !contractorId) return [];
       const { data } = await supabase
         .from('jobs')
         .select('id, status')
-        .eq('homeowner_id', user!.id)
-        .eq('contractor_id', contractorId!)
+        .eq('homeowner_id', user.id)
+        .eq('contractor_id', contractorId)
         .in('status', ['assigned', 'in_progress', 'completed']);
       return data || [];
     },
@@ -74,19 +74,20 @@ export const ContractorProfileScreen: React.FC<
   const { data: bidCount = 0 } = useQuery({
     queryKey: ['contractorBidsForMyJobs', user?.id, contractorId],
     queryFn: async () => {
+      if (!user?.id || !contractorId) return 0;
       // Two-step: get this user's job ids, then count contractor bids
       // on those jobs in pending/accepted state. Two queries because
       // PostgREST doesn't support a JOIN-based filter directly.
       const { data: myJobs } = await supabase
         .from('jobs')
         .select('id')
-        .eq('homeowner_id', user!.id);
+        .eq('homeowner_id', user.id);
       const myJobIds = (myJobs ?? []).map((j: { id: string }) => j.id);
       if (myJobIds.length === 0) return 0;
       const { count } = await supabase
         .from('bids')
         .select('id', { count: 'exact', head: true })
-        .eq('contractor_id', contractorId!)
+        .eq('contractor_id', contractorId)
         .in('status', ['pending', 'accepted'])
         .in('job_id', myJobIds);
       return count ?? 0;
@@ -166,6 +167,7 @@ export const ContractorProfileScreen: React.FC<
           bio={viewModel.contractor.bio}
           verified={viewModel.contractor.verified}
           skills={viewModel.contractor.skills}
+          profileImageUrl={viewModel.contractor.profileImageUrl}
           topInset={insets.top}
           onBack={() => navigation.goBack()}
           onShare={viewModel.handleShare}

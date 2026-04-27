@@ -33,6 +33,39 @@ interface DatabaseJobRow {
   property_id?: string;
 }
 
+function getOperationErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error && error.message) return error.message;
+  if (error && typeof error === 'object') {
+    const record = error as Record<string, unknown>;
+    const userMessage = record.userMessage;
+    const message = record.message;
+    if (typeof userMessage === 'string' && userMessage) return userMessage;
+    if (typeof message === 'string' && message) return message;
+  }
+  return fallback;
+}
+
+function normalizePhotoUrls(rawPhotos: unknown): string[] {
+  if (!Array.isArray(rawPhotos)) return [];
+
+  return rawPhotos
+    .map((photo) => {
+      if (typeof photo === 'string') return photo;
+      if (!photo || typeof photo !== 'object') return '';
+
+      const record = photo as Record<string, unknown>;
+      const url =
+        record.url ??
+        record.photo_url ??
+        record.file_url ??
+        record.signedUrl ??
+        record.publicUrl;
+
+      return typeof url === 'string' ? url : '';
+    })
+    .filter((url) => url.trim().length > 0);
+}
+
 export class JobCRUDService {
   static async createJob(jobData: {
     title: string;
@@ -121,7 +154,9 @@ export class JobCRUDService {
     }, context);
 
     if (!result.success || !result.data) {
-      throw new Error('Failed to create job');
+      throw new Error(
+        getOperationErrorMessage(result.error, 'Failed to create job')
+      );
     }
 
     return result.data;
@@ -147,7 +182,7 @@ export class JobCRUDService {
       }>(`/api/jobs/${jobId}`);
       if (!job) return null;
       return this.formatJob(job as Record<string, unknown>);
-    } catch (apiErr) {
+    } catch {
       // Direct-DB fallback — same shape as before. Photos may not
       // render correctly here because we cannot sign URLs from the
       // anon client, but the job itself is still readable so the
@@ -332,8 +367,8 @@ export class JobCRUDService {
       subcategory: (raw.subcategory as string) ?? '',
       // API returns 'urgency', DB returns 'priority'
       priority: ((raw.priority ?? raw.urgency) as Job['priority']) ?? 'medium',
-      // API returns 'images', DB returns 'photos'
-      photos: (raw.photos ?? raw.images ?? []) as string[],
+      // API returns `images`/`photoUrls`, DB returns `photos`.
+      photos: normalizePhotoUrls(raw.photos ?? raw.images ?? raw.photoUrls),
       created_at:
         ((raw.created_at ?? raw.createdAt) as string) ??
         new Date().toISOString(),

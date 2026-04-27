@@ -28,7 +28,6 @@ import {
   LoadingSpinner,
   ErrorView,
 } from '../../components/shared';
-import { EmptyState } from '../../components/ui/EmptyState';
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
@@ -66,6 +65,21 @@ const CATEGORY_COLORS: Record<string, string> = {
   marketing: theme.colors.error,
   other: theme.colors.textSecondary,
 };
+
+const CATEGORY_FILTERS: CategoryFilter[] = [
+  'all',
+  'materials',
+  'tools',
+  'fuel',
+  'software',
+  'insurance',
+  'marketing',
+  'other',
+];
+
+const EXPENSE_CATEGORIES = CATEGORY_FILTERS.filter(
+  (item) => item !== 'all'
+) as Exclude<CategoryFilter, 'all'>[];
 
 export const ExpensesScreen: React.FC = () => {
   const navigation = useNavigation();
@@ -294,18 +308,7 @@ export const ExpensesScreen: React.FC = () => {
           contentContainerStyle={styles.filterRow}
           style={styles.filterScrollView}
         >
-          {(
-            [
-              'all',
-              'materials',
-              'tools',
-              'fuel',
-              'software',
-              'insurance',
-              'marketing',
-              'other',
-            ] as CategoryFilter[]
-          ).map((item) => (
+          {CATEGORY_FILTERS.map((item) => (
             <TouchableOpacity
               key={item}
               style={[
@@ -363,6 +366,65 @@ export const ExpensesScreen: React.FC = () => {
               value={formData.amount}
               onChangeText={(t) => setFormData((p) => ({ ...p, amount: t }))}
             />
+            <Text style={styles.formLabel}>Category</Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.formCategoryRow}
+            >
+              {EXPENSE_CATEGORIES.map((item) => {
+                const selected = formData.category === item;
+                return (
+                  <TouchableOpacity
+                    key={item}
+                    style={[
+                      styles.formCategoryChip,
+                      selected && styles.formCategoryChipActive,
+                    ]}
+                    onPress={() =>
+                      setFormData((p) => ({ ...p, category: item }))
+                    }
+                    accessibilityRole='button'
+                    accessibilityState={{ selected }}
+                    accessibilityLabel={`Set category to ${item}`}
+                  >
+                    <Text
+                      style={[
+                        styles.formCategoryText,
+                        selected && styles.formCategoryTextActive,
+                      ]}
+                    >
+                      {item.charAt(0).toUpperCase() + item.slice(1)}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+            <TouchableOpacity
+              style={styles.billableToggle}
+              onPress={() =>
+                setFormData((p) => ({ ...p, billable: !p.billable }))
+              }
+              accessibilityRole='checkbox'
+              accessibilityState={{ checked: formData.billable }}
+              accessibilityLabel='Mark expense as billable'
+            >
+              <Ionicons
+                name={formData.billable ? 'checkbox' : 'square-outline'}
+                size={22}
+                color={
+                  formData.billable
+                    ? theme.colors.primary
+                    : theme.colors.textTertiary
+                }
+              />
+              <View style={styles.billableCopy}>
+                <Text style={styles.billableTitle}>Billable to client</Text>
+                <Text style={styles.billableHint}>
+                  Include this cost when preparing the invoice.
+                </Text>
+              </View>
+            </TouchableOpacity>
             <View style={styles.formActions}>
               <Button
                 variant='ghost'
@@ -607,6 +669,54 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: theme.colors.textPrimary,
     marginBottom: 8,
+  },
+  formLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: theme.colors.textSecondary,
+    marginBottom: 8,
+    marginTop: 2,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  formCategoryRow: { gap: 8, paddingBottom: 10 },
+  formCategoryChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 16,
+    backgroundColor: theme.colors.backgroundSecondary,
+    borderWidth: 1,
+    borderColor: theme.colors.border,
+  },
+  formCategoryChipActive: {
+    backgroundColor: theme.colors.textPrimary,
+    borderColor: theme.colors.textPrimary,
+  },
+  formCategoryText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: theme.colors.textSecondary,
+  },
+  formCategoryTextActive: { color: theme.colors.textInverse },
+  billableToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: theme.colors.backgroundSecondary,
+    marginBottom: 10,
+  },
+  billableCopy: { flex: 1 },
+  billableTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+  },
+  billableHint: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    marginTop: 2,
   },
   formActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8 },
   list: { paddingHorizontal: 16, paddingBottom: 80 },
