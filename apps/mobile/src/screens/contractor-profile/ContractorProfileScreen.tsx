@@ -67,6 +67,35 @@ export const ContractorProfileScreen: React.FC<
 
   const canMessage = activeJobs.length > 0;
 
+  // Check if the homeowner has any open or accepted bid from this
+  // contractor on one of their jobs. When true the primary CTA flips
+  // from "Request a Quote" to "Message Contractor" — asking for a
+  // quote when they've already bid is the user-flagged UX issue.
+  const { data: bidCount = 0 } = useQuery({
+    queryKey: ['contractorBidsForMyJobs', user?.id, contractorId],
+    queryFn: async () => {
+      // Two-step: get this user's job ids, then count contractor bids
+      // on those jobs in pending/accepted state. Two queries because
+      // PostgREST doesn't support a JOIN-based filter directly.
+      const { data: myJobs } = await supabase
+        .from('jobs')
+        .select('id')
+        .eq('homeowner_id', user!.id);
+      const myJobIds = (myJobs ?? []).map((j: { id: string }) => j.id);
+      if (myJobIds.length === 0) return 0;
+      const { count } = await supabase
+        .from('bids')
+        .select('id', { count: 'exact', head: true })
+        .eq('contractor_id', contractorId!)
+        .in('status', ['pending', 'accepted'])
+        .in('job_id', myJobIds);
+      return count ?? 0;
+    },
+    enabled: !!user && !!contractorId,
+  });
+
+  const hasActiveBid = bidCount > 0;
+
   if (viewModel.loading) {
     return (
       <View style={styles.container}>
@@ -159,6 +188,7 @@ export const ContractorProfileScreen: React.FC<
           onVideo={viewModel.handleVideo}
           onShare={viewModel.handleShare}
           canMessage={canMessage}
+          hasActiveBid={hasActiveBid}
         />
 
         {/* Portfolio gallery */}

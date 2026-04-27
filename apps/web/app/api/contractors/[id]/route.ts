@@ -7,6 +7,7 @@ import { BadRequestError, NotFoundError } from '@/lib/errors/api-error';
 import { rateLimiter } from '@/lib/rate-limiter';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { getClientIp } from '@/lib/request-ip';
+import { resignJobStorageUrls } from '@/lib/api/job-storage';
 
 /**
  * GET /api/contractors/[id]
@@ -93,6 +94,7 @@ export const GET = withApiHandler(
           latitude,
           longitude,
           is_available,
+          portfolio_images,
           total_jobs_completed,
           created_at
         `
@@ -120,7 +122,7 @@ export const GET = withApiHandler(
         const { count: reviewCount } = await serverSupabase
           .from('reviews')
           .select('*', { count: 'exact', head: true })
-          .eq('contractor_id', id)
+          .eq('reviewee_id', id)
           .eq('is_visible', true);
 
         if (error || !contractor) {
@@ -160,6 +162,52 @@ export const GET = withApiHandler(
           }
         }
 
+        // Audit finding #5 (Apr-26 device test): the user asked whether
+        // portfolio entries are based on completed-job before/after photos
+        // OR manual additions. Today they were manual-only via
+        // profiles.portfolio_images. Fold in after-photos from this
+        // contractor's completed jobs so a contractor's track record
+        // automatically populates their portfolio.
+        //
+        // Sequence: list completed jobs → fetch after-photos for those job
+        // ids → re-sign Job-storage URLs (bucket is private since 2026-04-17)
+        // → concat onto manual entries, dedupe.
+        let jobAfterPhotoUrls: string[] = [];
+        try {
+          const { data: completedJobs } = await serverSupabase
+            .from('jobs')
+            .select('id')
+            .eq('contractor_id', id)
+            .eq('status', 'completed');
+          const completedJobIds = (completedJobs ?? []).map(
+            (j: { id: string }) => j.id
+          );
+          if (completedJobIds.length > 0) {
+            const { data: afterPhotos } = await serverSupabase
+              .from('job_photos_metadata')
+              .select('photo_url, timestamp')
+              .in('job_id', completedJobIds)
+              .eq('photo_type', 'after')
+              .order('timestamp', { ascending: false })
+              .limit(24);
+            const rawUrls = (afterPhotos ?? [])
+              .map((p: { photo_url: string }) => p.photo_url)
+              .filter(Boolean);
+            jobAfterPhotoUrls = await resignJobStorageUrls(rawUrls);
+          }
+        } catch (err) {
+          // Non-fatal — manual portfolio_images still render. Logged so
+          // we can spot if the join is silently failing in prod.
+          logger.warn(
+            'Contractor portfolio: completed-jobs photo fetch failed',
+            {
+              service: 'contractors',
+              contractorId: id,
+              err: err instanceof Error ? err.message : String(err),
+            }
+          );
+        }
+
         // R7 #11 — dispute history: counts + mean resolution time against
         // this contractor. `disputes.against` references the contractor.
         const { data: disputeRows } = await serverSupabase
@@ -193,6 +241,7 @@ export const GET = withApiHandler(
           latitude?: number;
           longitude?: number;
           is_available?: boolean;
+          portfolio_images?: string[];
           total_jobs_completed?: number;
           phone?: string;
           email?: string;
@@ -223,6 +272,16 @@ export const GET = withApiHandler(
           latitude: contractor.latitude,
           longitude: contractor.longitude,
           is_available: contractor.is_available,
+          // Manual portfolio entries first (contractor curates these),
+          // then auto-derived after-photos from completed jobs. Dedup on
+          // exact-URL match so a contractor who manually re-added one of
+          // their own job photos doesn't get a duplicate tile.
+          portfolio_images: Array.from(
+            new Set([
+              ...(contractor.portfolio_images || []),
+              ...jobAfterPhotoUrls,
+            ])
+          ),
           total_jobs_completed: contractor.total_jobs_completed || 0,
           phone: contractor.phone,
           email: contractor.email,

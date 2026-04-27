@@ -64,7 +64,9 @@ export const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.colors.surface,
     borderRadius: 20,
-    padding: 20,
+    // padding removed so the hero can extend to the card edges; the
+    // body block below the hero re-introduces horizontal padding.
+    overflow: 'hidden',
     borderWidth: 1,
     borderColor: theme.colors.border,
   },
@@ -358,6 +360,52 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  celebrationOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 100,
+  },
+  celebrationCircle: {
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    backgroundColor: theme.colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  // Undo snackbar (step 4d). Sits above the action buttons so the
+  // user's thumb is naturally near the UNDO target.
+  undoSnackbar: {
+    position: 'absolute',
+    bottom: 96,
+    left: 16,
+    right: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: theme.colors.textPrimary,
+    borderRadius: 14,
+    zIndex: 50,
+  },
+  undoSnackbarText: {
+    flex: 1,
+    fontSize: 14,
+    color: theme.colors.textInverse,
+    fontWeight: '500',
+  },
+  undoSnackbarAction: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: theme.colors.accent,
+    marginLeft: 12,
+  },
   summaryRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
@@ -415,4 +463,83 @@ export const styles = StyleSheet.create({
     color: theme.colors.textSecondary,
   },
   sortChipTextActive: { color: theme.colors.textInverse },
+
+  // Media-first hero (BidReviewCard #1 step 2): blurred avatar bg or
+  // teal gradient, with crisp 96x96 avatar overlapping the body.
+  hero: {
+    width: '100%',
+    height: 140,
+    justifyContent: 'flex-end',
+    backgroundColor: theme.colors.primary,
+  },
+  heroImage: { resizeMode: 'cover' },
+  heroDimOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.18)',
+  },
+  heroAvatarWrap: {
+    alignSelf: 'center',
+    marginTop: -48,
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    backgroundColor: theme.colors.surface,
+    padding: 4,
+    ...Platform.select({
+      ios: {
+        shadowColor: theme.colors.textPrimary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.12,
+        shadowRadius: 8,
+      },
+      android: { elevation: 4 },
+    }),
+  },
+  heroAvatar: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+  },
+  body: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 20,
+    alignItems: 'stretch',
+  },
+  heroName: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: theme.colors.textPrimary,
+    textAlign: 'center',
+    marginTop: 4,
+  },
+  heroCompany: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+    marginTop: 2,
+  },
+  heroRatingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    marginTop: 6,
+  },
+  heroBadgeCenter: {
+    alignSelf: 'center',
+    marginTop: 6,
+  },
+  heroLocationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    marginTop: 6,
+  },
+  viewProfileLinkWrap: {
+    alignSelf: 'center',
+    marginTop: 12,
+    marginBottom: 4,
+  },
 });

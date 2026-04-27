@@ -112,7 +112,17 @@ export const BusinessProfileScreen: React.FC = () => {
           .eq('contractor_id', user.id)
           .limit(1)
           .maybeSingle();
-        const insData = {
+        // contractor_insurance has NOT NULL on `start_date` and `expiry_date`
+        // with no DB defaults. The form doesn't expose date pickers yet, so
+        // default to today + 1y on first INSERT. UPDATE path doesn't touch
+        // the dates so editing later won't reset them.
+        const todayIso = new Date().toISOString().split('T')[0];
+        const oneYearFromTodayIso = new Date(
+          Date.now() + 365 * 24 * 60 * 60 * 1000
+        )
+          .toISOString()
+          .split('T')[0];
+        const insBase = {
           contractor_id: user.id,
           provider: insuranceProvider.trim(),
           policy_number: policyNumber.trim() || null,
@@ -123,9 +133,13 @@ export const BusinessProfileScreen: React.FC = () => {
         const { error: insErr } = existingIns
           ? await supabase
               .from('contractor_insurance')
-              .update(insData)
+              .update(insBase)
               .eq('id', existingIns.id)
-          : await supabase.from('contractor_insurance').insert(insData);
+          : await supabase.from('contractor_insurance').insert({
+              ...insBase,
+              start_date: todayIso,
+              expiry_date: oneYearFromTodayIso,
+            });
         if (insErr) throw new Error(insErr.message);
       }
 
@@ -137,7 +151,13 @@ export const BusinessProfileScreen: React.FC = () => {
           .eq('contractor_id', user.id)
           .limit(1)
           .maybeSingle();
-        const licData = {
+        // contractor_licenses has NOT NULL on `issue_date` with no DB
+        // default — without this default the INSERT errors out:
+        // `null value in column "issue_date" of relation
+        // "contractor_licenses" violates not-null constraint`. (User-
+        // reported on the Save Business Profile flow.) UPDATE path
+        // doesn't touch the date so editing later doesn't reset it.
+        const licBase = {
           contractor_id: user.id,
           name: licenseType,
           number: licenseNumber.trim() || null,
@@ -147,9 +167,12 @@ export const BusinessProfileScreen: React.FC = () => {
         const { error: licErr } = existingLic
           ? await supabase
               .from('contractor_licenses')
-              .update(licData)
+              .update(licBase)
               .eq('id', existingLic.id)
-          : await supabase.from('contractor_licenses').insert(licData);
+          : await supabase.from('contractor_licenses').insert({
+              ...licBase,
+              issue_date: new Date().toISOString().split('T')[0],
+            });
         if (licErr) throw new Error(licErr.message);
       }
     },

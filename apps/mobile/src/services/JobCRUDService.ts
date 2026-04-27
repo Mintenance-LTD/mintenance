@@ -127,40 +127,65 @@ export class JobCRUDService {
     return result.data;
   }
 
+  /**
+   * Fetch a single job by id, with photo URLs that survive the
+   * 2026-04-17 Job-storage bucket flip from public→private.
+   *
+   * Goes through the web API (GET /api/jobs/:id) so the server can
+   * re-sign legacy `public/Job-storage/...` photo URLs into fresh
+   * signed URLs. The previous direct-Supabase implementation returned
+   * raw `file_url` values, which 404 on the CDN after the bucket flip
+   * — that produced the empty job-detail-screen hero on the homeowner
+   * side even though the list view (already API-routed) was rendering
+   * thumbnails correctly. Falls back to direct DB access if the API
+   * is unreachable so offline / API-down behaviour matches before.
+   */
   static async getJobById(jobId: string): Promise<Job | null> {
     try {
-      const { data, error } = await supabase
-        .from('jobs')
-        .select('*')
-        .eq('id', jobId)
-        .single();
-      if (error || !data) return null;
+      const { job } = await mobileApiClient.get<{
+        job: Record<string, unknown>;
+      }>(`/api/jobs/${jobId}`);
+      if (!job) return null;
+      return this.formatJob(job as Record<string, unknown>);
+    } catch (apiErr) {
+      // Direct-DB fallback — same shape as before. Photos may not
+      // render correctly here because we cannot sign URLs from the
+      // anon client, but the job itself is still readable so the
+      // detail screen at least renders text + status.
+      try {
+        const { data, error } = await supabase
+          .from('jobs')
+          .select('*')
+          .eq('id', jobId)
+          .single();
+        if (error || !data) return null;
 
-      // Enrich with photos and attachments
-      const [attachments, photos] = await Promise.all([
-        supabase
-          .from('job_attachments')
-          .select('file_url')
-          .eq('job_id', jobId)
-          .eq('file_type', 'image'),
-        supabase
-          .from('job_photos_metadata')
-          .select('photo_url')
-          .eq('job_id', jobId),
-      ]);
+        const [attachments, photos] = await Promise.all([
+          supabase
+            .from('job_attachments')
+            .select('file_url')
+            .eq('job_id', jobId)
+            .eq('file_type', 'image'),
+          supabase
+            .from('job_photos_metadata')
+            .select('photo_url')
+            .eq('job_id', jobId),
+        ]);
 
-      const imageUrls = [
-        ...(attachments.data?.map((a: { file_url: string }) => a.file_url) ??
-          []),
-        ...(photos.data?.map((p: { photo_url: string }) => p.photo_url) ?? []),
-      ];
-      if (imageUrls.length > 0) {
-        data.photos = imageUrls;
+        const imageUrls = [
+          ...(attachments.data?.map((a: { file_url: string }) => a.file_url) ??
+            []),
+          ...(photos.data?.map((p: { photo_url: string }) => p.photo_url) ??
+            []),
+        ];
+        if (imageUrls.length > 0) {
+          data.photos = imageUrls;
+        }
+
+        return this.formatJob(data);
+      } catch {
+        return null;
       }
-
-      return this.formatJob(data);
-    } catch {
-      return null;
     }
   }
 
