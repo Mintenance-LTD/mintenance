@@ -117,6 +117,35 @@ const KNOWN_LARGE_FILES = new Set([
   // bundles the 5-step wizard, photo grid, review summary, and
   // submit handler.
   'apps/mobile/src/screens/assessment/PropertyAssessmentScreen.tsx', // 510 lines (was 501)
+  // Added 2026-04-26: ExploreMapScreen grew across the iOS map-crash
+  // hotfix (PROVIDER_GOOGLE → MAP_PROVIDER guard), the runtime API-key
+  // check + "Map unavailable" fallback, and the pointerEvents='none'
+  // fix that lets the job carousel receive taps when the fallback is
+  // shown. Split is a dedicated P2 — the file bundles MapView + all
+  // markers, the floating top bar, the category pill scroller, and
+  // the carousel.
+  'apps/mobile/src/screens/explore-map/ExploreMapScreen.tsx', // 510 lines
+  // Added 2026-04-26: BidReviewStyles grew during the IndiGo-style
+  // redesign (steps 1-4: fanned-deck stack, media-first hero,
+  // drag-tilt, accept-celebration, undo snackbar). 12 visual sections
+  // of styles tightly coupled to the screen + card components —
+  // splitting requires extracting per-section style modules which is
+  // a dedicated P2.
+  'apps/mobile/src/screens/BidReviewStyles.ts', // 545 lines (was 517)
+  // Added 2026-04-26: BidReviewScreen grew during the IndiGo redesign
+  // — accept-celebration sequence + undo-banner state machine added
+  // ~70 lines on top of the earlier swipe + sort + stats layout.
+  // Splitting requires extracting the celebration / snackbar into
+  // sub-components which is a dedicated P2.
+  'apps/mobile/src/screens/BidReviewScreen.tsx', // 566 lines
+  // Added 2026-04-26: SwipeableCardWrapper rewritten to Reanimated 4
+  // + react-native-gesture-handler (#1 step 3). The new file holds
+  // the main wrapper plus TopCard + StackedCard sub-components
+  // (each needs its own useAnimatedStyle call per rules of hooks).
+  // Splitting the sub-components into their own files is a dedicated
+  // P2 — they share enough state / props that the tighter coupling
+  // is currently more readable in one file.
+  'apps/mobile/src/components/SwipeableCardWrapper.tsx', // 527 lines
   // Added 2026-04-24: pre-existing large files touched by the dead-end
   // Coming-Soon nav cleanup (audit P1). Each only changed by 4-6 lines
   // (single nav entry deletion + a deprecation comment). Both files

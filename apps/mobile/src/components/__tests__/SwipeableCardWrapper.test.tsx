@@ -1,97 +1,131 @@
 /**
  * SwipeableCardWrapper Component Tests
  *
- * Comprehensive test suite for the SwipeableCardWrapper component
- * Testing swipe gestures, animations, callbacks, and edge cases
- * Target: 100% coverage with deterministic tests
+ * Rewritten 2026-04-26 alongside the Reanimated 4 + gesture-handler
+ * rewrite of the component itself (#1 step 3). The previous version
+ * captured PanResponder.create configs and asserted against
+ * Animated.timing/spring; both are gone. The new tests:
+ *   1. Mock react-native-reanimated to synchronous shared values +
+ *      immediate withTiming completion so worklet callbacks
+ *      (runOnJS) fire on the same tick the action was dispatched.
+ *   2. Mock react-native-gesture-handler so Gesture.Pan() captures
+ *      its onUpdate/onEnd handlers in module scope, lettings tests
+ *      drive gestures imperatively.
+ *
+ * Coverage focus:
+ *   - Component rendering across props.
+ *   - Imperative ref methods: swipeLeft, swipeRight, unswipe.
+ *   - Gesture handlers (onUpdate, onEnd) via captured handlers.
+ *   - Card index progression + onSwipedAll + infinite mode.
  */
 
-// Note: SwipeableCardWrapper requires Animated.ValueXY with getTranslateTransform
-// This is handled in __mocks__/react-native.js
-
 import React from 'react';
-import { render, waitFor } from '@testing-library/react-native';
+import { render, waitFor, act } from '@testing-library/react-native';
+import { Text, View } from 'react-native';
 
-// Import react-native using require to allow runtime modification
-const RN = require('react-native');
-const { Animated, Dimensions, Text, View } = RN;
-
-// Store panResponder configs for testing
-let lastPanResponderConfig: any = null;
-
-// Wrap PanResponder.create to capture config - use mockImplementation to survive jest.resetAllMocks()
-const originalCreateImpl = () => ({
-  panHandlers: {
-    onStartShouldSetPanResponder: jest.fn(),
-    onStartShouldSetPanResponderCapture: jest.fn(),
-    onMoveShouldSetPanResponder: jest.fn(),
-    onMoveShouldSetPanResponderCapture: jest.fn(),
-    onPanResponderGrant: jest.fn(),
-    onPanResponderMove: jest.fn(),
-    onPanResponderRelease: jest.fn(),
-    onPanResponderTerminate: jest.fn(),
-    onPanResponderTerminationRequest: jest.fn(),
-    onShouldBlockNativeResponder: jest.fn(),
-  },
+// ── Mock react-native-reanimated ───────────────────────────────────────────────
+//
+// The library ships a Jest mock at 'react-native-reanimated/mock' but
+// it doesn't expose `withTiming`'s callback semantics the way we need
+// for runOnJS bridging tests. Roll a tiny inline mock that:
+//   - useSharedValue returns { value: T } that's mutable.
+//   - withTiming/withSpring set the target immediately and call the
+//     completion callback synchronously with finished=true.
+//   - runOnJS returns a JS-callable wrapper around the function.
+//   - useAnimatedStyle returns an empty object (we don't assert on
+//     style output in tests).
+//   - interpolate is a passthrough returning outputRange[0] (good
+//     enough for "did the component render" checks).
+//   - Animated.View is just a regular RN View.
+jest.mock('react-native-reanimated', () => {
+  const ReactRN = jest.requireActual('react-native');
+  return {
+    __esModule: true,
+    default: {
+      View: ReactRN.View,
+    },
+    useSharedValue: <T,>(initial: T) => ({ value: initial }),
+    useAnimatedStyle: () => ({}),
+    withTiming: <T,>(
+      toValue: T,
+      _config?: unknown,
+      callback?: (finished: boolean) => void
+    ) => {
+      // Fire the completion synchronously so tests don't need extra
+      // ticks to observe the post-swipe state update.
+      if (callback) callback(true);
+      return toValue;
+    },
+    withSpring: <T,>(toValue: T) => toValue,
+    runOnJS:
+      <Args extends unknown[], R>(fn: (...args: Args) => R) =>
+      (...args: Args) =>
+        fn(...args),
+    interpolate: (_value: number, _input: number[], output: number[]): number =>
+      output[0],
+    Extrapolation: { CLAMP: 'clamp' },
+  };
 });
 
-RN.PanResponder.create.mockImplementation((config: any) => {
-  lastPanResponderConfig = config;
-  return originalCreateImpl();
+// ── Mock react-native-gesture-handler ──────────────────────────────────────────
+//
+// Capture Gesture.Pan() handlers in a module-level variable so each
+// test can drive gestures via mockGesturePanHandlers.onUpdate / onEnd.
+// `GestureDetector` becomes a passthrough View.
+let mockGesturePanHandlers: {
+  onUpdate?: (event: {
+    translationX: number;
+    translationY: number;
+    velocityX: number;
+    velocityY: number;
+  }) => void;
+  onEnd?: (event: {
+    translationX: number;
+    translationY: number;
+    velocityX: number;
+    velocityY: number;
+  }) => void;
+} = {};
+
+jest.mock('react-native-gesture-handler', () => {
+  const ReactRN = jest.requireActual('react-native');
+  const ReactLib = jest.requireActual('react');
+  return {
+    __esModule: true,
+    Gesture: {
+      Pan: () => {
+        const handlers: Record<string, unknown> = {};
+        const chain = {
+          onUpdate(fn: unknown) {
+            handlers.onUpdate = fn;
+            mockGesturePanHandlers.onUpdate =
+              fn as typeof mockGesturePanHandlers.onUpdate;
+            return chain;
+          },
+          onEnd(fn: unknown) {
+            handlers.onEnd = fn;
+            mockGesturePanHandlers.onEnd =
+              fn as typeof mockGesturePanHandlers.onEnd;
+            return chain;
+          },
+        };
+        return chain;
+      },
+    },
+    GestureDetector: ({ children }: { children: unknown }) =>
+      ReactLib.createElement(ReactRN.View, null, children),
+  };
 });
 
-// Re-export for consistency
-const PanResponder = RN.PanResponder;
-
-// Note: Animated.ValueXY mock is now in global __mocks__/react-native.js
-
-// Make animations execute immediately
-const createMockAnimation = (valueSetter?: (value: any, config: any) => void) => {
-  return jest.fn((value: any, config: any) => ({
-    start: jest.fn((callback?: (result: { finished: boolean }) => void) => {
-      if (valueSetter) {
-        valueSetter(value, config);
-      }
-      if (callback) {
-        setTimeout(() => callback({ finished: true }), 0);
-      }
-    }),
-    stop: jest.fn(),
-  }));
-};
-
-Animated.timing = createMockAnimation((value, config) => {
-  if (value && value.setValue) {
-    value.setValue(config.toValue);
-  }
-});
-
-Animated.spring = createMockAnimation((value, config) => {
-  if (value && value.setValue) {
-    value.setValue(config.toValue);
-  }
-});
-
-Animated.parallel = jest.fn((animations: any[]) => ({
-  start: jest.fn((callback?: (result: { finished: boolean }) => void) => {
-    animations.forEach((anim: any) => {
-      if (anim && anim.start) {
-        anim.start();
-      }
-    });
-    if (callback) {
-      setTimeout(() => callback({ finished: true }), 0);
-    }
-  }),
-  stop: jest.fn(),
-}));
-
-// Import component AFTER setting up mocks (using require to avoid hoisting)
+// Component imported AFTER mocks are set up.
 const SwipeableCardWrapper = require('../SwipeableCardWrapper').default;
-const { SwipeableCardRef } = require('../SwipeableCardWrapper');
+type SwipeableCardRef = import('../SwipeableCardWrapper').SwipeableCardRef;
+
+beforeEach(() => {
+  mockGesturePanHandlers = {};
+});
 
 describe('SwipeableCardWrapper', () => {
-  // Mock card data
   const mockCards = [
     { id: 1, name: 'Card 1' },
     { id: 2, name: 'Card 2' },
@@ -99,68 +133,49 @@ describe('SwipeableCardWrapper', () => {
     { id: 4, name: 'Card 4' },
     { id: 5, name: 'Card 5' },
   ];
-
-  // Mock render function
-  const mockRenderCard = jest.fn((item: any) => (
-    <View testID={`card-${item.id}`}>
-      <Text>{item.name}</Text>
-    </View>
-  ));
-
-  // Mock callbacks
+  const mockRenderCard = jest.fn(
+    (item: { id: number; name: string }) =>
+      React.createElement(
+        View,
+        { testID: `card-${item.id}` },
+        React.createElement(Text, null, item.name)
+      ) as React.ReactNode
+  );
   const mockOnSwipedLeft = jest.fn();
   const mockOnSwipedRight = jest.fn();
   const mockOnSwipedAll = jest.fn();
 
   beforeEach(() => {
     jest.clearAllMocks();
-    // Reapply mockImplementation after jest.resetAllMocks() in previous afterEach
-    RN.PanResponder.create.mockImplementation((config: any) => {
-      lastPanResponderConfig = config;
-      return originalCreateImpl();
-    });
   });
 
-  afterEach(() => {
-    jest.clearAllMocks(); // Changed from resetAllMocks to preserve mock implementations
-  });
-
-  describe('Component Rendering', () => {
-    it('should render without crashing', () => {
-      const { getByTestId } = render(
-        <SwipeableCardWrapper
-          cards={mockCards}
-          renderCard={mockRenderCard}
-        />
+  describe('Component rendering', () => {
+    it('renders without crashing', () => {
+      render(
+        <SwipeableCardWrapper cards={mockCards} renderCard={mockRenderCard} />
       );
-
       expect(mockRenderCard).toHaveBeenCalled();
     });
 
-    it('should render the first card by default', () => {
-      const { getByTestId } = render(
-        <SwipeableCardWrapper
-          cards={mockCards}
-          renderCard={mockRenderCard}
-        />
+    it('renders the first card by default', () => {
+      render(
+        <SwipeableCardWrapper cards={mockCards} renderCard={mockRenderCard} />
       );
-
       expect(mockRenderCard).toHaveBeenCalledWith(mockCards[0], 0);
     });
 
-    it('should render with custom cardIndex', () => {
-      const { getByTestId } = render(
+    it('renders with custom cardIndex', () => {
+      render(
         <SwipeableCardWrapper
           cards={mockCards}
           renderCard={mockRenderCard}
           cardIndex={2}
         />
       );
-
       expect(mockRenderCard).toHaveBeenCalledWith(mockCards[2], 2);
     });
 
-    it('should render null when currentIndex exceeds cards length', () => {
+    it('renders empty container when currentIndex exceeds cards length', () => {
       const { UNSAFE_root } = render(
         <SwipeableCardWrapper
           cards={mockCards}
@@ -168,77 +183,44 @@ describe('SwipeableCardWrapper', () => {
           cardIndex={10}
         />
       );
-
-      // Should still render container but no cards
       expect(UNSAFE_root).toBeTruthy();
     });
 
-    it('should render with custom backgroundColor', () => {
+    it('renders with custom backgroundColor + containerStyle + cardStyle', () => {
       const { UNSAFE_root } = render(
         <SwipeableCardWrapper
           cards={mockCards}
           renderCard={mockRenderCard}
-          backgroundColor="red"
+          backgroundColor='red'
+          containerStyle={{ padding: 20 }}
+          cardStyle={{ borderRadius: 10 }}
         />
       );
-
       expect(UNSAFE_root).toBeTruthy();
     });
 
-    it('should render with custom containerStyle', () => {
-      const customStyle = { padding: 20 };
+    it('renders with empty cards array', () => {
+      const { UNSAFE_root } = render(
+        <SwipeableCardWrapper cards={[]} renderCard={mockRenderCard} />
+      );
+      expect(UNSAFE_root).toBeTruthy();
+    });
+
+    it('renders with dragBackdrop=true', () => {
       const { UNSAFE_root } = render(
         <SwipeableCardWrapper
           cards={mockCards}
           renderCard={mockRenderCard}
-          containerStyle={customStyle}
+          dragBackdrop
         />
       );
-
-      expect(UNSAFE_root).toBeTruthy();
-    });
-
-    it('should render with custom cardStyle', () => {
-      const customCardStyle = { borderRadius: 10 };
-      const { UNSAFE_root } = render(
-        <SwipeableCardWrapper
-          cards={mockCards}
-          renderCard={mockRenderCard}
-          cardStyle={customCardStyle}
-        />
-      );
-
-      expect(UNSAFE_root).toBeTruthy();
-    });
-
-    it('should render with useViewOverflow=false', () => {
-      const { UNSAFE_root } = render(
-        <SwipeableCardWrapper
-          cards={mockCards}
-          renderCard={mockRenderCard}
-          useViewOverflow={false}
-        />
-      );
-
-      expect(UNSAFE_root).toBeTruthy();
-    });
-
-    it('should render with empty cards array', () => {
-      const { UNSAFE_root } = render(
-        <SwipeableCardWrapper
-          cards={[]}
-          renderCard={mockRenderCard}
-        />
-      );
-
       expect(UNSAFE_root).toBeTruthy();
     });
   });
 
-  describe('Card Stack Rendering', () => {
-    it('should render stackSize number of cards', () => {
+  describe('Card stack rendering', () => {
+    it('renders stackSize cards', () => {
       mockRenderCard.mockClear();
-
       render(
         <SwipeableCardWrapper
           cards={mockCards}
@@ -246,375 +228,195 @@ describe('SwipeableCardWrapper', () => {
           stackSize={3}
         />
       );
-
-      // Should render 3 cards (indices 0, 1, 2)
       expect(mockRenderCard).toHaveBeenCalledTimes(3);
     });
 
-    it('should render with custom stackSize', () => {
+    it('does not render more cards than available', () => {
       mockRenderCard.mockClear();
-
       render(
         <SwipeableCardWrapper
-          cards={mockCards}
-          renderCard={mockRenderCard}
-          stackSize={2}
-        />
-      );
-
-      expect(mockRenderCard).toHaveBeenCalledTimes(2);
-    });
-
-    it('should not render more cards than available', () => {
-      mockRenderCard.mockClear();
-      const twoCards = [mockCards[0], mockCards[1]];
-
-      render(
-        <SwipeableCardWrapper
-          cards={twoCards}
+          cards={[mockCards[0], mockCards[1]]}
           renderCard={mockRenderCard}
           stackSize={5}
         />
       );
-
-      // Should only render 2 cards even though stackSize is 5
       expect(mockRenderCard).toHaveBeenCalledTimes(2);
     });
 
-    it('should render with showSecondCard=false', () => {
+    it('renders with stackRotationDeg + stackTranslateX (fanned deck)', () => {
       const { UNSAFE_root } = render(
         <SwipeableCardWrapper
           cards={mockCards}
           renderCard={mockRenderCard}
-          showSecondCard={false}
-        />
-      );
-
-      expect(UNSAFE_root).toBeTruthy();
-    });
-
-    it('should render with custom stackScale', () => {
-      const { UNSAFE_root } = render(
-        <SwipeableCardWrapper
-          cards={mockCards}
-          renderCard={mockRenderCard}
-          stackScale={10}
-        />
-      );
-
-      expect(UNSAFE_root).toBeTruthy();
-    });
-
-    it('should render with custom stackSeparation', () => {
-      const { UNSAFE_root } = render(
-        <SwipeableCardWrapper
-          cards={mockCards}
-          renderCard={mockRenderCard}
-          stackSeparation={15}
-        />
-      );
-
-      expect(UNSAFE_root).toBeTruthy();
-    });
-  });
-
-  describe('Overlay Labels', () => {
-    it('should render with left overlay label', () => {
-      const leftLabel = <Text testID="left-label">Nope</Text>;
-
-      const { UNSAFE_root } = render(
-        <SwipeableCardWrapper
-          cards={mockCards}
-          renderCard={mockRenderCard}
-          overlayLabels={{
-            left: { element: leftLabel },
-          }}
-        />
-      );
-
-      expect(UNSAFE_root).toBeTruthy();
-    });
-
-    it('should render with right overlay label', () => {
-      const rightLabel = <Text testID="right-label">Like</Text>;
-
-      const { UNSAFE_root } = render(
-        <SwipeableCardWrapper
-          cards={mockCards}
-          renderCard={mockRenderCard}
-          overlayLabels={{
-            right: { element: rightLabel },
-          }}
-        />
-      );
-
-      expect(UNSAFE_root).toBeTruthy();
-    });
-
-    it('should render with both overlay labels', () => {
-      const leftLabel = <Text testID="left-label">Nope</Text>;
-      const rightLabel = <Text testID="right-label">Like</Text>;
-
-      const { UNSAFE_root } = render(
-        <SwipeableCardWrapper
-          cards={mockCards}
-          renderCard={mockRenderCard}
-          overlayLabels={{
-            left: { element: leftLabel },
-            right: { element: rightLabel },
-          }}
-        />
-      );
-
-      expect(UNSAFE_root).toBeTruthy();
-    });
-
-    it('should not render overlay labels on non-top cards', () => {
-      const leftLabel = <Text testID="left-label">Nope</Text>;
-
-      const { queryByTestId } = render(
-        <SwipeableCardWrapper
-          cards={mockCards}
-          renderCard={mockRenderCard}
-          overlayLabels={{
-            left: { element: leftLabel },
-          }}
           stackSize={3}
+          stackRotationDeg={2}
+          stackTranslateX={6}
         />
       );
-
-      // Overlay should only be on top card
-      expect(queryByTestId).toBeTruthy();
+      expect(UNSAFE_root).toBeTruthy();
     });
   });
 
-  describe('PanResponder - Gesture Handling', () => {
-    it('should call onStartShouldSetPanResponder', () => {
-      render(
+  describe('Overlay labels', () => {
+    it('renders overlay labels on the top card only', () => {
+      const leftLabel = (
+        <Text testID='pass-label'>PASS</Text>
+      ) as React.ReactNode;
+      const rightLabel = (
+        <Text testID='accept-label'>ACCEPT</Text>
+      ) as React.ReactNode;
+      const { getByTestId } = render(
         <SwipeableCardWrapper
           cards={mockCards}
           renderCard={mockRenderCard}
+          stackSize={3}
+          overlayLabels={{
+            left: { element: leftLabel },
+            right: { element: rightLabel },
+          }}
         />
       );
-
-      expect(PanResponder.create).toHaveBeenCalled();
-      expect(lastPanResponderConfig.onStartShouldSetPanResponder()).toBe(true);
-    });
-
-    it('should call onMoveShouldSetPanResponder', () => {
-      render(
-        <SwipeableCardWrapper
-          cards={mockCards}
-          renderCard={mockRenderCard}
-        />
-      );
-
-      expect(lastPanResponderConfig.onMoveShouldSetPanResponder()).toBe(true);
-    });
-
-    it('should handle onPanResponderGrant', () => {
-      render(
-        <SwipeableCardWrapper
-          cards={mockCards}
-          renderCard={mockRenderCard}
-        />
-      );
-
-      // Should not throw
-      expect(() => lastPanResponderConfig.onPanResponderGrant()).not.toThrow();
-    });
-
-    it('should handle horizontal swipe in onPanResponderMove', () => {
-      render(
-        <SwipeableCardWrapper
-          cards={mockCards}
-          renderCard={mockRenderCard}
-          horizontalSwipe={true}
-        />
-      );
-
-      const gestureState = { dx: 100, dy: 0 };
-      expect(() => lastPanResponderConfig.onPanResponderMove({}, gestureState)).not.toThrow();
-    });
-
-    it('should handle vertical swipe in onPanResponderMove', () => {
-      render(
-        <SwipeableCardWrapper
-          cards={mockCards}
-          renderCard={mockRenderCard}
-          verticalSwipe={true}
-        />
-      );
-
-      const gestureState = { dx: 0, dy: 100 };
-      expect(() => lastPanResponderConfig.onPanResponderMove({}, gestureState)).not.toThrow();
-    });
-
-    it('should ignore horizontal swipe when horizontalSwipe=false', () => {
-      render(
-        <SwipeableCardWrapper
-          cards={mockCards}
-          renderCard={mockRenderCard}
-          horizontalSwipe={false}
-        />
-      );
-
-      const gestureState = { dx: 100, dy: 0 };
-      expect(() => lastPanResponderConfig.onPanResponderMove({}, gestureState)).not.toThrow();
-    });
-
-    it('should ignore vertical swipe when verticalSwipe=false', () => {
-      render(
-        <SwipeableCardWrapper
-          cards={mockCards}
-          renderCard={mockRenderCard}
-          verticalSwipe={false}
-        />
-      );
-
-      const gestureState = { dx: 0, dy: 100 };
-      expect(() => lastPanResponderConfig.onPanResponderMove({}, gestureState)).not.toThrow();
+      expect(getByTestId('pass-label')).toBeTruthy();
+      expect(getByTestId('accept-label')).toBeTruthy();
     });
   });
 
-  describe('Swipe Right Detection', () => {
-    it('should detect swipe right when dx exceeds threshold', async () => {
+  describe('Gesture: onUpdate captures translations', () => {
+    it('captures Gesture.Pan handlers on mount', () => {
+      render(
+        <SwipeableCardWrapper cards={mockCards} renderCard={mockRenderCard} />
+      );
+      expect(mockGesturePanHandlers.onUpdate).toBeDefined();
+      expect(mockGesturePanHandlers.onEnd).toBeDefined();
+    });
+  });
+
+  describe('Gesture: onEnd swipe direction detection', () => {
+    it('fires onSwipedRight when translationX exceeds threshold', async () => {
       render(
         <SwipeableCardWrapper
           cards={mockCards}
           renderCard={mockRenderCard}
           onSwipedRight={mockOnSwipedRight}
-          horizontalSwipe={true}
         />
       );
-
-      const gestureState = { dx: 100, dy: 0 }; // 100 > 25% of 375 = 93.75
-      lastPanResponderConfig.onPanResponderRelease({}, gestureState);
-
+      act(() => {
+        mockGesturePanHandlers.onEnd?.({
+          translationX: 200,
+          translationY: 0,
+          velocityX: 0,
+          velocityY: 0,
+        });
+      });
       await waitFor(() => {
         expect(mockOnSwipedRight).toHaveBeenCalledWith(0);
       });
     });
 
-    it('should not swipe right when below threshold', async () => {
-      render(
-        <SwipeableCardWrapper
-          cards={mockCards}
-          renderCard={mockRenderCard}
-          onSwipedRight={mockOnSwipedRight}
-          horizontalSwipe={true}
-        />
-      );
-
-      const gestureState = { dx: 50, dy: 0 }; // 50 < 93.75
-      lastPanResponderConfig.onPanResponderRelease({}, gestureState);
-
-      await waitFor(() => {
-        expect(mockOnSwipedRight).not.toHaveBeenCalled();
-      });
-    });
-
-    it('should not swipe right when horizontalSwipe=false', async () => {
-      render(
-        <SwipeableCardWrapper
-          cards={mockCards}
-          renderCard={mockRenderCard}
-          onSwipedRight={mockOnSwipedRight}
-          horizontalSwipe={false}
-        />
-      );
-
-      const gestureState = { dx: 100, dy: 0 };
-      lastPanResponderConfig.onPanResponderRelease({}, gestureState);
-
-      await waitFor(() => {
-        expect(mockOnSwipedRight).not.toHaveBeenCalled();
-      });
-    });
-  });
-
-  describe('Swipe Left Detection', () => {
-    it('should detect swipe left when dx is below negative threshold', async () => {
+    it('fires onSwipedLeft when translationX past negative threshold', async () => {
       render(
         <SwipeableCardWrapper
           cards={mockCards}
           renderCard={mockRenderCard}
           onSwipedLeft={mockOnSwipedLeft}
-          horizontalSwipe={true}
         />
       );
-
-      const gestureState = { dx: -100, dy: 0 }; // -100 < -93.75
-      lastPanResponderConfig.onPanResponderRelease({}, gestureState);
-
+      act(() => {
+        mockGesturePanHandlers.onEnd?.({
+          translationX: -200,
+          translationY: 0,
+          velocityX: 0,
+          velocityY: 0,
+        });
+      });
       await waitFor(() => {
         expect(mockOnSwipedLeft).toHaveBeenCalledWith(0);
       });
     });
 
-    it('should not swipe left when above negative threshold', async () => {
+    it('fires swipe via velocity even when distance is small', async () => {
       render(
         <SwipeableCardWrapper
           cards={mockCards}
           renderCard={mockRenderCard}
-          onSwipedLeft={mockOnSwipedLeft}
-          horizontalSwipe={true}
+          onSwipedRight={mockOnSwipedRight}
         />
       );
-
-      const gestureState = { dx: -50, dy: 0 }; // -50 > -93.75
-      lastPanResponderConfig.onPanResponderRelease({}, gestureState);
-
+      act(() => {
+        mockGesturePanHandlers.onEnd?.({
+          translationX: 30, // small distance
+          translationY: 0,
+          velocityX: 1500, // fast flick
+          velocityY: 0,
+        });
+      });
       await waitFor(() => {
-        expect(mockOnSwipedLeft).not.toHaveBeenCalled();
+        expect(mockOnSwipedRight).toHaveBeenCalledWith(0);
       });
     });
 
-    it('should not swipe left when horizontalSwipe=false', async () => {
+    it('does NOT fire callback when below distance + velocity thresholds', async () => {
       render(
         <SwipeableCardWrapper
           cards={mockCards}
           renderCard={mockRenderCard}
           onSwipedLeft={mockOnSwipedLeft}
+          onSwipedRight={mockOnSwipedRight}
+        />
+      );
+      act(() => {
+        mockGesturePanHandlers.onEnd?.({
+          translationX: 20,
+          translationY: 0,
+          velocityX: 100,
+          velocityY: 0,
+        });
+      });
+      await new Promise((r) => setTimeout(r, 0));
+      expect(mockOnSwipedLeft).not.toHaveBeenCalled();
+      expect(mockOnSwipedRight).not.toHaveBeenCalled();
+    });
+
+    it('ignores horizontal gesture when horizontalSwipe=false', async () => {
+      render(
+        <SwipeableCardWrapper
+          cards={mockCards}
+          renderCard={mockRenderCard}
+          onSwipedRight={mockOnSwipedRight}
           horizontalSwipe={false}
         />
       );
-
-      const gestureState = { dx: -100, dy: 0 };
-      lastPanResponderConfig.onPanResponderRelease({}, gestureState);
-
-      await waitFor(() => {
-        expect(mockOnSwipedLeft).not.toHaveBeenCalled();
+      act(() => {
+        mockGesturePanHandlers.onEnd?.({
+          translationX: 500,
+          translationY: 0,
+          velocityX: 2000,
+          velocityY: 0,
+        });
       });
+      await new Promise((r) => setTimeout(r, 0));
+      expect(mockOnSwipedRight).not.toHaveBeenCalled();
     });
   });
 
-  describe('Card Reset on Incomplete Swipe', () => {
-    it('should reset position when swipe is incomplete', async () => {
+  describe('Imperative ref methods', () => {
+    it('exposes swipeLeft + swipeRight + unswipe', () => {
+      const ref = React.createRef<SwipeableCardRef>();
       render(
         <SwipeableCardWrapper
+          ref={ref}
           cards={mockCards}
           renderCard={mockRenderCard}
-          onSwipedLeft={mockOnSwipedLeft}
-          onSwipedRight={mockOnSwipedRight}
         />
       );
-
-      const gestureState = { dx: 50, dy: 0 }; // Below threshold
-      lastPanResponderConfig.onPanResponderRelease({}, gestureState);
-
-      await waitFor(() => {
-        expect(mockOnSwipedLeft).not.toHaveBeenCalled();
-        expect(mockOnSwipedRight).not.toHaveBeenCalled();
-        expect(Animated.spring).toHaveBeenCalled();
-      });
+      expect(ref.current).toBeTruthy();
+      expect(typeof ref.current?.swipeLeft).toBe('function');
+      expect(typeof ref.current?.swipeRight).toBe('function');
+      expect(typeof ref.current?.unswipe).toBe('function');
     });
-  });
 
-  describe('Imperative Ref Methods', () => {
-    it('should expose swipeLeft method via ref', async () => {
+    it('swipeLeft fires onSwipedLeft + advances index', async () => {
       const ref = React.createRef<SwipeableCardRef>();
-
       render(
         <SwipeableCardWrapper
           ref={ref}
@@ -623,179 +425,36 @@ describe('SwipeableCardWrapper', () => {
           onSwipedLeft={mockOnSwipedLeft}
         />
       );
-
-      expect(ref.current).toBeTruthy();
-      expect(ref.current?.swipeLeft).toBeDefined();
-
-      ref.current?.swipeLeft();
-
+      act(() => {
+        ref.current?.swipeLeft();
+      });
       await waitFor(() => {
         expect(mockOnSwipedLeft).toHaveBeenCalledWith(0);
-      });
-    });
-
-    it('should expose swipeRight method via ref', async () => {
-      const ref = React.createRef<SwipeableCardRef>();
-
-      render(
-        <SwipeableCardWrapper
-          ref={ref}
-          cards={mockCards}
-          renderCard={mockRenderCard}
-          onSwipedRight={mockOnSwipedRight}
-        />
-      );
-
-      expect(ref.current).toBeTruthy();
-      expect(ref.current?.swipeRight).toBeDefined();
-
-      ref.current?.swipeRight();
-
-      await waitFor(() => {
-        expect(mockOnSwipedRight).toHaveBeenCalledWith(0);
-      });
-    });
-
-    it('should call swipeLeft multiple times correctly', async () => {
-      const ref = React.createRef<SwipeableCardRef>();
-
-      render(
-        <SwipeableCardWrapper
-          ref={ref}
-          cards={mockCards}
-          renderCard={mockRenderCard}
-          onSwipedLeft={mockOnSwipedLeft}
-        />
-      );
-
-      ref.current?.swipeLeft();
-      await waitFor(() => expect(mockOnSwipedLeft).toHaveBeenCalledWith(0));
-
-      ref.current?.swipeLeft();
-      await waitFor(() => expect(mockOnSwipedLeft).toHaveBeenCalledWith(1));
-    });
-
-    it('should call swipeRight multiple times correctly', async () => {
-      const ref = React.createRef<SwipeableCardRef>();
-
-      render(
-        <SwipeableCardWrapper
-          ref={ref}
-          cards={mockCards}
-          renderCard={mockRenderCard}
-          onSwipedRight={mockOnSwipedRight}
-        />
-      );
-
-      ref.current?.swipeRight();
-      await waitFor(() => expect(mockOnSwipedRight).toHaveBeenCalledWith(0));
-
-      ref.current?.swipeRight();
-      await waitFor(() => expect(mockOnSwipedRight).toHaveBeenCalledWith(1));
-    });
-  });
-
-  describe('Card Index Progression', () => {
-    it('should increment currentIndex after swipe', async () => {
-      const ref = React.createRef<SwipeableCardRef>();
-      mockRenderCard.mockClear();
-
-      render(
-        <SwipeableCardWrapper
-          ref={ref}
-          cards={mockCards}
-          renderCard={mockRenderCard}
-          onSwipedRight={mockOnSwipedRight}
-        />
-      );
-
-      // Initially renders card 0
-      expect(mockRenderCard).toHaveBeenCalledWith(mockCards[0], 0);
-
-      ref.current?.swipeRight();
-
-      await waitFor(() => {
-        expect(mockOnSwipedRight).toHaveBeenCalledWith(0);
-        // After swipe, should render card 1
         expect(mockRenderCard).toHaveBeenCalledWith(mockCards[1], 1);
       });
     });
 
-    it('should progress through all cards', async () => {
+    it('swipeRight fires onSwipedRight + advances index', async () => {
       const ref = React.createRef<SwipeableCardRef>();
-
-      render(
-        <SwipeableCardWrapper
-          ref={ref}
-          cards={mockCards}
-          renderCard={mockRenderCard}
-          onSwipedLeft={mockOnSwipedLeft}
-        />
-      );
-
-      // Swipe through all cards
-      for (let i = 0; i < mockCards.length; i++) {
-        ref.current?.swipeLeft();
-        await waitFor(() => {
-          expect(mockOnSwipedLeft).toHaveBeenCalledWith(i);
-        });
-      }
-
-      expect(mockOnSwipedLeft).toHaveBeenCalledTimes(mockCards.length);
-    });
-  });
-
-  describe('onSwipedAll Callback', () => {
-    it('should call onSwipedAll when last card is swiped', async () => {
-      const ref = React.createRef<SwipeableCardRef>();
-
-      render(
-        <SwipeableCardWrapper
-          ref={ref}
-          cards={mockCards}
-          renderCard={mockRenderCard}
-          onSwipedLeft={mockOnSwipedLeft}
-          onSwipedAll={mockOnSwipedAll}
-        />
-      );
-
-      // Swipe through all cards
-      for (let i = 0; i < mockCards.length; i++) {
-        ref.current?.swipeLeft();
-        await waitFor(() => {
-          expect(mockOnSwipedLeft).toHaveBeenCalledWith(i);
-        });
-      }
-
-      await waitFor(() => {
-        expect(mockOnSwipedAll).toHaveBeenCalledTimes(1);
-      });
-    });
-
-    it('should not call onSwipedAll before last card', async () => {
-      const ref = React.createRef<SwipeableCardRef>();
-
       render(
         <SwipeableCardWrapper
           ref={ref}
           cards={mockCards}
           renderCard={mockRenderCard}
           onSwipedRight={mockOnSwipedRight}
-          onSwipedAll={mockOnSwipedAll}
         />
       );
-
-      ref.current?.swipeRight();
-
+      act(() => {
+        ref.current?.swipeRight();
+      });
       await waitFor(() => {
         expect(mockOnSwipedRight).toHaveBeenCalledWith(0);
-        expect(mockOnSwipedAll).not.toHaveBeenCalled();
       });
     });
 
-    it('should handle onSwipedAll being undefined', async () => {
+    it('unswipe steps back one card', async () => {
       const ref = React.createRef<SwipeableCardRef>();
-
+      mockRenderCard.mockClear();
       render(
         <SwipeableCardWrapper
           ref={ref}
@@ -804,52 +463,36 @@ describe('SwipeableCardWrapper', () => {
           onSwipedLeft={mockOnSwipedLeft}
         />
       );
-
-      // Swipe through all cards
-      for (let i = 0; i < mockCards.length; i++) {
+      act(() => {
         ref.current?.swipeLeft();
-        await waitFor(() => {
-          expect(mockOnSwipedLeft).toHaveBeenCalledWith(i);
-        });
-      }
-
-      // Should not throw
-      expect(mockOnSwipedLeft).toHaveBeenCalledTimes(mockCards.length);
-    });
-  });
-
-  describe('Infinite Mode', () => {
-    it('should loop back to first card when infinite=true', async () => {
-      const ref = React.createRef<SwipeableCardRef>();
+      });
+      await waitFor(() => expect(mockOnSwipedLeft).toHaveBeenCalledWith(0));
       mockRenderCard.mockClear();
-
-      render(
-        <SwipeableCardWrapper
-          ref={ref}
-          cards={mockCards}
-          renderCard={mockRenderCard}
-          onSwipedRight={mockOnSwipedRight}
-          infinite={true}
-        />
-      );
-
-      // Swipe through all cards
-      for (let i = 0; i < mockCards.length; i++) {
-        ref.current?.swipeRight();
-        await waitFor(() => {
-          expect(mockOnSwipedRight).toHaveBeenCalledWith(i);
-        });
-      }
-
-      // Should loop back and render first card again
+      act(() => {
+        ref.current?.unswipe();
+      });
       await waitFor(() => {
+        // After unswipe, card index 0 renders again (now back at top).
         expect(mockRenderCard).toHaveBeenCalledWith(mockCards[0], 0);
       });
     });
 
-    it('should not call onSwipedAll when infinite=true', async () => {
+    it('unswipe at index 0 is a safe no-op', () => {
       const ref = React.createRef<SwipeableCardRef>();
+      render(
+        <SwipeableCardWrapper
+          ref={ref}
+          cards={mockCards}
+          renderCard={mockRenderCard}
+        />
+      );
+      expect(() => ref.current?.unswipe()).not.toThrow();
+    });
+  });
 
+  describe('Card progression + onSwipedAll', () => {
+    it('progresses through all cards via swipeLeft', async () => {
+      const ref = React.createRef<SwipeableCardRef>();
       render(
         <SwipeableCardWrapper
           ref={ref}
@@ -857,26 +500,88 @@ describe('SwipeableCardWrapper', () => {
           renderCard={mockRenderCard}
           onSwipedLeft={mockOnSwipedLeft}
           onSwipedAll={mockOnSwipedAll}
-          infinite={true}
         />
       );
-
-      // Swipe through all cards
       for (let i = 0; i < mockCards.length; i++) {
-        ref.current?.swipeLeft();
+        act(() => {
+          ref.current?.swipeLeft();
+        });
+        // eslint-disable-next-line no-await-in-loop
         await waitFor(() => {
           expect(mockOnSwipedLeft).toHaveBeenCalledWith(i);
         });
       }
+      expect(mockOnSwipedAll).toHaveBeenCalledTimes(1);
+    });
 
+    it('does not call onSwipedAll mid-deck', async () => {
+      const ref = React.createRef<SwipeableCardRef>();
+      render(
+        <SwipeableCardWrapper
+          ref={ref}
+          cards={mockCards}
+          renderCard={mockRenderCard}
+          onSwipedRight={mockOnSwipedRight}
+          onSwipedAll={mockOnSwipedAll}
+        />
+      );
+      act(() => {
+        ref.current?.swipeRight();
+      });
+      await waitFor(() => expect(mockOnSwipedRight).toHaveBeenCalled());
       expect(mockOnSwipedAll).not.toHaveBeenCalled();
     });
+
+    it('infinite=true loops to first card after last', async () => {
+      const ref = React.createRef<SwipeableCardRef>();
+      mockRenderCard.mockClear();
+      render(
+        <SwipeableCardWrapper
+          ref={ref}
+          cards={mockCards}
+          renderCard={mockRenderCard}
+          onSwipedRight={mockOnSwipedRight}
+          onSwipedAll={mockOnSwipedAll}
+          infinite
+        />
+      );
+      for (let i = 0; i < mockCards.length; i++) {
+        act(() => {
+          ref.current?.swipeRight();
+        });
+        // eslint-disable-next-line no-await-in-loop
+        await waitFor(() => {
+          expect(mockOnSwipedRight).toHaveBeenCalledWith(i);
+        });
+      }
+      // After the last card, infinite mode resets to 0 instead of
+      // calling onSwipedAll.
+      expect(mockOnSwipedAll).not.toHaveBeenCalled();
+      await waitFor(() => {
+        expect(mockRenderCard).toHaveBeenCalledWith(mockCards[0], 0);
+      });
+    });
   });
 
-  describe('Callback Undefined Handling', () => {
-    it('should not crash when onSwipedLeft is undefined', async () => {
+  describe('Edge cases', () => {
+    it('handles single card gracefully', async () => {
       const ref = React.createRef<SwipeableCardRef>();
+      render(
+        <SwipeableCardWrapper
+          ref={ref}
+          cards={[mockCards[0]]}
+          renderCard={mockRenderCard}
+          onSwipedAll={mockOnSwipedAll}
+        />
+      );
+      act(() => {
+        ref.current?.swipeLeft();
+      });
+      await waitFor(() => expect(mockOnSwipedAll).toHaveBeenCalledTimes(1));
+    });
 
+    it('handles undefined callbacks without throwing', async () => {
+      const ref = React.createRef<SwipeableCardRef>();
       render(
         <SwipeableCardWrapper
           ref={ref}
@@ -884,347 +589,14 @@ describe('SwipeableCardWrapper', () => {
           renderCard={mockRenderCard}
         />
       );
-
       expect(() => ref.current?.swipeLeft()).not.toThrow();
-
-      await waitFor(() => {
-        // Should still progress
-        expect(mockRenderCard).toHaveBeenCalled();
-      });
-    });
-
-    it('should not crash when onSwipedRight is undefined', async () => {
-      const ref = React.createRef<SwipeableCardRef>();
-
-      render(
-        <SwipeableCardWrapper
-          ref={ref}
-          cards={mockCards}
-          renderCard={mockRenderCard}
-        />
-      );
-
       expect(() => ref.current?.swipeRight()).not.toThrow();
-
-      await waitFor(() => {
-        // Should still progress
-        expect(mockRenderCard).toHaveBeenCalled();
-      });
     });
   });
 
-  describe('Animation Behavior', () => {
-    it('should trigger timing animation on swipe', async () => {
-      const Animated = require('react-native').Animated;
-      const ref = React.createRef<SwipeableCardRef>();
-
-      render(
-        <SwipeableCardWrapper
-          ref={ref}
-          cards={mockCards}
-          renderCard={mockRenderCard}
-        />
-      );
-
-      ref.current?.swipeLeft();
-
-      await waitFor(() => {
-        expect(Animated.timing).toHaveBeenCalled();
-        expect(Animated.parallel).toHaveBeenCalled();
-      });
-    });
-
-    it('should trigger spring animation on reset', async () => {
-      render(
-        <SwipeableCardWrapper
-          cards={mockCards}
-          renderCard={mockRenderCard}
-        />
-      );
-
-      const gestureState = { dx: 50, dy: 0 }; // Below threshold
-      lastPanResponderConfig.onPanResponderRelease({}, gestureState);
-
-      await waitFor(() => {
-        expect(Animated.spring).toHaveBeenCalled();
-      });
-    });
-
-    it('should reset animation values after swipe completes', async () => {
-      const ref = React.createRef<SwipeableCardRef>();
-
-      render(
-        <SwipeableCardWrapper
-          ref={ref}
-          cards={mockCards}
-          renderCard={mockRenderCard}
-          onSwipedLeft={mockOnSwipedLeft}
-        />
-      );
-
-      ref.current?.swipeLeft();
-
-      await waitFor(() => {
-        expect(mockOnSwipedLeft).toHaveBeenCalledWith(0);
-        // Animation should complete and reset
-      });
-    });
-  });
-
-  describe('Edge Cases', () => {
-    it('should handle single card', async () => {
-      const singleCard = [mockCards[0]];
-      const ref = React.createRef<SwipeableCardRef>();
-
-      render(
-        <SwipeableCardWrapper
-          ref={ref}
-          cards={singleCard}
-          renderCard={mockRenderCard}
-          onSwipedAll={mockOnSwipedAll}
-        />
-      );
-
-      ref.current?.swipeLeft();
-
-      await waitFor(() => {
-        expect(mockOnSwipedAll).toHaveBeenCalledTimes(1);
-      });
-    });
-
-    it('should handle swipe at last card', async () => {
-      const ref = React.createRef<SwipeableCardRef>();
-
-      render(
-        <SwipeableCardWrapper
-          ref={ref}
-          cards={mockCards}
-          renderCard={mockRenderCard}
-          cardIndex={mockCards.length - 1}
-          onSwipedAll={mockOnSwipedAll}
-        />
-      );
-
-      ref.current?.swipeRight();
-
-      await waitFor(() => {
-        expect(mockOnSwipedAll).toHaveBeenCalledTimes(1);
-      });
-    });
-
-    it('should handle rapid successive swipes', async () => {
-      const ref = React.createRef<SwipeableCardRef>();
-
-      render(
-        <SwipeableCardWrapper
-          ref={ref}
-          cards={mockCards}
-          renderCard={mockRenderCard}
-          onSwipedLeft={mockOnSwipedLeft}
-        />
-      );
-
-      // Trigger 3 swipes rapidly
-      ref.current?.swipeLeft();
-      ref.current?.swipeLeft();
-      ref.current?.swipeLeft();
-
-      await waitFor(() => {
-        // Should handle all swipes
-        expect(mockOnSwipedLeft).toHaveBeenCalledTimes(3);
-      });
-    });
-
-    it('should handle alternating swipe directions', async () => {
-      const ref = React.createRef<SwipeableCardRef>();
-
-      render(
-        <SwipeableCardWrapper
-          ref={ref}
-          cards={mockCards}
-          renderCard={mockRenderCard}
-          onSwipedLeft={mockOnSwipedLeft}
-          onSwipedRight={mockOnSwipedRight}
-        />
-      );
-
-      ref.current?.swipeLeft();
-      await waitFor(() => expect(mockOnSwipedLeft).toHaveBeenCalledWith(0));
-
-      ref.current?.swipeRight();
-      await waitFor(() => expect(mockOnSwipedRight).toHaveBeenCalledWith(1));
-
-      ref.current?.swipeLeft();
-      await waitFor(() => expect(mockOnSwipedLeft).toHaveBeenCalledWith(2));
-    });
-
-    it('should skip cards beyond array length', () => {
-      const twoCards = [mockCards[0], mockCards[1]];
-      mockRenderCard.mockClear();
-
-      render(
-        <SwipeableCardWrapper
-          cards={twoCards}
-          renderCard={mockRenderCard}
-          cardIndex={0}
-          stackSize={5}
-        />
-      );
-
-      // Should only render 2 cards even with stackSize=5
-      expect(mockRenderCard).toHaveBeenCalledTimes(2);
-    });
-  });
-
-  describe('Display Name', () => {
-    it('should have correct displayName', () => {
+  describe('Display name', () => {
+    it('has correct displayName', () => {
       expect(SwipeableCardWrapper.displayName).toBe('SwipeableCardWrapper');
-    });
-  });
-
-  describe('TypeScript Types', () => {
-    it('should accept all valid props', () => {
-      const ref = React.createRef<SwipeableCardRef>();
-
-      const validProps = {
-        ref,
-        cards: mockCards,
-        renderCard: mockRenderCard,
-        onSwipedLeft: mockOnSwipedLeft,
-        onSwipedRight: mockOnSwipedRight,
-        onSwipedAll: mockOnSwipedAll,
-        cardIndex: 0,
-        backgroundColor: 'red',
-        stackSize: 3,
-        infinite: false,
-        verticalSwipe: true,
-        horizontalSwipe: true,
-        showSecondCard: true,
-        stackScale: 5,
-        stackSeparation: 8,
-        overlayLabels: {
-          left: { element: <Text>Left</Text> },
-          right: { element: <Text>Right</Text> },
-        },
-        containerStyle: { padding: 10 },
-        cardStyle: { borderRadius: 5 },
-        useViewOverflow: true,
-      };
-
-      expect(() => render(<SwipeableCardWrapper {...validProps} />)).not.toThrow();
-    });
-  });
-
-  describe('Complex Gesture Scenarios', () => {
-    it('should handle swipe right at exact threshold', async () => {
-      render(
-        <SwipeableCardWrapper
-          cards={mockCards}
-          renderCard={mockRenderCard}
-          onSwipedRight={mockOnSwipedRight}
-          horizontalSwipe={true}
-        />
-      );
-
-      const gestureState = { dx: 93.75, dy: 0 }; // Exactly at threshold (25% of 375)
-      lastPanResponderConfig.onPanResponderRelease({}, gestureState);
-
-      // At exact threshold, should NOT trigger (needs to exceed)
-      await waitFor(() => {
-        expect(mockOnSwipedRight).not.toHaveBeenCalled();
-      });
-    });
-
-    it('should handle swipe left at exact threshold', async () => {
-      render(
-        <SwipeableCardWrapper
-          cards={mockCards}
-          renderCard={mockRenderCard}
-          onSwipedLeft={mockOnSwipedLeft}
-          horizontalSwipe={true}
-        />
-      );
-
-      const gestureState = { dx: -93.75, dy: 0 }; // Exactly at threshold
-      lastPanResponderConfig.onPanResponderRelease({}, gestureState);
-
-      // At exact threshold, should NOT trigger (needs to exceed)
-      await waitFor(() => {
-        expect(mockOnSwipedLeft).not.toHaveBeenCalled();
-      });
-    });
-
-    it('should handle gesture with both dx and dy', async () => {
-      render(
-        <SwipeableCardWrapper
-          cards={mockCards}
-          renderCard={mockRenderCard}
-          onSwipedRight={mockOnSwipedRight}
-          horizontalSwipe={true}
-          verticalSwipe={true}
-        />
-      );
-
-      const gestureState = { dx: 100, dy: 50 }; // Diagonal swipe
-      lastPanResponderConfig.onPanResponderRelease({}, gestureState);
-
-      // Should still trigger based on dx
-      await waitFor(() => {
-        expect(mockOnSwipedRight).toHaveBeenCalledWith(0);
-      });
-    });
-
-    it('should prioritize right swipe over left when both thresholds met', async () => {
-      render(
-        <SwipeableCardWrapper
-          cards={mockCards}
-          renderCard={mockRenderCard}
-          onSwipedLeft={mockOnSwipedLeft}
-          onSwipedRight={mockOnSwipedRight}
-          horizontalSwipe={true}
-        />
-      );
-
-      const gestureState = { dx: 100, dy: 0 }; // Positive dx (right)
-      lastPanResponderConfig.onPanResponderRelease({}, gestureState);
-
-      await waitFor(() => {
-        expect(mockOnSwipedRight).toHaveBeenCalledWith(0);
-        expect(mockOnSwipedLeft).not.toHaveBeenCalled();
-      });
-    });
-  });
-
-  describe('Memory and Performance', () => {
-    it('should not render cards beyond stackSize', () => {
-      mockRenderCard.mockClear();
-
-      render(
-        <SwipeableCardWrapper
-          cards={mockCards}
-          renderCard={mockRenderCard}
-          stackSize={1}
-        />
-      );
-
-      // Should only render 1 card
-      expect(mockRenderCard).toHaveBeenCalledTimes(1);
-    });
-
-    it('should handle large card arrays efficiently', () => {
-      const largeCardArray = Array.from({ length: 1000 }, (_, i) => ({ id: i }));
-      mockRenderCard.mockClear();
-
-      render(
-        <SwipeableCardWrapper
-          cards={largeCardArray}
-          renderCard={mockRenderCard}
-          stackSize={3}
-        />
-      );
-
-      // Should still only render stackSize cards
-      expect(mockRenderCard).toHaveBeenCalledTimes(3);
     });
   });
 });

@@ -19,6 +19,8 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  Animated,
+  Easing,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -71,6 +73,44 @@ export const BidReviewScreen: React.FC = () => {
     'price'
   );
   const swiperRef = useRef<SwipeableCardRef>(null);
+
+  // Step 4d: undo banner state. Holds the just-rejected bid + a
+  // dismiss timer ref. Server gives a 60s undo window; we surface
+  // the snackbar for ~5s, after which it auto-dismisses (the bid
+  // stays rejected in the DB regardless).
+  const [recentlyRejected, setRecentlyRejected] = useState<Bid | null>(null);
+  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dismissUndo = useCallback(() => {
+    if (undoTimerRef.current) {
+      clearTimeout(undoTimerRef.current);
+      undoTimerRef.current = null;
+    }
+    setRecentlyRejected(null);
+  }, []);
+
+  // Brief check-mark celebration on bid accept (~720ms total).
+  const celebrationAnim = useRef(new Animated.Value(0)).current;
+  const triggerAcceptCelebration = useCallback(
+    () =>
+      new Promise<void>((resolve) => {
+        Animated.sequence([
+          Animated.timing(celebrationAnim, {
+            toValue: 1,
+            duration: 200,
+            easing: Easing.out(Easing.cubic),
+            useNativeDriver: true,
+          }),
+          Animated.delay(280),
+          Animated.timing(celebrationAnim, {
+            toValue: 0,
+            duration: 240,
+            easing: Easing.in(Easing.cubic),
+            useNativeDriver: true,
+          }),
+        ]).start(() => resolve());
+      }),
+    [celebrationAnim]
+  );
 
   const sortedBids = useMemo(() => {
     const copy = [...bids];
@@ -137,6 +177,10 @@ export const BidReviewScreen: React.FC = () => {
     setProcessing(true);
     try {
       await BidService.acceptBid(bid.id, user.id);
+      // Fire the celebration overlay first so the user sees a clear
+      // "accepted" beat before the modal Alert; awaited so the alert
+      // doesn't pop on top of the fade-in.
+      await triggerAcceptCelebration();
       Alert.alert(
         'Bid Accepted',
         `You accepted ${bid.contractor?.first_name || 'the contractor'}'s bid of ${formatCurrency(bid.amount)}.`,
@@ -183,6 +227,16 @@ export const BidReviewScreen: React.FC = () => {
     setProcessing(true);
     try {
       await BidService.rejectBid(bid.id, user.id);
+      // Step 4d: surface the undo banner for 5s after a successful
+      // reject. The server-side undo window is 60s, so dismissing
+      // the snackbar doesn't strand the user — they just lose the
+      // one-tap path.
+      if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+      setRecentlyRejected(bid);
+      undoTimerRef.current = setTimeout(() => {
+        setRecentlyRejected(null);
+        undoTimerRef.current = null;
+      }, 5000);
     } catch (err) {
       Alert.alert(
         'Error',
@@ -194,6 +248,28 @@ export const BidReviewScreen: React.FC = () => {
       setProcessing(false);
     }
   };
+
+  const handleUndoReject = useCallback(async () => {
+    const bid = recentlyRejected;
+    if (!bid || !user?.id) return;
+    dismissUndo();
+    setProcessing(true);
+    try {
+      await BidService.unrejectBid(bid.id, user.id);
+      // Bring the rejected bid back into the deck so the user can
+      // re-review it without leaving the screen.
+      swiperRef.current?.unswipe();
+    } catch (err) {
+      Alert.alert(
+        'Undo failed',
+        err instanceof Error
+          ? err.message
+          : 'Could not reverse the rejection. The undo window may have closed.'
+      );
+    } finally {
+      setProcessing(false);
+    }
+  }, [recentlyRejected, user?.id, dismissUndo]);
 
   const handleAllSwiped = () => {
     setAllReviewed(true);
@@ -365,7 +441,13 @@ export const BidReviewScreen: React.FC = () => {
         ))}
       </View>
 
-      {/* Swipe Area */}
+      {/* Swipe Area — IndiGo-style fanned-deck visual: stackSize=3 so up
+          to two bids peek behind the active one, with alternating
+          rotation + horizontal offset per depth so the deck looks
+          like a hand of cards. Single-bid case still renders a flat
+          single card (no fake ghost peeks). User-asked redesign;
+          deeper redesign steps (media-first card layout, gesture-
+          driven swipe, accept polish) tracked separately. */}
       <View style={styles.swiperContainer}>
         <SwipeableCardWrapper
           ref={swiperRef}
@@ -374,7 +456,11 @@ export const BidReviewScreen: React.FC = () => {
           onSwipedRight={handleAccept}
           onSwipedLeft={handleReject}
           onSwipedAll={handleAllSwiped}
-          stackSize={2}
+          stackSize={3}
+          stackSeparation={14}
+          stackRotationDeg={2}
+          stackTranslateX={6}
+          dragBackdrop
           overlayLabels={{
             left: {
               element: (
@@ -428,6 +514,53 @@ export const BidReviewScreen: React.FC = () => {
           <ActivityIndicator size='small' color={theme.colors.textInverse} />
         </View>
       )}
+
+      {/* Undo banner (#1 step 4d) — auto-dismisses after 5s. */}
+      {recentlyRejected && (
+        <View style={styles.undoSnackbar} pointerEvents='box-none'>
+          <Text style={styles.undoSnackbarText} numberOfLines={1}>
+            Rejected{' '}
+            {recentlyRejected.contractor
+              ? `${recentlyRejected.contractor.first_name}'s bid`
+              : 'bid'}
+          </Text>
+          <TouchableOpacity
+            onPress={handleUndoReject}
+            accessibilityRole='button'
+            accessibilityLabel='Undo bid rejection'
+            hitSlop={{ top: 8, bottom: 8, left: 12, right: 12 }}
+          >
+            <Text style={styles.undoSnackbarAction}>UNDO</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Accept-celebration overlay (~720ms fade-in/hold/fade-out). */}
+      <Animated.View
+        pointerEvents='none'
+        style={[
+          styles.celebrationOverlay,
+          {
+            opacity: celebrationAnim,
+            transform: [
+              {
+                scale: celebrationAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0.6, 1],
+                }),
+              },
+            ],
+          },
+        ]}
+      >
+        <View style={styles.celebrationCircle}>
+          <Ionicons
+            name='checkmark'
+            size={56}
+            color={theme.colors.textInverse}
+          />
+        </View>
+      </Animated.View>
     </SafeAreaView>
   );
 };

@@ -24,6 +24,13 @@ interface ProfileActionButtonsProps {
   onRequestQuote?: () => void;
   /** When false, the Message button is hidden (requires accepted bid / active job) */
   canMessage?: boolean;
+  /**
+   * When true (the user has an open/accepted bid from this contractor on
+   * one of their jobs), the primary CTA flips from "Request a Quote" to
+   * "Message Contractor" — asking for a quote when they've already bid
+   * is the user-facing UX issue the homeowner flagged on bid review.
+   */
+  hasActiveBid?: boolean;
 }
 
 const SECONDARY_ACTIONS: {
@@ -44,7 +51,13 @@ export const ProfileActionButtons: React.FC<ProfileActionButtonsProps> = ({
   onShare,
   onRequestQuote,
   canMessage = true,
+  hasActiveBid = false,
 }) => {
+  const primaryLabel = hasActiveBid ? 'Message Contractor' : 'Request a Quote';
+  const primaryIcon: keyof typeof Ionicons.glyphMap = hasActiveBid
+    ? 'chatbubble-outline'
+    : 'document-text-outline';
+  const primaryHandler = hasActiveBid ? onMessage : onRequestQuote || onMessage;
   const handlers: Record<string, () => void> = {
     message: onMessage,
     call: onCall,
@@ -59,21 +72,29 @@ export const ProfileActionButtons: React.FC<ProfileActionButtonsProps> = ({
 
   return (
     <View style={styles.container}>
-      {/* Primary CTA */}
+      {/* Primary CTA — flips between "Request a Quote" and
+          "Message Contractor" depending on whether the user already has
+          an open/accepted bid from this contractor (see hasActiveBid). */}
       <TouchableOpacity
         style={styles.primaryBtn}
-        onPress={onRequestQuote || onMessage}
+        onPress={primaryHandler}
         activeOpacity={0.85}
         accessibilityRole='button'
-        accessibilityLabel='Request a quote from this contractor'
-        testID='request-quote-button'
+        accessibilityLabel={
+          hasActiveBid
+            ? 'Message this contractor'
+            : 'Request a quote from this contractor'
+        }
+        testID={
+          hasActiveBid ? 'message-contractor-button' : 'request-quote-button'
+        }
       >
         <Ionicons
-          name='document-text-outline'
+          name={primaryIcon}
           size={18}
           color={theme.colors.textInverse}
         />
-        <Text style={styles.primaryBtnText}>Request a Quote</Text>
+        <Text style={styles.primaryBtnText}>{primaryLabel}</Text>
       </TouchableOpacity>
 
       {/* Secondary actions — icon circles */}

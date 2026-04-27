@@ -202,6 +202,16 @@ export class BidService {
     return response.bid;
   }
 
+  /**
+   * Reverse a recent rejection (60-second server-side window). Fires
+   * from the BidReview undo banner — see /api/jobs/[id]/bids/[bidId]/
+   * unreject route for the safeguards on the server side.
+   */
+  static async unrejectBid(bidId: string, _homeownerId: string): Promise<void> {
+    const jobId = await BidService.getBidJobId(bidId);
+    await mobileApiClient.post(`/api/jobs/${jobId}/bids/${bidId}/unreject`);
+  }
+
   static async withdrawBid(
     bidId: string,
     _contractorId: string
