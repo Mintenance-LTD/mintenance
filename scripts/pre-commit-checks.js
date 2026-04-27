@@ -138,6 +138,14 @@ const KNOWN_LARGE_FILES = new Set([
   // Splitting requires extracting the celebration / snackbar into
   // sub-components which is a dedicated P2.
   'apps/mobile/src/screens/BidReviewScreen.tsx', // 566 lines
+  // Added 2026-04-26: SwipeableCardWrapper rewritten to Reanimated 4
+  // + react-native-gesture-handler (#1 step 3). The new file holds
+  // the main wrapper plus TopCard + StackedCard sub-components
+  // (each needs its own useAnimatedStyle call per rules of hooks).
+  // Splitting the sub-components into their own files is a dedicated
+  // P2 — they share enough state / props that the tighter coupling
+  // is currently more readable in one file.
+  'apps/mobile/src/components/SwipeableCardWrapper.tsx', // 527 lines
   // Added 2026-04-24: pre-existing large files touched by the dead-end
   // Coming-Soon nav cleanup (audit P1). Each only changed by 4-6 lines
   // (single nav entry deletion + a deprecation comment). Both files
