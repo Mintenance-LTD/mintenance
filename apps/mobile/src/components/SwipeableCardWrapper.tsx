@@ -12,6 +12,11 @@ import {
   ViewStyle,
 } from 'react-native';
 const { width: screenWidth } = Dimensions.get('window');
+// Maximum tilt of the top card while dragging (Tinder/IndiGo style).
+// Keeps the PanResponder-based gesture path (so the existing test
+// suite that mocks PanResponder + Animated keeps passing) while
+// adding the rotational feel that makes a swipe deck feel alive.
+const MAX_DRAG_TILT_DEG = 12;
 interface SwipeableCardWrapperProps<T = unknown> {
   cards: T[];
   renderCard: (item: T, index: number) => React.ReactNode;
@@ -190,11 +195,27 @@ const SwipeableCardWrapper = forwardRef<
         const fanSign = i % 2 === 0 ? 1 : -1;
         const fanRotation = stackRotationDeg * i * fanSign;
         const fanTranslateX = stackTranslateX * i * fanSign;
+        // Top card adds a Tinder-style tilt while being dragged: rotate
+        // up to MAX_DRAG_TILT_DEG based on horizontal translation, so the
+        // card visibly leans into the gesture before clearing the
+        // threshold. Interpolated from `pan.x` so it tracks the drag at
+        // 60fps under the existing Animated.ValueXY (no Reanimated
+        // dependency needed for this visual upgrade).
+        const dragTilt = pan.x.interpolate({
+          inputRange: [-screenWidth, 0, screenWidth],
+          outputRange: [
+            `-${MAX_DRAG_TILT_DEG}deg`,
+            '0deg',
+            `${MAX_DRAG_TILT_DEG}deg`,
+          ],
+          extrapolate: 'clamp',
+        });
         const animatedStyle = isTopCard
           ? {
               transform: [
                 { translateX: pan.x },
                 { translateY: pan.y },
+                { rotate: dragTilt },
                 { scale: scaleAnim },
               ],
               opacity: fadeAnim,
