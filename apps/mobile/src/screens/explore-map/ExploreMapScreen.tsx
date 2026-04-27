@@ -322,7 +322,9 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({
           })}
         </MapView>
       ) : (
-        <View style={styles.mapUnavailable}>
+        // pointerEvents='none' load-bearing: this absoluteFillObject
+        // view absorbs taps meant for the job carousel below.
+        <View style={styles.mapUnavailable} pointerEvents='none'>
           <Ionicons name='map-outline' size={34} color={theme.colors.primary} />
           <Text style={styles.mapUnavailableTitle}>Map unavailable</Text>
           <Text style={styles.mapUnavailableText}>

@@ -117,6 +117,14 @@ const KNOWN_LARGE_FILES = new Set([
   // bundles the 5-step wizard, photo grid, review summary, and
   // submit handler.
   'apps/mobile/src/screens/assessment/PropertyAssessmentScreen.tsx', // 510 lines (was 501)
+  // Added 2026-04-26: ExploreMapScreen grew across the iOS map-crash
+  // hotfix (PROVIDER_GOOGLE → MAP_PROVIDER guard), the runtime API-key
+  // check + "Map unavailable" fallback, and the pointerEvents='none'
+  // fix that lets the job carousel receive taps when the fallback is
+  // shown. Split is a dedicated P2 — the file bundles MapView + all
+  // markers, the floating top bar, the category pill scroller, and
+  // the carousel.
+  'apps/mobile/src/screens/explore-map/ExploreMapScreen.tsx', // 510 lines
   // Added 2026-04-24: pre-existing large files touched by the dead-end
   // Coming-Soon nav cleanup (audit P1). Each only changed by 4-6 lines
   // (single nav entry deletion + a deprecation comment). Both files
