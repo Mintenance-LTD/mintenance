@@ -12,6 +12,7 @@ import {
 } from './types';
 import { ProgressDots } from './ProgressDots';
 import { styles } from './JobCardStyles';
+import { normalizePhotoUrls } from '../../utils/photoUrls';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -34,10 +35,7 @@ export const JobCard: React.FC<JobCardProps> = ({
   // array shouldn't fool the `hasPhotos` check into rendering an
   // ImageCarousel with empty `uri`s (which 404 or hang without
   // triggering expo-image's onError, leaving a gray void).
-  const rawPhotos = item.photos || item.images || [];
-  const photos = rawPhotos.filter(
-    (p): p is string => typeof p === 'string' && p.length > 0
-  );
+  const photos = normalizePhotoUrls(item.photos || item.images);
   const hasPhotos = photos.length > 0;
 
   const rawLocation =

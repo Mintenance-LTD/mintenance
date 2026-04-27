@@ -1,13 +1,16 @@
 'use client';
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
 import { Card } from '@/components/ui/Card.unified';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge.unified';
 import { AnimatedCounter } from '@/components/ui/AnimatedCounter';
-import { getGradientCardStyle, getCardHoverStyle } from '@/lib/theme-enhancements';
+import {
+  getGradientCardStyle,
+  getCardHoverStyle,
+} from '@/lib/theme-enhancements';
 
 interface JobWithDistance {
   id: string;
@@ -51,10 +54,20 @@ export function NearbyJobCard({
   onSave,
   onClick,
 }: NearbyJobCardProps) {
+  // `Date.now()` captured once per job change so the "NEW" badge is
+  // stable between SSR + first client render and doesn't trigger
+  // `react-hooks/purity`.
+  const isRecent = useMemo(() => {
+    if (!job.created_at) return false;
+    return (
+      new Date(job.created_at).getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000
+    );
+  }, [job.created_at]);
+
   return (
     <Card
       key={job.id}
-      padding="lg"
+      padding='lg'
       hover={true}
       onClick={() => onClick(job.id)}
       style={{
@@ -76,7 +89,7 @@ export function NearbyJobCard({
       {/* Recommended Badge - Top Right */}
       {isRecommended && (
         <Badge
-          variant="primary"
+          variant='primary'
           style={{
             position: 'absolute',
             top: theme.spacing[4],
@@ -91,7 +104,7 @@ export function NearbyJobCard({
             gap: theme.spacing[1],
           }}
         >
-          <Icon name="star" size={12} color={theme.colors.white} />
+          <Icon name='star' size={12} color={theme.colors.white} />
           Recommended
         </Badge>
       )}
@@ -119,7 +132,7 @@ export function NearbyJobCard({
           >
             {job.category && (
               <Badge
-                variant="info"
+                variant='info'
                 style={{
                   fontSize: theme.typography.fontSize.xs,
                   fontWeight: theme.typography.fontWeight.semibold,
@@ -133,27 +146,25 @@ export function NearbyJobCard({
                 {job.category}
               </Badge>
             )}
-            {job.created_at &&
-              new Date(job.created_at).getTime() >
-                Date.now() - 7 * 24 * 60 * 60 * 1000 && (
-                <Badge
-                  variant="success"
-                  style={{
-                    fontSize: theme.typography.fontSize.xs,
-                    fontWeight: theme.typography.fontWeight.bold,
-                    padding: `${theme.spacing[1]} ${theme.spacing[3]}`,
-                    backgroundColor: theme.colors.success,
-                    color: theme.colors.white,
-                    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                  }}
-                >
-                  NEW
-                </Badge>
-              )}
+            {isRecent && (
+              <Badge
+                variant='success'
+                style={{
+                  fontSize: theme.typography.fontSize.xs,
+                  fontWeight: theme.typography.fontWeight.bold,
+                  padding: `${theme.spacing[1]} ${theme.spacing[3]}`,
+                  backgroundColor: theme.colors.success,
+                  color: theme.colors.white,
+                  boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                }}
+              >
+                NEW
+              </Badge>
+            )}
           </div>
-          <h3 className="text-lg font-[560] text-gray-900 m-0 tracking-normal">
+          <h3 className='text-lg font-[560] text-gray-900 m-0 tracking-normal'>
             {job.title}
           </h3>
           {job.description && (
@@ -175,9 +186,9 @@ export function NearbyJobCard({
           )}
         </div>
         <Button
-          type="button"
-          variant="ghost"
-          size="sm"
+          type='button'
+          variant='ghost'
+          size='sm'
           onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
             e.stopPropagation();
             onSave(job.id, job.isSaved || false);
@@ -187,7 +198,7 @@ export function NearbyJobCard({
         >
           {savingJobId === job.id ? (
             <Icon
-              name="loader"
+              name='loader'
               size={20}
               color={theme.colors.textSecondary}
               style={{
@@ -242,8 +253,8 @@ export function NearbyJobCard({
             >
               <AnimatedCounter
                 value={parseFloat(job.budget)}
-                formatType="currency"
-                currency="GBP"
+                formatType='currency'
+                currency='GBP'
               />
             </div>
           </div>
@@ -272,10 +283,8 @@ export function NearbyJobCard({
                 gap: theme.spacing[1],
               }}
             >
-              <Icon name="mapPin" size={16} color={theme.colors.primary} />
-              <span>
-                {job.location.split(',').slice(-2).join(',').trim()}
-              </span>
+              <Icon name='mapPin' size={16} color={theme.colors.primary} />
+              <span>{job.location.split(',').slice(-2).join(',').trim()}</span>
             </div>
           </div>
         )}
@@ -292,7 +301,7 @@ export function NearbyJobCard({
       >
         {job.distance !== undefined && (
           <Badge
-            variant="info"
+            variant='info'
             style={{
               fontSize: theme.typography.fontSize.xs,
               fontWeight: theme.typography.fontWeight.medium,
@@ -305,22 +314,18 @@ export function NearbyJobCard({
               gap: theme.spacing[1],
             }}
           >
-            <Icon
-              name="mapPin"
-              size={12}
-              color={theme.colors.textSecondary}
-            />
+            <Icon name='mapPin' size={12} color={theme.colors.textSecondary} />
             {job.distance.toFixed(1)} km
           </Badge>
         )}
 
         {job.skillMatchCount !== undefined && job.skillMatchCount > 0 && (
           <Badge
-            variant="success"
+            variant='success'
             style={{ fontSize: theme.typography.fontSize.xs }}
           >
             <Icon
-              name="checkCircle"
+              name='checkCircle'
               size={12}
               color={theme.colors.success}
               style={{ marginRight: theme.spacing[1] }}
@@ -344,7 +349,7 @@ export function NearbyJobCard({
           {job.matchedSkills.slice(0, 3).map((skill, idx) => (
             <Badge
               key={idx}
-              variant="success"
+              variant='success'
               style={{
                 fontSize: theme.typography.fontSize.xs,
                 backgroundColor: `${theme.colors.success}20`,
@@ -357,7 +362,7 @@ export function NearbyJobCard({
           ))}
           {job.matchedSkills.length > 3 && (
             <Badge
-              variant="info"
+              variant='info'
               style={{ fontSize: theme.typography.fontSize.xs }}
             >
               +{job.matchedSkills.length - 3}
@@ -398,9 +403,7 @@ export function NearbyJobCard({
                 color: theme.colors.primary,
               }}
             >
-              {job.homeowner.first_name?.[0] ||
-                job.homeowner.email?.[0] ||
-                'U'}
+              {job.homeowner.first_name?.[0] || job.homeowner.email?.[0] || 'U'}
             </span>
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -446,11 +449,7 @@ export function NearbyJobCard({
             gap: theme.spacing[1],
           }}
         >
-          <Icon
-            name="calendar"
-            size={14}
-            color={theme.colors.textTertiary}
-          />
+          <Icon name='calendar' size={14} color={theme.colors.textTertiary} />
           <span
             style={{
               fontSize: theme.typography.fontSize.sm,
@@ -466,7 +465,7 @@ export function NearbyJobCard({
           </span>
         </div>
         <Button
-          variant="primary"
+          variant='primary'
           onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
             e.stopPropagation();
             onClick(job.id);
@@ -484,17 +483,15 @@ export function NearbyJobCard({
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.transform = 'translateY(-1px)';
-            e.currentTarget.style.boxShadow =
-              '0 4px 8px rgba(0, 0, 0, 0.15)';
+            e.currentTarget.style.boxShadow = '0 4px 8px rgba(0, 0, 0, 0.15)';
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.transform = 'translateY(0)';
-            e.currentTarget.style.boxShadow =
-              '0 2px 4px rgba(0, 0, 0, 0.1)';
+            e.currentTarget.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.1)';
           }}
         >
           Quick Bid
-          <Icon name="arrowRight" size={14} />
+          <Icon name='arrowRight' size={14} />
         </Button>
       </div>
     </Card>

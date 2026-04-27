@@ -1,6 +1,12 @@
 'use client';
 
-import React, { createContext, useState, useCallback, useEffect } from 'react';
+import React, {
+  createContext,
+  useState,
+  useCallback,
+  useEffect,
+  useRef,
+} from 'react';
 import { theme } from '@/lib/theme';
 import { Icon } from './Icon';
 
@@ -39,8 +45,15 @@ interface ToastProviderProps {
 
 export function ToastProvider({ children }: ToastProviderProps) {
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const dismissTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
-  useEffect(() => {}, []);
+  useEffect(
+    () => () => {
+      dismissTimers.current.forEach(clearTimeout);
+      dismissTimers.current = [];
+    },
+    []
+  );
 
   const showToast = useCallback((toast: Omit<Toast, 'id'>) => {
     const id = `toast-${Date.now()}-${Math.random()}`;
@@ -51,9 +64,10 @@ export function ToastProvider({ children }: ToastProviderProps) {
     // Auto-dismiss after duration (default 5 seconds)
     const duration = toast.duration ?? 5000;
     if (duration > 0) {
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         setToasts((prev) => prev.filter((t) => t.id !== id));
       }, duration);
+      dismissTimers.current.push(timer);
     }
   }, []);
 
@@ -111,15 +125,23 @@ interface ToastItemProps {
 
 function ToastItem({ toast, onClose }: ToastItemProps) {
   const [isVisible, setIsVisible] = useState(false);
+  const animationTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
 
   useEffect(() => {
     // Trigger animation
-    setTimeout(() => setIsVisible(true), 10);
+    const timer = setTimeout(() => setIsVisible(true), 10);
+    animationTimers.current.push(timer);
+
+    return () => {
+      animationTimers.current.forEach(clearTimeout);
+      animationTimers.current = [];
+    };
   }, []);
 
   const handleClose = () => {
     setIsVisible(false);
-    setTimeout(onClose, 300); // Wait for animation
+    const timer = setTimeout(onClose, 300); // Wait for animation
+    animationTimers.current.push(timer);
   };
 
   const typeConfig = {

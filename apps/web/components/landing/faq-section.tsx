@@ -7,12 +7,6 @@ import { AccordionItem } from '@/components/ui/AccordionItem';
 
 const FAQ_ITEMS = [
   {
-    title: 'How does the AI damage detection work?',
-    content:
-      'Our Mint AI is a vision-language model fine-tuned on thousands of UK building defect photos. Upload images and, within about a minute, receive a detailed assessment with damage type, severity, urgency, recommended trades and estimated repair costs. Accuracy varies by defect type &mdash; 98% on common issues like pipe leaks, with stronger and weaker areas clearly surfaced in the assessment. Every result is labelled "AI-assisted" and we recommend a qualified surveyor verify before major works.',
-    hasBorder: true,
-  },
-  {
     title: 'How does the protected payment system work?',
     content:
       "When you accept a contractor's bid, your payment is held securely by Mintenance. The contractor completes the work, you approve it, and then funds are released. If there's any issue, our mediation team steps in to resolve it fairly. This protects both homeowners and contractors.",
@@ -33,7 +27,13 @@ const FAQ_ITEMS = [
   {
     title: 'How long does it take to get quotes?',
     content:
-      'Most jobs receive 3-8 competitive bids within 24-48 hours. Our AI instantly matches your job with qualified contractors in your area. You can review profiles, ratings, portfolios, and compare quotes before choosing the best contractor for your project.',
+      'Most jobs receive competitive bids within 24-48 hours. You can review profiles, ratings, portfolios, and compare quotes before choosing the best contractor for your project.',
+    hasBorder: true,
+  },
+  {
+    title: 'Do I have to use photo guidance?',
+    content:
+      'No. Photo guidance is optional. It can help you describe a repair before posting, but contractor quotes, credentials, messages, and protected payment are the core of the service.',
     hasBorder: true,
   },
   {

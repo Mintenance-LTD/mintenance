@@ -14,6 +14,7 @@
 import React, { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { Users, Copy, Check } from 'lucide-react';
+import { safeCopyToClipboard } from '@/lib/utils/clipboard';
 
 interface Referral {
   code: string;
@@ -71,12 +72,12 @@ export function ReferralCard({
 
   async function copy() {
     if (!shareUrl) return;
-    try {
-      await navigator.clipboard.writeText(shareUrl);
+    const ok = await safeCopyToClipboard(shareUrl);
+    if (ok) {
       setCopied(true);
       toast.success('Link copied');
       setTimeout(() => setCopied(false), 1500);
-    } catch {
+    } else {
       toast.error('Copy failed');
     }
   }

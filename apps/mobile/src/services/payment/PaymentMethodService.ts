@@ -22,7 +22,10 @@ export class PaymentMethodService {
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth() + 1;
 
-    if (expYear < currentYear || (expYear === currentYear && expMonth < currentMonth)) {
+    if (
+      expYear < currentYear ||
+      (expYear === currentYear && expMonth < currentMonth)
+    ) {
       throw new Error('Card has expired');
     }
 
@@ -38,7 +41,8 @@ export class PaymentMethodService {
       },
       billingDetails: params.billingDetails,
     } as unknown as Parameters<typeof stripeCreatePaymentMethod>[0];
-    const { paymentMethod, error } = await stripeCreatePaymentMethod(createParams);
+    const { paymentMethod, error } =
+      await stripeCreatePaymentMethod(createParams);
 
     if (error || !paymentMethod) {
       throw new Error(error?.message || 'Failed to create payment method');
@@ -72,38 +76,79 @@ export class PaymentMethodService {
     setAsDefault = false
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      await mobileApiClient.post('/api/payments/add-method', { paymentMethodId, setAsDefault });
+      await mobileApiClient.post('/api/payments/add-method', {
+        paymentMethodId,
+        setAsDefault,
+      });
       logger.info('Payment method saved successfully', { paymentMethodId });
       return { success: true };
     } catch (error) {
       logger.error('Failed to save payment method', { error, paymentMethodId });
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to save payment method',
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to save payment method',
       };
     }
   }
 
-  static async getPaymentMethods(): Promise<{ methods?: PaymentMethod[]; error?: string }> {
+  static async getPaymentMethods(): Promise<{
+    methods?: PaymentMethod[];
+    error?: string;
+  }> {
     try {
-      const data = await mobileApiClient.get<{
+      let data: {
         paymentMethods?: Array<Record<string, unknown>>;
         methods?: Array<Record<string, unknown>>;
-      }>('/api/payments/methods');
+      };
 
-      const methods = ((data.paymentMethods || data.methods || []) as Array<{
-        id: string;
-        type: string;
-        isDefault?: boolean;
-        created?: number;
-        card?: { brand: string; last4: string; expMonth: number; expYear: number } | null;
-      }>).map((method) => ({
+      try {
+        data = await mobileApiClient.get<{
+          success?: boolean;
+          methods?: Array<Record<string, unknown>>;
+        }>('/api/payments/payment-methods');
+      } catch (localError) {
+        logger.warn(
+          'Local payment method list failed; falling back to Stripe list',
+          {
+            error: localError,
+          }
+        );
+        data = await mobileApiClient.get<{
+          paymentMethods?: Array<Record<string, unknown>>;
+          methods?: Array<Record<string, unknown>>;
+        }>('/api/payments/methods');
+      }
+
+      const methods = (
+        (data.paymentMethods || data.methods || []) as Array<{
+          id: string;
+          type: string;
+          isDefault?: boolean;
+          created?: number;
+          createdAt?: string;
+          last4?: string;
+          brand?: string;
+          expMonth?: number;
+          expYear?: number;
+          card?: {
+            brand: string;
+            last4: string;
+            expMonth: number;
+            expYear: number;
+          } | null;
+        }>
+      ).map((method) => ({
         id: method.id,
         type: method.type,
         isDefault: !!method.isDefault,
-        createdAt: method.created
-          ? new Date(method.created * 1000).toISOString()
-          : new Date().toISOString(),
+        createdAt:
+          method.createdAt ||
+          (method.created
+            ? new Date(method.created * 1000).toISOString()
+            : new Date().toISOString()),
         card: method.card
           ? {
               brand: method.card.brand,
@@ -111,13 +156,25 @@ export class PaymentMethodService {
               expiryMonth: method.card.expMonth,
               expiryYear: method.card.expYear,
             }
-          : undefined,
+          : method.type === 'card'
+            ? {
+                brand: method.brand || 'card',
+                last4: method.last4 || '',
+                expiryMonth: method.expMonth || 0,
+                expiryYear: method.expYear || 0,
+              }
+            : undefined,
       })) as PaymentMethod[];
 
       return { methods };
     } catch (error) {
       logger.error('Failed to fetch payment methods', { error });
-      return { error: error instanceof Error ? error.message : 'Failed to fetch payment methods' };
+      return {
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to fetch payment methods',
+      };
     }
   }
 
@@ -131,10 +188,16 @@ export class PaymentMethodService {
       logger.info('Payment method deleted successfully', { paymentMethodId });
       return { success: true };
     } catch (error) {
-      logger.error('Failed to delete payment method', { error, paymentMethodId });
+      logger.error('Failed to delete payment method', {
+        error,
+        paymentMethodId,
+      });
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to delete payment method',
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to delete payment method',
       };
     }
   }
@@ -143,14 +206,22 @@ export class PaymentMethodService {
     paymentMethodId: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      await mobileApiClient.post('/api/payments/set-default', { paymentMethodId });
+      await mobileApiClient.post('/api/payments/set-default', {
+        paymentMethodId,
+      });
       logger.info('Default payment method updated', { paymentMethodId });
       return { success: true };
     } catch (error) {
-      logger.error('Failed to set default payment method', { error, paymentMethodId });
+      logger.error('Failed to set default payment method', {
+        error,
+        paymentMethodId,
+      });
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to set default payment method',
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to set default payment method',
       };
     }
   }

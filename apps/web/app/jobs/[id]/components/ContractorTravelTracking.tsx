@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { useRealtime } from '@/hooks/useRealtime';
 import { DynamicGoogleMap } from '@/components/maps';
 import { theme } from '@/lib/theme';
@@ -30,11 +30,22 @@ export function ContractorTravelTracking({
   meetingId,
   destination,
 }: ContractorTravelTrackingProps) {
-  const [contractorLocation, setContractorLocation] = useState<ContractorLocationData | null>(null);
+  const [contractorLocation, setContractorLocation] =
+    useState<ContractorLocationData | null>(null);
   const [isTraveling, setIsTraveling] = useState(false);
   const mapRef = useRef<google.maps.Map | null>(null);
   const contractorMarkerRef = useRef<google.maps.Marker | null>(null);
   const routeLineRef = useRef<google.maps.Polyline | null>(null);
+
+  // Tick once a minute so the "X minutes ago" label refreshes even when
+  // the contractor stops sending location updates. Using state (instead
+  // of `Date.now()` directly in render) keeps the component pure under
+  // the React Compiler linter and avoids SSR/CSR hydration mismatches.
+  const [nowMs, setNowMs] = useState<number>(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNowMs(Date.now()), 60_000);
+    return () => clearInterval(id);
+  }, []);
 
   // Subscribe to real-time contractor location updates
   const { status } = useRealtime({
@@ -103,10 +114,7 @@ export function ContractorTravelTracking({
 
     // Update route line
     if (routeLineRef.current) {
-      routeLineRef.current.setPath([
-        contractorPosition,
-        destination,
-      ]);
+      routeLineRef.current.setPath([contractorPosition, destination]);
     } else {
       routeLineRef.current = new google.maps.Polyline({
         path: [contractorPosition, destination],
@@ -122,7 +130,12 @@ export function ContractorTravelTracking({
     const bounds = new google.maps.LatLngBounds();
     bounds.extend(contractorPosition);
     bounds.extend(destination);
-    mapRef.current.fitBounds(bounds, { top: 50, right: 50, bottom: 50, left: 50 });
+    mapRef.current.fitBounds(bounds, {
+      top: 50,
+      right: 50,
+      bottom: 50,
+      left: 50,
+    });
   };
 
   const handleMapLoad = (map: google.maps.Map) => {
@@ -155,12 +168,14 @@ export function ContractorTravelTracking({
 
   if (!contractorLocation) {
     return (
-      <div style={{
-        backgroundColor: theme.colors.surface,
-        border: `1px solid ${theme.colors.border}`,
-        borderRadius: theme.borderRadius.lg,
-        overflow: 'hidden',
-      }}>
+      <div
+        style={{
+          backgroundColor: theme.colors.surface,
+          border: `1px solid ${theme.colors.border}`,
+          borderRadius: theme.borderRadius.lg,
+          overflow: 'hidden',
+        }}
+      >
         {/* Map showing job destination */}
         <div style={{ width: '100%', height: '200px' }}>
           <DynamicGoogleMap
@@ -185,22 +200,33 @@ export function ContractorTravelTracking({
             style={{ width: '100%', height: '100%' }}
           />
         </div>
-        <div style={{ padding: `${theme.spacing[4]} ${theme.spacing[5]}`, display: 'flex', alignItems: 'center', gap: theme.spacing[3] }}>
-          <Icon name="mapPin" size={20} color={theme.colors.textTertiary} />
+        <div
+          style={{
+            padding: `${theme.spacing[4]} ${theme.spacing[5]}`,
+            display: 'flex',
+            alignItems: 'center',
+            gap: theme.spacing[3],
+          }}
+        >
+          <Icon name='mapPin' size={20} color={theme.colors.textTertiary} />
           <div>
-            <h3 style={{
-              margin: 0,
-              fontSize: theme.typography.fontSize.sm,
-              fontWeight: theme.typography.fontWeight.semibold,
-              color: theme.colors.textPrimary,
-            }}>
+            <h3
+              style={{
+                margin: 0,
+                fontSize: theme.typography.fontSize.sm,
+                fontWeight: theme.typography.fontWeight.semibold,
+                color: theme.colors.textPrimary,
+              }}
+            >
               Waiting for Contractor
             </h3>
-            <p style={{
-              margin: 0,
-              color: theme.colors.textSecondary,
-              fontSize: theme.typography.fontSize.xs,
-            }}>
+            <p
+              style={{
+                margin: 0,
+                color: theme.colors.textSecondary,
+                fontSize: theme.typography.fontSize.xs,
+              }}
+            >
               They will appear on the map when travelling to the job location.
             </p>
           </div>
@@ -209,87 +235,110 @@ export function ContractorTravelTracking({
     );
   }
 
+  // Plain consts (not useMemo) because this code path lives below the
+  // early return for `!contractorLocation`. Hooks must run unconditionally,
+  // but these are cheap pure computations off `nowMs` (state) +
+  // `contractorLocation.timestamp` (string) so memoization buys nothing.
   const lastUpdate = new Date(contractorLocation.timestamp);
-  const minutesAgo = Math.floor((Date.now() - lastUpdate.getTime()) / 60000);
+  const minutesAgo = Math.floor((nowMs - lastUpdate.getTime()) / 60000);
 
   return (
-    <div style={{
-      backgroundColor: theme.colors.surface,
-      border: `1px solid ${theme.colors.border}`,
-      borderRadius: theme.borderRadius.lg,
-      padding: theme.spacing[6],
-    }}>
+    <div
+      style={{
+        backgroundColor: theme.colors.surface,
+        border: `1px solid ${theme.colors.border}`,
+        borderRadius: theme.borderRadius.lg,
+        padding: theme.spacing[6],
+      }}
+    >
       {/* ETA Banner */}
       {isTraveling && (
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: theme.spacing[4],
-          padding: theme.spacing[4],
-          backgroundColor: theme.colors.info + '20',
-          borderRadius: theme.borderRadius.md,
-          border: `1px solid ${theme.colors.info}`,
-        }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: theme.spacing[4],
+            padding: theme.spacing[4],
+            backgroundColor: theme.colors.info + '20',
+            borderRadius: theme.borderRadius.md,
+            border: `1px solid ${theme.colors.info}`,
+          }}
+        >
           <div>
-            <h3 style={{
-              margin: 0,
-              marginBottom: theme.spacing[1],
-              fontSize: theme.typography.fontSize.lg,
-              fontWeight: theme.typography.fontWeight.semibold,
-              color: theme.colors.textPrimary,
-              display: 'flex',
-              alignItems: 'center',
-              gap: theme.spacing[2],
-            }}>
-              <Icon name="car" size={24} color={theme.colors.info} />
+            <h3
+              style={{
+                margin: 0,
+                marginBottom: theme.spacing[1],
+                fontSize: theme.typography.fontSize.lg,
+                fontWeight: theme.typography.fontWeight.semibold,
+                color: theme.colors.textPrimary,
+                display: 'flex',
+                alignItems: 'center',
+                gap: theme.spacing[2],
+              }}
+            >
+              <Icon name='car' size={24} color={theme.colors.info} />
               Contractor is on the way
             </h3>
-            <p style={{
-              margin: 0,
-              fontSize: theme.typography.fontSize.base,
-              color: theme.colors.textSecondary,
-            }}>
-              Estimated arrival: <strong>{contractorLocation.eta} minutes</strong>
+            <p
+              style={{
+                margin: 0,
+                fontSize: theme.typography.fontSize.base,
+                color: theme.colors.textSecondary,
+              }}
+            >
+              Estimated arrival:{' '}
+              <strong>{contractorLocation.eta} minutes</strong>
             </p>
           </div>
-          <div style={{
-            padding: `${theme.spacing[2]} ${theme.spacing[3]}`,
-            borderRadius: theme.borderRadius.full,
-            backgroundColor: theme.colors.success + '20',
-            color: theme.colors.success,
-            fontSize: theme.typography.fontSize.sm,
-            fontWeight: theme.typography.fontWeight.medium,
-            display: 'flex',
-            alignItems: 'center',
-            gap: theme.spacing[1],
-          }}>
-            <div style={{
-              width: 8,
-              height: 8,
-              borderRadius: '50%',
-              backgroundColor: theme.colors.success,
-              animation: 'pulse 2s infinite',
-            }} />
+          <div
+            style={{
+              padding: `${theme.spacing[2]} ${theme.spacing[3]}`,
+              borderRadius: theme.borderRadius.full,
+              backgroundColor: theme.colors.success + '20',
+              color: theme.colors.success,
+              fontSize: theme.typography.fontSize.sm,
+              fontWeight: theme.typography.fontWeight.medium,
+              display: 'flex',
+              alignItems: 'center',
+              gap: theme.spacing[1],
+            }}
+          >
+            <div
+              style={{
+                width: 8,
+                height: 8,
+                borderRadius: '50%',
+                backgroundColor: theme.colors.success,
+                animation: 'pulse 2s infinite',
+              }}
+            />
             Live
           </div>
         </div>
       )}
 
       {/* Map */}
-      <div style={{
-        width: '100%',
-        height: '400px',
-        borderRadius: theme.borderRadius.md,
-        overflow: 'hidden',
-        marginBottom: theme.spacing[4],
-        border: `1px solid ${theme.colors.border}`,
-      }}>
+      <div
+        style={{
+          width: '100%',
+          height: '400px',
+          borderRadius: theme.borderRadius.md,
+          overflow: 'hidden',
+          marginBottom: theme.spacing[4],
+          border: `1px solid ${theme.colors.border}`,
+        }}
+      >
         <DynamicGoogleMap
-          center={contractorLocation ? {
-            lat: contractorLocation.latitude,
-            lng: contractorLocation.longitude,
-          } : destination}
+          center={
+            contractorLocation
+              ? {
+                  lat: contractorLocation.latitude,
+                  lng: contractorLocation.longitude,
+                }
+              : destination
+          }
           zoom={15}
           onMapLoad={handleMapLoad}
           style={{ width: '100%', height: '100%' }}
@@ -297,68 +346,87 @@ export function ContractorTravelTracking({
       </div>
 
       {/* Location Details */}
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: theme.spacing[3],
-      }}>
-        <div style={{
+      <div
+        style={{
           display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-        }}>
+          flexDirection: 'column',
+          gap: theme.spacing[3],
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
           <div>
-            <div style={{
-              fontSize: theme.typography.fontSize.sm,
-              fontWeight: theme.typography.fontWeight.medium,
-              color: theme.colors.textSecondary,
-              marginBottom: theme.spacing[1],
-            }}>
-              Current Location
-            </div>
-            <div style={{
-              fontSize: theme.typography.fontSize.base,
-              color: theme.colors.textPrimary,
-              fontFamily: 'monospace',
-            }}>
-              {contractorLocation.latitude.toFixed(6)}, {contractorLocation.longitude.toFixed(6)}
-            </div>
-          </div>
-          {contractorLocation.speed && (
-            <div>
-              <div style={{
+            <div
+              style={{
                 fontSize: theme.typography.fontSize.sm,
                 fontWeight: theme.typography.fontWeight.medium,
                 color: theme.colors.textSecondary,
                 marginBottom: theme.spacing[1],
-              }}>
-                Speed
-              </div>
-              <div style={{
+              }}
+            >
+              Current Location
+            </div>
+            <div
+              style={{
                 fontSize: theme.typography.fontSize.base,
                 color: theme.colors.textPrimary,
-              }}>
+                fontFamily: 'monospace',
+              }}
+            >
+              {contractorLocation.latitude.toFixed(6)},{' '}
+              {contractorLocation.longitude.toFixed(6)}
+            </div>
+          </div>
+          {contractorLocation.speed && (
+            <div>
+              <div
+                style={{
+                  fontSize: theme.typography.fontSize.sm,
+                  fontWeight: theme.typography.fontWeight.medium,
+                  color: theme.colors.textSecondary,
+                  marginBottom: theme.spacing[1],
+                }}
+              >
+                Speed
+              </div>
+              <div
+                style={{
+                  fontSize: theme.typography.fontSize.base,
+                  color: theme.colors.textPrimary,
+                }}
+              >
                 {Math.round(contractorLocation.speed * 3.6)} km/h
               </div>
             </div>
           )}
         </div>
 
-        <div style={{
-          fontSize: theme.typography.fontSize.sm,
-          color: theme.colors.textSecondary,
-          display: 'flex',
-          alignItems: 'center',
-          gap: theme.spacing[2],
-        }}>
-          <Icon name="clock" size={16} color={theme.colors.textSecondary} />
-          Last updated {minutesAgo < 1 ? 'just now' : `${minutesAgo} minute${minutesAgo !== 1 ? 's' : ''} ago`}
+        <div
+          style={{
+            fontSize: theme.typography.fontSize.sm,
+            color: theme.colors.textSecondary,
+            display: 'flex',
+            alignItems: 'center',
+            gap: theme.spacing[2],
+          }}
+        >
+          <Icon name='clock' size={16} color={theme.colors.textSecondary} />
+          Last updated{' '}
+          {minutesAgo < 1
+            ? 'just now'
+            : `${minutesAgo} minute${minutesAgo !== 1 ? 's' : ''} ago`}
         </div>
       </div>
 
       <style jsx>{`
         @keyframes pulse {
-          0%, 100% {
+          0%,
+          100% {
             opacity: 1;
           }
           50% {

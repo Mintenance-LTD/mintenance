@@ -71,6 +71,12 @@ export const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
     return skeletonElement;
   }
 
+  // Deterministic width pattern instead of `Math.random()` so the
+  // skeleton is stable between SSR + first client render. The React
+  // Compiler linter (`react-hooks/purity`) rejects Math.random in render,
+  // and a randomized skeleton causes a hydration warning anyway. The
+  // pattern below cycles through 5 widths that look organically varied.
+  const TEXT_WIDTHS = [88, 72, 96, 64, 80] as const;
   return (
     <div
       style={{
@@ -86,7 +92,7 @@ export const SkeletonLoader: React.FC<SkeletonLoaderProps> = ({
               ...skeletonElement.props.style,
               width:
                 variant === 'text'
-                  ? `${Math.random() * 40 + 60}%`
+                  ? `${TEXT_WIDTHS[index % TEXT_WIDTHS.length]}%`
                   : skeletonElement.props.style?.width,
             },
           })}

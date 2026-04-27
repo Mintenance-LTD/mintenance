@@ -17,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { OptimizedImage } from '../../components/optimized/OptimizedImage';
 import { Skeleton } from '../../components/skeletons/Skeleton';
 import { theme, getStatusBadge } from '../../theme';
+import { normalizePhotoUrls } from '../../utils/photoUrls';
 
 interface RecentJob {
   id: string;
@@ -125,7 +126,7 @@ export const RecentJobs: React.FC<RecentJobsProps> = ({
       {displayJobs.length > 0 ? (
         displayJobs.map((job) => {
           const statusBadge = getStatusBadge(job.status || 'posted');
-          const photos = job.photos || job.images || [];
+          const photos = normalizePhotoUrls(job.photos || job.images);
           const hasPhoto = photos.length > 0;
           const budget = job.budget || job.budget_min || 0;
           const categoryIcon =

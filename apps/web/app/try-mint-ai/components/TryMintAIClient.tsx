@@ -165,7 +165,22 @@ export function TryMintAIClient() {
             'Too many requests. Please wait a moment and try again.'
           );
         }
-        throw new Error('Assessment failed. Please try again.');
+        // Try to surface the server's actual error message — the demo
+        // route returns `{ error, details }` on 503 so the user can tell
+        // a Modal cold-start from a malformed image input.
+        let serverMessage = 'Assessment failed. Please try again.';
+        try {
+          const errorBody = (await response.json()) as {
+            error?: string;
+            details?: string;
+          };
+          if (errorBody?.error) {
+            serverMessage = errorBody.error;
+          }
+        } catch {
+          // Response wasn't JSON — keep the default message.
+        }
+        throw new Error(serverMessage);
       }
 
       const result = await response.json();

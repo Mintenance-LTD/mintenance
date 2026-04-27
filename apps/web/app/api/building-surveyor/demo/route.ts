@@ -184,13 +184,47 @@ export const POST = withApiHandler(
       });
     }
 
-    const assessment: Phase1BuildingAssessment =
-      await BuildingSurveyorService.assessDamage(imageUrls, {
+    let assessment: Phase1BuildingAssessment;
+    try {
+      assessment = await BuildingSurveyorService.assessDamage(imageUrls, {
         propertyType: context?.propertyType || 'residential',
         ageOfProperty: context?.ageOfProperty,
         location: context?.location,
         assessmentId,
       });
+    } catch (assessmentError) {
+      // Surface the underlying failure so the client can show something
+      // useful instead of a generic "Assessment failed". Common production
+      // causes: OpenAI key missing/expired, Modal endpoint cold-start
+      // timeout, vision model rate limit, malformed base64 input.
+      // We log the full error server-side so Sentry/Vercel logs catch
+      // the stack, but only return a sanitized message to the client.
+      logger.error('Demo assessment service failed', {
+        service: 'mint-ai-demo',
+        assessmentId,
+        identifier,
+        error:
+          assessmentError instanceof Error
+            ? {
+                name: assessmentError.name,
+                message: assessmentError.message,
+                stack: assessmentError.stack,
+              }
+            : String(assessmentError),
+      });
+      const friendlyMessage =
+        assessmentError instanceof Error
+          ? assessmentError.message
+          : 'Assessment service is temporarily unavailable';
+      return NextResponse.json(
+        {
+          error:
+            'Mint AI could not complete the assessment. Please try again in a moment.',
+          details: friendlyMessage,
+        },
+        { status: 503 }
+      );
+    }
 
     if (assessmentId) {
       await serverSupabase

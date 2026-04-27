@@ -17,9 +17,9 @@ import { AppPreviewSection } from '@/components/landing/app-preview-section';
  */
 
 export const metadata: Metadata = {
-  title: 'Mintenance - Find Trusted Contractors For Your Home Projects',
+  title: 'Mintenance - Find Verified Tradespeople With Protected Payments',
   description:
-    'Connect with verified contractors for all your home maintenance needs. Get instant quotes, read reviews, and hire trusted professionals.',
+    'Post home maintenance jobs, compare verified local tradespeople, and keep payment protected until the work is approved.',
   keywords:
     'contractors, home maintenance, home repair, plumber, electrician, handyman, trusted contractors',
   openGraph: {
@@ -27,9 +27,9 @@ export const metadata: Metadata = {
     locale: 'en_GB',
     url: 'https://mintenance.com',
     siteName: 'Mintenance',
-    title: 'Mintenance - Find Trusted Contractors For Your Home Projects',
+    title: 'Mintenance - Find Verified Tradespeople With Protected Payments',
     description:
-      'Connect with verified contractors. Get instant quotes, compare prices, and hire trusted professionals.',
+      'Post home maintenance jobs, compare verified local tradespeople, and keep payment protected until the work is approved.',
     images: [
       {
         url: 'https://mintenance.com/og-image.jpg',
@@ -42,9 +42,9 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     site: '@mintenance',
-    title: 'Mintenance - Find Trusted Local Contractors',
+    title: 'Mintenance - Find Verified Local Tradespeople',
     description:
-      'Connect with verified contractors for all your home maintenance needs.',
+      'Post jobs, compare verified tradespeople, and protect payment until sign-off.',
   },
   alternates: {
     canonical: 'https://mintenance.com',
