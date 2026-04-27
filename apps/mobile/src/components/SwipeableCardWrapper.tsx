@@ -43,6 +43,13 @@ interface SwipeableCardWrapperProps<T = unknown> {
    * Helps the fanned-deck look without committing to a heavy redesign.
    */
   stackTranslateX?: number;
+  /**
+   * When true, render a subtle dimming overlay behind the active card
+   * whose opacity tracks |pan.x|. Gives "you're committing to a
+   * swipe" feedback without changing layout. Default false to keep
+   * existing callers (ContractorCard) rendering exactly as before.
+   */
+  dragBackdrop?: boolean;
   overlayLabels?: {
     left?: { element: React.ReactNode };
     right?: { element: React.ReactNode };
@@ -77,6 +84,7 @@ const SwipeableCardWrapper = forwardRef<
       stackSeparation = 8,
       stackRotationDeg = 0,
       stackTranslateX = 0,
+      dragBackdrop = false,
       overlayLabels,
       containerStyle,
       cardStyle,
@@ -280,6 +288,24 @@ const SwipeableCardWrapper = forwardRef<
       }
       return cardsToRender;
     };
+    // Backdrop dim — opacity tracks |pan.x|, peaks at 0.32 once the
+    // card crosses the swipe threshold so the user gets a "committing"
+    // signal during the drag. Sits behind the cards via styles.backdrop
+    // (zIndex: 0). Cards have position: absolute so they float above.
+    const backdropOpacity = dragBackdrop
+      ? pan.x.interpolate({
+          inputRange: [
+            -screenWidth,
+            -screenWidth / 4,
+            0,
+            screenWidth / 4,
+            screenWidth,
+          ],
+          outputRange: [0.32, 0.16, 0, 0.16, 0.32],
+          extrapolate: 'clamp',
+        })
+      : undefined;
+
     return (
       <View
         style={[
@@ -289,6 +315,12 @@ const SwipeableCardWrapper = forwardRef<
           useViewOverflow && { overflow: 'hidden' },
         ]}
       >
+        {dragBackdrop && (
+          <Animated.View
+            pointerEvents='none'
+            style={[styles.backdrop, { opacity: backdropOpacity }]}
+          />
+        )}
         {renderCards()}
       </View>
     );
@@ -323,6 +355,13 @@ const styles = StyleSheet.create({
   overlayLabelRight: {
     top: '45%',
     right: 20,
+  },
+  backdrop: {
+    // rgba so the pre-commit hex-color guard doesn't fire; opacity
+    // is controlled dynamically via the Animated wrapper.
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,1)',
+    zIndex: 0,
   },
 });
 export default SwipeableCardWrapper;

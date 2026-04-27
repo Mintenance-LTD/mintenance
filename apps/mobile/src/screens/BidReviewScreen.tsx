@@ -19,6 +19,8 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  Animated,
+  Easing,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -71,6 +73,30 @@ export const BidReviewScreen: React.FC = () => {
     'price'
   );
   const swiperRef = useRef<SwipeableCardRef>(null);
+
+  // Brief check-mark celebration on bid accept (~720ms total).
+  const celebrationAnim = useRef(new Animated.Value(0)).current;
+  const triggerAcceptCelebration = useCallback(
+    () =>
+      new Promise<void>((resolve) => {
+        Animated.sequence([
+          Animated.timing(celebrationAnim, {
+            toValue: 1,
+            duration: 200,
+            easing: Easing.out(Easing.cubic),
+            useNativeDriver: true,
+          }),
+          Animated.delay(280),
+          Animated.timing(celebrationAnim, {
+            toValue: 0,
+            duration: 240,
+            easing: Easing.in(Easing.cubic),
+            useNativeDriver: true,
+          }),
+        ]).start(() => resolve());
+      }),
+    [celebrationAnim]
+  );
 
   const sortedBids = useMemo(() => {
     const copy = [...bids];
@@ -137,6 +163,10 @@ export const BidReviewScreen: React.FC = () => {
     setProcessing(true);
     try {
       await BidService.acceptBid(bid.id, user.id);
+      // Fire the celebration overlay first so the user sees a clear
+      // "accepted" beat before the modal Alert; awaited so the alert
+      // doesn't pop on top of the fade-in.
+      await triggerAcceptCelebration();
       Alert.alert(
         'Bid Accepted',
         `You accepted ${bid.contractor?.first_name || 'the contractor'}'s bid of ${formatCurrency(bid.amount)}.`,
@@ -384,6 +414,7 @@ export const BidReviewScreen: React.FC = () => {
           stackSeparation={14}
           stackRotationDeg={2}
           stackTranslateX={6}
+          dragBackdrop
           overlayLabels={{
             left: {
               element: (
@@ -437,6 +468,33 @@ export const BidReviewScreen: React.FC = () => {
           <ActivityIndicator size='small' color={theme.colors.textInverse} />
         </View>
       )}
+
+      {/* Accept-celebration overlay (~720ms fade-in/hold/fade-out). */}
+      <Animated.View
+        pointerEvents='none'
+        style={[
+          styles.celebrationOverlay,
+          {
+            opacity: celebrationAnim,
+            transform: [
+              {
+                scale: celebrationAnim.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: [0.6, 1],
+                }),
+              },
+            ],
+          },
+        ]}
+      >
+        <View style={styles.celebrationCircle}>
+          <Ionicons
+            name='checkmark'
+            size={56}
+            color={theme.colors.textInverse}
+          />
+        </View>
+      </Animated.View>
     </SafeAreaView>
   );
 };
