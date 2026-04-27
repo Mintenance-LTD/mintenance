@@ -72,16 +72,30 @@ export const BidReviewCard: React.FC<Props> = ({ bid, quoteData }) => {
 
   // Single source of truth for opening the contractor profile so the
   // tap zone on "View Full Profile →" and the broader header tap both
-  // route through the same code path. The user reported the
-  // header-wrapping TouchableOpacity not firing — wrapping the link
-  // text in its own Pressable side-steps the known RN gotcha where a
-  // ScrollView's pan responder absorbs taps on long-form children.
+  // route through the same code path. Uses `navigation.getParent()`
+  // explicitly (matching the working `View Profile` button on
+  // ContractorAssignment.tsx — the bid card on the job detail page)
+  // because direct `navigation.navigate('Modal', …)` from a nested
+  // navigator wasn't always firing in earlier user reports — RN
+  // walks the tree but parent traversal is more deterministic.
   const openContractorProfile = React.useCallback(() => {
     if (!contractor?.id) return;
-    navigation.navigate('Modal', {
-      screen: 'ContractorProfile',
-      params: { contractorId: contractor.id },
-    });
+    const parent = navigation.getParent?.() as
+      | { navigate: (name: string, params?: unknown) => void }
+      | undefined;
+    if (parent) {
+      parent.navigate('Modal', {
+        screen: 'ContractorProfile',
+        params: { contractorId: contractor.id },
+      });
+    } else {
+      // Fallback — same target via the closest navigator. Works in tests
+      // where useNavigation returns a leaf navigator with no parent.
+      navigation.navigate('Modal', {
+        screen: 'ContractorProfile',
+        params: { contractorId: contractor.id },
+      });
+    }
   }, [contractor?.id, navigation]);
 
   return (
