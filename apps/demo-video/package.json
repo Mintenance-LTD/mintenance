@@ -8,7 +8,7 @@
     "preview": "npx remotion preview src/index.tsx"
   },
   "dependencies": {
-    "@remotion/cli": "^4.0.441",
+    "@remotion/cli": "^4.0.452",
     "@remotion/player": "^4.0.441",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
