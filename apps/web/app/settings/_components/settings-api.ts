@@ -120,7 +120,21 @@ export async function changePassword(
   }
 }
 
-/** Save notification preferences */
+/**
+ * Save notification preferences (legacy detailed flags).
+ *
+ * Hits /api/users/notification-preferences (plural) which stores the
+ * 17-field camelCase JSONB blob on profiles.notification_preferences.
+ *
+ * NOT a duplicate of /api/user/notification-preferences (singular):
+ * the singular endpoint stores a different shape (push_enabled,
+ * disabled_types[], quiet_hours_start/end, timezone) on a dedicated
+ * `user_notification_preferences` row, used by the newer R2 form at
+ * apps/web/app/settings/notifications and the mobile inbox screen.
+ *
+ * Until the two are unified via a DB migration, both call sites are
+ * intentional. Editing one will not affect the other.
+ */
 export async function saveNotificationPreferences(
   notificationPrefs: NotificationPrefs,
   csrfToken: string | null

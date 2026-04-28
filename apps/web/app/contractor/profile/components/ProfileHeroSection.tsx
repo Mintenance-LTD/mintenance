@@ -35,8 +35,16 @@ interface ProfileHeroProps {
   onEdit: () => void;
   coverPhotoRef: React.RefObject<HTMLInputElement | null>;
   profilePhotoRef: React.RefObject<HTMLInputElement | null>;
+  /** Camera-button click — opens the hidden file picker. */
   onCoverPhotoUpload: () => void;
   onProfilePhotoUpload: () => void;
+  /**
+   * Called when the user actually picks a file. Was missing entirely
+   * before — the hidden inputs had no onChange so selections were
+   * silently dropped. The parent owns the upload (FormData POST).
+   */
+  onCoverPhotoSelected?: (file: File) => void;
+  onProfilePhotoSelected?: (file: File) => void;
 }
 
 function renderStars(rating: number) {
@@ -67,7 +75,20 @@ export function ProfileHeroSection({
   profilePhotoRef,
   onCoverPhotoUpload,
   onProfilePhotoUpload,
+  onCoverPhotoSelected,
+  onProfilePhotoSelected,
 }: ProfileHeroProps) {
+  const pickFile = (
+    e: React.ChangeEvent<HTMLInputElement>,
+    handler?: (file: File) => void
+  ) => {
+    const file = e.target.files?.[0];
+    // Reset the input value so re-picking the same file still fires
+    // onChange next time.
+    e.target.value = '';
+    if (file && handler) handler(file);
+  };
+
   return (
     <>
       {/* Hidden file inputs */}
@@ -76,12 +97,14 @@ export function ProfileHeroSection({
         type='file'
         accept='image/*'
         className='hidden'
+        onChange={(e) => pickFile(e, onCoverPhotoSelected)}
       />
       <input
         ref={profilePhotoRef}
         type='file'
         accept='image/*'
         className='hidden'
+        onChange={(e) => pickFile(e, onProfilePhotoSelected)}
       />
 
       {/* Cover Photo + Profile Photo */}

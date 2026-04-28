@@ -203,7 +203,11 @@ export function useLayoutState(
             href: '/contractor/verification',
             icon: Shield,
           },
-          { label: 'Settings', href: '/settings', icon: Settings },
+          // Contractors have their own settings screen at
+          // /contractor/settings; the bare /settings route is the
+          // homeowner page and rendered the wrong account UX for
+          // contractors landing here from the sidebar.
+          { label: 'Settings', href: '/contractor/settings', icon: Settings },
         ],
       },
     ],
