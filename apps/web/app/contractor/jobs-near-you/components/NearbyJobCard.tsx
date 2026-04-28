@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
 import { Card } from '@/components/ui/Card.unified';
@@ -54,15 +54,17 @@ export function NearbyJobCard({
   onSave,
   onClick,
 }: NearbyJobCardProps) {
-  // `Date.now()` captured once per job change so the "NEW" badge is
-  // stable between SSR + first client render and doesn't trigger
-  // `react-hooks/purity`.
+  // Capture `Date.now()` post-mount via state so render stays pure under
+  // `react-hooks/purity`. The NEW badge appears only after hydration —
+  // a one-frame delay, but no hydration warning.
+  const [nowMs, setNowMs] = useState<number | null>(null);
+  useEffect(() => {
+    setNowMs(Date.now());
+  }, []);
   const isRecent = useMemo(() => {
-    if (!job.created_at) return false;
-    return (
-      new Date(job.created_at).getTime() > Date.now() - 7 * 24 * 60 * 60 * 1000
-    );
-  }, [job.created_at]);
+    if (!job.created_at || nowMs == null) return false;
+    return new Date(job.created_at).getTime() > nowMs - 7 * 24 * 60 * 60 * 1000;
+  }, [job.created_at, nowMs]);
 
   return (
     <Card

@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Bookmark,
   BookmarkCheck,
@@ -183,12 +183,19 @@ export function DiscoverJobCard({
 }: DiscoverJobCardProps) {
   const priority = (job.priority ?? 'low').toLowerCase();
   const photos = job.photos ?? [];
-  // `Date.now()` is captured once per job change (not on every render) so
-  // the "NEW" badge stays stable between SSR + first client render and
-  // doesn't churn the React Compiler's purity check.
+  // Capture `Date.now()` inside an effect so it's read post-mount, not
+  // during render. Render-time `Date.now()` (even inside useMemo) trips
+  // `react-hooks/purity` because the factory still runs in render. On
+  // SSR the badge is hidden; once the client mounts, `nowMs` populates
+  // and the badge appears if recent. This also avoids any SSR/CSR
+  // hydration mismatch on the time-sensitive "NEW" indicator.
+  const [nowMs, setNowMs] = useState<number | null>(null);
+  useEffect(() => {
+    setNowMs(Date.now());
+  }, []);
   const isNew = React.useMemo(
-    () => isRecentJob(job.created_at, Date.now()),
-    [job.created_at]
+    () => (nowMs == null ? false : isRecentJob(job.created_at, nowMs)),
+    [job.created_at, nowMs]
   );
   const distBadge =
     job.distance != null ? `${job.distance.toFixed(1)} km` : undefined;

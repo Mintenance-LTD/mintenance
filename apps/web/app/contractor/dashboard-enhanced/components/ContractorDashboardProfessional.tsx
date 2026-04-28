@@ -104,63 +104,63 @@ export function ContractorDashboardProfessional(
     'week' | 'month' | 'quarter'
   >('month');
 
-  // Compute chart data based on selected period
+  // Chart data per selected period. `slice()` + `Array.from(...)` keep
+  // `progressTrendData` observably read-only so the React Compiler
+  // doesn't flag react-hooks/preserve-manual-memoization.
   const chartData = React.useMemo(() => {
-    if (!progressTrendData || progressTrendData.length === 0) return [];
+    const trend = progressTrendData;
+    if (!trend || trend.length === 0) return [];
 
     if (selectedPeriod === 'week') {
       // Show last month split into ~4 weekly segments
-      const lastMonth = progressTrendData[progressTrendData.length - 1];
+      const lastMonth = trend[trend.length - 1];
       if (!lastMonth) return [];
       const weeklyRevenue = Math.round(lastMonth.revenue / 4);
       const weeklyJobs = Math.max(1, Math.round(lastMonth.jobs / 4));
+      const weeklyCompleted = Math.round(lastMonth.completed / 4);
       return [
         {
           month: 'Week 1',
           jobs: weeklyJobs,
-          completed: Math.round(lastMonth.completed / 4),
+          completed: weeklyCompleted,
           revenue: weeklyRevenue,
         },
         {
           month: 'Week 2',
           jobs: weeklyJobs,
-          completed: Math.round(lastMonth.completed / 4),
+          completed: weeklyCompleted,
           revenue: Math.round(weeklyRevenue * 1.1),
         },
         {
           month: 'Week 3',
           jobs: weeklyJobs,
-          completed: Math.round(lastMonth.completed / 4),
+          completed: weeklyCompleted,
           revenue: Math.round(weeklyRevenue * 0.9),
         },
         {
           month: 'Week 4',
           jobs: weeklyJobs,
-          completed: Math.round(lastMonth.completed / 4),
+          completed: weeklyCompleted,
           revenue: weeklyRevenue,
         },
       ];
     }
 
     if (selectedPeriod === 'quarter') {
-      // Aggregate monthly data into quarters
-      const entries = [...progressTrendData];
-      const quarters: typeof progressTrendData = [];
-      for (let i = 0; i < entries.length; i += 3) {
-        const chunk = entries.slice(i, i + 3);
-        const quarterNum = Math.floor(i / 3) + 1;
-        quarters.push({
-          month: `Q${quarterNum}`,
+      const quarterCount = Math.ceil(trend.length / 3);
+      return Array.from({ length: quarterCount }, (_, q) => {
+        const chunk = trend.slice(q * 3, q * 3 + 3);
+        return {
+          month: `Q${q + 1}`,
           jobs: chunk.reduce((s, c) => s + c.jobs, 0),
           completed: chunk.reduce((s, c) => s + c.completed, 0),
           revenue: chunk.reduce((s, c) => s + c.revenue, 0),
-        });
-      }
-      return quarters;
+        };
+      });
     }
 
     // Default: month view - show last 6 months
-    return progressTrendData.slice(-6);
+    return trend.slice(-6);
   }, [progressTrendData, selectedPeriod]);
 
   const periodSubtitle =

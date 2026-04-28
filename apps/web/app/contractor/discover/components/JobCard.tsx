@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import Image from 'next/image';
 import { theme } from '@/lib/theme';
 import {
@@ -58,15 +58,17 @@ export const JobCard: React.FC<JobCardProps> = ({
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const [imageError, setImageError] = useState(false);
 
-  // Check if job is new (posted within 24 hours).
-  // `Date.now()` captured once per job so the badge is stable between
-  // SSR + first client render and doesn't trip `react-hooks/purity`.
+  // Capture `Date.now()` post-mount via state so render stays pure under
+  // the React Compiler's `react-hooks/purity` rule. SSR hides the NEW
+  // badge until hydration completes — preferable to a hydration warning.
+  const [nowMs, setNowMs] = useState<number | null>(null);
+  useEffect(() => {
+    setNowMs(Date.now());
+  }, []);
   const isNewJob = useMemo(() => {
-    if (!job.created_at) return false;
-    return (
-      Date.now() - new Date(job.created_at).getTime() < 24 * 60 * 60 * 1000
-    );
-  }, [job.created_at]);
+    if (!job.created_at || nowMs == null) return false;
+    return nowMs - new Date(job.created_at).getTime() < 24 * 60 * 60 * 1000;
+  }, [job.created_at, nowMs]);
 
   // Get photos from normalized photoUrls field or fallback to photos field
   const photoUrls = useMemo(() => {

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import Image from 'next/image';
 
 interface BeforeAfterSliderProps {
@@ -26,6 +26,24 @@ export function BeforeAfterSlider({
   const [position, setPosition] = useState(50);
   const containerRef = useRef<HTMLDivElement>(null);
   const isDragging = useRef(false);
+  // Track container width in state so the inner "before" image can size
+  // to it without reading `containerRef.current` during render — that
+  // pattern triggers `react-hooks/refs`. ResizeObserver also keeps the
+  // image lined up when the parent rebreaks at responsive breakpoints.
+  const [containerWidth, setContainerWidth] = useState<number | null>(null);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    setContainerWidth(el.offsetWidth);
+    if (typeof ResizeObserver === 'undefined') return;
+    const ro = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (entry) setContainerWidth(entry.contentRect.width);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   const updatePosition = useCallback((clientX: number) => {
     const container = containerRef.current;
@@ -36,31 +54,43 @@ export function BeforeAfterSlider({
     setPosition(pct);
   }, []);
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    isDragging.current = true;
-    updatePosition(e.clientX);
-  }, [updatePosition]);
+  const handleMouseDown = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      isDragging.current = true;
+      updatePosition(e.clientX);
+    },
+    [updatePosition]
+  );
 
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!isDragging.current) return;
-    updatePosition(e.clientX);
-  }, [updatePosition]);
+  const handleMouseMove = useCallback(
+    (e: React.MouseEvent) => {
+      if (!isDragging.current) return;
+      updatePosition(e.clientX);
+    },
+    [updatePosition]
+  );
 
   const handleMouseUp = useCallback(() => {
     isDragging.current = false;
   }, []);
 
-  const handleTouchStart = useCallback((e: React.TouchEvent) => {
-    isDragging.current = true;
-    updatePosition(e.touches[0].clientX);
-  }, [updatePosition]);
+  const handleTouchStart = useCallback(
+    (e: React.TouchEvent) => {
+      isDragging.current = true;
+      updatePosition(e.touches[0].clientX);
+    },
+    [updatePosition]
+  );
 
-  const handleTouchMove = useCallback((e: React.TouchEvent) => {
-    if (!isDragging.current) return;
-    e.preventDefault();
-    updatePosition(e.touches[0].clientX);
-  }, [updatePosition]);
+  const handleTouchMove = useCallback(
+    (e: React.TouchEvent) => {
+      if (!isDragging.current) return;
+      e.preventDefault();
+      updatePosition(e.touches[0].clientX);
+    },
+    [updatePosition]
+  );
 
   const handleTouchEnd = useCallback(() => {
     isDragging.current = false;
@@ -69,7 +99,7 @@ export function BeforeAfterSlider({
   return (
     <div
       ref={containerRef}
-      className="relative select-none overflow-hidden rounded-xl border border-gray-200"
+      className='relative select-none overflow-hidden rounded-xl border border-gray-200'
       style={{ height, cursor: 'col-resize' }}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
@@ -82,47 +112,53 @@ export function BeforeAfterSlider({
       {/* After image (full width, bottom layer) */}
       <Image
         src={afterImageUrl}
-        alt="After"
+        alt='After'
         fill
-        sizes="100vw"
-        className="object-cover"
+        sizes='100vw'
+        className='object-cover'
         draggable={false}
       />
 
       {/* Before image (clipped, top layer) */}
       <div
-        className="absolute inset-0 overflow-hidden"
+        className='absolute inset-0 overflow-hidden'
         style={{ width: `${position}%` }}
       >
         <Image
           src={beforeImageUrl}
-          alt="Before"
+          alt='Before'
           fill
-          sizes="100vw"
-          className="object-cover"
-          style={{ minWidth: containerRef.current?.offsetWidth || '100%' }}
+          sizes='100vw'
+          className='object-cover'
+          style={{ minWidth: containerWidth ?? '100%' }}
           draggable={false}
         />
       </div>
 
       {/* Divider line */}
       <div
-        className="absolute top-0 bottom-0 w-0.5 bg-white shadow-lg"
+        className='absolute top-0 bottom-0 w-0.5 bg-white shadow-lg'
         style={{ left: `${position}%`, transform: 'translateX(-50%)' }}
       >
         {/* Drag handle */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white shadow-md flex items-center justify-center border-2 border-gray-300">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path d="M4 8L1 5M4 8L1 11M4 8H12M12 8L15 5M12 8L15 11" stroke="#6B7280" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <div className='absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white shadow-md flex items-center justify-center border-2 border-gray-300'>
+          <svg width='16' height='16' viewBox='0 0 16 16' fill='none'>
+            <path
+              d='M4 8L1 5M4 8L1 11M4 8H12M12 8L15 5M12 8L15 11'
+              stroke='#6B7280'
+              strokeWidth='1.5'
+              strokeLinecap='round'
+              strokeLinejoin='round'
+            />
           </svg>
         </div>
       </div>
 
       {/* Labels */}
-      <div className="absolute top-3 left-3 bg-black/60 text-white text-xs font-medium px-2.5 py-1 rounded-full">
+      <div className='absolute top-3 left-3 bg-black/60 text-white text-xs font-medium px-2.5 py-1 rounded-full'>
         {beforeLabel}
       </div>
-      <div className="absolute top-3 right-3 bg-black/60 text-white text-xs font-medium px-2.5 py-1 rounded-full">
+      <div className='absolute top-3 right-3 bg-black/60 text-white text-xs font-medium px-2.5 py-1 rounded-full'>
         {afterLabel}
       </div>
     </div>

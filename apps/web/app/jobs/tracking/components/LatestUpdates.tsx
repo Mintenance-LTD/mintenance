@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { theme } from '@/lib/theme';
 
 interface SenderData {
@@ -28,19 +28,28 @@ function getSender(
 }
 
 export function LatestUpdates({ messages }: LatestUpdatesProps) {
-  // Capture `Date.now()` once per render of this component (keyed by the
-  // messages list) so the per-message age calculation stays pure inside
-  // the JSX map. `react-hooks/purity` rejects `Date.now()` directly in
-  // render but is happy with a memoized snapshot.
+  // Capture `Date.now()` in state via `useEffect` so the value is read
+  // after mount (not during render). `react-hooks/purity` rejects
+  // `Date.now()` even inside `useMemo` because the factory runs in
+  // render. While `nowMs` is null (SSR + first paint) we render `0`
+  // hours-ago — close enough for a recently-loaded thread, and the real
+  // value backfills the moment the effect runs.
+  const [nowMs, setNowMs] = useState<number | null>(null);
+  useEffect(() => {
+    setNowMs(Date.now());
+  }, []);
   const messagesWithAge = useMemo(() => {
-    const nowMs = Date.now();
+    const ref = nowMs ?? 0;
     return messages.map((message) => ({
       message,
-      hoursAgo: Math.floor(
-        (nowMs - new Date(message.created_at).getTime()) / (1000 * 60 * 60)
-      ),
+      hoursAgo:
+        nowMs == null
+          ? 0
+          : Math.floor(
+              (ref - new Date(message.created_at).getTime()) / (1000 * 60 * 60)
+            ),
     }));
-  }, [messages]);
+  }, [messages, nowMs]);
 
   return (
     <div

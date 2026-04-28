@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRealtime } from '@/hooks/useRealtime';
 import { DynamicGoogleMap } from '@/components/maps';
 import { theme } from '@/lib/theme';
