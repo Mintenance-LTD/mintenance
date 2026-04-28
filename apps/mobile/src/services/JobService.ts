@@ -5,9 +5,9 @@
  * It maintains backward compatibility while using the new modular architecture.
  */
 
-import { Job, Bid } from '@mintenance/types';
+import type { Job, Bid as ApiBid } from '@mintenance/types';
 import { JobCRUDService } from './JobCRUDService';
-import { BidManagementService } from './BidManagementService';
+import { BidService, type Bid } from './BidService';
 import { JobSearchService } from './JobSearchService';
 
 export class JobService {
@@ -21,7 +21,7 @@ export class JobService {
     homeowner_id?: string;
     category?: string;
     subcategory?: string;
-    priority?: 'low' | 'medium' | 'high';
+    urgency?: 'low' | 'medium' | 'high' | 'emergency';
     photos?: string[];
     property_id?: string;
     latitude?: number;
@@ -119,7 +119,11 @@ export class JobService {
     return JobSearchService.getJobsByUser(userId, role);
   }
 
-  // Bid operations - delegate to BidManagementService
+  // Bid operations - delegate to BidService (single public bid surface).
+  // Returns ApiBid (camelCase flat) on submit since the rich-payload path
+  // routes through /api/contractor/submit-bid which returns that shape.
+  // Read paths return Bid (snake_case nested with contractor.rating +
+  // reviews_count rolled up).
   static async submitBid(bidData: {
     jobId: string;
     contractorId: string;
@@ -139,19 +143,19 @@ export class JobService {
     taxAmount?: number;
     totalAmount?: number;
     terms?: string;
-  }): Promise<Bid> {
-    return BidManagementService.submitBid(bidData);
+  }): Promise<ApiBid> {
+    return BidService.submitBid(bidData);
   }
 
   static async getBidsByJob(jobId: string): Promise<Bid[]> {
-    return BidManagementService.getBidsByJob(jobId);
+    return BidService.getBidsByJob(jobId);
   }
 
   static async getBidsByContractor(contractorId: string): Promise<Bid[]> {
-    return BidManagementService.getBidsByContractor(contractorId);
+    return BidService.getBidsByContractor(contractorId);
   }
 
   static async acceptBid(bidId: string): Promise<void> {
-    return BidManagementService.acceptBid(bidId);
+    await BidService.acceptBid(bidId, '');
   }
 }

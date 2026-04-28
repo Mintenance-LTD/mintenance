@@ -44,6 +44,18 @@ export interface Bid extends BidData {
 }
 
 export class BidService {
+  /**
+   * Rich-payload submit (line items, tax, terms, ...). Wraps the
+   * legacy BidManagementService.submitBid which routes through
+   * /api/contractor/submit-bid. Use this from screens; use
+   * createBid for the simpler `BidData` shape.
+   */
+  static async submitBid(
+    bidData: Parameters<typeof BidManagementService.submitBid>[0]
+  ): ReturnType<typeof BidManagementService.submitBid> {
+    return BidManagementService.submitBid(bidData);
+  }
+
   static async createBid(bidData: BidData): Promise<Bid> {
     if (bidData.amount <= 0) {
       throw new Error('Bid amount must be greater than 0');
@@ -107,7 +119,10 @@ export class BidService {
       const counts = new Map<string, number>();
       const ratingTotals = new Map<string, number>();
       for (const row of reviewRows ?? []) {
-        const review = row as { reviewee_id: string | null; rating: number | null };
+        const review = row as {
+          reviewee_id: string | null;
+          rating: number | null;
+        };
         const id = review.reviewee_id;
         if (!id) continue;
 

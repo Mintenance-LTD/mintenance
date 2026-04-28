@@ -76,7 +76,8 @@ export class JobCRUDService {
     homeowner_id?: string;
     category?: string;
     subcategory?: string;
-    priority?: 'low' | 'medium' | 'high';
+    // Matches DB column `jobs.urgency` (enum low/medium/high/emergency).
+    urgency?: 'low' | 'medium' | 'high' | 'emergency';
     photos?: string[];
     property_id?: string;
     latitude?: number;
@@ -133,7 +134,7 @@ export class JobCRUDService {
           location: safeLocation,
           budget: jobData.budget,
           category: jobData.category,
-          priority: jobData.priority,
+          urgency: jobData.urgency,
           photoUrls: jobData.photos,
           property_id: jobData.property_id,
           latitude: jobData.latitude,

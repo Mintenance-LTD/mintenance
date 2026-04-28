@@ -247,7 +247,7 @@ export const QuickJobPostScreen: React.FC = () => {
         budget: parseFloat(budget) || 150,
         homeownerId: user.id,
         category: normalizeJobCategory(category),
-        priority:
+        urgency:
           urgency === 'today'
             ? 'high'
             : urgency === 'tomorrow'

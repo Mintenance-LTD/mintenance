@@ -12,14 +12,16 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { Job, Bid } from '@mintenance/types';
-
-interface BidWithExtras extends Bid {
-  contractorAvatar?: string;
-  contractorRating?: number;
-  proposedTimeline?: string;
-}
+import type { Job } from '@mintenance/types';
+import type { Bid } from '../services/BidService';
 import { useJobBids, useAcceptBid } from '../hooks/useJobs';
+
+const contractorDisplayName = (bid: Bid): string => {
+  const c = bid.contractor;
+  if (!c) return 'Anonymous Contractor';
+  const full = `${c.first_name ?? ''} ${c.last_name ?? ''}`.trim();
+  return full || c.company_name || 'Anonymous Contractor';
+};
 import { useAuth } from '../contexts/AuthContext';
 import { logger } from '../utils/logger';
 import { theme } from '../theme';
@@ -39,7 +41,7 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
 
   // Get bids for this job
   const { data: bidsData = [], isLoading, error, refetch } = useJobBids(job.id);
-  const bids = bidsData as Bid[];
+  const bids = (bidsData ?? []) as Bid[];
   const acceptBidMutation = useAcceptBid();
 
   const isHomeowner = user?.role === 'homeowner';
@@ -48,7 +50,7 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
   const handleAcceptBid = (bid: Bid) => {
     Alert.alert(
       'Accept Bid',
-      `Accept bid from ${bid.contractorName || 'this contractor'} for £${bid.amount}?\n\nThis will assign them to the job and change the status to "Assigned".`,
+      `Accept bid from ${contractorDisplayName(bid)} for £${bid.amount}?\n\nThis will assign them to the job and change the status to "Assigned".`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -65,7 +67,7 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
       logger.info('Accepting bid', {
         jobId: job.id,
         bidId: bid.id,
-        contractorId: bid.contractorId,
+        contractorId: bid.contractor_id,
         amount: bid.amount,
       });
 
@@ -74,18 +76,19 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
 
       Alert.alert(
         'Success!',
-        `Bid accepted! ${bid.contractorName || 'The contractor'} has been assigned to your job.`,
+        `Bid accepted! ${contractorDisplayName(bid)} has been assigned to your job.`,
         [{ text: 'OK' }]
       );
 
       if (onContractorAssigned) {
-        onContractorAssigned(bid.contractorId, bid.id);
+        onContractorAssigned(bid.contractor_id, bid.id);
       }
     } catch (error) {
       logger.error('Failed to accept bid:', error);
       Alert.alert(
         'Error',
-        (error instanceof Error ? error.message : String(error)) || 'Failed to accept bid. Please try again.'
+        (error instanceof Error ? error.message : String(error)) ||
+          'Failed to accept bid. Please try again.'
       );
     } finally {
       setSelectedBid(null);
@@ -139,9 +142,9 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
 
         <View style={styles.contractorHeader}>
           <View style={styles.contractorAvatar}>
-            {(bid as BidWithExtras).contractorAvatar ? (
+            {bid.contractor?.profile_image_url ? (
               <Image
-                source={{ uri: (bid as BidWithExtras).contractorAvatar }}
+                source={{ uri: bid.contractor.profile_image_url }}
                 style={styles.avatar}
               />
             ) : (
@@ -155,12 +158,12 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
 
           <View style={styles.contractorInfo}>
             <Text style={styles.contractorName}>
-              {bid.contractorName || 'Anonymous Contractor'}
+              {contractorDisplayName(bid)}
             </Text>
             <Text style={styles.contractorRating}>
-              {getContractorRating((bid as BidWithExtras).contractorRating)}
+              {getContractorRating(bid.contractor?.rating)}
             </Text>
-            <Text style={styles.bidTime}>{formatTimeAgo(bid.createdAt)}</Text>
+            <Text style={styles.bidTime}>{formatTimeAgo(bid.created_at)}</Text>
           </View>
 
           <View style={styles.bidAmount}>
@@ -170,7 +173,10 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
                 style={[
                   styles.budgetComparison,
                   {
-                    color: bid.amount <= job.budget ? theme.colors.primary : theme.colors.error,
+                    color:
+                      bid.amount <= job.budget
+                        ? theme.colors.primary
+                        : theme.colors.error,
                   },
                 ]}
               >
@@ -180,13 +186,13 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
           </View>
         </View>
 
-        {bid.description && (
+        {bid.message && (
           <View style={styles.bidDescription}>
-            <Text style={styles.bidDescriptionText}>{bid.description}</Text>
+            <Text style={styles.bidDescriptionText}>{bid.message}</Text>
           </View>
         )}
 
-        {(bid as BidWithExtras).proposedTimeline && (
+        {bid.estimated_duration && (
           <View style={styles.timeline}>
             <Ionicons
               name='time-outline'
@@ -194,7 +200,7 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
               color={theme.colors.textSecondary}
             />
             <Text style={styles.timelineText}>
-              Estimated completion: {(bid as BidWithExtras).proposedTimeline}
+              Estimated completion: {bid.estimated_duration}
             </Text>
           </View>
         )}
@@ -203,14 +209,18 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
           <TouchableOpacity
             style={styles.viewProfileButton}
             onPress={() => {
-              if (!bid.contractorId) return;
-              logger.info('View contractor profile', { contractorId: bid.contractorId });
+              if (!bid.contractor_id) return;
+              logger.info('View contractor profile', {
+                contractorId: bid.contractor_id,
+              });
               const nav = navigation as {
-                getParent?: () => { navigate: (name: string, params: unknown) => void } | undefined;
+                getParent?: () =>
+                  | { navigate: (name: string, params: unknown) => void }
+                  | undefined;
               };
               nav.getParent?.()?.navigate('Modal', {
                 screen: 'ContractorProfile',
-                params: { contractorId: bid.contractorId },
+                params: { contractorId: bid.contractor_id },
               });
             }}
           >
@@ -227,10 +237,17 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
               disabled={isSelected || acceptBidMutation.isPending}
             >
               {isSelected && acceptBidMutation.isPending ? (
-                <ActivityIndicator size='small' color={theme.colors.textInverse} />
+                <ActivityIndicator
+                  size='small'
+                  color={theme.colors.textInverse}
+                />
               ) : (
                 <>
-                  <Ionicons name='checkmark' size={16} color={theme.colors.textInverse} />
+                  <Ionicons
+                    name='checkmark'
+                    size={16}
+                    color={theme.colors.textInverse}
+                  />
                   <Text style={styles.acceptButtonText}>Accept Bid</Text>
                 </>
               )}
@@ -239,7 +256,11 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
 
           {bid.status === 'accepted' && (
             <View style={styles.acceptedBadge}>
-              <Ionicons name='checkmark-circle' size={16} color={theme.colors.primary} />
+              <Ionicons
+                name='checkmark-circle'
+                size={16}
+                color={theme.colors.primary}
+              />
               <Text style={styles.acceptedText}>Accepted</Text>
             </View>
           )}
@@ -291,7 +312,11 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
       <View style={styles.container}>
         {renderHeader()}
         <View style={styles.errorContainer}>
-          <Ionicons name='warning-outline' size={48} color={theme.colors.error} />
+          <Ionicons
+            name='warning-outline'
+            size={48}
+            color={theme.colors.error}
+          />
           <Text style={styles.errorText}>Failed to load bids</Text>
           <TouchableOpacity
             style={styles.retryButton}

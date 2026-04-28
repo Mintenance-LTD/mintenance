@@ -76,7 +76,7 @@ export const useCreateJob = () => {
       homeownerId: string;
       category?: string;
       subcategory?: string;
-      priority?: 'low' | 'medium' | 'high';
+      urgency?: 'low' | 'medium' | 'high' | 'emergency';
       photos?: string[];
       // R6 #19 landlord / tenancy — optional forwarding to the server
       is_rental_property?: boolean;
@@ -143,7 +143,7 @@ export const useCreateJob = () => {
         contractorId: null,
         category: variables.category || 'handyman',
         subcategory: variables.subcategory,
-        priority: variables.priority || 'medium',
+        urgency: variables.urgency || 'medium',
         status: 'posted' as const,
         photos: variables.photos || [],
         createdAt: new Date().toISOString(),

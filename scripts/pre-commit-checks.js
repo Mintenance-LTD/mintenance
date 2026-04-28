@@ -196,6 +196,17 @@ const KNOWN_LARGE_FILES = new Set([
   'apps/web/app/contractor/jobs-near-you/components/NearbyJobCard.tsx', // 511 lines (was 502)
   'apps/web/app/discover/components/JobCard.tsx', // 568 lines (was 563)
   'apps/web/app/properties/[id]/components/PropertyDetailsClient.tsx', // 670 lines (was 665)
+  // Added 2026-04-28: pre-existing large mobile files (550 / 510 lines
+  // on HEAD) touched by the BidService consolidation + priority→urgency
+  // rename. ContractorAssignment.tsx swapped camelCase ApiBid reads
+  // (bid.contractorId, bid.contractorName, bid.createdAt) for snake_case
+  // Bid (bid.contractor_id, bid.contractor.first_name, bid.created_at)
+  // and added a 6-line `contractorDisplayName(bid)` helper — net +3
+  // lines. JobPostingScreen.tsx renamed `priority: urgency` → `urgency`
+  // — net +1 line. Splitting both is tracked as a P2 follow-up; not a
+  // blocker on the DB-column alignment work.
+  'apps/mobile/src/components/ContractorAssignment.tsx', // 553 lines (was 550)
+  'apps/mobile/src/screens/JobPostingScreen.tsx', // 511 lines (was 510)
 ]);
 
 function countLines(filePath) {

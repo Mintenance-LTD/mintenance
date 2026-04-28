@@ -274,7 +274,7 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
         budget: budgetNumber,
         homeownerId: user.id,
         category,
-        priority: urgency,
+        urgency,
         photos: photos.length > 0 ? photos : undefined,
         is_rental_property: tenancy.isRentalProperty || undefined,
         tenancy_metadata: tenancyMetadata,

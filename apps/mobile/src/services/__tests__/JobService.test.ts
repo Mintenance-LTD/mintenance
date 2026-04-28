@@ -4,7 +4,7 @@
 
 import { JobService } from '../JobService';
 import { JobCRUDService } from '../JobCRUDService';
-import { BidManagementService } from '../BidManagementService';
+import { BidService } from '../BidService';
 import { JobSearchService } from '../JobSearchService';
 import type { Job, Bid } from '@mintenance/types';
 
@@ -21,7 +21,7 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 
 // Mock the delegated services
 jest.mock('../JobCRUDService');
-jest.mock('../BidManagementService');
+jest.mock('../BidService');
 jest.mock('../JobSearchService');
 
 describe('JobService', () => {
@@ -139,7 +139,10 @@ describe('JobService', () => {
 
         const result = await JobService.updateJob('job-123', updates);
 
-        expect(JobCRUDService.updateJob).toHaveBeenCalledWith('job-123', updates);
+        expect(JobCRUDService.updateJob).toHaveBeenCalledWith(
+          'job-123',
+          updates
+        );
         expect(result.title).toBe('Updated Title');
         expect(result.budget).toBe(2000);
       });
@@ -154,7 +157,10 @@ describe('JobService', () => {
 
         await JobService.updateJob('job-123', updates);
 
-        expect(JobCRUDService.updateJob).toHaveBeenCalledWith('job-123', updates);
+        expect(JobCRUDService.updateJob).toHaveBeenCalledWith(
+          'job-123',
+          updates
+        );
       });
     });
 
@@ -175,9 +181,17 @@ describe('JobService', () => {
           status: 'in_progress',
         });
 
-        const result = await JobService.updateJobStatus('job-123', 'in_progress', 'contractor-123');
+        const result = await JobService.updateJobStatus(
+          'job-123',
+          'in_progress',
+          'contractor-123'
+        );
 
-        expect(JobCRUDService.updateJobStatus).toHaveBeenCalledWith('job-123', 'in_progress', 'contractor-123');
+        expect(JobCRUDService.updateJobStatus).toHaveBeenCalledWith(
+          'job-123',
+          'in_progress',
+          'contractor-123'
+        );
         expect(result.status).toBe('in_progress');
       });
 
@@ -189,7 +203,11 @@ describe('JobService', () => {
 
         await JobService.updateJobStatus('job-123', 'cancelled');
 
-        expect(JobCRUDService.updateJobStatus).toHaveBeenCalledWith('job-123', 'cancelled', undefined);
+        expect(JobCRUDService.updateJobStatus).toHaveBeenCalledWith(
+          'job-123',
+          'cancelled',
+          undefined
+        );
       });
     });
 
@@ -217,16 +235,22 @@ describe('JobService', () => {
   describe('Job Search Operations (delegated to JobSearchService)', () => {
     describe('getJobsByHomeowner', () => {
       it('should delegate to JobSearchService.getJobsByHomeowner', async () => {
-        (JobSearchService.getJobsByHomeowner as jest.Mock).mockResolvedValue([mockJob]);
+        (JobSearchService.getJobsByHomeowner as jest.Mock).mockResolvedValue([
+          mockJob,
+        ]);
 
         const result = await JobService.getJobsByHomeowner('homeowner-123');
 
-        expect(JobSearchService.getJobsByHomeowner).toHaveBeenCalledWith('homeowner-123');
+        expect(JobSearchService.getJobsByHomeowner).toHaveBeenCalledWith(
+          'homeowner-123'
+        );
         expect(result).toEqual([mockJob]);
       });
 
       it('should return empty array when no jobs found', async () => {
-        (JobSearchService.getJobsByHomeowner as jest.Mock).mockResolvedValue([]);
+        (JobSearchService.getJobsByHomeowner as jest.Mock).mockResolvedValue(
+          []
+        );
 
         const result = await JobService.getJobsByHomeowner('homeowner-999');
 
@@ -236,7 +260,9 @@ describe('JobService', () => {
 
     describe('getUserJobs', () => {
       it('should delegate to JobSearchService.getUserJobs', async () => {
-        (JobSearchService.getUserJobs as jest.Mock).mockResolvedValue([mockJob]);
+        (JobSearchService.getUserJobs as jest.Mock).mockResolvedValue([
+          mockJob,
+        ]);
 
         const result = await JobService.getUserJobs('user-123');
 
@@ -247,7 +273,9 @@ describe('JobService', () => {
 
     describe('getAvailableJobs', () => {
       it('should delegate to JobSearchService.getAvailableJobs', async () => {
-        (JobSearchService.getAvailableJobs as jest.Mock).mockResolvedValue([mockJob]);
+        (JobSearchService.getAvailableJobs as jest.Mock).mockResolvedValue([
+          mockJob,
+        ]);
 
         const result = await JobService.getAvailableJobs();
 
@@ -258,20 +286,30 @@ describe('JobService', () => {
 
     describe('getJobsByStatus', () => {
       it('should delegate to JobSearchService.getJobsByStatus', async () => {
-        (JobSearchService.getJobsByStatus as jest.Mock).mockResolvedValue([mockJob]);
+        (JobSearchService.getJobsByStatus as jest.Mock).mockResolvedValue([
+          mockJob,
+        ]);
 
         const result = await JobService.getJobsByStatus('open', 'user-123');
 
-        expect(JobSearchService.getJobsByStatus).toHaveBeenCalledWith('open', 'user-123');
+        expect(JobSearchService.getJobsByStatus).toHaveBeenCalledWith(
+          'open',
+          'user-123'
+        );
         expect(result).toEqual([mockJob]);
       });
 
       it('should work without userId', async () => {
-        (JobSearchService.getJobsByStatus as jest.Mock).mockResolvedValue([mockJob]);
+        (JobSearchService.getJobsByStatus as jest.Mock).mockResolvedValue([
+          mockJob,
+        ]);
 
         await JobService.getJobsByStatus('open');
 
-        expect(JobSearchService.getJobsByStatus).toHaveBeenCalledWith('open', undefined);
+        expect(JobSearchService.getJobsByStatus).toHaveBeenCalledWith(
+          'open',
+          undefined
+        );
       });
     });
 
@@ -281,7 +319,10 @@ describe('JobService', () => {
 
         const result = await JobService.getJobs();
 
-        expect(JobSearchService.getJobs).toHaveBeenCalledWith(undefined, undefined);
+        expect(JobSearchService.getJobs).toHaveBeenCalledWith(
+          undefined,
+          undefined
+        );
         expect(result).toEqual([mockJob]);
       });
 
@@ -290,7 +331,10 @@ describe('JobService', () => {
 
         await JobService.getJobs('arg1');
 
-        expect(JobSearchService.getJobs).toHaveBeenCalledWith('arg1', undefined);
+        expect(JobSearchService.getJobs).toHaveBeenCalledWith(
+          'arg1',
+          undefined
+        );
       });
 
       it('should delegate with two arguments', async () => {
@@ -306,9 +350,17 @@ describe('JobService', () => {
       it('should delegate to JobSearchService.searchJobs', async () => {
         (JobSearchService.searchJobs as jest.Mock).mockResolvedValue([mockJob]);
 
-        const result = await JobService.searchJobs('plumbing', { category: 'plumbing' }, 10);
+        const result = await JobService.searchJobs(
+          'plumbing',
+          { category: 'plumbing' },
+          10
+        );
 
-        expect(JobSearchService.searchJobs).toHaveBeenCalledWith('plumbing', { category: 'plumbing' }, 10);
+        expect(JobSearchService.searchJobs).toHaveBeenCalledWith(
+          'plumbing',
+          { category: 'plumbing' },
+          10
+        );
         expect(result).toEqual([mockJob]);
       });
 
@@ -317,7 +369,11 @@ describe('JobService', () => {
 
         await JobService.searchJobs('electrical');
 
-        expect(JobSearchService.searchJobs).toHaveBeenCalledWith('electrical', undefined, 20);
+        expect(JobSearchService.searchJobs).toHaveBeenCalledWith(
+          'electrical',
+          undefined,
+          20
+        );
       });
 
       it('should handle budget filters', async () => {
@@ -357,29 +413,39 @@ describe('JobService', () => {
 
     describe('getJobsByUser', () => {
       it('should delegate to JobSearchService.getJobsByUser for homeowner', async () => {
-        (JobSearchService.getJobsByUser as jest.Mock).mockResolvedValue([mockJob]);
+        (JobSearchService.getJobsByUser as jest.Mock).mockResolvedValue([
+          mockJob,
+        ]);
 
         const result = await JobService.getJobsByUser('user-123', 'homeowner');
 
-        expect(JobSearchService.getJobsByUser).toHaveBeenCalledWith('user-123', 'homeowner');
+        expect(JobSearchService.getJobsByUser).toHaveBeenCalledWith(
+          'user-123',
+          'homeowner'
+        );
         expect(result).toEqual([mockJob]);
       });
 
       it('should delegate to JobSearchService.getJobsByUser for contractor', async () => {
-        (JobSearchService.getJobsByUser as jest.Mock).mockResolvedValue([mockJob]);
+        (JobSearchService.getJobsByUser as jest.Mock).mockResolvedValue([
+          mockJob,
+        ]);
 
         const result = await JobService.getJobsByUser('user-456', 'contractor');
 
-        expect(JobSearchService.getJobsByUser).toHaveBeenCalledWith('user-456', 'contractor');
+        expect(JobSearchService.getJobsByUser).toHaveBeenCalledWith(
+          'user-456',
+          'contractor'
+        );
         expect(result).toEqual([mockJob]);
       });
     });
   });
 
-  describe('Bid Operations (delegated to BidManagementService)', () => {
+  describe('Bid Operations (delegated to BidService)', () => {
     describe('submitBid', () => {
-      it('should delegate to BidManagementService.submitBid', async () => {
-        (BidManagementService.submitBid as jest.Mock).mockResolvedValue(mockBid);
+      it('should delegate to BidService.submitBid', async () => {
+        (BidService.submitBid as jest.Mock).mockResolvedValue(mockBid);
 
         const bidData = {
           jobId: 'job-123',
@@ -390,23 +456,23 @@ describe('JobService', () => {
 
         const result = await JobService.submitBid(bidData);
 
-        expect(BidManagementService.submitBid).toHaveBeenCalledWith(bidData);
+        expect(BidService.submitBid).toHaveBeenCalledWith(bidData);
         expect(result).toEqual(mockBid);
       });
     });
 
     describe('getBidsByJob', () => {
-      it('should delegate to BidManagementService.getBidsByJob', async () => {
-        (BidManagementService.getBidsByJob as jest.Mock).mockResolvedValue([mockBid]);
+      it('should delegate to BidService.getBidsByJob', async () => {
+        (BidService.getBidsByJob as jest.Mock).mockResolvedValue([mockBid]);
 
         const result = await JobService.getBidsByJob('job-123');
 
-        expect(BidManagementService.getBidsByJob).toHaveBeenCalledWith('job-123');
+        expect(BidService.getBidsByJob).toHaveBeenCalledWith('job-123');
         expect(result).toEqual([mockBid]);
       });
 
       it('should return empty array when no bids found', async () => {
-        (BidManagementService.getBidsByJob as jest.Mock).mockResolvedValue([]);
+        (BidService.getBidsByJob as jest.Mock).mockResolvedValue([]);
 
         const result = await JobService.getBidsByJob('job-999');
 
@@ -415,23 +481,29 @@ describe('JobService', () => {
     });
 
     describe('getBidsByContractor', () => {
-      it('should delegate to BidManagementService.getBidsByContractor', async () => {
-        (BidManagementService.getBidsByContractor as jest.Mock).mockResolvedValue([mockBid]);
+      it('should delegate to BidService.getBidsByContractor', async () => {
+        (BidService.getBidsByContractor as jest.Mock).mockResolvedValue([
+          mockBid,
+        ]);
 
         const result = await JobService.getBidsByContractor('contractor-123');
 
-        expect(BidManagementService.getBidsByContractor).toHaveBeenCalledWith('contractor-123');
+        expect(BidService.getBidsByContractor).toHaveBeenCalledWith(
+          'contractor-123'
+        );
         expect(result).toEqual([mockBid]);
       });
     });
 
     describe('acceptBid', () => {
-      it('should delegate to BidManagementService.acceptBid', async () => {
-        (BidManagementService.acceptBid as jest.Mock).mockResolvedValue(undefined);
+      it('should delegate to BidService.acceptBid', async () => {
+        (BidService.acceptBid as jest.Mock).mockResolvedValue(undefined);
 
         await JobService.acceptBid('bid-123');
 
-        expect(BidManagementService.acceptBid).toHaveBeenCalledWith('bid-123');
+        // JobService.acceptBid passes empty homeownerId since BidService
+        // ignores it (underscore-prefixed in BidService.acceptBid).
+        expect(BidService.acceptBid).toHaveBeenCalledWith('bid-123', '');
       });
     });
   });
@@ -441,31 +513,37 @@ describe('JobService', () => {
       const error = new Error('Database error');
       (JobCRUDService.createJob as jest.Mock).mockRejectedValue(error);
 
-      await expect(JobService.createJob({
-        title: 'Test',
-        description: 'Test',
-        location: 'Test',
-        budget: 1000,
-      })).rejects.toThrow('Database error');
+      await expect(
+        JobService.createJob({
+          title: 'Test',
+          description: 'Test',
+          location: 'Test',
+          budget: 1000,
+        })
+      ).rejects.toThrow('Database error');
     });
 
     it('should propagate errors from JobSearchService', async () => {
       const error = new Error('Search error');
       (JobSearchService.searchJobs as jest.Mock).mockRejectedValue(error);
 
-      await expect(JobService.searchJobs('test')).rejects.toThrow('Search error');
+      await expect(JobService.searchJobs('test')).rejects.toThrow(
+        'Search error'
+      );
     });
 
-    it('should propagate errors from BidManagementService', async () => {
+    it('should propagate errors from BidService', async () => {
       const error = new Error('Bid error');
-      (BidManagementService.submitBid as jest.Mock).mockRejectedValue(error);
+      (BidService.submitBid as jest.Mock).mockRejectedValue(error);
 
-      await expect(JobService.submitBid({
-        jobId: 'job-123',
-        contractorId: 'contractor-123',
-        amount: 900,
-        description: 'Test bid',
-      })).rejects.toThrow('Bid error');
+      await expect(
+        JobService.submitBid({
+          jobId: 'job-123',
+          contractorId: 'contractor-123',
+          amount: 900,
+          description: 'Test bid',
+        })
+      ).rejects.toThrow('Bid error');
     });
   });
 });

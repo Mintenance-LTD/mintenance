@@ -1,10 +1,15 @@
 /**
- * Bid Management Service
+ * Bid Management Service — INTERNAL ONLY.
  *
- * Handles all bidding-related operations:
- * - Submitting bids
- * - Getting bids by job/contractor
- * - Accepting/rejecting bids
+ * @deprecated Do not import this service from screens, hooks, or other
+ * services. The single public surface for bid operations is
+ * `BidService` (./BidService.ts), which delegates here for the rich
+ * `submitBid` payload (line items, tax, terms). Read paths
+ * (`getBidsByJob`, `getBidsByContractor`) on `BidService` return a
+ * different shape (snake_case + nested `contractor` with reviews_count
+ * aggregation) and should be preferred — those methods on this class
+ * are retained only for compatibility with `JobService`'s prior wiring
+ * and are no longer reachable from public callers.
  */
 
 import { supabase } from '../config/supabase';

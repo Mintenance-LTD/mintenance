@@ -100,6 +100,11 @@ const createJobSchema = z
     is_rental_property: z.boolean().optional(),
     payer_user_id: z.string().uuid().optional(),
     tenancy_metadata: z.record(z.string(), z.unknown()).optional(),
+    // DB column. Mobile/web should send this directly.
+    urgency: z.enum(['low', 'medium', 'high', 'emergency']).optional(),
+    // Deprecated alias for `urgency`. Older mobile builds send this name.
+    // Normalized to `urgency` in the handler below before persistence.
+    priority: z.enum(['low', 'medium', 'high', 'emergency']).optional(),
   })
   .strict(); // SECURITY: reject unknown keys to block mass-assignment.
 // Adding a new input field here is the source of truth — if a caller
@@ -223,7 +228,11 @@ export const POST = withApiHandler(
       );
     }
 
-    const payload = parsed.data;
+    const { priority, ...rest } = parsed.data;
+    const payload = {
+      ...rest,
+      urgency: rest.urgency ?? priority,
+    };
     const job = await JobCreationService.getInstance().createJob(user, payload);
 
     logger.info('Job created successfully', {
