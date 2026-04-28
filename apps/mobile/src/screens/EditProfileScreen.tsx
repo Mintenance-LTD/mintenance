@@ -62,17 +62,21 @@ const EditProfileScreen: React.FC = () => {
     if (!user) return;
     (async () => {
       try {
-        // Pre-fill via the canonical /api/users/profile endpoint —
-        // returns the same fields the screen needs (bio, address,
-        // city, postcode) plus latitude/longitude/profile_image_url.
-        // Replaces the previous direct supabase read so RLS / shape
-        // changes flow through one place.
-        const profile = await mobileApiClient.get<{
-          bio?: string | null;
-          address?: string | null;
-          city?: string | null;
-          postcode?: string | null;
+        // Pre-fill via the canonical /api/users/profile endpoint.
+        // The route wraps its response as `{ profile: {...} }` — the
+        // previous read flattened the wrapper away and silently got
+        // `undefined` for every field, leaving the form blank even
+        // when the API succeeded. Same wrapper shape as the PUT
+        // response so future code can share the type.
+        const response = await mobileApiClient.get<{
+          profile?: {
+            bio?: string | null;
+            address?: string | null;
+            city?: string | null;
+            postcode?: string | null;
+          } | null;
         }>('/api/users/profile');
+        const profile = response?.profile;
         if (profile?.bio) setBio(profile.bio);
         if (profile?.address) setAddress(profile.address);
         if (profile?.city) setCity(profile.city);

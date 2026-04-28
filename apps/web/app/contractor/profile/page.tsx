@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { getJobPhotosByJobId } from '@/lib/api/job-photos';
 import { ContractorProfileClient2025 } from './components/ContractorProfileClient2025';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { redirect } from 'next/navigation';
@@ -52,9 +53,14 @@ export default async function ContractorProfilePage2025() {
       )
       .eq('contractor_id', user.id)
       .order('created_at', { ascending: false }),
+    // photos column is no longer selected — `jobs.photos` is a stale
+    // raw URL store on the row that diverged from the lifecycle photo
+    // truth (`job_attachments` + `job_photos_metadata`). Resolved via
+    // getJobPhotosByJobId below so the portfolio matches what the rest
+    // of the app shows for the same jobs.
     serverSupabase
       .from('jobs')
-      .select('id, title, category, budget, completed_at, photos')
+      .select('id, title, category, budget, completed_at')
       .eq('contractor_id', user.id)
       .eq('status', 'completed')
       .order('completed_at', { ascending: false })
@@ -76,9 +82,20 @@ export default async function ContractorProfilePage2025() {
   const contractor = contractorResult.data;
   const skills = skillsResult.data || [];
   const reviews = reviewsResult.data || [];
-  const completedJobs = completedJobsResult.data || [];
+  const completedJobsRaw = completedJobsResult.data || [];
   const posts = postsResult.data || [];
   const bids = bidsResult.data || [];
+
+  // Aggregate photos from job_attachments + job_photos_metadata and
+  // re-sign every Job-storage URL so completed jobs render their real
+  // before/after photos in the portfolio. Same path the canonical
+  // /api/jobs list reader uses.
+  const completedJobIds = completedJobsRaw.map((j) => j.id);
+  const photosByJobId = await getJobPhotosByJobId(completedJobIds);
+  const completedJobs = completedJobsRaw.map((j) => ({
+    ...j,
+    photos: (photosByJobId.get(j.id) ?? []).map((url) => ({ url })),
+  }));
 
   // Calculate profile completion
   const profileFields = [
