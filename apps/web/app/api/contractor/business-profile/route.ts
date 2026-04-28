@@ -208,10 +208,14 @@ export const PATCH = withApiHandler(
         .toISOString()
         .split('T')[0];
 
+      // policy_number is NOT NULL on the DB — passing null would
+      // violate the constraint and 500 the request. Fall back to '' so
+      // the insurance row persists when the user hasn't supplied a
+      // policy number yet (the form treats it as optional).
       const insBase = {
         contractor_id: user.id,
         provider: d.insuranceProvider,
-        policy_number: d.insurancePolicyNumber || null,
+        policy_number: d.insurancePolicyNumber || '',
         type: 'general_liability',
         status: 'active',
         updated_at: new Date().toISOString(),
@@ -250,7 +254,7 @@ export const PATCH = withApiHandler(
       const licBase = {
         contractor_id: user.id,
         name: d.licenseType,
-        number: d.licenseNumber || null,
+        number: d.licenseNumber || '',
         status: 'active',
         updated_at: new Date().toISOString(),
       };
@@ -260,9 +264,17 @@ export const PATCH = withApiHandler(
             .from('contractor_licenses')
             .update(licBase)
             .eq('id', existing.id)
-        : await serverSupabase.from('contractor_licenses').insert({
+        : // INSERT path must provide every NOT NULL column. The schema
+          // requires `issuer`, `number`, and `issue_date` with no DB
+          // defaults — without these the insert fails with "null value
+          // in column ... violates not-null constraint" and the user
+          // sees a generic save-failed alert. The legacy
+          // BusinessProfileScreen save path had the same bug; both now
+          // get sensible defaults so first-time license rows persist.
+          await serverSupabase.from('contractor_licenses').insert({
             ...licBase,
             issue_date: new Date().toISOString().split('T')[0],
+            issuer: 'Self-declared',
           });
 
       if (licError) {

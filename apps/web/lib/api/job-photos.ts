@@ -30,9 +30,11 @@ export async function getJobPhotosByJobId(
       .eq('file_type', 'image'),
     serverSupabase
       .from('job_photos_metadata')
-      .select('job_id, photo_url, photo_type, captured_at')
+      .select('job_id, photo_url, photo_type, timestamp')
       .in('job_id', jobIds)
-      .order('captured_at', { ascending: false }),
+      // Column is named `timestamp` (the lifecycle photo upload time);
+      // there is no `captured_at` column despite the name implying one.
+      .order('timestamp', { ascending: false }),
   ]);
 
   const attachmentsByJob = new Map<string, string[]>();
