@@ -34,6 +34,11 @@ export const ContractorLocationSection: React.FC<Props> = ({
         latitude: Number.NaN,
         longitude: Number.NaN,
       },
+      // Auto-start tracking on mount when location permission is
+      // already granted (no OS prompt). Removes the manual-tap gap
+      // that left `contractor_locations = 0` in prod despite the
+      // section rendering for every assigned contractor.
+      autoStartIfPermitted: true,
     });
 
   const formatEta = (minutes: number) => {

@@ -11,6 +11,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Alert } from 'react-native';
+import * as Location from 'expo-location';
 import {
   JobContextLocationService,
   ContractorLocationContext,
@@ -34,6 +35,17 @@ interface UseJobTravelTrackingOptions {
   destination: { latitude: number; longitude: number };
   onLocationUpdate?: (location: TravelLocation) => void;
   onArrival?: () => void;
+  /**
+   * When true, automatically start tracking on mount IF location
+   * permission is already 'granted' (no OS prompt). Falls back to the
+   * manual button in `undetermined`/`denied` states. Live audit
+   * (2026-04-28) showed `contractor_locations = 0` in prod because
+   * the manual "Share My Location" button on the job detail page sat
+   * at the bottom and was rarely tapped — auto-start removes the gap
+   * for contractors who already granted permission via the
+   * AlwaysLocationSoftAsk modal or a prior session.
+   */
+  autoStartIfPermitted?: boolean;
 }
 
 interface UseJobTravelTrackingReturn {
@@ -52,6 +64,7 @@ export function useJobTravelTracking({
   destination,
   onLocationUpdate,
   onArrival,
+  autoStartIfPermitted = false,
 }: UseJobTravelTrackingOptions): UseJobTravelTrackingReturn {
   const { user } = useAuth();
   const [isTracking, setIsTracking] = useState(false);
@@ -266,6 +279,48 @@ export function useJobTravelTracking({
       }
     };
   }, []);
+
+  // Auto-start when caller opted in AND location permission is already
+  // granted. Mirrors the push-token retry pattern: silent recovery for
+  // users who've already given consent via a prior session or the
+  // AlwaysLocationSoftAsk modal. We never trigger the OS prompt from
+  // here — that path stays manual via the "Share My Location" button.
+  useEffect(() => {
+    if (!autoStartIfPermitted) return;
+    if (!user || user.role !== 'contractor') return;
+    if (isTracking) return;
+    if (!Number.isFinite(destination.latitude)) return;
+    if (!Number.isFinite(destination.longitude)) return;
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const { status } = await Location.getForegroundPermissionsAsync();
+        if (cancelled) return;
+        if (status === 'granted') {
+          void startTracking();
+        }
+      } catch (err) {
+        // Silent — user can still tap the manual button.
+        logger.warn(
+          'useJobTravelTracking: auto-start permission check failed',
+          {
+            error: err instanceof Error ? err.message : String(err),
+          }
+        );
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    autoStartIfPermitted,
+    user,
+    isTracking,
+    destination.latitude,
+    destination.longitude,
+    startTracking,
+  ]);
 
   return {
     isTracking,
