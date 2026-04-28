@@ -15,7 +15,6 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { useAuth } from '../contexts/AuthContext';
 import { AuthService } from '../services/AuthService';
-import { supabase } from '../config/supabase';
 import { mobileApiClient } from '../utils/mobileApiClient';
 import { PhotoSection } from './EditProfileSections/PhotoSection';
 import { PersonalInfoSection } from './EditProfileSections/PersonalInfoSection';
@@ -63,18 +62,24 @@ const EditProfileScreen: React.FC = () => {
     if (!user) return;
     (async () => {
       try {
-        const { data } = await supabase
-          .from('profiles')
-          .select('bio, address, city, postcode')
-          .eq('id', user.id)
-          .single();
-        if (data?.bio) setBio(data.bio as string);
-        if (data?.address) setAddress(data.address as string);
-        if (data?.city) setCity(data.city as string);
-        if (data?.postcode) setPostcode(data.postcode as string);
+        // Pre-fill via the canonical /api/users/profile endpoint —
+        // returns the same fields the screen needs (bio, address,
+        // city, postcode) plus latitude/longitude/profile_image_url.
+        // Replaces the previous direct supabase read so RLS / shape
+        // changes flow through one place.
+        const profile = await mobileApiClient.get<{
+          bio?: string | null;
+          address?: string | null;
+          city?: string | null;
+          postcode?: string | null;
+        }>('/api/users/profile');
+        if (profile?.bio) setBio(profile.bio);
+        if (profile?.address) setAddress(profile.address);
+        if (profile?.city) setCity(profile.city);
+        if (profile?.postcode) setPostcode(profile.postcode);
       } catch (err) {
         // Non-critical — fields remain empty, user can type manually
-        logger.error('Failed to pre-fill profile fields from Supabase', err);
+        logger.error('Failed to pre-fill profile fields', err);
       }
     })();
   }, [user?.id]);
@@ -119,6 +124,39 @@ const EditProfileScreen: React.FC = () => {
   const handleSave = async () => {
     try {
       setLoading(true);
+
+      // Upload the picked profile photo first (if any). The avatar
+      // endpoint persists profile_image_url on the profiles row + cleans
+      // up the previous file. Previously the picker only updated local
+      // state and `handleSave` rebuilt an updates object that never
+      // included the photo — selections were silently lost on save.
+      let photoUploaded = false;
+      if (photoUri) {
+        try {
+          const ext = photoUri.split('.').pop()?.toLowerCase() ?? 'jpg';
+          const mime =
+            ext === 'png'
+              ? 'image/png'
+              : ext === 'webp'
+                ? 'image/webp'
+                : 'image/jpeg';
+          const formData = new FormData();
+          formData.append('avatar', {
+            uri: photoUri,
+            name: `avatar-${Date.now()}.${ext}`,
+            type: mime,
+          } as unknown as Blob);
+          await mobileApiClient.postFormData('/api/users/avatar', formData);
+          photoUploaded = true;
+        } catch (photoErr) {
+          logger.error('Failed to upload profile photo', photoErr);
+          Alert.alert(
+            'Photo Upload Failed',
+            'Your other profile changes will still be saved, but the photo could not be uploaded. Please try again later.'
+          );
+          // Continue with the rest of the save — non-fatal.
+        }
+      }
 
       let latitude: number | undefined = gpsLat ?? undefined;
       let longitude: number | undefined = gpsLng ?? undefined;
@@ -175,7 +213,12 @@ const EditProfileScreen: React.FC = () => {
           user.id,
           filteredUpdates as Parameters<typeof AuthService.updateUserProfile>[1]
         );
-        // Refresh auth context so dashboard/header picks up name/phone changes
+      }
+      // Refresh auth context so dashboard/header picks up name/phone /
+      // avatar changes. Fires when either fields OR a photo were
+      // saved — without this a photo-only save kept the old avatar in
+      // the header until the next app reload.
+      if (user && (Object.keys(filteredUpdates).length > 0 || photoUploaded)) {
         await refreshUser();
         Alert.alert('Success', 'Profile updated successfully!', [
           { text: 'OK', onPress: () => navigation.goBack() },
@@ -225,11 +268,15 @@ const EditProfileScreen: React.FC = () => {
   };
 
   const handleDeleteAccount = () => {
-    Alert.alert(
-      'Delete Account',
-      'To permanently delete your account and all associated data, please contact our support team at support@mintenance.co.uk. This action cannot be undone.',
-      [{ text: 'OK' }]
-    );
+    // Routes to the registered DeleteAccount flow (same target the
+    // SettingsHub uses) so both entry points share one self-service
+    // path. The previous static "email support" alert was a dead end
+    // and inconsistent with SettingsHub.
+    (
+      navigation as unknown as {
+        navigate: (screen: string) => void;
+      }
+    ).navigate('DeleteAccount');
   };
 
   const handlePickPhoto = async () => {

@@ -155,11 +155,27 @@ export const SettingsHubScreen: React.FC = () => {
 
   const securityItems: SettingsRow[] = [
     {
-      label: 'Notification Preferences',
+      // Legacy push / email / marketing toggle screen.
+      label: 'Push & Email Settings',
       icon: 'notifications-outline',
       iconColor: theme.colors.accent,
       iconBg: theme.colors.accentLight,
       onPress: () => navigation.navigate('NotificationSettings'),
+    },
+    {
+      // Granular per-event opt-in surface backed by user_notification_preferences.
+      label: 'Notification Preferences',
+      icon: 'options-outline',
+      iconColor: theme.colors.primary,
+      iconBg: theme.colors.primaryLight,
+      onPress: () => navigation.navigate('NotificationPreferences'),
+    },
+    {
+      label: 'Accessibility',
+      icon: 'accessibility-outline',
+      iconColor: theme.colors.primary,
+      iconBg: theme.colors.primaryLight,
+      onPress: () => navigation.navigate('AccessibilitySettings'),
     },
     {
       label: 'MFA Security',
