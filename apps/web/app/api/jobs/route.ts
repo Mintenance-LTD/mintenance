@@ -105,6 +105,12 @@ const createJobSchema = z
     // Deprecated alias for `urgency`. Older mobile builds send this name.
     // Normalized to `urgency` in the handler below before persistence.
     priority: z.enum(['low', 'medium', 'high', 'emergency']).optional(),
+    // Per-job requirement flags (silver-mode `contractor_before_photos`
+    // and future per-job toggles). Persists to jobs.requirements jsonb.
+    // Live audit (2026-04-28) confirmed the column has 16 prod rows
+    // already — re-adding the API path so silver-mode submits don't
+    // silently drop the flag.
+    requirements: z.record(z.string(), z.unknown()).optional(),
   })
   .strict(); // SECURITY: reject unknown keys to block mass-assignment.
 // Adding a new input field here is the source of truth — if a caller

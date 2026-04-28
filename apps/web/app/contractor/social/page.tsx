@@ -14,6 +14,7 @@ import Link from 'next/link';
 export const metadata = {
   title: 'Social Feed | Mintenance',
   description: 'Connect with other contractors and share your work.',
+  robots: { index: false, follow: false },
 };
 
 export default function SocialFeedPage() {
@@ -45,7 +46,7 @@ export default function SocialFeedPage() {
         Coming soon — this feature is under development.
       </div>
       <Link
-        href='/contractor/dashboard'
+        href='/contractor/dashboard-enhanced'
         className='mt-6 inline-flex items-center gap-1.5 text-sm font-medium text-teal-600 hover:text-teal-700'
       >
         Back to Dashboard <ArrowRight className='h-4 w-4' />

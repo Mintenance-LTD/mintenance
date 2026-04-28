@@ -15,26 +15,22 @@ import { NotificationDropdown } from '@/components/notifications/NotificationDro
 import { logger } from '@mintenance/shared';
 import { getCsrfHeaders } from '@/lib/csrf-client';
 import {
-  Home,
-  Briefcase,
-  MessageSquare,
-  Calendar,
   Settings,
   Search,
   Bell,
   Menu,
   X,
   ChevronDown,
-  Building2,
   LogOut,
   User,
   HelpCircle,
-  PoundSterling,
-  CreditCard,
-  Crown,
-  FolderOpen,
 } from 'lucide-react';
 import { HomeownerBottomTabBar } from '@/components/ui/HomeownerBottomTabBar';
+import { useNavSections } from '@/components/layouts/sidebar/sidebarNavConfig';
+import type {
+  NavItem,
+  NavSection,
+} from '@/components/layouts/sidebar/SidebarNavItems';
 
 type HomeownerSummary = {
   first_name?: string | null;
@@ -47,19 +43,6 @@ interface ProfessionalHomeownerLayoutProps {
   homeowner?: HomeownerSummary | null;
   email?: string | null;
   userId?: string | null;
-}
-
-interface NavItem {
-  label: string;
-  href: string;
-  icon: React.ComponentType<{ className?: string }>;
-  badge?: number;
-  children?: NavItem[];
-}
-
-interface NavSection {
-  name: string;
-  items: NavItem[];
 }
 
 export function ProfessionalHomeownerLayout({
@@ -116,66 +99,13 @@ export function ProfessionalHomeownerLayout({
     return (first + last || fallback).toUpperCase();
   }, [homeowner?.first_name, homeowner?.last_name, email]);
 
-  const navSections: NavSection[] = useMemo(
-    () => [
-      {
-        name: 'MAIN',
-        items: [{ label: 'Dashboard', href: '/dashboard', icon: Home }],
-      },
-      {
-        name: 'WORK',
-        items: [
-          {
-            label: 'Jobs',
-            href: '/jobs',
-            icon: Briefcase,
-            children: [
-              { label: 'All Jobs', href: '/jobs', icon: Briefcase },
-              { label: 'Active', href: '/jobs?status=active', icon: Briefcase },
-              {
-                label: 'Completed',
-                href: '/jobs?status=completed',
-                icon: Briefcase,
-              },
-            ],
-          },
-          {
-            label: 'Messages',
-            href: '/messages',
-            icon: MessageSquare,
-            badge: 0,
-          },
-          { label: 'Documents', href: '/documents', icon: FolderOpen },
-          { label: 'Calendar', href: '/scheduling', icon: Calendar },
-          // Audit P1 (2026-04-23): Video Calls is a dead-end placeholder
-          // page. Removed from primary nav until the call surface ships;
-          // the page itself stays mounted as a fallback for direct URL
-          // visits and legacy bookmarks.
-        ],
-      },
-      {
-        name: 'PROPERTY',
-        items: [
-          { label: 'Properties', href: '/properties', icon: Building2 },
-          { label: 'Financials', href: '/financials', icon: PoundSterling },
-          { label: 'Payments', href: '/payments', icon: CreditCard },
-        ],
-      },
-      {
-        name: 'ACCOUNT',
-        items: [
-          {
-            label: 'Subscription',
-            href: '/homeowner/subscription',
-            icon: Crown,
-          },
-          { label: 'Profile', href: '/profile', icon: User },
-          { label: 'Settings', href: '/settings', icon: Settings },
-        ],
-      },
-    ],
-    []
-  );
+  // Use the shared nav config so this layout, the contractor layout,
+  // and any future role-specific shells stay in sync. Previously this
+  // layout maintained a parallel hardcoded array which silently
+  // diverged from sidebarNavConfig — e.g. Discover, Compliance, the
+  // full Landlord section and Notifications were missing from this
+  // layout despite being real pages with full implementations.
+  const navSections: NavSection[] = useNavSections('homeowner');
 
   const toggleExpand = useCallback((label: string) => {
     setExpandedItems((prev) =>
@@ -367,11 +297,19 @@ export function ProfessionalHomeownerLayout({
                           >
                             <item.icon className='w-5 h-5 flex-shrink-0' />
                             <span className='flex-1'>{item.label}</span>
-                            {item.badge !== undefined && item.badge > 0 && (
-                              <span className='bg-teal-500 text-white text-xs px-2 py-0.5 rounded-full min-w-[20px] text-center font-semibold'>
-                                {item.badge}
-                              </span>
-                            )}
+                            {/* Shared nav config can emit a string badge
+                                identifier (e.g. 'messages',
+                                'notifications'); this layout doesn't
+                                yet wire actual counts so we only
+                                render numeric badges > 0. The string
+                                form is a no-op until the badge plumbing
+                                lands here. */}
+                            {typeof item.badge === 'number' &&
+                              item.badge > 0 && (
+                                <span className='bg-teal-500 text-white text-xs px-2 py-0.5 rounded-full min-w-[20px] text-center font-semibold'>
+                                  {item.badge}
+                                </span>
+                              )}
                           </Link>
                         )}
                       </div>

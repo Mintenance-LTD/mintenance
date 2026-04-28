@@ -104,12 +104,32 @@ export function ContractorProfileClient2025({
     }
   };
 
-  // Cover photo upload is not yet wired — there is no
-  // /api/contractor/cover-photo endpoint and `profiles` has no
-  // cover_photo_url column. Tell the user instead of silently
-  // dropping the pick.
-  const handleCoverPhotoSelected = (_file: File) => {
-    toast.error('Cover photo uploads are not yet supported — coming soon.');
+  // Cover photo upload — POSTs to /api/users/cover-photo which
+  // uploads to the `profile-images` bucket and writes
+  // profiles.cover_photo_url. Migration 20260428213009 added the
+  // column; before that this was a "coming soon" stub.
+  const handleCoverPhotoSelected = async (file: File) => {
+    const body = new FormData();
+    body.append('cover', file);
+    try {
+      const res = await fetch('/api/users/cover-photo', {
+        method: 'POST',
+        credentials: 'include',
+        headers: getCsrfHeaders(),
+        body,
+      });
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => ({}));
+        throw new Error(errBody.error || 'Upload failed');
+      }
+      toast.success('Cover photo updated');
+      router.refresh();
+    } catch (err) {
+      logger.error('Cover photo upload failed', err);
+      toast.error(
+        err instanceof Error ? err.message : 'Failed to upload cover photo'
+      );
+    }
   };
 
   const handleSaveSkills = async (
