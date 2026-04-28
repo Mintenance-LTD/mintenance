@@ -101,66 +101,81 @@ export const ContractPreparationScreen: React.FC<Props> = ({
     const loadData = async () => {
       try {
         if (!user?.id) return;
-        const { supabase } = await import('../../config/supabase');
-        const [profileRes, insuranceRes, licenseRes, contractsRes, bidRes, quoteRes] =
-          await Promise.allSettled([
-            // Business details from profiles table (company_name, license_number)
-            supabase.from('profiles').select('company_name, license_number').eq('id', user.id).single(),
-            // Insurance from contractor_insurance table
-            supabase.from('contractor_insurance').select('provider, policy_number').eq('contractor_id', user.id).eq('status', 'active').order('created_at', { ascending: false }).limit(1).maybeSingle(),
-            // License type from contractor_licenses table
-            supabase.from('contractor_licenses').select('name, number').eq('contractor_id', user.id).eq('status', 'active').order('created_at', { ascending: false }).limit(1).maybeSingle(),
-            supabase.from('contracts').select('id, amount, title, description, terms, status').eq('job_id', jobId).order('created_at', { ascending: false }).limit(1),
-            supabase.from('bids').select('amount, description, message').eq('job_id', jobId).eq('contractor_id', user.id).eq('status', 'accepted').limit(1).maybeSingle(),
-            supabase.from('contractor_quotes').select('id, line_items, total_amount, tax_rate, tax_amount, terms').eq('job_id', jobId).eq('contractor_id', user.id).order('created_at', { ascending: false }).limit(1).maybeSingle(),
-          ]);
+        // Single GET — server does the 6 parallel reads previously
+        // done client-side. Pre-fill only; missing fields are non-fatal.
+        interface PreparationBundle {
+          profile: {
+            company_name: string | null;
+            license_number: string | null;
+          } | null;
+          insurance: {
+            provider: string | null;
+            policy_number: string | null;
+          } | null;
+          license: { name: string | null; number: string | null } | null;
+          contract: {
+            id: string;
+            amount: number | null;
+            title: string | null;
+            description: string | null;
+            terms: string | null;
+            status: ContractStatus;
+          } | null;
+          acceptedBid: {
+            amount: number | null;
+            description: string | null;
+            message: string | null;
+          } | null;
+          quote: {
+            id: string;
+            line_items: Array<{
+              description: string;
+              quantity: number;
+              unitPrice: number;
+              total: number;
+            }> | null;
+            total_amount: number | null;
+            tax_rate: number | null;
+            tax_amount: number | null;
+            terms: string | null;
+          } | null;
+        }
+        const data = await mobileApiClient.get<PreparationBundle>(
+          `/api/contracts/preparation-data?jobId=${encodeURIComponent(jobId)}`
+        );
         if (cancelled) return;
 
-        // Auto-fill from profiles table (company_name, license_number)
-        if (profileRes.status === 'fulfilled' && profileRes.value.data) {
-          const p = profileRes.value.data;
-          if (p.company_name) setCompanyName(p.company_name);
-          if (p.license_number) setLicenseNumber(p.license_number);
+        if (data.profile) {
+          if (data.profile.company_name)
+            setCompanyName(data.profile.company_name);
+          if (data.profile.license_number)
+            setLicenseNumber(data.profile.license_number);
         }
-        // Auto-fill insurance from contractor_insurance table
-        if (insuranceRes.status === 'fulfilled' && insuranceRes.value.data) {
-          const ins = insuranceRes.value.data;
-          if (ins.provider) setInsuranceProvider(ins.provider);
-          if (ins.policy_number) setInsurancePolicyNumber(ins.policy_number);
+        if (data.insurance) {
+          if (data.insurance.provider)
+            setInsuranceProvider(data.insurance.provider);
+          if (data.insurance.policy_number)
+            setInsurancePolicyNumber(data.insurance.policy_number);
         }
-        // Auto-fill license type from contractor_licenses table
-        if (licenseRes.status === 'fulfilled' && licenseRes.value.data) {
-          const lic = licenseRes.value.data;
-          if (lic.name) setLicenseType(lic.name);
-        }
-        if (
-          contractsRes.status === 'fulfilled' &&
-          contractsRes.value.data?.[0]
-        ) {
-          const c = contractsRes.value.data[0];
+        if (data.license?.name) setLicenseType(data.license.name);
+        if (data.contract) {
+          const c = data.contract;
           if (c.amount) setAmount(String(c.amount));
           if (c.title) setTitle(c.title);
           if (c.description) setDescription(c.description);
           if (c.status && c.status !== 'draft')
             setExistingStatus(c.status as ContractStatus);
         }
-        if (bidRes.status === 'fulfilled' && bidRes.value.data) {
-          const b = bidRes.value.data;
+        if (data.acceptedBid) {
+          const b = data.acceptedBid;
           if (b.amount && !amount) setAmount(String(b.amount));
           if ((b.description || b.message) && !description)
             setDescription(b.description || b.message || '');
         }
-        // Load linked quote (line items from accepted bid)
-        if (quoteRes.status === 'fulfilled' && quoteRes.value.data) {
-          const q = quoteRes.value.data;
+        if (data.quote) {
+          const q = data.quote;
           setQuoteId(q.id);
-          const items = q.line_items as Array<{
-            description: string;
-            quantity: number;
-            unitPrice: number;
-            total: number;
-          }> | null;
-          if (items?.length) setQuoteLineItems(items);
+          if (q.line_items?.length) setQuoteLineItems(q.line_items);
           if (q.terms && !terms) setTerms(String(q.terms));
         }
       } catch {
@@ -233,10 +248,14 @@ export const ContractPreparationScreen: React.FC<Props> = ({
       );
     } catch (err: unknown) {
       HapticService.error();
-      const msg = err instanceof Error ? err.message
-        : typeof err === 'string' ? err
-        : typeof err === 'object' && err !== null && 'message' in err ? String((err as Record<string, unknown>).message)
-        : 'Failed to submit contract. Please try again.';
+      const msg =
+        err instanceof Error
+          ? err.message
+          : typeof err === 'string'
+            ? err
+            : typeof err === 'object' && err !== null && 'message' in err
+              ? String((err as Record<string, unknown>).message)
+              : 'Failed to submit contract. Please try again.';
       Alert.alert('Error', msg);
     } finally {
       setSubmitting(false);

@@ -11,6 +11,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { supabase } from '../../../config/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
 import { logger } from '../../../utils/logger';
+import { BidService } from '../../../services/BidService';
 import * as Location from 'expo-location';
 
 export interface JobMapItem {
@@ -199,17 +200,20 @@ const useJobsMapViewModel = (): JobsMapViewModel => {
 
       jobsQuery = jobsQuery.order('created_at', { ascending: false }).limit(50);
 
-      const [jobsResult, bidsResult] = await Promise.all([
+      // Bids: read via BidService (single bid surface) so this screen
+      // doesn't drift from the rest of the app on bid-shape changes. The
+      // service still uses Supabase under the hood today; centralising
+      // the call here is the prerequisite for an `/api/contractor/bids`
+      // migration without touching every consumer again.
+      const [jobsResult, contractorBids] = await Promise.all([
         jobsQuery,
         user?.id
-          ? supabase.from('bids').select('job_id').eq('contractor_id', user.id)
-          : Promise.resolve({ data: [] as { job_id: string }[], error: null }),
+          ? BidService.getBidsByContractor(user.id).catch(() => [])
+          : Promise.resolve([]),
       ]);
 
       const { data, error } = jobsResult;
-      const bidJobIds = new Set(
-        (bidsResult.data ?? []).map((b: { job_id: string }) => b.job_id)
-      );
+      const bidJobIds = new Set(contractorBids.map((b) => b.job_id));
 
       if (error) {
         logger.error('Error fetching jobs for map', error);

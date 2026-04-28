@@ -13,8 +13,8 @@ import Icon from 'react-native-vector-icons/MaterialIcons';
 import * as ImagePicker from 'expo-image-picker';
 import { logger } from '@mintenance/shared';
 import { theme } from '../../theme';
-import { supabase } from '../../config/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { mobileApiClient } from '../../utils/mobileApiClient';
 import { AssessmentStep } from './types';
 import { AssessmentHeader } from './components/AssessmentHeader';
 import { ProgressBar } from './components/ProgressBar';
@@ -290,58 +290,55 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({
         room_metadata: roomMetadata,
       };
 
-      // Insert into building_assessments with all required NOT NULL columns.
-      // severity must be one of early/developing/significant/dangerous (DB CHECK constraint).
-      // Default to 'early' since no damage has been analyzed yet — the AI will update later.
-      const { data: assessment, error: insertError } = await supabase
-        .from('building_assessments')
-        .insert({
-          user_id: user.id,
-          property_id: propertyId || null,
-          domain: 'building',
-          damage_type: 'general_damage',
-          damage_type_canonical: 'general_damage',
-          severity: 'early',
-          confidence: 0,
-          safety_score: 0,
-          compliance_score: 0,
-          insurance_risk_score: 0,
-          urgency: 'monitor',
+      // Two-step server-side create: 1) POST /api/assessments to mint
+      // the row (NOT NULL defaults applied server-side), 2) upload
+      // photos to storage using the new id, 3) POST .../images to
+      // attach them. Direct DB inserts moved off the client so RLS /
+      // ownership lives in one place.
+      let assessment: { id: string } | null = null;
+      try {
+        const createResp = await mobileApiClient.post<{
+          assessment: { id: string; image_count: number };
+        }>('/api/assessments', {
+          property_id: propertyId || undefined,
           assessment_data: assessmentData,
-          validation_status: 'pending',
-          ...(gpsLocation
-            ? {
-                latitude: gpsLocation.latitude,
-                longitude: gpsLocation.longitude,
-              }
-            : {}),
-          ...(roomMetadata && (roomMetadata.room || roomMetadata.floor != null)
-            ? { room_metadata: roomMetadata }
-            : {}),
-        })
-        .select('id')
-        .single();
-
-      if (insertError) {
-        logger.error('Failed to save assessment', { error: insertError });
+          gps: gpsLocation || undefined,
+          room_metadata:
+            roomMetadata && (roomMetadata.room || roomMetadata.floor != null)
+              ? roomMetadata
+              : undefined,
+        });
+        assessment = createResp.assessment
+          ? { id: createResp.assessment.id }
+          : null;
+      } catch (err) {
+        logger.error('Failed to save assessment', { error: err });
         Alert.alert(
           'Error',
-          insertError.message || 'Failed to save assessment. Please try again.'
+          err instanceof Error
+            ? err.message
+            : 'Failed to save assessment. Please try again.'
         );
         return;
       }
 
-      // Upload photos and save references
+      // Upload photos and save references via the dedicated images endpoint.
       let uploadedUrls: string[] = [];
       if (photos.length > 0 && assessment?.id) {
         uploadedUrls = await uploadPhotosToStorage(photos, assessment.id);
         if (uploadedUrls.length > 0) {
-          const imageInserts = uploadedUrls.map((url, idx) => ({
-            assessment_id: assessment.id,
-            image_url: url,
-            image_index: idx,
-          }));
-          await supabase.from('assessment_images').insert(imageInserts);
+          try {
+            await mobileApiClient.post(
+              `/api/assessments/${assessment.id}/images`,
+              { urls: uploadedUrls }
+            );
+          } catch (err) {
+            // Non-fatal: assessment row exists, AI pipeline can re-attach.
+            logger.warn('Assessment image attach failed', {
+              assessmentId: assessment.id,
+              error: err,
+            });
+          }
         }
       }
 

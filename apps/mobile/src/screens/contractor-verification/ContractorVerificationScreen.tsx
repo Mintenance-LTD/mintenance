@@ -55,11 +55,24 @@ import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker, {
   DateTimePickerEvent,
 } from '@react-native-community/datetimepicker';
-import { supabase } from '../../config/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { sanitize } from '@mintenance/security';
+import { mobileApiClient } from '../../utils/mobileApiClient';
 import { logger } from '../../utils/logger';
 import { theme } from '../../theme';
+
+interface BusinessProfileBundle {
+  profile: {
+    company_name: string | null;
+    business_address: string | null;
+    license_number: string | null;
+    license_type: string | null;
+    license_expiry: string | null;
+    verification_status: string | null;
+  } | null;
+  insurance: { provider: string | null; policy_number: string | null } | null;
+  license: { name: string | null; number: string | null } | null;
+}
 import { styles } from './ContractorVerificationScreen.styles';
 import {
   INITIAL_FORM,
@@ -106,17 +119,12 @@ export const ContractorVerificationScreen: React.FC<
   const checkVerificationStatus = async (): Promise<void> => {
     if (!user?.id) return;
     try {
-      // Single fetch — no `as any`. Typed through the local ProfileRow.
-      const { data, error } = await supabase
-        .from('profiles')
-        .select(
-          'company_name, business_address, license_number, license_type, license_expiry, verification_status'
-        )
-        .eq('id', user.id)
-        .maybeSingle();
-
-      if (error) throw error;
-      const profile = (data ?? null) as ProfileRow | null;
+      // Single fetch via the consolidated business-profile endpoint.
+      // Server does the joined read; client just maps to the form.
+      const bundle = await mobileApiClient.get<BusinessProfileBundle>(
+        '/api/contractor/business-profile'
+      );
+      const profile = (bundle.profile ?? null) as ProfileRow | null;
       if (!profile) return;
 
       if (profile.verification_status === 'verified') {
@@ -187,44 +195,19 @@ export const ContractorVerificationScreen: React.FC<
     try {
       setLoading(true);
 
-      // 1) Backward-compat write to profiles — 20+ readers still
-      //    consume these columns. Safe to drop in a follow-up.
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({
-          company_name: sanitize.companyName(formData.companyName),
-          business_address: sanitize.address(formData.businessAddress),
-          license_number: sanitize.text(formData.licenseNumber.trim(), 50),
-          license_type: formData.licenseType,
-          license_expiry: expiryIso,
-          verification_status: 'pending',
-        })
-        .eq('id', user.id);
-      if (profileError) throw profileError;
-
-      // 2) New source of truth — credential_verifications. Each
-      //    submission creates a fresh 'pending' row; admin moderation
-      //    closes out duplicates. RLS enforces user_id = auth.uid()
-      //    + status = 'pending' on INSERT.
-      const { error: credError } = await supabase
-        .from('credential_verifications')
-        .insert({
-          user_id: user.id,
-          register: formData.licenseType,
-          registration_number: sanitize.text(formData.licenseNumber.trim(), 50),
-          status: 'pending',
-          expires_at: expiryIso ? new Date(expiryIso).toISOString() : null,
-        });
-      if (credError) {
-        // Non-fatal for the user: profiles write already succeeded so
-        // the existing admin-review flow still works. Log loud for
-        // observability — this is the new path we're rolling out.
-        logger.error(
-          'ContractorVerification: credential_verifications insert failed',
-          credError,
-          { userId: user.id }
-        );
-      }
+      // Single PATCH — server does the profile update + license upsert
+      // + credential_verifications insert + verification_status flip.
+      // The dual-write previously happened on the client; consolidating
+      // it server-side closes the window where the credential_
+      // verifications insert could fail silently mid-flow.
+      await mobileApiClient.patch('/api/contractor/business-profile', {
+        companyName: sanitize.companyName(formData.companyName),
+        businessAddress: sanitize.address(formData.businessAddress),
+        licenseNumber: sanitize.text(formData.licenseNumber.trim(), 50),
+        licenseType: formData.licenseType,
+        licenseExpiry: expiryIso ?? null,
+        submitVerification: true,
+      });
 
       await refreshUser();
       Alert.alert(
