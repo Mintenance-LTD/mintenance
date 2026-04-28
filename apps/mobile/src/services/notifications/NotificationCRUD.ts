@@ -21,6 +21,10 @@ export async function getUserNotifications(
   try {
     if (offset === 0) {
       try {
+        // history=1 — request the paginated, unfiltered inbox view.
+        // Without it the API returns the dashboard-style feed (recent
+        // OR unread, capped at 7) and the mobile inbox looks empty for
+        // users whose recent activity is already read.
         const response = await mobileApiClient.get<{
           notifications?: Array<{
             id: string;
@@ -36,7 +40,7 @@ export async function getUserNotifications(
             link?: string;
             action_url?: string;
           }>;
-        }>(`/api/notifications?limit=${limit}&offset=${offset}`);
+        }>(`/api/notifications?history=1&limit=${limit}&offset=${offset}`);
 
         if (response.notifications) {
           return response.notifications.map((row) => ({

@@ -36,14 +36,51 @@ export const GET = withApiHandler(
       { route: '/api/notifications' }
     );
 
+    // Mobile inbox passes `?history=1&limit=50&offset=0` to scroll past
+    // read items. Default (no flag) keeps the recent-or-unread feed for
+    // the web dashboard activity card.
+    const url = new URL(request.url);
+    const includeHistory =
+      url.searchParams.get('history') === '1' ||
+      url.searchParams.get('history') === 'true';
+    const requestedLimit = Number.parseInt(
+      url.searchParams.get('limit') ?? '',
+      10
+    );
+    const requestedOffset = Number.parseInt(
+      url.searchParams.get('offset') ?? '',
+      10
+    );
+
     // Shared with the dashboard activity feed — see lib/notifications/feed.ts
     // for the filtering rules (excludes social types, keeps items recent
     // or unread). Moving the filter into one place stops the two views
     // from drifting apart on every schema/policy tweak.
+    const feedLimit = includeHistory
+      ? Math.min(
+          Math.max(Number.isFinite(requestedLimit) ? requestedLimit : 50, 1),
+          100
+        )
+      : 7;
+    const feedOffset =
+      includeHistory && Number.isFinite(requestedOffset) && requestedOffset > 0
+        ? requestedOffset
+        : 0;
+
     const mappedNotifications = await fetchNotificationFeed(userId, {
       db: userDb,
-      limit: 7,
+      limit: feedLimit,
+      offset: feedOffset,
+      includeHistory,
     });
+
+    // History mode: skip the realtime-enrichment block (quote views,
+    // unread messages, project reminders). Those are recency-sensitive
+    // synthetic rows that don't belong in a paginated history view —
+    // they would interleave unpredictably across pages.
+    if (includeHistory) {
+      return NextResponse.json({ notifications: mappedNotifications });
+    }
 
     // Debug: Log specific notification types
     const bidAcceptedNotifs = mappedNotifications.filter(
