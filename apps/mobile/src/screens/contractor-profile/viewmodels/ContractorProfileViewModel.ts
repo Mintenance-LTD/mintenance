@@ -10,8 +10,20 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { Share, Linking, Alert } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import { logger } from '../../../utils/logger';
 import { mobileApiClient } from '../../../utils/mobileApiClient';
+
+export interface ContractorProfileContext {
+  /**
+   * Origin context controlling which CTAs the screen exposes. Bid-review
+   * mode requires `jobId`/`bidId` so the message CTA can navigate to
+   * the existing thread for that job.
+   */
+  source?: 'bidReview' | 'general';
+  jobId?: string;
+  bidId?: string;
+}
 
 export interface Review {
   id: string;
@@ -101,8 +113,17 @@ const DEFAULT_CONTRACTOR: ContractorProfileState['contractor'] = {
 };
 
 export const useContractorProfileViewModel = (
-  contractorId?: string
+  contractorId?: string,
+  context: ContractorProfileContext = {}
 ): ContractorProfileViewModel => {
+  const navigation = useNavigation<{
+    navigate: (screen: string, params?: Record<string, unknown>) => void;
+    getParent?: () =>
+      | {
+          navigate: (screen: string, params?: Record<string, unknown>) => void;
+        }
+      | undefined;
+  }>();
   const [activeTab, setActiveTab] = useState<'photos' | 'reviews'>('photos');
   const [contractor, setContractor] =
     useState<ContractorProfileState['contractor']>(DEFAULT_CONTRACTOR);
@@ -210,11 +231,44 @@ export const useContractorProfileViewModel = (
   }, [fetchProfile]);
 
   const handleMessage = useCallback(() => {
-    // Messaging requires an accepted bid / assigned job between homeowner and contractor.
-    // The screen container controls visibility of the Message button based on `canMessage`.
-    // Navigation to the messaging thread is handled by the screen when the button is shown.
-    logger.info('Message contractor', { contractorId: contractor.id });
-  }, [contractor.id]);
+    // Messaging requires a job thread context. Bid-review entry passes
+    // `jobId` (the message thread is keyed on jobId; the thread is
+    // auto-created on bid acceptance). Without a jobId we cannot route —
+    // the screen's `canMessage` gate already hides the button in that
+    // case, but log for observability if a caller invokes us anyway.
+    const targetJobId = context.jobId;
+    if (!targetJobId) {
+      logger.warn('handleMessage invoked without job context', {
+        contractorId: contractor.id,
+        source: context.source ?? 'general',
+      });
+      return;
+    }
+    const navParams = {
+      conversationId: targetJobId,
+      recipientId: contractor.id,
+      recipientName: contractor.name,
+    };
+    // The contractor profile is mounted inside a modal stack; the
+    // messaging screen lives in the parent stack, so jump up one level
+    // before navigating. Falls back to a same-stack navigate if no
+    // parent is exposed (test environments / direct deep-link).
+    const parent = navigation.getParent?.();
+    if (parent) {
+      parent.navigate('MessagingTab', {
+        screen: 'Messaging',
+        params: navParams,
+      });
+    } else {
+      navigation.navigate('Messaging', navParams);
+    }
+  }, [
+    contractor.id,
+    contractor.name,
+    context.jobId,
+    context.source,
+    navigation,
+  ]);
 
   const handleCall = useCallback(() => {
     if (contractor.phone) {

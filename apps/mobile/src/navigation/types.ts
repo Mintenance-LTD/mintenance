@@ -251,6 +251,16 @@ export type ModalStackParamList = {
   ContractorProfile: {
     contractorId: string;
     contractorName?: string;
+    /**
+     * Origin context for the profile view. `bidReview` enables the
+     * Accept / Reject / Message bid actions on the profile; `general`
+     * (default) shows the discovery CTAs only.
+     */
+    source?: 'bidReview' | 'general';
+    /** Required when `source === 'bidReview'` so the screen can act on the bid. */
+    jobId?: string;
+    /** Required when `source === 'bidReview'`. */
+    bidId?: string;
   };
   EnhancedHome: undefined;
   Notifications: undefined;

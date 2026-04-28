@@ -1,24 +1,22 @@
 /**
- * Bid Management Service — INTERNAL ONLY.
+ * Bid Management Service — INTERNAL HELPER for the rich-payload
+ * /api/contractor/submit-bid call only.
  *
- * @deprecated Do not import this service from screens, hooks, or other
- * services. The single public surface for bid operations is
- * `BidService` (./BidService.ts), which delegates here for the rich
- * `submitBid` payload (line items, tax, terms). Read paths
- * (`getBidsByJob`, `getBidsByContractor`) on `BidService` return a
- * different shape (snake_case + nested `contractor` with reviews_count
- * aggregation) and should be preferred — those methods on this class
- * are retained only for compatibility with `JobService`'s prior wiring
- * and are no longer reachable from public callers.
+ * The read methods (getBidsByJob, getBidsByContractor) and the
+ * client-side acceptBid that previously lived here have been removed:
+ * they discarded contractor rating / profile fields in `formatBid`,
+ * and after the BidService consolidation no production code reached
+ * them. `BidService` is the only public bid surface — its read paths
+ * return the snake_case + nested-contractor shape every consumer
+ * needs.
  */
 
-import { supabase } from '../config/supabase';
 import { Bid } from '@mintenance/types';
 import { mobileApiClient } from '../utils/mobileApiClient';
-import { ServiceErrorHandler } from '../utils/serviceErrorHandler';
 
 /**
- * Database row interface for bids table
+ * Database row interface for bids table — return shape from
+ * /api/contractor/submit-bid.
  */
 interface DatabaseBidsRow {
   id: string;
@@ -88,61 +86,6 @@ export class BidManagementService {
     }
 
     return this.formatBid(response.bid);
-  }
-
-  static async getBidsByJob(jobId: string): Promise<Bid[]> {
-    const { data, error } = await supabase
-      .from('bids')
-      .select(
-        `
-        *,
-        contractor:profiles!bids_contractor_id_fkey(id, first_name, last_name, company_name, rating, city, profile_image_url)
-      `
-      )
-      .eq('job_id', jobId)
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-    if (!data) return [];
-    return data.map(this.formatBid);
-  }
-
-  static async getBidsByContractor(contractorId: string): Promise<Bid[]> {
-    const { data, error } = await supabase
-      .from('bids')
-      .select(
-        `
-        *,
-        job:jobs(title, description, location, budget)
-      `
-      )
-      .eq('contractor_id', contractorId)
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-    if (!data) return [];
-    return data.map(this.formatBid);
-  }
-
-  static async acceptBid(bidId: string): Promise<void> {
-    // Fetch bid to get job_id for the API URL
-    const { data: bid, error: bidError } = await supabase
-      .from('bids')
-      .select('job_id, contractor_id')
-      .eq('id', bidId)
-      .single();
-
-    if (bidError) {
-      if (bidError && typeof bidError === 'object' && 'message' in bidError) {
-        throw new Error(String(bidError.message) || 'Bid fetch failed');
-      } else {
-        throw new Error('Bid fetch failed');
-      }
-    }
-    if (!bid) throw new Error('Bid not found');
-
-    // Route through web API to ensure contract, message thread, and notifications are created
-    await mobileApiClient.post(`/api/jobs/${bid.job_id}/bids/${bidId}/accept`);
   }
 
   // Helper method

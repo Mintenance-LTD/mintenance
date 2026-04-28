@@ -37,6 +37,9 @@ interface ContractorProfileScreenProps {
     params?: {
       contractorId?: string;
       contractorName?: string;
+      source?: 'bidReview' | 'general';
+      jobId?: string;
+      bidId?: string;
     };
   };
 }
@@ -46,7 +49,11 @@ export const ContractorProfileScreen: React.FC<
 > = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const viewModel = useContractorProfileViewModel(route?.params?.contractorId);
+  const viewModel = useContractorProfileViewModel(route?.params?.contractorId, {
+    source: route?.params?.source,
+    jobId: route?.params?.jobId,
+    bidId: route?.params?.bidId,
+  });
 
   // Check if the homeowner has an active job with this contractor (assigned/in_progress/completed)
   const contractorId = route?.params?.contractorId;
@@ -65,7 +72,15 @@ export const ContractorProfileScreen: React.FC<
     enabled: !!user && !!contractorId,
   });
 
-  const canMessage = activeJobs.length > 0;
+  // Message button is visible when:
+  //   - there's an active job between homeowner and contractor
+  //     (post-assignment / mid-job / completed), OR
+  //   - the user opened this profile from a bid review with a known
+  //     jobId, since the messaging thread is keyed on jobId and the
+  //     homeowner needs to be able to message the bidder during review.
+  const fromBidReview =
+    route?.params?.source === 'bidReview' && !!route?.params?.jobId;
+  const canMessage = activeJobs.length > 0 || fromBidReview;
 
   // Check if the homeowner has any open or accepted bid from this
   // contractor on one of their jobs. When true the primary CTA flips

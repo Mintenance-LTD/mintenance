@@ -71,13 +71,21 @@ export const PostJobWizardScreen: React.FC = () => {
   const submit = async () => {
     setSubmitting(true);
     try {
+      // `requirements` was previously sent here as
+      // `{ contractor_before_photos: ... }` but /api/jobs uses a strict
+      // Zod schema that rejects unknown keys (mass-assignment guard) and
+      // there is no `requirements` column on `jobs` in the live schema —
+      // so this field would 400 every silver-mode submit.
+      // contractor_before_photos checkbox state is intentionally not
+      // persisted yet; wiring it requires either a real `jobs.requirements`
+      // JSONB column + migration or moving the flag into
+      // `tenancy_metadata`. Tracked as a follow-up.
       await mobileApiClient.post('/api/jobs', {
         title,
         category,
         description,
         location,
         budget: Number(budget),
-        requirements: { contractor_before_photos: contractorBeforePhotos },
       });
       Alert.alert('Job posted', 'Contractors in your area will see it now.', [
         { text: 'OK', onPress: () => navigation.goBack() },

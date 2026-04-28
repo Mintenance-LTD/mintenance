@@ -27,6 +27,7 @@ import { JobLocationMap } from './components/JobLocationMap';
 import { JobPricingCard } from './components/JobPricingCard';
 import { useAuth } from '../../contexts/AuthContext';
 import { JobsStackParamList } from '../../navigation/types';
+import { normalizePhotoUrls } from '../../utils/photoUrls';
 import { theme } from '../../theme';
 import { getPriorityCTA, CTAContext } from './JobDetailsCTA';
 import { EscrowInfoModal } from './EscrowInfoModal';
@@ -161,7 +162,12 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
     );
   }
 
-  const photos = job.photos || job.images || [];
+  // Normalize the mixed photo shapes the API returns. Job rows can carry
+  // photos either as plain URL strings or as `{file_url|photo_url|...}`
+  // objects depending on which read path served them — list/detail views
+  // were drifting because each callsite picked its own subset. Use the
+  // shared helper so a single source of truth feeds the carousel.
+  const photos = normalizePhotoUrls(job.photos ?? job.images);
   const hasPhotos = photos.length > 0;
   const locationStr =
     typeof job.location === 'string' ? job.location : job.city || '';
