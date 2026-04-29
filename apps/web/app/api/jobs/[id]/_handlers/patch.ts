@@ -14,12 +14,7 @@ import {
   BadRequestError,
 } from '@/lib/errors/api-error';
 import { validateRequest } from '@/lib/validation/validator';
-import {
-  jobSelectFields,
-  mapRowToJobDetail,
-  updateJobSchema,
-  type JobRow,
-} from './shared';
+import { jobSelectFields, updateJobSchema } from './shared';
 
 export async function handlePatch(
   request: NextRequest,
@@ -144,6 +139,52 @@ export async function handlePatch(
     updatePayload.requirements = payload.requirements;
   }
 
+  // Audit re-review (2026-04-29): close the schema-vs-handler gap
+  // for the rest of the fields the shared schema declares. PUT
+  // already wires these — PATCH was silently dropping them. The
+  // budget pair has the same "don't drop below an existing bid"
+  // protection as the singular `budget` field above, but applied
+  // to the max side; keeping it simple here since `budget_max` is
+  // typically the homeowner's ceiling and lowering it through bids
+  // is rare. If needed, the same `bidsExceedNewBudget` check can
+  // be lifted into a shared helper.
+  if (payload.budgetMin !== undefined) {
+    updatePayload.budget_min = payload.budgetMin;
+  }
+  if (payload.budgetMax !== undefined) {
+    updatePayload.budget_max = payload.budgetMax;
+  }
+  if (payload.startDate !== undefined) {
+    updatePayload.start_date = payload.startDate;
+  }
+  if (payload.endDate !== undefined) {
+    updatePayload.end_date = payload.endDate;
+  }
+  if (payload.flexibleTimeline !== undefined) {
+    updatePayload.flexible_timeline = payload.flexibleTimeline;
+  }
+
+  // Photos: validate + rebuild `job_attachments`. Same logic PUT
+  // uses (commit `37b8b4c5`), minus the AI/geocode side effects
+  // that stay PUT-only because they own a much heavier pipeline.
+  // Coalesce the deprecated `images` alias into `photoUrls` first.
+  const photoUrls = payload.photoUrls ?? payload.images;
+  let validatedPhotoUrls: string[] | undefined;
+  if (photoUrls !== undefined) {
+    if (photoUrls.length === 0) {
+      validatedPhotoUrls = [];
+    } else {
+      const { validateURLs } = await import('@/lib/security/url-validation');
+      const urlValidation = await validateURLs(photoUrls, true);
+      if (urlValidation.invalid.length > 0) {
+        throw new BadRequestError(
+          `Invalid image URLs: ${urlValidation.invalid.map((i) => i.error).join(', ')}`
+        );
+      }
+      validatedPhotoUrls = urlValidation.valid;
+    }
+  }
+
   // SECURITY: Prevent budget reduction if bids exist
   if (payload.budget !== undefined) {
     const newBudget = payload.budget;
@@ -207,6 +248,41 @@ export async function handlePatch(
       jobId: id,
     });
     throw error;
+  }
+
+  // Rebuild job_attachments from validatedPhotoUrls. Mirror the
+  // delete-then-insert pattern PUT uses so a homeowner who clears
+  // their photo list ends up with no rows (not the previous set).
+  // Done AFTER the row update so the client sees the fresh
+  // updated_at timestamp regardless of attachment outcome.
+  if (validatedPhotoUrls !== undefined) {
+    await userDb
+      .from('job_attachments')
+      .delete()
+      .eq('job_id', id)
+      .eq('file_type', 'image');
+    if (validatedPhotoUrls.length > 0) {
+      const attachments = validatedPhotoUrls.map((url) => ({
+        job_id: id,
+        file_url: url,
+        file_type: 'image',
+        uploaded_by: user.id,
+      }));
+      const { error: attachmentsError } = await userDb
+        .from('job_attachments')
+        .insert(attachments);
+      if (attachmentsError) {
+        // Log but don't fail — the row update already succeeded
+        // and the user has a clear "saved" signal. A re-save will
+        // retry the attachments.
+        logger.warn('Failed to insert job attachments after PATCH', {
+          service: 'jobs',
+          userId: user.id,
+          jobId: id,
+          error: attachmentsError.message,
+        });
+      }
+    }
   }
 
   logger.info('Job updated successfully', {
