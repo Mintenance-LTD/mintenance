@@ -496,14 +496,18 @@ describe('JobService', () => {
     });
 
     describe('acceptBid', () => {
-      it('should delegate to BidService.acceptBid', async () => {
+      it('should delegate to BidService.acceptBid with bidId + jobId', async () => {
         (BidService.acceptBid as jest.Mock).mockResolvedValue(undefined);
 
-        await JobService.acceptBid('bid-123');
+        await JobService.acceptBid('bid-123', 'job-456');
 
-        // JobService.acceptBid passes empty homeownerId since BidService
-        // ignores it (underscore-prefixed in BidService.acceptBid).
-        expect(BidService.acceptBid).toHaveBeenCalledWith('bid-123', '');
+        // Audit step 11 (2026-04-29): both ids are required so the
+        // underlying mutation route can be addressed without a
+        // server-side `bid → job_id` lookup.
+        expect(BidService.acceptBid).toHaveBeenCalledWith(
+          'bid-123',
+          'job-456'
+        );
       });
     });
   });

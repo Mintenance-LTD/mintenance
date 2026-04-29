@@ -204,7 +204,8 @@ describe('End-to-End User Journeys', () => {
       JobService.acceptBid = jest.fn().mockResolvedValueOnce(undefined);
       JobService.updateJobStatus = jest.fn().mockResolvedValueOnce(undefined);
 
-      await JobService.acceptBid(bid.id);
+      // Audit step 11 (2026-04-29): acceptBid now takes bidId + jobId.
+      await JobService.acceptBid(bid.id, testJobId);
       await JobService.updateJobStatus(
         testJobId,
         'assigned',

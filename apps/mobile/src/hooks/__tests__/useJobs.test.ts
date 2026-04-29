@@ -567,18 +567,26 @@ describe('useJobs Hooks Integration', () => {
     });
 
     describe('useAcceptBid', () => {
-      it('should call JobService.acceptBid', async () => {
+      // Audit step 11 (2026-04-29): JobService.acceptBid now requires
+      // both bidId + jobId so the underlying BidService route can be
+      // addressed without a server-side `bid → job_id` lookup. The
+      // hook (useAcceptBid) takes `{ bidId, jobId }` as the mutation
+      // argument and forwards both to JobService.
+      it('should call JobService.acceptBid with bidId + jobId', async () => {
         (JobService.acceptBid as jest.Mock).mockResolvedValue(undefined);
 
-        await JobService.acceptBid('bid-123');
+        await JobService.acceptBid('bid-123', 'job-456');
 
-        expect(JobService.acceptBid).toHaveBeenCalledWith('bid-123');
+        expect(JobService.acceptBid).toHaveBeenCalledWith(
+          'bid-123',
+          'job-456'
+        );
       });
 
       it('should handle bid acceptance transaction', async () => {
         (JobService.acceptBid as jest.Mock).mockResolvedValue(undefined);
 
-        await JobService.acceptBid('bid-123');
+        await JobService.acceptBid('bid-123', 'job-456');
 
         // Verify the transaction was attempted
         expect(JobService.acceptBid).toHaveBeenCalled();
@@ -705,7 +713,7 @@ describe('useJobs Hooks Integration', () => {
         new Error('Transaction failed')
       );
 
-      await expect(JobService.acceptBid('bid-123')).rejects.toThrow(
+      await expect(JobService.acceptBid('bid-123', 'job-456')).rejects.toThrow(
         'Transaction failed'
       );
     });
