@@ -70,30 +70,44 @@ export const PUT = withApiHandler(
       address,
       city,
       postcode,
+      country,
       type,
       bedrooms,
       bathrooms,
       squareFeet,
       yearBuilt,
       photos,
+      latitude,
+      longitude,
     } = validation.data;
 
-    // Update the property in the database
+    // Build the update payload conditionally so we don't overwrite
+    // existing values with `undefined` when the client only sends a
+    // subset. Previously every field was unconditionally set, which
+    // also meant lat/long were never persisted on edit because
+    // `undefined` shadowed any prior value (and the schema didn't
+    // accept them anyway — fixed in step 13).
+    const updateData: Record<string, unknown> = {
+      updated_at: new Date().toISOString(),
+    };
+    if (name !== undefined) updateData.property_name = name;
+    if (address !== undefined) updateData.address = address;
+    if (city !== undefined) updateData.city = city;
+    if (postcode !== undefined) updateData.postcode = postcode;
+    if (country !== undefined) updateData.country = country;
+    if (type !== undefined) updateData.property_type = type;
+    if (bedrooms !== undefined) updateData.bedrooms = bedrooms ?? null;
+    if (bathrooms !== undefined) updateData.bathrooms = bathrooms ?? null;
+    if (squareFeet !== undefined)
+      updateData.square_footage = squareFeet ?? null;
+    if (yearBuilt !== undefined) updateData.year_built = yearBuilt ?? null;
+    if (photos !== undefined) updateData.photos = photos || [];
+    if (latitude !== undefined) updateData.latitude = latitude;
+    if (longitude !== undefined) updateData.longitude = longitude;
+
     const { data, error } = await userDb
       .from('properties')
-      .update({
-        property_name: name,
-        address,
-        city,
-        postcode,
-        property_type: type,
-        bedrooms: bedrooms || null,
-        bathrooms: bathrooms || null,
-        square_footage: squareFeet || null,
-        year_built: yearBuilt || null,
-        photos: photos || [],
-        updated_at: new Date().toISOString(),
-      })
+      .update(updateData)
       .eq('id', params.id)
       .select()
       .single();
