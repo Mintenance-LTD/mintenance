@@ -27,6 +27,11 @@ import { logger } from '@mintenance/shared';
 const DEFAULTS = {
   push_enabled: true,
   email_enabled: true,
+  // Audit re-review (2026-04-29): added so the canonical route can
+  // own SMS opt-in, removing the last reason `/api/users/
+  // notification-preferences` (legacy plural) needs to stay alive.
+  // Column added in migration `20260515000001`.
+  sms_enabled: true,
   in_app_enabled: true,
   disabled_types: [] as string[],
   quiet_hours_start: null as string | null,
@@ -41,6 +46,7 @@ const PatchSchema = z
   .object({
     push_enabled: z.boolean().optional(),
     email_enabled: z.boolean().optional(),
+    sms_enabled: z.boolean().optional(),
     in_app_enabled: z.boolean().optional(),
     disabled_types: z.array(z.string().min(1).max(64)).max(64).optional(),
     quiet_hours_start: z

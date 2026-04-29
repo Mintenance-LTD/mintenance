@@ -9,6 +9,9 @@
  */
 
 import type { Job } from '@mintenance/types';
+import { jobResponseSchema } from '@mintenance/api-contracts';
+import { safeValidateResponse } from '@mintenance/api-client';
+import { logger } from '../utils/logger';
 import { mobileApiClient } from '../utils/mobileApiClient';
 import { sanitizeText } from '../utils/sanitize';
 import { ServiceErrorHandler } from '../utils/serviceErrorHandler';
@@ -179,11 +182,24 @@ export class JobCRUDService {
    * why photos disappeared.
    */
   static async getJobById(jobId: string): Promise<Job | null> {
-    const { job } = await mobileApiClient.get<{
-      job: Record<string, unknown>;
-    }>(`/api/jobs/${jobId}`);
+    const response = await mobileApiClient.get<unknown>(`/api/jobs/${jobId}`);
+    // Audit step 15 (2026-04-29): runtime-validate the response
+    // shape against the shared `jobResponseSchema`. Using the safe
+    // variant so an envelope drift logs a warning and we still try
+    // to render — better UX than throwing on the detail screen for
+    // an extra computed field. The id/title/status/created_at
+    // fields the screen depends on are required in the schema, so
+    // a real shape break still bubbles through `formatJob` defaults.
+    const validation = safeValidateResponse(jobResponseSchema, response);
+    if (!validation.success) {
+      logger.warn(
+        'getJobById: response failed shape validation; rendering best-effort',
+        { jobId, error: validation.error }
+      );
+    }
+    const job = (response as { job?: Record<string, unknown> })?.job;
     if (!job) return null;
-    return this.formatJob(job as Record<string, unknown>);
+    return this.formatJob(job);
   }
 
   static async updateJob(
