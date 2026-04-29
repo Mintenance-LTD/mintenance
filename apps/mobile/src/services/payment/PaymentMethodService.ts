@@ -94,45 +94,42 @@ export class PaymentMethodService {
     }
   }
 
+  /**
+   * List the user's payment methods.
+   *
+   * Audit step 12 (2026-04-29): single source of truth is now
+   * **Stripe** via `/api/payments/methods` — the route hits
+   * `stripe.paymentMethods.list({ customer })` so the result
+   * always reflects what's actually charge-able right now.
+   *
+   * The previous "try local-DB first, fall back to Stripe"
+   * pattern produced visibly different lists across web
+   * (Stripe canonical) vs mobile (local DB primary). Local DB
+   * went stale whenever the user removed/expired a card via
+   * Stripe Customer Portal or got a fraud-flagged card auto-
+   * disabled. Now both surfaces match.
+   *
+   * The local `payment_methods` table is still maintained
+   * server-side as an audit/cache layer (`/api/payments/payment-
+   * methods` reads from it) but it's no longer the primary
+   * surface mobile reads from.
+   */
   static async getPaymentMethods(): Promise<{
     methods?: PaymentMethod[];
     error?: string;
   }> {
     try {
-      let data: {
+      const data = await mobileApiClient.get<{
         paymentMethods?: Array<Record<string, unknown>>;
-        methods?: Array<Record<string, unknown>>;
-      };
-
-      try {
-        data = await mobileApiClient.get<{
-          success?: boolean;
-          methods?: Array<Record<string, unknown>>;
-        }>('/api/payments/payment-methods');
-      } catch (localError) {
-        logger.warn(
-          'Local payment method list failed; falling back to Stripe list',
-          {
-            error: localError,
-          }
-        );
-        data = await mobileApiClient.get<{
-          paymentMethods?: Array<Record<string, unknown>>;
-          methods?: Array<Record<string, unknown>>;
-        }>('/api/payments/methods');
-      }
+        defaultPaymentMethodId?: string | null;
+      }>('/api/payments/methods');
 
       const methods = (
-        (data.paymentMethods || data.methods || []) as Array<{
+        (data.paymentMethods ?? []) as Array<{
           id: string;
           type: string;
           isDefault?: boolean;
           created?: number;
-          createdAt?: string;
-          last4?: string;
-          brand?: string;
-          expMonth?: number;
-          expYear?: number;
           card?: {
             brand: string;
             last4: string;
@@ -144,11 +141,10 @@ export class PaymentMethodService {
         id: method.id,
         type: method.type,
         isDefault: !!method.isDefault,
-        createdAt:
-          method.createdAt ||
-          (method.created
-            ? new Date(method.created * 1000).toISOString()
-            : new Date().toISOString()),
+        // Stripe returns `created` as a Unix-seconds timestamp.
+        createdAt: method.created
+          ? new Date(method.created * 1000).toISOString()
+          : new Date().toISOString(),
         card: method.card
           ? {
               brand: method.card.brand,
@@ -156,14 +152,7 @@ export class PaymentMethodService {
               expiryMonth: method.card.expMonth,
               expiryYear: method.card.expYear,
             }
-          : method.type === 'card'
-            ? {
-                brand: method.brand || 'card',
-                last4: method.last4 || '',
-                expiryMonth: method.expMonth || 0,
-                expiryYear: method.expYear || 0,
-              }
-            : undefined,
+          : undefined,
       })) as PaymentMethod[];
 
       return { methods };
