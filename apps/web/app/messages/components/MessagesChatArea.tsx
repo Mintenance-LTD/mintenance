@@ -340,31 +340,15 @@ export function MessagesChatArea({
 
       {/* Input Bar */}
       <div className='p-4 border-t border-gray-200 bg-white'>
+        {/* Audit follow-up (2026-04-29): the disabled "Attachments —
+            coming soon" paperclip used to live here. Better to hide
+            an unbuilt feature than to tease it with a `disabled`
+            button that does nothing. The mobile messaging surface
+            already supports image attachments (via
+            `MessageSender.attachmentUrl`); when the web equivalent
+            ships, drop the button back in here and wire it to the
+            same `/api/messages/threads/:id/messages` route. */}
         <div className='flex items-center gap-3'>
-          <button
-            disabled
-            title='Attachments -- coming soon'
-            aria-label='Attach file (coming soon)'
-            className='p-2 rounded-lg transition-colors text-gray-300 cursor-not-allowed relative group'
-          >
-            <svg
-              className='w-5 h-5'
-              fill='none'
-              viewBox='0 0 24 24'
-              stroke='currentColor'
-            >
-              <path
-                strokeLinecap='round'
-                strokeLinejoin='round'
-                strokeWidth={2}
-                d='M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13'
-              />
-            </svg>
-            <span className='absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 text-xs text-white bg-gray-800 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none'>
-              Coming soon
-            </span>
-          </button>
-
           <input
             type='text'
             placeholder='Type a message...'

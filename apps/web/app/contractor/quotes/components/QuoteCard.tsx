@@ -82,7 +82,11 @@ export function QuoteCard({
   const config = STATUS_CONFIGS[quote.status];
 
   const handleView = () => router.push(`/contractor/quotes/${quote.id}`);
-  const handleEdit = () => router.push(`/contractor/quotes/${quote.id}/edit`);
+  // Audit follow-up (2026-04-29): `/contractor/quotes/[id]/edit` doesn't
+  // exist as a route. The quote view page (`[id]`) is currently the
+  // closest surface a contractor can act on a draft from. Once a
+  // dedicated edit page ships, swap this back to `${id}/edit`.
+  const handleEdit = () => router.push(`/contractor/quotes/${quote.id}`);
   const handleSend = () => {
     toast.success(`Quote sent to ${quote.customerName}`);
     onToggleMenu(null);

@@ -51,12 +51,29 @@ export interface NotificationPrefs {
 interface SidebarSection {
   key: SectionKey;
   label: string;
+  /**
+   * Optional external href. When present, the sidebar renders a link
+   * to that URL instead of switching the in-page `activeSection`.
+   * Used to redirect "Notifications" to the canonical
+   * `/settings/notifications` page (audit follow-up 2026-04-29) —
+   * the in-page `<NotificationsSection>` posts to the legacy
+   * `/api/users/notification-preferences` JSONB column, while the
+   * dedicated page uses the canonical
+   * `/api/user/notification-preferences` table. Mobile is already
+   * routed at the canonical screen; this stops the two surfaces
+   * drifting back apart.
+   */
+  href?: string;
 }
 
 export const SIDEBAR_SECTIONS: SidebarSection[] = [
   { key: 'profile', label: 'Profile' },
   { key: 'account', label: 'Account & Security' },
-  { key: 'notifications', label: 'Notifications' },
+  {
+    key: 'notifications',
+    label: 'Notifications',
+    href: '/settings/notifications',
+  },
   { key: 'payments', label: 'Payments' },
   { key: 'automation', label: 'AI & Automation' },
   { key: 'privacy', label: 'Privacy' },

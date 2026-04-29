@@ -13,25 +13,29 @@ export function HowItWorksCTA() {
 
   return (
     <MotionDiv
-      initial="hidden"
-      animate="visible"
+      initial='hidden'
+      animate='visible'
       variants={fadeIn}
-      className="bg-gradient-to-r from-teal-600 to-emerald-600 rounded-2xl shadow-xl p-12 text-center text-white"
+      className='bg-gradient-to-r from-teal-600 to-emerald-600 rounded-2xl shadow-xl p-12 text-center text-white'
     >
-      <h2 className="text-3xl font-bold mb-4">Ready to Get Started?</h2>
-      <p className="text-xl text-teal-100 mb-8">
+      <h2 className='text-3xl font-bold mb-4'>Ready to Get Started?</h2>
+      <p className='text-xl text-teal-100 mb-8'>
         Join thousands of homeowners and contractors using Mintenance
       </p>
-      <div className="flex flex-col sm:flex-row gap-4 justify-center">
+      {/* Audit follow-up (2026-04-29): the marketing CTA used
+          to push to `/signup` which doesn't exist as a route. The
+          canonical signup flow is `/register` with a `?role=…`
+          query the page reads to pre-select the right tab. */}
+      <div className='flex flex-col sm:flex-row gap-4 justify-center'>
         <button
-          onClick={() => router.push('/signup?role=homeowner')}
-          className="px-8 py-4 bg-white text-teal-600 rounded-lg hover:bg-teal-50 transition-colors font-semibold text-lg"
+          onClick={() => router.push('/register?role=homeowner')}
+          className='px-8 py-4 bg-white text-teal-600 rounded-lg hover:bg-teal-50 transition-colors font-semibold text-lg'
         >
           Post a Job
         </button>
         <button
-          onClick={() => router.push('/signup?role=contractor')}
-          className="px-8 py-4 bg-white/10 border-2 border-white text-white rounded-lg hover:bg-white/20 transition-colors font-semibold text-lg"
+          onClick={() => router.push('/register?role=contractor')}
+          className='px-8 py-4 bg-white/10 border-2 border-white text-white rounded-lg hover:bg-white/20 transition-colors font-semibold text-lg'
         >
           Become a Contractor
         </button>

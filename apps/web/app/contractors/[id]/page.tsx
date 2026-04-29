@@ -356,7 +356,10 @@ function ContractorPublicProfilePage2025() {
     if (!bidId || !jobId) return;
     setBidProcessing(true);
     try {
-      const response = await fetch(`/api/jobs/${jobId}/bids/${bidId}/decline`, {
+      // Audit follow-up (2026-04-29): the backend route is `/reject`,
+      // not `/decline`. Posting here used to silently 404 — the user
+      // saw "Failed to decline bid" with no useful diagnostic.
+      const response = await fetch(`/api/jobs/${jobId}/bids/${bidId}/reject`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

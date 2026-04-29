@@ -180,8 +180,27 @@ const useJobsMapViewModel = (): JobsMapViewModel => {
       // mobile screen no longer hits jobs/bids tables directly. The
       // text-search refinement still happens client-side via the
       // `filteredJobs` selector — too complex to push to a single ILIKE.
+      //
+      // Audit follow-up (2026-04-29): pass the current map region so
+      // the server can filter by Haversine distance. Previously the
+      // client requested all 50 most-recent posted jobs and only
+      // sorted them locally — the "Search this area" button felt
+      // misleading because the actual filter was just "newest 50
+      // anywhere". The route ignores `latitude`/`longitude`/`radiusKm`
+      // until the matching server-side filter lands; safe to send
+      // ahead of that change.
+      const currentRegion = regionRef.current;
       const params = new URLSearchParams({ limit: '50' });
       if (selectedCategory) params.set('category', selectedCategory);
+      if (
+        currentRegion &&
+        Number.isFinite(currentRegion.latitude) &&
+        Number.isFinite(currentRegion.longitude)
+      ) {
+        params.set('latitude', String(currentRegion.latitude));
+        params.set('longitude', String(currentRegion.longitude));
+        params.set('radiusKm', '25');
+      }
 
       interface DiscoverRow {
         id: string;

@@ -186,29 +186,12 @@ export function useServiceRequestForm(onSuccess: () => void) {
 
     setLoading(true);
     try {
-      const uploadedPhotoUrls: string[] = [];
-      const { mobileApiClient } = await import('../../utils/mobileApiClient');
-      for (const photoUri of photos) {
-        const fileName = `${Date.now()}_${Math.random().toString(36).slice(2)}.jpg`;
-        const formData = new FormData();
-        formData.append('photos', {
-          uri: photoUri,
-          name: fileName,
-          type: 'image/jpeg',
-        } as unknown as Blob);
-
-        const uploadResponse = await mobileApiClient.postFormData<{
-          urls?: string[];
-          url?: string;
-          public_url?: string;
-        }>('/api/jobs/upload-photos', formData);
-        const photoUrl =
-          uploadResponse.urls?.[0] ??
-          uploadResponse.public_url ??
-          uploadResponse.url ??
-          '';
-        if (photoUrl) uploadedPhotoUrls.push(photoUrl);
-      }
+      // Audit follow-up (2026-04-29): the upload-then-feed-URLs
+      // loop is now in the shared `utils/uploadJobPhotos` helper so
+      // `JobPostingScreen` can reuse it. Behaviour identical to
+      // before — sequential POSTs to `/api/jobs/upload-photos`.
+      const { uploadJobPhotos } = await import('../../utils/uploadJobPhotos');
+      const uploadedPhotoUrls = await uploadJobPhotos(photos);
 
       // Capture device geolocation for contractor proximity matching
       let latitude: number | undefined;
