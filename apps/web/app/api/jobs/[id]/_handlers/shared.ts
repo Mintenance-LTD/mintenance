@@ -58,7 +58,32 @@ export const mapRowToJobDetail = (row: JobRow): JobDetail => ({
   updatedAt: row.updated_at,
 });
 
-// Enhanced schema for job editing with AI features
+/**
+ * Enhanced schema for job editing with AI features.
+ *
+ * Audit step 4 finish (2026-04-29): aligned with the create-route
+ * schema (`@mintenance/api-contracts.createJobRequestSchema`) and
+ * the live DB columns:
+ *
+ *   - `urgency` is the canonical field name (matches the
+ *     `jobs.urgency` DB column + the shared create schema).
+ *     `priority` is kept as a deprecated alias so the existing web
+ *     edit page (`apps/web/app/jobs/[id]/edit/page.tsx`) keeps
+ *     working through the rename — the handler coalesces them.
+ *   - `photoUrls` matches the create-route shape; `images` is the
+ *     legacy alias the edit page still sends.
+ *   - `requirements` is now `record(string, unknown)` to match the
+ *     `jobs.requirements` jsonb column. Sending an array still
+ *     parses as JSON but the type was lying — record matches the
+ *     create route + the live data.
+ *
+ * Pre-fix bug: the handler wrote `updatePayload.priority` to
+ * `jobs.priority`, but that column doesn't exist (the column is
+ * `urgency`). PostgreSQL silently ignored the unknown column on
+ * update so every "edit job urgency" save was a no-op while the UI
+ * showed "saved successfully". Closed in this commit by writing to
+ * `urgency` and reading from either alias.
+ */
 export const updateJobSchema = z
   .object({
     title: z
@@ -86,9 +111,18 @@ export const updateJobSchema = z
     postcode: z.string().optional(),
     propertyType: z.string().optional(),
     accessInfo: z.string().optional(),
+    // Canonical name matching the DB column + create schema.
+    urgency: z.enum(['low', 'medium', 'high', 'emergency']).optional(),
+    // Deprecated alias — older callers (the web edit page) send
+    // `priority` from a UI field still named that way. The handler
+    // coalesces `urgency ?? priority` before writing.
     priority: z.enum(['low', 'medium', 'high', 'emergency']).optional(),
+    // Canonical name matching the create schema.
+    photoUrls: z.array(z.string().url()).optional(),
+    // Deprecated alias — older callers send `images`.
     images: z.array(z.string().url()).optional(),
-    requirements: z.array(z.string()).optional(),
+    // jsonb on the live DB; matches the create-route shape.
+    requirements: z.record(z.string(), z.unknown()).optional(),
     startDate: z.string().optional(),
     endDate: z.string().optional(),
     flexibleTimeline: z.boolean().optional(),
