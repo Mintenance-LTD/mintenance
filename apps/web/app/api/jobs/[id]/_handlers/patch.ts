@@ -261,11 +261,26 @@ export async function handlePatch(
   // Done AFTER the row update so the client sees the fresh
   // updated_at timestamp regardless of attachment outcome.
   if (validatedPhotoUrls !== undefined) {
-    await userDb
+    // Re-audit follow-up: capture + throw on delete failure too.
+    // Previously the delete was awaited without inspecting the
+    // returned error, so a transient RLS/connectivity failure
+    // would silently succeed-look while leaving the old rows in
+    // place — and then the insert below would either duplicate
+    // photos or fail on a unique constraint. The thrown error
+    // surfaces to the caller before any insert fires.
+    const { error: deleteAttachmentsError } = await userDb
       .from('job_attachments')
       .delete()
       .eq('job_id', id)
       .eq('file_type', 'image');
+    if (deleteAttachmentsError) {
+      logger.error(
+        'Failed to delete job attachments before PATCH rebuild',
+        deleteAttachmentsError,
+        { service: 'jobs', userId: user.id, jobId: id }
+      );
+      throw deleteAttachmentsError;
+    }
     if (validatedPhotoUrls.length > 0) {
       const attachments = validatedPhotoUrls.map((url) => ({
         job_id: id,
