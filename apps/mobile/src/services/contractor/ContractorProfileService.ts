@@ -1,75 +1,112 @@
 import { ContractorProfile } from '@mintenance/types';
-import { supabase } from '../../config/supabase';
 import { logger } from '../../utils/logger';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import { mapDatabaseToContractorProfile } from './ContractorHelpers';
 import type { DatabaseContractorProfileRow, DatabaseError } from './types';
 
 /**
- * Fetch a contractor's extended profile by user ID.
+ * Shape of the `contractor` block returned by the canonical
+ * `/api/contractor/profile-data` route. The route bundles
+ * `profiles.*` (where the contractor's identity actually lives) +
+ * `contractor_profiles.hourly_rate` into one object.
+ */
+interface ProfileDataContractor {
+  id: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  email?: string | null;
+  bio?: string | null;
+  city?: string | null;
+  country?: string | null;
+  profile_image_url?: string | null;
+  phone?: string | null;
+  company_name?: string | null;
+  license_number?: string | null;
+  insurance_expiry_date?: string | null;
+  is_available?: boolean | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  address?: string | null;
+  postcode?: string | null;
+  portfolio_images?: string[] | null;
+  hourly_rate?: number | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+/**
+ * Fetch a contractor's extended profile.
  *
- * Audit step 5 (2026-04-29) — investigated for direct-Supabase
- * removal. **Bigger problem found**: the live `contractor_profiles`
- * table only has `id, stripe_*, subscription_*, hourly_rate,
- * created_at, updated_at` (migration `20260208001000`). The
- * `DatabaseContractorProfileRow` type below claims `business_address,
- * specialties, portfolio_images, certifications, years_experience,
- * service_radius, license_number, insurance_*` etc. — none of which
- * are columns on this table. They live on `profiles` (e.g.
- * `business_address`, `portfolio_images`) or don't exist at all
- * (`specialties`, `certifications`).
+ * Audit re-review (2026-04-29): migrated off the direct-Supabase
+ * read of `contractor_profiles.*`. That table's actual column set
+ * is `id, stripe_*, subscription_*, hourly_rate, created_at,
+ * updated_at` (migration `20260208001000`) — every other field
+ * `DatabaseContractorProfileRow` claimed lived on `profiles` (or
+ * didn't exist anywhere), so the previous read returned
+ * `business_address: undefined`, `portfolio_images: undefined`,
+ * etc., for every user.
  *
- * Net effect today: this read returns `business_address: undefined`
- * for every user, which is why `ContractorCardEditorScreen` falls
- * back to `user.address + user.city + user.postcode` for *every*
- * contractor, not just those who haven't filled it in. The
- * fallback masks the mismatch.
+ * Now: routes through `GET /api/contractor/profile-data` which
+ * sources every field from the table that actually owns it.
+ * Mapping below explicitly translates `profiles.address`
+ * → `business_address` (closest match — the contractor's home and
+ * trade address are the same column), and returns `[]` for
+ * `specialties` / `certifications` (still unmodelled in the DB).
+ * `DatabaseContractorProfileRow` was rewritten with field-by-field
+ * provenance comments so callers know what's authoritative.
  *
- * Migrating to the API alone won't fix this — the underlying type
- * is lying. Cleanup needs:
- *   1. Decide which table owns `business_address` / `portfolio_images`
- *      etc. (web `/api/contractor/business-profile` reads them off
- *      `profiles`, so that's the established source).
- *   2. Drop the false fields from `DatabaseContractorProfileRow`,
- *      or split into `ContractorProfilesRow` (subscription/stripe/
- *      hourly_rate) + `ContractorIdentityFromProfile` (the rest).
- *   3. Migrate this read to `/api/contractor/profile-data` (already
- *      bundles profiles + hourly_rate from contractor_profiles +
- *      skills/reviews) or extend `/api/contractor/business-profile`.
- *   4. Update `ContractorCardEditorScreen` to read fields from the
- *      correct slot.
- *
- * Out of scope for the "direct-Supabase removal" audit pass — needs
- * a dedicated commit so the schema cleanup gets reviewed properly.
- * The single-row read here is `auth.uid()`-scoped via RLS so it's
- * not actively unsafe; just consistently returning empty data for
- * fields that don't exist where the code looks for them.
+ * The route is `roles: ['contractor']`-gated so calling this from
+ * a homeowner session 403s. If we need a homeowner-readable
+ * version (e.g. for a future contractor-public page), build a
+ * separate public route — don't relax the role on this one.
  */
 export async function getContractorProfile(
-  userId: string
+  // The route auto-scopes via `auth.uid()` so the supplied id is
+  // informational. Kept in the signature for caller compat.
+  _userId: string
 ): Promise<DatabaseContractorProfileRow | null> {
   try {
-    const { data, error } = await supabase
-      .from('contractor_profiles')
-      .select(
-        '*, user:profiles!contractor_profiles_user_id_fkey(id, first_name, last_name, email, phone, profile_image_url)'
-      )
-      .eq('user_id', userId)
-      .single();
+    const data = await mobileApiClient.get<{
+      contractor?: ProfileDataContractor | null;
+    }>('/api/contractor/profile-data');
+    const contractor = data?.contractor;
+    if (!contractor || !contractor.id) return null;
 
-    if (error) {
-      // PGRST116 = no rows found, treat as not found
-      if (error.code === 'PGRST116') return null;
-      logger.error('Error fetching contractor profile:', error.message);
-      throw new Error(error.message);
-    }
+    const created_at = contractor.created_at ?? new Date().toISOString();
+    const updated_at = contractor.updated_at ?? created_at;
 
-    if (!data || !(data as DatabaseContractorProfileRow).user_id) return null;
-    return data as DatabaseContractorProfileRow;
+    return {
+      id: contractor.id,
+      user_id: contractor.id,
+      company_name: contractor.company_name ?? undefined,
+      bio: contractor.bio ?? undefined,
+      // Map `profiles.address` → `business_address`. The "business
+      // address" naming was always a misnomer; there's only ever
+      // been one address on the row.
+      business_address: contractor.address ?? undefined,
+      hourly_rate: contractor.hourly_rate ?? undefined,
+      portfolio_images: contractor.portfolio_images ?? [],
+      // These three columns don't exist in the live schema. Returning
+      // empty / undefined keeps `ContractorCardEditorScreen`'s
+      // `... || []` fallbacks happy without claiming the data is
+      // available.
+      specialties: [],
+      certifications: [],
+      license_number: contractor.license_number ?? undefined,
+      insurance_expiry: contractor.insurance_expiry_date ?? undefined,
+      latitude: contractor.latitude ?? undefined,
+      longitude: contractor.longitude ?? undefined,
+      created_at,
+      updated_at,
+      user: {
+        email: contractor.email ?? undefined,
+        first_name: contractor.first_name ?? undefined,
+        last_name: contractor.last_name ?? undefined,
+      },
+    };
   } catch (error) {
-    const pgError = error as { code?: string };
-    if (pgError.code === 'PGRST116') return null;
-    throw error;
+    logger.error('Error fetching contractor profile:', error);
+    return null;
   }
 }
 

@@ -104,6 +104,18 @@ yarn-error.*
 .cursor/mcp.json.*
 !.cursor/mcp.json.example
 .claude/settings.local.json
+# Audit re-review (2026-04-29): Claude Code agent worktrees live
+# inside the repo at `.claude/worktrees/<branch>` and each has a
+# `.git` file pointing back at the main repo's
+# `.git/worktrees/<branch>/` registration. Without this ignore,
+# `git status` sees every worktree as a "modified submodule" and
+# floods the output with `m .claude/worktrees/...` lines. Some
+# Windows shells then mangle the gitdir path ("not a git
+# repository: .claude/worktrees/X/C:/Users/.../.git/worktrees/X")
+# when bash mixes forward slashes with the `C:` drive prefix —
+# fixing the noise at the source closes that whole class of
+# transient `git status` failures.
+.claude/worktrees/
 
 # Test output artifacts
 **/test-results.json

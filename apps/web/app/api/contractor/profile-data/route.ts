@@ -10,10 +10,25 @@ export const GET = withApiHandler(
   { roles: ['contractor'], rateLimit: { maxRequests: 30 } },
   async (request, { user }) => {
     // Fetch all contractor data in parallel
-    const [contractorResult, skillsResult, reviewsResult, completedJobsResult, postsResult, contractorProfileResult] = await Promise.all([
+    const [
+      contractorResult,
+      skillsResult,
+      reviewsResult,
+      completedJobsResult,
+      postsResult,
+      contractorProfileResult,
+    ] = await Promise.all([
       serverSupabase
         .from('profiles')
-        .select('id, first_name, last_name, email, bio, city, country, profile_image_url, phone, company_name, license_number, insurance_expiry_date, is_available, latitude, longitude, address, postcode, created_at, updated_at')
+        // Audit re-review (2026-04-29): added `portfolio_images` so
+        // the mobile contractor edit screen can read it from the
+        // canonical API instead of the direct-Supabase
+        // `contractor_profiles.*` read it used to fall back on (the
+        // `portfolio_images` column actually lives on `profiles`,
+        // not `contractor_profiles` — migration 20260208000000).
+        .select(
+          'id, first_name, last_name, email, bio, city, country, profile_image_url, phone, company_name, license_number, insurance_expiry_date, is_available, latitude, longitude, address, postcode, portfolio_images, created_at, updated_at'
+        )
         .eq('id', user.id)
         .single(),
       serverSupabase
@@ -22,7 +37,9 @@ export const GET = withApiHandler(
         .eq('contractor_id', user.id),
       serverSupabase
         .from('reviews')
-        .select(`*, reviewer:reviewer_id (first_name, last_name, profile_image_url), job:job_id (title, category)`)
+        .select(
+          `*, reviewer:reviewer_id (first_name, last_name, profile_image_url), job:job_id (title, category)`
+        )
         .eq('contractor_id', user.id)
         .order('created_at', { ascending: false }),
       serverSupabase
@@ -34,7 +51,9 @@ export const GET = withApiHandler(
         .limit(20),
       serverSupabase
         .from('contractor_posts')
-        .select('id, contractor_id, post_type, title, content, media_urls, likes_count, comments_count, shares_count, views_count, created_at, updated_at')
+        .select(
+          'id, contractor_id, post_type, title, content, media_urls, likes_count, comments_count, shares_count, views_count, created_at, updated_at'
+        )
         .eq('contractor_id', user.id)
         .eq('post_type', 'work_showcase')
         .eq('is_active', true)
@@ -68,11 +87,15 @@ export const GET = withApiHandler(
     ];
 
     const completedFields = profileFields.filter(Boolean).length;
-    const profileCompletion = Math.round((completedFields / profileFields.length) * 100);
+    const profileCompletion = Math.round(
+      (completedFields / profileFields.length) * 100
+    );
 
-    const averageRating = reviews && reviews.length > 0
-      ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
-      : 0;
+    const averageRating =
+      reviews && reviews.length > 0
+        ? reviews.reduce((sum, review) => sum + review.rating, 0) /
+          reviews.length
+        : 0;
 
     return NextResponse.json({
       contractor: {

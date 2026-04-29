@@ -316,6 +316,20 @@ export class JobContextLocationService {
     // Migration `contractor_locations_onconflict_index` adds the partial
     // unique index `(contractor_id, job_id) WHERE is_active = true`, which
     // matches the BackgroundLocationTask upsert as well.
+    //
+    // Audit re-review (2026-04-29): direct-Supabase write here is a
+    // **deliberate exception** to the "API-first" rule (audit step 5).
+    // Live GPS upserts fire every 5–15 seconds while a contractor is
+    // travelling to a job and the row is read by the homeowner's
+    // map screen via Supabase Realtime channel subscription —
+    // routing each update through `/api/...` would (a) add 50–200ms
+    // of round-trip per pulse, (b) burn a Vercel Function invocation
+    // per write, and (c) defeat Realtime which fans out off the
+    // Postgres logical replication slot. The RLS policy on
+    // `contractor_locations` (migration `20260416…contractor_locations_select_scope`)
+    // already scopes INSERT/UPDATE to `auth.uid() = contractor_id`,
+    // so the security boundary that the API routes provide for
+    // other writes is enforced at the DB layer here.
     const { error } = await supabase.from('contractor_locations').upsert(
       {
         contractor_id: this.contractorId,
