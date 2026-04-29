@@ -1,3 +1,24 @@
+/**
+ * NotificationSettingsScreen — LEGACY surface.
+ *
+ * Audit step 9 (2026-04-29): unhooked from `SettingsHubScreen`,
+ * `HomeNavigationCoordinator`, and `AvailabilitySection`. The
+ * canonical user-facing surface is now `NotificationPreferences`
+ * (in `screens/settings/NotificationPreferencesScreen.tsx`) which
+ * is backed by the dedicated `user_notification_preferences` table.
+ *
+ * This screen is kept registered in the nav stack for two reasons:
+ *   1. Deep links from older mobile builds + emails may still hit it.
+ *   2. Its SMS / per-category granular toggles aren't yet
+ *      represented in the canonical screen (the
+ *      `user_notification_preferences` table doesn't have an SMS
+ *      column). Once the canonical screen + table are extended
+ *      with SMS, delete this file and the plural API route
+ *      (`/api/users/notification-preferences`).
+ *
+ * Don't add new entry points here — wire them to
+ * `NotificationPreferences` instead.
+ */
 import React, { useState, useEffect } from 'react';
 import {
   View,

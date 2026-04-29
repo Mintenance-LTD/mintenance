@@ -9,6 +9,7 @@
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
 import toast from 'react-hot-toast';
 import { Users, Plus, Trash2, Mail, ShieldCheck } from 'lucide-react';
 import { InviteMemberDialog, type OrgRole } from './InviteMemberDialog';
@@ -170,12 +171,12 @@ export default function ContractorTeamPage() {
           Create a contractor company to invite teammates, share jobs, and keep
           a dispatcher / field-crew workflow.
         </p>
-        <a
+        <Link
           href='/contractor/onboarding/company'
           className='inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-lg font-semibold hover:bg-emerald-700'
         >
           <Plus className='w-4 h-4' /> Create company
-        </a>
+        </Link>
       </div>
     );
   }

@@ -1,18 +1,17 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
-  Search,
-  MapPin,
+  BadgeCheck,
   ChevronDown,
+  ClipboardCheck,
+  MapPin,
+  Search,
+  ShieldCheck,
   Star,
-  Shield,
-  Zap,
-  Camera,
 } from 'lucide-react';
-import { HeroVisual } from './HeroVisual';
 import { useReducedMotion } from '@/hooks/useReducedMotion';
 
 /** Hero categories; values match jobs/create serviceCategories for query-param prefilling */
@@ -27,6 +26,21 @@ const HERO_CATEGORIES = [
   { label: 'Cleaning', value: 'cleaning' },
   { label: 'HVAC', value: 'hvac' },
 ] as const;
+
+const POPULAR_JOBS = [
+  'Emergency plumber',
+  'Boiler service',
+  'Roof repair',
+  'Electrical fault',
+  'Garden tidy',
+  'Bathroom fitting',
+];
+
+const PROOF_ITEMS = [
+  { label: 'Payment held until approval', icon: ShieldCheck },
+  { label: 'Profiles show insurance and reviews', icon: BadgeCheck },
+  { label: 'Messages, quotes and photos kept together', icon: ClipboardCheck },
+];
 
 const EASE_SMOOTH: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
@@ -45,32 +59,16 @@ export function HeroSection({
   statsLoading = false,
 }: HeroSectionProps) {
   const prefersReducedMotion = useReducedMotion();
-  const [mounted, setMounted] = useState(false);
   const [category, setCategory] = useState<string>('');
   const [postcode, setPostcode] = useState<string>('');
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-        delayChildren: 0.2,
-      },
-    },
-  };
-
   const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
+    hidden: { opacity: 0, y: prefersReducedMotion ? 0 : 14 },
     visible: {
       opacity: 1,
       y: 0,
       transition: {
-        duration: 0.6,
+        duration: 0.55,
         ease: EASE_SMOOTH,
       },
     },
@@ -85,195 +83,247 @@ export function HeroSection({
   })();
 
   return (
-    <section className='relative min-h-screen flex items-center overflow-hidden bg-gradient-to-br from-slate-900 via-slate-800 to-teal-900'>
-      {/* Animated Background Grid */}
-      <div className='absolute inset-0 opacity-20'>
-        <div
-          className='absolute inset-0'
-          style={{
-            backgroundImage: `radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.05) 1px, transparent 0)`,
-            backgroundSize: '40px 40px',
-            maskImage:
-              'radial-gradient(ellipse 60% 50% at 50% 0%, #000 70%, transparent 100%)',
-            WebkitMaskImage:
-              'radial-gradient(ellipse 60% 50% at 50% 0%, #000 70%, transparent 100%)',
-            ...(!prefersReducedMotion && mounted
-              ? { animation: 'map-drift 60s linear infinite' }
-              : {}),
-          }}
-        />
-      </div>
-
-      {/* Static glow accents (decorative, no animation) */}
+    <section className='relative isolate overflow-hidden bg-[#f5f7f3] pt-16 text-slate-950'>
       <div
         aria-hidden='true'
-        className='absolute top-20 left-10 w-72 h-72 bg-teal-500 rounded-full filter blur-3xl opacity-10 pointer-events-none'
-      />
-      <div
-        aria-hidden='true'
-        className='absolute bottom-20 right-10 w-96 h-96 bg-amber-500 rounded-full filter blur-3xl opacity-10 pointer-events-none'
+        className='absolute inset-x-0 top-16 h-[34rem] bg-[linear-gradient(180deg,#e6f2eb_0%,#f5f7f3_100%)]'
       />
 
-      <div className='container mx-auto px-4 sm:px-6 lg:px-8 relative z-10 pt-32 pb-20'>
+      <div className='relative mx-auto grid min-h-[calc(100svh-4rem)] max-w-7xl grid-rows-[1fr_auto] px-4 pb-8 pt-10 sm:px-6 lg:px-8'>
         <motion.div
-          className='grid lg:grid-cols-2 gap-12 lg:gap-16 items-center'
-          initial='visible'
+          initial='hidden'
           animate='visible'
-          variants={!prefersReducedMotion ? containerVariants : undefined}
+          transition={{ staggerChildren: 0.08 }}
+          className='grid items-center gap-10 lg:grid-cols-[1.05fr_0.95fr]'
         >
-          {/* Left Column: Content */}
-          <div className='text-center lg:text-left space-y-8'>
-            {/* Live Badge */}
-            <motion.div
-              variants={!prefersReducedMotion ? itemVariants : undefined}
-              className='inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white text-sm font-semibold'
+          <div className='max-w-3xl'>
+            <motion.p
+              variants={itemVariants}
+              className='mb-5 inline-flex items-center gap-2 rounded-full border border-emerald-900/10 bg-white px-4 py-2 text-sm font-bold text-emerald-900 shadow-sm'
             >
-              <span className='relative flex h-3 w-3'>
-                <span className='animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75'></span>
-                <span className='relative inline-flex rounded-full h-3 w-3 bg-teal-400'></span>
-              </span>
+              <span className='h-2.5 w-2.5 rounded-full bg-emerald-500' />
               {!statsLoading && hasRealStats && activeContractors != null
-                ? `${Number(activeContractors).toLocaleString()}+ Verified Tradespeople Online`
-                : 'Verified Tradespeople Online'}
-            </motion.div>
+                ? `${Number(activeContractors).toLocaleString()}+ verified tradespeople online`
+                : 'Post free. Compare quotes. Pay when approved.'}
+            </motion.p>
 
-            {/* Headline */}
-            <motion.div
-              variants={!prefersReducedMotion ? itemVariants : undefined}
+            <motion.h1
+              variants={itemVariants}
+              className='max-w-4xl text-5xl font-bold leading-[0.98] tracking-tight text-slate-950 sm:text-6xl lg:text-[5.75rem]'
             >
-              <h1 className='text-5xl sm:text-6xl lg:text-[5.5rem] font-bold tracking-tight text-white leading-[1.02] mb-6'>
-                Your Money{' '}
-                <span className='text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-teal-200'>
-                  Protected
-                </span>
-                . Your Home Sorted.
-              </h1>
-              <p className='text-xl text-slate-300 leading-relaxed max-w-2xl mx-auto lg:mx-0'>
-                Verified contractors. Protected payments. Photo proof of every
-                job. You stay in control from first quote to final sign-off.
-              </p>
-            </motion.div>
+              Get the right tradesperson without chasing around.
+            </motion.h1>
 
-            {/* Search Bar */}
-            <motion.div
-              variants={!prefersReducedMotion ? itemVariants : undefined}
-              className='bg-white rounded-2xl p-2 shadow-2xl max-w-2xl mx-auto lg:mx-0'
+            <motion.p
+              variants={itemVariants}
+              className='mt-6 max-w-2xl text-lg leading-8 text-slate-700 sm:text-xl'
             >
-              <div className='flex flex-col md:flex-row gap-2'>
-                {/* Category Dropdown */}
-                <div className='flex-1 relative'>
-                  <select
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
-                    className='w-full h-14 px-4 pr-10 bg-gray-50 border-0 rounded-xl text-gray-900 font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 appearance-none cursor-pointer'
-                    aria-label='Service category'
-                  >
-                    <option value=''>What do you need?</option>
-                    {HERO_CATEGORIES.map((c) => (
-                      <option key={c.value} value={c.value}>
-                        {c.label}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className='absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none' />
-                </div>
+              Tell Mintenance what needs doing. Verified local tradespeople
+              respond with bids, and your payment stays protected until the job
+              is signed off.
+            </motion.p>
 
-                {/* Location Input */}
-                <div className='flex-1 relative'>
-                  <MapPin
-                    className='absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none'
-                    aria-hidden
-                  />
-                  <input
-                    type='text'
-                    value={postcode}
-                    onChange={(e) => setPostcode(e.target.value)}
-                    placeholder='Enter postcode'
-                    className='w-full h-14 pl-12 pr-4 bg-gray-50 border-0 rounded-xl text-gray-900 font-medium placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500'
-                    aria-label='Postcode or location'
-                  />
-                </div>
-
-                {/* Search Button */}
-                <Link
-                  href={postJobHref}
-                  className='flex items-center justify-center gap-2 h-14 px-8 bg-gradient-to-r from-teal-600 to-teal-500 text-white font-bold rounded-xl hover:shadow-xl transition-all duration-300 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 whitespace-nowrap'
-                >
-                  <Search className='w-5 h-5' />
-                  <span className='hidden md:inline'>Post Job</span>
-                </Link>
-              </div>
-            </motion.div>
-
-            {/* Trust Indicators */}
             <motion.div
-              variants={!prefersReducedMotion ? itemVariants : undefined}
-              className='grid grid-cols-3 gap-6 max-w-2xl mx-auto lg:mx-0'
+              variants={itemVariants}
+              className='mt-7 grid max-w-xl gap-3 sm:grid-cols-3'
             >
-              <div className='flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full border border-white/20'>
-                <Shield className='w-4 h-4 text-teal-400' />
-                <span className='text-sm font-medium text-white'>
-                  Payment Protected
-                </span>
+              <div>
+                <p className='text-3xl font-bold text-slate-950'>3 steps</p>
+                <p className='text-sm font-medium text-slate-600'>
+                  Post, compare, approve
+                </p>
               </div>
-              <div className='flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full border border-white/20'>
-                <Star className='w-4 h-4 text-amber-400' />
-                <span className='text-sm font-medium text-white'>
-                  Verified &amp; Insured
-                </span>
+              <div>
+                <p className='text-3xl font-bold text-slate-950'>24-48h</p>
+                <p className='text-sm font-medium text-slate-600'>
+                  Typical first bids
+                </p>
               </div>
-              <div className='flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full border border-white/20'>
-                <Zap className='w-4 h-4 text-teal-400' />
-                <span className='text-sm font-medium text-white'>
-                  No Hidden Fees
-                </span>
+              <div>
+                <p className='text-3xl font-bold text-slate-950'>£0</p>
+                <p className='text-sm font-medium text-slate-600'>
+                  To post a job
+                </p>
               </div>
-            </motion.div>
-
-            {/* CTA Buttons */}
-            <motion.div
-              variants={!prefersReducedMotion ? itemVariants : undefined}
-              className='flex flex-col sm:flex-row gap-4 justify-center lg:justify-start'
-            >
-              <Link
-                href='/try-mint-ai'
-                className='group inline-flex items-center justify-center gap-2 px-8 py-4 text-lg font-bold text-slate-900 bg-amber-400 rounded-xl hover:bg-amber-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-400 transition-all duration-300 shadow-xl hover:shadow-amber-400/20 hover:scale-105'
-              >
-                <Camera className='w-5 h-5' />
-                Upload a Photo &mdash; Free Assessment
-                <span
-                  className='inline-block transition-transform duration-300 group-hover:translate-x-1'
-                  aria-hidden='true'
-                >
-                  →
-                </span>
-              </Link>
-              <Link
-                href='/login?redirect=/contractor/dashboard-enhanced'
-                className='inline-flex items-center justify-center gap-2 px-8 py-4 text-lg font-bold text-white bg-white/10 backdrop-blur-sm border-2 border-white/30 rounded-xl hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white/50 transition-all duration-300 hover:scale-105'
-              >
-                I&apos;m a Contractor
-              </Link>
             </motion.div>
           </div>
 
-          {/* Right Column: authentic product visual (not stock photo). SSR-safe placeholder until mounted. */}
           <motion.div
-            variants={!prefersReducedMotion ? itemVariants : undefined}
-            className='relative lg:h-[600px] flex items-center justify-center'
+            initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: EASE_SMOOTH, delay: 0.1 }}
+            className='relative'
           >
-            {mounted ? (
-              <HeroVisual />
-            ) : (
-              <div
-                className='relative w-full h-[600px] min-h-[520px] rounded-2xl bg-slate-900/40 border border-white/10 flex items-center justify-center overflow-hidden'
-                aria-hidden='true'
-              >
-                <div className='absolute inset-0 bg-gradient-to-br from-teal-900/20 via-transparent to-slate-900/30 rounded-2xl' />
-                <div className='w-28 h-28 rounded-full bg-slate-800/60 animate-pulse' />
+            <div className='absolute -left-5 top-8 hidden rounded-lg bg-slate-950 px-4 py-3 text-sm font-bold text-white shadow-xl lg:block'>
+              4 bids received
+            </div>
+            <div className='absolute -right-3 bottom-16 hidden rounded-lg border border-emerald-100 bg-white px-4 py-3 text-sm font-bold text-emerald-900 shadow-xl lg:block'>
+              Payment protected
+            </div>
+
+            <div className='overflow-hidden rounded-xl bg-white shadow-[0_30px_80px_rgba(15,23,42,0.16)] ring-1 ring-slate-200'>
+              <div className='grid grid-cols-[1fr_1.1fr]'>
+                <div className='relative min-h-[440px] bg-slate-900'>
+                  <img
+                    src='/hero-assets/plumber-repair.jpg'
+                    alt='Kitchen tap repair job'
+                    className='absolute inset-0 h-full w-full object-cover'
+                  />
+                  <div className='absolute inset-0 bg-[linear-gradient(180deg,rgba(15,23,42,0.05)_0%,rgba(15,23,42,0.72)_100%)]' />
+                  <div className='absolute bottom-5 left-5 right-5 rounded-lg bg-white/95 p-4 shadow-lg backdrop-blur'>
+                    <div className='mb-2 flex items-center gap-1 text-sm font-bold text-amber-600'>
+                      <Star className='h-4 w-4 fill-current' />
+                      4.9 rated
+                    </div>
+                    <p className='text-sm font-bold text-slate-950'>
+                      Kitchen plumbing repair
+                    </p>
+                    <p className='mt-1 text-xs font-medium text-slate-600'>
+                      4 verified plumbers nearby
+                    </p>
+                  </div>
+                </div>
+
+                <div className='flex flex-col justify-between p-6'>
+                  <div>
+                    <p className='text-xs font-bold uppercase tracking-wide text-emerald-700'>
+                      Active job
+                    </p>
+                    <h2 className='mt-2 text-2xl font-bold leading-tight text-slate-950'>
+                      Leak under kitchen sink
+                    </h2>
+                    <p className='mt-3 text-sm leading-6 text-slate-600'>
+                      Photos uploaded, postcode added, bids open to verified
+                      plumbers nearby.
+                    </p>
+                  </div>
+
+                  <div className='mt-6 space-y-3'>
+                    {[
+                      ['Quote range', '£120 - £180'],
+                      ['Earliest visit', 'Tomorrow'],
+                      ['Payment status', 'Held safely'],
+                    ].map(([label, value]) => (
+                      <div
+                        key={label}
+                        className='flex items-center justify-between rounded-lg bg-slate-50 px-4 py-3'
+                      >
+                        <span className='text-sm font-medium text-slate-600'>
+                          {label}
+                        </span>
+                        <span className='text-sm font-bold text-slate-950'>
+                          {value}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className='mt-6 rounded-lg bg-emerald-50 p-4 text-sm font-semibold leading-6 text-emerald-950'>
+                    Homeowner approves the work before funds are released.
+                  </div>
+                </div>
               </div>
-            )}
+            </div>
           </motion.div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, ease: EASE_SMOOTH, delay: 0.25 }}
+          className='mt-10'
+        >
+          <div className='rounded-xl bg-slate-950 p-3 shadow-[0_28px_70px_rgba(15,23,42,0.24)]'>
+            <div className='grid gap-3 lg:grid-cols-[1.15fr_1fr_auto]'>
+              <div className='relative'>
+                <label
+                  htmlFor='hero-category'
+                  className='absolute left-4 top-2 text-[11px] font-bold uppercase tracking-wide text-slate-500'
+                >
+                  What do you need?
+                </label>
+                <select
+                  id='hero-category'
+                  value={category}
+                  onChange={(event) => setCategory(event.target.value)}
+                  className='h-16 w-full appearance-none rounded-lg border border-white bg-white px-4 pb-2 pt-7 text-base font-bold text-slate-950 focus:outline-none focus:ring-2 focus:ring-emerald-400'
+                  aria-label='Service category'
+                >
+                  <option value=''>Choose a trade or job type</option>
+                  {HERO_CATEGORIES.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown
+                  className='pointer-events-none absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500'
+                  aria-hidden='true'
+                />
+              </div>
+
+              <div className='relative'>
+                <label
+                  htmlFor='hero-postcode'
+                  className='absolute left-11 top-2 text-[11px] font-bold uppercase tracking-wide text-slate-500'
+                >
+                  Where?
+                </label>
+                <MapPin
+                  className='pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500'
+                  aria-hidden='true'
+                />
+                <input
+                  id='hero-postcode'
+                  type='text'
+                  value={postcode}
+                  onChange={(event) => setPostcode(event.target.value)}
+                  placeholder='Postcode or area'
+                  className='h-16 w-full rounded-lg border border-white bg-white pb-2 pl-11 pr-4 pt-7 text-base font-bold text-slate-950 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-400'
+                  aria-label='Postcode or location'
+                />
+              </div>
+
+              <Link
+                href={postJobHref}
+                className='inline-flex h-16 items-center justify-center gap-2 rounded-lg bg-emerald-500 px-8 text-base font-bold text-slate-950 transition hover:bg-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-300 focus:ring-offset-2 focus:ring-offset-slate-950'
+              >
+                <Search className='h-5 w-5' aria-hidden='true' />
+                Post Job
+              </Link>
+            </div>
+          </div>
+
+          <div className='mt-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between'>
+            <div className='flex flex-wrap gap-2'>
+              {POPULAR_JOBS.map((job) => (
+                <Link
+                  key={job}
+                  href={`/jobs/create?description=${encodeURIComponent(job)}`}
+                  className='rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-emerald-300 hover:text-emerald-800'
+                >
+                  {job}
+                </Link>
+              ))}
+            </div>
+            <div className='grid gap-2 sm:grid-cols-3 lg:min-w-[560px]'>
+              {PROOF_ITEMS.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <div
+                    key={item.label}
+                    className='flex items-center gap-2 rounded-lg bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm ring-1 ring-slate-200'
+                  >
+                    <Icon
+                      className='h-4 w-4 shrink-0 text-emerald-600'
+                      aria-hidden='true'
+                    />
+                    {item.label}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </motion.div>
       </div>
     </section>

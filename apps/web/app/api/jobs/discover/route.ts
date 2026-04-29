@@ -1,0 +1,155 @@
+/**
+ * GET /api/jobs/discover
+ *
+ * Discoverable-jobs feed used by the contractor explore-map screen.
+ * Returns posted, unassigned, geo-located jobs sorted by created_at,
+ * already excluding ones the requesting contractor has bid on. Replaces
+ * the direct `supabase.from('jobs')` + `supabase.from('bids')` call
+ * pair the mobile `ExploreMapViewModel` previously made.
+ *
+ * Distinct from the existing `GET /api/jobs` (which lists the calling
+ * user's own jobs through `JobQueryService`). This endpoint is
+ * read-only and intentionally narrow — only the columns the map markers
+ * need, with the homeowner's first_name nested for the marker label.
+ *
+ * Query params:
+ *   category — optional, exact category match (case-insensitive)
+ *   limit    — optional, 1..100, defaults to 50
+ *
+ * Auth: any authenticated user. Contractors get their own pending /
+ * accepted / rejected bid job_ids excluded server-side so the client
+ * doesn't have to round-trip a second list.
+ */
+import { NextResponse } from 'next/server';
+import { z } from 'zod';
+import { JOB_CATEGORIES } from '@mintenance/api-contracts';
+import { serverSupabase } from '@/lib/api/supabaseServer';
+import { withApiHandler } from '@/lib/api/with-api-handler';
+import { logger } from '@mintenance/shared';
+
+// Constrain `category` to the canonical enum so the downstream
+// PostgREST filter is an exact match instead of an `.ilike()` against
+// arbitrary user input. Removes the `%`/`_` wildcard surface entirely.
+const queryParamsSchema = z
+  .object({
+    category: z.enum(JOB_CATEGORIES).optional(),
+    limit: z.coerce.number().int().min(1).max(100).default(50),
+  })
+  .strict();
+
+interface JobRow {
+  id: string;
+  title: string | null;
+  category: string | null;
+  urgency: string | null;
+  budget: number | string | null;
+  budget_min: number | null;
+  budget_max: number | null;
+  latitude: number | null;
+  longitude: number | null;
+  created_at: string | null;
+  // Supabase types FK joins as an array even on many-to-one
+  // relationships, so accept both shapes and normalise below.
+  homeowner:
+    | { first_name: string | null }
+    | Array<{ first_name: string | null }>
+    | null;
+}
+
+export const GET = withApiHandler(
+  { rateLimit: { maxRequests: 60 }, csrf: false },
+  async (request, { user }) => {
+    const url = new URL(request.url);
+    const parsed = queryParamsSchema.safeParse({
+      category: url.searchParams.get('category') ?? undefined,
+      limit: url.searchParams.get('limit') ?? undefined,
+    });
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: 'Invalid query parameters' },
+        { status: 400 }
+      );
+    }
+    const { category, limit } = parsed.data;
+
+    // Pull the contractor's bid job_ids (any status) so we can exclude
+    // them. Homeowners have no bids, so the IN list is empty — the
+    // .not('id', 'in', ...) call short-circuits below for non-contractors.
+    let excludedJobIds: string[] = [];
+    if (user.role === 'contractor') {
+      const { data: bidRows, error: bidError } = await serverSupabase
+        .from('bids')
+        .select('job_id')
+        .eq('contractor_id', user.id);
+      if (bidError) {
+        logger.warn('jobs/discover: bid exclusion read failed', {
+          service: 'jobs.discover',
+          userId: user.id,
+          error: bidError.message,
+        });
+      } else if (bidRows) {
+        excludedJobIds = (bidRows as Array<{ job_id: string }>).map(
+          (r) => r.job_id
+        );
+      }
+    }
+
+    let query = serverSupabase
+      .from('jobs')
+      .select(
+        `
+        id, title, category, urgency, budget, budget_min, budget_max,
+        latitude, longitude, created_at,
+        homeowner:homeowner_id ( first_name )
+      `
+      )
+      .eq('status', 'posted')
+      .is('contractor_id', null)
+      .not('latitude', 'is', null)
+      .not('longitude', 'is', null);
+
+    if (category) {
+      query = query.eq('category', category);
+    }
+    if (excludedJobIds.length > 0) {
+      query = query.not(
+        'id',
+        'in',
+        `(${excludedJobIds.map((id) => `"${id}"`).join(',')})`
+      );
+    }
+
+    query = query.order('created_at', { ascending: false }).limit(limit);
+
+    const { data, error } = await query;
+
+    if (error) {
+      logger.error('jobs/discover query failed', error, {
+        service: 'jobs.discover',
+        userId: user.id,
+      });
+      return NextResponse.json({ jobs: [] }, { status: 200 });
+    }
+
+    const jobs = ((data ?? []) as JobRow[]).map((row) => {
+      const firstName = Array.isArray(row.homeowner)
+        ? (row.homeowner[0]?.first_name ?? null)
+        : (row.homeowner?.first_name ?? null);
+      return {
+        id: row.id,
+        title: row.title ?? '',
+        category: row.category ?? 'general',
+        urgency: row.urgency ?? 'medium',
+        budget: row.budget != null ? Number(row.budget) : null,
+        budget_min: row.budget_min,
+        budget_max: row.budget_max,
+        latitude: row.latitude,
+        longitude: row.longitude,
+        created_at: row.created_at,
+        homeowner_first_name: firstName,
+      };
+    });
+
+    return NextResponse.json({ jobs });
+  }
+);

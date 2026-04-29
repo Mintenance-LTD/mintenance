@@ -76,7 +76,7 @@ export const useCreateJob = () => {
       homeownerId: string;
       category?: string;
       subcategory?: string;
-      priority?: 'low' | 'medium' | 'high';
+      urgency?: 'low' | 'medium' | 'high' | 'emergency';
       photos?: string[];
       // R6 #19 landlord / tenancy — optional forwarding to the server
       is_rental_property?: boolean;
@@ -143,7 +143,7 @@ export const useCreateJob = () => {
         contractorId: null,
         category: variables.category || 'handyman',
         subcategory: variables.subcategory,
-        priority: variables.priority || 'medium',
+        urgency: variables.urgency || 'medium',
         status: 'posted' as const,
         photos: variables.photos || [],
         createdAt: new Date().toISOString(),
@@ -205,9 +205,17 @@ const useSubmitBid = () => {
   });
 };
 
+/**
+ * Audit step 11 (2026-04-29): the mutation now accepts an
+ * `{ bidId, jobId }` payload so the BidService routes can be
+ * addressed without a server-side lookup. ContractorAssignment
+ * passes both — every other UI that wants to accept a bid has
+ * `jobId` in scope.
+ */
 export const useAcceptBid = () => {
   return useOfflineMutation({
-    mutationFn: (bidId: string) => JobService.acceptBid(bidId),
+    mutationFn: ({ bidId, jobId }: { bidId: string; jobId: string }) =>
+      JobService.acceptBid(bidId, jobId),
     entity: 'bid',
     actionType: 'UPDATE',
     onlineOnly: true, // Accepting bids should be done online for data consistency

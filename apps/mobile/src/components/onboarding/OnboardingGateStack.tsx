@@ -70,38 +70,50 @@ export const OnboardingGateStack: React.FC = () => {
   // Pre-compute the stacking conditions so the JSX below stays
   // readable. Each lower tier checks its own condition AND that
   // no higher-priority gate is currently visible.
+  //
+  // Push soft-ask was promoted from #7 (last Tier 1) to #2 here on
+  // 2026-04-28 after a live audit found `user_push_tokens = 0` in
+  // prod despite the modal being mounted. The root cause was that
+  // role-specific gates above it (FirstProperty / LocationSoftAsk /
+  // ServiceArea / IdentitySetup / BackgroundCheck / SelfieCapture)
+  // suppressed push indefinitely for users who never finished those
+  // flows — e.g. a homeowner who hasn't added a property would never
+  // see the push prompt because FirstProperty took precedence
+  // forever. Push is role-agnostic and unlocks the highest-value
+  // re-engagement signal, so it earns the slot immediately after
+  // the swiper.
   const showOnboarding = onboarding.shouldShow;
-  const showFirstProperty = !showOnboarding && firstProperty.shouldShow;
-  const showLocationSoftAsk = !showOnboarding && locationSoftAsk.shouldShow;
+  const showPushSoftAsk = !showOnboarding && pushSoftAsk.shouldShow;
+  const showFirstProperty =
+    !showOnboarding && !showPushSoftAsk && firstProperty.shouldShow;
+  const showLocationSoftAsk =
+    !showOnboarding && !showPushSoftAsk && locationSoftAsk.shouldShow;
   const showServiceArea =
-    !showOnboarding && !showLocationSoftAsk && serviceArea.shouldShow;
+    !showOnboarding &&
+    !showPushSoftAsk &&
+    !showLocationSoftAsk &&
+    serviceArea.shouldShow;
   const showIdentitySetup =
     !showOnboarding &&
+    !showPushSoftAsk &&
     !showLocationSoftAsk &&
     !showServiceArea &&
     identitySetup.shouldShow;
   const showBackgroundCheck =
     !showOnboarding &&
+    !showPushSoftAsk &&
     !showLocationSoftAsk &&
     !showServiceArea &&
     !showIdentitySetup &&
     backgroundCheck.shouldShow;
   const showSelfieCapture =
     !showOnboarding &&
+    !showPushSoftAsk &&
     !showLocationSoftAsk &&
     !showServiceArea &&
     !showIdentitySetup &&
     !showBackgroundCheck &&
     selfieCapture.shouldShow;
-  const showPushSoftAsk =
-    !showOnboarding &&
-    !showFirstProperty &&
-    !showLocationSoftAsk &&
-    !showServiceArea &&
-    !showIdentitySetup &&
-    !showBackgroundCheck &&
-    !showSelfieCapture &&
-    pushSoftAsk.shouldShow;
   // Tier 2 — contractor post-first-winning-bid money moment.
   // Deliberately positioned after all Tier 1 gates so a fresh
   // contractor who somehow wins a bid mid-intro doesn't get

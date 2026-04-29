@@ -105,11 +105,29 @@ const eslintConfig = defineConfig([
 
   // Exempt the canonical wrapper itself and test utilities — these are the
   // legitimate places where createClient is imported.
+  //
+  // 2026-04-27: extended to cover all script + test paths surfaced by the
+  // CI lint pass. These are infra (migration runners, schema validators,
+  // model uploaders) or test setup (creating scoped clients with specific
+  // JWTs to verify RLS policies). Application code in
+  // `lib/notifications/feed.ts`, `lib/supabase.ts`, and the
+  // `bids/[bidId]/accept/_helpers.ts` route helper still need to be
+  // canonicalized; tracked separately as P2.
   {
     files: [
       '**/lib/api/supabaseServer.ts',
       '**/lib/supabase/server.ts',
+      '**/lib/supabase.ts', // canonical browser anon-key client
       '**/test/integration/**',
+      '**/__tests__/**',
+      '**/__tests__/**/*.test.ts',
+      '**/__tests__/**/*.test.tsx',
+      '**/*.test.ts',
+      '**/*.test.tsx',
+      '**/*.spec.ts',
+      '**/*.spec.tsx',
+      '**/scripts/**',
+      '**/e2e/**',
       '**/hooks/useRealtime.ts',
     ],
     rules: {

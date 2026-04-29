@@ -1,13 +1,13 @@
 /**
  * Tests for JobCRUDService - Job CRUD Operations
  *
- * The service now uses:
- * - mobileApiClient for createJob, updateJob, deleteJob, startJob, completeJob
- * - supabase directly for getJobById (direct DB query)
+ * The service is fully API-driven post audit-step-5 (2026-04-29):
+ * createJob, updateJob, deleteJob, getJobById, startJob, completeJob,
+ * updateJobStatus, getContractByJobId — all routed through
+ * mobileApiClient. No direct Supabase reads remain.
  */
 
 import { JobCRUDService } from '../JobCRUDService';
-import { supabase } from '../../config/supabase';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import type { Job } from '@mintenance/types';
 import { sanitizeText } from '../../utils/sanitize';
@@ -57,8 +57,12 @@ describe('JobCRUDService', () => {
         return { success: true, data: result };
       }
     );
-    (ServiceErrorHandler.validateRequired as jest.Mock).mockImplementation(() => {});
-    (ServiceErrorHandler.validatePositiveNumber as jest.Mock).mockImplementation(() => {});
+    (ServiceErrorHandler.validateRequired as jest.Mock).mockImplementation(
+      () => {}
+    );
+    (
+      ServiceErrorHandler.validatePositiveNumber as jest.Mock
+    ).mockImplementation(() => {});
   });
 
   describe('createJob', () => {
@@ -165,18 +169,22 @@ describe('JobCRUDService', () => {
         budget: 1000,
         homeownerId: 'homeowner-123',
         category: 'plumbing',
-        subcategory: 'leak-repair',
-        priority: 'high',
+        urgency: 'high',
         photos: ['photo1.jpg', 'photo2.jpg'],
       });
 
+      // The service maps the public-facing arg names to the API
+      // contract: `photos` becomes `photoUrls` (the field the
+      // shared @mintenance/api-contracts schema declares), and
+      // `urgency` is forwarded as-is. `priority` / `subcategory`
+      // are not part of the create-job contract — historical drift,
+      // not a real input.
       expect(mockedApiClient.post).toHaveBeenCalledWith(
         '/api/jobs',
         expect.objectContaining({
           category: 'plumbing',
-          subcategory: 'leak-repair',
-          priority: 'high',
-          photos: ['photo1.jpg', 'photo2.jpg'],
+          urgency: 'high',
+          photoUrls: ['photo1.jpg', 'photo2.jpg'],
         })
       );
     });
@@ -214,61 +222,42 @@ describe('JobCRUDService', () => {
   });
 
   describe('getJobById', () => {
-    it('should get job by ID', async () => {
-      const mockFrom = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({ data: mockJobData, error: null }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
+    it('should fetch job via API', async () => {
+      mockedApiClient.get.mockResolvedValue({ job: mockJobData });
 
       const result = await JobCRUDService.getJobById('job-123');
 
-      expect(mockFrom.select).toHaveBeenCalledWith('*');
-      expect(mockFrom.eq).toHaveBeenCalledWith('id', 'job-123');
+      expect(mockedApiClient.get).toHaveBeenCalledWith('/api/jobs/job-123');
       expect(result).toBeDefined();
       expect(result?.id).toBe('job-123');
     });
 
-    it('should return null when job not found (PGRST116)', async () => {
-      const mockFrom = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({
-          data: null,
-          error: { code: 'PGRST116' },
-        }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
+    it('should return null when API returns empty job', async () => {
+      mockedApiClient.get.mockResolvedValue({ job: null });
 
       const result = await JobCRUDService.getJobById('non-existent');
 
       expect(result).toBeNull();
     });
 
-    it('should return null when data is null', async () => {
-      const mockFrom = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({ data: null, error: null }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
+    it('should return null when API returns no job key', async () => {
+      mockedApiClient.get.mockResolvedValue({});
 
       const result = await JobCRUDService.getJobById('non-existent');
 
       expect(result).toBeNull();
     });
 
-    it('should throw error for non-not-found errors', async () => {
-      const error = { code: 'OTHER_ERROR', message: 'Database error' };
-      const mockFrom = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({ data: null, error }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
+    it('should propagate API errors', async () => {
+      // Audit step 5: the previous implementation silently swallowed
+      // errors and fell back to direct DB. Now the error surfaces so
+      // the caller can show "Failed to load job details" instead of
+      // half-rendering with broken photos.
+      mockedApiClient.get.mockRejectedValue(new Error('Network error'));
 
-      await expect(JobCRUDService.getJobById('job-123')).rejects.toThrow('Database error');
+      await expect(JobCRUDService.getJobById('job-123')).rejects.toThrow(
+        'Network error'
+      );
     });
   });
 
@@ -282,10 +271,9 @@ describe('JobCRUDService', () => {
         title: 'Updated Title',
       });
 
-      expect(mockedApiClient.put).toHaveBeenCalledWith(
-        '/api/jobs/job-123',
-        { title: 'Updated Title' }
-      );
+      expect(mockedApiClient.put).toHaveBeenCalledWith('/api/jobs/job-123', {
+        title: 'Updated Title',
+      });
       expect(result.title).toBe('Updated Title');
     });
 
@@ -331,14 +319,11 @@ describe('JobCRUDService', () => {
         location: 'Boston',
       });
 
-      expect(mockedApiClient.put).toHaveBeenCalledWith(
-        '/api/jobs/job-123',
-        {
-          title: 'New Title',
-          budget: 2000,
-          location: 'Boston',
-        }
-      );
+      expect(mockedApiClient.put).toHaveBeenCalledWith('/api/jobs/job-123', {
+        title: 'New Title',
+        budget: 2000,
+        location: 'Boston',
+      });
     });
 
     it('should throw error when API returns no job', async () => {
@@ -370,76 +355,73 @@ describe('JobCRUDService', () => {
     it('should throw error when API delete fails', async () => {
       mockedApiClient.delete.mockRejectedValue(new Error('Delete failed'));
 
-      await expect(JobCRUDService.deleteJob('job-123')).rejects.toThrow('Delete failed');
+      await expect(JobCRUDService.deleteJob('job-123')).rejects.toThrow(
+        'Delete failed'
+      );
     });
   });
 
   describe('updateJobStatus', () => {
     it('should start job via API for in_progress status', async () => {
       mockedApiClient.post.mockResolvedValue({});
-      // getJobById is called after status update
-      const mockFrom = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({
-          data: { ...mockJobData, status: 'in_progress' },
-          error: null,
-        }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
+      // getJobById is called after status update — also API now
+      mockedApiClient.get.mockResolvedValue({
+        job: { ...mockJobData, status: 'in_progress' },
+      });
 
-      const result = await JobCRUDService.updateJobStatus('job-123', 'in_progress');
+      const result = await JobCRUDService.updateJobStatus(
+        'job-123',
+        'in_progress'
+      );
 
-      expect(mockedApiClient.post).toHaveBeenCalledWith('/api/jobs/job-123/start');
+      expect(mockedApiClient.post).toHaveBeenCalledWith(
+        '/api/jobs/job-123/start'
+      );
+      expect(mockedApiClient.get).toHaveBeenCalledWith('/api/jobs/job-123');
       expect(result.status).toBe('in_progress');
     });
 
     it('should complete job via API for completed status', async () => {
       mockedApiClient.post.mockResolvedValue({});
-      const mockFrom = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({
-          data: { ...mockJobData, status: 'completed' },
-          error: null,
-        }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
+      mockedApiClient.get.mockResolvedValue({
+        job: { ...mockJobData, status: 'completed' },
+      });
 
-      const result = await JobCRUDService.updateJobStatus('job-123', 'completed');
+      const result = await JobCRUDService.updateJobStatus(
+        'job-123',
+        'completed'
+      );
 
-      expect(mockedApiClient.post).toHaveBeenCalledWith('/api/jobs/job-123/complete');
+      expect(mockedApiClient.post).toHaveBeenCalledWith(
+        '/api/jobs/job-123/complete'
+      );
       expect(result.status).toBe('completed');
     });
 
     it('should use PUT for other status transitions', async () => {
       mockedApiClient.put.mockResolvedValue({});
-      const mockFrom = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({
-          data: { ...mockJobData, status: 'assigned', contractor_id: 'contractor-123' },
-          error: null,
-        }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
+      mockedApiClient.get.mockResolvedValue({
+        job: {
+          ...mockJobData,
+          status: 'assigned',
+          contractor_id: 'contractor-123',
+        },
+      });
 
-      await JobCRUDService.updateJobStatus('job-123', 'assigned', 'contractor-123');
-
-      expect(mockedApiClient.put).toHaveBeenCalledWith(
-        '/api/jobs/job-123',
-        { status: 'assigned' }
+      await JobCRUDService.updateJobStatus(
+        'job-123',
+        'assigned',
+        'contractor-123'
       );
+
+      expect(mockedApiClient.put).toHaveBeenCalledWith('/api/jobs/job-123', {
+        status: 'assigned',
+      });
     });
 
     it('should throw error when job not found after update', async () => {
       mockedApiClient.post.mockResolvedValue({});
-      const mockFrom = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({ data: null, error: null }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
+      mockedApiClient.get.mockResolvedValue({ job: null });
 
       await expect(
         JobCRUDService.updateJobStatus('non-existent', 'in_progress')
@@ -461,13 +443,17 @@ describe('JobCRUDService', () => {
 
       await JobCRUDService.startJob('job-123');
 
-      expect(mockedApiClient.post).toHaveBeenCalledWith('/api/jobs/job-123/start');
+      expect(mockedApiClient.post).toHaveBeenCalledWith(
+        '/api/jobs/job-123/start'
+      );
     });
 
     it('should throw error when start fails', async () => {
       mockedApiClient.post.mockRejectedValue(new Error('Start failed'));
 
-      await expect(JobCRUDService.startJob('job-123')).rejects.toThrow('Start failed');
+      await expect(JobCRUDService.startJob('job-123')).rejects.toThrow(
+        'Start failed'
+      );
     });
   });
 
@@ -477,24 +463,23 @@ describe('JobCRUDService', () => {
 
       await JobCRUDService.completeJob('job-123');
 
-      expect(mockedApiClient.post).toHaveBeenCalledWith('/api/jobs/job-123/complete');
+      expect(mockedApiClient.post).toHaveBeenCalledWith(
+        '/api/jobs/job-123/complete'
+      );
     });
 
     it('should throw error when complete fails', async () => {
       mockedApiClient.post.mockRejectedValue(new Error('Complete failed'));
 
-      await expect(JobCRUDService.completeJob('job-123')).rejects.toThrow('Complete failed');
+      await expect(JobCRUDService.completeJob('job-123')).rejects.toThrow(
+        'Complete failed'
+      );
     });
   });
 
   describe('formatJob', () => {
     it('should format job data correctly via getJobById', async () => {
-      const mockFrom = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({ data: mockJobData, error: null }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
+      mockedApiClient.get.mockResolvedValue({ job: mockJobData });
 
       const result = await JobCRUDService.getJobById('job-123');
 
@@ -520,30 +505,18 @@ describe('JobCRUDService', () => {
         ...mockJobData,
         contractor_id: 'contractor-123',
       };
-
-      const mockFrom = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({ data: jobWithContractor, error: null }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
+      mockedApiClient.get.mockResolvedValue({ job: jobWithContractor });
 
       const result = await JobCRUDService.getJobById('job-123');
 
-      expect((result as Record<string, unknown>).contractor_id).toBe('contractor-123');
+      expect((result as Record<string, unknown>).contractor_id).toBe(
+        'contractor-123'
+      );
     });
 
     it('should provide default values for missing fields', async () => {
-      const minimalJob = {
-        id: 'job-456',
-      };
-
-      const mockFrom = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({ data: minimalJob, error: null }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
+      const minimalJob = { id: 'job-456' };
+      mockedApiClient.get.mockResolvedValue({ job: minimalJob });
 
       const result = await JobCRUDService.getJobById('job-456');
 

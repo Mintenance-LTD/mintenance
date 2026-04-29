@@ -1,5 +1,10 @@
 // Import the REAL MessagingService (not mocked) - we want to test the actual implementation
-import { MessagingService, Message, MessageThread } from '../../services/MessagingService';
+import {
+  MessagingService,
+  Message,
+  MessageThread,
+} from '../../services/MessagingService';
+import { mobileApiClient } from '../../utils/mobileApiClient';
 
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(() => Promise.resolve()),
@@ -12,10 +17,17 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   multiRemove: jest.fn(() => Promise.resolve()),
 }));
 
-// Mock external dependencies only
+// Auto-mock mobileApiClient (picks up __mocks__/mobileApiClient.ts).
+// Audit step 5+10 (2026-04-29): MessagingService.sendMessage and
+// .getJobMessages now route through the web API rather than direct
+// Supabase, so the API client is the relevant mock surface.
+jest.mock('../../utils/mobileApiClient');
+
+// Supabase channel is still used for realtime subscriptions in
+// MessagingService.subscribeToJobMessages — keep that part of the
+// mock alive for the subscription tests further down.
 jest.mock('../../config/supabase', () => ({
   supabase: {
-    from: jest.fn(),
     channel: jest.fn(() => ({
       on: jest.fn(() => ({ on: jest.fn(() => ({ subscribe: jest.fn() })) })),
       unsubscribe: jest.fn(),
@@ -47,12 +59,21 @@ jest.mock('../../utils/serviceErrorHandler', () => ({
   },
 }));
 
+// Mock RateLimiter — sendMessage gates on `checkRateLimit` before
+// hitting the API; default to "allowed" so the happy-path tests
+// don't 429 themselves.
+jest.mock('../../middleware/RateLimiter', () => ({
+  checkRateLimit: jest.fn(() => true),
+}));
+
 const { ServiceErrorHandler } = require('../../utils/serviceErrorHandler');
 const { supabase } = require('../../config/supabase');
+const mockedApiClient = mobileApiClient as jest.Mocked<typeof mobileApiClient>;
 
 // Mock createMessageNotification to avoid implementation complexity
 const mockCreateMessageNotification = jest.fn().mockResolvedValue(undefined);
-(MessagingService as any).createMessageNotification = mockCreateMessageNotification;
+(MessagingService as any).createMessageNotification =
+  mockCreateMessageNotification;
 
 describe('MessagingService', () => {
   beforeEach(() => {
@@ -63,29 +84,21 @@ describe('MessagingService', () => {
 
   describe('sendMessage', () => {
     it('should send a text message successfully', async () => {
-      const mockMessageData = {
-        id: 'msg-1',
-        job_id: 'job-1',
-        sender_id: 'user-1',
-        receiver_id: 'user-2',
-        message_text: 'Hello, I can help with this job!',
-        message_type: 'text',
-        read: false,
-        created_at: '2024-01-01T10:00:00Z',
-        sender: {
-          first_name: 'John',
-          last_name: 'Contractor',
-          role: 'contractor',
+      // The route returns the same camelCase Message shape; we
+      // just need to verify the service unwraps `response.message`.
+      mockedApiClient.post.mockResolvedValue({
+        message: {
+          id: 'msg-1',
+          jobId: 'job-1',
+          senderId: 'user-1',
+          receiverId: 'user-2',
+          messageText: 'Hello, I can help with this job!',
+          messageType: 'text',
+          read: false,
+          createdAt: '2024-01-01T10:00:00Z',
+          senderName: 'John Contractor',
         },
-      };
-
-      const mockChain = {
-        insert: jest.fn().mockReturnThis(),
-        select: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({ data: mockMessageData, error: null }),
-      };
-      
-      supabase.from.mockReturnValue(mockChain);
+      });
 
       const result = await MessagingService.sendMessage(
         'job-1',
@@ -94,52 +107,46 @@ describe('MessagingService', () => {
         'user-1'
       );
 
-      expect(supabase.from).toHaveBeenCalledWith('messages');
+      expect(mockedApiClient.post).toHaveBeenCalledWith(
+        '/api/messages/threads/job-1/messages',
+        expect.objectContaining({
+          content: 'Hello, I can help with this job!',
+          receiverId: 'user-2',
+          messageType: 'text',
+        })
+      );
       expect(result.id).toBe('msg-1');
       expect(result.messageText).toBe('Hello, I can help with this job!');
       expect(result.senderName).toBe('John Contractor');
-      expect(mockCreateMessageNotification).toHaveBeenCalled();
     });
 
     it('should handle message sending errors', async () => {
-      const mockChain = {
-        insert: jest.fn().mockReturnThis(),
-        select: jest.fn().mockReturnThis(),
-        single: jest.fn().mockRejectedValue(new Error('Database error')),
-      };
-      
-      supabase.from.mockReturnValue(mockChain);
+      mockedApiClient.post.mockRejectedValue(new Error('Database error'));
 
       await expect(
-        MessagingService.sendMessage('job-1', 'user-2', 'Test message', 'user-1')
+        MessagingService.sendMessage(
+          'job-1',
+          'user-2',
+          'Test message',
+          'user-1'
+        )
       ).rejects.toThrow('Database error');
     });
 
     it('should send message with attachment', async () => {
-      const mockMessageData = {
-        id: 'msg-2',
-        job_id: 'job-1',
-        sender_id: 'user-1',
-        receiver_id: 'user-2',
-        message_text: 'Here is the photo',
-        message_type: 'image',
-        attachment_url: 'https://example.com/image.jpg',
-        read: false,
-        created_at: '2024-01-01T10:00:00Z',
-        sender: {
-          first_name: 'Jane',
-          last_name: 'Homeowner',
-          role: 'homeowner',
+      mockedApiClient.post.mockResolvedValue({
+        message: {
+          id: 'msg-2',
+          jobId: 'job-1',
+          senderId: 'user-1',
+          receiverId: 'user-2',
+          messageText: 'Here is the photo',
+          messageType: 'image',
+          attachmentUrl: 'https://example.com/image.jpg',
+          read: false,
+          createdAt: '2024-01-01T10:00:00Z',
         },
-      };
-
-      const mockChain = {
-        insert: jest.fn().mockReturnThis(),
-        select: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({ data: mockMessageData, error: null }),
-      };
-      
-      supabase.from.mockReturnValue(mockChain);
+      });
 
       const result = await MessagingService.sendMessage(
         'job-1',
@@ -150,6 +157,13 @@ describe('MessagingService', () => {
         'https://example.com/image.jpg'
       );
 
+      expect(mockedApiClient.post).toHaveBeenCalledWith(
+        '/api/messages/threads/job-1/messages',
+        expect.objectContaining({
+          messageType: 'image',
+          attachments: ['https://example.com/image.jpg'],
+        })
+      );
       expect(result.messageType).toBe('image');
       expect(result.attachmentUrl).toBe('https://example.com/image.jpg');
     });
@@ -157,42 +171,44 @@ describe('MessagingService', () => {
 
   describe('getJobMessages', () => {
     it('should retrieve messages for a job', async () => {
-      const mockMessages = [
-        {
-          id: 'msg-1',
-          job_id: 'job-1',
-          sender_id: 'user-1',
-          message_text: 'First message',
-          message_type: 'text',
-          created_at: '2024-01-01T10:00:00Z',
-          sender: { first_name: 'John', last_name: 'Doe' },
-        },
-        {
-          id: 'msg-2',
-          job_id: 'job-1',
-          sender_id: 'user-2',
-          message_text: 'Second message',
-          message_type: 'text',
-          created_at: '2024-01-01T11:00:00Z',
-          sender: { first_name: 'Jane', last_name: 'Smith' },
-        },
-      ];
-
-      const mockChain = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        order: jest.fn().mockReturnThis(),
-        range: jest.fn().mockResolvedValue({ data: mockMessages, error: null }),
-      };
-      
-      supabase.from.mockReturnValue(mockChain);
+      // The route already maps to camelCase Message[], so the
+      // service is just an envelope unwrap. Order is ascending
+      // (server-side `.order('created_at', { ascending: true })`).
+      mockedApiClient.get.mockResolvedValue({
+        messages: [
+          {
+            id: 'msg-1',
+            jobId: 'job-1',
+            senderId: 'user-1',
+            receiverId: 'user-2',
+            messageText: 'First message',
+            messageType: 'text',
+            read: false,
+            createdAt: '2024-01-01T10:00:00Z',
+            senderName: 'John Doe',
+          },
+          {
+            id: 'msg-2',
+            jobId: 'job-1',
+            senderId: 'user-2',
+            receiverId: 'user-1',
+            messageText: 'Second message',
+            messageType: 'text',
+            read: false,
+            createdAt: '2024-01-01T11:00:00Z',
+            senderName: 'Jane Smith',
+          },
+        ],
+      });
 
       const result = await MessagingService.getJobMessages('job-1');
 
-      expect(supabase.from).toHaveBeenCalledWith('messages');
+      expect(mockedApiClient.get).toHaveBeenCalledWith(
+        '/api/messages/threads/job-1/messages'
+      );
       expect(result).toHaveLength(2);
-      expect(result[0].messageText).toBe('Second message'); // Reversed order
-      expect(result[1].messageText).toBe('First message');
+      expect(result[0].messageText).toBe('First message');
+      expect(result[1].messageText).toBe('Second message');
     });
   });
 
@@ -264,9 +280,9 @@ describe('MessagingService', () => {
       // Mock a channel in activeChannels
       const mockChannel = { unsubscribe: jest.fn() };
       (MessagingService as any).activeChannels.set('test-job', mockChannel);
-      
+
       MessagingService.cleanup();
-      
+
       expect(mockChannel.unsubscribe).toHaveBeenCalled();
       expect((MessagingService as any).activeChannels.size).toBe(0);
     });

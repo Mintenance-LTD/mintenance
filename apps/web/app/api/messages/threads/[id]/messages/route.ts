@@ -117,8 +117,11 @@ export const POST = withApiHandler(
 
     const data = validation.data;
     const messageText = data.content ?? data.messageText ?? '';
-    if (!messageText) {
-      throw new BadRequestError('Message content is required');
+    const firstAttachment = data.attachments?.[0];
+    // Allow text-only, attachment-only, or both. Previously required
+    // non-empty text which blocked image/file-only sends from mobile.
+    if (!messageText && !firstAttachment) {
+      throw new BadRequestError('Message content or attachment is required');
     }
 
     // Verify job exists and user is participant

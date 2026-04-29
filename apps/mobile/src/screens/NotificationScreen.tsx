@@ -134,7 +134,7 @@ export const NotificationScreen: React.FC = () => {
                 id: String(row.id),
                 title: (row.title as string) || 'Notification',
                 body: (row.message as string) || '',
-                data: row.metadata,
+                data: row.metadata ?? row.data ?? row.action_url,
                 type: (row.type as NotificationData['type']) || 'system',
                 priority: 'normal' as const,
                 userId: String(row.user_id ?? user.id),

@@ -272,7 +272,9 @@ export function useNavSections(
             href: '/contractor/verification',
             icon: Shield,
           },
-          { label: 'Settings', href: '/settings', icon: Settings },
+          // Contractors have their own settings screen — bare /settings
+          // is the homeowner UX. Same fix as useLayoutState.ts:206.
+          { label: 'Settings', href: '/contractor/settings', icon: Settings },
           {
             label: 'Notifications',
             href: '/notifications',

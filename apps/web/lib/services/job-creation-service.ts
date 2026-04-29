@@ -30,6 +30,11 @@ interface JobCreationPayload {
   is_rental_property?: boolean;
   payer_user_id?: string;
   tenancy_metadata?: Record<string, unknown>;
+  // Silver-mode + future per-job flags. Persists to jobs.requirements
+  // (jsonb). Live audit (2026-04-28) confirmed the column has 16 prod
+  // rows already, so it's the right destination — the path was just
+  // missing from the API contract.
+  requirements?: Record<string, unknown>;
 }
 
 type JobRow = {
@@ -277,6 +282,7 @@ export class JobCreationService {
     is_rental_property?: boolean;
     payer_user_id?: string | null;
     tenancy_metadata?: Record<string, unknown>;
+    requirements?: Record<string, unknown>;
   } {
     const budgetThreshold = BUSINESS_RULES.BUDGET_REQUIRES_PHOTOS_THRESHOLD;
     const insertPayload: {
@@ -299,6 +305,7 @@ export class JobCreationService {
       is_rental_property?: boolean;
       payer_user_id?: string | null;
       tenancy_metadata?: Record<string, unknown>;
+      requirements?: Record<string, unknown>;
     } = {
       title: payload.title.trim(),
       homeowner_id: user.id,
@@ -360,6 +367,16 @@ export class JobCreationService {
     ) {
       insertPayload.tenancy_metadata = payload.tenancy_metadata;
     }
+    // Per-job requirement flags (silver-mode contractor_before_photos +
+    // future per-job toggles). Persists to jobs.requirements jsonb.
+    if (
+      payload.requirements &&
+      typeof payload.requirements === 'object' &&
+      !Array.isArray(payload.requirements) &&
+      Object.keys(payload.requirements).length > 0
+    ) {
+      insertPayload.requirements = payload.requirements;
+    }
 
     return insertPayload;
   }
@@ -385,6 +402,7 @@ export class JobCreationService {
       is_rental_property?: boolean;
       payer_user_id?: string | null;
       tenancy_metadata?: Record<string, unknown>;
+      requirements?: Record<string, unknown>;
     }
   ): Promise<JobRow> {
     let result = await serverSupabase

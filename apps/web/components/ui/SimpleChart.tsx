@@ -229,13 +229,24 @@ function DonutChart({ data, size = 160, innerText }: DonutChartProps) {
   const strokeWidth = radius * 0.3;
   const innerRadius = radius - strokeWidth / 2;
 
-  let cumulativePercentage = 0;
+  // Pre-compute the cumulative percentage prefix sums in a single pass
+  // so the segment map below is pure (no in-render reassignment).
+  // The React Compiler linter flags `cumulativePercentage += percentage`
+  // inside `.map()` because mutating a captured local during render
+  // breaks memoization invariants.
+  const percentages = data.map((item) => (item.value / total) * 100);
+  const cumulativeStart: number[] = [];
+  let acc = 0;
+  for (const pct of percentages) {
+    cumulativeStart.push(acc);
+    acc += pct;
+  }
 
-  const segments = data.map((item) => {
-    const percentage = (item.value / total) * 100;
-    const startAngle = (cumulativePercentage / 100) * 360;
-    const endAngle = ((cumulativePercentage + percentage) / 100) * 360;
-    cumulativePercentage += percentage;
+  const segments = data.map((item, idx) => {
+    const percentage = percentages[idx]!;
+    const startAt = cumulativeStart[idx]!;
+    const startAngle = (startAt / 100) * 360;
+    const endAngle = ((startAt + percentage) / 100) * 360;
 
     const startRadians = ((startAngle - 90) * Math.PI) / 180;
     const endRadians = ((endAngle - 90) * Math.PI) / 180;

@@ -171,6 +171,42 @@ const KNOWN_LARGE_FILES = new Set([
   // single-purpose. Splitting this screen is a dedicated P2 once the
   // full feature lands (filter chips, multi-week selector, etc.).
   'apps/mobile/src/screens/contractor/TimeTrackingScreen.tsx', // 547 lines (was 489)
+  // Added 2026-04-27: pre-existing large file (523 lines on HEAD) touched
+  // by the Clipboard NotAllowedError fix (audit P1). The change actually
+  // SHRUNK it to 511 by replacing the inline navigator.clipboard +
+  // execCommand fallback with a 4-line `safeCopyToClipboard` call.
+  // Splitting the contractor profile page (header + booking widget +
+  // contact modal + portfolio + reviews + bid actions) is a dedicated
+  // P2, not a blocker on this XSS-adjacent fix.
+  'apps/web/app/contractors/[id]/page.tsx', // 511 lines (was 523)
+  // Added 2026-04-27: JobQueryService grew from 442 → 535 lines via the
+  // job_photos_metadata fallback (audit: production data showed jobs
+  // with 0 job_attachments but with before/after lifecycle photos
+  // weren't surfacing thumbnails on the homeowner job list). The added
+  // code is a single private fetcher method + integration into the
+  // existing Promise.all batch. Splitting the service is a dedicated
+  // P2 — the four `fetch*` helpers all read from related job-side
+  // tables and benefit from sharing the file's caching/sort logic.
+  'apps/web/lib/services/job-query-service.ts', // 535 lines (was 442)
+  // Added 2026-04-27: pre-existing large landing/discover cards touched by
+  // the landing-redesign polish pass (5-9 line additions each). Each card
+  // bundles preview, tags, distance/budget, CTA, and skeleton — splitting
+  // them is a dedicated P2 once the redesign settles.
+  'apps/web/app/contractor/discover/components/JobCard.tsx', // 623 lines (was 618)
+  'apps/web/app/contractor/jobs-near-you/components/NearbyJobCard.tsx', // 511 lines (was 502)
+  'apps/web/app/discover/components/JobCard.tsx', // 568 lines (was 563)
+  'apps/web/app/properties/[id]/components/PropertyDetailsClient.tsx', // 670 lines (was 665)
+  // Added 2026-04-28: pre-existing large mobile files (550 / 510 lines
+  // on HEAD) touched by the BidService consolidation + priority→urgency
+  // rename. ContractorAssignment.tsx swapped camelCase ApiBid reads
+  // (bid.contractorId, bid.contractorName, bid.createdAt) for snake_case
+  // Bid (bid.contractor_id, bid.contractor.first_name, bid.created_at)
+  // and added a 6-line `contractorDisplayName(bid)` helper — net +3
+  // lines. JobPostingScreen.tsx renamed `priority: urgency` → `urgency`
+  // — net +1 line. Splitting both is tracked as a P2 follow-up; not a
+  // blocker on the DB-column alignment work.
+  'apps/mobile/src/components/ContractorAssignment.tsx', // 553 lines (was 550)
+  'apps/mobile/src/screens/JobPostingScreen.tsx', // 511 lines (was 510)
 ]);
 
 function countLines(filePath) {

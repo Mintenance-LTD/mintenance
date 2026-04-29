@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { render, fireEvent, waitFor } from '../../test-utils';
 import { Alert } from 'react-native';
@@ -57,7 +56,6 @@ jest.mock('../../../utils/SecurityManager', () => ({
 
 const JobPostingScreen = require('../../../screens/JobPostingScreen').default;
 
-
 describe('Job Creation - Critical Path', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -96,7 +94,7 @@ describe('Job Creation - Critical Path', () => {
           budget: 500,
           homeownerId: 'homeowner_1',
           category: 'plumbing',
-          priority: 'high',
+          urgency: 'high',
         })
       );
       expect(mockNavigation.navigate).toHaveBeenCalledWith('JobDetails', {
@@ -107,7 +105,10 @@ describe('Job Creation - Critical Path', () => {
 
   it('should validate required fields', async () => {
     const { getByText, queryByText } = render(
-      <JobPostingScreen navigation={{ navigate: jest.fn() }} route={{ params: {} }} />
+      <JobPostingScreen
+        navigation={{ navigate: jest.fn() }}
+        route={{ params: {} }}
+      />
     );
 
     fireEvent.press(getByText(/post job/i));
@@ -125,7 +126,10 @@ describe('Job Creation - Critical Path', () => {
 
   it('should set job location', async () => {
     const { getByTestId, getByText } = render(
-      <JobPostingScreen navigation={{ navigate: jest.fn() }} route={{ params: {} }} />
+      <JobPostingScreen
+        navigation={{ navigate: jest.fn() }}
+        route={{ params: {} }}
+      />
     );
 
     fireEvent.changeText(getByTestId('job-location-input'), 'New York, NY');

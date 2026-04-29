@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import { Check, Copy, Share2, Users, Trophy } from 'lucide-react';
+import { safeCopyToClipboard } from '@/lib/utils/clipboard';
 
 export function WaitlistSuccessCard({
   position,
@@ -16,21 +17,13 @@ export function WaitlistSuccessCard({
   const referralLink = `${typeof window !== 'undefined' ? window.location.origin : ''}/coming-soon?ref=${referralCode}`;
 
   const copyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(referralLink);
+    const ok = await safeCopyToClipboard(referralLink);
+    if (ok) {
       setCopied(true);
       toast.success('Link copied!');
       setTimeout(() => setCopied(false), 2000);
-    } catch {
-      const input = document.createElement('input');
-      input.value = referralLink;
-      document.body.appendChild(input);
-      input.select();
-      document.execCommand('copy');
-      document.body.removeChild(input);
-      setCopied(true);
-      toast.success('Link copied!');
-      setTimeout(() => setCopied(false), 2000);
+    } else {
+      toast.error('Failed to copy. Please copy the link manually.');
     }
   };
 

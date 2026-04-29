@@ -4,19 +4,42 @@ import type Stripe from 'stripe';
 // ---------------------------------------------------------------------------
 // Hoisted mocks — survive mockReset
 // ---------------------------------------------------------------------------
-const { mockFrom, mockLoggerInfo, mockLoggerWarn, mockLoggerError } = vi.hoisted(() => ({
+const {
+  mockFrom,
+  mockLoggerInfo,
+  mockLoggerWarn,
+  mockLoggerError,
+  mockNotifyStakeholders,
+} = vi.hoisted(() => ({
   mockFrom: vi.fn(),
   mockLoggerInfo: vi.fn(),
   mockLoggerWarn: vi.fn(),
   mockLoggerError: vi.fn(),
+  mockNotifyStakeholders: vi.fn(),
 }));
 
 // ---------------------------------------------------------------------------
 // Chainable Supabase mock builder
 // ---------------------------------------------------------------------------
-function buildChain(overrides?: { singleData?: unknown; singleError?: unknown }) {
+function buildChain(overrides?: {
+  singleData?: unknown;
+  singleError?: unknown;
+}) {
   const chain: Record<string, any> = {};
-  for (const m of ['select', 'insert', 'update', 'delete', 'upsert', 'eq', 'neq', 'or', 'order', 'limit', 'range', 'contains']) {
+  for (const m of [
+    'select',
+    'insert',
+    'update',
+    'delete',
+    'upsert',
+    'eq',
+    'neq',
+    'or',
+    'order',
+    'limit',
+    'range',
+    'contains',
+  ]) {
     chain[m] = vi.fn().mockReturnValue(chain);
   }
   chain.single = vi.fn().mockResolvedValue({
@@ -44,9 +67,16 @@ vi.mock('@mintenance/shared', () => ({
   },
 }));
 
+vi.mock('@/lib/services/notifications/JobStakeholderNotifier', () => ({
+  notifyStakeholders: mockNotifyStakeholders,
+}));
+
 // Helpers need the same mock so re-mock
 vi.mock('../webhook-helpers', async () => {
-  const actual = await vi.importActual<typeof import('../webhook-helpers')>('../webhook-helpers');
+  const actual =
+    await vi.importActual<typeof import('../webhook-helpers')>(
+      '../webhook-helpers'
+    );
   return {
     ...actual,
     // Keep isValidUUID as-is (pure function), sendNotification is passed as param anyway
@@ -68,7 +98,9 @@ const VALID_UUID_2 = 'b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e';
 const JOB_ID = 'c3d4e5f6-a7b8-4c9d-0e1f-2a3b4c5d6e7f';
 const ESCROW_ID = 'd4e5f6a7-b8c9-4d0e-1f2a-3b4c5d6e7f8a';
 
-function makePaymentIntent(overrides?: Partial<Stripe.PaymentIntent>): Stripe.PaymentIntent {
+function makePaymentIntent(
+  overrides?: Partial<Stripe.PaymentIntent>
+): Stripe.PaymentIntent {
   return {
     id: 'pi_test_123',
     status: 'succeeded',
@@ -99,6 +131,7 @@ describe('handlePaymentIntentSucceeded', () => {
 
   beforeEach(() => {
     mockNotify = vi.fn().mockResolvedValue(undefined);
+    mockNotifyStakeholders.mockResolvedValue(undefined);
     const chain = buildChain({
       singleData: {
         id: ESCROW_ID,
@@ -120,7 +153,10 @@ describe('handlePaymentIntentSucceeded', () => {
 
     const chain = mockFrom.mock.results[0].value;
     expect(chain.update).toHaveBeenCalledWith(
-      expect.objectContaining({ status: 'held', payment_intent_id: 'pi_test_123' })
+      expect.objectContaining({
+        status: 'held',
+        payment_intent_id: 'pi_test_123',
+      })
     );
   });
 
@@ -164,7 +200,7 @@ describe('handlePaymentIntentSucceeded', () => {
 
     expect(mockLoggerWarn).toHaveBeenCalledWith(
       'Invalid homeownerId UUID in payment metadata',
-      expect.objectContaining({ homeownerId: 'not-a-uuid' }),
+      expect.objectContaining({ homeownerId: 'not-a-uuid' })
     );
   });
 
@@ -178,7 +214,7 @@ describe('handlePaymentIntentSucceeded', () => {
     expect(mockLoggerError).toHaveBeenCalledWith(
       'Failed to update escrow transaction',
       expect.objectContaining({ message: 'not found' }),
-      expect.any(Object),
+      expect.any(Object)
     );
   });
 
@@ -191,7 +227,7 @@ describe('handlePaymentIntentSucceeded', () => {
 
     expect(mockLoggerWarn).toHaveBeenCalledWith(
       'No escrow transaction found for payment intent',
-      expect.objectContaining({ paymentIntentId: 'pi_test_123' }),
+      expect.objectContaining({ paymentIntentId: 'pi_test_123' })
     );
   });
 });
@@ -225,12 +261,15 @@ describe('handlePaymentIntentFailed', () => {
       VALID_UUID,
       'Payment Failed',
       expect.stringContaining('payment could not be processed'),
-      'payment_failed',
+      'payment_failed'
     );
   });
 
   it('uses metadata jobId when escrow has no job_id', async () => {
-    const chain = buildChain({ singleData: null, singleError: { message: 'err' } });
+    const chain = buildChain({
+      singleData: null,
+      singleError: { message: 'err' },
+    });
     mockFrom.mockReturnValue(chain);
 
     const pi = makePaymentIntent({
@@ -317,13 +356,13 @@ describe('handleChargeRefunded', () => {
       VALID_UUID,
       'Refund Processed',
       expect.stringContaining('£100.00'),
-      'refund_processed',
+      'refund_processed'
     );
     expect(mockNotify).toHaveBeenCalledWith(
       VALID_UUID_2,
       'Payment Refunded',
       expect.stringContaining('£100.00'),
-      'payment_refunded',
+      'payment_refunded'
     );
   });
 
@@ -333,7 +372,7 @@ describe('handleChargeRefunded', () => {
 
     expect(mockLoggerWarn).toHaveBeenCalledWith(
       'Charge has no payment intent',
-      expect.objectContaining({ chargeId: 'ch_test_123' }),
+      expect.objectContaining({ chargeId: 'ch_test_123' })
     );
     expect(mockFrom).not.toHaveBeenCalledWith('escrow_transactions');
   });
@@ -361,12 +400,14 @@ describe('handleChargeRefunded', () => {
 
     const charge = makeCharge();
     // Should not throw
-    await expect(handleChargeRefunded(charge, mockNotify)).resolves.toBeUndefined();
+    await expect(
+      handleChargeRefunded(charge, mockNotify)
+    ).resolves.toBeUndefined();
 
     expect(mockLoggerError).toHaveBeenCalledWith(
       'Failed to record refund',
       expect.any(Error),
-      expect.objectContaining({ chargeId: 'ch_test_123' }),
+      expect.objectContaining({ chargeId: 'ch_test_123' })
     );
   });
 });

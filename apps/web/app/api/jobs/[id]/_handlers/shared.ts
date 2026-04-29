@@ -2,6 +2,26 @@ import { z } from 'zod';
 import type { JobDetail } from '@mintenance/types/src/contracts';
 import { sanitizeText, sanitizeJobDescription } from '@/lib/sanitizer';
 
+// Mirror the state-machine's enum (the actual transitions live in
+// `@mintenance/shared/state-machines/job-state-machine`). The Zod
+// schema below previously accepted any string for `status`, which let
+// clients submit values the state machine has no rule for and made
+// the validation error message late + ugly. Constraining at the
+// schema layer fails fast with a clear field-level error instead.
+//
+// `'draft'` / `'open'` are accepted by the live DB CHECK but the
+// canonical lifecycle (CLAUDE.md) and state machine don't transition
+// to them — they're legacy holdouts and should never be a *target*
+// status of a PATCH. We deliberately omit them here.
+const JOB_STATUS_TRANSITION_TARGETS = [
+  'posted',
+  'assigned',
+  'in_progress',
+  'completed',
+  'disputed',
+  'cancelled',
+] as const;
+
 export interface Params {
   params: Promise<{ id: string }>;
 }
@@ -51,7 +71,7 @@ export const updateJobSchema = z
       .max(5000)
       .optional()
       .transform((val) => (val ? sanitizeJobDescription(val) : val)),
-    status: z.string().optional(),
+    status: z.enum(JOB_STATUS_TRANSITION_TARGETS).optional(),
     category: z
       .string()
       .max(128)

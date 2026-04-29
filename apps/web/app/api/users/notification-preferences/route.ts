@@ -1,6 +1,32 @@
 /**
- * GET/PATCH /api/users/notification-preferences
- * Read and update notification preferences (stored in profiles.notification_preferences JSONB column)
+ * GET/PATCH /api/users/notification-preferences (LEGACY — see note)
+ *
+ * Stores a 17-field camelCase JSONB blob on
+ * `profiles.notification_preferences`. Used today only by the inline
+ * settings page (apps/web/app/settings/_components/notifications-section.tsx)
+ * which renders a per-category × per-channel matrix
+ * (emailJobs/smsJobs/pushJobs etc).
+ *
+ * @deprecated for NEW code. The newer canonical endpoint is the
+ * singular `/api/user/notification-preferences` (note `user`, not
+ * `users`) which stores a 7-field snake_case row on the dedicated
+ * `user_notification_preferences` table — global channel toggles +
+ * `disabled_types` opt-out array + quiet hours + timezone. The
+ * singular shape is what the mobile inbox + the R2 `NotificationPreferencesForm`
+ * read.
+ *
+ * Why keep this one alive:
+ *   - The inline-settings UX exposes SMS toggles, which the singular
+ *     model has no field for. Killing this would silently drop SMS
+ *     preferences from the UI.
+ *   - Live audit (2026-04-28) confirmed both DB locations have 0 prod
+ *     rows — there's no data movement cost yet, but a UI redesign +
+ *     decision on SMS support is required before consolidation.
+ *
+ * Action plan (separate ticket): collapse the per-category matrix into
+ * a global-channel + disabled-types model that supports SMS, migrate
+ * the inline-settings UI to the singular endpoint, then drop this
+ * route + the JSONB column in one atomic change.
  */
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
@@ -46,7 +72,10 @@ export const GET = withApiHandler(
     }
 
     return NextResponse.json({
-      preferences: { ...DEFAULT_PREFS, ...(data?.notification_preferences as Record<string, unknown> || {}) },
+      preferences: {
+        ...DEFAULT_PREFS,
+        ...((data?.notification_preferences as Record<string, unknown>) || {}),
+      },
     });
   }
 );
@@ -65,7 +94,7 @@ export const PATCH = withApiHandler(
 
     const merged = {
       ...DEFAULT_PREFS,
-      ...(current?.notification_preferences as Record<string, unknown> || {}),
+      ...((current?.notification_preferences as Record<string, unknown>) || {}),
       ...body,
     };
 
@@ -79,7 +108,9 @@ export const PATCH = withApiHandler(
         service: 'notification-preferences',
         userId: user.id,
       });
-      throw new InternalServerError('Failed to update notification preferences');
+      throw new InternalServerError(
+        'Failed to update notification preferences'
+      );
     }
 
     return NextResponse.json({ success: true, preferences: merged });

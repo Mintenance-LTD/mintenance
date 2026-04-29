@@ -79,6 +79,16 @@ const nextConfig = {
         hostname: '**.supabase.co',
         pathname: '/storage/v1/object/public/**',
       },
+      // Signed URLs from private buckets (job-storage, contractor-documents,
+      // job-attachments). lib/api/job-storage.ts mints these via
+      // createSignedUrl, and detail screens render them through next/image
+      // — without this pattern the optimizer rejects the host and the
+      // browser shows a broken-image placeholder even when the URL is valid.
+      {
+        protocol: 'https',
+        hostname: '**.supabase.co',
+        pathname: '/storage/v1/object/sign/**',
+      },
       { protocol: 'https', hostname: 'picsum.photos', pathname: '/**' },
       { protocol: 'https', hostname: 'images.unsplash.com', pathname: '/**' },
       { protocol: 'https', hostname: 'via.placeholder.com', pathname: '/**' },

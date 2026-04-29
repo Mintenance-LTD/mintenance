@@ -8,9 +8,9 @@
  */
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { supabase } from '../../../config/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
 import { logger } from '../../../utils/logger';
+import { mobileApiClient } from '../../../utils/mobileApiClient';
 import * as Location from 'expo-location';
 
 export interface JobMapItem {
@@ -108,14 +108,15 @@ const useJobsMapViewModel = (): JobsMapViewModel => {
     isMounted.current = true;
     (async () => {
       try {
-        // Prefer the saved profile lat/lng — home maintenance is done at the user's home address.
+        // Prefer the saved profile lat/lng — home maintenance is done at
+        // the user's home address. Routes through /api/users/profile so
+        // the screen no longer reads the profiles table directly.
         try {
           if (user?.id) {
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('latitude, longitude')
-              .eq('id', user.id)
-              .single();
+            const profile = await mobileApiClient.get<{
+              latitude?: number | null;
+              longitude?: number | null;
+            }>('/api/users/profile');
             const lat = profile?.latitude;
             const lng = profile?.longitude;
             if (lat && lng && isMounted.current) {
@@ -174,77 +175,65 @@ const useJobsMapViewModel = (): JobsMapViewModel => {
     if (!isMounted.current) return;
     setLoading(true);
     try {
-      // Fetch posted jobs, then filter out ones this contractor already bid on
-      // Build the jobs query — add a server-side category filter when one is
-      // selected so we don't hit the 50-row limit before any matching jobs
-      // appear. The client-side `filteredJobs` below acts as a second pass
-      // for the text-search filter which is too complex for a Supabase `.ilike`.
-      let jobsQuery = supabase
-        .from('jobs')
-        .select(
-          `
-          id, title, category, urgency, budget, budget_min, budget_max,
-          latitude, longitude, created_at,
-          homeowner:homeowner_id ( first_name )
-        `
-        )
-        .eq('status', 'posted')
-        .is('contractor_id', null)
-        .not('latitude', 'is', null)
-        .not('longitude', 'is', null);
+      // /api/jobs/discover does the posted+unassigned+geo-filter query
+      // server-side and excludes jobs this contractor has bid on, so the
+      // mobile screen no longer hits jobs/bids tables directly. The
+      // text-search refinement still happens client-side via the
+      // `filteredJobs` selector — too complex to push to a single ILIKE.
+      const params = new URLSearchParams({ limit: '50' });
+      if (selectedCategory) params.set('category', selectedCategory);
 
-      if (selectedCategory) {
-        jobsQuery = jobsQuery.ilike('category', selectedCategory);
+      interface DiscoverRow {
+        id: string;
+        title: string;
+        category: string;
+        urgency: string;
+        budget: number | null;
+        budget_min: number | null;
+        budget_max: number | null;
+        latitude: number | null;
+        longitude: number | null;
+        created_at: string | null;
+        homeowner_first_name: string | null;
       }
 
-      jobsQuery = jobsQuery.order('created_at', { ascending: false }).limit(50);
-
-      const [jobsResult, bidsResult] = await Promise.all([
-        jobsQuery,
-        user?.id
-          ? supabase.from('bids').select('job_id').eq('contractor_id', user.id)
-          : Promise.resolve({ data: [] as { job_id: string }[], error: null }),
-      ]);
-
-      const { data, error } = jobsResult;
-      const bidJobIds = new Set(
-        (bidsResult.data ?? []).map((b: { job_id: string }) => b.job_id)
-      );
-
-      if (error) {
-        logger.error('Error fetching jobs for map', error);
+      let response: { jobs: DiscoverRow[] };
+      try {
+        response = await mobileApiClient.get<{ jobs: DiscoverRow[] }>(
+          `/api/jobs/discover?${params.toString()}`
+        );
+      } catch (err) {
+        logger.error('Error fetching jobs for map', err);
         return;
       }
+      const data = response.jobs ?? [];
 
       const refLat = userLocation?.latitude ?? regionRef.current.latitude;
       const refLng = userLocation?.longitude ?? regionRef.current.longitude;
 
-      // Exclude jobs contractor already bid on
-      const availableData = (data || []).filter(
-        (row: Record<string, unknown>) => !bidJobIds.has(row.id as string)
-      );
-
-      const mapped: JobMapItem[] = availableData.map(
-        (row: Record<string, unknown>) => {
-          const homeowner = row.homeowner as { first_name?: string } | null;
+      // Server already excludes jobs the contractor bid on, dropped
+      // missing-coords rows, and applied the category filter — so the
+      // client just maps the rows.
+      const mapped: JobMapItem[] = data
+        .filter((row) => row.latitude != null && row.longitude != null)
+        .map((row) => {
           const lat = row.latitude as number;
           const lng = row.longitude as number;
           return {
-            id: row.id as string,
-            title: row.title as string,
-            category: (row.category as string) || 'general',
-            urgency: (row.urgency as string) || 'medium',
-            budget: row.budget ? Number(row.budget) : null,
-            budget_min: row.budget_min as number | null,
-            budget_max: row.budget_max as number | null,
+            id: row.id,
+            title: row.title,
+            category: row.category || 'general',
+            urgency: row.urgency || 'medium',
+            budget: row.budget != null ? Number(row.budget) : null,
+            budget_min: row.budget_min,
+            budget_max: row.budget_max,
             latitude: lat,
             longitude: lng,
             distance: calculateDistance(refLat, refLng, lat, lng),
-            homeowner_name: homeowner?.first_name || 'Homeowner',
-            created_at: row.created_at as string,
+            homeowner_name: row.homeowner_first_name || 'Homeowner',
+            created_at: row.created_at ?? '',
           };
-        }
-      );
+        });
 
       mapped.sort((a, b) => a.distance - b.distance);
 

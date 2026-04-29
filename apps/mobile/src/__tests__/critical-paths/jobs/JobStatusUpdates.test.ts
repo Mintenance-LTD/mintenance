@@ -16,7 +16,8 @@ describe('Job Status Updates - Critical Path', () => {
       accepted_bid_id: 'bid_456',
     });
 
-    const result = await JobService.acceptBid('job_123', 'bid_456');
+    // Audit step 11 (2026-04-29): signature is `acceptBid(bidId, jobId)`.
+    const result = await JobService.acceptBid('bid_456', 'job_123');
 
     expect(result.status).toBe('in_progress');
     expect(NotificationService.sendNotification).toHaveBeenCalledWith(

@@ -487,6 +487,10 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({
                 job={item}
                 isSelected={viewModel.selectedJob?.id === item.id}
                 onPress={() => {
+                  if (!shouldRenderNativeMap) {
+                    handleViewDetails(item.id);
+                    return;
+                  }
                   viewModel.handleJobSelect(item);
                   mapRef.current?.animateToRegion(
                     {

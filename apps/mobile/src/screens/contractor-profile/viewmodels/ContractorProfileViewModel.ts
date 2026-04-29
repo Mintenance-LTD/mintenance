@@ -10,8 +10,20 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { Share, Linking, Alert } from 'react-native';
-import { supabase } from '../../../config/supabase';
+import { useNavigation } from '@react-navigation/native';
 import { logger } from '../../../utils/logger';
+import { mobileApiClient } from '../../../utils/mobileApiClient';
+
+export interface ContractorProfileContext {
+  /**
+   * Origin context controlling which CTAs the screen exposes. Bid-review
+   * mode requires `jobId`/`bidId` so the message CTA can navigate to
+   * the existing thread for that job.
+   */
+  source?: 'bidReview' | 'general';
+  jobId?: string;
+  bidId?: string;
+}
 
 export interface Review {
   id: string;
@@ -37,6 +49,7 @@ interface ContractorProfileState {
     verified?: boolean;
     companyName?: string;
     phone?: string;
+    profileImageUrl?: string | null;
     // R7 #9 + #11 trust signals (lazy-loaded from /api/contractors/:id)
     postcodePrefix?: string | null;
     postcodeProofCount?: number | null;
@@ -78,15 +91,16 @@ interface ApiContractor {
   hourly_rate?: number;
   verified?: boolean;
   phone?: string;
+  avatarUrl?: string | null;
+  profile_image_url?: string | null;
   portfolio_images?: string[];
-}
-
-interface ApiReview {
-  id: string;
-  reviewer_name?: string;
-  rating: number;
-  comment?: string;
-  created_at: string;
+  postcode_prefix?: string | null;
+  postcode_proof_count?: number | null;
+  dispute_history?: {
+    resolved_count: number;
+    unresolved_count: number;
+    avg_resolution_hours: number | null;
+  };
 }
 
 const DEFAULT_CONTRACTOR: ContractorProfileState['contractor'] = {
@@ -99,8 +113,17 @@ const DEFAULT_CONTRACTOR: ContractorProfileState['contractor'] = {
 };
 
 export const useContractorProfileViewModel = (
-  contractorId?: string
+  contractorId?: string,
+  context: ContractorProfileContext = {}
 ): ContractorProfileViewModel => {
+  const navigation = useNavigation<{
+    navigate: (screen: string, params?: Record<string, unknown>) => void;
+    getParent?: () =>
+      | {
+          navigate: (screen: string, params?: Record<string, unknown>) => void;
+        }
+      | undefined;
+  }>();
   const [activeTab, setActiveTab] = useState<'photos' | 'reviews'>('photos');
   const [contractor, setContractor] =
     useState<ContractorProfileState['contractor']>(DEFAULT_CONTRACTOR);
@@ -119,31 +142,9 @@ export const useContractorProfileViewModel = (
     setLoading(true);
     setError(null);
     try {
-      // Cross-user read — only select publicly-safe columns (no phone/email/address)
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select(
-          'id, first_name, last_name, company_name, city, bio, skills, hourly_rate, verified, portfolio_images, rating, total_jobs_completed'
-        )
-        .eq('id', contractorId)
-        .single();
-      if (profileError) throw new Error(profileError.message);
-
-      const data: ApiContractor = {
-        id: profileData.id,
-        name: `${profileData.first_name || ''} ${profileData.last_name || ''}`.trim(),
-        company_name: profileData.company_name,
-        city: profileData.city,
-        bio: profileData.bio,
-        rating: profileData.rating || 0,
-        reviewCount: 0,
-        total_jobs_completed: profileData.total_jobs_completed || 0,
-        skills: profileData.skills,
-        hourly_rate: profileData.hourly_rate,
-        verified: profileData.verified,
-        phone: undefined, // Phone not exposed in cross-user reads (PII protection)
-        portfolio_images: profileData.portfolio_images,
-      };
+      const { contractor: data } = await mobileApiClient.get<{
+        contractor: ApiContractor;
+      }>(`/api/contractors/${contractorId}`);
 
       setContractor({
         id: data.id,
@@ -158,68 +159,48 @@ export const useContractorProfileViewModel = (
         verified: data.verified,
         companyName: data.company_name,
         phone: data.phone,
+        profileImageUrl: data.avatarUrl ?? data.profile_image_url ?? null,
+        postcodePrefix: data.postcode_prefix ?? null,
+        postcodeProofCount: data.postcode_proof_count ?? null,
+        disputeHistory: data.dispute_history
+          ? {
+              resolvedCount: data.dispute_history.resolved_count,
+              unresolvedCount: data.dispute_history.unresolved_count,
+              avgResolutionHours: data.dispute_history.avg_resolution_hours,
+            }
+          : undefined,
       });
 
-      setPhotos(data.portfolio_images || []);
-
-      // R7 #9 + #11 — hydrate trust signals from the public API.
-      // Non-fatal if it fails; the basic profile is already rendered.
-      (async () => {
-        try {
-          const { mobileApiClient } =
-            await import('../../../utils/mobileApiClient');
-          const trust = await mobileApiClient.get<{
-            contractor: {
-              postcode_prefix?: string | null;
-              postcode_proof_count?: number | null;
-              dispute_history?: {
-                resolved_count: number;
-                unresolved_count: number;
-                avg_resolution_hours: number | null;
-              };
-            };
-          }>(`/api/contractors/${contractorId}`);
-          const c = trust?.contractor;
-          if (c) {
-            setContractor((prev) => ({
-              ...prev,
-              postcodePrefix: c.postcode_prefix ?? null,
-              postcodeProofCount: c.postcode_proof_count ?? null,
-              disputeHistory: c.dispute_history
-                ? {
-                    resolvedCount: c.dispute_history.resolved_count,
-                    unresolvedCount: c.dispute_history.unresolved_count,
-                    avgResolutionHours: c.dispute_history.avg_resolution_hours,
-                  }
-                : undefined,
-            }));
-          }
-        } catch (trustErr) {
-          logger.warn('Failed to hydrate trust lines', trustErr);
-        }
-      })();
+      setPhotos(
+        (data.portfolio_images || []).filter(
+          (url): url is string => typeof url === 'string' && url.length > 0
+        )
+      );
 
       // Fetch reviews
       try {
-        const { data: reviewRows, error: reviewError } = await supabase
-          .from('reviews')
-          .select('id, reviewer_name, rating, comment, created_at')
-          .eq('contractor_id', contractorId)
-          .order('created_at', { ascending: false });
-        if (reviewError) throw reviewError;
+        const { reviews: reviewRows = [] } = await mobileApiClient.get<{
+          reviews?: Array<{
+            id: string;
+            author?: string;
+            rating: number;
+            comment?: string;
+            date: string;
+          }>;
+        }>(`/api/contractors/${contractorId}/reviews`);
         setReviews(
           (reviewRows || []).map(
             (r: {
               id: string;
-              reviewer_name?: string;
+              author?: string;
               rating: number;
               comment?: string;
-              created_at: string;
+              date: string;
             }) => ({
               id: r.id,
-              reviewerName: r.reviewer_name || 'Anonymous',
+              reviewerName: r.author || 'Anonymous',
               rating: r.rating,
-              date: new Date(r.created_at).toLocaleDateString('en-GB', {
+              date: new Date(r.date).toLocaleDateString('en-GB', {
                 day: 'numeric',
                 month: 'short',
                 year: 'numeric',
@@ -250,11 +231,44 @@ export const useContractorProfileViewModel = (
   }, [fetchProfile]);
 
   const handleMessage = useCallback(() => {
-    // Messaging requires an accepted bid / assigned job between homeowner and contractor.
-    // The screen container controls visibility of the Message button based on `canMessage`.
-    // Navigation to the messaging thread is handled by the screen when the button is shown.
-    logger.info('Message contractor', { contractorId: contractor.id });
-  }, [contractor.id]);
+    // Messaging requires a job thread context. Bid-review entry passes
+    // `jobId` (the message thread is keyed on jobId; the thread is
+    // auto-created on bid acceptance). Without a jobId we cannot route —
+    // the screen's `canMessage` gate already hides the button in that
+    // case, but log for observability if a caller invokes us anyway.
+    const targetJobId = context.jobId;
+    if (!targetJobId) {
+      logger.warn('handleMessage invoked without job context', {
+        contractorId: contractor.id,
+        source: context.source ?? 'general',
+      });
+      return;
+    }
+    const navParams = {
+      conversationId: targetJobId,
+      recipientId: contractor.id,
+      recipientName: contractor.name,
+    };
+    // The contractor profile is mounted inside a modal stack; the
+    // messaging screen lives in the parent stack, so jump up one level
+    // before navigating. Falls back to a same-stack navigate if no
+    // parent is exposed (test environments / direct deep-link).
+    const parent = navigation.getParent?.();
+    if (parent) {
+      parent.navigate('MessagingTab', {
+        screen: 'Messaging',
+        params: navParams,
+      });
+    } else {
+      navigation.navigate('Messaging', navParams);
+    }
+  }, [
+    contractor.id,
+    contractor.name,
+    context.jobId,
+    context.source,
+    navigation,
+  ]);
 
   const handleCall = useCallback(() => {
     if (contractor.phone) {

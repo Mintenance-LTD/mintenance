@@ -224,6 +224,14 @@ export const createPropertySchema = z
     bedrooms: z.number().int().min(0).optional(),
     bathrooms: z.number().int().min(0).optional(),
     notes: z.string().max(1000).optional(),
+    // R6 step 13 (2026-04-29): mobile's AddPropertyScreen captures
+    // device GPS / Mapbox-resolved coords and forwarded them in the
+    // payload — but the schema dropped the keys silently and the
+    // route's INSERT never persisted them, so map / nearby-contractor
+    // / geo-pricing features couldn't read coords back. DB columns
+    // exist (migration 20260324000001).
+    latitude: z.number().min(-90).max(90).optional(),
+    longitude: z.number().min(-180).max(180).optional(),
   })
   .refine((data) => data.address || data.address_line1, {
     message: 'Address is required (provide address or address_line1)',
@@ -312,6 +320,12 @@ export const updatePropertySchema = z.object({
     .array(z.string().url('Invalid photo URL'))
     .max(20, 'Maximum 20 photos allowed')
     .optional(),
+  // R6 step 13 (2026-04-29): match createPropertySchema so PUT can
+  // persist coords too (e.g. when an edit corrects the address).
+  country: z.string().max(50).optional(),
+  county: z.string().max(100).optional(),
+  latitude: z.number().min(-90).max(90).optional().nullable(),
+  longitude: z.number().min(-180).max(180).optional().nullable(),
 });
 
 export const propertyFavoriteSchema = z.object({

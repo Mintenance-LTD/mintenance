@@ -42,15 +42,57 @@ interface NotificationRow {
  * include social-type rows or old read items the /notifications page hid,
  * which made the two views visibly disagree.
  *
- * Filters: excludes social types; keeps rows that are either recent (< 24h)
- * OR unread. Sorted by `created_at DESC`, capped at `limit` (default 7 to
- * match the API's default cap).
+ * Default mode: excludes social types; keeps rows that are either recent
+ * (< 24h) OR unread. Sorted by `created_at DESC`, capped at `limit`
+ * (default 7 to match the API's default cap). Used by the dashboard
+ * activity card and the default `/api/notifications` GET behavior.
+ *
+ * `includeHistory: true` mode: returns the full notification history,
+ * paginated by `limit`/`offset` directly through the DB. Still strips
+ * social-type rows. Used by the mobile inbox screen where users expect
+ * to scroll past read items rather than see an empty list.
  */
 export async function fetchNotificationFeed(
   userId: string,
-  opts: { limit?: number; db?: SupabaseClient } = {}
+  opts: {
+    limit?: number;
+    offset?: number;
+    db?: SupabaseClient;
+    includeHistory?: boolean;
+  } = {}
 ): Promise<FeedNotification[]> {
-  const { limit = 7, db = serverSupabase } = opts;
+  const {
+    limit = 7,
+    offset = 0,
+    db = serverSupabase,
+    includeHistory = false,
+  } = opts;
+
+  if (includeHistory) {
+    // History mode: paginate the DB query directly, skip the recent/unread
+    // filter, but still strip social-type rows.
+    const safeLimit = Math.min(Math.max(limit, 1), 100);
+    const safeOffset = Math.max(offset, 0);
+    const { data, error } = await db
+      .from('notifications')
+      .select('id, type, title, message, read, created_at, action_url, user_id')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .range(safeOffset, safeOffset + safeLimit - 1);
+
+    if (error) {
+      logger.error('Error fetching notification history', error, {
+        service: 'notifications',
+        userId,
+      });
+      return [];
+    }
+
+    const rows = (data as NotificationRow[] | null) || [];
+    return rows
+      .filter((row) => !SOCIAL_NOTIFICATION_TYPES.has(row.type || ''))
+      .map<FeedNotification>(toFeedNotification);
+  }
 
   const { data, error } = await db
     .from('notifications')
@@ -81,7 +123,11 @@ export async function fetchNotificationFeed(
     })
     .slice(0, limit);
 
-  return filtered.map<FeedNotification>((row) => ({
+  return filtered.map<FeedNotification>(toFeedNotification);
+}
+
+function toFeedNotification(row: NotificationRow): FeedNotification {
+  return {
     id: String(row.id || ''),
     type: row.type || 'bid_received',
     title: row.title || 'Notification',
@@ -90,5 +136,5 @@ export async function fetchNotificationFeed(
     created_at: row.created_at || new Date().toISOString(),
     link: row.action_url || undefined,
     action_url: row.action_url || undefined,
-  }));
+  };
 }

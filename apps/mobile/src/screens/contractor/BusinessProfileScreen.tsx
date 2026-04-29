@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -16,9 +16,22 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '../../config/supabase';
+import { mobileApiClient } from '../../utils/mobileApiClient';
 import { ScreenHeader, LoadingSpinner } from '../../components/shared';
 import { theme } from '../../theme';
+
+interface BusinessProfileResponse {
+  profile: {
+    company_name: string | null;
+    business_address: string | null;
+    license_number: string | null;
+    license_type: string | null;
+    license_expiry: string | null;
+    verification_status: string | null;
+  } | null;
+  insurance: { provider: string | null; policy_number: string | null } | null;
+  license: { name: string | null; number: string | null } | null;
+}
 
 const LICENSE_TYPES = [
   'General Contractor',
@@ -32,6 +45,29 @@ const LICENSE_TYPES = [
   'Other',
 ] as const;
 
+const toProfileLicenseType = (type: string): string | null => {
+  const normalized = type
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, '_');
+  if (!normalized) return null;
+  if (normalized === 'general_contractor') return 'trade';
+  if (normalized === 'electrical') return 'electrical';
+  if (normalized === 'plumbing') return 'plumbing';
+  if (normalized === 'hvac') return 'hvac';
+  if (normalized === 'roofing') return 'roofing';
+  return 'other';
+};
+
+const toDisplayLicenseType = (type: string | null | undefined): string => {
+  const normalized = toProfileLicenseType(type || '');
+  if (!normalized) return '';
+  const match = LICENSE_TYPES.find(
+    (option) => toProfileLicenseType(option) === normalized
+  );
+  return match || 'Other';
+};
+
 export const BusinessProfileScreen: React.FC = () => {
   const navigation = useNavigation();
   const { user, refreshUser } = useAuth();
@@ -44,48 +80,29 @@ export const BusinessProfileScreen: React.FC = () => {
   const [insuranceProvider, setInsuranceProvider] = useState('');
   const [policyNumber, setPolicyNumber] = useState('');
 
-  // Load existing data
+  // Load existing data via the consolidated business-profile endpoint.
+  // Server-side does the joined read; client just hydrates the form.
   const { isLoading } = useQuery({
     queryKey: ['businessProfile', user?.id],
     queryFn: async () => {
       if (!user?.id) return null;
-      const [profileRes, insuranceRes, licenseRes] = await Promise.all([
-        supabase
-          .from('profiles')
-          .select('company_name, business_address, license_number')
-          .eq('id', user.id)
-          .single(),
-        supabase
-          .from('contractor_insurance')
-          .select('provider, policy_number')
-          .eq('contractor_id', user.id)
-          .eq('status', 'active')
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle(),
-        supabase
-          .from('contractor_licenses')
-          .select('name, number')
-          .eq('contractor_id', user.id)
-          .eq('status', 'active')
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle(),
-      ]);
-      const p = profileRes.data;
+      const data = await mobileApiClient.get<BusinessProfileResponse>(
+        '/api/contractor/business-profile'
+      );
+      const p = data.profile;
       if (p?.company_name) setCompanyName(p.company_name);
       if (p?.business_address) setBusinessAddress(p.business_address);
       if (p?.license_number) setLicenseNumber(p.license_number);
-      if (insuranceRes.data?.provider)
-        setInsuranceProvider(insuranceRes.data.provider);
-      if (insuranceRes.data?.policy_number)
-        setPolicyNumber(insuranceRes.data.policy_number);
-      if (licenseRes.data?.name) setLicenseType(licenseRes.data.name);
-      return {
-        profile: p,
-        insurance: insuranceRes.data,
-        license: licenseRes.data,
-      };
+      if (data.insurance?.provider)
+        setInsuranceProvider(data.insurance.provider);
+      if (data.insurance?.policy_number)
+        setPolicyNumber(data.insurance.policy_number);
+      if (data.license?.name || p?.license_type) {
+        setLicenseType(
+          toDisplayLicenseType(data.license?.name || p?.license_type)
+        );
+      }
+      return data;
     },
     enabled: !!user?.id,
   });
@@ -93,88 +110,23 @@ export const BusinessProfileScreen: React.FC = () => {
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!user?.id) throw new Error('Not logged in');
-      // Save profile fields
-      const { error: profileErr } = await supabase
-        .from('profiles')
-        .update({
-          company_name: companyName.trim() || null,
-          business_address: businessAddress.trim() || null,
-          license_number: licenseNumber.trim() || null,
-        })
-        .eq('id', user.id);
-      if (profileErr) throw new Error(profileErr.message);
-
-      // Save insurance — check if existing record, then update or insert
-      if (insuranceProvider.trim()) {
-        const { data: existingIns } = await supabase
-          .from('contractor_insurance')
-          .select('id')
-          .eq('contractor_id', user.id)
-          .limit(1)
-          .maybeSingle();
-        // contractor_insurance has NOT NULL on `start_date` and `expiry_date`
-        // with no DB defaults. The form doesn't expose date pickers yet, so
-        // default to today + 1y on first INSERT. UPDATE path doesn't touch
-        // the dates so editing later won't reset them.
-        const todayIso = new Date().toISOString().split('T')[0];
-        const oneYearFromTodayIso = new Date(
-          Date.now() + 365 * 24 * 60 * 60 * 1000
-        )
-          .toISOString()
-          .split('T')[0];
-        const insBase = {
-          contractor_id: user.id,
-          provider: insuranceProvider.trim(),
-          policy_number: policyNumber.trim() || null,
-          type: 'general_liability',
-          status: 'active',
-          updated_at: new Date().toISOString(),
-        };
-        const { error: insErr } = existingIns
-          ? await supabase
-              .from('contractor_insurance')
-              .update(insBase)
-              .eq('id', existingIns.id)
-          : await supabase.from('contractor_insurance').insert({
-              ...insBase,
-              start_date: todayIso,
-              expiry_date: oneYearFromTodayIso,
-            });
-        if (insErr) throw new Error(insErr.message);
-      }
-
-      // Save license — check if existing record, then update or insert
-      if (licenseType) {
-        const { data: existingLic } = await supabase
-          .from('contractor_licenses')
-          .select('id')
-          .eq('contractor_id', user.id)
-          .limit(1)
-          .maybeSingle();
-        // contractor_licenses has NOT NULL on `issue_date` with no DB
-        // default — without this default the INSERT errors out:
-        // `null value in column "issue_date" of relation
-        // "contractor_licenses" violates not-null constraint`. (User-
-        // reported on the Save Business Profile flow.) UPDATE path
-        // doesn't touch the date so editing later doesn't reset it.
-        const licBase = {
-          contractor_id: user.id,
-          name: licenseType,
-          number: licenseNumber.trim() || null,
-          status: 'active',
-          updated_at: new Date().toISOString(),
-        };
-        const { error: licErr } = existingLic
-          ? await supabase
-              .from('contractor_licenses')
-              .update(licBase)
-              .eq('id', existingLic.id)
-          : await supabase.from('contractor_licenses').insert({
-              ...licBase,
-              issue_date: new Date().toISOString().split('T')[0],
-            });
-        if (licErr) throw new Error(licErr.message);
-      }
+      // Single PATCH to /api/contractor/business-profile — the server
+      // does the profile update + insurance upsert + license upsert in
+      // one place, with the same NOT NULL date defaults the client used
+      // to maintain.
+      const normalizedLicenseType = toProfileLicenseType(licenseType);
+      await mobileApiClient.patch('/api/contractor/business-profile', {
+        companyName: companyName.trim(),
+        businessAddress: businessAddress.trim(),
+        licenseNumber: licenseNumber.trim(),
+        licenseType: normalizedLicenseType ?? '',
+        ...(insuranceProvider.trim()
+          ? {
+              insuranceProvider: insuranceProvider.trim(),
+              insurancePolicyNumber: policyNumber.trim(),
+            }
+          : {}),
+      });
     },
     onSuccess: async () => {
       queryClient.invalidateQueries({ queryKey: ['businessProfile'] });

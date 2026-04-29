@@ -234,6 +234,12 @@ export default async function ContractorDiscoverPage2025() {
     .select('job_id, status, updated_at, created_at')
     .eq('contractor_id', user.id);
 
+  // Server component (no 'use client') — `Date.now()` is fine here
+  // because this whole function runs on the server per request, not in
+  // a render commit. The React Compiler linter still flags it under
+  // `react-hooks/purity`; suppressing the line is correct because the
+  // rule's invariant doesn't apply to async server pages.
+  // eslint-disable-next-line react-hooks/purity
   const now = Date.now();
   const REJECTION_COOLDOWN_MS = 48 * 60 * 60 * 1000; // 48 hours in milliseconds
 

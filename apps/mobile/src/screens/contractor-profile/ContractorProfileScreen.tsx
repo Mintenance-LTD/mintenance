@@ -5,7 +5,7 @@
  * impact stats, primary CTA, portfolio gallery, and review breakdown.
  */
 
-import React, { useMemo } from 'react';
+import React from 'react';
 import {
   ScrollView,
   View,
@@ -15,7 +15,6 @@ import {
   StyleSheet,
   RefreshControl,
   StatusBar,
-  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -38,6 +37,9 @@ interface ContractorProfileScreenProps {
     params?: {
       contractorId?: string;
       contractorName?: string;
+      source?: 'bidReview' | 'general';
+      jobId?: string;
+      bidId?: string;
     };
   };
 }
@@ -47,25 +49,38 @@ export const ContractorProfileScreen: React.FC<
 > = ({ navigation, route }) => {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
-  const viewModel = useContractorProfileViewModel(route?.params?.contractorId);
+  const viewModel = useContractorProfileViewModel(route?.params?.contractorId, {
+    source: route?.params?.source,
+    jobId: route?.params?.jobId,
+    bidId: route?.params?.bidId,
+  });
 
   // Check if the homeowner has an active job with this contractor (assigned/in_progress/completed)
   const contractorId = route?.params?.contractorId;
   const { data: activeJobs = [] } = useQuery({
     queryKey: ['contractorActiveJobs', user?.id, contractorId],
     queryFn: async () => {
+      if (!user?.id || !contractorId) return [];
       const { data } = await supabase
         .from('jobs')
         .select('id, status')
-        .eq('homeowner_id', user!.id)
-        .eq('contractor_id', contractorId!)
+        .eq('homeowner_id', user.id)
+        .eq('contractor_id', contractorId)
         .in('status', ['assigned', 'in_progress', 'completed']);
       return data || [];
     },
     enabled: !!user && !!contractorId,
   });
 
-  const canMessage = activeJobs.length > 0;
+  // Message button is visible when:
+  //   - there's an active job between homeowner and contractor
+  //     (post-assignment / mid-job / completed), OR
+  //   - the user opened this profile from a bid review with a known
+  //     jobId, since the messaging thread is keyed on jobId and the
+  //     homeowner needs to be able to message the bidder during review.
+  const fromBidReview =
+    route?.params?.source === 'bidReview' && !!route?.params?.jobId;
+  const canMessage = activeJobs.length > 0 || fromBidReview;
 
   // Check if the homeowner has any open or accepted bid from this
   // contractor on one of their jobs. When true the primary CTA flips
@@ -74,19 +89,20 @@ export const ContractorProfileScreen: React.FC<
   const { data: bidCount = 0 } = useQuery({
     queryKey: ['contractorBidsForMyJobs', user?.id, contractorId],
     queryFn: async () => {
+      if (!user?.id || !contractorId) return 0;
       // Two-step: get this user's job ids, then count contractor bids
       // on those jobs in pending/accepted state. Two queries because
       // PostgREST doesn't support a JOIN-based filter directly.
       const { data: myJobs } = await supabase
         .from('jobs')
         .select('id')
-        .eq('homeowner_id', user!.id);
+        .eq('homeowner_id', user.id);
       const myJobIds = (myJobs ?? []).map((j: { id: string }) => j.id);
       if (myJobIds.length === 0) return 0;
       const { count } = await supabase
         .from('bids')
         .select('id', { count: 'exact', head: true })
-        .eq('contractor_id', contractorId!)
+        .eq('contractor_id', contractorId)
         .in('status', ['pending', 'accepted'])
         .in('job_id', myJobIds);
       return count ?? 0;
@@ -166,6 +182,7 @@ export const ContractorProfileScreen: React.FC<
           bio={viewModel.contractor.bio}
           verified={viewModel.contractor.verified}
           skills={viewModel.contractor.skills}
+          profileImageUrl={viewModel.contractor.profileImageUrl}
           topInset={insets.top}
           onBack={() => navigation.goBack()}
           onShare={viewModel.handleShare}

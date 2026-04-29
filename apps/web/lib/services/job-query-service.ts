@@ -47,6 +47,8 @@ type JobRow = {
   contractor_id?: string | null;
   category?: string | null;
   budget?: number | null;
+  budget_min?: number | null;
+  budget_max?: number | null;
   location?: string | null;
   latitude?: number | null;
   longitude?: number | null;
@@ -67,6 +69,8 @@ const jobSelectFields = `
   contractor_id,
   category,
   budget,
+  budget_min,
+  budget_max,
   location,
   latitude,
   longitude,
@@ -84,16 +88,28 @@ const mapRowToJobSummary = (
 ): JobSummary & {
   homeownerName?: string;
   contractorName?: string;
+  description?: string;
+  created_at?: string;
+  updated_at?: string;
+  homeowner_id?: string;
+  contractor_id?: string;
   category?: string;
   budget?: number;
+  budget_min?: number;
+  budget_max?: number;
   location?: string;
   bidCount?: number;
 } => ({
   id: row.id,
   title: row.title,
+  description: row.description ?? undefined,
   status: (row.status as JobSummary['status']) ?? 'posted',
   createdAt: row.created_at,
   updatedAt: row.updated_at,
+  created_at: row.created_at,
+  updated_at: row.updated_at,
+  homeowner_id: row.homeowner_id,
+  contractor_id: row.contractor_id ?? undefined,
   homeownerName: row.homeowner
     ? `${row.homeowner.first_name} ${row.homeowner.last_name}`
     : undefined,
@@ -102,6 +118,8 @@ const mapRowToJobSummary = (
     : undefined,
   category: row.category ?? undefined,
   budget: row.budget ?? undefined,
+  budget_min: row.budget_min ?? undefined,
+  budget_max: row.budget_max ?? undefined,
   location: row.location ?? undefined,
   bidCount: row.bids?.[0]?.count ?? 0,
 });
@@ -164,12 +182,17 @@ export class JobQueryService {
     );
 
     const jobIds = rows.map((row) => row.id);
-    const [attachmentsByJobId, viewCountsByJobId, assessmentsByJobId] =
-      await Promise.all([
-        this.fetchAttachments(jobIds),
-        this.fetchViewCounts(jobIds),
-        this.fetchAssessments(jobIds),
-      ]);
+    const [
+      attachmentsByJobId,
+      viewCountsByJobId,
+      assessmentsByJobId,
+      metadataPhotosByJobId,
+    ] = await Promise.all([
+      this.fetchAttachments(jobIds),
+      this.fetchViewCounts(jobIds),
+      this.fetchAssessments(jobIds),
+      this.fetchMetadataPhotos(jobIds),
+    ]);
 
     // Build raw photos arrays per job, then re-sign every Job-storage
     // URL in one batch. Stale `public` URLs returned after the
@@ -177,11 +200,23 @@ export class JobQueryService {
     // on every list view that calls this service (web /jobs,
     // /contractor/jobs via /api/jobs, web/mobile JobService callers).
     // External CDN URLs pass through resignJobStorageUrls untouched.
+    //
+    // 2026-04-27 audit: production data showed most jobs have zero
+    // job_attachments rows (homeowners skipped photos at creation time)
+    // but completed jobs DO have job_photos_metadata rows from the
+    // before/after lifecycle photos. Fall back to those so the homeowner
+    // job list shows a real thumbnail instead of an empty card.
     const rawItems = rows.map((row) => {
       const jobAttachments = attachmentsByJobId.get(row.id) || [];
-      const photos = jobAttachments
+      const attachmentPhotos = jobAttachments
         .filter((att) => att.file_type === 'image')
         .map((att) => att.file_url);
+      const metadataPhotos = metadataPhotosByJobId.get(row.id) || [];
+      // Prefer creation-time attachments — that's the homeowner's
+      // intent for the listing thumbnail. If none exist, surface
+      // before/after photos so completed jobs aren't blank.
+      const photos =
+        attachmentPhotos.length > 0 ? attachmentPhotos : metadataPhotos;
       const viewCount = viewCountsByJobId.get(row.id) || 0;
       const jobSummary = mapRowToJobSummary(row);
       const aiAssessment = assessmentsByJobId.get(row.id) || null;
@@ -354,6 +389,64 @@ export class JobQueryService {
     );
 
     return attachmentsByJobId;
+  }
+
+  /**
+   * Pull lifecycle photos (before/after) for jobs that are missing
+   * creation-time `job_attachments`. Sorted so that 'after' photos
+   * lead — completed jobs benefit most from showing the finished state
+   * as the thumbnail. Within each photo_type, newer wins so the most
+   * recent upload becomes the lead image.
+   */
+  private async fetchMetadataPhotos(
+    jobIds: string[]
+  ): Promise<Map<string, string[]>> {
+    const photosByJobId = new Map<string, string[]>();
+    if (jobIds.length === 0) {
+      return photosByJobId;
+    }
+
+    const { data, error } = await serverSupabase
+      .from('job_photos_metadata')
+      .select('job_id, photo_url, photo_type, created_at')
+      .in('job_id', jobIds)
+      .order('created_at', { ascending: false });
+
+    if (error || !data) {
+      return photosByJobId;
+    }
+
+    type Row = {
+      job_id: string;
+      photo_url: string;
+      photo_type: string | null;
+      created_at: string;
+    };
+    const grouped = new Map<string, Row[]>();
+    (data as Row[]).forEach((r) => {
+      if (!grouped.has(r.job_id)) grouped.set(r.job_id, []);
+      grouped.get(r.job_id)!.push(r);
+    });
+
+    grouped.forEach((rows, jobId) => {
+      // 'after' photos lead so completed jobs show the finished work,
+      // then 'before' photos. Anything else (rare lifecycle types) falls
+      // through to the end.
+      const order = (t: string | null): number =>
+        t === 'after' ? 0 : t === 'before' ? 1 : 2;
+      const sorted = [...rows].sort((a, b) => {
+        const oa = order(a.photo_type);
+        const ob = order(b.photo_type);
+        if (oa !== ob) return oa - ob;
+        return b.created_at.localeCompare(a.created_at);
+      });
+      photosByJobId.set(
+        jobId,
+        sorted.map((r) => r.photo_url)
+      );
+    });
+
+    return photosByJobId;
   }
 
   private async fetchViewCounts(

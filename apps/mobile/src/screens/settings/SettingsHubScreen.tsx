@@ -154,12 +154,30 @@ export const SettingsHubScreen: React.FC = () => {
   );
 
   const securityItems: SettingsRow[] = [
+    // Audit step 9 (2026-04-29): collapsed two notification entry
+    // points into one. The legacy "Push & Email Settings" route
+    // (`NotificationSettings`, backed by
+    // `/api/users/notification-preferences` JSONB blob with SMS +
+    // category toggles) is unreachable from this hub now — kept in
+    // the nav stack for deep-link compatibility but the canonical
+    // surface for everyone is `NotificationPreferences`. Once the
+    // SMS-toggle UX is migrated into the new screen
+    // (user_notification_preferences table needs a column for it
+    // first) the legacy route + the plural API can both go away.
     {
+      // Granular per-event opt-in surface backed by user_notification_preferences.
       label: 'Notification Preferences',
-      icon: 'notifications-outline',
-      iconColor: theme.colors.accent,
-      iconBg: theme.colors.accentLight,
-      onPress: () => navigation.navigate('NotificationSettings'),
+      icon: 'options-outline',
+      iconColor: theme.colors.primary,
+      iconBg: theme.colors.primaryLight,
+      onPress: () => navigation.navigate('NotificationPreferences'),
+    },
+    {
+      label: 'Accessibility',
+      icon: 'accessibility-outline',
+      iconColor: theme.colors.primary,
+      iconBg: theme.colors.primaryLight,
+      onPress: () => navigation.navigate('AccessibilitySettings'),
     },
     {
       label: 'MFA Security',

@@ -133,6 +133,36 @@ const URGENCY_OPTIONS = [
   },
 ];
 
+const VALID_JOB_CATEGORIES = new Set([
+  'plumbing',
+  'electrical',
+  'hvac',
+  'general',
+  'appliance',
+  'landscaping',
+  'roofing',
+  'painting',
+  'carpentry',
+  'cleaning',
+  'flooring',
+  'tiling',
+  'plastering',
+  'guttering',
+  'fencing',
+  'damp',
+  'pest_control',
+  'other',
+  'heating',
+  'gardening',
+  'handyman',
+]);
+
+function normalizeJobCategory(category?: string): string {
+  const cleaned = category?.trim().toLowerCase();
+  if (!cleaned || cleaned === 'emergency') return 'general';
+  return VALID_JOB_CATEGORIES.has(cleaned) ? cleaned : 'other';
+}
+
 interface RouteParams {
   propertyId: string;
   propertyName: string;
@@ -148,10 +178,11 @@ export const QuickJobPostScreen: React.FC = () => {
   const { user } = useAuth();
 
   const params = route.params as RouteParams;
+  const initialCategory = params?.category ?? '';
 
   // Pre-fill from QuickJobModal selections (WHERE/WHEN/WHAT)
-  const categoryLabel = params?.category
-    ? params.category.charAt(0).toUpperCase() + params.category.slice(1)
+  const categoryLabel = initialCategory
+    ? initialCategory.charAt(0).toUpperCase() + initialCategory.slice(1)
     : '';
   const [title, setTitle] = useState(
     categoryLabel ? `${categoryLabel} issue` : ''
@@ -159,9 +190,10 @@ export const QuickJobPostScreen: React.FC = () => {
   const [description, setDescription] = useState('');
   const [budget, setBudget] = useState('150');
   const [urgency, setUrgency] = useState(params?.urgency || 'this_week');
+  const [category, setCategory] = useState(initialCategory);
   // Auto-select matching template if category matches
-  const matchingTemplate = params?.category
-    ? REPAIR_TEMPLATES.find((t) => t.category === params.category)
+  const matchingTemplate = initialCategory
+    ? REPAIR_TEMPLATES.find((t) => t.category === initialCategory)
     : null;
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(
     matchingTemplate?.id || null
@@ -176,6 +208,7 @@ export const QuickJobPostScreen: React.FC = () => {
       setTitle(template.title);
       setDescription(template.description);
       setBudget(template.budget);
+      setCategory(template.category);
     },
     []
   );
@@ -213,8 +246,8 @@ export const QuickJobPostScreen: React.FC = () => {
         location: params?.propertyAddress || '',
         budget: parseFloat(budget) || 150,
         homeownerId: user.id,
-        category: params?.category || 'general',
-        priority:
+        category: normalizeJobCategory(category),
+        urgency:
           urgency === 'today'
             ? 'high'
             : urgency === 'tomorrow'

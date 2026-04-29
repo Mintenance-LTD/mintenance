@@ -22,6 +22,9 @@ export const metadata: Metadata = {
   title: 'Video Calls | Mintenance',
   description:
     'Connect with contractors via video calls for consultations and project discussions.',
+  // noindex while the call surface is unbuilt — page exists only as a
+  // direct-URL fallback. See sidebarNavConfig comment block at line 88.
+  robots: { index: false, follow: false },
 };
 
 export default function VideoCallsPage() {

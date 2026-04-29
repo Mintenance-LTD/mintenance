@@ -22,7 +22,10 @@ export class PaymentMethodService {
     const currentYear = now.getFullYear();
     const currentMonth = now.getMonth() + 1;
 
-    if (expYear < currentYear || (expYear === currentYear && expMonth < currentMonth)) {
+    if (
+      expYear < currentYear ||
+      (expYear === currentYear && expMonth < currentMonth)
+    ) {
       throw new Error('Card has expired');
     }
 
@@ -38,7 +41,8 @@ export class PaymentMethodService {
       },
       billingDetails: params.billingDetails,
     } as unknown as Parameters<typeof stripeCreatePaymentMethod>[0];
-    const { paymentMethod, error } = await stripeCreatePaymentMethod(createParams);
+    const { paymentMethod, error } =
+      await stripeCreatePaymentMethod(createParams);
 
     if (error || !paymentMethod) {
       throw new Error(error?.message || 'Failed to create payment method');
@@ -72,35 +76,72 @@ export class PaymentMethodService {
     setAsDefault = false
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      await mobileApiClient.post('/api/payments/add-method', { paymentMethodId, setAsDefault });
+      await mobileApiClient.post('/api/payments/add-method', {
+        paymentMethodId,
+        setAsDefault,
+      });
       logger.info('Payment method saved successfully', { paymentMethodId });
       return { success: true };
     } catch (error) {
       logger.error('Failed to save payment method', { error, paymentMethodId });
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to save payment method',
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to save payment method',
       };
     }
   }
 
-  static async getPaymentMethods(): Promise<{ methods?: PaymentMethod[]; error?: string }> {
+  /**
+   * List the user's payment methods.
+   *
+   * Audit step 12 (2026-04-29): single source of truth is now
+   * **Stripe** via `/api/payments/methods` — the route hits
+   * `stripe.paymentMethods.list({ customer })` so the result
+   * always reflects what's actually charge-able right now.
+   *
+   * The previous "try local-DB first, fall back to Stripe"
+   * pattern produced visibly different lists across web
+   * (Stripe canonical) vs mobile (local DB primary). Local DB
+   * went stale whenever the user removed/expired a card via
+   * Stripe Customer Portal or got a fraud-flagged card auto-
+   * disabled. Now both surfaces match.
+   *
+   * The local `payment_methods` table is still maintained
+   * server-side as an audit/cache layer (`/api/payments/payment-
+   * methods` reads from it) but it's no longer the primary
+   * surface mobile reads from.
+   */
+  static async getPaymentMethods(): Promise<{
+    methods?: PaymentMethod[];
+    error?: string;
+  }> {
     try {
       const data = await mobileApiClient.get<{
         paymentMethods?: Array<Record<string, unknown>>;
-        methods?: Array<Record<string, unknown>>;
+        defaultPaymentMethodId?: string | null;
       }>('/api/payments/methods');
 
-      const methods = ((data.paymentMethods || data.methods || []) as Array<{
-        id: string;
-        type: string;
-        isDefault?: boolean;
-        created?: number;
-        card?: { brand: string; last4: string; expMonth: number; expYear: number } | null;
-      }>).map((method) => ({
+      const methods = (
+        (data.paymentMethods ?? []) as Array<{
+          id: string;
+          type: string;
+          isDefault?: boolean;
+          created?: number;
+          card?: {
+            brand: string;
+            last4: string;
+            expMonth: number;
+            expYear: number;
+          } | null;
+        }>
+      ).map((method) => ({
         id: method.id,
         type: method.type,
         isDefault: !!method.isDefault,
+        // Stripe returns `created` as a Unix-seconds timestamp.
         createdAt: method.created
           ? new Date(method.created * 1000).toISOString()
           : new Date().toISOString(),
@@ -117,7 +158,12 @@ export class PaymentMethodService {
       return { methods };
     } catch (error) {
       logger.error('Failed to fetch payment methods', { error });
-      return { error: error instanceof Error ? error.message : 'Failed to fetch payment methods' };
+      return {
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to fetch payment methods',
+      };
     }
   }
 
@@ -131,10 +177,16 @@ export class PaymentMethodService {
       logger.info('Payment method deleted successfully', { paymentMethodId });
       return { success: true };
     } catch (error) {
-      logger.error('Failed to delete payment method', { error, paymentMethodId });
+      logger.error('Failed to delete payment method', {
+        error,
+        paymentMethodId,
+      });
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to delete payment method',
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to delete payment method',
       };
     }
   }
@@ -143,14 +195,22 @@ export class PaymentMethodService {
     paymentMethodId: string
   ): Promise<{ success: boolean; error?: string }> {
     try {
-      await mobileApiClient.post('/api/payments/set-default', { paymentMethodId });
+      await mobileApiClient.post('/api/payments/set-default', {
+        paymentMethodId,
+      });
       logger.info('Default payment method updated', { paymentMethodId });
       return { success: true };
     } catch (error) {
-      logger.error('Failed to set default payment method', { error, paymentMethodId });
+      logger.error('Failed to set default payment method', {
+        error,
+        paymentMethodId,
+      });
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to set default payment method',
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Failed to set default payment method',
       };
     }
   }

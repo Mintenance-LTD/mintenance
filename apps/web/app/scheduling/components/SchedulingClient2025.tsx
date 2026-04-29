@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import Link from 'next/link';
 import { Calendar as CalendarIcon, Clock, MapPin, User } from 'lucide-react';
 import { Calendar } from '@/components/Calendar/Calendar';
 import type { CalendarEvent } from '../lib/types';
@@ -203,13 +204,13 @@ export function SchedulingClient2025({
               <p className='text-sm text-gray-600 mb-4'>
                 Our team is here to assist you with scheduling and appointments.
               </p>
-              <a
+              <Link
                 href='/help'
                 className='w-full px-4 py-2 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 transition-colors flex items-center justify-center gap-2'
               >
                 <User className='w-4 h-4' />
                 Contact Support
-              </a>
+              </Link>
             </div>
           </div>
         </div>

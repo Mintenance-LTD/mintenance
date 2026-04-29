@@ -1,9 +1,19 @@
 /**
- * /api/user/notification-preferences — user-owned read/write of their
- * notification settings row. Absent row returns permissive defaults so
- * the client can show a sensible form even on first load.
+ * /api/user/notification-preferences — CANONICAL surface for user
+ * notification settings.
  *
- * R2 of docs/RETENTION_ROADMAP_2026.md. Table defined in migration
+ * Stores a 7-field snake_case row on the dedicated
+ * `user_notification_preferences` table:
+ *   push_enabled, email_enabled, in_app_enabled, disabled_types[],
+ *   quiet_hours_start, quiet_hours_end, timezone.
+ *
+ * This is the model the mobile inbox + R2 `NotificationPreferencesForm`
+ * use. The plural sibling `/api/users/notification-preferences` is a
+ * legacy endpoint kept alive only to support SMS toggles in the inline
+ * settings UI; new code should use this one.
+ *
+ * Absent row returns permissive defaults so the client can show a
+ * sensible form even on first load. Table defined in migration
  * 20260417000005_user_notification_preferences.sql with RLS that
  * already scopes select/insert/update to `auth.uid()`.
  */

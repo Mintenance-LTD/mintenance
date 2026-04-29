@@ -3,11 +3,19 @@ import { AlertCircle } from 'lucide-react';
 import type { FormErrors } from './types';
 
 export function fieldErrorRenderer(errors: FormErrors) {
-  return (field: keyof FormErrors) => {
+  // Named function expression so ESLint's `react/display-name` rule
+  // doesn't treat the returned arrow as an anonymous component. This is
+  // a render helper that gets called inline (`{fieldError('email')}`) —
+  // not a real React component.
+  return function renderFieldError(field: keyof FormErrors) {
     if (!errors[field]) return null;
     return (
-      <p id={`${field}-error`} className="mt-1 text-sm text-red-600 flex items-center gap-1" role="alert">
-        <AlertCircle className="w-4 h-4 flex-shrink-0" />
+      <p
+        id={`${field}-error`}
+        className='mt-1 text-sm text-red-600 flex items-center gap-1'
+        role='alert'
+      >
+        <AlertCircle className='w-4 h-4 flex-shrink-0' />
         {errors[field]}
       </p>
     );

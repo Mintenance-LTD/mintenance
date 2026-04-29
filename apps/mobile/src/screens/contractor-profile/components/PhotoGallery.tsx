@@ -6,7 +6,16 @@
  */
 
 import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Platform, Dimensions } from 'react-native';
+import {
+  View,
+  Text,
+  Image,
+  TouchableOpacity,
+  ScrollView,
+  StyleSheet,
+  Platform,
+  Dimensions,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { theme } from '../../../theme';
 
@@ -27,9 +36,8 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
     projects.push(photos.slice(i, i + 3));
   }
 
-  // Add placeholder projects if few photos
   if (projects.length === 0) {
-    projects.push([], [], []);
+    projects.push([]);
   }
 
   return (
@@ -54,9 +62,24 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
       >
         {projects.map((project, index) => (
           <TouchableOpacity key={index} style={styles.projectCard} activeOpacity={0.9}>
-            {/* Cover image placeholder */}
             <View style={styles.coverImage}>
-              <Ionicons name="image-outline" size={32} color={theme.colors.textTertiary} />
+              {project[0] ? (
+                <Image
+                  source={{ uri: project[0] }}
+                  style={styles.coverPhoto}
+                  resizeMode='cover'
+                  accessibilityIgnoresInvertColors
+                />
+              ) : (
+                <View style={styles.emptyCover}>
+                  <Ionicons
+                    name="image-outline"
+                    size={32}
+                    color={theme.colors.textTertiary}
+                  />
+                  <Text style={styles.emptyCoverText}>No photos yet</Text>
+                </View>
+              )}
               {index === 0 && project.length > 0 && (
                 <View style={styles.beforeAfterBadge}>
                   <Text style={styles.beforeAfterText}>Before/After</Text>
@@ -67,12 +90,12 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
             {/* Project info */}
             <View style={styles.projectInfo}>
               <Text style={styles.projectName} numberOfLines={1}>
-                {index === 0 ? 'Bathroom Renovation' : index === 1 ? 'Kitchen Remodel' : `Project ${index + 1}`}
+                {project.length > 0 ? `Project ${index + 1}` : 'Portfolio'}
               </Text>
               <View style={styles.photoCountRow}>
                 <Ionicons name="camera-outline" size={12} color={theme.colors.textSecondary} />
                 <Text style={styles.photoCountText}>
-                  {project.length || (3 + index)} photos
+                  {project.length} {project.length === 1 ? 'photo' : 'photos'}
                 </Text>
               </View>
             </View>
@@ -131,6 +154,20 @@ const styles = StyleSheet.create({
     backgroundColor: theme.colors.backgroundTertiary,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  coverPhoto: {
+    width: '100%',
+    height: '100%',
+  },
+  emptyCover: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  emptyCoverText: {
+    fontSize: 12,
+    color: theme.colors.textTertiary,
+    fontWeight: '600',
   },
   beforeAfterBadge: {
     position: 'absolute',

@@ -54,6 +54,43 @@ export function useOnboarding(options: UseOnboardingOptions = {}) {
   );
   const [isActive, setIsActive] = useState(false);
 
+  // Note: callbacks below are declared BEFORE the initialization
+  // useEffect so the React Compiler linter
+  // (`react-hooks/immutability`) doesn't flag a temporal-dead-zone
+  // read when the effect closes over `startOnboarding`. Same reason
+  // `finishOnboarding` precedes `completeStep`.
+
+  /**
+   * Start the onboarding flow
+   */
+  const startOnboarding = useCallback(() => {
+    const allStepIds = getAllStepIds(flow);
+    const nextStepId = getNextStep(allStepIds);
+
+    if (nextStepId) {
+      const step = getStepById(flow, nextStepId);
+      if (step) {
+        setCurrentStep(nextStepId);
+        setCurrentStepState(step);
+        setState(getOnboardingState());
+        setIsActive(true);
+      }
+    }
+  }, [flow]);
+
+  /**
+   * Finish onboarding
+   */
+  const finishOnboarding = useCallback(() => {
+    setIsActive(false);
+    setCurrentStepState(null);
+    setState(getOnboardingState());
+
+    if (onComplete) {
+      onComplete();
+    }
+  }, [onComplete]);
+
   // Initialize onboarding
   useEffect(() => {
     const state = getOnboardingState();
@@ -79,25 +116,7 @@ export function useOnboarding(options: UseOnboardingOptions = {}) {
         setIsActive(true);
       }
     }
-  }, [userType, autoStart]);
-
-  /**
-   * Start the onboarding flow
-   */
-  const startOnboarding = useCallback(() => {
-    const allStepIds = getAllStepIds(flow);
-    const nextStepId = getNextStep(allStepIds);
-
-    if (nextStepId) {
-      const step = getStepById(flow, nextStepId);
-      if (step) {
-        setCurrentStep(nextStepId);
-        setCurrentStepState(step);
-        setState(getOnboardingState());
-        setIsActive(true);
-      }
-    }
-  }, [flow]);
+  }, [userType, autoStart, startOnboarding]);
 
   /**
    * Complete current step and advance to next
@@ -123,7 +142,7 @@ export function useOnboarding(options: UseOnboardingOptions = {}) {
         finishOnboarding();
       }
     },
-    [currentStep, flow]
+    [currentStep, flow, finishOnboarding]
   );
 
   /**
@@ -153,19 +172,6 @@ export function useOnboarding(options: UseOnboardingOptions = {}) {
       onSkip();
     }
   }, [onSkip]);
-
-  /**
-   * Finish onboarding
-   */
-  const finishOnboarding = useCallback(() => {
-    setIsActive(false);
-    setCurrentStepState(null);
-    setState(getOnboardingState());
-
-    if (onComplete) {
-      onComplete();
-    }
-  }, [onComplete]);
 
   /**
    * Reset onboarding (for testing)

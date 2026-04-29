@@ -3,15 +3,16 @@ import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
+import { getJobPhotosByJobId } from '@/lib/api/job-photos';
 import { ContractorProfileClient2025 } from './components/ContractorProfileClient2025';
 import { ErrorBoundary } from '@/components/ui/ErrorBoundary';
 import { redirect } from 'next/navigation';
 
 export const metadata: Metadata = {
   title: 'Contractor Profile | Mintenance',
-  description: 'View and edit your contractor profile, skills, reviews, and portfolio on Mintenance.',
+  description:
+    'View and edit your contractor profile, skills, reviews, and portfolio on Mintenance.',
 };
-
 
 export default async function ContractorProfilePage2025() {
   const user = await getCurrentUserFromCookies();
@@ -21,19 +22,23 @@ export default async function ContractorProfilePage2025() {
   }
 
   // Fetch all data in parallel
-  const [contractorResult, skillsResult, reviewsResult, completedJobsResult, postsResult, bidsResult] = await Promise.all([
-    serverSupabase
-      .from('profiles')
-      .select('*')
-      .eq('id', user.id)
-      .single(),
+  const [
+    contractorResult,
+    skillsResult,
+    reviewsResult,
+    completedJobsResult,
+    postsResult,
+    bidsResult,
+  ] = await Promise.all([
+    serverSupabase.from('profiles').select('*').eq('id', user.id).single(),
     serverSupabase
       .from('contractor_skills')
       .select('skill_name, skill_icon')
       .eq('contractor_id', user.id),
     serverSupabase
       .from('reviews')
-      .select(`
+      .select(
+        `
         *,
         reviewer:reviewer_id (
           first_name,
@@ -44,12 +49,18 @@ export default async function ContractorProfilePage2025() {
           title,
           category
         )
-      `)
+      `
+      )
       .eq('contractor_id', user.id)
       .order('created_at', { ascending: false }),
+    // photos column is no longer selected — `jobs.photos` is a stale
+    // raw URL store on the row that diverged from the lifecycle photo
+    // truth (`job_attachments` + `job_photos_metadata`). Resolved via
+    // getJobPhotosByJobId below so the portfolio matches what the rest
+    // of the app shows for the same jobs.
     serverSupabase
       .from('jobs')
-      .select('id, title, category, budget, completed_at, photos')
+      .select('id, title, category, budget, completed_at')
       .eq('contractor_id', user.id)
       .eq('status', 'completed')
       .order('completed_at', { ascending: false })
@@ -71,9 +82,20 @@ export default async function ContractorProfilePage2025() {
   const contractor = contractorResult.data;
   const skills = skillsResult.data || [];
   const reviews = reviewsResult.data || [];
-  const completedJobs = completedJobsResult.data || [];
+  const completedJobsRaw = completedJobsResult.data || [];
   const posts = postsResult.data || [];
   const bids = bidsResult.data || [];
+
+  // Aggregate photos from job_attachments + job_photos_metadata and
+  // re-sign every Job-storage URL so completed jobs render their real
+  // before/after photos in the portfolio. Same path the canonical
+  // /api/jobs list reader uses.
+  const completedJobIds = completedJobsRaw.map((j) => j.id);
+  const photosByJobId = await getJobPhotosByJobId(completedJobIds);
+  const completedJobs = completedJobsRaw.map((j) => ({
+    ...j,
+    photos: (photosByJobId.get(j.id) ?? []).map((url) => ({ url })),
+  }));
 
   // Calculate profile completion
   const profileFields = [
@@ -89,72 +111,78 @@ export default async function ContractorProfilePage2025() {
   ];
 
   const completedFields = profileFields.filter(Boolean).length;
-  const profileCompletion = Math.round((completedFields / profileFields.length) * 100);
+  const profileCompletion = Math.round(
+    (completedFields / profileFields.length) * 100
+  );
 
   // Calculate average rating
-  const averageRating = reviews.length > 0
-    ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
-    : 0;
+  const averageRating =
+    reviews.length > 0
+      ? reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length
+      : 0;
 
   // Calculate win rate
-  const totalBidsWithDecision = bids.filter(b => b.status === 'accepted' || b.status === 'rejected').length;
-  const acceptedBids = bids.filter(b => b.status === 'accepted').length;
-  const winRate = totalBidsWithDecision > 0
-    ? Math.round((acceptedBids / totalBidsWithDecision) * 100)
-    : 0;
+  const totalBidsWithDecision = bids.filter(
+    (b) => b.status === 'accepted' || b.status === 'rejected'
+  ).length;
+  const acceptedBids = bids.filter((b) => b.status === 'accepted').length;
+  const winRate =
+    totalBidsWithDecision > 0
+      ? Math.round((acceptedBids / totalBidsWithDecision) * 100)
+      : 0;
 
   // Calculate total earnings
   const totalEarnings = bids
-    .filter(b => b.status === 'accepted')
+    .filter((b) => b.status === 'accepted')
     .reduce((sum, b) => sum + (b.bid_amount || 0), 0);
 
   return (
     <ErrorBoundary>
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4">
-      <Link
-        href="/contractor/dashboard"
-        className="inline-flex items-center gap-1.5 text-sm text-teal-600 hover:text-teal-700 font-medium transition-colors"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        Back to Dashboard
-      </Link>
-    </div>
-    <ContractorProfileClient2025
-      contractor={{
-        id: contractor?.id || user.id,
-        first_name: contractor?.first_name,
-        last_name: contractor?.last_name,
-        email: contractor?.email || user.email,
-        bio: contractor?.bio,
-        city: contractor?.city,
-        country: contractor?.country,
-        profile_image_url: contractor?.profile_image_url,
-        company_name: contractor?.company_name,
-        license_number: contractor?.license_number,
-        admin_verified: contractor?.admin_verified || false,
-        created_at: contractor?.created_at,
-      }}
-      skills={skills}
-      reviews={reviews.map(r => ({
-        id: r.id,
-        rating: r.rating,
-        comment: r.comment,
-        created_at: r.created_at,
-        reviewer: Array.isArray(r.reviewer) ? r.reviewer[0] : r.reviewer,
-        job: Array.isArray(r.job) ? r.job[0] : r.job,
-      }))}
-      completedJobs={completedJobs}
-      posts={posts}
-      metrics={{
-        profileCompletion,
-        averageRating,
-        totalReviews: reviews.length,
-        jobsCompleted: completedJobs.length,
-        winRate,
-        totalEarnings,
-        totalBids: bids.length,
-      }}
-    />
+      <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4'>
+        <Link
+          href='/contractor/dashboard-enhanced'
+          className='inline-flex items-center gap-1.5 text-sm text-teal-600 hover:text-teal-700 font-medium transition-colors'
+        >
+          <ArrowLeft className='w-4 h-4' />
+          Back to Dashboard
+        </Link>
+      </div>
+      <ContractorProfileClient2025
+        contractor={{
+          id: contractor?.id || user.id,
+          first_name: contractor?.first_name,
+          last_name: contractor?.last_name,
+          email: contractor?.email || user.email,
+          bio: contractor?.bio,
+          city: contractor?.city,
+          country: contractor?.country,
+          profile_image_url: contractor?.profile_image_url,
+          company_name: contractor?.company_name,
+          license_number: contractor?.license_number,
+          admin_verified: contractor?.admin_verified || false,
+          created_at: contractor?.created_at,
+        }}
+        skills={skills}
+        reviews={reviews.map((r) => ({
+          id: r.id,
+          rating: r.rating,
+          comment: r.comment,
+          created_at: r.created_at,
+          reviewer: Array.isArray(r.reviewer) ? r.reviewer[0] : r.reviewer,
+          job: Array.isArray(r.job) ? r.job[0] : r.job,
+        }))}
+        completedJobs={completedJobs}
+        posts={posts}
+        metrics={{
+          profileCompletion,
+          averageRating,
+          totalReviews: reviews.length,
+          jobsCompleted: completedJobs.length,
+          winRate,
+          totalEarnings,
+          totalBids: bids.length,
+        }}
+      />
     </ErrorBoundary>
   );
 }

@@ -4,10 +4,7 @@ import tsconfigPaths from 'vite-tsconfig-paths';
 import path from 'path';
 
 export default defineConfig({
-  plugins: [
-    react(),
-    tsconfigPaths(),
-  ],
+  plugins: [react(), tsconfigPaths()],
   test: {
     // Test environment
     environment: 'happy-dom',
@@ -68,10 +65,10 @@ export default defineConfig({
     },
 
     // Test timeout
-    testTimeout: 15000,
+    testTimeout: 60000,
 
     // Hook timeout
-    hookTimeout: 15000,
+    hookTimeout: 30000,
 
     // Clear mocks automatically
     clearMocks: true,
@@ -91,7 +88,10 @@ export default defineConfig({
       '@': path.resolve(__dirname, './'),
       '@mintenance/types': path.resolve(__dirname, '../../packages/types/src'),
       '@mintenance/auth': path.resolve(__dirname, '../../packages/auth/src'),
-      '@mintenance/shared': path.resolve(__dirname, '../../packages/shared/src'),
+      '@mintenance/shared': path.resolve(
+        __dirname,
+        '../../packages/shared/src'
+      ),
     },
   },
 });

@@ -11,7 +11,7 @@ import { logger } from '../../utils/logger';
 import type { NotificationData } from './types';
 
 /**
- * Fetch user notifications via direct Supabase query.
+ * Fetch user notifications via the web API, with a direct Supabase fallback.
  */
 export async function getUserNotifications(
   userId: string,
@@ -19,6 +19,54 @@ export async function getUserNotifications(
   offset: number = 0
 ): Promise<NotificationData[]> {
   try {
+    if (offset === 0) {
+      try {
+        // history=1 — request the paginated, unfiltered inbox view.
+        // Without it the API returns the dashboard-style feed (recent
+        // OR unread, capped at 7) and the mobile inbox looks empty for
+        // users whose recent activity is already read.
+        const response = await mobileApiClient.get<{
+          notifications?: Array<{
+            id: string;
+            title?: string;
+            message?: string;
+            body?: string;
+            type?: NotificationData['type'];
+            priority?: NotificationData['priority'];
+            read?: boolean;
+            created_at?: string;
+            createdAt?: string;
+            data?: unknown;
+            link?: string;
+            action_url?: string;
+          }>;
+        }>(`/api/notifications?history=1&limit=${limit}&offset=${offset}`);
+
+        if (response.notifications) {
+          return response.notifications.map((row) => ({
+            id: row.id,
+            title: row.title || 'Notification',
+            body: row.message || row.body || '',
+            data:
+              row.data ??
+              (row.action_url || row.link
+                ? { actionUrl: row.action_url || row.link }
+                : undefined),
+            type: row.type || 'system',
+            priority: row.priority || 'normal',
+            userId,
+            createdAt:
+              row.created_at || row.createdAt || new Date().toISOString(),
+            read: Boolean(row.read),
+          }));
+        }
+      } catch (apiError) {
+        logger.warn('Notification API feed unavailable, falling back to DB', {
+          error: apiError,
+        });
+      }
+    }
+
     const { data, error } = await supabase
       .from('notifications')
       .select('*')
@@ -35,7 +83,7 @@ export async function getUserNotifications(
       id: row.id as string,
       title: row.title as string,
       body: (row.message as string) || '',
-      data: row.data,
+      data: row.metadata ?? row.data ?? row.action_url,
       type: row.type as string,
       priority: (row.priority as string) || 'normal',
       userId,
