@@ -171,9 +171,16 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({
     <View style={styles.container}>
       {/* Header */}
       <View style={[styles.header, { paddingTop: insets.top }]}>
+        {/* Audit follow-up (2026-04-29): icon-only back button +
+            text-only save button now expose explicit
+            `accessibilityLabel`s. The save button's label switches
+            to "Saving invoice" while submitting so screen readers
+            announce the in-flight state. */}
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
+          accessibilityRole='button'
+          accessibilityLabel='Go back'
         >
           <Ionicons
             name='arrow-back'
@@ -186,6 +193,9 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({
           style={[styles.saveButton, submitting && styles.saveButtonDisabled]}
           onPress={handleSubmit}
           disabled={submitting}
+          accessibilityRole='button'
+          accessibilityLabel={submitting ? 'Saving invoice' : 'Save invoice'}
+          accessibilityState={{ disabled: submitting, busy: submitting }}
         >
           <Text style={styles.saveText}>{submitting ? 'Saving…' : 'Save'}</Text>
         </TouchableOpacity>

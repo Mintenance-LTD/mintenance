@@ -2,12 +2,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { Card } from '@/components/ui/Card.unified';
 import { Button } from '@/components/ui';
 import { Icon } from '@/components/ui/Icon';
 import { theme } from '@/lib/theme';
 import { PageLoader } from '@/components/LoadingButton';
+import { getCsrfToken } from '@/lib/csrf-client';
 
 interface DisputeTimeline {
   status: string;
@@ -37,8 +39,8 @@ export default function DisputeDetailPage() {
   useEffect(() => {
     if (disputeId) {
       fetch(`/api/disputes/${disputeId}`)
-        .then(res => res.json())
-        .then(data => {
+        .then((res) => res.json())
+        .then((data) => {
           setDispute(data);
           // Build timeline
           const timelineData: DisputeTimeline[] = [
@@ -70,7 +72,7 @@ export default function DisputeDetailPage() {
   }, [disputeId]);
 
   if (loading || loadingDispute) {
-    return <PageLoader message="Loading dispute details" />;
+    return <PageLoader message='Loading dispute details' />;
   }
 
   if (!dispute) {
@@ -78,39 +80,100 @@ export default function DisputeDetailPage() {
   }
 
   return (
-    <div style={{
-      maxWidth: '1000px',
-      margin: '0 auto',
-      padding: theme.spacing[6],
-    }}>
-      <h1 style={{
-        fontSize: theme.typography.fontSize['3xl'],
-        fontWeight: theme.typography.fontWeight.bold,
-        marginBottom: theme.spacing[6],
-      }}>
+    <div
+      style={{
+        maxWidth: '1000px',
+        margin: '0 auto',
+        padding: theme.spacing[6],
+      }}
+    >
+      <h1
+        style={{
+          fontSize: theme.typography.fontSize['3xl'],
+          fontWeight: theme.typography.fontWeight.bold,
+          marginBottom: theme.spacing[6],
+        }}
+      >
         Dispute Details
       </h1>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[6] }}>
+      <div
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: theme.spacing[6],
+        }}
+      >
         {/* Status Card */}
         <Card style={{ padding: theme.spacing[6] }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
             <div>
-              <h2 style={{
-                fontSize: theme.typography.fontSize.xl,
-                fontWeight: theme.typography.fontWeight.semibold,
-                marginBottom: theme.spacing[2],
-              }}>
+              <h2
+                style={{
+                  fontSize: theme.typography.fontSize.xl,
+                  fontWeight: theme.typography.fontWeight.semibold,
+                  marginBottom: theme.spacing[2],
+                }}
+              >
                 Status: {dispute.status}
               </h2>
               <p style={{ color: theme.colors.textSecondary }}>
-                Priority: {dispute.priority} • Estimated resolution: {dispute.sla_deadline ? new Date(dispute.sla_deadline).toLocaleDateString('en-GB') : 'N/A'}
+                Priority: {dispute.priority} • Estimated resolution:{' '}
+                {dispute.sla_deadline
+                  ? new Date(dispute.sla_deadline).toLocaleDateString('en-GB')
+                  : 'N/A'}
               </p>
             </div>
             {dispute.status === 'disputed' && (
               <Button
-                variant="secondary"
-                onClick={() => router.push(`/disputes/${disputeId}/mediation`)}
+                variant='secondary'
+                onClick={async () => {
+                  // Audit follow-up (2026-04-29): the previous
+                  // `router.push('/disputes/X/mediation')` linked to
+                  // a page that doesn't exist. The backend already
+                  // exposes `POST /api/disputes/[id]/mediation` with
+                  // `action: 'request'` (handled by
+                  // `MediationService.requestMediation`), so the
+                  // button now calls that directly. Once a dedicated
+                  // mediation UI ships, swap back to a router push.
+                  try {
+                    const csrfToken = await getCsrfToken();
+                    const res = await fetch(
+                      `/api/disputes/${disputeId}/mediation`,
+                      {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          ...(csrfToken ? { 'x-csrf-token': csrfToken } : {}),
+                        },
+                        body: JSON.stringify({ action: 'request' }),
+                      }
+                    );
+                    if (!res.ok) {
+                      const data = await res.json().catch(() => ({}));
+                      throw new Error(
+                        data.error?.message ||
+                          data.error ||
+                          'Failed to request mediation'
+                      );
+                    }
+                    toast.success(
+                      'Mediation requested. An admin will review and contact you.'
+                    );
+                  } catch (err) {
+                    toast.error(
+                      err instanceof Error
+                        ? err.message
+                        : 'Failed to request mediation'
+                    );
+                  }
+                }}
               >
                 Request Mediation
               </Button>
@@ -120,47 +183,66 @@ export default function DisputeDetailPage() {
 
         {/* Timeline */}
         <Card style={{ padding: theme.spacing[6] }}>
-          <h2 style={{
-            fontSize: theme.typography.fontSize.xl,
-            fontWeight: theme.typography.fontWeight.semibold,
-            marginBottom: theme.spacing[4],
-          }}>
+          <h2
+            style={{
+              fontSize: theme.typography.fontSize.xl,
+              fontWeight: theme.typography.fontWeight.semibold,
+              marginBottom: theme.spacing[4],
+            }}
+          >
             Timeline
           </h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[4] }}>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: theme.spacing[4],
+            }}
+          >
             {timeline.map((item, index) => (
-              <div key={index} style={{
-                display: 'flex',
-                gap: theme.spacing[4],
-                paddingLeft: theme.spacing[4],
-                borderLeft: '2px solid #E5E7EB',
-              }}>
-                <div style={{
-                  width: '12px',
-                  height: '12px',
-                  borderRadius: '50%',
-                  backgroundColor: '#3B82F6',
-                  marginTop: '4px',
-                  marginLeft: '-19px',
-                }} />
+              <div
+                key={index}
+                style={{
+                  display: 'flex',
+                  gap: theme.spacing[4],
+                  paddingLeft: theme.spacing[4],
+                  borderLeft: '2px solid #E5E7EB',
+                }}
+              >
+                <div
+                  style={{
+                    width: '12px',
+                    height: '12px',
+                    borderRadius: '50%',
+                    backgroundColor: '#3B82F6',
+                    marginTop: '4px',
+                    marginLeft: '-19px',
+                  }}
+                />
                 <div>
-                  <p style={{
-                    fontWeight: theme.typography.fontWeight.semibold,
-                    marginBottom: theme.spacing[1],
-                  }}>
+                  <p
+                    style={{
+                      fontWeight: theme.typography.fontWeight.semibold,
+                      marginBottom: theme.spacing[1],
+                    }}
+                  >
                     {item.status}
                   </p>
-                  <p style={{
-                    fontSize: theme.typography.fontSize.sm,
-                    color: theme.colors.textSecondary,
-                    marginBottom: theme.spacing[1],
-                  }}>
+                  <p
+                    style={{
+                      fontSize: theme.typography.fontSize.sm,
+                      color: theme.colors.textSecondary,
+                      marginBottom: theme.spacing[1],
+                    }}
+                  >
                     {item.description}
                   </p>
-                  <p style={{
-                    fontSize: theme.typography.fontSize.xs,
-                    color: theme.colors.textTertiary,
-                  }}>
+                  <p
+                    style={{
+                      fontSize: theme.typography.fontSize.xs,
+                      color: theme.colors.textTertiary,
+                    }}
+                  >
                     {new Date(item.timestamp).toLocaleString()}
                   </p>
                 </div>
@@ -171,20 +253,32 @@ export default function DisputeDetailPage() {
 
         {/* Dispute Details */}
         <Card style={{ padding: theme.spacing[6] }}>
-          <h2 style={{
-            fontSize: theme.typography.fontSize.xl,
-            fontWeight: theme.typography.fontWeight.semibold,
-            marginBottom: theme.spacing[4],
-          }}>
+          <h2
+            style={{
+              fontSize: theme.typography.fontSize.xl,
+              fontWeight: theme.typography.fontWeight.semibold,
+              marginBottom: theme.spacing[4],
+            }}
+          >
             Dispute Information
           </h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[3] }}>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: theme.spacing[3],
+            }}
+          >
             <div>
               <strong>Reason:</strong> {dispute.dispute_reason}
             </div>
             {dispute.dispute_evidence && (
               <div>
-                <strong>Evidence:</strong> {Array.isArray(dispute.dispute_evidence) ? dispute.dispute_evidence.length : 0} items
+                <strong>Evidence:</strong>{' '}
+                {Array.isArray(dispute.dispute_evidence)
+                  ? dispute.dispute_evidence.length
+                  : 0}{' '}
+                items
               </div>
             )}
           </div>
@@ -193,4 +287,3 @@ export default function DisputeDetailPage() {
     </div>
   );
 }
-

@@ -40,7 +40,12 @@ const SECONDARY_ACTIONS: {
 }[] = [
   { icon: 'chatbubble-outline', label: 'Message', key: 'message' },
   { icon: 'call-outline', label: 'Call', key: 'call' },
-  { icon: 'videocam-outline', label: 'Video', key: 'video' },
+  // Audit follow-up (2026-04-29): Video action removed pending the
+  // real video-call feature. The handler used to surface a "Coming
+  // Soon" alert (see ContractorProfileViewModel.handleVideo) — better
+  // to not show the button at all than tease an unbuilt feature on a
+  // contractor's profile. Re-add the row once `<RTCView />` integration
+  // is wired and `JobContextLocationService`'s in-call state surfaces.
   { icon: 'share-social-outline', label: 'Share', key: 'share' },
 ];
 
