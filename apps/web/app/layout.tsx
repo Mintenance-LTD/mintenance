@@ -53,6 +53,10 @@ export default async function RootLayout({
   return (
     <html lang='en' suppressHydrationWarning>
       <head>
+        <meta
+          name='google-site-verification'
+          content='zfWFG_NoXycV7PpDWfyay0pGd43LOhPtHuevhTkwpnE'
+        />
         {/* Preconnect to frequently-used origins for faster resource fetch */}
         <link rel='preconnect' href='https://fonts.googleapis.com' />
         <link
