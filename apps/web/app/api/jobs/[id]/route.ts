@@ -12,19 +12,24 @@ export const GET = withApiHandler({ csrf: false }, handleGet);
 export const PUT = withApiHandler({ roles: ['homeowner'] }, handlePut);
 
 /**
- * PATCH /api/jobs/[id] - Partial update (homeowner only).
+ * PATCH /api/jobs/[id] — partial update (homeowner only).
  *
  * WBE-P1-1: previously bypassed withApiHandler with manual auth + CSRF.
  *
- * Audit re-review (2026-04-29): PATCH now writes every column the
- * shared `updateJobSchema` declares — title, description, status,
- * category, budget, urgency, location, city, postcode, access_info,
- * requirements, budget_min, budget_max, start_date, end_date,
- * flexible_timeline, plus a job_attachments rebuild for
- * photoUrls/images. The only PUT-exclusive concerns left are AI
- * analysis (`analyzeWithAI`) + geocoding side effects, which own
- * their own caching/rate-limit pipelines and don't fit a
- * lightweight partial-update semantic.
+ * PATCH writes the lightweight job fields:
+ *   title, description, status, category, budget, urgency,
+ *   location, city, postcode, access_info, requirements,
+ *   budget_min, budget_max, start_date, end_date,
+ *   flexible_timeline,
+ * plus `photoUrls` / `images` through a `job_attachments` rebuild.
+ *
+ * Schema fields that PATCH does NOT persist:
+ *   - `propertyType` — context-only for PUT's AI/building-survey
+ *     pipeline; no `property_type` column on `jobs`.
+ *   - `analyzeWithAI`, `runBuildingSurvey` — PUT-only switches.
+ *
+ * PUT remains the heavyweight entry point for AI analysis,
+ * building-survey, and geocoding side effects.
  */
 export const PATCH = withApiHandler({ roles: ['homeowner'] }, handlePatch);
 

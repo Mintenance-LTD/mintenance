@@ -75,11 +75,18 @@ export async function handlePatch(
   // `title / description / status / category / budget`, even though
   // the shared `updateJobSchema` accepted urgency, location, city,
   // postcode, access_info, requirements, etc. Any caller that sent
-  // those richer fields via PATCH had them silently dropped. Now the
-  // payload-builder writes every column the schema declares — except
-  // the photo and AI/geocode side-effects, which stay PUT-only
-  // because they own complex job_attachments rebuild + analysis
-  // pipelines that don't fit the lightweight PATCH semantics.
+  // those richer fields via PATCH had them silently dropped.
+  //
+  // The payload-builder below writes every database column the
+  // schema declares. AI/geocode side effects stay PUT-only because
+  // they use heavier caching, analysis, and rate-limit pipelines.
+  // Photo updates are handled below by validating URLs and
+  // rebuilding `job_attachments` (see the photoUrls block after
+  // the row update).
+  //
+  // `propertyType` is intentionally NOT persisted — the live `jobs`
+  // table has no `property_type` column. The schema accepts it
+  // only as context for PUT's AI/building-survey pipeline.
   const updatePayload: Record<string, unknown> = {
     updated_at: new Date().toISOString(),
   };
@@ -139,15 +146,13 @@ export async function handlePatch(
     updatePayload.requirements = payload.requirements;
   }
 
-  // Audit re-review (2026-04-29): close the schema-vs-handler gap
-  // for the rest of the fields the shared schema declares. PUT
-  // already wires these — PATCH was silently dropping them. The
-  // budget pair has the same "don't drop below an existing bid"
-  // protection as the singular `budget` field above, but applied
-  // to the max side; keeping it simple here since `budget_max` is
-  // typically the homeowner's ceiling and lowering it through bids
-  // is rare. If needed, the same `bidsExceedNewBudget` check can
-  // be lifted into a shared helper.
+  // Persist additional lightweight fields. `budget_min` and
+  // `budget_max` are saved as provided. The stricter
+  // bid-protection check (refusing to lower a budget below an
+  // existing accepted bid) currently only applies to the singular
+  // `budget` field above; if a homeowner needs to be guarded from
+  // also lowering `budget_max` below outstanding bids, lift the
+  // existing check into a shared helper and apply it to both.
   if (payload.budgetMin !== undefined) {
     updatePayload.budget_min = payload.budgetMin;
   }
@@ -272,15 +277,24 @@ export async function handlePatch(
         .from('job_attachments')
         .insert(attachments);
       if (attachmentsError) {
-        // Log but don't fail — the row update already succeeded
-        // and the user has a clear "saved" signal. A re-save will
-        // retry the attachments.
-        logger.warn('Failed to insert job attachments after PATCH', {
-          service: 'jobs',
-          userId: user.id,
-          jobId: id,
-          error: attachmentsError.message,
-        });
+        // Re-audit: the previous handler swallowed this error and
+        // returned a misleading "saved" response while the
+        // user's photos had already been deleted by the line
+        // above. That's a real product risk — the row's
+        // `updated_at` is now stamped fresh but the gallery is
+        // empty until they retry. Throw so the caller sees the
+        // failure; a future improvement is to wrap the
+        // delete-then-insert in a Postgres RPC for atomicity.
+        logger.error(
+          'Failed to insert job attachments after PATCH',
+          attachmentsError,
+          {
+            service: 'jobs',
+            userId: user.id,
+            jobId: id,
+          }
+        );
+        throw attachmentsError;
       }
     }
   }

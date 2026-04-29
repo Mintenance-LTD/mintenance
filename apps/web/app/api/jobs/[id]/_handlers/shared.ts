@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import type { JobDetail } from '@mintenance/types/src/contracts';
 import { sanitizeText, sanitizeJobDescription } from '@/lib/sanitizer';
 
 // Mirror the state-machine's enum (the actual transitions live in
@@ -41,43 +40,14 @@ interface JobAttachment {
 // `location`, `city`, `postcode`, `latitude`, `longitude`, etc.
 // after a successful update. Now the three handlers return the
 // same column set.
+//
+// The previous `JobRow` type + `mapRowToJobDetail` projection
+// helper that used to live here are gone — the handlers now
+// return the row directly via this SELECT, so the thin
+// `{ id, title, description, status, createdAt, updatedAt }`
+// DTO has no callers left.
 export const jobSelectFields =
   'id, title, description, status, homeowner_id, contractor_id, category, budget, budget_min, budget_max, urgency, location, city, postcode, latitude, longitude, start_date, end_date, flexible_timeline, access_info, requirements, created_at, updated_at';
-
-export type JobRow = {
-  id: string;
-  title: string;
-  description?: string | null;
-  status: string;
-  homeowner_id: string;
-  contractor_id?: string | null;
-  category?: string | null;
-  budget?: number | null;
-  budget_min?: number | null;
-  budget_max?: number | null;
-  urgency?: string | null;
-  location?: string | null;
-  city?: string | null;
-  postcode?: string | null;
-  latitude?: number | null;
-  longitude?: number | null;
-  start_date?: string | null;
-  end_date?: string | null;
-  flexible_timeline?: boolean | null;
-  access_info?: string | null;
-  requirements?: Record<string, unknown> | null;
-  created_at: string;
-  updated_at: string;
-};
-
-export const mapRowToJobDetail = (row: JobRow): JobDetail => ({
-  id: row.id,
-  title: row.title,
-  description: row.description ?? undefined,
-  status: (row.status as JobDetail['status']) ?? 'posted',
-  createdAt: row.created_at,
-  updatedAt: row.updated_at,
-});
 
 /**
  * Enhanced schema for job editing with AI features.
@@ -130,6 +100,11 @@ export const updateJobSchema = z
     location: z.string().optional(),
     city: z.string().optional(),
     postcode: z.string().optional(),
+    // Context-only for PUT's AI/building-survey analysis pipeline
+    // (gets passed to `BuildingSurveyorService.assessDamage`'s
+    // `surveyContext.propertyType`). PATCH accepts it for caller
+    // compatibility but does NOT persist it — there is no
+    // `property_type` column on the live `jobs` table.
     propertyType: z.string().optional(),
     accessInfo: z.string().optional(),
     // Canonical name matching the DB column + create schema.
