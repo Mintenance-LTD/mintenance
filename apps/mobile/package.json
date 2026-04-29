@@ -40,6 +40,7 @@
     "prebuild": "npm run validate:env",
     "prestart": "npm run validate:env",
     "predev": "npm run validate:env",
+    "eas-build-post-install": "cd ../.. && npm run build:packages",
     "postinstall": "cd ../.. && npm run build:packages --if-present"
   },
   "dependencies": {
