@@ -9,6 +9,7 @@ import React from 'react';
 import {
   View,
   Text,
+  Image,
   TouchableOpacity,
   StyleSheet,
   Platform,
@@ -24,6 +25,7 @@ interface ProfileHeaderProps {
   bio?: string;
   verified?: boolean;
   skills?: string[];
+  profileImageUrl?: string | null;
   topInset?: number;
   onBack?: () => void;
   onShare?: () => void;
@@ -45,6 +47,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
   bio,
   verified,
   skills,
+  profileImageUrl,
   topInset = 0,
   onBack,
   onShare,
@@ -110,13 +113,22 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
       {/* Avatar — overlaps hero bottom */}
       <View style={styles.avatarSection}>
         <View style={styles.avatarWrapper}>
-          <View style={styles.avatar}>
-            <Ionicons
-              name='person'
-              size={40}
-              color={theme.colors.textTertiary}
+          {profileImageUrl ? (
+            <Image
+              source={{ uri: profileImageUrl }}
+              style={styles.avatar}
+              resizeMode='cover'
+              accessibilityIgnoresInvertColors
             />
-          </View>
+          ) : (
+            <View style={styles.avatar}>
+              <Ionicons
+                name='person'
+                size={40}
+                color={theme.colors.textTertiary}
+              />
+            </View>
+          )}
           {verified && (
             <View style={styles.verifiedBadge}>
               <Ionicons

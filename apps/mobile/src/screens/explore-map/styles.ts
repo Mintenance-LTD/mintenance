@@ -82,7 +82,7 @@ export const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 10,
-    backgroundColor: 'rgba(255,255,255,0.95)',
+    backgroundColor: theme.colors.surface,
     paddingBottom: 10,
     ...Platform.select({
       ios: {
@@ -157,7 +157,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 20,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: theme.colors.surface,
     gap: 4,
     borderWidth: 1,
     borderColor: theme.colors.border,
@@ -402,8 +402,9 @@ export const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: theme.colors.backgroundSecondary,
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
     paddingHorizontal: 32,
+    paddingTop: 190,
   },
   mapUnavailableTitle: {
     marginTop: 12,

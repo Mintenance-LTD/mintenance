@@ -93,15 +93,18 @@ export const DashboardSkeleton: React.FC<DashboardSkeletonProps> = ({
             <Skeleton className='h-10 w-32 rounded-lg' />
           </div>
 
-          {/* Chart Placeholder */}
+          {/* Chart Placeholder — deterministic bar heights so SSR/CSR
+              hydration matches and we don't trip `react-hooks/purity`. */}
           <div className='h-80 bg-gray-50 rounded-lg flex items-end justify-around p-6 gap-2'>
-            {Array.from({ length: 12 }).map((_, index) => (
-              <Skeleton
-                key={index}
-                className='w-full rounded-t-md'
-                style={{ height: `${Math.random() * 60 + 40}%` }}
-              />
-            ))}
+            {[55, 78, 42, 91, 63, 49, 85, 58, 71, 38, 67, 82].map(
+              (height, index) => (
+                <Skeleton
+                  key={index}
+                  className='w-full rounded-t-md'
+                  style={{ height: `${height}%` }}
+                />
+              )
+            )}
           </div>
 
           {/* Chart Legend */}

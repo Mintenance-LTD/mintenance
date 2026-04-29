@@ -14,6 +14,7 @@ import { StatsCards } from './DocumentsPage/StatsCards';
 import { Sidebar } from './DocumentsPage/Sidebar';
 import { DocumentsView } from './DocumentsPage/DocumentsView';
 import { UploadModal } from './DocumentsPage/UploadModal';
+import { safeCopyToClipboard } from '@/lib/utils/clipboard';
 
 export default function DocumentManagementPage() {
   const router = useRouter();
@@ -292,7 +293,7 @@ export default function DocumentManagementPage() {
   };
 
   // Share document
-  const handleShare = (doc: Document) => {
+  const handleShare = async (doc: Document) => {
     if (shareRecipient.id && shareRecipient.name) {
       toast.success(`Sharing "${doc.name}" with ${shareRecipient.name}`);
       setTimeout(() => {
@@ -300,8 +301,12 @@ export default function DocumentManagementPage() {
       }, 1500);
     } else {
       if (doc.public_url) {
-        navigator.clipboard.writeText(doc.public_url);
-        toast.success('Link copied to clipboard');
+        const ok = await safeCopyToClipboard(doc.public_url);
+        if (ok) {
+          toast.success('Link copied to clipboard');
+        } else {
+          toast.error('Failed to copy. Please copy the link manually.');
+        }
       } else {
         toast.error('No shareable link available');
       }

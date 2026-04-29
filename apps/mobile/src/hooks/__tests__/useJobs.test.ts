@@ -25,7 +25,7 @@ jest.mock('../../services/JobService', () => ({
     completeJob: jest.fn(),
     submitBid: jest.fn(),
     acceptBid: jest.fn(),
-  }
+  },
 }));
 
 describe('useJobs Hooks Integration', () => {
@@ -102,7 +102,9 @@ describe('useJobs Hooks Integration', () => {
           { ...mockJob, id: 'job-1', status: 'posted' },
           { ...mockJob, id: 'job-2', status: 'posted' },
         ];
-        (JobService.getAvailableJobs as jest.Mock).mockResolvedValue(postedJobs);
+        (JobService.getAvailableJobs as jest.Mock).mockResolvedValue(
+          postedJobs
+        );
 
         const result = await JobService.getAvailableJobs();
 
@@ -113,11 +115,15 @@ describe('useJobs Hooks Integration', () => {
 
     describe('useJobsByHomeowner', () => {
       it('should call JobService.getJobsByHomeowner with homeownerId', async () => {
-        (JobService.getJobsByHomeowner as jest.Mock).mockResolvedValue([mockJob]);
+        (JobService.getJobsByHomeowner as jest.Mock).mockResolvedValue([
+          mockJob,
+        ]);
 
         const result = await JobService.getJobsByHomeowner('homeowner-123');
 
-        expect(JobService.getJobsByHomeowner).toHaveBeenCalledWith('homeowner-123');
+        expect(JobService.getJobsByHomeowner).toHaveBeenCalledWith(
+          'homeowner-123'
+        );
         expect(result).toEqual([mockJob]);
       });
 
@@ -126,7 +132,9 @@ describe('useJobs Hooks Integration', () => {
 
         await JobService.getJobsByHomeowner('homeowner-456');
 
-        expect(JobService.getJobsByHomeowner).toHaveBeenCalledWith('homeowner-456');
+        expect(JobService.getJobsByHomeowner).toHaveBeenCalledWith(
+          'homeowner-456'
+        );
       });
     });
 
@@ -145,11 +153,19 @@ describe('useJobs Hooks Integration', () => {
 
         await JobService.getJobsByStatus('in_progress', 'user-123');
 
-        expect(JobService.getJobsByStatus).toHaveBeenCalledWith('in_progress', 'user-123');
+        expect(JobService.getJobsByStatus).toHaveBeenCalledWith(
+          'in_progress',
+          'user-123'
+        );
       });
 
       it('should handle all job statuses', async () => {
-        const statuses: Job['status'][] = ['posted', 'assigned', 'in_progress', 'completed'];
+        const statuses: Job['status'][] = [
+          'posted',
+          'assigned',
+          'in_progress',
+          'completed',
+        ];
 
         for (const status of statuses) {
           (JobService.getJobsByStatus as jest.Mock).mockResolvedValue([
@@ -299,7 +315,9 @@ describe('useJobs Hooks Integration', () => {
 
         expect(() => {
           if (invalidData.description.trim().length < 20) {
-            throw new Error('Job description must be at least 20 characters long');
+            throw new Error(
+              'Job description must be at least 20 characters long'
+            );
           }
         }).toThrow('Job description must be at least 20 characters long');
       });
@@ -384,7 +402,8 @@ describe('useJobs Hooks Integration', () => {
         const dataWithSpaces = {
           ...validJobData,
           title: '  Fix bathroom plumbing issue  ',
-          description: '  Need a plumber to fix leaky faucet in main bathroom  ',
+          description:
+            '  Need a plumber to fix leaky faucet in main bathroom  ',
           location: '  New York, NY  ',
         };
 
@@ -411,7 +430,7 @@ describe('useJobs Hooks Integration', () => {
           ...validJobData,
           category: 'plumbing',
           subcategory: 'leak-repair',
-          priority: 'high' as const,
+          urgency: 'high' as const,
           photos: ['photo1.jpg', 'photo2.jpg'],
         };
 
@@ -426,7 +445,7 @@ describe('useJobs Hooks Integration', () => {
           expect.objectContaining({
             category: 'plumbing',
             subcategory: 'leak-repair',
-            priority: 'high',
+            urgency: 'high',
             photos: ['photo1.jpg', 'photo2.jpg'],
           })
         );
@@ -442,7 +461,11 @@ describe('useJobs Hooks Integration', () => {
           status: 'assigned',
         });
 
-        const result = await JobService.updateJobStatus('job-123', 'assigned', 'contractor-123');
+        const result = await JobService.updateJobStatus(
+          'job-123',
+          'assigned',
+          'contractor-123'
+        );
 
         expect(JobService.updateJobStatus).toHaveBeenCalledWith(
           'job-123',
@@ -460,7 +483,10 @@ describe('useJobs Hooks Integration', () => {
 
         await JobService.updateJobStatus('job-123', 'in_progress');
 
-        expect(JobService.updateJobStatus).toHaveBeenCalledWith('job-123', 'in_progress');
+        expect(JobService.updateJobStatus).toHaveBeenCalledWith(
+          'job-123',
+          'in_progress'
+        );
       });
     });
 
@@ -541,18 +567,26 @@ describe('useJobs Hooks Integration', () => {
     });
 
     describe('useAcceptBid', () => {
-      it('should call JobService.acceptBid', async () => {
+      // Audit step 11 (2026-04-29): JobService.acceptBid now requires
+      // both bidId + jobId so the underlying BidService route can be
+      // addressed without a server-side `bid → job_id` lookup. The
+      // hook (useAcceptBid) takes `{ bidId, jobId }` as the mutation
+      // argument and forwards both to JobService.
+      it('should call JobService.acceptBid with bidId + jobId', async () => {
         (JobService.acceptBid as jest.Mock).mockResolvedValue(undefined);
 
-        await JobService.acceptBid('bid-123');
+        await JobService.acceptBid('bid-123', 'job-456');
 
-        expect(JobService.acceptBid).toHaveBeenCalledWith('bid-123');
+        expect(JobService.acceptBid).toHaveBeenCalledWith(
+          'bid-123',
+          'job-456'
+        );
       });
 
       it('should handle bid acceptance transaction', async () => {
         (JobService.acceptBid as jest.Mock).mockResolvedValue(undefined);
 
-        await JobService.acceptBid('bid-123');
+        await JobService.acceptBid('bid-123', 'job-456');
 
         // Verify the transaction was attempted
         expect(JobService.acceptBid).toHaveBeenCalled();
@@ -580,7 +614,7 @@ describe('useJobs Hooks Integration', () => {
         contractorId: null,
         category: 'handyman',
         subcategory: undefined,
-        priority: 'medium',
+        urgency: 'medium',
         status: 'posted' as const,
         photos: [],
         createdAt: new Date().toISOString(),
@@ -590,7 +624,7 @@ describe('useJobs Hooks Integration', () => {
 
       expect(optimisticJob.id).toMatch(/^temp_job_\d+$/);
       expect(optimisticJob.status).toBe('posted');
-      expect(optimisticJob.priority).toBe('medium');
+      expect(optimisticJob.urgency).toBe('medium');
       expect(optimisticJob.category).toBe('handyman');
     });
 
@@ -603,7 +637,7 @@ describe('useJobs Hooks Integration', () => {
         homeownerId: 'homeowner-456',
         category: 'plumbing',
         subcategory: 'leak-repair',
-        priority: 'high' as const,
+        urgency: 'high' as const,
         photos: ['photo1.jpg'],
       };
 
@@ -617,7 +651,7 @@ describe('useJobs Hooks Integration', () => {
         contractorId: null,
         category: variables.category || 'handyman',
         subcategory: variables.subcategory,
-        priority: variables.priority || 'medium',
+        urgency: variables.urgency || 'medium',
         status: 'posted' as const,
         photos: variables.photos || [],
         createdAt: new Date().toISOString(),
@@ -627,14 +661,16 @@ describe('useJobs Hooks Integration', () => {
 
       expect(optimisticJob.category).toBe('plumbing');
       expect(optimisticJob.subcategory).toBe('leak-repair');
-      expect(optimisticJob.priority).toBe('high');
+      expect(optimisticJob.urgency).toBe('high');
       expect(optimisticJob.photos).toEqual(['photo1.jpg']);
     });
   });
 
   describe('Error Handling', () => {
     it('should handle createJob errors', async () => {
-      (JobService.createJob as jest.Mock).mockRejectedValue(new Error('Database error'));
+      (JobService.createJob as jest.Mock).mockRejectedValue(
+        new Error('Database error')
+      );
 
       await expect(
         JobService.createJob({
@@ -648,15 +684,19 @@ describe('useJobs Hooks Integration', () => {
     });
 
     it('should handle updateJobStatus errors', async () => {
-      (JobService.updateJobStatus as jest.Mock).mockRejectedValue(new Error('Update failed'));
-
-      await expect(JobService.updateJobStatus('job-123', 'assigned')).rejects.toThrow(
-        'Update failed'
+      (JobService.updateJobStatus as jest.Mock).mockRejectedValue(
+        new Error('Update failed')
       );
+
+      await expect(
+        JobService.updateJobStatus('job-123', 'assigned')
+      ).rejects.toThrow('Update failed');
     });
 
     it('should handle submitBid errors', async () => {
-      (JobService.submitBid as jest.Mock).mockRejectedValue(new Error('Bid submission failed'));
+      (JobService.submitBid as jest.Mock).mockRejectedValue(
+        new Error('Bid submission failed')
+      );
 
       await expect(
         JobService.submitBid({
@@ -669,9 +709,13 @@ describe('useJobs Hooks Integration', () => {
     });
 
     it('should handle acceptBid errors', async () => {
-      (JobService.acceptBid as jest.Mock).mockRejectedValue(new Error('Transaction failed'));
+      (JobService.acceptBid as jest.Mock).mockRejectedValue(
+        new Error('Transaction failed')
+      );
 
-      await expect(JobService.acceptBid('bid-123')).rejects.toThrow('Transaction failed');
+      await expect(JobService.acceptBid('bid-123', 'job-456')).rejects.toThrow(
+        'Transaction failed'
+      );
     });
   });
 
@@ -728,7 +772,9 @@ describe('useJobs Hooks Integration', () => {
         contractor_id: undefined,
       };
 
-      (JobService.getJobById as jest.Mock).mockResolvedValue(jobWithoutContractor);
+      (JobService.getJobById as jest.Mock).mockResolvedValue(
+        jobWithoutContractor
+      );
 
       const result = await JobService.getJobById('job-123');
 

@@ -1,8 +1,8 @@
-
 import React from 'react';
-import { Alert } from 'react-native';
-import { render, fireEvent, waitFor, act } from '../../test-utils';
+import { fireEvent, render, waitFor } from '../../test-utils';
 import { PaymentMethodsScreen } from '../../../screens/payment-methods';
+import { PaymentService } from '../../../services/PaymentService';
+import { createMockNavigation } from '../../test-utils';
 
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(() => Promise.resolve()),
@@ -19,61 +19,92 @@ jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 
+jest.mock('../../../contexts/AuthContext', () => ({
+  useAuth: () => ({
+    user: { id: 'homeowner-1', role: 'homeowner' },
+  }),
+}));
+
+jest.mock('../../../services/PaymentService', () => ({
+  PaymentService: {
+    getPaymentMethods: jest.fn(),
+    deletePaymentMethod: jest.fn(),
+    setDefaultPaymentMethod: jest.fn(),
+  },
+}));
+
+const mockGetPaymentMethods = PaymentService.getPaymentMethods as jest.Mock;
+
 describe('Payment Methods Management - Critical Path', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockGetPaymentMethods.mockResolvedValue({ methods: [] });
   });
 
-  it('should display available payment options', () => {
-    const { getByText } = render(
-      <PaymentMethodsScreen navigation={{ goBack: jest.fn() }} />
+  it('shows the saved-card empty state and payment purpose', async () => {
+    const navigation = createMockNavigation();
+
+    const { getByText, queryByText } = render(
+      <PaymentMethodsScreen navigation={navigation} />
     );
 
     expect(getByText('Payment Method')).toBeTruthy();
-    expect(getByText('Cash')).toBeTruthy();
-    expect(getByText('PayPal')).toBeTruthy();
-    expect(getByText('Apple Pay')).toBeTruthy();
-    expect(getByText('+ Add New Card')).toBeTruthy();
-  });
-
-  it('should show add card form when toggled', () => {
-    const { getByText, getByPlaceholderText } = render(
-      <PaymentMethodsScreen navigation={{ goBack: jest.fn() }} />
-    );
-
-    fireEvent.press(getByText('+ Add New Card'));
-
-    expect(getByPlaceholderText('Esther Howard')).toBeTruthy();
-    expect(getByPlaceholderText('4716 9627 1635 8047')).toBeTruthy();
-    expect(getByPlaceholderText('02/30')).toBeTruthy();
-    expect(getByPlaceholderText('000')).toBeTruthy();
-  });
-
-  it('should submit card details and show success alert', async () => {
-    jest.useFakeTimers();
-    const alertSpy = jest.spyOn(Alert, 'alert').mockImplementation(jest.fn());
-
-    const { getByText, getByPlaceholderText } = render(
-      <PaymentMethodsScreen navigation={{ goBack: jest.fn() }} />
-    );
-
-    fireEvent.press(getByText('+ Add New Card'));
-
-    fireEvent.changeText(getByPlaceholderText('Esther Howard'), 'Test User');
-    fireEvent.changeText(getByPlaceholderText('4716 9627 1635 8047'), '4242424242424242');
-    fireEvent.changeText(getByPlaceholderText('02/30'), '12/25');
-    fireEvent.changeText(getByPlaceholderText('000'), '123');
-
-    fireEvent.press(getByText('Add Card'));
-
-    await act(async () => {
-      jest.runAllTimers();
-    });
+    expect(getByText('Your Cards')).toBeTruthy();
+    expect(getByText(/Used to pay into escrow/)).toBeTruthy();
 
     await waitFor(() => {
-      expect(alertSpy).toHaveBeenCalledWith('Success', 'Card added successfully');
+      expect(getByText('No cards saved yet')).toBeTruthy();
     });
 
-    jest.useRealTimers();
+    expect(queryByText('Cash')).toBeNull();
+    expect(queryByText('PayPal')).toBeNull();
+    expect(queryByText('Apple Pay')).toBeNull();
+  });
+
+  it('navigates to the dedicated add-card screen', async () => {
+    const navigation = createMockNavigation();
+
+    const { getByText } = render(
+      <PaymentMethodsScreen navigation={navigation} />
+    );
+
+    await waitFor(() => {
+      expect(getByText('Add New Card')).toBeTruthy();
+    });
+
+    fireEvent.press(getByText('Add New Card'));
+
+    expect(navigation.navigate).toHaveBeenCalledWith('AddPaymentMethod');
+  });
+
+  it('renders saved cards returned by the payment service', async () => {
+    mockGetPaymentMethods.mockResolvedValue({
+      methods: [
+        {
+          id: 'pm_1',
+          type: 'card',
+          card: {
+            brand: 'visa',
+            last4: '4242',
+            expiryMonth: 12,
+            expiryYear: 2030,
+          },
+          isDefault: true,
+          createdAt: '2026-04-01T00:00:00.000Z',
+        },
+      ],
+    });
+
+    const navigation = createMockNavigation();
+
+    const { getByText } = render(
+      <PaymentMethodsScreen navigation={navigation} />
+    );
+
+    await waitFor(() => {
+      expect(getByText('Visa **** 4242')).toBeTruthy();
+      expect(getByText('Expires 12/2030')).toBeTruthy();
+      expect(getByText('Default')).toBeTruthy();
+    });
   });
 });

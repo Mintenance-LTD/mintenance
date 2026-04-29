@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from 'react';
 import { theme } from '@/lib/theme';
 
 interface SenderData {
@@ -19,65 +20,157 @@ interface LatestUpdatesProps {
   messages: JobMessage[];
 }
 
-function getSender(sender: SenderData | SenderData[] | undefined): SenderData | undefined {
+function getSender(
+  sender: SenderData | SenderData[] | undefined
+): SenderData | undefined {
   if (!sender) return undefined;
   return Array.isArray(sender) ? sender[0] : sender;
 }
 
 export function LatestUpdates({ messages }: LatestUpdatesProps) {
+  // Capture `Date.now()` in state via `useEffect` so the value is read
+  // after mount (not during render). `react-hooks/purity` rejects
+  // `Date.now()` even inside `useMemo` because the factory runs in
+  // render. While `nowMs` is null (SSR + first paint) we render `0`
+  // hours-ago — close enough for a recently-loaded thread, and the real
+  // value backfills the moment the effect runs.
+  const [nowMs, setNowMs] = useState<number | null>(null);
+  useEffect(() => {
+    setNowMs(Date.now());
+  }, []);
+  const messagesWithAge = useMemo(() => {
+    const ref = nowMs ?? 0;
+    return messages.map((message) => ({
+      message,
+      hoursAgo:
+        nowMs == null
+          ? 0
+          : Math.floor(
+              (ref - new Date(message.created_at).getTime()) / (1000 * 60 * 60)
+            ),
+    }));
+  }, [messages, nowMs]);
+
   return (
-    <div style={{
-      backgroundColor: theme.colors.surface, padding: theme.spacing[6],
-      borderRadius: '18px', border: `1px solid ${theme.colors.border}`
-    }}>
-      <h4 style={{
-        fontSize: theme.typography.fontSize.lg, fontWeight: theme.typography.fontWeight.bold,
-        color: theme.colors.textPrimary, marginBottom: theme.spacing[4]
-      }}>
+    <div
+      style={{
+        backgroundColor: theme.colors.surface,
+        padding: theme.spacing[6],
+        borderRadius: '18px',
+        border: `1px solid ${theme.colors.border}`,
+      }}
+    >
+      <h4
+        style={{
+          fontSize: theme.typography.fontSize.lg,
+          fontWeight: theme.typography.fontWeight.bold,
+          color: theme.colors.textPrimary,
+          marginBottom: theme.spacing[4],
+        }}
+      >
         Latest Updates
       </h4>
 
       <div style={{ overflow: 'hidden' }}>
-        <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: theme.spacing[4] }}>
-          {messages.map((message) => {
-            const hoursAgo = Math.floor((Date.now() - new Date(message.created_at).getTime()) / (1000 * 60 * 60));
+        <ul
+          style={{
+            listStyle: 'none',
+            padding: 0,
+            margin: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: theme.spacing[4],
+          }}
+        >
+          {messagesWithAge.map(({ message, hoursAgo }) => {
             const sender = getSender(message.sender);
             return (
               <li key={message.id}>
                 <div style={{ position: 'relative' }}>
-                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: theme.spacing[3] }}>
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: theme.spacing[3],
+                    }}
+                  >
                     <div style={{ position: 'relative' }}>
                       {sender?.profile_image_url ? (
-                        <div style={{
-                          backgroundImage: `url(${sender.profile_image_url})`, backgroundSize: 'cover',
-                          backgroundPosition: 'center', aspectRatio: '1', width: '32px', height: '32px', borderRadius: '50%'
-                        }} />
+                        <div
+                          style={{
+                            backgroundImage: `url(${sender.profile_image_url})`,
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center',
+                            aspectRatio: '1',
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '50%',
+                          }}
+                        />
                       ) : (
-                        <div style={{
-                          backgroundColor: theme.colors.primary, aspectRatio: '1', width: '32px', height: '32px',
-                          borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          color: 'white', fontWeight: 'bold', fontSize: theme.typography.fontSize.sm
-                        }}>
+                        <div
+                          style={{
+                            backgroundColor: theme.colors.primary,
+                            aspectRatio: '1',
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: 'white',
+                            fontWeight: 'bold',
+                            fontSize: theme.typography.fontSize.sm,
+                          }}
+                        >
                           {sender?.first_name?.[0] || 'U'}
                         </div>
                       )}
                     </div>
-                    <div style={{
-                      minWidth: 0, flex: 1, backgroundColor: theme.colors.backgroundSecondary,
-                      borderRadius: theme.borderRadius.lg, padding: theme.spacing[3]
-                    }}>
+                    <div
+                      style={{
+                        minWidth: 0,
+                        flex: 1,
+                        backgroundColor: theme.colors.backgroundSecondary,
+                        borderRadius: theme.borderRadius.lg,
+                        padding: theme.spacing[3],
+                      }}
+                    >
                       <div>
                         <div style={{ fontSize: theme.typography.fontSize.sm }}>
-                          <p style={{ fontWeight: theme.typography.fontWeight.medium, color: theme.colors.textPrimary, margin: 0 }}>
+                          <p
+                            style={{
+                              fontWeight: theme.typography.fontWeight.medium,
+                              color: theme.colors.textPrimary,
+                              margin: 0,
+                            }}
+                          >
                             {sender?.first_name} {sender?.last_name}
                           </p>
                         </div>
-                        <p style={{ margin: '2px 0 0 0', fontSize: theme.typography.fontSize.sm, color: theme.colors.textSecondary }}>
+                        <p
+                          style={{
+                            margin: '2px 0 0 0',
+                            fontSize: theme.typography.fontSize.sm,
+                            color: theme.colors.textSecondary,
+                          }}
+                        >
                           {message.content}
                         </p>
                       </div>
-                      <div style={{ marginTop: theme.spacing[2], display: 'flex', justifyContent: 'flex-start' }}>
-                        <span style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textTertiary }}>
+                      <div
+                        style={{
+                          marginTop: theme.spacing[2],
+                          display: 'flex',
+                          justifyContent: 'flex-start',
+                        }}
+                      >
+                        <span
+                          style={{
+                            fontSize: theme.typography.fontSize.xs,
+                            color: theme.colors.textTertiary,
+                          }}
+                        >
                           {hoursAgo} {hoursAgo === 1 ? 'hour' : 'hours'} ago
                         </span>
                       </div>
@@ -89,7 +182,15 @@ export function LatestUpdates({ messages }: LatestUpdatesProps) {
           })}
           {messages.length === 0 && (
             <li>
-              <p style={{ fontSize: theme.typography.fontSize.sm, color: theme.colors.textSecondary, fontStyle: 'italic', textAlign: 'center', padding: theme.spacing[4] }}>
+              <p
+                style={{
+                  fontSize: theme.typography.fontSize.sm,
+                  color: theme.colors.textSecondary,
+                  fontStyle: 'italic',
+                  textAlign: 'center',
+                  padding: theme.spacing[4],
+                }}
+              >
                 No updates yet
               </p>
             </li>

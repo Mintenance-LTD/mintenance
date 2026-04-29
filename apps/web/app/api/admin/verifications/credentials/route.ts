@@ -90,7 +90,15 @@ export const GET = withApiHandler(
 );
 
 export const PATCH = withApiHandler(
-  { roles: ['admin'], rateLimit: { maxRequests: 60 } },
+  {
+    roles: ['admin'],
+    rateLimit: { maxRequests: 60 },
+    // Approving / rejecting a credential verification grants or
+    // denies a contractor's trust badge. A stolen admin session
+    // could mass-approve fraudulent licences in a few minutes —
+    // demand fresh MFA proof.
+    requireMfaVerifiedWithinMinutes: 15,
+  },
   async (request, { user }) => {
     const raw = await request.json().catch(() => null);
     const parsed = PatchSchema.safeParse(raw);

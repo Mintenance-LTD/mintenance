@@ -13,25 +13,45 @@ import { sanitizeText, sanitizeMessage } from '@/lib/sanitizer';
 export const GET = withApiHandler(
   { roles: ['admin'], rateLimit: { maxRequests: 10 } },
   async (request) => {
-    const publishedOnly = request.nextUrl.searchParams.get('publishedOnly') === 'true';
-    const limit = parseInt(request.nextUrl.searchParams.get('limit') || '50', 10);
-    const offset = parseInt(request.nextUrl.searchParams.get('offset') || '0', 10);
+    const publishedOnly =
+      request.nextUrl.searchParams.get('publishedOnly') === 'true';
+    const limit = parseInt(
+      request.nextUrl.searchParams.get('limit') || '50',
+      10
+    );
+    const offset = parseInt(
+      request.nextUrl.searchParams.get('offset') || '0',
+      10
+    );
 
-    const { announcements, total } = await AdminCommunicationService.getAllAnnouncements({
-      publishedOnly,
-      limit,
-      offset,
-    });
+    const { announcements, total } =
+      await AdminCommunicationService.getAllAnnouncements({
+        publishedOnly,
+        limit,
+        offset,
+      });
 
     return NextResponse.json({ announcements, total });
   }
 );
 
 const announcementSchema = z.object({
-  title: z.string().min(1).max(200).transform(val => sanitizeText(val, 200)),
-  content: z.string().min(1).max(5000).transform(val => sanitizeMessage(val)),
-  announcement_type: z.enum(['general', 'maintenance', 'security', 'feature']).optional(),
-  target_audience: z.enum(['all', 'homeowners', 'contractors', 'verified_contractors']).optional(),
+  title: z
+    .string()
+    .min(1)
+    .max(200)
+    .transform((val) => sanitizeText(val, 200)),
+  content: z
+    .string()
+    .min(1)
+    .max(5000)
+    .transform((val) => sanitizeMessage(val)),
+  announcement_type: z
+    .enum(['general', 'maintenance', 'security', 'feature'])
+    .optional(),
+  target_audience: z
+    .enum(['all', 'homeowners', 'contractors', 'verified_contractors'])
+    .optional(),
   priority: z.enum(['low', 'normal', 'high', 'urgent']).optional(),
   is_published: z.boolean().optional(),
   expires_at: z.string().nullable().optional(),
@@ -43,16 +63,35 @@ const announcementSchema = z.object({
  * Create a new announcement
  */
 export const POST = withApiHandler(
-  { roles: ['admin'], rateLimit: { maxRequests: 10 } },
+  {
+    roles: ['admin'],
+    rateLimit: { maxRequests: 10 },
+    // Announcements are platform-wide push/email blasts — a stolen
+    // admin session could spam every user. The send/route.ts already
+    // gates on MFA below; gating creation here too closes the
+    // create-then-send pipeline.
+    requireMfaVerifiedWithinMinutes: 15,
+  },
   async (request, { user }) => {
     const body = await request.json();
     const parsed = announcementSchema.safeParse(body);
 
     if (!parsed.success) {
-      throw new BadRequestError('Invalid announcement data: ' + parsed.error.message);
+      throw new BadRequestError(
+        'Invalid announcement data: ' + parsed.error.message
+      );
     }
 
-    const { title, content, announcement_type, target_audience, priority, is_published, expires_at, created_by } = parsed.data;
+    const {
+      title,
+      content,
+      announcement_type,
+      target_audience,
+      priority,
+      is_published,
+      expires_at,
+      created_by,
+    } = parsed.data;
 
     const announcement = await AdminCommunicationService.createAnnouncement({
       title,

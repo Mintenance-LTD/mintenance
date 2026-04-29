@@ -112,8 +112,6 @@ vi.mock('@/lib/hooks/useCSRF', () => ({
   }),
 }));
 
-vi.setConfig({ testTimeout: 30000 });
-
 describe('Authentication Flow Integration Tests', () => {
   let user: ReturnType<typeof userEvent.setup>;
 

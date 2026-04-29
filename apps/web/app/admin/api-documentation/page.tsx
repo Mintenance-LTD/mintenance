@@ -16,6 +16,7 @@ import { ApiDocAuthTab } from './components/ApiDocAuthTab';
 import { ApiDocWebhooksTab } from './components/ApiDocWebhooksTab';
 import { ApiDocPlaygroundTab } from './components/ApiDocPlaygroundTab';
 import { ApiDocResources } from './components/ApiDocResources';
+import { safeCopyToClipboard } from '@/lib/utils/clipboard';
 
 export default function APIDocumentationPage2025() {
   const [selectedCategory, setSelectedCategory] = useState('All');
@@ -31,11 +32,15 @@ export default function APIDocumentationPage2025() {
       selectedCategory === 'All' || endpoint.category === selectedCategory
   );
 
-  const copyToClipboard = (text: string, id: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedCode(id);
-    toast.success('Copied to clipboard');
-    setTimeout(() => setCopiedCode(null), 2000);
+  const copyToClipboard = async (text: string, id: string) => {
+    const ok = await safeCopyToClipboard(text);
+    if (ok) {
+      setCopiedCode(id);
+      toast.success('Copied to clipboard');
+      setTimeout(() => setCopiedCode(null), 2000);
+    } else {
+      toast.error('Failed to copy. Please copy manually.');
+    }
   };
 
   return (

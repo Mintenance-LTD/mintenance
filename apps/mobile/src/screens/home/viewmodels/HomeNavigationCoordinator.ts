@@ -92,13 +92,19 @@ export class HomeNavigationCoordinator implements HomeNavigationActions {
 
   openSettingsScreen = () => {
     this.haptics.selection();
-    this.navigation.navigate('ProfileTab', { screen: 'NotificationSettings' });
+    // Audit step 9 (2026-04-29): point at canonical screen.
+    // `NotificationSettings` is the legacy SMS/category-matrix
+    // surface; `NotificationPreferences` is the user_notification_
+    // preferences-backed canonical one.
+    this.navigation.navigate('ProfileTab', {
+      screen: 'NotificationPreferences',
+    });
   };
 
   openNotificationSettings = () => {
     this.haptics.light();
     this.navigation.getParent?.()?.navigate('Modal', {
-      screen: 'NotificationSettings',
+      screen: 'NotificationPreferences',
     });
   };
 

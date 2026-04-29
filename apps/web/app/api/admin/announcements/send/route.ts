@@ -24,7 +24,14 @@ const sendSchema = z.object({
  * Send a published announcement to the target audience via email + push + in-app.
  */
 export const POST = withApiHandler(
-  { roles: ['admin'], rateLimit: { maxRequests: 5 } },
+  {
+    roles: ['admin'],
+    rateLimit: { maxRequests: 5 },
+    // Sends a published announcement to the entire target audience
+    // via email + push + in-app. Single highest-blast-radius admin
+    // mutation — demand fresh MFA proof.
+    requireMfaVerifiedWithinMinutes: 15,
+  },
   async (request, { user }) => {
     const body = await request.json();
     const parsed = sendSchema.safeParse(body);

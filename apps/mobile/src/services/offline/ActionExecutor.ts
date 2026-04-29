@@ -1,5 +1,12 @@
 import { logger } from '../../utils/logger';
-import type { OfflineAction, JobData, BidData, MessageData, ProfileData, ServerEntityData } from './types';
+import type {
+  OfflineAction,
+  JobData,
+  BidData,
+  MessageData,
+  ProfileData,
+  ServerEntityData,
+} from './types';
 
 /**
  * Executes queued offline actions by dispatching to the appropriate service.
@@ -9,7 +16,11 @@ import type { OfflineAction, JobData, BidData, MessageData, ProfileData, ServerE
 export class ActionExecutor {
   async executeAction(action: OfflineAction): Promise<void> {
     const { type, entity, data } = action;
-    logger.debug('Executing offline action', { type, entity, actionId: action.id });
+    logger.debug('Executing offline action', {
+      type,
+      entity,
+      actionId: action.id,
+    });
 
     // Simulate API call delay
     await new Promise((resolve) => setTimeout(resolve, 100));
@@ -32,7 +43,10 @@ export class ActionExecutor {
     }
   }
 
-  private async executeJobAction(type: OfflineAction['type'], data: unknown): Promise<void> {
+  private async executeJobAction(
+    type: OfflineAction['type'],
+    data: unknown
+  ): Promise<void> {
     const { JobService } = require('../JobService');
     const jobData = data as JobData;
     switch (type) {
@@ -40,14 +54,21 @@ export class ActionExecutor {
         await JobService.createJob(data);
         break;
       case 'UPDATE':
-        await JobService.updateJobStatus(jobData.jobId, jobData.status, jobData.contractorId);
+        await JobService.updateJobStatus(
+          jobData.jobId,
+          jobData.status,
+          jobData.contractorId
+        );
         break;
       default:
         throw new Error(`Unsupported job action: ${type}`);
     }
   }
 
-  private async executeBidAction(type: OfflineAction['type'], data: unknown): Promise<void> {
+  private async executeBidAction(
+    type: OfflineAction['type'],
+    data: unknown
+  ): Promise<void> {
     const { JobService } = require('../JobService');
     const bidData = data as BidData;
     switch (type) {
@@ -56,7 +77,17 @@ export class ActionExecutor {
         break;
       case 'UPDATE':
         if (bidData.status === 'accepted') {
-          await JobService.acceptBid(bidData.bidId);
+          // Audit step 11 (2026-04-29): JobService.acceptBid now
+          // requires both bidId + jobId. The offline action that
+          // queued this UPDATE should have populated both fields
+          // (see useAcceptBid → ContractorAssignment), so a missing
+          // jobId is a programmer bug, not a runtime condition.
+          if (!bidData.bidId || !bidData.jobId) {
+            throw new Error(
+              `acceptBid replay missing required ids (bidId=${bidData.bidId}, jobId=${bidData.jobId})`
+            );
+          }
+          await JobService.acceptBid(bidData.bidId, bidData.jobId);
         }
         break;
       default:
@@ -64,7 +95,10 @@ export class ActionExecutor {
     }
   }
 
-  private async executeMessageAction(type: OfflineAction['type'], data: unknown): Promise<void> {
+  private async executeMessageAction(
+    type: OfflineAction['type'],
+    data: unknown
+  ): Promise<void> {
     const { MessagingService } = require('../MessagingService');
     const messageData = data as MessageData;
     switch (type) {
@@ -81,12 +115,18 @@ export class ActionExecutor {
     }
   }
 
-  private async executeProfileAction(type: OfflineAction['type'], data: unknown): Promise<void> {
+  private async executeProfileAction(
+    type: OfflineAction['type'],
+    data: unknown
+  ): Promise<void> {
     const { UserService } = require('../UserService');
     const profileData = data as ProfileData;
     switch (type) {
       case 'UPDATE':
-        await UserService.updateUserProfile(profileData.userId, profileData.updates);
+        await UserService.updateUserProfile(
+          profileData.userId,
+          profileData.updates
+        );
         break;
       default:
         throw new Error(`Unsupported profile action: ${type}`);

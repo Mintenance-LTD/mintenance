@@ -233,7 +233,7 @@ export function useServiceRequestForm(onSuccess: () => void) {
         subcategory: selectedSubcategory
           ? sanitize.text(selectedSubcategory, 100)
           : undefined,
-        priority,
+        urgency: priority,
         photos: uploadedPhotoUrls,
         property_id: selectedProperty?.id,
         latitude,

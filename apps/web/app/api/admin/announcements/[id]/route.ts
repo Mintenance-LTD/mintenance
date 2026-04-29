@@ -7,20 +7,31 @@ import { AdminActivityLogger } from '@/lib/services/admin/AdminActivityLogger';
 import { logger } from '@mintenance/shared';
 import { InternalServerError } from '@/lib/errors/api-error';
 
-const updateAnnouncementSchema = z.object({
-  title: z.string().min(1).max(200).optional(),
-  content: z.string().min(1).max(5000).optional(),
-  type: z.enum(['info', 'warning', 'success', 'error']).optional(),
-  is_active: z.boolean().optional(),
-  priority: z.enum(['low', 'normal', 'high', 'urgent']).optional(),
-}).refine(data => Object.keys(data).length > 0, { message: 'At least one field must be provided' });
+const updateAnnouncementSchema = z
+  .object({
+    title: z.string().min(1).max(200).optional(),
+    content: z.string().min(1).max(5000).optional(),
+    type: z.enum(['info', 'warning', 'success', 'error']).optional(),
+    is_active: z.boolean().optional(),
+    priority: z.enum(['low', 'normal', 'high', 'urgent']).optional(),
+  })
+  .refine((data) => Object.keys(data).length > 0, {
+    message: 'At least one field must be provided',
+  });
 
 /**
  * PUT /api/admin/announcements/[id]
  * Update an announcement
  */
 export const PUT = withApiHandler(
-  { roles: ['admin'], rateLimit: { maxRequests: 10 } },
+  {
+    roles: ['admin'],
+    rateLimit: { maxRequests: 10 },
+    // Editing an announcement before send is part of the broadcast
+    // pipeline — gate on MFA so a stolen session cannot tamper with
+    // a queued announcement before send.
+    requireMfaVerifiedWithinMinutes: 15,
+  },
   async (request, { user, params }) => {
     const { id } = params;
     const body = await request.json();
@@ -28,12 +39,18 @@ export const PUT = withApiHandler(
 
     if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Invalid announcement data', details: parsed.error.flatten().fieldErrors },
+        {
+          error: 'Invalid announcement data',
+          details: parsed.error.flatten().fieldErrors,
+        },
         { status: 400 }
       );
     }
 
-    const updated = await AdminCommunicationService.updateAnnouncement(id, parsed.data);
+    const updated = await AdminCommunicationService.updateAnnouncement(
+      id,
+      parsed.data
+    );
 
     if (!updated) {
       throw new InternalServerError('Failed to update announcement');
@@ -58,7 +75,13 @@ export const PUT = withApiHandler(
  * Delete an announcement
  */
 export const DELETE = withApiHandler(
-  { roles: ['admin'], rateLimit: { maxRequests: 10 } },
+  {
+    roles: ['admin'],
+    rateLimit: { maxRequests: 10 },
+    // Mass-deleting platform announcements would erase audit trail;
+    // demand fresh MFA proof.
+    requireMfaVerifiedWithinMinutes: 15,
+  },
   async (request, { user, params }) => {
     const { id } = params;
 

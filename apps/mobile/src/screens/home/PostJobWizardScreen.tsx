@@ -71,6 +71,11 @@ export const PostJobWizardScreen: React.FC = () => {
   const submit = async () => {
     setSubmitting(true);
     try {
+      // jobs.requirements is a real jsonb column (live audit 2026-04-28
+      // showed 16 prod rows already use it). The /api/jobs Zod schema
+      // now accepts `requirements: z.record(z.string(), z.unknown())`
+      // and JobCreationService writes it through to the row, so the
+      // silver-mode contractor_before_photos flag finally persists.
       await mobileApiClient.post('/api/jobs', {
         title,
         category,

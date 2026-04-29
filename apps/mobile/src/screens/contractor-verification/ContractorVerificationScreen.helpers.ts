@@ -9,7 +9,14 @@
  * and reuse from an admin-side review screen if one ever ships.
  */
 
-export type LicenseType = 'trade' | 'gas_safe' | 'electrical' | 'other';
+export type LicenseType =
+  | 'trade'
+  | 'gas_safe'
+  | 'electrical'
+  | 'plumbing'
+  | 'hvac'
+  | 'roofing'
+  | 'other';
 
 export interface VerificationData {
   companyName: string;
@@ -48,8 +55,38 @@ export const LICENSE_TYPE_OPTIONS: ReadonlyArray<{
   { value: 'trade', label: 'Trade License' },
   { value: 'gas_safe', label: 'Gas Safe' },
   { value: 'electrical', label: 'Electrical License' },
+  { value: 'plumbing', label: 'Plumbing' },
+  { value: 'hvac', label: 'HVAC' },
+  { value: 'roofing', label: 'Roofing' },
   { value: 'other', label: 'Other' },
 ];
+
+export function normalizeLicenseType(
+  raw: string | null | undefined
+): LicenseType {
+  const value = (raw || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+  if (!value) return 'trade';
+  if (value === 'general_contractor' || value === 'trade_license') {
+    return 'trade';
+  }
+  if (value === 'gas_safe_register') return 'gas_safe';
+  if (value === 'electrical_license' || value === 'electrician') {
+    return 'electrical';
+  }
+  if (value === 'air_conditioning' || value === 'heating') return 'hvac';
+  if (
+    value === 'trade' ||
+    value === 'gas_safe' ||
+    value === 'electrical' ||
+    value === 'plumbing' ||
+    value === 'hvac' ||
+    value === 'roofing' ||
+    value === 'other'
+  ) {
+    return value;
+  }
+  return 'other';
+}
 
 // No homeowner-facing contractor map exists in the app today, so
 // the earlier "Show up on homeowner map" bullet was misleading.

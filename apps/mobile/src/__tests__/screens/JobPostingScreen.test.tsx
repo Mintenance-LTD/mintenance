@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { act } from '@testing-library/react-native';
 import { render, fireEvent, waitFor } from '../test-utils';
@@ -16,7 +15,9 @@ jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: ({ children }) => children,
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
-jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock')
+);
 
 const mockNavigation = {
   navigate: jest.fn(),
@@ -55,7 +56,9 @@ jest.mock('expo-image-picker', () => ({
 
 const mockJobService = JobService as jest.Mocked<typeof JobService>;
 const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;
-const mockUseCreateJob = useCreateJob as jest.MockedFunction<typeof useCreateJob>;
+const mockUseCreateJob = useCreateJob as jest.MockedFunction<
+  typeof useCreateJob
+>;
 const mockNavigate = jest.fn();
 const mockGoBack = jest.fn();
 
@@ -76,15 +79,17 @@ describe('JobPostingScreen', () => {
       navigate: mockNavigate,
       goBack: mockGoBack,
     });
-    mockUseAuth.mockReturnValue(AuthMockFactory.createAuthenticatedHomeowner({
-      id: mockUser.id,
-      email: mockUser.email,
-      first_name: mockUser.first_name,
-      last_name: mockUser.last_name,
-      role: mockUser.role,
-      created_at: mockUser.created_at,
-      updated_at: mockUser.updated_at,
-    }));
+    mockUseAuth.mockReturnValue(
+      AuthMockFactory.createAuthenticatedHomeowner({
+        id: mockUser.id,
+        email: mockUser.email,
+        first_name: mockUser.first_name,
+        last_name: mockUser.last_name,
+        role: mockUser.role,
+        created_at: mockUser.created_at,
+        updated_at: mockUser.updated_at,
+      })
+    );
 
     // Default successful mutation
     mockUseCreateJob.mockReturnValue({
@@ -116,7 +121,9 @@ describe('JobPostingScreen', () => {
     const queryClient = createTestQueryClient();
     return render(
       <QueryClientProvider client={queryClient}>
-        <JobPostingScreen navigation={{ navigate: mockNavigate, goBack: mockGoBack } as any} />
+        <JobPostingScreen
+          navigation={{ navigate: mockNavigate, goBack: mockGoBack } as any}
+        />
       </QueryClientProvider>
     );
   };
@@ -146,12 +153,18 @@ describe('JobPostingScreen', () => {
   it('validates budget is a positive number', async () => {
     const { getByTestId, getByText } = renderJobPostingScreen();
 
-    act(() => fireEvent.changeText(getByTestId('job-title-input')), 'Fix Kitchen Faucet');
-    act(() => fireEvent.changeText(
-      getByTestId('job-description-input')),
+    act(
+      () => fireEvent.changeText(getByTestId('job-title-input')),
+      'Fix Kitchen Faucet'
+    );
+    act(
+      () => fireEvent.changeText(getByTestId('job-description-input')),
       'Leaky faucet needs repair'
     );
-    act(() => fireEvent.changeText(getByTestId('job-location-input')), '123 Main St');
+    act(
+      () => fireEvent.changeText(getByTestId('job-location-input')),
+      '123 Main St'
+    );
     act(() => fireEvent.changeText(getByTestId('job-budget-input')), '-50');
     act(() => fireEvent.press(getByText('Post Job')));
 
@@ -163,8 +176,14 @@ describe('JobPostingScreen', () => {
   it('validates description length', async () => {
     const { getByTestId, getByText } = renderJobPostingScreen();
 
-    act(() => fireEvent.changeText(getByTestId('job-title-input')), 'Fix Kitchen Faucet');
-    act(() => fireEvent.changeText(getByTestId('job-description-input')), 'Too short');
+    act(
+      () => fireEvent.changeText(getByTestId('job-title-input')),
+      'Fix Kitchen Faucet'
+    );
+    act(
+      () => fireEvent.changeText(getByTestId('job-description-input')),
+      'Too short'
+    );
     act(() => fireEvent.press(getByText('Post Job')));
 
     await waitFor(() => {
@@ -222,10 +241,10 @@ describe('JobPostingScreen', () => {
     act(() => fireEvent.press(getByTestId('add-photo-button')));
     act(() => fireEvent.press(getByTestId('add-photo-button')));
     act(() => fireEvent.press(getByTestId('add-photo-button')));
-    
+
     // Try to add a 4th photo - should show alert
     act(() => fireEvent.press(getByTestId('add-photo-button')));
-    
+
     // Note: Alert.alert is mocked, so we can't test the actual alert text
     // This test will pass if the component doesn't crash when hitting the limit
     expect(getByTestId('add-photo-button')).toBeTruthy();
@@ -270,13 +289,16 @@ describe('JobPostingScreen', () => {
     const { getByTestId, getByText } = renderJobPostingScreen();
 
     // Fill form
-    act(() => fireEvent.changeText(getByTestId('job-title-input')), 'Fix Kitchen Faucet');
-    act(() => fireEvent.changeText(
-      getByTestId('job-description-input')),
+    act(
+      () => fireEvent.changeText(getByTestId('job-title-input')),
+      'Fix Kitchen Faucet'
+    );
+    act(
+      () => fireEvent.changeText(getByTestId('job-description-input')),
       'Leaky kitchen faucet needs professional repair'
     );
-    act(() => fireEvent.changeText(
-      getByTestId('job-location-input')),
+    act(
+      () => fireEvent.changeText(getByTestId('job-location-input')),
       '123 Main Street, Anytown, USA'
     );
     act(() => fireEvent.changeText(getByTestId('job-budget-input')), '150');
@@ -295,7 +317,7 @@ describe('JobPostingScreen', () => {
         location: '123 Main Street, Anytown, USA',
         budget: 150,
         category: 'plumbing',
-        priority: 'high',
+        urgency: 'high',
         homeownerId: 'user-1',
       });
     });
@@ -317,12 +339,18 @@ describe('JobPostingScreen', () => {
     const { getByTestId, getByText } = renderJobPostingScreen();
 
     // Fill minimum required fields
-    act(() => fireEvent.changeText(getByTestId('job-title-input')), 'Fix Kitchen Faucet');
-    act(() => fireEvent.changeText(
-      getByTestId('job-description-input')),
+    act(
+      () => fireEvent.changeText(getByTestId('job-title-input')),
+      'Fix Kitchen Faucet'
+    );
+    act(
+      () => fireEvent.changeText(getByTestId('job-description-input')),
       'Leaky kitchen faucet needs professional repair'
     );
-    act(() => fireEvent.changeText(getByTestId('job-location-input')), '123 Main Street');
+    act(
+      () => fireEvent.changeText(getByTestId('job-location-input')),
+      '123 Main Street'
+    );
     act(() => fireEvent.changeText(getByTestId('job-budget-input')), '150');
 
     // Select category and priority
@@ -343,7 +371,9 @@ describe('JobPostingScreen', () => {
   it('shows error message on job creation failure', async () => {
     // Override the mutation to reject with an error
     mockUseCreateJob.mockReturnValue({
-      mutateAsync: jest.fn().mockRejectedValue(new Error('Failed to create job')),
+      mutateAsync: jest
+        .fn()
+        .mockRejectedValue(new Error('Failed to create job')),
       isPending: false,
       isError: false,
       error: null,
@@ -356,12 +386,18 @@ describe('JobPostingScreen', () => {
     const { getByTestId, getByText } = renderJobPostingScreen();
 
     // Fill form
-    act(() => fireEvent.changeText(getByTestId('job-title-input')), 'Fix Kitchen Faucet');
-    act(() => fireEvent.changeText(
-      getByTestId('job-description-input')),
+    act(
+      () => fireEvent.changeText(getByTestId('job-title-input')),
+      'Fix Kitchen Faucet'
+    );
+    act(
+      () => fireEvent.changeText(getByTestId('job-description-input')),
       'Leaky kitchen faucet needs professional repair'
     );
-    act(() => fireEvent.changeText(getByTestId('job-location-input')), '123 Main Street');
+    act(
+      () => fireEvent.changeText(getByTestId('job-location-input')),
+      '123 Main Street'
+    );
     act(() => fireEvent.changeText(getByTestId('job-budget-input')), '150');
 
     // Select category and priority
@@ -380,12 +416,18 @@ describe('JobPostingScreen', () => {
     const { getByTestId, getByText } = renderJobPostingScreen();
 
     // Fill form
-    act(() => fireEvent.changeText(getByTestId('job-title-input')), 'Fix Kitchen Faucet');
-    act(() => fireEvent.changeText(
-      getByTestId('job-description-input')),
+    act(
+      () => fireEvent.changeText(getByTestId('job-title-input')),
+      'Fix Kitchen Faucet'
+    );
+    act(
+      () => fireEvent.changeText(getByTestId('job-description-input')),
       'Leaky kitchen faucet needs professional repair'
     );
-    act(() => fireEvent.changeText(getByTestId('job-location-input')), '123 Main Street');
+    act(
+      () => fireEvent.changeText(getByTestId('job-location-input')),
+      '123 Main Street'
+    );
     act(() => fireEvent.changeText(getByTestId('job-budget-input')), '150');
 
     // Mock a slow response
@@ -409,12 +451,18 @@ describe('JobPostingScreen', () => {
     const { getByTestId, getByText } = renderJobPostingScreen();
 
     // Fill form
-    act(() => fireEvent.changeText(getByTestId('job-title-input')), 'Fix Kitchen Faucet');
-    act(() => fireEvent.changeText(
-      getByTestId('job-description-input')),
+    act(
+      () => fireEvent.changeText(getByTestId('job-title-input')),
+      'Fix Kitchen Faucet'
+    );
+    act(
+      () => fireEvent.changeText(getByTestId('job-description-input')),
       'Leaky kitchen faucet needs professional repair'
     );
-    act(() => fireEvent.changeText(getByTestId('job-location-input')), '123 Main Street');
+    act(
+      () => fireEvent.changeText(getByTestId('job-location-input')),
+      '123 Main Street'
+    );
     act(() => fireEvent.changeText(getByTestId('job-budget-input')), '150');
 
     // Mock a slow response
@@ -436,14 +484,16 @@ describe('JobPostingScreen', () => {
   });
 
   it('redirects non-homeowners', () => {
-    mockUseAuth.mockReturnValue(AuthMockFactory.createAuthenticatedContractor({
-      id: mockUser.id,
-      email: mockUser.email,
-      first_name: mockUser.first_name,
-      last_name: mockUser.last_name,
-      created_at: mockUser.created_at,
-      updated_at: mockUser.updated_at,
-    }));
+    mockUseAuth.mockReturnValue(
+      AuthMockFactory.createAuthenticatedContractor({
+        id: mockUser.id,
+        email: mockUser.email,
+        first_name: mockUser.first_name,
+        last_name: mockUser.last_name,
+        created_at: mockUser.created_at,
+        updated_at: mockUser.updated_at,
+      })
+    );
 
     renderJobPostingScreen();
 

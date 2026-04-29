@@ -36,6 +36,14 @@ export const GET = withApiHandler(
 
 /**
  * POST /api/users/avatar
+ *
+ * Audit step 6 (2026-04-29): the cleanup logic used to read the
+ * previous `profile_image_url` AFTER updating the row to the new
+ * URL — at which point `oldProfile.profile_image_url === publicUrl`
+ * always, so the old file in Storage was never removed and the
+ * `avatars` bucket grew with one orphan blob per user upload.
+ * Now: read the existing row first, then update, then delete the
+ * old blob.
  */
 export const POST = withApiHandler(
   { rateLimit: { maxRequests: 30 } },
@@ -49,12 +57,23 @@ export const POST = withApiHandler(
 
     const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
     if (!validTypes.includes(file.type)) {
-      throw new BadRequestError('Invalid file type. Only JPEG, PNG, and WebP are allowed.');
+      throw new BadRequestError(
+        'Invalid file type. Only JPEG, PNG, and WebP are allowed.'
+      );
     }
 
     if (file.size > 5 * 1024 * 1024) {
       throw new BadRequestError('File too large. Maximum size is 5MB.');
     }
+
+    // Read the existing avatar URL BEFORE we overwrite the row so we
+    // can clean up the old blob after the update succeeds.
+    const { data: previousProfile } = await serverSupabase
+      .from('profiles')
+      .select('profile_image_url')
+      .eq('id', user.id)
+      .single();
+    const previousAvatarUrl = previousProfile?.profile_image_url ?? null;
 
     const fileExt = file.name.split('.').pop();
     const fileName = `${user.id}-${Date.now()}.${fileExt}`;
@@ -68,9 +87,9 @@ export const POST = withApiHandler(
       throw uploadError;
     }
 
-    const { data: { publicUrl } } = serverSupabase.storage
-      .from('avatars')
-      .getPublicUrl(fileName);
+    const {
+      data: { publicUrl },
+    } = serverSupabase.storage.from('avatars').getPublicUrl(fileName);
 
     const { error: updateError } = await serverSupabase
       .from('profiles')
@@ -81,22 +100,30 @@ export const POST = withApiHandler(
       .eq('id', user.id);
 
     if (updateError) {
+      // Roll back the storage upload so we don't leak the new blob
+      // when the row update fails.
       await serverSupabase.storage.from('avatars').remove([fileName]);
       logger.error('Failed to update user profile:', updateError);
       throw updateError;
     }
 
-    // Delete old avatar if exists
-    const { data: oldProfile } = await serverSupabase
-      .from('profiles')
-      .select('profile_image_url')
-      .eq('id', user.id)
-      .single();
-
-    if (oldProfile?.profile_image_url && oldProfile.profile_image_url !== publicUrl) {
-      const oldFileName = oldProfile.profile_image_url.split('/').pop();
+    // Best-effort cleanup of the previous avatar. Failure here is
+    // not fatal — the user's new avatar is already live, the old
+    // blob is just an orphan we'll garbage-collect on next upload.
+    if (previousAvatarUrl && previousAvatarUrl !== publicUrl) {
+      const oldFileName = previousAvatarUrl.split('/').pop();
       if (oldFileName) {
-        await serverSupabase.storage.from('avatars').remove([oldFileName]);
+        const { error: removeError } = await serverSupabase.storage
+          .from('avatars')
+          .remove([oldFileName]);
+        if (removeError) {
+          logger.warn('Failed to remove previous avatar blob', {
+            service: 'users.avatar',
+            userId: user.id,
+            oldFileName,
+            error: removeError.message,
+          });
+        }
       }
     }
 
@@ -147,6 +174,9 @@ export const DELETE = withApiHandler(
       throw updateError;
     }
 
-    return NextResponse.json({ success: true, message: 'Avatar deleted successfully' });
+    return NextResponse.json({
+      success: true,
+      message: 'Avatar deleted successfully',
+    });
   }
 );

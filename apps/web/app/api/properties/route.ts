@@ -24,8 +24,14 @@ interface PropertyInsertData {
   photos?: string[];
   city?: string;
   postcode?: string;
+  country?: string;
   bedrooms?: number;
   bathrooms?: number;
+  // R6 step 13 (2026-04-29): mobile sends device GPS or Mapbox
+  // geocoding result; persisted so map / nearby-contractor /
+  // geo-pricing features have coords on first load.
+  latitude?: number;
+  longitude?: number;
 }
 
 /**
@@ -66,7 +72,11 @@ export const GET = withApiHandler(
     const { data: properties, error } = await userDb
       .from('properties')
       .select(
-        'id, property_name, address, property_type, is_primary, photos, city, postcode, bedrooms, bathrooms, created_at, updated_at'
+        // R6 step 13 (2026-04-29): include `country`, `latitude`,
+        // `longitude` so the edit screen + map view can pre-fill /
+        // render markers without a second round-trip. Was missing
+        // from the column list even though the DB has them.
+        'id, property_name, address, property_type, is_primary, photos, city, postcode, country, bedrooms, bathrooms, latitude, longitude, created_at, updated_at'
       )
       .eq('owner_id', user.id)
       .order('is_primary', { ascending: false })
@@ -196,11 +206,23 @@ export const POST = withApiHandler(
       is_primary,
     };
 
-    // Store city/postcode if provided (from mobile's split fields)
+    // Store city/postcode/country if provided (from mobile's split
+    // fields). `country` was previously dropped on insert despite
+    // being in the schema and the DB column existing — now persisted.
     if (body.city) insertData.city = sanitizeText(body.city, 100);
     if (body.postcode) insertData.postcode = sanitizeText(body.postcode, 20);
+    if (body.country) insertData.country = sanitizeText(body.country, 50);
     if (body.bedrooms) insertData.bedrooms = body.bedrooms;
     if (body.bathrooms) insertData.bathrooms = body.bathrooms;
+
+    // Coords from mobile (or future geocoded value from web).
+    // `typeof === 'number'` rather than truthy so `0` is preserved.
+    if (typeof body.latitude === 'number') {
+      insertData.latitude = body.latitude;
+    }
+    if (typeof body.longitude === 'number') {
+      insertData.longitude = body.longitude;
+    }
 
     // Add photos if provided
     if (body.photos && body.photos.length > 0) {

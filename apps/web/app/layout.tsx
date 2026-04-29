@@ -4,7 +4,6 @@ import '../styles/responsive.css';
 import '../styles/print.css';
 import '../styles/animations-enhanced.css';
 import { Inter } from 'next/font/google';
-import Script from 'next/script';
 import { headers } from 'next/headers';
 import CookieConsent from '../components/CookieConsent';
 import { ErrorBoundary } from '../components/ui/ErrorBoundary';
@@ -27,9 +26,9 @@ const inter = Inter({
 // import { PerformanceDashboard } from '../components/PerformanceDashboard' // Temporarily disabled for testing
 
 export const metadata = {
-  title: 'Mintenance - Find Trusted Contractors For Your Home Projects',
+  title: 'Mintenance - Find Verified Tradespeople For Home Projects',
   description:
-    'Connect with verified contractors, get instant quotes, and manage your home maintenance projects. Powered by AI.',
+    'Connect with verified tradespeople, compare quotes, and manage home maintenance projects with protected payments.',
   icons: {
     icon: '/assets/favicon.png',
     apple: '/assets/icon.png',

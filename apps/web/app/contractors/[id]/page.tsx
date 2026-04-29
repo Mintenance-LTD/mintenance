@@ -7,6 +7,7 @@ import { useCSRF } from '@/lib/hooks/useCSRF';
 import { ChevronLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { logger } from '@mintenance/shared';
+import { safeCopyToClipboard } from '@/lib/utils/clipboard';
 import { ContractorProfileHeader } from './components/ContractorProfileHeader';
 import { ContractorPerformanceStats } from './components/ContractorPerformanceStats';
 import { ContractorReviews } from './components/ContractorReviews';
@@ -270,23 +271,10 @@ function ContractorPublicProfilePage2025() {
   };
 
   const handleShare = async () => {
-    try {
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        await navigator.clipboard.writeText(window.location.href);
-        toast.success('Profile link copied to clipboard');
-      } else {
-        const textArea = document.createElement('textarea');
-        textArea.value = window.location.href;
-        textArea.style.position = 'fixed';
-        textArea.style.opacity = '0';
-        document.body.appendChild(textArea);
-        textArea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textArea);
-        toast.success('Profile link copied to clipboard');
-      }
-    } catch (err) {
-      logger.error('Failed to copy to clipboard:', err, { service: 'app' });
+    const ok = await safeCopyToClipboard(window.location.href);
+    if (ok) {
+      toast.success('Profile link copied to clipboard');
+    } else {
       toast.error('Failed to copy link. Please copy the URL manually.');
     }
   };

@@ -5,12 +5,14 @@ import {
   StyleSheet,
   ScrollView,
   ActivityIndicator,
-  SafeAreaView,
   RefreshControl,
 } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import * as WebBrowser from 'expo-web-browser';
 import { Ionicons } from '@expo/vector-icons';
 import Button from '../../components/ui/Button';
+import { ScreenHeader } from '../../components/shared';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import { logger } from '../../utils/logger';
 import { theme } from '../../theme';
@@ -45,6 +47,8 @@ interface PayoutBalance {
 }
 
 const ContractorPayoutsScreen: React.FC = () => {
+  const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const [status, setStatus] = useState<ConnectStatus | null>(null);
   const [balance, setBalance] = useState<PayoutBalance | null>(null);
   const [loading, setLoading] = useState(true);
@@ -146,17 +150,20 @@ const ContractorPayoutsScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <ScreenHeader
+        title='Payouts'
+        showBack
+        onBack={() => navigation.goBack()}
+      />
       <ScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: insets.bottom + 40 },
+        ]}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        <View style={styles.header}>
-          <Ionicons name="cash" size={28} color={theme.colors.primary} />
-          <Text style={styles.title}>Payouts</Text>
-        </View>
-
         {error && (
           <View style={styles.errorBox}>
             <Text style={styles.errorText}>{error}</Text>
@@ -393,10 +400,8 @@ function formatRequirement(key: string): string {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.background },
-  content: { padding: 16, paddingTop: 24, paddingBottom: 40, gap: 16 },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 },
-  title: { fontSize: 22, fontWeight: '600', color: theme.colors.textPrimary },
+  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
+  content: { padding: 16, gap: 16 },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   card: {
     backgroundColor: theme.colors.surface ?? '#fff',

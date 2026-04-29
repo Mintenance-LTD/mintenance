@@ -5,7 +5,46 @@ import { mobileApiClient } from '../../utils/mobileApiClient';
 import { mapDatabaseToContractorProfile } from './ContractorHelpers';
 import type { DatabaseContractorProfileRow, DatabaseError } from './types';
 
-/** Fetch a contractor's extended profile by user ID via direct Supabase query. */
+/**
+ * Fetch a contractor's extended profile by user ID.
+ *
+ * Audit step 5 (2026-04-29) — investigated for direct-Supabase
+ * removal. **Bigger problem found**: the live `contractor_profiles`
+ * table only has `id, stripe_*, subscription_*, hourly_rate,
+ * created_at, updated_at` (migration `20260208001000`). The
+ * `DatabaseContractorProfileRow` type below claims `business_address,
+ * specialties, portfolio_images, certifications, years_experience,
+ * service_radius, license_number, insurance_*` etc. — none of which
+ * are columns on this table. They live on `profiles` (e.g.
+ * `business_address`, `portfolio_images`) or don't exist at all
+ * (`specialties`, `certifications`).
+ *
+ * Net effect today: this read returns `business_address: undefined`
+ * for every user, which is why `ContractorCardEditorScreen` falls
+ * back to `user.address + user.city + user.postcode` for *every*
+ * contractor, not just those who haven't filled it in. The
+ * fallback masks the mismatch.
+ *
+ * Migrating to the API alone won't fix this — the underlying type
+ * is lying. Cleanup needs:
+ *   1. Decide which table owns `business_address` / `portfolio_images`
+ *      etc. (web `/api/contractor/business-profile` reads them off
+ *      `profiles`, so that's the established source).
+ *   2. Drop the false fields from `DatabaseContractorProfileRow`,
+ *      or split into `ContractorProfilesRow` (subscription/stripe/
+ *      hourly_rate) + `ContractorIdentityFromProfile` (the rest).
+ *   3. Migrate this read to `/api/contractor/profile-data` (already
+ *      bundles profiles + hourly_rate from contractor_profiles +
+ *      skills/reviews) or extend `/api/contractor/business-profile`.
+ *   4. Update `ContractorCardEditorScreen` to read fields from the
+ *      correct slot.
+ *
+ * Out of scope for the "direct-Supabase removal" audit pass — needs
+ * a dedicated commit so the schema cleanup gets reviewed properly.
+ * The single-row read here is `auth.uid()`-scoped via RLS so it's
+ * not actively unsafe; just consistently returning empty data for
+ * fields that don't exist where the code looks for them.
+ */
 export async function getContractorProfile(
   userId: string
 ): Promise<DatabaseContractorProfileRow | null> {
@@ -34,70 +73,139 @@ export async function getContractorProfile(
   }
 }
 
-/** Update or create a contractor's profile via web API route. */
+/** Update or create a contractor's profile via web API route.
+ *
+ * The route at /api/contractor/update-profile reads `request.formData()`
+ * with required keys `firstName`, `lastName`, `isAvailable`, plus the
+ * camelCase optionals `companyName`, `licenseNumber`, etc. The previous
+ * implementation here posted JSON with snake_case keys — every save
+ * silently 400'd ("First name is required") because the route never
+ * saw the fields. Aligning the wire format here so mobile contractor
+ * profile updates actually persist. */
 export async function updateContractorProfile(
   userId: string,
-  profileData: Partial<ContractorProfile>
+  profileData: Partial<ContractorProfile> & {
+    firstName?: string;
+    lastName?: string;
+    phone?: string;
+    city?: string;
+    country?: string;
+    postcode?: string;
+    isAvailable?: boolean;
+  }
 ): Promise<ContractorProfile> {
   try {
-    const response = await mobileApiClient.post<{
-      profile: DatabaseContractorProfileRow;
-    }>('/api/contractor/update-profile', {
-      bio: profileData.bio,
-      profile_image_url: profileData.profile_image_url,
-      latitude: profileData.latitude,
-      longitude: profileData.longitude,
-      company_name: profileData.companyName,
-      company_logo: profileData.companyLogo,
-      business_address: profileData.businessAddress,
-      hourly_rate: profileData.hourly_rate || profileData.hourlyRate,
-      years_experience:
-        profileData.years_experience || profileData.yearsExperience,
-      service_radius: profileData.serviceRadius,
-      availability: profileData.availability,
-      portfolio_images: profileData.portfolioImages,
-      specialties: profileData.specialties,
-      certifications: profileData.certifications,
-      license_number: profileData.license_number || profileData.licenseNumber,
-    });
+    const formData = new FormData();
+    // Required scalars — the route's Zod schema rejects missing
+    // firstName / lastName / isAvailable.
+    formData.append('firstName', String(profileData.firstName ?? ''));
+    formData.append('lastName', String(profileData.lastName ?? ''));
+    formData.append(
+      'isAvailable',
+      profileData.isAvailable === false ? 'false' : 'true'
+    );
+    const setIfPresent = (key: string, value: unknown) => {
+      if (value === undefined || value === null) return;
+      const str = String(value);
+      if (str.length === 0) return;
+      formData.append(key, str);
+    };
+    setIfPresent('bio', profileData.bio);
+    setIfPresent('city', profileData.city);
+    setIfPresent('country', profileData.country);
+    setIfPresent('phone', profileData.phone);
+    setIfPresent('postcode', profileData.postcode);
+    setIfPresent(
+      'companyName',
+      profileData.companyName ??
+        (profileData as { company_name?: string }).company_name
+    );
+    setIfPresent(
+      'licenseNumber',
+      profileData.licenseNumber ?? profileData.license_number
+    );
 
+    const response = await mobileApiClient.postFormData<{
+      success?: boolean;
+      profile?: DatabaseContractorProfileRow;
+      data?: DatabaseContractorProfileRow;
+    }>('/api/contractor/update-profile', formData);
+
+    const profileRow = response.profile ?? response.data;
+    if (!profileRow) throw new Error('No profile returned from API');
     logger.info('Contractor profile updated successfully');
-    return mapDatabaseToContractorProfile(response.profile);
+    return mapDatabaseToContractorProfile(profileRow);
   } catch (error) {
     logger.error('Error updating contractor profile:', error);
     throw error;
   }
 }
 
-/** Upload a contractor logo or portfolio image to Supabase Storage. */
+/** Upload a contractor avatar to Supabase Storage via the web API.
+ *
+ * The route reads `formData.get('profileImage')` AND requires
+ * `firstName`/`lastName`/`isAvailable` since it's the same endpoint
+ * that handles profile updates. The previous implementation posted
+ * keys named `file` and `type` and skipped the required scalars —
+ * the route returned a 400 (or simply read an empty File) and the
+ * picked image was never persisted.
+ *
+ * `type === 'logo'` writes `profile_image_url`. The endpoint does not
+ * currently support a separate cover/portfolio image upload, so
+ * `'portfolio'` is left as a no-op TODO with a clear error rather
+ * than silently mapping to the avatar slot. */
 export async function uploadContractorImage(
   userId: string,
   imageUri: string,
-  type: 'logo' | 'portfolio'
+  type: 'logo' | 'portfolio',
+  identity: { firstName: string; lastName: string; isAvailable?: boolean }
 ): Promise<string> {
+  if (type !== 'logo') {
+    throw new Error(
+      'Portfolio image upload is not yet supported by /api/contractor/update-profile — wire a dedicated route before re-enabling.'
+    );
+  }
   try {
     logger.info(`Uploading ${type} image for contractor ${userId}`);
     const ext = imageUri.split('.').pop()?.toLowerCase() || 'jpg';
+    const mime =
+      ext === 'png'
+        ? 'image/png'
+        : ext === 'webp'
+          ? 'image/webp'
+          : 'image/jpeg';
     const fileName = `${type}_${Date.now()}.${ext}`;
 
     const formData = new FormData();
-    formData.append('file', {
+    // The route reads this exact key.
+    formData.append('profileImage', {
       uri: imageUri,
       name: fileName,
-      type: `image/${ext === 'png' ? 'png' : 'jpeg'}`,
+      type: mime,
     } as unknown as Blob);
-    formData.append('type', type);
+    // Required scalars — schema rejects missing firstName/lastName.
+    formData.append('firstName', identity.firstName);
+    formData.append('lastName', identity.lastName);
+    formData.append(
+      'isAvailable',
+      identity.isAvailable === false ? 'false' : 'true'
+    );
 
     const response = await mobileApiClient.postFormData<{
       success?: boolean;
-      data?: { profile_image_url?: string; cover_image_url?: string };
+      profile?: { profile_image_url?: string };
+      data?: { profile_image_url?: string };
       url?: string;
       public_url?: string;
     }>('/api/contractor/update-profile', formData);
 
-    // API returns { success, data: profileObject } — extract image URL from profile
-    const imageUrl = response.data?.profile_image_url;
-    return imageUrl ?? response.public_url ?? response.url ?? '';
+    return (
+      response.profile?.profile_image_url ??
+      response.data?.profile_image_url ??
+      response.public_url ??
+      response.url ??
+      ''
+    );
   } catch (error) {
     logger.error('Error uploading contractor image:', error);
     throw error;

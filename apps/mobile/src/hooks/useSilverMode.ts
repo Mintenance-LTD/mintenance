@@ -42,10 +42,12 @@ export function useSilverMode() {
         // ignore
       }
 
-      // 2) Authoritative fetch from /api/user/settings.
+      // 2) Authoritative fetch from /api/users/settings (canonical
+      //    URL post audit step 8 consolidation; the singular
+      //    /api/user/settings is now a kept-alive legacy alias).
       try {
         const body = await mobileApiClient.get<{ silverMode?: boolean }>(
-          '/api/user/settings'
+          '/api/users/settings'
         );
         if (cancelled) return;
         const next = Boolean(body?.silverMode);
@@ -73,7 +75,9 @@ export function useSilverMode() {
       // ignore
     }
     try {
-      await mobileApiClient.patch('/api/user/settings', { silverMode: next });
+      await mobileApiClient.patch('/api/users/settings', {
+        silverMode: next,
+      });
     } catch (err) {
       logger.warn('silver-mode: server save failed', { err });
     }

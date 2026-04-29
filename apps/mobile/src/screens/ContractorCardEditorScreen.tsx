@@ -143,7 +143,16 @@ export const ContractorCardEditorScreen: React.FC<
 
     try {
       setSaving(true);
-      await ContractorService.updateContractorProfile(user.id, profile);
+      // /api/contractor/update-profile requires firstName, lastName,
+      // and isAvailable. Pull them from auth context so the API call
+      // doesn't 400 — the screen edits company info, not name fields,
+      // so we just echo the existing user values back.
+      await ContractorService.updateContractorProfile(user.id, {
+        ...profile,
+        firstName: user.first_name ?? user.firstName ?? '',
+        lastName: user.last_name ?? user.lastName ?? '',
+        isAvailable: true,
+      });
       Alert.alert('Success', 'Your discovery card has been updated!');
       navigation.goBack();
     } catch (error) {

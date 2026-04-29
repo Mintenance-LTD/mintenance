@@ -51,7 +51,13 @@ import { NotificationService } from '../services/NotificationService';
 import { logger } from '../utils/logger';
 
 const STORAGE_KEY = 'push_soft_ask_dismissed_at';
-const COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+// 24h cool-off after a "Not Now" tap (was 7 days). Live audit
+// (2026-04-28) found `user_push_tokens = 0` in prod despite 6
+// onboarding-complete users — the 7-day window meant a single
+// dismissal effectively turned push off forever, since most users
+// never re-encountered the modal at exactly the right state on day 8.
+// 24h gives users a same-next-day re-prompt without being naggy.
+const COOLDOWN_MS = 24 * 60 * 60 * 1000;
 
 export type PushPermissionStatus = 'undetermined' | 'denied' | 'granted';
 

@@ -9,7 +9,6 @@
  */
 
 import type { Job } from '@mintenance/types';
-import { supabase } from '../config/supabase';
 import { mobileApiClient } from '../utils/mobileApiClient';
 import { sanitizeText } from '../utils/sanitize';
 import { ServiceErrorHandler } from '../utils/serviceErrorHandler';
@@ -33,6 +32,39 @@ interface DatabaseJobRow {
   property_id?: string;
 }
 
+function getOperationErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error && error.message) return error.message;
+  if (error && typeof error === 'object') {
+    const record = error as Record<string, unknown>;
+    const userMessage = record.userMessage;
+    const message = record.message;
+    if (typeof userMessage === 'string' && userMessage) return userMessage;
+    if (typeof message === 'string' && message) return message;
+  }
+  return fallback;
+}
+
+function normalizePhotoUrls(rawPhotos: unknown): string[] {
+  if (!Array.isArray(rawPhotos)) return [];
+
+  return rawPhotos
+    .map((photo) => {
+      if (typeof photo === 'string') return photo;
+      if (!photo || typeof photo !== 'object') return '';
+
+      const record = photo as Record<string, unknown>;
+      const url =
+        record.url ??
+        record.photo_url ??
+        record.file_url ??
+        record.signedUrl ??
+        record.publicUrl;
+
+      return typeof url === 'string' ? url : '';
+    })
+    .filter((url) => url.trim().length > 0);
+}
+
 export class JobCRUDService {
   static async createJob(jobData: {
     title: string;
@@ -43,7 +75,8 @@ export class JobCRUDService {
     homeowner_id?: string;
     category?: string;
     subcategory?: string;
-    priority?: 'low' | 'medium' | 'high';
+    // Matches DB column `jobs.urgency` (enum low/medium/high/emergency).
+    urgency?: 'low' | 'medium' | 'high' | 'emergency';
     photos?: string[];
     property_id?: string;
     latitude?: number;
@@ -100,7 +133,7 @@ export class JobCRUDService {
           location: safeLocation,
           budget: jobData.budget,
           category: jobData.category,
-          priority: jobData.priority,
+          urgency: jobData.urgency,
           photoUrls: jobData.photos,
           property_id: jobData.property_id,
           latitude: jobData.latitude,
@@ -121,7 +154,9 @@ export class JobCRUDService {
     }, context);
 
     if (!result.success || !result.data) {
-      throw new Error('Failed to create job');
+      throw new Error(
+        getOperationErrorMessage(result.error, 'Failed to create job')
+      );
     }
 
     return result.data;
@@ -131,62 +166,24 @@ export class JobCRUDService {
    * Fetch a single job by id, with photo URLs that survive the
    * 2026-04-17 Job-storage bucket flip from public→private.
    *
-   * Goes through the web API (GET /api/jobs/:id) so the server can
-   * re-sign legacy `public/Job-storage/...` photo URLs into fresh
-   * signed URLs. The previous direct-Supabase implementation returned
-   * raw `file_url` values, which 404 on the CDN after the bucket flip
-   * — that produced the empty job-detail-screen hero on the homeowner
-   * side even though the list view (already API-routed) was rendering
-   * thumbnails correctly. Falls back to direct DB access if the API
-   * is unreachable so offline / API-down behaviour matches before.
+   * Routes exclusively through the web API (GET /api/jobs/:id). The
+   * server re-signs legacy `public/Job-storage/...` photo URLs into
+   * fresh signed URLs; the anon client on mobile cannot do that.
+   *
+   * Audit step 5 (2026-04-29): the previous direct-Supabase fallback
+   * was actively harmful — it returned raw `file_url` values that
+   * 404 on the CDN after the bucket flip, and silently bypassed the
+   * server-side ownership check that the API enforces. Better to
+   * surface the error and have the caller render an empty state /
+   * retry than render half-broken data and confuse the user about
+   * why photos disappeared.
    */
   static async getJobById(jobId: string): Promise<Job | null> {
-    try {
-      const { job } = await mobileApiClient.get<{
-        job: Record<string, unknown>;
-      }>(`/api/jobs/${jobId}`);
-      if (!job) return null;
-      return this.formatJob(job as Record<string, unknown>);
-    } catch (apiErr) {
-      // Direct-DB fallback — same shape as before. Photos may not
-      // render correctly here because we cannot sign URLs from the
-      // anon client, but the job itself is still readable so the
-      // detail screen at least renders text + status.
-      try {
-        const { data, error } = await supabase
-          .from('jobs')
-          .select('*')
-          .eq('id', jobId)
-          .single();
-        if (error || !data) return null;
-
-        const [attachments, photos] = await Promise.all([
-          supabase
-            .from('job_attachments')
-            .select('file_url')
-            .eq('job_id', jobId)
-            .eq('file_type', 'image'),
-          supabase
-            .from('job_photos_metadata')
-            .select('photo_url')
-            .eq('job_id', jobId),
-        ]);
-
-        const imageUrls = [
-          ...(attachments.data?.map((a: { file_url: string }) => a.file_url) ??
-            []),
-          ...(photos.data?.map((p: { photo_url: string }) => p.photo_url) ??
-            []),
-        ];
-        if (imageUrls.length > 0) {
-          data.photos = imageUrls;
-        }
-
-        return this.formatJob(data);
-      } catch {
-        return null;
-      }
-    }
+    const { job } = await mobileApiClient.get<{
+      job: Record<string, unknown>;
+    }>(`/api/jobs/${jobId}`);
+    if (!job) return null;
+    return this.formatJob(job as Record<string, unknown>);
   }
 
   static async updateJob(
@@ -296,20 +293,26 @@ export class JobCRUDService {
     );
   }
 
+  /**
+   * Fetch the most recent contract for a job. Routes through
+   * `GET /api/contracts?job_id=…` (audit step 5, 2026-04-29) — the
+   * web route applies the role-aware filter (homeowner sees only
+   * own; contractor sees only own) so mobile can't accidentally
+   * leak contracts the user shouldn't see. Previous direct-Supabase
+   * read relied on RLS to enforce that; route is the canonical guard.
+   *
+   * Returns the most recent contract for the job (route orders by
+   * `created_at desc`) or null if none exists / API fails.
+   */
   static async getContractByJobId(
     jobId: string
   ): Promise<Record<string, unknown> | null> {
     try {
-      const { data, error } = await supabase
-        .from('contracts')
-        .select(
-          'id, job_id, contractor_id, homeowner_id, status, title, description, amount, start_date, end_date, contractor_signed_at, homeowner_signed_at, terms, quote_id, created_at, updated_at, contractor:profiles!contractor_id(first_name, last_name, company_name), homeowner:profiles!homeowner_id(first_name, last_name)'
-        )
-        .eq('job_id', jobId)
-        .order('created_at', { ascending: false })
-        .limit(1);
-      if (error || !data?.length) return null;
-      return data[0] as Record<string, unknown>;
+      const { contracts } = await mobileApiClient.get<{
+        contracts: Array<Record<string, unknown>>;
+      }>(`/api/contracts?job_id=${encodeURIComponent(jobId)}`);
+      if (!Array.isArray(contracts) || contracts.length === 0) return null;
+      return contracts[0] ?? null;
     } catch {
       return null;
     }
@@ -332,8 +335,8 @@ export class JobCRUDService {
       subcategory: (raw.subcategory as string) ?? '',
       // API returns 'urgency', DB returns 'priority'
       priority: ((raw.priority ?? raw.urgency) as Job['priority']) ?? 'medium',
-      // API returns 'images', DB returns 'photos'
-      photos: (raw.photos ?? raw.images ?? []) as string[],
+      // API returns `images`/`photoUrls`, DB returns `photos`.
+      photos: normalizePhotoUrls(raw.photos ?? raw.images ?? raw.photoUrls),
       created_at:
         ((raw.created_at ?? raw.createdAt) as string) ??
         new Date().toISOString(),

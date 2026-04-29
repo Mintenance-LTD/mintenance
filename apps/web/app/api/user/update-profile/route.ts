@@ -31,7 +31,27 @@ const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 
 /**
  * POST /api/user/update-profile
- * Updates user profile information including photo upload
+ * Updates user profile information including photo upload.
+ *
+ * Audit step 6 / 7 (2026-04-29) — image-upload path is documented
+ * as **legacy**. The canonical avatar surface is now
+ * `POST /api/users/avatar` (writes to the dedicated `avatars`
+ * bucket, has proper before-update cleanup of the previous blob).
+ * The multipart path in this route survives because:
+ *   - The contractor profile-update flow bundles non-image fields
+ *     alongside `profileImage` and the UI hasn't been split yet.
+ *   - Older mobile builds and the web contractor settings page
+ *     still POST here.
+ *
+ * New code should call `/api/users/avatar` for avatar uploads and
+ * `PUT /api/users/profile` (or this route's JSON path) for the
+ * non-image fields. Once the contractor settings UI is split,
+ * the multipart branch below + the `profile-images/avatars/...`
+ * upload can be deleted.
+ *
+ * The multipart branch had the same "old blob never cleaned up"
+ * bug as the canonical avatar route did pre-fix — also closed in
+ * this commit.
  */
 export const POST = withApiHandler(
   { rateLimit: { maxRequests: 30 } },
@@ -51,6 +71,21 @@ async function handleFormDataUpdate(request: Request, user: { id: string }) {
   const profileImageFile = formData.get('profileImage') as File | null;
 
   let profileImageUrl = null;
+  // Audit step 6 (2026-04-29): if a new image is being uploaded we
+  // need the previous URL captured BEFORE the row update so the
+  // orphan blob can be removed afterwards. Read it once up front
+  // and reuse below — without this read, every upload leaked a
+  // blob in `profile-images/avatars/...`.
+  let previousImageUrl: string | null = null;
+  if (profileImageFile && profileImageFile.size > 0) {
+    const { data: previousProfile } = await serverSupabase
+      .from('profiles')
+      .select('profile_image_url')
+      .eq('id', user.id)
+      .maybeSingle();
+    previousImageUrl =
+      (previousProfile?.profile_image_url as string | null) ?? null;
+  }
 
   if (profileImageFile && profileImageFile.size > 0) {
     if (!ALLOWED_IMAGE_TYPES.includes(profileImageFile.type)) {
@@ -161,6 +196,40 @@ async function handleFormDataUpdate(request: Request, user: { id: string }) {
       { error: 'Failed to update profile. Please try again.' },
       { status: 500 }
     );
+  }
+
+  // Audit step 6 (2026-04-29): best-effort cleanup of the previous
+  // avatar blob in `profile-images/avatars/...`. Failure is non-fatal
+  // — the new avatar is already live; the old one is just an orphan
+  // we'll garbage-collect on the next upload.
+  if (
+    profileImageUrl &&
+    previousImageUrl &&
+    previousImageUrl !== profileImageUrl
+  ) {
+    // Only clean up files we previously wrote into this bucket. The
+    // canonical avatar route writes to `avatars/<file>` and the
+    // legacy profile-images bucket holds `avatars/<file>` (note the
+    // path-prefix overlap is intentional — same `avatars/` folder
+    // inside two different buckets). Match on the legacy bucket's
+    // `/profile-images/avatars/` substring so we don't accidentally
+    // try to delete an `/avatars/` blob from the wrong bucket.
+    if (previousImageUrl.includes('/profile-images/avatars/')) {
+      const trailing = previousImageUrl.split('/profile-images/').pop();
+      if (trailing) {
+        const { error: removeError } = await serverSupabase.storage
+          .from('profile-images')
+          .remove([trailing]);
+        if (removeError) {
+          logger.warn('Failed to remove previous profile image (non-fatal)', {
+            service: 'user',
+            userId: user.id,
+            path: trailing,
+            error: removeError.message,
+          });
+        }
+      }
+    }
   }
 
   return NextResponse.json({

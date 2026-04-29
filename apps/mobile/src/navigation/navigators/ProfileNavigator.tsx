@@ -2,6 +2,12 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { ProfileStackParamList } from '../types';
 
+// Settings screens that did not previously have nav targets. Wired in
+// here so SettingsHub can route to them; see types.ts for the param
+// list comments documenting each.
+import { AccessibilitySettingsScreen } from '../../screens/settings/AccessibilitySettingsScreen';
+import { NotificationPreferencesScreen } from '../../screens/settings/NotificationPreferencesScreen';
+
 // Account-related screen wrappers
 import {
   SafeProfileScreen,
@@ -363,6 +369,16 @@ const ProfileNavigator = () => {
       <ProfileStack.Screen
         name='EscrowDashboard'
         component={SafeEscrowDashboardScreen}
+        options={{ headerShown: false }}
+      />
+      <ProfileStack.Screen
+        name='AccessibilitySettings'
+        component={AccessibilitySettingsScreen}
+        options={{ headerShown: false }}
+      />
+      <ProfileStack.Screen
+        name='NotificationPreferences'
+        component={NotificationPreferencesScreen}
         options={{ headerShown: false }}
       />
     </ProfileStack.Navigator>

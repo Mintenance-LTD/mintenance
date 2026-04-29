@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { MessagingService } from '@/lib/services/MessagingService';
 import { logger } from '@/lib/logger';
 import type { Message } from '@mintenance/types';
@@ -17,6 +17,11 @@ export function useRealTimeMessages(
   const { enabled = true, onNewMessage, onMessageUpdate, onError } = options;
 
   const cleanupRef = useRef<(() => void) | null>(null);
+  // Track connection status as state so the hook's return value doesn't
+  // read `cleanupRef.current` during render. `react-hooks/refs` flags
+  // ref access in render because the value isn't reactive — components
+  // depending on `isConnected` would never re-render when it changes.
+  const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
     if (!enabled || !jobId) {
@@ -46,12 +51,14 @@ export function useRealTimeMessages(
     );
 
     cleanupRef.current = cleanup;
+    setIsConnected(true);
 
     // Cleanup on unmount or dependency change
     return () => {
       logger.info('Cleaning up real-time subscription for job', { jobId });
       cleanup();
       cleanupRef.current = null;
+      setIsConnected(false);
     };
   }, [jobId, enabled, onNewMessage, onMessageUpdate, onError]);
 
@@ -65,79 +72,14 @@ export function useRealTimeMessages(
   }, []);
 
   return {
-    // Return subscription status or any other useful info
-    isConnected: cleanupRef.current !== null,
+    isConnected,
   };
 }
 
-// Hook for managing multiple real-time message subscriptions
-function useRealTimeMessageThreads(
-  userId: string,
-  onNewMessage?: (message: Message) => void,
-  onError?: (error: Error) => void
-) {
-  const subscriptionsRef = useRef<Map<string, () => void>>(new Map());
-
-  const subscribeToJob = (jobId: string) => {
-    if (subscriptionsRef.current.has(jobId)) {
-      return; // Already subscribed
-    }
-
-    const cleanup = MessagingService.subscribeToJobMessages(
-      jobId,
-      (newMessage: Message) => {
-        // Only handle messages for the current user
-        if (newMessage.receiverId === userId) {
-          onNewMessage?.(newMessage);
-        }
-      },
-      () => {}, // onMessageUpdate - not needed for thread list
-      (error: unknown) => {
-        logger.error('Real-time error for job', error, { jobId });
-        onError?.(error instanceof Error ? error : new Error(String(error)));
-      }
-    );
-
-    subscriptionsRef.current.set(jobId, cleanup);
-  };
-
-  const unsubscribeFromJob = (jobId: string) => {
-    const cleanup = subscriptionsRef.current.get(jobId);
-    if (cleanup) {
-      cleanup();
-      subscriptionsRef.current.delete(jobId);
-    }
-  };
-
-  const subscribeToMultipleJobs = (jobIds: string[]) => {
-    // Unsubscribe from jobs no longer in the list
-    const currentJobIds = Array.from(subscriptionsRef.current.keys());
-    currentJobIds.forEach((jobId) => {
-      if (!jobIds.includes(jobId)) {
-        unsubscribeFromJob(jobId);
-      }
-    });
-
-    // Subscribe to new jobs
-    jobIds.forEach((jobId) => {
-      subscribeToJob(jobId);
-    });
-  };
-
-  const cleanup = () => {
-    subscriptionsRef.current.forEach((cleanupFn) => cleanupFn());
-    subscriptionsRef.current.clear();
-  };
-
-  useEffect(() => {
-    return cleanup;
-  }, []);
-
-  return {
-    subscribeToJob,
-    unsubscribeFromJob,
-    subscribeToMultipleJobs,
-    cleanup,
-    activeSubscriptions: Array.from(subscriptionsRef.current.keys()),
-  };
-}
+// Note: `useRealTimeMessageThreads` (multi-job subscription manager) used
+// to live here but was never imported anywhere in the app — confirmed via
+// grep on 2026-04-28. It also tripped two `react-hooks/refs` warnings by
+// reading `subscriptionsRef.current` during render to derive the
+// `activeSubscriptions` return. Deleted in the same pass that converted
+// the live hook's `isConnected` to state. If we ever need it back,
+// reintroduce with state-driven `activeSubscriptions` from the start.

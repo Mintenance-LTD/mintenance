@@ -388,7 +388,28 @@ const ProfileScreen: React.FC = () => {
                     icon: 'briefcase-outline',
                     iconColor: theme.colors.primary,
                     iconBg: theme.colors.primaryLight,
-                    onPress: () => navigation.navigate('BusinessTab' as never),
+                    onPress: () => {
+                      // BusinessTab is a sibling root tab, not a screen
+                      // in the Profile stack. The bare
+                      // navigation.navigate('BusinessTab') call worked
+                      // by accident (React Navigation falls through to
+                      // the root navigator) but skipped any tab-press
+                      // listeners and kept the Profile stack on the
+                      // back stack — pressing back from BusinessHub
+                      // dropped the user back into Settings instead of
+                      // the previous tab. Use the typed parent.
+                      const parent = (
+                        navigation as unknown as {
+                          getParent?: () =>
+                            | {
+                                navigate: (name: string) => void;
+                              }
+                            | undefined;
+                        }
+                      ).getParent?.();
+                      if (parent) parent.navigate('BusinessTab');
+                      else navigation.navigate('BusinessTab' as never);
+                    },
                   },
                   {
                     label: 'Verification',

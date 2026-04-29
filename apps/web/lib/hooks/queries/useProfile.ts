@@ -39,7 +39,9 @@ async function fetchProfile(): Promise<User> {
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Failed to fetch profile' }));
+    const error = await response
+      .json()
+      .catch(() => ({ error: 'Failed to fetch profile' }));
     throw new Error(error.error || 'Failed to fetch profile');
   }
 
@@ -56,7 +58,9 @@ async function fetchUserProfile(userId: string): Promise<User> {
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Failed to fetch user' }));
+    const error = await response
+      .json()
+      .catch(() => ({ error: 'Failed to fetch user' }));
     throw new Error(error.error || 'Failed to fetch user');
   }
 
@@ -68,10 +72,15 @@ async function fetchUserProfile(userId: string): Promise<User> {
  * Update user profile
  */
 async function updateProfile(updates: ProfileUpdateData): Promise<User> {
-  const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+  const csrfToken = document
+    .querySelector('meta[name="csrf-token"]')
+    ?.getAttribute('content');
 
+  // The route only implements PUT (and GET). The previous PATCH call
+  // failed with 405 Method Not Allowed every time the hook was used —
+  // mobile already aligned on PUT via AuthService.updateUserProfile.
   const response = await fetch('/api/users/profile', {
-    method: 'PATCH',
+    method: 'PUT',
     credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
@@ -81,12 +90,18 @@ async function updateProfile(updates: ProfileUpdateData): Promise<User> {
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Failed to update profile' }));
+    const error = await response
+      .json()
+      .catch(() => ({ error: 'Failed to update profile' }));
     throw new Error(error.error || 'Failed to update profile');
   }
 
-  const data = await response.json();
-  return data.user;
+  // The route returns `{ success, profile }`. The legacy `data.user`
+  // read returned undefined — the same kind of "API said 200 but the
+  // hook never sees the row" silent failure AuthService had to fix
+  // for the mobile path.
+  const data = (await response.json()) as { profile?: User; user?: User };
+  return (data.profile ?? data.user) as User;
 }
 
 /**
@@ -166,23 +181,35 @@ export function useUpdateProfile() {
     mutationFn: updateProfile,
     onMutate: async (updates) => {
       // Cancel outgoing refetches
-      await queryClient.cancelQueries({ queryKey: ['user', 'profile', 'current'] });
+      await queryClient.cancelQueries({
+        queryKey: ['user', 'profile', 'current'],
+      });
 
       // Snapshot previous value
-      const previousProfile = queryClient.getQueryData(['user', 'profile', 'current']);
+      const previousProfile = queryClient.getQueryData([
+        'user',
+        'profile',
+        'current',
+      ]);
 
       // Optimistically update
-      queryClient.setQueryData(['user', 'profile', 'current'], (old: unknown) => ({
-        ...(old as Record<string, unknown>),
-        ...updates,
-      }));
+      queryClient.setQueryData(
+        ['user', 'profile', 'current'],
+        (old: unknown) => ({
+          ...(old as Record<string, unknown>),
+          ...updates,
+        })
+      );
 
       return { previousProfile };
     },
     onError: (error, variables, context) => {
       // Rollback on error
       if (context?.previousProfile) {
-        queryClient.setQueryData(['user', 'profile', 'current'], context.previousProfile);
+        queryClient.setQueryData(
+          ['user', 'profile', 'current'],
+          context.previousProfile
+        );
       }
 
       logger.error('Failed to update profile', error, {
@@ -194,7 +221,9 @@ export function useUpdateProfile() {
       queryClient.setQueryData(['user', 'profile', 'current'], updatedProfile);
 
       // Invalidate related queries
-      queryClient.invalidateQueries({ queryKey: queryKeys.user.profile(updatedProfile.id) });
+      queryClient.invalidateQueries({
+        queryKey: queryKeys.user.profile(updatedProfile.id),
+      });
 
       logger.info('Profile updated successfully', {
         service: 'profile',

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useState, useCallback, useMemo } from 'react';
+import React, { useRef, useState, useCallback } from 'react';
 import { Bold, Italic, Link, Heading3, Eye, EyeOff } from 'lucide-react';
 import { Textarea } from '@/components/ui/Textarea';
 
@@ -67,6 +67,40 @@ export function simpleMarkdownToHtml(md: string): string {
   return html;
 }
 
+/**
+ * Small presentational button used inside the markdown toolbar. Top-level
+ * so its style block is shared and the parent JSX stays compact after we
+ * removed the data-driven `toolbarButtons.map(...)`.
+ */
+function ToolbarButton({
+  onClick,
+  title,
+  children,
+}: {
+  onClick: () => void;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type='button'
+      onClick={onClick}
+      title={title}
+      style={{
+        padding: '6px 8px',
+        border: '1px solid #e2e8f0',
+        borderRadius: 6,
+        backgroundColor: 'white',
+        cursor: 'pointer',
+        display: 'flex',
+        alignItems: 'center',
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
 interface MarkdownEditorProps {
   content: string;
   onContentChange: (content: string) => void;
@@ -125,21 +159,11 @@ export function MarkdownEditor({
     onContentChange(newText);
   }, [content, onContentChange]);
 
-  // Toolbar buttons defined as stable array to avoid refs-during-render lint error
-  const toolbarButtons = useMemo(
-    () => [
-      { icon: Bold, label: 'Bold', handler: handleInsertBold },
-      { icon: Italic, label: 'Italic', handler: handleInsertItalic },
-      { icon: Link, label: 'Link', handler: handleInsertLink },
-      { icon: Heading3, label: 'Heading', handler: handleInsertHeading },
-    ],
-    [
-      handleInsertBold,
-      handleInsertItalic,
-      handleInsertLink,
-      handleInsertHeading,
-    ]
-  );
+  // Toolbar buttons inlined below (rather than mapped over a memoized
+  // array) because the array form transitively closed over
+  // `textareaRef.current` via the handler functions, which the React
+  // Compiler linter flags as `react-hooks/refs` (ref read in render).
+  // With four buttons, the inlined JSX is shorter than the workaround.
 
   // Admin-only preview — content is authored by admins, not user input.
   // HTML entities are escaped in simpleMarkdownToHtml before transformation.
@@ -160,25 +184,18 @@ export function MarkdownEditor({
           aria-label='Text formatting'
           style={{ display: 'flex', gap: 4 }}
         >
-          {toolbarButtons.map(({ icon: IconComp, label, handler }) => (
-            <button
-              key={label}
-              type='button'
-              onClick={handler}
-              title={label}
-              style={{
-                padding: '6px 8px',
-                border: '1px solid #e2e8f0',
-                borderRadius: 6,
-                backgroundColor: '#fff',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-              }}
-            >
-              <IconComp size={16} />
-            </button>
-          ))}
+          <ToolbarButton onClick={handleInsertBold} title='Bold'>
+            <Bold size={16} />
+          </ToolbarButton>
+          <ToolbarButton onClick={handleInsertItalic} title='Italic'>
+            <Italic size={16} />
+          </ToolbarButton>
+          <ToolbarButton onClick={handleInsertLink} title='Link'>
+            <Link size={16} />
+          </ToolbarButton>
+          <ToolbarButton onClick={handleInsertHeading} title='Heading'>
+            <Heading3 size={16} />
+          </ToolbarButton>
         </div>
         <button
           type='button'

@@ -31,22 +31,26 @@ const correctedResponseSchema = z.object({
     overallSafetyScore: z.number().min(0).max(100),
   }),
   compliance: z.object({
-    complianceIssues: z.array(z.object({
-      issue: z.string(),
-      regulation: z.string().optional(),
-      severity: z.enum(['info', 'warning', 'violation']),
-      description: z.string(),
-      recommendation: z.string(),
-    })),
+    complianceIssues: z.array(
+      z.object({
+        issue: z.string(),
+        regulation: z.string().optional(),
+        severity: z.enum(['info', 'warning', 'violation']),
+        description: z.string(),
+        recommendation: z.string(),
+      })
+    ),
     requiresProfessionalInspection: z.boolean(),
     complianceScore: z.number().min(0).max(100),
   }),
   insuranceRisk: z.object({
-    riskFactors: z.array(z.object({
-      factor: z.string(),
-      severity: z.enum(['low', 'medium', 'high']),
-      impact: z.string(),
-    })),
+    riskFactors: z.array(
+      z.object({
+        factor: z.string(),
+        severity: z.enum(['low', 'medium', 'high']),
+        impact: z.string(),
+      })
+    ),
     riskScore: z.number().min(0).max(100),
     premiumImpact: z.enum(['none', 'low', 'medium', 'high']),
     mitigationSuggestions: z.array(z.string()),
@@ -65,11 +69,13 @@ const correctedResponseSchema = z.object({
   }),
   contractorAdvice: z.object({
     repairNeeded: z.array(z.string()),
-    materials: z.array(z.object({
-      name: z.string(),
-      quantity: z.string(),
-      estimatedCost: z.number(),
-    })),
+    materials: z.array(
+      z.object({
+        name: z.string(),
+        quantity: z.string(),
+        estimatedCost: z.number(),
+      })
+    ),
     tools: z.array(z.string()),
     estimatedTime: z.string(),
     estimatedCost: z.object({
@@ -98,7 +104,14 @@ const requestSchema = z.object({
  * corrected by a human surveyor and baked into the next training round.
  */
 export const POST = withApiHandler(
-  { roles: ['admin'], rateLimit: { maxRequests: 20 } },
+  {
+    roles: ['admin'],
+    rateLimit: { maxRequests: 20 },
+    // Sibling to validate/route.ts — corrected VLM labels feed the
+    // model retrain pipeline. Mass-corrupting labels on a stolen
+    // session would degrade the AI in production.
+    requireMfaVerifiedWithinMinutes: 15,
+  },
   async (request, { user, params }) => {
     const { id } = params;
 
@@ -106,7 +119,10 @@ export const POST = withApiHandler(
     const parsed = requestSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Invalid corrected response', details: parsed.error.flatten().fieldErrors },
+        {
+          error: 'Invalid corrected response',
+          details: parsed.error.flatten().fieldErrors,
+        },
         { status: 400 }
       );
     }
@@ -121,7 +137,10 @@ export const POST = withApiHandler(
       .single();
 
     if (fetchError || !assessment) {
-      return NextResponse.json({ error: 'Assessment not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Assessment not found' },
+        { status: 404 }
+      );
     }
 
     // Update all unused buffer entries for this assessment with the corrected label
@@ -138,18 +157,24 @@ export const POST = withApiHandler(
 
     if (updateError) {
       return NextResponse.json(
-        { error: 'Failed to update training buffer', details: updateError.message },
+        {
+          error: 'Failed to update training buffer',
+          details: updateError.message,
+        },
         { status: 500 }
       );
     }
 
     // Audit log
-    await serverSupabase.from('building_assessments').update({
-      validation_notes: notes
-        ? `[VLM label corrected by ${user.id}] ${notes}`
-        : `[VLM label corrected by ${user.id}]`,
-      updated_at: new Date().toISOString(),
-    }).eq('id', id);
+    await serverSupabase
+      .from('building_assessments')
+      .update({
+        validation_notes: notes
+          ? `[VLM label corrected by ${user.id}] ${notes}`
+          : `[VLM label corrected by ${user.id}]`,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', id);
 
     return NextResponse.json({
       success: true,
