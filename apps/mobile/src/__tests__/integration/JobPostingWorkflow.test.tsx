@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { render, fireEvent, waitFor, act } from '../test-utils';
 import { Text, TouchableOpacity, View, TextInput } from 'react-native';
@@ -15,7 +14,9 @@ jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: ({ children }) => children,
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
-jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock')
+);
 
 // Mock all necessary services
 jest.mock('../../services/AuthService', () => ({
@@ -89,7 +90,7 @@ const MockJobPostingScreen = ({
     last_name: 'Doe',
     role: 'homeowner' as const,
   };
-  
+
   const [jobData, setJobData] = React.useState({
     title: '',
     description: '',
@@ -284,7 +285,11 @@ const MockJobDetailsScreen = ({
 
   const handleAcceptBid = async (bidId: string) => {
     try {
-      await JobService.acceptBid(bidId);
+      // Audit step 11 (2026-04-29): acceptBid now requires bidId + jobId.
+      // The TestWrapper receives the job as a prop — use `job.id` (the
+      // fixture in this same TestWrapper scope), not `mockJob` which
+      // is defined per-test inside the `it` blocks.
+      await JobService.acceptBid(bidId, job.id);
     } catch (error) {
       // Error handling would show error message in real app
     }
@@ -420,11 +425,15 @@ describe('Job Posting and Discovery Workflow Integration', () => {
 
       await act(async () => {
         act(() => fireEvent.changeText(titleInput, 'Kitchen Faucet Repair'));
-        act(() => fireEvent.changeText(
-          descriptionInput,
-          'My kitchen faucet is leaking and needs repair'
-        ));
-        act(() => fireEvent.changeText(locationInput, '123 Main St, Anytown, USA'));
+        act(() =>
+          fireEvent.changeText(
+            descriptionInput,
+            'My kitchen faucet is leaking and needs repair'
+          )
+        );
+        act(() =>
+          fireEvent.changeText(locationInput, '123 Main St, Anytown, USA')
+        );
         act(() => fireEvent.changeText(budgetInput, '200'));
       });
 
@@ -713,9 +722,13 @@ describe('Job Posting and Discovery Workflow Integration', () => {
         act(() => fireEvent.press(acceptBidButton));
       });
 
-      // Verify bid acceptance
+      // Verify bid acceptance.
+      // Audit step 11 (2026-04-29): acceptBid now requires bidId + jobId.
       await waitFor(() => {
-        expect(mockJobService.acceptBid).toHaveBeenCalledWith('bid-1');
+        expect(mockJobService.acceptBid).toHaveBeenCalledWith(
+          'bid-1',
+          mockJob.id
+        );
       });
     });
   });
