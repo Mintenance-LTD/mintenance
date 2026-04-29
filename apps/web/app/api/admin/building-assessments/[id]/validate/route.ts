@@ -13,7 +13,14 @@ const validateAssessmentSchema = z.object({
  * Validate or reject an assessment
  */
 export const POST = withApiHandler(
-  { roles: ['admin'], rateLimit: { maxRequests: 10 } },
+  {
+    roles: ['admin'],
+    rateLimit: { maxRequests: 10 },
+    // Validating an assessment marks AI output as ground truth and
+    // feeds the model retrain pipeline. Mass-validating bad rows
+    // would poison the model — demand fresh MFA proof.
+    requireMfaVerifiedWithinMinutes: 15,
+  },
   async (request, { user, params }) => {
     const { id } = params;
 
@@ -21,7 +28,10 @@ export const POST = withApiHandler(
     const parsed = validateAssessmentSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Invalid request', details: parsed.error.flatten().fieldErrors },
+        {
+          error: 'Invalid request',
+          details: parsed.error.flatten().fieldErrors,
+        },
         { status: 400 }
       );
     }
@@ -31,7 +41,11 @@ export const POST = withApiHandler(
     if (validated) {
       await DataCollectionService.validateAssessment(id, user.id, notes);
     } else {
-      await DataCollectionService.rejectAssessment(id, user.id, notes || 'Rejected by admin');
+      await DataCollectionService.rejectAssessment(
+        id,
+        user.id,
+        notes || 'Rejected by admin'
+      );
     }
 
     return NextResponse.json({ success: true });

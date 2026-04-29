@@ -99,6 +99,11 @@ const baseJobSchema = z.object({
   // Deprecated alias for `urgency`. Older mobile builds send this name;
   // the route normalises priority -> urgency before persistence.
   priority: z.enum(URGENCY_LEVELS).optional(),
+  // Per-job requirement flags (silver-mode `contractor_before_photos`
+  // and future per-job toggles). Persists to jobs.requirements jsonb.
+  // Live audit (2026-04-28) confirmed the column has 16 prod rows
+  // already.
+  requirements: z.record(z.string(), z.unknown()).optional(),
 });
 
 export const createJobRequestSchema = baseJobSchema.strict();

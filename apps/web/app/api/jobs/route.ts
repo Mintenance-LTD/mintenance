@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { createJobRequestSchema } from '@mintenance/api-contracts';
 import { sanitizeText } from '@/lib/sanitizer';
 import { logger } from '@mintenance/shared';
 import { checkJobCreationRateLimit } from '@/lib/rate-limiter';
@@ -24,98 +25,13 @@ const listQuerySchema = z.object({
   maxBudget: z.coerce.number().min(0).optional(),
 });
 
-const VALID_CATEGORIES = [
-  'plumbing',
-  'electrical',
-  'hvac',
-  'general',
-  'appliance',
-  'landscaping',
-  'roofing',
-  'painting',
-  'carpentry',
-  'cleaning',
-  'flooring',
-  'tiling',
-  'plastering',
-  'guttering',
-  'fencing',
-  'damp',
-  'pest_control',
-  'other',
-  // Added from frontend JOB_CATEGORIES (constants.ts) to fix validation mismatch
-  'heating',
-  'gardening',
-  'handyman',
-] as const;
-
-const createJobSchema = z
-  .object({
-    title: z
-      .string()
-      .min(5, 'Title must be at least 5 characters')
-      .max(200, 'Title must be 200 characters or fewer')
-      .transform((val) => sanitizeText(val, 200)),
-    description: z
-      .string()
-      .min(20, 'Description must be at least 20 characters')
-      .max(5000, 'Description must be 5000 characters or fewer')
-      .optional()
-      .transform((val) => (val ? sanitizeText(val, 5000) : val)),
-    status: z
-      .string()
-      .optional()
-      .transform((val) => (val ? sanitizeText(val, 50) : val)),
-    category: z
-      .enum(VALID_CATEGORIES, {
-        errorMap: () => ({
-          message: `Category must be one of: ${VALID_CATEGORIES.join(', ')}`,
-        }),
-      })
-      .optional(),
-    budget: z.coerce
-      .number()
-      .positive('Budget must be positive')
-      .max(1_000_000, 'Budget cannot exceed £1,000,000')
-      .optional(),
-    budget_min: z.coerce.number().positive().max(1_000_000).optional(),
-    budget_max: z.coerce.number().positive().max(1_000_000).optional(),
-    show_budget_to_contractors: z.boolean().optional(),
-    require_itemized_bids: z.boolean().optional(),
-    location: z
-      .string()
-      .min(3, 'Location must be at least 3 characters')
-      .max(256, 'Location must be 256 characters or fewer')
-      .optional()
-      .transform((val) => (val ? sanitizeText(val, 256) : val)),
-    photoUrls: z
-      .array(z.string().url())
-      .max(20, 'Maximum 20 photos allowed')
-      .optional(),
-    requiredSkills: z.array(z.string().max(100)).max(10).optional(),
-    property_id: z.string().uuid().optional(),
-    latitude: z.coerce.number().min(-90).max(90).optional(),
-    longitude: z.coerce.number().min(-180).max(180).optional(),
-    // R6 #19 landlord / tenancy
-    is_rental_property: z.boolean().optional(),
-    payer_user_id: z.string().uuid().optional(),
-    tenancy_metadata: z.record(z.string(), z.unknown()).optional(),
-    // DB column. Mobile/web should send this directly.
-    urgency: z.enum(['low', 'medium', 'high', 'emergency']).optional(),
-    // Deprecated alias for `urgency`. Older mobile builds send this name.
-    // Normalized to `urgency` in the handler below before persistence.
-    priority: z.enum(['low', 'medium', 'high', 'emergency']).optional(),
-    // Per-job requirement flags (silver-mode `contractor_before_photos`
-    // and future per-job toggles). Persists to jobs.requirements jsonb.
-    // Live audit (2026-04-28) confirmed the column has 16 prod rows
-    // already — re-adding the API path so silver-mode submits don't
-    // silently drop the flag.
-    requirements: z.record(z.string(), z.unknown()).optional(),
-  })
-  .strict(); // SECURITY: reject unknown keys to block mass-assignment.
-// Adding a new input field here is the source of truth — if a caller
-// sends something unexpected (e.g., `homeowner_id` to impersonate, or
-// `status: "completed"` to skip the workflow), validation fails fast.
+// The job-create schema lives in @mintenance/api-contracts so web +
+// mobile validate against the same shape. Sanitization happens in the
+// handler below — packages/api-contracts is intentionally pure Zod
+// (no DOMPurify) per the package's design comment.
+//
+// `.strict()` is applied inside createJobRequestSchema (SECURITY:
+// rejects unknown keys to block mass-assignment).
 
 export const GET = withApiHandler(
   { csrf: false },
@@ -217,7 +133,7 @@ export const POST = withApiHandler(
     const cleanBody = Object.fromEntries(
       Object.entries(rawBody).filter(([, v]) => v !== null)
     );
-    const parsed = createJobSchema.safeParse(cleanBody);
+    const parsed = createJobRequestSchema.safeParse(cleanBody);
     if (!parsed.success) {
       const errors = parsed.error.issues.map((e) => ({
         field: e.path.join('.'),
@@ -234,9 +150,20 @@ export const POST = withApiHandler(
       );
     }
 
+    // Apply web-only sanitization on top of the validated payload.
+    // The shared schema deliberately keeps sanitize-text out of the
+    // contract so mobile (which has no DOM) doesn't pull DOMPurify.
     const { priority, ...rest } = parsed.data;
     const payload = {
       ...rest,
+      title: sanitizeText(rest.title, 200),
+      description: rest.description
+        ? sanitizeText(rest.description, 5000)
+        : rest.description,
+      status: rest.status ? sanitizeText(rest.status, 50) : rest.status,
+      location: rest.location
+        ? sanitizeText(rest.location, 256)
+        : rest.location,
       urgency: rest.urgency ?? priority,
     };
     const job = await JobCreationService.getInstance().createJob(user, payload);

@@ -10,7 +10,14 @@ import { NotificationService } from '@/lib/services/notifications/NotificationSe
  * Creates a notification for the contractor about the result.
  */
 export const PUT = withApiHandler(
-  { roles: ['admin'], rateLimit: { maxRequests: 10 } },
+  {
+    roles: ['admin'],
+    rateLimit: { maxRequests: 10 },
+    // Same trust-grant primitive as verifications/credentials PATCH
+    // — flipping a contractor's verified status on a stolen session
+    // could grant fraudulent accounts platform trust.
+    requireMfaVerifiedWithinMinutes: 15,
+  },
   async (request, { user, params }) => {
     const contractorId = params.id;
 

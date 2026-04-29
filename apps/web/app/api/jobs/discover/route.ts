@@ -22,13 +22,17 @@
  */
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
+import { JOB_CATEGORIES } from '@mintenance/api-contracts';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { logger } from '@mintenance/shared';
 
+// Constrain `category` to the canonical enum so the downstream
+// PostgREST filter is an exact match instead of an `.ilike()` against
+// arbitrary user input. Removes the `%`/`_` wildcard surface entirely.
 const queryParamsSchema = z
   .object({
-    category: z.string().trim().min(1).max(60).optional(),
+    category: z.enum(JOB_CATEGORIES).optional(),
     limit: z.coerce.number().int().min(1).max(100).default(50),
   })
   .strict();
@@ -105,7 +109,7 @@ export const GET = withApiHandler(
       .not('longitude', 'is', null);
 
     if (category) {
-      query = query.ilike('category', category);
+      query = query.eq('category', category);
     }
     if (excludedJobIds.length > 0) {
       query = query.not(

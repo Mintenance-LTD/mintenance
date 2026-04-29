@@ -4,12 +4,19 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { AdminActivityLogger } from '@/lib/services/admin/AdminActivityLogger';
 import { logger } from '@mintenance/shared';
 import { z } from 'zod';
-import { BadRequestError, ConflictError, InternalServerError } from '@/lib/errors/api-error';
+import {
+  BadRequestError,
+  ConflictError,
+  InternalServerError,
+} from '@/lib/errors/api-error';
 import { validateRequest } from '@/lib/validation/validator';
 import { sanitizeText, sanitizeEmail } from '@/lib/sanitizer';
 
 const createAdminSchema = z.object({
-  email: z.string().email('Invalid email').transform((val) => sanitizeEmail(val)),
+  email: z
+    .string()
+    .email('Invalid email')
+    .transform((val) => sanitizeEmail(val)),
   firstName: z
     .string()
     .min(1, 'First name required')
@@ -28,15 +35,25 @@ const createAdminSchema = z.object({
  * Sends an invite email — the new admin sets their own password via the link.
  */
 export const POST = withApiHandler(
-  { roles: ['admin'], rateLimit: { maxRequests: 5, windowMs: 60_000 } },
+  {
+    roles: ['admin'],
+    rateLimit: { maxRequests: 5, windowMs: 60_000 },
+    // Creating an admin is a privilege-escalation primitive: a stolen
+    // session alone must not be enough to mint another admin account.
+    // Same gate the escrow / refund / TOTP-rotate routes use.
+    requireMfaVerifiedWithinMinutes: 15,
+  },
   async (request, { user: requestingAdmin }) => {
     const validation = await validateRequest(request, createAdminSchema);
-    if (validation instanceof (await import('next/server')).NextResponse) return validation;
+    if (validation instanceof (await import('next/server')).NextResponse)
+      return validation;
     const { email, firstName, lastName } = validation.data;
 
     // Check email domain requirement for admin accounts
     if (!email.endsWith('@mintenance.co.uk')) {
-      throw new BadRequestError('Admin accounts must use a @mintenance.co.uk email address');
+      throw new BadRequestError(
+        'Admin accounts must use a @mintenance.co.uk email address'
+      );
     }
 
     // Check if user already exists
@@ -51,17 +68,15 @@ export const POST = withApiHandler(
     }
 
     // Create the user via Supabase Admin Auth API and send invite email
-    const { data: authData, error: authError } = await serverSupabase.auth.admin.inviteUserByEmail(
-      email,
-      {
+    const { data: authData, error: authError } =
+      await serverSupabase.auth.admin.inviteUserByEmail(email, {
         data: {
           first_name: firstName,
           last_name: lastName,
           role: 'admin',
         },
         redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/accept-invite`,
-      }
-    );
+      });
 
     if (authError || !authData.user) {
       logger.error('Failed to create admin user via Supabase Auth', {
