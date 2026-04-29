@@ -155,7 +155,13 @@ export class JobService {
     return BidService.getBidsByContractor(contractorId);
   }
 
-  static async acceptBid(bidId: string): Promise<void> {
-    await BidService.acceptBid(bidId, '');
+  /**
+   * Audit step 11 (2026-04-29): the underlying mutation routes are
+   * nested under `/api/jobs/:jobId/bids/:bidId/accept`, so callers
+   * must supply `jobId`. Every UI surface (BidReviewScreen +
+   * ContractorAssignment via useAcceptBid) already has it in scope.
+   */
+  static async acceptBid(bidId: string, jobId: string): Promise<void> {
+    await BidService.acceptBid(bidId, jobId);
   }
 }

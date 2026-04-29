@@ -176,7 +176,10 @@ export const BidReviewScreen: React.FC = () => {
 
     setProcessing(true);
     try {
-      await BidService.acceptBid(bid.id, user.id);
+      // Audit step 11 (2026-04-29): pass jobId explicitly so the
+      // mutation route can be addressed without a server-side bid →
+      // job lookup. `jobId` comes from `route.params` above.
+      await BidService.acceptBid(bid.id, jobId);
       // Fire the celebration overlay first so the user sees a clear
       // "accepted" beat before the modal Alert; awaited so the alert
       // doesn't pop on top of the fade-in.
@@ -226,7 +229,7 @@ export const BidReviewScreen: React.FC = () => {
 
     setProcessing(true);
     try {
-      await BidService.rejectBid(bid.id, user.id);
+      await BidService.rejectBid(bid.id, jobId);
       // Step 4d: surface the undo banner for 5s after a successful
       // reject. The server-side undo window is 60s, so dismissing
       // the snackbar doesn't strand the user — they just lose the
@@ -255,7 +258,7 @@ export const BidReviewScreen: React.FC = () => {
     dismissUndo();
     setProcessing(true);
     try {
-      await BidService.unrejectBid(bid.id, user.id);
+      await BidService.unrejectBid(bid.id, jobId);
       // Bring the rejected bid back into the deck so the user can
       // re-review it without leaving the screen.
       swiperRef.current?.unswipe();

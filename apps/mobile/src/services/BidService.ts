@@ -1,5 +1,4 @@
 import { mobileApiClient } from '../utils/mobileApiClient';
-import { supabase } from '../config/supabase';
 import { BidManagementService } from './BidManagementService';
 
 export interface BidData {
@@ -138,34 +137,21 @@ export class BidService {
   }
 
   /**
-   * Helper: fetch a bid's `job_id` so the mutation routes (which
-   * are nested under `/api/jobs/[id]/bids/[bidId]`) can be called
-   * with a bidId-only public surface.
+   * Mutation methods all hit the nested route
+   * `/api/jobs/:jobId/bids/:bidId/...` which requires both ids in
+   * the URL. Audit step 11 (2026-04-29): the previous helper
+   * `getBidJobId(bidId)` did a direct-DB lookup of `bids.job_id`
+   * to keep the public surface bidId-only. Every screen-side
+   * caller (BidReviewScreen, JobDetailsScreen, ContractorAssignment)
+   * already had `jobId` in scope, so the helper was a needless
+   * round-trip + the last `supabase.from(...)` import in this file.
    *
-   * Last remaining direct-Supabase read in this service. Future
-   * refactor (TODO): change `acceptBid / rejectBid / withdrawBid /
-   * updateBid` to take an explicit `jobId` parameter — every caller
-   * already has it in screen scope. Doing so removes this lookup
-   * entirely, but cascades through `useAcceptBid`, the offline
-   * action executor's `BidData` shape, and ~6 test files. Kept as
-   * a single-row RLS-scoped read in the meantime so the audit's
-   * "remove direct Supabase from product flows" goal is at 4-of-5
-   * for BidService rather than blocked behind a 15-file cascade.
+   * Now: callers must pass `jobId` explicitly. The helper + the
+   * supabase import are gone.
    */
-  private static async getBidJobId(bidId: string): Promise<string> {
-    const { data, error } = await supabase
-      .from('bids')
-      .select('job_id')
-      .eq('id', bidId)
-      .single();
-    if (error || !data) throw new Error('Bid not found');
-    return (data as { job_id: string }).job_id;
-  }
 
-  static async acceptBid(bidId: string, _homeownerId: string): Promise<Bid> {
-    const jobId = await BidService.getBidJobId(bidId);
-
-    // Accept via API (creates contract, message thread, notifications)
+  static async acceptBid(bidId: string, jobId: string): Promise<Bid> {
+    if (!jobId) throw new Error('jobId is required to accept a bid');
     const response = await mobileApiClient.post<{ bid: Bid }>(
       `/api/jobs/${jobId}/bids/${bidId}/accept`
     );
@@ -174,11 +160,10 @@ export class BidService {
 
   static async rejectBid(
     bidId: string,
-    _homeownerId: string,
+    jobId: string,
     reason?: string
   ): Promise<Bid> {
-    const jobId = await BidService.getBidJobId(bidId);
-
+    if (!jobId) throw new Error('jobId is required to reject a bid');
     const response = await mobileApiClient.post<{ bid: Bid }>(
       `/api/jobs/${jobId}/bids/${bidId}/reject`,
       { reason }
@@ -191,22 +176,19 @@ export class BidService {
    * from the BidReview undo banner — see /api/jobs/[id]/bids/[bidId]/
    * unreject route for the safeguards on the server side.
    */
-  static async unrejectBid(bidId: string, _homeownerId: string): Promise<void> {
-    const jobId = await BidService.getBidJobId(bidId);
+  static async unrejectBid(bidId: string, jobId: string): Promise<void> {
+    if (!jobId) throw new Error('jobId is required to unreject a bid');
     await mobileApiClient.post(`/api/jobs/${jobId}/bids/${bidId}/unreject`);
   }
 
-  static async withdrawBid(
-    bidId: string,
-    _contractorId: string
-  ): Promise<void> {
-    const jobId = await BidService.getBidJobId(bidId);
+  static async withdrawBid(bidId: string, jobId: string): Promise<void> {
+    if (!jobId) throw new Error('jobId is required to withdraw a bid');
     await mobileApiClient.post(`/api/jobs/${jobId}/bids/${bidId}/withdraw`);
   }
 
   static async updateBid(
     bidId: string,
-    _contractorId: string,
+    jobId: string,
     updates: Partial<
       Pick<
         BidData,
@@ -214,8 +196,7 @@ export class BidService {
       >
     >
   ): Promise<Bid> {
-    const jobId = await BidService.getBidJobId(bidId);
-
+    if (!jobId) throw new Error('jobId is required to update a bid');
     const response = await mobileApiClient.patch<{ bid: Bid }>(
       `/api/jobs/${jobId}/bids/${bidId}`,
       updates

@@ -20,6 +20,10 @@ export interface JobData {
 /** Bid data structure */
 export interface BidData {
   bidId?: string;
+  // Audit step 11 (2026-04-29): added so an offline-queued bid
+  // accept replay can address the nested `/api/jobs/:jobId/bids/
+  // :bidId/...` route without a server-side lookup.
+  jobId?: string;
   status?: string;
   amount?: number;
   description?: string;
@@ -65,11 +69,11 @@ export interface OfflineActionWithRetry extends OfflineAction {
  * Conflict resolution strategies for offline sync
  */
 export type ConflictResolutionStrategy =
-  | 'last-write-wins'   // Most recent timestamp wins
-  | 'server-wins'       // Server data always takes precedence
-  | 'client-wins'       // Client data always takes precedence
-  | 'manual'            // Requires user intervention via UI dialog
-  | 'merge';            // Attempt intelligent merge based on entity type
+  | 'last-write-wins' // Most recent timestamp wins
+  | 'server-wins' // Server data always takes precedence
+  | 'client-wins' // Client data always takes precedence
+  | 'manual' // Requires user intervention via UI dialog
+  | 'merge'; // Attempt intelligent merge based on entity type
 
 /**
  * Conflict information when offline changes conflict with server state
@@ -110,4 +114,9 @@ export type OfflineAction = {
   strategy?: ConflictResolutionStrategy;
 };
 
-export type SyncStatus = 'syncing' | 'synced' | 'error' | 'pending' | 'conflict';
+export type SyncStatus =
+  | 'syncing'
+  | 'synced'
+  | 'error'
+  | 'pending'
+  | 'conflict';

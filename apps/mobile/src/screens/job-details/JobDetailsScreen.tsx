@@ -126,7 +126,10 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
         onPress: async () => {
           setWithdrawingBid(true);
           try {
-            await BidService.withdrawBid(myPendingBid.id, user.id);
+            // Audit step 11 (2026-04-29): pass jobId from route
+            // params so BidService doesn't need a server-side
+            // bid → job lookup.
+            await BidService.withdrawBid(myPendingBid.id, jobId);
             Alert.alert(
               'Bid Withdrawn',
               'Your bid has been withdrawn successfully.'

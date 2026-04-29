@@ -205,9 +205,17 @@ const useSubmitBid = () => {
   });
 };
 
+/**
+ * Audit step 11 (2026-04-29): the mutation now accepts an
+ * `{ bidId, jobId }` payload so the BidService routes can be
+ * addressed without a server-side lookup. ContractorAssignment
+ * passes both — every other UI that wants to accept a bid has
+ * `jobId` in scope.
+ */
 export const useAcceptBid = () => {
   return useOfflineMutation({
-    mutationFn: (bidId: string) => JobService.acceptBid(bidId),
+    mutationFn: ({ bidId, jobId }: { bidId: string; jobId: string }) =>
+      JobService.acceptBid(bidId, jobId),
     entity: 'bid',
     actionType: 'UPDATE',
     onlineOnly: true, // Accepting bids should be done online for data consistency

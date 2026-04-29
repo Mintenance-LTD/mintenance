@@ -72,7 +72,10 @@ export const ContractorAssignment: React.FC<ContractorAssignmentProps> = ({
       });
 
       setSelectedBid(bid.id);
-      await acceptBidMutation.mutateAsync(bid.id);
+      // Audit step 11 (2026-04-29): pass both ids so the underlying
+      // BidService.acceptBid can address `/api/jobs/:jobId/bids/
+      // :bidId/accept` directly without a server-side lookup.
+      await acceptBidMutation.mutateAsync({ bidId: bid.id, jobId: job.id });
 
       Alert.alert(
         'Success!',
