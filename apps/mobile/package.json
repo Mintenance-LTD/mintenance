@@ -46,6 +46,7 @@
     "@expo/vector-icons": "^15.0.3",
     "@mintenance/ai-core": "file:../../packages/ai-core",
     "@mintenance/api-client": "file:../../packages/api-client",
+    "@mintenance/api-contracts": "file:../../packages/api-contracts",
     "@mintenance/data-access": "file:../../packages/data-access",
     "@mintenance/design-tokens": "file:../../packages/design-tokens",
     "@mintenance/security": "file:../../packages/security",

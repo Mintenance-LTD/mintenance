@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import type { JobDetail } from '@mintenance/types/src/contracts';
 import { sanitizeText, sanitizeJobDescription } from '@/lib/sanitizer';
 
 // Mirror the state-machine's enum (the actual transitions live in
@@ -33,32 +32,49 @@ interface JobAttachment {
   uploaded_at: string;
 }
 
+// Audit re-review (2026-04-29): expanded the PATCH/PUT response
+// SELECT to match what `_handlers/get.ts` returns. Previously
+// PATCH echoed back a stripped `{ id, title, description, status,
+// category, budget, created_at, updated_at }` object — any caller
+// that re-rendered from the response would lose `urgency`,
+// `location`, `city`, `postcode`, `latitude`, `longitude`, etc.
+// after a successful update. Now the three handlers return the
+// same column set.
+//
+// The previous `JobRow` type + `mapRowToJobDetail` projection
+// helper that used to live here are gone — the handlers now
+// return the row directly via this SELECT, so the thin
+// `{ id, title, description, status, createdAt, updatedAt }`
+// DTO has no callers left.
 export const jobSelectFields =
-  'id,title,description,status,homeowner_id,contractor_id,category,budget,created_at,updated_at';
+  'id, title, description, status, homeowner_id, contractor_id, category, budget, budget_min, budget_max, urgency, location, city, postcode, latitude, longitude, start_date, end_date, flexible_timeline, access_info, requirements, created_at, updated_at';
 
-export type JobRow = {
-  id: string;
-  title: string;
-  description?: string | null;
-  status: string;
-  homeowner_id: string;
-  contractor_id?: string | null;
-  category?: string | null;
-  budget?: number | null;
-  created_at: string;
-  updated_at: string;
-};
-
-export const mapRowToJobDetail = (row: JobRow): JobDetail => ({
-  id: row.id,
-  title: row.title,
-  description: row.description ?? undefined,
-  status: (row.status as JobDetail['status']) ?? 'posted',
-  createdAt: row.created_at,
-  updatedAt: row.updated_at,
-});
-
-// Enhanced schema for job editing with AI features
+/**
+ * Enhanced schema for job editing with AI features.
+ *
+ * Audit step 4 finish (2026-04-29): aligned with the create-route
+ * schema (`@mintenance/api-contracts.createJobRequestSchema`) and
+ * the live DB columns:
+ *
+ *   - `urgency` is the canonical field name (matches the
+ *     `jobs.urgency` DB column + the shared create schema).
+ *     `priority` is kept as a deprecated alias so the existing web
+ *     edit page (`apps/web/app/jobs/[id]/edit/page.tsx`) keeps
+ *     working through the rename — the handler coalesces them.
+ *   - `photoUrls` matches the create-route shape; `images` is the
+ *     legacy alias the edit page still sends.
+ *   - `requirements` is now `record(string, unknown)` to match the
+ *     `jobs.requirements` jsonb column. Sending an array still
+ *     parses as JSON but the type was lying — record matches the
+ *     create route + the live data.
+ *
+ * Pre-fix bug: the handler wrote `updatePayload.priority` to
+ * `jobs.priority`, but that column doesn't exist (the column is
+ * `urgency`). PostgreSQL silently ignored the unknown column on
+ * update so every "edit job urgency" save was a no-op while the UI
+ * showed "saved successfully". Closed in this commit by writing to
+ * `urgency` and reading from either alias.
+ */
 export const updateJobSchema = z
   .object({
     title: z
@@ -84,11 +100,25 @@ export const updateJobSchema = z
     location: z.string().optional(),
     city: z.string().optional(),
     postcode: z.string().optional(),
+    // Context-only for PUT's AI/building-survey analysis pipeline
+    // (gets passed to `BuildingSurveyorService.assessDamage`'s
+    // `surveyContext.propertyType`). PATCH accepts it for caller
+    // compatibility but does NOT persist it — there is no
+    // `property_type` column on the live `jobs` table.
     propertyType: z.string().optional(),
     accessInfo: z.string().optional(),
+    // Canonical name matching the DB column + create schema.
+    urgency: z.enum(['low', 'medium', 'high', 'emergency']).optional(),
+    // Deprecated alias — older callers (the web edit page) send
+    // `priority` from a UI field still named that way. The handler
+    // coalesces `urgency ?? priority` before writing.
     priority: z.enum(['low', 'medium', 'high', 'emergency']).optional(),
+    // Canonical name matching the create schema.
+    photoUrls: z.array(z.string().url()).optional(),
+    // Deprecated alias — older callers send `images`.
     images: z.array(z.string().url()).optional(),
-    requirements: z.array(z.string()).optional(),
+    // jsonb on the live DB; matches the create-route shape.
+    requirements: z.record(z.string(), z.unknown()).optional(),
     startDate: z.string().optional(),
     endDate: z.string().optional(),
     flexibleTimeline: z.boolean().optional(),

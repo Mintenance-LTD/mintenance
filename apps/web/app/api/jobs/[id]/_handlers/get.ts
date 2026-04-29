@@ -22,11 +22,17 @@ export async function handleGet(
 
   const { id } = params;
 
-  // Explicit column selection to avoid leaking sensitive data
+  // Explicit column selection to avoid leaking sensitive data.
+  // Audit step 4 finish (2026-04-29): selecting `urgency` (the
+  // canonical DB column per migration 002_job_system) instead of
+  // the previous `priority`. The PUT/PATCH handler now writes to
+  // `urgency` too — keeping the GET on the wrong column meant
+  // edited urgencies appeared as 'medium' in detail view even
+  // though the save succeeded.
   const { data, error } = await userDb
     .from('jobs')
     .select(
-      'id, title, description, status, homeowner_id, contractor_id, category, budget, budget_min, budget_max, priority, location, city, postcode, latitude, longitude, start_date, end_date, flexible_timeline, access_info, requirements, created_at, updated_at'
+      'id, title, description, status, homeowner_id, contractor_id, category, budget, budget_min, budget_max, urgency, location, city, postcode, latitude, longitude, start_date, end_date, flexible_timeline, access_info, requirements, created_at, updated_at'
     )
     .eq('id', id)
     .single();
@@ -49,11 +55,35 @@ export async function handleGet(
   }
 
   const row = data as Record<string, unknown>;
-  if (row.homeowner_id !== user.id && row.contractor_id !== user.id) {
+  // Audit re-review (2026-04-29): contractors used to be locked
+  // out of unassigned posted jobs entirely, which broke the bid
+  // flow — they could see the job in the discover-map list but
+  // got 403 on the detail screen they need to evaluate before
+  // bidding. Now allow:
+  //   1. The homeowner who posted it.
+  //   2. The contractor currently assigned to it.
+  //   3. Any contractor when the job is still in `posted` status
+  //      and unassigned. Lets them open the detail screen and
+  //      submit a bid.
+  // Admins still come through the layout-level role gate.
+  const isHomeowner = row.homeowner_id === user.id;
+  const isAssignedContractor = row.contractor_id === user.id;
+  const isContractorViewingOpenJob =
+    user.role === 'contractor' &&
+    row.status === 'posted' &&
+    (row.contractor_id === null || row.contractor_id === undefined);
+  if (
+    !isHomeowner &&
+    !isAssignedContractor &&
+    !isContractorViewingOpenJob &&
+    user.role !== 'admin'
+  ) {
     logger.warn('Unauthorized job access attempt', {
       service: 'jobs',
       userId: user.id,
+      role: user.role,
       jobId: id,
+      jobStatus: row.status,
       homeownerId: row.homeowner_id,
       contractorId: row.contractor_id,
     });
@@ -96,7 +126,11 @@ export async function handleGet(
     description: row.description,
     category: row.category,
     status: row.status,
-    urgency: row.priority || 'medium',
+    // `priority` retained as a fallback only for legacy rows where
+    // a write may have hit the wrong column before the urgency
+    // alignment commit landed. Going forward `row.urgency` is the
+    // canonical source.
+    urgency: row.urgency ?? row.priority ?? 'medium',
     budget: row.budget || 0,
     budget_min: row.budget_min || row.budget || 0,
     budget_max: row.budget_max || row.budget || 0,
