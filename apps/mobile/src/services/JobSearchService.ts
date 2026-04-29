@@ -23,6 +23,8 @@
  */
 
 import { Job } from '@mintenance/types';
+import { jobListResponseSchema } from '@mintenance/api-contracts';
+import { safeValidateResponse } from '@mintenance/api-client';
 import { isValidSearchTerm } from '../utils/sqlSanitization';
 import { logger } from '../utils/logger';
 import { mobileApiClient } from '../utils/mobileApiClient';
@@ -91,10 +93,27 @@ export class JobSearchService {
    * route applies the same filter server-side (`status=posted`); the
    * 20-row default mirrors `JobQueryService.listJobs`'s pagination
    * cap.
+   *
+   * Audit step 15 (2026-04-29): demonstrates the runtime-validation
+   * helper. We pass the raw response through `safeValidateResponse`
+   * with the shared `jobListResponseSchema` so that if the API
+   * envelope drifts (renamed key, dropped column, type change) we
+   * see a structured warning in logs instead of half-rendering with
+   * the wrong shape silently. Using the safe (non-throwing) variant
+   * here so a single malformed row doesn't break the explore-map
+   * screen entirely; the user sees the rest of the list and we get
+   * a Sentry breadcrumb to fix the contract.
    */
   static async getAvailableJobs(): Promise<Job[]> {
     const url = buildJobsUrl({ status: 'posted', limit: 20 });
-    const response = await mobileApiClient.get<JobsListResponse>(url);
+    const response = await mobileApiClient.get<unknown>(url);
+    const validation = safeValidateResponse(jobListResponseSchema, response);
+    if (!validation.success) {
+      logger.warn(
+        'getAvailableJobs: response failed shape validation; rendering best-effort',
+        { error: validation.error }
+      );
+    }
     return unwrapJobs(response);
   }
 
