@@ -20,6 +20,7 @@ import { useCreateJob } from '../hooks/useJobs';
 import { logger } from '../utils/logger';
 import { SecurityManager } from '../utils/SecurityManager';
 import { PerformanceOptimizer } from '../utils/PerformanceOptimizer';
+import { uploadJobPhotos } from '../utils/uploadJobPhotos';
 import {
   ErrorManager,
   ErrorCategory,
@@ -267,6 +268,15 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
               payer_email: tenancy.payerEmail.trim().toLowerCase(),
             }
           : undefined;
+
+      // Audit follow-up (2026-04-29): the create-job route's URL
+      // validator rejects local device paths (`file://...`,
+      // `content://...`), so we have to first upload each photo to
+      // `/api/jobs/upload-photos` and feed the resulting public URLs
+      // into the create payload. Same pattern `useServiceRequestForm`
+      // uses; both call the shared `uploadJobPhotos` helper now.
+      const uploadedPhotoUrls = await uploadJobPhotos(photos);
+
       const result = await createJobMutation.mutateAsync({
         title: title.trim(),
         description: description.trim(),
@@ -275,7 +285,7 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
         homeownerId: user.id,
         category,
         urgency,
-        photos: photos.length > 0 ? photos : undefined,
+        photos: uploadedPhotoUrls.length > 0 ? uploadedPhotoUrls : undefined,
         is_rental_property: tenancy.isRentalProperty || undefined,
         tenancy_metadata: tenancyMetadata,
       });

@@ -13,6 +13,7 @@ import { jobResponseSchema } from '@mintenance/api-contracts';
 import { safeValidateResponse } from '@mintenance/api-client';
 import { logger } from '../utils/logger';
 import { mobileApiClient } from '../utils/mobileApiClient';
+import { normalizePhotoUrls } from '../utils/photoUrls';
 import { sanitizeText } from '../utils/sanitize';
 import { ServiceErrorHandler } from '../utils/serviceErrorHandler';
 
@@ -47,26 +48,13 @@ function getOperationErrorMessage(error: unknown, fallback: string): string {
   return fallback;
 }
 
-function normalizePhotoUrls(rawPhotos: unknown): string[] {
-  if (!Array.isArray(rawPhotos)) return [];
-
-  return rawPhotos
-    .map((photo) => {
-      if (typeof photo === 'string') return photo;
-      if (!photo || typeof photo !== 'object') return '';
-
-      const record = photo as Record<string, unknown>;
-      const url =
-        record.url ??
-        record.photo_url ??
-        record.file_url ??
-        record.signedUrl ??
-        record.publicUrl;
-
-      return typeof url === 'string' ? url : '';
-    })
-    .filter((url) => url.trim().length > 0);
-}
+// Audit follow-up (2026-04-29): the previous local
+// `normalizePhotoUrls` here recognised `signedUrl` / `publicUrl` but
+// the shared `utils/photoUrls.ts` helper did not — so other callers
+// of the shared helper were silently dropping those URL shapes.
+// Now both share one definition (imported above) covering every
+// known shape: `url, uri, file_url, photo_url, image_url, signedUrl,
+// publicUrl, public_url`.
 
 export class JobCRUDService {
   static async createJob(jobData: {
