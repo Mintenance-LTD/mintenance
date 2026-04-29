@@ -171,8 +171,15 @@ function ChatContent({ params }: ChatPageProps) {
             // dead-end placeholder. Drop the redirect and fall back to
             // a simple confirmation alert; the schedule itself is real
             // (created via VideoCallScheduler against video_calls table).
+            //
+            // Audit follow-up (2026-04-29): rewrote the alert copy.
+            // "Coming soon" implied the schedule itself wasn't real,
+            // when in fact the row was already created. The new
+            // wording confirms the action and points back at the
+            // existing surface (this same messages thread) so the
+            // user knows where to find it.
             alert(
-              'Video call scheduled. The call detail surface is coming soon.'
+              'Video call scheduled. You can view it from this messages thread.'
             );
           }}
         />

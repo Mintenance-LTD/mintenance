@@ -13,8 +13,16 @@
  * need, with the homeowner's first_name nested for the marker label.
  *
  * Query params:
- *   category — optional, exact category match (case-insensitive)
- *   limit    — optional, 1..100, defaults to 50
+ *   category   — optional, exact category match (case-insensitive)
+ *   limit      — optional, 1..100, defaults to 50
+ *   latitude   — optional, current map center lat (-90..90)
+ *   longitude  — optional, current map center lng (-180..180)
+ *   radiusKm   — optional, max distance from (lat, lng) in km. Default
+ *                25. Only applied when both lat AND lng are present.
+ *                Audit follow-up (2026-04-29): added so the mobile
+ *                explore-map's "Search this area" button actually
+ *                filters by the visible map area instead of returning
+ *                the newest 50 jobs anywhere.
  *
  * Auth: any authenticated user. Contractors get their own pending /
  * accepted / rejected bid job_ids excluded server-side so the client
@@ -34,8 +42,34 @@ const queryParamsSchema = z
   .object({
     category: z.enum(JOB_CATEGORIES).optional(),
     limit: z.coerce.number().int().min(1).max(100).default(50),
+    latitude: z.coerce.number().min(-90).max(90).optional(),
+    longitude: z.coerce.number().min(-180).max(180).optional(),
+    radiusKm: z.coerce.number().positive().max(500).default(25),
   })
   .strict();
+
+/**
+ * Haversine distance between two (lat, lng) points in kilometres.
+ * Same formula the mobile `explore-map` viewmodel uses client-side,
+ * promoted here so the route can pre-filter the result set instead
+ * of shipping all-jobs-anywhere down the wire.
+ */
+function haversineKm(
+  lat1: number,
+  lng1: number,
+  lat2: number,
+  lng2: number
+): number {
+  const R = 6371; // Earth radius in km
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
 
 interface JobRow {
   id: string;
@@ -63,6 +97,9 @@ export const GET = withApiHandler(
     const parsed = queryParamsSchema.safeParse({
       category: url.searchParams.get('category') ?? undefined,
       limit: url.searchParams.get('limit') ?? undefined,
+      latitude: url.searchParams.get('latitude') ?? undefined,
+      longitude: url.searchParams.get('longitude') ?? undefined,
+      radiusKm: url.searchParams.get('radiusKm') ?? undefined,
     });
     if (!parsed.success) {
       return NextResponse.json(
@@ -70,7 +107,7 @@ export const GET = withApiHandler(
         { status: 400 }
       );
     }
-    const { category, limit } = parsed.data;
+    const { category, limit, latitude, longitude, radiusKm } = parsed.data;
 
     // Pull the contractor's bid job_ids (any status) so we can exclude
     // them. Homeowners have no bids, so the IN list is empty — the
@@ -119,7 +156,15 @@ export const GET = withApiHandler(
       );
     }
 
-    query = query.order('created_at', { ascending: false }).limit(limit);
+    // When the caller passes a map center, fetch a wider candidate
+    // pool than `limit` so we have rows left after the radius filter
+    // trims out the ones outside the visible area. A 5x multiplier
+    // keeps the SQL roundtrip bounded while giving the post-filter
+    // enough headroom for sparse-job regions.
+    const hasGeoFilter =
+      typeof latitude === 'number' && typeof longitude === 'number';
+    const fetchLimit = hasGeoFilter ? Math.min(limit * 5, 500) : limit;
+    query = query.order('created_at', { ascending: false }).limit(fetchLimit);
 
     const { data, error } = await query;
 
@@ -131,7 +176,39 @@ export const GET = withApiHandler(
       return NextResponse.json({ jobs: [] }, { status: 200 });
     }
 
-    const jobs = ((data ?? []) as JobRow[]).map((row) => {
+    let rows = (data ?? []) as JobRow[];
+
+    // Apply Haversine radius filter when both coords are supplied.
+    // Done in JS because the live DB doesn't have PostGIS in
+    // public schema yet (the `extension_in_public` advisor blocked
+    // moving postgis there). For the typical 50-row candidate pool
+    // this is sub-millisecond — switch to a PostGIS `<-> ` operator
+    // once the schema move lands.
+    if (
+      hasGeoFilter &&
+      typeof latitude === 'number' &&
+      typeof longitude === 'number'
+    ) {
+      rows = rows.filter((row) => {
+        if (
+          typeof row.latitude !== 'number' ||
+          typeof row.longitude !== 'number'
+        ) {
+          return false;
+        }
+        const distance = haversineKm(
+          latitude,
+          longitude,
+          row.latitude,
+          row.longitude
+        );
+        return distance <= radiusKm;
+      });
+      // Re-apply the caller's `limit` on the post-filter set.
+      rows = rows.slice(0, limit);
+    }
+
+    const jobs = rows.map((row) => {
       const firstName = Array.isArray(row.homeowner)
         ? (row.homeowner[0]?.first_name ?? null)
         : (row.homeowner?.first_name ?? null);

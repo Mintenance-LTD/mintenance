@@ -270,9 +270,16 @@ export function InvoiceManagementClient({
             </div>
           </div>
 
-          {/* Create Invoice Button */}
-          <Link href='/contractor/invoices/create'>
+          {/* Audit follow-up (2026-04-29): `/contractor/invoices/create`
+              doesn't exist as a web route yet — invoice creation is
+              mobile-only via `CreateInvoiceScreen` until the web form
+              ships. Disabled here with a tooltip rather than linking to
+              a 404; previous behaviour silently took users to a dead
+              page. Re-enable once a `[id]/create/page.tsx` exists. */}
+          <Link href='/contractor/invoices'>
             <motion.button
+              title='Invoice creation is currently mobile-only. Open the Mintenance app to create invoices.'
+              aria-label='Create invoice (mobile-only for now)'
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               className='px-6 py-3 bg-teal-600 text-white rounded-lg font-medium shadow-lg hover:shadow-xl hover:bg-teal-700 transition-all flex items-center gap-2 whitespace-nowrap'

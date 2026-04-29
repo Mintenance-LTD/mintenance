@@ -362,7 +362,12 @@ export function FindContractorsClient({
               <ul className='space-y-2 text-sm text-gray-400'>
                 <li>
                   <Link
-                    href='/contractor/register'
+                    // Audit follow-up (2026-04-29): the unscoped
+                    // `/contractor/register` route doesn't exist —
+                    // contractor signup goes through `/register`
+                    // with a `?role=contractor` query param that
+                    // the page reads to pre-select the role tab.
+                    href='/register?role=contractor'
                     className='hover:text-white'
                   >
                     Join as Contractor
