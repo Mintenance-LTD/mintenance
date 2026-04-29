@@ -33,8 +33,16 @@ interface JobAttachment {
   uploaded_at: string;
 }
 
+// Audit re-review (2026-04-29): expanded the PATCH/PUT response
+// SELECT to match what `_handlers/get.ts` returns. Previously
+// PATCH echoed back a stripped `{ id, title, description, status,
+// category, budget, created_at, updated_at }` object — any caller
+// that re-rendered from the response would lose `urgency`,
+// `location`, `city`, `postcode`, `latitude`, `longitude`, etc.
+// after a successful update. Now the three handlers return the
+// same column set.
 export const jobSelectFields =
-  'id,title,description,status,homeowner_id,contractor_id,category,budget,created_at,updated_at';
+  'id, title, description, status, homeowner_id, contractor_id, category, budget, budget_min, budget_max, urgency, location, city, postcode, latitude, longitude, start_date, end_date, flexible_timeline, access_info, requirements, created_at, updated_at';
 
 export type JobRow = {
   id: string;
@@ -45,6 +53,19 @@ export type JobRow = {
   contractor_id?: string | null;
   category?: string | null;
   budget?: number | null;
+  budget_min?: number | null;
+  budget_max?: number | null;
+  urgency?: string | null;
+  location?: string | null;
+  city?: string | null;
+  postcode?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  start_date?: string | null;
+  end_date?: string | null;
+  flexible_timeline?: boolean | null;
+  access_info?: string | null;
+  requirements?: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
 };

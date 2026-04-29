@@ -76,14 +76,18 @@ export async function handlePatch(
   }
 
   const payload = patchValidation.data;
-  const updatePayload: {
-    title?: string;
-    description?: string | null;
-    status?: string;
-    category?: string | null;
-    budget?: number;
-    updated_at: string;
-  } = { updated_at: new Date().toISOString() };
+  // Audit re-review (2026-04-29): the previous PATCH only persisted
+  // `title / description / status / category / budget`, even though
+  // the shared `updateJobSchema` accepted urgency, location, city,
+  // postcode, access_info, requirements, etc. Any caller that sent
+  // those richer fields via PATCH had them silently dropped. Now the
+  // payload-builder writes every column the schema declares — except
+  // the photo and AI/geocode side-effects, which stay PUT-only
+  // because they own complex job_attachments rebuild + analysis
+  // pipelines that don't fit the lightweight PATCH semantics.
+  const updatePayload: Record<string, unknown> = {
+    updated_at: new Date().toISOString(),
+  };
   if (typeof payload.title === 'string') {
     updatePayload.title = payload.title.trim();
   }
@@ -114,6 +118,30 @@ export async function handlePatch(
     const trimmedCategory = payload.category.trim();
     updatePayload.category =
       trimmedCategory.length > 0 ? trimmedCategory : null;
+  }
+
+  // Coalesce the deprecated `priority` alias into the canonical
+  // `urgency` column, matching the PUT handler's behaviour (commit
+  // `37b8b4c5`). Writing `priority` directly would no-op since the
+  // column doesn't exist on `jobs`.
+  const urgency = payload.urgency ?? payload.priority;
+  if (urgency) {
+    updatePayload.urgency = urgency;
+  }
+  if (payload.location !== undefined) {
+    updatePayload.location = payload.location;
+  }
+  if (payload.city !== undefined) {
+    updatePayload.city = payload.city;
+  }
+  if (payload.postcode !== undefined) {
+    updatePayload.postcode = payload.postcode;
+  }
+  if (payload.accessInfo !== undefined) {
+    updatePayload.access_info = payload.accessInfo;
+  }
+  if (payload.requirements !== undefined) {
+    updatePayload.requirements = payload.requirements;
   }
 
   // SECURITY: Prevent budget reduction if bids exist
@@ -206,5 +234,10 @@ export async function handlePatch(
     }
   })();
 
-  return NextResponse.json({ job: mapRowToJobDetail(data as JobRow) });
+  // Return the full updated row (matching the column set GET
+  // returns) so the caller can re-render every field they had on
+  // screen — not just the trimmed `JobDetail` projection. The
+  // explicit SELECT in `jobSelectFields` keeps this safe from
+  // accidentally shipping new sensitive columns.
+  return NextResponse.json({ job: data });
 }
