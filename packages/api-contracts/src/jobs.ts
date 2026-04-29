@@ -53,6 +53,30 @@ export type JobCategory = (typeof JOB_CATEGORIES)[number];
 export const URGENCY_LEVELS = ['low', 'medium', 'high', 'emergency'] as const;
 export type Urgency = (typeof URGENCY_LEVELS)[number];
 
+// Mirrors `public.jobs.status` CHECK constraint
+// (migrations 20260213040000 + 20260307100000):
+//   ('draft', 'open', 'posted', 'assigned', 'in_progress',
+//    'completed', 'cancelled')
+//
+// Canonical lifecycle in CLAUDE.md uses `posted → assigned →
+// in_progress → completed` (also `cancelled`). `'open'` is a legacy
+// alias kept because old rows + a few callers still emit it; the DB
+// CHECK accepts both. New code should prefer `'posted'`.
+//
+// `'draft'` is reserved for organisation/landlord-portal job
+// templates that aren't yet shared with contractors. Not exposed on
+// the public marketplace.
+export const JOB_STATUSES = [
+  'draft',
+  'open',
+  'posted',
+  'assigned',
+  'in_progress',
+  'completed',
+  'cancelled',
+] as const;
+export type JobStatus = (typeof JOB_STATUSES)[number];
+
 // ── Request schemas ────────────────────────────────────────────────
 
 const baseJobSchema = z.object({
@@ -110,7 +134,11 @@ export const createJobRequestSchema = baseJobSchema.strict();
 
 export const updateJobRequestSchema = baseJobSchema.partial().extend({
   id: z.string().uuid('Invalid job ID'),
-  status: z.enum(['open', 'in_progress', 'completed', 'cancelled']).optional(),
+  // Mirrors the live DB CHECK constraint exactly. Previously this
+  // schema only allowed `('open','in_progress','completed','cancelled')`
+  // which silently rejected legitimate transitions to `'posted'` or
+  // `'assigned'` — both required by the canonical lifecycle.
+  status: z.enum(JOB_STATUSES).optional(),
 });
 
 export const jobQuerySchema = z.object({
@@ -119,7 +147,7 @@ export const jobQuerySchema = z.object({
   category: z.string().max(100).optional(),
   minBudget: z.coerce.number().positive().optional(),
   maxBudget: z.coerce.number().positive().optional(),
-  status: z.enum(['open', 'in_progress', 'completed', 'cancelled']).optional(),
+  status: z.enum(JOB_STATUSES).optional(),
   search: z.string().max(200).optional(),
 });
 
