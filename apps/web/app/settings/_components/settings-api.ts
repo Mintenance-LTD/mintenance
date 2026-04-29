@@ -2,29 +2,39 @@ import { logger } from '@mintenance/shared';
 import toast from 'react-hot-toast';
 import type { ProfileData, PasswordData, NotificationPrefs } from './types';
 
-/** Save profile data to the server */
+/**
+ * Save profile data to the server.
+ *
+ * Audit step 7 (2026-04-29): migrated from `POST /api/user/update-profile`
+ * (legacy, camelCase body, mixed image+text update) to
+ * `PUT /api/users/profile` (canonical, snake_case body, text-only).
+ * Avatar uploads go through the dedicated `uploadAvatar` helper
+ * below (now `POST /api/users/avatar`).
+ */
 export async function saveProfile(
   profileData: ProfileData,
   csrfToken: string | null,
   refresh: () => void
 ): Promise<boolean> {
   try {
+    // The canonical PUT route's Zod schema is snake_case and
+    // text-only — no `profileImageUrl` (avatar lives on its own
+    // endpoint). Keep the trim() guards to drop unchanged-empty
+    // pre-fill values so optional-field validation doesn't trip.
     const body: Record<string, string> = {};
     if (profileData.first_name?.trim())
-      body.firstName = profileData.first_name.trim();
+      body.first_name = profileData.first_name.trim();
     if (profileData.last_name?.trim())
-      body.lastName = profileData.last_name.trim();
+      body.last_name = profileData.last_name.trim();
     if (profileData.phone?.trim()) body.phone = profileData.phone.trim();
     if (profileData.bio?.trim()) body.bio = profileData.bio.trim();
-    if (profileData.profile_image_url?.trim())
-      body.profileImageUrl = profileData.profile_image_url.trim();
     if (profileData.address?.trim()) body.address = profileData.address.trim();
     if (profileData.city?.trim()) body.city = profileData.city.trim();
     if (profileData.postcode?.trim())
       body.postcode = profileData.postcode.trim();
 
-    const response = await fetch('/api/user/update-profile', {
-      method: 'POST',
+    const response = await fetch('/api/users/profile', {
+      method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
         ...(csrfToken ? { 'x-csrf-token': csrfToken } : {}),
@@ -46,17 +56,28 @@ export async function saveProfile(
   }
 }
 
-/** Upload avatar image */
+/**
+ * Upload avatar image.
+ *
+ * Audit step 7 (2026-04-29): migrated from
+ * `POST /api/user/update-profile` (legacy multipart bundling
+ * `profileImage` with non-image fields) to
+ * `POST /api/users/avatar` — the dedicated avatar surface that
+ * writes to the `avatars` bucket and properly cleans up the
+ * previous blob (commit `1a78fc63`).
+ */
 export async function uploadAvatar(
   file: File,
   csrfToken: string | null,
   refresh: () => void
 ): Promise<string | null> {
   const formData = new FormData();
-  formData.append('profileImage', file);
+  // The canonical route reads the field name `avatar` (the legacy
+  // multipart route read `profileImage`).
+  formData.append('avatar', file);
 
   try {
-    const response = await fetch('/api/user/update-profile', {
+    const response = await fetch('/api/users/avatar', {
       method: 'POST',
       headers: csrfToken ? { 'x-csrf-token': csrfToken } : {},
       body: formData,
@@ -64,10 +85,10 @@ export async function uploadAvatar(
 
     if (response.ok) {
       const data = await response.json();
-      if (data.profileImageUrl) {
+      if (data.profile_image_url) {
         toast.success('Profile picture updated');
         refresh();
-        return data.profileImageUrl as string;
+        return data.profile_image_url as string;
       }
     } else {
       toast.error('Failed to upload image');
