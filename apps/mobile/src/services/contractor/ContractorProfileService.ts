@@ -5,7 +5,46 @@ import { mobileApiClient } from '../../utils/mobileApiClient';
 import { mapDatabaseToContractorProfile } from './ContractorHelpers';
 import type { DatabaseContractorProfileRow, DatabaseError } from './types';
 
-/** Fetch a contractor's extended profile by user ID via direct Supabase query. */
+/**
+ * Fetch a contractor's extended profile by user ID.
+ *
+ * Audit step 5 (2026-04-29) — investigated for direct-Supabase
+ * removal. **Bigger problem found**: the live `contractor_profiles`
+ * table only has `id, stripe_*, subscription_*, hourly_rate,
+ * created_at, updated_at` (migration `20260208001000`). The
+ * `DatabaseContractorProfileRow` type below claims `business_address,
+ * specialties, portfolio_images, certifications, years_experience,
+ * service_radius, license_number, insurance_*` etc. — none of which
+ * are columns on this table. They live on `profiles` (e.g.
+ * `business_address`, `portfolio_images`) or don't exist at all
+ * (`specialties`, `certifications`).
+ *
+ * Net effect today: this read returns `business_address: undefined`
+ * for every user, which is why `ContractorCardEditorScreen` falls
+ * back to `user.address + user.city + user.postcode` for *every*
+ * contractor, not just those who haven't filled it in. The
+ * fallback masks the mismatch.
+ *
+ * Migrating to the API alone won't fix this — the underlying type
+ * is lying. Cleanup needs:
+ *   1. Decide which table owns `business_address` / `portfolio_images`
+ *      etc. (web `/api/contractor/business-profile` reads them off
+ *      `profiles`, so that's the established source).
+ *   2. Drop the false fields from `DatabaseContractorProfileRow`,
+ *      or split into `ContractorProfilesRow` (subscription/stripe/
+ *      hourly_rate) + `ContractorIdentityFromProfile` (the rest).
+ *   3. Migrate this read to `/api/contractor/profile-data` (already
+ *      bundles profiles + hourly_rate from contractor_profiles +
+ *      skills/reviews) or extend `/api/contractor/business-profile`.
+ *   4. Update `ContractorCardEditorScreen` to read fields from the
+ *      correct slot.
+ *
+ * Out of scope for the "direct-Supabase removal" audit pass — needs
+ * a dedicated commit so the schema cleanup gets reviewed properly.
+ * The single-row read here is `auth.uid()`-scoped via RLS so it's
+ * not actively unsafe; just consistently returning empty data for
+ * fields that don't exist where the code looks for them.
+ */
 export async function getContractorProfile(
   userId: string
 ): Promise<DatabaseContractorProfileRow | null> {
