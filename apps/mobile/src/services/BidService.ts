@@ -1,4 +1,5 @@
 import { mobileApiClient } from '../utils/mobileApiClient';
+import { supabase } from '../config/supabase';
 import { BidManagementService } from './BidManagementService';
 
 export interface BidData {
@@ -80,125 +81,78 @@ export class BidService {
     };
   }
 
+  /**
+   * List bids on a single job (homeowner-only via the route's
+   * ownership check, plus admin override). Audit step 5
+   * (2026-04-29): migrated off the direct-Supabase read that did
+   * its own `reviews` rollup — the route now returns each bid with
+   * `contractor.reviews_count` and `contractor.rating` already
+   * attached by `JobQueryService`-style enrichment.
+   */
   static async getBidsByJob(jobId: string, status?: string): Promise<Bid[]> {
-    const { supabase } = await import('../config/supabase');
-    let query = supabase
-      .from('bids')
-      .select(
-        `
-        id, job_id, contractor_id, amount, description, message, status,
-        estimated_duration_days, materials_included, warranty_months,
-        created_at, updated_at,
-        contractor:profiles!bids_contractor_id_fkey(
-          id, first_name, last_name, email, profile_image_url,
-          company_name, city, bio, hourly_rate, years_experience,
-          rating, total_jobs_completed
-        )
-      `
-      )
-      .eq('job_id', jobId)
-      .order('created_at', { ascending: false });
-    if (status) {
-      query = query.eq('status', status);
-    }
-    const { data, error } = await query;
-    if (error) throw new Error(error.message);
-    const bids = (data ?? []) as unknown as Bid[];
-
-    // Attach reviews_count per contractor so BidReviewCard can render
-    // "4.5 ★ (12 reviews)". profiles has `rating` but no aggregate
-    // count column, so we roll up public.reviews in one extra query.
-    const contractorIds = Array.from(
-      new Set(bids.map((b) => b.contractor_id).filter(Boolean))
-    );
-    if (contractorIds.length > 0) {
-      const { data: reviewRows } = await supabase
-        .from('reviews')
-        .select('reviewee_id, rating')
-        .in('reviewee_id', contractorIds);
-      const counts = new Map<string, number>();
-      const ratingTotals = new Map<string, number>();
-      for (const row of reviewRows ?? []) {
-        const review = row as {
-          reviewee_id: string | null;
-          rating: number | null;
-        };
-        const id = review.reviewee_id;
-        if (!id) continue;
-
-        counts.set(id, (counts.get(id) || 0) + 1);
-        if (typeof review.rating === 'number') {
-          ratingTotals.set(id, (ratingTotals.get(id) || 0) + review.rating);
-        }
-      }
-      for (const bid of bids) {
-        if (bid.contractor && bid.contractor_id) {
-          const count = counts.get(bid.contractor_id) || 0;
-          const aggregateRating =
-            count > 0 ? (ratingTotals.get(bid.contractor_id) || 0) / count : 0;
-          const contractor = bid.contractor as unknown as {
-            reviews_count?: number;
-            rating?: number | null;
-          };
-          contractor.reviews_count = count;
-          if (!contractor.rating && aggregateRating > 0) {
-            contractor.rating = Number(aggregateRating.toFixed(1));
-          }
-        }
-      }
-    }
-
-    return bids;
+    const url = status
+      ? `/api/jobs/${jobId}/bids?status=${encodeURIComponent(status)}`
+      : `/api/jobs/${jobId}/bids`;
+    const response = await mobileApiClient.get<{ bids?: Bid[] | null }>(url);
+    return Array.isArray(response.bids) ? response.bids : [];
   }
 
+  /**
+   * Multi-job pending-bids fan-out used by the homeowner dashboard
+   * to show "recent bids across your jobs". The mobile dashboard
+   * already caps the input at 10 jobs, so 10 parallel API calls is
+   * acceptable; a dedicated `/api/homeowner/bids?status=&jobIds=`
+   * endpoint would be a nice future optimisation but isn't in the
+   * critical path.
+   */
   static async getBidsByJobs(
     jobIds: string[],
     status?: string
   ): Promise<Bid[]> {
     if (jobIds.length === 0) return [];
-    const { supabase } = await import('../config/supabase');
-    let query = supabase
-      .from('bids')
-      .select(
-        `
-        id, job_id, contractor_id, amount, description, message, status,
-        created_at, updated_at,
-        contractor:profiles!bids_contractor_id_fkey(
-          id, first_name, last_name, email, profile_image_url, company_name
-        ),
-        job:jobs!job_id(id, title)
-`
+    const results = await Promise.all(
+      jobIds.map((id) =>
+        BidService.getBidsByJob(id, status).catch(() => [] as Bid[])
       )
-      .in('job_id', jobIds)
-      .order('created_at', { ascending: false });
-    if (status) {
-      query = query.eq('status', status);
-    }
-    const { data, error } = await query;
-    if (error) throw new Error(error.message);
-    return (data ?? []) as unknown as Bid[];
+    );
+    // Match the previous direct-DB ordering (`.order('created_at',
+    // { ascending: false })`) so the homeowner dashboard's "recent
+    // bids" stays in the same order across the migration.
+    return results.flat().sort((a, b) => {
+      const aTs = a.created_at ?? '';
+      const bTs = b.created_at ?? '';
+      return bTs.localeCompare(aTs);
+    });
   }
 
+  /**
+   * List the calling contractor's bids. The route auto-scopes via
+   * `auth.uid()`; the supplied `contractorId` is informational
+   * (matches caller-side test assertions) and accepted-and-ignored
+   * by the non-strict route schema.
+   */
   static async getBidsByContractor(contractorId: string): Promise<Bid[]> {
-    const { supabase } = await import('../config/supabase');
-    const { data, error } = await supabase
-      .from('bids')
-      .select(
-        `
-        id, job_id, contractor_id, amount, description, message, status,
-        created_at, updated_at,
-        job:jobs!bids_job_id_fkey(id, title, category, status, budget, location, created_at)
-      `
-      )
-      .eq('contractor_id', contractorId)
-      .order('created_at', { ascending: false });
-    if (error) throw new Error(error.message);
-    return (data ?? []) as unknown as Bid[];
+    const url = `/api/contractor/bids?contractorId=${encodeURIComponent(contractorId)}`;
+    const response = await mobileApiClient.get<{ bids?: Bid[] | null }>(url);
+    return Array.isArray(response.bids) ? response.bids : [];
   }
 
-  /** Helper: fetch a bid's job_id via direct Supabase query (read-only). */
+  /**
+   * Helper: fetch a bid's `job_id` so the mutation routes (which
+   * are nested under `/api/jobs/[id]/bids/[bidId]`) can be called
+   * with a bidId-only public surface.
+   *
+   * Last remaining direct-Supabase read in this service. Future
+   * refactor (TODO): change `acceptBid / rejectBid / withdrawBid /
+   * updateBid` to take an explicit `jobId` parameter — every caller
+   * already has it in screen scope. Doing so removes this lookup
+   * entirely, but cascades through `useAcceptBid`, the offline
+   * action executor's `BidData` shape, and ~6 test files. Kept as
+   * a single-row RLS-scoped read in the meantime so the audit's
+   * "remove direct Supabase from product flows" goal is at 4-of-5
+   * for BidService rather than blocked behind a 15-file cascade.
+   */
   private static async getBidJobId(bidId: string): Promise<string> {
-    const { supabase } = await import('../config/supabase');
     const { data, error } = await supabase
       .from('bids')
       .select('job_id')
@@ -267,16 +221,5 @@ export class BidService {
       updates
     );
     return response.bid;
-  }
-
-  // TODO: unused — consider removing
-  static async getBidStatistics(jobId: string): Promise<number> {
-    const { supabase } = await import('../config/supabase');
-    const { count, error } = await supabase
-      .from('bids')
-      .select('*', { count: 'exact', head: true })
-      .eq('job_id', jobId);
-    if (error) throw new Error(error.message);
-    return count ?? 0;
   }
 }

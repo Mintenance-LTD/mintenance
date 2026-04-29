@@ -8,6 +8,7 @@
 
 import { BidService, BidData, Bid } from '../BidService';
 import { mobileApiClient } from '../../utils/mobileApiClient';
+import { supabase } from '../../config/supabase';
 
 // Auto-mock mobileApiClient (picks up __mocks__/mobileApiClient.ts)
 jest.mock('../../utils/mobileApiClient');
@@ -28,13 +29,38 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 
 const mockedApiClient = mobileApiClient as jest.Mocked<typeof mobileApiClient>;
 
+/**
+ * Helper: prime the global supabase mock so `getBidJobId(bidId)`
+ * returns `{ data: { job_id }, error }`.
+ *
+ * `getBidJobId` is the only direct-Supabase read left in BidService —
+ * a single-row RLS-scoped lookup that translates a bidId into the
+ * jobId needed for the nested `/api/jobs/[id]/bids/[bidId]/...`
+ * mutation routes. Future cleanup (TODO in BidService.ts) is to add
+ * `jobId` as an explicit second arg to the mutation methods, which
+ * would remove this mock pattern entirely.
+ */
+function mockBidJobIdLookup(payload: {
+  jobId?: string;
+  error?: unknown;
+}): void {
+  const single = jest.fn().mockResolvedValue({
+    data: payload.jobId ? { job_id: payload.jobId } : null,
+    error: payload.error ?? null,
+  });
+  const eq = jest.fn().mockReturnValue({ single });
+  const select = jest.fn().mockReturnValue({ eq });
+  (supabase.from as jest.Mock).mockReturnValue({ select });
+}
+
 describe('BidService', () => {
   // Test data fixtures
   const mockBidData: BidData = {
     job_id: 'job-123',
     contractor_id: 'contractor-456',
-    amount: 2500.50,
-    message: 'I can complete this project within 2 weeks with quality materials',
+    amount: 2500.5,
+    message:
+      'I can complete this project within 2 weeks with quality materials',
     estimated_duration: '2 weeks',
     availability: '2025-02-01',
   };
@@ -82,7 +108,7 @@ describe('BidService', () => {
           id: 'bid-789',
           job_id: 'job-123',
           contractor_id: 'contractor-456',
-          amount: 2500.50,
+          amount: 2500.5,
           message: mockBidData.message,
           status: 'pending',
           created_at: '2025-01-20T10:00:00Z',
@@ -95,7 +121,7 @@ describe('BidService', () => {
         '/api/contractor/submit-bid',
         expect.objectContaining({
           jobId: 'job-123',
-          bidAmount: 2500.50,
+          bidAmount: 2500.5,
         })
       );
       expect(result.id).toBe('bid-789');
@@ -138,7 +164,9 @@ describe('BidService', () => {
     it('should handle API errors during creation', async () => {
       mockedApiClient.post.mockRejectedValue(new Error('Network error'));
 
-      await expect(BidService.createBid(mockBidData)).rejects.toThrow('Network error');
+      await expect(BidService.createBid(mockBidData)).rejects.toThrow(
+        'Network error'
+      );
     });
 
     it('should accept decimal amounts for bids', async () => {
@@ -206,7 +234,9 @@ describe('BidService', () => {
 
       const result = await BidService.getBidsByJob('job-123');
 
-      expect(mockedApiClient.get).toHaveBeenCalledWith('/api/jobs/job-123/bids');
+      expect(mockedApiClient.get).toHaveBeenCalledWith(
+        '/api/jobs/job-123/bids'
+      );
       expect(result).toHaveLength(2);
       expect(result[0]).toEqual(mockBid);
     });
@@ -267,33 +297,24 @@ describe('BidService', () => {
     it('should handle API errors', async () => {
       mockedApiClient.get.mockRejectedValue(new Error('Query timeout'));
 
-      await expect(BidService.getBidsByContractor('contractor-456')).rejects.toThrow(
-        'Query timeout'
-      );
+      await expect(
+        BidService.getBidsByContractor('contractor-456')
+      ).rejects.toThrow('Query timeout');
     });
   });
 
   describe('acceptBid', () => {
     it('should accept a bid and update job status via API', async () => {
-      // First call: get bid details
-      mockedApiClient.get.mockResolvedValue({
-        bids: [{
-          ...mockBid,
-          job: { homeowner_id: 'homeowner-123' },
-          job_id: 'job-123',
-        }],
-      });
-
-      // Second call: accept bid
+      // First the helper resolves the bid's job_id (single-row
+      // direct-DB read; remaining read in BidService — see TODO).
+      mockBidJobIdLookup({ jobId: 'job-123' });
       mockedApiClient.post.mockResolvedValue({
         bid: { ...mockBid, status: 'accepted' },
       });
 
       const result = await BidService.acceptBid('bid-789', 'homeowner-123');
 
-      expect(mockedApiClient.get).toHaveBeenCalledWith(
-        '/api/contractor/bids?bidId=bid-789'
-      );
+      expect(supabase.from).toHaveBeenCalledWith('bids');
       expect(mockedApiClient.post).toHaveBeenCalledWith(
         '/api/jobs/job-123/bids/bid-789/accept'
       );
@@ -301,37 +322,38 @@ describe('BidService', () => {
     });
 
     it('should throw error when bid not found', async () => {
-      mockedApiClient.get.mockResolvedValue({ bids: [] });
+      mockBidJobIdLookup({ jobId: undefined });
 
-      await expect(BidService.acceptBid('bid-999', 'homeowner-123')).rejects.toThrow(
-        'Bid not found'
-      );
+      await expect(
+        BidService.acceptBid('bid-999', 'homeowner-123')
+      ).rejects.toThrow('Bid not found');
     });
 
-    it('should handle API fetch errors', async () => {
-      mockedApiClient.get.mockRejectedValue(new Error('Bid not found'));
+    it('should handle helper lookup errors', async () => {
+      mockBidJobIdLookup({ error: { message: 'lookup failed' } });
 
-      await expect(BidService.acceptBid('bid-999', 'homeowner-123')).rejects.toThrow(
-        'Bid not found'
-      );
+      await expect(
+        BidService.acceptBid('bid-999', 'homeowner-123')
+      ).rejects.toThrow('Bid not found');
     });
   });
 
   describe('rejectBid', () => {
     it('should reject a bid with a reason', async () => {
-      mockedApiClient.get.mockResolvedValue({
-        bids: [{
-          ...mockBid,
-          job: { homeowner_id: 'homeowner-123' },
-          job_id: 'job-123',
-        }],
-      });
-
+      mockBidJobIdLookup({ jobId: 'job-123' });
       mockedApiClient.post.mockResolvedValue({
-        bid: { ...mockBid, status: 'rejected', rejection_reason: 'Too expensive' },
+        bid: {
+          ...mockBid,
+          status: 'rejected',
+          rejection_reason: 'Too expensive',
+        },
       });
 
-      const result = await BidService.rejectBid('bid-789', 'homeowner-123', 'Too expensive');
+      const result = await BidService.rejectBid(
+        'bid-789',
+        'homeowner-123',
+        'Too expensive'
+      );
 
       expect(mockedApiClient.post).toHaveBeenCalledWith(
         '/api/jobs/job-123/bids/bid-789/reject',
@@ -342,10 +364,7 @@ describe('BidService', () => {
     });
 
     it('should reject a bid without a reason', async () => {
-      mockedApiClient.get.mockResolvedValue({
-        bids: [{ ...mockBid, job_id: 'job-123' }],
-      });
-
+      mockBidJobIdLookup({ jobId: 'job-123' });
       mockedApiClient.post.mockResolvedValue({
         bid: { ...mockBid, status: 'rejected' },
       });
@@ -360,20 +379,17 @@ describe('BidService', () => {
     });
 
     it('should throw error when bid not found', async () => {
-      mockedApiClient.get.mockResolvedValue({ bids: [] });
+      mockBidJobIdLookup({ jobId: undefined });
 
-      await expect(BidService.rejectBid('bid-789', 'homeowner-123')).rejects.toThrow(
-        'Bid not found'
-      );
+      await expect(
+        BidService.rejectBid('bid-789', 'homeowner-123')
+      ).rejects.toThrow('Bid not found');
     });
   });
 
   describe('withdrawBid', () => {
     it('should withdraw a pending bid', async () => {
-      mockedApiClient.get.mockResolvedValue({
-        bids: [{ ...mockBid, status: 'pending', job_id: 'job-123' }],
-      });
-
+      mockBidJobIdLookup({ jobId: 'job-123' });
       mockedApiClient.post.mockResolvedValue({});
 
       await BidService.withdrawBid('bid-789', 'contractor-456');
@@ -384,23 +400,20 @@ describe('BidService', () => {
     });
 
     it('should throw error when bid not found', async () => {
-      mockedApiClient.get.mockResolvedValue({ bids: [] });
+      mockBidJobIdLookup({ jobId: undefined });
 
-      await expect(BidService.withdrawBid('bid-789', 'contractor-456')).rejects.toThrow(
-        'Bid not found'
-      );
+      await expect(
+        BidService.withdrawBid('bid-789', 'contractor-456')
+      ).rejects.toThrow('Bid not found');
     });
 
     it('should handle API deletion errors', async () => {
-      mockedApiClient.get.mockResolvedValue({
-        bids: [{ ...mockBid, job_id: 'job-123' }],
-      });
-
+      mockBidJobIdLookup({ jobId: 'job-123' });
       mockedApiClient.post.mockRejectedValue(new Error('Withdrawal failed'));
 
-      await expect(BidService.withdrawBid('bid-789', 'contractor-456')).rejects.toThrow(
-        'Withdrawal failed'
-      );
+      await expect(
+        BidService.withdrawBid('bid-789', 'contractor-456')
+      ).rejects.toThrow('Withdrawal failed');
     });
   });
 
@@ -410,16 +423,16 @@ describe('BidService', () => {
         amount: 3000,
         message: 'Updated proposal with better pricing',
       };
-
-      mockedApiClient.get.mockResolvedValue({
-        bids: [{ ...mockBid, status: 'pending', job_id: 'job-123' }],
-      });
-
+      mockBidJobIdLookup({ jobId: 'job-123' });
       mockedApiClient.patch.mockResolvedValue({
         bid: { ...mockBid, ...updates },
       });
 
-      const result = await BidService.updateBid('bid-789', 'contractor-456', updates);
+      const result = await BidService.updateBid(
+        'bid-789',
+        'contractor-456',
+        updates
+      );
 
       expect(mockedApiClient.patch).toHaveBeenCalledWith(
         '/api/jobs/job-123/bids/bid-789',
@@ -430,7 +443,7 @@ describe('BidService', () => {
     });
 
     it('should throw error when bid not found', async () => {
-      mockedApiClient.get.mockResolvedValue({ bids: [] });
+      mockBidJobIdLookup({ jobId: undefined });
 
       await expect(
         BidService.updateBid('bid-789', 'contractor-456', { amount: 3000 })
@@ -438,19 +451,17 @@ describe('BidService', () => {
     });
 
     it('should handle partial updates', async () => {
-      const updates = {
-        estimated_duration: '3 weeks',
-      };
-
-      mockedApiClient.get.mockResolvedValue({
-        bids: [{ ...mockBid, job_id: 'job-123' }],
-      });
-
+      const updates = { estimated_duration: '3 weeks' };
+      mockBidJobIdLookup({ jobId: 'job-123' });
       mockedApiClient.patch.mockResolvedValue({
         bid: { ...mockBid, ...updates },
       });
 
-      const result = await BidService.updateBid('bid-789', 'contractor-456', updates);
+      const result = await BidService.updateBid(
+        'bid-789',
+        'contractor-456',
+        updates
+      );
 
       expect(mockedApiClient.patch).toHaveBeenCalledWith(
         '/api/jobs/job-123/bids/bid-789',
@@ -460,44 +471,13 @@ describe('BidService', () => {
     });
   });
 
-  describe('getBidStatistics', () => {
-    it('should get bid statistics for a job', async () => {
-      const mockStatistics = {
-        total_bids: 10,
-        average_amount: 2500,
-        min_amount: 1500,
-        max_amount: 3500,
-      };
-
-      mockedApiClient.get.mockResolvedValue(mockStatistics);
-
-      const result = await BidService.getBidStatistics('job-123');
-
-      expect(mockedApiClient.get).toHaveBeenCalledWith(
-        '/api/jobs/job-123/bid-statistics'
-      );
-      expect(result).toEqual(mockStatistics);
-    });
-
-    it('should handle API errors', async () => {
-      mockedApiClient.get.mockRejectedValue(new Error('API function failed'));
-
-      await expect(BidService.getBidStatistics('job-123')).rejects.toThrow(
-        'API function failed'
-      );
-    });
-  });
+  // `getBidStatistics` was a TODO/unused method — removed in audit
+  // step 5 (2026-04-29). The describe block previously here is gone
+  // alongside the implementation.
 
   describe('Bid State Transitions', () => {
     it('should transition from pending to accepted', async () => {
-      mockedApiClient.get.mockResolvedValue({
-        bids: [{
-          ...mockBid,
-          status: 'pending',
-          job_id: 'job-123',
-        }],
-      });
-
+      mockBidJobIdLookup({ jobId: 'job-123' });
       mockedApiClient.post.mockResolvedValue({
         bid: { ...mockBid, status: 'accepted' },
       });
@@ -508,15 +488,20 @@ describe('BidService', () => {
     });
 
     it('should transition from pending to rejected', async () => {
-      mockedApiClient.get.mockResolvedValue({
-        bids: [{ ...mockBid, status: 'pending', job_id: 'job-123' }],
-      });
-
+      mockBidJobIdLookup({ jobId: 'job-123' });
       mockedApiClient.post.mockResolvedValue({
-        bid: { ...mockBid, status: 'rejected', rejection_reason: 'Budget exceeded' },
+        bid: {
+          ...mockBid,
+          status: 'rejected',
+          rejection_reason: 'Budget exceeded',
+        },
       });
 
-      const result = await BidService.rejectBid('bid-789', 'homeowner-123', 'Budget exceeded');
+      const result = await BidService.rejectBid(
+        'bid-789',
+        'homeowner-123',
+        'Budget exceeded'
+      );
 
       expect(result.status).toBe('rejected');
       expect(result.rejection_reason).toBe('Budget exceeded');
@@ -563,10 +548,19 @@ describe('BidService', () => {
     it('should fetch bids for multiple jobs in parallel', async () => {
       mockedApiClient.get
         .mockResolvedValueOnce({
-          bids: [{ ...mockBid, job_id: 'job-1', created_at: '2025-01-20T10:00:00Z' }],
+          bids: [
+            { ...mockBid, job_id: 'job-1', created_at: '2025-01-20T10:00:00Z' },
+          ],
         })
         .mockResolvedValueOnce({
-          bids: [{ ...mockBid, id: 'bid-2', job_id: 'job-2', created_at: '2025-01-21T10:00:00Z' }],
+          bids: [
+            {
+              ...mockBid,
+              id: 'bid-2',
+              job_id: 'job-2',
+              created_at: '2025-01-21T10:00:00Z',
+            },
+          ],
         });
 
       const result = await BidService.getBidsByJobs(['job-1', 'job-2']);
