@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
@@ -6,6 +6,7 @@ import type { ModalStackParamList } from '../navigation/types';
 import { useServiceRequestForm } from './service-request/useServiceRequestForm';
 import { CategoryPicker } from './service-request/CategoryPicker';
 import { ServiceForm } from './service-request/ServiceForm';
+import { useUnsavedChanges } from '../hooks/useUnsavedChanges';
 
 interface Props {
   navigation: NativeStackNavigationProp<ModalStackParamList, 'ServiceRequest'>;
@@ -14,15 +15,36 @@ interface Props {
 
 const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
-  const form = useServiceRequestForm(() => navigation.goBack());
+  // Discard-prompt — the form's own state lives inside
+  // `useServiceRequestForm`. We need `allowExit()` callable from the
+  // form's success path (to bypass the prompt on a posted-OK
+  // navigation), but `useUnsavedChanges` needs `isDirty` which is
+  // derived from the form's state — so we forward through a ref to
+  // dodge the chicken-and-egg.
+  const allowExitRef = useRef<() => void>(() => {});
+  const form = useServiceRequestForm(() => {
+    allowExitRef.current();
+    navigation.goBack();
+  });
+
+  const isDirty = !!(
+    form.description ||
+    form.budget ||
+    form.selectedSubcategory ||
+    form.photos.length > 0
+  );
+  allowExitRef.current = useUnsavedChanges(isDirty);
 
   const handleAddProperty = () => {
     navigation.goBack();
     setTimeout(() => {
-      (navigation as { navigate: (...args: unknown[]) => void }).navigate('Main', {
-        screen: 'ProfileTab',
-        params: { screen: 'AddProperty' },
-      });
+      (navigation as { navigate: (...args: unknown[]) => void }).navigate(
+        'Main',
+        {
+          screen: 'ProfileTab',
+          params: { screen: 'AddProperty' },
+        }
+      );
     }, 300);
   };
 

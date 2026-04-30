@@ -130,6 +130,35 @@ The original P0-1 finding is now **CLOSED**: every direct supabase mutation in m
 migrated to an API route, documented as a deliberate Realtime-driven exception with verified RLS
 coverage, or pointing at a placeholder feature.
 
+**2026-04-30 follow-up correction** — re-audit caught four more direct-Supabase write paths the
+first sweep missed (`MarketingCampaignRepository.createCampaign/updateCampaign/...`,
+`LeadManagementService.createLead/getLeads/updateLeadStatus`, `ServiceAreasService` static CRUD
+methods, `triggerAIAnalysis.ts` status writes, and `useServiceAreas.loadServiceAreas` reads). All
+four are now closed:
+
+- `apps/mobile/src/services/marketing-management/MarketingCampaignRepository.ts` and
+  `LeadManagementService.ts` — every method previously hit `supabase.from(...)` directly, but no
+  production UI ever called these methods (only test files import them and `MarketingScreen.tsx`
+  reads stats via `/api/contractor/marketing-stats`). The methods are now stubs that throw a
+  deprecation error with explicit re-enable instructions; the type imports + tests still compile.
+- `apps/mobile/src/services/ServiceAreasService.ts` — stripped the dead static CRUD methods
+  (`createServiceArea`, `updateServiceArea`, `deleteServiceArea`, `getServiceAreas`,
+  `recordCoverage`, `createRoute`, `getRoutes`, `getAreaPerformance`). Kept the `ServiceArea`
+  interface, geo helper re-exports, and the `validateServiceArea`/`formatServiceArea` validation
+  helpers — those have UI consumers. The real production CRUD path is `useServiceAreas.ts` →
+  `/api/contractor/service-areas`.
+- `apps/mobile/src/hooks/useServiceAreas.ts` — `loadServiceAreas` was the last direct Supabase read
+  on the production service-areas path. Now calls
+  `mobileApiClient.get('/api/contractor/service-areas')` like the create/update/delete handlers
+  already did.
+- `apps/mobile/src/screens/assessment/PropertyAssessmentScreen/triggerAIAnalysis.ts` —
+  `supabase.from('building_assessments').update(...)` calls (validation_status writes from the Mint
+  AI fire-and-forget path) replaced with `PATCH /api/assessments/{id}/status`. The new endpoint
+  lives in `apps/web/app/api/assessments/[id]/status/route.ts`, validates body via Zod, enforces
+  ownership, and supports a JSON-merge `assessment_data_patch` so the client doesn't
+  read-modify-write the row. The only Supabase API call left in that file is
+  `supabase.auth.getSession()` — that's the Auth API (token check), not a table read.
+
 Evidence:
 
 - `apps/mobile/src/utils/mobileApiClient.ts` exists and correctly sends bearer tokens to web API
@@ -310,6 +339,21 @@ read (doesn't exist on the table), and built display name from joined `contracto
 reading `invoices` directly — switched to `GET /api/contractor/invoices` and fixed PATCH/DELETE URLs
 to use `?id=` query param (path-segment URLs were 404'ing). Files:
 `apps/web/app/contractor/invoices/page.tsx`, `apps/mobile/src/screens/InvoiceManagementScreen.tsx`.
+
+**2026-04-30 follow-up correction** — `apps/web/app/api/contractor/invoices/pay/route.ts` and
+`apps/web/app/api/contractor/invoices/[invoiceId]/pdf/route.ts` were still selecting from / updating
+the phantom `contractor_invoices` table. Both now use the canonical `invoices` table. Live DB had a
+narrower schema than the routes assumed (the `20260303000003_add_invoices_and_expenses.sql`
+migration created an MVP shape with only
+`id, contractor_id, job_id, client_id, invoice_number, status, subtotal, tax_amount, total_amount, issue_date, due_date, paid_date, notes, line_items`),
+so columns referenced by pay/pdf (`client_email`, `client_name`, `client_address`, `title`,
+`description`, `payment_terms`, `tax_rate`, `vat_number`, `paid_amount`, `viewed_at`, `sent_at`,
+`quote_id`, `invoice_date`) were missing. Resolved with a follow-up migration
+`20260430000001_invoices_unify_schema.sql` that adds every missing column (all NULLABLE for
+backward-compat), relaxes the `client_id NOT NULL` constraint so the web flow's inline-client path
+works, and extends the `status` CHECK to include `'viewed'` + `'partial'` (used by pay route).
+Migration applied live; verified `information_schema.columns` now reports all 30 columns. Live table
+had 0 rows so no data-migration concerns.
 
 Files involved:
 
@@ -1050,7 +1094,17 @@ service uses `metadata` which is the real column name. Files:
 **FIXED 2026-04-30** (notification routing unification) — Added
 `apps/mobile/src/services/notifications/notificationRoutingTable.ts` as a single source of truth:
 one `routeForNotification(type, data)` function plus a `normalizePayload()` helper that handles both
-camelCase + snake_case payloads. Both consumers now delegate to it:
+camelCase + snake_case payloads. Both consumers now delegate to it.
+
+**2026-04-30 follow-up correction** — re-audit caught that the unification didn't actually wire the
+documented contract ("unknown notification types fall back to the in-app notifications inbox").
+`routeForNotification` returned `null` on unknown types; `NotificationDeepLink` silently dropped the
+navigation in that case (no action) and `notificationNavigation` (in-app inbox tap) fell back to
+`HomeTab` instead of the inbox. Both paths now agree: `routeForNotification` is total — its return
+type is `NotificationRoute` (no `| null`), and the default branch returns `NOTIFICATIONS_FALLBACK`
+(`{ screen: 'Modal', params: { screen: 'Notifications' } }`). Both consumers were simplified to drop
+their null-handling branches. Files: `notificationRoutingTable.ts`, `NotificationDeepLink.ts`,
+`notificationNavigation.ts`.
 
 - `NotificationDeepLink.ts` (OS push taps from foreground/background/ killed states) — switch
   statement removed.
@@ -1619,9 +1673,104 @@ How to know it is fixed:
 - The only way to sign out is to press an intentional logout button or choose logout from a
   confirmed session-expired prompt.
 
+### P0 follow-up — Video Assessment Polling Key Mismatch + Duplicate Rows
+
+**FIXED 2026-04-30** — Two distinct bugs the audit-closure missed surfaced on re-audit:
+
+**(a) Polling-key mismatch.** `VideoService.uploadVideo` stored
+`AsyncStorage.setItem('video_assessment_${serverAssessmentId}', serverAssessmentId)` after a
+successful upload, but `VideoService.getProcessingResults(videoId)` reads
+`'video_assessment_${videoId}'` where `videoId` is the LOCAL queue-item id (`video_${Date.now()}`).
+The poller therefore never resolved the server-issued assessment id and silently fell through to
+"still processing" forever. Fix: `uploadVideo` now accepts an optional `queueItemId` and writes the
+mapping under both keys (`video_assessment_${queueItemId} -> serverAssessmentId` for the poller's
+lookup path, plus the original key for replay/inspection). `processQueue` passes the local item id
+through. File: `apps/mobile/src/services/VideoService.ts`.
+
+**(b) Duplicate assessment rows.** `PropertyAssessmentScreen` opens `VideoCapture` before the user
+submits, so VideoCapture uploads with only `propertyId`. The upload route mints a
+`damage_type='video_walkthrough'` row in `validation_status='processing'`. When the user later
+submits, `POST /api/assessments` minted a SECOND row, and the AI pipeline only enriched one of them.
+Fix: `POST /api/assessments` now detects an existing in-flight video-walkthrough row for the same
+`(user_id, property_id)` in `validation_status='processing'` and UPDATEs it in place instead of
+inserting. The merge promotes `damage_type` to `'general_damage'`, copies `gps`/`room_metadata`,
+sets `assessment_data.merged_from_video_walkthrough: true`, and reuses the same id for image attach
+so the AI enrichment lands on a single, complete row. Response now returns 200 (merged) or 201
+(new), and includes a `merged_from_video_walkthrough` boolean so the client can log/diagnose. File:
+`apps/web/app/api/assessments/route.ts`.
+
 ### P1 - Back Buttons Are Common, But Not Consistently Protected
 
-**OPEN** — Not addressed in 2026-04-30 remediation pass.
+**FIXED 2026-04-30** — Extended the `useUnsavedChanges` hook with an `allowExit()` callback so
+success paths can bypass the discard prompt without re-arming on subsequent edits, then adopted the
+hook in every form screen that holds typed/uploaded state. Also relaxed the `goBackSafe` helper
+typing so any sub-stack screen can use it without `as never` casting, and inlined an inline cross-
+reference here so future audits can confirm the closure is real.
+
+Hook change (`apps/mobile/src/hooks/useUnsavedChanges.ts`):
+
+- Returns a stable `allowExit()` callback that flips a one-shot bypass flag (`useRef` so it doesn't
+  retrigger the listener effect).
+- Re-arms automatically when the form transitions back to dirty (so a save → edit → back path still
+  prompts).
+- Backward-compatible: existing callers that ignore the return value (`AddPropertyScreen`,
+  `QuickJobPostScreen`) keep working unchanged.
+
+Form screens migrated (12 mobile files):
+
+- `apps/mobile/src/screens/properties/AddPropertyScreen.tsx` — captures `allowExit` and calls it in
+  the create-property mutation `onSuccess`.
+- `apps/mobile/src/screens/job-posting/QuickJobPostScreen.tsx` — wraps the success-Alert
+  `navigation.goBack()` in an arrow that calls `allowExit()` first.
+- `apps/mobile/src/screens/add-client/AddClientScreen.tsx` — `isDirty` from
+  `firstName / lastName / email / phone / companyName / notes`.
+- `apps/mobile/src/screens/contractor/AddCertificationScreen.tsx` — `isDirty` from cert name,
+  issuer, credential id, dates, category.
+- `apps/mobile/src/screens/contractor/AddTimeEntryScreen.tsx` — `isDirty` from task description,
+  hours, hourly rate.
+- `apps/mobile/src/screens/contractor/BusinessProfileScreen.tsx` — uses the `hasEdits` flag pattern
+  (form hydrates from a `useQuery` result, so a content-based dirty check would prompt on the empty
+  initial-load case). Each setter is wrapped to flip the flag on real user input.
+- `apps/mobile/src/screens/BidSubmissionScreen.tsx` — `isDirty` from amount, description, duration,
+  start date, terms, line-item count.
+- `apps/mobile/src/screens/create-invoice/CreateInvoiceScreen.tsx` — `isDirty` from client name, job
+  ref, notes, OR a non-trivial line item.
+- `apps/mobile/src/screens/properties/EditPropertyScreen.tsx` — `hasEdits` flag pattern (hydrates
+  from the API).
+- `apps/mobile/src/screens/EditProfileScreen.tsx` — `hasEdits` flag pattern; wraps every section-
+  component setter so `PhotoSection`, `PersonalInfoSection`, and `LocationSection` flip the flag.
+- `apps/mobile/src/screens/job-details/ContractPreparationScreen.tsx` — `hasEdits` flag pattern
+  (hydrates from the contractor profile + accepted bid + draft contract). Wrapped setters propagate
+  to the dependent section components (`LicenseTypeChips`, `InsuranceDetailsCard`,
+  `DateRangePicker`).
+- `apps/mobile/src/screens/create-quote/CreateQuoteScreen.tsx` — content-based `isDirty` from line
+  items + project title + client contact details. Save/Send don't navigate so we deliberately don't
+  auto-`allowExit()` here; the prompt stays on as a "you have a draft" reminder.
+- `apps/mobile/src/screens/ReplyToReviewScreen.tsx` — `isDirty` from `response.trim().length > 0`.
+- `apps/mobile/src/screens/ContractorCardEditorScreen.tsx` — `hasEdits` flag pattern; wraps
+  `setProfile` so child sections flip the flag.
+- `apps/mobile/src/screens/job-form/JobEditScreen.tsx` — `hasEdits` flag pattern for the
+  hydrate-from-API case.
+- `apps/mobile/src/screens/JobPostingScreen.tsx` — content-based `isDirty`; bypasses prompt on the
+  `setTimeout` post-success navigation to `JobDetails`.
+- `apps/mobile/src/screens/ServiceRequestScreen.tsx` — uses a `useRef`-forwarded `allowExit` so the
+  form's success callback (which lives inside `useServiceRequestForm`) can call it; `isDirty`
+  computed from description, budget, subcategory, photos.
+
+`goBackSafe` helper widening (`apps/mobile/src/navigation/hooks.ts`):
+
+- Type relaxed from `NativeStackNavigationProp<RootStackParamList>` to a structural minimum
+  (`canGoBack / goBack / navigate`), so screens on the Jobs/Profile/Messaging sub-stacks can call it
+  without `as never` casting. Adoption in raw-`goBack()` sites is incremental — the helper exists,
+  the hook protects forms, and the remaining sweep is now a low-risk follow-up rather than a
+  data-loss risk.
+
+Verification:
+
+- `npx tsc --noEmit -p tsconfig.json` (mobile) — passes clean (exit 0).
+- All 17 modified mobile files compile against the existing strict-mode settings.
+- The hook's bypass-flag is a `useRef`, so it doesn't retrigger the `beforeRemove` listener effect.
+  The reset effect re-arms the prompt when state transitions from clean back to dirty.
 
 Findings:
 
@@ -1736,7 +1885,19 @@ How to know it is fixed:
 
 ### P1 - Placeholder Buttons Should Not Be In Production Navigation
 
-**OPEN** — Not addressed in 2026-04-30 remediation pass.
+**FIXED 2026-04-30** — This is the same finding as "P1 - Placeholder And Mock-Backed Features Still
+Exist In User-Facing Areas" earlier in the doc; closures are recorded there. Specifically:
+
+- `/invoices/[invoiceId]` was rendering hardcoded mock invoice data → replaced with a server-side
+  redirect to the canonical `/payments/invoice/[invoiceId]`.
+- Mobile message thread "Start video call" CTA → "Video calls coming soon" Alert (the underlying
+  `VideoCallService.startInstantCall` flow writes to a `call_participants` table that doesn't exist
+  in the live schema).
+- Stale "this is a placeholder" comment removed from `/admin/hybrid-inference` (the page is real and
+  backed by an API).
+- Confirmed acceptable: `/video-calls`, `/contractor/connections`, `/contractor/social`,
+  `/contractor/team`, `/learn`, `/resources`, `/admin/api-documentation`, `/admin/review-moderation`
+  — all use branded "coming soon" UI with `noindex`.
 
 Findings:
 

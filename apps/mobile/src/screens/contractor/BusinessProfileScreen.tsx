@@ -19,6 +19,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import { ScreenHeader, LoadingSpinner } from '../../components/shared';
 import { theme } from '../../theme';
+import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 
 interface BusinessProfileResponse {
   profile: {
@@ -79,6 +80,12 @@ export const BusinessProfileScreen: React.FC = () => {
   const [licenseType, setLicenseType] = useState('');
   const [insuranceProvider, setInsuranceProvider] = useState('');
   const [policyNumber, setPolicyNumber] = useState('');
+  // Track whether the user has made any edits since the screen
+  // hydrated. We can't compare to initial query data here (it's all
+  // strings that might equal '') so we flip a dirty flag on first
+  // user interaction.
+  const [hasEdits, setHasEdits] = useState(false);
+  const allowExit = useUnsavedChanges(hasEdits);
 
   // Load existing data via the consolidated business-profile endpoint.
   // Server-side does the joined read; client just hydrates the form.
@@ -133,8 +140,15 @@ export const BusinessProfileScreen: React.FC = () => {
       // Refresh auth user so dashboard greeting picks up new company_name
       await refreshUser();
       queryClient.invalidateQueries({ queryKey: ['contractorStats'] });
+      setHasEdits(false);
       Alert.alert('Saved', 'Business profile updated successfully.', [
-        { text: 'OK', onPress: () => navigation.goBack() },
+        {
+          text: 'OK',
+          onPress: () => {
+            allowExit();
+            navigation.goBack();
+          },
+        },
       ]);
     },
     onError: (err: Error) => Alert.alert('Error', err.message),
@@ -170,7 +184,10 @@ export const BusinessProfileScreen: React.FC = () => {
             <TextInput
               style={s.input}
               value={companyName}
-              onChangeText={setCompanyName}
+              onChangeText={(v) => {
+                setCompanyName(v);
+                setHasEdits(true);
+              }}
               placeholder='Your company or trading name'
               placeholderTextColor={theme.colors.textTertiary}
             />
@@ -178,7 +195,10 @@ export const BusinessProfileScreen: React.FC = () => {
             <TextInput
               style={s.input}
               value={businessAddress}
-              onChangeText={setBusinessAddress}
+              onChangeText={(v) => {
+                setBusinessAddress(v);
+                setHasEdits(true);
+              }}
               placeholder='Registered business address'
               placeholderTextColor={theme.colors.textTertiary}
             />
@@ -191,7 +211,10 @@ export const BusinessProfileScreen: React.FC = () => {
             <TextInput
               style={s.input}
               value={licenseNumber}
-              onChangeText={setLicenseNumber}
+              onChangeText={(v) => {
+                setLicenseNumber(v);
+                setHasEdits(true);
+              }}
               placeholder='e.g. LIC-12345'
               placeholderTextColor={theme.colors.textTertiary}
             />
@@ -207,7 +230,10 @@ export const BusinessProfileScreen: React.FC = () => {
                   <TouchableOpacity
                     key={t}
                     style={[s.chip, isSelected && s.chipActive]}
-                    onPress={() => setLicenseType(t)}
+                    onPress={() => {
+                      setLicenseType(t);
+                      setHasEdits(true);
+                    }}
                     accessibilityRole='button'
                     accessibilityState={{ selected: isSelected }}
                     accessibilityLabel={`${t}${isSelected ? ', selected' : ''}`}
@@ -253,7 +279,10 @@ export const BusinessProfileScreen: React.FC = () => {
             <TextInput
               style={s.input}
               value={insuranceProvider}
-              onChangeText={setInsuranceProvider}
+              onChangeText={(v) => {
+                setInsuranceProvider(v);
+                setHasEdits(true);
+              }}
               placeholder='e.g. Hiscox, AXA'
               placeholderTextColor={theme.colors.textTertiary}
             />
@@ -261,7 +290,10 @@ export const BusinessProfileScreen: React.FC = () => {
             <TextInput
               style={s.input}
               value={policyNumber}
-              onChangeText={setPolicyNumber}
+              onChangeText={(v) => {
+                setPolicyNumber(v);
+                setHasEdits(true);
+              }}
               placeholder='e.g. POL-123456'
               placeholderTextColor={theme.colors.textTertiary}
             />

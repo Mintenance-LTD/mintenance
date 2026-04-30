@@ -16,6 +16,7 @@ import { useToast } from '../../components/ui/Toast';
 import { ClientManagementService } from '../../services/client-management';
 import type { ProfileStackParamList } from '../../navigation/types';
 import { theme } from '../../theme';
+import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 
 interface AddClientScreenProps {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'AddClient'>;
@@ -35,6 +36,16 @@ export const AddClientScreen: React.FC<AddClientScreenProps> = ({
   const [companyName, setCompanyName] = useState('');
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  const isDirty = !!(
+    firstName ||
+    lastName ||
+    email ||
+    phone ||
+    companyName ||
+    notes
+  );
+  const allowExit = useUnsavedChanges(isDirty);
 
   const handleSubmit = async () => {
     if (!user) return;
@@ -69,6 +80,7 @@ export const AddClientScreen: React.FC<AddClientScreenProps> = ({
         notes: notes.trim() || undefined,
       });
       toast.success('Client added', `${firstName} has been added to your CRM.`);
+      allowExit();
       navigation.goBack();
     } catch {
       toast.error(

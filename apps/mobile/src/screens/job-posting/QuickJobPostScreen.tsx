@@ -200,7 +200,7 @@ export const QuickJobPostScreen: React.FC = () => {
   );
   const [submitting, setSubmitting] = useState(false);
 
-  useUnsavedChanges(!!(title || description));
+  const allowExit = useUnsavedChanges(!!(title || description));
 
   const handleTemplateSelect = useCallback(
     (template: (typeof REPAIR_TEMPLATES)[0]) => {
@@ -259,7 +259,16 @@ export const QuickJobPostScreen: React.FC = () => {
       Alert.alert(
         'Job Posted!',
         'Your job has been posted. Contractors in your area will be notified.',
-        [{ text: 'OK', onPress: () => navigation.goBack() }]
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              // Bypass the Discard alert — submission already persisted.
+              allowExit();
+              navigation.goBack();
+            },
+          },
+        ]
       );
     } catch (error) {
       const msg = error instanceof Error ? error.message : 'Failed to post job';

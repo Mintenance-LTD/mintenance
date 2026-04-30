@@ -23,6 +23,7 @@ import type { JobsStackParamList } from '../../navigation/types';
 import { JobCRUDService } from '../../services/JobCRUDService';
 import { logger } from '../../utils/logger';
 import { theme } from '../../theme';
+import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 
 type Props = NativeStackScreenProps<JobsStackParamList, 'JobEdit'>;
 
@@ -55,6 +56,13 @@ const JobEditScreen: React.FC<Props> = ({ navigation, route }) => {
   const [priority, setPriority] = useState<'low' | 'medium' | 'high'>('medium');
   const [budget, setBudget] = useState('');
   const [location, setLocation] = useState('');
+
+  // Discard-prompt — fetch hydrates the form on mount and does NOT
+  // touch hasEdits, so a user who opens then immediately closes the
+  // screen never sees the prompt. Edits flip the flag.
+  const [hasEdits, setHasEdits] = useState(false);
+  const allowExit = useUnsavedChanges(hasEdits);
+  const markDirty = () => setHasEdits(true);
 
   const fetchJob = useCallback(async () => {
     setLoading(true);
@@ -129,8 +137,15 @@ const JobEditScreen: React.FC<Props> = ({ navigation, route }) => {
         budget: budget ? Number(budget) : undefined,
         location: location.trim() || undefined,
       });
+      setHasEdits(false);
       Alert.alert('Success', 'Job updated successfully.', [
-        { text: 'OK', onPress: () => navigation.goBack() },
+        {
+          text: 'OK',
+          onPress: () => {
+            allowExit();
+            navigation.goBack();
+          },
+        },
       ]);
     } catch (error) {
       logger.error('Failed to update job', error);
@@ -232,6 +247,7 @@ const JobEditScreen: React.FC<Props> = ({ navigation, route }) => {
               onChangeText={(v) => {
                 clearError();
                 setTitle(v);
+                markDirty();
               }}
               variant='outline'
               size='lg'
@@ -246,6 +262,7 @@ const JobEditScreen: React.FC<Props> = ({ navigation, route }) => {
               onChangeText={(v) => {
                 clearError();
                 setDescription(v);
+                markDirty();
               }}
               multiline
               numberOfLines={4}
@@ -269,6 +286,7 @@ const JobEditScreen: React.FC<Props> = ({ navigation, route }) => {
                   onPress={() => {
                     clearError();
                     setCategory(cat);
+                    markDirty();
                   }}
                   accessibilityRole='button'
                   accessibilityState={{ selected: category === cat }}
@@ -297,6 +315,7 @@ const JobEditScreen: React.FC<Props> = ({ navigation, route }) => {
                   onPress={() => {
                     clearError();
                     setPriority(p);
+                    markDirty();
                   }}
                   accessibilityRole='button'
                   accessibilityState={{ selected: priority === p }}
@@ -320,6 +339,7 @@ const JobEditScreen: React.FC<Props> = ({ navigation, route }) => {
               onChangeText={(v) => {
                 clearError();
                 setBudget(v.replace(/[^0-9.]/g, ''));
+                markDirty();
               }}
               keyboardType='numeric'
               leftIcon='cash-outline'
@@ -335,6 +355,7 @@ const JobEditScreen: React.FC<Props> = ({ navigation, route }) => {
               onChangeText={(v) => {
                 clearError();
                 setLocation(v);
+                markDirty();
               }}
               leftIcon='location-outline'
               variant='outline'

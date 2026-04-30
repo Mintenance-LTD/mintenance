@@ -32,6 +32,7 @@ import { JOB_CATEGORIES } from './job-form/constants';
 import { theme } from '../theme';
 import { goToTab } from '../navigation/hooks';
 import { useSilverMode } from '../hooks/useSilverMode';
+import { useUnsavedChanges } from '../hooks/useUnsavedChanges';
 
 interface Props {
   navigation: NativeStackNavigationProp<JobsStackParamList, 'JobPosting'>;
@@ -66,6 +67,22 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
 
   const createJobMutation = useCreateJob();
   const { silverMode, loading: silverLoading } = useSilverMode();
+
+  // Discard-prompt — fields all start empty, so any user-typed
+  // content (incl. selecting a non-default category, urgency, or
+  // adding a photo) marks the form dirty.
+  const isDirty = !!(
+    title ||
+    description ||
+    location ||
+    budget ||
+    photos.length > 0 ||
+    buildingAssessment ||
+    aiPricingAnalysis ||
+    tenancy.isRentalProperty ||
+    tenancy.payerEmail
+  );
+  const allowExit = useUnsavedChanges(isDirty);
 
   useEffect(() => {
     if (user && user.role !== 'homeowner') {
@@ -296,6 +313,9 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
       setSubmissionSuccess(true);
       const delay = process.env.NODE_ENV === 'test' ? 0 : 1500;
       setTimeout(() => {
+        // Bypass the discard prompt — the post just succeeded so
+        // there's nothing to lose by navigating to the job page.
+        allowExit();
         navigation.navigate('JobDetails', { jobId: result?.id || 'job-1' });
       }, delay);
     } catch (error) {

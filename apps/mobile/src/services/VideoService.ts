@@ -265,10 +265,17 @@ class VideoService {
     options: {
       assessmentId?: string;
       propertyId?: string;
+      // 2026-04-30 audit P1 follow-up: callers (the queue processor)
+      // pass the local queue-item id so we can write a polling-key
+      // mapping `video_assessment_${queueItemId} -> serverAssessmentId`
+      // for `getProcessingResults(videoId)` lookups. Without this the
+      // poller looked up `video_assessment_${queueItemId}` but we only
+      // ever stored under `video_assessment_${serverAssessmentId}`.
+      queueItemId?: string;
     },
     onProgress?: (progress: VideoUploadProgress) => void
   ): Promise<{ url: string; path: string; assessmentId: string }> {
-    const { assessmentId, propertyId } = options;
+    const { assessmentId, propertyId, queueItemId } = options;
     if (!assessmentId && !propertyId) {
       throw new Error(
         'uploadVideo requires assessmentId or propertyId — refusing to upload an orphan video'
@@ -312,8 +319,17 @@ class VideoService {
       });
 
       // Persist the SERVER-issued assessmentId for status polling.
-      // The previous version stored a key under the client's temp id —
-      // VideoProcessingStatusScreen then polled the wrong record.
+      // The poller (`getProcessingResults`) looks up by the local
+      // queue-item id, NOT the server-issued id (callers don't see the
+      // server id directly). 2026-04-30 audit P1 follow-up: write under
+      // both keys so a future call from either side resolves. The
+      // server id key is mostly defensive for replay/inspection.
+      if (queueItemId) {
+        await AsyncStorage.setItem(
+          `video_assessment_${queueItemId}`,
+          uploadResult.assessmentId
+        );
+      }
       await AsyncStorage.setItem(
         `video_assessment_${uploadResult.assessmentId}`,
         uploadResult.assessmentId
@@ -473,6 +489,7 @@ class VideoService {
           const uploadOutcome = await this.uploadVideo(item!.videoPath, {
             assessmentId: item!.assessmentId,
             propertyId: item!.propertyId,
+            queueItemId: item!.id,
           });
           // Pin the server-issued assessmentId back onto the queue item
           // so any retry/processing path uses the same row.

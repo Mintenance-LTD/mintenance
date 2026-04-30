@@ -3,6 +3,36 @@ import { supabase } from '../../../config/supabase';
 import { mobileApiClient } from '../../../utils/mobileApiClient';
 
 /**
+ * 2026-04-30 audit P0-1 follow-up: writes to `building_assessments`
+ * have moved off the client. The mobile client still uses
+ * `supabase.auth.getSession()` (Auth API, not a table read) for the
+ * pre-flight session check, but every status update now goes through
+ * `PATCH /api/assessments/{id}/status` so RLS + ownership lives in
+ * one place. Direct `supabase.from('building_assessments').update`
+ * calls below were the last unscoped DB writes flagged by the audit.
+ */
+async function patchAssessmentStatus(
+  assessmentId: string,
+  body: Record<string, unknown>
+): Promise<void> {
+  try {
+    await mobileApiClient.patch(
+      `/api/assessments/${encodeURIComponent(assessmentId)}/status`,
+      body
+    );
+  } catch (err) {
+    // Status patch failure is non-fatal — the row stays in whatever
+    // state it was; cron `agent-processor` can retry. Log so we can
+    // see the rate of these in Sentry rather than swallowing.
+    logger.warn('Failed to patch assessment status via API', {
+      assessmentId,
+      keys: Object.keys(body),
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
+}
+
+/**
  * Backend-accepted propertyType values for /api/building-surveyor/assess.
  * The mobile wizard exposes a richer UK-friendly list (House, Flat, Bungalow,
  * Commercial, Other), but the Zod schema only accepts these three. Map at
@@ -152,10 +182,9 @@ export async function triggerAIAnalysis(
     const { data: sessionData } = await supabase.auth.getSession();
     if (!sessionData?.session) {
       logger.warn('Skipping AI analysis — no valid session', { assessmentId });
-      await supabase
-        .from('building_assessments')
-        .update({ validation_status: 'ai_analysis_skipped_no_auth' })
-        .eq('id', assessmentId);
+      await patchAssessmentStatus(assessmentId, {
+        validation_status: 'ai_analysis_skipped_no_auth',
+      });
       return;
     }
   } catch (authErr) {
@@ -210,43 +239,36 @@ export async function triggerAIAnalysis(
     const safetyScore = result.safetyHazards?.hasImmediateDanger ? 0 : 100;
 
     // Merge AI output into assessment_data without clobbering wizard data.
-    const { data: existing } = await supabase
-      .from('building_assessments')
-      .select('assessment_data')
-      .eq('id', assessmentId)
-      .single();
-
-    const mergedData = {
-      ...(existing?.assessment_data ?? {}),
-      ai_analysis: result,
-      ai_analysed_at: new Date().toISOString(),
-      ai_model: 'mint-ai-vlm',
-    };
-
-    const { error: updateError } = await supabase
-      .from('building_assessments')
-      .update({
-        damage_type: damageType,
-        damage_type_canonical: damageType,
-        severity,
-        confidence,
-        urgency,
-        insurance_risk_score: insuranceRiskScore,
-        safety_score: safetyScore,
-        assessment_data: mergedData,
-        validation_status: 'needs_review',
-      })
-      .eq('id', assessmentId);
-
-    if (updateError) {
+    // The PATCH endpoint accepts an `assessment_data_patch` field and
+    // does the JSON merge server-side, so we don't have to read-modify-
+    // write the row from the client.
+    try {
+      await mobileApiClient.patch(
+        `/api/assessments/${encodeURIComponent(assessmentId)}/status`,
+        {
+          damage_type: damageType,
+          damage_type_canonical: damageType,
+          severity,
+          confidence,
+          urgency,
+          insurance_risk_score: insuranceRiskScore,
+          safety_score: safetyScore,
+          validation_status: 'needs_review',
+          assessment_data_patch: {
+            ai_analysis: result,
+            ai_analysed_at: new Date().toISOString(),
+            ai_model: 'mint-ai-vlm',
+          },
+        }
+      );
+    } catch (apiErr) {
       logger.warn('AI analysis succeeded but DB update failed', {
         assessmentId,
-        error: updateError.message,
+        error: apiErr instanceof Error ? apiErr.message : String(apiErr),
       });
-      await supabase
-        .from('building_assessments')
-        .update({ validation_status: 'ai_analysis_failed' })
-        .eq('id', assessmentId);
+      await patchAssessmentStatus(assessmentId, {
+        validation_status: 'ai_analysis_failed',
+      });
       return;
     }
 
@@ -272,17 +294,10 @@ export async function triggerAIAnalysis(
       authFailure: isAuthError,
     });
 
-    try {
-      await supabase
-        .from('building_assessments')
-        .update({
-          validation_status: isAuthError
-            ? 'ai_analysis_skipped_no_auth'
-            : 'ai_analysis_failed',
-        })
-        .eq('id', assessmentId);
-    } catch {
-      /* swallow — primary failure already logged */
-    }
+    await patchAssessmentStatus(assessmentId, {
+      validation_status: isAuthError
+        ? 'ai_analysis_skipped_no_auth'
+        : 'ai_analysis_failed',
+    });
   }
 }

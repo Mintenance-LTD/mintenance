@@ -25,6 +25,7 @@ import { PricingSummary } from './create-quote/components/PricingSummary';
 import type { LineItem } from './create-quote/viewmodels/CreateQuoteViewModel';
 import { theme } from '../theme';
 import { styles } from './BidSubmissionStyles';
+import { useUnsavedChanges } from '../hooks/useUnsavedChanges';
 
 type Props = {
   route: RouteProp<JobsStackParamList, 'BidSubmission'>;
@@ -58,6 +59,19 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+
+  // Discard-prompt protection — bail-out without saving loses the
+  // entire bid draft, which is high-effort content. The prompt covers
+  // both quick + detailed modes by checking every input source.
+  const isDirty = !!(
+    amount ||
+    description ||
+    estimatedDuration ||
+    proposedStartDate ||
+    terms ||
+    lineItems.length > 0
+  );
+  const allowExit = useUnsavedChanges(isDirty);
 
   useEffect(() => {
     loadJob();
@@ -187,7 +201,13 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
         payload as Parameters<typeof JobService.submitBid>[0]
       );
       Alert.alert('Success', 'Your bid has been submitted!', [
-        { text: 'OK', onPress: () => navigation.goBack() },
+        {
+          text: 'OK',
+          onPress: () => {
+            allowExit();
+            navigation.goBack();
+          },
+        },
       ]);
     } catch (error) {
       setFormError(

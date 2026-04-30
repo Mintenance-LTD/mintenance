@@ -1,10 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import { logger } from '../../utils/logger';
 import * as sentry from '../../config/sentry';
-import {
-  routeForNotification,
-  type NotificationRoute,
-} from './notificationRoutingTable';
+import { routeForNotification } from './notificationRoutingTable';
 import type {
   NotificationData,
   NotificationDeepLinkData,
@@ -27,15 +24,19 @@ function addBreadcrumb(
  * navigation matches the in-app inbox tap exactly. Previously this
  * file owned its own switch statement that disagreed with
  * `notificationNavigation.ts` on bid_received and meeting_scheduled.
+ *
+ * 2026-04-30 audit P1 follow-up: `routeForNotification` is now
+ * total — it returns the in-app inbox fallback for unknown types
+ * rather than `null`. We log the fallback for diagnosability but
+ * still always navigate, matching the documented contract.
  */
 function getDeepLinkParams(
   type: NotificationData['type'],
   data: unknown
-): DeepLinkParams | null {
+): DeepLinkParams {
   const route = routeForNotification(type, data);
-  if (!route) {
-    logger.warn('Unknown notification type', { type });
-    return null;
+  if (route.screen === 'Modal' && route.params?.screen === 'Notifications') {
+    logger.warn('Routing notification to inbox fallback', { type });
   }
   return route as DeepLinkParams;
 }
@@ -96,11 +97,6 @@ export async function handleNotificationResponse(
   }
 
   const deepLinkParams = getDeepLinkParams(type, data);
-
-  if (!deepLinkParams) {
-    logger.warn('No deep link configured for notification type', { type });
-    return;
-  }
 
   try {
     navigationRef.navigate(deepLinkParams.screen, deepLinkParams.params);

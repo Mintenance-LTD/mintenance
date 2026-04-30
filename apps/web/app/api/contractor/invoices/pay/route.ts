@@ -8,7 +8,11 @@ import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { stripe } from '@/lib/stripe';
-import { BadRequestError, NotFoundError, ForbiddenError } from '@/lib/errors/api-error';
+import {
+  BadRequestError,
+  NotFoundError,
+  ForbiddenError,
+} from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 
 // Payment initiation schema
@@ -20,7 +24,16 @@ const initiatePaymentSchema = z.object({
 
 // Create Stripe payment intent for invoice
 async function createPaymentIntent(
-  invoice: { id: string; contractor_id: string; total_amount: number; invoice_number: string; title: string; client_email: string; job_id?: string; status: string },
+  invoice: {
+    id: string;
+    contractor_id: string;
+    total_amount: number;
+    invoice_number: string;
+    title: string;
+    client_email: string;
+    job_id?: string;
+    status: string;
+  },
   payerId: string
 ) {
   try {
@@ -36,7 +49,9 @@ async function createPaymentIntent(
 
     const platformFeePercent = 5;
     const amountCents = Math.round(invoice.total_amount * 100);
-    const platformFeeCents = Math.round(amountCents * (platformFeePercent / 100));
+    const platformFeeCents = Math.round(
+      amountCents * (platformFeePercent / 100)
+    );
 
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amountCents,
@@ -66,7 +81,16 @@ async function createPaymentIntent(
 
 // Create escrow transaction for invoice payment
 async function createEscrowTransaction(
-  invoice: { id: string; contractor_id: string; total_amount: number; invoice_number: string; title: string; client_email: string; job_id?: string; status: string },
+  invoice: {
+    id: string;
+    contractor_id: string;
+    total_amount: number;
+    invoice_number: string;
+    title: string;
+    client_email: string;
+    job_id?: string;
+    status: string;
+  },
   payerId: string,
   paymentIntentId: string
 ) {
@@ -125,8 +149,9 @@ export const POST = withApiHandler(
 
     // Fetch invoice details
     const { data: invoice, error: invoiceError } = await serverSupabase
-      .from('contractor_invoices')
-      .select(`
+      .from('invoices')
+      .select(
+        `
         *,
         contractor:contractor_id (
           id,
@@ -134,7 +159,8 @@ export const POST = withApiHandler(
           company_name,
           stripe_connect_account_id
         )
-      `)
+      `
+      )
       .eq('id', validatedData.invoiceId)
       .single();
 
@@ -172,7 +198,11 @@ export const POST = withApiHandler(
     const paymentIntent = await createPaymentIntent(invoice, user.id);
 
     // Create escrow transaction
-    const escrow = await createEscrowTransaction(invoice, user.id, paymentIntent.id);
+    const escrow = await createEscrowTransaction(
+      invoice,
+      user.id,
+      paymentIntent.id
+    );
 
     // Create payment record
     const { data: payment, error: paymentError } = await serverSupabase
@@ -189,8 +219,8 @@ export const POST = withApiHandler(
         status: 'pending',
         description: `Payment for invoice ${invoice.invoice_number}`,
         platform_fee: invoice.total_amount * 0.05,
-        processing_fee: invoice.total_amount * 0.029 + 0.30,
-        net_amount: invoice.total_amount * 0.921 - 0.30,
+        processing_fee: invoice.total_amount * 0.029 + 0.3,
+        net_amount: invoice.total_amount * 0.921 - 0.3,
       })
       .select()
       .single();
@@ -201,7 +231,7 @@ export const POST = withApiHandler(
 
     // Update invoice status
     await serverSupabase
-      .from('contractor_invoices')
+      .from('invoices')
       .update({
         status: 'viewed',
         viewed_at: new Date().toISOString(),
@@ -209,19 +239,17 @@ export const POST = withApiHandler(
       .eq('id', invoice.id);
 
     // Create notification for contractor
-    await serverSupabase
-      .from('notifications')
-      .insert({
-        user_id: invoice.contractor_id,
-        type: 'payment_initiated',
-        title: 'Payment Initiated',
-        message: `Payment has been initiated for invoice ${invoice.invoice_number}`,
-        data: {
-          invoice_id: invoice.id,
-          payment_id: payment?.id,
-          amount: invoice.total_amount,
-        },
-      });
+    await serverSupabase.from('notifications').insert({
+      user_id: invoice.contractor_id,
+      type: 'payment_initiated',
+      title: 'Payment Initiated',
+      message: `Payment has been initiated for invoice ${invoice.invoice_number}`,
+      data: {
+        invoice_id: invoice.id,
+        payment_id: payment?.id,
+        amount: invoice.total_amount,
+      },
+    });
 
     logger.info('Payment initiated for invoice', {
       invoiceId: invoice.id,
@@ -245,7 +273,9 @@ export const POST = withApiHandler(
         number: invoice.invoice_number,
         amount: invoice.total_amount,
       },
-      redirectUrl: validatedData.returnUrl || `/payments/${payment?.id || paymentIntent.id}/confirm`,
+      redirectUrl:
+        validatedData.returnUrl ||
+        `/payments/${payment?.id || paymentIntent.id}/confirm`,
     });
   }
 );
@@ -270,14 +300,16 @@ export const GET = withApiHandler(
     // Fetch local payment record
     const { data: payment } = await serverSupabase
       .from('payments')
-      .select(`
+      .select(
+        `
         *,
         invoice:invoice_id (
           invoice_number,
           title,
           total_amount
         )
-      `)
+      `
+      )
       .eq('stripe_payment_intent_id', paymentIntentId)
       .single();
 
@@ -286,14 +318,18 @@ export const GET = withApiHandler(
       await serverSupabase
         .from('payments')
         .update({
-          status: paymentIntent.status === 'succeeded' ? 'completed' : payment.status,
-          processed_at: paymentIntent.status === 'succeeded' ? new Date().toISOString() : null,
+          status:
+            paymentIntent.status === 'succeeded' ? 'completed' : payment.status,
+          processed_at:
+            paymentIntent.status === 'succeeded'
+              ? new Date().toISOString()
+              : null,
         })
         .eq('id', payment.id);
 
       if (paymentIntent.status === 'succeeded') {
         await serverSupabase
-          .from('contractor_invoices')
+          .from('invoices')
           .update({
             status: 'paid',
             paid_amount: payment.invoice.total_amount,
@@ -318,11 +354,13 @@ export const GET = withApiHandler(
         amount: paymentIntent.amount,
         currency: paymentIntent.currency,
       },
-      payment: payment ? {
-        id: payment.id,
-        status: payment.status,
-        invoice: payment.invoice,
-      } : null,
+      payment: payment
+        ? {
+            id: payment.id,
+            status: payment.status,
+            invoice: payment.invoice,
+          }
+        : null,
     });
   }
 );

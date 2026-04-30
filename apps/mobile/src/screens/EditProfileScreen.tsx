@@ -22,6 +22,7 @@ import { LocationSection } from './EditProfileSections/LocationSection';
 import { AvailabilitySection } from './EditProfileSections/AvailabilitySection';
 import { theme } from '../theme';
 import { logger } from '../utils/logger';
+import { useUnsavedChanges } from '../hooks/useUnsavedChanges';
 
 interface GeoAddr {
   house_number?: string;
@@ -57,6 +58,47 @@ const EditProfileScreen: React.FC = () => {
   const [locating, setLocating] = useState(false);
   const [gpsLat, setGpsLat] = useState<number | null>(null);
   const [gpsLng, setGpsLng] = useState<number | null>(null);
+
+  // Discard-prompt — flip on first user edit. Initial async profile
+  // hydration in the effect below sets state via the *plain* setters
+  // and does NOT call setHasEdits, so navigating away before any user
+  // input is silent.
+  const [hasEdits, setHasEdits] = useState(false);
+  const allowExit = useUnsavedChanges(hasEdits);
+  const markDirty = () => setHasEdits(true);
+
+  // Wrapped setters that flip the dirty flag — these are what the
+  // section components call. The plain setters above remain available
+  // for pre-fill paths (the effect, reverse-geocode lookup) that
+  // shouldn't show the prompt.
+  const setFirstNameDirty = (v: string) => {
+    setFirstName(v);
+    markDirty();
+  };
+  const setLastNameDirty = (v: string) => {
+    setLastName(v);
+    markDirty();
+  };
+  const setPhoneDirty = (v: string) => {
+    setPhone(v);
+    markDirty();
+  };
+  const setBioDirty = (v: string) => {
+    setBio(v);
+    markDirty();
+  };
+  const setAddressDirty = (v: string) => {
+    setAddress(v);
+    markDirty();
+  };
+  const setCityDirty = (v: string) => {
+    setCity(v);
+    markDirty();
+  };
+  const setPostcodeDirty = (v: string) => {
+    setPostcode(v);
+    markDirty();
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -224,10 +266,18 @@ const EditProfileScreen: React.FC = () => {
       // the header until the next app reload.
       if (user && (Object.keys(filteredUpdates).length > 0 || photoUploaded)) {
         await refreshUser();
+        setHasEdits(false);
         Alert.alert('Success', 'Profile updated successfully!', [
-          { text: 'OK', onPress: () => navigation.goBack() },
+          {
+            text: 'OK',
+            onPress: () => {
+              allowExit();
+              navigation.goBack();
+            },
+          },
         ]);
       } else {
+        allowExit();
         navigation.goBack();
       }
     } catch (error) {
@@ -300,6 +350,7 @@ const EditProfileScreen: React.FC = () => {
     });
     if (!result.canceled && result.assets[0]?.uri) {
       setPhotoUri(result.assets[0].uri);
+      markDirty();
     }
   };
   return (
@@ -348,23 +399,23 @@ const EditProfileScreen: React.FC = () => {
         />
         <PersonalInfoSection
           firstName={firstName}
-          setFirstName={setFirstName}
+          setFirstName={setFirstNameDirty}
           lastName={lastName}
-          setLastName={setLastName}
+          setLastName={setLastNameDirty}
           email={user?.email || ''}
           phone={phone}
-          setPhone={setPhone}
+          setPhone={setPhoneDirty}
           bio={bio}
-          setBio={setBio}
+          setBio={setBioDirty}
           userRole={user?.role}
         />
         <LocationSection
           address={address}
-          setAddress={setAddress}
+          setAddress={setAddressDirty}
           city={city}
-          setCity={setCity}
+          setCity={setCityDirty}
           postcode={postcode}
-          setPostcode={setPostcode}
+          setPostcode={setPostcodeDirty}
           locating={locating}
           onUseMyLocation={handleUseMyLocation}
         />
