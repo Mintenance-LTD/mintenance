@@ -1,6 +1,7 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { EmailService } from '@/lib/email-service';
+import { NotificationService } from '@/lib/services/notifications/NotificationService';
 
 /** How far back to look for new jobs in the digest */
 const DIGEST_WINDOW_DAYS = 7;
@@ -76,7 +77,11 @@ function buildJobRows(jobs: OpenJob[]): string {
     .join('');
 }
 
-function buildDigestHtml(firstName: string, jobs: OpenJob[], totalOpenJobs: number): string {
+function buildDigestHtml(
+  firstName: string,
+  jobs: OpenJob[],
+  totalOpenJobs: number
+): string {
   const jobRows = buildJobRows(jobs);
   const moreJobsLine =
     totalOpenJobs > jobs.length
@@ -138,7 +143,11 @@ export class JobDigestService {
    *   4. Match by skill_name ↔ job.category (case-insensitive)
    *   5. Skip contractors with 0 matches or already emailed this week
    */
-  static async sendWeeklyDigests(): Promise<{ sent: number; failed: number; skipped: number }> {
+  static async sendWeeklyDigests(): Promise<{
+    sent: number;
+    failed: number;
+    skipped: number;
+  }> {
     const windowStart = new Date(
       Date.now() - DIGEST_WINDOW_DAYS * 24 * 60 * 60 * 1000
     ).toISOString();
@@ -158,9 +167,13 @@ export class JobDigestService {
       .limit(BATCH_LIMIT);
 
     if (contractorError || !contractors || contractors.length === 0) {
-      logger.error('Failed to fetch contractors for job digest', contractorError, {
-        service: 'job-digest',
-      });
+      logger.error(
+        'Failed to fetch contractors for job digest',
+        contractorError,
+        {
+          service: 'job-digest',
+        }
+      );
       return { sent: 0, failed: 0, skipped: 0 };
     }
 
@@ -173,9 +186,13 @@ export class JobDigestService {
       .in('contractor_id', contractorIds);
 
     if (skillsError) {
-      logger.error('Failed to fetch contractor skills for job digest', skillsError, {
-        service: 'job-digest',
-      });
+      logger.error(
+        'Failed to fetch contractor skills for job digest',
+        skillsError,
+        {
+          service: 'job-digest',
+        }
+      );
       return { sent: 0, failed: 0, skipped: 0 };
     }
 
@@ -192,14 +209,21 @@ export class JobDigestService {
     // (text column sort is lexicographic so we can't rely on DB ordering for urgency)
     const { data: openJobs, error: jobsError } = await serverSupabase
       .from('jobs')
-      .select('id, title, category, budget_min, budget_max, urgency, created_at')
+      .select(
+        'id, title, category, budget_min, budget_max, urgency, created_at'
+      )
       .in('status', ['open', 'posted'])
       .gte('created_at', windowStart)
       .order('created_at', { ascending: false })
       .limit(500);
 
     // Sort semantically: emergency → high → medium → low → null
-    const URGENCY_RANK: Record<string, number> = { emergency: 0, high: 1, medium: 2, low: 3 };
+    const URGENCY_RANK: Record<string, number> = {
+      emergency: 0,
+      high: 1,
+      medium: 2,
+      low: 3,
+    };
     openJobs?.sort((a, b) => {
       const ra = URGENCY_RANK[a.urgency ?? ''] ?? 4;
       const rb = URGENCY_RANK[b.urgency ?? ''] ?? 4;
@@ -207,7 +231,9 @@ export class JobDigestService {
     });
 
     if (jobsError || !openJobs || openJobs.length === 0) {
-      logger.info('No open jobs this week for digest', { service: 'job-digest' });
+      logger.info('No open jobs this week for digest', {
+        service: 'job-digest',
+      });
       return { sent: 0, failed: 0, skipped: contractors.length };
     }
 
@@ -219,7 +245,9 @@ export class JobDigestService {
       .eq('type', 'job_digest')
       .gte('created_at', cooldownCutoff);
 
-    const recentlyDigestedIds = new Set((recentDigests || []).map((n) => n.user_id));
+    const recentlyDigestedIds = new Set(
+      (recentDigests || []).map((n) => n.user_id)
+    );
 
     // Step 5: Build personalised digests
     const digests: ContractorDigest[] = [];
@@ -235,7 +263,9 @@ export class JobDigestService {
       const matchingJobs =
         skills.size === 0
           ? openJobs.slice(0, MAX_JOBS_IN_DIGEST)
-          : openJobs.filter((job) => skills.has(job.category?.toLowerCase() ?? ''));
+          : openJobs.filter((job) =>
+              skills.has(job.category?.toLowerCase() ?? '')
+            );
 
       if (matchingJobs.length === 0) {
         continue; // No relevant jobs this week — skip this contractor
@@ -250,34 +280,45 @@ export class JobDigestService {
     }
 
     if (digests.length === 0) {
-      logger.info('No contractor digests to send this week', { service: 'job-digest' });
+      logger.info('No contractor digests to send this week', {
+        service: 'job-digest',
+      });
       return { sent: 0, failed: 0, skipped: contractors.length };
     }
 
     // Step 6: Send emails
     let sent = 0;
     let failed = 0;
-    const skipped = contractors.length - recentlyDigestedIds.size - digests.length;
+    const skipped =
+      contractors.length - recentlyDigestedIds.size - digests.length;
 
     for (const digest of digests) {
       try {
         await EmailService.sendEmail({
           to: digest.email,
           subject: `${digest.matchingJobs.length} new job${digest.matchingJobs.length > 1 ? 's' : ''} matching your skills this week`,
-          html: buildDigestHtml(digest.first_name, digest.matchingJobs, openJobs.length),
+          html: buildDigestHtml(
+            digest.first_name,
+            digest.matchingJobs,
+            openJobs.length
+          ),
         });
 
-        // Record a notification row for dedup tracking.
-        // We insert directly (not via NotificationService) so this is email-only
-        // and does not trigger a push notification to the contractor's device.
-        // action_url lives in the data JSONB column, matching how NotificationService stores it.
-        await serverSupabase.from('notifications').insert({
-          user_id: digest.id,
+        // 2026-04-30 audit P0-10: routed through NotificationService
+        // with `inAppOnly: true` so the contractor's per-type mute and
+        // quiet-hours preferences are honoured (a contractor who muted
+        // job_digest no longer gets an in-app row), but no push fires
+        // — the email above is the canonical channel for this event.
+        // Previous direct `.from('notifications').insert(...)` also
+        // wrote to a non-existent `data` column; the service uses
+        // `metadata` which actually exists on the table.
+        await NotificationService.createNotification({
+          userId: digest.id,
+          type: 'job_digest',
           title: 'Weekly Job Digest',
           message: `${digest.matchingJobs.length} new job${digest.matchingJobs.length > 1 ? 's' : ''} matching your skills this week`,
-          type: 'job_digest',
-          read: false,
-          data: { action_url: '/contractor/jobs' },
+          actionUrl: '/contractor/jobs',
+          inAppOnly: true,
         });
 
         sent++;

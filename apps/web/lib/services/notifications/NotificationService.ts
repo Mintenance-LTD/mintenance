@@ -41,6 +41,16 @@ interface CreateNotificationParams {
   message: string;
   actionUrl?: string;
   metadata?: Record<string, unknown>;
+  /**
+   * Suppress the push channel for this notification even when the user
+   * has push enabled. Use for retention digests where the user has
+   * already received the email — without this flag they'd get a double
+   * notification (email + push) for the same event.
+   *
+   * The in-app row + per-type mute + quiet-hours rules still apply.
+   * 2026-04-30 audit P0-10 follow-up.
+   */
+  inAppOnly?: boolean;
 }
 
 async function insertInAppNotification(
@@ -145,12 +155,15 @@ export class NotificationService {
       notificationId = await insertInAppNotification(params);
     }
 
-    if (prefs.push_enabled) {
+    if (prefs.push_enabled && !params.inAppOnly) {
       // Fire-and-forget. Failures are logged + enqueued for retry in
       // the push dispatcher. On success, the dispatcher also flips
       // push_sent + delivered_at on the `notifications` row via
       // the notificationId we thread through below (added 2026-04-20
       // for observability of multi-channel delivery).
+      // `inAppOnly` callers (e.g. retention digests) opt out here
+      // because they already delivered through email and would
+      // otherwise double-notify the user.
       void sendPushToDevice({
         userId: params.userId,
         title: params.title,

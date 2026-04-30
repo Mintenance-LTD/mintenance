@@ -223,6 +223,16 @@ export const ContractPreparationScreen: React.FC<Props> = ({
       return;
     }
 
+    // 2026-04-30 audit P1: validate() above guarantees both dates
+    // exist when errs is empty, but TypeScript can't see through that
+    // to the `!` we used to use. Re-check explicitly so the submit
+    // path is crash-safe even if validate()'s rules drift.
+    if (!startDate || !endDate) {
+      HapticService.error();
+      Alert.alert('Error', 'Start and end dates are required.');
+      return;
+    }
+
     setSubmitting(true);
     try {
       await mobileApiClient.post('/api/contracts', {
@@ -230,8 +240,8 @@ export const ContractPreparationScreen: React.FC<Props> = ({
         title,
         description,
         amount: Number(amount),
-        start_date: startDate!.toISOString(),
-        end_date: endDate!.toISOString(),
+        start_date: startDate.toISOString(),
+        end_date: endDate.toISOString(),
         contractor_company_name: companyName,
         contractor_license_registration: licenseNumber,
         contractor_license_type: licenseType || undefined,

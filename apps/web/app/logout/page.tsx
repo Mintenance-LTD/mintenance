@@ -1,41 +1,24 @@
 import type { Metadata } from 'next';
-import { redirect } from 'next/navigation';
-import { authManager } from '@/lib/auth-manager';
-import { logger } from '@mintenance/shared';
-import { cookies } from 'next/headers';
+import LogoutClient from './LogoutClient';
 
 export const metadata: Metadata = {
   title: 'Sign Out | Mintenance',
   description: 'Sign out of your Mintenance account securely.',
+  // Prevent prefetching/crawlers from triggering this route accidentally.
+  robots: { index: false, follow: false },
 };
 
-// Mark as dynamic since we use cookies()
 export const dynamic = 'force-dynamic';
 
 /**
- * Logout Page Route
- * 
- * Handles server-side logout and redirects to login page.
- * This allows users to directly navigate to /logout URL.
+ * Logout Confirmation Page
+ *
+ * SAFETY: Visiting this URL must NOT log the user out. A browser prefetch,
+ * crawler, embedded image, or stale link must not be able to destroy a
+ * session by GET navigation. The actual logout is performed by the client
+ * via POST /api/auth/logout (CSRF-protected) only after the user clicks
+ * the "Sign out" button.
  */
-export default async function LogoutPage() {
-  try {
-    // Get user from cookies to determine if they're logged in
-    const cookieStore = await cookies();
-    const authCookie = cookieStore.get('auth-token');
-    
-    // Only attempt logout if user has auth cookie
-    if (authCookie) {
-      // Use AuthManager to handle logout server-side
-      await authManager.logout();
-      logger.info('User logged out via /logout route', { service: 'auth' });
-    }
-  } catch (error) {
-    // Log error but still redirect to login
-    logger.error('Logout route error', error, { service: 'auth' });
-  }
-  
-  // Always redirect to login page
-  redirect('/login');
+export default function LogoutPage() {
+  return <LogoutClient />;
 }
-

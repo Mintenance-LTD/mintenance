@@ -20,6 +20,7 @@ import type {
   ProfileStackParamList,
   RootTabParamList,
 } from '../../navigation/types';
+import { goToMessagingThread } from '../../navigation/hooks';
 import { theme } from '../../theme';
 
 interface ClientData {
@@ -86,14 +87,12 @@ export const ClientDetailScreen: React.FC<ClientDetailScreenProps> = ({
   };
 
   const handleMessage = () => {
-    tabNavigation.navigate('MessagingTab', {
-      screen: 'Messaging',
-      params: {
-        conversationId: client.client_id,
-        recipientId: client.client_id,
-        recipientName: `${client.first_name} ${client.last_name}`.trim(),
-      },
-    } as never);
+    // 2026-04-30 audit P1: typed cross-stack helper replaces `as never`.
+    goToMessagingThread(tabNavigation, {
+      conversationId: client.client_id,
+      recipientId: client.client_id,
+      recipientName: `${client.first_name} ${client.last_name}`.trim(),
+    });
   };
 
   const statusColor =

@@ -52,6 +52,22 @@ jobs:
       - name: TypeScript compilation check
         run: npm run type-check
 
+      # 2026-04-30 audit P1 — service-role-fallback scoping check.
+      # Fails the build if any `userDb` query in apps/web/app/api/**
+      # lacks an explicit user-id scope, ownership check, or opt-out
+      # marker. See docs/FULL_APP_AUDIT_2026_04_30.md → "Service Role
+      # Fallback Requires Route-Level Discipline".
+      - name: Service-role scoping check
+        run: npx tsx scripts/check-service-role-scoping.ts
+
+      # 2026-04-30 audit P0 — internal-link crawler.
+      # Fails the build if any `href`, `router.push`, `router.replace`,
+      # or `redirect` references a path that doesn't match a real
+      # Next.js route (after resolving [id] / [...slug]). Skips
+      # comments, /api/*, /docs/*, mailto/tel, and template literals.
+      - name: Internal links resolve
+        run: npx tsx scripts/check-internal-links.ts
+
       - name: Lint (web)
         run: npm run lint:web
 

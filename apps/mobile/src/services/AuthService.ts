@@ -161,8 +161,17 @@ export class AuthService {
         throw ServiceErrorHandler.handleDatabaseError(error, context);
       }
 
-      // User profile is automatically created by the handle_new_user trigger
-      // No manual profile creation needed
+      // User profile is automatically created by the handle_new_user
+      // trigger. No manual profile creation needed.
+      //
+      // 2026-04-30 audit P1 (Authentication + signup side-effect
+      // parity): the contractor-trial side effect that web's
+      // `/api/auth/register` does is wired into `performSignIn`
+      // (apps/mobile/src/contexts/auth-actions.ts) instead of here,
+      // because signUp may not yield a session immediately when
+      // email confirmation is required. The next sign-in is
+      // guaranteed to have a bearer token, and the reconciliation
+      // endpoint is idempotent.
 
       return data;
     }, context);

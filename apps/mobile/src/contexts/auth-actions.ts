@@ -179,6 +179,29 @@ export const performSignIn = async (
       addBreadcrumb(`User signed in: ${signedInUser.email}`, 'auth');
       initializePushNotifications(signedInUser.id);
 
+      // 2026-04-30 audit P1 (Authentication + signup side-effect
+      // parity): web `/api/auth/register` initialises a contractor
+      // trial post-signup. Mobile's direct `supabase.auth.signUp`
+      // doesn't, so contractors who registered on mobile never got
+      // a trial. Call the idempotent reconciliation endpoint here
+      // — first sign-in for fresh mobile signups, every sign-in
+      // thereafter (self-healing for the existing affected users).
+      // Best-effort: a transient network failure here MUST NOT
+      // block sign-in, so the call is fire-and-forget with a
+      // visible warning if it errors.
+      try {
+        const { mobileApiClient } = await import('../utils/mobileApiClient');
+        await mobileApiClient.post('/api/auth/post-signup-reconciliation', {
+          role: signedInUser.role,
+        });
+      } catch (reconcileErr) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          '[AUTH] post-signup reconciliation failed (non-fatal):',
+          reconcileErr
+        );
+      }
+
       if (
         biometricAuth.biometricAvailable &&
         authSession?.access_token &&

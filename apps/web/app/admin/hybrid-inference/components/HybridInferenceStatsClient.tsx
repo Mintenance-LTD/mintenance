@@ -58,8 +58,9 @@ export function HybridInferenceStatsClient() {
       setLoading(true);
       setError(null);
 
-      // In production, this would call an API route
-      // For now, this is a placeholder showing the structure
+      // 2026-04-30 audit P1: stale comment removed. The stats are
+      // backed by `/api/admin/hybrid-inference/stats` (admin-only,
+      // withApiHandler-wrapped). This is a real production read.
       const response = await fetch(
         `/api/admin/hybrid-inference/stats?range=${timeRange}`
       );

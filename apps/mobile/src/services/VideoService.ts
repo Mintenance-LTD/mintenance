@@ -46,6 +46,7 @@ export interface VideoQueueItem {
   createdAt: string;
   retryCount: number;
   status: 'pending' | 'uploading' | 'processing' | 'completed' | 'failed';
+  error?: string;
 }
 
 export interface VideoGuidancePhase {
@@ -251,30 +252,52 @@ class VideoService {
   }
 
   /**
-   * Upload video to Supabase storage
+   * Upload video to the assessment endpoint.
+   *
+   * 2026-04-30 audit P0-3: callers MUST now pass either a real
+   * assessmentId (uuid created via POST /api/assessments first) OR a
+   * propertyId, not the placeholder string `'unknown'`. The server uses
+   * one or the other to attach the video to a real row instead of
+   * spawning an orphan assessment.
    */
   async uploadVideo(
     videoPath: string,
-    assessmentId: string,
+    options: {
+      assessmentId?: string;
+      propertyId?: string;
+    },
     onProgress?: (progress: VideoUploadProgress) => void
-  ): Promise<{ url: string; path: string }> {
+  ): Promise<{ url: string; path: string; assessmentId: string }> {
+    const { assessmentId, propertyId } = options;
+    if (!assessmentId && !propertyId) {
+      throw new Error(
+        'uploadVideo requires assessmentId or propertyId — refusing to upload an orphan video'
+      );
+    }
+
     try {
-      // Read video file
       const videoData = await this.readVideoFile(videoPath);
 
-      const fileName = `${assessmentId}_${Date.now()}.mp4`;
-      const storagePath = `assessments/${assessmentId}/videos/${fileName}`;
+      const idForFileName = assessmentId ?? propertyId ?? 'video';
+      const fileName = `${idForFileName}_${Date.now()}.mp4`;
+      const storagePath = assessmentId
+        ? `assessments/${assessmentId}/videos/${fileName}`
+        : `assessments/unlinked/${propertyId}/${fileName}`;
 
       logger.info('Uploading video via API', {
         storagePath,
         size: videoData.size,
+        hasAssessmentId: !!assessmentId,
       });
 
-      // Upload via API endpoint — server stores in Supabase Storage
-      // and triggers building surveyor AI assessment
       const formData = new FormData();
       formData.append('video', videoData, fileName);
-      formData.append('assessmentId', assessmentId);
+      if (assessmentId) {
+        formData.append('assessmentId', assessmentId);
+      }
+      if (propertyId) {
+        formData.append('propertyId', propertyId);
+      }
 
       const uploadResult = await mobileApiClient.postFormData<{
         success: boolean;
@@ -288,15 +311,18 @@ class VideoService {
         assessmentId: uploadResult.assessmentId,
       });
 
-      // Store assessment ID for status polling
+      // Persist the SERVER-issued assessmentId for status polling.
+      // The previous version stored a key under the client's temp id —
+      // VideoProcessingStatusScreen then polled the wrong record.
       await AsyncStorage.setItem(
-        `video_assessment_${assessmentId}`,
+        `video_assessment_${uploadResult.assessmentId}`,
         uploadResult.assessmentId
       );
 
       return {
         url: uploadResult.videoUrl,
         path: storagePath,
+        assessmentId: uploadResult.assessmentId,
       };
     } catch (error) {
       logger.error('Video upload failed', { error });
@@ -430,11 +456,28 @@ class VideoService {
           item!.status = 'uploading';
           this.currentUpload = item!;
 
-          // Upload video
-          const { url } = await this.uploadVideo(
-            item!.videoPath,
-            item!.assessmentId || 'unknown'
-          );
+          // Upload video — pass through whichever real id the queue
+          // captured. Falling back to the literal string 'unknown' as
+          // before created orphan storage paths AND made the server
+          // mint a brand-new assessment row that nothing polled.
+          if (!item!.assessmentId && !item!.propertyId) {
+            logger.error('Queued video has no assessmentId or propertyId', {
+              queueItemId: item!.id,
+            });
+            item!.status = 'failed';
+            item!.error = 'Missing assessmentId/propertyId';
+            this.uploadQueue.shift();
+            continue;
+          }
+
+          const uploadOutcome = await this.uploadVideo(item!.videoPath, {
+            assessmentId: item!.assessmentId,
+            propertyId: item!.propertyId,
+          });
+          // Pin the server-issued assessmentId back onto the queue item
+          // so any retry/processing path uses the same row.
+          item!.assessmentId = uploadOutcome.assessmentId;
+          const { url } = uploadOutcome;
 
           // Process with SAM2
           item!.status = 'processing';
@@ -575,19 +618,38 @@ class VideoService {
   }
 
   /**
-   * Read video file (platform-specific implementation)
+   * Read a local video file URI into a Blob the upload route can ingest.
+   *
+   * 2026-04-30 audit P0-3: this previously returned `new Blob()` (empty),
+   * which meant every video upload silently shipped a zero-byte file.
+   * React Native's `fetch` polyfill supports `file://` URIs returned by
+   * expo-image-picker / expo-camera, so we use it to materialize the
+   * binary into a Blob. The platform check is gone — the path of least
+   * surprise is "let fetch handle it".
    */
   private async readVideoFile(videoPath: string): Promise<Blob> {
-    // Platform-specific file reading
-    // This would use react-native-fs or similar
-    if (Platform.OS === 'ios') {
-      // iOS implementation
-    } else {
-      // Android implementation
+    if (!videoPath) {
+      throw new Error('Video path is required');
     }
 
-    // Placeholder - actual implementation would read file
-    return new Blob();
+    try {
+      const response = await fetch(videoPath);
+      if (!response.ok && response.status !== 0) {
+        // status 0 is normal for file:// fetches on RN — only treat real
+        // HTTP error codes as a failure.
+        throw new Error(`Failed to read video (status ${response.status})`);
+      }
+      const blob = await response.blob();
+      if (!blob || blob.size === 0) {
+        throw new Error('Read video file came back empty');
+      }
+      return blob;
+    } catch (error) {
+      logger.error('readVideoFile failed', { error, videoPath });
+      throw error instanceof Error
+        ? error
+        : new Error('Failed to read video file');
+    }
   }
 
   /**

@@ -152,7 +152,12 @@ export default function MFAVerificationScreen() {
         );
       }
 
-      // Navigate to appropriate screen
+      // Navigate to appropriate screen.
+      // 2026-04-30 audit P1: `redirectScreen` is a runtime string that
+      // could refer to ANY navigator (auth/main/profile), so the cast
+      // to `never` is intentional and unavoidable here. AuthContext
+      // controls which navigator is mounted post-auth so this just
+      // transitions to whatever the AuthStack root expects next.
       if (redirectScreen) {
         navigation.navigate(redirectScreen as never);
       } else {
@@ -348,6 +353,9 @@ export default function MFAVerificationScreen() {
           {/* Back to login */}
           <TouchableOpacity
             style={styles.backButton}
+            // Login lives on AuthStack but `useNavigation()` here is
+            // typed against the root nav, so the cast satisfies the
+            // overload — the runtime navigator IS AuthStack.
             onPress={() => navigation.navigate('Login' as never)}
             disabled={loading}
             accessibilityRole='link'

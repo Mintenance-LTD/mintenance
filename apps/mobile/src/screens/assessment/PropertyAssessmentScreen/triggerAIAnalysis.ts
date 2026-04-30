@@ -3,6 +3,51 @@ import { supabase } from '../../../config/supabase';
 import { mobileApiClient } from '../../../utils/mobileApiClient';
 
 /**
+ * Backend-accepted propertyType values for /api/building-surveyor/assess.
+ * The mobile wizard exposes a richer UK-friendly list (House, Flat, Bungalow,
+ * Commercial, Other), but the Zod schema only accepts these three. Map at
+ * the boundary so the user never hits a 400 after a successful submission.
+ */
+const BACKEND_PROPERTY_TYPES = [
+  'residential',
+  'commercial',
+  'industrial',
+] as const;
+type BackendPropertyType = (typeof BACKEND_PROPERTY_TYPES)[number];
+
+function normalizePropertyType(
+  raw: string | undefined
+): BackendPropertyType | undefined {
+  if (!raw) return undefined;
+  const v = raw.trim().toLowerCase();
+  if (
+    v === 'house' ||
+    v === 'flat' ||
+    v === 'bungalow' ||
+    v === 'apartment' ||
+    v === 'residential'
+  ) {
+    return 'residential';
+  }
+  if (v === 'commercial' || v === 'office' || v === 'retail' || v === 'shop') {
+    return 'commercial';
+  }
+  if (v === 'industrial' || v === 'warehouse' || v === 'factory') {
+    return 'industrial';
+  }
+  // 'other' or anything we don't recognise: drop it. The backend schema
+  // makes propertyType optional, so omitting is safer than guessing.
+  return undefined;
+}
+
+/**
+ * Backend caps imageUrls at 4 (LLM token budget). Mobile lets users add up
+ * to 10 photos. Send the first 4 to AI analysis — the full set is still
+ * persisted on the assessment row via /api/assessments/[id]/images.
+ */
+const MAX_AI_IMAGE_URLS = 4;
+
+/**
  * Mint AI response shape from /api/building-surveyor/assess.
  * Only the fields we actually persist back into building_assessments.
  */
@@ -130,14 +175,20 @@ export async function triggerAIAnalysis(
 
     // Call the web app's building-surveyor endpoint. Routes through
     // AssessmentGenerator → Mint AI (shadow mode) + GPT-4o.
+    // Property type is normalized to the backend Zod enum and image URLs
+    // are capped at MAX_AI_IMAGE_URLS — the backend rejects requests that
+    // exceed either constraint.
+    const aiPropertyType = normalizePropertyType(context.propertyType);
+    const cappedImageUrls = imageUrls.slice(0, MAX_AI_IMAGE_URLS);
+
     const result = await mobileApiClient.post<BuildingAssessmentResponse>(
       '/api/building-surveyor/assess',
       {
-        imageUrls,
+        imageUrls: cappedImageUrls,
         propertyId: context.propertyId,
         domain: context.domain ?? 'building',
-        ...(context.propertyType
-          ? { context: { propertyType: context.propertyType } }
+        ...(aiPropertyType
+          ? { context: { propertyType: aiPropertyType } }
           : {}),
         ...(context.gps ? { gps: context.gps } : {}),
         ...(context.roomMetadata &&

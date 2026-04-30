@@ -38,6 +38,7 @@ import { ContractorBadgesCard } from './components/ContractorBadgesCard';
 import { styles } from './contractorDashboardStyles';
 import { NotificationService } from '../../services/NotificationService';
 import { theme, gradients, semanticBg } from '../../theme';
+import { goToTab } from '../../navigation/hooks';
 
 const appIcon = require('../../../assets/icon.png');
 
@@ -65,13 +66,19 @@ export const ContractorDashboard: React.FC = () => {
     refetch,
   } = useQuery({
     queryKey: ['contractorStats', user?.id],
-    queryFn: () => UserService.getContractorStats(user!.id),
+    queryFn: () => {
+      if (!user) throw new Error('Not signed in');
+      return UserService.getContractorStats(user.id);
+    },
     enabled: !!user && user.role === 'contractor',
   });
 
   const { data: unreadCount = 0 } = useQuery({
     queryKey: ['unreadNotifications', user?.id],
-    queryFn: () => NotificationService.getUnreadCount(user!.id),
+    queryFn: () => {
+      if (!user) throw new Error('Not signed in');
+      return NotificationService.getUnreadCount(user.id);
+    },
     enabled: !!user,
     refetchInterval: 30000,
   });
@@ -85,7 +92,11 @@ export const ContractorDashboard: React.FC = () => {
   };
 
   const openMeetingSchedule = () => {
-    navigation.getParent?.()?.navigate('Modal', { screen: 'MeetingSchedule' });
+    // 2026-04-30 audit: MeetingSchedule modal requires `contractorId`,
+    // which a contractor's own dashboard does not have. Until a calendar
+    // surface is wired in, route to the canonical Booking Status screen
+    // so the contractor sees their existing/upcoming meetings.
+    navigation.navigate('BusinessTab', { screen: 'BookingStatus' });
   };
 
   const openJobDetails = (jobId: string) => {
@@ -161,7 +172,7 @@ export const ContractorDashboard: React.FC = () => {
       icon: 'person-circle',
       iconColor: theme.colors.textSecondary,
       iconBg: theme.colors.backgroundSecondary,
-      onPress: () => navigation.navigate('ProfileTab' as never),
+      onPress: () => goToTab(navigation, 'ProfileTab'),
     },
   ];
 

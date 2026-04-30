@@ -159,7 +159,7 @@ export class ContractorBusinessSuite {
 
   async createInvoice(invoiceData: Record<string, unknown>) {
     return ContractorBusinessSuite.finance.createInvoice(
-      invoiceData as Parameters<
+      invoiceData as unknown as Parameters<
         typeof ContractorBusinessSuite.finance.createInvoice
       >[0]
     );

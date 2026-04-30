@@ -152,10 +152,16 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({
 
   // ---------------------------------------------------------------------------
   // Step 2 — Video (navigate to existing VideoCaptureScreen)
+  //
+  // 2026-04-30 audit P0-3: do NOT mint a fake `assessment_${Date.now()}`
+  // id any more. The real assessment row is created in
+  // handleSubmitAssessment via POST /api/assessments. Video upload is now
+  // anchored on `propertyId` (server attaches it to the real assessment
+  // row when the user submits) — the queue carries propertyId through
+  // into VideoService.uploadVideo so the server creates one row, not two.
   // ---------------------------------------------------------------------------
   const handleStartVideoCapture = () => {
     navigation.navigate('VideoCapture', {
-      assessmentId: `assessment_${Date.now()}`,
       propertyId,
       onComplete: (uri: string) => {
         setVideoUri(uri);

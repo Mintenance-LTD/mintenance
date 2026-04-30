@@ -18,7 +18,12 @@ import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { logger } from '@mintenance/shared';
-import { BadRequestError, InternalServerError } from '@/lib/errors/api-error';
+import {
+  BadRequestError,
+  ForbiddenError,
+  InternalServerError,
+} from '@/lib/errors/api-error';
+import { PropertyTeamService } from '@/lib/services/property-team/PropertyTeamService';
 
 const gpsSchema = z
   .object({
@@ -72,6 +77,28 @@ export const POST = withApiHandler(
 
     const { property_id, assessment_data, gps, room_metadata, image_urls } =
       parsed.data;
+
+    // P0 / 2026-04-30 audit: ownership check. The endpoint previously
+    // accepted any property_id without verifying the caller has access,
+    // creating a cross-tenant data-integrity risk (assessment row written
+    // against another homeowner's property). PropertyTeamService.authorize
+    // returns true for the owner OR an accepted team member with 'view'
+    // rights, which mirrors the matrix the PUT/DELETE property routes use.
+    if (property_id) {
+      const { authorized } = await PropertyTeamService.authorize(
+        user.id,
+        property_id,
+        'view'
+      );
+      if (!authorized) {
+        logger.warn('Assessment create denied — property access', {
+          service: 'assessments',
+          userId: user.id,
+          propertyId: property_id,
+        });
+        throw new ForbiddenError('You do not have access to this property');
+      }
+    }
 
     const insertRow: Record<string, unknown> = {
       user_id: user.id,

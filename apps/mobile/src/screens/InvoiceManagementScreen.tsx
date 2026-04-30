@@ -82,14 +82,14 @@ export const InvoiceManagementScreen: React.FC<{ navigation: Nav }> = ({
   } = useQuery({
     queryKey: ['invoices', user?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('invoices')
-        .select('*')
-        .eq('contractor_id', user!.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw new Error(error.message);
-      return (data ?? []) as Invoice[];
+      // 2026-04-30 audit P0-1: was reading from supabase.from('invoices')
+      // directly. Route through the API so RLS, role checks, and any
+      // future side effects (PDF caching, notifications, audit logs)
+      // stay in one place.
+      const result = await mobileApiClient.get<{ invoices: Invoice[] }>(
+        '/api/contractor/invoices?limit=200'
+      );
+      return result?.invoices ?? [];
     },
     enabled: !!user,
   });
@@ -125,8 +125,11 @@ export const InvoiceManagementScreen: React.FC<{ navigation: Nav }> = ({
             text: 'Mark Paid',
             onPress: async () => {
               try {
+                // 2026-04-30 audit P0-1: canonical PATCH endpoint takes
+                // the invoice id as a query param, not a path segment.
+                // The path-segment URL was 404'ing silently.
                 await mobileApiClient.patch(
-                  `/api/contractor/invoices/${inv.id}`,
+                  `/api/contractor/invoices?id=${encodeURIComponent(inv.id)}`,
                   { status: 'paid' }
                 );
                 toast.success('Invoice marked as paid');
@@ -152,7 +155,7 @@ export const InvoiceManagementScreen: React.FC<{ navigation: Nav }> = ({
           onPress: async () => {
             try {
               await mobileApiClient.delete(
-                `/api/contractor/invoices/${inv.id}`
+                `/api/contractor/invoices?id=${encodeURIComponent(inv.id)}`
               );
               toast.success('Invoice deleted');
               qc.invalidateQueries({ queryKey: ['invoices'] });

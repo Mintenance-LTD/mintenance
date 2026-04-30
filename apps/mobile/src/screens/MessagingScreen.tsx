@@ -481,8 +481,21 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
             userId={user?.id || ''}
             jobId={jobId}
             onGoBack={() => navigation.goBack()}
+            // 2026-04-30 audit P1: video call backend is unbuilt
+            // (call_participants table doesn't exist in live schema —
+            // see audit P0-1 disposition for CallManager.ts).
+            // Replace the live-call CTA with a "coming soon" alert
+            // instead of letting the user trigger a broken flow.
+            // VideoCallScheduler still works because it writes to
+            // `video_calls` (which exists) for async scheduling, so
+            // we keep onScheduleCall live.
             onScheduleCall={() => videoCall.setShowScheduler(true)}
-            onStartVideoCall={videoCall.startVideoCall}
+            onStartVideoCall={() =>
+              Alert.alert(
+                'Video calls coming soon',
+                'Live video calls aren’t available yet. Tap the calendar icon to schedule a call instead.'
+              )
+            }
             onViewJobDetails={() => {
               navigation.getParent?.()?.navigate('JobsTab', {
                 screen: 'JobDetails',

@@ -18,12 +18,22 @@ export const contractorInvoiceLineItemSchema = z.object({
 export const createInvoiceSchema = z.object({
   jobId: z.string().uuid('Invalid job ID').optional(),
   quoteId: z.string().uuid('Invalid quote ID').optional(),
+  // 2026-04-30 audit P0-1 follow-up: mobile passes a `clientId` that
+  // refers to a `contractor_clients` row. The handler resolves
+  // name/email from that row when present so mobile doesn't need to
+  // duplicate the lookup. clientName remains required when clientId
+  // is omitted (web invoice creation flow).
+  clientId: z.string().uuid('Invalid client ID').optional(),
   clientName: z
     .string()
     .min(1, 'Client name is required')
     .max(200, 'Client name too long')
-    .transform((val) => sanitizeText(val, 200)),
-  clientEmail: z.string().transform((val) => sanitizeEmail(val)),
+    .transform((val) => sanitizeText(val, 200))
+    .optional(),
+  clientEmail: z
+    .string()
+    .transform((val) => sanitizeEmail(val))
+    .optional(),
   clientPhone: z.string().max(20, 'Phone number too long').optional(),
   clientAddress: z
     .string()
@@ -36,8 +46,14 @@ export const createInvoiceSchema = z.object({
     .max(200, 'Title too long')
     .transform((val) => sanitizeText(val, 200)),
   description: z.string().max(2000, 'Description too long').optional(),
-  lineItems: z.array(contractorInvoiceLineItemSchema).min(1, 'At least one line item is required'),
-  taxRate: z.number().min(0, 'Tax rate cannot be negative').max(100, 'Tax rate cannot exceed 100%').default(20),
+  lineItems: z
+    .array(contractorInvoiceLineItemSchema)
+    .min(1, 'At least one line item is required'),
+  taxRate: z
+    .number()
+    .min(0, 'Tax rate cannot be negative')
+    .max(100, 'Tax rate cannot exceed 100%')
+    .default(20),
   paymentTerms: z
     .string()
     .max(500, 'Payment terms too long')
@@ -56,8 +72,15 @@ export const updateInvoiceSchema = z.object({
     .transform((val) => sanitizeText(val, 200))
     .optional(),
   description: z.string().max(2000, 'Description too long').optional(),
-  lineItems: z.array(contractorInvoiceLineItemSchema).min(1, 'At least one line item is required').optional(),
-  taxRate: z.number().min(0, 'Tax rate cannot be negative').max(100, 'Tax rate cannot exceed 100%').optional(),
+  lineItems: z
+    .array(contractorInvoiceLineItemSchema)
+    .min(1, 'At least one line item is required')
+    .optional(),
+  taxRate: z
+    .number()
+    .min(0, 'Tax rate cannot be negative')
+    .max(100, 'Tax rate cannot exceed 100%')
+    .optional(),
   paymentTerms: z
     .string()
     .max(500, 'Payment terms too long')

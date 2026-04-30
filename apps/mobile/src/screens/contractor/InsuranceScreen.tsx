@@ -10,7 +10,7 @@ import {
   StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useProfileNavigation } from '../../navigation/hooks';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -55,7 +55,7 @@ const formatCurrency = (amount: number) =>
   `\u00A3${amount.toLocaleString('en-GB')}`;
 
 export const InsuranceScreen: React.FC = () => {
-  const navigation = useNavigation();
+  const navigation = useProfileNavigation();
   const { user } = useAuth();
 
   const { data, isLoading, error, refetch } = useQuery({
@@ -179,7 +179,7 @@ export const InsuranceScreen: React.FC = () => {
 
       <TouchableOpacity
         style={styles.fab}
-        onPress={() => navigation.navigate('BusinessProfile' as never)}
+        onPress={() => navigation.navigate('BusinessProfile')}
         accessibilityLabel='Add insurance details'
       >
         <Ionicons name='add' size={26} color={theme.colors.textInverse} />

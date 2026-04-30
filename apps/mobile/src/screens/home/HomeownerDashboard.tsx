@@ -28,6 +28,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../config/supabase';
 
 import { logger } from '../../utils/logger';
+import { goToTab } from '../../navigation/hooks';
 import { RecentJobs } from './RecentJobs';
 import { BidsReceived } from './BidsReceived';
 import { theme, gradients } from '../../theme';
@@ -59,7 +60,10 @@ export const HomeownerDashboard: React.FC = () => {
     refetch: refetchJobs,
   } = useQuery({
     queryKey: ['homeownerJobs', user?.id],
-    queryFn: () => JobService.getUserJobs(user!.id),
+    queryFn: () => {
+      if (!user) throw new Error('Not signed in');
+      return JobService.getUserJobs(user.id);
+    },
     enabled: !!user,
   });
 
@@ -99,7 +103,10 @@ export const HomeownerDashboard: React.FC = () => {
   // Unread notifications
   const { data: unreadCount = 0 } = useQuery({
     queryKey: ['unreadNotifications', user?.id],
-    queryFn: () => NotificationService.getUnreadCount(user!.id),
+    queryFn: () => {
+      if (!user) throw new Error('Not signed in');
+      return NotificationService.getUnreadCount(user.id);
+    },
     enabled: !!user,
     refetchInterval: 30000,
   });
@@ -108,13 +115,14 @@ export const HomeownerDashboard: React.FC = () => {
   const { data: appointments } = useQuery({
     queryKey: ['appointments', user?.id],
     queryFn: async () => {
+      if (!user) throw new Error('Not signed in');
       const today = new Date().toISOString().split('T')[0];
       const { data: rows, error: err } = await supabase
         .from('appointments')
         .select(
           'id, title, appointment_date, start_time, contractor:profiles!contractor_id(first_name, last_name)'
         )
-        .eq('client_id', user!.id)
+        .eq('client_id', user.id)
         .gte('appointment_date', today)
         .order('appointment_date', { ascending: true })
         .limit(10);
@@ -231,7 +239,7 @@ export const HomeownerDashboard: React.FC = () => {
           <View style={[styles.heroNav, { marginTop: insets.top + 8 }]}>
             <TouchableOpacity
               style={styles.brandButton}
-              onPress={() => navigation.navigate('HomeTab' as never)}
+              onPress={() => goToTab(navigation, 'HomeTab')}
               accessibilityRole='button'
               accessibilityLabel='Mintenance home'
             >
@@ -245,7 +253,7 @@ export const HomeownerDashboard: React.FC = () => {
                 onPress={() =>
                   navigation.navigate('Modal', {
                     screen: 'Notifications',
-                  } as never)
+                  })
                 }
                 accessibilityRole='button'
                 accessibilityLabel='Notifications'

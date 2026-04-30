@@ -175,6 +175,55 @@ export const POST = withApiHandler(
     if (invoiceValidation instanceof NextResponse) return invoiceValidation;
     const validatedData = invoiceValidation.data;
 
+    // 2026-04-30 audit P0-1 follow-up: when mobile sends a clientId
+    // (FK into contractor_clients), resolve the name/email here rather
+    // than forcing the client to duplicate the lookup. Falls back to
+    // the explicit clientName/clientEmail fields used by web flows.
+    let resolvedClientName: string | null = validatedData.clientName ?? null;
+    let resolvedClientEmail: string | null = validatedData.clientEmail ?? null;
+    let resolvedClientPhone: string | null = validatedData.clientPhone ?? null;
+    let resolvedClientAddress: string | null =
+      validatedData.clientAddress ?? null;
+
+    if (validatedData.clientId) {
+      const { data: client } = await serverSupabase
+        .from('contractor_clients')
+        .select('first_name, last_name, company_name, email, phone, address')
+        .eq('id', validatedData.clientId)
+        .eq('contractor_id', user.id)
+        .maybeSingle();
+
+      if (!client) {
+        return NextResponse.json(
+          { error: 'Client not found or not yours' },
+          { status: 400 }
+        );
+      }
+
+      const c = client as {
+        first_name: string | null;
+        last_name: string | null;
+        company_name: string | null;
+        email: string | null;
+        phone: string | null;
+        address: string | null;
+      };
+      const nameFromClient =
+        c.company_name?.trim() ||
+        [c.first_name, c.last_name].filter(Boolean).join(' ').trim();
+      if (!resolvedClientName) resolvedClientName = nameFromClient || 'Client';
+      if (!resolvedClientEmail) resolvedClientEmail = c.email ?? null;
+      if (!resolvedClientPhone) resolvedClientPhone = c.phone;
+      if (!resolvedClientAddress) resolvedClientAddress = c.address;
+    }
+
+    if (!resolvedClientName) {
+      return NextResponse.json(
+        { error: 'clientName or clientId is required' },
+        { status: 400 }
+      );
+    }
+
     // Calculate totals (taxRate defaults to 20 via schema validation)
     const { subtotal, taxAmount, totalAmount } = calculateTotals(
       validatedData.lineItems,
@@ -194,11 +243,12 @@ export const POST = withApiHandler(
       contractor_id: user.id,
       job_id: validatedData.jobId || null,
       quote_id: validatedData.quoteId || null,
+      client_id: validatedData.clientId || null,
       invoice_number: invoiceNumber,
-      client_name: validatedData.clientName,
-      client_email: validatedData.clientEmail,
-      client_phone: validatedData.clientPhone || null,
-      client_address: validatedData.clientAddress || null,
+      client_name: resolvedClientName,
+      client_email: resolvedClientEmail,
+      client_phone: resolvedClientPhone,
+      client_address: resolvedClientAddress,
       title: validatedData.title,
       description: validatedData.description || null,
       line_items: validatedData.lineItems,
