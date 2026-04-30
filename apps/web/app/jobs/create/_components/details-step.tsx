@@ -189,22 +189,27 @@ export function DetailsStep({
         />
       </div>
 
-      {/* Description */}
+      {/* Description.
+          2026-04-30 audit P1 (job creation consolidation): minimum is
+          20 chars, matching the canonical
+          `createJobRequestSchema` in packages/api-contracts/jobs.ts.
+          The previous "Minimum 50 characters" hint disagreed with the
+          API and forced users to type filler. */}
       <div>
         <label className='block text-base font-medium text-gray-900 mb-1'>
           Describe the work needed
         </label>
         <div
           className={`text-sm mb-2 ${
-            formData.description.length < 50
+            formData.description.length < 20
               ? 'text-gray-500'
               : 'text-teal-600 font-medium'
           }`}
         >
-          {formData.description.length < 50 ? (
+          {formData.description.length < 20 ? (
             <>
-              Minimum 50 characters ({formData.description.length}/50 -{' '}
-              {50 - formData.description.length} more needed)
+              Minimum 20 characters ({formData.description.length}/20 -{' '}
+              {20 - formData.description.length} more needed)
             </>
           ) : (
             <>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FadeIn, SlideIn } from '../components/animations/primitives';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -29,6 +30,15 @@ import { Input } from '../components/ui/Input';
 import { Banner } from '../components/ui/Banner';
 import { theme, gradients } from '../theme';
 import { useScreenCaptureGuard } from '../hooks/useScreenCaptureGuard';
+
+// 2026-04-30 audit P1: persist ONLY the email used at last successful
+// sign-in so returning users don't have to retype it. Password is NEVER
+// stored — biometric login + the OS keychain handle that side. Storing
+// in AsyncStorage rather than SecureStore is intentional: the email is
+// not a secret, but it IS PII so we still gate it behind an explicit
+// opt-in checkbox the user can toggle off ("Forget saved email").
+const REMEMBER_EMAIL_KEY = '@mintenance:rememberEmail';
+const REMEMBER_EMAIL_VALUE = '@mintenance:rememberEmail:value';
 
 type LoginScreenNavigationProp = NativeStackNavigationProp<
   AuthStackParamList,
@@ -58,12 +68,39 @@ const LoginScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const insets = useSafeAreaInsets();
   // Pre-fill email when redirected from EmailVerificationPendingScreen.
-  // Falls back to '' for every other entry.
+  // Falls back to '' for every other entry; the "Remember email" effect
+  // below may then fill it from AsyncStorage if the user opted in.
   const [email, setEmail] = useState(route?.params?.email ?? '');
   const [password, setPassword] = useState('');
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [rememberEmail, setRememberEmail] = useState(false);
   const { signIn, loading } = useAuth();
+
+  // Load the remembered email + opt-in flag on mount. Best-effort —
+  // if AsyncStorage throws we just leave the form empty.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const [optInRaw, savedEmail] = await Promise.all([
+          AsyncStorage.getItem(REMEMBER_EMAIL_KEY),
+          AsyncStorage.getItem(REMEMBER_EMAIL_VALUE),
+        ]);
+        if (cancelled) return;
+        const optIn = optInRaw === 'true';
+        setRememberEmail(optIn);
+        if (optIn && savedEmail && !route?.params?.email) {
+          setEmail(savedEmail);
+        }
+      } catch {
+        /* ignore — Remember-email is non-critical */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [route?.params?.email]);
 
   const togglePasswordVisibility = () => setPasswordVisible((prev) => !prev);
 
@@ -94,6 +131,23 @@ const LoginScreen: React.FC<Props> = ({ navigation, route }) => {
       haptics.formSubmit();
       await signIn(email, password);
       haptics.loginSuccess();
+      // Persist (or clear) the remembered email AFTER a confirmed
+      // successful sign-in so a typo or wrong account never gets saved.
+      try {
+        if (rememberEmail) {
+          await AsyncStorage.multiSet([
+            [REMEMBER_EMAIL_KEY, 'true'],
+            [REMEMBER_EMAIL_VALUE, email.trim()],
+          ]);
+        } else {
+          await AsyncStorage.multiRemove([
+            REMEMBER_EMAIL_KEY,
+            REMEMBER_EMAIL_VALUE,
+          ]);
+        }
+      } catch {
+        /* non-critical */
+      }
     } catch (error) {
       haptics.loginFailed();
       setErrorMessage(
@@ -237,24 +291,59 @@ const LoginScreen: React.FC<Props> = ({ navigation, route }) => {
                 required
               />
 
-              <TouchableOpacity
-                style={styles.forgotPasswordLink}
-                onPress={() => {
-                  haptics.buttonPress();
-                  navigation.navigate('ForgotPassword');
-                }}
-                accessibilityRole='button'
-                accessibilityLabel={String(auth.forgotPassword())}
-                accessibilityHint={String(
-                  t('auth.forgotPasswordHint', {
-                    defaultValue: 'Double tap to reset your password',
-                  })
-                )}
-              >
-                <Text style={[styles.forgotPasswordText, linkText.textStyle]}>
-                  {String(auth.forgotPassword())}
-                </Text>
-              </TouchableOpacity>
+              {/* Remember email row + Forgot password link.
+                  2026-04-30 audit P1: explicit opt-in toggle. Saves only
+                  the email (never the password). Toggling off + signing
+                  in clears any previously saved value. */}
+              <View style={styles.rememberRow}>
+                <TouchableOpacity
+                  style={styles.rememberToggle}
+                  onPress={() => {
+                    haptics.selection();
+                    setRememberEmail((prev) => !prev);
+                  }}
+                  accessibilityRole='checkbox'
+                  accessibilityState={{ checked: rememberEmail }}
+                  accessibilityLabel='Remember email'
+                  accessibilityHint='When enabled, your email address is saved for next time. Your password is never saved.'
+                  testID='remember-email-toggle'
+                >
+                  <View
+                    style={[
+                      styles.rememberCheckbox,
+                      rememberEmail && styles.rememberCheckboxChecked,
+                    ]}
+                  >
+                    {rememberEmail ? (
+                      <Ionicons
+                        name='checkmark'
+                        size={14}
+                        color={theme.colors.textInverse}
+                      />
+                    ) : null}
+                  </View>
+                  <Text style={styles.rememberLabel}>Remember email</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.forgotPasswordLink}
+                  onPress={() => {
+                    haptics.buttonPress();
+                    navigation.navigate('ForgotPassword');
+                  }}
+                  accessibilityRole='button'
+                  accessibilityLabel={String(auth.forgotPassword())}
+                  accessibilityHint={String(
+                    t('auth.forgotPasswordHint', {
+                      defaultValue: 'Double tap to reset your password',
+                    })
+                  )}
+                >
+                  <Text style={[styles.forgotPasswordText, linkText.textStyle]}>
+                    {String(auth.forgotPassword())}
+                  </Text>
+                </TouchableOpacity>
+              </View>
 
               <Button
                 variant='primary'
@@ -437,10 +526,42 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.colors.border,
   },
-  forgotPasswordLink: {
-    alignSelf: 'flex-end',
-    paddingVertical: 16,
+  rememberRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 8,
     marginBottom: 8,
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  rememberToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+  },
+  rememberCheckbox: {
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: theme.colors.border,
+    backgroundColor: theme.colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  rememberCheckboxChecked: {
+    backgroundColor: theme.colors.primary,
+    borderColor: theme.colors.primary,
+  },
+  rememberLabel: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+    fontWeight: '500',
+  },
+  forgotPasswordLink: {
+    paddingVertical: 8,
   },
   forgotPasswordText: {
     color: theme.colors.primary,

@@ -5,11 +5,18 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { Booking } from './BookingStatusScreen';
 import { BookingCard } from './BookingCard';
+import { goToTab } from '../../navigation/hooks';
 import { theme } from '../../theme';
 
 interface BookingListProps {
@@ -26,7 +33,12 @@ const EmptyBookingsState = () => {
   return (
     <View style={styles.emptyContainer}>
       <View style={styles.emptyIconWrap}>
-        <Ionicons name="calendar-outline" size={32} color={theme.colors.textSecondary} accessible={false} />
+        <Ionicons
+          name='calendar-outline'
+          size={32}
+          color={theme.colors.textSecondary}
+          accessible={false}
+        />
       </View>
       <Text style={styles.emptyTitle}>No bookings found</Text>
       <Text style={styles.emptySubtitle}>
@@ -34,8 +46,8 @@ const EmptyBookingsState = () => {
       </Text>
       <TouchableOpacity
         style={styles.emptyCta}
-        onPress={() => navigation.navigate('HomeTab' as never)}
-        accessibilityRole="button"
+        onPress={() => goToTab(navigation, 'HomeTab')}
+        accessibilityRole='button'
       >
         <Text style={styles.emptyCtaText}>Find Services</Text>
       </TouchableOpacity>
@@ -71,9 +83,7 @@ export const BookingList: React.FC<BookingListProps> = ({
         styles.contentContainer,
         bookings.length === 0 && styles.emptyContentContainer,
       ]}
-      ListEmptyComponent={
-        <EmptyBookingsState />
-      }
+      ListEmptyComponent={<EmptyBookingsState />}
     />
   );
 };

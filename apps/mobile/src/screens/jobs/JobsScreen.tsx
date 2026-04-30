@@ -78,10 +78,15 @@ const JobsScreen: React.FC = () => {
   } = useQuery<Job[]>({
     queryKey: ['jobs', user?.id, user?.role],
     queryFn: async () => {
-      if (user!.role === 'homeowner') {
-        return JobService.getJobsByHomeowner(user!.id);
+      // 2026-04-30 audit P1: replace `user!.id` / `user!.role` with an
+      // explicit guard. `enabled: !!user` already prevents this from
+      // firing without a user, but a refactor that drops the gate
+      // shouldn't be able to crash the app.
+      if (!user) throw new Error('Not signed in');
+      if (user.role === 'homeowner') {
+        return JobService.getJobsByHomeowner(user.id);
       }
-      return JobService.getJobsByUser(user!.id, 'contractor');
+      return JobService.getJobsByUser(user.id, 'contractor');
     },
     enabled: !!user,
   });
@@ -129,8 +134,9 @@ const JobsScreen: React.FC = () => {
   const { data: bidPendingJobs = [] } = useQuery<Job[]>({
     queryKey: ['contractorBidJobs', user?.id],
     queryFn: async () => {
+      if (!user) throw new Error('Not signed in');
       const { BidService } = await import('../../services/BidService');
-      const bids = await BidService.getBidsByContractor(user!.id);
+      const bids = await BidService.getBidsByContractor(user.id);
       const pendingBids = bids.filter((b) => b.status === 'pending');
       return pendingBids
         .map((b) => b.job)

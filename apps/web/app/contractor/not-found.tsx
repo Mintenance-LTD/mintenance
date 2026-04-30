@@ -16,7 +16,7 @@ export default function ContractorNotFound() {
             Find Contractors
           </Link>
           <Link
-            href='/contractor/dashboard'
+            href='/contractor/dashboard-enhanced'
             className='rounded-lg border border-gray-300 bg-white px-6 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors'
           >
             Contractor Dashboard

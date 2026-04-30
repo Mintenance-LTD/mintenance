@@ -2,8 +2,9 @@ import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { signJobStoragePath } from '@/lib/api/job-storage';
 import { logger } from '@mintenance/shared';
-import { BadRequestError } from '@/lib/errors/api-error';
+import { BadRequestError, ForbiddenError } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { PropertyTeamService } from '@/lib/services/property-team/PropertyTeamService';
 
 const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime'];
 const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
@@ -43,6 +44,34 @@ export const POST = withApiHandler(
       throw new BadRequestError(
         'Invalid video type. Only MP4, WebM, and QuickTime are allowed.'
       );
+    }
+
+    // 2026-04-30 audit P0-3: must have one anchor (real assessment id or
+    // property id). Refuse to spawn an orphan assessment row.
+    if (!assessmentId && !propertyId) {
+      throw new BadRequestError(
+        'assessmentId or propertyId is required to attach the video'
+      );
+    }
+
+    // 2026-04-30 audit: tenant ownership check on propertyId. The
+    // assessment id path already filters by user_id below, so an
+    // unauthorised assessment update silently no-ops; the property path
+    // had no check at all before this.
+    if (propertyId) {
+      const { authorized } = await PropertyTeamService.authorize(
+        user.id,
+        propertyId,
+        'view'
+      );
+      if (!authorized) {
+        logger.warn('Video upload denied — property access', {
+          service: 'assessment-video',
+          userId: user.id,
+          propertyId,
+        });
+        throw new ForbiddenError('You do not have access to this property');
+      }
     }
 
     const fileExt = videoFile.name.split('.').pop()?.toLowerCase() || 'mp4';
@@ -133,34 +162,14 @@ export const POST = withApiHandler(
       dbAssessmentId = newAssessment.id;
     }
 
-    // Trigger building surveyor AI assessment asynchronously
-    // The agent processes video frames and updates the assessment record.
-    // Mobile polls GET /api/assessments/:id/status for results.
-    try {
-      const baseUrl =
-        process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-      fetch(`${baseUrl}/api/building-surveyor/assess`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          imageUrls: [videoUrl],
-          context:
-            'Video walkthrough assessment — extract key frames and analyze for building damage.',
-          propertyId: propertyId || undefined,
-          domain: 'building',
-        }),
-      }).catch((err) => {
-        // Fire-and-forget: assessment will remain in 'processing' if this fails.
-        // The cron agent-processor can pick it up later.
-        logger.warn('Failed to trigger AI assessment for video', {
-          service: 'assessment-video',
-          assessmentId: dbAssessmentId,
-          error: err instanceof Error ? err.message : String(err),
-        });
-      });
-    } catch {
-      // Non-critical — assessment is saved, AI can be triggered later
-    }
+    // 2026-04-30 audit P0-3: previously triggered an unauthenticated
+    // fire-and-forget POST to /api/building-surveyor/assess with a string
+    // `context` field. Both shapes were wrong: the route requires auth
+    // (rejects the call as 401) and `context` is an object schema, not a
+    // string (Zod 400). Mobile already calls triggerAIAnalysis() with a
+    // valid bearer + correct shape after photo uploads — the cron
+    // agent-processor picks up assessments left in 'processing'. Drop
+    // the broken trigger here rather than let it pretend to work.
 
     logger.info('Video uploaded for assessment', {
       service: 'assessment-video',

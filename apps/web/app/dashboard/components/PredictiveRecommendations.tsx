@@ -321,7 +321,7 @@ export function PredictiveRecommendations({
 
           {recommendations.length > 5 && (
             <Link
-              href='/recommendations'
+              href='/dashboard/maintenance-ai'
               style={{
                 display: 'block',
                 textAlign: 'center',

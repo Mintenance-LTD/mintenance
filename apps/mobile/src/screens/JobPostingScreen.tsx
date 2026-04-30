@@ -30,6 +30,7 @@ import { JobPostingFormFields } from './job-form/JobPostingFormFields';
 import { TenancyFields, type TenancyState } from './job-form/TenancyFields';
 import { JOB_CATEGORIES } from './job-form/constants';
 import { theme } from '../theme';
+import { goToTab } from '../navigation/hooks';
 import { useSilverMode } from '../hooks/useSilverMode';
 
 interface Props {
@@ -68,9 +69,12 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
 
   useEffect(() => {
     if (user && user.role !== 'homeowner') {
-      navigation.navigate('HomeTab' as never);
+      goToTab(navigation, 'HomeTab');
     }
-    // R3 deferred #7 — Silver-mode users go to the simplified 3-step wizard.
+    // R3 deferred #7 — Silver-mode users go to the simplified 3-step
+    // wizard. PostJobWizard is registered on the JobsStack so we
+    // navigate to it as a sibling — `as never` was masking that this
+    // screen IS in the JobsStack so the typed prop should accept it.
     if (!silverLoading && silverMode) {
       navigation.navigate('PostJobWizard' as never);
     }

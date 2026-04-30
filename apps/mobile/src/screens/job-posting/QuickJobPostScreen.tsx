@@ -455,7 +455,7 @@ export const QuickJobPostScreen: React.FC = () => {
             setTimeout(() => {
               navigation.navigate('Modal', {
                 screen: 'ServiceRequest',
-              } as never);
+              });
             }, 300);
           }}
         >

@@ -337,7 +337,7 @@ export function CRMDashboardEnhanced(props: CRMDashboardEnhancedProps) {
           {filteredClients.map((client) => (
             <div
               key={client.id}
-              onClick={() => router.push(`/contractor/crm/${client.id}`)}
+              onClick={() => router.push(`/contractor/customers/${client.id}`)}
               className='col-span-12 md:col-span-6 xl:col-span-4 group bg-white border border-gray-200 rounded-2xl p-6 cursor-pointer transition-all duration-200 shadow-sm hover:shadow-lg hover:-translate-y-0.5 hover:border-gray-300 relative overflow-hidden'
             >
               {/* Subtle top accent */}

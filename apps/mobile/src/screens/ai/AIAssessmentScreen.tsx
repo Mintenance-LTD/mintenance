@@ -119,10 +119,13 @@ export const AIAssessmentScreen: React.FC = () => {
   };
 
   const handleCreateJob = () => {
+    // 2026-04-30 audit P1: replaces `as never` cast. Navigates to the
+    // Jobs tab's JobPosting screen — the typed root navigator accepts
+    // this nested shape directly.
     navigation.navigate('Main', {
       screen: 'JobsTab',
       params: { screen: 'JobPosting' },
-    } as never);
+    });
   };
 
   const formatCost = (amount: number) =>

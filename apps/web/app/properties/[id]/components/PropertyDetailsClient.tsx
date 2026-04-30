@@ -39,6 +39,7 @@ import TeamAccess from './TeamAccess';
 import BulkOperations from './BulkOperations';
 import RoomPhotoGallery from './RoomPhotoGallery';
 import YearOverYearComparison from './YearOverYearComparison';
+import PropertyAssessments from './PropertyAssessments';
 
 interface Job {
   id: string;
@@ -88,9 +89,9 @@ export default function PropertyDetailsClient({
   stats,
 }: PropertyDetailsClientProps) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'overview' | 'jobs' | 'manage'>(
-    'overview'
-  );
+  const [activeTab, setActiveTab] = useState<
+    'overview' | 'jobs' | 'assessments' | 'manage'
+  >('overview');
   const [isFavorited, setIsFavorited] = useState(false);
 
   // Tenant reporting state
@@ -299,6 +300,7 @@ export default function PropertyDetailsClient({
   const tabs = [
     { id: 'overview' as const, label: 'Overview' },
     { id: 'jobs' as const, label: `Jobs (${jobs.length})` },
+    { id: 'assessments' as const, label: 'Assessments' },
     { id: 'manage' as const, label: 'Manage', icon: Settings },
   ];
 
@@ -646,6 +648,11 @@ export default function PropertyDetailsClient({
               </div>
             )}
           </div>
+        )}
+
+        {/* Assessments Tab — Building assessments captured on web/mobile */}
+        {activeTab === 'assessments' && (
+          <PropertyAssessments propertyId={property.id} />
         )}
 
         {/* Manage Tab — Premium Features */}

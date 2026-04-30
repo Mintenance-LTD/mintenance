@@ -1,6 +1,10 @@
 import * as Notifications from 'expo-notifications';
 import { logger } from '../../utils/logger';
 import * as sentry from '../../config/sentry';
+import {
+  routeForNotification,
+  type NotificationRoute,
+} from './notificationRoutingTable';
 import type {
   NotificationData,
   NotificationDeepLinkData,
@@ -18,135 +22,22 @@ function addBreadcrumb(
   sentry.addBreadcrumb(message, 'notification', breadcrumbData);
 }
 
+/**
+ * 2026-04-30 audit P1: delegates to the shared routing table so OS-tap
+ * navigation matches the in-app inbox tap exactly. Previously this
+ * file owned its own switch statement that disagreed with
+ * `notificationNavigation.ts` on bid_received and meeting_scheduled.
+ */
 function getDeepLinkParams(
   type: NotificationData['type'],
   data: unknown
 ): DeepLinkParams | null {
-  const deepLinkData = data as NotificationDeepLinkData | undefined;
-
-  switch (type) {
-    case 'job_update':
-      if (deepLinkData?.jobId) {
-        return {
-          screen: 'Main',
-          params: {
-            screen: 'JobsTab',
-            params: {
-              screen: 'JobDetails',
-              params: { jobId: deepLinkData.jobId },
-            },
-          },
-        };
-      }
-      break;
-
-    case 'bid_received':
-      if (deepLinkData?.jobId) {
-        return {
-          screen: 'Main',
-          params: {
-            screen: 'JobsTab',
-            params: {
-              screen: 'JobDetails',
-              params: { jobId: deepLinkData.jobId },
-            },
-          },
-        };
-      }
-      break;
-
-    case 'message_received':
-      if (deepLinkData?.conversationId) {
-        return {
-          screen: 'Main',
-          params: {
-            screen: 'MessagingTab',
-            params: {
-              screen: 'Messaging',
-              params: {
-                conversationId: deepLinkData.conversationId,
-                jobTitle: deepLinkData.jobTitle,
-                recipientId: deepLinkData.senderId,
-                recipientName: deepLinkData.senderName,
-              },
-            },
-          },
-        };
-      }
-      break;
-
-    case 'meeting_scheduled':
-      if (deepLinkData?.meetingId) {
-        return {
-          screen: 'Modal',
-          params: {
-            screen: 'MeetingDetails',
-            params: { meetingId: deepLinkData.meetingId },
-          },
-        };
-      }
-      break;
-
-    case 'payment_received':
-      if (deepLinkData?.jobId) {
-        return {
-          screen: 'Main',
-          params: {
-            screen: 'JobsTab',
-            params: {
-              screen: 'JobDetails',
-              params: { jobId: deepLinkData.jobId },
-            },
-          },
-        };
-      }
-      break;
-
-    case 'quote_sent':
-      if (deepLinkData?.quoteId || deepLinkData?.jobId) {
-        return {
-          screen: 'Main',
-          params: {
-            screen: 'JobsTab',
-            params: {
-              screen: 'JobDetails',
-              params: { jobId: deepLinkData.jobId },
-            },
-          },
-        };
-      }
-      break;
-
-    case 'bid_rejected':
-    case 'payment_released':
-    case 'contract_created':
-    case 'contract_signed':
-    case 'job_completed':
-    case 'job_started':
-    case 'review_requested':
-      if (deepLinkData?.jobId) {
-        return {
-          screen: 'Main',
-          params: {
-            screen: 'JobsTab',
-            params: {
-              screen: 'JobDetails',
-              params: { jobId: deepLinkData.jobId },
-            },
-          },
-        };
-      }
-      break;
-
-    case 'system':
-      return { screen: 'Main', params: { screen: 'HomeTab' } };
-
-    default:
-      logger.warn('Unknown notification type', { type });
-      return null;
+  const route = routeForNotification(type, data);
+  if (!route) {
+    logger.warn('Unknown notification type', { type });
+    return null;
   }
-
-  return null;
+  return route as DeepLinkParams;
 }
 
 async function waitForNavigation(

@@ -1,105 +1,214 @@
-import { supabase } from '../../../config/supabase';
+/**
+ * ExpenseService — facade methods invoked via FinancialManagementService.
+ *
+ * 2026-04-30 audit P0-1 follow-up: was inserting and reading directly
+ * from a non-canonical `expenses` table. The web/admin surfaces use
+ * `contractor_expenses` (live DB confirmed), exposed through
+ * `/api/contractor/expenses`. This rewrite keeps the public function
+ * signatures stable so callers don't break, but routes through the API
+ * so RLS, role checks, and audit logs apply.
+ *
+ * Mapping notes:
+ *   - The mobile `ExpenseRecord` type has a few fields the backend
+ *     doesn't track explicitly (`subcategory`, `vendor`,
+ *     `tax_deductible`). They're folded into the `notes` column on
+ *     create and reconstructed best-effort on read.
+ */
+import { mobileApiClient } from '../../../utils/mobileApiClient';
 import { ServiceErrorHandler } from '../../../utils/serviceErrorHandler';
 import type { ExpenseRecord } from '../types';
-import type { DatabaseExpenseRow } from './types';
+
+interface CreateExpenseInput extends Omit<
+  ExpenseRecord,
+  'id' | 'created_at' | 'updated_at'
+> {}
+
+const ALLOWED_CATEGORIES = new Set([
+  'materials',
+  'tools',
+  'fuel',
+  'software',
+  'insurance',
+  'marketing',
+  'other',
+]);
+
+function normalizeCategory(value: string | undefined | null): string {
+  if (!value) return 'other';
+  return ALLOWED_CATEGORIES.has(value) ? value : 'other';
+}
+
+interface ApiExpense {
+  id: string;
+  description: string;
+  category: string;
+  amount: number;
+  date: string;
+  jobId: string | null;
+  paymentMethod: string;
+  receiptUrl: string | null;
+  tags: string[];
+  isBillable: boolean;
+  notes: string | null;
+  createdAt: string;
+}
+
+function fromApi(e: ApiExpense, contractorId: string): ExpenseRecord {
+  return {
+    id: e.id,
+    contractor_id: contractorId,
+    category: e.category,
+    amount: e.amount,
+    description: e.description,
+    date: e.date,
+    receipt_url: e.receiptUrl ?? undefined,
+    tax_deductible: false,
+    created_at: e.createdAt,
+    updated_at: e.createdAt,
+  };
+}
 
 export async function recordExpense(
-  expenseData: Omit<ExpenseRecord, 'id' | 'created_at' | 'updated_at'>
+  expenseData: CreateExpenseInput
 ): Promise<ExpenseRecord> {
   const context = {
-    service: 'FinancialManagementService', method: 'recordExpense',
+    service: 'FinancialManagementService',
+    method: 'recordExpense',
     userId: expenseData.contractor_id,
-    params: { category: expenseData.category, amount: expenseData.amount },
+    params: {
+      category: expenseData.category,
+      amount: expenseData.amount,
+    },
   };
 
   const result = await ServiceErrorHandler.executeOperation(async () => {
-    ServiceErrorHandler.validateRequired(expenseData.contractor_id, 'Contractor ID', context);
-    ServiceErrorHandler.validateRequired(expenseData.category, 'Category', context);
-    ServiceErrorHandler.validatePositiveNumber(expenseData.amount, 'Amount', context);
-    ServiceErrorHandler.validateRequired(expenseData.description, 'Description', context);
+    ServiceErrorHandler.validateRequired(
+      expenseData.contractor_id,
+      'Contractor ID',
+      context
+    );
+    ServiceErrorHandler.validateRequired(
+      expenseData.category,
+      'Category',
+      context
+    );
+    ServiceErrorHandler.validatePositiveNumber(
+      expenseData.amount,
+      'Amount',
+      context
+    );
+    ServiceErrorHandler.validateRequired(
+      expenseData.description,
+      'Description',
+      context
+    );
 
-    const { data, error } = await supabase
-      .from('expenses')
-      .insert([{ ...expenseData, created_at: new Date().toISOString(), updated_at: new Date().toISOString() }])
-      .select()
-      .single();
+    // Pack the mobile-only fields (subcategory, vendor, tax_deductible)
+    // into structured notes so we don't lose them. Anything explicitly
+    // tax-deductible also gets a `tax-deductible` tag for filtering.
+    const noteFragments: string[] = [];
+    if (expenseData.subcategory) {
+      noteFragments.push(`subcategory: ${expenseData.subcategory}`);
+    }
+    if (expenseData.vendor) noteFragments.push(`vendor: ${expenseData.vendor}`);
+    const tags = expenseData.tax_deductible ? ['tax-deductible'] : [];
 
-    if (error) throw ServiceErrorHandler.handleDatabaseError(error, context);
-    return data as ExpenseRecord;
+    const body = {
+      description: expenseData.description,
+      category: normalizeCategory(expenseData.category),
+      amount: expenseData.amount,
+      date: expenseData.date ?? new Date().toISOString().slice(0, 10),
+      tags,
+      notes: noteFragments.length > 0 ? noteFragments.join('; ') : undefined,
+    };
+
+    const response = await mobileApiClient.post<{ expense: ApiExpense }>(
+      '/api/contractor/expenses',
+      body
+    );
+    if (!response?.expense) {
+      throw new Error('Expense creation returned no payload');
+    }
+    return fromApi(response.expense, expenseData.contractor_id);
   }, context);
 
-  if (!result.success || !result.data) throw new Error('Failed to record expense');
+  if (!result.success || !result.data)
+    throw new Error('Failed to record expense');
   return result.data;
 }
 
 export async function getExpenses(
   contractorId: string,
-  filters?: { category?: string; dateFrom?: string; dateTo?: string; taxDeductible?: boolean }
+  filters?: {
+    category?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    taxDeductible?: boolean;
+  }
 ): Promise<ExpenseRecord[]> {
   const context = {
-    service: 'FinancialManagementService', method: 'getExpenses',
-    userId: contractorId, params: { contractorId, filters },
+    service: 'FinancialManagementService',
+    method: 'getExpenses',
+    userId: contractorId,
+    params: { contractorId, filters },
   };
 
   const result = await ServiceErrorHandler.executeOperation(async () => {
-    ServiceErrorHandler.validateRequired(contractorId, 'Contractor ID', context);
+    ServiceErrorHandler.validateRequired(
+      contractorId,
+      'Contractor ID',
+      context
+    );
 
-    let query = supabase
-      .from('expenses')
-      .select('*')
-      .eq('contractor_id', contractorId)
-      .order('date', { ascending: false });
+    const params = new URLSearchParams();
+    if (filters?.category) params.set('category', filters.category);
+    if (filters?.dateFrom) params.set('period_start', filters.dateFrom);
+    if (filters?.dateTo) params.set('period_end', filters.dateTo);
 
-    if (filters?.category) query = query.eq('category', filters.category);
-    if (filters?.dateFrom) query = query.gte('date', filters.dateFrom);
-    if (filters?.dateTo) query = query.lte('date', filters.dateTo);
-    if (filters?.taxDeductible !== undefined) query = query.eq('tax_deductible', filters.taxDeductible);
-
-    const { data, error } = await query;
-    if (error) throw ServiceErrorHandler.handleDatabaseError(error, context);
-    return data as ExpenseRecord[] || [];
+    const qs = params.toString();
+    const response = await mobileApiClient.get<{ expenses: ApiExpense[] }>(
+      `/api/contractor/expenses${qs ? `?${qs}` : ''}`
+    );
+    return (response?.expenses ?? []).map((e) => fromApi(e, contractorId));
   }, context);
 
   if (!result.success) return [];
   return result.data || [];
 }
 
-export async function getExpenseCategories(contractorId: string): Promise<{
-  category: string;
-  totalAmount: number;
-  count: number;
-  taxDeductibleAmount: number;
-}[]> {
-  const context = {
-    service: 'FinancialManagementService', method: 'getExpenseCategories',
-    userId: contractorId, params: { contractorId },
-  };
+export async function getExpenseCategories(contractorId: string): Promise<
+  {
+    category: string;
+    totalAmount: number;
+    count: number;
+    taxDeductibleAmount: number;
+  }[]
+> {
+  // Build categories from the same API source so the breakdown matches
+  // what's shown on the expenses screen.
+  const expenses = await getExpenses(contractorId);
+  const categoryMap = new Map<
+    string,
+    { totalAmount: number; count: number; taxDeductibleAmount: number }
+  >();
 
-  const result = await ServiceErrorHandler.executeOperation(async () => {
-    ServiceErrorHandler.validateRequired(contractorId, 'Contractor ID', context);
-
-    const { data: expenses, error } = await supabase
-      .from('expenses')
-      .select('category, amount, tax_deductible')
-      .eq('contractor_id', contractorId);
-
-    if (error) throw ServiceErrorHandler.handleDatabaseError(error, context);
-
-    const categoryMap = new Map<string, { totalAmount: number; count: number; taxDeductibleAmount: number }>();
-    const typedExpenses = (expenses || []) as Pick<DatabaseExpenseRow, 'category' | 'amount' | 'tax_deductible'>[];
-
-    typedExpenses.forEach((expense) => {
-      const existing = categoryMap.get(expense.category) || { totalAmount: 0, count: 0, taxDeductibleAmount: 0 };
-      categoryMap.set(expense.category, {
-        totalAmount: existing.totalAmount + expense.amount,
-        count: existing.count + 1,
-        taxDeductibleAmount: existing.taxDeductibleAmount + (expense.tax_deductible ? expense.amount : 0),
-      });
+  for (const expense of expenses) {
+    const existing = categoryMap.get(expense.category) ?? {
+      totalAmount: 0,
+      count: 0,
+      taxDeductibleAmount: 0,
+    };
+    categoryMap.set(expense.category, {
+      totalAmount: existing.totalAmount + expense.amount,
+      count: existing.count + 1,
+      taxDeductibleAmount:
+        existing.taxDeductibleAmount +
+        (expense.tax_deductible ? expense.amount : 0),
     });
+  }
 
-    return Array.from(categoryMap.entries()).map(([category, data]) => ({ category, ...data }));
-  }, context);
-
-  if (!result.success) return [];
-  return result.data || [];
+  return Array.from(categoryMap.entries()).map(([category, data]) => ({
+    category,
+    ...data,
+  }));
 }

@@ -1,0 +1,57 @@
+name: Storage Integrity Check
+
+# 2026-04-30 audit P1 (Thumbnail/Image Failures): nightly verification
+# that every image reference in the database (job_attachments,
+# assessment_images, properties.photos) points at an object that
+# actually exists in Supabase Storage. Exits 1 on orphans so the run
+# turns red and emits the usual GitHub failure notifications.
+#
+# The script (scripts/storage-integrity-check.ts) writes a detailed
+# JSON report to scripts/.storage-integrity-report.json. We upload it
+# as a workflow artifact so engineers can drill into individual
+# orphans without re-running the script locally.
+#
+# Cron is 04:00 UTC nightly — outside business hours, before the
+# morning standup. The workflow_dispatch trigger lets us re-run on
+# demand after fixes ship.
+
+on:
+  schedule:
+    - cron: '0 4 * * *'
+  workflow_dispatch:
+
+jobs:
+  storage-integrity:
+    name: Verify storage references resolve
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run storage integrity check
+        env:
+          # Service role key is required to list non-public buckets
+          # (e.g. contractor-documents, job-attachments). Pull from
+          # GitHub secrets — never hard-code.
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: npx tsx scripts/storage-integrity-check.ts
+
+      - name: Upload report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: storage-integrity-report
+          path: scripts/.storage-integrity-report.json
+          retention-days: 30

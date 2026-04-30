@@ -10,7 +10,7 @@ import {
   StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useProfileNavigation } from '../../navigation/hooks';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -49,7 +49,7 @@ const getExpiryStatus = (
 };
 
 export const CertificationsScreen: React.FC = () => {
-  const navigation = useNavigation();
+  const navigation = useProfileNavigation();
   const { user } = useAuth();
 
   const { data, isLoading, error, refetch } = useQuery({
@@ -164,7 +164,7 @@ export const CertificationsScreen: React.FC = () => {
       {/* DBS Check entry point */}
       <TouchableOpacity
         style={styles.dbsButton}
-        onPress={() => navigation.navigate('DBSCheck' as never)}
+        onPress={() => navigation.navigate('DBSCheck')}
         accessibilityRole='button'
       >
         <Ionicons
@@ -182,7 +182,7 @@ export const CertificationsScreen: React.FC = () => {
 
       <TouchableOpacity
         style={styles.fab}
-        onPress={() => navigation.navigate('AddCertification' as never)}
+        onPress={() => navigation.navigate('AddCertification')}
         accessibilityLabel='Add certification'
       >
         <Ionicons name='add' size={28} color={theme.colors.textInverse} />

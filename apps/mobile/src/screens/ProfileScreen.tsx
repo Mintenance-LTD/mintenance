@@ -25,6 +25,7 @@ import { useProfileStats } from './profile/hooks/useProfileStats';
 import { useContractorVerification } from './profile/hooks/useContractorVerification';
 import { NotificationService } from '../services/NotificationService';
 import { theme } from '../theme';
+import { goToTab } from '../navigation/hooks';
 
 const ProfileScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
@@ -408,7 +409,7 @@ const ProfileScreen: React.FC = () => {
                         }
                       ).getParent?.();
                       if (parent) parent.navigate('BusinessTab');
-                      else navigation.navigate('BusinessTab' as never);
+                      else goToTab(navigation, 'BusinessTab');
                     },
                   },
                   {
@@ -425,7 +426,9 @@ const ProfileScreen: React.FC = () => {
                     iconColor: theme.colors.primary,
                     iconBg: theme.colors.primaryLight,
                     onPress: () =>
-                      navigation.navigate('BusinessProfile' as never),
+                      // BusinessProfile lives on the same ProfileStack;
+                      // typed nav already accepts this without `as never`.
+                      navigation.navigate('BusinessProfile'),
                   },
                 ]}
               />

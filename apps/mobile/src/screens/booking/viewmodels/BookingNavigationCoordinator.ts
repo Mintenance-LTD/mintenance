@@ -52,13 +52,14 @@ export class BookingNavigationCoordinator implements BookingNavigationActions {
   };
 
   /**
-   * Open booking search/filter screen
+   * Open the bookings/jobs list as the search/browse target.
+   * 2026-04-30 audit: there is no `BookingSearch` modal registered. Until
+   * a dedicated booking-search surface exists, route to the canonical
+   * jobs list so the button doesn't dead-end.
    */
   openSearch = () => {
     this.haptics.light();
-    this.navigation.getParent?.()?.navigate('Modal', {
-      screen: 'BookingSearch',
-    });
+    this.navigation.navigate('JobsTab', { screen: 'JobsList' });
   };
 
   /**
@@ -81,33 +82,40 @@ export class BookingNavigationCoordinator implements BookingNavigationActions {
   };
 
   /**
-   * Navigate to reschedule booking screen
+   * Navigate to reschedule booking screen.
+   * 2026-04-30 audit: `RescheduleBooking` lives on the root stack and
+   * expects `{ bookingId: string }`, not a full `booking` object stuffed
+   * into a modal stack. Route via the root parent and pass the id only.
    */
   openReschedule = (booking: Booking) => {
     this.haptics.light();
-    this.navigation.getParent?.()?.navigate('Modal', {
-      screen: 'RescheduleBooking',
-      params: { booking },
-    });
+    this.navigation
+      .getParent?.()
+      ?.getParent?.()
+      ?.navigate('RescheduleBooking', { bookingId: booking.id });
   };
 
   /**
-   * Navigate to leave review screen
+   * Navigate to the rate-booking flow.
+   * 2026-04-30 audit: `LeaveReview` is not a registered modal — the
+   * canonical post-job review surface is the root `RateBooking` screen.
    */
   openReview = (booking: Booking) => {
     this.haptics.light();
-    this.navigation.getParent?.()?.navigate('Modal', {
-      screen: 'LeaveReview',
-      params: { booking },
-    });
+    this.navigation
+      .getParent?.()
+      ?.getParent?.()
+      ?.navigate('RateBooking', { bookingId: booking.id });
   };
 
   /**
-   * Navigate to support/help center
+   * Navigate to support/help center.
+   * 2026-04-30 audit: HelpCenter is registered under the profile stack,
+   * not the modal stack — open it via the ProfileTab.
    */
   openSupport = () => {
     this.haptics.selection();
-    this.navigation.getParent?.()?.navigate('Modal', {
+    this.navigation.navigate('ProfileTab', {
       screen: 'HelpCenter',
     });
   };

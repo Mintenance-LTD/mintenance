@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   fadeIn,
   staggerContainer,
@@ -34,6 +34,12 @@ export function FindContractorsClient({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [location, setLocation] = useState('');
+  const resultsRef = useRef<HTMLDivElement>(null);
+
+  const handleSearch = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   const categories = [
     'All',
@@ -58,7 +64,11 @@ export function FindContractorsClient({
       selectedCategory === 'All' ||
       contractor.specialties.includes(selectedCategory);
 
-    return matchesSearch && matchesCategory;
+    const matchesLocation =
+      location.trim() === '' ||
+      contractor.location.toLowerCase().includes(location.toLowerCase());
+
+    return matchesSearch && matchesCategory && matchesLocation;
   });
 
   return (
@@ -107,9 +117,18 @@ export function FindContractorsClient({
           </p>
 
           {/* Search Bar */}
-          <div className='max-w-3xl mx-auto bg-white rounded-2xl shadow-xl p-3 flex flex-col md:flex-row gap-3'>
+          <form
+            onSubmit={handleSearch}
+            role='search'
+            aria-label='Find contractors'
+            className='max-w-3xl mx-auto bg-white rounded-2xl shadow-xl p-3 flex flex-col md:flex-row gap-3'
+          >
             <div className='flex-1 relative'>
+              <label htmlFor='contractor-search-query' className='sr-only'>
+                What service do you need?
+              </label>
               <input
+                id='contractor-search-query'
                 type='text'
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -131,7 +150,11 @@ export function FindContractorsClient({
               </svg>
             </div>
             <div className='flex-1 relative'>
+              <label htmlFor='contractor-search-location' className='sr-only'>
+                Enter postcode or city
+              </label>
               <input
+                id='contractor-search-location'
                 type='text'
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
@@ -152,10 +175,13 @@ export function FindContractorsClient({
                 />
               </svg>
             </div>
-            <button className='px-8 py-4 bg-gradient-to-r from-teal-600 to-emerald-600 text-white rounded-xl font-bold hover:shadow-lg transition-all'>
+            <button
+              type='submit'
+              className='px-8 py-4 bg-gradient-to-r from-teal-600 to-emerald-600 text-white rounded-xl font-bold hover:shadow-lg transition-all'
+            >
               Search
             </button>
-          </div>
+          </form>
         </div>
       </MotionDiv>
 
@@ -187,7 +213,10 @@ export function FindContractorsClient({
         </MotionDiv>
 
         {/* Results */}
-        <div className='flex items-center justify-between mb-6'>
+        <div
+          ref={resultsRef}
+          className='flex items-center justify-between mb-6 scroll-mt-24'
+        >
           <h2 className='text-2xl font-bold text-gray-900'>
             {filteredContractors.length} Contractors Found
           </h2>

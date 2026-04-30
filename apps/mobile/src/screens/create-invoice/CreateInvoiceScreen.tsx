@@ -64,9 +64,14 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [lineItems, setLineItems] = useState<LineItemDraft[]>(() => {
-    if (seededFromTimeTracking) {
+    // 2026-04-30 audit P1: replace `route.params!.initialLineItems!`
+    // with optional-chaining + a guard. If the screen is opened
+    // without seeded params (deep link, navigator hot-reload) the
+    // form falls back to a single empty row instead of crashing.
+    const seeded = route.params?.initialLineItems;
+    if (seededFromTimeTracking && Array.isArray(seeded) && seeded.length > 0) {
       // Defensive copy — never mutate route params.
-      return route.params!.initialLineItems!.map((i) => ({ ...i }));
+      return seeded.map((i) => ({ ...i }));
     }
     return [{ description: '', quantity: '1', rate: '' }];
   });

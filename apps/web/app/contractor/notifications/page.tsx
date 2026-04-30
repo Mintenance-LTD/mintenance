@@ -18,6 +18,7 @@ import {
   getNotificationIcon,
   getNotificationColor,
 } from './notification-icons';
+import { safeActionUrl } from '@/lib/notifications/safe-action-url';
 import { logger } from '@mintenance/shared';
 
 interface Notification {
@@ -269,8 +270,9 @@ export default function ContractorNotificationsPage2025() {
       handleMarkAsRead(notification.id);
     }
 
+    // 2026-04-30 audit: only allow internal allow-listed paths.
     if (notification.action_url) {
-      router.push(notification.action_url);
+      router.push(safeActionUrl(notification.action_url));
     }
   };
 

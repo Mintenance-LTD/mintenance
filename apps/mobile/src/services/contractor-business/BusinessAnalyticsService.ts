@@ -1,7 +1,22 @@
+/**
+ * BusinessAnalyticsService — read-only contractor analytics aggregations.
+ *
+ * 2026-04-30 audit P0-1 disposition: zero external callers (verified
+ * with grep across apps/mobile/src). Direct supabase reads are
+ * acceptable for now under the same rationale as FinancialReporter
+ * (read-only, contractor-scoped, RLS-enforced). If/when this surface
+ * gets wired into a screen, design an aggregate API endpoint to
+ * batch the queries into a single round trip.
+ */
 import { supabase } from '../../config/supabase';
 import { ServiceErrorHandler } from '../../utils/serviceErrorHandler';
 import { logger } from '../../utils/logger';
-import { BusinessMetrics, FinancialSummary, ClientAnalytics, MarketingInsights } from './types';
+import {
+  BusinessMetrics,
+  FinancialSummary,
+  ClientAnalytics,
+  MarketingInsights,
+} from './types';
 
 // =====================================================
 // DATABASE ROW INTERFACES (snake_case)
@@ -74,8 +89,16 @@ export class BusinessAnalyticsService {
     };
 
     const result = await ServiceErrorHandler.executeOperation(async () => {
-      ServiceErrorHandler.validateRequired(contractorId, 'Contractor ID', context);
-      ServiceErrorHandler.validateRequired(periodStart, 'Period start', context);
+      ServiceErrorHandler.validateRequired(
+        contractorId,
+        'Contractor ID',
+        context
+      );
+      ServiceErrorHandler.validateRequired(
+        periodStart,
+        'Period start',
+        context
+      );
       ServiceErrorHandler.validateRequired(periodEnd, 'Period end', context);
 
       const { data: jobs, error } = await supabase
@@ -96,21 +119,40 @@ export class BusinessAnalyticsService {
 
       const typedJobs = (jobs || []) as DatabaseJobRow[];
       const totalJobs = typedJobs.length;
-      const completedJobs = typedJobs.filter((job) => job.status === 'completed');
-      const cancelledJobs = typedJobs.filter((job) => job.status === 'cancelled');
+      const completedJobs = typedJobs.filter(
+        (job) => job.status === 'completed'
+      );
+      const cancelledJobs = typedJobs.filter(
+        (job) => job.status === 'cancelled'
+      );
 
-      const totalRevenue = completedJobs.reduce((sum: number, job) => sum + (job.budget || 0), 0);
+      const totalRevenue = completedJobs.reduce(
+        (sum: number, job) => sum + (job.budget || 0),
+        0
+      );
       const averageJobValue = totalJobs > 0 ? totalRevenue / totalJobs : 0;
-      const completionRate = totalJobs > 0 ? (completedJobs.length / totalJobs) * 100 : 0;
+      const completionRate =
+        totalJobs > 0 ? (completedJobs.length / totalJobs) * 100 : 0;
 
       // Calculate client satisfaction from reviews
-      const allRatings = typedJobs.flatMap((job) => job.reviews?.map((r) => r.rating) || []);
-      const clientSatisfaction = allRatings.length > 0
-        ? allRatings.reduce((sum: number, rating: number) => sum + rating, 0) / allRatings.length
-        : 0;
+      const allRatings = typedJobs.flatMap(
+        (job) => job.reviews?.map((r) => r.rating) || []
+      );
+      const clientSatisfaction =
+        allRatings.length > 0
+          ? allRatings.reduce(
+              (sum: number, rating: number) => sum + rating,
+              0
+            ) / allRatings.length
+          : 0;
 
       // Calculate additional metrics
-      const [repeatClientRate, responseTimeAvg, quoteConversionRate, profitMargin] = await Promise.all([
+      const [
+        repeatClientRate,
+        responseTimeAvg,
+        quoteConversionRate,
+        profitMargin,
+      ] = await Promise.all([
         this.calculateRepeatClientRate(contractorId, periodStart, periodEnd),
         this.calculateAverageResponseTime(contractorId, periodStart, periodEnd),
         this.calculateQuoteConversionRate(contractorId, periodStart, periodEnd),
@@ -148,7 +190,9 @@ export class BusinessAnalyticsService {
   /**
    * Generate financial summary for a contractor
    */
-  static async generateFinancialSummary(contractorId: string): Promise<FinancialSummary> {
+  static async generateFinancialSummary(
+    contractorId: string
+  ): Promise<FinancialSummary> {
     const context = {
       service: 'BusinessAnalyticsService',
       method: 'generateFinancialSummary',
@@ -157,7 +201,11 @@ export class BusinessAnalyticsService {
     };
 
     const result = await ServiceErrorHandler.executeOperation(async () => {
-      ServiceErrorHandler.validateRequired(contractorId, 'Contractor ID', context);
+      ServiceErrorHandler.validateRequired(
+        contractorId,
+        'Contractor ID',
+        context
+      );
 
       // Get monthly revenue data
       const monthlyRevenue = await this.getMonthlyRevenue(contractorId, 12);
@@ -169,7 +217,8 @@ export class BusinessAnalyticsService {
       const yearlyProjection = this.projectYearlyRevenue(monthlyRevenue);
 
       // Get outstanding invoices
-      const { outstandingInvoices, overdueAmount } = await this.getInvoicesSummary(contractorId);
+      const { outstandingInvoices, overdueAmount } =
+        await this.getInvoicesSummary(contractorId);
 
       // Get profit trends
       const profitTrends = await this.getProfitTrends(contractorId, 6);
@@ -178,7 +227,10 @@ export class BusinessAnalyticsService {
       const taxObligations = await this.calculateTaxObligations(contractorId);
 
       // Generate cash flow forecast
-      const cashFlowForecast = await this.generateCashFlowForecast(contractorId, 8);
+      const cashFlowForecast = await this.generateCashFlowForecast(
+        contractorId,
+        8
+      );
 
       return {
         monthly_revenue: monthlyRevenue,
@@ -202,7 +254,9 @@ export class BusinessAnalyticsService {
   /**
    * Analyze client metrics and patterns
    */
-  static async analyzeClientMetrics(contractorId: string): Promise<ClientAnalytics> {
+  static async analyzeClientMetrics(
+    contractorId: string
+  ): Promise<ClientAnalytics> {
     const context = {
       service: 'BusinessAnalyticsService',
       method: 'analyzeClientMetrics',
@@ -211,7 +265,11 @@ export class BusinessAnalyticsService {
     };
 
     const result = await ServiceErrorHandler.executeOperation(async () => {
-      ServiceErrorHandler.validateRequired(contractorId, 'Contractor ID', context);
+      ServiceErrorHandler.validateRequired(
+        contractorId,
+        'Contractor ID',
+        context
+      );
 
       const { data: clients, error } = await supabase
         .from('contractor_clients')
@@ -229,22 +287,29 @@ export class BusinessAnalyticsService {
         (client) => new Date(client.created_at) >= thisMonth
       ).length;
 
-      const repeatClients = typedClients.filter((client) => client.total_jobs > 1).length;
+      const repeatClients = typedClients.filter(
+        (client) => client.total_jobs > 1
+      ).length;
 
       const clientLifetimeValue = typedClients.reduce(
         (sum: number, client) => sum + client.total_spent,
         0
       );
-      const avgLifetimeValue = totalClients > 0 ? clientLifetimeValue / totalClients : 0;
+      const avgLifetimeValue =
+        totalClients > 0 ? clientLifetimeValue / totalClients : 0;
 
       // Calculate churn rate
       const churnRate = await this.calculateClientChurnRate(contractorId);
 
       // Get acquisition channels
-      const acquisitionChannels = await this.getAcquisitionChannels(contractorId);
+      const acquisitionChannels =
+        await this.getAcquisitionChannels(contractorId);
 
       // Get satisfaction trends
-      const satisfactionTrend = await this.getClientSatisfactionTrend(contractorId, 6);
+      const satisfactionTrend = await this.getClientSatisfactionTrend(
+        contractorId,
+        6
+      );
 
       return {
         total_clients: totalClients,
@@ -267,7 +332,9 @@ export class BusinessAnalyticsService {
   /**
    * Generate marketing insights and recommendations
    */
-  static async generateMarketingInsights(contractorId: string): Promise<MarketingInsights> {
+  static async generateMarketingInsights(
+    contractorId: string
+  ): Promise<MarketingInsights> {
     const context = {
       service: 'BusinessAnalyticsService',
       method: 'generateMarketingInsights',
@@ -276,7 +343,11 @@ export class BusinessAnalyticsService {
     };
 
     const result = await ServiceErrorHandler.executeOperation(async () => {
-      ServiceErrorHandler.validateRequired(contractorId, 'Contractor ID', context);
+      ServiceErrorHandler.validateRequired(
+        contractorId,
+        'Contractor ID',
+        context
+      );
 
       // Get profile views and quote requests (mock data for now)
       const profileViews = Math.floor(Math.random() * 500) + 100;
@@ -285,9 +356,21 @@ export class BusinessAnalyticsService {
       // Generate conversion funnel
       const conversionFunnel = [
         { stage: 'Profile Views', count: profileViews, conversion_rate: 100 },
-        { stage: 'Quote Requests', count: quoteRequests, conversion_rate: (quoteRequests / profileViews) * 100 },
-        { stage: 'Quotes Sent', count: Math.floor(quoteRequests * 0.8), conversion_rate: 80 },
-        { stage: 'Jobs Won', count: Math.floor(quoteRequests * 0.3), conversion_rate: 30 },
+        {
+          stage: 'Quote Requests',
+          count: quoteRequests,
+          conversion_rate: (quoteRequests / profileViews) * 100,
+        },
+        {
+          stage: 'Quotes Sent',
+          count: Math.floor(quoteRequests * 0.8),
+          conversion_rate: 80,
+        },
+        {
+          stage: 'Jobs Won',
+          count: Math.floor(quoteRequests * 0.3),
+          conversion_rate: 30,
+        },
       ];
 
       // Generate competitor analysis
@@ -310,9 +393,21 @@ export class BusinessAnalyticsService {
 
       // Generate growth opportunities
       const growthOpportunities = [
-        { service_type: 'Emergency Repairs', demand_increase: 15, revenue_potential: 2500 },
-        { service_type: 'Kitchen Renovations', demand_increase: 8, revenue_potential: 4200 },
-        { service_type: 'Bathroom Fitting', demand_increase: 12, revenue_potential: 3800 },
+        {
+          service_type: 'Emergency Repairs',
+          demand_increase: 15,
+          revenue_potential: 2500,
+        },
+        {
+          service_type: 'Kitchen Renovations',
+          demand_increase: 8,
+          revenue_potential: 4200,
+        },
+        {
+          service_type: 'Bathroom Fitting',
+          demand_increase: 12,
+          revenue_potential: 3800,
+        },
       ];
 
       return {
@@ -354,12 +449,16 @@ export class BusinessAnalyticsService {
 
     const typedResponses = responses as unknown as DatabaseBidRow[];
     const responseTimes = typedResponses.map((bid) => {
-      const jobTime = bid.jobs ? new Date(bid.jobs.created_at).getTime() : new Date(bid.created_at).getTime();
+      const jobTime = bid.jobs
+        ? new Date(bid.jobs.created_at).getTime()
+        : new Date(bid.created_at).getTime();
       const bidTime = new Date(bid.created_at).getTime();
       return (bidTime - jobTime) / (1000 * 60); // Convert to minutes
     });
 
-    return responseTimes.reduce((sum, time) => sum + time, 0) / responseTimes.length;
+    return (
+      responseTimes.reduce((sum, time) => sum + time, 0) / responseTimes.length
+    );
   }
 
   private static async calculateQuoteConversionRate(
@@ -380,7 +479,9 @@ export class BusinessAnalyticsService {
 
     const typedBids = bids as DatabaseBidRow[];
     const totalBids = typedBids.length;
-    const acceptedBids = typedBids.filter((bid) => bid.status === 'accepted').length;
+    const acceptedBids = typedBids.filter(
+      (bid) => bid.status === 'accepted'
+    ).length;
 
     return totalBids > 0 ? (acceptedBids / totalBids) * 100 : 0;
   }
@@ -402,13 +503,18 @@ export class BusinessAnalyticsService {
     }
 
     const typedJobs = jobs as Pick<DatabaseJobRow, 'homeowner_id'>[];
-    const clientCounts = typedJobs.reduce((acc: Record<string, number>, job) => {
-      acc[job.homeowner_id] = (acc[job.homeowner_id] || 0) + 1;
-      return acc;
-    }, {});
+    const clientCounts = typedJobs.reduce(
+      (acc: Record<string, number>, job) => {
+        acc[job.homeowner_id] = (acc[job.homeowner_id] || 0) + 1;
+        return acc;
+      },
+      {}
+    );
 
     const totalClients = Object.keys(clientCounts).length;
-    const repeatClients = Object.values(clientCounts).filter((count) => count > 1).length;
+    const repeatClients = Object.values(clientCounts).filter(
+      (count) => count > 1
+    ).length;
 
     return totalClients > 0 ? (repeatClients / totalClients) * 100 : 0;
   }
@@ -441,13 +547,24 @@ export class BusinessAnalyticsService {
 
     const typedJobs = (jobs || []) as Pick<DatabaseJobRow, 'budget'>[];
     const typedExpenses = (expenses || []) as DatabaseExpenseRow[];
-    const totalRevenue = typedJobs.reduce((sum: number, job) => sum + (job.budget || 0), 0);
-    const totalExpenses = typedExpenses.reduce((sum: number, expense) => sum + expense.amount, 0);
+    const totalRevenue = typedJobs.reduce(
+      (sum: number, job) => sum + (job.budget || 0),
+      0
+    );
+    const totalExpenses = typedExpenses.reduce(
+      (sum: number, expense) => sum + expense.amount,
+      0
+    );
 
-    return totalRevenue > 0 ? ((totalRevenue - totalExpenses) / totalRevenue) * 100 : 0;
+    return totalRevenue > 0
+      ? ((totalRevenue - totalExpenses) / totalRevenue) * 100
+      : 0;
   }
 
-  private static async getMonthlyRevenue(contractorId: string, months: number): Promise<number[]> {
+  private static async getMonthlyRevenue(
+    contractorId: string,
+    months: number
+  ): Promise<number[]> {
     const results: number[] = [];
 
     for (let i = months - 1; i >= 0; i--) {
@@ -468,7 +585,10 @@ export class BusinessAnalyticsService {
         .lte('completed_at', endDate.toISOString());
 
       const typedJobs = (jobs || []) as Pick<DatabaseJobRow, 'budget'>[];
-      const monthlyRev = typedJobs.reduce((sum: number, job) => sum + (job.budget || 0), 0);
+      const monthlyRev = typedJobs.reduce(
+        (sum: number, job) => sum + (job.budget || 0),
+        0
+      );
       results.push(monthlyRev);
     }
 
@@ -478,14 +598,21 @@ export class BusinessAnalyticsService {
   private static calculateQuarterlyGrowth(monthlyRevenue: number[]): number {
     if (monthlyRevenue.length < 6) return 0;
 
-    const lastQuarter = monthlyRevenue.slice(-3).reduce((sum, rev) => sum + rev, 0);
-    const previousQuarter = monthlyRevenue.slice(-6, -3).reduce((sum, rev) => sum + rev, 0);
+    const lastQuarter = monthlyRevenue
+      .slice(-3)
+      .reduce((sum, rev) => sum + rev, 0);
+    const previousQuarter = monthlyRevenue
+      .slice(-6, -3)
+      .reduce((sum, rev) => sum + rev, 0);
 
-    return previousQuarter > 0 ? ((lastQuarter - previousQuarter) / previousQuarter) * 100 : 0;
+    return previousQuarter > 0
+      ? ((lastQuarter - previousQuarter) / previousQuarter) * 100
+      : 0;
   }
 
   private static projectYearlyRevenue(monthlyRevenue: number[]): number {
-    const avgMonthly = monthlyRevenue.reduce((sum, rev) => sum + rev, 0) / monthlyRevenue.length;
+    const avgMonthly =
+      monthlyRevenue.reduce((sum, rev) => sum + rev, 0) / monthlyRevenue.length;
     return avgMonthly * 12;
   }
 
@@ -502,15 +629,23 @@ export class BusinessAnalyticsService {
     if (error) return { outstandingInvoices: 0, overdueAmount: 0 };
 
     const typedInvoices = (invoices || []) as DatabaseInvoiceRow[];
-    const outstanding = typedInvoices.reduce((sum: number, inv) => sum + inv.total_amount, 0);
+    const outstanding = typedInvoices.reduce(
+      (sum: number, inv) => sum + inv.total_amount,
+      0
+    );
     const overdue = typedInvoices
-      .filter((inv) => new Date(inv.due_date) < new Date() && inv.status !== 'paid')
+      .filter(
+        (inv) => new Date(inv.due_date) < new Date() && inv.status !== 'paid'
+      )
       .reduce((sum: number, inv) => sum + inv.total_amount, 0);
 
     return { outstandingInvoices: outstanding, overdueAmount: overdue };
   }
 
-  private static async getProfitTrends(contractorId: string, months: number): Promise<FinancialSummary['profit_trends']> {
+  private static async getProfitTrends(
+    contractorId: string,
+    months: number
+  ): Promise<FinancialSummary['profit_trends']> {
     return Array.from({ length: months }, (_, i) => {
       const month = new Date();
       month.setMonth(month.getMonth() - (months - 1 - i));
@@ -526,12 +661,17 @@ export class BusinessAnalyticsService {
     });
   }
 
-  private static async calculateTaxObligations(contractorId: string): Promise<number> {
+  private static async calculateTaxObligations(
+    contractorId: string
+  ): Promise<number> {
     // Mock implementation - would calculate based on revenue and expenses
     return Math.floor(Math.random() * 2000) + 500;
   }
 
-  private static async generateCashFlowForecast(contractorId: string, weeks: number): Promise<FinancialSummary['cash_flow_forecast']> {
+  private static async generateCashFlowForecast(
+    contractorId: string,
+    weeks: number
+  ): Promise<FinancialSummary['cash_flow_forecast']> {
     return Array.from({ length: weeks }, (_, i) => {
       const week = new Date();
       week.setDate(week.getDate() + i * 7);
@@ -545,22 +685,49 @@ export class BusinessAnalyticsService {
     });
   }
 
-  private static async calculateClientChurnRate(contractorId: string): Promise<number> {
+  private static async calculateClientChurnRate(
+    contractorId: string
+  ): Promise<number> {
     // Mock implementation - would calculate actual churn based on client activity
     return Math.floor(Math.random() * 10) + 5; // 5-15%
   }
 
-  private static async getAcquisitionChannels(contractorId: string): Promise<ClientAnalytics['acquisition_channels']> {
+  private static async getAcquisitionChannels(
+    contractorId: string
+  ): Promise<ClientAnalytics['acquisition_channels']> {
     // Mock data - would track actual acquisition sources
     return [
-      { channel: 'Mintenance Platform', clients: 45, conversion_rate: 23, cost_per_acquisition: 15 },
-      { channel: 'Word of Mouth', clients: 32, conversion_rate: 67, cost_per_acquisition: 0 },
-      { channel: 'Social Media', clients: 18, conversion_rate: 12, cost_per_acquisition: 25 },
-      { channel: 'Local Advertising', clients: 12, conversion_rate: 8, cost_per_acquisition: 45 },
+      {
+        channel: 'Mintenance Platform',
+        clients: 45,
+        conversion_rate: 23,
+        cost_per_acquisition: 15,
+      },
+      {
+        channel: 'Word of Mouth',
+        clients: 32,
+        conversion_rate: 67,
+        cost_per_acquisition: 0,
+      },
+      {
+        channel: 'Social Media',
+        clients: 18,
+        conversion_rate: 12,
+        cost_per_acquisition: 25,
+      },
+      {
+        channel: 'Local Advertising',
+        clients: 12,
+        conversion_rate: 8,
+        cost_per_acquisition: 45,
+      },
     ];
   }
 
-  private static async getClientSatisfactionTrend(contractorId: string, months: number): Promise<ClientAnalytics['client_satisfaction_trend']> {
+  private static async getClientSatisfactionTrend(
+    contractorId: string,
+    months: number
+  ): Promise<ClientAnalytics['client_satisfaction_trend']> {
     return Array.from({ length: months }, (_, i) => {
       const month = new Date();
       month.setMonth(month.getMonth() - (months - 1 - i));

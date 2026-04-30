@@ -46,7 +46,11 @@ export class ExpoPushService {
       return { sent: 0, failed: 0 };
     }
 
-    return this.sendToTokens(tokens, notification);
+    // 2026-04-30 audit P0-10: include unread count so the OS app icon
+    // badge updates even when the app is killed.
+    const badge = await this.getUnreadCount(userId);
+
+    return this.sendToTokens(tokens, { ...notification, badge });
   }
 
   /**
@@ -74,6 +78,7 @@ export class ExpoPushService {
       title: string;
       body: string;
       data?: Record<string, unknown>;
+      badge?: number | null;
     }
   ): Promise<{ sent: number; failed: number }> {
     if (tokens.length === 0) return { sent: 0, failed: 0 };
@@ -84,6 +89,9 @@ export class ExpoPushService {
       body: notification.body,
       data: notification.data || {},
       sound: 'default',
+      ...(typeof notification.badge === 'number'
+        ? { badge: notification.badge }
+        : {}),
     }));
 
     let sent = 0;
@@ -148,6 +156,38 @@ export class ExpoPushService {
     });
 
     return { sent, failed };
+  }
+
+  /**
+   * Count unread notifications for badging.
+   * Returns null on failure so callers can omit the `badge` field rather
+   * than send a misleading zero.
+   */
+  private static async getUnreadCount(userId: string): Promise<number | null> {
+    try {
+      const { count, error } = await serverSupabase
+        .from('notifications')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .eq('read', false);
+
+      if (error) {
+        logger.warn('Failed to count unread notifications for badge', {
+          service: 'push',
+          userId,
+          error: error.message,
+        });
+        return null;
+      }
+      return typeof count === 'number' ? count : null;
+    } catch (err) {
+      logger.warn('Unread count query threw — skipping badge', {
+        service: 'push',
+        userId,
+        error: err instanceof Error ? err.message : String(err),
+      });
+      return null;
+    }
   }
 
   /**

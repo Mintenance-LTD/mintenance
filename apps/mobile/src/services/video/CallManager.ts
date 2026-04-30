@@ -344,7 +344,13 @@ export async function toggleMute(
       });
     }
 
-    // Persist participant audio state to the database
+    // 2026-04-30 audit P0-1 disposition: `call_participants` table
+    // does NOT exist in the live schema (verified via Supabase MCP).
+    // Calls to it would 404 at runtime. The video-calls feature is
+    // currently placeholder per the audit P1 finding; once a real
+    // schema lands, every upsert in this file should route through
+    // a `/api/contractor/calls/participants` endpoint with explicit
+    // ownership checks, NOT direct supabase.
     await supabase.from('call_participants').upsert({
       call_id: callId,
       user_id: userId,

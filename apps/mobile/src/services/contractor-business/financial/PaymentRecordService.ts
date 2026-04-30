@@ -1,37 +1,27 @@
-import { supabase } from '../../../config/supabase';
-import { ServiceErrorHandler } from '../../../utils/serviceErrorHandler';
-import { updateInvoiceStatus } from './InvoiceService';
+/**
+ * PaymentRecordService — manual-payment recording.
+ *
+ * 2026-04-30 audit P0-1 follow-up: this method previously inserted
+ * directly into `payments` and then flipped the linked invoice to
+ * `paid`. There are zero callers in the mobile app today (verified
+ * with grep), and the canonical Stripe-backed payment flow is
+ * `/api/contractor/invoices/pay` which records its own row server-
+ * side. Rather than add a new API endpoint for a feature nothing
+ * calls, this stub throws clearly so a future caller gets directed
+ * to the right surface.
+ *
+ * If you need to mark an invoice as paid OUTSIDE Stripe (cash, bank
+ * transfer), call `updateInvoiceStatus(invoiceId, 'paid', userId)`
+ * which routes through `PATCH /api/contractor/invoices?id=...`.
+ */
 import type { PaymentRecord } from '../types';
 
 export async function recordPayment(
-  paymentData: Omit<PaymentRecord, 'id' | 'created_at'>
+  _paymentData: Omit<PaymentRecord, 'id' | 'created_at'>
 ): Promise<PaymentRecord> {
-  const context = {
-    service: 'FinancialManagementService', method: 'recordPayment',
-    userId: paymentData.contractor_id,
-    params: { amount: paymentData.amount, payment_method: paymentData.payment_method },
-  };
-
-  const result = await ServiceErrorHandler.executeOperation(async () => {
-    ServiceErrorHandler.validateRequired(paymentData.contractor_id, 'Contractor ID', context);
-    ServiceErrorHandler.validatePositiveNumber(paymentData.amount, 'Amount', context);
-    ServiceErrorHandler.validateRequired(paymentData.payment_method, 'Payment method', context);
-
-    const { data, error } = await supabase
-      .from('payments')
-      .insert([{ ...paymentData, created_at: new Date().toISOString() }])
-      .select()
-      .single();
-
-    if (error) throw ServiceErrorHandler.handleDatabaseError(error, context);
-
-    if (paymentData.invoice_id) {
-      await updateInvoiceStatus(paymentData.invoice_id, 'paid', paymentData.contractor_id);
-    }
-
-    return data as PaymentRecord;
-  }, context);
-
-  if (!result.success || !result.data) throw new Error('Failed to record payment');
-  return result.data;
+  throw new Error(
+    'recordPayment() has no canonical API yet. ' +
+      'For Stripe payments use POST /api/contractor/invoices/pay; ' +
+      'to mark an invoice paid manually, use updateInvoiceStatus(id, "paid", userId).'
+  );
 }

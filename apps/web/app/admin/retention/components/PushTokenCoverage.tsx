@@ -17,7 +17,11 @@ interface Coverage {
   total_users_with_token: number;
   total_contractors: number;
   total_homeowners: number;
+  contractors_with_token: number;
+  homeowners_with_token: number;
   contractor_coverage_pct: number;
+  homeowner_coverage_pct: number;
+  blended_coverage_pct: number;
   last_registration_at: string | null;
 }
 
@@ -71,23 +75,25 @@ export function PushTokenCoverage() {
         <div className='grid grid-cols-2 md:grid-cols-4 gap-4'>
           <Cell
             icon={<Smartphone className='w-4 h-4' />}
-            label='Users with token'
+            label='Distinct users with token'
             value={data.total_users_with_token.toLocaleString()}
           />
           <Cell
             icon={<Users className='w-4 h-4' />}
-            label='Total contractors'
-            value={data.total_contractors.toLocaleString()}
+            label='Contractor coverage'
+            value={`${data.contractors_with_token.toLocaleString()} / ${data.total_contractors.toLocaleString()} (${data.contractor_coverage_pct.toFixed(1)}%)`}
+            highlight={data.contractors_with_token === 0 ? 'bad' : 'good'}
           />
           <Cell
             icon={<Users className='w-4 h-4' />}
-            label='Total homeowners'
-            value={data.total_homeowners.toLocaleString()}
+            label='Homeowner coverage'
+            value={`${data.homeowners_with_token.toLocaleString()} / ${data.total_homeowners.toLocaleString()} (${data.homeowner_coverage_pct.toFixed(1)}%)`}
+            highlight={data.homeowners_with_token === 0 ? 'bad' : 'good'}
           />
           <Cell
             icon={<Smartphone className='w-4 h-4' />}
             label='Blended coverage'
-            value={`${data.contractor_coverage_pct.toFixed(1)}%`}
+            value={`${data.blended_coverage_pct.toFixed(1)}%`}
             highlight={data.total_users_with_token === 0 ? 'bad' : 'good'}
           />
           {data.last_registration_at && (

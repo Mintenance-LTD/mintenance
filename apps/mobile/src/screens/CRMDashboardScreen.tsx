@@ -23,6 +23,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import SearchBar from '../components/SearchBar';
 import { mobileApiClient } from '../utils/mobileApiClient';
+import { goToMessagingThread } from '../navigation/hooks';
 import { theme } from '../theme';
 import { styles as s } from './CRMDashboardStyles';
 import {
@@ -101,14 +102,12 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
     else Alert.alert('Error', 'Cannot make phone call');
   };
   const handleMessage = (c: DerivedClient) => {
-    tabNav.navigate('MessagingTab', {
-      screen: 'Messaging',
-      params: {
-        conversationId: c.id,
-        recipientId: c.id,
-        recipientName: `${c.first_name} ${c.last_name}`.trim(),
-      },
-    } as never);
+    // 2026-04-30 audit P1: typed cross-stack helper replaces `as never`.
+    goToMessagingThread(tabNav, {
+      conversationId: c.id,
+      recipientId: c.id,
+      recipientName: `${c.first_name} ${c.last_name}`.trim(),
+    });
   };
   const handleEmail = async (c: DerivedClient) => {
     const url = `mailto:${c.email}`;

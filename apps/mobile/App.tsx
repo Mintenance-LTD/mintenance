@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { Text, View } from 'react-native';
+import { AppState, Text, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as SplashScreen from 'expo-splash-screen';
 import * as Font from 'expo-font';
@@ -16,6 +16,7 @@ import { AnimatedSplash } from './src/components/AnimatedSplash';
 import { ThemeProvider } from './src/design-system/theme';
 import { HapticService } from './src/utils/haptics';
 import { BackgroundSyncService } from './src/services/BackgroundSyncService';
+import { NotificationService } from './src/services/NotificationService';
 // Side-effect import: registers the contractor background-location TaskManager
 // task at module-load so that Expo can resume delivery after the app relaunches
 // from a killed state. See BackgroundLocationTask.ts for details.
@@ -175,6 +176,10 @@ export default function App(): React.JSX.Element {
         await HapticService.initialize();
         // Register background sync for offline queue processing
         await BackgroundSyncService.register();
+        // 2026-04-30 audit P0-10: refresh app icon badge on cold start
+        // so it reflects whatever notifications were read on web while
+        // the app was closed. Best-effort — never blocks app boot.
+        NotificationService.refreshBadgeFromServer().catch(() => {});
       } catch (error) {
         logger.error('Initialization error', error, { service: 'app' });
       } finally {
@@ -183,6 +188,17 @@ export default function App(): React.JSX.Element {
     };
 
     initialize();
+  }, []);
+
+  // 2026-04-30 audit P0-10: keep the launcher badge in sync with the
+  // server's unread count whenever the app comes back to foreground.
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        NotificationService.refreshBadgeFromServer().catch(() => {});
+      }
+    });
+    return () => sub.remove();
   }, []);
 
   const onLayoutRootView = useCallback(async () => {

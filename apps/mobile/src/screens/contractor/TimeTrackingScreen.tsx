@@ -334,7 +334,7 @@ export const TimeTrackingScreen: React.FC = () => {
       {/* Green FAB */}
       <TouchableOpacity
         style={styles.fab}
-        onPress={() => navigation.navigate('AddTimeEntry' as never)}
+        onPress={() => navigation.navigate('AddTimeEntry')}
         accessibilityRole='button'
         accessibilityLabel='Add time entry'
       >

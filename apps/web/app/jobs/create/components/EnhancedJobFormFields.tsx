@@ -1,7 +1,11 @@
 'use client';
 
 import React from 'react';
-import { FormField, ValidatedInput, ValidatedTextarea } from '@/components/ui/FormField';
+import {
+  FormField,
+  ValidatedInput,
+  ValidatedTextarea,
+} from '@/components/ui/FormField';
 import { validateField, type JobFormData } from '../utils/validation';
 
 interface JobFormFieldsProps {
@@ -32,14 +36,18 @@ export function EnhancedJobFormFields({
   uploadedImages,
 }: JobFormFieldsProps) {
   const isFieldValid = (fieldName: keyof JobFormData): boolean => {
-    return touchedFields[fieldName] && !errors[fieldName] && Boolean(formData[fieldName]);
+    return (
+      touchedFields[fieldName] &&
+      !errors[fieldName] &&
+      Boolean(formData[fieldName])
+    );
   };
 
   return (
     <>
       {/* Job Title */}
       <FormField
-        label="Job Title"
+        label='Job Title'
         required
         error={touchedFields.title ? errors.title : undefined}
         success={isFieldValid('title')}
@@ -48,13 +56,13 @@ export function EnhancedJobFormFields({
             ? `Great! Your title is clear and concise (${formData.title.length}/100 characters)`
             : 'Enter a clear, descriptive title (minimum 10 characters)'
         }
-        htmlFor="job-title"
+        htmlFor='job-title'
       >
         <ValidatedInput
-          id="job-title"
-          name="title"
-          type="text"
-          placeholder="e.g., Fix leaking kitchen faucet"
+          id='job-title'
+          name='title'
+          type='text'
+          placeholder='e.g., Fix leaking kitchen faucet'
           value={formData.title}
           onChange={(e) => onFieldChange('title', e.target.value)}
           onBlur={() => onFieldBlur('title')}
@@ -66,7 +74,7 @@ export function EnhancedJobFormFields({
 
       {/* Location */}
       <FormField
-        label="Location"
+        label='Location'
         required
         error={touchedFields.location ? errors.location : undefined}
         success={isFieldValid('location')}
@@ -75,13 +83,13 @@ export function EnhancedJobFormFields({
             ? 'Location verified'
             : 'Enter your full address or postcode'
         }
-        htmlFor="job-location"
+        htmlFor='job-location'
       >
         <ValidatedInput
-          id="job-location"
-          name="location"
-          type="text"
-          placeholder="Enter address or postcode"
+          id='job-location'
+          name='location'
+          type='text'
+          placeholder='Enter address or postcode'
           value={formData.location}
           onChange={(e) => onFieldChange('location', e.target.value)}
           onBlur={() => onFieldBlur('location')}
@@ -92,22 +100,24 @@ export function EnhancedJobFormFields({
 
       {/* Description */}
       <FormField
-        label="Description"
+        label='Description'
         required
         error={touchedFields.description ? errors.description : undefined}
         success={isFieldValid('description')}
         helperText={
-          touchedFields.description && !errors.description && formData.description
+          touchedFields.description &&
+          !errors.description &&
+          formData.description
             ? `Excellent detail! (${formData.description.length}/5000 characters)`
-            : `Provide detailed information about the work needed (minimum 50 characters, currently ${formData.description.length})`
+            : `Provide detailed information about the work needed (minimum 20 characters, currently ${formData.description.length})`
         }
-        htmlFor="job-description"
+        htmlFor='job-description'
       >
         <ValidatedTextarea
-          id="job-description"
-          name="description"
+          id='job-description'
+          name='description'
           rows={6}
-          placeholder="Describe the work needed in detail. Include any specific requirements, preferred materials, timeframes, etc."
+          placeholder='Describe the work needed in detail. Include any specific requirements, preferred materials, timeframes, etc.'
           value={formData.description}
           onChange={(e) => onFieldChange('description', e.target.value)}
           onBlur={() => onFieldBlur('description')}
@@ -119,7 +129,7 @@ export function EnhancedJobFormFields({
 
       {/* Budget */}
       <FormField
-        label="Budget (GBP)"
+        label='Budget (GBP)'
         required
         error={touchedFields.budget ? errors.budget : undefined}
         success={isFieldValid('budget')}
@@ -128,26 +138,26 @@ export function EnhancedJobFormFields({
             ? 'Budget set successfully'
             : 'Enter your budget (£50 - £50,000)'
         }
-        htmlFor="job-budget"
+        htmlFor='job-budget'
       >
-        <div className="relative">
-          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-medium pointer-events-none">
+        <div className='relative'>
+          <span className='absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-medium pointer-events-none'>
             £
           </span>
           <ValidatedInput
-            id="job-budget"
-            name="budget"
-            type="number"
-            placeholder="0"
+            id='job-budget'
+            name='budget'
+            type='number'
+            placeholder='0'
             value={formData.budget}
             onChange={(e) => onFieldChange('budget', e.target.value)}
             onBlur={() => onFieldBlur('budget')}
             error={Boolean(touchedFields.budget && errors.budget)}
             success={isFieldValid('budget')}
-            min="50"
-            max="50000"
-            step="50"
-            className="pl-10"
+            min='50'
+            max='50000'
+            step='50'
+            className='pl-10'
           />
         </div>
       </FormField>
