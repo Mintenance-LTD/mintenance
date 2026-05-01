@@ -28,6 +28,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import { useAuth } from '../../contexts/AuthContext';
 import { JobService } from '../../services/JobService';
 import { sanitize } from '@mintenance/security';
+import { validateJobDraft } from '@mintenance/api-contracts';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 import { theme } from '../../theme';
 
@@ -214,13 +215,6 @@ export const QuickJobPostScreen: React.FC = () => {
   );
 
   const handleSubmit = async () => {
-    if (!title || title.length < 5) {
-      Alert.alert(
-        'Missing Title',
-        'Please enter a job title (at least 5 characters)'
-      );
-      return;
-    }
     if (!user) {
       Alert.alert('Error', 'You must be logged in');
       return;
@@ -238,6 +232,41 @@ export const QuickJobPostScreen: React.FC = () => {
 
       while (fullDescription.length < 50) {
         fullDescription += ' - Please see title for details.';
+      }
+
+      // 2026-05-01 audit P1 close-out (per-screen validateJobDraft adoption):
+      // run the canonical schema before submitting so the user sees the same
+      // error message the route would have rejected with. Replaces the ad-hoc
+      // `title.length < 5` check that drifted from the server's `min(5)` rule
+      // (matching coincidence — the bespoke check was already in sync, but
+      // future schema changes would have silently diverged).
+      const draftValidation = validateJobDraft({
+        title,
+        description: fullDescription,
+        location: params?.propertyAddress || undefined,
+        budget: parseFloat(budget) || 150,
+        // normalizeJobCategory always returns a value from VALID_JOB_CATEGORIES,
+        // so the canonical category enum accepts it. Type-narrow at the call
+        // site since the helper still returns plain `string`.
+        category: normalizeJobCategory(category) as
+          | import('@mintenance/api-contracts').JobCategory
+          | undefined,
+        urgency:
+          urgency === 'today'
+            ? 'high'
+            : urgency === 'tomorrow'
+              ? 'medium'
+              : 'low',
+        propertyId: params?.propertyId,
+      });
+      if (!draftValidation.ok) {
+        const first = draftValidation.errors[0];
+        Alert.alert(
+          'Cannot post yet',
+          first?.message ?? 'Please review the form and try again.'
+        );
+        setSubmitting(false);
+        return;
       }
 
       await JobService.createJob({

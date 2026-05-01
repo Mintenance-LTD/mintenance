@@ -23,6 +23,63 @@ contract), P0-2 (property assessment integration
   P1 (FindContractors search button + location filter), P1 (stale useMessages hook). Partial: P0-1
   (mobile direct supabase). Both web and mobile `tsc --noEmit` pass clean after the changes.
 
+### Per-screen `validateJobDraft` adoption + API contract drift script — 2026-05-01
+
+Closed two of the residual items called out at the end of the prior session:
+
+**Per-screen `validateJobDraft` adoption (7/7 entry points):**
+
+The shared `JobDraft` model + `validateJobDraft` adapter were added to `@mintenance/api-contracts`
+last commit. This pass wires every job-creation entry point through it:
+
+- `apps/mobile/src/screens/JobPostingScreen.tsx` — `validateField` now builds a partial `JobDraft`
+  and runs the canonical schema for per-keystroke inline errors. Layered UX constraints (budget min
+  £10 / max £50,000) stay on top because the marketplace product wants tighter bounds than the
+  schema's defaults.
+- `apps/mobile/src/screens/job-posting/QuickJobPostScreen.tsx` — submit-time validation runs
+  `validateJobDraft` before posting; the previous `title.length < 5` ad-hoc check was already in
+  sync but would silently drift on future schema changes.
+- `apps/mobile/src/screens/service-request/useServiceRequestForm.ts` — generic "fill in all required
+  fields" message replaced with field-level Zod errors so the user sees exactly which field needs
+  work.
+- `apps/mobile/src/screens/home/PostJobWizardScreen.tsx` — silver-mode wizard was trusting its
+  `canAdvance` 5/3-character checks to cover server validation, but description has no inline UI and
+  server min is 20. Pre-flight `validateJobDraft` catches it.
+- `apps/web/app/jobs/quick-create/utils/validation.ts` — surfaces both canonical schema errors and
+  the flow-specific UX constraints (property required, budget required) so the user gets the
+  most-actionable message.
+- `apps/web/app/jobs/create/utils/validation.ts` — adds a final-step schema check after the
+  per-field `validateField` calls so future schema tightening can't drift past the inline UX.
+- `apps/web/app/jobs/new/wizard/page.tsx` — submit gate runs the canonical schema and posts the
+  typed `payload` returned by `validateJobDraft`, so the wire-level Zod validation is run twice
+  (here + server) for defence-in-depth.
+
+After this pass the audit's "shared draft model + adapter" goal is fully achieved AND adopted: every
+entry point that the user can actually reach runs the canonical schema before the network
+round-trip. New entry points have one obvious thing to import (`validateJobDraft`).
+
+**API contract drift script (CI audit #6):**
+
+Built `scripts/check-api-contracts.ts` — walks every `route.ts` under `apps/web/app/api`, finds
+POST/PUT/PATCH/DELETE handlers, and enforces:
+
+1. Routes that read `request.json()` MUST validate via Zod (either through
+   `@mintenance/api-contracts`, a local `z.object(...)`, or `validateRequest(...)`); raw
+   `request.json()` with no downstream parse is flagged.
+2. Imports from `@mintenance/api-contracts` must be USED — stale imports left after a refactor are
+   flagged.
+3. Routes that import from the package AND define a local `z.object()` with overlapping canonical
+   field names (title / description / budget / ...) are flagged as potential drift.
+
+First run reports 18 routes that read `request.json()` without Zod validation (legacy handlers using
+manual `typeof body?.foo === 'string'` checks). Each is a small per-route refactor — tracked as a
+separate triage task, NOT wired into CI yet so the script doesn't block existing PRs. New routes can
+adopt voluntarily.
+
+Files: `scripts/check-api-contracts.ts` (new), `packages/api-contracts/src/job-draft.ts` (used).
+
+Verification: `npx tsc --noEmit` passes clean for both `apps/mobile` and `apps/web`.
+
 ### Items 1, 2, 3 close-out session — 2026-05-01
 
 The three priority items called out at the end of the previous session as "the next-best targets

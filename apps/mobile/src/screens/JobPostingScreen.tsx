@@ -17,6 +17,7 @@ import { useAuth } from '../contexts/AuthContext';
 import type { PricingAnalysis } from '../services/AIPricingEngine';
 import type { BuildingAssessment } from '@mintenance/ai-core';
 import { useCreateJob } from '../hooks/useJobs';
+import { validateJobDraft } from '@mintenance/api-contracts';
 import { logger } from '../utils/logger';
 import { SecurityManager } from '../utils/SecurityManager';
 import { PerformanceOptimizer } from '../utils/PerformanceOptimizer';
@@ -151,38 +152,47 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
     setPhotos((prev) => prev.filter((_, i) => i !== index));
   };
 
+  /**
+   * 2026-05-01 audit P1 close-out (per-screen validateJobDraft adoption):
+   * the shared `validateJobDraft` adapter from `@mintenance/api-contracts`
+   * runs the SAME server schema, so the baseline length / range / required
+   * checks match the wire-level Zod errors exactly. We keep two
+   * screen-specific UX constraints on top (budget min £10 / max £50,000)
+   * because the canonical schema's bounds are wider than the marketplace
+   * product wants — those layered constraints are intentional, not drift.
+   */
   const validateField = (fieldName: string, value: string): string => {
-    switch (fieldName) {
-      case 'title':
-        if (!value.trim()) return 'Title is required';
-        if (value.trim().length < 10)
-          return 'Job title must be at least 10 characters';
-        if (value.trim().length > 100)
-          return 'Job title cannot exceed 100 characters';
-        return '';
-      case 'description':
-        if (!value.trim()) return 'Description is required';
-        if (value.trim().length < 20)
-          return 'Description must be at least 20 characters';
-        if (value.trim().length > 500)
-          return 'Description cannot exceed 500 characters';
-        return '';
-      case 'location':
-        if (!value.trim()) return 'Location is required';
-        if (value.trim().length < 5)
-          return 'Please provide a more specific location';
-        return '';
-      case 'budget':
-        if (!value.trim()) return 'Budget is required';
-        const budgetNumber = parseFloat(value);
-        if (isNaN(budgetNumber) || budgetNumber <= 0)
-          return 'Budget must be a positive number';
-        if (budgetNumber > 50000) return 'Budget cannot exceed £50,000';
-        if (budgetNumber < 10) return 'Minimum budget is £10';
-        return '';
-      default:
-        return '';
+    // Single-field check: build a partial draft and ask the canonical
+    // adapter what (if anything) is wrong with it. Server-aligned by
+    // construction.
+    const draft: Parameters<typeof validateJobDraft>[0] = {
+      [fieldName === 'budget' ? 'budget' : fieldName]:
+        fieldName === 'budget' ? value : value,
+      // Mark the OTHER required fields as syntactically valid so the
+      // adapter only complains about THIS field. Trim to non-empty
+      // safe defaults for the schema's minimum lengths.
+      ...(fieldName !== 'title' && { title: title || 'Placeholder Title' }),
+      ...(fieldName !== 'description' && {
+        description: description || 'Placeholder description text 20+',
+      }),
+      ...(fieldName !== 'location' && { location: location || 'placeholder' }),
+      ...(fieldName !== 'budget' && { budget: parseFloat(budget) || 100 }),
+    };
+    const result = validateJobDraft(draft);
+    if (!result.ok) {
+      const fieldError = result.errors.find((e) => e.field === fieldName);
+      if (fieldError) return fieldError.message;
     }
+
+    // Layered UX constraints on top of the canonical schema.
+    if (fieldName === 'budget' && value.trim()) {
+      const n = parseFloat(value);
+      if (Number.isFinite(n)) {
+        if (n > 50000) return 'Budget cannot exceed £50,000';
+        if (n < 10) return 'Minimum budget is £10';
+      }
+    }
+    return '';
   };
 
   const handleFieldChange = (fieldName: string, value: string) => {
