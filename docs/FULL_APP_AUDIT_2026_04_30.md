@@ -23,6 +23,49 @@ contract), P0-2 (property assessment integration
   P1 (FindContractors search button + location filter), P1 (stale useMessages hook). Partial: P0-1
   (mobile direct supabase). Both web and mobile `tsc --noEmit` pass clean after the changes.
 
+### Notification routing matrix + push badge unit tests — 2026-05-01
+
+Closed two more of the recommended automated audits (#3 + #4) with focused unit-test coverage. Both
+run via `npx jest` so they're already covered by the existing `mobile-tests.yml` CI workflow — no
+new gate needed.
+
+**#3 — Notification routing matrix test (53 cases):**
+
+`apps/mobile/src/services/notifications/__tests__/notificationRoutingTable.test.ts` exercises every
+supported notification `type` AND the unknown / missing fallback paths:
+
+- Per-type fixtures: `job_update`, `job_started`, `job_completed`, `review_requested`,
+  `contract_created`, `contract_signed`, `payment_released`, `bid_rejected`, `bid_received`,
+  `bid_accepted`, `message_received`, `meeting_scheduled`, `payment_received`, `quote_sent`,
+  `system`. Each test asserts the EXACT `{ screen, params: { ... } }` shape so a regression in the
+  switch statement (typo'd screen name, dropped param key) fails CI rather than only being caught by
+  manual device QA.
+- Payload normalisation: camelCase wins over snake_case, empty strings + non-strings are treated as
+  missing, null/undefined payloads are tolerated.
+- Contract guarantees: every supported type returns a non-null `screen` string; every returned route
+  has a top-level `Main` or `Modal` (no typos).
+
+**#4 — Push badge count tests (11 cases):**
+
+`apps/mobile/src/services/__tests__/NotificationBadge.test.ts` covers `refreshBadgeFromServer` +
+`setBadgeCount` + `clearBadge`:
+
+- No-user path: clears badge to 0 without hitting `getUnreadCount`.
+- Logged-in path: passes user.id through to `getUnreadCount`, then forwards the count to
+  `setBadgeCountAsync`.
+- Failure modes: `getUser` rejects, `getUnreadCount` rejects, and `setBadgeCountAsync` itself
+  rejects — each is caught and logged without throwing, so a transient Supabase / OS error never
+  crashes the app on cold start.
+- Mark-as-read flow: chained `mockResolvedValueOnce` calls verify the badge tracks decreasing counts
+  (5 → 4 → 0) across successive refreshes.
+- Logout flow: a switch from logged-in to null-user clears the badge.
+
+Verification:
+
+- `npx jest --testPathPattern='(notificationRoutingTable|NotificationBadge)'` → 64/64 tests pass
+  across 2 suites.
+- `npx tsc --noEmit -p tsconfig.json` → exit 0.
+
 ### 18-route API contract triage + CI gate — 2026-05-01
 
 The API contract drift script (`scripts/check-api-contracts.ts`) shipped last commit reported 18
