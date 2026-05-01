@@ -1,10 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger, CONTRACT_STATUS } from '@mintenance/shared';
 import { isValidUUID } from '@/lib/validation/uuid';
-import { ForbiddenError, NotFoundError, BadRequestError, InternalServerError } from '@/lib/errors/api-error';
+import {
+  ForbiddenError,
+  NotFoundError,
+  BadRequestError,
+  InternalServerError,
+} from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
+
+// 2026-05-01 audit follow-up (check-api-contracts): Zod-validated body
+// (reason is optional but capped) replaces the inline cast.
+const contractRejectSchema = z
+  .object({
+    reason: z.string().max(2000).optional(),
+  })
+  .strict();
 
 /**
  * POST /api/contracts/[id]/reject
@@ -19,8 +33,14 @@ export const POST = withApiHandler(
       throw new BadRequestError('Invalid contract ID format');
     }
 
-    const body = await request.json().catch(() => ({}));
-    const reason = typeof body.reason === 'string' ? body.reason.trim() : '';
+    const raw = await request.json().catch(() => ({}));
+    const parsed = contractRejectSchema.safeParse(raw);
+    if (!parsed.success) {
+      throw new BadRequestError(
+        parsed.error.issues[0]?.message ?? 'Invalid request body'
+      );
+    }
+    const reason = (parsed.data.reason ?? '').trim();
 
     // Fetch contract with ownership check
     const { data: contract, error: contractError } = await serverSupabase
@@ -36,7 +56,9 @@ export const POST = withApiHandler(
 
     // Only allow rejecting contracts pending homeowner signature
     if (contract.status !== CONTRACT_STATUS.PENDING_HOMEOWNER) {
-      throw new BadRequestError('Contract can only be sent back when it is awaiting your signature');
+      throw new BadRequestError(
+        'Contract can only be sent back when it is awaiting your signature'
+      );
     }
 
     // Revert to draft so contractor can edit and resubmit
@@ -68,9 +90,10 @@ export const POST = withApiHandler(
         .eq('id', user.id)
         .single();
 
-      const homeownerName = homeownerData?.first_name && homeownerData?.last_name
-        ? `${homeownerData.first_name} ${homeownerData.last_name}`
-        : 'The homeowner';
+      const homeownerName =
+        homeownerData?.first_name && homeownerData?.last_name
+          ? `${homeownerData.first_name} ${homeownerData.last_name}`
+          : 'The homeowner';
 
       await NotificationService.createNotification({
         userId: contract.contractor_id,
@@ -88,22 +111,24 @@ export const POST = withApiHandler(
         .single();
 
       if (threadData) {
-        await serverSupabase
-          .from('messages')
-          .insert({
-            job_id: contract.job_id,
-            sender_id: user.id,
-            receiver_id: contract.contractor_id,
-            content: `📋 Contract changes requested${reason ? `:\n\n"${reason}"` : '. Please review and update the contract.'}`,
-            message_type: 'system',
-            read: false,
-          });
+        await serverSupabase.from('messages').insert({
+          job_id: contract.job_id,
+          sender_id: user.id,
+          receiver_id: contract.contractor_id,
+          content: `📋 Contract changes requested${reason ? `:\n\n"${reason}"` : '. Please review and update the contract.'}`,
+          message_type: 'system',
+          read: false,
+        });
       }
     } catch (notificationError) {
-      logger.error('Failed to create rejection notification', notificationError, {
-        service: 'contracts',
-        contractId,
-      });
+      logger.error(
+        'Failed to create rejection notification',
+        notificationError,
+        {
+          service: 'contracts',
+          contractId,
+        }
+      );
     }
 
     return NextResponse.json({
@@ -111,5 +136,5 @@ export const POST = withApiHandler(
       contract: updatedContract,
       message: 'Contract sent back to contractor for changes.',
     });
-  },
+  }
 );

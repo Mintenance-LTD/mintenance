@@ -7,6 +7,7 @@ import type { RouteProp } from '@react-navigation/native';
 import { JobService } from '../../services/JobService';
 import { useAuth } from '../../contexts/AuthContext';
 import { sanitize } from '@mintenance/security';
+import { validateJobDraft } from '@mintenance/api-contracts';
 import { mobileApiClient as apiClient } from '../../utils/mobileApiClient';
 import { LocationService } from '../../services/LocationService';
 import type { Property } from '@mintenance/types';
@@ -164,14 +165,8 @@ export function useServiceRequestForm(onSuccess: () => void) {
   };
 
   const handleSubmit = async () => {
-    if (
-      !selectedCategory ||
-      !selectedSubcategory ||
-      !description ||
-      !location ||
-      !budget
-    ) {
-      Alert.alert('Error', 'Please fill in all required fields');
+    if (!selectedCategory || !selectedSubcategory) {
+      Alert.alert('Error', 'Please pick a service category');
       return;
     }
     if (!user) {
@@ -179,8 +174,29 @@ export function useServiceRequestForm(onSuccess: () => void) {
       return;
     }
     const budgetNumber = parseFloat(budget);
-    if (isNaN(budgetNumber) || budgetNumber <= 0) {
-      Alert.alert('Error', 'Please enter a valid budget amount');
+
+    // 2026-05-01 audit P1 close-out (per-screen validateJobDraft adoption):
+    // run the canonical schema before submitting so the user sees the same
+    // error message the route would have rejected with. Replaces the ad-hoc
+    // "fill in all required fields" generic message — Zod gives field-level
+    // detail (e.g. "Description must be at least 20 characters").
+    const draftValidation = validateJobDraft({
+      title,
+      description,
+      location,
+      budget: budgetNumber,
+      category: selectedCategory.id as
+        | import('@mintenance/api-contracts').JobCategory
+        | undefined,
+      urgency: priority,
+      propertyId: selectedProperty?.id,
+    });
+    if (!draftValidation.ok) {
+      const first = draftValidation.errors[0];
+      Alert.alert(
+        'Cannot post yet',
+        first?.message ?? 'Please review the form and try again.'
+      );
       return;
     }
 

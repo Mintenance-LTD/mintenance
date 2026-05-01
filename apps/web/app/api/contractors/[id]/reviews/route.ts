@@ -4,6 +4,9 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { BadRequestError } from '@/lib/errors/api-error';
 
+// auth-check: ok — public reviews feed shown on the marketplace
+// contractor profile (anonymous browsers reading review history before
+// they sign up). Same exposure as the homepage trust feed.
 export const GET = withApiHandler(
   { auth: false, rateLimit: { maxRequests: 30 } },
   async (_request, { params }) => {

@@ -5,8 +5,31 @@
  */
 import { theme } from '../theme';
 
-import { supabase } from '../config/supabase';
+import { mobileApiClient } from './mobileApiClient';
 import { logger } from '@mintenance/shared';
+
+/**
+ * 2026-05-01 audit P0-1 follow-up: switched from direct
+ * `supabase.from('contractor_subscriptions')` + `.from('feature_usage')`
+ * reads to `GET /api/subscriptions/feature-access`. The endpoint already
+ * existed (it powers the web `useFeatureAccess` hook for the same
+ * reason — RLS misconfiguration could leak another user's tier or
+ * usage to the client). Mobile now reads through the same authoritative
+ * surface.
+ */
+interface FeatureAccessApiResponse {
+  role: 'homeowner' | 'contractor' | 'admin';
+  tier: string; // server enum (free/pro/business/enterprise/landlord/agency)
+  status: string;
+  currentPeriodEnd: string | null;
+  earlyAccess: boolean;
+  usage: Array<{
+    featureId: string;
+    used: number;
+    limit: number;
+    resetDate: string;
+  }>;
+}
 
 export type SubscriptionTier =
   | 'trial'
@@ -199,6 +222,11 @@ export class FeatureAccessManager {
 
   /**
    * Initialize feature access for a user
+   *
+   * 2026-05-01 audit P0-1: now hits `GET /api/subscriptions/feature-access`
+   * instead of querying `contractor_subscriptions` + `feature_usage`
+   * directly. The route handles role-aware tier resolution + early-access
+   * bypass + usage counters server-side.
    */
   async initialize(userId: string, role: UserRole): Promise<void> {
     if (role !== 'contractor') {
@@ -207,76 +235,37 @@ export class FeatureAccessManager {
     }
 
     try {
-      // Fetch subscription
-      const { data: subData } = await (
-        supabase
-          .from('contractor_subscriptions')
-          .select('plan_type, status') as unknown as {
-          eq: (...a: unknown[]) => {
-            in: (...a: unknown[]) => {
-              order: (...a: unknown[]) => {
-                limit: (...a: unknown[]) => {
-                  maybeSingle: () => Promise<{
-                    data: { plan_type: string; status: string } | null;
-                  }>;
-                };
-              };
-            };
-          };
-        }
-      )
-        .eq('contractor_id', userId)
-        .in('status', ['trial', 'active', 'past_due'])
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+      const data = await mobileApiClient.get<FeatureAccessApiResponse>(
+        '/api/subscriptions/feature-access'
+      );
 
-      if (subData) {
-        this.subscription = {
-          tier: subData.plan_type as SubscriptionTier,
-          status: subData.status,
-        };
-      } else {
-        // Default to trial
-        this.subscription = {
-          tier: 'trial',
-          status: 'trial',
-        };
-      }
+      // Map server tier vocabulary (free/pro/business/enterprise/...)
+      // onto the mobile-side SubscriptionTier (trial/basic/professional/
+      // enterprise). Server `free` reads as `trial` since pre-paid mobile
+      // contractors land on the same gating UX.
+      const serverTier = data.tier;
+      const mappedTier: SubscriptionTier =
+        serverTier === 'enterprise'
+          ? 'enterprise'
+          : serverTier === 'business'
+            ? 'professional'
+            : serverTier === 'pro'
+              ? 'professional'
+              : serverTier === 'free'
+                ? 'trial'
+                : 'basic';
 
-      // Fetch usage
-      const { data: usageData } = await (
-        supabase.from('feature_usage').select('*') as unknown as {
-          eq: (...a: unknown[]) => {
-            gte: (...a: unknown[]) => Promise<{
-              data:
-                | {
-                    feature_id: string;
-                    used_count: number;
-                    limit_count: number;
-                  }[]
-                | null;
-            }>;
-          };
-        }
-      )
-        .eq('user_id', userId)
-        .gte('reset_date', new Date().toISOString());
+      this.subscription = {
+        tier: mappedTier,
+        status: data.status,
+      };
 
-      if (usageData) {
-        usageData.forEach(
-          (item: {
-            feature_id: string;
-            used_count: number;
-            limit_count: number;
-          }) => {
-            this.usage.set(item.feature_id, {
-              used: item.used_count,
-              limit: item.limit_count,
-            });
-          }
-        );
-      }
+      data.usage.forEach((item) => {
+        this.usage.set(item.featureId, {
+          used: item.used,
+          limit: item.limit,
+        });
+      });
     } catch (err) {
       logger.error('[FeatureAccess] Initialization failed', err, {
         service: 'mobile',
@@ -361,6 +350,12 @@ export class FeatureAccessManager {
 
   /**
    * Track usage for a metered feature
+   *
+   * 2026-05-01 audit P0-1: routed through
+   * `POST /api/subscriptions/feature-access/track`. The route derives
+   * `p_user_id` from the authenticated session (server-side), so the
+   * `userId` parameter here is preserved for the local cache key only —
+   * it cannot be spoofed to track usage against another user.
    */
   async trackUsage(
     userId: string,
@@ -368,27 +363,14 @@ export class FeatureAccessManager {
     incrementBy: number = 1
   ): Promise<boolean> {
     try {
-      const { error } = await (
-        supabase as unknown as {
-          rpc: (
-            fn: string,
-            params: Record<string, unknown>
-          ) => Promise<{ error: Error | null }>;
-        }
-      ).rpc('increment_feature_usage', {
-        p_user_id: userId,
-        p_feature_id: featureId,
-        p_increment: incrementBy,
+      await mobileApiClient.post('/api/subscriptions/feature-access/track', {
+        featureId,
+        incrementBy,
       });
 
-      if (error) {
-        logger.error('[FeatureAccess] Failed to track usage', error, {
-          service: 'mobile',
-        });
-        return false;
-      }
-
-      // Update local cache
+      // Update local cache (the userId param keeps the call signature
+      // intact for callers that expected a per-user side-effect).
+      void userId;
       const current = this.usage.get(featureId);
       if (current) {
         this.usage.set(featureId, {

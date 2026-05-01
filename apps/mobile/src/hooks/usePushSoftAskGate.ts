@@ -49,6 +49,7 @@ import * as Notifications from 'expo-notifications';
 import { useAuth } from '../contexts/AuthContext';
 import { NotificationService } from '../services/NotificationService';
 import { logger } from '../utils/logger';
+import { captureException } from '../config/sentry';
 
 const STORAGE_KEY = 'push_soft_ask_dismissed_at';
 // 24h cool-off after a "Not Now" tap (was 7 days). Live audit
@@ -186,11 +187,32 @@ export function usePushSoftAskGate(): PushSoftAskGate {
           try {
             await NotificationService.savePushToken(user.id, token);
           } catch (err) {
+            // 2026-05-01 audit P0 (user_push_tokens=0): the soft-ask
+            // path got the token but the POST failed. Promote to
+            // Sentry capture — without it we can't distinguish "user
+            // tapped Allow but POST 5xx'd" from "user never tapped
+            // Allow". The retry hook will re-attempt on next foreground.
+            const errMsg = err instanceof Error ? err.message : String(err);
             logger.warn('usePushSoftAskGate: savePushToken failed', {
               userId: user.id,
-              error: err instanceof Error ? err.message : String(err),
+              error: errMsg,
+            });
+            captureException(err as Error, {
+              userId: user.id,
+              source: 'usePushSoftAskGate.savePushToken',
             });
           }
+        } else if (normalized === 'granted') {
+          // 2026-05-01: status came back granted but Expo returned no
+          // token. EAS / FCM / APNs config issue — capture so we can
+          // see how often this happens in production.
+          const reason =
+            'usePushSoftAskGate: getExpoPushTokenAsync returned null despite granted permission';
+          logger.warn(reason, { userId: user.id });
+          captureException(new Error(reason), {
+            userId: user.id,
+            source: 'usePushSoftAskGate.allowNotifications',
+          });
         }
 
         // Whatever the result, close the modal. Either we got granted,

@@ -1,7 +1,16 @@
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { checkPasswordBreach } from '@mintenance/auth';
 import { BadRequestError } from '@/lib/errors/api-error';
+
+// 2026-05-01 audit follow-up (check-api-contracts): Zod-validated body
+// replaces the manual `typeof password === 'string'` + length pair.
+const checkPasswordBreachSchema = z
+  .object({
+    password: z.string().min(1).max(128),
+  })
+  .strict();
 
 /**
  * POST /api/auth/check-password-breach
@@ -26,21 +35,21 @@ export const POST = withApiHandler(
     rateLimit: { maxRequests: 20, windowMs: 60_000 },
   },
   async (request) => {
-    let body: { password?: unknown };
+    let raw: unknown;
     try {
-      body = await request.json();
+      raw = await request.json();
     } catch {
       throw new BadRequestError('Invalid JSON body');
     }
-
-    if (typeof body.password !== 'string' || body.password.length === 0) {
-      throw new BadRequestError('Password is required');
+    const parsed = checkPasswordBreachSchema.safeParse(raw);
+    if (!parsed.success) {
+      throw new BadRequestError(
+        parsed.error.issues[0]?.message ?? 'Password is required'
+      );
     }
-    if (body.password.length > 128) {
-      throw new BadRequestError('Password exceeds maximum length');
-    }
+    const { password } = parsed.data;
 
-    const result = await checkPasswordBreach(body.password);
+    const result = await checkPasswordBreach(password);
 
     return NextResponse.json({
       isBreached: result.isBreached,

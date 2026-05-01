@@ -20,6 +20,10 @@ import { NextResponse } from 'next/server';
 
 const REPLACEMENT_URL = '/api/payments/methods';
 
+// auth-check: ok — deprecated 410-Gone stub. Returns a static error
+// payload pointing at the replacement endpoint; never reads the
+// request, never writes to the DB. No auth needed because the
+// response carries no user-specific data.
 export function GET(): NextResponse {
   return NextResponse.json(
     {

@@ -92,15 +92,22 @@ function bidReviewRoute(jobId: string): NotificationRoute {
 }
 
 /**
- * Map a notification to a route. Returns null if the notification
- * cannot be routed (unknown type) so callers can decide between
- * "drop the navigation" and "open the in-app inbox".
+ * Map a notification to a route.
+ *
+ * 2026-04-30 audit P1 follow-up: previously returned `null` on unknown
+ * types, which made the OS-tap path silently drop and the in-app path
+ * fall back to HomeTab. Both diverged from the documented contract
+ * ("unknown notification types fall back to the in-app notifications
+ * inbox"). This function now ALWAYS returns a route — unknown types,
+ * missing payloads, and missing `type` all funnel to
+ * `NOTIFICATIONS_FALLBACK` so the user lands on the inbox where they
+ * can pick the correct notification manually.
  */
 export function routeForNotification(
   type: NotificationData['type'] | string | undefined,
   data: unknown
-): NotificationRoute | null {
-  if (!type) return null;
+): NotificationRoute {
+  if (!type) return NOTIFICATIONS_FALLBACK;
   const p = normalizePayload(data);
 
   switch (type) {
@@ -173,6 +180,9 @@ export function routeForNotification(
       return HOME_FALLBACK;
 
     default:
-      return null;
+      // Unknown / future notification types — open the inbox so the
+      // user can still see the body. Better than a silent drop or a
+      // confusing HomeTab landing.
+      return NOTIFICATIONS_FALLBACK;
   }
 }

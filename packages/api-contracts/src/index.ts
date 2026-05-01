@@ -10,6 +10,11 @@
 export * from './common';
 export * from './auth';
 export * from './jobs';
+// 2026-05-01 audit P1 close-out: shared `JobDraft` form-level model +
+// `toCreateJobRequest` adapter so all 7 job-creation entry points
+// validate identically to the server schema. See `job-draft.ts` for
+// the full rationale.
+export * from './job-draft';
 export * from './bids';
 export * from './payments';
 export * from './contracts';

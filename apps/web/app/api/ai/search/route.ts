@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { rateLimiter, checkAIUserRateLimit } from '@/lib/rate-limiter';
@@ -8,6 +9,18 @@ import type { SearchFilters } from '@mintenance/ai-core';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { getAppUrl } from '@/lib/env';
 import { getClientIp } from '@/lib/request-ip';
+
+// 2026-05-01 audit follow-up (check-api-contracts): Zod-validated body
+// replaces the manual `typeof query === 'string'` check. `filters` stays
+// as a record so the existing escapeIlike sanitisation still runs over
+// the parsed shape.
+const aiSearchSchema = z
+  .object({
+    query: z.string().min(1).max(500),
+    filters: z.record(z.string(), z.unknown()).optional(),
+    limit: z.coerce.number().int().min(1).max(100).default(20),
+  })
+  .strict();
 
 interface SearchResult {
   id: string;
@@ -100,7 +113,20 @@ export const POST = withApiHandler(
       // Auth check is best-effort for rate limiting; don't block search if auth fails
     }
 
-    const { query, filters: rawFilters, limit = 20 } = await request.json();
+    let raw: unknown;
+    try {
+      raw = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    }
+    const parsed = aiSearchSchema.safeParse(raw);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues[0]?.message ?? 'Invalid request body' },
+        { status: 400 }
+      );
+    }
+    const { query, filters: rawFilters, limit } = parsed.data;
 
     // Sanitize filters before use in database queries.
     // Escape ILIKE wildcards (% and _) in user-provided filter strings
@@ -108,21 +134,21 @@ export const POST = withApiHandler(
     const escapeIlike = (value: string): string =>
       value.replace(/[%_\\]/g, (ch) => '\\' + ch);
 
-    const filters: typeof rawFilters = rawFilters
-      ? {
-          ...rawFilters,
-          location: rawFilters.location
-            ? escapeIlike(String(rawFilters.location))
-            : rawFilters.location,
-          category: rawFilters.category
-            ? String(rawFilters.category).replace(/[^a-zA-Z0-9\s\-_]/g, '')
-            : rawFilters.category,
-        }
-      : rawFilters;
-
-    if (!query || typeof query !== 'string') {
-      return NextResponse.json({ error: 'Query is required' }, { status: 400 });
-    }
+    // Default to empty object so downstream `searchJobs(filters, ...)`
+    // calls don't have to handle `undefined`. SearchFilters is open-ended
+    // — the cast at the call site documents the boundary.
+    const filtersBase = rawFilters ?? {};
+    const filters = {
+      ...filtersBase,
+      location:
+        typeof filtersBase.location === 'string'
+          ? escapeIlike(filtersBase.location)
+          : filtersBase.location,
+      category:
+        typeof filtersBase.category === 'string'
+          ? filtersBase.category.replace(/[^a-zA-Z0-9\s\-_]/g, '')
+          : filtersBase.category,
+    } as SearchFilters;
 
     // Generate embedding for the search query with timeout protection
     let usedFallback = false;

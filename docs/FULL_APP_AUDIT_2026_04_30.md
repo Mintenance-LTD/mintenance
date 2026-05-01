@@ -23,6 +23,336 @@ contract), P0-2 (property assessment integration
   P1 (FindContractors search button + location filter), P1 (stale useMessages hook). Partial: P0-1
   (mobile direct supabase). Both web and mobile `tsc --noEmit` pass clean after the changes.
 
+### Auth coverage check + 18-route triage — 2026-05-01
+
+Closes recommended-automated-audits #5 (auth/session audit). New `scripts/check-auth-coverage.ts`
+walks every `route.ts` under `apps/web/app/api/**` and enforces three properties:
+
+1. Every exported `GET|POST|PUT|PATCH|DELETE` is wrapped by `withApiHandler` OR `withCronHandler`,
+   OR carries an inline `// auth-check: ok — <reason>` opt-out.
+2. Every `auth: false` option has a justification comment in the surrounding 10-line window (accepts
+   `//` line comments AND JSDoc `*` comments).
+3. Stale `requireAdminFromDatabase` imports (imported but never called) are flagged.
+
+**First run reported 46 findings; all triaged in this commit:**
+
+- 3 raw exports (`webhooks/stripe`, `email/unsubscribe`, `payments/payment-methods`) — each got an
+  inline `// auth-check: ok` comment with the rationale (Stripe signature is the auth, GDPR token is
+  the auth, deprecated 410 stub).
+- 43 `auth: false` routes — most were already justified by their JSDoc header (login, signup,
+  password-reset, geocode, materials, etc.); the regex was widened to accept JSDoc-block comments.
+  The remaining 18 routes got an explicit `// auth-check: ok — <reason>` comment.
+
+After triage: **`npx tsx scripts/check-auth-coverage.ts` reports "Every route either uses
+withApiHandler/withCronHandler or carries a documented opt-out" (exit 0).**
+
+**CI integration:** added the script as a required step in `.github/workflows/ci-cd.yml` right after
+`check-api-contracts.ts`. New routes that ship without an explicit auth posture will fail CI with a
+pointer to the offending file:line.
+
+Files: `scripts/check-auth-coverage.ts` (new), `.github/workflows/ci-cd.yml`, plus 14 route files
+with inline justification comments.
+
+### Notification routing matrix + push badge unit tests — 2026-05-01
+
+Closed two more of the recommended automated audits (#3 + #4) with focused unit-test coverage. Both
+run via `npx jest` so they're already covered by the existing `mobile-tests.yml` CI workflow — no
+new gate needed.
+
+**#3 — Notification routing matrix test (53 cases):**
+
+`apps/mobile/src/services/notifications/__tests__/notificationRoutingTable.test.ts` exercises every
+supported notification `type` AND the unknown / missing fallback paths:
+
+- Per-type fixtures: `job_update`, `job_started`, `job_completed`, `review_requested`,
+  `contract_created`, `contract_signed`, `payment_released`, `bid_rejected`, `bid_received`,
+  `bid_accepted`, `message_received`, `meeting_scheduled`, `payment_received`, `quote_sent`,
+  `system`. Each test asserts the EXACT `{ screen, params: { ... } }` shape so a regression in the
+  switch statement (typo'd screen name, dropped param key) fails CI rather than only being caught by
+  manual device QA.
+- Payload normalisation: camelCase wins over snake_case, empty strings + non-strings are treated as
+  missing, null/undefined payloads are tolerated.
+- Contract guarantees: every supported type returns a non-null `screen` string; every returned route
+  has a top-level `Main` or `Modal` (no typos).
+
+**#4 — Push badge count tests (11 cases):**
+
+`apps/mobile/src/services/__tests__/NotificationBadge.test.ts` covers `refreshBadgeFromServer` +
+`setBadgeCount` + `clearBadge`:
+
+- No-user path: clears badge to 0 without hitting `getUnreadCount`.
+- Logged-in path: passes user.id through to `getUnreadCount`, then forwards the count to
+  `setBadgeCountAsync`.
+- Failure modes: `getUser` rejects, `getUnreadCount` rejects, and `setBadgeCountAsync` itself
+  rejects — each is caught and logged without throwing, so a transient Supabase / OS error never
+  crashes the app on cold start.
+- Mark-as-read flow: chained `mockResolvedValueOnce` calls verify the badge tracks decreasing counts
+  (5 → 4 → 0) across successive refreshes.
+- Logout flow: a switch from logged-in to null-user clears the badge.
+
+Verification:
+
+- `npx jest --testPathPattern='(notificationRoutingTable|NotificationBadge)'` → 64/64 tests pass
+  across 2 suites.
+- `npx tsc --noEmit -p tsconfig.json` → exit 0.
+
+### 18-route API contract triage + CI gate — 2026-05-01
+
+The API contract drift script (`scripts/check-api-contracts.ts`) shipped last commit reported 18
+write routes that read `request.json()` without Zod validation. Each used manual
+`typeof body?.foo === 'string'` / `Number(body.x) >= 1` style checks that drifted from the canonical
+`@mintenance/api-contracts` schemas over time. All 18 are now Zod-validated and the script exits 0 —
+wired into CI as a blocking gate so future drift is caught at PR time.
+
+**Routes migrated (grouped by area):**
+
+Admin mutations (3):
+
+- `/api/admin/contractors/send-payment-setup-reminder` — `contractorId` UUID.
+- `/api/admin/refunds/[id]` — `action`/`reason`/`refundAmount` discriminated body.
+- `/api/admin/verifications/[id]` — `status` enum + `reason` refinement (required when rejecting).
+
+AI routes (3):
+
+- `/api/ai/analyze` — `images` (1-20 URLs) + `context` record.
+- `/api/ai/generate-embedding` — `text` (max 32k) + `model` enum.
+- `/api/ai/search` — `query` + `filters` record + `limit` (default 20).
+
+Auth (2):
+
+- `/api/auth/check-password-breach` — `password` (1-128).
+- `/api/auth/reset-password` — JWT-pattern `accessToken` + `password|newPassword` alias via
+  transform.
+
+Bookings + contracts (3):
+
+- `/api/bookings/[id]/reschedule` — `newDateTime` ISO-8601.
+- `/api/bookings/[id]/review` — `rating` (1-5) + `comment`.
+- `/api/contracts/[id]/reject` — optional `reason`.
+
+Contractor (2):
+
+- `/api/contractor/job-views` — `jobId` UUID.
+- `/api/contractor/saved-jobs` — `jobId` UUID.
+
+Job lifecycle (3):
+
+- `/api/jobs/[id]/bids/[bidId]/reject` — optional `reason` (max 500).
+- `/api/jobs/[id]/request-changes` — `comments` (1-5000).
+- `/api/jobs/[id]/review` — `rating` + `comment` (min 20) + `wouldRecommend`.
+
+Misc (2):
+
+- `/api/geocode-proxy` — `address` OR (`lat`+`lng`) refinement.
+- `/api/users/notification-preferences` — 17-field strict patch schema.
+
+**CI integration:** added `npx tsx scripts/check-api-contracts.ts` as a required step in
+`.github/workflows/ci-cd.yml` right after `check-internal-links.ts`. Future PRs that introduce a
+write route with manual validation OR a stale `@mintenance/api-contracts` import will fail the build
+with a pointer to the offending file.
+
+**Verification:**
+
+- `npx tsx scripts/check-api-contracts.ts` —
+  `Scanned 417 route files. All write routes validate their bodies via Zod.` (exit 0).
+- `npx tsc --noEmit` — web passes clean.
+
+### Per-screen `validateJobDraft` adoption + API contract drift script — 2026-05-01
+
+Closed two of the residual items called out at the end of the prior session:
+
+**Per-screen `validateJobDraft` adoption (7/7 entry points):**
+
+The shared `JobDraft` model + `validateJobDraft` adapter were added to `@mintenance/api-contracts`
+last commit. This pass wires every job-creation entry point through it:
+
+- `apps/mobile/src/screens/JobPostingScreen.tsx` — `validateField` now builds a partial `JobDraft`
+  and runs the canonical schema for per-keystroke inline errors. Layered UX constraints (budget min
+  £10 / max £50,000) stay on top because the marketplace product wants tighter bounds than the
+  schema's defaults.
+- `apps/mobile/src/screens/job-posting/QuickJobPostScreen.tsx` — submit-time validation runs
+  `validateJobDraft` before posting; the previous `title.length < 5` ad-hoc check was already in
+  sync but would silently drift on future schema changes.
+- `apps/mobile/src/screens/service-request/useServiceRequestForm.ts` — generic "fill in all required
+  fields" message replaced with field-level Zod errors so the user sees exactly which field needs
+  work.
+- `apps/mobile/src/screens/home/PostJobWizardScreen.tsx` — silver-mode wizard was trusting its
+  `canAdvance` 5/3-character checks to cover server validation, but description has no inline UI and
+  server min is 20. Pre-flight `validateJobDraft` catches it.
+- `apps/web/app/jobs/quick-create/utils/validation.ts` — surfaces both canonical schema errors and
+  the flow-specific UX constraints (property required, budget required) so the user gets the
+  most-actionable message.
+- `apps/web/app/jobs/create/utils/validation.ts` — adds a final-step schema check after the
+  per-field `validateField` calls so future schema tightening can't drift past the inline UX.
+- `apps/web/app/jobs/new/wizard/page.tsx` — submit gate runs the canonical schema and posts the
+  typed `payload` returned by `validateJobDraft`, so the wire-level Zod validation is run twice
+  (here + server) for defence-in-depth.
+
+After this pass the audit's "shared draft model + adapter" goal is fully achieved AND adopted: every
+entry point that the user can actually reach runs the canonical schema before the network
+round-trip. New entry points have one obvious thing to import (`validateJobDraft`).
+
+**API contract drift script (CI audit #6):**
+
+Built `scripts/check-api-contracts.ts` — walks every `route.ts` under `apps/web/app/api`, finds
+POST/PUT/PATCH/DELETE handlers, and enforces:
+
+1. Routes that read `request.json()` MUST validate via Zod (either through
+   `@mintenance/api-contracts`, a local `z.object(...)`, or `validateRequest(...)`); raw
+   `request.json()` with no downstream parse is flagged.
+2. Imports from `@mintenance/api-contracts` must be USED — stale imports left after a refactor are
+   flagged.
+3. Routes that import from the package AND define a local `z.object()` with overlapping canonical
+   field names (title / description / budget / ...) are flagged as potential drift.
+
+First run reports 18 routes that read `request.json()` without Zod validation (legacy handlers using
+manual `typeof body?.foo === 'string'` checks). Each is a small per-route refactor — tracked as a
+separate triage task, NOT wired into CI yet so the script doesn't block existing PRs. New routes can
+adopt voluntarily.
+
+Files: `scripts/check-api-contracts.ts` (new), `packages/api-contracts/src/job-draft.ts` (used).
+
+Verification: `npx tsc --noEmit` passes clean for both `apps/mobile` and `apps/web`.
+
+### Items 1, 2, 3 close-out session — 2026-05-01
+
+The three priority items called out at the end of the previous session as "the next-best targets
+from the residual list" all closed in this pass:
+
+**Item 3 — Last `as never` casts (4 closed):**
+
+- `apps/mobile/src/components/finance/QuickActions.tsx` — typed `FinanceQuickActionScreen` union for
+  the four quick-action targets (Invoices/Expenses/Payouts/Reporting). Compile-time check now
+  catches a typo on any of these strings.
+- `apps/mobile/src/screens/CalendarScreen.tsx` (×2) — replaced `navigation as never as { navigate }`
+  casts on the empty-state CTA and `ScheduleCard` onPress with the typed
+  `goToTab(navigation, 'JobsTab', { screen: 'JobsList' | 'JobDetails', params })` helper.
+- `apps/mobile/src/screens/JobPostingScreen.tsx` — `as never` on the silver-mode `PostJobWizard`
+  redirect was unnecessary; the screen already types its prop against `JobsStackParamList` which
+  registers `PostJobWizard`. Cast dropped.
+
+**Item 1 — Residual mobile direct supabase (3 call sites migrated):**
+
+- `apps/mobile/src/screens/CalendarScreen.tsx` — `supabase.from('appointments').select(...)` swapped
+  for `mobileApiClient.get('/api/contractor/appointments?daysAhead=180')`. The endpoint already
+  filters by `contractor_id = user.id` and joins `jobs(title)` server-side.
+- `apps/mobile/src/utils/featureAccess.ts` — three direct calls collapsed onto two API endpoints:
+  - `contractor_subscriptions` read + `feature_usage` read → `GET /api/subscriptions/feature-access`
+    (server applies the same role-aware tier resolution + early-access bypass + counters).
+  - `supabase.rpc('increment_feature_usage', ...)` → `POST /api/subscriptions/feature-access/track`.
+    The route derives `p_user_id` from the auth session so the `userId` arg can no longer be
+    spoofed. Mobile keeps its `tier` enum (trial/basic/professional/ enterprise) and maps from the
+    server vocabulary (free/pro/business/ enterprise) at the boundary.
+
+After this pass, the remaining `supabase.from(...)` writes in mobile are all documented exceptions:
+`JobContextLocationService.updateContractorLocation` (live GPS pulses 5–15s through Supabase
+Realtime); `BackgroundLocationTask` (same channel); `CallManager` (placeholder feature on
+`call_participants`, table doesn't exist in live schema); the stubbed marketing services (throw
+`NOT_IMPLEMENTED`).
+
+**Item 2 — Shared `JobDraft` model + adapter for the 7 job-creation entry points:**
+
+Built `packages/api-contracts/src/job-draft.ts` exposing:
+
+- `JobDraft` — the form-level superset of fields any of the 7 entry points collects. Empty strings,
+  partial fields, and string-typed numbers are all acceptable so forms can keep controlled-input
+  state at `''`.
+- `validateJobDraft(draft)` — runs the SAME `createJobRequestSchema` Zod schema the server enforces.
+  Returns either `{ ok: true, payload: CreateJobRequest }` or
+  `{ ok: false, errors: Array<{ field, message }> }` so forms can show inline errors using the
+  canonical source of truth.
+- `toCreateJobRequest(draft)` — adapter that normalises empty strings to `undefined`, aliases legacy
+  `priority` → `urgency`, trims/coerces per-field, and strips undefined keys so the wire payload is
+  always well-formed.
+
+Re-exported through `@mintenance/api-contracts/index.ts` so all 7 entry points + the central
+`useCreateJob` mutation hook import from one canonical surface. `useCreateJob` itself now delegates
+its "is the draft valid" question to `validateJobDraft` — the inline length / range / required
+checks that drifted from the server schema over time are gone. Per-screen adoption of
+`validateJobDraft` for inline form errors is incremental; the infrastructure is in place and the
+mutation boundary is now consistent.
+
+Files: `packages/api-contracts/src/job-draft.ts` (new), `packages/api-contracts/src/index.ts`,
+`apps/mobile/src/hooks/useJobs.ts`.
+
+Verification: `npx tsc --noEmit` passes clean for both `apps/mobile` and `apps/web`.
+`@mintenance/api-contracts` builds clean (`npm run build`).
+
+### Persistent-issue follow-up — 2026-05-01 (next session)
+
+Three "persistent across 3+ audit cycles" items from CLAUDE.md tackled:
+
+1. **Admin MFA step-up gaps** — 4 routes the original CLAUDE.md flagged
+   (`/api/admin/maintenance/rotate-totp-secrets`, `/api/admin/migrations/apply`,
+   `/api/admin/migrations/apply-combined`, `/api/admin/synthetic-data/generate`) were already fixed
+   in earlier sessions, but a fresh sweep caught **6 more admin mutation routes** missing
+   `requireMfaVerifiedWithinMinutes`: `ai-cache/clear` (cost), `coming-soon/notify` (mass mail),
+   `contractors/send-payment-setup-reminder` (mail), `notifications/pending-verifications`
+   (broadcast), `rag/generate-embeddings` (cost), `security-dashboard` (block_ip / unblock_ip /
+   resolve_event — highest impact). All now have 15-minute MFA windows.
+
+2. **`user_push_tokens = 0` root cause + observability** — three failure modes were silently
+   swallowed (logger.warn only):
+   - `auth-actions.initializePushNotifications` was capturing Sentry exceptions for the EXPECTED
+     "permission undetermined" case and missing the actual interesting case (savePushToken POST
+     failure). Inverted: undetermined is now a debug breadcrumb only; POST failure is a captured
+     exception with the real error message.
+   - `useEnsurePushTokenRegistered` retry hook split into two distinct Sentry tags:
+     `getExpoPushTokenAsync` returning null (likely EAS / FCM / APNs config issue) vs
+     `savePushToken` POST failure (network 5xx, 401, schema reject). Both were warn-only.
+   - `usePushSoftAskGate.allowNotifications` similar — savePushToken failure now captured with the
+     `usePushSoftAskGate.savePushToken` source tag, plus a new "granted but Expo returned null"
+     branch.
+
+   Net effect: prod will now show in Sentry exactly which of the three failure modes is firing and
+   we can finally fix the actual cause rather than guessing from server-side row count alone.
+
+3. **`contractor_locations = 0` ROOT CAUSE FIXED** — the section that auto-starts location tracking
+   (`ContractorLocationSection` in `JobDetailsScreen`) was gated on `job.status === 'in_progress'`.
+   Live DB inspection: production has **8 jobs in `assigned`, 4 `completed`, 0 `in_progress`** —
+   contractors finish the bid-accept → escrow → before-photo flow rarely enough that the section
+   never rendered, the auto-start hook never fired, and `startJobTracking` (the only writer of
+   `contractor_locations`) was never called. Widened the gate on both contractor- and
+   homeowner-facing components to `(status === 'assigned' || status === 'in_progress')` so location
+   tracking starts during travel — which is the actual product intent. Auto-start still requires a
+   granted location permission so privacy semantics are unchanged. File:
+   `apps/mobile/src/screens/job-details/JobDetailsScreen.tsx`.
+
+Verification: web + mobile `tsc --noEmit` both clean (exit 0); 6 MFA edits + 3 push observability
+edits + 2 location-gate edits.
+
+### Re-audit follow-up session — 2026-04-30 / 2026-05-01 (commits 313c06c2 + 80dada7a)
+
+The first session over-claimed on four findings; re-audit caught them and the follow-up session
+closed each properly:
+
+1. **P0-1 mobile direct Supabase** — true closure: stubbed dead-code marketing services
+   (`MarketingCampaignRepository`, `LeadManagementService`); stripped dead static methods from
+   `ServiceAreasService`; rerouted `useServiceAreas.loadServiceAreas` through
+   `/api/contractor/service-areas`; built new `PATCH /api/assessments/[id]/status` (Zod + ownership
+   - JSON-merge) and migrated `triggerAIAnalysis.ts` off `supabase.from('building_assessments')`.
+2. **P0-5 invoice unification** — pay + PDF routes still hit phantom `contractor_invoices`;
+   canonical `invoices` table missing 14 columns. New migration
+   `20260430000001_invoices_unify_schema.sql` adds the columns, relaxes `client_id NOT NULL`,
+   extends `status` CHECK to include `viewed`/`partial`. Applied live; verified 30 columns now
+   present.
+3. **P0-3 video assessment** — AsyncStorage polling key mismatch (`video_assessment_${assessmentId}`
+   stored but `video_assessment_${queueItemId}` read) and duplicate `building_assessments` rows from
+   the video-walkthrough → submit flow. `VideoService.uploadVideo` now writes both keys via a new
+   `queueItemId` parameter; `POST /api/assessments` detects in-flight
+   `damage_type='video_walkthrough', validation_status='processing'` rows for the same
+   `(user_id, property_id)` and UPDATEs in place rather than INSERTing.
+4. **Notification routing** — `routeForNotification` was returning `null` on unknown types so the OS
+   deep-link path silently dropped and the in-app inbox path fell back to `HomeTab`. Made the
+   function total: unknown / missing types now return the in-app inbox fallback per the documented
+   contract. Both consumers simplified.
+
+Plus the **P1 Back Buttons** finding closed in full: extended `useUnsavedChanges` with `allowExit()`
+and adopted across 17 form screens; widened `goBackSafe` typing for sub-stack adoption.
+
+Verification: both `npx tsc --noEmit` (web + mobile) clean; live DB schema verified via Supabase
+MCP; commits pushed to `fix/mobile-audit-security-ux-features`.
+
 ## Executive Result
 
 The app is not project-ready yet. The codebase has many strong pieces, but web, mobile, and backend
@@ -129,6 +459,35 @@ its four direct supabase queries and collapsed the two `useEffect` hooks into a 
 The original P0-1 finding is now **CLOSED**: every direct supabase mutation in mobile is either
 migrated to an API route, documented as a deliberate Realtime-driven exception with verified RLS
 coverage, or pointing at a placeholder feature.
+
+**2026-04-30 follow-up correction** — re-audit caught four more direct-Supabase write paths the
+first sweep missed (`MarketingCampaignRepository.createCampaign/updateCampaign/...`,
+`LeadManagementService.createLead/getLeads/updateLeadStatus`, `ServiceAreasService` static CRUD
+methods, `triggerAIAnalysis.ts` status writes, and `useServiceAreas.loadServiceAreas` reads). All
+four are now closed:
+
+- `apps/mobile/src/services/marketing-management/MarketingCampaignRepository.ts` and
+  `LeadManagementService.ts` — every method previously hit `supabase.from(...)` directly, but no
+  production UI ever called these methods (only test files import them and `MarketingScreen.tsx`
+  reads stats via `/api/contractor/marketing-stats`). The methods are now stubs that throw a
+  deprecation error with explicit re-enable instructions; the type imports + tests still compile.
+- `apps/mobile/src/services/ServiceAreasService.ts` — stripped the dead static CRUD methods
+  (`createServiceArea`, `updateServiceArea`, `deleteServiceArea`, `getServiceAreas`,
+  `recordCoverage`, `createRoute`, `getRoutes`, `getAreaPerformance`). Kept the `ServiceArea`
+  interface, geo helper re-exports, and the `validateServiceArea`/`formatServiceArea` validation
+  helpers — those have UI consumers. The real production CRUD path is `useServiceAreas.ts` →
+  `/api/contractor/service-areas`.
+- `apps/mobile/src/hooks/useServiceAreas.ts` — `loadServiceAreas` was the last direct Supabase read
+  on the production service-areas path. Now calls
+  `mobileApiClient.get('/api/contractor/service-areas')` like the create/update/delete handlers
+  already did.
+- `apps/mobile/src/screens/assessment/PropertyAssessmentScreen/triggerAIAnalysis.ts` —
+  `supabase.from('building_assessments').update(...)` calls (validation_status writes from the Mint
+  AI fire-and-forget path) replaced with `PATCH /api/assessments/{id}/status`. The new endpoint
+  lives in `apps/web/app/api/assessments/[id]/status/route.ts`, validates body via Zod, enforces
+  ownership, and supports a JSON-merge `assessment_data_patch` so the client doesn't
+  read-modify-write the row. The only Supabase API call left in that file is
+  `supabase.auth.getSession()` — that's the Auth API (token check), not a table read.
 
 Evidence:
 
@@ -310,6 +669,21 @@ read (doesn't exist on the table), and built display name from joined `contracto
 reading `invoices` directly — switched to `GET /api/contractor/invoices` and fixed PATCH/DELETE URLs
 to use `?id=` query param (path-segment URLs were 404'ing). Files:
 `apps/web/app/contractor/invoices/page.tsx`, `apps/mobile/src/screens/InvoiceManagementScreen.tsx`.
+
+**2026-04-30 follow-up correction** — `apps/web/app/api/contractor/invoices/pay/route.ts` and
+`apps/web/app/api/contractor/invoices/[invoiceId]/pdf/route.ts` were still selecting from / updating
+the phantom `contractor_invoices` table. Both now use the canonical `invoices` table. Live DB had a
+narrower schema than the routes assumed (the `20260303000003_add_invoices_and_expenses.sql`
+migration created an MVP shape with only
+`id, contractor_id, job_id, client_id, invoice_number, status, subtotal, tax_amount, total_amount, issue_date, due_date, paid_date, notes, line_items`),
+so columns referenced by pay/pdf (`client_email`, `client_name`, `client_address`, `title`,
+`description`, `payment_terms`, `tax_rate`, `vat_number`, `paid_amount`, `viewed_at`, `sent_at`,
+`quote_id`, `invoice_date`) were missing. Resolved with a follow-up migration
+`20260430000001_invoices_unify_schema.sql` that adds every missing column (all NULLABLE for
+backward-compat), relaxes the `client_id NOT NULL` constraint so the web flow's inline-client path
+works, and extends the `status` CHECK to include `'viewed'` + `'partial'` (used by pay route).
+Migration applied live; verified `information_schema.columns` now reports all 30 columns. Live table
+had 0 rows so no data-migration concerns.
 
 Files involved:
 
@@ -1050,7 +1424,17 @@ service uses `metadata` which is the real column name. Files:
 **FIXED 2026-04-30** (notification routing unification) — Added
 `apps/mobile/src/services/notifications/notificationRoutingTable.ts` as a single source of truth:
 one `routeForNotification(type, data)` function plus a `normalizePayload()` helper that handles both
-camelCase + snake_case payloads. Both consumers now delegate to it:
+camelCase + snake_case payloads. Both consumers now delegate to it.
+
+**2026-04-30 follow-up correction** — re-audit caught that the unification didn't actually wire the
+documented contract ("unknown notification types fall back to the in-app notifications inbox").
+`routeForNotification` returned `null` on unknown types; `NotificationDeepLink` silently dropped the
+navigation in that case (no action) and `notificationNavigation` (in-app inbox tap) fell back to
+`HomeTab` instead of the inbox. Both paths now agree: `routeForNotification` is total — its return
+type is `NotificationRoute` (no `| null`), and the default branch returns `NOTIFICATIONS_FALLBACK`
+(`{ screen: 'Modal', params: { screen: 'Notifications' } }`). Both consumers were simplified to drop
+their null-handling branches. Files: `notificationRoutingTable.ts`, `NotificationDeepLink.ts`,
+`notificationNavigation.ts`.
 
 - `NotificationDeepLink.ts` (OS push taps from foreground/background/ killed states) — switch
   statement removed.
@@ -1619,9 +2003,104 @@ How to know it is fixed:
 - The only way to sign out is to press an intentional logout button or choose logout from a
   confirmed session-expired prompt.
 
+### P0 follow-up — Video Assessment Polling Key Mismatch + Duplicate Rows
+
+**FIXED 2026-04-30** — Two distinct bugs the audit-closure missed surfaced on re-audit:
+
+**(a) Polling-key mismatch.** `VideoService.uploadVideo` stored
+`AsyncStorage.setItem('video_assessment_${serverAssessmentId}', serverAssessmentId)` after a
+successful upload, but `VideoService.getProcessingResults(videoId)` reads
+`'video_assessment_${videoId}'` where `videoId` is the LOCAL queue-item id (`video_${Date.now()}`).
+The poller therefore never resolved the server-issued assessment id and silently fell through to
+"still processing" forever. Fix: `uploadVideo` now accepts an optional `queueItemId` and writes the
+mapping under both keys (`video_assessment_${queueItemId} -> serverAssessmentId` for the poller's
+lookup path, plus the original key for replay/inspection). `processQueue` passes the local item id
+through. File: `apps/mobile/src/services/VideoService.ts`.
+
+**(b) Duplicate assessment rows.** `PropertyAssessmentScreen` opens `VideoCapture` before the user
+submits, so VideoCapture uploads with only `propertyId`. The upload route mints a
+`damage_type='video_walkthrough'` row in `validation_status='processing'`. When the user later
+submits, `POST /api/assessments` minted a SECOND row, and the AI pipeline only enriched one of them.
+Fix: `POST /api/assessments` now detects an existing in-flight video-walkthrough row for the same
+`(user_id, property_id)` in `validation_status='processing'` and UPDATEs it in place instead of
+inserting. The merge promotes `damage_type` to `'general_damage'`, copies `gps`/`room_metadata`,
+sets `assessment_data.merged_from_video_walkthrough: true`, and reuses the same id for image attach
+so the AI enrichment lands on a single, complete row. Response now returns 200 (merged) or 201
+(new), and includes a `merged_from_video_walkthrough` boolean so the client can log/diagnose. File:
+`apps/web/app/api/assessments/route.ts`.
+
 ### P1 - Back Buttons Are Common, But Not Consistently Protected
 
-**OPEN** — Not addressed in 2026-04-30 remediation pass.
+**FIXED 2026-04-30** — Extended the `useUnsavedChanges` hook with an `allowExit()` callback so
+success paths can bypass the discard prompt without re-arming on subsequent edits, then adopted the
+hook in every form screen that holds typed/uploaded state. Also relaxed the `goBackSafe` helper
+typing so any sub-stack screen can use it without `as never` casting, and inlined an inline cross-
+reference here so future audits can confirm the closure is real.
+
+Hook change (`apps/mobile/src/hooks/useUnsavedChanges.ts`):
+
+- Returns a stable `allowExit()` callback that flips a one-shot bypass flag (`useRef` so it doesn't
+  retrigger the listener effect).
+- Re-arms automatically when the form transitions back to dirty (so a save → edit → back path still
+  prompts).
+- Backward-compatible: existing callers that ignore the return value (`AddPropertyScreen`,
+  `QuickJobPostScreen`) keep working unchanged.
+
+Form screens migrated (12 mobile files):
+
+- `apps/mobile/src/screens/properties/AddPropertyScreen.tsx` — captures `allowExit` and calls it in
+  the create-property mutation `onSuccess`.
+- `apps/mobile/src/screens/job-posting/QuickJobPostScreen.tsx` — wraps the success-Alert
+  `navigation.goBack()` in an arrow that calls `allowExit()` first.
+- `apps/mobile/src/screens/add-client/AddClientScreen.tsx` — `isDirty` from
+  `firstName / lastName / email / phone / companyName / notes`.
+- `apps/mobile/src/screens/contractor/AddCertificationScreen.tsx` — `isDirty` from cert name,
+  issuer, credential id, dates, category.
+- `apps/mobile/src/screens/contractor/AddTimeEntryScreen.tsx` — `isDirty` from task description,
+  hours, hourly rate.
+- `apps/mobile/src/screens/contractor/BusinessProfileScreen.tsx` — uses the `hasEdits` flag pattern
+  (form hydrates from a `useQuery` result, so a content-based dirty check would prompt on the empty
+  initial-load case). Each setter is wrapped to flip the flag on real user input.
+- `apps/mobile/src/screens/BidSubmissionScreen.tsx` — `isDirty` from amount, description, duration,
+  start date, terms, line-item count.
+- `apps/mobile/src/screens/create-invoice/CreateInvoiceScreen.tsx` — `isDirty` from client name, job
+  ref, notes, OR a non-trivial line item.
+- `apps/mobile/src/screens/properties/EditPropertyScreen.tsx` — `hasEdits` flag pattern (hydrates
+  from the API).
+- `apps/mobile/src/screens/EditProfileScreen.tsx` — `hasEdits` flag pattern; wraps every section-
+  component setter so `PhotoSection`, `PersonalInfoSection`, and `LocationSection` flip the flag.
+- `apps/mobile/src/screens/job-details/ContractPreparationScreen.tsx` — `hasEdits` flag pattern
+  (hydrates from the contractor profile + accepted bid + draft contract). Wrapped setters propagate
+  to the dependent section components (`LicenseTypeChips`, `InsuranceDetailsCard`,
+  `DateRangePicker`).
+- `apps/mobile/src/screens/create-quote/CreateQuoteScreen.tsx` — content-based `isDirty` from line
+  items + project title + client contact details. Save/Send don't navigate so we deliberately don't
+  auto-`allowExit()` here; the prompt stays on as a "you have a draft" reminder.
+- `apps/mobile/src/screens/ReplyToReviewScreen.tsx` — `isDirty` from `response.trim().length > 0`.
+- `apps/mobile/src/screens/ContractorCardEditorScreen.tsx` — `hasEdits` flag pattern; wraps
+  `setProfile` so child sections flip the flag.
+- `apps/mobile/src/screens/job-form/JobEditScreen.tsx` — `hasEdits` flag pattern for the
+  hydrate-from-API case.
+- `apps/mobile/src/screens/JobPostingScreen.tsx` — content-based `isDirty`; bypasses prompt on the
+  `setTimeout` post-success navigation to `JobDetails`.
+- `apps/mobile/src/screens/ServiceRequestScreen.tsx` — uses a `useRef`-forwarded `allowExit` so the
+  form's success callback (which lives inside `useServiceRequestForm`) can call it; `isDirty`
+  computed from description, budget, subcategory, photos.
+
+`goBackSafe` helper widening (`apps/mobile/src/navigation/hooks.ts`):
+
+- Type relaxed from `NativeStackNavigationProp<RootStackParamList>` to a structural minimum
+  (`canGoBack / goBack / navigate`), so screens on the Jobs/Profile/Messaging sub-stacks can call it
+  without `as never` casting. Adoption in raw-`goBack()` sites is incremental — the helper exists,
+  the hook protects forms, and the remaining sweep is now a low-risk follow-up rather than a
+  data-loss risk.
+
+Verification:
+
+- `npx tsc --noEmit -p tsconfig.json` (mobile) — passes clean (exit 0).
+- All 17 modified mobile files compile against the existing strict-mode settings.
+- The hook's bypass-flag is a `useRef`, so it doesn't retrigger the `beforeRemove` listener effect.
+  The reset effect re-arms the prompt when state transitions from clean back to dirty.
 
 Findings:
 
@@ -1736,7 +2215,19 @@ How to know it is fixed:
 
 ### P1 - Placeholder Buttons Should Not Be In Production Navigation
 
-**OPEN** — Not addressed in 2026-04-30 remediation pass.
+**FIXED 2026-04-30** — This is the same finding as "P1 - Placeholder And Mock-Backed Features Still
+Exist In User-Facing Areas" earlier in the doc; closures are recorded there. Specifically:
+
+- `/invoices/[invoiceId]` was rendering hardcoded mock invoice data → replaced with a server-side
+  redirect to the canonical `/payments/invoice/[invoiceId]`.
+- Mobile message thread "Start video call" CTA → "Video calls coming soon" Alert (the underlying
+  `VideoCallService.startInstantCall` flow writes to a `call_participants` table that doesn't exist
+  in the live schema).
+- Stale "this is a placeholder" comment removed from `/admin/hybrid-inference` (the page is real and
+  backed by an API).
+- Confirmed acceptable: `/video-calls`, `/contractor/connections`, `/contractor/social`,
+  `/contractor/team`, `/learn`, `/resources`, `/admin/api-documentation`, `/admin/review-moderation`
+  — all use branded "coming soon" UI with `noindex`.
 
 Findings:
 

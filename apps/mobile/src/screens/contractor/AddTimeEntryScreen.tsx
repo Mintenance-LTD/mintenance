@@ -20,6 +20,7 @@ import { mobileApiClient } from '../../utils/mobileApiClient';
 import { useAuth } from '../../contexts/AuthContext';
 import type { ProfileStackParamList } from '../../navigation/types';
 import { theme } from '../../theme';
+import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 
 interface Props {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'AddTimeEntry'>;
@@ -43,6 +44,9 @@ export const AddTimeEntryScreen: React.FC<Props> = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
 
   const isValid = taskDescription.trim().length > 0 && parseFloat(hours) > 0;
+
+  const isDirty = !!(taskDescription || hours || hourlyRate);
+  const allowExit = useUnsavedChanges(isDirty);
 
   const handleSave = async () => {
     if (!isValid) {
@@ -70,6 +74,7 @@ export const AddTimeEntryScreen: React.FC<Props> = ({ navigation }) => {
       });
       queryClient.invalidateQueries({ queryKey: ['contractor-time-tracking'] });
       toast.success('Time entry added', `${hours}h logged successfully`);
+      allowExit();
       navigation.goBack();
     } catch {
       toast.error('Failed to save entry', 'Please try again.');

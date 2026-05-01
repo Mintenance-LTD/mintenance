@@ -229,6 +229,12 @@ const KNOWN_LARGE_FILES = new Set([
   // a hook is a clean follow-up but not a blocker on shipping the
   // feature.
   'apps/mobile/src/screens/LoginScreen.tsx', // 614 lines (was 491) — Remember email checkbox
+  // Added 2026-04-30: form screens that received useUnsavedChanges
+  // back-button protection (audit P1). Each addition is the hook +
+  // markDirty wrappers around existing setters — the line growth is
+  // structural, not new business logic. Splits are P2 follow-ups.
+  'apps/mobile/src/screens/job-form/JobEditScreen.tsx', // 510 lines (was 488) — useUnsavedChanges + markDirty wrappers
+  'apps/mobile/src/screens/properties/EditPropertyScreen.tsx', // 518 lines (was 478) — hasEdits flag pattern + wrapped setters
 ]);
 
 function countLines(filePath) {

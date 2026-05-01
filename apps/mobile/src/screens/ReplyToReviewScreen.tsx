@@ -23,6 +23,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { mobileApiClient as apiClient } from '../utils/mobileApiClient';
 import { theme } from '../theme';
 import type { ProfileStackParamList } from '../navigation/types';
+import { useUnsavedChanges } from '../hooks/useUnsavedChanges';
 
 type Props = NativeStackScreenProps<ProfileStackParamList, 'ReplyToReview'>;
 
@@ -30,6 +31,7 @@ export const ReplyToReviewScreen: React.FC<Props> = ({ route, navigation }) => {
   const { reviewId, reviewerName, reviewComment, rating } = route.params;
   const [response, setResponse] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const allowExit = useUnsavedChanges(response.trim().length > 0);
 
   async function submit() {
     const trimmed = response.trim();
@@ -47,6 +49,7 @@ export const ReplyToReviewScreen: React.FC<Props> = ({ route, navigation }) => {
         'Reply submitted',
         'Homeowners will see your reply after a 48-hour moderation window.'
       );
+      allowExit();
       navigation.goBack();
     } catch (err) {
       Alert.alert(

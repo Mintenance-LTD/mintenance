@@ -1,9 +1,32 @@
 import { NextResponse } from 'next/server';
-import { serverSupabase, createRequestScopedClient } from '@/lib/api/supabaseServer';
-import { logger, validateBidTransition, BID_STATUS, type BidStatusValue } from '@mintenance/shared';
+import { z } from 'zod';
+import {
+  serverSupabase,
+  createRequestScopedClient,
+} from '@/lib/api/supabaseServer';
+import {
+  logger,
+  validateBidTransition,
+  BID_STATUS,
+  type BidStatusValue,
+} from '@mintenance/shared';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
 import { withApiHandler } from '@/lib/api/with-api-handler';
-import { ForbiddenError, NotFoundError, BadRequestError } from '@/lib/errors/api-error';
+import {
+  ForbiddenError,
+  NotFoundError,
+  BadRequestError,
+} from '@/lib/errors/api-error';
+
+// 2026-05-01 audit follow-up (check-api-contracts): optional rejection
+// reason is now Zod-validated. Body is allowed to be empty (no reason
+// provided) — the schema's optional + max-500 cap mirrors the prior
+// `body?.reason.slice(0, 500)` cap.
+const bidRejectSchema = z
+  .object({
+    reason: z.string().max(500).optional(),
+  })
+  .strict();
 
 export const POST = withApiHandler(
   { roles: ['homeowner'] },
@@ -20,10 +43,14 @@ export const POST = withApiHandler(
       .single();
 
     if (jobError || !job) {
-      logger.error('Failed to fetch job', jobError || new Error('Job not found'), {
-        service: 'jobs',
-        jobId,
-      });
+      logger.error(
+        'Failed to fetch job',
+        jobError || new Error('Job not found'),
+        {
+          service: 'jobs',
+          jobId,
+        }
+      );
       throw new NotFoundError('Job not found');
     }
 
@@ -40,22 +67,33 @@ export const POST = withApiHandler(
       .single();
 
     if (bidError || !bid) {
-      logger.error('Failed to fetch bid', bidError || new Error('Bid not found'), {
-        service: 'jobs',
-        bidId,
-        jobId,
-      });
+      logger.error(
+        'Failed to fetch bid',
+        bidError || new Error('Bid not found'),
+        {
+          service: 'jobs',
+          bidId,
+          jobId,
+        }
+      );
       throw new NotFoundError('Bid not found');
     }
 
     // Validate bid transition using state machine
-    validateBidTransition(bid.status as BidStatusValue, BID_STATUS.REJECTED as BidStatusValue);
+    validateBidTransition(
+      bid.status as BidStatusValue,
+      BID_STATUS.REJECTED as BidStatusValue
+    );
 
-    // Parse optional rejection reason from body
+    // Parse optional rejection reason from body. Body may be empty —
+    // safeParse on an undefined `reason` is allowed by the schema.
     let reason: string | undefined;
     try {
-      const body = await request.json();
-      reason = typeof body?.reason === 'string' ? body.reason.slice(0, 500) : undefined;
+      const raw = await request.json();
+      const parsed = bidRejectSchema.safeParse(raw);
+      if (parsed.success) {
+        reason = parsed.data.reason;
+      }
     } catch {
       // No body or invalid JSON — reason is optional
     }
@@ -110,11 +148,15 @@ export const POST = withApiHandler(
         });
       }
     } catch (notificationError) {
-      logger.error('Failed to send bid rejection notification', notificationError, {
-        service: 'jobs',
-        bidId,
-        jobId,
-      });
+      logger.error(
+        'Failed to send bid rejection notification',
+        notificationError,
+        {
+          service: 'jobs',
+          bidId,
+          jobId,
+        }
+      );
       // Don't fail the request if notification fails
     }
 

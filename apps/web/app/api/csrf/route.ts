@@ -33,6 +33,9 @@ function parseCookie(cookieString: string): Record<string, string> {
  * GET /api/csrf
  * Return existing CSRF token from cookie if valid, otherwise generate a new one
  */
+// auth-check: ok — CSRF tokens are public by definition: every form needs
+// one BEFORE the user can submit, including login. Rate limit is set
+// per-IP below.
 export const GET = withApiHandler(
   { auth: false, rateLimit: false },
   async (request) => {

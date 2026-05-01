@@ -88,16 +88,33 @@ export const navigateToScreen = <T extends keyof RootStackParamList>(
 };
 
 /**
- * Navigate back with optional fallback
+ * Navigate back with optional fallback. Used to defend against
+ * stack-empty entry paths (e.g. deep-link or push-notification
+ * opens the screen with nothing behind it; raw `goBack()` then
+ * silently does nothing). Pass a sensible fallback for the screen
+ * when it might be the first one on the stack.
+ *
+ * 2026-04-30 audit P1 (Back Buttons Are Common, But Not Consistently
+ * Protected): widened the navigation type from
+ * `NativeStackNavigationProp<RootStackParamList>` to a structural
+ * minimum, so screens on the Jobs/Profile/Messaging sub-stacks can
+ * call this helper without casting through `never`.
  */
+type GoBackSafeNav = {
+  canGoBack: () => boolean;
+  goBack: () => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  navigate: (...args: any[]) => void;
+};
+
 export const goBackSafe = (
-  navigation: NativeStackNavigationProp<RootStackParamList>,
-  fallbackScreen?: keyof RootStackParamList
+  navigation: GoBackSafeNav,
+  fallbackScreen?: string
 ) => {
   if (navigation.canGoBack()) {
     navigation.goBack();
   } else if (fallbackScreen) {
-    navigation.navigate(fallbackScreen as never);
+    navigation.navigate(fallbackScreen);
   }
 };
 

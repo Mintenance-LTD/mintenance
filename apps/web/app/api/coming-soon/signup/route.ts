@@ -11,6 +11,8 @@ const signupSchema = z.object({
   referralCode: z.string().max(20).optional(),
 });
 
+// auth-check: ok — coming-soon waitlist signup is public by design;
+// a logged-in user wouldn't be on the waitlist.
 export const POST = withApiHandler(
   { auth: false, csrf: false, rateLimit: { maxRequests: 5 } },
   async (request) => {

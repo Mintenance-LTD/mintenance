@@ -10,6 +10,8 @@ const searchSuggestionsSchema = z.object({
   limit: z.number().int().min(1).max(50).default(10),
 });
 
+// auth-check: ok — public typeahead surface for the landing-page
+// search bar. No user-specific data; rate-limited per IP.
 export const POST = withApiHandler(
   { auth: false, rateLimit: { maxRequests: 20 } },
   async (request) => {

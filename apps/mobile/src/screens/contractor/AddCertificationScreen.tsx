@@ -19,6 +19,7 @@ import { mobileApiClient } from '../../utils/mobileApiClient';
 import { useAuth } from '../../contexts/AuthContext';
 import type { ProfileStackParamList } from '../../navigation/types';
 import { theme } from '../../theme';
+import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 
 interface Props {
   navigation: NativeStackNavigationProp<
@@ -66,6 +67,16 @@ export const AddCertificationScreen: React.FC<Props> = ({ navigation }) => {
   const isValid =
     certName.trim().length > 0 && issuer.trim().length > 0 && !!issueDateISO;
 
+  const isDirty = !!(
+    certName ||
+    issuer ||
+    credentialId ||
+    issueDate ||
+    expiryDate ||
+    selectedCategory
+  );
+  const allowExit = useUnsavedChanges(isDirty);
+
   const handleSave = async () => {
     if (!isValid) {
       toast.error(
@@ -94,6 +105,7 @@ export const AddCertificationScreen: React.FC<Props> = ({ navigation }) => {
         queryKey: ['contractor-certifications'],
       });
       toast.success('Certification added', `${certName} has been saved`);
+      allowExit();
       navigation.goBack();
     } catch {
       toast.error('Failed to save certification', 'Please try again.');

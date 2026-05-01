@@ -28,6 +28,7 @@ import { mobileApiClient } from '../../utils/mobileApiClient';
 import type { Property } from '@mintenance/types';
 import type { ProfileStackParamList } from '../../navigation/types';
 import { theme } from '../../theme';
+import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 
 interface Props {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'EditProperty'>;
@@ -61,6 +62,12 @@ export const EditPropertyScreen: React.FC<Props> = ({ navigation, route }) => {
   const [yearBuilt, setYearBuilt] = useState('');
   const [squareFootage, setSquareFootage] = useState('');
   const [notes, setNotes] = useState('');
+  // Track whether the user has made edits since the form hydrated.
+  // We intentionally don't compare current values to `property.*` —
+  // that comparison breaks when null DB columns hydrate to '' which
+  // looks identical to user-typed empty strings.
+  const [hasEdits, setHasEdits] = useState(false);
+  const allowExit = useUnsavedChanges(hasEdits);
 
   const {
     data: property,
@@ -117,6 +124,8 @@ export const EditPropertyScreen: React.FC<Props> = ({ navigation, route }) => {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['property', propertyId] });
       queryClient.invalidateQueries({ queryKey: ['properties'] });
+      setHasEdits(false);
+      allowExit();
       navigation.goBack();
     },
     onError: (err: unknown) => {
@@ -168,7 +177,10 @@ export const EditPropertyScreen: React.FC<Props> = ({ navigation, route }) => {
             <TextInput
               style={styles.input}
               value={name}
-              onChangeText={setName}
+              onChangeText={(v) => {
+                setName(v);
+                setHasEdits(true);
+              }}
               placeholder='Property name'
               placeholderTextColor={theme.colors.textTertiary}
             />
@@ -181,7 +193,10 @@ export const EditPropertyScreen: React.FC<Props> = ({ navigation, route }) => {
               <TextInput
                 style={styles.input}
                 value={address}
-                onChangeText={setAddress}
+                onChangeText={(v) => {
+                  setAddress(v);
+                  setHasEdits(true);
+                }}
                 placeholder='e.g. 42 High Street'
                 placeholderTextColor={theme.colors.textTertiary}
               />
@@ -192,7 +207,10 @@ export const EditPropertyScreen: React.FC<Props> = ({ navigation, route }) => {
                 <TextInput
                   style={styles.input}
                   value={city}
-                  onChangeText={setCity}
+                  onChangeText={(v) => {
+                    setCity(v);
+                    setHasEdits(true);
+                  }}
                   placeholder='London'
                   placeholderTextColor={theme.colors.textTertiary}
                 />
@@ -203,7 +221,10 @@ export const EditPropertyScreen: React.FC<Props> = ({ navigation, route }) => {
                 <TextInput
                   style={styles.input}
                   value={postcode}
-                  onChangeText={setPostcode}
+                  onChangeText={(v) => {
+                    setPostcode(v);
+                    setHasEdits(true);
+                  }}
                   placeholder='SW1A 1AA'
                   placeholderTextColor={theme.colors.textTertiary}
                   autoCapitalize='characters'
@@ -222,7 +243,10 @@ export const EditPropertyScreen: React.FC<Props> = ({ navigation, route }) => {
                     styles.typeChip,
                     propertyType === type.value && styles.typeChipSelected,
                   ]}
-                  onPress={() => setPropertyType(type.value)}
+                  onPress={() => {
+                    setPropertyType(type.value);
+                    setHasEdits(true);
+                  }}
                 >
                   <Ionicons
                     name={type.icon}
@@ -260,7 +284,10 @@ export const EditPropertyScreen: React.FC<Props> = ({ navigation, route }) => {
                 <TextInput
                   style={styles.specInput}
                   value={bedrooms}
-                  onChangeText={setBedrooms}
+                  onChangeText={(v) => {
+                    setBedrooms(v);
+                    setHasEdits(true);
+                  }}
                   placeholder='0'
                   placeholderTextColor={theme.colors.textTertiary}
                   keyboardType='number-pad'
@@ -277,7 +304,10 @@ export const EditPropertyScreen: React.FC<Props> = ({ navigation, route }) => {
                 <TextInput
                   style={styles.specInput}
                   value={bathrooms}
-                  onChangeText={setBathrooms}
+                  onChangeText={(v) => {
+                    setBathrooms(v);
+                    setHasEdits(true);
+                  }}
                   placeholder='0'
                   placeholderTextColor={theme.colors.textTertiary}
                   keyboardType='number-pad'
@@ -294,7 +324,10 @@ export const EditPropertyScreen: React.FC<Props> = ({ navigation, route }) => {
                 <TextInput
                   style={styles.specInput}
                   value={yearBuilt}
-                  onChangeText={setYearBuilt}
+                  onChangeText={(v) => {
+                    setYearBuilt(v);
+                    setHasEdits(true);
+                  }}
                   placeholder='2005'
                   placeholderTextColor={theme.colors.textTertiary}
                   keyboardType='number-pad'
@@ -311,7 +344,10 @@ export const EditPropertyScreen: React.FC<Props> = ({ navigation, route }) => {
                 <TextInput
                   style={styles.specInput}
                   value={squareFootage}
-                  onChangeText={setSquareFootage}
+                  onChangeText={(v) => {
+                    setSquareFootage(v);
+                    setHasEdits(true);
+                  }}
                   placeholder='1200'
                   placeholderTextColor={theme.colors.textTertiary}
                   keyboardType='number-pad'
@@ -326,7 +362,10 @@ export const EditPropertyScreen: React.FC<Props> = ({ navigation, route }) => {
             <TextInput
               style={[styles.input, styles.textArea]}
               value={notes}
-              onChangeText={setNotes}
+              onChangeText={(v) => {
+                setNotes(v);
+                setHasEdits(true);
+              }}
               placeholder='Any additional notes...'
               placeholderTextColor={theme.colors.textTertiary}
               multiline

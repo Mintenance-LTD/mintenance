@@ -28,6 +28,11 @@ export const runtime = 'nodejs';
  * - invoice.payment_succeeded - Subscription payment succeeded
  * - invoice.payment_failed - Subscription payment failed
  */
+// auth-check: ok — Stripe webhook signature is the auth (verified inside
+// StripeWebhookService.handleRequest via stripe.webhooks.constructEvent).
+// withApiHandler is intentionally NOT used because it consumes the body
+// for CSRF / JSON parse, which would invalidate the raw bytes Stripe
+// signs. Keep this raw export.
 export async function POST(request: NextRequest) {
   return StripeWebhookService.getInstance().handleRequest(request);
 }

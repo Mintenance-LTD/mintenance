@@ -10,7 +10,15 @@ import { EmailService } from '@/lib/email-service';
  * Admin-only endpoint.
  */
 export const POST = withApiHandler(
-  { roles: ['admin'], rateLimit: { maxRequests: 2 } },
+  {
+    roles: ['admin'],
+    rateLimit: { maxRequests: 2 },
+    // 2026-05-01 audit follow-up: blast-emails every coming-soon signup.
+    // A stolen admin cookie could fire a brand-impacting mass mail.
+    // Require fresh MFA proof — matches the precedent for admin send
+    // routes (announcements/send, refunds/[id], etc.).
+    requireMfaVerifiedWithinMinutes: 15,
+  },
   async () => {
     // Get all un-notified signups
     const { data: signups, error } = await serverSupabase

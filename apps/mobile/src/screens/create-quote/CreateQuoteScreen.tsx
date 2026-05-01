@@ -29,6 +29,7 @@ import {
 } from './components';
 import { theme } from '../../theme';
 import { formatCurrency } from '../../utils/formatCurrency';
+import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 
 interface CreateQuoteScreenProps {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'CreateQuote'>;
@@ -56,6 +57,23 @@ export const CreateQuoteScreen: React.FC<CreateQuoteScreenProps> = ({
     initialClientName,
     initialClientEmail
   );
+
+  // Discard-prompt — content here is high-effort (line items + client
+  // contact details + descriptions), so any non-empty field counts.
+  // Note: persistence is via Save/Send buttons — neither navigates
+  // away, so we deliberately don't auto-`allowExit()`. The prompt
+  // still fires after a save if the user has line items, which is
+  // a slightly noisy false-positive but never loses data.
+  const isDirty = !!(
+    viewModel.lineItems.length > 0 ||
+    viewModel.projectTitle.trim() ||
+    viewModel.projectDescription.trim() ||
+    viewModel.clientName.trim() ||
+    viewModel.clientEmail.trim() ||
+    viewModel.clientPhone.trim() ||
+    viewModel.notes.trim()
+  );
+  useUnsavedChanges(isDirty);
 
   if (viewModel.loading && viewModel.lineItems.length === 0) {
     return (

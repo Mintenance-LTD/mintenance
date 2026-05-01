@@ -4,6 +4,7 @@
  */
 
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import {
   UnifiedAIService,
   type AnalysisContext,
@@ -13,6 +14,20 @@ import { logger } from '@mintenance/shared';
 import { checkAIUserRateLimit, rateLimiter } from '@/lib/rate-limiter';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { getClientIp } from '@/lib/request-ip';
+
+// 2026-05-01 audit follow-up (check-api-contracts): Zod-validated body
+// replaces the manual `Array.isArray(images)` + `typeof context === 'object'`
+// checks. `images` is capped at 20 (matches the create-job photoUrls cap)
+// and each entry must be an http(s) URL.
+const aiAnalyzeSchema = z
+  .object({
+    images: z.array(z.string().url()).min(1).max(20),
+    // `context` carries arbitrary keys downstream (`type`, `propertyId`,
+    // `damageType`, etc.) that vary by analysis path — z.record so the
+    // schema stays open without losing type safety on the wrapper.
+    context: z.record(z.string(), z.unknown()),
+  })
+  .strict();
 
 export const POST = withApiHandler(
   { rateLimit: false },
@@ -72,23 +87,30 @@ export const POST = withApiHandler(
       );
     }
 
-    const body = await request.json();
-    const { images, context } = body;
-
-    if (!images || !Array.isArray(images) || images.length === 0) {
+    let raw: unknown;
+    try {
+      raw = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+    }
+    const parsed = aiAnalyzeSchema.safeParse(raw);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Images are required' },
+        { error: parsed.error.issues[0]?.message ?? 'Invalid request body' },
         { status: 400 }
       );
     }
-    if (!context || typeof context !== 'object') {
-      return NextResponse.json(
-        { error: 'Context is required' },
-        { status: 400 }
-      );
-    }
+    const { images, context } = parsed.data;
 
-    const analysisContext: AnalysisContext = { ...context, userId: user.id };
+    // The Zod `context` schema is `Record<string, unknown>` because the
+    // shape varies per analysis path; cast to the AnalysisContext
+    // discriminated-union here. UnifiedAIService validates `type`
+    // again before dispatching, so a missing/invalid `type` still
+    // surfaces as a typed error rather than a TS slip.
+    const analysisContext = {
+      ...context,
+      userId: user.id,
+    } as AnalysisContext;
 
     logger.info('Unified AI analysis requested', {
       userId: user.id,
@@ -149,6 +171,8 @@ export const POST = withApiHandler(
   }
 );
 
+// auth-check: ok — public AI status probe. No user data, used by health
+// dashboards and the landing page to show "AI is online".
 export const GET = withApiHandler({ auth: false }, async () => {
   const status = await UnifiedAIService.getStatus();
   return NextResponse.json(status);

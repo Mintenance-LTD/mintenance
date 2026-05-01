@@ -5,22 +5,51 @@
  */
 
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger, JOB_STATUS } from '@mintenance/shared';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
 import { EmailService } from '@/lib/email-service';
-import { NotFoundError, BadRequestError, ForbiddenError } from '@/lib/errors/api-error';
+import {
+  NotFoundError,
+  BadRequestError,
+  ForbiddenError,
+} from '@/lib/errors/api-error';
+
+// 2026-05-01 audit follow-up (check-api-contracts): Zod-validated body
+// replaces the inline cast.
+const requestChangesSchema = z
+  .object({
+    comments: z
+      .string()
+      .min(1, 'Please provide details about what changes are needed')
+      .max(5000),
+  })
+  .strict();
 
 export const POST = withApiHandler(
   { roles: ['homeowner'] },
   async (request, { user, params }) => {
     const jobId = params.id;
-    const body = await request.json();
-    const comments = typeof body.comments === 'string' ? body.comments.trim() : '';
-
+    let raw: unknown;
+    try {
+      raw = await request.json();
+    } catch {
+      throw new BadRequestError('Invalid JSON body');
+    }
+    const parsed = requestChangesSchema.safeParse(raw);
+    if (!parsed.success) {
+      throw new BadRequestError(
+        parsed.error.issues[0]?.message ??
+          'Please provide details about what changes are needed'
+      );
+    }
+    const comments = parsed.data.comments.trim();
     if (!comments) {
-      throw new BadRequestError('Please provide details about what changes are needed');
+      throw new BadRequestError(
+        'Please provide details about what changes are needed'
+      );
     }
 
     // 1. Fetch job and verify ownership
@@ -87,11 +116,13 @@ export const POST = withApiHandler(
         .single();
 
       if (contractorProfile?.email) {
-        const contractorName = contractorProfile.first_name && contractorProfile.last_name
-          ? `${contractorProfile.first_name} ${contractorProfile.last_name}`
-          : contractorProfile.company_name || 'Contractor';
+        const contractorName =
+          contractorProfile.first_name && contractorProfile.last_name
+            ? `${contractorProfile.first_name} ${contractorProfile.last_name}`
+            : contractorProfile.company_name || 'Contractor';
         const homeownerName = homeownerProfile
-          ? `${homeownerProfile.first_name || ''} ${homeownerProfile.last_name || ''}`.trim() || 'The homeowner'
+          ? `${homeownerProfile.first_name || ''} ${homeownerProfile.last_name || ''}`.trim() ||
+            'The homeowner'
           : 'The homeowner';
 
         await EmailService.sendChangesRequestedEmail(contractorProfile.email, {
@@ -103,7 +134,10 @@ export const POST = withApiHandler(
         });
       }
     } catch (emailError) {
-      logger.error('Failed to send changes requested email', emailError, { service: 'jobs', jobId });
+      logger.error('Failed to send changes requested email', emailError, {
+        service: 'jobs',
+        jobId,
+      });
     }
 
     logger.info('Homeowner requested changes, job rolled back to in_progress', {
@@ -115,7 +149,8 @@ export const POST = withApiHandler(
 
     return NextResponse.json({
       success: true,
-      message: 'Change request sent to contractor. Job has been reopened for rework.',
+      message:
+        'Change request sent to contractor. Job has been reopened for rework.',
     });
   }
 );
