@@ -1,5 +1,6 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { NotificationService } from '@/lib/services/notifications/NotificationService';
 
 interface AdminAlert {
   type: string;
@@ -448,37 +449,49 @@ export class AdminAlertService {
       return;
     }
 
-    const rows = alerts.flatMap((alert) =>
-      adminIds.map((adminId) => ({
-        user_id: adminId,
-        title: alert.title,
-        message: alert.message,
-        type: alert.type,
-        read: false,
-        action_url: alert.actionUrl ?? null,
-        metadata: {
-          severity: alert.severity,
-          ...alert.metadata,
-        },
-        created_at: new Date().toISOString(),
-      }))
+    // 2026-05-01 audit follow-up: route through NotificationService so admin
+    // alerts also fire push (admins were getting in-app rows but no push,
+    // which defeats the point of an "alert"). Each admin × alert pair is a
+    // separate fan-out call so per-admin preferences + quiet-hours apply.
+    //
+    // The previous bulk `.from('notifications').insert(rows)` was kept for
+    // batch efficiency, but we still batch the fan-out 100 at a time to
+    // bound peak concurrency on the supabase client + push dispatcher.
+    const BATCH_SIZE = 100;
+    let inserted = 0;
+    let failures = 0;
+    const pairs: Array<{ adminId: string; alert: AdminAlert }> = alerts.flatMap(
+      (alert) => adminIds.map((adminId) => ({ adminId, alert }))
     );
 
-    // Insert in batches of 100 to stay within Supabase payload limits
-    const BATCH_SIZE = 100;
-    for (let i = 0; i < rows.length; i += BATCH_SIZE) {
-      const batch = rows.slice(i, i + BATCH_SIZE);
-      const { error } = await serverSupabase
-        .from('notifications')
-        .insert(batch);
-
-      if (error) {
-        logger.error('Failed to insert admin alert notifications', {
-          service: this.SERVICE_NAME,
-          batchIndex: i,
-          batchSize: batch.length,
-          error: error.message,
-        });
+    for (let i = 0; i < pairs.length; i += BATCH_SIZE) {
+      const batch = pairs.slice(i, i + BATCH_SIZE);
+      const settled = await Promise.allSettled(
+        batch.map(({ adminId, alert }) =>
+          NotificationService.createNotification({
+            userId: adminId,
+            type: alert.type,
+            title: alert.title,
+            message: alert.message,
+            actionUrl: alert.actionUrl,
+            metadata: {
+              severity: alert.severity,
+              ...alert.metadata,
+            },
+          })
+        )
+      );
+      for (const r of settled) {
+        if (r.status === 'fulfilled' && r.value) {
+          inserted += 1;
+        } else if (r.status === 'rejected') {
+          failures += 1;
+          logger.error('Admin alert fan-out failed for one admin', {
+            service: this.SERVICE_NAME,
+            error:
+              r.reason instanceof Error ? r.reason.message : String(r.reason),
+          });
+        }
       }
     }
 
@@ -486,7 +499,8 @@ export class AdminAlertService {
       service: this.SERVICE_NAME,
       alertCount: alerts.length,
       adminCount: adminIds.length,
-      totalNotifications: rows.length,
+      inserted,
+      failures,
     });
   }
 }

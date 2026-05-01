@@ -4,6 +4,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { EmailService } from '@/lib/email-service';
 import { ExpoPushService } from '@/lib/services/push/ExpoPushService';
+import { NotificationService } from '@/lib/services/notifications/NotificationService';
 import { brandedEmail, brandedEmailText } from '@/lib/email-branded-template';
 import { BadRequestError, NotFoundError } from '@/lib/errors/api-error';
 import { z } from 'zod';
@@ -95,34 +96,44 @@ export const POST = withApiHandler(
       inApp: 0,
     };
 
-    // 1. In-app notifications (insert into notifications table)
+    // 1. In-app notifications — fan out through NotificationService so each
+    //    row honours per-user prefs/quiet-hours and so push fires off the
+    //    same call. We push is dispatched separately further down via
+    //    ExpoPushService.sendToRole, so opt this fan-out into in-app-only
+    //    to avoid double-pushing every recipient.
+    //
+    //    2026-05-01 audit follow-up: replaces the previous bulk
+    //    `.from('notifications').insert(batch)` which silently bypassed
+    //    every preference and never fired push.
     if (sendInApp) {
-      const notificationRows = users.map((u) => ({
-        user_id: u.id,
-        type: 'announcement',
-        title: announcement.title,
-        message: announcement.content.slice(0, 500),
-        metadata: {
-          announcement_id: announcementId,
-          priority: announcement.priority,
-        },
-        read: false,
-        created_at: new Date().toISOString(),
-      }));
-
-      // Insert in batches of 500
-      for (let i = 0; i < notificationRows.length; i += 500) {
-        const batch = notificationRows.slice(i, i + 500);
-        const { error: insertError } = await serverSupabase
-          .from('notifications')
-          .insert(batch);
-
-        if (insertError) {
-          logger.error('Failed to insert notification batch', insertError, {
-            service: 'announcements',
-          });
-        } else {
-          results.inApp += batch.length;
+      const ANNOUNCE_BATCH_SIZE = 500;
+      for (let i = 0; i < users.length; i += ANNOUNCE_BATCH_SIZE) {
+        const batch = users.slice(i, i + ANNOUNCE_BATCH_SIZE);
+        const settled = await Promise.allSettled(
+          batch.map((u) =>
+            NotificationService.createNotification({
+              userId: u.id,
+              type: 'announcement',
+              title: announcement.title,
+              message: announcement.content.slice(0, 500),
+              metadata: {
+                announcement_id: announcementId,
+                priority: announcement.priority,
+              },
+              inAppOnly: true,
+            })
+          )
+        );
+        for (const r of settled) {
+          if (r.status === 'fulfilled' && r.value) {
+            results.inApp += 1;
+          } else if (r.status === 'rejected') {
+            logger.error('In-app announcement fan-out failed for one user', {
+              service: 'announcements',
+              error:
+                r.reason instanceof Error ? r.reason.message : String(r.reason),
+            });
+          }
         }
       }
     }

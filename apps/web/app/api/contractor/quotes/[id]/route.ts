@@ -45,15 +45,21 @@ export const PUT = withApiHandler(
       throw new NotFoundError('Quote not found');
     }
 
-    const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    const updates: Record<string, unknown> = {
+      updated_at: new Date().toISOString(),
+    };
     if (payload.title !== undefined) updates.title = payload.title;
-    if (payload.client_name !== undefined) updates.client_name = payload.client_name;
-    if (payload.total_amount !== undefined) updates.total_amount = payload.total_amount;
+    if (payload.client_name !== undefined)
+      updates.client_name = payload.client_name;
+    if (payload.total_amount !== undefined)
+      updates.total_amount = payload.total_amount;
     if (payload.status !== undefined) updates.status = payload.status;
-    if (payload.line_items !== undefined) updates.line_items = payload.line_items;
+    if (payload.line_items !== undefined)
+      updates.line_items = payload.line_items;
     if (payload.terms !== undefined) updates.terms = payload.terms;
     if (payload.notes !== undefined) updates.notes = payload.notes;
-    if (payload.valid_until !== undefined) updates.valid_until = payload.valid_until;
+    if (payload.valid_until !== undefined)
+      updates.valid_until = payload.valid_until;
 
     const { data: quote, error } = await serverSupabase
       .from('contractor_quotes')
@@ -64,10 +70,57 @@ export const PUT = withApiHandler(
       .single();
 
     if (error) {
-      logger.error('Error updating quote', error, { service: 'quotes', userId: user.id });
+      logger.error('Error updating quote', error, {
+        service: 'quotes',
+        userId: user.id,
+      });
       throw new InternalServerError('Failed to update quote');
     }
 
     return NextResponse.json({ quote });
+  }
+);
+
+/**
+ * DELETE /api/contractor/quotes/[id]
+ *
+ * 2026-05-01 audit follow-up: closes the mobile direct-Supabase delete
+ * in `apps/mobile/src/services/quotes/QuoteOperations.ts`. Ownership
+ * is enforced server-side via `contractor_id = user.id`. The previous
+ * mobile path also tried to delete from `quote_line_items`, but that
+ * table never existed in production — line items live as a `jsonb`
+ * column on `contractor_quotes`, so deleting the quote row is enough.
+ */
+export const DELETE = withApiHandler(
+  { roles: ['contractor'], rateLimit: { maxRequests: 30 } },
+  async (_request, { user, params }) => {
+    const { id } = params;
+
+    const { data: existing } = await serverSupabase
+      .from('contractor_quotes')
+      .select('id')
+      .eq('id', id)
+      .eq('contractor_id', user.id)
+      .single();
+
+    if (!existing) {
+      throw new NotFoundError('Quote not found');
+    }
+
+    const { error } = await serverSupabase
+      .from('contractor_quotes')
+      .delete()
+      .eq('id', id)
+      .eq('contractor_id', user.id);
+
+    if (error) {
+      logger.error('Error deleting quote', error, {
+        service: 'quotes',
+        userId: user.id,
+      });
+      throw new InternalServerError('Failed to delete quote');
+    }
+
+    return NextResponse.json({ success: true });
   }
 );

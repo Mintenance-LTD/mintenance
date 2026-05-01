@@ -31,7 +31,7 @@ function addBreadcrumb(
  * still always navigate, matching the documented contract.
  */
 function getDeepLinkParams(
-  type: NotificationData['type'],
+  type: NotificationData['type'] | undefined,
   data: unknown
 ): DeepLinkParams {
   const route = routeForNotification(type, data);
@@ -84,9 +84,16 @@ export async function handleNotificationResponse(
     await waitForNavigation(navigationRef, 3000);
   }
 
+  // 2026-05-01 audit follow-up: the previous version returned early when
+  // `type` was missing, which silently dropped the OS-tap path. The
+  // documented contract is "unknown / missing types fall back to the
+  // in-app inbox". `routeForNotification` is now total and handles the
+  // missing case (returns NOTIFICATIONS_FALLBACK), so we log + continue
+  // instead of dropping the tap.
   if (!type) {
-    logger.warn('No notification type found in data');
-    return;
+    logger.warn(
+      'No notification type found in data; falling back to inbox via routing table'
+    );
   }
 
   // Mark as read

@@ -23,6 +23,148 @@ contract), P0-2 (property assessment integration
   P1 (FindContractors search button + location filter), P1 (stale useMessages hook). Partial: P0-1
   (mobile direct supabase). Both web and mobile `tsc --noEmit` pass clean after the changes.
 
+### Re-audit corrections (review pass 3) — 2026-05-01
+
+External review caught that the prior pass 2 closure on web notification inserts was still
+incomplete: a wide audit of `from('notifications').insert(` showed ~10 real call sites still in
+production code (the prior pass had only fixed two of them), AND the `notifications.metadata` field
+was actually schema drift in the repo — the live DB has `metadata`, but committed migrations + types
+still said `data`. This pass closes the whole story.
+
+**1. Schema drift — settled.** Live DB verified via Supabase MCP on 2026-05-01:
+`public.notifications` has `metadata jsonb` and does NOT have `data`. Repo on disk had `data JSONB`
+in `009_missing_core_tables.sql:74` and `20260209100000_p0_p1_security_fixes.sql:198`, plus
+`packages/types/src/notifications.ts:8` typed `data?: Record<string, unknown>`. Both states cannot
+be true on a fresh checkout. Fixes:
+
+- New migration `supabase/migrations/20260501000000_notifications_metadata_canonical.sql` —
+  idempotent: ensures `metadata` exists, copies any straggler `data` rows into `metadata` (only
+  where `metadata IS NULL`), drops the legacy `data` column. No-op on production (already in the
+  target state), and brings every fresh local DB into the same shape as live.
+- `packages/types/src/notifications.ts` rewritten — removed `data?` field, kept only `metadata?`,
+  added `push_sent` / `email_sent` / `delivered_at` (the 2026-04-20 delivery-tracking columns the
+  type didn't reflect). Web search confirms no consumer was reading `notification.data` (one match
+  in mobile `NotificationCRUD.ts:86` already does `row.metadata ?? row.data ?? row.action_url`, so
+  the rename is forward-compatible).
+
+**2. Direct notification inserts — every real call site migrated.** Prior pass missed 6+ sites. Full
+inventory of `apps/web` (excluding the canonical `NotificationService.ts` and tests):
+
+- `apps/web/app/api/jobs/[id]/complete/route.ts:80` — homeowner "Job Completed" notification.
+  Migrated to `NotificationService.createNotification({...})`.
+- `apps/web/app/api/jobs/[id]/request-location/route.ts:33` — contractor "Location Sharing Request"
+  notification. Migrated.
+- `apps/web/app/api/jobs/[id]/track-view/route.ts:86` — homeowner "Job Viewed" first-view ping.
+  Migrated.
+- `apps/web/app/api/contractor/job-views/route.ts:103` — same first-view ping on the older route
+  surface (kept for backward compat). Migrated.
+- `apps/web/app/api/admin/announcements/send/route.ts:117` — bulk announcement broadcast (insert in
+  batches of 500). Migrated to a `Promise.allSettled` fan-out through
+  `NotificationService.createNotification({ ..., inAppOnly: true })` so push doesn't double-fire
+  alongside the explicit `ExpoPushService.sendToRole(...)` block already present.
+- `apps/web/lib/services/admin/AdminAlertService.ts:472` — admin × alert fan-out (admins were
+  getting in-app rows but no push, defeating the point of an "alert"). Migrated to
+  `Promise.allSettled` fan-out batched 100 at a time so per-admin preferences + quiet-hours apply.
+- `apps/web/lib/services/admin/AutoVerificationService.ts:297` — "Account Verified" notification to
+  a newly auto-verified contractor. Migrated.
+- `apps/web/lib/services/stripe-webhook/webhook-helpers.ts:25` — the `sendNotification` helper used
+  by Stripe webhook handlers. Body rewritten to call NotificationService instead of inserting
+  directly (every Stripe-sourced notification was silently dropping push).
+
+**3. POST /api/notifications hardened.** The endpoint accepted `payload.user_id` from any
+authenticated user and inserted with `serverSupabase`. That was a phishing primitive (any user could
+fabricate "Bid Accepted", "Payment Released", etc. notifications targeting any other user). Now
+`roles: ['admin']` + `requireMfaVerifiedWithinMinutes: 15`, body routed through
+`NotificationService.createNotification` so it goes through the same prefs/quiet-hours/push pipeline
+as every other source. Service-role traffic that wants to skip HTTP can call the service directly —
+they don't need the route.
+
+**4. NotificationProcessorService — documented exception.** This service drains `notification_queue`
+entries that were already filtered by NotificationService when they were enqueued (see
+`scheduleForLater`). Re-routing it through `createNotification` would just re-enqueue forever. Added
+an in-file header documenting it as one of the two allowed direct-insert call sites.
+
+**5. CI grep gate.** New `scripts/check-notification-inserts.ts` walks every `.ts`/`.tsx` under
+`apps/web` (skipping `__tests__/`, `node_modules`, build dirs) and fails if `.from('notifications')`
+appears chained with `.insert(` in any non-allowlisted file. Allowlist is exactly two files
+(`NotificationService.ts` + `NotificationProcessorService.ts`). Wired into
+`.github/workflows/ci-cd.yml` right after the auth coverage check. Local run on 2026-05-01:
+`OK — all notification inserts route through NotificationService.`
+
+Verification this pass:
+
+- `npx tsx scripts/check-notification-inserts.ts` — exits 0 with the allowlist message.
+- Live DB still has `metadata` column (schema state unchanged); migration is a no-op on prod.
+- Affected route handlers + services now consistently emit push, honour preferences, and write to
+  the canonical column.
+
+### Re-audit corrections (review pass 2) — 2026-05-01
+
+External review caught three over-claims in the prior closures. All three are now closed for real:
+
+**1. P0-1 mobile direct Supabase — additional reachable paths.** `AddClientScreen` was reaching
+`ClientManagementService.createClient` → `ClientRepository.createClient` direct insert into
+`contractor_clients`. `QuoteBuilderScreen` was calling `QuoteOperations.duplicate/deleteQuote`
+
+- `QuoteRevisions.createQuoteRevision` direct supabase ops, and several of the underlying tables
+  (`quote_line_items`, `quote_revisions`, `quote_analytics`, `quote_templates`,
+  `quote_line_item_templates`, `client_analytics`, `client_communications`,
+  `client_communication_templates`) **never existed in production** — those calls were 100%
+  dead-on-arrival in prod.
+
+Closures:
+
+- New `POST /api/contractor/clients` with strict Zod schema; mobile `AddClientScreen` migrated off
+  `ClientManagementService.createClient` to call the API directly.
+- New `DELETE /api/contractor/quotes/[id]` (alongside the existing `PUT`);
+  `QuoteOperations.deleteQuote` migrated to the API.
+- `QuoteOperations.duplicateQuote` reuses the now-API-routed `getQuote` + `createQuote` path; line
+  items are read from the JSONB column on the source row (the dedicated `quote_line_items` table
+  never shipped).
+- `QuoteCRUD.getQuotes` + `getQuote` (the last two direct supabase reads in QuoteCRUD) routed
+  through `GET /api/contractor/quotes`.
+- `QuoteAnalytics.getQuoteSummaryStats` migrated to the same list endpoint (which already aggregates
+  stats server-side).
+- `QuoteRevisions.*`, `ClientAnalyticsService.*`, and `ClientCommunicationService.*` stubbed with
+  `NOT_IMPLEMENTED` errors + a pointer to the migration plan (build the table + endpoint before
+  re-enabling).
+- `ClientRepository.ts` got a clear file-header note documenting that the remaining methods
+  (`getClients`, `updateClient`, `deleteClient`, etc.) are RLS-scoped exceptions — verified live on
+  2026-05-01 (6 policies on `contractor_clients` covering ALL + individual
+  SELECT/INSERT/UPDATE/DELETE, all on `contractor_id = auth.uid()`). Same disposition as
+  `JobContextLocationService` for live GPS pulses through Realtime.
+
+**2. Web notification direct inserts.** Two paths the prior closure missed:
+
+- `apps/web/lib/services/job-notification-service.ts:202` — bulk insert of `job_nearby`
+  notifications bypassed `NotificationService.createNotification` entirely (no push delivery, no
+  preference checks). Replaced with a parallel `Promise.allSettled` fan-out through
+  `NotificationService.createNotification`. Preserves the bulk semantics while adding push +
+  preference + `metadata` consistency.
+- `apps/web/app/api/contractor/invoices/pay/route.ts:242` — wrote a `data: { ... }` field. Live
+  schema renamed that column to `metadata` in a later migration, so PostgREST silently dropped the
+  field and the contractor saw a notification with no invoice context. Migrated to
+  `NotificationService.createNotification({...metadata})`.
+- A grep confirms the remaining `from('notifications').insert` occurrences in `apps/web/` are ALL
+  inside comments documenting the ban (NotificationService.ts header, JobDigestService comment,
+  messages/threads comment).
+
+**3. NotificationDeepLink early-return on missing type.** The OS push deep-link handler returned at
+`if (!type) return;` BEFORE calling `routeForNotification`, so the missing-type case silently
+dropped on the OS-tap surface even though the in-app surface routed correctly to the inbox. Removed
+the early return; missing/unknown `type` now falls through to `routeForNotification`, which (since
+the prior fix) returns `NOTIFICATIONS_FALLBACK`. Both surfaces (OS tap + in-app inbox tap) now
+agree.
+
+Verification:
+
+- `npx tsc --noEmit` — mobile + web both exit 0.
+- `npx jest --testPathPattern='(notificationRoutingTable|NotificationBadge)'` — 64/64 passing.
+- Live `pg_policies` check confirms `contractor_clients` RLS scoping.
+- Live `information_schema.tables` check confirms phantom tables (`quote_line_items`,
+  `quote_revisions`, `client_analytics`, etc.) do NOT exist — stubs are correct, not workarounds for
+  a future table.
+
 ### Auth coverage check + 18-route triage — 2026-05-01
 
 Closes recommended-automated-audits #5 (auth/session audit). New `scripts/check-auth-coverage.ts`

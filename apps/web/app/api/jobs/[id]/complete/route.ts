@@ -1,9 +1,20 @@
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { PaymentEnforcement } from '@/lib/services/payment/PaymentEnforcement';
-import { logger, validateStatusTransition, JOB_STATUS, ESCROW_STATUS, type JobStatus } from '@mintenance/shared';
+import {
+  logger,
+  validateStatusTransition,
+  JOB_STATUS,
+  ESCROW_STATUS,
+  type JobStatus,
+} from '@mintenance/shared';
 import { withApiHandler } from '@/lib/api/with-api-handler';
-import { ForbiddenError, NotFoundError, BadRequestError } from '@/lib/errors/api-error';
+import {
+  ForbiddenError,
+  NotFoundError,
+  BadRequestError,
+} from '@/lib/errors/api-error';
+import { NotificationService } from '@/lib/services/notifications/NotificationService';
 
 export const POST = withApiHandler(
   { roles: ['contractor'] },
@@ -23,12 +34,17 @@ export const POST = withApiHandler(
 
     // Verify user is the contractor assigned to this job
     if (job.contractor_id !== user.id) {
-      throw new ForbiddenError('Only the assigned contractor can complete this job');
+      throw new ForbiddenError(
+        'Only the assigned contractor can complete this job'
+      );
     }
 
     // Verify job is in a completable state (must be in_progress - enforces photo workflow)
     try {
-      validateStatusTransition(job.status as JobStatus, JOB_STATUS.COMPLETED as JobStatus);
+      validateStatusTransition(
+        job.status as JobStatus,
+        JOB_STATUS.COMPLETED as JobStatus
+      );
     } catch (err) {
       throw new BadRequestError(
         `Job cannot be completed from '${job.status}' status. Job must be in progress (requires before photos uploaded and job started).`
@@ -49,7 +65,9 @@ export const POST = withApiHandler(
       return NextResponse.json(
         {
           error: 'Payment required',
-          message: paymentCheck.reason || 'All payments must be processed through the platform.',
+          message:
+            paymentCheck.reason ||
+            'All payments must be processed through the platform.',
           requiresPayment: true,
         },
         { status: 402 } // 402 Payment Required
@@ -75,28 +93,23 @@ export const POST = withApiHandler(
       throw updateError;
     }
 
-    // Create notification for homeowner
-    const { error: notificationError } = await serverSupabase
-      .from('notifications')
-      .insert({
-        user_id: job.homeowner_id,
-        title: 'Job Completed',
-        message: `Your job "${job.title}" has been marked as completed. Please review and release payment.`,
-        type: 'job_update',
-        read: false,
-        action_url: `/jobs/${jobId}`,
-      });
-
-    if (notificationError) {
-      logger.error('Failed to create completion notification', {
-        service: 'jobs',
-        error: notificationError.message,
-      });
-    }
+    // 2026-05-01 audit follow-up: route through NotificationService so push +
+    // user-preference + quiet-hours rules apply. The previous direct
+    // `.from('notifications').insert(...)` silently dropped the push channel
+    // and used a column (`data`) that no longer exists in production.
+    await NotificationService.createNotification({
+      userId: job.homeowner_id,
+      type: 'job_update',
+      title: 'Job Completed',
+      message: `Your job "${job.title}" has been marked as completed. Please review and release payment.`,
+      actionUrl: `/jobs/${jobId}`,
+      metadata: { jobId, event: 'job_completed' },
+    });
 
     // Calculate auto-release date for escrow (async, don't block)
     if (job.contractor_id) {
-      const { EscrowReleaseAgent } = await import('@/lib/services/agents/EscrowReleaseAgent');
+      const { EscrowReleaseAgent } =
+        await import('@/lib/services/agents/EscrowReleaseAgent');
 
       // Get escrow transaction for this job
       const { data: escrow } = await serverSupabase
@@ -108,15 +121,17 @@ export const POST = withApiHandler(
         .single();
 
       if (escrow) {
-        EscrowReleaseAgent.calculateAutoReleaseDate(escrow.id, jobId, job.contractor_id).catch(
-          (error) => {
-            logger.error('Failed to calculate auto-release date', error, {
-              service: 'jobs',
-              jobId,
-              escrowId: escrow.id,
-            });
-          }
-        );
+        EscrowReleaseAgent.calculateAutoReleaseDate(
+          escrow.id,
+          jobId,
+          job.contractor_id
+        ).catch((error) => {
+          logger.error('Failed to calculate auto-release date', error, {
+            service: 'jobs',
+            jobId,
+            escrowId: escrow.id,
+          });
+        });
       }
     }
 

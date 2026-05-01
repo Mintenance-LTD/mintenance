@@ -1,51 +1,35 @@
-import { supabase } from '../../config/supabase';
-import { logger } from '../../utils/logger';
+/**
+ * Quote revisions — STUB.
+ *
+ * 2026-05-01 audit follow-up: every method previously hit
+ * `supabase.from('quote_revisions').*` directly. Live DB confirms the
+ * `quote_revisions` table NEVER EXISTED in production (only
+ * `contractor_quotes` is real). The audited callers therefore always
+ * threw at runtime; treating this file as the placeholder it is keeps
+ * the type imports working without pretending the feature is wired.
+ *
+ * Re-enable by:
+ *   1. Building the `quote_revisions` table + RLS migration.
+ *   2. Adding `/api/contractor/quotes/[id]/revisions` (GET, POST).
+ *   3. Replacing each method body below with `mobileApiClient.<verb>(...)`.
+ */
 import type { QuoteRevision } from './types';
 
-export async function getQuoteRevisions(quoteId: string): Promise<QuoteRevision[]> {
-  try {
-    const { data, error } = await supabase
-      .from('quote_revisions')
-      .select('*')
-      .eq('quote_id', quoteId)
-      .order('revision_number', { ascending: false });
+const NOT_IMPLEMENTED =
+  'Quote revisions are a placeholder feature — the `quote_revisions` table does not exist in production. Build /api/contractor/quotes/[id]/revisions before enabling.';
 
-    if (error) throw error;
-    return data || [];
-  } catch (error) {
-    logger.error('Error fetching quote revisions', error, { service: 'quote-builder' });
-    throw new Error('Failed to fetch quote revisions');
-  }
+export async function getQuoteRevisions(
+  _quoteId: string
+): Promise<QuoteRevision[]> {
+  throw new Error(NOT_IMPLEMENTED);
 }
 
 export async function createQuoteRevision(
-  quoteId: string,
-  changesSummary: string,
-  previousTotal: number,
-  newTotal: number,
-  revisedBy: string
+  _quoteId: string,
+  _changesSummary: string,
+  _previousTotal: number,
+  _newTotal: number,
+  _revisedBy: string
 ): Promise<QuoteRevision> {
-  try {
-    const revisions = await getQuoteRevisions(quoteId);
-    const nextRevisionNumber = revisions.length + 1;
-
-    const { data, error } = await supabase
-      .from('quote_revisions')
-      .insert({
-        quote_id: quoteId,
-        revision_number: nextRevisionNumber,
-        changes_summary: changesSummary,
-        previous_total: previousTotal,
-        new_total: newTotal,
-        revised_by: revisedBy,
-      })
-      .select()
-      .single();
-
-    if (error) throw error;
-    return data;
-  } catch (error) {
-    logger.error('Error creating quote revision', error, { service: 'quote-builder' });
-    throw new Error('Failed to create quote revision');
-  }
+  throw new Error(NOT_IMPLEMENTED);
 }

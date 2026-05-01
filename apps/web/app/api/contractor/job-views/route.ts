@@ -8,6 +8,7 @@ import {
   InternalServerError,
 } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { NotificationService } from '@/lib/services/notifications/NotificationService';
 
 // 2026-05-01 audit follow-up (check-api-contracts): Zod-validated body
 // replaces manual `typeof body?.jobId === 'string'` cast.
@@ -99,19 +100,19 @@ export const POST = withApiHandler(
           ? `${contractor.first_name} ${contractor.last_name}`
           : contractor?.email || 'A contractor');
 
-      const { error: notificationError } = await serverSupabase
-        .from('notifications')
-        .insert({
-          user_id: job.homeowner_id,
+      // 2026-05-01 audit follow-up: route through NotificationService so the
+      // homeowner gets push + this respects their preferences. The previous
+      // direct insert silently dropped push entirely.
+      try {
+        await NotificationService.createNotification({
+          userId: job.homeowner_id,
           type: 'job_viewed',
           title: 'Job Viewed',
           message: `${contractorName} viewed your job: ${job.title}`,
-          read: false,
-          action_url: `/jobs/${jobId}`,
-          created_at: new Date().toISOString(),
+          actionUrl: `/jobs/${jobId}`,
+          metadata: { jobId, viewerId: user.id, event: 'job_viewed' },
         });
-
-      if (notificationError) {
+      } catch (notificationError) {
         logger.error('Error creating notification', notificationError);
         // Don't fail the request if notification fails
       }

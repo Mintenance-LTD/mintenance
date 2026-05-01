@@ -1,5 +1,6 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { NotificationService } from '@/lib/services/notifications/NotificationService';
 
 interface NotificationJobContext {
   id: string;
@@ -35,7 +36,10 @@ export class JobNotificationService {
     return JobNotificationService.instance;
   }
 
-  async notifyNearbyContractors(job: NotificationJobContext, payload: NotificationPayload): Promise<void> {
+  async notifyNearbyContractors(
+    job: NotificationJobContext,
+    payload: NotificationPayload
+  ): Promise<void> {
     if (!job.location && (!job.latitude || !job.longitude)) {
       return;
     }
@@ -47,7 +51,10 @@ export class JobNotificationService {
       const contractors = await this.fetchNearbyContractors(coordinates);
       if (contractors.length === 0) return;
 
-      const contractorsToNotify = await this.filterContractorsBySkills(contractors, payload.required_skills);
+      const contractorsToNotify = await this.filterContractorsBySkills(
+        contractors,
+        payload.required_skills
+      );
       await this.createNotifications(job, payload, contractorsToNotify);
     } catch (error) {
       logger.error('Error creating job_nearby notifications', error, {
@@ -57,7 +64,9 @@ export class JobNotificationService {
     }
   }
 
-  private async resolveCoordinates(job: NotificationJobContext): Promise<{ lat: number; lng: number } | null> {
+  private async resolveCoordinates(
+    job: NotificationJobContext
+  ): Promise<{ lat: number; lng: number } | null> {
     if (job.latitude && job.longitude) {
       return { lat: job.latitude, lng: job.longitude };
     }
@@ -74,21 +83,36 @@ export class JobNotificationService {
     if (typeof job.location === 'string') {
       try {
         const { geocodeWithTimeout } = await import('@/lib/utils/api-timeout');
-        const geocodeResult = await geocodeWithTimeout(job.location, apiKey, 5000);
-        const coordinates = { lat: geocodeResult.latitude, lng: geocodeResult.longitude };
+        const geocodeResult = await geocodeWithTimeout(
+          job.location,
+          apiKey,
+          5000
+        );
+        const coordinates = {
+          lat: geocodeResult.latitude,
+          lng: geocodeResult.longitude,
+        };
         await this.saveCoordinates(job.id, coordinates.lat, coordinates.lng);
         return coordinates;
       } catch (error) {
-        logger.warn('Geocoding failed or timed out, continuing without coordinates', {
-          service: 'jobs',
-          error,
-          location: job.location,
-        });
+        logger.warn(
+          'Geocoding failed or timed out, continuing without coordinates',
+          {
+            service: 'jobs',
+            error,
+            location: job.location,
+          }
+        );
         return null;
       }
     }
 
-    if (typeof job.location === 'object' && job.location !== null && 'lat' in (job.location as Record<string, unknown>) && 'lng' in (job.location as Record<string, unknown>)) {
+    if (
+      typeof job.location === 'object' &&
+      job.location !== null &&
+      'lat' in (job.location as Record<string, unknown>) &&
+      'lng' in (job.location as Record<string, unknown>)
+    ) {
       const lat = (job.location as unknown as { lat: unknown }).lat;
       const lng = (job.location as unknown as { lng: unknown }).lng;
       if (typeof lat === 'number' && typeof lng === 'number') {
@@ -100,7 +124,11 @@ export class JobNotificationService {
     return null;
   }
 
-  private async saveCoordinates(jobId: string, latitude: number, longitude: number): Promise<void> {
+  private async saveCoordinates(
+    jobId: string,
+    latitude: number,
+    longitude: number
+  ): Promise<void> {
     try {
       await serverSupabase
         .from('jobs')
@@ -122,7 +150,10 @@ export class JobNotificationService {
     }
   }
 
-  private async fetchNearbyContractors(coordinates: { lat: number; lng: number }): Promise<ContractorRecord[]> {
+  private async fetchNearbyContractors(coordinates: {
+    lat: number;
+    lng: number;
+  }): Promise<ContractorRecord[]> {
     const { data, error } = await serverSupabase
       .from('profiles')
       .select('id, first_name, last_name, latitude, longitude, is_available')
@@ -136,12 +167,20 @@ export class JobNotificationService {
     }
 
     return data.filter((contractor: ContractorRecord) => {
-      const lat = typeof contractor.latitude === 'number' ? contractor.latitude : undefined;
-      const lng = typeof contractor.longitude === 'number' ? contractor.longitude : undefined;
+      const lat =
+        typeof contractor.latitude === 'number'
+          ? contractor.latitude
+          : undefined;
+      const lng =
+        typeof contractor.longitude === 'number'
+          ? contractor.longitude
+          : undefined;
       if (lat === undefined || lng === undefined) {
         return false;
       }
-      return this.calculateDistance(coordinates.lat, coordinates.lng, lat, lng) <= 25;
+      return (
+        this.calculateDistance(coordinates.lat, coordinates.lng, lat, lng) <= 25
+      );
     });
   }
 
@@ -153,7 +192,7 @@ export class JobNotificationService {
       return contractors;
     }
 
-    const contractorIds = contractors.map(c => c.id);
+    const contractorIds = contractors.map((c) => c.id);
     const { data: contractorSkills } = await serverSupabase
       .from('contractor_skills')
       .select('contractor_id, skill_name')
@@ -166,10 +205,14 @@ export class JobNotificationService {
 
     const matches = contractors.filter((contractor: ContractorRecord) => {
       const contractorSkillNames = (contractorSkills || [])
-        .filter((cs: ContractorSkillRecord) => cs.contractor_id === contractor.id)
+        .filter(
+          (cs: ContractorSkillRecord) => cs.contractor_id === contractor.id
+        )
         .map((cs: ContractorSkillRecord) => cs.skill_name);
 
-      return requiredSkills.some(skill => contractorSkillNames.includes(skill));
+      return requiredSkills.some((skill) =>
+        contractorSkillNames.includes(skill)
+      );
     });
 
     return matches.length > 0 ? matches : contractors;
@@ -182,58 +225,75 @@ export class JobNotificationService {
   ): Promise<void> {
     if (contractors.length === 0) return;
 
-    const notifications = contractors.map((contractor: ContractorRecord) => {
-      const budgetText = this.getBudgetText(payload);
-      const skillsText = payload.required_skills && payload.required_skills.length > 0
+    // 2026-05-01 audit follow-up: previous version wrote a bulk insert
+    // with `read: false` (canonical column is `read` ✓) but bypassed
+    // `NotificationService.createNotification` so push + preference
+    // checks didn't fire. Fan out per-contractor through the service so
+    // every recipient gets the same push pipeline as a 1:1 notification.
+    // Fan-out is parallel via Promise.allSettled so a single contractor's
+    // preference / push failure doesn't block the rest.
+    const budgetText = this.getBudgetText(payload);
+    const skillsText =
+      payload.required_skills && payload.required_skills.length > 0
         ? `Requires: ${payload.required_skills.join(', ')}. `
         : '';
 
-      return {
-        user_id: contractor.id,
-        title: 'New Job Near You',
-        message: `New job "${job.title}" posted near you. ${skillsText}Budget: ${budgetText}`,
-        type: 'job_nearby',
-        read: false,
-        action_url: `/jobs/${job.id}`,
-        created_at: new Date().toISOString(),
-      };
-    });
+    const results = await Promise.allSettled(
+      contractors.map((contractor: ContractorRecord) =>
+        NotificationService.createNotification({
+          userId: contractor.id,
+          type: 'job_nearby',
+          title: 'New Job Near You',
+          message: `New job "${job.title}" posted near you. ${skillsText}Budget: ${budgetText}`,
+          actionUrl: `/jobs/${job.id}`,
+          metadata: { jobId: job.id },
+        })
+      )
+    );
 
-    const { error } = await serverSupabase
-      .from('notifications')
-      .insert(notifications);
-
-    if (error) {
-      logger.error('Failed to create job_nearby notifications', error, {
+    const failures = results.filter((r) => r.status === 'rejected').length;
+    if (failures > 0) {
+      logger.warn('Some job_nearby notifications failed to send', {
         service: 'jobs',
         jobId: job.id,
+        failures,
+        total: contractors.length,
       });
-      return;
     }
 
     logger.info('Created job_nearby notifications', {
       service: 'jobs',
       jobId: job.id,
-      contractorCount: notifications.length,
+      contractorCount: contractors.length,
+      failures,
     });
   }
 
-  private calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  private calculateDistance(
+    lat1: number,
+    lon1: number,
+    lat2: number,
+    lon2: number
+  ): number {
     const R = 6371;
     const dLat = ((lat2 - lat1) * Math.PI) / 180;
     const dLon = ((lon2 - lon1) * Math.PI) / 180;
     const a =
       Math.sin(dLat / 2) * Math.sin(dLat / 2) +
       Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) *
-      Math.sin(dLon / 2);
+        Math.cos((lat2 * Math.PI) / 180) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   }
 
   private getBudgetText(payload: NotificationPayload): string {
-    if (!payload.show_budget_to_contractors && payload.budget_min && payload.budget_max) {
+    if (
+      !payload.show_budget_to_contractors &&
+      payload.budget_min &&
+      payload.budget_max
+    ) {
       return `£${payload.budget_min.toLocaleString()}-£${payload.budget_max.toLocaleString()}`;
     }
     if (payload.budget) {
