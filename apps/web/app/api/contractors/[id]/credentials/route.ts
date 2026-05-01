@@ -15,6 +15,9 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { isValidUUID } from '@/lib/validation/uuid';
 import { BadRequestError } from '@/lib/errors/api-error';
 
+// auth-check: ok — public contractor credentials feed (cert badges,
+// insurance type) shown on the marketplace contractor profile to
+// anonymous browsers. No PII; specific document URLs are NOT exposed.
 export const GET = withApiHandler(
   { auth: false, rateLimit: { maxRequests: 120 } },
   async (_req, ctx) => {

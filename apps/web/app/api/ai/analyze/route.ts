@@ -171,6 +171,8 @@ export const POST = withApiHandler(
   }
 );
 
+// auth-check: ok — public AI status probe. No user data, used by health
+// dashboards and the landing page to show "AI is online".
 export const GET = withApiHandler({ auth: false }, async () => {
   const status = await UnifiedAIService.getStatus();
   return NextResponse.json(status);

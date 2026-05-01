@@ -78,6 +78,15 @@ jobs:
       - name: API contract drift check
         run: npx tsx scripts/check-api-contracts.ts
 
+      # 2026-05-01 audit follow-up — auth coverage check.
+      # Fails the build if any POST/PUT/PATCH/DELETE route under
+      # apps/web/app/api/** is exposed without withApiHandler /
+      # withCronHandler wrapping, OR declares `auth: false` without
+      # a justification comment in the surrounding window. Mark
+      # deliberate exceptions inline with `// auth-check: ok — <reason>`.
+      - name: Auth coverage check
+        run: npx tsx scripts/check-auth-coverage.ts
+
       - name: Lint (web)
         run: npm run lint:web
 

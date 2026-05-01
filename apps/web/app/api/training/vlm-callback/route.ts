@@ -74,6 +74,10 @@ function verifySignature(rawBody: string, signature: string): boolean {
 // Route handler
 // ---------------------------------------------------------------------------
 
+// auth-check: ok — machine-to-machine callback from the VLM training
+// service (Modal). Authed by HMAC signature comparison against the
+// shared secret in `verifyHmacSignature` above; user auth would be
+// nonsensical here (no user is in the request loop).
 export const POST = withApiHandler(
   { auth: false, rateLimit: false },
   async (request) => {

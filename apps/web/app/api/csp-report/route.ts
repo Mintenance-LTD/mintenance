@@ -18,6 +18,10 @@ import { logger } from '@mintenance/shared';
  */
 const MAX_REPORT_BYTES = 8 * 1024; // 8KB
 
+// auth-check: ok — CSP violation reports are emitted by the browser
+// itself when our Content-Security-Policy rejects a script/img/etc.
+// They CANNOT carry an auth header (the browser strips creds from the
+// report). Body size + rate-limited per IP.
 export const POST = withApiHandler(
   {
     auth: false,

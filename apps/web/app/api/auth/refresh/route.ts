@@ -97,6 +97,11 @@ export const POST = withApiHandler(
 
 /**
  * GET endpoint to check token status
+ *
+ * auth-check: ok — auth: false because the route returns 401 when no
+ * cookie is present. Used by the client to decide whether to attempt
+ * a silent refresh; requires explicit auth would create a chicken-and-
+ * egg loop (you'd need to be authed to ask "am I authed?").
  */
 export const GET = withApiHandler(
   { auth: false, rateLimit: { maxRequests: 5 } },

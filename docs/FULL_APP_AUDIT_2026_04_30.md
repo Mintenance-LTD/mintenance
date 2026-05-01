@@ -23,6 +23,36 @@ contract), P0-2 (property assessment integration
   P1 (FindContractors search button + location filter), P1 (stale useMessages hook). Partial: P0-1
   (mobile direct supabase). Both web and mobile `tsc --noEmit` pass clean after the changes.
 
+### Auth coverage check + 18-route triage — 2026-05-01
+
+Closes recommended-automated-audits #5 (auth/session audit). New `scripts/check-auth-coverage.ts`
+walks every `route.ts` under `apps/web/app/api/**` and enforces three properties:
+
+1. Every exported `GET|POST|PUT|PATCH|DELETE` is wrapped by `withApiHandler` OR `withCronHandler`,
+   OR carries an inline `// auth-check: ok — <reason>` opt-out.
+2. Every `auth: false` option has a justification comment in the surrounding 10-line window (accepts
+   `//` line comments AND JSDoc `*` comments).
+3. Stale `requireAdminFromDatabase` imports (imported but never called) are flagged.
+
+**First run reported 46 findings; all triaged in this commit:**
+
+- 3 raw exports (`webhooks/stripe`, `email/unsubscribe`, `payments/payment-methods`) — each got an
+  inline `// auth-check: ok` comment with the rationale (Stripe signature is the auth, GDPR token is
+  the auth, deprecated 410 stub).
+- 43 `auth: false` routes — most were already justified by their JSDoc header (login, signup,
+  password-reset, geocode, materials, etc.); the regex was widened to accept JSDoc-block comments.
+  The remaining 18 routes got an explicit `// auth-check: ok — <reason>` comment.
+
+After triage: **`npx tsx scripts/check-auth-coverage.ts` reports "Every route either uses
+withApiHandler/withCronHandler or carries a documented opt-out" (exit 0).**
+
+**CI integration:** added the script as a required step in `.github/workflows/ci-cd.yml` right after
+`check-api-contracts.ts`. New routes that ship without an explicit auth posture will fail CI with a
+pointer to the offending file:line.
+
+Files: `scripts/check-auth-coverage.ts` (new), `.github/workflows/ci-cd.yml`, plus 14 route files
+with inline justification comments.
+
 ### Notification routing matrix + push badge unit tests — 2026-05-01
 
 Closed two more of the recommended automated audits (#3 + #4) with focused unit-test coverage. Both

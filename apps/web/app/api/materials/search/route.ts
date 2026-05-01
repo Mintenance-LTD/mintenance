@@ -13,6 +13,8 @@ import type { MaterialCategory } from '@mintenance/shared';
  * - limit: number (optional - max results, default 20)
  * - min_similarity: number (optional - minimum similarity score 0-1, default 0.3)
  */
+// auth-check: ok — same public catalogue as /api/materials, this
+// route runs the semantic-similarity search variant.
 export const GET = withApiHandler({ auth: false }, async (request) => {
   const { searchParams } = request.nextUrl;
 
@@ -26,7 +28,9 @@ export const GET = withApiHandler({ auth: false }, async (request) => {
 
   const category = searchParams.get('category') as MaterialCategory | undefined;
   const in_stock = searchParams.get('in_stock') !== 'false';
-  const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : 20;
+  const limit = searchParams.get('limit')
+    ? parseInt(searchParams.get('limit')!)
+    : 20;
   const min_similarity = searchParams.get('min_similarity')
     ? parseFloat(searchParams.get('min_similarity')!)
     : 0.3;
@@ -36,8 +40,12 @@ export const GET = withApiHandler({ auth: false }, async (request) => {
     limit,
   });
 
-  const filteredResults = in_stock ? results.filter((m) => m.in_stock) : results;
-  const similarResults = filteredResults.filter((m) => (m.similarity || 0) >= min_similarity);
+  const filteredResults = in_stock
+    ? results.filter((m) => m.in_stock)
+    : results;
+  const similarResults = filteredResults.filter(
+    (m) => (m.similarity || 0) >= min_similarity
+  );
 
   return NextResponse.json({
     query,

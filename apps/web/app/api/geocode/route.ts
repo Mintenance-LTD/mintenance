@@ -14,6 +14,9 @@ import { getClientIp } from '@/lib/request-ip';
  * - Input validation and sanitization
  * - All requests logged for abuse detection
  */
+// auth-check: ok — public geocoding proxy used by the landing page's
+// service-area search bar before sign-in. Server-side API key keeps
+// the credential off the client; per-IP rate limit prevents abuse.
 export const GET = withApiHandler(
   { auth: false, rateLimit: false },
   async (request) => {

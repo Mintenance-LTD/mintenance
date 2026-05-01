@@ -25,6 +25,8 @@ import { sanitizeIlikePattern } from '@/lib/utils/sanitize-postgrest';
  * - sort_by: 'name' | 'unit_price' | 'created_at' | 'category' (default 'name')
  * - sort_order: 'asc' | 'desc' (default 'asc')
  */
+// auth-check: ok — public materials catalogue (read-only). Used by
+// the contractor estimate-builder before sign-in to preview pricing.
 export const GET = withApiHandler(
   { auth: false, rateLimit: { maxRequests: 30 } },
   async (request) => {
