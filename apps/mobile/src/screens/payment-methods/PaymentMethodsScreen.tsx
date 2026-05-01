@@ -187,6 +187,11 @@ export const PaymentMethodsScreen: React.FC<PaymentMethodsScreenProps> = ({
         {/* Add Card Button */}
         <TouchableOpacity
           style={styles.addCardTrigger}
+          // 2026-04-30 audit P1: kept `as never` because the parent
+          // NavigationProp<Record<string, undefined>> is intentionally
+          // generic (this component is rendered under both the
+          // ProfileStack and the Modal stack). Re-typing requires
+          // splitting the screen — out of scope for the cast sweep.
           onPress={() => navigation.navigate('AddPaymentMethod' as never)}
         >
           <Ionicons

@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import { logger } from '@mintenance/shared';
 import { openai } from '@/lib/openai-client';
 import { rateLimiter, checkAIUserRateLimit } from '@/lib/rate-limiter';
@@ -6,6 +7,24 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { AIResponseCache } from '@/lib/services/cache/AIResponseCache';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { getClientIp } from '@/lib/request-ip';
+
+// 2026-05-01 audit follow-up (check-api-contracts): Zod-validated body
+// replaces the manual `typeof text === 'string' && text.length <= 32000`
+// pair. `model` is constrained to OpenAI's embedding tiers we actually
+// support; an unknown model used to fall through to OpenAI as-is and
+// surface a confusing 500.
+const generateEmbeddingSchema = z
+  .object({
+    text: z.string().min(1).max(32000),
+    model: z
+      .enum([
+        'text-embedding-3-small',
+        'text-embedding-3-large',
+        'text-embedding-ada-002',
+      ])
+      .default('text-embedding-3-small'),
+  })
+  .strict();
 
 export const POST = withApiHandler({ rateLimit: false }, async (request) => {
   const startTime = Date.now();
@@ -74,20 +93,20 @@ export const POST = withApiHandler({ rateLimit: false }, async (request) => {
     // Auth check is best-effort for rate limiting
   }
 
-  const { text, model = 'text-embedding-3-small' } = await request.json();
-
-  if (!text || typeof text !== 'string') {
+  let raw: unknown;
+  try {
+    raw = await request.json();
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+  }
+  const parsed = generateEmbeddingSchema.safeParse(raw);
+  if (!parsed.success) {
     return NextResponse.json(
-      { error: 'Text is required and must be a string' },
+      { error: parsed.error.issues[0]?.message ?? 'Invalid request body' },
       { status: 400 }
     );
   }
-  if (text.length > 32000) {
-    return NextResponse.json(
-      { error: 'Text is too long (max 32000 characters)' },
-      { status: 400 }
-    );
-  }
+  const { text, model } = parsed.data;
   if (!process.env.OPENAI_API_KEY) {
     logger.error('OPENAI_API_KEY not configured', { service: 'ai_embedding' });
     return NextResponse.json(

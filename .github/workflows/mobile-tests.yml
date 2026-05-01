@@ -40,6 +40,13 @@ jobs:
       - name: Build shared packages
         run: npm run build:packages
 
+      # 2026-04-30 audit P0 — mobile navigation target validator.
+      # Fails the build if any `navigation.navigate('X')` call
+      # references a screen name that isn't in any ParamList in
+      # apps/mobile/src/navigation/types.ts.
+      - name: Mobile navigation targets resolve
+        run: npx tsx scripts/check-mobile-nav-targets.ts
+
       - name: Run mobile unit tests
         working-directory: apps/mobile
         run: npm test -- --coverage --watchAll=false --maxWorkers=2 --passWithNoTests --forceExit

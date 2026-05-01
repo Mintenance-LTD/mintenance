@@ -1,6 +1,22 @@
-import { supabase } from '../config/supabase';
-import { mobileApiClient } from '../utils/mobileApiClient';
-import { logger } from '../utils/logger';
+/**
+ * ServiceAreasService — type definitions + geo helper re-exports
+ *
+ * 2026-04-30 audit P0-1 follow-up: this file used to expose static
+ * methods (`createServiceArea`, `updateServiceArea`,
+ * `deleteServiceArea`, `getServiceAreas`, `recordCoverage`,
+ * `createRoute`, `getRoutes`, `getAreaPerformance`) that all hit
+ * Supabase directly. None of them had production UI consumers — the
+ * real production CRUD path is `apps/mobile/src/hooks/useServiceAreas.ts`,
+ * which goes through `/api/contractor/service-areas`. The dead
+ * methods have been removed so a future call site can't accidentally
+ * bypass the API surface.
+ *
+ * The exported `ServiceArea` interface is still imported by the
+ * service-areas UI components (`ServiceAreasScreen`, `ServiceAreaCard`,
+ * `ServiceAreasList`, etc.) so it's retained as the canonical client
+ * shape. Geo utilities re-export through this file too — kept for
+ * import-stability with existing tests.
+ */
 import {
   haversineDistance,
   calculateDistance,
@@ -8,9 +24,16 @@ import {
   isLocationInServiceArea,
   findContractorsForLocation,
 } from './ServiceAreasGeo';
-import type { ContractorLocation } from './ServiceAreasGeo';
 
 // Re-export geo utilities so existing imports from this module still work
+export {
+  haversineDistance,
+  calculateDistance,
+  calculateTravelCharge,
+  isLocationInServiceArea,
+  findContractorsForLocation,
+};
+
 // =====================================================
 // SERVICE AREAS INTERFACES
 // =====================================================
@@ -48,345 +71,17 @@ export interface ServiceArea {
   updated_at: string;
 }
 
-interface ServiceAreaCoverage {
-  id: string;
-  service_area_id: string;
-  job_id?: string;
-  client_location_lat: number;
-  client_location_lng: number;
-  calculated_distance: number;
-  travel_time_minutes?: number;
-  travel_charge: number;
-  was_accepted: boolean;
-  decline_reason?: string;
-  created_at: string;
-}
-
-interface AreaPerformance {
-  id: string;
-  service_area_id: string;
-  period_start: string;
-  period_end: string;
-  total_jobs: number;
-  total_revenue: number;
-  total_travel_time_hours: number;
-  average_travel_distance: number;
-  conversion_rate: number;
-  customer_satisfaction: number;
-  profitability_score: number;
-  created_at: string;
-}
-
-interface ServiceRoute {
-  id: string;
-  contractor_id: string;
-  route_name: string;
-  route_date: string;
-  estimated_duration_minutes?: number;
-  total_distance_km?: number;
-  total_travel_cost?: number;
-  jobs: string[];
-  waypoints: unknown[];
-  status: 'planned' | 'active' | 'completed' | 'cancelled';
-  created_at: string;
-  updated_at: string;
-}
-
 // =====================================================
-// SERVICE AREAS SERVICE CLASS
+// SERVICE AREAS HELPER CLASS (validation + formatting only)
 // =====================================================
 
 export class ServiceAreasService {
-  // =====================================================
-  // SERVICE AREA MANAGEMENT
-  // =====================================================
-
-  static async createServiceArea(areaData: {
-    contractor_id: string;
-    area_name: string;
-    description?: string;
-    area_type: 'radius' | 'polygon' | 'postal_codes' | 'cities';
-    center_latitude?: number;
-    center_longitude?: number;
-    radius_km?: number;
-    boundary_coordinates?: unknown;
-    postal_codes?: string[];
-    cities?: string[];
-    base_travel_charge?: number;
-    per_km_rate?: number;
-    minimum_job_value?: number;
-    priority_level?: number;
-    is_primary_area?: boolean;
-    max_distance_km?: number;
-    response_time_hours?: number;
-    weekend_surcharge?: number;
-    evening_surcharge?: number;
-    emergency_available?: boolean;
-    emergency_surcharge?: number;
-    preferred_days?: string[];
-    preferred_hours?: { start: string; end: string };
-  }): Promise<ServiceArea> {
-    try {
-      const { data, error } = await supabase
-        .from('service_areas')
-        .insert([
-          {
-            ...areaData,
-            base_travel_charge: areaData.base_travel_charge || 0,
-            per_km_rate: areaData.per_km_rate || 0,
-            minimum_job_value: areaData.minimum_job_value || 0,
-            priority_level: areaData.priority_level || 1,
-            is_primary_area: areaData.is_primary_area || false,
-            response_time_hours: areaData.response_time_hours || 24,
-            weekend_surcharge: areaData.weekend_surcharge || 0,
-            evening_surcharge: areaData.evening_surcharge || 0,
-            emergency_available: areaData.emergency_available || false,
-            emergency_surcharge: areaData.emergency_surcharge || 0,
-            preferred_days: areaData.preferred_days || [
-              'monday',
-              'tuesday',
-              'wednesday',
-              'thursday',
-              'friday',
-            ],
-            preferred_hours: areaData.preferred_hours || {
-              start: '09:00',
-              end: '17:00',
-            },
-          },
-        ])
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      logger.error('Error creating service area:', error);
-      throw error;
-    }
-  }
-
-  static async getServiceAreas(contractorId: string): Promise<ServiceArea[]> {
-    try {
-      const { data, error } = await supabase
-        .from('service_areas')
-        .select('*')
-        .eq('contractor_id', contractorId)
-        .order('priority_level', { ascending: true });
-
-      if (error) throw error;
-      return data || [];
-    } catch (error) {
-      logger.error('Error fetching service areas:', error);
-      throw error;
-    }
-  }
-
-  static async updateServiceArea(
-    areaId: string,
-    updates: Partial<ServiceArea>
-  ): Promise<ServiceArea> {
-    try {
-      const { data, error } = await supabase
-        .from('service_areas')
-        .update(updates)
-        .eq('id', areaId)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      logger.error('Error updating service area:', error);
-      throw error;
-    }
-  }
-
-  static async deleteServiceArea(areaId: string): Promise<void> {
-    try {
-      const { error } = await supabase
-        .from('service_areas')
-        .delete()
-        .eq('id', areaId);
-
-      if (error) throw error;
-    } catch (error) {
-      logger.error('Error deleting service area:', error);
-      throw error;
-    }
-  }
-
   // Geo utilities delegated to ServiceAreasGeo.ts
   static calculateDistance = calculateDistance;
   static haversineDistance = haversineDistance;
   static isLocationInServiceArea = isLocationInServiceArea;
   static findContractorsForLocation = findContractorsForLocation;
   static calculateTravelCharge = calculateTravelCharge;
-
-  // =====================================================
-  // SERVICE AREA ANALYTICS
-  // =====================================================
-
-  static async getAreaPerformance(
-    areaId: string,
-    periodStart: string,
-    periodEnd: string
-  ): Promise<AreaPerformance | null> {
-    try {
-      const { data, error } = await supabase
-        .from('area_performance')
-        .select('*')
-        .eq('service_area_id', areaId)
-        .eq('period_start', periodStart)
-        .eq('period_end', periodEnd)
-        .single();
-
-      if (error && error.code !== 'PGRST116') throw error;
-      return data;
-    } catch (error) {
-      logger.error('Error fetching area performance:', error);
-      return null;
-    }
-  }
-
-  static async recordCoverage(coverageData: {
-    service_area_id: string;
-    job_id?: string;
-    client_location_lat: number;
-    client_location_lng: number;
-    calculated_distance: number;
-    travel_time_minutes?: number;
-    travel_charge: number;
-    was_accepted: boolean;
-    decline_reason?: string;
-  }): Promise<ServiceAreaCoverage> {
-    try {
-      const { data, error } = await supabase
-        .from('service_area_coverage')
-        .insert([coverageData])
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      logger.error('Error recording coverage:', error);
-      throw error;
-    }
-  }
-
-  // =====================================================
-  // ROUTE OPTIMIZATION
-  // =====================================================
-
-  static async createRoute(routeData: {
-    contractor_id: string;
-    route_name: string;
-    route_date: string;
-    jobs?: string[];
-  }): Promise<ServiceRoute> {
-    try {
-      const { data, error } = await supabase
-        .from('service_routes')
-        .insert([
-          {
-            ...routeData,
-            jobs: routeData.jobs || [],
-            waypoints: [],
-            status: 'planned',
-          },
-        ])
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      logger.error('Error creating route:', error);
-      throw error;
-    }
-  }
-
-  static async optimizeRoute(
-    routeId: string,
-    jobLocations: {
-      job_id: string;
-      latitude: number;
-      longitude: number;
-    }[]
-  ): Promise<{
-    optimized_order: string[];
-    total_distance: number;
-    estimated_time: number;
-  }> {
-    // This is a simplified optimization algorithm
-    // In production, you'd use Google Maps API or similar service
-
-    if (jobLocations.length <= 1) {
-      return {
-        optimized_order: jobLocations.map((loc) => loc.job_id),
-        total_distance: 0,
-        estimated_time: 0,
-      };
-    }
-
-    // Simple nearest neighbor algorithm
-    const unvisited = [...jobLocations];
-    const visited: typeof jobLocations = [];
-    let currentLocation = unvisited.shift()!;
-    visited.push(currentLocation);
-
-    let totalDistance = 0;
-
-    while (unvisited.length > 0) {
-      let nearestIndex = 0;
-      let nearestDistance = Infinity;
-
-      for (let i = 0; i < unvisited.length; i++) {
-        const distance = this.haversineDistance(
-          currentLocation.latitude,
-          currentLocation.longitude,
-          unvisited[i]!.latitude,
-          unvisited[i]!.longitude
-        );
-
-        if (distance < nearestDistance) {
-          nearestDistance = distance;
-          nearestIndex = i;
-        }
-      }
-
-      totalDistance += nearestDistance;
-      currentLocation = unvisited.splice(nearestIndex, 1)[0]!;
-      visited.push(currentLocation);
-    }
-
-    return {
-      optimized_order: visited.map((loc) => loc.job_id),
-      total_distance: Math.round(totalDistance * 100) / 100,
-      estimated_time: Math.round(totalDistance * 2), // Rough estimate: 2 minutes per km
-    };
-  }
-
-  static async getRoutes(contractorId: string): Promise<ServiceRoute[]> {
-    try {
-      const { data, error } = await supabase
-        .from('service_routes')
-        .select('*')
-        .eq('contractor_id', contractorId)
-        .order('route_date', { ascending: false });
-
-      if (error) throw error;
-      return data || [];
-    } catch (error) {
-      logger.error('Error fetching routes:', error);
-      throw error;
-    }
-  }
-
-  // =====================================================
-  // UTILITY METHODS
-  // =====================================================
 
   static async validateServiceArea(areaData: Partial<ServiceArea>): Promise<{
     isValid: boolean;

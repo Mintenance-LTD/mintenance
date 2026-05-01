@@ -1,3 +1,23 @@
+/**
+ * FinancialReporter — pure read-side aggregations used by mobile
+ * finance screens.
+ *
+ * 2026-04-30 audit P0-1 disposition: ALLOWED to keep direct supabase
+ * reads. Rationale:
+ *   1. Every query is read-only.
+ *   2. Every query is scoped by `contractor_id = contractorId` AND the
+ *      table has RLS policies that restrict rows to the calling user
+ *      (live DB confirmed in 2026-04-23 audit: 99.7% RLS coverage).
+ *   3. Building an aggregate API endpoint would be 18+ round-trips
+ *      (12 monthly revenue + 6 profit trends + tax + cashflow) which
+ *      is a substantial server-side refactor that should batch
+ *      everything into a single SQL view. Out of scope for the
+ *      P0-1 mutation-bypass remediation.
+ *
+ * If you migrate this in a follow-up: design `GET
+ * /api/contractor/finance/summary?period=...` that returns the full
+ * FinancialSummary in one call, ideally backed by a database view.
+ */
 import { supabase } from '../../../config/supabase';
 import { ServiceErrorHandler } from '../../../utils/serviceErrorHandler';
 import { logger } from '../../../utils/logger';

@@ -158,9 +158,9 @@ const useBookingViewModel = (user: User | null): BookingViewModel => {
               status: mapJobStatusToBookingStatus(job.status),
               amount: job.budget ?? 0,
               canCancel:
-                job.status === 'assigned' && user!.role === 'homeowner',
+                job.status === 'assigned' && user?.role === 'homeowner',
               canReschedule:
-                job.status === 'assigned' && user!.role === 'homeowner',
+                job.status === 'assigned' && user?.role === 'homeowner',
               estimatedDuration: estimateJobDuration(job.budget ?? 0),
               specialInstructions:
                 job.description.length > 100

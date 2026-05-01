@@ -487,10 +487,22 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           </>
         )}
 
-        {/* 10. Location Tracking (contractor on active job) */}
+        {/* 10. Location Tracking (contractor en route or on active job)
+              2026-05-01 audit P0 (`contractor_locations = 0` root cause):
+              previously gated on `in_progress` only, but production has
+              never had a job in that state (live DB: 8 `assigned`, 4
+              `completed`, 0 `in_progress`). Contractors finish the bid-
+              accept → escrow → before-photo flow rarely enough that the
+              section never rendered, so the auto-start hook never fired
+              and `startJobTracking` never ran. Showing it on `assigned`
+              too lets the contractor share location during travel —
+              which is the actual product intent. The auto-start path
+              still requires a granted location permission, so a fresh
+              contractor with no AlwaysLocationSoftAsk grant won't get
+              prompted unexpectedly. */}
         {isContractor &&
           job.contractor_id === user?.id &&
-          job.status === 'in_progress' && (
+          (job.status === 'assigned' || job.status === 'in_progress') && (
             <>
               <View style={styles.divider} />
               <View style={styles.sectionPadded}>
@@ -509,15 +521,22 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
             </>
           )}
 
-        {/* 10b. Homeowner: Request contractor location */}
-        {isOwner && job.status === 'in_progress' && job.contractor_id && (
-          <>
-            <View style={styles.divider} />
-            <View style={styles.sectionPadded}>
-              <HomeownerLocationRequest jobId={job.id} />
-            </View>
-          </>
-        )}
+        {/* 10b. Homeowner: Request contractor location.
+              2026-05-01 audit P0: matched the contractor-side gate
+              widening above so the homeowner can see "contractor en
+              route" data during the `assigned` phase. Previously
+              symmetric with the `in_progress`-only contractor side,
+              both of which never fired in prod. */}
+        {isOwner &&
+          (job.status === 'assigned' || job.status === 'in_progress') &&
+          job.contractor_id && (
+            <>
+              <View style={styles.divider} />
+              <View style={styles.sectionPadded}>
+                <HomeownerLocationRequest jobId={job.id} />
+              </View>
+            </>
+          )}
 
         {/* 10c. Contractor: Log expense for this job — closes the audit
             #9 gap where contractor_expenses.job_id existed in the schema

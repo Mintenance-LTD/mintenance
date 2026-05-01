@@ -21,6 +21,7 @@ import { HapticService } from '../../utils/haptics';
 import { JobsStackParamList } from '../../navigation/types';
 import { theme } from '../../theme';
 import { styles } from './ContractPreparationStyles';
+import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 import {
   AgreedQuoteCard,
   LicenseTypeChips,
@@ -95,6 +96,14 @@ export const ContractPreparationScreen: React.FC<Props> = ({
   const [submitting, setSubmitting] = useState(false);
   const [existingStatus, setExistingStatus] = useState<ContractStatus>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Discard-prompt for back-navigation. The form pre-fills heavily
+  // from the contractor's profile + accepted bid + draft contract,
+  // so we use a dirty flag flipped on first user input rather than
+  // comparing snapshots.
+  const [hasEdits, setHasEdits] = useState(false);
+  const allowExit = useUnsavedChanges(hasEdits);
+  const markDirty = () => setHasEdits(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -223,6 +232,16 @@ export const ContractPreparationScreen: React.FC<Props> = ({
       return;
     }
 
+    // 2026-04-30 audit P1: validate() above guarantees both dates
+    // exist when errs is empty, but TypeScript can't see through that
+    // to the `!` we used to use. Re-check explicitly so the submit
+    // path is crash-safe even if validate()'s rules drift.
+    if (!startDate || !endDate) {
+      HapticService.error();
+      Alert.alert('Error', 'Start and end dates are required.');
+      return;
+    }
+
     setSubmitting(true);
     try {
       await mobileApiClient.post('/api/contracts', {
@@ -230,8 +249,8 @@ export const ContractPreparationScreen: React.FC<Props> = ({
         title,
         description,
         amount: Number(amount),
-        start_date: startDate!.toISOString(),
-        end_date: endDate!.toISOString(),
+        start_date: startDate.toISOString(),
+        end_date: endDate.toISOString(),
         contractor_company_name: companyName,
         contractor_license_registration: licenseNumber,
         contractor_license_type: licenseType || undefined,
@@ -241,10 +260,19 @@ export const ContractPreparationScreen: React.FC<Props> = ({
         quote_id: quoteId || undefined,
       });
       HapticService.success();
+      setHasEdits(false);
       Alert.alert(
         'Contract Sent',
         'The homeowner has been notified to review and sign.',
-        [{ text: 'OK', onPress: () => navigation.goBack() }]
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              allowExit();
+              navigation.goBack();
+            },
+          },
+        ]
       );
     } catch (err: unknown) {
       HapticService.error();
@@ -390,7 +418,10 @@ export const ContractPreparationScreen: React.FC<Props> = ({
           <TextInput
             style={[styles.input, errors.title && styles.inputError]}
             value={title}
-            onChangeText={setTitle}
+            onChangeText={(v) => {
+              setTitle(v);
+              markDirty();
+            }}
             placeholder='e.g., Kitchen Plumbing Repair'
             placeholderTextColor={theme.colors.textTertiary}
           />
@@ -404,7 +435,10 @@ export const ContractPreparationScreen: React.FC<Props> = ({
               errors.description && styles.inputError,
             ]}
             value={description}
-            onChangeText={setDescription}
+            onChangeText={(v) => {
+              setDescription(v);
+              markDirty();
+            }}
             placeholder='Describe the work to be performed in detail...'
             placeholderTextColor={theme.colors.textTertiary}
             multiline
@@ -418,7 +452,10 @@ export const ContractPreparationScreen: React.FC<Props> = ({
           <TextInput
             style={[styles.input, errors.amount && styles.inputError]}
             value={amount}
-            onChangeText={setAmount}
+            onChangeText={(v) => {
+              setAmount(v);
+              markDirty();
+            }}
             placeholder='0.00'
             placeholderTextColor={theme.colors.textTertiary}
             keyboardType='decimal-pad'
@@ -431,8 +468,14 @@ export const ContractPreparationScreen: React.FC<Props> = ({
           <DateRangePicker
             startDate={startDate}
             endDate={endDate}
-            onStartChange={setStartDate}
-            onEndChange={setEndDate}
+            onStartChange={(d) => {
+              setStartDate(d);
+              markDirty();
+            }}
+            onEndChange={(d) => {
+              setEndDate(d);
+              markDirty();
+            }}
             startError={errors.startDate}
             endError={errors.endDate}
             formatDate={formatDate}
@@ -444,7 +487,10 @@ export const ContractPreparationScreen: React.FC<Props> = ({
           <TextInput
             style={[styles.input, errors.companyName && styles.inputError]}
             value={companyName}
-            onChangeText={setCompanyName}
+            onChangeText={(v) => {
+              setCompanyName(v);
+              markDirty();
+            }}
             placeholder='Your company name'
             placeholderTextColor={theme.colors.textTertiary}
           />
@@ -459,7 +505,10 @@ export const ContractPreparationScreen: React.FC<Props> = ({
                   errors.licenseNumber && styles.inputError,
                 ]}
                 value={licenseNumber}
-                onChangeText={setLicenseNumber}
+                onChangeText={(v) => {
+                  setLicenseNumber(v);
+                  markDirty();
+                }}
                 placeholder='e.g. LIC-12345'
                 placeholderTextColor={theme.colors.textTertiary}
               />
@@ -469,7 +518,10 @@ export const ContractPreparationScreen: React.FC<Props> = ({
               <Text style={styles.fieldLabel}>License Type</Text>
               <LicenseTypeChips
                 selected={licenseType}
-                onSelect={setLicenseType}
+                onSelect={(t) => {
+                  setLicenseType(t);
+                  markDirty();
+                }}
                 types={LICENSE_TYPES}
               />
             </View>
@@ -477,9 +529,15 @@ export const ContractPreparationScreen: React.FC<Props> = ({
 
           <InsuranceDetailsCard
             provider={insuranceProvider}
-            setProvider={setInsuranceProvider}
+            setProvider={(v) => {
+              setInsuranceProvider(v);
+              markDirty();
+            }}
             policyNumber={insurancePolicyNumber}
-            setPolicyNumber={setInsurancePolicyNumber}
+            setPolicyNumber={(v) => {
+              setInsurancePolicyNumber(v);
+              markDirty();
+            }}
           />
 
           {/* ADDITIONAL TERMS */}
@@ -488,7 +546,10 @@ export const ContractPreparationScreen: React.FC<Props> = ({
           <TextInput
             style={[styles.input, styles.textArea]}
             value={terms}
-            onChangeText={setTerms}
+            onChangeText={(v) => {
+              setTerms(v);
+              markDirty();
+            }}
             placeholder='Any additional terms, conditions, or special requirements...'
             placeholderTextColor={theme.colors.textTertiary}
             multiline

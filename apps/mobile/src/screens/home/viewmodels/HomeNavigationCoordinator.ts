@@ -72,9 +72,12 @@ export class HomeNavigationCoordinator implements HomeNavigationActions {
 
   openMeetingSchedule = () => {
     this.haptics.light();
-    this.navigation.getParent?.()?.navigate('Modal', {
-      screen: 'MeetingSchedule',
-    });
+    // 2026-04-30 audit: the MeetingSchedule modal requires a
+    // `contractorId` param that the dashboard doesn't have. Until we
+    // build a contractor-picker entry point, route to the BookingStatus
+    // screen so the user lands on something real (their existing
+    // appointments) instead of crashing on a missing-param navigation.
+    this.navigation.navigate('ProfileTab', { screen: 'BookingStatus' });
   };
 
   openJobDetails = (jobId: string) => {
@@ -103,7 +106,10 @@ export class HomeNavigationCoordinator implements HomeNavigationActions {
 
   openNotificationSettings = () => {
     this.haptics.light();
-    this.navigation.getParent?.()?.navigate('Modal', {
+    // 2026-04-30 audit: NotificationPreferences is registered under the
+    // profile stack, not the modal stack. Sending the user to the modal
+    // navigator with this screen name was a runtime crash.
+    this.navigation.navigate('ProfileTab', {
       screen: 'NotificationPreferences',
     });
   };
@@ -115,7 +121,8 @@ export class HomeNavigationCoordinator implements HomeNavigationActions {
 
   openSupport = () => {
     this.haptics.selection();
-    this.navigation.getParent?.()?.navigate('Modal', {
+    // 2026-04-30 audit: HelpCenter is a profile-stack screen, not modal.
+    this.navigation.navigate('ProfileTab', {
       screen: 'HelpCenter',
     });
   };

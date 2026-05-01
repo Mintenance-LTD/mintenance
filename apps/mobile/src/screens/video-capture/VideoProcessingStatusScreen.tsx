@@ -172,7 +172,12 @@ export const VideoProcessingStatusScreen: React.FC<Props> = ({
   };
 
   const handleDone = () => {
-    navigation.navigate('HomeTab' as never);
+    // 2026-04-30 audit: previously called navigate('HomeTab' as never),
+    // which fails because HomeTab is registered on the tab navigator,
+    // not on the profile stack this screen lives in. Pop the screen
+    // instead — the user lands back where they started the capture
+    // (typically PropertyAssessment or ContractorDashboard).
+    navigation.goBack();
   };
 
   const progressBarStyle = useAnimatedStyle(() => ({

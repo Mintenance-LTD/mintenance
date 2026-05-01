@@ -11,6 +11,7 @@ import { ContractorProfile } from '@mintenance/types';
 import { logger } from '../utils/logger';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { theme } from '../theme';
+import { useUnsavedChanges } from '../hooks/useUnsavedChanges';
 import { styles } from './ContractorCardEditorScreen/styles';
 import { BusinessInfoSection } from './ContractorCardEditorScreen/BusinessInfoSection';
 import {
@@ -48,6 +49,19 @@ export const ContractorCardEditorScreen: React.FC<
     portfolioImages: [],
     certifications: [],
   });
+
+  // Discard-prompt — hydration sets state via the plain setter and
+  // doesn't flip the dirty flag, so navigating right after the screen
+  // loads is silent. User edits / image picks set the flag.
+  const [hasEdits, setHasEdits] = useState(false);
+  const allowExit = useUnsavedChanges(hasEdits);
+  // Wrap the standard setter so any edit through child components
+  // (BusinessInfoSection, AvailabilitySection, ServiceAreaSection)
+  // flips the dirty flag without each child needing its own logic.
+  const setProfileDirty: typeof setProfile = (next) => {
+    setProfile(next);
+    setHasEdits(true);
+  };
 
   useEffect(() => {
     loadContractorProfile();
@@ -123,6 +137,7 @@ export const ContractorCardEditorScreen: React.FC<
             ].slice(0, 8),
           }));
         }
+        setHasEdits(true);
       }
     } catch (error) {
       logger.error('Image picker error:', error);
@@ -136,6 +151,7 @@ export const ContractorCardEditorScreen: React.FC<
       portfolioImages:
         prev.portfolioImages?.filter((img) => img !== imageUri) || [],
     }));
+    setHasEdits(true);
   };
 
   const saveProfile = async () => {
@@ -153,7 +169,9 @@ export const ContractorCardEditorScreen: React.FC<
         lastName: user.last_name ?? user.lastName ?? '',
         isAvailable: true,
       });
+      setHasEdits(false);
       Alert.alert('Success', 'Your discovery card has been updated!');
+      allowExit();
       navigation.goBack();
     } catch (error) {
       logger.error('Failed to save contractor profile:', error);
@@ -205,16 +223,16 @@ export const ContractorCardEditorScreen: React.FC<
         />
         <BusinessInfoSection
           profile={profile}
-          setProfile={setProfile}
+          setProfile={setProfileDirty}
           user={user}
         />
-        <AvailabilitySection profile={profile} setProfile={setProfile} />
+        <AvailabilitySection profile={profile} setProfile={setProfileDirty} />
         <PortfolioSection
           profile={profile}
           onAddPortfolio={() => handleImagePicker('portfolio')}
           onRemoveImage={removePortfolioImage}
         />
-        <ServiceAreaSection profile={profile} setProfile={setProfile} />
+        <ServiceAreaSection profile={profile} setProfile={setProfileDirty} />
 
         <View style={styles.saveSection}>
           <TouchableOpacity

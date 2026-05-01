@@ -45,6 +45,42 @@ export interface PushDispatchResult {
  * overwrite an earlier channel's timestamp — whichever channel
  * reaches the user first wins the delivered_at race.
  */
+/**
+ * Count unread notifications for a user. Used to populate the iOS/Android
+ * app icon badge in the Expo push payload — without `badge`, the OS
+ * delivers the banner but never updates the launcher counter when the app
+ * is backgrounded or killed (2026-04-30 audit P0-10).
+ *
+ * Failure here is non-fatal: we'll send the push without a badge rather
+ * than block delivery on a count query.
+ */
+async function getUnreadCountForUser(userId: string): Promise<number | null> {
+  try {
+    const { count, error } = await serverSupabase
+      .from('notifications')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('read', false);
+
+    if (error) {
+      logger.warn('Failed to fetch unread count for badge (non-fatal)', {
+        service: 'NotificationPushDispatcher',
+        userId,
+        error: error.message,
+      });
+      return null;
+    }
+    return typeof count === 'number' ? count : null;
+  } catch (err) {
+    logger.warn('getUnreadCountForUser threw (non-fatal)', {
+      service: 'NotificationPushDispatcher',
+      userId,
+      error: err instanceof Error ? err.message : String(err),
+    });
+    return null;
+  }
+}
+
 async function markNotificationPushSent(notificationId: string): Promise<void> {
   try {
     const { error } = await serverSupabase
@@ -87,6 +123,10 @@ export async function sendPushToDevice(
       return { sent: false, reason: 'no_push_tokens' };
     }
 
+    // 2026-04-30 audit P0-10: include the user's current unread count so
+    // the OS launcher badge updates even when the app is killed.
+    const unreadCount = await getUnreadCountForUser(params.userId);
+
     const messages = tokens.map((t: { push_token: string }) => ({
       to: t.push_token,
       title: params.title,
@@ -94,6 +134,7 @@ export async function sendPushToDevice(
       sound: 'default',
       data: params.data || {},
       channelId: 'default',
+      ...(typeof unreadCount === 'number' ? { badge: unreadCount } : {}),
     }));
 
     const response = await fetch(EXPO_PUSH_URL, {

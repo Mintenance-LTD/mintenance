@@ -1,92 +1,25 @@
 /**
- * Notification press navigation logic.
- * Routes notification taps to the correct screen based on type and payload.
+ * Notification press navigation logic for in-app inbox taps.
+ *
+ * 2026-04-30 audit P1: delegates to the shared
+ * `notificationRoutingTable` so the in-app tap behaves exactly like an
+ * OS push tap (handled by `NotificationDeepLink`). Previously this
+ * file's switch statement diverged from the deep-link surface on
+ * `bid_received` (BidReview vs JobDetails) and silent fall-throughs.
+ *
+ * 2026-04-30 audit P1 follow-up: `routeForNotification` is now total
+ * (always returns a route). The previous HomeTab fallback for null
+ * routes contradicted the documented contract — unknown notification
+ * types now correctly funnel to the in-app inbox via the shared table.
  */
-
 import { NotificationData } from '../../services/NotificationService';
+import { routeForNotification } from '../../services/notifications/notificationRoutingTable';
 
-/**
- * Navigate to the appropriate screen based on notification type and data.
- * @param navigation - React Navigation object (typed as any due to nested navigator casting)
- * @param notification - The notification that was pressed
- */
 export function navigateForNotification(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   navigation: any,
   notification: NotificationData
 ): void {
-  const data = notification.data as Record<string, string> | undefined;
-  // Support both camelCase and snake_case keys from notification payload
-  const jobId = data?.jobId || data?.job_id;
-  const conversationId = data?.conversationId || data?.conversation_id;
-  const meetingId = data?.meetingId || data?.meeting_id;
-  const senderId = data?.senderId || data?.sender_id;
-  const senderName = data?.senderName || data?.sender_name;
-  const jobTitle = data?.jobTitle || data?.job_title;
-
-  switch (notification.type) {
-    case 'job_update':
-    case 'bid_accepted' as NotificationData['type']:
-      if (jobId) {
-        navigation.navigate('Main', {
-          screen: 'JobsTab',
-          params: { screen: 'JobDetails', params: { jobId } },
-        });
-      }
-      break;
-    case 'payment_received':
-      navigation.navigate('Main', {
-        screen: 'ProfileTab',
-        params: { screen: 'PaymentHistory' },
-      });
-      break;
-    case 'quote_sent':
-      if (jobId) {
-        navigation.navigate('Main', {
-          screen: 'JobsTab',
-          params: { screen: 'JobDetails', params: { jobId } },
-        });
-      }
-      break;
-    case 'bid_received':
-      if (jobId) {
-        navigation.navigate('Main', {
-          screen: 'JobsTab',
-          params: { screen: 'BidReview', params: { jobId } },
-        });
-      }
-      break;
-    case 'message_received':
-      if (conversationId) {
-        navigation.navigate('Main', {
-          screen: 'MessagingTab',
-          params: {
-            screen: 'Messaging',
-            params: {
-              conversationId,
-              jobTitle: jobTitle || '',
-              recipientId: senderId || '',
-              recipientName: senderName || '',
-            },
-          },
-        });
-      }
-      break;
-    case 'meeting_scheduled':
-      if (meetingId) {
-        navigation.navigate('Modal', {
-          screen: 'MeetingDetails',
-          params: { meetingId },
-        });
-      } else {
-        navigation.navigate('Main', {
-          screen: 'ProfileTab',
-          params: { screen: 'Calendar' },
-        });
-      }
-      break;
-    default:
-      // Navigate to home for unhandled notification types
-      navigation.navigate('Main', { screen: 'HomeTab' });
-      break;
-  }
+  const route = routeForNotification(notification.type, notification.data);
+  navigation.navigate(route.screen, route.params);
 }

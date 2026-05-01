@@ -9,26 +9,43 @@ import { ApiClient, RequestOptions, IApiError } from '@mintenance/api-client';
 import { supabase } from '../config/supabase';
 import { logger } from './logger';
 
-export const API_BASE_URL =
-  process.env.EXPO_PUBLIC_API_URL ||
-  process.env.EXPO_PUBLIC_API_BASE_URL ||
-  'http://localhost:3000';
+/**
+ * Resolve the API base URL the mobile client targets.
+ *
+ * 2026-04-30 audit (P0-6): production builds must NEVER fall back to
+ * `http://localhost:3000` — that's unreachable from a real phone and
+ * surfaces as generic "network error" UX. We keep the localhost fallback
+ * for `__DEV__` builds (Expo simulator workflow) and fail loudly for any
+ * production/staging build that ships without the env wired.
+ */
+function resolveApiBaseUrl(): string {
+  const fromEnv =
+    process.env.EXPO_PUBLIC_API_URL ?? process.env.EXPO_PUBLIC_API_BASE_URL;
 
-// Safety: log a loud warning if both supported API URL vars are missing in
-// production. EAS profiles historically used EXPO_PUBLIC_API_BASE_URL while
-// this client read EXPO_PUBLIC_API_URL; support both to avoid localhost builds.
-// Don't throw — that would crash the app on startup — but make it visible.
-if (
-  !process.env.EXPO_PUBLIC_API_URL &&
-  !process.env.EXPO_PUBLIC_API_BASE_URL &&
-  typeof __DEV__ !== 'undefined' &&
-  !__DEV__
-) {
+  if (fromEnv && fromEnv.trim().length > 0) {
+    return fromEnv;
+  }
+
+  const isDev = typeof __DEV__ !== 'undefined' && __DEV__;
+  if (isDev) {
+    logger.warn(
+      '[CONFIG] EXPO_PUBLIC_API_URL not set; falling back to http://localhost:3000 for development. Set EXPO_PUBLIC_API_URL in eas.json profiles before building staging/production.'
+    );
+    return 'http://localhost:3000';
+  }
+
+  // Production / staging build with no API URL configured: emit a hard
+  // error to Sentry so it shows up in release health dashboards. Returning
+  // an obviously-invalid URL means every request will fail fast with a
+  // clear error rather than silently hitting localhost.
   logger.error(
-    '[CONFIG] EXPO_PUBLIC_API_URL / EXPO_PUBLIC_API_BASE_URL is not set — API calls will target localhost, which is unreachable on a real device',
+    '[CONFIG] EXPO_PUBLIC_API_URL / EXPO_PUBLIC_API_BASE_URL is not set in a non-DEV build. The mobile app cannot reach the backend — fix the EAS profile.',
     new Error('Missing mobile API base URL')
   );
+  return 'about:blank-missing-api-url';
 }
+
+export const API_BASE_URL = resolveApiBaseUrl();
 
 /**
  * Get authentication token from Supabase session.

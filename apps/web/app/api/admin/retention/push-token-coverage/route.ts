@@ -6,6 +6,11 @@
  * push-registration fix (commit 8fed54ed, NotificationPushSender) is
  * actually reaching production devices.
  *
+ * 2026-04-30 audit P1: previously counted ROWS in `user_push_tokens`.
+ * One user with three devices counted as three users, inflating the
+ * coverage %. Now counts DISTINCT `user_id`s and splits the coverage
+ * by role (contractor vs homeowner) using a `profiles` join in JS.
+ *
  * Source: docs/RETENTION_ROADMAP_2026.md R1 move #13.
  */
 
@@ -18,8 +23,11 @@ interface PushTokenCoverage {
   total_users_with_token: number;
   total_contractors: number;
   total_homeowners: number;
+  contractors_with_token: number;
+  homeowners_with_token: number;
   contractor_coverage_pct: number;
   homeowner_coverage_pct: number;
+  blended_coverage_pct: number;
   last_registration_at: string | null;
 }
 
@@ -27,17 +35,42 @@ export const GET = withApiHandler(
   { roles: ['admin'], rateLimit: { maxRequests: 60 } },
   async () => {
     try {
-      // Distinct users with at least one registered push token.
+      // Pull every (user_id, updated_at, is_active) — small table, but
+      // also sets up the distinct-user dedupe and the role split below.
       const { data: tokenRows, error: tokenErr } = await serverSupabase
         .from('user_push_tokens')
-        .select('user_id, updated_at', { count: 'exact' })
-        .order('updated_at', { ascending: false })
-        .limit(1);
+        .select('user_id, updated_at, is_active')
+        .order('updated_at', { ascending: false });
 
       if (tokenErr) throw tokenErr;
 
+      const rows = (tokenRows ?? []) as Array<{
+        user_id: string;
+        updated_at: string | null;
+        is_active: boolean | null;
+      }>;
+
+      // 2026-04-30 audit P1 fix: count DISTINCT users, not rows. A
+      // contractor with phone + tablet + iPad shouldn't show up three
+      // times in retention dashboards.
+      const distinctUserIds = new Set<string>();
+      let lastRegistrationAt: string | null = null;
+      for (const row of rows) {
+        if (!row.user_id) continue;
+        // Exclude rows the mobile cleanup loop has explicitly marked
+        // inactive — those tokens won't actually deliver pushes.
+        if (row.is_active === false) continue;
+        distinctUserIds.add(row.user_id);
+        if (
+          row.updated_at &&
+          (!lastRegistrationAt || row.updated_at > lastRegistrationAt)
+        ) {
+          lastRegistrationAt = row.updated_at;
+        }
+      }
+
       // Role counts from profiles.
-      const [{ count: contractorCount }, { count: homeownerCount }] =
+      const [{ count: contractorCount }, { count: homeownerCount }, rolesRes] =
         await Promise.all([
           serverSupabase
             .from('profiles')
@@ -47,37 +80,45 @@ export const GET = withApiHandler(
             .from('profiles')
             .select('id', { count: 'exact', head: true })
             .eq('role', 'homeowner'),
+          distinctUserIds.size > 0
+            ? serverSupabase
+                .from('profiles')
+                .select('id, role')
+                .in('id', Array.from(distinctUserIds))
+            : Promise.resolve({
+                data: [] as Array<{ id: string; role: string }>,
+              }),
         ]);
 
-      const totalUsersWithToken =
-        (tokenRows as unknown as { count?: number })?.count ?? 0;
-      // Supabase JS returns the count on the result envelope, not the rows.
-      // Re-query with a proper head count for accuracy:
-      const { count: tokensDistinctCount } = await serverSupabase
-        .from('user_push_tokens')
-        .select('user_id', { count: 'exact', head: true });
+      const roleRows = (rolesRes?.data ?? []) as Array<{
+        id: string;
+        role: string | null;
+      }>;
+      let contractorsWithToken = 0;
+      let homeownersWithToken = 0;
+      for (const r of roleRows) {
+        if (r.role === 'contractor') contractorsWithToken++;
+        else if (r.role === 'homeowner') homeownersWithToken++;
+      }
+
+      const totalContractors = contractorCount ?? 0;
+      const totalHomeowners = homeownerCount ?? 0;
+      const totalUsers = totalContractors + totalHomeowners;
+
+      const pct = (numerator: number, denominator: number) =>
+        denominator > 0 ? Math.round((numerator / denominator) * 1000) / 10 : 0;
 
       const coverage: PushTokenCoverage = {
-        total_users_with_token: tokensDistinctCount ?? totalUsersWithToken,
-        total_contractors: contractorCount ?? 0,
-        total_homeowners: homeownerCount ?? 0,
-        contractor_coverage_pct: 0,
-        homeowner_coverage_pct: 0,
-        last_registration_at:
-          (tokenRows?.[0] as { updated_at?: string } | undefined)?.updated_at ??
-          null,
+        total_users_with_token: distinctUserIds.size,
+        total_contractors: totalContractors,
+        total_homeowners: totalHomeowners,
+        contractors_with_token: contractorsWithToken,
+        homeowners_with_token: homeownersWithToken,
+        contractor_coverage_pct: pct(contractorsWithToken, totalContractors),
+        homeowner_coverage_pct: pct(homeownersWithToken, totalHomeowners),
+        blended_coverage_pct: pct(distinctUserIds.size, totalUsers),
+        last_registration_at: lastRegistrationAt,
       };
-
-      // We can't cheaply split token coverage by role without a JOIN; report
-      // the combined number as a blended coverage %. Refine in a later
-      // iteration (add a `role` column snapshot to user_push_tokens or do
-      // the join here).
-      const totalUsers = coverage.total_contractors + coverage.total_homeowners;
-      if (totalUsers > 0) {
-        const blended = (coverage.total_users_with_token / totalUsers) * 100;
-        coverage.contractor_coverage_pct = Math.round(blended * 10) / 10;
-        coverage.homeowner_coverage_pct = Math.round(blended * 10) / 10;
-      }
 
       return NextResponse.json(coverage);
     } catch (err) {

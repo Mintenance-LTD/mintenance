@@ -45,7 +45,10 @@ export const ReportingScreen: React.FC = () => {
 
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['contractor-reporting', dateRange, user?.id],
-    queryFn: () => fetchReportingData(user!.id, selectedRange.days),
+    queryFn: () => {
+      if (!user?.id) throw new Error('Not signed in');
+      return fetchReportingData(user.id, selectedRange.days);
+    },
     enabled: !!user?.id,
   });
 

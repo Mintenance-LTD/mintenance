@@ -50,10 +50,14 @@ interface Conversation {
 }
 
 /**
- * Fetch conversations list
+ * Fetch conversations list.
+ *
+ * 2026-04-30 audit P1: pointed at the canonical thread endpoint.
+ * Previously hit `/api/messages/conversations`, which never existed —
+ * any consumer of this hook would 404.
  */
 async function fetchConversations(): Promise<Conversation[]> {
-  const response = await fetch('/api/messages/conversations', {
+  const response = await fetch('/api/messages/threads', {
     credentials: 'include',
   });
 
@@ -65,11 +69,13 @@ async function fetchConversations(): Promise<Conversation[]> {
   }
 
   const data = await response.json();
-  return data.conversations || [];
+  // Both `threads` and `conversations` keys are accepted to stay
+  // compatible with whatever the route returns now and in the future.
+  return data.threads || data.conversations || [];
 }
 
 /**
- * Fetch messages for a conversation
+ * Fetch messages for a thread/conversation.
  */
 async function fetchMessages(
   conversationId: string,
@@ -82,7 +88,7 @@ async function fetchMessages(
   if (cursor) params.set('cursor', cursor);
 
   const response = await fetch(
-    `/api/messages/${conversationId}?${params.toString()}`,
+    `/api/messages/threads/${conversationId}/messages?${params.toString()}`,
     {
       credentials: 'include',
     }
@@ -99,7 +105,7 @@ async function fetchMessages(
 }
 
 /**
- * Send a message
+ * Send a message inside an existing thread.
  */
 async function sendMessage(messageData: {
   conversation_id?: string;
@@ -107,19 +113,29 @@ async function sendMessage(messageData: {
   recipient_id?: string;
   content: string;
 }): Promise<Message> {
+  if (!messageData.conversation_id) {
+    throw new Error(
+      'sendMessage now requires conversation_id (a thread id). ' +
+        'Create the thread via POST /api/messages/threads first.'
+    );
+  }
+
   const csrfToken = document
     .querySelector('meta[name="csrf-token"]')
     ?.getAttribute('content');
 
-  const response = await fetch('/api/messages', {
-    method: 'POST',
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(csrfToken && { 'X-CSRF-Token': csrfToken }),
-    },
-    body: JSON.stringify(messageData),
-  });
+  const response = await fetch(
+    `/api/messages/threads/${messageData.conversation_id}/messages`,
+    {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(csrfToken && { 'X-CSRF-Token': csrfToken }),
+      },
+      body: JSON.stringify({ content: messageData.content }),
+    }
+  );
 
   if (!response.ok) {
     const error = await response
@@ -133,14 +149,19 @@ async function sendMessage(messageData: {
 }
 
 /**
- * Mark message as read
+ * Mark a thread as read.
+ *
+ * 2026-04-30 audit P1: the legacy per-message read endpoint
+ * (`/api/messages/:id/read`) was never implemented. The canonical
+ * surface marks an entire thread as read, which mirrors how mobile
+ * already operates.
  */
-async function markAsRead(messageId: string): Promise<void> {
+async function markAsRead(threadId: string): Promise<void> {
   const csrfToken = document
     .querySelector('meta[name="csrf-token"]')
     ?.getAttribute('content');
 
-  const response = await fetch(`/api/messages/${messageId}/read`, {
+  const response = await fetch(`/api/messages/threads/${threadId}/read`, {
     method: 'POST',
     credentials: 'include',
     headers: {
@@ -150,7 +171,7 @@ async function markAsRead(messageId: string): Promise<void> {
   });
 
   if (!response.ok) {
-    throw new Error('Failed to mark message as read');
+    throw new Error('Failed to mark thread as read');
   }
 }
 

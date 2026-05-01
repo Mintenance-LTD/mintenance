@@ -34,18 +34,41 @@ export const initializePushNotifications = async (
   try {
     const token = await NotificationService.initialize();
     if (token) {
-      await NotificationService.savePushToken(userId, token);
-      addBreadcrumb('Push token registered for user', 'auth');
+      try {
+        await NotificationService.savePushToken(userId, token);
+        addBreadcrumb('Push token registered for user', 'auth');
+      } catch (saveErr) {
+        // 2026-05-01 audit P0 (user_push_tokens=0): savePushToken failure
+        // was previously silent (just logger.warn). Promote to Sentry
+        // capture so we can see the prod rate. The retry hook
+        // (useEnsurePushTokenRegistered) will pick this up on the next
+        // foreground transition.
+        const saveMsg =
+          saveErr instanceof Error ? saveErr.message : String(saveErr);
+        logger.warn('[AUTH] savePushToken failed during silent init', {
+          userId,
+          error: saveMsg,
+        });
+        // Breadcrumb context goes through Sentry tags via captureException
+        // — the wrapper's addBreadcrumb is a 2-arg shim, full data lives
+        // on the captured exception below.
+        addBreadcrumb('Push token POST failed (silent path)', 'auth');
+        captureException(saveErr as Error, {
+          userId,
+          source: 'initializePushNotifications.savePushToken',
+          error: saveMsg,
+        });
+      }
     } else {
-      // Token null = simulator OR FCM/permissions issue. Surface so we know in prod.
-      const reason =
-        'Push token initialize returned null (simulator or FCM/permission issue)';
-      logger.warn(`[AUTH] ${reason}`, { userId });
-      addBreadcrumb(reason, 'auth');
-      captureException(new Error(reason), {
-        userId,
-        source: 'initializePushNotifications',
-      });
+      // Token null on the silent path is the EXPECTED case for fresh
+      // users (permission still 'undetermined' — PushSoftAskModal owns
+      // the prompt). Drop a debug breadcrumb only; do NOT capture as
+      // an exception — it's not unexpected and Sentry was getting
+      // spammed with noise that drowned out real failures.
+      addBreadcrumb(
+        'Push token init returned null (expected for undetermined / simulator)',
+        'auth'
+      );
     }
   } catch (error) {
     logger.error('[AUTH] Push token registration failed', { userId, error });
@@ -178,6 +201,29 @@ export const performSignIn = async (
       });
       addBreadcrumb(`User signed in: ${signedInUser.email}`, 'auth');
       initializePushNotifications(signedInUser.id);
+
+      // 2026-04-30 audit P1 (Authentication + signup side-effect
+      // parity): web `/api/auth/register` initialises a contractor
+      // trial post-signup. Mobile's direct `supabase.auth.signUp`
+      // doesn't, so contractors who registered on mobile never got
+      // a trial. Call the idempotent reconciliation endpoint here
+      // — first sign-in for fresh mobile signups, every sign-in
+      // thereafter (self-healing for the existing affected users).
+      // Best-effort: a transient network failure here MUST NOT
+      // block sign-in, so the call is fire-and-forget with a
+      // visible warning if it errors.
+      try {
+        const { mobileApiClient } = await import('../utils/mobileApiClient');
+        await mobileApiClient.post('/api/auth/post-signup-reconciliation', {
+          role: signedInUser.role,
+        });
+      } catch (reconcileErr) {
+        // eslint-disable-next-line no-console
+        console.warn(
+          '[AUTH] post-signup reconciliation failed (non-fatal):',
+          reconcileErr
+        );
+      }
 
       if (
         biometricAuth.biometricAvailable &&

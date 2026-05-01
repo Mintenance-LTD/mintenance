@@ -16,8 +16,10 @@ export const GET = withApiHandler(
 
     // Fetch the invoice
     const { data: invoice, error } = await serverSupabase
-      .from('contractor_invoices')
-      .select('id, contractor_id, client_email, line_items, tax_rate, invoice_number, title, description, client_name, client_address, payment_terms, notes, due_date, created_at, vat_number')
+      .from('invoices')
+      .select(
+        'id, contractor_id, client_email, line_items, tax_rate, invoice_number, title, description, client_name, client_address, payment_terms, notes, due_date, created_at, vat_number'
+      )
       .eq('id', invoiceId)
       .single();
 
@@ -26,7 +28,10 @@ export const GET = withApiHandler(
     }
 
     // Verify the user owns this invoice or is the client
-    if (invoice.contractor_id !== user.id && invoice.client_email !== user.email) {
+    if (
+      invoice.contractor_id !== user.id &&
+      invoice.client_email !== user.email
+    ) {
       throw new ForbiddenError('You do not have access to this invoice');
     }
 
@@ -38,8 +43,9 @@ export const GET = withApiHandler(
     }>;
 
     const subtotal = lineItems.reduce(
-      (sum: number, item: { quantity: number; unit_price: number }) => sum + item.quantity * item.unit_price,
-      0,
+      (sum: number, item: { quantity: number; unit_price: number }) =>
+        sum + item.quantity * item.unit_price,
+      0
     );
     const taxRate = invoice.tax_rate ?? 20;
     const taxAmount = (subtotal * taxRate) / 100;
@@ -72,7 +78,7 @@ export const GET = withApiHandler(
         'Content-Disposition': `inline; filename="${invoice.invoice_number}.html"`,
       },
     });
-  },
+  }
 );
 
 // ── HTML Builder ─────────────────────────────────────────────────────────────
@@ -84,7 +90,11 @@ interface InvoiceHTMLParams {
   clientName: string;
   clientEmail: string;
   clientAddress?: string;
-  lineItems: Array<{ description: string; quantity: number; unit_price: number }>;
+  lineItems: Array<{
+    description: string;
+    quantity: number;
+    unit_price: number;
+  }>;
   subtotal: number;
   taxRate: number;
   taxAmount: number;
@@ -100,7 +110,11 @@ interface InvoiceHTMLParams {
 function buildInvoiceHTML(params: InvoiceHTMLParams): string {
   const fmt = (amount: number) => `£${amount.toFixed(2)}`;
   const fmtDate = (d: string) =>
-    new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'long', year: 'numeric' });
+    new Date(d).toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+    });
 
   const lineItemsHTML = params.lineItems
     .map(
@@ -110,7 +124,7 @@ function buildInvoiceHTML(params: InvoiceHTMLParams): string {
         <td style="padding:8px;border-bottom:1px solid #e5e7eb;text-align:center;">${item.quantity}</td>
         <td style="padding:8px;border-bottom:1px solid #e5e7eb;text-align:right;">${fmt(item.unit_price)}</td>
         <td style="padding:8px;border-bottom:1px solid #e5e7eb;text-align:right;">${fmt(item.quantity * item.unit_price)}</td>
-      </tr>`,
+      </tr>`
     )
     .join('');
 

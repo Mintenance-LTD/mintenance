@@ -106,12 +106,13 @@ export const DataExportScreen: React.FC = () => {
   const { data: exports, isLoading } = useQuery<ExportStatus[]>({
     queryKey: ['data-exports', user?.id],
     queryFn: async () => {
+      if (!user) throw new Error('Not signed in');
       const { data, error } = await supabase
         .from('data_export_requests')
         .select(
           'id, status, requested_at:created_at, completed_at, download_url'
         )
-        .eq('user_id', user!.id)
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
       if (error) return [];
       return (data || []).map((d: Record<string, unknown>) => ({

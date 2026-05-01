@@ -1,7 +1,15 @@
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '../../../config/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
+import { mobileApiClient } from '../../../utils/mobileApiClient';
 import type { PaymentRecord } from './constants';
+
+interface FinancialsResponse {
+  payments: PaymentRecord[];
+  subscription: {
+    planType: string | null;
+    status: string | null;
+  } | null;
+}
 
 export function useFinancialsData() {
   const { user } = useAuth();
@@ -10,41 +18,21 @@ export function useFinancialsData() {
     queryKey: ['homeowner-financials', user?.id],
     queryFn: async () => {
       if (!user?.id) throw new Error('Not authenticated');
-      const { data: rows, error: err } = await supabase
-        .from('escrow_transactions')
-        .select(
-          'id, amount, status, created_at, description, job:job_id(title)'
-        )
-        .eq('payer_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(50);
-      if (err) throw new Error(err.message);
 
-      const payments: PaymentRecord[] = (rows || []).map(
-        (r: Record<string, unknown>) => ({
-          id: r.id as string,
-          amount: (r.amount as number) || 0,
-          status: (r.status as string) || 'pending',
-          created_at: r.created_at as string,
-          job_title: (r.job as Record<string, unknown>)?.title as
-            | string
-            | undefined,
-          category: r.description as string | undefined,
-        })
+      // 2026-04-30 audit P0-1: was reading `escrow_transactions` and
+      // `subscriptions` directly. Backed by the new
+      // /api/homeowner/financials endpoint which projects the same
+      // shape and lets the server enforce RLS / role gating.
+      const data = await mobileApiClient.get<FinancialsResponse>(
+        '/api/homeowner/financials'
       );
 
-      // Fetch subscription from profile
-      const { data: subRow } = await supabase
-        .from('subscriptions')
-        .select('plan_type, status')
-        .eq('user_id', user.id)
-        .single();
-
-      const subscriptionRes = subRow
+      const payments: PaymentRecord[] = data?.payments ?? [];
+      const subscriptionRes = data?.subscription
         ? {
             subscription: {
-              planType: subRow.plan_type as string,
-              status: subRow.status as string,
+              planType: data.subscription.planType ?? '',
+              status: data.subscription.status ?? '',
             },
           }
         : { subscription: null };

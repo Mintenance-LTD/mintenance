@@ -252,7 +252,15 @@ export class NotificationService {
   static queueNotification = queueNotification;
   static processNotificationQueue = processNotificationQueue;
 
-  private static async updateBadgeCount(): Promise<void> {
+  /**
+   * Recompute the launcher badge count from the user's unread
+   * notification rows.
+   *
+   * 2026-04-30 audit P0-10: callable from app-launch / foreground /
+   * resume / mark-read flows so the OS launcher count matches the
+   * in-app inbox even when the user reads notifications on web.
+   */
+  static async refreshBadgeFromServer(): Promise<void> {
     try {
       const {
         data: { user },
@@ -263,10 +271,17 @@ export class NotificationService {
       }
       const unreadCount = await this.getUnreadCount(user.id);
       await Notifications.setBadgeCountAsync(unreadCount);
-      logger.info('Badge count updated', { count: unreadCount });
+      logger.info('Badge count refreshed from server', {
+        count: unreadCount,
+      });
     } catch (error) {
-      logger.error('Failed to update badge count', error);
+      logger.error('Failed to refresh badge count', error);
     }
+  }
+
+  /** @deprecated Use refreshBadgeFromServer() — kept for back-compat. */
+  private static async updateBadgeCount(): Promise<void> {
+    await this.refreshBadgeFromServer();
   }
 
   static async setBadgeCount(count: number): Promise<void> {

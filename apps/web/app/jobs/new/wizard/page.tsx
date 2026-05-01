@@ -20,6 +20,7 @@ import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { ArrowRight, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { useSilverMode, silverFontSize } from '@/lib/hooks/useSilverMode';
+import { validateJobDraft, type JobCategory } from '@mintenance/api-contracts';
 
 const CATEGORIES = [
   { value: 'handyman', label: 'Handyman' },
@@ -58,20 +59,34 @@ export default function PostJobWizardPage() {
   const submit = async () => {
     setSubmitting(true);
     try {
+      // 2026-05-01 audit P1 close-out (per-screen validateJobDraft adoption):
+      // run the canonical schema before posting so the user sees the same
+      // error message the route would have rejected with. The wizard's
+      // `canNext` check only enforces title >= 5 / location >= 3 / budget
+      // is a number — but description has no inline UI so the silver-mode
+      // user might submit with description undefined and hit a confusing
+      // 400. Validating here surfaces the issue pre-flight.
+      const draftResult = validateJobDraft({
+        title,
+        description,
+        location,
+        budget: Number(budget),
+        category: category as JobCategory | undefined,
+        requirements: {
+          contractor_before_photos: contractorBeforePhotos,
+        },
+      });
+      if (!draftResult.ok) {
+        const first = draftResult.errors[0];
+        toast.error(first?.message ?? 'Please review the form and try again.');
+        setSubmitting(false);
+        return;
+      }
       const res = await fetch('/api/jobs', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title,
-          category,
-          description,
-          location,
-          budget: Number(budget),
-          requirements: {
-            contractor_before_photos: contractorBeforePhotos,
-          },
-        }),
+        body: JSON.stringify(draftResult.payload),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || `status ${res.status}`);

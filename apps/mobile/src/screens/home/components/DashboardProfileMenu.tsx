@@ -3,6 +3,7 @@ import { Modal, Pressable, TouchableOpacity, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { theme } from '../../../theme';
+import { goToTab } from '../../../navigation/hooks';
 import { styles } from '../homeownerDashboardStyles';
 
 interface DashboardProfileMenuProps {
@@ -31,7 +32,7 @@ export const DashboardProfileMenu: React.FC<DashboardProfileMenuProps> = ({
     {
       label: 'Messages',
       icon: 'chatbubble-outline' as const,
-      onPress: () => navigation.navigate('MessagingTab' as never),
+      onPress: () => goToTab(navigation, 'MessagingTab'),
     },
     {
       label: 'Payments',

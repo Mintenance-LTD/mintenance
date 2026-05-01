@@ -18,6 +18,10 @@ const verifyMFASchema = z.object({
   rememberDevice: z.boolean().optional().default(false),
 });
 
+// auth-check: ok — auth: false because the user has just passed
+// password but not yet MFA; the preMfaToken in the request body is
+// the auth (validated against the pending-MFA store before the TOTP
+// code is checked).
 export const POST = withApiHandler(
   { auth: false, rateLimit: false },
   async (request) => {

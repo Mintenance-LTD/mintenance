@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { logger } from '@mintenance/shared';
 import { rateLimiter } from '@/lib/rate-limiter';
 import { withApiHandler } from '@/lib/api/with-api-handler';
@@ -14,11 +15,25 @@ import { getClientIp } from '@/lib/request-ip';
  * - Input validation and sanitization
  */
 
-interface GeocodeRequest {
-  address?: string;
-  lat?: number;
-  lng?: number;
-}
+// 2026-05-01 audit follow-up (check-api-contracts): Zod-validated body
+// — discriminated by which set of fields the caller provided.
+// Either `address` (forward geocoding) or `lat`+`lng` (reverse).
+const geocodeRequestSchema = z
+  .object({
+    address: z.string().min(1).max(500).optional(),
+    lat: z.number().min(-90).max(90).optional(),
+    lng: z.number().min(-180).max(180).optional(),
+  })
+  .strict()
+  .refine(
+    (d) =>
+      (typeof d.address === 'string' && d.address.length > 0) ||
+      (typeof d.lat === 'number' && typeof d.lng === 'number'),
+    {
+      message: 'Either address or coordinates (lat, lng) are required',
+    }
+  );
+type GeocodeRequest = z.infer<typeof geocodeRequestSchema>;
 
 interface GeocodeResponse {
   latitude: number;
@@ -68,46 +83,26 @@ export const POST = withApiHandler(
     }
 
     // Parse and Validate Request Body
-    let body: GeocodeRequest;
+    let raw: unknown;
     try {
-      body = await request.json();
+      raw = await request.json();
     } catch {
       return NextResponse.json(
         { error: 'Invalid JSON in request body' },
         { status: 400 }
       );
     }
-
-    // Input Validation
-    const hasAddress = body.address && typeof body.address === 'string';
+    const parsed = geocodeRequestSchema.safeParse(raw);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues[0]?.message ?? 'Invalid request body' },
+        { status: 400 }
+      );
+    }
+    const body: GeocodeRequest = parsed.data;
+    const hasAddress = !!body.address;
     const hasCoordinates =
-      typeof body.lat === 'number' &&
-      typeof body.lng === 'number' &&
-      body.lat >= -90 &&
-      body.lat <= 90 &&
-      body.lng >= -180 &&
-      body.lng <= 180;
-
-    if (!hasAddress && !hasCoordinates) {
-      return NextResponse.json(
-        {
-          error: 'Either address or coordinates (lat, lng) are required',
-          details: {
-            addressProvided: !!body.address,
-            coordinatesProvided: !!(body.lat && body.lng),
-          },
-        },
-        { status: 400 }
-      );
-    }
-
-    // Validate address string length
-    if (hasAddress && body.address!.length > 500) {
-      return NextResponse.json(
-        { error: 'Address must be less than 500 characters' },
-        { status: 400 }
-      );
-    }
+      typeof body.lat === 'number' && typeof body.lng === 'number';
 
     // Try Google Maps first, fallback to Nominatim (OpenStreetMap)
     const apiKey = process.env.GOOGLE_MAPS_API_KEY;

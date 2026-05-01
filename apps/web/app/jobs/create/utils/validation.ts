@@ -1,8 +1,18 @@
 /**
- * Validation utilities for job creation form
+ * Validation utilities for job creation form.
+ *
+ * 2026-05-01 audit P1 close-out (per-screen validateJobDraft adoption):
+ * the form-wide submit-time check now runs through `validateJobDraft`
+ * from `@mintenance/api-contracts` so the baseline length / range /
+ * required errors match the server schema exactly. Per-field
+ * `validateField` calls are kept for blur-time inline UX (the route
+ * doesn't tell the user inline) but the submit gate (`validateJobForm`)
+ * now layers schema errors + UX layer errors so the user can never
+ * submit a payload the server would reject.
  */
 
 import { VALIDATION } from '../constants';
+import { validateJobDraft, type JobCategory } from '@mintenance/api-contracts';
 
 export interface JobFormData {
   title: string;
@@ -150,6 +160,35 @@ export function validateJobForm(
   // Skills validation
   if (formData.requiredSkills.length > 10) {
     errors.requiredSkills = 'Maximum 10 skills allowed';
+  }
+
+  // 2026-05-01: also run the canonical schema as a final safety net.
+  // Per-field validateField above generally already catches everything,
+  // but if the server tightens a constraint in @mintenance/api-contracts
+  // and the per-field check drifts, this will catch it before submit
+  // rather than letting the user hit a 400. Fields already flagged by
+  // validateField keep their friendlier messages; the schema only fills
+  // gaps.
+  const draftResult = validateJobDraft({
+    title: formData.title,
+    description: formData.description,
+    location: formData.location,
+    budget:
+      typeof formData.budget === 'number'
+        ? formData.budget
+        : parseFloat(String(formData.budget)) || undefined,
+    category: (formData.category || undefined) as JobCategory | undefined,
+    urgency: formData.urgency,
+    propertyId: formData.property_id,
+    isRentalProperty: formData.is_rental_property,
+  });
+  if (!draftResult.ok) {
+    for (const e of draftResult.errors) {
+      const formField = e.field;
+      if (!errors[formField]) {
+        errors[formField] = e.message;
+      }
+    }
   }
 
   return errors;

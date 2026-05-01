@@ -88,16 +88,33 @@ export const navigateToScreen = <T extends keyof RootStackParamList>(
 };
 
 /**
- * Navigate back with optional fallback
+ * Navigate back with optional fallback. Used to defend against
+ * stack-empty entry paths (e.g. deep-link or push-notification
+ * opens the screen with nothing behind it; raw `goBack()` then
+ * silently does nothing). Pass a sensible fallback for the screen
+ * when it might be the first one on the stack.
+ *
+ * 2026-04-30 audit P1 (Back Buttons Are Common, But Not Consistently
+ * Protected): widened the navigation type from
+ * `NativeStackNavigationProp<RootStackParamList>` to a structural
+ * minimum, so screens on the Jobs/Profile/Messaging sub-stacks can
+ * call this helper without casting through `never`.
  */
+type GoBackSafeNav = {
+  canGoBack: () => boolean;
+  goBack: () => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  navigate: (...args: any[]) => void;
+};
+
 export const goBackSafe = (
-  navigation: NativeStackNavigationProp<RootStackParamList>,
-  fallbackScreen?: keyof RootStackParamList
+  navigation: GoBackSafeNav,
+  fallbackScreen?: string
 ) => {
   if (navigation.canGoBack()) {
     navigation.goBack();
   } else if (fallbackScreen) {
-    navigation.navigate(fallbackScreen as never);
+    navigation.navigate(fallbackScreen);
   }
 };
 
@@ -119,6 +136,74 @@ export const resetToScreen = <T extends keyof RootStackParamList>(
     ],
   });
 };
+
+// ============================================================================
+// CROSS-NAVIGATOR HELPERS (2026-04-30 audit P1: replace `as never` casts)
+// ============================================================================
+
+/**
+ * Top-level tab IDs in the root tab navigator. Centralised so a typo in
+ * a screen file (e.g. `'HomeTabb'`) is a TypeScript error, not a
+ * runtime navigation crash.
+ */
+export type RootTabName =
+  | 'HomeTab'
+  | 'JobsTab'
+  | 'AddTab'
+  | 'BusinessTab'
+  | 'MessagingTab'
+  | 'ProfileTab';
+
+/**
+ * Type-safe accessor for `navigation.navigate('SomeTab', ...)` cross
+ * navigator calls. Many screens used to do `navigation.navigate('Tab'
+ * as never)` to silence the type checker; this helper preserves the
+ * actual underlying call shape but at least guards the tab name AND
+ * the nested screen name when both are known at compile time.
+ *
+ * Example:
+ *   goToTab(navigation, 'MessagingTab', {
+ *     screen: 'Messaging',
+ *     params: { conversationId },
+ *   });
+ */
+// Structural minimum for any React Navigation prop. Using `any` for the
+// arg signature is intentional — every concrete navigation prop has a
+// different overload set, and this helper just needs to call .navigate.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type NavigateLike = { navigate: (...args: any[]) => void };
+
+export function goToTab<T extends RootTabName>(
+  navigation: NavigateLike,
+  tab: T,
+  nested?: { screen: string; params?: Record<string, unknown> }
+): void {
+  if (nested) {
+    navigation.navigate(tab, nested);
+  } else {
+    navigation.navigate(tab);
+  }
+}
+
+/**
+ * Type-safe equivalent for navigating to a specific Messaging thread.
+ * Encapsulates the canonical `MessagingTab > Messaging > {params}`
+ * shape so the audit-flagged direct calls don't need to repeat it.
+ */
+export function goToMessagingThread(
+  navigation: NavigateLike,
+  params: {
+    conversationId: string;
+    jobTitle?: string;
+    recipientId?: string;
+    recipientName?: string;
+  }
+): void {
+  navigation.navigate('MessagingTab', {
+    screen: 'Messaging',
+    params,
+  });
+}
 
 // ============================================================================
 // NAVIGATION GUARDS

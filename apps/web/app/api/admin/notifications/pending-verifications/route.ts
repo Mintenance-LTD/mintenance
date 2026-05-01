@@ -25,11 +25,21 @@ export const GET = withApiHandler({ roles: ['admin'] }, async () => {
  * POST: Send pending verification notifications
  * Can be called manually by admin or scheduled via cron job
  */
-export const POST = withApiHandler({ roles: ['admin'], rateLimit: { maxRequests: 10 } }, async () => {
-  await AdminNotificationService.notifyPendingVerifications();
+export const POST = withApiHandler(
+  {
+    roles: ['admin'],
+    rateLimit: { maxRequests: 10 },
+    // 2026-05-01 audit follow-up: fires admin notifications for every
+    // pending contractor verification. A stolen admin cookie could
+    // trigger a notification storm. Require fresh MFA proof.
+    requireMfaVerifiedWithinMinutes: 15,
+  },
+  async () => {
+    await AdminNotificationService.notifyPendingVerifications();
 
-  return NextResponse.json({
-    success: true,
-    message: 'Pending verification notifications sent'
-  });
-});
+    return NextResponse.json({
+      success: true,
+      message: 'Pending verification notifications sent',
+    });
+  }
+);

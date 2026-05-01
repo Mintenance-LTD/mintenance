@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { Alert } from 'react-native';
 import { logger } from '../utils/logger';
 import { mobileApiClient } from '../utils/mobileApiClient';
-import { supabase } from '../config/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import type { ServiceArea } from '../services/ServiceAreasService';
 
@@ -26,15 +25,17 @@ export const useServiceAreas = () => {
   const loadServiceAreas = useCallback(async () => {
     if (!user?.id) return;
     try {
-      const { data, error } = await supabase
-        .from('service_areas')
-        .select('*')
-        .eq('contractor_id', user.id);
-      if (error) {
-        logger.error('Error loading service areas', error.message);
-        throw new Error(error.message);
-      }
-      setServiceAreas((data || []) as ServiceArea[]);
+      // 2026-04-30 audit P0-1 follow-up: route through the API so the
+      // contractor scope is enforced server-side. Previously this hook
+      // hit `supabase.from('service_areas')` directly, which depended
+      // entirely on RLS for row scoping and bypassed the
+      // `withApiHandler` rate limit / role gate that POST/PATCH/DELETE
+      // already use.
+      const res = await mobileApiClient.get<{
+        success: boolean;
+        data: ServiceArea[];
+      }>('/api/contractor/service-areas');
+      setServiceAreas(res?.data ?? []);
     } catch (error) {
       logger.error('Error loading service areas', error);
       Alert.alert('Error', 'Failed to load service areas');

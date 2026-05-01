@@ -20,6 +20,7 @@ import { EmptyState } from '../components/ui/EmptyState';
 import { useAuth } from '../contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { mobileApiClient as apiClient } from '../utils/mobileApiClient';
+import { goToTab } from '../navigation/hooks';
 import { theme } from '../theme';
 
 import { ReviewCard, StarRating, type Review } from './reviews/ReviewCard';
@@ -176,7 +177,9 @@ export const ReviewsScreen: React.FC<Props> = ({ navigation }) => {
           title='No Reviews Yet'
           subtitle='Reviews from homeowners will appear here after you complete jobs.'
           ctaLabel='View My Jobs'
-          onCtaPress={() => navigation.navigate('JobsList' as never)}
+          onCtaPress={() =>
+            goToTab(navigation, 'JobsTab', { screen: 'JobsList' })
+          }
         />
       ) : (
         <FlatList

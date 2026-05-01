@@ -26,6 +26,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { mobileApiClient } from '../../utils/mobileApiClient';
+import { validateJobDraft } from '@mintenance/api-contracts';
 import { theme } from '../../theme';
 import { silverFontSize, SILVER_SCALE } from '../../theme/silverModeState';
 import { useSilverMode } from '../../hooks/useSilverMode';
@@ -71,19 +72,37 @@ export const PostJobWizardScreen: React.FC = () => {
   const submit = async () => {
     setSubmitting(true);
     try {
+      // 2026-05-01 audit P1 close-out (per-screen validateJobDraft adoption):
+      // run the canonical schema before posting. The previous flow trusted
+      // `canAdvance`'s ad-hoc 5/3-character checks, but the server min for
+      // description is 20 — a silver-mode user with a short description
+      // would hit a confusing 400. Validating here surfaces the same error
+      // pre-flight.
+      const draftValidation = validateJobDraft({
+        title,
+        description,
+        location,
+        budget: Number(budget),
+        category: category as
+          | import('@mintenance/api-contracts').JobCategory
+          | undefined,
+        requirements: { contractor_before_photos: contractorBeforePhotos },
+      });
+      if (!draftValidation.ok) {
+        const first = draftValidation.errors[0];
+        Alert.alert(
+          'Cannot post yet',
+          first?.message ?? 'Please review the form and try again.'
+        );
+        setSubmitting(false);
+        return;
+      }
       // jobs.requirements is a real jsonb column (live audit 2026-04-28
       // showed 16 prod rows already use it). The /api/jobs Zod schema
       // now accepts `requirements: z.record(z.string(), z.unknown())`
       // and JobCreationService writes it through to the row, so the
       // silver-mode contractor_before_photos flag finally persists.
-      await mobileApiClient.post('/api/jobs', {
-        title,
-        category,
-        description,
-        location,
-        budget: Number(budget),
-        requirements: { contractor_before_photos: contractorBeforePhotos },
-      });
+      await mobileApiClient.post('/api/jobs', draftValidation.payload);
       Alert.alert('Job posted', 'Contractors in your area will see it now.', [
         { text: 'OK', onPress: () => navigation.goBack() },
       ]);

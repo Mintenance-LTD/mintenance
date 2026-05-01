@@ -20,6 +20,7 @@ import {
   getNotificationIcon,
   getNotificationColor,
 } from './notification-icons';
+import { safeActionUrl } from '@/lib/notifications/safe-action-url';
 
 interface Notification {
   id: string;
@@ -243,8 +244,11 @@ export default function NotificationsPage2025() {
       handleMarkAsRead(notification.id);
     }
 
+    // 2026-04-30 audit: only allow internal allow-listed paths.
+    // A bad action_url silently routes to /notifications instead of
+    // letting the user land outside the app or on a stale screen.
     if (notification.action_url) {
-      router.push(notification.action_url);
+      router.push(safeActionUrl(notification.action_url));
     }
   };
 

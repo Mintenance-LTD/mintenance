@@ -21,6 +21,8 @@ const feedbackSchema = z.object({
   userEmail: z.string().email().optional(),
 });
 
+// auth-check: ok — public surface for the building-surveyor demo
+// page; anonymous users submit feedback. No PII required.
 export const POST = withApiHandler(
   { auth: false, rateLimit: { maxRequests: 10 } },
   async (request) => {

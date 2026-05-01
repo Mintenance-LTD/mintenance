@@ -26,267 +26,338 @@ const securityDashboardActionSchema = z.discriminatedUnion('action', [
   }),
 ]);
 
-export const GET = withApiHandler({ roles: ['admin'], rateLimit: { maxRequests: 10 } }, async (request, { user }) => {
-  const { searchParams } = new URL(request.url);
-  const VALID_TIMEFRAMES = ['1h', '24h', '7d', '30d'] as const;
-  const rawTimeframe = searchParams.get('timeframe');
-  const timeframe = (VALID_TIMEFRAMES as readonly string[]).includes(rawTimeframe ?? '')
-    ? (rawTimeframe as '1h' | '24h' | '7d' | '30d')
-    : '24h';
+export const GET = withApiHandler(
+  { roles: ['admin'], rateLimit: { maxRequests: 10 } },
+  async (request, { user }) => {
+    const { searchParams } = new URL(request.url);
+    const VALID_TIMEFRAMES = ['1h', '24h', '7d', '30d'] as const;
+    const rawTimeframe = searchParams.get('timeframe');
+    const timeframe = (VALID_TIMEFRAMES as readonly string[]).includes(
+      rawTimeframe ?? ''
+    )
+      ? (rawTimeframe as '1h' | '24h' | '7d' | '30d')
+      : '24h';
 
-  const { data: metrics, error } = await serverSupabase
-    .rpc('get_security_dashboard_metrics', { p_timeframe: timeframe });
+    const { data: metrics, error } = await serverSupabase.rpc(
+      'get_security_dashboard_metrics',
+      { p_timeframe: timeframe }
+    );
 
-  if (error) {
-    logger.error('Error fetching security metrics', error, {
-      service: 'admin_security',
-      timeframe,
-      userId: user.id,
+    if (error) {
+      logger.error('Error fetching security metrics', error, {
+        service: 'admin_security',
+        timeframe,
+        userId: user.id,
+      });
+
+      if (
+        error.code === '42883' ||
+        error.message?.includes('function') ||
+        error.message?.includes('does not exist')
+      ) {
+        const emptyMetrics = {
+          total_events: 0,
+          critical_events: 0,
+          high_severity_events: 0,
+          unique_ips: 0,
+          top_event_types: {},
+          recent_critical_events: [],
+        };
+
+        const { data: recentEvents } = await serverSupabase
+          .from('security_events')
+          .select(
+            'id, event_type, severity, ip_address, user_id, description, metadata, resolved, created_at'
+          )
+          .order('created_at', { ascending: false })
+          .limit(50);
+
+        const { data: topIPs } = await serverSupabase
+          .from('security_events')
+          .select('ip_address')
+          .gte(
+            'created_at',
+            new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+          )
+          .order('created_at', { ascending: false });
+
+        const ipCounts = (topIPs || []).reduce(
+          (acc: Record<string, number>, event: { ip_address: string }) => {
+            if (event.ip_address) {
+              acc[event.ip_address] = (acc[event.ip_address] || 0) + 1;
+            }
+            return acc;
+          },
+          {}
+        );
+
+        const topOffendingIPs = Object.entries(ipCounts)
+          .map(([ip, count]) => ({ ip, count }))
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 10);
+
+        const { ips: blockedIPs } = await IPBlockingService.getBlockedIPs({
+          activeOnly: true,
+          limit: 50,
+        });
+        const blockedIPSet = new Set(blockedIPs.map((bip) => bip.ip_address));
+        const topOffendingIPsWithBlockStatus = topOffendingIPs.map((item) => ({
+          ...item,
+          is_blocked: blockedIPSet.has(item.ip),
+        }));
+
+        return NextResponse.json({
+          timeframe,
+          metrics: emptyMetrics,
+          recent_events: recentEvents || [],
+          top_offending_ips: topOffendingIPsWithBlockStatus,
+          blocked_ips: blockedIPs,
+          last_updated: new Date().toISOString(),
+          warning:
+            'Security metrics function not available. Showing basic data only.',
+        });
+      }
+
+      throw new InternalServerError('Failed to fetch security metrics');
+    }
+
+    const { data: recentEvents, error: eventsError } = await serverSupabase
+      .from('security_events')
+      .select(
+        'id, event_type, severity, ip_address, user_id, description, metadata, resolved, created_at'
+      )
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    if (eventsError) {
+      logger.error('Error fetching recent events', eventsError, {
+        service: 'admin_security',
+        userId: user.id,
+      });
+
+      if (
+        eventsError.code === '42P01' ||
+        eventsError.message?.includes('does not exist')
+      ) {
+        const emptyMetrics = metrics?.[0] || {
+          total_events: 0,
+          critical_events: 0,
+          high_severity_events: 0,
+          unique_ips: 0,
+          top_event_types: {},
+          recent_critical_events: [],
+        };
+
+        return NextResponse.json({
+          timeframe,
+          metrics: emptyMetrics,
+          recent_events: [],
+          top_offending_ips: [],
+          blocked_ips: [],
+          last_updated: new Date().toISOString(),
+          warning:
+            'Security events table not available. Some features may be limited.',
+        });
+      }
+      throw new InternalServerError('Failed to fetch recent events');
+    }
+
+    const { data: topIPs, error: ipsError } = await serverSupabase
+      .from('security_events')
+      .select('ip_address')
+      .gte(
+        'created_at',
+        new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+      )
+      .order('created_at', { ascending: false });
+
+    if (ipsError) {
+      logger.error('Error fetching IP data', ipsError, {
+        service: 'admin_security',
+        userId: user.id,
+      });
+
+      if (
+        ipsError.code === '42P01' ||
+        ipsError.message?.includes('does not exist')
+      ) {
+        const emptyMetrics = metrics?.[0] || {
+          total_events: 0,
+          critical_events: 0,
+          high_severity_events: 0,
+          unique_ips: 0,
+          top_event_types: {},
+          recent_critical_events: [],
+        };
+
+        return NextResponse.json({
+          timeframe,
+          metrics: emptyMetrics,
+          recent_events: [],
+          top_offending_ips: [],
+          blocked_ips: [],
+          last_updated: new Date().toISOString(),
+          warning:
+            'Security events table not available. Some features may be limited.',
+        });
+      }
+      throw new InternalServerError('Failed to fetch IP data');
+    }
+
+    const ipCounts = topIPs.reduce((acc: Record<string, number>, event) => {
+      acc[event.ip_address] = (acc[event.ip_address] || 0) + 1;
+      return acc;
+    }, {});
+
+    const topOffendingIPs = Object.entries(ipCounts)
+      .map(([ip, count]) => ({ ip, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 10);
+
+    const { ips: blockedIPs } = await IPBlockingService.getBlockedIPs({
+      activeOnly: true,
+      limit: 50,
     });
+    const blockedIPSet = new Set(blockedIPs.map((bip) => bip.ip_address));
+    const topOffendingIPsWithBlockStatus = topOffendingIPs.map((item) => ({
+      ...item,
+      is_blocked: blockedIPSet.has(item.ip),
+    }));
 
-    if (error.code === '42883' || error.message?.includes('function') || error.message?.includes('does not exist')) {
-      const emptyMetrics = {
+    return NextResponse.json({
+      timeframe,
+      metrics: metrics[0] || {
         total_events: 0,
         critical_events: 0,
         high_severity_events: 0,
         unique_ips: 0,
         top_event_types: {},
-        recent_critical_events: []
-      };
-
-      const { data: recentEvents } = await serverSupabase
-        .from('security_events')
-        .select('id, event_type, severity, ip_address, user_id, description, metadata, resolved, created_at')
-        .order('created_at', { ascending: false })
-        .limit(50);
-
-      const { data: topIPs } = await serverSupabase
-        .from('security_events')
-        .select('ip_address')
-        .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
-        .order('created_at', { ascending: false });
-
-      const ipCounts = (topIPs || []).reduce((acc: Record<string, number>, event: { ip_address: string }) => {
-        if (event.ip_address) {
-          acc[event.ip_address] = (acc[event.ip_address] || 0) + 1;
-        }
-        return acc;
-      }, {});
-
-      const topOffendingIPs = Object.entries(ipCounts)
-        .map(([ip, count]) => ({ ip, count }))
-        .sort((a, b) => b.count - a.count)
-        .slice(0, 10);
-
-      const { ips: blockedIPs } = await IPBlockingService.getBlockedIPs({ activeOnly: true, limit: 50 });
-      const blockedIPSet = new Set(blockedIPs.map(bip => bip.ip_address));
-      const topOffendingIPsWithBlockStatus = topOffendingIPs.map(item => ({
-        ...item,
-        is_blocked: blockedIPSet.has(item.ip),
-      }));
-
-      return NextResponse.json({
-        timeframe,
-        metrics: emptyMetrics,
-        recent_events: recentEvents || [],
-        top_offending_ips: topOffendingIPsWithBlockStatus,
-        blocked_ips: blockedIPs,
-        last_updated: new Date().toISOString(),
-        warning: 'Security metrics function not available. Showing basic data only.'
-      });
-    }
-
-    throw new InternalServerError('Failed to fetch security metrics');
-  }
-
-  const { data: recentEvents, error: eventsError } = await serverSupabase
-    .from('security_events')
-    .select('id, event_type, severity, ip_address, user_id, description, metadata, resolved, created_at')
-    .order('created_at', { ascending: false })
-    .limit(50);
-
-  if (eventsError) {
-    logger.error('Error fetching recent events', eventsError, {
-      service: 'admin_security',
-      userId: user.id,
-    });
-
-    if (eventsError.code === '42P01' || eventsError.message?.includes('does not exist')) {
-      const emptyMetrics = metrics?.[0] || {
-        total_events: 0, critical_events: 0, high_severity_events: 0,
-        unique_ips: 0, top_event_types: {}, recent_critical_events: []
-      };
-
-      return NextResponse.json({
-        timeframe, metrics: emptyMetrics, recent_events: [],
-        top_offending_ips: [], blocked_ips: [],
-        last_updated: new Date().toISOString(),
-        warning: 'Security events table not available. Some features may be limited.'
-      });
-    }
-    throw new InternalServerError('Failed to fetch recent events');
-  }
-
-  const { data: topIPs, error: ipsError } = await serverSupabase
-    .from('security_events')
-    .select('ip_address')
-    .gte('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
-    .order('created_at', { ascending: false });
-
-  if (ipsError) {
-    logger.error('Error fetching IP data', ipsError, {
-      service: 'admin_security',
-      userId: user.id,
-    });
-
-    if (ipsError.code === '42P01' || ipsError.message?.includes('does not exist')) {
-      const emptyMetrics = metrics?.[0] || {
-        total_events: 0, critical_events: 0, high_severity_events: 0,
-        unique_ips: 0, top_event_types: {}, recent_critical_events: []
-      };
-
-      return NextResponse.json({
-        timeframe, metrics: emptyMetrics, recent_events: [],
-        top_offending_ips: [], blocked_ips: [],
-        last_updated: new Date().toISOString(),
-        warning: 'Security events table not available. Some features may be limited.'
-      });
-    }
-    throw new InternalServerError('Failed to fetch IP data');
-  }
-
-  const ipCounts = topIPs.reduce((acc: Record<string, number>, event) => {
-    acc[event.ip_address] = (acc[event.ip_address] || 0) + 1;
-    return acc;
-  }, {});
-
-  const topOffendingIPs = Object.entries(ipCounts)
-    .map(([ip, count]) => ({ ip, count }))
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 10);
-
-  const { ips: blockedIPs } = await IPBlockingService.getBlockedIPs({ activeOnly: true, limit: 50 });
-  const blockedIPSet = new Set(blockedIPs.map(bip => bip.ip_address));
-  const topOffendingIPsWithBlockStatus = topOffendingIPs.map(item => ({
-    ...item,
-    is_blocked: blockedIPSet.has(item.ip),
-  }));
-
-  return NextResponse.json({
-    timeframe,
-    metrics: metrics[0] || {
-      total_events: 0, critical_events: 0, high_severity_events: 0,
-      unique_ips: 0, top_event_types: {}, recent_critical_events: []
-    },
-    recent_events: recentEvents,
-    top_offending_ips: topOffendingIPsWithBlockStatus,
-    blocked_ips: blockedIPs,
-    last_updated: new Date().toISOString()
-  });
-});
-
-export const POST = withApiHandler({ roles: ['admin'], rateLimit: { maxRequests: 10 } }, async (request, { user }) => {
-  const body = await request.json();
-  const parsed = securityDashboardActionSchema.safeParse(body);
-  if (!parsed.success) {
-    throw new BadRequestError('Invalid request: action must be resolve_event, block_ip, or unblock_ip with required fields');
-  }
-  const validatedBody = parsed.data;
-
-  if (validatedBody.action === 'resolve_event') {
-    const eventId = validatedBody.eventId;
-    const { error } = await serverSupabase
-      .from('security_events')
-      .update({ resolved: true })
-      .eq('id', eventId);
-
-    if (error) {
-      logger.error('Error resolving security event', error, {
-        service: 'admin_security',
-        eventId,
-        userId: user.id,
-      });
-      throw new InternalServerError('Failed to resolve event');
-    }
-
-    await AdminActivityLogger.logFromRequest(
-      request,
-      user.id,
-      'resolve_security_event',
-      'security',
-      `Resolved security event: ${eventId}`,
-      'security_event',
-      eventId
-    );
-
-    return NextResponse.json({ message: 'Event resolved successfully' });
-  }
-
-  if (validatedBody.action === 'block_ip') {
-    const { ipAddress, reason, expiresAt, securityEventIds } = validatedBody;
-
-    const blocked = await IPBlockingService.blockIP({
-      ipAddress,
-      reason,
-      blockedBy: user.id,
-      expiresAt: expiresAt ? new Date(expiresAt) : undefined,
-      metadata: {
-        blocked_from: 'security_dashboard',
-        security_events: securityEventIds || [],
+        recent_critical_events: [],
       },
-    });
-
-    if (!blocked) {
-      throw new InternalServerError('Failed to block IP address');
-    }
-
-    await AdminActivityLogger.logFromRequest(
-      request,
-      user.id,
-      'block_ip',
-      'security',
-      `Blocked IP address: ${ipAddress}`,
-      'ip_address',
-      blocked.id,
-      { ip_address: ipAddress, reason, expires_at: expiresAt }
-    );
-
-    await securityMonitor.logAdminAction(
-      request,
-      'block_ip',
-      user.id,
-      undefined,
-      { ip_address: ipAddress, reason, blocked_ip_id: blocked.id }
-    );
-
-    return NextResponse.json({
-      message: 'IP blocked successfully',
-      blocked_ip: blocked
+      recent_events: recentEvents,
+      top_offending_ips: topOffendingIPsWithBlockStatus,
+      blocked_ips: blockedIPs,
+      last_updated: new Date().toISOString(),
     });
   }
+);
 
-  if (validatedBody.action === 'unblock_ip') {
-    const { ipAddress } = validatedBody;
+export const POST = withApiHandler(
+  {
+    roles: ['admin'],
+    rateLimit: { maxRequests: 10 },
+    // 2026-05-01 audit follow-up: this endpoint resolves security events,
+    // blocks/unblocks IP addresses, and writes admin-action audit rows. A
+    // compromised admin cookie would let an attacker silence alerts and
+    // unblock their own IP in one call. Require fresh MFA proof — same
+    // 15-minute window as other admin mutation routes.
+    requireMfaVerifiedWithinMinutes: 15,
+  },
+  async (request, { user }) => {
+    const body = await request.json();
+    const parsed = securityDashboardActionSchema.safeParse(body);
+    if (!parsed.success) {
+      throw new BadRequestError(
+        'Invalid request: action must be resolve_event, block_ip, or unblock_ip with required fields'
+      );
+    }
+    const validatedBody = parsed.data;
 
-    const unblocked = await IPBlockingService.unblockIP(ipAddress);
+    if (validatedBody.action === 'resolve_event') {
+      const eventId = validatedBody.eventId;
+      const { error } = await serverSupabase
+        .from('security_events')
+        .update({ resolved: true })
+        .eq('id', eventId);
 
-    if (!unblocked) {
-      throw new InternalServerError('Failed to unblock IP address');
+      if (error) {
+        logger.error('Error resolving security event', error, {
+          service: 'admin_security',
+          eventId,
+          userId: user.id,
+        });
+        throw new InternalServerError('Failed to resolve event');
+      }
+
+      await AdminActivityLogger.logFromRequest(
+        request,
+        user.id,
+        'resolve_security_event',
+        'security',
+        `Resolved security event: ${eventId}`,
+        'security_event',
+        eventId
+      );
+
+      return NextResponse.json({ message: 'Event resolved successfully' });
     }
 
-    await AdminActivityLogger.logFromRequest(
-      request,
-      user.id,
-      'unblock_ip',
-      'security',
-      `Unblocked IP address: ${ipAddress}`,
-      'ip_address',
-      undefined,
-      { ip_address: ipAddress }
-    );
+    if (validatedBody.action === 'block_ip') {
+      const { ipAddress, reason, expiresAt, securityEventIds } = validatedBody;
 
-    return NextResponse.json({ message: 'IP unblocked successfully' });
+      const blocked = await IPBlockingService.blockIP({
+        ipAddress,
+        reason,
+        blockedBy: user.id,
+        expiresAt: expiresAt ? new Date(expiresAt) : undefined,
+        metadata: {
+          blocked_from: 'security_dashboard',
+          security_events: securityEventIds || [],
+        },
+      });
+
+      if (!blocked) {
+        throw new InternalServerError('Failed to block IP address');
+      }
+
+      await AdminActivityLogger.logFromRequest(
+        request,
+        user.id,
+        'block_ip',
+        'security',
+        `Blocked IP address: ${ipAddress}`,
+        'ip_address',
+        blocked.id,
+        { ip_address: ipAddress, reason, expires_at: expiresAt }
+      );
+
+      await securityMonitor.logAdminAction(
+        request,
+        'block_ip',
+        user.id,
+        undefined,
+        { ip_address: ipAddress, reason, blocked_ip_id: blocked.id }
+      );
+
+      return NextResponse.json({
+        message: 'IP blocked successfully',
+        blocked_ip: blocked,
+      });
+    }
+
+    if (validatedBody.action === 'unblock_ip') {
+      const { ipAddress } = validatedBody;
+
+      const unblocked = await IPBlockingService.unblockIP(ipAddress);
+
+      if (!unblocked) {
+        throw new InternalServerError('Failed to unblock IP address');
+      }
+
+      await AdminActivityLogger.logFromRequest(
+        request,
+        user.id,
+        'unblock_ip',
+        'security',
+        `Unblocked IP address: ${ipAddress}`,
+        'ip_address',
+        undefined,
+        { ip_address: ipAddress }
+      );
+
+      return NextResponse.json({ message: 'IP unblocked successfully' });
+    }
+
+    throw new BadRequestError('Invalid action');
   }
-
-  throw new BadRequestError('Invalid action');
-});
+);

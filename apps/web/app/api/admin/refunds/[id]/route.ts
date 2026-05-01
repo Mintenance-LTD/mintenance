@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { logger, ESCROW_STATUS } from '@mintenance/shared';
@@ -6,6 +7,24 @@ import { stripe } from '@/lib/stripe';
 import { requireAdminFromDatabase } from '@/lib/admin-verification';
 import { BadRequestError, NotFoundError } from '@/lib/errors/api-error';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
+
+// 2026-05-01 audit follow-up (check-api-contracts): Zod-validated body so
+// the previous mix of `if (!action || !['release',...].includes(action))`
+// and bare casts is replaced with a typed parse. Tighter: refundAmount is
+// now a positive-finite number, reason is min 5 / max 500.
+const refundActionSchema = z
+  .object({
+    action: z.enum(['release', 'refund', 'hold']),
+    reason: z
+      .string()
+      .min(
+        5,
+        'A reason of at least 5 characters is required for all admin escrow actions'
+      )
+      .max(500),
+    refundAmount: z.number().positive().max(1_000_000).optional(),
+  })
+  .strict();
 
 /**
  * POST /api/admin/refunds/[id]
@@ -22,25 +41,18 @@ export const POST = withApiHandler(
   },
   async (request: NextRequest, { user, params }) => {
     const escrowId = params.id;
-    const body = await request.json();
-    const { action, reason, refundAmount } = body as {
-      action: 'release' | 'refund' | 'hold';
-      reason: string;
-      refundAmount?: number;
-    };
-
-    // Validate inputs
-    if (!action || !['release', 'refund', 'hold'].includes(action)) {
-      throw new BadRequestError(
-        'Invalid action. Must be one of: release, refund, hold'
-      );
+    let raw: unknown;
+    try {
+      raw = await request.json();
+    } catch {
+      throw new BadRequestError('Invalid JSON body');
     }
-
-    if (!reason || reason.trim().length < 5) {
-      throw new BadRequestError(
-        'A reason of at least 5 characters is required for all admin escrow actions'
-      );
+    const parsed = refundActionSchema.safeParse(raw);
+    if (!parsed.success) {
+      const first = parsed.error.issues[0];
+      throw new BadRequestError(first?.message ?? 'Invalid request body');
     }
+    const { action, reason, refundAmount } = parsed.data;
 
     // Verify admin role from database (not just JWT)
     await requireAdminFromDatabase(user.id);

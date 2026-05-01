@@ -19,7 +19,15 @@ import { logger } from '@mintenance/shared';
  * that already have an embedding) so it is safe to re-run.
  */
 export const POST = withApiHandler(
-  { roles: ['admin'], rateLimit: { maxRequests: 2 } },
+  {
+    roles: ['admin'],
+    rateLimit: { maxRequests: 2 },
+    // 2026-05-01 audit follow-up: re-embedding the pathology corpus burns
+    // OpenAI credits per document. Same threat model as the synthetic-data
+    // generator — a stolen cookie could trigger a multi-thousand-row
+    // embedding pass. Require fresh MFA proof.
+    requireMfaVerifiedWithinMinutes: 15,
+  },
   async () => {
     try {
       const result = await BuildingPathologyRAGService.seedMissingEmbeddings();

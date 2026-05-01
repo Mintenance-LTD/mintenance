@@ -5,10 +5,17 @@ import { logger } from '@mintenance/shared';
 
 const unsubscribeSchema = z.object({
   token: z.string().uuid('Invalid unsubscribe token'),
-  category: z.enum([
-    'marketing', 'bid_notifications', 'job_updates',
-    'payment_notifications', 'message_notifications', 'all',
-  ]).optional().default('all'),
+  category: z
+    .enum([
+      'marketing',
+      'bid_notifications',
+      'job_updates',
+      'payment_notifications',
+      'message_notifications',
+      'all',
+    ])
+    .optional()
+    .default('all'),
 });
 
 /**
@@ -16,6 +23,11 @@ const unsubscribeSchema = z.object({
  * GDPR-compliant one-click email unsubscribe.
  * No authentication required — uses a unique unsubscribe token.
  */
+// auth-check: ok — public by design. The unique per-recipient unsubscribe
+// token (looked up against email_preferences) is the auth; requiring a
+// session here would break one-click unsubscribe links delivered via
+// email. Mandated by GDPR + CAN-SPAM / UK PECR. Token validity is
+// enforced by Zod (uuid) + DB lookup below.
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const parsed = unsubscribeSchema.safeParse({
@@ -37,7 +49,10 @@ export async function GET(request: NextRequest) {
     .single();
 
   if (error || !prefs) {
-    return NextResponse.json({ error: 'Invalid or expired unsubscribe link' }, { status: 404 });
+    return NextResponse.json(
+      { error: 'Invalid or expired unsubscribe link' },
+      { status: 404 }
+    );
   }
 
   // Update the preference
@@ -66,7 +81,10 @@ export async function GET(request: NextRequest) {
       service: 'email',
       userId: prefs.user_id,
     });
-    return NextResponse.json({ error: 'Failed to process unsubscribe' }, { status: 500 });
+    return NextResponse.json(
+      { error: 'Failed to process unsubscribe' },
+      { status: 500 }
+    );
   }
 
   logger.info('User unsubscribed from emails', {

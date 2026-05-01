@@ -5,11 +5,33 @@
  */
 
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import { withApiHandler } from '@/lib/api/with-api-handler';
-import { serverSupabase, createRequestScopedClient } from '@/lib/api/supabaseServer';
+import {
+  serverSupabase,
+  createRequestScopedClient,
+} from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
-import { NotFoundError, BadRequestError, ForbiddenError } from '@/lib/errors/api-error';
+import {
+  NotFoundError,
+  BadRequestError,
+  ForbiddenError,
+} from '@/lib/errors/api-error';
+
+// 2026-05-01 audit follow-up (check-api-contracts): Zod-validated body
+// (rating 1-5, comment min 20 / max 2000) replaces the manual numeric +
+// length checks.
+const jobReviewSchema = z
+  .object({
+    rating: z.coerce.number().int().min(1).max(5),
+    comment: z
+      .string()
+      .min(20, 'Review comment must be at least 20 characters')
+      .max(2000),
+    wouldRecommend: z.boolean().optional(),
+  })
+  .strict();
 
 /**
  * GET /api/jobs/:id/review?user_id=...
@@ -52,19 +74,20 @@ export const POST = withApiHandler(
     const userDb = createRequestScopedClient(request) ?? serverSupabase;
 
     const jobId = params.id;
-    const body = await request.json();
-
-    const rating = Number(body.rating);
-    const comment = typeof body.comment === 'string' ? body.comment.trim() : '';
-    const wouldRecommend = body.wouldRecommend;
-
-    if (!rating || rating < 1 || rating > 5) {
-      throw new BadRequestError('Rating must be between 1 and 5');
+    let raw: unknown;
+    try {
+      raw = await request.json();
+    } catch {
+      throw new BadRequestError('Invalid JSON body');
     }
-
-    if (!comment || comment.length < 20) {
-      throw new BadRequestError('Review comment must be at least 20 characters');
+    const parsed = jobReviewSchema.safeParse(raw);
+    if (!parsed.success) {
+      throw new BadRequestError(
+        parsed.error.issues[0]?.message ?? 'Invalid review payload'
+      );
     }
+    const { rating, comment: rawComment, wouldRecommend } = parsed.data;
+    const comment = rawComment.trim();
 
     // Fetch job and verify user is a party to it
     const { data: job, error } = await userDb

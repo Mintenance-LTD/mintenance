@@ -1,53 +1,46 @@
-import { NextResponse } from 'next/server';
-import { withApiHandler } from '@/lib/api/with-api-handler';
-import { serverSupabase } from '@/lib/api/supabaseServer';
-import type { PaymentMethodSummary } from '@/lib/stripe/connect/types';
-
 /**
- * GET /api/payments/payment-methods
+ * GET /api/payments/payment-methods — DEPRECATED.
  *
- * **Audit step 12 (2026-04-29): legacy local-DB read.**
+ * 2026-04-30 audit P1: this route used to read from the legacy
+ * `payment_methods` audit table. Stripe is the canonical source of
+ * truth for payment-method state, exposed at `/api/payments/methods`.
+ * Verified there are no UI callers of this endpoint anymore (every
+ * payment-methods screen — `/contractor/settings`, `/settings/_components/settings-api`,
+ * `/settings/payment-methods` — already calls `/api/payments/methods`).
  *
- * Reads from the `payment_methods` audit table. Stripe is the
- * canonical source for payment-method state — use
- * `/api/payments/methods` instead, which calls
- * `stripe.paymentMethods.list({ customer })` and reflects deletes /
- * expiries / fraud-disables that happen Stripe-side.
+ * The handler now returns 410 Gone with a `Link` header that points
+ * agents/SDKs at the canonical replacement, instead of silently
+ * returning stale local-DB rows that disagree with Stripe.
  *
- * Kept alive because the audit table still has /[id] sub-routes for
- * setting default + removing methods that the web settings UI uses.
- * Once those mutations are consolidated against the Stripe SDK, this
- * GET + the table can be deprecated together.
+ * The sibling `[id]/route.ts` (DELETE detach + PATCH set-default) is
+ * still in use and remains live; only the LIST path is deprecated
+ * here.
  */
-export const GET = withApiHandler(
-  { csrf: false, rateLimit: { maxRequests: 30 } },
-  async (_request, { user }) => {
-    const { data, error } = await serverSupabase
-      .from('payment_methods')
-      .select(
-        'stripe_payment_method_id, type, last4, brand, exp_month, exp_year, is_default, created_at'
-      )
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false });
+import { NextResponse } from 'next/server';
 
-    if (error) {
-      return NextResponse.json(
-        { success: false, error: 'Failed to load payment methods' },
-        { status: 500 }
-      );
+const REPLACEMENT_URL = '/api/payments/methods';
+
+// auth-check: ok — deprecated 410-Gone stub. Returns a static error
+// payload pointing at the replacement endpoint; never reads the
+// request, never writes to the DB. No auth needed because the
+// response carries no user-specific data.
+export function GET(): NextResponse {
+  return NextResponse.json(
+    {
+      success: false,
+      error: 'gone',
+      message:
+        'GET /api/payments/payment-methods has been removed. Use ' +
+        REPLACEMENT_URL +
+        ' (Stripe-backed canonical source).',
+      replacement: REPLACEMENT_URL,
+    },
+    {
+      status: 410,
+      headers: {
+        Link: `<${REPLACEMENT_URL}>; rel="successor-version"`,
+        Deprecation: 'true',
+      },
     }
-
-    const methods: PaymentMethodSummary[] = (data ?? []).map((row) => ({
-      id: row.stripe_payment_method_id,
-      type: row.type as 'card' | 'bacs_debit',
-      last4: row.last4 ?? '',
-      brand: row.brand ?? undefined,
-      expMonth: row.exp_month ?? undefined,
-      expYear: row.exp_year ?? undefined,
-      isDefault: !!row.is_default,
-      createdAt: row.created_at,
-    }));
-
-    return NextResponse.json({ success: true, methods });
-  }
-);
+  );
+}

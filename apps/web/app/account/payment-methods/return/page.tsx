@@ -81,21 +81,21 @@ function ReturnContent() {
         : 'text-amber-600';
 
   return (
-    <div className="mx-auto max-w-md p-6">
+    <div className='mx-auto max-w-md p-6'>
       <StandardCard>
-        <div className="flex flex-col items-center gap-4 py-8 text-center">
+        <div className='flex flex-col items-center gap-4 py-8 text-center'>
           <Icon
             className={`h-12 w-12 ${iconColor} ${
               message.kind === 'pending' ? 'animate-spin' : ''
             }`}
           />
-          <h1 className="text-xl font-semibold text-gray-900">
+          <h1 className='text-xl font-semibold text-gray-900'>
             {message.title}
           </h1>
-          <p className="text-sm text-gray-600">{message.body}</p>
+          <p className='text-sm text-gray-600'>{message.body}</p>
           <Button
-            onClick={() => router.push('/account/payment-methods')}
-            className="mt-2"
+            onClick={() => router.push('/payment-methods')}
+            className='mt-2'
           >
             Back to payment methods
           </Button>
@@ -107,10 +107,10 @@ function ReturnContent() {
 
 function LoadingState() {
   return (
-    <div className="mx-auto max-w-md p-6">
+    <div className='mx-auto max-w-md p-6'>
       <StandardCard>
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
+        <div className='flex items-center justify-center py-12'>
+          <Loader2 className='h-6 w-6 animate-spin text-gray-500' />
         </div>
       </StandardCard>
     </div>

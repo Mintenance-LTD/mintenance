@@ -20,6 +20,7 @@ import type { InvoiceLineItem } from '../../services/contractor-business/types';
 import type { ProfileStackParamList } from '../../navigation/types';
 import { theme } from '../../theme';
 import { formatCurrency } from '../../utils/formatCurrency';
+import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 
 interface CreateInvoiceScreenProps {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'CreateInvoice'>;
@@ -64,13 +65,27 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({
   });
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [lineItems, setLineItems] = useState<LineItemDraft[]>(() => {
-    if (seededFromTimeTracking) {
+    // 2026-04-30 audit P1: replace `route.params!.initialLineItems!`
+    // with optional-chaining + a guard. If the screen is opened
+    // without seeded params (deep link, navigator hot-reload) the
+    // form falls back to a single empty row instead of crashing.
+    const seeded = route.params?.initialLineItems;
+    if (seededFromTimeTracking && Array.isArray(seeded) && seeded.length > 0) {
       // Defensive copy — never mutate route params.
-      return route.params!.initialLineItems!.map((i) => ({ ...i }));
+      return seeded.map((i) => ({ ...i }));
     }
     return [{ description: '', quantity: '1', rate: '' }];
   });
   const [submitting, setSubmitting] = useState(false);
+
+  // Discard-prompt — dirty when the user has typed anything OR when
+  // a non-trivial line item exists (covers both the time-tracking
+  // pre-fill path and the from-scratch path).
+  const hasNonEmptyLineItem = lineItems.some(
+    (i) => i.description.trim() || (parseFloat(i.rate) || 0) > 0
+  );
+  const isDirty = !!(clientName || jobRef || notes || hasNonEmptyLineItem);
+  const allowExit = useUnsavedChanges(isDirty);
 
   const addLineItem = () => {
     setLineItems((prev) => [
@@ -159,6 +174,7 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({
         'Invoice created',
         'Your invoice has been saved as a draft.'
       );
+      allowExit();
       navigation.goBack();
     } catch {
       toast.error('Failed to create invoice', 'Please try again.');

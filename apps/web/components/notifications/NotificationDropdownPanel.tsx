@@ -6,6 +6,7 @@ import { Icon } from '@/components/ui/Icon';
 import Link from 'next/link';
 import { NotificationItem } from './NotificationItem';
 import type { Notification } from './notificationDropdownUtils';
+import { safeActionUrl } from '@/lib/notifications/safe-action-url';
 
 interface NotificationDropdownPanelProps {
   notifications: Notification[];
@@ -128,9 +129,12 @@ export function NotificationDropdownPanel({
           </div>
         ) : (
           notifications.map((notification) => {
-            const hasLink = !!(notification.link || notification.action_url);
-            const linkUrl =
-              notification.link || notification.action_url || '/notifications';
+            // 2026-04-30 audit: clamp action_url / link to allow-listed
+            // internal paths so a bad value can't redirect the user
+            // outside the app.
+            const rawUrl = notification.link || notification.action_url;
+            const hasLink = !!rawUrl;
+            const linkUrl = safeActionUrl(rawUrl, '/notifications');
 
             return (
               <div key={notification.id}>

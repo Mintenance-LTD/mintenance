@@ -17,6 +17,10 @@ const paramsSchema = z.object({
   code: z.string().min(4).max(40),
 });
 
+// auth-check: ok — referral code lookup is the entry-point of the
+// referral flow; the user clicks a /ref/:code link BEFORE signing up,
+// so the route must be public. Returns minimal lookup data only
+// (referrer first name + service area) — no PII.
 export const GET = withApiHandler(
   { auth: false, rateLimit: { maxRequests: 30 } },
   async (_request, { params }) => {

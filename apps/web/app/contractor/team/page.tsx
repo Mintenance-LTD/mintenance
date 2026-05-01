@@ -172,7 +172,7 @@ export default function ContractorTeamPage() {
           a dispatcher / field-crew workflow.
         </p>
         <Link
-          href='/contractor/onboarding/company'
+          href='/contractor/onboarding'
           className='inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-lg font-semibold hover:bg-emerald-700'
         >
           <Plus className='w-4 h-4' /> Create company

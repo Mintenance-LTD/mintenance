@@ -21,7 +21,8 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { ProfileStackParamList } from '../navigation/types';
 import { useAuth } from '../contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '../config/supabase';
+import { mobileApiClient } from '../utils/mobileApiClient';
+import { goToTab } from '../navigation/hooks';
 import { theme, gradients } from '../theme';
 import { styles } from './CalendarStyles';
 
@@ -205,32 +206,42 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
     queryKey: ['contractor-schedule', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      const { data: rows, error: err } = await supabase
-        .from('appointments')
-        .select(
-          'id, job_id, title, appointment_date, start_time, end_time, location_type, status, location_address, jobs(title)'
-        )
-        .eq('contractor_id', user.id)
-        .order('appointment_date', { ascending: true });
-      if (err) throw new Error(err.message);
-      return (rows || []).map(
-        (a: Record<string, unknown>): ScheduleItem => ({
-          id: a.id as string,
-          job_id: (a.job_id as string) || (a.id as string),
-          job_title:
-            ((a.jobs as Record<string, unknown>)?.title as string) ||
-            (a.title as string) ||
-            'Untitled',
-          date: a.appointment_date as string,
-          time_start: (a.start_time as string) || '09:00',
-          time_end: a.end_time as string | undefined,
-          type: (['onsite', 'remote', 'phone'].includes(
-            a.location_type as string
-          )
-            ? 'meeting'
-            : 'meeting') as ScheduleItem['type'],
-          status: (a.status as string) || 'scheduled',
-          address: a.location_address as string | undefined,
+      // 2026-05-01 audit P0-1: routed through
+      // `GET /api/contractor/appointments` instead of querying the
+      // `appointments` table directly via Supabase. The route applies
+      // the same `contractor_id = user.id` filter server-side and
+      // joins jobs() for the title. We pull a wider window
+      // (`daysAhead=180`) so historical events still render in the
+      // weekly strip.
+      const res = await mobileApiClient.get<{
+        appointments: Array<{
+          id: string;
+          jobId?: string;
+          jobTitle?: string;
+          title: string;
+          date: string;
+          time: string;
+          endTime?: string;
+          type?: string;
+          status?: string;
+          location?: string;
+        }>;
+      }>('/api/contractor/appointments?daysAhead=180');
+
+      return (res.appointments || []).map(
+        (a): ScheduleItem => ({
+          id: a.id,
+          job_id: a.jobId || a.id,
+          job_title: a.jobTitle || a.title || 'Untitled',
+          date: a.date,
+          time_start: a.time || '09:00',
+          time_end: a.endTime,
+          // The route's `type` field is the location type
+          // (onsite/remote/phone). All three render as 'meeting' on
+          // the timeline.
+          type: 'meeting',
+          status: a.status || 'scheduled',
+          address: a.location,
         })
       );
     },
@@ -523,9 +534,11 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
           <TouchableOpacity
             style={styles.browseButton}
             onPress={() =>
-              (
-                navigation as never as { navigate: (s: string) => void }
-              ).navigate('JobsList')
+              // 2026-05-01 audit P1: typed cross-stack helper replaces
+              // `navigation as never as { navigate }` cast. JobsList lives
+              // on JobsStack inside JobsTab — goToTab encapsulates the
+              // canonical nested-navigate shape.
+              goToTab(navigation, 'JobsTab', { screen: 'JobsList' })
             }
           >
             <Ionicons
@@ -544,11 +557,13 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
             <ScheduleCard
               item={item}
               onPress={() =>
-                (
-                  navigation as never as {
-                    navigate: (s: string, p: object) => void;
-                  }
-                ).navigate('JobDetails', { jobId: item.job_id })
+                // 2026-05-01 audit P1: typed cross-stack helper replaces
+                // nested `as never as` cast. Mirrors the JobsList CTA
+                // above for consistency.
+                goToTab(navigation, 'JobsTab', {
+                  screen: 'JobDetails',
+                  params: { jobId: item.job_id },
+                })
               }
             />
           )}

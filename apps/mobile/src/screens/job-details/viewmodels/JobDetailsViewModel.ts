@@ -17,8 +17,23 @@ import {
   AIAnalysis,
 } from '../../../services/AIAnalysisService';
 import UnifiedAIServiceMobile from '../../../services/UnifiedAIServiceMobile';
-import { supabase } from '../../../config/supabase';
+import { mobileApiClient } from '../../../utils/mobileApiClient';
 import type { Job } from '@mintenance/types';
+
+interface JobDetailsAggregate {
+  contractStatus: string | null;
+  escrowStatus: string | null;
+  hasReviewed: boolean;
+  buildingAssessment: {
+    id: string;
+    damageType: string | null;
+    severity: string | null;
+    confidence: number | null;
+    urgency: string | null;
+    assessmentData: Record<string, unknown> | null;
+    createdAt: string | null;
+  } | null;
+}
 
 interface JobDetailsState {
   aiAnalysis: AIAnalysis | null;
@@ -91,121 +106,76 @@ export const useJobDetailsViewModel = (jobId: string): JobDetailsViewModel => {
     [jobId, refetchJob]
   );
 
-  // Fetch contract status, escrow status, and review state for CTA logic
+  // 2026-04-30 audit P0-1: previously did 4 direct supabase queries
+  // (contracts, escrow_transactions, reviews, building_assessments).
+  // Now collapses into a single GET /api/jobs/:id/details aggregate
+  // which the server gates on the same ownership rules as
+  // /api/jobs/:id and projects the canonical shape.
   useEffect(() => {
     let cancelled = false;
-    if (!job || !user) return;
+    if (!job?.id || !user) return;
 
-    const fetchCTAData = async () => {
-      try {
-        const [contractsRes, escrowRes, reviewsRes] = await Promise.allSettled([
-          supabase
-            .from('contracts')
-            .select('id, status')
-            .eq('job_id', jobId)
-            .order('created_at', { ascending: false })
-            .limit(1),
-          supabase
-            .from('escrow_transactions')
-            .select('id, status')
-            .eq('job_id', jobId)
-            .order('created_at', { ascending: false })
-            .limit(1),
-          supabase
-            .from('reviews')
-            .select('id')
-            .eq('job_id', jobId)
-            .eq('reviewer_id', user.id)
-            .limit(1),
-        ]);
-
-        if (cancelled) return;
-
-        if (
-          contractsRes.status === 'fulfilled' &&
-          contractsRes.value?.data?.[0]
-        ) {
-          setContractStatus(contractsRes.value.data[0].status);
-        }
-        if (escrowRes.status === 'fulfilled' && escrowRes.value?.data?.[0]) {
-          setEscrowStatus(escrowRes.value.data[0].status);
-        }
-        if (reviewsRes.status === 'fulfilled') {
-          const reviews = reviewsRes.value?.data;
-          setHasReviewed(Array.isArray(reviews) && reviews.length > 0);
-        }
-      } catch {
-        // Non-critical — CTA will fall back to default behavior
-      }
-    };
-
-    fetchCTAData();
-    return () => {
-      cancelled = true;
-    };
-  }, [job, jobId, user]);
-
-  // Load AI analysis: first check building_assessments DB, then fall back to real-time analysis
-  useEffect(() => {
-    let isCancelled = false;
-
-    const loadAnalysis = async () => {
-      if (!job?.id || !user) return;
-
+    const fetchDetails = async () => {
       try {
         setAiLoading(true);
 
-        // 1. Check for stored assessment in building_assessments table
-        const { data: storedAssessment } = await supabase
-          .from('building_assessments')
-          .select(
-            'id, damage_type, severity, confidence, urgency, assessment_data, created_at'
-          )
-          .eq('job_id', job.id)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+        const aggregate = await mobileApiClient.get<JobDetailsAggregate>(
+          `/api/jobs/${job.id}/details`
+        );
 
-        if (!isCancelled && storedAssessment) {
+        if (cancelled || !aggregate) return;
+
+        setContractStatus(aggregate.contractStatus ?? null);
+        setEscrowStatus(aggregate.escrowStatus ?? null);
+        setHasReviewed(!!aggregate.hasReviewed);
+
+        const stored = aggregate.buildingAssessment;
+        if (stored) {
+          const assessmentData =
+            (stored.assessmentData as {
+              recommended_actions?: string[];
+              estimated_duration?: string;
+            } | null) ?? null;
+
           const base: AIAnalysis = {
-            confidence: storedAssessment.confidence || 0,
-            detectedItems: [storedAssessment.damage_type || 'Unknown'],
+            confidence: stored.confidence ?? 0,
+            detectedItems: [stored.damageType || 'Unknown'],
             safetyConcerns:
-              storedAssessment.urgency === 'immediate'
+              stored.urgency === 'immediate'
                 ? [
                     {
                       concern: 'Urgent repair needed',
                       severity: 'High' as const,
-                      description: `Severity: ${storedAssessment.severity || 'unknown'}`,
+                      description: `Severity: ${stored.severity || 'unknown'}`,
                     },
                   ]
                 : [],
-            recommendedActions:
-              storedAssessment.assessment_data?.recommended_actions || [],
-            estimatedComplexity: (storedAssessment.severity === 'critical'
+            recommendedActions: assessmentData?.recommended_actions ?? [],
+            estimatedComplexity: (stored.severity === 'critical'
               ? 'High'
-              : storedAssessment.severity === 'moderate'
+              : stored.severity === 'moderate'
                 ? 'Medium'
                 : 'Low') as AIAnalysis['estimatedComplexity'],
             suggestedTools: [],
-            estimatedDuration:
-              storedAssessment.assessment_data?.estimated_duration || 'Unknown',
+            estimatedDuration: assessmentData?.estimated_duration ?? 'Unknown',
           };
-          // Pass full assessment_data so AIAnalysisCard renders rich view (damage, cost, insurance)
+
           setAiAnalysis({
             ...base,
-            assessmentData: storedAssessment.assessment_data,
+            assessmentData: stored.assessmentData,
             source: 'stored',
           } as AIAnalysis);
           setAiLoading(false);
           return;
         }
 
-        // 2. Fall back to real-time AI analysis if photos exist (any role)
-        if (job.photos && job.photos.length > 0 && !isCancelled) {
+        // No stored assessment — fall back to real-time AI analysis if
+        // photos exist (any role). AIAnalysisService is itself an HTTP
+        // call to the web AI endpoint, so no direct DB access here.
+        if (job.photos && job.photos.length > 0 && !cancelled) {
           try {
             const analysis = await AIAnalysisService.analyzeJobPhotos(job);
-            if (!isCancelled) {
+            if (!cancelled) {
               setAiAnalysis(analysis);
             }
           } catch {
@@ -213,22 +183,22 @@ export const useJobDetailsViewModel = (jobId: string): JobDetailsViewModel => {
           }
         }
       } catch (error) {
-        if (!isCancelled) {
-          logger.warn('AI analysis unavailable:', error);
+        if (!cancelled) {
+          logger.warn('Job details aggregate unavailable', { error });
         }
       } finally {
-        if (!isCancelled) {
+        if (!cancelled) {
           setAiLoading(false);
         }
       }
     };
 
-    loadAnalysis();
+    fetchDetails();
 
     return () => {
-      isCancelled = true;
+      cancelled = true;
     };
-  }, [user, job]);
+  }, [job, jobId, user]);
 
   return {
     // State
