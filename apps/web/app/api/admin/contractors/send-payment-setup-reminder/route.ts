@@ -9,10 +9,18 @@ import { BadRequestError } from '@/lib/errors/api-error';
  * Send a payment setup reminder to a contractor with pending escrows
  */
 export const POST = withApiHandler(
-  { roles: ['admin'], rateLimit: { maxRequests: 10 } },
+  {
+    roles: ['admin'],
+    rateLimit: { maxRequests: 10 },
+    // 2026-05-01 audit follow-up: sends a payment-setup reminder via
+    // email + push. A stolen admin cookie could fire arbitrary mail to
+    // any contractor. Same 15-min MFA window as other admin send routes.
+    requireMfaVerifiedWithinMinutes: 15,
+  },
   async (request) => {
     const body = await request.json();
-    const contractorId = typeof body?.contractorId === 'string' ? body.contractorId.trim() : null;
+    const contractorId =
+      typeof body?.contractorId === 'string' ? body.contractorId.trim() : null;
 
     if (!contractorId) {
       throw new BadRequestError('Contractor ID required');
@@ -22,7 +30,12 @@ export const POST = withApiHandler(
       .from('escrow_transactions')
       .select(`id, amount, jobs!inner (contractor_id, title)`)
       .eq('jobs.contractor_id', contractorId)
-      .in('status', ['held', 'awaiting_homeowner_approval', 'pending_review', 'pending']);
+      .in('status', [
+        'held',
+        'awaiting_homeowner_approval',
+        'pending_review',
+        'pending',
+      ]);
 
     if (escrows && escrows.length > 0) {
       const totalAmount = escrows.reduce((sum, e) => sum + (e.amount || 0), 0);

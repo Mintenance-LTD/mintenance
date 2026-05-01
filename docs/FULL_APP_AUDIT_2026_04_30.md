@@ -23,6 +23,81 @@ contract), P0-2 (property assessment integration
   P1 (FindContractors search button + location filter), P1 (stale useMessages hook). Partial: P0-1
   (mobile direct supabase). Both web and mobile `tsc --noEmit` pass clean after the changes.
 
+### Persistent-issue follow-up — 2026-05-01 (next session)
+
+Three "persistent across 3+ audit cycles" items from CLAUDE.md tackled:
+
+1. **Admin MFA step-up gaps** — 4 routes the original CLAUDE.md flagged
+   (`/api/admin/maintenance/rotate-totp-secrets`, `/api/admin/migrations/apply`,
+   `/api/admin/migrations/apply-combined`, `/api/admin/synthetic-data/generate`) were already fixed
+   in earlier sessions, but a fresh sweep caught **6 more admin mutation routes** missing
+   `requireMfaVerifiedWithinMinutes`: `ai-cache/clear` (cost), `coming-soon/notify` (mass mail),
+   `contractors/send-payment-setup-reminder` (mail), `notifications/pending-verifications`
+   (broadcast), `rag/generate-embeddings` (cost), `security-dashboard` (block_ip / unblock_ip /
+   resolve_event — highest impact). All now have 15-minute MFA windows.
+
+2. **`user_push_tokens = 0` root cause + observability** — three failure modes were silently
+   swallowed (logger.warn only):
+   - `auth-actions.initializePushNotifications` was capturing Sentry exceptions for the EXPECTED
+     "permission undetermined" case and missing the actual interesting case (savePushToken POST
+     failure). Inverted: undetermined is now a debug breadcrumb only; POST failure is a captured
+     exception with the real error message.
+   - `useEnsurePushTokenRegistered` retry hook split into two distinct Sentry tags:
+     `getExpoPushTokenAsync` returning null (likely EAS / FCM / APNs config issue) vs
+     `savePushToken` POST failure (network 5xx, 401, schema reject). Both were warn-only.
+   - `usePushSoftAskGate.allowNotifications` similar — savePushToken failure now captured with the
+     `usePushSoftAskGate.savePushToken` source tag, plus a new "granted but Expo returned null"
+     branch.
+
+   Net effect: prod will now show in Sentry exactly which of the three failure modes is firing and
+   we can finally fix the actual cause rather than guessing from server-side row count alone.
+
+3. **`contractor_locations = 0` ROOT CAUSE FIXED** — the section that auto-starts location tracking
+   (`ContractorLocationSection` in `JobDetailsScreen`) was gated on `job.status === 'in_progress'`.
+   Live DB inspection: production has **8 jobs in `assigned`, 4 `completed`, 0 `in_progress`** —
+   contractors finish the bid-accept → escrow → before-photo flow rarely enough that the section
+   never rendered, the auto-start hook never fired, and `startJobTracking` (the only writer of
+   `contractor_locations`) was never called. Widened the gate on both contractor- and
+   homeowner-facing components to `(status === 'assigned' || status === 'in_progress')` so location
+   tracking starts during travel — which is the actual product intent. Auto-start still requires a
+   granted location permission so privacy semantics are unchanged. File:
+   `apps/mobile/src/screens/job-details/JobDetailsScreen.tsx`.
+
+Verification: web + mobile `tsc --noEmit` both clean (exit 0); 6 MFA edits + 3 push observability
+edits + 2 location-gate edits.
+
+### Re-audit follow-up session — 2026-04-30 / 2026-05-01 (commits 313c06c2 + 80dada7a)
+
+The first session over-claimed on four findings; re-audit caught them and the follow-up session
+closed each properly:
+
+1. **P0-1 mobile direct Supabase** — true closure: stubbed dead-code marketing services
+   (`MarketingCampaignRepository`, `LeadManagementService`); stripped dead static methods from
+   `ServiceAreasService`; rerouted `useServiceAreas.loadServiceAreas` through
+   `/api/contractor/service-areas`; built new `PATCH /api/assessments/[id]/status` (Zod + ownership
+   - JSON-merge) and migrated `triggerAIAnalysis.ts` off `supabase.from('building_assessments')`.
+2. **P0-5 invoice unification** — pay + PDF routes still hit phantom `contractor_invoices`;
+   canonical `invoices` table missing 14 columns. New migration
+   `20260430000001_invoices_unify_schema.sql` adds the columns, relaxes `client_id NOT NULL`,
+   extends `status` CHECK to include `viewed`/`partial`. Applied live; verified 30 columns now
+   present.
+3. **P0-3 video assessment** — AsyncStorage polling key mismatch (`video_assessment_${assessmentId}`
+   stored but `video_assessment_${queueItemId}` read) and duplicate `building_assessments` rows from
+   the video-walkthrough → submit flow. `VideoService.uploadVideo` now writes both keys via a new
+   `queueItemId` parameter; `POST /api/assessments` detects in-flight
+   `damage_type='video_walkthrough', validation_status='processing'` rows for the same
+   `(user_id, property_id)` and UPDATEs in place rather than INSERTing.
+4. **Notification routing** — `routeForNotification` was returning `null` on unknown types so the OS
+   deep-link path silently dropped and the in-app inbox path fell back to `HomeTab`. Made the
+   function total: unknown / missing types now return the in-app inbox fallback per the documented
+   contract. Both consumers simplified.
+
+Plus the **P1 Back Buttons** finding closed in full: extended `useUnsavedChanges` with `allowExit()`
+and adopted across 17 form screens; widened `goBackSafe` typing for sub-stack adoption.
+
+Verification: both `npx tsc --noEmit` (web + mobile) clean; live DB schema verified via Supabase
+MCP; commits pushed to `fix/mobile-audit-security-ux-features`.
+
 ## Executive Result
 
 The app is not project-ready yet. The codebase has many strong pieces, but web, mobile, and backend

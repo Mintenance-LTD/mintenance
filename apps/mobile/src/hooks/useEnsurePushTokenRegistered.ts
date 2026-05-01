@@ -43,7 +43,7 @@ import * as Notifications from 'expo-notifications';
 import { useAuth } from '../contexts/AuthContext';
 import { NotificationService } from '../services/NotificationService';
 import { logger } from '../utils/logger';
-import { addBreadcrumb } from '../config/sentry';
+import { addBreadcrumb, captureException } from '../config/sentry';
 
 export function useEnsurePushTokenRegistered(): void {
   const { user } = useAuth();
@@ -98,22 +98,53 @@ export function useEnsurePushTokenRegistered(): void {
         });
         if (cancelled) return;
         if (!token) {
-          // Expo failed to mint a token even though OS says granted.
-          // Likely an EAS / FCM / APNs config issue in the build —
-          // tag the breadcrumb so production diagnosis is clearer.
-          logger.warn(
-            '[push-retry] getExpoPushTokenAsync returned null despite granted permission',
-            { userId, trigger }
-          );
+          // 2026-05-01 audit P0 (user_push_tokens=0): EAS / FCM / APNs
+          // config issue OR Expo SDK transient. Promote to Sentry
+          // capture — was warn-only and we've been blind to the rate
+          // of this failure mode in prod.
+          const reason =
+            'Push token retry: getExpoPushTokenAsync returned null despite granted permission';
+          logger.warn(`[push-retry] ${reason}`, { userId, trigger });
           addBreadcrumb('Push token retry — Expo returned null', 'auth', {
             userId,
             trigger,
             level: 'warning',
           });
+          captureException(new Error(reason), {
+            userId,
+            trigger,
+            source: 'useEnsurePushTokenRegistered.getExpoPushTokenAsync',
+          });
           return;
         }
 
-        await NotificationService.savePushToken(userId, token);
+        try {
+          await NotificationService.savePushToken(userId, token);
+        } catch (saveErr) {
+          // 2026-05-01 audit P0: savePushToken POST failed. Was
+          // previously caught by the outer try/catch as a generic
+          // failure; split it out so Sentry tags this distinct
+          // failure mode (network 5xx, 401, schema reject).
+          const saveMsg =
+            saveErr instanceof Error ? saveErr.message : String(saveErr);
+          logger.warn('[push-retry] savePushToken failed', {
+            userId,
+            trigger,
+            error: saveMsg,
+          });
+          addBreadcrumb('Push token retry — POST failed', 'auth', {
+            userId,
+            trigger,
+            error: saveMsg,
+            level: 'warning',
+          });
+          captureException(saveErr as Error, {
+            userId,
+            trigger,
+            source: 'useEnsurePushTokenRegistered.savePushToken',
+          });
+          return;
+        }
         if (cancelled) return;
 
         registeredForUserId.current = userId;
@@ -126,7 +157,9 @@ export function useEnsurePushTokenRegistered(): void {
           }
         );
       } catch (error) {
-        // Swallow — foreground retry will try again.
+        // Outer catch — covers getPermissionsAsync / NotificationService.initialize
+        // throws. savePushToken errors are caught above with their own
+        // Sentry tag.
         const message = error instanceof Error ? error.message : String(error);
         logger.warn(
           '[push-retry] attempt failed (will retry on next foreground)',
@@ -141,6 +174,11 @@ export function useEnsurePushTokenRegistered(): void {
           trigger,
           error: message,
           level: 'warning',
+        });
+        captureException(error as Error, {
+          userId,
+          trigger,
+          source: 'useEnsurePushTokenRegistered.outer',
         });
       } finally {
         inFlight.current = false;
