@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import {
@@ -8,6 +9,14 @@ import {
 } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
+
+// 2026-05-01 audit follow-up (check-api-contracts): Zod-validated body
+// replaces the manual `typeof jobId === 'string'` check.
+const saveJobSchema = z
+  .object({
+    jobId: z.string().uuid('Invalid job ID'),
+  })
+  .strict();
 
 /**
  * GET /api/contractor/saved-jobs - Get list of saved job IDs
@@ -77,11 +86,19 @@ export const POST = withApiHandler(
     );
     if (subscriptionCheck) return subscriptionCheck;
 
-    const body = await request.json();
-    const { jobId } = body;
-
-    if (!jobId || typeof jobId !== 'string')
-      throw new BadRequestError('Job ID is required');
+    let raw: unknown;
+    try {
+      raw = await request.json();
+    } catch {
+      throw new BadRequestError('Invalid JSON body');
+    }
+    const parsed = saveJobSchema.safeParse(raw);
+    if (!parsed.success) {
+      throw new BadRequestError(
+        parsed.error.issues[0]?.message ?? 'Job ID is required'
+      );
+    }
+    const { jobId } = parsed.data;
 
     // Verify job exists
     const { data: job, error: jobError } = await serverSupabase

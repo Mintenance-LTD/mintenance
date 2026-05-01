@@ -4,28 +4,46 @@
  * In Mintenance, bookings ARE jobs — this updates the job's scheduled date.
  */
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
-import { NotFoundError, BadRequestError, ForbiddenError } from '@/lib/errors/api-error';
+import {
+  NotFoundError,
+  BadRequestError,
+  ForbiddenError,
+} from '@/lib/errors/api-error';
+
+// 2026-05-01 audit follow-up (check-api-contracts): Zod-validated body
+// replaces manual `typeof newDateTime === 'string'` + `isNaN(date.getTime())`
+// double-check. `z.string().datetime()` does the ISO parse server-side
+// and returns a deterministic error message.
+const rescheduleSchema = z
+  .object({
+    newDateTime: z.string().datetime({
+      message: 'Invalid date format. Use ISO-8601.',
+    }),
+  })
+  .strict();
 
 export const PATCH = withApiHandler(
   { roles: ['homeowner', 'contractor'] },
   async (request, { user, params }) => {
     const jobId = params.id;
-    const body = await request.json();
-    const newDateTime = body.newDateTime;
-
-    if (!newDateTime || typeof newDateTime !== 'string') {
-      throw new BadRequestError('newDateTime is required');
+    let raw: unknown;
+    try {
+      raw = await request.json();
+    } catch {
+      throw new BadRequestError('Invalid JSON body');
     }
-
-    const newDate = new Date(newDateTime);
-    if (isNaN(newDate.getTime())) {
-      throw new BadRequestError('Invalid date format');
+    const parsed = rescheduleSchema.safeParse(raw);
+    if (!parsed.success) {
+      throw new BadRequestError(
+        parsed.error.issues[0]?.message ?? 'newDateTime is required'
+      );
     }
-
+    const newDate = new Date(parsed.data.newDateTime);
     if (newDate <= new Date()) {
       throw new BadRequestError('New date must be in the future');
     }
@@ -43,7 +61,9 @@ export const PATCH = withApiHandler(
 
     // Only allow rescheduling for non-completed jobs
     if (job.status === 'completed' || job.status === 'cancelled') {
-      throw new BadRequestError('Cannot reschedule a completed or cancelled booking');
+      throw new BadRequestError(
+        'Cannot reschedule a completed or cancelled booking'
+      );
     }
 
     const isHomeowner = job.homeowner_id === user.id;
@@ -91,10 +111,14 @@ export const PATCH = withApiHandler(
           actionUrl: `/jobs/${jobId}`,
         });
       } catch (notificationError) {
-        logger.error('Failed to send reschedule notification', notificationError, {
-          service: 'bookings',
-          jobId,
-        });
+        logger.error(
+          'Failed to send reschedule notification',
+          notificationError,
+          {
+            service: 'bookings',
+            jobId,
+          }
+        );
       }
     }
 

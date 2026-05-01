@@ -1,8 +1,24 @@
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
+
+// 2026-05-01 audit follow-up (check-api-contracts): Zod-validated body
+// with the rejection-reason rule encoded as a refinement so the
+// "reason required when rejecting" check is part of the schema rather
+// than a separate branch.
+const verificationActionSchema = z
+  .object({
+    status: z.enum(['verified', 'rejected']),
+    reason: z.string().max(1000).optional(),
+  })
+  .strict()
+  .refine((d) => d.status !== 'rejected' || !!d.reason?.trim(), {
+    path: ['reason'],
+    message: 'A reason is required when rejecting a contractor',
+  });
 
 /**
  * PUT /api/admin/verifications/[id]
@@ -28,31 +44,23 @@ export const PUT = withApiHandler(
       );
     }
 
-    let body: { status: string; reason?: string };
+    let raw: unknown;
     try {
-      body = await request.json();
+      raw = await request.json();
     } catch {
       return NextResponse.json(
         { error: 'Invalid request body' },
         { status: 400 }
       );
     }
-
-    const { status, reason } = body;
-
-    if (!status || !['verified', 'rejected'].includes(status)) {
+    const parsed = verificationActionSchema.safeParse(raw);
+    if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Status must be "verified" or "rejected"' },
+        { error: parsed.error.issues[0]?.message ?? 'Invalid request body' },
         { status: 400 }
       );
     }
-
-    if (status === 'rejected' && !reason?.trim()) {
-      return NextResponse.json(
-        { error: 'A reason is required when rejecting a contractor' },
-        { status: 400 }
-      );
-    }
+    const { status, reason } = parsed.data;
 
     // Verify the contractor exists and is a contractor
     const { data: contractor, error: fetchError } = await serverSupabase

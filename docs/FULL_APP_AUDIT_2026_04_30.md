@@ -23,6 +23,67 @@ contract), P0-2 (property assessment integration
   P1 (FindContractors search button + location filter), P1 (stale useMessages hook). Partial: P0-1
   (mobile direct supabase). Both web and mobile `tsc --noEmit` pass clean after the changes.
 
+### 18-route API contract triage + CI gate — 2026-05-01
+
+The API contract drift script (`scripts/check-api-contracts.ts`) shipped last commit reported 18
+write routes that read `request.json()` without Zod validation. Each used manual
+`typeof body?.foo === 'string'` / `Number(body.x) >= 1` style checks that drifted from the canonical
+`@mintenance/api-contracts` schemas over time. All 18 are now Zod-validated and the script exits 0 —
+wired into CI as a blocking gate so future drift is caught at PR time.
+
+**Routes migrated (grouped by area):**
+
+Admin mutations (3):
+
+- `/api/admin/contractors/send-payment-setup-reminder` — `contractorId` UUID.
+- `/api/admin/refunds/[id]` — `action`/`reason`/`refundAmount` discriminated body.
+- `/api/admin/verifications/[id]` — `status` enum + `reason` refinement (required when rejecting).
+
+AI routes (3):
+
+- `/api/ai/analyze` — `images` (1-20 URLs) + `context` record.
+- `/api/ai/generate-embedding` — `text` (max 32k) + `model` enum.
+- `/api/ai/search` — `query` + `filters` record + `limit` (default 20).
+
+Auth (2):
+
+- `/api/auth/check-password-breach` — `password` (1-128).
+- `/api/auth/reset-password` — JWT-pattern `accessToken` + `password|newPassword` alias via
+  transform.
+
+Bookings + contracts (3):
+
+- `/api/bookings/[id]/reschedule` — `newDateTime` ISO-8601.
+- `/api/bookings/[id]/review` — `rating` (1-5) + `comment`.
+- `/api/contracts/[id]/reject` — optional `reason`.
+
+Contractor (2):
+
+- `/api/contractor/job-views` — `jobId` UUID.
+- `/api/contractor/saved-jobs` — `jobId` UUID.
+
+Job lifecycle (3):
+
+- `/api/jobs/[id]/bids/[bidId]/reject` — optional `reason` (max 500).
+- `/api/jobs/[id]/request-changes` — `comments` (1-5000).
+- `/api/jobs/[id]/review` — `rating` + `comment` (min 20) + `wouldRecommend`.
+
+Misc (2):
+
+- `/api/geocode-proxy` — `address` OR (`lat`+`lng`) refinement.
+- `/api/users/notification-preferences` — 17-field strict patch schema.
+
+**CI integration:** added `npx tsx scripts/check-api-contracts.ts` as a required step in
+`.github/workflows/ci-cd.yml` right after `check-internal-links.ts`. Future PRs that introduce a
+write route with manual validation OR a stale `@mintenance/api-contracts` import will fail the build
+with a pointer to the offending file.
+
+**Verification:**
+
+- `npx tsx scripts/check-api-contracts.ts` —
+  `Scanned 417 route files. All write routes validate their bodies via Zod.` (exit 0).
+- `npx tsc --noEmit` — web passes clean.
+
 ### Per-screen `validateJobDraft` adoption + API contract drift script — 2026-05-01
 
 Closed two of the residual items called out at the end of the prior session:

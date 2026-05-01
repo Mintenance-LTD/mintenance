@@ -1,8 +1,21 @@
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
-import { BadRequestError, NotFoundError, InternalServerError } from '@/lib/errors/api-error';
+import {
+  BadRequestError,
+  NotFoundError,
+  InternalServerError,
+} from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+
+// 2026-05-01 audit follow-up (check-api-contracts): Zod-validated body
+// replaces manual `typeof body?.jobId === 'string'` cast.
+const trackJobViewSchema = z
+  .object({
+    jobId: z.string().uuid('Invalid job ID'),
+  })
+  .strict();
 
 /**
  * POST /api/contractor/job-views
@@ -11,12 +24,19 @@ import { withApiHandler } from '@/lib/api/with-api-handler';
 export const POST = withApiHandler(
   { rateLimit: { maxRequests: 30 } },
   async (request, { user }) => {
-    const body = await request.json();
-    const jobId = typeof body?.jobId === 'string' ? body.jobId.trim() : null;
-
-    if (!jobId) {
-      throw new BadRequestError('Job ID is required');
+    let raw: unknown;
+    try {
+      raw = await request.json();
+    } catch {
+      throw new BadRequestError('Invalid JSON body');
     }
+    const parsed = trackJobViewSchema.safeParse(raw);
+    if (!parsed.success) {
+      throw new BadRequestError(
+        parsed.error.issues[0]?.message ?? 'Job ID is required'
+      );
+    }
+    const { jobId } = parsed.data;
 
     // Check if job exists and get homeowner info
     const { data: job, error: jobError } = await serverSupabase
@@ -73,7 +93,8 @@ export const POST = withApiHandler(
         .eq('id', user.id)
         .single();
 
-      const contractorName = contractor?.company_name ||
+      const contractorName =
+        contractor?.company_name ||
         (contractor?.first_name && contractor?.last_name
           ? `${contractor.first_name} ${contractor.last_name}`
           : contractor?.email || 'A contractor');
@@ -173,7 +194,7 @@ export const GET = withApiHandler(
       }
 
       // Get job IDs from views
-      const jobIds = views.map(v => v.job_id).filter(Boolean);
+      const jobIds = views.map((v) => v.job_id).filter(Boolean);
 
       if (jobIds.length === 0) {
         return NextResponse.json({ views: [] });
@@ -182,7 +203,8 @@ export const GET = withApiHandler(
       // Fetch jobs with homeowner data
       const { data: jobs, error: jobsError } = await serverSupabase
         .from('jobs')
-        .select(`
+        .select(
+          `
           id,
           title,
           description,
@@ -200,7 +222,8 @@ export const GET = withApiHandler(
             last_name,
             profile_image_url
           )
-        `)
+        `
+        )
         .in('id', jobIds);
 
       if (jobsError) {
@@ -213,32 +236,37 @@ export const GET = withApiHandler(
       }
 
       // Combine views with flattened job data
-      const viewsWithJobs = views.map((view: Record<string, unknown>) => {
-        const job = jobs?.find((j: Record<string, unknown>) => j.id === view.job_id) as JobWithHomeowner | undefined;
-        if (!job) return null;
-        const hw = job.homeowner;
-        const homeowner = Array.isArray(hw) ? hw[0] : hw;
-        return {
-          ...view,
-          job: {
-            id: job.id,
-            title: job.title,
-            description: job.description,
-            location: job.location,
-            category: job.category,
-            priority: job.priority || 'medium',
-            budget: job.budget,
-            status: job.status,
-            photos: job.photos || [],
-            created_at: job.created_at,
-            homeowner_id: job.homeowner_id,
-            homeowner_name: homeowner
-              ? `${homeowner.first_name || ''} ${homeowner.last_name || ''}`.trim() || 'Unknown'
-              : 'Unknown',
-            homeowner_avatar: homeowner?.profile_image_url,
-          },
-        };
-      }).filter(Boolean);
+      const viewsWithJobs = views
+        .map((view: Record<string, unknown>) => {
+          const job = jobs?.find(
+            (j: Record<string, unknown>) => j.id === view.job_id
+          ) as JobWithHomeowner | undefined;
+          if (!job) return null;
+          const hw = job.homeowner;
+          const homeowner = Array.isArray(hw) ? hw[0] : hw;
+          return {
+            ...view,
+            job: {
+              id: job.id,
+              title: job.title,
+              description: job.description,
+              location: job.location,
+              category: job.category,
+              priority: job.priority || 'medium',
+              budget: job.budget,
+              status: job.status,
+              photos: job.photos || [],
+              created_at: job.created_at,
+              homeowner_id: job.homeowner_id,
+              homeowner_name: homeowner
+                ? `${homeowner.first_name || ''} ${homeowner.last_name || ''}`.trim() ||
+                  'Unknown'
+                : 'Unknown',
+              homeowner_avatar: homeowner?.profile_image_url,
+            },
+          };
+        })
+        .filter(Boolean);
 
       return NextResponse.json({ views: viewsWithJobs });
     }

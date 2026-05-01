@@ -68,6 +68,16 @@ jobs:
       - name: Internal links resolve
         run: npx tsx scripts/check-internal-links.ts
 
+      # 2026-05-01 audit follow-up — API contract drift check.
+      # Fails the build if any POST/PUT/PATCH route under
+      # apps/web/app/api/** reads `request.json()` without Zod
+      # validation, OR imports symbols from @mintenance/api-contracts
+      # that aren't actually used, OR defines a local z.object() with
+      # canonical field names (potential drift). Mark deliberate
+      # exceptions inline with `// contracts-check: ok — <reason>`.
+      - name: API contract drift check
+        run: npx tsx scripts/check-api-contracts.ts
+
       - name: Lint (web)
         run: npm run lint:web
 

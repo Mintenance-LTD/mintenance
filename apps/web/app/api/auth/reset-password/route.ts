@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import { createAnonClient } from '@/lib/api/supabaseServer';
 import { checkPasswordResetRateLimit } from '@/lib/rate-limiter';
 import { logger } from '@mintenance/shared';
@@ -11,6 +12,34 @@ import {
 import { PasswordValidator, checkPasswordBreach } from '@mintenance/auth';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { getClientIp } from '@/lib/request-ip';
+
+// 2026-05-01 audit follow-up (check-api-contracts): Zod-validated body
+// replaces the manual `typeof accessToken === 'string'` + JWT-pattern
+// regex + dual `password` / `newPassword` accepted-key compatibility.
+// The schema preserves the legacy frontend behaviour (either field
+// works) via a `.transform` that normalises to `password`.
+const resetPasswordSchema = z
+  .object({
+    accessToken: z
+      .string()
+      .min(50, 'Invalid reset link. Please request a new password reset.')
+      .max(4096)
+      .regex(
+        /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/,
+        'Invalid reset link. Please request a new password reset.'
+      ),
+    password: z.string().min(1).max(128).optional(),
+    newPassword: z.string().min(1).max(128).optional(),
+  })
+  .strict()
+  .transform((d) => ({
+    accessToken: d.accessToken,
+    password: d.password ?? d.newPassword ?? '',
+  }))
+  .refine((d) => d.password.length > 0, {
+    path: ['password'],
+    message: 'Password is required',
+  });
 
 /**
  * POST /api/auth/reset-password
@@ -41,42 +70,23 @@ export const POST = withApiHandler(
       throw new RateLimitError();
     }
 
-    const body = await request.json();
-    const { accessToken, password } = body;
-
-    // Validate access token format (must be a non-empty JWT-like string)
-    if (!accessToken || typeof accessToken !== 'string') {
-      logger.warn('Password reset attempted without access token', {
-        service: 'auth',
-      });
-      throw new BadRequestError(
-        'Invalid reset link. Please request a new password reset.'
-      );
+    let raw: unknown;
+    try {
+      raw = await request.json();
+    } catch {
+      throw new BadRequestError('Invalid JSON body');
     }
-
-    // JWT format: three base64url segments separated by dots
-    const jwtPattern = /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/;
-    if (
-      !jwtPattern.test(accessToken) ||
-      accessToken.length < 50 ||
-      accessToken.length > 4096
-    ) {
-      logger.warn('Password reset token failed format validation', {
+    const parsed = resetPasswordSchema.safeParse(raw);
+    if (!parsed.success) {
+      const first = parsed.error.issues[0];
+      logger.warn('Password reset failed input validation', {
         service: 'auth',
-        tokenLength: accessToken.length,
         ip: getClientIp(request),
+        field: first?.path.join('.') ?? 'unknown',
       });
-      throw new BadRequestError(
-        'Invalid reset link. Please request a new password reset.'
-      );
+      throw new BadRequestError(first?.message ?? 'Invalid request');
     }
-
-    // Validate password - accept either password or newPassword from frontend
-    const newPassword = password || body.newPassword;
-
-    if (!newPassword || typeof newPassword !== 'string') {
-      throw new BadRequestError('Password is required');
-    }
+    const { accessToken, password: newPassword } = parsed.data;
 
     // SECURITY: Use centralized PasswordValidator (same validation as registration)
     const validationResult = PasswordValidator.validate(newPassword, {

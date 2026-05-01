@@ -1,8 +1,17 @@
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { PaymentSetupNotificationService } from '@/lib/services/contractor/PaymentSetupNotificationService';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { BadRequestError } from '@/lib/errors/api-error';
+
+// 2026-05-01 audit follow-up (check-api-contracts): Zod-validated body
+// replaces the manual `typeof body?.contractorId === 'string'` check.
+const sendReminderSchema = z
+  .object({
+    contractorId: z.string().uuid('Invalid contractor ID'),
+  })
+  .strict();
 
 /**
  * POST /api/admin/contractors/send-payment-setup-reminder
@@ -18,13 +27,19 @@ export const POST = withApiHandler(
     requireMfaVerifiedWithinMinutes: 15,
   },
   async (request) => {
-    const body = await request.json();
-    const contractorId =
-      typeof body?.contractorId === 'string' ? body.contractorId.trim() : null;
-
-    if (!contractorId) {
-      throw new BadRequestError('Contractor ID required');
+    let raw: unknown;
+    try {
+      raw = await request.json();
+    } catch {
+      throw new BadRequestError('Invalid JSON body');
     }
+    const parsed = sendReminderSchema.safeParse(raw);
+    if (!parsed.success) {
+      throw new BadRequestError(
+        parsed.error.issues[0]?.message ?? 'Contractor ID required'
+      );
+    }
+    const { contractorId } = parsed.data;
 
     const { data: escrows } = await serverSupabase
       .from('escrow_transactions')
