@@ -23,6 +23,70 @@ contract), P0-2 (property assessment integration
   P1 (FindContractors search button + location filter), P1 (stale useMessages hook). Partial: P0-1
   (mobile direct supabase). Both web and mobile `tsc --noEmit` pass clean after the changes.
 
+### Items 1, 2, 3 close-out session — 2026-05-01
+
+The three priority items called out at the end of the previous session as "the next-best targets
+from the residual list" all closed in this pass:
+
+**Item 3 — Last `as never` casts (4 closed):**
+
+- `apps/mobile/src/components/finance/QuickActions.tsx` — typed `FinanceQuickActionScreen` union for
+  the four quick-action targets (Invoices/Expenses/Payouts/Reporting). Compile-time check now
+  catches a typo on any of these strings.
+- `apps/mobile/src/screens/CalendarScreen.tsx` (×2) — replaced `navigation as never as { navigate }`
+  casts on the empty-state CTA and `ScheduleCard` onPress with the typed
+  `goToTab(navigation, 'JobsTab', { screen: 'JobsList' | 'JobDetails', params })` helper.
+- `apps/mobile/src/screens/JobPostingScreen.tsx` — `as never` on the silver-mode `PostJobWizard`
+  redirect was unnecessary; the screen already types its prop against `JobsStackParamList` which
+  registers `PostJobWizard`. Cast dropped.
+
+**Item 1 — Residual mobile direct supabase (3 call sites migrated):**
+
+- `apps/mobile/src/screens/CalendarScreen.tsx` — `supabase.from('appointments').select(...)` swapped
+  for `mobileApiClient.get('/api/contractor/appointments?daysAhead=180')`. The endpoint already
+  filters by `contractor_id = user.id` and joins `jobs(title)` server-side.
+- `apps/mobile/src/utils/featureAccess.ts` — three direct calls collapsed onto two API endpoints:
+  - `contractor_subscriptions` read + `feature_usage` read → `GET /api/subscriptions/feature-access`
+    (server applies the same role-aware tier resolution + early-access bypass + counters).
+  - `supabase.rpc('increment_feature_usage', ...)` → `POST /api/subscriptions/feature-access/track`.
+    The route derives `p_user_id` from the auth session so the `userId` arg can no longer be
+    spoofed. Mobile keeps its `tier` enum (trial/basic/professional/ enterprise) and maps from the
+    server vocabulary (free/pro/business/ enterprise) at the boundary.
+
+After this pass, the remaining `supabase.from(...)` writes in mobile are all documented exceptions:
+`JobContextLocationService.updateContractorLocation` (live GPS pulses 5–15s through Supabase
+Realtime); `BackgroundLocationTask` (same channel); `CallManager` (placeholder feature on
+`call_participants`, table doesn't exist in live schema); the stubbed marketing services (throw
+`NOT_IMPLEMENTED`).
+
+**Item 2 — Shared `JobDraft` model + adapter for the 7 job-creation entry points:**
+
+Built `packages/api-contracts/src/job-draft.ts` exposing:
+
+- `JobDraft` — the form-level superset of fields any of the 7 entry points collects. Empty strings,
+  partial fields, and string-typed numbers are all acceptable so forms can keep controlled-input
+  state at `''`.
+- `validateJobDraft(draft)` — runs the SAME `createJobRequestSchema` Zod schema the server enforces.
+  Returns either `{ ok: true, payload: CreateJobRequest }` or
+  `{ ok: false, errors: Array<{ field, message }> }` so forms can show inline errors using the
+  canonical source of truth.
+- `toCreateJobRequest(draft)` — adapter that normalises empty strings to `undefined`, aliases legacy
+  `priority` → `urgency`, trims/coerces per-field, and strips undefined keys so the wire payload is
+  always well-formed.
+
+Re-exported through `@mintenance/api-contracts/index.ts` so all 7 entry points + the central
+`useCreateJob` mutation hook import from one canonical surface. `useCreateJob` itself now delegates
+its "is the draft valid" question to `validateJobDraft` — the inline length / range / required
+checks that drifted from the server schema over time are gone. Per-screen adoption of
+`validateJobDraft` for inline form errors is incremental; the infrastructure is in place and the
+mutation boundary is now consistent.
+
+Files: `packages/api-contracts/src/job-draft.ts` (new), `packages/api-contracts/src/index.ts`,
+`apps/mobile/src/hooks/useJobs.ts`.
+
+Verification: `npx tsc --noEmit` passes clean for both `apps/mobile` and `apps/web`.
+`@mintenance/api-contracts` builds clean (`npm run build`).
+
 ### Persistent-issue follow-up — 2026-05-01 (next session)
 
 Three "persistent across 3+ audit cycles" items from CLAUDE.md tackled:

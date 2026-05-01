@@ -89,11 +89,12 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
       goToTab(navigation, 'HomeTab');
     }
     // R3 deferred #7 — Silver-mode users go to the simplified 3-step
-    // wizard. PostJobWizard is registered on the JobsStack so we
-    // navigate to it as a sibling — `as never` was masking that this
-    // screen IS in the JobsStack so the typed prop should accept it.
+    // wizard. PostJobWizard is registered on the JobsStack and this
+    // screen IS already typed against JobsStackParamList, so the
+    // typed prop accepts the call directly. 2026-05-01 audit P1: cast
+    // dropped now that the typed prop matches the registered route.
     if (!silverLoading && silverMode) {
-      navigation.navigate('PostJobWizard' as never);
+      navigation.navigate('PostJobWizard');
     }
   }, [user, navigation, silverMode, silverLoading]);
 

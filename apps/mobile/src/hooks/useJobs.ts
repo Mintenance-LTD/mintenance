@@ -2,6 +2,7 @@ import { JobService } from '../services/JobService';
 import { queryKeys } from '../lib/queryClient';
 import { useOfflineQuery, useOfflineMutation } from './useOfflineQuery';
 import { Job } from '@mintenance/types';
+import { validateJobDraft, type JobDraft } from '@mintenance/api-contracts';
 
 // Query hooks
 const useJobs = (limit: number = 20, offset: number = 0) => {
@@ -82,43 +83,39 @@ export const useCreateJob = () => {
       is_rental_property?: boolean;
       tenancy_metadata?: Record<string, unknown>;
     }) => {
-      // Server-side validation (backup for client validation)
-      if (!jobData.title.trim()) {
-        throw new Error('Job title is required');
-      }
-      if (jobData.title.trim().length < 10) {
-        throw new Error('Job title must be at least 10 characters long');
-      }
-      if (jobData.title.trim().length > 100) {
-        throw new Error('Job title cannot exceed 100 characters');
-      }
-
-      if (!jobData.description.trim()) {
-        throw new Error('Job description is required');
-      }
-      if (jobData.description.trim().length < 20) {
-        throw new Error('Job description must be at least 20 characters long');
-      }
-      if (jobData.description.trim().length > 500) {
-        throw new Error('Job description cannot exceed 500 characters');
-      }
-
-      if (!jobData.location.trim()) {
-        throw new Error('Job location is required');
-      }
-      if (jobData.location.trim().length < 5) {
-        throw new Error('Please provide a more specific location');
-      }
-
-      if (!jobData.budget || jobData.budget <= 0) {
-        throw new Error('Budget must be greater than 0');
-      }
-      if (jobData.budget > 50000) {
-        throw new Error('Budget cannot exceed £50,000');
-      }
-
+      // 2026-05-01 audit P1 close-out: replaced ad-hoc inline validation
+      // (every length / range / required check that drifted from the
+      // server-side schema over time) with `validateJobDraft` from
+      // `@mintenance/api-contracts`. The shared schema is the SAME one
+      // the server enforces, so client-side errors here mirror the
+      // wire-level Zod errors exactly — no surprise 400s after the
+      // user taps Submit. Legacy mutationFn shape kept so existing
+      // entry-point callers don't break; internal mapping converts to
+      // the canonical `JobDraft`.
       if (!jobData.homeownerId) {
         throw new Error('User authentication is required');
+      }
+
+      const draft: JobDraft = {
+        title: jobData.title,
+        description: jobData.description,
+        location: jobData.location,
+        budget: jobData.budget,
+        category: jobData.category as JobDraft['category'],
+        urgency: jobData.urgency,
+        photoUrls: jobData.photos,
+        isRentalProperty: jobData.is_rental_property,
+        tenancyMetadata: jobData.tenancy_metadata,
+      };
+
+      const validation = validateJobDraft(draft);
+      if (!validation.ok) {
+        // Surface the first error so the existing toast / inline UI
+        // pipeline keeps working. Multiple errors are still in the
+        // ServiceErrorHandler chain inside JobCRUDService.
+        const first = validation.errors[0];
+        const message = first?.message ?? 'Job draft failed validation';
+        throw new Error(message);
       }
 
       return JobService.createJob({
