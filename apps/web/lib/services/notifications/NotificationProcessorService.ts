@@ -6,6 +6,20 @@
  *
  * Extracted from the notification-processor cron route to keep the
  * route file as a thin wrapper around withCronHandler.
+ *
+ * ── Direct-insert exception (documented 2026-05-01) ───────────────────
+ * This file is one of TWO call sites allowed to write directly to
+ * `public.notifications` (the other is NotificationService itself).
+ * Reason: this service drains `notification_queue` rows that were
+ * already passed through the prefs/quiet-hours/timing model when they
+ * were enqueued by NotificationService.scheduleForLater. Re-running
+ * `NotificationService.createNotification` here would just re-enqueue
+ * them, producing an infinite loop.
+ *
+ * The CI grep gate at scripts/check-notification-inserts.js explicitly
+ * allowlists this file. Do NOT add `.from('notifications').insert(`
+ * to other code paths — call NotificationService.createNotification
+ * instead.
  */
 
 import { serverSupabase } from '@/lib/api/supabaseServer';

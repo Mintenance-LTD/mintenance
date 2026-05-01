@@ -243,6 +243,14 @@ const KNOWN_LARGE_FILES = new Set([
   // repository-style class is a dedicated P2 alongside the eventual
   // migration to /api/contractor/clients/*.
   'apps/mobile/src/services/client-management/ClientRepository.ts', // 516 lines (was ~485)
+  // Added 2026-05-01: AdminAlertService.ts grew from 493 to 507 lines
+  // when migrating its bulk `.from('notifications').insert` to a
+  // Promise.allSettled fan-out through NotificationService.createNotification
+  // (review-pass-3 audit follow-up). Net growth is +14 lines for the
+  // batched fan-out + result aggregation; the file is structurally
+  // identical to before. Splits tracked as a P2 alongside other
+  // notification-service consolidation work.
+  'apps/web/lib/services/admin/AdminAlertService.ts', // 507 lines (was 493)
 ]);
 
 function countLines(filePath) {

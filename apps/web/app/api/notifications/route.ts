@@ -403,32 +403,49 @@ export const PATCH = withApiHandler(
 );
 
 /**
- * Create a notification (POST endpoint)
+ * Create a notification (POST endpoint).
+ *
+ * 2026-05-01 audit follow-up: previously, ANY authenticated user could
+ * call this to insert a notification row targeting ANY other user_id.
+ * That was a phishing primitive (fake "Bid accepted" notifications,
+ * fake "Payment released" alerts). Two changes lock it down:
+ *
+ *   1. `roles: ['admin']` + `requireMfaVerifiedWithinMinutes: 15`:
+ *      only admins with fresh MFA can use it. Service-role traffic
+ *      should call NotificationService.createNotification directly
+ *      from the server — they don't go through HTTP.
+ *
+ *   2. The body is routed through NotificationService instead of a
+ *      raw `.from('notifications').insert(...)`, so push + per-user
+ *      preferences + quiet-hours apply consistently with every
+ *      other notification source.
  */
 export const POST = withApiHandler(
-  { rateLimit: { maxRequests: 60 } },
+  {
+    roles: ['admin'],
+    rateLimit: { maxRequests: 60 },
+    requireMfaVerifiedWithinMinutes: 15,
+  },
   async (request, { user }) => {
     const validation = await validateRequest(request, createNotificationSchema);
     if (validation instanceof NextResponse) return validation;
     const { data: payload } = validation;
 
-    const { data, error } = await serverSupabase
-      .from('notifications')
-      .insert([
-        {
-          user_id: payload.user_id,
-          type: payload.type,
-          title: payload.title,
-          message: payload.message,
-          action_url: payload.action_url,
-          read: false,
-          created_at: new Date().toISOString(),
-        },
-      ])
-      .select()
-      .single();
+    try {
+      const notificationId = await NotificationService.createNotification({
+        userId: payload.user_id,
+        type: payload.type,
+        title: payload.title,
+        message: payload.message,
+        actionUrl: payload.action_url,
+        metadata: { admin_id: user.id, source: 'api/notifications POST' },
+      });
 
-    if (error) {
+      return NextResponse.json(
+        { data: { id: notificationId } },
+        { status: 201 }
+      );
+    } catch (error) {
       logger.error('Error creating notification', error, {
         service: 'notifications',
         userId: user.id,
@@ -436,7 +453,5 @@ export const POST = withApiHandler(
       });
       throw error;
     }
-
-    return NextResponse.json({ data }, { status: 201 });
   }
 );

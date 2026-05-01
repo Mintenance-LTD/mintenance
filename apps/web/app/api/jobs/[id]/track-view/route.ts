@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
-import { ForbiddenError, NotFoundError } from '@/lib/errors/api-error';
+import { NotFoundError } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { NotificationService } from '@/lib/services/notifications/NotificationService';
 
 /**
  * Track when a contractor views a job
@@ -68,10 +69,11 @@ export const POST = withApiHandler(
       throw viewError;
     }
 
-    // Create notification for homeowner on first view only
+    // 2026-05-01 audit follow-up: route through NotificationService so this
+    // observability ping respects per-user prefs + quiet hours and lights up
+    // push (the previous direct insert silently dropped push entirely).
     if (isFirstView && job.homeowner_id) {
       try {
-        // Get contractor name
         const { data: contractor } = await serverSupabase
           .from('profiles')
           .select('first_name, last_name')
@@ -82,36 +84,21 @@ export const POST = withApiHandler(
           ? `${contractor.first_name} ${contractor.last_name}`
           : 'A contractor';
 
-        const { error: notificationError } = await serverSupabase
-          .from('notifications')
-          .insert({
-            user_id: job.homeowner_id,
-            title: 'Job Viewed',
-            message: `${contractorName} viewed your job "${job.title}"`,
-            type: 'job_viewed',
-            read: false,
-            action_url: `/jobs/${jobId}`,
-            created_at: new Date().toISOString(),
-          });
+        await NotificationService.createNotification({
+          userId: job.homeowner_id,
+          type: 'job_viewed',
+          title: 'Job Viewed',
+          message: `${contractorName} viewed your job "${job.title}"`,
+          actionUrl: `/jobs/${jobId}`,
+          metadata: { jobId, viewerId: user.id, event: 'job_viewed' },
+        });
 
-        if (notificationError) {
-          logger.error(
-            'Failed to create notification for homeowner',
-            notificationError,
-            {
-              service: 'jobs',
-              homeownerId: job.homeowner_id,
-              jobId,
-            }
-          );
-        } else {
-          logger.info('Notification created for homeowner', {
-            service: 'jobs',
-            homeownerId: job.homeowner_id,
-            jobId,
-            contractorId: user.id,
-          });
-        }
+        logger.info('Notification created for homeowner', {
+          service: 'jobs',
+          homeownerId: job.homeowner_id,
+          jobId,
+          contractorId: user.id,
+        });
       } catch (notificationError) {
         logger.error(
           'Unexpected error creating notification',

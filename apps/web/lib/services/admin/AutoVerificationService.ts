@@ -1,5 +1,6 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { NotificationService } from '@/lib/services/notifications/NotificationService';
 
 interface VerificationRules {
   requireProfileComplete: boolean;
@@ -48,7 +49,7 @@ export class AutoVerificationService {
    */
   static async evaluateContractor(
     contractorId: string,
-    rules?: Partial<VerificationRules>,
+    rules?: Partial<VerificationRules>
   ): Promise<EvaluationResult> {
     const mergedRules: VerificationRules = { ...DEFAULT_RULES, ...rules };
     const passedRules: string[] = [];
@@ -63,19 +64,32 @@ export class AutoVerificationService {
         .single();
 
       if (profileError || !profile) {
-        logger.error('Failed to fetch contractor profile for auto-verification', {
-          service: 'AutoVerificationService',
-          contractorId,
-          error: profileError?.message,
-        });
-        return { eligible: false, passedRules, failedRules: ['profile_fetch_failed'] };
+        logger.error(
+          'Failed to fetch contractor profile for auto-verification',
+          {
+            service: 'AutoVerificationService',
+            contractorId,
+            error: profileError?.message,
+          }
+        );
+        return {
+          eligible: false,
+          passedRules,
+          failedRules: ['profile_fetch_failed'],
+        };
       }
 
       // Rule: Profile Complete
       if (mergedRules.requireProfileComplete) {
-        const hasFirstName = Boolean(profile.first_name && profile.first_name.trim());
-        const hasLastName = Boolean(profile.last_name && profile.last_name.trim());
-        const hasCompanyName = Boolean(profile.company_name && profile.company_name.trim());
+        const hasFirstName = Boolean(
+          profile.first_name && profile.first_name.trim()
+        );
+        const hasLastName = Boolean(
+          profile.last_name && profile.last_name.trim()
+        );
+        const hasCompanyName = Boolean(
+          profile.company_name && profile.company_name.trim()
+        );
 
         if (hasFirstName && hasLastName && hasCompanyName) {
           passedRules.push('profileComplete');
@@ -115,9 +129,13 @@ export class AutoVerificationService {
         } else {
           const completedCount = count || 0;
           if (completedCount >= mergedRules.minCompletedJobs) {
-            passedRules.push(`completedJobs (${completedCount}/${mergedRules.minCompletedJobs})`);
+            passedRules.push(
+              `completedJobs (${completedCount}/${mergedRules.minCompletedJobs})`
+            );
           } else {
-            failedRules.push(`completedJobs (${completedCount}/${mergedRules.minCompletedJobs})`);
+            failedRules.push(
+              `completedJobs (${completedCount}/${mergedRules.minCompletedJobs})`
+            );
           }
         }
       }
@@ -139,14 +157,21 @@ export class AutoVerificationService {
         } else {
           const reviews = ratingData || [];
           if (reviews.length === 0) {
-            failedRules.push(`rating (no reviews yet, need ${mergedRules.minRating})`);
+            failedRules.push(
+              `rating (no reviews yet, need ${mergedRules.minRating})`
+            );
           } else {
             const avgRating =
-              reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length;
+              reviews.reduce((sum, r) => sum + (r.rating || 0), 0) /
+              reviews.length;
             if (avgRating >= mergedRules.minRating) {
-              passedRules.push(`rating (${avgRating.toFixed(1)}/${mergedRules.minRating})`);
+              passedRules.push(
+                `rating (${avgRating.toFixed(1)}/${mergedRules.minRating})`
+              );
             } else {
-              failedRules.push(`rating (${avgRating.toFixed(1)}/${mergedRules.minRating})`);
+              failedRules.push(
+                `rating (${avgRating.toFixed(1)}/${mergedRules.minRating})`
+              );
             }
           }
         }
@@ -155,8 +180,8 @@ export class AutoVerificationService {
       // Rule: Email Verified
       if (mergedRules.requireEmailVerified) {
         // Check via auth.users through the admin API
-        const { data: authUser, error: authError } = await serverSupabase
-          .auth.admin.getUserById(contractorId);
+        const { data: authUser, error: authError } =
+          await serverSupabase.auth.admin.getUserById(contractorId);
 
         if (authError || !authUser?.user) {
           logger.error('Failed to fetch auth user for auto-verification', {
@@ -178,12 +203,19 @@ export class AutoVerificationService {
 
       return { eligible, passedRules, failedRules };
     } catch (error) {
-      logger.error('Unexpected error evaluating contractor for auto-verification', {
-        service: 'AutoVerificationService',
-        contractorId,
-        error: error instanceof Error ? error.message : String(error),
-      });
-      return { eligible: false, passedRules, failedRules: ['unexpected_error'] };
+      logger.error(
+        'Unexpected error evaluating contractor for auto-verification',
+        {
+          service: 'AutoVerificationService',
+          contractorId,
+          error: error instanceof Error ? error.message : String(error),
+        }
+      );
+      return {
+        eligible: false,
+        passedRules,
+        failedRules: ['unexpected_error'],
+      };
     }
   }
 
@@ -191,7 +223,7 @@ export class AutoVerificationService {
    * Process all unverified contractors and auto-verify eligible ones.
    */
   static async processAutoVerifications(
-    rules?: Partial<VerificationRules>,
+    rules?: Partial<VerificationRules>
   ): Promise<BatchResult> {
     const result: BatchResult = {
       verified: 0,
@@ -230,7 +262,10 @@ export class AutoVerificationService {
 
       for (const contractor of contractors) {
         try {
-          const evaluation = await this.evaluateContractor(contractor.id, rules);
+          const evaluation = await this.evaluateContractor(
+            contractor.id,
+            rules
+          );
 
           if (!evaluation.eligible) {
             result.skipped++;
@@ -292,24 +327,32 @@ export class AutoVerificationService {
             // Non-fatal: continue even if audit log fails
           }
 
-          // Create in-app notification for the contractor
-          const { error: notifError } = await serverSupabase
-            .from('notifications')
-            .insert({
-              user_id: contractor.id,
+          // 2026-05-01 audit follow-up: route through NotificationService so
+          // newly verified contractors actually get a push (and so this
+          // respects their notification preferences). The previous direct
+          // insert silently dropped push entirely.
+          try {
+            await NotificationService.createNotification({
+              userId: contractor.id,
               type: 'verification_approved',
               title: 'Account Verified',
               message:
                 'Your contractor account has been automatically verified. You now have full access to the platform.',
-              action_url: '/contractor/dashboard-enhanced',
+              actionUrl: '/contractor/dashboard-enhanced',
+              metadata: { event: 'verification_approved' },
             });
-
-          if (notifError) {
-            logger.error('Failed to create notification for auto-verified contractor', {
-              service: 'AutoVerificationService',
-              contractorId: contractor.id,
-              error: notifError.message,
-            });
+          } catch (notifError) {
+            logger.error(
+              'Failed to create notification for auto-verified contractor',
+              {
+                service: 'AutoVerificationService',
+                contractorId: contractor.id,
+                error:
+                  notifError instanceof Error
+                    ? notifError.message
+                    : String(notifError),
+              }
+            );
             // Non-fatal: verification still succeeded
           }
 
@@ -325,14 +368,17 @@ export class AutoVerificationService {
             passedRules: evaluation.passedRules,
           });
         } catch (contractorError) {
-          logger.error('Unexpected error processing contractor in auto-verification batch', {
-            service: 'AutoVerificationService',
-            contractorId: contractor.id,
-            error:
-              contractorError instanceof Error
-                ? contractorError.message
-                : String(contractorError),
-          });
+          logger.error(
+            'Unexpected error processing contractor in auto-verification batch',
+            {
+              service: 'AutoVerificationService',
+              contractorId: contractor.id,
+              error:
+                contractorError instanceof Error
+                  ? contractorError.message
+                  : String(contractorError),
+            }
+          );
           result.errors++;
           result.details.push({
             contractorId: contractor.id,

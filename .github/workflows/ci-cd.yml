@@ -87,6 +87,15 @@ jobs:
       - name: Auth coverage check
         run: npx tsx scripts/check-auth-coverage.ts
 
+      # 2026-05-01 audit follow-up — notification direct-insert gate.
+      # Fails the build if any file under apps/web inserts directly
+      # into the notifications table. Only NotificationService and
+      # NotificationProcessorService are allowed to do that; every
+      # other path must call NotificationService.createNotification
+      # so push, user preferences, and quiet hours apply consistently.
+      - name: Notification direct-insert gate
+        run: npx tsx scripts/check-notification-inserts.ts
+
       - name: Lint (web)
         run: npm run lint:web
 
