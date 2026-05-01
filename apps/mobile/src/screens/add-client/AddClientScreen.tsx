@@ -13,7 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../components/ui/Toast';
-import { ClientManagementService } from '../../services/client-management';
+import { mobileApiClient } from '../../utils/mobileApiClient';
 import type { ProfileStackParamList } from '../../navigation/types';
 import { theme } from '../../theme';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
@@ -60,22 +60,19 @@ export const AddClientScreen: React.FC<AddClientScreenProps> = ({
 
     setSubmitting(true);
     try {
-      const service = new ClientManagementService();
-      await service.createClient({
-        contractorId: user.id,
+      // 2026-05-01 audit follow-up: switched from
+      // `ClientManagementService.createClient` (direct supabase insert)
+      // to the new POST /api/contractor/clients endpoint. Auth +
+      // contractor-id come from the bearer token server-side; the
+      // wire-level Zod schema + `withApiHandler` enforce the same
+      // shape every other contractor write goes through.
+      await mobileApiClient.post('/api/contractor/clients', {
         type: 'individual',
         firstName: firstName.trim(),
-        lastName: lastName.trim(),
+        lastName: lastName.trim() || undefined,
         email: email.trim(),
         phone: phone.trim() || undefined,
         companyName: companyName.trim() || undefined,
-        address: {
-          street: '',
-          city: '',
-          state: '',
-          zipCode: '',
-          country: 'GB',
-        },
         source: 'manual',
         notes: notes.trim() || undefined,
       });

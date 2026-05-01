@@ -14,6 +14,7 @@ import {
   ForbiddenError,
 } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { NotificationService } from '@/lib/services/notifications/NotificationService';
 
 // Payment initiation schema
 const initiatePaymentSchema = z.object({
@@ -238,13 +239,20 @@ export const POST = withApiHandler(
       })
       .eq('id', invoice.id);
 
-    // Create notification for contractor
-    await serverSupabase.from('notifications').insert({
-      user_id: invoice.contractor_id,
+    // Create notification for contractor.
+    // 2026-05-01 audit follow-up: the previous direct insert wrote a
+    // `data` field, but the live `notifications` table column is
+    // `metadata` (renamed in a later migration). PostgREST silently
+    // dropped the unknown column and the notification reached the
+    // contractor without invoice context. Routing through
+    // `NotificationService.createNotification` also adds push delivery
+    // + per-user preference checks.
+    await NotificationService.createNotification({
+      userId: invoice.contractor_id,
       type: 'payment_initiated',
       title: 'Payment Initiated',
       message: `Payment has been initiated for invoice ${invoice.invoice_number}`,
-      data: {
+      metadata: {
         invoice_id: invoice.id,
         payment_id: payment?.id,
         amount: invoice.total_amount,

@@ -235,6 +235,14 @@ const KNOWN_LARGE_FILES = new Set([
   // structural, not new business logic. Splits are P2 follow-ups.
   'apps/mobile/src/screens/job-form/JobEditScreen.tsx', // 510 lines (was 488) — useUnsavedChanges + markDirty wrappers
   'apps/mobile/src/screens/properties/EditPropertyScreen.tsx', // 518 lines (was 478) — hasEdits flag pattern + wrapped setters
+  // Added 2026-05-01: ClientRepository.ts pre-existed at ~485 lines;
+  // the audit-review pass 2 closure added a 30-line file-header
+  // documenting the RLS-scoped exception status for every method
+  // that still touches contractor_clients directly. Net growth is
+  // documentation only, not business logic — splitting the
+  // repository-style class is a dedicated P2 alongside the eventual
+  // migration to /api/contractor/clients/*.
+  'apps/mobile/src/services/client-management/ClientRepository.ts', // 516 lines (was ~485)
 ]);
 
 function countLines(filePath) {

@@ -23,6 +23,73 @@ contract), P0-2 (property assessment integration
   P1 (FindContractors search button + location filter), P1 (stale useMessages hook). Partial: P0-1
   (mobile direct supabase). Both web and mobile `tsc --noEmit` pass clean after the changes.
 
+### Re-audit corrections (review pass 2) — 2026-05-01
+
+External review caught three over-claims in the prior closures. All three are now closed for real:
+
+**1. P0-1 mobile direct Supabase — additional reachable paths.** `AddClientScreen` was reaching
+`ClientManagementService.createClient` → `ClientRepository.createClient` direct insert into
+`contractor_clients`. `QuoteBuilderScreen` was calling `QuoteOperations.duplicate/deleteQuote`
+
+- `QuoteRevisions.createQuoteRevision` direct supabase ops, and several of the underlying tables
+  (`quote_line_items`, `quote_revisions`, `quote_analytics`, `quote_templates`,
+  `quote_line_item_templates`, `client_analytics`, `client_communications`,
+  `client_communication_templates`) **never existed in production** — those calls were 100%
+  dead-on-arrival in prod.
+
+Closures:
+
+- New `POST /api/contractor/clients` with strict Zod schema; mobile `AddClientScreen` migrated off
+  `ClientManagementService.createClient` to call the API directly.
+- New `DELETE /api/contractor/quotes/[id]` (alongside the existing `PUT`);
+  `QuoteOperations.deleteQuote` migrated to the API.
+- `QuoteOperations.duplicateQuote` reuses the now-API-routed `getQuote` + `createQuote` path; line
+  items are read from the JSONB column on the source row (the dedicated `quote_line_items` table
+  never shipped).
+- `QuoteCRUD.getQuotes` + `getQuote` (the last two direct supabase reads in QuoteCRUD) routed
+  through `GET /api/contractor/quotes`.
+- `QuoteAnalytics.getQuoteSummaryStats` migrated to the same list endpoint (which already aggregates
+  stats server-side).
+- `QuoteRevisions.*`, `ClientAnalyticsService.*`, and `ClientCommunicationService.*` stubbed with
+  `NOT_IMPLEMENTED` errors + a pointer to the migration plan (build the table + endpoint before
+  re-enabling).
+- `ClientRepository.ts` got a clear file-header note documenting that the remaining methods
+  (`getClients`, `updateClient`, `deleteClient`, etc.) are RLS-scoped exceptions — verified live on
+  2026-05-01 (6 policies on `contractor_clients` covering ALL + individual
+  SELECT/INSERT/UPDATE/DELETE, all on `contractor_id = auth.uid()`). Same disposition as
+  `JobContextLocationService` for live GPS pulses through Realtime.
+
+**2. Web notification direct inserts.** Two paths the prior closure missed:
+
+- `apps/web/lib/services/job-notification-service.ts:202` — bulk insert of `job_nearby`
+  notifications bypassed `NotificationService.createNotification` entirely (no push delivery, no
+  preference checks). Replaced with a parallel `Promise.allSettled` fan-out through
+  `NotificationService.createNotification`. Preserves the bulk semantics while adding push +
+  preference + `metadata` consistency.
+- `apps/web/app/api/contractor/invoices/pay/route.ts:242` — wrote a `data: { ... }` field. Live
+  schema renamed that column to `metadata` in a later migration, so PostgREST silently dropped the
+  field and the contractor saw a notification with no invoice context. Migrated to
+  `NotificationService.createNotification({...metadata})`.
+- A grep confirms the remaining `from('notifications').insert` occurrences in `apps/web/` are ALL
+  inside comments documenting the ban (NotificationService.ts header, JobDigestService comment,
+  messages/threads comment).
+
+**3. NotificationDeepLink early-return on missing type.** The OS push deep-link handler returned at
+`if (!type) return;` BEFORE calling `routeForNotification`, so the missing-type case silently
+dropped on the OS-tap surface even though the in-app surface routed correctly to the inbox. Removed
+the early return; missing/unknown `type` now falls through to `routeForNotification`, which (since
+the prior fix) returns `NOTIFICATIONS_FALLBACK`. Both surfaces (OS tap + in-app inbox tap) now
+agree.
+
+Verification:
+
+- `npx tsc --noEmit` — mobile + web both exit 0.
+- `npx jest --testPathPattern='(notificationRoutingTable|NotificationBadge)'` — 64/64 passing.
+- Live `pg_policies` check confirms `contractor_clients` RLS scoping.
+- Live `information_schema.tables` check confirms phantom tables (`quote_line_items`,
+  `quote_revisions`, `client_analytics`, etc.) do NOT exist — stubs are correct, not workarounds for
+  a future table.
+
 ### Auth coverage check + 18-route triage — 2026-05-01
 
 Closes recommended-automated-audits #5 (auth/session audit). New `scripts/check-auth-coverage.ts`
