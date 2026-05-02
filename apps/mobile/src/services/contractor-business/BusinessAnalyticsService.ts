@@ -1,12 +1,15 @@
 /**
  * BusinessAnalyticsService — read-only contractor analytics aggregations.
  *
- * 2026-04-30 audit P0-1 disposition: zero external callers (verified
- * with grep across apps/mobile/src). Direct supabase reads are
- * acceptable for now under the same rationale as FinancialReporter
- * (read-only, contractor-scoped, RLS-enforced). If/when this surface
- * gets wired into a screen, design an aggregate API endpoint to
- * batch the queries into a single round trip.
+ * 2026-05-02 audit follow-up (review pass 6): the prior "zero external
+ * callers" disposition was stale. `calculateBusinessMetrics` /
+ * `getFinancialSummary` are reachable through the business suite hooks
+ * at apps/mobile/src/hooks/business-suite/useBusinessMetrics.ts, which
+ * the contractor business-suite screens consume. Direct supabase reads
+ * remain acceptable here (read-only, contractor-scoped, RLS-enforced) —
+ * the same rationale as FinancialReporter — but future writes MUST go
+ * through the API. If/when this surface gets noisier, design an
+ * aggregate endpoint to batch the queries into a single round trip.
  */
 import { supabase } from '../../config/supabase';
 import { ServiceErrorHandler } from '../../utils/serviceErrorHandler';
@@ -620,11 +623,18 @@ export class BusinessAnalyticsService {
     outstandingInvoices: number;
     overdueAmount: number;
   }> {
+    // 2026-05-02 audit follow-up (review pass 6): the canonical table is
+    // `invoices`. The legacy `contractor_invoices` reference here was
+    // 404ing silently in production, so getFinancialSummary always
+    // reported 0 outstanding / 0 overdue. The status filter expands to
+    // include 'viewed' and 'partial' too — both are valid pre-paid
+    // states under the canonical invoice CHECK constraint
+    // (draft, sent, viewed, paid, overdue, cancelled, partial).
     const { data: invoices, error } = await supabase
-      .from('contractor_invoices')
+      .from('invoices')
       .select('total_amount, due_date, status')
       .eq('contractor_id', contractorId)
-      .in('status', ['sent', 'overdue']);
+      .in('status', ['sent', 'viewed', 'overdue', 'partial']);
 
     if (error) return { outstandingInvoices: 0, overdueAmount: 0 };
 

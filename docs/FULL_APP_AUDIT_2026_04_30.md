@@ -23,6 +23,63 @@ contract), P0-2 (property assessment integration
   P1 (FindContractors search button + location filter), P1 (stale useMessages hook). Partial: P0-1
   (mobile direct supabase). Both web and mobile `tsc --noEmit` pass clean after the changes.
 
+### Re-audit corrections (review pass 6) — 2026-05-02
+
+External review confirmed pass 5 closed the homeowner financials page, the notification feed default
+branch, and added the `notification_queue` migration; all CI-style gates pass. Two remaining items
+closed in this pass:
+
+**1. Stale `contractor_invoices` read in mobile business analytics.**
+`apps/mobile/src/services/contractor-business/BusinessAnalyticsService.ts:624` was still pointing at
+the retired phantom table inside `getInvoicesSummary`. Reachable via the `useBusinessMetrics` /
+`useFinancialSummary` hooks, so any contractor opening the business-suite financials view got 0
+outstanding / 0 overdue regardless of real state. Fixes:
+
+- Switched to `.from('invoices')`.
+- Status filter expanded from `['sent', 'overdue']` → `['sent', 'viewed', 'overdue', 'partial']`
+  (the canonical CHECK on `invoices` allows
+  `draft, sent, viewed, paid, overdue, cancelled, partial`; the old filter pre-dated `viewed` /
+  `partial` being valid pre-paid states).
+- File header comment refreshed — the prior "zero external callers" disposition was stale; the
+  service IS reachable from the business-suite hooks.
+
+**2. Client interaction enum drift was committed in a migration but never applied to live.** Pass 5
+shipped `supabase/migrations/20260502000001_client_interactions_type_union.sql` (the CHECK expansion
+to the 11-value union), but the migration only existed on disk — the live DB still ran the legacy
+8-value CHECK. So mobile contractors continued to hit constraint-violation rejections on `job` /
+`complaint` / `compliment` interactions even though the migration was committed. Applied live via
+Supabase MCP on 2026-05-02 with the same SQL the migration file holds. Verified post-apply, live
+constraint now accepts all 11 union values:
+
+```
+CHECK ((type = ANY (ARRAY['call'::text, 'compliment'::text, 'complaint'::text,
+  'email'::text, 'follow_up'::text, 'invoice_sent'::text, 'job'::text,
+  'meeting'::text, 'other'::text, 'quote_sent'::text, 'site_visit'::text])))
+```
+
+**3. New CI gate: banned-tables.** Adds `scripts/check-banned-tables.ts` and wires it into
+`.github/workflows/ci-cd.yml` right after the notification-inserts gate. Walks `apps/web`,
+`apps/mobile`, and `packages/` looking for `.from('<banned-table>')` references and fails CI on any
+non-allowlisted caller. Currently bans `contractor_invoices` with a one-line rationale + canonical
+replacement (`invoices`). New bans get added to `BANNED_TABLES` with the same shape — keeps the
+regression locked down without asking reviewers to remember the history.
+
+Verification this pass (every command the user requested):
+
+```
+$ npx tsc --noEmit -p apps/web/tsconfig.json                            → exit 0
+$ npx tsc --noEmit -p apps/mobile/tsconfig.json                         → exit 0
+$ TMPDIR=/tmp npx tsx scripts/check-notification-inserts.ts             → OK
+$ TMPDIR=/tmp npx tsx scripts/check-auth-coverage.ts                    → OK (417 routes)
+$ TMPDIR=/tmp npx tsx scripts/check-api-contracts.ts                    → OK
+$ TMPDIR=/tmp npx tsx scripts/check-service-role-scoping.ts             → OK (417 routes)
+$ TMPDIR=/tmp npx tsx scripts/check-internal-links.ts                   → OK (1519 files)
+$ TMPDIR=/tmp npx tsx scripts/check-banned-tables.ts                    → OK
+$ cd apps/mobile && npx jest --testPathPattern='(notificationRoutingTable|NotificationBadge)'
+    Test Suites: 2 passed, 2 total
+    Tests:       64 passed, 64 total
+```
+
 ### Re-audit corrections (review pass 5) — 2026-05-02
 
 External review caught four mismatches between code, committed migrations, and live DB. All four are
