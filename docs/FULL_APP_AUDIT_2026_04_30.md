@@ -23,6 +23,63 @@ contract), P0-2 (property assessment integration
   P1 (FindContractors search button + location filter), P1 (stale useMessages hook). Partial: P0-1
   (mobile direct supabase). Both web and mobile `tsc --noEmit` pass clean after the changes.
 
+### Re-audit corrections (review pass 5) — 2026-05-02
+
+External review caught four mismatches between code, committed migrations, and live DB. All four are
+now closed.
+
+**1. Invoice unification was incomplete on the homeowner-facing page.**
+`apps/web/app/financials/page.tsx` queried the retired `contractor_invoices` table and joined
+through a non-existent `users!contractor_invoices_contractor_id_fkey` FK. Verified live:
+`contractor_invoices` does NOT exist in production — only `invoices` does. Every homeowner therefore
+saw "No invoices yet" regardless of actual invoice state because PostgREST 404'd the missing table.
+Fix:
+
+- Switched the SELECT to `invoices` with the canonical FK (`profiles!invoices_contractor_id_fkey`).
+- `InvoiceWithJob` interface gained `issue_date` (the canonical column) alongside the legacy
+  `invoice_date` for backwards compat. Render path picks `issue_date || invoice_date` so old + new
+  rows both display correctly.
+
+**2. `notification_queue` was not reproducible from migrations.** Live DB has the table (18 columns,
+6 indexes, 3 RLS policies — verified via Supabase MCP), and runtime code in
+`NotificationAgent.queueNotification` + `NotificationProcessorService` +
+`NotificationPushDispatcher` all read/write it. But no committed migration ever created the table —
+the closest thing was `20260319000001_security_advisor_fixes.sql` adding an RLS policy on the
+pre-existing live table. A fresh checkout (CI ephemeral DB, new dev clone, disaster restore) would
+build a database whose runtime contract diverged from prod: queue drain 404s, engagement-deferred +
+failed-push notifications silently lost, pass-4 retry path never fires. Fix: new
+`supabase/migrations/20260502000000_notification_queue_canonical.sql` — idempotent (`IF NOT EXISTS`)
+so it's a no-op on production but bootstraps every greenfield environment to the exact live schema
+(including all six indexes and all three RLS policies).
+
+**3. `client_interactions.type` CHECK constraint mismatch.** Mobile
+`ClientRepository.addClientInteraction` emits
+`{call, email, meeting, job, follow_up, complaint, compliment}`, but the live constraint allowed
+`{call, email, meeting, site_visit, quote_sent, invoice_sent, follow_up, other}`. So `job` /
+`complaint` / `compliment` rows from the contractor CRM "Add interaction" form were rejected at
+insert time and silently swallowed by the surrounding throw boundary. Fix: new
+`supabase/migrations/20260502000001_client_interactions_type_union.sql` drops the legacy CHECK and
+recreates it as the **union** of both sets (11 values total). No data migration needed — every
+existing row still validates. Idempotent (the DROP is guarded by a constraint-exists check, so a
+fresh DB that never ran the legacy CHECK builds cleanly).
+
+**4. Notification metadata fix only landed on history mode.** Pass 4 added `metadata` to the
+`includeHistory` branch of `fetchNotificationFeed` but missed the default branch. So
+`/api/notifications` GET (the dashboard activity card + every default consumer) still dropped
+routing context. Fix: `feed.ts` default branch SELECT now includes `metadata`. Both branches now
+select an identical column set, eliminating the asymmetry.
+
+Verification this pass:
+
+- `npx tsc --noEmit -p apps/web/tsconfig.json` → exit 0.
+- `npx tsc --noEmit -p apps/mobile/tsconfig.json` → exit 0.
+- `npx tsx scripts/check-notification-inserts.ts` → OK.
+- `npx tsx scripts/check-auth-coverage.ts` → OK (417 routes).
+- `npx tsx scripts/check-api-contracts.ts` → OK.
+- Live DB schema captured for the migrations: `contractor_invoices` does not exist; `invoices` is
+  canonical; `notification_queue` has 18 cols / 6 indexes / 3 policies; `client_interactions` CHECK
+  currently rejects `job`/`complaint`/`compliment`.
+
 ### Re-audit corrections (review pass 4) — 2026-05-02
 
 External review caught three medium bugs that survived pass 3 — all in the queue/feed plumbing the

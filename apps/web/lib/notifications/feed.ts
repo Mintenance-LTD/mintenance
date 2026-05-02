@@ -107,9 +107,16 @@ export async function fetchNotificationFeed(
       .map<FeedNotification>(toFeedNotification);
   }
 
+  // 2026-05-02 audit follow-up (review pass 5): the default (non-history)
+  // branch was missing `metadata` from its SELECT, so the dashboard
+  // activity card and `/api/notifications` GET still dropped routing
+  // context even after the history branch was fixed in pass 4. Both
+  // branches now select the same column set.
   const { data, error } = await db
     .from('notifications')
-    .select('id, type, title, message, read, created_at, action_url, user_id')
+    .select(
+      'id, type, title, message, read, created_at, action_url, user_id, metadata'
+    )
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .limit(50);
