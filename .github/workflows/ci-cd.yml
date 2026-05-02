@@ -96,6 +96,15 @@ jobs:
       - name: Notification direct-insert gate
         run: npx tsx scripts/check-notification-inserts.ts
 
+      # 2026-05-02 audit follow-up — banned-tables gate.
+      # Fails the build if any runtime caller (under apps/* or packages/*)
+      # references a Supabase table that has been retired in production
+      # — currently `contractor_invoices` (replaced by `invoices`). Add
+      # new bans + their canonical replacements in
+      # scripts/check-banned-tables.ts.
+      - name: Banned-tables gate
+        run: npx tsx scripts/check-banned-tables.ts
+
       - name: Lint (web)
         run: npm run lint:web
 

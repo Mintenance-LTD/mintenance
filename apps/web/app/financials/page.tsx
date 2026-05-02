@@ -69,9 +69,17 @@ export default async function FinancialsPage() {
         .from('jobs')
         .select('id, budget, status')
         .eq('homeowner_id', user.id),
-      // Invoices received (from contractors) - linked through jobs
+      // Invoices received (from contractors) - linked through jobs.
+      //
+      // 2026-05-02 audit follow-up (review pass 5): the `contractor_invoices`
+      // table was retired in the invoice unification — live schema has only
+      // `invoices` (verified via Supabase MCP). The contractor FK goes
+      // through `profiles`, not `users`, and the column is `issue_date`
+      // (legacy alias `invoice_date` still populated for older rows). This
+      // page silently returned 0 invoices for every homeowner before this
+      // fix because PostgREST 404'd the missing table.
       serverSupabase
-        .from('contractor_invoices')
+        .from('invoices')
         .select(
           `
         id,
@@ -80,15 +88,16 @@ export default async function FinancialsPage() {
         total_amount,
         status,
         invoice_date,
+        issue_date,
         due_date,
         paid_date,
         job_id,
-        contractor:users!contractor_invoices_contractor_id_fkey (
+        contractor:profiles!invoices_contractor_id_fkey (
           id,
           first_name,
           last_name
         ),
-        job:jobs!contractor_invoices_job_id_fkey (
+        job:jobs!invoices_job_id_fkey (
           id,
           homeowner_id
         )
@@ -103,7 +112,9 @@ export default async function FinancialsPage() {
     title: string;
     total_amount: number;
     status: string;
-    invoice_date: string;
+    /** Legacy column kept for backwards compat; new rows use `issue_date`. */
+    invoice_date?: string | null;
+    issue_date?: string | null;
     due_date: string;
     paid_date?: string;
     job_id: string;
@@ -406,8 +417,9 @@ export default async function FinancialsPage() {
                       year: 'numeric',
                     })
                   : 'N/A';
-                const invoiceDate = invoice.invoice_date
-                  ? new Date(invoice.invoice_date).toLocaleDateString('en-GB', {
+                const issuedRaw = invoice.issue_date || invoice.invoice_date;
+                const invoiceDate = issuedRaw
+                  ? new Date(issuedRaw).toLocaleDateString('en-GB', {
                       month: 'short',
                       day: 'numeric',
                       year: 'numeric',
