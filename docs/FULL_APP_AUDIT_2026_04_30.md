@@ -23,6 +23,59 @@ contract), P0-2 (property assessment integration
   P1 (FindContractors search button + location filter), P1 (stale useMessages hook). Partial: P0-1
   (mobile direct supabase). Both web and mobile `tsc --noEmit` pass clean after the changes.
 
+### Re-audit corrections (review pass 4) — 2026-05-02
+
+External review caught three medium bugs that survived pass 3 — all in the queue/feed plumbing the
+last pass moved everything onto:
+
+**1. Queued notifications lost their routing context.** `NotificationAgent.queueNotification`
+correctly stores `metadata` on the `notification_queue` row, but `NotificationProcessorService`'s
+queue drain inserted into `notifications` without copying that column. Any quiet-hours-deferred or
+engagement-deferred notification therefore landed without `jobId`/`quoteId`/etc., so the deep link
+fell back to the inbox. Fix: the drain now copies `queuedNotif.metadata` onto the materialised row
+(only when non-empty, mirroring `NotificationService.insertInAppNotification`).
+
+**2. Queued notifications never fired push.** Same drain only inserted the in-app row — it never
+called `sendPushToDevice`. Immediate notifications (`fireImmediately`) do. So a deferred send was
+materially worse than an immediate one. Fix: drain now invokes `sendPushToDevice` after the in-app
+insert with the same payload shape as the immediate path. Push failures are still handled by the
+dispatcher's own re-enqueue branch.
+
+**3. `failed_push` rows were dead lettters.** `NotificationPushDispatcher` enqueued retries with
+`status='failed_push'`, but the processor only selected `status='pending'`. Every Expo failure just
+sat in the queue forever. Fix:
+
+- Processor SELECT extended to `IN ('pending','failed_push')` with a `retry_count < 6` guard.
+- New `retryFailedPush` path re-attempts the Expo call only — it does NOT insert a duplicate
+  notifications row. The original row's id is now threaded through
+  `metadata.original_notification_id` by the dispatcher when the failed_push row is enqueued, so the
+  retry can mark `push_sent = true` on the existing row via the dispatcher's
+  `markNotificationPushSent` helper.
+- New `bumpRetryOrFail` helper handles backoff (1m, 2m, 4m, 8m, 16m, 32m capped at 1h) and the
+  terminal-fail transition. Failures past `MAX_RETRY_COUNT` move the row to `status='failed'`.
+- Pending and failed_push paths share the retry helper so semantics stay identical.
+
+**4. The metadata rename was not reflected on the mobile inbox API path.** `fetchNotificationFeed`
+(used by `/api/notifications?history=1`) didn't select the `metadata` column, and its return type
+had no field for it. Mobile `NotificationCRUD.getUserNotifications` read `row.data` from the API
+response, not `row.metadata`. So the API path was stripping every routing payload even though pass 3
+had moved every writer onto `metadata`. Fix:
+
+- `feed.ts` SELECT lists now include `metadata`. `FeedNotification` interface gains
+  `metadata?: Record<string, unknown>`. `toFeedNotification` mapper passes it through.
+- Mobile reads `row.metadata ?? row.data ?? actionUrl-fallback` so it tracks the canonical column
+  and stays compatible with any not-yet-redeployed instance.
+
+Verification this pass:
+
+- `npx tsc --noEmit -p apps/web/tsconfig.json` → exit 0.
+- `npx tsc --noEmit -p apps/mobile/tsconfig.json` → exit 0.
+- `npx tsx scripts/check-notification-inserts.ts` → OK (allowlist still exact: NotificationService
+  - NotificationProcessorService).
+- `npx tsx scripts/check-auth-coverage.ts` → OK (417 routes).
+- `npx tsx scripts/check-api-contracts.ts` → OK.
+- Live DB verified: `notification_queue` has `metadata jsonb`, `retry_count int`, `status varchar`.
+
 ### Re-audit corrections (review pass 3) — 2026-05-01
 
 External review caught that the prior pass 2 closure on web notification inserts was still

@@ -25,6 +25,13 @@ export async function getUserNotifications(
         // Without it the API returns the dashboard-style feed (recent
         // OR unread, capped at 7) and the mobile inbox looks empty for
         // users whose recent activity is already read.
+        //
+        // 2026-05-01 audit follow-up (review pass 4): the response
+        // shape now carries `metadata` — the canonical jsonb column.
+        // Older builds may still see `data` (the legacy column name);
+        // we read metadata first, then data for backwards compat with
+        // any not-yet-redeployed instance, then fall back to deriving
+        // an actionUrl wrapper for very old payloads.
         const response = await mobileApiClient.get<{
           notifications?: Array<{
             id: string;
@@ -36,6 +43,7 @@ export async function getUserNotifications(
             read?: boolean;
             created_at?: string;
             createdAt?: string;
+            metadata?: Record<string, unknown> | null;
             data?: unknown;
             link?: string;
             action_url?: string;
@@ -48,6 +56,7 @@ export async function getUserNotifications(
             title: row.title || 'Notification',
             body: row.message || row.body || '',
             data:
+              row.metadata ??
               row.data ??
               (row.action_url || row.link
                 ? { actionUrl: row.action_url || row.link }

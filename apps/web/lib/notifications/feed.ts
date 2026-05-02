@@ -11,6 +11,16 @@ export interface FeedNotification {
   created_at: string;
   link?: string;
   action_url?: string;
+  /**
+   * Routing payload (jobId, quoteId, bidId, …) carried straight from the
+   * `notifications.metadata` jsonb column. The mobile inbox + web
+   * dashboard need this for deep-linking into the right detail view.
+   *
+   * 2026-05-01 audit follow-up (review pass 4): previously this column
+   * was not selected, so /api/notifications?history=1 silently dropped
+   * routing context for every queued + immediate notification.
+   */
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -33,6 +43,7 @@ interface NotificationRow {
   created_at: string | null;
   action_url: string | null;
   user_id: string;
+  metadata: Record<string, unknown> | null;
 }
 
 /**
@@ -75,7 +86,9 @@ export async function fetchNotificationFeed(
     const safeOffset = Math.max(offset, 0);
     const { data, error } = await db
       .from('notifications')
-      .select('id, type, title, message, read, created_at, action_url, user_id')
+      .select(
+        'id, type, title, message, read, created_at, action_url, user_id, metadata'
+      )
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .range(safeOffset, safeOffset + safeLimit - 1);
@@ -136,5 +149,6 @@ function toFeedNotification(row: NotificationRow): FeedNotification {
     created_at: row.created_at || new Date().toISOString(),
     link: row.action_url || undefined,
     action_url: row.action_url || undefined,
+    metadata: row.metadata ?? undefined,
   };
 }

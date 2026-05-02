@@ -173,6 +173,17 @@ export async function sendPushToDevice(
   // "no_push_tokens" is a terminal state (user never registered).
   if (failureReason && params.notificationType) {
     try {
+      // 2026-05-01 audit follow-up (review pass 4): thread the original
+      // notifications-row id through metadata so the retry path can flip
+      // push_sent on the existing row instead of creating a duplicate.
+      // Falls back to whatever metadata the caller already supplied.
+      const queueMetadata: Record<string, unknown> = {
+        ...(params.metadata ?? {}),
+      };
+      if (params.notificationId) {
+        queueMetadata.original_notification_id = params.notificationId;
+      }
+
       await serverSupabase.from('notification_queue').insert({
         user_id: params.userId,
         notification_type: params.notificationType,
@@ -182,7 +193,7 @@ export async function sendPushToDevice(
         title: params.title,
         message: params.body,
         action_url: params.actionUrl ?? null,
-        metadata: params.metadata ?? {},
+        metadata: queueMetadata,
         scheduled_for: new Date().toISOString(),
         status: 'failed_push',
         retry_count: 0,
@@ -193,6 +204,7 @@ export async function sendPushToDevice(
         service: 'NotificationPushDispatcher',
         userId: params.userId,
         failureReason,
+        notificationId: params.notificationId,
       });
     } catch (enqueueError) {
       logger.error(
