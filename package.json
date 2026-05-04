@@ -139,6 +139,6 @@
   },
   "dependencies": {
     "node-cache": "^5.1.2",
-    "otpauth": "^9.5.0"
+    "otpauth": "^9.5.1"
   }
 }
