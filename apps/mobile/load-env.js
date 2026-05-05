@@ -1,17 +1,22 @@
-import { logger } from '@mintenance/shared';
 /**
  * Load environment variables from root or web app .env files
  * This allows sharing Supabase credentials between web and mobile apps
+ *
+ * 2026-05-02 audit follow-up (98% readiness step 7): the prior version
+ * mixed an `import { logger }` ESM line with a `const logger = {...}`
+ * CJS literal, which produced a parser error AND made every `logger.*`
+ * call recurse infinitely (the literal's body called itself). Now a
+ * plain `console.*`-backed shim — this file is a config-time loader,
+ * not part of the bundled app, so console output is fine.
  */
 
 const fs = require('fs');
 const path = require('path');
 
-// Simple logger for config file
 const logger = {
-  info: (...args) => logger.info('[INFO]', ...args, { service: 'mobile' }),
-  warn: (...args) => logger.warn('[WARN]', ...args, { service: 'mobile' }),
-  error: (...args) => logger.error('[ERROR]', ...args, { service: 'mobile' }),
+  info: (...args) => console.log('[INFO]', ...args), // eslint-disable-line no-console
+  warn: (...args) => console.warn('[WARN]', ...args),
+  error: (...args) => console.error('[ERROR]', ...args),
 };
 
 // Paths to check for .env files (in order of priority)

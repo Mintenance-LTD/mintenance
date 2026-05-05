@@ -244,6 +244,17 @@ const JobsScreen: React.FC = () => {
     navigation.getParent?.()?.navigate('Modal', { screen: 'ServiceRequest' });
   }, [navigation]);
 
+  // 2026-05-02 audit follow-up (98% readiness step 7): the bidJobIds
+  // useMemo previously sat AFTER the `sortMode === 'map'` early return
+  // below, so it ran on some renders and not others — a Rules-of-Hooks
+  // violation. Hoisted up here so it fires on every render. Cheap to
+  // compute (set construction over a small array) so this has no
+  // perf impact on the map path.
+  const bidJobIds = useMemo(
+    () => new Set(bidPendingJobs.map((j) => j.id)),
+    [bidPendingJobs]
+  );
+
   // -- Map view (wrapped in error boundary) --
   if (sortMode === 'map' && isContractor) {
     return (
@@ -297,11 +308,7 @@ const JobsScreen: React.FC = () => {
     );
   }
 
-  // -- Set of job IDs where the contractor has already sent a bid --
-  const bidJobIds = useMemo(
-    () => new Set(bidPendingJobs.map((j) => j.id)),
-    [bidPendingJobs]
-  );
+  // bidJobIds memo lives above the early-return block — see comment.
 
   // -- Render job card --
   const renderItem = ({ item }: { item: Job }) => (

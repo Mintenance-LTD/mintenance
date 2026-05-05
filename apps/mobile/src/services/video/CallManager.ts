@@ -344,21 +344,19 @@ export async function toggleMute(
       });
     }
 
-    // 2026-04-30 audit P0-1 disposition: `call_participants` table
-    // does NOT exist in the live schema (verified via Supabase MCP).
-    // Calls to it would 404 at runtime. The video-calls feature is
-    // currently placeholder per the audit P1 finding; once a real
-    // schema lands, every upsert in this file should route through
-    // a `/api/contractor/calls/participants` endpoint with explicit
-    // ownership checks, NOT direct supabase.
-    await supabase.from('call_participants').upsert({
-      call_id: callId,
-      user_id: userId,
-      audio_enabled: !muted,
-      timestamp: new Date().toISOString(),
+    // 2026-05-02 audit follow-up (98% readiness step 4):
+    // `call_participants` is a phantom table. The DB persistence here is
+    // no-op'd while live calls are gated off behind LIVE_VIDEO_CALLS_ENABLED
+    // (see apps/mobile/src/screens/MessagingScreen.tsx). The local WebRTC
+    // track toggle above still runs so any call already in progress (test
+    // / staging build with the flag flipped on) keeps its UX. Restore the
+    // upsert by routing through `/api/contractor/calls/[id]/participants`
+    // once the participant schema + endpoint ship.
+    logger.info('Audio mute toggled (DB persistence stubbed)', {
+      callId,
+      userId,
+      muted,
     });
-
-    logger.info('Audio mute toggled', { callId, userId, muted });
     return muted;
   } catch (error) {
     logger.error('Failed to toggle mute:', error);
@@ -387,15 +385,13 @@ export async function toggleVideo(
       });
     }
 
-    // Persist participant video state to the database
-    await supabase.from('call_participants').upsert({
-      call_id: callId,
-      user_id: userId,
-      video_enabled: videoEnabled,
-      timestamp: new Date().toISOString(),
+    // 2026-05-02 audit follow-up (98% readiness step 4):
+    // `call_participants` persistence stubbed — see toggleMute above.
+    logger.info('Video toggled (DB persistence stubbed)', {
+      callId,
+      userId,
+      videoEnabled,
     });
-
-    logger.info('Video toggled', { callId, userId, videoEnabled });
     return videoEnabled;
   } catch (error) {
     logger.error('Failed to toggle video:', error);
@@ -425,14 +421,14 @@ export async function startScreenShare(
       })
       .eq('id', callId);
 
-    await supabase.from('call_participants').upsert({
-      call_id: callId,
-      user_id: userId,
-      screen_sharing: true,
-      timestamp: new Date().toISOString(),
+    // 2026-05-02 audit follow-up (98% readiness step 4):
+    // `call_participants` persistence stubbed — see toggleMute above.
+    // The parent video_calls flag is enough for the participant list UI
+    // until the real schema ships.
+    logger.info('Screen sharing started (participant row stubbed)', {
+      callId,
+      userId,
     });
-
-    logger.info('Screen sharing started', { callId, userId });
   } catch (error) {
     logger.error('Failed to start screen share:', error);
     throw error;
@@ -457,14 +453,12 @@ export async function stopScreenShare(
       })
       .eq('id', callId);
 
-    await supabase.from('call_participants').upsert({
-      call_id: callId,
-      user_id: userId,
-      screen_sharing: false,
-      timestamp: new Date().toISOString(),
+    // 2026-05-02 audit follow-up (98% readiness step 4):
+    // `call_participants` persistence stubbed — see startScreenShare above.
+    logger.info('Screen sharing stopped (participant row stubbed)', {
+      callId,
+      userId,
     });
-
-    logger.info('Screen sharing stopped', { callId, userId });
   } catch (error) {
     logger.error('Failed to stop screen share:', error);
     throw error;

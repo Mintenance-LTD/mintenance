@@ -214,12 +214,31 @@ export default function App(): React.JSX.Element {
   }
 
   const stripePublishableKey = config.stripePublishableKey;
+
+  // 2026-05-02 audit follow-up (98% readiness step 6): the previous
+  // `stripePublishableKey || 'pk_test_placeholder'` fallback meant a
+  // production build with a missing env var would silently ship with a
+  // fake Stripe key — payments would fail at runtime in confusing ways
+  // (Stripe SDK accepts the format, then 401s on charge). Now we hard
+  // fail in production builds, and only fall back to the test
+  // placeholder in dev so local boots still work without a key.
+  const isDev = typeof __DEV__ !== 'undefined' && __DEV__;
+
+  if (!isDev && !stripePublishableKey) {
+    throw new Error(
+      'EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY is required for production builds'
+    );
+  }
+
   if (!stripePublishableKey) {
     logger.warn(
       'Stripe publishable key not configured - payment features disabled',
       { service: 'app' }
     );
   }
+
+  const safeStripePublishableKey =
+    stripePublishableKey || (isDev ? 'pk_test_placeholder' : '');
 
   return (
     <SafeAreaProvider>
@@ -232,7 +251,7 @@ export default function App(): React.JSX.Element {
           }}
         >
           <StripeProvider
-            publishableKey={stripePublishableKey || 'pk_test_placeholder'}
+            publishableKey={safeStripePublishableKey}
             merchantIdentifier='merchant.com.mintenance.app'
             urlScheme='mintenance'
           >
