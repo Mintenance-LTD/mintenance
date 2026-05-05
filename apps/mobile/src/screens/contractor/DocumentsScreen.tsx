@@ -239,17 +239,27 @@ export const DocumentsScreen: React.FC = () => {
         });
 
         // 3. Certifications as documents
+        //
+        // 2026-05-02 audit follow-up: the prior SELECT picked
+        // `certification_name` + `issuing_body` — neither of which
+        // exists on `public.contractor_certifications`. Supabase
+        // tolerated the unknown column names and silently returned
+        // null for both, so the documents screen rendered every
+        // certification with a blank name + blank issuer. Canonical
+        // columns (verified live + locked in by migration
+        // 20260502000000_contractor_certifications_canonical) are
+        // `name` and `issuer`.
         const { data: certs } = await supabase
           .from('contractor_certifications')
-          .select(
-            'id, certification_name, issuing_body, issue_date, expiry_date, document_url'
-          )
+          .select('id, name, issuer, issue_date, expiry_date, document_url')
           .eq('contractor_id', user.id)
           .order('issue_date', { ascending: false });
         (certs || []).forEach((c: Record<string, unknown>) => {
+          const name = (c.name as string) || 'Certification';
+          const issuer = (c.issuer as string) || '';
           allDocs.push({
             id: `cert-${c.id as string}`,
-            filename: `${(c.certification_name as string) || 'Certification'} — ${(c.issuing_body as string) || ''}`,
+            filename: issuer ? `${name} — ${issuer}` : name,
             category: 'certification',
             uploaded_at: (c.issue_date as string) || '',
             starred: false,

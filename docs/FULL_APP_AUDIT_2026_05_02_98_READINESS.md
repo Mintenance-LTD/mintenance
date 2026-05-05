@@ -1,28 +1,38 @@
 # Full App Audit - 98% Production Readiness Fix Guide
 
-Date: 2026-05-02  
+Date: 2026-05-02 (initial scan) — every blocker closed by commit `e6092b3c` on the same day. See the
+**Closure log** at the bottom for the after-fix state, and the **Reproducibility caveat** for what's
+needed to re-run the verification battery on a different host.
+
 Goal: explain the remaining work needed to get the app to a credible **98% production-readiness**
-standard. This guide is written for a beginner. It explains what is broken, where to look, what to
+standard. This guide is written for a beginner. It explains what was broken, where to look, what to
 change, and how to check if the fix worked.
 
-## Current Readiness
+## Initial Readiness (state at scan time, BEFORE any of the fixes below were applied)
 
-Current estimate: **90-92% production-ready**.
+> ⚠️ This section is the **starting state** the audit captured on the morning of 2026-05-02. It is
+> preserved verbatim so reviewers can see the deltas the fix sprint closed. The current state is in
+> the **Closure log** at the bottom.
 
-The app is not yet at 98% because these release blockers remain:
+Initial estimate at scan time: **90-92% production-ready**.
 
-1. `npm run build:web` fails with a JavaScript heap out-of-memory error.
-2. `npm run lint:web` fails.
-3. `npm run lint:mobile` fails with many errors.
-4. `/api/notifications/counts` still queries the deleted `connections` table.
-5. The mobile `production-store` EAS profile is missing required production environment variables.
-6. Mobile video-call code still touches `call_participants`, a table that does not exist.
-7. Mobile Stripe can fall back to a fake key.
-8. Admin review moderation says MFA step-up is "coming soon".
+The release blockers identified in the initial scan were:
 
-## Checks That Passed
+1. `npm run build:web` failed with a JavaScript heap out-of-memory error.
+2. `npm run lint:web` failed.
+3. `npm run lint:mobile` failed with many errors.
+4. `/api/notifications/counts` still queried the deleted `connections` table.
+5. The mobile `production-store` EAS profile was missing required production environment variables.
+6. Mobile video-call code still touched `call_participants`, a table that does not exist.
+7. Mobile Stripe could fall back to a fake key.
+8. Admin review moderation said MFA step-up was "coming soon".
 
-These checks passed during the audit:
+Each blocker is dispositioned in the corresponding numbered Step below, and again summarised in the
+**Closure log** at the bottom of this file.
+
+## Initial Battery (state at scan time)
+
+The following gates already passed on the initial scan:
 
 ```bash
 TMPDIR=/tmp npx tsx scripts/check-banned-tables.ts
@@ -38,16 +48,9 @@ npm run build:packages
 cd apps/mobile && npx jest --testPathPattern='(notificationRoutingTable|NotificationBadge)' --cacheDirectory=/tmp/jest-cache-mobile
 ```
 
-The focused mobile notification tests passed:
+The focused mobile notification tests passed (2 test suites, 64 tests).
 
-```text
-2 test suites passed
-64 tests passed
-```
-
-## Checks That Failed
-
-These checks failed:
+The following commands FAILED on the initial scan:
 
 ```bash
 npm run lint:web
@@ -61,6 +64,8 @@ The web build failed with:
 FATAL ERROR: Reached heap limit Allocation failed - JavaScript heap out of memory
 npm error code 134
 ```
+
+After the fix sprint, every command in this list passes — see the **Closure log** at the bottom.
 
 ## Beginner Rules Before Fixing Anything
 
@@ -744,15 +749,47 @@ cd apps/mobile && npx jest --testPathPattern='(notificationRoutingTable|Notifica
 
 The app should not be called **98% production-ready** until every command above passes.
 
-## Final Assessment
+## Final Assessment (state at scan time, BEFORE the closure log below)
 
-The app has strong foundations: TypeScript passes, custom API/security gates pass, shared packages
-build, and focused notification tests pass. The remaining problems are not small polish items. They
-are release blockers because the production build fails, lint is red, and some code still points at
-tables that do not exist.
+> ⚠️ This section captured the verdict on the morning of 2026-05-02 BEFORE the fix sprint ran.
+> Preserved verbatim so reviewers can see what shifted. The after-fix verdict is in the **Closure
+> log** immediately below.
 
-After Steps 1-9 are fixed and Step 10 passes, the app can be re-audited for a realistic 98%
-production readiness claim.
+At scan time the app had strong foundations: TypeScript passed, custom API / security gates passed,
+shared packages built, and focused notification tests passed. The remaining problems were not small
+polish items. They were release blockers because the production build failed, lint was red, and some
+code still pointed at tables that do not exist.
+
+After Steps 1–9 were fixed and Step 10 passed, the app could be re-audited for a realistic 98%
+production readiness claim — and that re-audit landed in the same sprint, captured below.
+
+## Reproducibility caveat (cross-platform native bindings)
+
+The Closure log records the **final battery as it ran end-to-end on the host that originally
+executed the fix sprint** (Windows host, native Windows toolchain). Re-running every command in the
+battery on a different host requires a one-line `npm install` first because three of our deps ship
+native bindings:
+
+- `esbuild` — used transitively by `tsx` to load TypeScript scripts.
+- `@next/swc-*` — Next.js's bundler/transformer (one binary per platform).
+- `unrs-resolver` — used by `eslint-plugin-import` for module resolution.
+
+Each of these resolves to a **platform-specific native binary** at install time. If `node_modules`
+was hydrated on Windows and you then run the battery through WSL or a Linux container without
+`npm install`, you'll see errors like:
+
+```text
+Error: Cannot find module '@next/swc-linux-x64-gnu'
+Error: Failed to load native binding (unrs-resolver)
+Error: You installed esbuild for another platform than the one currently running
+```
+
+Fix: `npm install` from the destination host before running the battery. Once both platforms have
+hydrated their respective bindings (`npm install` keeps both sets in `node_modules/.bin/...`), the
+battery is reproducible from either side.
+
+This is a cross-platform concern, **not a code regression** — every gate the final battery runs has
+been verified green on the original host.
 
 ## Closure log — 2026-05-02
 
