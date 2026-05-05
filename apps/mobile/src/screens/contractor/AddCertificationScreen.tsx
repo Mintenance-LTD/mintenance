@@ -93,12 +93,25 @@ export const AddCertificationScreen: React.FC<Props> = ({ navigation }) => {
 
     setLoading(true);
     try {
+      // 2026-05-02 audit follow-up: API contract is camelCase
+      // (`certificationSchema` in apps/web/app/api/contractor/
+      // certifications/route.ts uses `issueDate`, `expiryDate`,
+      // `credentialId`). Sending snake_case here failed Zod
+      // validation silently and the row never landed.
+      //
+      // Note: the upstream audit also flagged a "column rename"
+      // mismatch in the API (issuing_body/certificate_number/
+      // verified vs the migration). Verified against the live DB
+      // 2026-05-02: the canonical columns are
+      // `issuer / credential_id / is_verified / category` and the
+      // API + migration both already match. No backend change
+      // needed — only this mobile-payload fix.
       await mobileApiClient.post('/api/contractor/certifications', {
         name: certName.trim(),
         issuer: issuer.trim(),
-        credential_id: credentialId.trim() || null,
-        issue_date: issueDateISO,
-        expiry_date: expiryDateISO || null,
+        credentialId: credentialId.trim() || null,
+        issueDate: issueDateISO,
+        expiryDate: expiryDateISO || null,
         category: selectedCategory || 'general',
       });
       queryClient.invalidateQueries({

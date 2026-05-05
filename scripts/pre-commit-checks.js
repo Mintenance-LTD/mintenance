@@ -251,6 +251,14 @@ const KNOWN_LARGE_FILES = new Set([
   // identical to before. Splits tracked as a P2 alongside other
   // notification-service consolidation work.
   'apps/web/lib/services/admin/AdminAlertService.ts', // 507 lines (was 493)
+  // Added 2026-05-02: DocumentsScreen.tsx pre-existed at ~694 lines
+  // (well over the 500-line gate already). The audit-follow-up fix
+  // changed exactly two lines (the `mobileApiClient.patch(...)`
+  // URL + payload) and added a 4-line comment explaining the API
+  // contract. Net growth is documentation only — splitting the
+  // screen into list/upload/star sub-components is a dedicated P2
+  // alongside the other contractor-business screens.
+  'apps/mobile/src/screens/contractor/DocumentsScreen.tsx', // 699 lines (was 694)
 ]);
 
 function countLines(filePath) {

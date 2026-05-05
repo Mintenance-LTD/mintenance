@@ -296,7 +296,12 @@ export const DocumentsScreen: React.FC = () => {
 
   const toggleStarMutation = useMutation({
     mutationFn: async ({ id, starred }: { id: string; starred: boolean }) => {
-      await mobileApiClient.patch(`/api/contractor/documents/${id}`, {
+      // 2026-05-02 audit follow-up: backend exposes
+      // `PATCH /api/contractor/documents` and reads `id` from the body
+      // (see route.ts:281). The path-segment form 404'd silently and
+      // the star icon flipped only in local state.
+      await mobileApiClient.patch('/api/contractor/documents', {
+        id,
         starred,
       });
     },

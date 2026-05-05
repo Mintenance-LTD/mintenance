@@ -64,13 +64,18 @@ export const AddTimeEntryScreen: React.FC<Props> = ({ navigation }) => {
 
     setLoading(true);
     try {
+      // 2026-05-02 audit follow-up: API contract is camelCase
+      // (`taskDescription` etc) — see `createEntrySchema` in
+      // apps/web/app/api/contractor/time-tracking/route.ts. Sending
+      // snake_case here failed Zod validation silently and the row
+      // never landed.
       await mobileApiClient.post('/api/contractor/time-tracking', {
-        task_description: taskDescription.trim(),
-        duration_minutes: Math.round(parseFloat(hours) * 60),
-        hourly_rate: parseFloat(hourlyRate) || 0,
-        is_billable: billable,
+        taskDescription: taskDescription.trim(),
+        durationMinutes: Math.round(parseFloat(hours) * 60),
+        hourlyRate: parseFloat(hourlyRate) || 0,
+        isBillable: billable,
         date,
-        start_time: startTime,
+        startTime,
       });
       queryClient.invalidateQueries({ queryKey: ['contractor-time-tracking'] });
       toast.success('Time entry added', `${hours}h logged successfully`);

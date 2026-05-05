@@ -136,11 +136,17 @@ export const ExpensesScreen: React.FC = () => {
       billable: boolean;
     }) => {
       if (!user?.id) throw new Error('Not authenticated');
+      // 2026-05-02 audit follow-up: API contract is camelCase
+      // `isBillable` (see `createExpenseSchema` in
+      // apps/web/app/api/contractor/expenses/route.ts). The previous
+      // `billable` key was silently dropped by Zod's default
+      // schema mode and every job-scoped expense was saved with
+      // `is_billable = false`.
       await mobileApiClient.post('/api/contractor/expenses', {
         description: expense.description,
         category: expense.category,
         amount: expense.amount,
-        billable: expense.billable,
+        isBillable: expense.billable,
         date: new Date().toISOString(),
         // Pipes the job-scoped param through so contractor_expenses.job_id
         // is set when the form was opened from a job detail screen. The
@@ -169,7 +175,14 @@ export const ExpensesScreen: React.FC = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (expenseId: string) => {
-      await mobileApiClient.delete(`/api/contractor/expenses/${expenseId}`);
+      // 2026-05-02 audit follow-up: backend exposes
+      // `DELETE /api/contractor/expenses?id=…` (the id is parsed off
+      // the query string in route.ts), NOT a path-segment style
+      // `/expenses/:id`. The path-segment form 404'd silently and
+      // expenses never deleted from the screen.
+      await mobileApiClient.delete(
+        `/api/contractor/expenses?id=${encodeURIComponent(expenseId)}`
+      );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['contractor-expenses'] });
