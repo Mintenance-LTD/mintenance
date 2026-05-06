@@ -3,16 +3,28 @@ import type { Message } from './messaging';
 import type { User } from './user';
 
 // ContractorCertification matching DB: public.contractor_certifications
+//
+// 2026-05-02 audit follow-up: aligned to canonical column names.
+// The historical migration 009_missing_core_tables.sql created the
+// table with `issuing_body` / `certificate_number` / `verified`, but
+// live production has `issuer` / `credential_id` / `is_verified`
+// (verified via Supabase MCP) and the API + mobile screens send those
+// names. Migration 20260502000000_contractor_certifications_canonical
+// brings every fresh DB rebuild to the same shape. Do not add the
+// legacy aliases back without rolling forward both layers.
 export interface ContractorCertification {
   id: string;
   contractor_id: string;
   name: string;
-  issuing_body?: string;
-  certificate_number?: string;
+  issuer: string;
+  credential_id?: string;
   issue_date?: string;
   expiry_date?: string;
   document_url?: string;
-  verified: boolean;
+  category: string;
+  is_verified?: boolean;
+  verified_at?: string;
+  verified_by?: string;
   created_at: string;
   updated_at: string;
 }

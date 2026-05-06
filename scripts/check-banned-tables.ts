@@ -47,6 +47,23 @@ const BANNED_TABLES: BannedTable[] = [
       'Old name 404s silently in production, leaving pages with empty state.',
     canonicalReplacement: 'invoices',
   },
+  {
+    name: 'connections',
+    reason:
+      'Removed with social features in supabase/migrations/007_remove_social_features.sql. ' +
+      'Any runtime SELECT/INSERT 404s and bricks the surrounding feature.',
+    canonicalReplacement:
+      'Do not query this table — return zero or remove the connections UI.',
+  },
+  {
+    name: 'call_participants',
+    reason:
+      'No active migration creates this table; mobile video-call participant ' +
+      'writes fail at runtime. Live video calls are gated off behind ' +
+      'LIVE_VIDEO_CALLS_ENABLED until a real schema lands.',
+    canonicalReplacement:
+      'Disable live video joining or build a real API-backed participant schema.',
+  },
 ];
 
 /** Repo-relative paths that may reference banned names without running them. */

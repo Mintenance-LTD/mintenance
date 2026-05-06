@@ -90,15 +90,21 @@ interface GridProps {
 }
 
 export function useResponsiveGrid(props: GridProps) {
-  const { breakpoint } = useResponsive();
-
-  const columns = props.responsive
-    ? useResponsiveValue({
-        mobile: props.responsive.mobile ?? props.columns,
-        tablet: props.responsive.tablet,
-        desktop: props.responsive.desktop,
-      })
-    : props.columns;
+  // 2026-05-02 audit follow-up (98% readiness step 7): the previous
+  // call site invoked `useResponsiveValue` only when `props.responsive`
+  // was truthy, which is a Rules-of-Hooks violation — React requires
+  // every hook to fire on every render in a stable order. We always
+  // call the hook now and pick between its result and the literal
+  // `props.columns` afterwards. The hook tolerates undefined inputs
+  // by falling back to the mobile breakpoint, so passing the same
+  // structure in both cases is safe.
+  useResponsive();
+  const responsiveColumns = useResponsiveValue({
+    mobile: props.responsive?.mobile ?? props.columns,
+    tablet: props.responsive?.tablet,
+    desktop: props.responsive?.desktop,
+  });
+  const columns = props.responsive ? responsiveColumns : props.columns;
 
   const gap = props.gap ?? 16;
 

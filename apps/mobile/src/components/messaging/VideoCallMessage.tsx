@@ -11,7 +11,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { Message } from '../../services/MessagingService';
 import { VideoCallService } from '../../services/VideoCallService';
 import { useAuth } from '../../contexts/AuthContext';
-import { logger } from '../../utils/logger';
 import { theme } from '../../theme';
 
 interface VideoCallMessageProps {
@@ -35,7 +34,9 @@ const VideoCallMessage: React.FC<VideoCallMessageProps> = ({
     } else if (seconds < 3600) {
       const minutes = Math.floor(seconds / 60);
       const remainingSeconds = seconds % 60;
-      return remainingSeconds > 0 ? `${minutes}m ${remainingSeconds}s` : `${minutes}m`;
+      return remainingSeconds > 0
+        ? `${minutes}m ${remainingSeconds}s`
+        : `${minutes}m`;
     } else {
       const hours = Math.floor(seconds / 3600);
       const minutes = Math.floor((seconds % 3600) / 60);
@@ -80,7 +81,9 @@ const VideoCallMessage: React.FC<VideoCallMessageProps> = ({
       case 'video_call_started':
         return 'Call Started';
       case 'video_call_ended':
-        return message.callDuration ? `Ended (${formatDuration(message.callDuration)})` : 'Ended';
+        return message.callDuration
+          ? `Ended (${formatDuration(message.callDuration)})`
+          : 'Ended';
       case 'video_call_missed':
         return 'Missed Call';
       default:
@@ -100,31 +103,20 @@ const VideoCallMessage: React.FC<VideoCallMessageProps> = ({
   const handleJoinCall = async () => {
     if (!message.callId || !user) return;
 
-    try {
-      // Check if call is still active
-      const activeCall = VideoCallService.getActiveCall();
-      if (activeCall?.id === message.callId && activeCall.status === 'active') {
-        // Join the call directly by triggering the callback
-        onCallAccept?.(message.callId);
-      } else if (activeCall?.id === message.callId && activeCall.status === 'scheduled') {
-        // Call is scheduled but not started yet - start it
-        await VideoCallService.joinCall(message.callId, user.id);
-        onCallAccept?.(message.callId);
-      } else {
-        Alert.alert(
-          'Call Unavailable',
-          'This video call is no longer active or has ended.',
-          [{ text: 'OK' }]
-        );
-      }
-    } catch (error) {
-      logger.error('Error joining video call:', error);
-      Alert.alert(
-        'Error',
-        'Unable to join the video call. Please try again.',
-        [{ text: 'OK' }]
-      );
-    }
+    // 2026-05-02 audit follow-up (98% readiness step 4): live joining
+    // is gated off because VideoCallService.joinCall writes to a
+    // `call_participants` table that does NOT exist in production.
+    // Every call attempt would 404 silently. Scheduling stays live
+    // (it writes to the real `video_calls` table); joining/leaving/
+    // mute/screen-share is parked under LIVE_VIDEO_CALLS_ENABLED
+    // until a real participant schema lands. The UI shows a friendly
+    // "coming soon" alert instead of letting users tap into broken
+    // code.
+    Alert.alert(
+      'Video calls coming soon',
+      'Live video calls are not available yet. You can still schedule a call.',
+      [{ text: 'OK' }]
+    );
   };
 
   const handleDeclineCall = () => {
@@ -140,12 +132,16 @@ const VideoCallMessage: React.FC<VideoCallMessageProps> = ({
   const isFromCurrentUser = message.senderId === user?.id;
 
   return (
-    <View style={[
-      styles.container,
-      isFromCurrentUser ? styles.sentMessage : styles.receivedMessage
-    ]}>
+    <View
+      style={[
+        styles.container,
+        isFromCurrentUser ? styles.sentMessage : styles.receivedMessage,
+      ]}
+    >
       <View style={styles.messageHeader}>
-        <View style={[styles.iconContainer, { backgroundColor: getMessageColor() }]}>
+        <View
+          style={[styles.iconContainer, { backgroundColor: getMessageColor() }]}
+        >
           <Ionicons
             name={getMessageIcon() as keyof typeof Ionicons.glyphMap}
             size={16}
@@ -168,7 +164,11 @@ const VideoCallMessage: React.FC<VideoCallMessageProps> = ({
               style={[styles.actionButton, styles.declineButton]}
               onPress={handleDeclineCall}
             >
-              <Ionicons name="close" size={16} color={theme.colors.textInverse} />
+              <Ionicons
+                name='close'
+                size={16}
+                color={theme.colors.textInverse}
+              />
               <Text style={styles.actionButtonText}>Decline</Text>
             </TouchableOpacity>
 
@@ -176,7 +176,11 @@ const VideoCallMessage: React.FC<VideoCallMessageProps> = ({
               style={[styles.actionButton, styles.joinButton]}
               onPress={handleJoinCall}
             >
-              <Ionicons name="videocam" size={16} color={theme.colors.textInverse} />
+              <Ionicons
+                name='videocam'
+                size={16}
+                color={theme.colors.textInverse}
+              />
               <Text style={styles.actionButtonText}>Join</Text>
             </TouchableOpacity>
           </View>
@@ -187,7 +191,7 @@ const VideoCallMessage: React.FC<VideoCallMessageProps> = ({
           >
             <Text style={styles.detailsButtonText}>{getActionText()}</Text>
             <Ionicons
-              name="chevron-forward"
+              name='chevron-forward'
               size={14}
               color={theme.colors.textSecondary}
             />
@@ -198,7 +202,7 @@ const VideoCallMessage: React.FC<VideoCallMessageProps> = ({
       <Text style={styles.timestamp}>
         {new Date(message.createdAt).toLocaleTimeString([], {
           hour: '2-digit',
-          minute: '2-digit'
+          minute: '2-digit',
         })}
       </Text>
     </View>
