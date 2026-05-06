@@ -52,6 +52,18 @@ import { styles } from './MessagingScreen/styles';
 import { TypingIndicator } from './MessagingScreen/TypingIndicator';
 import { QuickQuoteModal } from './MessagingScreen/QuickQuoteModal';
 
+/**
+ * 2026-05-02 audit follow-up (98% readiness step 4): live video joining
+ * is parked. VideoCallInterface mounts WebRTC + writes to a
+ * `call_participants` table that does NOT exist in production. Until a
+ * real participant schema lands and the WebRTC backend is verified end
+ * to end, the overlay stays unmounted. Flip this to `true` once both
+ * are shipped — every other code path (the Alert in VideoCallMessage,
+ * the "coming soon" toast in ChatHeader.onStartVideoCall) is already
+ * wired so the switch is a single-flag flip.
+ */
+const LIVE_VIDEO_CALLS_ENABLED = false;
+
 interface Props {
   route: RouteProp<MessagingStackParamList, 'Messaging'>;
   navigation: NativeStackNavigationProp<MessagingStackParamList, 'Messaging'>;
@@ -546,16 +558,18 @@ const MessagingScreen: React.FC<Props> = ({ route, navigation }) => {
             bottomInset={insets.bottom}
           />
 
-          {videoCall.isVideoCallActive && videoCall.activeCallId && (
-            <View style={styles.videoCallOverlay}>
-              <VideoCallInterface
-                callId={videoCall.activeCallId}
-                onCallEnd={videoCall.handleCallEnd}
-                onCallError={videoCall.handleCallError}
-                jobId={jobId}
-              />
-            </View>
-          )}
+          {LIVE_VIDEO_CALLS_ENABLED &&
+            videoCall.isVideoCallActive &&
+            videoCall.activeCallId && (
+              <View style={styles.videoCallOverlay}>
+                <VideoCallInterface
+                  callId={videoCall.activeCallId}
+                  onCallEnd={videoCall.handleCallEnd}
+                  onCallError={videoCall.handleCallError}
+                  jobId={jobId}
+                />
+              </View>
+            )}
 
           <VideoCallScheduler
             jobId={jobId}

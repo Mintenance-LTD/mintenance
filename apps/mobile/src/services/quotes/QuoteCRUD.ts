@@ -1,4 +1,3 @@
-import { supabase } from '../../config/supabase';
 import { logger } from '../../utils/logger';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import { trackQuoteInteraction } from './QuoteAnalytics';
@@ -75,33 +74,41 @@ export async function createQuote(
   }
 }
 
+/**
+ * 2026-05-01 audit follow-up: list + get were the last direct
+ * supabase reads in this file. Both go through GET /api/contractor/
+ * quotes (list, supports `?status=`) and a client-side filter for the
+ * single-row case (the API doesn't expose a per-id GET separately, but
+ * the list endpoint returns the row we need). Keeps the public surface
+ * identical so callers don't change.
+ */
 export async function getQuotes(
-  contractorId: string,
+  _contractorId: string,
   filters?: QuoteFilters,
   _limit: number = 50,
   _offset: number = 0
 ): Promise<ContractorQuote[]> {
   try {
-    let query = supabase
-      .from('contractor_quotes')
-      .select('*')
-      .eq('contractor_id', contractorId)
-      .order('created_at', { ascending: false });
-
-    if (filters?.status && filters.status.length > 0) {
-      query = query.in('status', filters.status);
+    // The list endpoint accepts a single status filter; if the caller
+    // passed multiple, fan out a request per status and merge.
+    if (filters?.status && filters.status.length > 1) {
+      const responses = await Promise.all(
+        filters.status.map((s) =>
+          mobileApiClient.get<{ quotes: ContractorQuote[] }>(
+            `/api/contractor/quotes?status=${encodeURIComponent(s)}`
+          )
+        )
+      );
+      return responses.flatMap((r) => r.quotes ?? []);
     }
-
-    const { data, error } = await query;
-
-    if (error) {
-      logger.error('Error fetching quotes', error.message, {
-        service: 'quote-builder',
-      });
-      throw new Error(error.message);
-    }
-
-    return (data ?? []) as unknown as ContractorQuote[];
+    const onlyStatus = filters?.status?.[0];
+    const status = onlyStatus
+      ? `?status=${encodeURIComponent(onlyStatus)}`
+      : '';
+    const response = await mobileApiClient.get<{ quotes: ContractorQuote[] }>(
+      `/api/contractor/quotes${status}`
+    );
+    return response.quotes ?? [];
   } catch (error) {
     logger.error('Error fetching quotes', error, { service: 'quote-builder' });
     throw new Error('Failed to fetch quotes');
@@ -112,24 +119,15 @@ export async function getQuote(
   quoteId: string
 ): Promise<ContractorQuote | null> {
   try {
-    const { data, error } = await supabase
-      .from('contractor_quotes')
-      .select('*')
-      .eq('id', quoteId)
-      .single();
-
-    if (error) {
-      if (error.code === 'PGRST116') return null;
-      logger.error('Error fetching quote', error.message, {
-        service: 'quote-builder',
-      });
-      throw new Error(error.message);
-    }
-
-    return (data as unknown as ContractorQuote) ?? null;
+    // The list endpoint already returns every quote for the contractor;
+    // filter client-side rather than building a second per-id route.
+    // For single-row use cases this is one round-trip with the same
+    // ownership guarantee as the list path.
+    const response = await mobileApiClient.get<{
+      quotes: ContractorQuote[];
+    }>('/api/contractor/quotes');
+    return response.quotes?.find((q) => q.id === quoteId) ?? null;
   } catch (error) {
-    const pgError = error as { code?: string };
-    if (pgError.code === 'PGRST116') return null;
     logger.error('Error fetching quote', error, { service: 'quote-builder' });
     throw new Error('Failed to fetch quote');
   }

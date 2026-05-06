@@ -87,6 +87,24 @@ jobs:
       - name: Auth coverage check
         run: npx tsx scripts/check-auth-coverage.ts
 
+      # 2026-05-01 audit follow-up — notification direct-insert gate.
+      # Fails the build if any file under apps/web inserts directly
+      # into the notifications table. Only NotificationService and
+      # NotificationProcessorService are allowed to do that; every
+      # other path must call NotificationService.createNotification
+      # so push, user preferences, and quiet hours apply consistently.
+      - name: Notification direct-insert gate
+        run: npx tsx scripts/check-notification-inserts.ts
+
+      # 2026-05-02 audit follow-up — banned-tables gate.
+      # Fails the build if any runtime caller (under apps/* or packages/*)
+      # references a Supabase table that has been retired in production
+      # — currently `contractor_invoices` (replaced by `invoices`). Add
+      # new bans + their canonical replacements in
+      # scripts/check-banned-tables.ts.
+      - name: Banned-tables gate
+        run: npx tsx scripts/check-banned-tables.ts
+
       - name: Lint (web)
         run: npm run lint:web
 

@@ -9,9 +9,15 @@
  * Gated by the /admin layout + `withApiHandler({ roles: ['admin'] })` on
  * the backing API. Mutations require fresh MFA step-up server-side so a
  * stolen session alone can't silently censor replies.
+ *
+ * 2026-05-02 audit follow-up (98% readiness step 9): the prior fallback
+ * for `requiresStepUp` was a `toast.error('… coming soon')` that left
+ * admins with no way to complete the action. Replaced with an inline
+ * step-up dialog (TOTP / backup-code) that POSTs to
+ * /api/auth/mfa/step-up and, on success, replays the original mutation.
  */
 
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import {
   Clock,
@@ -20,6 +26,7 @@ import {
   Loader2,
   Star,
   MessageSquareReply,
+  Shield,
 } from 'lucide-react';
 
 interface PendingReply {
@@ -35,10 +42,186 @@ interface PendingReply {
   jobTitle: string | null;
 }
 
+interface StepUpRequest {
+  reviewId: string;
+  action: 'approve' | 'block';
+  maxAgeMinutes: number;
+}
+
+interface MfaStepUpDialogProps {
+  open: boolean;
+  onCancel: () => void;
+  onSuccess: () => void;
+}
+
+/**
+ * Minimal inline step-up dialog — TOTP by default, backup-code as the
+ * fallback. CSRF is fetched lazily so the dialog doesn't ping the API
+ * on every render. Two-state (loading/error) flow keeps the surface
+ * simple and testable.
+ */
+function MfaStepUpDialog({ open, onCancel, onSuccess }: MfaStepUpDialogProps) {
+  const [code, setCode] = useState('');
+  const [method, setMethod] = useState<'totp' | 'backup_code'>('totp');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [csrfToken, setCsrfToken] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    setCode('');
+    setError(null);
+    let cancelled = false;
+    void (async () => {
+      try {
+        const res = await fetch('/api/csrf', { credentials: 'same-origin' });
+        const data = await res.json();
+        if (!cancelled && data?.csrfToken) setCsrfToken(data.csrfToken);
+      } catch {
+        // Non-fatal: the route also accepts the cookie-only path.
+      }
+    })();
+    setTimeout(() => inputRef.current?.focus(), 30);
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!code || code.length < 6) {
+      setError('Enter a 6-digit code (or your full backup code).');
+      return;
+    }
+    setSubmitting(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/auth/mfa/step-up', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
+        },
+        body: JSON.stringify({ code, method, maxAgeMinutes: 15 }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok || json?.success !== true) {
+        setError(json?.error || 'Verification failed. Try again.');
+        return;
+      }
+      onSuccess();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Verification failed.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (!open) return null;
+
+  return (
+    <div
+      role='dialog'
+      aria-modal='true'
+      aria-labelledby='mfa-step-up-title'
+      className='fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4'
+    >
+      <form
+        onSubmit={submit}
+        className='w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl'
+      >
+        <div className='flex items-center gap-2 mb-3'>
+          <Shield className='w-5 h-5 text-amber-600' />
+          <h2
+            id='mfa-step-up-title'
+            className='text-lg font-bold text-gray-900'
+          >
+            Confirm your identity
+          </h2>
+        </div>
+        <p className='text-sm text-gray-600 mb-4'>
+          This admin action requires fresh MFA verification. Enter your code to
+          continue.
+        </p>
+
+        <div className='space-y-3'>
+          <div className='flex gap-2 text-xs'>
+            <button
+              type='button'
+              onClick={() => setMethod('totp')}
+              className={`px-2 py-1 rounded-lg font-semibold border ${
+                method === 'totp'
+                  ? 'bg-amber-50 border-amber-300 text-amber-800'
+                  : 'bg-white border-gray-200 text-gray-600'
+              }`}
+            >
+              Authenticator
+            </button>
+            <button
+              type='button'
+              onClick={() => setMethod('backup_code')}
+              className={`px-2 py-1 rounded-lg font-semibold border ${
+                method === 'backup_code'
+                  ? 'bg-amber-50 border-amber-300 text-amber-800'
+                  : 'bg-white border-gray-200 text-gray-600'
+              }`}
+            >
+              Backup code
+            </button>
+          </div>
+          <input
+            ref={inputRef}
+            type='text'
+            inputMode={method === 'totp' ? 'numeric' : 'text'}
+            autoComplete='one-time-code'
+            value={code}
+            onChange={(e) => setCode(e.target.value.trim())}
+            placeholder={method === 'totp' ? '123456' : 'Backup code'}
+            className='w-full rounded-lg border border-gray-300 px-3 py-2 text-base font-mono tracking-widest text-center focus:outline-none focus:ring-2 focus:ring-amber-500'
+            maxLength={16}
+            required
+          />
+          {error ? (
+            <p className='text-xs font-semibold text-red-600'>{error}</p>
+          ) : null}
+        </div>
+
+        <div className='mt-5 flex justify-end gap-2'>
+          <button
+            type='button'
+            onClick={onCancel}
+            className='px-3 py-1.5 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-100'
+            disabled={submitting}
+          >
+            Cancel
+          </button>
+          <button
+            type='submit'
+            disabled={submitting || !code}
+            className='inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-50'
+          >
+            {submitting ? (
+              <Loader2 className='w-4 h-4 animate-spin' />
+            ) : (
+              <CheckCircle2 className='w-4 h-4' />
+            )}
+            Verify
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
 export default function AdminReviewModerationPage() {
   const [rows, setRows] = useState<PendingReply[]>([]);
   const [loading, setLoading] = useState(true);
   const [pendingAction, setPendingAction] = useState<string | null>(null);
+  const [stepUpRequest, setStepUpRequest] = useState<StepUpRequest | null>(
+    null
+  );
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -60,16 +243,19 @@ export default function AdminReviewModerationPage() {
     load();
   }, [load]);
 
-  async function doAction(reviewId: string, action: 'approve' | 'block') {
+  async function performAction(
+    reviewId: string,
+    action: 'approve' | 'block',
+    options: { confirmed?: boolean } = {}
+  ): Promise<void> {
     const verb = action === 'approve' ? 'approve' : 'block';
-    if (
-      !window.confirm(
+    if (!options.confirmed) {
+      const ok = window.confirm(
         action === 'approve'
           ? 'Publish this reply now (skipping the remaining moderation window)?'
           : 'Block this reply from ever being published? This is visible to the contractor in their review list.'
-      )
-    ) {
-      return;
+      );
+      if (!ok) return;
     }
     setPendingAction(reviewId);
     try {
@@ -82,10 +268,16 @@ export default function AdminReviewModerationPage() {
       const json = await res.json();
       if (!res.ok) {
         if (json?.requiresStepUp) {
-          toast.error('MFA step-up required — prompt coming soon');
-        } else {
-          toast.error(json?.error?.message || `Could not ${verb} reply`);
+          // Park the action; resume after the step-up dialog succeeds.
+          setStepUpRequest({
+            reviewId,
+            action,
+            maxAgeMinutes:
+              typeof json.maxAgeMinutes === 'number' ? json.maxAgeMinutes : 15,
+          });
+          return;
         }
+        toast.error(json?.error?.message || `Could not ${verb} reply`);
         return;
       }
       toast.success(action === 'approve' ? 'Reply published' : 'Reply blocked');
@@ -95,6 +287,19 @@ export default function AdminReviewModerationPage() {
     } finally {
       setPendingAction(null);
     }
+  }
+
+  function doAction(reviewId: string, action: 'approve' | 'block') {
+    void performAction(reviewId, action);
+  }
+
+  function onStepUpSuccess() {
+    const parked = stepUpRequest;
+    setStepUpRequest(null);
+    if (!parked) return;
+    // Skip the confirm() prompt the second time — the admin already
+    // approved this action before the step-up was demanded.
+    void performAction(parked.reviewId, parked.action, { confirmed: true });
   }
 
   return (
@@ -204,6 +409,15 @@ export default function AdminReviewModerationPage() {
           </ul>
         )}
       </div>
+
+      <MfaStepUpDialog
+        open={stepUpRequest !== null}
+        onCancel={() => {
+          setStepUpRequest(null);
+          toast('Verification cancelled. The action was not applied.');
+        }}
+        onSuccess={onStepUpSuccess}
+      />
     </div>
   );
 }

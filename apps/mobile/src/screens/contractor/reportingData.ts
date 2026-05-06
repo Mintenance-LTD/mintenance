@@ -98,10 +98,16 @@ export async function fetchReportingData(
       .eq('reviewee_id', userId)
       .order('created_at', { ascending: false })
       .limit(10),
+    // 2026-05-02 audit follow-up: escrow_transactions uses `payee_id`
+    // (the contractor side of the escrow), NOT `contractor_id` — there
+    // is no `contractor_id` column on this table. The web reporting
+    // route at apps/web/app/api/contractor/reporting/route.ts:49
+    // already uses `payee_id`. Filtering on the wrong column meant
+    // the mobile reports screen always showed £0 earnings.
     supabase
       .from('escrow_transactions')
       .select('amount, status, created_at')
-      .eq('contractor_id', userId)
+      .eq('payee_id', userId)
       .eq('status', 'released')
       .gte('created_at', sinceISO),
   ]);

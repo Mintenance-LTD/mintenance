@@ -1,9 +1,14 @@
-// @ts-nocheck
+// @ts-nocheck — example/playground file; types diverge from current OfflineManager API on purpose
 /**
  * OFFLINE CONFLICT RESOLUTION - USAGE EXAMPLES
  *
  * This file demonstrates how to use the enhanced OfflineManager
  * with conflict resolution capabilities.
+ *
+ * 2026-05-02 audit follow-up (98% readiness step 7): the bare
+ * `@ts-nocheck` triggered ban-ts-comment. The directive is kept (this
+ * is a documentation playground, not real runtime code) but now carries
+ * the required justification on the same line.
  */
 
 import React, { useEffect, useState } from 'react';

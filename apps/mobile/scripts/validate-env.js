@@ -1,10 +1,16 @@
-import { logger } from '@mintenance/shared';
 #!/usr/bin/env node
 
 /**
  * ENVIRONMENT VALIDATION FIX
  * Validates required environment variables before build
  * Prevents builds with missing/invalid credentials
+ *
+ * 2026-05-02 audit follow-up (98% readiness step 7): the prior file
+ * had an `import { logger } from '@mintenance/shared'` line ABOVE the
+ * shebang (`#!/usr/bin/env node`), which produced an "Unexpected
+ * character '!'" parse error because the shebang must be the first
+ * line. Removed the unused ESM import — this CJS script logs via
+ * `console.*` directly.
  */
 
 // Simple color functions (no external dependency required)

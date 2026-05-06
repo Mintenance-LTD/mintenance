@@ -235,6 +235,30 @@ const KNOWN_LARGE_FILES = new Set([
   // structural, not new business logic. Splits are P2 follow-ups.
   'apps/mobile/src/screens/job-form/JobEditScreen.tsx', // 510 lines (was 488) — useUnsavedChanges + markDirty wrappers
   'apps/mobile/src/screens/properties/EditPropertyScreen.tsx', // 518 lines (was 478) — hasEdits flag pattern + wrapped setters
+  // Added 2026-05-01: ClientRepository.ts pre-existed at ~485 lines;
+  // the audit-review pass 2 closure added a 30-line file-header
+  // documenting the RLS-scoped exception status for every method
+  // that still touches contractor_clients directly. Net growth is
+  // documentation only, not business logic — splitting the
+  // repository-style class is a dedicated P2 alongside the eventual
+  // migration to /api/contractor/clients/*.
+  'apps/mobile/src/services/client-management/ClientRepository.ts', // 516 lines (was ~485)
+  // Added 2026-05-01: AdminAlertService.ts grew from 493 to 507 lines
+  // when migrating its bulk `.from('notifications').insert` to a
+  // Promise.allSettled fan-out through NotificationService.createNotification
+  // (review-pass-3 audit follow-up). Net growth is +14 lines for the
+  // batched fan-out + result aggregation; the file is structurally
+  // identical to before. Splits tracked as a P2 alongside other
+  // notification-service consolidation work.
+  'apps/web/lib/services/admin/AdminAlertService.ts', // 507 lines (was 493)
+  // Added 2026-05-02: DocumentsScreen.tsx pre-existed at ~694 lines
+  // (well over the 500-line gate already). The audit-follow-up fix
+  // changed exactly two lines (the `mobileApiClient.patch(...)`
+  // URL + payload) and added a 4-line comment explaining the API
+  // contract. Net growth is documentation only — splitting the
+  // screen into list/upload/star sub-components is a dedicated P2
+  // alongside the other contractor-business screens.
+  'apps/mobile/src/screens/contractor/DocumentsScreen.tsx', // 699 lines (was 694)
 ]);
 
 function countLines(filePath) {

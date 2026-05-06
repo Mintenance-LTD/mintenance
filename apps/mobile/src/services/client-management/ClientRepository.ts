@@ -1,8 +1,35 @@
 /**
  * ClientRepository
- * 
- * Handles all database operations for client management, including CRUD operations,
- * filtering, searching, and data import/export functionality.
+ *
+ * Handles all database operations for client management, including CRUD
+ * operations, filtering, searching, and data import/export functionality.
+ *
+ * 2026-05-01 audit P0-1 disposition — direct-Supabase exception:
+ *
+ *   - The `createClient` path is migrated to `POST /api/contractor/clients`
+ *     and is no longer reached from production UI (`AddClientScreen`
+ *     calls the API directly). The local `createClient` method is kept
+ *     in place for the contractor-business-suite import surface but
+ *     should be considered deprecated — new callers MUST use the API.
+ *   - The remaining methods on this class (`getClients`, `getClientById`,
+ *     `updateClient`, `deleteClient`, `updateClientLifecycle`,
+ *     `addClientInteraction`, `importClients`, `exportClients`,
+ *     `getFollowUpTasks`, `createFollowUpTask`, `completeFollowUpTask`)
+ *     all touch the real `contractor_clients` table directly. Live RLS
+ *     scopes every operation to `contractor_id = auth.uid()` (verified
+ *     via `pg_policies` on 2026-05-01 — 6 policies covering ALL +
+ *     individual SELECT/INSERT/UPDATE/DELETE). The security boundary
+ *     the API routes provide for other writes is enforced at the DB
+ *     layer here, so these calls are a deliberate exception to the
+ *     "API-first" rule (same disposition as
+ *     `JobContextLocationService` for live GPS pulses through Realtime).
+ *
+ * Migration plan: when the contractor-business-suite consumers
+ * (`useClients` hook, `ContractorBusinessSuite.clients.*`) are next
+ * touched, swap each method to `mobileApiClient` calls against
+ * `/api/contractor/clients/*` (the GET endpoint already exists; POST
+ * was added 2026-05-01 alongside the AddClient migration; PATCH /
+ * DELETE / per-client endpoints are not yet built).
  */
 
 import { supabase } from '../../config/supabase';
@@ -90,37 +117,37 @@ export class ClientRepository {
     // Apply filters
     if (params?.filters) {
       const filters = params.filters;
-      
+
       if (filters.status?.length) {
         query = query.in('status', filters.status);
       }
-      
+
       if (filters.priority?.length) {
         query = query.in('priority', filters.priority);
       }
-      
+
       if (filters.type?.length) {
         query = query.in('type', filters.type);
       }
-      
+
       if (filters.tags?.length) {
         query = query.overlaps('tags', filters.tags);
       }
-      
+
       if (filters.lifecycleStage?.length) {
         query = query.in('lifecycle->stage', filters.lifecycleStage);
       }
-      
+
       if (filters.source?.length) {
         query = query.in('source', filters.source);
       }
-      
+
       if (filters.dateRange) {
         query = query
           .gte('created_at', filters.dateRange.start)
           .lte('created_at', filters.dateRange.end);
       }
-      
+
       if (filters.financialRange) {
         query = query
           .gte('financials->totalSpent', filters.financialRange.minSpent)
@@ -130,7 +157,9 @@ export class ClientRepository {
 
     // Apply search query
     if (params?.query) {
-      query = query.or(`first_name.ilike.%${params.query}%,last_name.ilike.%${params.query}%,email.ilike.%${params.query}%,company_name.ilike.%${params.query}%`);
+      query = query.or(
+        `first_name.ilike.%${params.query}%,last_name.ilike.%${params.query}%,email.ilike.%${params.query}%,company_name.ilike.%${params.query}%`
+      );
     }
 
     // Apply sorting
@@ -246,7 +275,14 @@ export class ClientRepository {
   async addClientInteraction(
     clientId: string,
     interactionData: {
-      type: 'call' | 'email' | 'meeting' | 'job' | 'follow_up' | 'complaint' | 'compliment';
+      type:
+        | 'call'
+        | 'email'
+        | 'meeting'
+        | 'job'
+        | 'follow_up'
+        | 'complaint'
+        | 'compliment';
       subject: string;
       description: string;
       outcome?: string;
@@ -256,20 +292,18 @@ export class ClientRepository {
       attachments?: string[];
     }
   ): Promise<void> {
-    const { error } = await supabase
-      .from('client_interactions')
-      .insert({
-        client_id: clientId,
-        type: interactionData.type,
-        subject: interactionData.subject,
-        description: interactionData.description,
-        outcome: interactionData.outcome,
-        next_action: interactionData.nextAction,
-        scheduled_date: interactionData.scheduledDate,
-        duration: interactionData.duration,
-        attachments: interactionData.attachments || [],
-        created_at: new Date().toISOString(),
-      });
+    const { error } = await supabase.from('client_interactions').insert({
+      client_id: clientId,
+      type: interactionData.type,
+      subject: interactionData.subject,
+      description: interactionData.description,
+      outcome: interactionData.outcome,
+      next_action: interactionData.nextAction,
+      scheduled_date: interactionData.scheduledDate,
+      duration: interactionData.duration,
+      attachments: interactionData.attachments || [],
+      created_at: new Date().toISOString(),
+    });
 
     if (error) throw error;
   }
@@ -308,8 +342,11 @@ export class ClientRepository {
 
         results.imported++;
       } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        results.errors.push(`Failed to import client ${clientData.email}: ${errorMessage}`);
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        results.errors.push(
+          `Failed to import client ${clientData.email}: ${errorMessage}`
+        );
       }
     }
 
@@ -389,10 +426,12 @@ export class ClientRepository {
   async getFollowUpTasks(contractorId: string): Promise<ClientFollowUpTask[]> {
     const { data, error } = await supabase
       .from('client_follow_up_tasks')
-      .select(`
+      .select(
+        `
         *,
         contractor_clients!inner(contractor_id)
-      `)
+      `
+      )
       .eq('contractor_clients.contractor_id', contractorId)
       .order('due_date', { ascending: true });
 
@@ -467,9 +506,11 @@ export class ClientRepository {
     const csvRows = [headers.join(',')];
 
     for (const row of data) {
-      const values = headers.map(header => {
+      const values = headers.map((header) => {
         const value = row[header];
-        return typeof value === 'string' ? `"${value.replace(/"/g, '""')}"` : value;
+        return typeof value === 'string'
+          ? `"${value.replace(/"/g, '""')}"`
+          : value;
       });
       csvRows.push(values.join(','));
     }
