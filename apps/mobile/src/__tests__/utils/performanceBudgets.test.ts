@@ -37,6 +37,21 @@ jest.mock('../../utils/performance', () => ({
     getViolations: jest.fn(() => []),
     exportData: jest.fn(() => Promise.resolve({})),
   },
+  withPerformanceEnforcement: jest.fn((Component) => Component),
+  usePerformanceMonitoring: jest.fn(() => ({ renderCount: 0, renderTime: 0 })),
+  reactNativePerformanceEnforcer: {
+    initialize: jest.fn(() => Promise.resolve()),
+    getStatus: jest.fn(() => ({
+      config: {
+        enableBundleAnalysis: true,
+        enableMemoryTracking: true,
+        maxBundleSize: 20 * 1024,
+      },
+      monitoring: {},
+      recommendations: [],
+    })),
+    cleanup: jest.fn(),
+  },
   PerformanceBudget: {},
   PerformanceMetrics: {},
   BudgetViolation: {},
