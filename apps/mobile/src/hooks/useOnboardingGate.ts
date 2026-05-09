@@ -61,25 +61,46 @@ export function useOnboardingGate() {
       });
   }, [user]);
 
+  /**
+   * AUDIT_PUNCH_LIST P2 #74 (B6-P2-5) — race fix 2026-05-09.
+   *
+   * Old flow:
+   *   1. setShouldShow(false) — UI hides
+   *   2. AsyncStorage flag set
+   *   3. API call → refreshUser
+   *
+   * If step 3 failed (network blip), the local flag was set but the
+   * DB stayed stale. Cross-platform (web) would still show
+   * onboarding, and a future cache wipe of AsyncStorage would
+   * resurrect the swiper.
+   *
+   * New flow:
+   *   1. setShouldShow(false) — optimistic UI dismiss (UX win)
+   *   2. API call → refreshUser FIRST
+   *   3. Local flag set ONLY if API succeeded
+   *   4. If API fails, the local flag stays unset, so the gate
+   *      re-evaluates on next mount and retries — eventually the
+   *      user lands online and the sync completes.
+   */
   const dismiss = useCallback(async () => {
     setShouldShow(false);
 
-    // Persist locally immediately
-    try {
-      await AsyncStorage.setItem(STORAGE_KEY, '1');
-    } catch {
-      // Non-critical
-    }
-
-    // Sync to DB (non-blocking)
     try {
       await mobileApiClient.post('/api/onboarding/complete', {});
       await refreshUser();
+      // Persist locally only after server confirmed.
+      try {
+        await AsyncStorage.setItem(STORAGE_KEY, '1');
+      } catch {
+        // Non-critical — DB is now source of truth.
+      }
     } catch (err) {
-      logger.warn('Failed to sync onboarding completion to server', {
-        error: err,
-      });
-      // Local flag is set — won't show again even if API fails
+      logger.warn(
+        'Failed to sync onboarding completion to server — gate will retry on next session',
+        { error: err }
+      );
+      // Don't write the local flag. Next mount re-evaluates and the
+      // user gets another chance to dismiss when they're back online.
     }
   }, [refreshUser]);
 

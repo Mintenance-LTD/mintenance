@@ -259,6 +259,22 @@ const KNOWN_LARGE_FILES = new Set([
   // screen into list/upload/star sub-components is a dedicated P2
   // alongside the other contractor-business screens.
   'apps/mobile/src/screens/contractor/DocumentsScreen.tsx', // 699 lines (was 694)
+  // Added 2026-05-09: AIPricingWidget grew from ~520 to 528 lines via
+  // the DEPRECATED-NAMING header docs + user-facing string retone
+  // (audit P1 #18: `AIPricingEngine` is mislabeled — pure client-side
+  // BASE_RATES heuristics, no AI). Net growth is documentation +
+  // 4-5 string changes ("AI Pricing Analysis" → "Pricing Estimate",
+  // etc.); splitting the widget is a dedicated P2 alongside the
+  // server-routed estimator that will replace the local engine.
+  'apps/mobile/src/components/AIPricingWidget.tsx', // 528 lines (was ~520)
+  // Added 2026-05-09: contractor/expenses/page.tsx pre-existed at
+  // ~624 lines (well over the gate). The audit-follow-up touch is
+  // 4 lines added (a small audit-doc comment + sanitize-postgrest
+  // import for the search filter). No new business logic. Splitting
+  // the page into Header / FilterRow / ExpenseTable / AddExpenseForm
+  // sub-components is a dedicated P2 alongside the other contractor
+  // business screens.
+  'apps/web/app/contractor/expenses/page.tsx', // 628 lines (was ~624)
 ]);
 
 function countLines(filePath) {

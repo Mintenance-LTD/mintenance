@@ -97,17 +97,29 @@ export class PhotoUploadService {
   }
 
   /**
-   * Upload before photos at job start
+   * Upload before photos at job start.
+   *
+   * AUDIT_PUNCH_LIST P2 #57 (B-P2-1) — geolocation hoisted out of
+   * the per-photo loop 2026-05-09. Was firing
+   * `Location.getCurrentPositionAsync` once per photo (10 photos =
+   * 10 sequential 1-3s GPS fetches AND a possible mid-upload
+   * permission prompt). Now resolved once before the loop and
+   * reused for the whole batch — all photos in one upload session
+   * are at the same job site, so the location is identical anyway.
+   * iOS strips EXIF metadata via ImagePicker so the
+   * `getCurrentLocation()` fetch is the canonical capture path —
+   * the `exif: true` flag in JobPhotoUploadScreen is a defensive
+   * fallback for the rare Android case but doesn't ship coords on iOS.
    */
   static async uploadBeforePhotos(
     jobId: string,
     photos: ImagePicker.ImagePickerAsset[]
   ): Promise<PhotoUploadResult[]> {
     const results: PhotoUploadResult[] = [];
+    const location = await this.getCurrentLocation();
 
     for (const photo of photos) {
       try {
-        const location = await this.getCurrentLocation();
         const metadata: PhotoMetadata = {
           url: photo.uri,
           type: 'before',
@@ -174,17 +186,20 @@ export class PhotoUploadService {
   }
 
   /**
-   * Upload after photos at job completion
+   * Upload after photos at job completion.
+   *
+   * AUDIT_PUNCH_LIST P2 #57 (B-P2-1) — see `uploadBeforePhotos` for
+   * rationale. Geolocation hoisted out of the per-photo loop.
    */
   static async uploadAfterPhotos(
     jobId: string,
     photos: ImagePicker.ImagePickerAsset[]
   ): Promise<PhotoUploadResult[]> {
     const results: PhotoUploadResult[] = [];
+    const location = await this.getCurrentLocation();
 
     for (const photo of photos) {
       try {
-        const location = await this.getCurrentLocation();
         const metadata: PhotoMetadata = {
           url: photo.uri,
           type: 'after',
@@ -307,7 +322,16 @@ export class PhotoUploadService {
   }
 
   /**
-   * Get current location
+   * Get current location for photo metadata.
+   *
+   * Uses Balanced accuracy (~50m) which resolves in <1s instead of
+   * High accuracy's 3-10s. For a job-site photo proof, 50m is plenty
+   * — server-side verification is anyway only checking that the
+   * contractor was within ~100m of the property.
+   *
+   * Tries the cached last-known location first; falls back to a
+   * fresh fix only if no cached value exists. Returns undefined on
+   * permission denial — caller treats geolocation as optional.
    */
   private static async getCurrentLocation(): Promise<
     | {
@@ -322,7 +346,20 @@ export class PhotoUploadService {
         return undefined;
       }
 
-      const location = await Location.getCurrentPositionAsync({});
+      const cached = await Location.getLastKnownPositionAsync({
+        maxAge: 60_000, // 1 min — fresh enough for photo timestamping
+        requiredAccuracy: 100, // metres — beyond this, force fresh fix
+      });
+      if (cached) {
+        return {
+          latitude: cached.coords.latitude,
+          longitude: cached.coords.longitude,
+        };
+      }
+
+      const location = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
       return {
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,

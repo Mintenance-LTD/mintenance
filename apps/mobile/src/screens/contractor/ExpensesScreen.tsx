@@ -1,18 +1,14 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
-  Text,
   FlatList,
-  ScrollView,
-  StyleSheet,
   TouchableOpacity,
   RefreshControl,
-  TextInput,
   Alert,
-  Animated,
   Platform,
   StatusBar,
   KeyboardAvoidingView,
+  Text,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
@@ -20,143 +16,69 @@ import {
   useRoute,
   type RouteProp,
 } from '@react-navigation/native';
-import type { ProfileStackParamList } from '../../navigation/types';
 import { Ionicons } from '@expo/vector-icons';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import type { ProfileStackParamList } from '../../navigation/types';
 import {
   ScreenHeader,
   LoadingSpinner,
   ErrorView,
 } from '../../components/shared';
-import { Badge } from '../../components/ui/Badge';
-import { Button } from '../../components/ui/Button';
-import { Card } from '../../components/ui/Card';
-import { mobileApiClient } from '../../utils/mobileApiClient';
-import { supabase } from '../../config/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { theme } from '../../theme';
 
-interface Expense {
-  id: string;
-  description: string;
-  category: string;
-  amount: number;
-  date: string;
-  billable: boolean;
-  job_id?: string;
-}
+import { styles } from './expenses/theme/styles';
+import {
+  useExpensesQuery,
+  useCreateExpense,
+  useDeleteExpense,
+} from './expenses/queries';
+import { computeExpenseStats } from './expenses/aggregations';
+import { useUndoableDelete } from './expenses/useUndoableDelete';
+import type { CategoryFilter } from './expenses/types';
+import { StatsRow } from './expenses/components/StatsRow';
+import { FilterChips } from './expenses/components/FilterChips';
+import {
+  AddExpenseForm,
+  type ExpenseFormData,
+} from './expenses/components/AddExpenseForm';
+import { ExpenseRow } from './expenses/components/ExpenseRow';
+import { EmptyState } from './expenses/components/EmptyState';
+import { UndoSnackbar } from './expenses/components/UndoSnackbar';
 
-type CategoryFilter =
-  | 'all'
-  | 'materials'
-  | 'tools'
-  | 'fuel'
-  | 'software'
-  | 'insurance'
-  | 'marketing'
-  | 'other';
-
-const CATEGORY_COLORS: Record<string, string> = {
-  materials: '#3B82F6',
-  tools: '#8B5CF6',
-  fuel: theme.colors.accent,
-  software: '#3B82F6',
-  insurance: theme.colors.primary,
-  marketing: theme.colors.error,
-  other: theme.colors.textSecondary,
-};
-
-const CATEGORY_FILTERS: CategoryFilter[] = [
-  'all',
-  'materials',
-  'tools',
-  'fuel',
-  'software',
-  'insurance',
-  'marketing',
-  'other',
-];
-
-const EXPENSE_CATEGORIES = CATEGORY_FILTERS.filter(
-  (item) => item !== 'all'
-) as Exclude<CategoryFilter, 'all'>[];
-
+/**
+ * Contractor expenses screen — list + add + delete-with-undo.
+ * Was an 823-line monolith. Split 2026-05-09 (AUDIT_PUNCH_LIST P2 #44a)
+ * into typed queries (`expenses/queries.ts`), pure aggregations
+ * (`expenses/aggregations.ts`), an undo-delete hook
+ * (`expenses/useUndoableDelete.ts`) and 6 leaf components under
+ * `expenses/components/`. Public behaviour preserved.
+ */
 export const ExpensesScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute<RouteProp<ProfileStackParamList, 'Expenses'>>();
   const jobIdParam = route.params?.jobId;
   const jobTitleParam = route.params?.jobTitle;
-  const queryClient = useQueryClient();
   const { user } = useAuth();
+
   const [filter, setFilter] = useState<CategoryFilter>('all');
   // Auto-open the form when entering with a jobId so the contractor
-  // lands directly in expense capture (the entry point CTA on the job
-  // detail screen says "Log Expense for this Job"). Default `billable`
-  // to true on this path — almost every job-scoped expense (materials,
-  // fuel, parts) is intended to be invoiced back.
+  // lands directly in expense capture (the job-detail CTA reads
+  // "Log Expense for this Job"). Default `billable` to true on this
+  // path — almost every job-scoped expense is intended to be invoiced.
   const [showForm, setShowForm] = useState(!!jobIdParam);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<ExpenseFormData>({
     description: '',
     category: 'materials',
     amount: '',
     billable: !!jobIdParam,
   });
 
-  const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['contractor-expenses', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return { expenses: [], total: 0 };
-      const { data, error } = await supabase
-        .from('contractor_expenses')
-        .select('*')
-        .eq('contractor_id', user.id)
-        .order('date', { ascending: false });
-      if (error) throw new Error(error.message);
-      const expenses: Expense[] = (data || []).map(
-        (e: Record<string, unknown>) => ({
-          id: e.id as string,
-          description: (e.description as string) || '',
-          category: (e.category as string) || 'other',
-          amount: (e.amount as number) || 0,
-          date: (e.date as string) || (e.created_at as string),
-          billable: (e.billable ?? e.is_billable ?? false) as boolean,
-          job_id: e.job_id as string | undefined,
-        })
-      );
-      return { expenses, total: expenses.reduce((s, e) => s + e.amount, 0) };
-    },
-    enabled: !!user?.id,
-  });
+  const { data, isLoading, error, refetch } = useExpensesQuery(user?.id);
 
-  const createMutation = useMutation({
-    mutationFn: async (expense: {
-      description: string;
-      category: string;
-      amount: number;
-      billable: boolean;
-    }) => {
-      if (!user?.id) throw new Error('Not authenticated');
-      // 2026-05-02 audit follow-up: API contract is camelCase
-      // `isBillable` (see `createExpenseSchema` in
-      // apps/web/app/api/contractor/expenses/route.ts). The previous
-      // `billable` key was silently dropped by Zod's default
-      // schema mode and every job-scoped expense was saved with
-      // `is_billable = false`.
-      await mobileApiClient.post('/api/contractor/expenses', {
-        description: expense.description,
-        category: expense.category,
-        amount: expense.amount,
-        isBillable: expense.billable,
-        date: new Date().toISOString(),
-        // Pipes the job-scoped param through so contractor_expenses.job_id
-        // is set when the form was opened from a job detail screen. The
-        // /api/contractor/expenses route already accepts jobId via Zod
-        // schema (zod-validated as optional uuid).
-        jobId: jobIdParam,
-      });
-    },
+  const createMutation = useCreateExpense({
+    userId: user?.id,
+    jobIdParam,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['contractor-expenses'] });
       setShowForm(false);
       setFormData({
         description: '',
@@ -165,74 +87,21 @@ export const ExpensesScreen: React.FC = () => {
         billable: false,
       });
     },
-    onError: (err: Error) => Alert.alert('Error', err.message),
+    onError: (err) => Alert.alert('Error', err.message),
   });
 
-  // Undo delete state
-  const [pendingDelete, setPendingDelete] = useState<Expense | null>(null);
-  const deleteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const snackbarOpacity = useRef(new Animated.Value(0)).current;
-
-  const deleteMutation = useMutation({
-    mutationFn: async (expenseId: string) => {
-      // 2026-05-02 audit follow-up: backend exposes
-      // `DELETE /api/contractor/expenses?id=…` (the id is parsed off
-      // the query string in route.ts), NOT a path-segment style
-      // `/expenses/:id`. The path-segment form 404'd silently and
-      // expenses never deleted from the screen.
-      await mobileApiClient.delete(
-        `/api/contractor/expenses?id=${encodeURIComponent(expenseId)}`
-      );
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['contractor-expenses'] });
-    },
-    onError: (err: Error) => Alert.alert('Error', err.message),
-  });
-
-  const handleDelete = useCallback(
-    (expense: Expense) => {
-      // Clear any existing pending delete
-      if (deleteTimerRef.current) {
-        clearTimeout(deleteTimerRef.current);
-        if (pendingDelete) {
-          deleteMutation.mutate(pendingDelete.id);
-        }
-      }
-
-      setPendingDelete(expense);
-      Animated.timing(snackbarOpacity, {
-        toValue: 1,
-        duration: 200,
-        useNativeDriver: true,
-      }).start();
-
-      deleteTimerRef.current = setTimeout(() => {
-        deleteMutation.mutate(expense.id);
-        setPendingDelete(null);
-        Animated.timing(snackbarOpacity, {
-          toValue: 0,
-          duration: 200,
-          useNativeDriver: true,
-        }).start();
-      }, 3000);
-    },
-    [pendingDelete, deleteMutation, snackbarOpacity]
+  const deleteMutation = useDeleteExpense((err) =>
+    Alert.alert('Error', err.message)
   );
 
-  const handleUndoDelete = useCallback(() => {
-    if (deleteTimerRef.current) {
-      clearTimeout(deleteTimerRef.current);
-    }
-    setPendingDelete(null);
-    Animated.timing(snackbarOpacity, {
-      toValue: 0,
-      duration: 200,
-      useNativeDriver: true,
-    }).start();
-  }, [snackbarOpacity]);
+  const fireDelete = useCallback(
+    (id: string) => deleteMutation.mutate(id),
+    [deleteMutation]
+  );
+  const { pendingDelete, snackbarOpacity, handleDelete, handleUndoDelete } =
+    useUndoableDelete(fireDelete);
 
-  const expenses = data?.expenses || [];
+  const expenses = data?.expenses ?? [];
   const visibleExpenses = pendingDelete
     ? expenses.filter((e) => e.id !== pendingDelete.id)
     : expenses;
@@ -241,19 +110,8 @@ export const ExpensesScreen: React.FC = () => {
       ? visibleExpenses
       : visibleExpenses.filter((e) => e.category === filter);
 
-  const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
-  const thisMonth = expenses
-    .filter((e) => {
-      const d = new Date(e.date);
-      const now = new Date();
-      return (
-        d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
-      );
-    })
-    .reduce((sum, e) => sum + e.amount, 0);
-  const billableTotal = expenses
-    .filter((e) => e.billable)
-    .reduce((sum, e) => sum + e.amount, 0);
+  const { totalExpenses, thisMonth, billableTotal } =
+    computeExpenseStats(expenses);
 
   if (isLoading) return <LoadingSpinner />;
   if (error)
@@ -279,191 +137,33 @@ export const ExpensesScreen: React.FC = () => {
           />
         </View>
 
-        {/* Stats */}
-        <View style={styles.statsRow}>
-          {[
-            {
-              label: 'Total',
-              value: `\u00A3${totalExpenses.toFixed(2)}`,
-              icon: 'wallet-outline' as const,
-              color: '#3B82F6',
-              bg: '#DBEAFE',
-            },
-            {
-              label: 'This Month',
-              value: `\u00A3${thisMonth.toFixed(2)}`,
-              icon: 'calendar-outline' as const,
-              color: '#8B5CF6',
-              bg: '#EDE9FE',
-            },
-            {
-              label: 'Billable',
-              value: `\u00A3${billableTotal.toFixed(2)}`,
-              icon: 'checkmark-circle-outline' as const,
-              color: theme.colors.primary,
-              bg: theme.colors.primaryLight,
-            },
-          ].map((stat) => (
-            <View key={stat.label} style={styles.statCard}>
-              <View style={[styles.statIconWrap, { backgroundColor: stat.bg }]}>
-                <Ionicons name={stat.icon} size={16} color={stat.color} />
-              </View>
-              <Text style={styles.statValue}>{stat.value}</Text>
-              <Text style={styles.statLabel}>{stat.label}</Text>
-            </View>
-          ))}
-        </View>
+        <StatsRow
+          totalExpenses={totalExpenses}
+          thisMonth={thisMonth}
+          billableTotal={billableTotal}
+        />
 
-        {/* Filter Chips — horizontal ScrollView to avoid FlatList sizing bugs */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterRow}
-          style={styles.filterScrollView}
-        >
-          {CATEGORY_FILTERS.map((item) => (
-            <TouchableOpacity
-              key={item}
-              style={[
-                styles.filterChip,
-                filter === item && styles.filterChipActive,
-              ]}
-              onPress={() => setFilter(item)}
-              accessibilityRole='button'
-              accessibilityLabel={`Filter by ${item === 'all' ? 'all categories' : item}`}
-              accessibilityState={{ selected: filter === item }}
-            >
-              <Text
-                style={[
-                  styles.filterChipText,
-                  filter === item && styles.filterChipTextActive,
-                ]}
-              >
-                {item === 'all'
-                  ? 'All'
-                  : item.charAt(0).toUpperCase() + item.slice(1)}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+        <FilterChips filter={filter} onChange={setFilter} />
 
-        {/* Add Form */}
         {showForm && (
-          <Card variant='elevated' padding='md' style={styles.formCard}>
-            {jobIdParam && (
-              <View style={styles.jobScopeBanner}>
-                <Ionicons
-                  name='briefcase-outline'
-                  size={14}
-                  color={theme.colors.primary}
-                />
-                <Text style={styles.jobScopeBannerText} numberOfLines={1}>
-                  For: {jobTitleParam || 'selected job'}
-                </Text>
-              </View>
-            )}
-            <TextInput
-              style={styles.input}
-              placeholder='Description'
-              placeholderTextColor={theme.colors.textTertiary}
-              value={formData.description}
-              onChangeText={(t) =>
-                setFormData((p) => ({ ...p, description: t }))
-              }
-            />
-            <TextInput
-              style={styles.input}
-              placeholder='Amount'
-              placeholderTextColor={theme.colors.textTertiary}
-              keyboardType='decimal-pad'
-              value={formData.amount}
-              onChangeText={(t) => setFormData((p) => ({ ...p, amount: t }))}
-            />
-            <Text style={styles.formLabel}>Category</Text>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.formCategoryRow}
-            >
-              {EXPENSE_CATEGORIES.map((item) => {
-                const selected = formData.category === item;
-                return (
-                  <TouchableOpacity
-                    key={item}
-                    style={[
-                      styles.formCategoryChip,
-                      selected && styles.formCategoryChipActive,
-                    ]}
-                    onPress={() =>
-                      setFormData((p) => ({ ...p, category: item }))
-                    }
-                    accessibilityRole='button'
-                    accessibilityState={{ selected }}
-                    accessibilityLabel={`Set category to ${item}`}
-                  >
-                    <Text
-                      style={[
-                        styles.formCategoryText,
-                        selected && styles.formCategoryTextActive,
-                      ]}
-                    >
-                      {item.charAt(0).toUpperCase() + item.slice(1)}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-            <TouchableOpacity
-              style={styles.billableToggle}
-              onPress={() =>
-                setFormData((p) => ({ ...p, billable: !p.billable }))
-              }
-              accessibilityRole='checkbox'
-              accessibilityState={{ checked: formData.billable }}
-              accessibilityLabel='Mark expense as billable'
-            >
-              <Ionicons
-                name={formData.billable ? 'checkbox' : 'square-outline'}
-                size={22}
-                color={
-                  formData.billable
-                    ? theme.colors.primary
-                    : theme.colors.textTertiary
-                }
-              />
-              <View style={styles.billableCopy}>
-                <Text style={styles.billableTitle}>Billable to client</Text>
-                <Text style={styles.billableHint}>
-                  Include this cost when preparing the invoice.
-                </Text>
-              </View>
-            </TouchableOpacity>
-            <View style={styles.formActions}>
-              <Button
-                variant='ghost'
-                size='sm'
-                onPress={() => setShowForm(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                variant='primary'
-                size='sm'
-                onPress={() =>
-                  createMutation.mutate({
-                    ...formData,
-                    amount: parseFloat(formData.amount) || 0,
-                  })
-                }
-                loading={createMutation.isPending}
-              >
-                Add
-              </Button>
-            </View>
-          </Card>
+          <AddExpenseForm
+            formData={formData}
+            setFormData={setFormData}
+            onCancel={() => setShowForm(false)}
+            onSubmit={() =>
+              createMutation.mutate({
+                description: formData.description,
+                category: formData.category,
+                amount: parseFloat(formData.amount) || 0,
+                billable: formData.billable,
+              })
+            }
+            submitting={createMutation.isPending}
+            jobIdParam={jobIdParam}
+            jobTitleParam={jobTitleParam}
+          />
         )}
 
-        {/* List */}
         <FlatList
           data={filtered}
           keyExtractor={(item) => item.id}
@@ -477,103 +177,23 @@ export const ExpensesScreen: React.FC = () => {
             />
           }
           ListEmptyComponent={
-            <View style={styles.emptyWrap}>
-              <View style={styles.emptyIconWrap}>
-                <Ionicons
-                  name='receipt-outline'
-                  size={32}
-                  color={theme.colors.primary}
-                />
-              </View>
-              <Text style={styles.emptyTitle}>No expenses logged yet</Text>
-              <Text style={styles.emptySubtitle}>
-                Track materials, fuel, and other business costs to stay on top
-                of your finances.
-              </Text>
-              <TouchableOpacity
-                style={styles.emptyCta}
-                onPress={() => setShowForm(true)}
-                accessibilityRole='button'
-                accessibilityLabel='Log first expense'
-              >
-                <Ionicons
-                  name='add-circle-outline'
-                  size={18}
-                  color={theme.colors.textInverse}
-                />
-                <Text style={styles.emptyCtaText}>Log First Expense</Text>
-              </TouchableOpacity>
-            </View>
+            <EmptyState onAddPress={() => setShowForm(true)} />
           }
           renderItem={({ item }) => (
-            <View style={styles.expenseRow}>
-              <View
-                style={[
-                  styles.categoryDot,
-                  {
-                    backgroundColor:
-                      CATEGORY_COLORS[item.category] ||
-                      theme.colors.textSecondary,
-                  },
-                ]}
-              />
-              <View style={styles.expenseInfo}>
-                <Text style={styles.expenseDesc} numberOfLines={1}>
-                  {item.description}
-                </Text>
-                <Text style={styles.expenseDate}>
-                  {new Date(item.date).toLocaleDateString('en-GB')}
-                </Text>
-              </View>
-              <View style={styles.expenseRight}>
-                <Text style={styles.expenseAmount}>
-                  {'\u00A3'}
-                  {item.amount.toFixed(2)}
-                </Text>
-                {item.billable && (
-                  <Badge variant='success' size='sm'>
-                    Billable
-                  </Badge>
-                )}
-              </View>
-              <TouchableOpacity
-                style={styles.deleteButton}
-                onPress={() => handleDelete(item)}
-                accessibilityRole='button'
-                accessibilityLabel={`Delete expense ${item.description}`}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              >
-                <Ionicons
-                  name='trash-outline'
-                  size={16}
-                  color={theme.colors.textTertiary}
-                />
-              </TouchableOpacity>
-            </View>
+            <ExpenseRow expense={item} onDelete={handleDelete} />
           )}
         />
 
-        {/* Undo Snackbar */}
         {pendingDelete && (
-          <Animated.View
-            style={[styles.snackbar, { opacity: snackbarOpacity }]}
-          >
-            <Text style={styles.snackbarText} numberOfLines={1}>
-              Deleted "{pendingDelete.description}"
-            </Text>
-            <TouchableOpacity
-              onPress={handleUndoDelete}
-              accessibilityRole='button'
-              accessibilityLabel='Undo delete'
-            >
-              <Text style={styles.snackbarUndo}>UNDO</Text>
-            </TouchableOpacity>
-          </Animated.View>
+          <UndoSnackbar
+            description={pendingDelete.description}
+            opacity={snackbarOpacity}
+            onUndo={handleUndoDelete}
+          />
         )}
 
-        {/* FAB — hidden on empty state since the "Log First Expense"
-            CTA already owns that space. Only surfaces when there ARE
-            expenses and the user needs a quick "+" to log another. */}
+        {/* FAB hidden on empty state — the "Log First Expense" CTA
+            already owns that space. */}
         {!showForm && filtered.length > 0 && (
           <TouchableOpacity
             style={styles.fab}
@@ -588,262 +208,5 @@ export const ExpensesScreen: React.FC = () => {
     </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
-  headerSection: {
-    backgroundColor: theme.colors.surface,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
-  },
-  headerOverline: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: theme.colors.textTertiary,
-    letterSpacing: 1.2,
-    textAlign: 'center',
-    paddingTop: 8,
-  },
-  statsRow: {
-    flexDirection: 'row',
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingTop: 14,
-    paddingBottom: 8,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: theme.colors.surface,
-    borderRadius: 20,
-    paddingVertical: 14,
-    paddingHorizontal: 10,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-  statIconWrap: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 6,
-  },
-  statLabel: {
-    fontSize: 10,
-    color: theme.colors.textTertiary,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-  },
-  statValue: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: theme.colors.textPrimary,
-    marginBottom: 2,
-  },
-  filterScrollView: { flexGrow: 0 },
-  filterRow: { paddingHorizontal: 16, paddingVertical: 10, gap: 8 },
-  filterChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-  filterChipActive: { backgroundColor: theme.colors.textPrimary },
-  filterChipText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: theme.colors.textSecondary,
-  },
-  filterChipTextActive: { color: theme.colors.textInverse },
-  formCard: { marginHorizontal: 16, marginBottom: 12 },
-  jobScopeBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    backgroundColor: theme.colors.backgroundSecondary,
-    borderRadius: 8,
-    marginBottom: 8,
-  },
-  jobScopeBannerText: {
-    fontSize: 13,
-    color: theme.colors.textSecondary,
-    flex: 1,
-  },
-  input: {
-    backgroundColor: theme.colors.backgroundSecondary,
-    borderRadius: 12,
-    padding: 14,
-    fontSize: 15,
-    color: theme.colors.textPrimary,
-    marginBottom: 8,
-  },
-  formLabel: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: theme.colors.textSecondary,
-    marginBottom: 8,
-    marginTop: 2,
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-  },
-  formCategoryRow: { gap: 8, paddingBottom: 10 },
-  formCategoryChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 16,
-    backgroundColor: theme.colors.backgroundSecondary,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-  formCategoryChipActive: {
-    backgroundColor: theme.colors.textPrimary,
-    borderColor: theme.colors.textPrimary,
-  },
-  formCategoryText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: theme.colors.textSecondary,
-  },
-  formCategoryTextActive: { color: theme.colors.textInverse },
-  billableToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    padding: 12,
-    borderRadius: 12,
-    backgroundColor: theme.colors.backgroundSecondary,
-    marginBottom: 10,
-  },
-  billableCopy: { flex: 1 },
-  billableTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-  },
-  billableHint: {
-    fontSize: 12,
-    color: theme.colors.textSecondary,
-    marginTop: 2,
-  },
-  formActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8 },
-  list: { paddingHorizontal: 16, paddingBottom: 80 },
-  expenseRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: theme.colors.surface,
-    borderRadius: 20,
-    padding: 14,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-  categoryDot: { width: 10, height: 10, borderRadius: 5, marginRight: 12 },
-  expenseInfo: { flex: 1 },
-  expenseDesc: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: theme.colors.textPrimary,
-  },
-  expenseDate: { fontSize: 12, color: theme.colors.textTertiary, marginTop: 2 },
-  expenseRight: { alignItems: 'flex-end', gap: 4 },
-  expenseAmount: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-  },
-  deleteButton: { marginLeft: 8, padding: 4 },
-  emptyWrap: { alignItems: 'center', paddingTop: 48, paddingHorizontal: 32 },
-  emptyIconWrap: {
-    width: 72,
-    height: 72,
-    borderRadius: 24,
-    backgroundColor: theme.colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-    marginBottom: 6,
-  },
-  emptySubtitle: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-    textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 20,
-  },
-  emptyCta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    backgroundColor: theme.colors.primary,
-    paddingHorizontal: 24,
-    paddingVertical: 14,
-    borderRadius: 24,
-  },
-  emptyCtaText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: theme.colors.textInverse,
-  },
-  snackbar: {
-    position: 'absolute',
-    bottom: 90,
-    left: 16,
-    right: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: theme.colors.textPrimary,
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.15,
-        shadowRadius: 12,
-      },
-      android: { elevation: 8 },
-    }),
-  },
-  snackbarText: {
-    fontSize: 14,
-    color: theme.colors.textInverse,
-    flex: 1,
-    marginRight: 12,
-  },
-  snackbarUndo: { fontSize: 14, fontWeight: '700', color: '#3B82F6' },
-  fab: {
-    position: 'absolute',
-    bottom: 24,
-    right: 24,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: theme.colors.textPrimary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.15,
-        shadowRadius: 12,
-      },
-      android: { elevation: 8 },
-    }),
-  },
-});
 
 export default ExpensesScreen;

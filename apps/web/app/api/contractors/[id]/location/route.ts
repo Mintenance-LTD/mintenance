@@ -21,20 +21,22 @@ const updateLocationSchema = z.object({
 
 /**
  * POST /api/contractors/[id]/location
- * Update contractor location (contractor self or admin)
+ * Update contractor location. Restricted to the contractor themselves —
+ * admins should not write GPS coordinates on behalf of contractors.
+ *
+ * 2026-05-09: removed the dead admin escape on line 32 of the prior
+ * version. Line 32 admitted admins past the ownership check, but the
+ * follow-up `user.role !== 'contractor'` check immediately rejected
+ * them, so the admin path was unreachable. Tightened to contractor
+ * self-only, matching actual behaviour.
  */
 export const POST = withApiHandler(
-  { rateLimit: { maxRequests: 30 } },
+  { roles: ['contractor'], rateLimit: { maxRequests: 30 } },
   async (request, { user, params }) => {
     const { id: contractorId } = params;
 
-    // Verify user is the contractor or has permission
-    if (user.id !== contractorId && user.role !== 'admin') {
+    if (user.id !== contractorId) {
       throw new ForbiddenError('Not authorized to update this location');
-    }
-
-    if (user.role !== 'contractor') {
-      throw new ForbiddenError('Only contractors can update location');
     }
 
     const body = await request.json();
@@ -135,10 +137,15 @@ export const GET = withApiHandler(
     const searchParams = request.nextUrl.searchParams;
     const jobId = searchParams.get('job_id');
 
-    // Verify user has permission to view this location
+    // Verify user has permission to view this location.
+    // 2026-05-09: added admin branch — the route doc string already
+    // promised admin oversight read access, but the prior code never
+    // matched it, so admins always 403'd.
     let hasPermission = false;
 
     if (user.id === contractorId) {
+      hasPermission = true;
+    } else if (user.role === 'admin') {
       hasPermission = true;
     } else if (user.role === 'homeowner' && jobId) {
       const { data: job } = await serverSupabase

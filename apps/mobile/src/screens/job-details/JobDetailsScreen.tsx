@@ -7,11 +7,10 @@ import {
   Dimensions,
   Share,
   Alert,
-  ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RouteProp } from '@react-navigation/native';
+import type { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LoadingSpinner, ErrorView } from '../../components/shared';
 import { useJobDetailsViewModel } from './viewmodels/JobDetailsViewModel';
@@ -25,22 +24,22 @@ import { ContractorLocationSection } from './components/ContractorLocationSectio
 import { HomeownerLocationRequest } from './components/HomeownerLocationRequest';
 import { JobLocationMap } from './components/JobLocationMap';
 import { JobPricingCard } from './components/JobPricingCard';
+import { JobTitleSection } from './components/JobTitleSection';
+import { JobDetailsList } from './components/JobDetailsList';
+import { JobBidsList, type BidListItem } from './components/JobBidsList';
+import { JobQuickActions } from './components/JobQuickActions';
+import { LogExpenseRow } from './components/LogExpenseRow';
+import { WithdrawBidButton } from './components/WithdrawBidButton';
 import { useAuth } from '../../contexts/AuthContext';
-import { JobsStackParamList } from '../../navigation/types';
+import type { JobsStackParamList } from '../../navigation/types';
 import { normalizePhotoUrls } from '../../utils/photoUrls';
 import { theme } from '../../theme';
-import { getPriorityCTA, CTAContext } from './JobDetailsCTA';
+import { getPriorityCTA, type CTAContext } from './JobDetailsCTA';
 import { EscrowInfoModal } from './EscrowInfoModal';
 import { styles } from './jobDetailsStyles';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const IMAGE_CAROUSEL_HEIGHT = Math.round(SCREEN_WIDTH * 0.75);
-type ScreenRoute = RouteProp<JobsStackParamList, 'JobDetails'>;
-type ScreenNav = NativeStackNavigationProp<JobsStackParamList, 'JobDetails'>;
-interface Props {
-  route: ScreenRoute;
-  navigation: ScreenNav;
-}
 
 const CAT_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   plumbing: 'water-outline',
@@ -54,29 +53,22 @@ const CAT_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   general: 'construct-outline',
 };
 
-const DetailRow: React.FC<{
-  icon: keyof typeof Ionicons.glyphMap;
-  label: string;
-  value: string;
-}> = ({ icon, label, value }) => (
-  <View style={styles.detailRow}>
-    <View style={styles.detailIconContainer}>
-      <Ionicons name={icon} size={20} color={theme.colors.textSecondary} />
-    </View>
-    <View style={styles.detailContent}>
-      <Text style={styles.detailLabel}>{label}</Text>
-      <Text style={styles.detailValue}>{value}</Text>
-    </View>
-  </View>
-);
+type ScreenRoute = RouteProp<JobsStackParamList, 'JobDetails'>;
+type ScreenNav = NativeStackNavigationProp<JobsStackParamList, 'JobDetails'>;
+interface Props {
+  route: ScreenRoute;
+  navigation: ScreenNav;
+}
 
-const bidStatusColors = (s: string | undefined) =>
-  s === 'accepted'
-    ? { bg: '#D1FAE5', text: '#065F46', label: 'Accepted' }
-    : s === 'rejected'
-      ? { bg: '#FEE2E2', text: '#991B1B', label: 'Rejected' }
-      : { bg: '#FEF3C7', text: '#92400E', label: 'Pending' };
-
+/**
+ * Job details page. Was a 717-line monolith. Split 2026-05-09
+ * (AUDIT_PUNCH_LIST P2 #44c) into typed sub-components under
+ * `job-details/components/` (`JobTitleSection`, `JobDetailsList`,
+ * `JobBidsList`, `JobQuickActions`, `LogExpenseRow`,
+ * `WithdrawBidButton`, `DetailRow`) and a shared bid-status-colour
+ * helper at `job-details/bidStatusColors.ts`. Public behaviour
+ * preserved; only the orchestration + state remain here.
+ */
 export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   const { jobId } = route.params;
   const { user } = useAuth();
@@ -90,23 +82,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   const isContractor = user?.role === 'contractor';
   const isOwner = user?.id === job?.homeowner_id;
 
-  // Find the logged-in contractor's pending bid on this job
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- bids come from both camelCase (Bid type) and snake_case (raw Supabase) formats
-  const bidsArray = (Array.isArray(bidsData) ? bidsData : []) as Array<{
-    id: string;
-    contractorId?: string;
-    contractor_id?: string;
-    status?: string;
-    amount?: number;
-    description?: string;
-    message?: string;
-    contractor?: {
-      first_name?: string;
-      last_name?: string;
-      company_name?: string;
-      profile_image_url?: string;
-    };
-  }>;
+  const bidsArray = (Array.isArray(bidsData) ? bidsData : []) as BidListItem[];
   const myPendingBid =
     isContractor && user?.id
       ? bidsArray.find(
@@ -126,9 +102,8 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
         onPress: async () => {
           setWithdrawingBid(true);
           try {
-            // Audit step 11 (2026-04-29): pass jobId from route
-            // params so BidService doesn't need a server-side
-            // bid → job lookup.
+            // Audit step 11 (2026-04-29): pass jobId from route params
+            // so BidService doesn't need a server-side bid → job lookup.
             await BidService.withdrawBid(myPendingBid.id, jobId);
             Alert.alert(
               'Bid Withdrawn',
@@ -144,12 +119,11 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
         },
       },
     ]);
-  }, [myPendingBid, user?.id, refetchBids, viewModel]);
+  }, [myPendingBid, user?.id, refetchBids, viewModel, jobId]);
 
   if (viewModel.jobLoading) {
     return <LoadingSpinner message='Loading job details...' />;
   }
-
   if (viewModel.jobError) {
     return (
       <ErrorView
@@ -158,18 +132,15 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
       />
     );
   }
-
   if (!job) {
     return (
       <ErrorView message='Job not found' onRetry={() => navigation.goBack()} />
     );
   }
 
-  // Normalize the mixed photo shapes the API returns. Job rows can carry
-  // photos either as plain URL strings or as `{file_url|photo_url|...}`
-  // objects depending on which read path served them — list/detail views
-  // were drifting because each callsite picked its own subset. Use the
-  // shared helper so a single source of truth feeds the carousel.
+  // Normalize the mixed photo shapes the API returns. Job rows can
+  // carry photos either as plain URL strings or as `{file_url|...}`
+  // objects depending on which read path served them.
   const photos = normalizePhotoUrls(job.photos ?? job.images);
   const hasPhotos = photos.length > 0;
   const locationStr =
@@ -178,12 +149,19 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   const urgency = job.urgency || job.priority || 'medium';
   const categoryIcon =
     CAT_ICONS[job.category?.toLowerCase() || ''] || 'construct-outline';
-
   const daysAgo = Math.floor(
     (Date.now() -
       new Date(job.created_at || job.createdAt || Date.now()).getTime()) /
       (1000 * 3600 * 24)
   );
+
+  // 2026-05-01 audit P0 (`contractor_locations = 0` root cause): the
+  // location section was previously gated on `in_progress` only, but
+  // production has never had a job in that state. Showing it on
+  // `assigned` too lets the contractor share location during travel —
+  // the actual product intent. Auto-start still requires permission.
+  const showLocationTracking =
+    job.status === 'assigned' || job.status === 'in_progress';
 
   return (
     <View style={styles.container}>
@@ -192,7 +170,6 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 120 }}
       >
-        {/* 1. Hero Image Section (full-bleed) */}
         {hasPhotos ? (
           <ImageCarousel
             images={photos}
@@ -211,9 +188,6 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           </View>
         )}
 
-        {/* Back button overlay — white icon on dark-semi-transparent
-            fill so it reads on both the photo hero and the light
-            gradient placeholder. */}
         <TouchableOpacity
           style={[styles.backButton, { top: insets.top + 8 }]}
           onPress={() => navigation.goBack()}
@@ -227,7 +201,6 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           />
         </TouchableOpacity>
 
-        {/* Share button overlay — same contrast treatment as back. */}
         <TouchableOpacity
           style={[styles.shareButton, { top: insets.top + 8 }]}
           onPress={() => {
@@ -245,58 +218,21 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           />
         </TouchableOpacity>
 
-        {/* Lifecycle Stepper */}
         <JobLifecycleStepper
           jobStatus={job.status}
           contractStatus={viewModel.contractStatus}
         />
 
-        {/* 2. Title Section */}
-        <View style={styles.section}>
-          <Text style={styles.title}>{job.title}</Text>
-
-          <View style={styles.tagRow}>
-            {job.category && (
-              <View style={styles.tag}>
-                <Text style={styles.tagText}>
-                  {job.category.charAt(0).toUpperCase() + job.category.slice(1)}
-                </Text>
-              </View>
-            )}
-            {urgency !== 'low' && urgency !== 'medium' && (
-              <View style={[styles.tag, styles.urgentTag]}>
-                <Ionicons name='flame' size={12} color={theme.colors.error} />
-                <Text style={[styles.tagText, { color: theme.colors.error }]}>
-                  {urgency === 'emergency' ? 'Emergency' : 'Urgent'}
-                </Text>
-              </View>
-            )}
-          </View>
-
-          {locationStr ? (
-            <View style={styles.locationRow}>
-              <Ionicons
-                name='location-outline'
-                size={16}
-                color={theme.colors.textSecondary}
-              />
-              <Text style={styles.locationText}>{locationStr}</Text>
-            </View>
-          ) : null}
-
-          <Text style={styles.metaText}>
-            Posted{' '}
-            {daysAgo === 0
-              ? 'today'
-              : daysAgo === 1
-                ? '1 day ago'
-                : `${daysAgo} days ago`}
-          </Text>
-        </View>
+        <JobTitleSection
+          title={job.title}
+          category={job.category}
+          urgency={urgency}
+          locationStr={locationStr}
+          daysAgo={daysAgo}
+        />
 
         <View style={styles.divider} />
 
-        {/* Host Card */}
         {job.homeowner && (
           <View style={styles.sectionPadded}>
             <Text style={styles.sectionLabel}>Posted by</Text>
@@ -326,43 +262,14 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
 
         <View style={styles.divider} />
 
-        {/* 6. Details Section */}
-        <View style={styles.sectionPadded}>
-          <Text style={styles.sectionLabel}>Details</Text>
-          <DetailRow
-            icon='grid-outline'
-            label='Category'
-            value={
-              job.category
-                ? job.category.charAt(0).toUpperCase() + job.category.slice(1)
-                : 'General'
-            }
-          />
-          <DetailRow
-            icon='alert-circle-outline'
-            label='Urgency'
-            value={
-              urgency
-                ? urgency.charAt(0).toUpperCase() + urgency.slice(1)
-                : 'Medium'
-            }
-          />
-          <DetailRow
-            icon='calendar-outline'
-            label='Timeline'
-            value={
-              job.status === 'completed'
-                ? 'Completed'
-                : job.status === 'in_progress'
-                  ? 'In Progress'
-                  : 'Awaiting start'
-            }
-          />
-        </View>
+        <JobDetailsList
+          category={job.category}
+          urgency={urgency}
+          status={job.status}
+        />
 
         <View style={styles.divider} />
 
-        {/* 7. Description Section */}
         <View style={styles.sectionPadded}>
           <Text style={styles.sectionLabel}>Description</Text>
           <Text style={styles.description}>{job.description}</Text>
@@ -384,52 +291,10 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
         {isOwner && bidsArray.length > 0 && (
           <>
             <View style={styles.divider} />
-            <View style={styles.sectionPadded}>
-              <Text style={styles.sectionLabel}>Bids ({bidsArray.length})</Text>
-              {bidsArray.map((bid) => {
-                const sc = bidStatusColors(bid.status);
-                return (
-                  <View key={bid.id} style={styles.bidCard}>
-                    <View style={styles.bidRow}>
-                      <Text style={styles.bidContractorName}>
-                        {bid.contractor?.first_name
-                          ? `${bid.contractor.first_name} ${bid.contractor.last_name || ''}`.trim()
-                          : bid.contractor?.company_name || 'Contractor'}
-                      </Text>
-                      <View style={styles.bidAmountRow}>
-                        <Text style={styles.bidAmount}>
-                          £
-                          {typeof bid.amount === 'number'
-                            ? bid.amount.toFixed(2)
-                            : bid.amount}
-                        </Text>
-                        <View
-                          style={[
-                            styles.bidStatusBadge,
-                            { backgroundColor: sc.bg },
-                          ]}
-                        >
-                          <Text
-                            style={[styles.bidStatusText, { color: sc.text }]}
-                          >
-                            {sc.label}
-                          </Text>
-                        </View>
-                      </View>
-                    </View>
-                    {(bid.description || bid.message) && (
-                      <Text style={styles.bidMessage} numberOfLines={2}>
-                        {bid.description || bid.message}
-                      </Text>
-                    )}
-                  </View>
-                );
-              })}
-            </View>
+            <JobBidsList bids={bidsArray} />
           </>
         )}
 
-        {/* 8. AI Analysis (if available) */}
         {(viewModel.aiAnalysis || viewModel.aiLoading) && (
           <>
             <View style={styles.divider} />
@@ -442,7 +307,6 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           </>
         )}
 
-        {/* 9. Contractor Assignment */}
         {isOwner && job.status === 'posted' && (
           <>
             <View style={styles.divider} />
@@ -455,54 +319,21 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           </>
         )}
 
-        {/* 9b. Withdraw Bid (contractor with pending bid) */}
         {myPendingBid && (
           <>
             <View style={styles.divider} />
             <View style={styles.sectionPadded}>
-              <TouchableOpacity
-                style={[
-                  styles.withdrawBidButton,
-                  withdrawingBid && { opacity: 0.5 },
-                ]}
+              <WithdrawBidButton
+                withdrawing={withdrawingBid}
                 onPress={handleWithdrawBid}
-                disabled={withdrawingBid}
-                accessibilityRole='button'
-                accessibilityLabel='Withdraw your bid'
-              >
-                {withdrawingBid ? (
-                  <ActivityIndicator color={theme.colors.error} size='small' />
-                ) : (
-                  <>
-                    <Ionicons
-                      name='close-circle-outline'
-                      size={20}
-                      color={theme.colors.error}
-                    />
-                    <Text style={styles.withdrawBidText}>Withdraw Bid</Text>
-                  </>
-                )}
-              </TouchableOpacity>
+              />
             </View>
           </>
         )}
 
-        {/* 10. Location Tracking (contractor en route or on active job)
-              2026-05-01 audit P0 (`contractor_locations = 0` root cause):
-              previously gated on `in_progress` only, but production has
-              never had a job in that state (live DB: 8 `assigned`, 4
-              `completed`, 0 `in_progress`). Contractors finish the bid-
-              accept → escrow → before-photo flow rarely enough that the
-              section never rendered, so the auto-start hook never fired
-              and `startJobTracking` never ran. Showing it on `assigned`
-              too lets the contractor share location during travel —
-              which is the actual product intent. The auto-start path
-              still requires a granted location permission, so a fresh
-              contractor with no AlwaysLocationSoftAsk grant won't get
-              prompted unexpectedly. */}
         {isContractor &&
           job.contractor_id === user?.id &&
-          (job.status === 'assigned' || job.status === 'in_progress') && (
+          showLocationTracking && (
             <>
               <View style={styles.divider} />
               <View style={styles.sectionPadded}>
@@ -510,10 +341,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
                   jobId={job.id}
                   destination={
                     job.latitude != null && job.longitude != null
-                      ? {
-                          latitude: job.latitude,
-                          longitude: job.longitude,
-                        }
+                      ? { latitude: job.latitude, longitude: job.longitude }
                       : undefined
                   }
                 />
@@ -521,42 +349,26 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
             </>
           )}
 
-        {/* 10b. Homeowner: Request contractor location.
-              2026-05-01 audit P0: matched the contractor-side gate
-              widening above so the homeowner can see "contractor en
-              route" data during the `assigned` phase. Previously
-              symmetric with the `in_progress`-only contractor side,
-              both of which never fired in prod. */}
-        {isOwner &&
-          (job.status === 'assigned' || job.status === 'in_progress') &&
-          job.contractor_id && (
-            <>
-              <View style={styles.divider} />
-              <View style={styles.sectionPadded}>
-                <HomeownerLocationRequest jobId={job.id} />
-              </View>
-            </>
-          )}
+        {isOwner && showLocationTracking && job.contractor_id && (
+          <>
+            <View style={styles.divider} />
+            <View style={styles.sectionPadded}>
+              <HomeownerLocationRequest jobId={job.id} />
+            </View>
+          </>
+        )}
 
-        {/* 10c. Contractor: Log expense for this job — closes the audit
-            #9 gap where contractor_expenses.job_id existed in the schema
-            but no UI ever set it. Available on assigned + in_progress
-            so contractors can log materials/fuel before and during
-            the job. The Expenses screen accepts { jobId, jobTitle }
-            and auto-opens its create form pre-bound to this job. */}
         {isContractor &&
           job.contractor_id === user?.id &&
-          (job.status === 'assigned' || job.status === 'in_progress') && (
+          showLocationTracking && (
             <>
               <View style={styles.divider} />
               <View style={styles.sectionPadded}>
-                <TouchableOpacity
+                <LogExpenseRow
                   onPress={() => {
                     // Expenses lives under ProfileTab → ProfileStack →
                     // Expenses. Cross-stack navigate through the parent
-                    // tab navigator. Cast the parent to a generic
-                    // navigate-only shape — typing the full root tab is
-                    // out of scope for this screen.
+                    // tab navigator.
                     const parent = navigation.getParent?.() as
                       | { navigate: (name: string, params?: unknown) => void }
                       | undefined;
@@ -565,133 +377,37 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
                       params: { jobId: job.id, jobTitle: job.title },
                     });
                   }}
-                  style={styles.logExpenseRow}
-                  accessibilityRole='button'
-                  accessibilityLabel='Log expense for this job'
-                >
-                  <Ionicons
-                    name='receipt-outline'
-                    size={18}
-                    color={theme.colors.primary}
-                  />
-                  <Text style={styles.logExpenseText}>
-                    Log Expense for this Job
-                  </Text>
-                  <Ionicons
-                    name='chevron-forward'
-                    size={18}
-                    color={theme.colors.textTertiary}
-                  />
-                </TouchableOpacity>
+                />
               </View>
             </>
           )}
 
-        {/* === Quick Actions === */}
         <View style={styles.divider} />
-        <View style={styles.quickActionsSection}>
-          {/* Timeline — always visible */}
-          <TouchableOpacity
-            style={styles.quickActionRow}
-            onPress={() =>
-              navigation.navigate('JobTimeline', { jobId: job.id })
-            }
-            accessibilityRole='button'
-          >
-            <Ionicons
-              name='time-outline'
-              size={20}
-              color={theme.colors.textSecondary}
-            />
-            <Text style={styles.quickActionText}>View Timeline</Text>
-            <Ionicons
-              name='chevron-forward'
-              size={18}
-              color={theme.colors.textTertiary}
-            />
-          </TouchableOpacity>
 
-          {/* Edit job — homeowner, only if posted */}
-          {isOwner && job.status === 'posted' && (
-            <TouchableOpacity
-              style={styles.quickActionRow}
-              onPress={() => navigation.navigate('JobEdit', { jobId: job.id })}
-              accessibilityRole='button'
-            >
-              <Ionicons
-                name='create-outline'
-                size={20}
-                color={theme.colors.textSecondary}
-              />
-              <Text style={styles.quickActionText}>Edit Job</Text>
-              <Ionicons
-                name='chevron-forward'
-                size={18}
-                color={theme.colors.textTertiary}
-              />
-            </TouchableOpacity>
-          )}
-
-          {/* Sign-off — homeowner, when completed but not yet confirmed */}
-          {isOwner &&
-            job.status === 'completed' &&
-            !(job as CTAContext['job']).completion_confirmed_by_homeowner && (
-              <TouchableOpacity
-                style={styles.quickActionRow}
-                onPress={() =>
-                  navigation.navigate('JobSignOff', { jobId: job.id })
-                }
-                accessibilityRole='button'
-              >
-                <Ionicons
-                  name='checkmark-done-outline'
-                  size={20}
-                  color={theme.colors.primary}
-                />
-                <Text style={styles.quickActionText}>
-                  Approve / Request Changes
-                </Text>
-                <Ionicons
-                  name='chevron-forward'
-                  size={18}
-                  color={theme.colors.textTertiary}
-                />
-              </TouchableOpacity>
-            )}
-
-          {/* Dispute — either party, when in_progress or completed */}
-          {(job.status === 'in_progress' || job.status === 'completed') && (
-            <TouchableOpacity
-              style={styles.quickActionRow}
-              onPress={() =>
-                navigation.navigate('Dispute', {
-                  jobId: job.id,
-                  jobTitle: job.title,
-                })
-              }
-              accessibilityRole='button'
-            >
-              <Ionicons
-                name='warning-outline'
-                size={20}
-                color={theme.colors.error}
-              />
-              <Text
-                style={[styles.quickActionText, { color: theme.colors.error }]}
-              >
-                Report a Problem
-              </Text>
-              <Ionicons
-                name='chevron-forward'
-                size={18}
-                color={theme.colors.textTertiary}
-              />
-            </TouchableOpacity>
-          )}
-        </View>
+        <JobQuickActions
+          jobId={job.id}
+          jobTitle={job.title}
+          isOwner={isOwner}
+          status={job.status}
+          isCompletionConfirmedByHomeowner={
+            !!(job as CTAContext['job']).completion_confirmed_by_homeowner
+          }
+          onTimelinePress={() =>
+            navigation.navigate('JobTimeline', { jobId: job.id })
+          }
+          onEditPress={() => navigation.navigate('JobEdit', { jobId: job.id })}
+          onSignOffPress={() =>
+            navigation.navigate('JobSignOff', { jobId: job.id })
+          }
+          onDisputePress={() =>
+            navigation.navigate('Dispute', {
+              jobId: job.id,
+              jobTitle: job.title,
+            })
+          }
+        />
       </ScrollView>
 
-      {/* Single priority-based CTA -- only ever one renders */}
       {getPriorityCTA({
         job: job as CTAContext['job'],
         isOwner,
@@ -705,7 +421,6 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
         bidsArray,
       })}
 
-      {/* Escrow Explanation Modal */}
       <EscrowInfoModal
         visible={showEscrowModal}
         onClose={() => setShowEscrowModal(false)}

@@ -410,6 +410,86 @@ const nextConfig = {
     return config;
   },
 
+  /**
+   * AUDIT_PUNCH_LIST P2 #59 (A2-P2-1) + #60 + #68 — moved 12
+   * redirect-only stub pages out of `apps/web/app/` and into proper
+   * next.config redirects. Each previously rendered a Next page just
+   * to call `redirect()`, which costs a React render + adds to the
+   * route count. Native `redirects()` returns a 308 at the edge with
+   * no app-router work.
+   *
+   * `permanent: true` emits a 308 (preserves request method, signals
+   * search engines to update). For routes that may legitimately come
+   * back later (`/auth/*`, `/find-contractors`), use `permanent: false`
+   * so we can revert without poisoning bookmarks.
+   */
+  async redirects() {
+    return [
+      // Auth aliases — pre-2025 layout used /auth/*. Keep as 307 (non-permanent)
+      // so deep-linking from email templates doesn't get cached as 308 forever.
+      { source: '/auth/login', destination: '/login', permanent: false },
+      { source: '/auth/signup', destination: '/register', permanent: false },
+      {
+        source: '/auth/forgot-password',
+        destination: '/forgot-password',
+        permanent: false,
+      },
+
+      // Contractor area
+      {
+        source: '/contractor',
+        destination: '/contractor/bid',
+        permanent: false,
+      },
+      {
+        source: '/contractor/contribute-training',
+        destination: '/contractor/dashboard-enhanced',
+        permanent: true,
+      },
+      {
+        source: '/contractor/gallery',
+        destination: '/contractor/profile',
+        permanent: true,
+      },
+      {
+        source: '/contractor/portfolio',
+        destination: '/contractor/profile',
+        permanent: true,
+      },
+
+      // Browse contractors (P2 #60)
+      {
+        source: '/find-contractors',
+        destination: '/contractors',
+        permanent: false,
+      },
+
+      // Admin aliases
+      {
+        source: '/admin/data-annotation',
+        destination: '/admin/building-assessments',
+        permanent: true,
+      },
+
+      // Marketing / pricing
+      {
+        source: '/subscription-plans',
+        destination: '/pricing',
+        permanent: true,
+      },
+
+      // Settings duplication (P2 #68)
+      {
+        source: '/payment-methods',
+        destination: '/settings/payment-methods',
+        permanent: true,
+      },
+
+      // Favorites — see archived `/favorites/page.tsx` rationale
+      { source: '/favorites', destination: '/properties', permanent: true },
+    ];
+  },
+
   async headers() {
     const isDev = process.env.NODE_ENV === 'development';
     const baseHeaders = [

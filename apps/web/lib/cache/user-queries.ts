@@ -11,7 +11,9 @@ export const getCachedUserJobs = unstable_cache(
   async (userId: string, limit: number = 50) => {
     const { data, error } = await serverSupabase
       .from('jobs')
-      .select('id, title, status, budget, scheduled_start_date, scheduled_end_date, created_at, updated_at, category, location, homeowner_id, contractor_id')
+      .select(
+        'id, title, status, budget, scheduled_start_date, scheduled_end_date, created_at, updated_at, category, location, homeowner_id, contractor_id'
+      )
       .eq('homeowner_id', userId)
       .order('created_at', { ascending: false })
       .limit(limit);
@@ -57,7 +59,8 @@ export const getCachedUserBids = unstable_cache(
 
     const { data, error } = await serverSupabase
       .from('bids')
-      .select(`
+      .select(
+        `
         id,
         job_id,
         contractor_id,
@@ -71,13 +74,14 @@ export const getCachedUserBids = unstable_cache(
           category,
           location
         ),
-        contractor:users!bids_contractor_id_fkey (
+        contractor:profiles!bids_contractor_id_fkey (
           id,
           first_name,
           last_name,
           profile_image_url
         )
-      `)
+      `
+      )
       .in('job_id', jobIds)
       .order('created_at', { ascending: false })
       .limit(limit);
@@ -106,7 +110,9 @@ export const getCachedUserProperties = unstable_cache(
   async (userId: string, limit: number = 20) => {
     const { data, error } = await serverSupabase
       .from('properties')
-      .select('id, property_name, address, property_type, is_primary, created_at')
+      .select(
+        'id, property_name, address, property_type, is_primary, created_at'
+      )
       .eq('owner_id', userId)
       .limit(limit);
 
@@ -179,7 +185,8 @@ export const getCachedUserQuotes = unstable_cache(
 
     const { data, error } = await serverSupabase
       .from('contractor_quotes')
-      .select(`
+      .select(
+        `
         id,
         job_id,
         contractor_id,
@@ -191,13 +198,14 @@ export const getCachedUserQuotes = unstable_cache(
           title,
           category
         ),
-        contractor:users!contractor_quotes_contractor_id_fkey (
+        contractor:profiles!contractor_quotes_contractor_id_fkey (
           id,
           first_name,
           last_name,
           profile_image_url
         )
-      `)
+      `
+      )
       .in('job_id', jobIds)
       .order('created_at', { ascending: false })
       .limit(limit);

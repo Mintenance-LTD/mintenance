@@ -3,7 +3,11 @@
  * Comprehensive tests for API security and protection
  */
 
-import { ApiProtectionService, ApiRequest, SecurityViolation } from '../../utils/ApiProtection';
+import {
+  ApiProtectionService,
+  ApiRequest,
+  SecurityViolation,
+} from '../../utils/ApiProtection';
 
 describe('ApiProtectionService', () => {
   let apiProtection: ApiProtectionService;
@@ -25,7 +29,9 @@ describe('ApiProtectionService', () => {
     apiProtection.dispose();
   });
 
-  const createTestRequest = (overrides: Partial<ApiRequest> = {}): ApiRequest => ({
+  const createTestRequest = (
+    overrides: Partial<ApiRequest> = {}
+  ): ApiRequest => ({
     endpoint: '/api/test',
     method: 'GET',
     userId: 'user123',
@@ -43,7 +49,6 @@ describe('ApiProtectionService', () => {
 
       expect(result.allowed).toBe(true);
       expect(result.reason).toBeUndefined();
-      expect(result.securityHeaders).toBeDefined();
     });
 
     it('should block requests with blocked user agents', async () => {
@@ -173,20 +178,22 @@ describe('ApiProtectionService', () => {
       // Simulate rapid requests (more than 10 per second)
       const promises = [];
       for (let i = 0; i < 15; i++) {
-        promises.push(apiProtection.checkRequest({
-          ...baseRequest,
-          timestamp: Date.now() + i * 10, // Very rapid requests
-        }));
+        promises.push(
+          apiProtection.checkRequest({
+            ...baseRequest,
+            timestamp: Date.now() + i * 10, // Very rapid requests
+          })
+        );
       }
 
       const results = await Promise.all(promises);
 
       // Some requests should be blocked due to DDoS protection
-      const blockedRequests = results.filter(r => !r.allowed);
+      const blockedRequests = results.filter((r) => !r.allowed);
       expect(blockedRequests.length).toBeGreaterThan(0);
 
-      const ddosBlocked = blockedRequests.find(r =>
-        r.reason?.includes('DDoS') || r.reason?.includes('protection')
+      const ddosBlocked = blockedRequests.find(
+        (r) => r.reason?.includes('DDoS') || r.reason?.includes('protection')
       );
       expect(ddosBlocked).toBeDefined();
     });
@@ -200,18 +207,20 @@ describe('ApiProtectionService', () => {
       // Simulate requests to many different endpoints with same user agent
       const promises = [];
       for (let i = 0; i < 60; i++) {
-        promises.push(apiProtection.checkRequest({
-          ...baseRequest,
-          endpoint: `/api/endpoint${i}`,
-          timestamp: Date.now() + i * 100,
-        }));
+        promises.push(
+          apiProtection.checkRequest({
+            ...baseRequest,
+            endpoint: `/api/endpoint${i}`,
+            timestamp: Date.now() + i * 100,
+          })
+        );
       }
 
       const results = await Promise.all(promises);
 
       // Should detect suspicious pattern
-      const suspiciousBlocked = results.filter(r =>
-        !r.allowed && r.reason?.includes('Suspicious')
+      const suspiciousBlocked = results.filter(
+        (r) => !r.allowed && r.reason?.includes('Suspicious')
       );
       expect(suspiciousBlocked.length).toBeGreaterThan(0);
     });
@@ -226,17 +235,19 @@ describe('ApiProtectionService', () => {
       // Simulate rapid fire requests
       const promises = [];
       for (let i = 0; i < 60; i++) {
-        promises.push(apiProtection.checkRequest({
-          ...request,
-          timestamp: Date.now() + i * 100, // 10 requests per second
-        }));
+        promises.push(
+          apiProtection.checkRequest({
+            ...request,
+            timestamp: Date.now() + i * 100, // 10 requests per second
+          })
+        );
       }
 
       const results = await Promise.all(promises);
 
       // Should detect abuse pattern
-      const abuseBlocked = results.filter(r =>
-        !r.allowed && r.reason?.includes('Abuse')
+      const abuseBlocked = results.filter(
+        (r) => !r.allowed && r.reason?.includes('Abuse')
       );
       expect(abuseBlocked.length).toBeGreaterThan(0);
     });
@@ -292,38 +303,29 @@ describe('ApiProtectionService', () => {
       // Access many different endpoints systematically
       const promises = [];
       for (let i = 0; i < 150; i++) {
-        promises.push(apiProtection.checkRequest({
-          ...request,
-          endpoint: `/api/data/endpoint${i}`,
-          timestamp: Date.now() + i * 1000,
-        }));
+        promises.push(
+          apiProtection.checkRequest({
+            ...request,
+            endpoint: `/api/data/endpoint${i}`,
+            timestamp: Date.now() + i * 1000,
+          })
+        );
       }
 
       const results = await Promise.all(promises);
 
       // Should detect scraping pattern
-      const scrapingBlocked = results.filter(r =>
-        !r.allowed && r.reason?.includes('scraping')
+      const scrapingBlocked = results.filter(
+        (r) => !r.allowed && r.reason?.includes('scraping')
       );
       expect(scrapingBlocked.length).toBeGreaterThan(0);
     });
   });
 
-  describe('Security Headers', () => {
-    it('should generate appropriate security headers', async () => {
-      const request = createTestRequest();
-      const result = await apiProtection.checkRequest(request);
-
-      expect(result.securityHeaders).toEqual({
-        'X-Content-Type-Options': 'nosniff',
-        'X-Frame-Options': 'DENY',
-        'X-XSS-Protection': '1; mode=block',
-        'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
-        'Referrer-Policy': 'strict-origin-when-cross-origin',
-        'Content-Security-Policy': "default-src 'self'",
-      });
-    });
-  });
+  // AUDIT_PUNCH_LIST P1 #26 (B6-P1-2) — Security Headers describe()
+  // block removed 2026-05-09 along with the underlying
+  // generateSecurityHeaders() method. Those headers are
+  // response-side and meaningless on outgoing client requests.
 
   describe('Blocking and Unblocking', () => {
     it('should manually block and unblock IPs', async () => {
@@ -361,7 +363,7 @@ describe('ApiProtectionService', () => {
       expect(result.allowed).toBe(false);
 
       // Wait for duration to expire
-      await new Promise(resolve => setTimeout(resolve, 150));
+      await new Promise((resolve) => setTimeout(resolve, 150));
 
       // Should be allowed again
       result = await apiProtection.checkRequest(request);
@@ -527,7 +529,7 @@ describe('ApiProtectionService', () => {
 
       // All should complete without errors
       expect(results).toHaveLength(100);
-      results.forEach(result => {
+      results.forEach((result) => {
         expect(typeof result.allowed).toBe('boolean');
       });
     });
@@ -553,16 +555,18 @@ describe('ApiProtectionService', () => {
 
       // Make requests to create data
       for (let i = 0; i < 10; i++) {
-        await shortWindowProtection.checkRequest(createTestRequest({
-          userId: `user${i}`,
-        }));
+        await shortWindowProtection.checkRequest(
+          createTestRequest({
+            userId: `user${i}`,
+          })
+        );
       }
 
       const initialStats = shortWindowProtection.getSecurityStats();
       expect(initialStats.activeConnections).toBeGreaterThan(0);
 
       // Wait and trigger cleanup (in real implementation, this happens automatically)
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       shortWindowProtection.dispose();
     });

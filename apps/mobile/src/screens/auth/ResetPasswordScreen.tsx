@@ -23,26 +23,17 @@ import { supabase } from '../../config/supabase';
 import { logger } from '../../utils/logger';
 import { theme } from '../../theme';
 import { useScreenCaptureGuard } from '../../hooks/useScreenCaptureGuard';
+import {
+  getPasswordStrengthBreakdown,
+  validatePasswordStrength,
+} from '../../services/auth/validators';
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'ResetPassword'>;
 
-interface PasswordStrength {
-  hasMinLength: boolean;
-  hasUppercase: boolean;
-  hasNumber: boolean;
-}
-
-function getPasswordStrength(password: string): PasswordStrength {
-  return {
-    hasMinLength: password.length >= 8,
-    hasUppercase: /[A-Z]/.test(password),
-    hasNumber: /\d/.test(password),
-  };
-}
-
-function isPasswordValid(strength: PasswordStrength): boolean {
-  return strength.hasMinLength && strength.hasUppercase && strength.hasNumber;
-}
+// AUDIT_PUNCH_LIST P1 #15 (B2-P1-1) — was duplicating a 3-rule
+// password check inline. Now consumes the canonical 5-rule
+// validator from `services/auth/validators.ts` so reset-password
+// matches signup / signin requirements exactly.
 
 const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
   // SECURITY: prevent screenshots / screen recording of the new-password
@@ -59,7 +50,7 @@ const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
 
-  const strength = getPasswordStrength(password);
+  const strength = getPasswordStrengthBreakdown(password);
 
   const clearError = useCallback(() => {
     if (errorMessage) {
@@ -68,10 +59,9 @@ const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
   }, [errorMessage]);
 
   const validateForm = (): boolean => {
-    if (!isPasswordValid(strength)) {
-      setErrorMessage(
-        'Password must be at least 8 characters with an uppercase letter and a number.'
-      );
+    const result = validatePasswordStrength(password);
+    if (!result.valid) {
+      setErrorMessage(result.message ?? 'Password does not meet requirements.');
       return false;
     }
     if (password !== confirmPassword) {
@@ -266,12 +256,20 @@ const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
                   label='At least 8 characters'
                 />
                 <StrengthIndicator
+                  met={strength.hasLowercase}
+                  label='One lowercase letter'
+                />
+                <StrengthIndicator
                   met={strength.hasUppercase}
                   label='One uppercase letter'
                 />
                 <StrengthIndicator
                   met={strength.hasNumber}
                   label='One number'
+                />
+                <StrengthIndicator
+                  met={strength.hasSpecial}
+                  label='One special character (@$!%*?&)'
                 />
               </View>
 

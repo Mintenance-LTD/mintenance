@@ -19,7 +19,7 @@ import { mobileApiClient } from '../utils/mobileApiClient';
 import { PhotoSection } from './EditProfileSections/PhotoSection';
 import { PersonalInfoSection } from './EditProfileSections/PersonalInfoSection';
 import { LocationSection } from './EditProfileSections/LocationSection';
-import { AvailabilitySection } from './EditProfileSections/AvailabilitySection';
+import { AccountSection } from './EditProfileSections/AccountSection';
 import { theme } from '../theme';
 import { logger } from '../utils/logger';
 import { useUnsavedChanges } from '../hooks/useUnsavedChanges';
@@ -419,7 +419,7 @@ const EditProfileScreen: React.FC = () => {
           locating={locating}
           onUseMyLocation={handleUseMyLocation}
         />
-        <AvailabilitySection
+        <AccountSection
           onChangePassword={handleChangePassword}
           onDeleteAccount={handleDeleteAccount}
         />

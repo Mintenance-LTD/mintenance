@@ -1,113 +1,38 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'react-hot-toast';
+import { ArrowLeft, AlertCircle } from 'lucide-react';
 import { HomeownerPageWrapper } from '@/app/dashboard/components/HomeownerPageWrapper';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { validateQuickJob, isFormValid } from './utils/validation';
-import { submitJob } from '@/app/jobs/create/utils/submitJob';
 import { useCSRF } from '@/lib/hooks/useCSRF';
-import Image from 'next/image';
 import { logger } from '@mintenance/shared';
-import {
-  Wrench,
-  Droplets,
-  Zap,
-  PaintBucket,
-  Home as HomeIcon,
-  AlertCircle,
-  ArrowLeft,
-  ArrowRight,
-} from 'lucide-react';
 
-// Quick repair templates
-const REPAIR_TEMPLATES = [
-  {
-    id: 'leaky-tap',
-    icon: Droplets,
-    title: 'Leaky Tap/Pipe',
-    category: 'plumbing',
-    description: 'Fix dripping tap, leaking pipe, or water issue',
-    budgetRange: '£50-150',
-    budget: '100',
-  },
-  {
-    id: 'electrical-issue',
-    icon: Zap,
-    title: 'Electrical Issue',
-    category: 'electrical',
-    description: 'Fix power outlet, switch, or minor electrical problem',
-    budgetRange: '£75-200',
-    budget: '150',
-  },
-  {
-    id: 'paint-touchup',
-    icon: PaintBucket,
-    title: 'Painting/Touch-up',
-    category: 'painting',
-    description: 'Paint room, touch-up walls, or refresh surfaces',
-    budgetRange: '£100-300',
-    budget: '200',
-  },
-  {
-    id: 'handyman-repair',
-    icon: Wrench,
-    title: 'General Repair',
-    category: 'handyman',
-    description: 'Fix door, window, furniture, or general maintenance',
-    budgetRange: '£50-200',
-    budget: '100',
-  },
-  {
-    id: 'blocked-drain',
-    icon: HomeIcon,
-    title: 'Blocked Drain',
-    category: 'plumbing',
-    description: 'Unblock sink, toilet, or drainage issue',
-    budgetRange: '£75-150',
-    budget: '100',
-  },
-  {
-    id: 'emergency',
-    icon: AlertCircle,
-    title: 'Emergency Repair',
-    category: 'emergency',
-    description: 'Urgent fix needed ASAP',
-    budgetRange: '£150+',
-    budget: '300',
-  },
-];
+import { REPAIR_TEMPLATES, type RepairTemplate } from './templates';
+import { submitQuickJob } from './utils/submitQuickJob';
+import { PhoneVerificationBanner } from './components/PhoneVerificationBanner';
+import { PropertyInfo, type PrimaryProperty } from './components/PropertyInfo';
+import { RepairTemplatesGrid } from './components/RepairTemplatesGrid';
+import { QuickJobForm, type QuickJobFormData } from './components/QuickJobForm';
 
-const BUDGET_RANGES = [
-  { label: 'Under £100', value: '75' },
-  { label: '£100-200', value: '150' },
-  { label: '£200-350', value: '275' },
-  { label: '£350-500', value: '425' },
-];
-
-const URGENCY_OPTIONS = [
-  { label: 'Today', value: 'today', color: 'red' },
-  { label: 'Tomorrow', value: 'tomorrow', color: 'orange' },
-  { label: 'This Week', value: 'this_week', color: 'yellow' },
-  { label: 'Not Urgent', value: 'not_urgent', color: 'gray' },
-];
-
+/**
+ * Quick-job posting flow. Refactored 2026-05-09 (AUDIT_PUNCH_LIST P2
+ * #41) — was 684 lines. Page now owns just state + property fetch +
+ * the Submit handler that wires the form to `submitQuickJob`. Each
+ * UI section lives in `./components/`, the data tables in
+ * `./templates.ts`, the submission pipeline in
+ * `./utils/submitQuickJob.ts`.
+ */
 export default function QuickJobPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, loading: loadingUser } = useCurrentUser();
   const { csrfToken } = useCSRF();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [primaryProperty, setPrimaryProperty] = useState<{
-    id: string;
-    property_name?: string;
-    address?: string;
-    street_address?: string;
-    city?: string;
-    postcode?: string;
-  } | null>(null);
+  const [primaryProperty, setPrimaryProperty] =
+    useState<PrimaryProperty | null>(null);
   const [propertiesLoading, setPropertiesLoading] = useState(true);
   const [propertiesError, setPropertiesError] = useState<string | null>(null);
 
@@ -116,7 +41,6 @@ export default function QuickJobPage() {
   const paramUrgency = searchParams.get('urgency');
   const paramPropertyId = searchParams.get('property_id');
 
-  // Auto-select template matching the passed category
   const matchingTemplate = paramCategory
     ? REPAIR_TEMPLATES.find((t) => t.category === paramCategory)
     : null;
@@ -125,7 +49,7 @@ export default function QuickJobPage() {
     matchingTemplate?.id || null
   );
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<QuickJobFormData>({
     title: matchingTemplate?.title || '',
     description: matchingTemplate?.description || '',
     category: paramCategory || 'handyman',
@@ -134,7 +58,7 @@ export default function QuickJobPage() {
     property_id: paramPropertyId || '',
   });
 
-  const fetchProperties = React.useCallback(() => {
+  const fetchProperties = useCallback(() => {
     if (!user || user.role !== 'homeowner') return;
     setPropertiesLoading(true);
     setPropertiesError(null);
@@ -177,14 +101,16 @@ export default function QuickJobPage() {
     }
   }, [user, fetchProperties]);
 
-  // Redirect if not authorized
+  // Server-side gate already lives in `apps/web/app/jobs/quick-create/layout.tsx`
+  // (added 2026-05-09 for AUDIT_PUNCH_LIST P1 #13). This client-side
+  // redirect is belt-and-braces for hydration edge cases.
   useEffect(() => {
     if (!loadingUser && (!user || user.role !== 'homeowner')) {
       router.push('/login');
     }
   }, [user, loadingUser, router]);
 
-  const handleTemplateSelect = (template: (typeof REPAIR_TEMPLATES)[0]) => {
+  const handleTemplateSelect = (template: RepairTemplate) => {
     setSelectedTemplate(template.id);
     setFormData((prev) => ({
       ...prev,
@@ -195,208 +121,44 @@ export default function QuickJobPage() {
     }));
   };
 
-  const handleBudgetSelect = (value: string) => {
-    setFormData((prev) => ({ ...prev, budget: value }));
-  };
-
-  const handleUrgencySelect = (value: string) => {
-    setFormData((prev) => ({ ...prev, urgency: value }));
-  };
-
   const handleSubmit = async () => {
-    // logger.info('=== Quick Job Submission Started ===', { service: 'app' });
-    // logger.info('Form data at submission:', formData, { service: 'app' });
-    // logger.info('User:', user?.id, user?.email, { service: 'app' });
-    // logger.info('CSRF Token available:', !!csrfToken, { service: 'app' });
-    // logger.info('Primary Property:', primaryProperty?.id, { service: 'app' });
+    setIsSubmitting(true);
+    const result = await submitQuickJob({
+      formData,
+      primaryProperty,
+      csrfToken,
+    });
 
-    // Simple validation for quick jobs
-    const errors = validateQuickJob(formData);
-    // logger.error('Validation errors:', errors, { service: 'app' });
-
-    if (!isFormValid(errors)) {
-      const firstError = Object.values(errors)[0];
-      logger.warn('Quick job validation failed', { service: 'app', errors });
-      toast.error(firstError);
+    if (result.ok) {
+      toast.success('Job posted successfully!');
+      router.push(`/jobs/${result.jobId}`);
+      // intentionally leave isSubmitting=true to prevent double-submit during nav
       return;
     }
 
-    if (!primaryProperty) {
-      logger.error('No primary property found', { service: 'app' });
-      toast.error('Please add a property first');
+    setIsSubmitting(false);
+
+    if (result.code === 'NO_PROPERTY') {
+      toast.error(result.message);
       router.push('/properties/add');
       return;
     }
 
-    if (!csrfToken) {
-      logger.error('No CSRF token available', { service: 'app' });
-      toast.error('Security token not available. Please refresh the page.');
+    if (result.code === 'PHONE_VERIFICATION_REQUIRED') {
+      toast.error('Phone verification required to post jobs');
+      toast.custom(() => (
+        <div className='flex items-center gap-2 bg-white px-4 py-3 rounded-lg shadow-lg border border-gray-200'>
+          <AlertCircle className='w-5 h-5 text-blue-600' />
+          <span>Redirecting to settings for verification...</span>
+        </div>
+      ));
+      setTimeout(() => {
+        router.push('/settings?tab=verification');
+      }, 2000);
       return;
     }
 
-    setIsSubmitting(true);
-    try {
-      // 2026-04-30 audit P1 (job creation consolidation):
-      // - Removed the legacy description-padding hack. The canonical
-      //   `createJobRequestSchema` (packages/api-contracts/jobs.ts)
-      //   sets the minimum at 20 chars and treats description as
-      //   optional, so a short Quick-Create description is fine.
-      // - Started passing `urgency` as its own field rather than
-      //   smuggling it through the description. The DB and the API
-      //   both have an `urgency` column; the previous "field not
-      //   supported" comment was stale.
-      const baseDescription =
-        formData.description?.trim() ||
-        `Quick repair needed: ${formData.title.trim()}.`;
-
-      // Map UI urgency tokens to the canonical enum.
-      const URGENCY_BY_TOKEN: Record<
-        string,
-        'low' | 'medium' | 'high' | 'emergency'
-      > = {
-        today: 'emergency',
-        tomorrow: 'high',
-        this_week: 'medium',
-      };
-      const canonicalUrgency = URGENCY_BY_TOKEN[formData.urgency] ?? 'medium';
-
-      const budgetValue = parseFloat(formData.budget);
-      if (isNaN(budgetValue) || budgetValue <= 0) {
-        toast.error('Please select a valid budget');
-        setIsSubmitting(false);
-        return;
-      }
-
-      // Build a full location string for accurate geocoding.
-      // Include postcode and city alongside address for better Google Maps results.
-      const locationParts = [
-        primaryProperty?.address || primaryProperty?.street_address,
-        primaryProperty?.city,
-        primaryProperty?.postcode,
-      ].filter(Boolean);
-      const locationString =
-        locationParts.length > 0
-          ? locationParts.join(', ')
-          : 'Property location';
-
-      const jobData = {
-        title: formData.title.trim(),
-        description: baseDescription,
-        location: locationString,
-        category: formData.category,
-        budget: budgetValue,
-        urgency: canonicalUrgency,
-        requiredSkills: [],
-        property_id: formData.property_id || primaryProperty?.id || undefined,
-      };
-
-      // logger.info('Submitting job data:', jobData, { service: 'app' });
-      // logger.info('Budget type:', typeof jobData.budget, 'Budget value:', jobData.budget, { service: 'app' });
-      // logger.info('Property ID:', jobData.property_id, { service: 'app' });
-      // logger.info('Location:', jobData.location, { service: 'app' });
-
-      // Use the proper submitJob API
-      // logger.info('Calling submitJob with:', {
-      //   formData: jobData,
-      //   csrfToken: csrfToken ? 'present' : 'missing',
-      // }, { service: 'app' });
-
-      const submitJobPayload = {
-        formData: jobData,
-        photoUrls: [], // No photos required for quick jobs under £500
-        csrfToken: csrfToken || '',
-      };
-      // logger.info('Final submitJob payload:', submitJobPayload, { service: 'app' });
-
-      const result = await submitJob(submitJobPayload);
-
-      // logger.info('submitJob result:', result, { service: 'app' });
-
-      // Check if submission was successful
-      if (!result.success) {
-        logger.error(
-          'Job submission failed in quick-create:',
-          {
-            error: result.error,
-            result: result,
-          },
-          { service: 'app' }
-        );
-        throw new Error(result.error || 'Failed to post job');
-      }
-
-      // Ensure we have a jobId
-      if (!result.jobId) {
-        throw new Error('Job created but no ID returned');
-      }
-
-      toast.success('Job posted successfully!');
-      router.push(`/jobs/${result.jobId}`);
-    } catch (error) {
-      logger.error('=== Error posting quick job ===', { service: 'app' });
-      logger.error('Error object:', error, { service: 'app' });
-      logger.error(
-        'Error message:',
-        error instanceof Error ? error.message : 'Unknown error',
-        { service: 'app' }
-      );
-      logger.error(
-        'Error stack:',
-        error instanceof Error ? error.stack : 'No stack trace',
-        { service: 'app' }
-      );
-      logger.error(
-        'Form data at error:',
-        {
-          title: formData.title,
-          category: formData.category,
-          budget: formData.budget,
-          budgetType: typeof formData.budget,
-          property_id: formData.property_id,
-          description: formData.description,
-        },
-        { service: 'app' }
-      );
-      logger.error(
-        'User info:',
-        {
-          id: user?.id,
-          email: user?.email,
-          role: user?.role,
-        },
-        { service: 'app' }
-      );
-      logger.error('CSRF token status:', csrfToken ? 'present' : 'missing', {
-        service: 'app',
-      });
-
-      const errorMessage =
-        error instanceof Error
-          ? error.message
-          : 'Failed to post job. Please try again.';
-
-      // Check if it's a phone verification error
-      if (
-        errorMessage.toLowerCase().includes('phone verification required') ||
-        errorMessage.toLowerCase().includes('verify your phone')
-      ) {
-        toast.error('Phone verification required to post jobs');
-        toast.custom((t) => (
-          <div className='flex items-center gap-2 bg-white px-4 py-3 rounded-lg shadow-lg border border-gray-200'>
-            <AlertCircle className='w-5 h-5 text-blue-600' />
-            <span>Redirecting to settings for verification...</span>
-          </div>
-        ));
-        // Redirect to settings page after a short delay
-        setTimeout(() => {
-          router.push('/settings?tab=verification');
-        }, 2000);
-      } else {
-        toast.error(errorMessage);
-      }
-    } finally {
-      setIsSubmitting(false);
-    }
+    toast.error(result.message);
   };
 
   if (loadingUser) {
@@ -430,252 +192,30 @@ export default function QuickJobPage() {
               </p>
             </div>
 
-            {/* Phone Verification Warning (hidden when SKIP_PHONE_VERIFICATION is enabled) */}
-            {user &&
-              !user.phone_verified &&
-              process.env.NEXT_PUBLIC_SKIP_PHONE_VERIFICATION !== 'true' && (
-                <div className='bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6'>
-                  <div className='flex items-start gap-3'>
-                    <AlertCircle className='w-5 h-5 text-amber-600 mt-0.5' />
-                    <div className='flex-1'>
-                      <p className='font-medium text-amber-900'>
-                        Phone verification required
-                      </p>
-                      <p className='text-sm text-amber-700 mt-1'>
-                        To post jobs and hire contractors, please verify your
-                        phone number for security.
-                      </p>
-                      <button
-                        onClick={() =>
-                          router.push('/settings?tab=verification')
-                        }
-                        className='mt-2 text-sm font-medium text-amber-900 hover:text-amber-800 underline inline-flex items-center gap-1'
-                      >
-                        Verify phone number
-                        <ArrowRight className='w-3 h-3' />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
+            <PhoneVerificationBanner phoneVerified={user?.phone_verified} />
 
-            {/* Property Info */}
-            {propertiesLoading && (
-              <div className='bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6'>
-                <div className='flex items-center gap-3 text-gray-600'>
-                  <div className='w-5 h-5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin' />
-                  <p>Loading your property…</p>
-                </div>
-              </div>
-            )}
-            {propertiesError && !primaryProperty && (
-              <div className='bg-amber-50 border border-amber-200 rounded-lg p-4 mb-6'>
-                <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3'>
-                  <p className='text-amber-900'>{propertiesError}</p>
-                  <button
-                    type='button'
-                    onClick={fetchProperties}
-                    className='shrink-0 px-4 py-2 bg-amber-100 hover:bg-amber-200 text-amber-900 font-medium rounded-lg transition-colors'
-                  >
-                    Retry
-                  </button>
-                </div>
-              </div>
-            )}
-            {primaryProperty && (
-              <div className='bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6'>
-                <div className='flex items-center gap-3'>
-                  <HomeIcon className='w-5 h-5 text-blue-600' />
-                  <div>
-                    <p className='text-sm text-blue-600 font-medium'>
-                      Property
-                    </p>
-                    <p className='text-gray-900'>
-                      {primaryProperty.property_name || 'Your Property'}
-                    </p>
-                    <p className='text-sm text-gray-600'>
-                      {primaryProperty.address}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
+            <PropertyInfo
+              primaryProperty={primaryProperty}
+              propertiesLoading={propertiesLoading}
+              propertiesError={propertiesError}
+              onRetry={fetchProperties}
+            />
 
-            {/* Templates */}
-            <div className='bg-white rounded-xl border border-gray-200 p-6 mb-6'>
-              <h2 className='text-lg font-semibold text-gray-900 mb-4'>
-                Common Repairs
-              </h2>
-              <div className='grid grid-cols-2 md:grid-cols-3 gap-3'>
-                {REPAIR_TEMPLATES.map((template) => {
-                  const Icon = template.icon;
-                  return (
-                    <button
-                      key={template.id}
-                      onClick={() => handleTemplateSelect(template)}
-                      className={`p-4 rounded-lg border-2 transition-all text-left ${
-                        selectedTemplate === template.id
-                          ? 'border-teal-600 bg-teal-50'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
-                      <Icon
-                        className={`w-6 h-6 mb-2 ${
-                          selectedTemplate === template.id
-                            ? 'text-teal-600'
-                            : 'text-gray-600'
-                        }`}
-                      />
-                      <h3 className='font-semibold text-gray-900 text-sm'>
-                        {template.title}
-                      </h3>
-                      <p className='text-xs text-gray-500 mt-1'>
-                        {template.budgetRange}
-                      </p>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
+            <RepairTemplatesGrid
+              selectedTemplateId={selectedTemplate}
+              onSelect={handleTemplateSelect}
+            />
 
-            {/* Quick Form */}
-            <div className='bg-white rounded-xl border border-gray-200 p-6 mb-6'>
-              <h2 className='text-lg font-semibold text-gray-900 mb-4'>
-                Describe Your Issue
-              </h2>
-
-              {/* Title */}
-              <div className='mb-4'>
-                <label className='block text-sm font-medium text-gray-700 mb-2'>
-                  What needs fixing?
-                </label>
-                <input
-                  type='text'
-                  value={formData.title}
-                  onChange={(e) =>
-                    setFormData({ ...formData, title: e.target.value })
-                  }
-                  placeholder='e.g., Leaking kitchen tap'
-                  className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 ${
-                    formData.title.length > 0 &&
-                    formData.title.trim().length < 5
-                      ? 'border-amber-500 bg-amber-50/50'
-                      : 'border-gray-300'
-                  }`}
-                  aria-invalid={
-                    formData.title.length > 0 &&
-                    formData.title.trim().length < 5
-                  }
-                  aria-describedby={
-                    formData.title.length > 0 &&
-                    formData.title.trim().length < 5
-                      ? 'title-hint'
-                      : undefined
-                  }
-                />
-                {formData.title.length > 0 &&
-                  formData.title.trim().length < 5 && (
-                    <p id='title-hint' className='mt-1 text-sm text-amber-700'>
-                      Use at least 5 characters (e.g. &quot;Leaking kitchen
-                      tap&quot;)
-                    </p>
-                  )}
-              </div>
-
-              {/* Description */}
-              <div className='mb-4'>
-                <label className='block text-sm font-medium text-gray-700 mb-2'>
-                  Brief description (optional)
-                </label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) =>
-                    setFormData({ ...formData, description: e.target.value })
-                  }
-                  placeholder='Add any helpful details...'
-                  rows={3}
-                  className='w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500'
-                />
-              </div>
-
-              {/* Budget Range */}
-              <div className='mb-4'>
-                <label className='block text-sm font-medium text-gray-700 mb-2'>
-                  Estimated Budget
-                </label>
-                <div className='grid grid-cols-2 md:grid-cols-4 gap-2'>
-                  {BUDGET_RANGES.map((range) => (
-                    <button
-                      key={range.value}
-                      onClick={() => handleBudgetSelect(range.value)}
-                      className={`py-2 px-4 rounded-lg border-2 font-medium transition-all ${
-                        formData.budget === range.value
-                          ? 'border-teal-600 bg-teal-50 text-teal-700'
-                          : 'border-gray-200 text-gray-700 hover:border-gray-300'
-                      }`}
-                    >
-                      {range.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Urgency */}
-              <div className='mb-6'>
-                <label className='block text-sm font-medium text-gray-700 mb-2'>
-                  When do you need this done?
-                </label>
-                <div className='grid grid-cols-2 md:grid-cols-4 gap-2'>
-                  {URGENCY_OPTIONS.map((option) => (
-                    <button
-                      key={option.value}
-                      onClick={() => handleUrgencySelect(option.value)}
-                      className={`py-2 px-4 rounded-lg border-2 font-medium transition-all ${
-                        formData.urgency === option.value
-                          ? 'border-teal-600 bg-teal-50 text-teal-700'
-                          : 'border-gray-200 text-gray-700 hover:border-gray-300'
-                      }`}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Submit Button - require title with at least 5 chars (matches validation) */}
-              <button
-                onClick={handleSubmit}
-                disabled={
-                  isSubmitting ||
-                  !formData.title ||
-                  formData.title.trim().length < 5 ||
-                  propertiesLoading ||
-                  (!primaryProperty && !!propertiesError)
-                }
-                className='w-full py-3 bg-teal-600 hover:bg-teal-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
-              >
-                {isSubmitting
-                  ? 'Posting Job...'
-                  : propertiesLoading
-                    ? 'Loading property…'
-                    : !primaryProperty && propertiesError
-                      ? 'Load your property first'
-                      : 'Post Job'}
-              </button>
-
-              {/* Alternative */}
-              <div className='mt-4 text-center'>
-                <p className='text-sm text-gray-600'>
-                  Need more options?{' '}
-                  <button
-                    onClick={() => router.push('/jobs/create')}
-                    className='text-teal-600 hover:text-teal-700 font-medium'
-                  >
-                    Use detailed form
-                  </button>
-                </p>
-              </div>
-            </div>
+            <QuickJobForm
+              formData={formData}
+              setFormData={setFormData}
+              isSubmitting={isSubmitting}
+              propertiesLoading={propertiesLoading}
+              primaryPropertyMissing={!primaryProperty}
+              hasPropertiesError={!!propertiesError}
+              onSubmit={handleSubmit}
+              onUseDetailedForm={() => router.push('/jobs/create')}
+            />
           </div>
         </div>
       </HomeownerPageWrapper>

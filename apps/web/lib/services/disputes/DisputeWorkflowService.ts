@@ -62,14 +62,18 @@ export class DisputeWorkflowService {
   }
 
   /**
-   * Attempt auto-resolution for a dispute
+   * Attempt auto-resolution for a dispute.
+   *
+   * 2026-05-09: corrected column names. `escrow_transactions` exposes
+   * `payer_id` (homeowner) and `payee_id` (contractor); the prior
+   * `homeowner_id`/`contractor_id` selection threw at PostgREST and
+   * silently disabled auto-resolution for every dispute.
    */
   static async attemptAutoResolution(escrowId: string): Promise<boolean> {
     try {
-      // Get escrow details
       const { data: escrowDetails } = await serverSupabase
         .from('escrow_transactions')
-        .select('homeowner_id, contractor_id')
+        .select('payer_id, payee_id')
         .eq('id', escrowId)
         .single();
 
@@ -77,12 +81,11 @@ export class DisputeWorkflowService {
         return false;
       }
 
-      // Attempt auto-resolution
       const result = await DisputeResolutionAgent.attemptAutoResolution(
         escrowId,
         undefined, // jobId will be fetched from escrow
         {
-          userId: escrowDetails.homeowner_id,
+          userId: escrowDetails.payer_id,
         }
       );
 
@@ -181,4 +184,3 @@ export class DisputeWorkflowService {
     }
   }
 }
-

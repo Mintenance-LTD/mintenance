@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import {
   Megaphone,
   TrendingUp,
@@ -15,7 +16,22 @@ import {
   Loader2,
   AlertCircle,
 } from 'lucide-react';
-import { AreaChart, DonutChart, BarChart } from '@tremor/react';
+
+// AUDIT_PUNCH_LIST P2 #64 (A2-P2-6) — see /contractor/expenses for
+// rationale. Lazy-load Tremor charts to keep them out of the
+// initial contractor bundle.
+const AreaChart = dynamic(
+  () => import('@tremor/react').then((m) => ({ default: m.AreaChart })),
+  { ssr: false }
+);
+const DonutChart = dynamic(
+  () => import('@tremor/react').then((m) => ({ default: m.DonutChart })),
+  { ssr: false }
+);
+const BarChart = dynamic(
+  () => import('@tremor/react').then((m) => ({ default: m.BarChart })),
+  { ssr: false }
+);
 import toast from 'react-hot-toast';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import { safeCopyToClipboard } from '@/lib/utils/clipboard';

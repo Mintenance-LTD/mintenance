@@ -1,7 +1,6 @@
-
 import React from 'react';
 import { render, fireEvent, waitFor } from '../test-utils';
-import HomeScreen from '../../screens/HomeScreen';
+import { HomeScreen } from '../../screens/home';
 import { useAuth } from '../../contexts/AuthContext';
 import { JobService } from '../../services/JobService';
 import { UserService } from '../../services/UserService';
@@ -11,7 +10,9 @@ jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: ({ children }) => children,
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
-jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock')
+);
 
 const mockNavigation = {
   navigate: jest.fn(),

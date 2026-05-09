@@ -77,16 +77,20 @@ export const POST = withApiHandler(
       throw new BadRequestError('Failed to file dispute. Please try again.');
     }
 
-    // Create a dispute record for tracking
+    // Create a dispute record for tracking.
+    // 2026-05-09: corrected column names to match the live `disputes`
+    // schema (raised_by/against/description). Prior insert silently
+    // failed for every dispute because it referenced non-existent
+    // columns (homeowner_id/contractor_id/category) and the catch
+    // block swallowed the error.
     try {
       await serverSupabase.from('disputes').insert({
         job_id: jobId,
-        homeowner_id: user.id,
-        contractor_id: contractorId,
+        raised_by: user.id,
+        against: contractorId,
         reason,
-        category,
+        description: `Category: ${category}`,
         status: 'open',
-        created_at: new Date().toISOString(),
       });
     } catch (disputeInsertError) {
       // Non-fatal — the job status is already updated

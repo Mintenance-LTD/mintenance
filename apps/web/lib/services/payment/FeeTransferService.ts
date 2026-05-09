@@ -1,7 +1,10 @@
 import Stripe from 'stripe';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
-import { FeeCalculationService, type PaymentType } from './FeeCalculationService';
+import {
+  FeeCalculationService,
+  type PaymentType,
+} from './FeeCalculationService';
 
 // Lazy Stripe init to avoid module-level throws during next build.
 let _stripe: Stripe | null = null;
@@ -10,7 +13,9 @@ function getStripe(): Stripe {
     if (!process.env.STRIPE_SECRET_KEY) {
       throw new Error('STRIPE_SECRET_KEY is not configured');
     }
-    _stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2024-04-10' });
+    _stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: '2024-04-10',
+    });
   }
   return _stripe;
 }
@@ -20,37 +25,37 @@ export interface FeeTransferOptions {
    * Escrow transaction ID
    */
   escrowTransactionId: string;
-  
+
   /**
    * Job ID
    */
   jobId: string;
-  
+
   /**
    * Contractor ID
    */
   contractorId: string;
-  
+
   /**
    * Payment amount (original amount before fees)
    */
   amount: number;
-  
+
   /**
    * Payment intent ID from Stripe
    */
   paymentIntentId: string;
-  
+
   /**
    * Charge ID from Stripe
    */
   chargeId?: string;
-  
+
   /**
    * Payment type
    */
   paymentType?: PaymentType;
-  
+
   /**
    * Currency code
    * @default 'gbp'
@@ -63,22 +68,22 @@ export interface FeeTransferResult {
    * Platform fee transfer record ID
    */
   feeTransferId: string;
-  
+
   /**
    * Platform fee amount
    */
   platformFee: number;
-  
+
   /**
    * Stripe processing fee
    */
   stripeFee: number;
-  
+
   /**
    * Net platform revenue
    */
   netRevenue: number;
-  
+
   /**
    * Fee transfer status
    */
@@ -87,7 +92,7 @@ export interface FeeTransferResult {
 
 /**
  * Service for managing platform fee transfers
- * 
+ *
  * Handles:
  * - Creating fee transfer records
  * - Transferring platform fees to platform account
@@ -98,11 +103,11 @@ export interface FeeTransferResult {
 export class FeeTransferService {
   /**
    * Transfer platform fee to platform account
-   * 
+   *
    * Note: In Stripe Connect, platform fees are automatically deducted
    * when transferring to connected accounts. This method creates a
    * record for tracking and accounting purposes.
-   * 
+   *
    * @param options - Fee transfer options
    * @returns Fee transfer result
    */
@@ -213,7 +218,7 @@ export class FeeTransferService {
 
   /**
    * Hold fee transfer (admin action)
-   * 
+   *
    * @param feeTransferId - Fee transfer record ID
    * @param adminId - Admin user ID placing the hold
    * @param reason - Reason for hold
@@ -269,7 +274,7 @@ export class FeeTransferService {
 
   /**
    * Release held fee transfer (admin action)
-   * 
+   *
    * @param feeTransferId - Fee transfer record ID
    * @param adminId - Admin user ID releasing the hold
    */
@@ -324,19 +329,21 @@ export class FeeTransferService {
 
   /**
    * Get pending fee transfers
-   * 
+   *
    * @param limit - Maximum number of records to return
    * @returns Array of pending fee transfers
    */
   static async getPendingFeeTransfers(limit: number = 100) {
     const { data, error } = await serverSupabase
       .from('platform_fee_transfers')
-      .select(`
+      .select(
+        `
         *,
         escrow_transactions!inner(id, amount, status),
         jobs!inner(id, title, contractor_id, homeowner_id),
-        users!platform_fee_transfers_contractor_id_fkey(id, first_name, last_name, email)
-      `)
+        profiles!platform_fee_transfers_contractor_id_fkey(id, first_name, last_name, email)
+      `
+      )
       .in('status', ['pending', 'held'])
       .order('created_at', { ascending: false })
       .limit(limit);
@@ -353,7 +360,7 @@ export class FeeTransferService {
 
   /**
    * Batch transfer multiple fees
-   * 
+   *
    * @param feeTransferIds - Array of fee transfer IDs to transfer
    * @param adminId - Admin user ID performing the batch transfer
    */
@@ -388,4 +395,3 @@ export class FeeTransferService {
     return { success, failed };
   }
 }
-
