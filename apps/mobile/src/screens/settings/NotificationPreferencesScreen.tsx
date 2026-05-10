@@ -26,6 +26,7 @@ import { logger } from '../../utils/logger';
 interface Prefs {
   push_enabled: boolean;
   email_enabled: boolean;
+  sms_enabled: boolean;
   in_app_enabled: boolean;
   disabled_types: string[];
   quiet_hours_start: string | null;
@@ -33,9 +34,15 @@ interface Prefs {
   timezone: string;
 }
 
+// Defaults match the live DB defaults on `user_notification_preferences`:
+// every channel is on, no types muted, quiet hours off. Adding sms_enabled
+// closes AUDIT_PUNCH_LIST P2 #40 — the column landed in migration
+// `20260508093711_user_notification_prefs_sms_column` and the canonical
+// `/api/user/notification-preferences` route already validates it.
 const DEFAULTS: Prefs = {
   push_enabled: true,
   email_enabled: true,
+  sms_enabled: true,
   in_app_enabled: true,
   disabled_types: [],
   quiet_hours_start: null,
@@ -103,6 +110,7 @@ export const NotificationPreferencesScreen: React.FC = () => {
       await mobileApiClient.patch('/api/user/notification-preferences', {
         push_enabled: prefs.push_enabled,
         email_enabled: prefs.email_enabled,
+        sms_enabled: prefs.sms_enabled,
         in_app_enabled: prefs.in_app_enabled,
         disabled_types: prefs.disabled_types,
         quiet_hours_start: prefs.quiet_hours_start,
@@ -139,6 +147,7 @@ export const NotificationPreferencesScreen: React.FC = () => {
           [
             ['push_enabled', 'Push notifications'],
             ['email_enabled', 'Email'],
+            ['sms_enabled', 'SMS'],
             ['in_app_enabled', 'In-app'],
           ] as const
         ).map(([key, label]) => (

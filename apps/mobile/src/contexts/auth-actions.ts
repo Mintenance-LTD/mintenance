@@ -218,11 +218,17 @@ export const performSignIn = async (
           role: signedInUser.role,
         });
       } catch (reconcileErr) {
-        // eslint-disable-next-line no-console
-        console.warn(
-          '[AUTH] post-signup reconciliation failed (non-fatal):',
-          reconcileErr
-        );
+        // 2026-05-10 (AUDIT_PUNCH_LIST P3 #79): swapped from a
+        // direct `console.warn` to the canonical logger so this
+        // surfaces in Sentry breadcrumbs in non-dev builds. Still
+        // non-fatal — sign-in completes either way.
+        logger.warn('post-signup reconciliation failed (non-fatal)', {
+          service: 'auth',
+          error:
+            reconcileErr instanceof Error
+              ? reconcileErr.message
+              : String(reconcileErr),
+        });
       }
 
       if (

@@ -7,14 +7,16 @@
  * (in `screens/settings/NotificationPreferencesScreen.tsx`) which
  * is backed by the dedicated `user_notification_preferences` table.
  *
- * This screen is kept registered in the nav stack for two reasons:
- *   1. Deep links from older mobile builds + emails may still hit it.
- *   2. Its SMS / per-category granular toggles aren't yet
- *      represented in the canonical screen (the
- *      `user_notification_preferences` table doesn't have an SMS
- *      column). Once the canonical screen + table are extended
- *      with SMS, delete this file and the plural API route
- *      (`/api/users/notification-preferences`).
+ * 2026-05-10 (AUDIT_PUNCH_LIST P2 #40 closure): SMS is now
+ * represented on the canonical screen + table — `sms_enabled`
+ * column landed in migration `20260508093711_user_notification_prefs_sms_column`
+ * and the canonical screen exposes the toggle alongside push /
+ * email / in-app. Per-event mute (the `disabled_types` set) was
+ * already on the canonical screen. This legacy screen now has
+ * NO unique data — it's only kept registered so deep links from
+ * older mobile builds + emails still resolve. Safe to delete in a
+ * future release once those deep links have aged out (≈90 days
+ * post the build that removes mention of this route).
  *
  * Don't add new entry points here — wire them to
  * `NotificationPreferences` instead.
