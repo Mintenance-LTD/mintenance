@@ -2,6 +2,7 @@ import * as SQLite from 'expo-sqlite';
 import { logger } from '../../utils/logger';
 import type { User, Job, Message } from '@mintenance/types';
 import { getDatabaseOpenOptions } from './encryption';
+import { runMigrations as runVersionedMigrations } from './migrations';
 import { saveUser, getUser, getAllUsers } from './UserStore';
 import {
   saveJob,
@@ -77,94 +78,17 @@ class LocalDatabaseService {
     for (const indexSQL of indexes) await this.db.execAsync(indexSQL);
   }
 
+  /**
+   * AUDIT_PUNCH_LIST P2 #46 (B3-P2-2) — refactored 2026-05-09 to use
+   * the proper versioned migration framework in `./migrations.ts`.
+   * The two ad-hoc PRAGMA-driven checks that lived here previously
+   * are now formal migrations 1 and 2 in `MIGRATIONS`. Future
+   * schema changes append a new entry instead of stuffing another
+   * `PRAGMA`-and-`ALTER` block into this file.
+   */
   private async runMigrations(): Promise<void> {
     if (!this.db) throw new Error('Database not initialized');
-    const tableInfo = await this.db.getAllAsync<{
-      name: string;
-      notnull: number;
-    }>('PRAGMA table_info(messages)');
-    const receiverIdCol = tableInfo.find((col) => col.name === 'receiver_id');
-    if (receiverIdCol?.notnull === 1) {
-      try {
-        await this.db.execAsync(
-          'ALTER TABLE messages RENAME TO messages_backup'
-        );
-        await this.db.execAsync(
-          `CREATE TABLE messages (id TEXT PRIMARY KEY, job_id TEXT, sender_id TEXT NOT NULL, receiver_id TEXT, message_text TEXT, message_type TEXT DEFAULT 'text', attachment_url TEXT, read BOOLEAN DEFAULT FALSE, created_at TEXT NOT NULL, synced_at TEXT, is_dirty BOOLEAN DEFAULT FALSE)`
-        );
-        await this.db.execAsync(
-          'INSERT OR IGNORE INTO messages SELECT * FROM messages_backup'
-        );
-        await this.db.execAsync('DROP TABLE IF EXISTS messages_backup');
-        await this.db.execAsync(
-          'CREATE INDEX IF NOT EXISTS idx_messages_job ON messages(job_id)'
-        );
-        await this.db.execAsync(
-          'CREATE INDEX IF NOT EXISTS idx_messages_sender ON messages(sender_id)'
-        );
-        await this.db.execAsync(
-          'CREATE INDEX IF NOT EXISTS idx_messages_receiver ON messages(receiver_id)'
-        );
-        await this.db.execAsync(
-          'CREATE INDEX IF NOT EXISTS idx_dirty_messages ON messages(is_dirty) WHERE is_dirty = TRUE'
-        );
-        logger.info(
-          'Database migration applied: messages columns made nullable'
-        );
-      } catch (error) {
-        logger.error('Database migration failed:', error);
-        // MSV-P1-6: previously the cleanup catch was silent. Log so a stale
-        // messages_backup table after a failed migration rollback is visible.
-        await this.db
-          .execAsync('DROP TABLE IF EXISTS messages_backup')
-          .catch((cleanupError) => {
-            logger.warn(
-              'LocalDatabaseService: failed to drop messages_backup during migration rollback',
-              { cleanupError }
-            );
-          });
-      }
-    }
-    // Migration: make jobs columns nullable (homeowner_id, description, location, budget)
-    const jobsInfo = await this.db.getAllAsync<{
-      name: string;
-      notnull: number;
-    }>('PRAGMA table_info(jobs)');
-    const homeownerCol = jobsInfo.find((col) => col.name === 'homeowner_id');
-    if (homeownerCol?.notnull === 1) {
-      try {
-        await this.db.execAsync('ALTER TABLE jobs RENAME TO jobs_backup');
-        await this.db.execAsync(
-          `CREATE TABLE jobs (id TEXT PRIMARY KEY, title TEXT NOT NULL, description TEXT, location TEXT, homeowner_id TEXT, contractor_id TEXT, status TEXT NOT NULL DEFAULT 'posted', budget REAL, category TEXT, subcategory TEXT, priority TEXT DEFAULT 'medium', photos TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL, synced_at TEXT, is_dirty BOOLEAN DEFAULT FALSE)`
-        );
-        await this.db.execAsync(
-          'INSERT OR IGNORE INTO jobs SELECT * FROM jobs_backup'
-        );
-        await this.db.execAsync('DROP TABLE IF EXISTS jobs_backup');
-        await this.db.execAsync(
-          'CREATE INDEX IF NOT EXISTS idx_jobs_homeowner ON jobs(homeowner_id)'
-        );
-        await this.db.execAsync(
-          'CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status)'
-        );
-        await this.db.execAsync(
-          'CREATE INDEX IF NOT EXISTS idx_dirty_jobs ON jobs(is_dirty) WHERE is_dirty = TRUE'
-        );
-        logger.info('Database migration applied: jobs columns made nullable');
-      } catch (error) {
-        logger.error('Database migration failed (jobs):', error);
-        await this.db
-          .execAsync('DROP TABLE IF EXISTS jobs_backup')
-          .catch((cleanupError) => {
-            logger.warn(
-              'LocalDatabaseService: failed to drop jobs_backup during migration rollback',
-              { cleanupError }
-            );
-          });
-      }
-    }
-
-    logger.info('Database migrations completed');
+    await runVersionedMigrations(this.db);
   }
 
   private requireDb(): SQLite.SQLiteDatabase {

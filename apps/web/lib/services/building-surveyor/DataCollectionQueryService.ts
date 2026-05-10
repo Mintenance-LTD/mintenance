@@ -21,7 +21,7 @@ export async function getPendingAssessments(limit = 50, offset = 0) {
       .select(
         `
         *,
-        user:users!building_assessments_user_id_fkey(id, first_name, last_name, email),
+        user:profiles!building_assessments_user_id_fkey(id, first_name, last_name, email),
         images:assessment_images(image_url, image_index)
       `
       )
@@ -52,7 +52,7 @@ export async function getValidatedAssessments(limit = 100, offset = 0) {
       .select(
         `
         *,
-        user:users!building_assessments_user_id_fkey(id, first_name, last_name, email),
+        user:profiles!building_assessments_user_id_fkey(id, first_name, last_name, email),
         images:assessment_images(image_url, image_index)
       `
       )
@@ -92,21 +92,27 @@ export async function exportTrainingData(
     if (format === 'jsonl') {
       // JSONL format for fine-tuning
       const lines = validatedAssessments.map((assessment) => {
-        const images = (assessment.images || []).map((img: AssessmentImage) => ({
-          type: 'image_url',
-          image_url: img.image_url,
-        }));
+        const images = (assessment.images || []).map(
+          (img: AssessmentImage) => ({
+            type: 'image_url',
+            image_url: img.image_url,
+          })
+        );
 
         return JSON.stringify({
           messages: [
             {
               role: 'system',
-              content: 'You are a professional UK building surveyor with expertise in residential and commercial property inspections. Analyze building damage photos and provide comprehensive assessments.',
+              content:
+                'You are a professional UK building surveyor with expertise in residential and commercial property inspections. Analyze building damage photos and provide comprehensive assessments.',
             },
             {
               role: 'user',
               content: [
-                { type: 'text', text: 'Analyze these building damage photos and provide a comprehensive assessment.' },
+                {
+                  type: 'text',
+                  text: 'Analyze these building damage photos and provide a comprehensive assessment.',
+                },
                 ...images,
               ],
             },
@@ -131,7 +137,9 @@ export async function exportTrainingData(
       return JSON.stringify(
         validatedAssessments.map((assessment) => ({
           assessment_id: assessment.id,
-          images: (assessment.images || []).map((img: AssessmentImage) => img.image_url),
+          images: (assessment.images || []).map(
+            (img: AssessmentImage) => img.image_url
+          ),
           assessment: assessment.assessment_data,
           metadata: {
             damage_type: assessment.damage_type,
@@ -178,7 +186,8 @@ export async function trackGPT4Accuracy(
       throw new Error('Assessment not found');
     }
 
-    const gpt4Assessment = originalAssessment.assessment_data as Phase1BuildingAssessment;
+    const gpt4Assessment =
+      originalAssessment.assessment_data as Phase1BuildingAssessment;
 
     // Compare damage type
     const damageTypeMatch =
@@ -202,22 +211,23 @@ export async function trackGPT4Accuracy(
 
     // Compare urgency
     const urgencyMatch =
-      gpt4Assessment.urgency.urgency === humanValidatedAssessment.urgency.urgency;
+      gpt4Assessment.urgency.urgency ===
+      humanValidatedAssessment.urgency.urgency;
 
     // Calculate overall accuracy (weighted)
     let accuracy = 0;
     let totalWeight = 0;
 
-    if (damageTypeMatch) accuracy += 30;   // Damage type: 30% weight
+    if (damageTypeMatch) accuracy += 30; // Damage type: 30% weight
     totalWeight += 30;
 
-    if (severityMatch) accuracy += 25;     // Severity: 25% weight
+    if (severityMatch) accuracy += 25; // Severity: 25% weight
     totalWeight += 25;
 
     if (safetyHazardsMatch) accuracy += 20; // Safety hazards: 20% weight
     totalWeight += 20;
 
-    if (urgencyMatch) accuracy += 15;      // Urgency: 15% weight
+    if (urgencyMatch) accuracy += 15; // Urgency: 15% weight
     totalWeight += 15;
 
     // Confidence delta: 10% weight (lower delta = better)
@@ -239,7 +249,10 @@ export async function trackGPT4Accuracy(
     // Trigger learning if accuracy is below threshold
     if (finalAccuracy < 70) {
       try {
-        await BuildingSurveyorService.learnFromValidation(assessmentId, humanValidatedAssessment);
+        await BuildingSurveyorService.learnFromValidation(
+          assessmentId,
+          humanValidatedAssessment
+        );
       } catch (learningError) {
         logger.warn('Failed to trigger learning from accuracy tracking', {
           service: 'DataCollectionService',

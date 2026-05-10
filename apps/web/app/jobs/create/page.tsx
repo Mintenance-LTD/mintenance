@@ -172,6 +172,16 @@ export default function CreateJobPage2025() {
     }
   }, [user, loadingUser, router]);
 
+  // AUDIT_PUNCH_LIST P2 #66 (A-P2-4) — narrow deps are deliberate.
+  // The Mint AI building-assessment call is expensive (10-60s
+  // Modal cold start, OpenAI tokens, eats budget). Re-running on
+  // every `imageUpload.uploadedImages` array reassignment, every
+  // `properties` refetch, or every `formData` keystroke would
+  // burn money and rate limit. The contract: fire ONLY when the
+  // image count changes (i.e. user uploaded or removed an image),
+  // and read the latest snapshot of the other fields at fire-time.
+  // Keep the deps narrow; do not "fix" by adding more.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
     const runAssessment = async () => {
       if (
@@ -193,9 +203,17 @@ export default function CreateJobPage2025() {
     };
 
     runAssessment();
-  }, [imageUpload.uploadedImages.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [imageUpload.uploadedImages.length]);
 
-  // Auto-fill form fields from AI assessment results
+  // Auto-fill form fields from AI assessment results.
+  //
+  // AUDIT_PUNCH_LIST P2 #66 (A-P2-4) — `mapDamageTypeToCategory` and
+  // `mapAIUrgency` are top-level function declarations (lines 33+65)
+  // so they have stable identity across renders. `setFormData` and
+  // `aiAutoFilledRef` are React-stable. The only meaningful dep is
+  // `buildingAssessment.assessment` — this is the trigger AND the
+  // only mutable input. The previous `// eslint-disable-line` was
+  // a leftover from a refactor and the disable is no longer needed.
   useEffect(() => {
     if (!buildingAssessment.assessment || aiAutoFilledRef.current) return;
     aiAutoFilledRef.current = true;
@@ -242,7 +260,7 @@ export default function CreateJobPage2025() {
         duration: 5000,
       });
     }
-  }, [buildingAssessment.assessment]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [buildingAssessment.assessment]);
 
   const handleSubmit = async () => {
     const errors = validateJobForm(
@@ -280,14 +298,18 @@ export default function CreateJobPage2025() {
             urlCount: imageUrls.length,
           });
         } catch (uploadError) {
-          logger.error(
-            '[Submit] Image upload failed, continuing without images',
-            uploadError
-          );
+          // AUDIT_PUNCH_LIST P1 #12 (A-P1-2) — was silently swallowing
+          // upload failures and posting the job photo-less, which
+          // surprised homeowners (especially on damage assessments
+          // where the photos are the whole point). Now fails closed:
+          // surface the failure, abort the submit, and let the user
+          // retry or explicitly remove the photos first.
+          logger.error('[Submit] Image upload failed', uploadError);
           toast.error(
-            'Image upload failed. Continuing to create job without images.'
+            'Photo upload failed. Please try again, or remove the photos to post without them.'
           );
-          imageUrls = [];
+          setIsSubmitting(false);
+          return;
         }
       }
 

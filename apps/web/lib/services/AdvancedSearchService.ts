@@ -8,11 +8,10 @@ import type {
   SavedSearch,
   SearchAnalytics,
   Job,
-  ContractorProfile
+  ContractorProfile,
 } from '@mintenance/types';
 
 export class AdvancedSearchService {
-
   /**
    * Perform advanced search for jobs with comprehensive filtering
    */
@@ -26,9 +25,7 @@ export class AdvancedSearchService {
       const offset = (page - 1) * limit;
 
       // Build the query with filters
-      let supabaseQuery = supabase
-        .from('jobs')
-        .select('*', { count: 'exact' });
+      let supabaseQuery = supabase.from('jobs').select('*', { count: 'exact' });
 
       // Text search
       if (query.trim()) {
@@ -81,7 +78,19 @@ export class AdvancedSearchService {
 
       if (error) {
         logger.error('Error searching jobs', error);
-        return { items: [], totalCount: 0, hasMore: false, facets: { skills: {}, priceRanges: {}, ratings: {}, locations: {}, availability: {} }, suggestions: [] };
+        return {
+          items: [],
+          totalCount: 0,
+          hasMore: false,
+          facets: {
+            skills: {},
+            priceRanges: {},
+            ratings: {},
+            locations: {},
+            availability: {},
+          },
+          suggestions: [],
+        };
       }
 
       // Calculate facets for refined search
@@ -92,11 +101,23 @@ export class AdvancedSearchService {
         totalCount: count || 0,
         hasMore: (count || 0) > offset + limit,
         facets,
-        suggestions: this.generateSearchSuggestions(query)
+        suggestions: this.generateSearchSuggestions(query),
       };
     } catch (error) {
       logger.error('Advanced job search error', error);
-      return { items: [], totalCount: 0, hasMore: false, facets: { skills: {}, priceRanges: {}, ratings: {}, locations: {}, availability: {} }, suggestions: [] };
+      return {
+        items: [],
+        totalCount: 0,
+        hasMore: false,
+        facets: {
+          skills: {},
+          priceRanges: {},
+          ratings: {},
+          locations: {},
+          availability: {},
+        },
+        suggestions: [],
+      };
     }
   }
 
@@ -112,15 +133,20 @@ export class AdvancedSearchService {
     try {
       const offset = (page - 1) * limit;
 
-      // Build the query with filters
-      let supabaseQuery = supabase
-        .from('contractor_profiles')
-        .select(`
+      // Build the query with filters.
+      // 2026-05-09: was joining the legacy `users!contractor_profiles_user_id_fkey`,
+      // but `contractor_profiles` PK is itself a FK into `profiles.id`
+      // (constraint `contractor_profiles_id_fkey`), and the `users`
+      // table no longer exists as a base table. Embed via profiles.
+      let supabaseQuery = supabase.from('contractor_profiles').select(
+        `
           *,
-          user:users!contractor_profiles_user_id_fkey(
+          user:profiles!contractor_profiles_id_fkey(
             id, email, first_name, last_name, phone, avatar_url
           )
-        `, { count: 'exact' });
+        `,
+        { count: 'exact' }
+      );
 
       // Text search across multiple fields
       if (query.trim()) {
@@ -154,7 +180,10 @@ export class AdvancedSearchService {
       }
 
       if (filters.isBackgroundChecked !== undefined) {
-        supabaseQuery = supabaseQuery.eq('background_checked', filters.isBackgroundChecked);
+        supabaseQuery = supabaseQuery.eq(
+          'background_checked',
+          filters.isBackgroundChecked
+        );
       }
 
       // Apply pagination
@@ -166,11 +195,23 @@ export class AdvancedSearchService {
 
       if (error) {
         logger.error('Error searching contractors', error);
-        return { items: [], totalCount: 0, hasMore: false, facets: { skills: {}, priceRanges: {}, ratings: {}, locations: {}, availability: {} }, suggestions: [] };
+        return {
+          items: [],
+          totalCount: 0,
+          hasMore: false,
+          facets: {
+            skills: {},
+            priceRanges: {},
+            ratings: {},
+            locations: {},
+            availability: {},
+          },
+          suggestions: [],
+        };
       }
 
       // Transform data to match Contractor interface
-      const contractors = (data || []).map(profile => ({
+      const contractors = (data || []).map((profile) => ({
         id: profile.user?.id || '',
         email: profile.user?.email || '',
         first_name: profile.user?.first_name || '',
@@ -189,7 +230,8 @@ export class AdvancedSearchService {
         rating: profile.rating || 0,
         total_jobs: profile.total_jobs || 0,
         portfolioImages: profile.portfolio_images || [],
-        reviews: ((profile as Record<string, unknown>).reviews ?? []) as ContractorProfile['reviews']
+        reviews: ((profile as Record<string, unknown>).reviews ??
+          []) as ContractorProfile['reviews'],
       }));
 
       // Calculate facets for refined search
@@ -200,11 +242,23 @@ export class AdvancedSearchService {
         totalCount: count || 0,
         hasMore: (count || 0) > offset + limit,
         facets,
-        suggestions: this.generateSearchSuggestions(query)
+        suggestions: this.generateSearchSuggestions(query),
       };
     } catch (error) {
       logger.error('Advanced contractor search error', error);
-      return { items: [], totalCount: 0, hasMore: false, facets: { skills: {}, priceRanges: {}, ratings: {}, locations: {}, availability: {} }, suggestions: [] };
+      return {
+        items: [],
+        totalCount: 0,
+        hasMore: false,
+        facets: {
+          skills: {},
+          priceRanges: {},
+          ratings: {},
+          locations: {},
+          availability: {},
+        },
+        suggestions: [],
+      };
     }
   }
 
@@ -220,14 +274,16 @@ export class AdvancedSearchService {
     try {
       const { data, error } = await supabase
         .from('saved_searches')
-        .insert([{
-          user_id: userId,
-          name,
-          filters,
-          alert_enabled: alertEnabled,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        }])
+        .insert([
+          {
+            user_id: userId,
+            name,
+            filters,
+            alert_enabled: alertEnabled,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+        ])
         .select()
         .single();
 
@@ -243,7 +299,7 @@ export class AdvancedSearchService {
         filters: data.filters,
         alertEnabled: data.alert_enabled,
         createdAt: data.created_at,
-        updatedAt: data.updated_at
+        updatedAt: data.updated_at,
       };
     } catch (error) {
       logger.error('Save search error', error);
@@ -267,14 +323,14 @@ export class AdvancedSearchService {
         return [];
       }
 
-      return (data || []).map(item => ({
+      return (data || []).map((item) => ({
         id: item.id,
         userId: item.user_id,
         name: item.name,
         filters: item.filters,
         alertEnabled: item.alert_enabled,
         createdAt: item.created_at,
-        updatedAt: item.updated_at
+        updatedAt: item.updated_at,
       }));
     } catch (error) {
       logger.error('Get saved searches error', error);
@@ -300,23 +356,23 @@ export class AdvancedSearchService {
         resultsCount,
         clickedResults: [],
         timestamp: new Date().toISOString(),
-        sessionId
+        sessionId,
       };
 
       // In a real implementation, this would be sent to an analytics service
       logger.info('Search Analytics', analytics);
 
       // Could also store in Supabase for later analysis
-      await supabase
-        .from('search_analytics')
-        .insert([{
+      await supabase.from('search_analytics').insert([
+        {
           user_id: analytics.userId,
           search_query: analytics.searchQuery,
           filters: analytics.filters,
           results_count: analytics.resultsCount,
           session_id: analytics.sessionId,
-          timestamp: analytics.timestamp
-        }]);
+          timestamp: analytics.timestamp,
+        },
+      ]);
     } catch (error) {
       logger.error('Search analytics tracking error', error);
       // Analytics failures shouldn't break the search experience
@@ -326,7 +382,9 @@ export class AdvancedSearchService {
   /**
    * Calculate facets for job search refinement from actual DB data
    */
-  private static async calculateJobFacets(_filters: AdvancedSearchFilters): Promise<SearchFacets> {
+  private static async calculateJobFacets(
+    _filters: AdvancedSearchFilters
+  ): Promise<SearchFacets> {
     try {
       const { data: jobs, error } = await supabase
         .from('jobs')
@@ -334,12 +392,21 @@ export class AdvancedSearchService {
         .eq('status', 'posted');
 
       if (error || !jobs) {
-        return { skills: {}, priceRanges: {}, ratings: {}, locations: {}, availability: {} };
+        return {
+          skills: {},
+          priceRanges: {},
+          ratings: {},
+          locations: {},
+          availability: {},
+        };
       }
 
       const skills: Record<string, number> = {};
       const priceRanges: Record<string, number> = {
-        '$0-$500': 0, '$500-$1000': 0, '$1000-$2500': 0, '$2500+': 0,
+        '$0-$500': 0,
+        '$500-$1000': 0,
+        '$1000-$2500': 0,
+        '$2500+': 0,
       };
 
       for (const job of jobs) {
@@ -353,32 +420,57 @@ export class AdvancedSearchService {
         else priceRanges['$2500+']++;
       }
 
-      return { skills, priceRanges, ratings: {}, locations: {}, availability: {} };
+      return {
+        skills,
+        priceRanges,
+        ratings: {},
+        locations: {},
+        availability: {},
+      };
     } catch (error) {
       logger.error('Error calculating job facets', error);
-      return { skills: {}, priceRanges: {}, ratings: {}, locations: {}, availability: {} };
+      return {
+        skills: {},
+        priceRanges: {},
+        ratings: {},
+        locations: {},
+        availability: {},
+      };
     }
   }
 
   /**
    * Calculate facets for contractor search refinement from actual DB data
    */
-  private static async calculateContractorFacets(_filters: AdvancedSearchFilters): Promise<SearchFacets> {
+  private static async calculateContractorFacets(
+    _filters: AdvancedSearchFilters
+  ): Promise<SearchFacets> {
     try {
       const { data: contractors, error } = await supabase
         .from('contractor_profiles')
         .select('skills, hourly_rate, rating, availability');
 
       if (error || !contractors) {
-        return { skills: {}, priceRanges: {}, ratings: {}, locations: {}, availability: {} };
+        return {
+          skills: {},
+          priceRanges: {},
+          ratings: {},
+          locations: {},
+          availability: {},
+        };
       }
 
       const skills: Record<string, number> = {};
       const priceRanges: Record<string, number> = {
-        '$25-$50/hr': 0, '$50-$75/hr': 0, '$75-$100/hr': 0, '$100+/hr': 0,
+        '$25-$50/hr': 0,
+        '$50-$75/hr': 0,
+        '$75-$100/hr': 0,
+        '$100+/hr': 0,
       };
       const ratings: Record<string, number> = {
-        '5 stars': 0, '4+ stars': 0, '3+ stars': 0,
+        '5 stars': 0,
+        '4+ stars': 0,
+        '3+ stars': 0,
       };
       const availability: Record<string, number> = {};
 
@@ -401,14 +493,21 @@ export class AdvancedSearchService {
         if (r >= 3) ratings['3+ stars']++;
 
         if (c.availability) {
-          availability[c.availability] = (availability[c.availability] || 0) + 1;
+          availability[c.availability] =
+            (availability[c.availability] || 0) + 1;
         }
       }
 
       return { skills, priceRanges, ratings, locations: {}, availability };
     } catch (error) {
       logger.error('Error calculating contractor facets', error);
-      return { skills: {}, priceRanges: {}, ratings: {}, locations: {}, availability: {} };
+      return {
+        skills: {},
+        priceRanges: {},
+        ratings: {},
+        locations: {},
+        availability: {},
+      };
     }
   }
 
@@ -421,10 +520,9 @@ export class AdvancedSearchService {
       `experienced ${query}`,
       `affordable ${query}`,
       `emergency ${query}`,
-      `licensed ${query}`
-    ].filter(suggestion => suggestion.toLowerCase() !== query.toLowerCase());
+      `licensed ${query}`,
+    ].filter((suggestion) => suggestion.toLowerCase() !== query.toLowerCase());
 
     return suggestions.slice(0, 3);
   }
-
 }

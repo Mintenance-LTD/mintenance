@@ -1,302 +1,55 @@
+/**
+ * SubscriptionScreen — current plan summary + role-specific plan
+ * catalogue with subscribe / switch / cancel flows.
+ *
+ * Was a 664-line monolith. Split 2026-05-09 (AUDIT_PUNCH_LIST P2 #44f)
+ * into typed plan data (`subscription/plans.ts`), React Query hooks
+ * (`subscription/queries.ts`), the subscribe/cancel UI controllers
+ * (`subscription/handleSubscribe.ts`), shared styles
+ * (`subscription/styles.ts`), and 3 leaf components under
+ * `subscription/components/`. Public behaviour preserved.
+ */
+
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  Alert,
-  StyleSheet,
-  RefreshControl,
-  Platform,
-  ActivityIndicator,
-  TouchableOpacity,
-  StatusBar,
-} from 'react-native';
+import { ScrollView, StatusBar, Text, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigation } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
 import { ScreenHeader } from '../../components/shared';
-import { Button } from '../../components/ui/Button';
-import { Badge } from '../../components/ui/Badge';
-import { mobileApiClient } from '../../utils/mobileApiClient';
-import { supabase } from '../../config/supabase';
-import { PaymentService } from '../../services/PaymentService';
-import { logger } from '../../utils/logger';
 import { theme } from '../../theme';
-import type { SubscriptionPlan, SubscriptionStatus } from './types';
-import { getFeatureStrings } from './types';
+
+import { styles } from './theme/styles';
+import { plansForRole } from './plans';
+import {
+  useCancelSubscriptionMutation,
+  useSubscribeMutation,
+  useSubscriptionStatusQuery,
+} from './queries';
+import {
+  confirmCancelSubscription,
+  handleSubscribePress,
+} from './handleSubscribe';
+import { CurrentPlanCard } from './components/CurrentPlanCard';
+import { PlanCard } from './components/PlanCard';
+import { InlineError, InlineLoading } from './components/StatusInline';
 
 export const SubscriptionScreen: React.FC = () => {
   const navigation = useNavigation();
-  const queryClient = useQueryClient();
-  const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const { user } = useAuth();
+  const [selectedPlan] = useState<string | null>(null);
+
+  const userRole = user?.role || 'homeowner';
+  const plans = plansForRole(userRole);
 
   const {
     data: status,
-    isLoading: statusLoading,
+    isLoading,
     error: statusError,
     refetch: refetchStatus,
-  } = useQuery({
-    queryKey: ['subscription-status'],
-    queryFn: async () => {
-      const {
-        data: { user: authUser },
-      } = await supabase.auth.getUser();
-      if (!authUser) throw new Error('Not authenticated');
-      const role = user?.role || 'homeowner';
-      // Query the correct subscription table based on user role
-      const subTable =
-        role === 'contractor'
-          ? 'contractor_subscriptions'
-          : 'homeowner_subscriptions';
-      const idCol = role === 'contractor' ? 'contractor_id' : 'homeowner_id';
-      const { data: sub, error } = await supabase
-        .from(subTable)
-        .select('*')
-        .eq(idCol, authUser.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-      if (error || !sub) {
-        return {
-          role,
-          subscription: null,
-          trial: null,
-          requiresSubscription: false,
-        } as SubscriptionStatus;
-      }
-      return {
-        role,
-        subscription: {
-          planType: sub.plan_type || sub.plan_id,
-          planName: sub.plan_name,
-          status: sub.status,
-          amount: sub.amount,
-          currentPeriodEnd: sub.current_period_end,
-          cancelAtPeriodEnd: sub.cancel_at_period_end,
-        },
-        trial: sub.trial_end
-          ? {
-              active: new Date(sub.trial_end as string) > new Date(),
-              daysRemaining: Math.max(
-                0,
-                Math.ceil(
-                  (new Date(sub.trial_end as string).getTime() - Date.now()) /
-                    86400000
-                )
-              ),
-            }
-          : null,
-        requiresSubscription: false,
-      } as SubscriptionStatus;
-    },
-  });
+  } = useSubscriptionStatusQuery(userRole);
 
-  const userRole = user?.role || 'homeowner';
-
-  // Plans are role-specific — no subscription_plans table exists in DB
-  const HOMEOWNER_PLANS: SubscriptionPlan[] = [
-    {
-      id: 'homeowner_free',
-      name: 'Free',
-      price: 0,
-      billingCycle: 'monthly',
-      features: [
-        'Post unlimited jobs',
-        'Manage 1 property',
-        'AI-powered matching',
-        'Payment protection',
-        'Basic messaging',
-      ],
-      recommended: false,
-    },
-    {
-      id: 'homeowner_landlord',
-      name: 'Landlord',
-      price: 24.99,
-      billingCycle: 'monthly',
-      features: [
-        'Everything in Free',
-        'Up to 25 properties',
-        'Compliance dashboard',
-        'Recurring maintenance',
-        'Per-property analytics',
-      ],
-      recommended: true,
-    },
-    {
-      id: 'homeowner_agency',
-      name: 'Agency',
-      price: 49.99,
-      billingCycle: 'monthly',
-      features: [
-        'Everything in Landlord',
-        'Unlimited properties',
-        'Team member invites',
-        'Bulk job posting',
-        'Dedicated support',
-      ],
-      recommended: false,
-    },
-  ];
-  const CONTRACTOR_PLANS: SubscriptionPlan[] = [
-    {
-      id: 'basic',
-      name: 'Basic',
-      price: 0,
-      billingCycle: 'monthly',
-      features: ['10 bids/month', '1 active job', 'Basic profile'],
-      recommended: false,
-    },
-    {
-      id: 'professional',
-      name: 'Professional',
-      price: 29,
-      billingCycle: 'monthly',
-      features: [
-        'Unlimited bids',
-        'Unlimited jobs',
-        'Priority listing',
-        'Analytics',
-        'Lead recommendations',
-      ],
-      recommended: true,
-    },
-    {
-      id: 'business',
-      name: 'Business',
-      price: 99,
-      billingCycle: 'monthly',
-      features: [
-        'Everything in Professional',
-        'Dedicated account manager',
-        'Team accounts (up to 10)',
-        'API access',
-        'Custom branding',
-        'White-label invoicing',
-      ],
-      recommended: false,
-    },
-  ];
-  const plans = userRole === 'contractor' ? CONTRACTOR_PLANS : HOMEOWNER_PLANS;
-  const plansLoading = false;
-
-  const subscribeMutation = useMutation({
-    mutationFn: async (planType: string) => {
-      return mobileApiClient.post<{
-        subscriptionId: string;
-        requiresPayment: boolean;
-      }>('/api/subscriptions/create', { planType, billingCycle: 'monthly' });
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['subscription-status'] });
-      if (data.requiresPayment) {
-        Alert.alert(
-          'Payment Required',
-          'Please complete payment to activate your subscription.'
-        );
-      } else {
-        Alert.alert('Subscribed', 'Your subscription is now active.');
-      }
-    },
-    onError: (err: Error) => {
-      Alert.alert('Error', err.message || 'Failed to subscribe.');
-    },
-  });
-
-  const cancelMutation = useMutation({
-    mutationFn: async () => {
-      return mobileApiClient.post('/api/subscriptions/cancel', {
-        cancelAtPeriodEnd: true,
-      });
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['subscription-status'] });
-      Alert.alert(
-        'Cancelled',
-        'Your subscription will end at the current billing period.'
-      );
-    },
-    onError: (err: Error) => {
-      Alert.alert('Error', err.message || 'Failed to cancel subscription.');
-    },
-  });
-
-  const handleSubscribe = async (planType: string) => {
-    // Free tier — no card required, just subscribe.
-    if (planType === 'free') {
-      Alert.alert('Subscribe', `Subscribe to the ${planType} plan?`, [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Subscribe',
-          onPress: () => subscribeMutation.mutate(planType),
-        },
-      ]);
-      return;
-    }
-
-    // Paid tiers — contractor pays a monthly subscription to Mintenance
-    // via Stripe, which requires a saved card on their Stripe customer.
-    // Pre-check so we don't bounce the user to a generic "Payment
-    // Required" alert after the /subscriptions/create call — instead,
-    // route them straight to Payment Methods to add a card first.
-    let hasCard = false;
-    try {
-      const result = await PaymentService.getPaymentMethods();
-      hasCard = (result.methods || []).some((m) => m.type === 'card');
-    } catch (err) {
-      // If the fetch fails (preview env missing STRIPE_SECRET_KEY, or
-      // transient network blip), let the backend respond — it returns
-      // requiresPayment:true and the existing alert path handles it.
-      logger.warn('Failed to pre-check payment methods before subscribe', {
-        error: err instanceof Error ? err.message : String(err),
-      });
-    }
-
-    if (!hasCard) {
-      Alert.alert(
-        'Payment Method Required',
-        `The ${planType} plan is a monthly subscription. Add a card to continue.`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Add Card',
-            onPress: () =>
-              (
-                navigation as unknown as {
-                  navigate: (screen: string) => void;
-                }
-              ).navigate('PaymentMethods'),
-          },
-        ]
-      );
-      return;
-    }
-
-    Alert.alert('Subscribe', `Subscribe to the ${planType} plan?`, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Subscribe', onPress: () => subscribeMutation.mutate(planType) },
-    ]);
-  };
-
-  const handleCancel = () => {
-    Alert.alert(
-      'Cancel Subscription',
-      'Your subscription will remain active until the end of the current billing period.',
-      [
-        { text: 'Keep Subscription', style: 'cancel' },
-        {
-          text: 'Cancel',
-          style: 'destructive',
-          onPress: () => cancelMutation.mutate(),
-        },
-      ]
-    );
-  };
-
-  const isLoading = statusLoading || plansLoading;
+  const subscribeMutation = useSubscribeMutation();
+  const cancelMutation = useCancelSubscriptionMutation();
 
   const currentPlan = status?.subscription;
   const rawTrial = status?.trial;
@@ -332,354 +85,49 @@ export const SubscriptionScreen: React.FC = () => {
         }
       >
         {isLoading ? (
-          <View style={styles.inlineCenter}>
-            <ActivityIndicator size='large' color={theme.colors.primary} />
-            <Text style={styles.inlineText}>Loading subscription...</Text>
-          </View>
+          <InlineLoading />
         ) : statusError ? (
-          <View style={styles.inlineCenter}>
-            <Ionicons
-              name='alert-circle-outline'
-              size={32}
-              color={theme.colors.error}
-            />
-            <Text style={styles.inlineText}>Failed to load subscription</Text>
-            <TouchableOpacity
-              style={styles.retryBtn}
-              onPress={() => refetchStatus()}
-            >
-              <Text style={styles.retryBtnText}>Retry</Text>
-            </TouchableOpacity>
-          </View>
+          <InlineError onRetry={() => refetchStatus()} />
         ) : (
           <>
-            {/* Current Status */}
-            <View style={styles.statusCard}>
-              <Text style={styles.statusLabel}>Current Plan</Text>
-              <View style={styles.statusRow}>
-                <Text style={styles.planName}>
-                  {currentPlan?.planName || currentPlan?.planType || 'No Plan'}
-                </Text>
-                <Badge
-                  variant={
-                    currentPlan?.status === 'active' ? 'success' : 'warning'
-                  }
-                >
-                  {currentPlan?.status ||
-                    (trial?.active ? 'Trial' : 'Inactive')}
-                </Badge>
-              </View>
-              {trial?.active && (
-                <View style={styles.trialChip}>
-                  <Ionicons
-                    name='time-outline'
-                    size={14}
-                    color={theme.colors.accent}
-                  />
-                  <Text style={styles.trialText}>
-                    {trial.daysRemaining} days remaining in trial
-                  </Text>
-                </View>
-              )}
-              {currentPlan?.currentPeriodEnd && (
-                <Text style={styles.periodText}>
-                  {currentPlan.cancelAtPeriodEnd ? 'Cancels' : 'Renews'} on{' '}
-                  {new Date(currentPlan.currentPeriodEnd).toLocaleDateString(
-                    'en-GB'
-                  )}
-                </Text>
-              )}
-              {currentPlan?.status === 'active' &&
-                !currentPlan.cancelAtPeriodEnd && (
-                  <Button
-                    variant='ghost'
-                    size='sm'
-                    onPress={handleCancel}
-                    loading={cancelMutation.isPending}
-                    style={styles.cancelBtn}
-                  >
-                    Cancel Subscription
-                  </Button>
-                )}
-            </View>
+            <CurrentPlanCard
+              currentPlan={currentPlan ?? null}
+              trial={trial}
+              cancelling={cancelMutation.isPending}
+              onCancel={() =>
+                confirmCancelSubscription(() => cancelMutation.mutate())
+              }
+            />
 
-            {/* Available Plans */}
             <Text style={styles.sectionTitle}>Available Plans</Text>
 
-            {(plans || []).map((plan) => {
-              const isCurrent = currentPlan?.planType === plan.id;
-              const isSelected = selectedPlan === plan.id;
-              return (
-                <View
-                  key={plan.id}
-                  style={[
-                    styles.planCard,
-                    isCurrent && styles.currentPlanCard,
-                    isSelected && !isCurrent && styles.selectedPlanCard,
-                  ]}
-                >
-                  <View style={styles.planHeader}>
-                    <View>
-                      <Text style={styles.planTitle}>{plan.name}</Text>
-                      <Text style={styles.planPrice}>
-                        {`\u00A3${plan.price}`}
-                        <Text style={styles.planCycle}>
-                          /{plan.billingCycle === 'monthly' ? 'mo' : 'yr'}
-                        </Text>
-                      </Text>
-                    </View>
-                    <View style={styles.badgeStack}>
-                      {plan.recommended && (
-                        <View style={styles.recommendedBadge}>
-                          <Ionicons
-                            name='star'
-                            size={10}
-                            color={theme.colors.accent}
-                          />
-                          <Text style={styles.recommendedText}>
-                            Most Popular
-                          </Text>
-                        </View>
-                      )}
-                      {isCurrent && (
-                        <View style={styles.currentBadge}>
-                          <Text style={styles.currentBadgeText}>Current</Text>
-                        </View>
-                      )}
-                    </View>
-                  </View>
-
-                  {getFeatureStrings(plan.features).map((feature, idx) => (
-                    <View key={idx} style={styles.featureRow}>
-                      <View style={styles.featureCheckWrap}>
-                        <Ionicons
-                          name='checkmark'
-                          size={14}
-                          color={theme.colors.primary}
-                        />
-                      </View>
-                      <Text style={styles.featureText}>{feature}</Text>
-                    </View>
-                  ))}
-
-                  {!isCurrent && (
-                    <Button
-                      variant='primary'
-                      fullWidth
-                      size='sm'
-                      onPress={() => handleSubscribe(plan.id)}
-                      loading={subscribeMutation.isPending}
-                      style={styles.subscribeBtn}
-                    >
-                      {currentPlan ? 'Switch Plan' : 'Subscribe'}
-                    </Button>
-                  )}
-                </View>
-              );
-            })}
+            {plans.map((plan) => (
+              <PlanCard
+                key={plan.id}
+                plan={plan}
+                isCurrent={currentPlan?.planType === plan.id}
+                isSelected={selectedPlan === plan.id}
+                hasExistingSubscription={!!currentPlan}
+                subscribing={subscribeMutation.isPending}
+                onSubscribe={(planId) =>
+                  handleSubscribePress({
+                    planType: planId,
+                    onSubscribe: (id) => subscribeMutation.mutate(id),
+                    onAddCard: () =>
+                      (
+                        navigation as unknown as {
+                          navigate: (screen: string) => void;
+                        }
+                      ).navigate('PaymentMethods'),
+                  })
+                }
+              />
+            ))}
           </>
         )}
       </ScrollView>
     </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  content: {
-    padding: 16,
-    paddingBottom: 40,
-  },
-  statusCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 24,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
-  },
-  statusLabel: {
-    fontSize: 12,
-    color: theme.colors.textTertiary,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginBottom: 8,
-  },
-  statusRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  planName: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-    textTransform: 'capitalize',
-  },
-  trialChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: theme.colors.accentLight,
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    alignSelf: 'flex-start',
-    marginTop: 8,
-  },
-  trialText: {
-    fontSize: 13,
-    color: theme.colors.accent,
-    fontWeight: '600',
-  },
-  periodText: {
-    fontSize: 13,
-    color: theme.colors.textSecondary,
-    marginTop: 6,
-  },
-  cancelBtn: {
-    marginTop: 12,
-    alignSelf: 'flex-start',
-  },
-  sectionTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-    marginBottom: 14,
-  },
-  planCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 14,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
-  },
-  currentPlanCard: {
-    borderWidth: 2,
-    borderColor: theme.colors.primary,
-  },
-  selectedPlanCard: {
-    borderWidth: 2,
-    borderColor: theme.colors.primary,
-  },
-  planHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 14,
-  },
-  planTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-  },
-  planPrice: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-    marginTop: 4,
-  },
-  planCycle: {
-    fontSize: 14,
-    fontWeight: '400',
-    color: theme.colors.textTertiary,
-  },
-  badgeStack: {
-    gap: 4,
-    alignItems: 'flex-end',
-  },
-  recommendedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: theme.colors.accentLight,
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  recommendedText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: theme.colors.accent,
-  },
-  currentBadge: {
-    backgroundColor: theme.colors.primaryLight,
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-  },
-  currentBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: theme.colors.primary,
-  },
-  featureRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-    gap: 10,
-  },
-  featureCheckWrap: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: theme.colors.primaryLight,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  featureText: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-    flex: 1,
-  },
-  subscribeBtn: {
-    marginTop: 16,
-    borderRadius: 28,
-  },
-  inlineCenter: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 60,
-    gap: 12,
-  },
-  inlineText: {
-    fontSize: 15,
-    color: theme.colors.textSecondary,
-  },
-  retryBtn: {
-    backgroundColor: theme.colors.primary,
-    borderRadius: 20,
-    paddingHorizontal: 24,
-    paddingVertical: 10,
-    marginTop: 4,
-  },
-  retryBtnText: {
-    color: theme.colors.textInverse,
-    fontSize: 14,
-    fontWeight: '600',
-  },
-});
 
 export default SubscriptionScreen;

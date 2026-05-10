@@ -1,10 +1,6 @@
 import { logger } from '../../utils/logger';
 import { mobileApiClient } from '../../utils/mobileApiClient';
-import type {
-  QuoteAnalytics,
-  QuoteInteraction,
-  QuoteSummaryStats,
-} from './types';
+import type { QuoteInteraction, QuoteSummaryStats } from './types';
 
 export async function trackQuoteInteraction(
   quoteId: string,
@@ -23,20 +19,13 @@ export async function trackQuoteInteraction(
   }
 }
 
-/**
- * 2026-05-01 audit follow-up: `quote_analytics` was never created in
- * production. Per-quote analytics is exposed as
- * `GET /api/contractor/quotes/[id]/analytics` instead — call that
- * directly. Stubbed here so the type-import surface stays intact for
- * any caller that still references the old function.
- */
-export async function getQuoteAnalytics(
-  _quoteId: string
-): Promise<QuoteAnalytics | null> {
-  throw new Error(
-    'getQuoteAnalytics is a stub — query /api/contractor/quotes/[id]/analytics directly.'
-  );
-}
+// AUDIT_PUNCH_LIST P2 #56 (B5-P2-3) — `getQuoteAnalytics` stub
+// removed 2026-05-09. The function had been a throwing placeholder
+// since 2026-05-01 (the `quote_analytics` table never shipped). A
+// repo-wide grep on 2026-05-09 confirmed zero callers of the
+// re-exported `QuoteBuilderService.getQuoteAnalytics`. Callers that
+// need per-quote analytics should call
+// `GET /api/contractor/quotes/[id]/analytics` directly.
 
 export async function getQuoteSummaryStats(
   _contractorId: string

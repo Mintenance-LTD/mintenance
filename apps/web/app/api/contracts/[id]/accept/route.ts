@@ -15,6 +15,11 @@ import { withApiHandler } from '@/lib/api/with-api-handler';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
 import { EmailService } from '@/lib/email-service';
 import { ContractSignatoriesService } from '@/lib/services/contracts/ContractSignatoriesService';
+import {
+  getIdempotencyKeyFromRequest,
+  checkIdempotency,
+  storeIdempotencyResult,
+} from '@/lib/idempotency';
 
 export const POST = withApiHandler(
   { roles: ['homeowner', 'contractor'] },
@@ -25,6 +30,32 @@ export const POST = withApiHandler(
     // SECURITY: Validate UUID format before database query
     if (!isValidUUID(contractId)) {
       throw new BadRequestError('Invalid contract ID format');
+    }
+
+    // Idempotency — guards against double-tap signing, network retries
+    // re-firing the homeowner/contractor counter-party notifications,
+    // and duplicate appointment creation. The contract_accepted_create_
+    // appointment trigger is itself idempotent, but the notifications
+    // and emails further down this handler are not. AUDIT_PUNCH_LIST
+    // P2 #75.
+    const idempotencyKey = getIdempotencyKeyFromRequest(
+      request,
+      'contract_accept',
+      user.id,
+      contractId
+    );
+    const idem = await checkIdempotency<unknown>(
+      idempotencyKey,
+      'contract_accept'
+    );
+    if (idem?.isDuplicate && idem.cachedResult) {
+      logger.info('Duplicate contract_accept — returning cached result', {
+        service: 'contracts',
+        idempotencyKey,
+        userId: user.id,
+        contractId,
+      });
+      return NextResponse.json(idem.cachedResult);
     }
 
     // SECURITY: Fix IDOR - check ownership in query, not after fetch (user-scoped read)
@@ -390,13 +421,23 @@ export const POST = withApiHandler(
       }
     }
 
-    return NextResponse.json({
+    const responseData = {
       success: true,
       contract: updatedContract,
       message:
         updatedContract.status === CONTRACT_STATUS.ACCEPTED
           ? 'Contract accepted! Both parties have signed.'
           : 'Contract signed. Waiting for other party to sign.',
-    });
+    };
+
+    await storeIdempotencyResult(
+      idempotencyKey,
+      'contract_accept',
+      responseData,
+      user.id,
+      { contractId, jobId: contract.job_id }
+    );
+
+    return NextResponse.json(responseData);
   }
 );

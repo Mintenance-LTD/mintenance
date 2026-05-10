@@ -5,6 +5,7 @@
 import { Alert } from 'react-native';
 import { captureException } from '../config/sentry';
 import { logger } from './logger';
+import { isOnlineCached } from './networkUtils';
 
 export enum ErrorSeverity {
   LOW = 'low',
@@ -53,7 +54,9 @@ class ErrorManagerService {
         ? (error as { status: number }).status
         : undefined;
 
-    if (!navigator.onLine) {
+    // 2026-05-09: was `!navigator.onLine` (undefined in RN, always
+    // truthy). Read NetInfo-backed cache instead.
+    if (!isOnlineCached()) {
       message = 'No internet connection. Please check your network.';
     } else if (status === 401) {
       message = 'Authentication required. Please log in.';

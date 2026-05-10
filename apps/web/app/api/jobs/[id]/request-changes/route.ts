@@ -16,6 +16,11 @@ import {
   BadRequestError,
   ForbiddenError,
 } from '@/lib/errors/api-error';
+import {
+  getIdempotencyKeyFromRequest,
+  checkIdempotency,
+  storeIdempotencyResult,
+} from '@/lib/idempotency';
 
 // 2026-05-01 audit follow-up (check-api-contracts): Zod-validated body
 // replaces the inline cast.
@@ -50,6 +55,32 @@ export const POST = withApiHandler(
       throw new BadRequestError(
         'Please provide details about what changes are needed'
       );
+    }
+
+    // Idempotency — without it, a network retry would re-fire the
+    // contractor notification + the change-request email even though
+    // the status flip is already done. Status is checked below
+    // (`if (job.status !== COMPLETED)`) so the second call would
+    // throw 400 anyway, but only after the side-effects ran on the
+    // first call's tail. AUDIT_PUNCH_LIST P2 #75.
+    const idempotencyKey = getIdempotencyKeyFromRequest(
+      request,
+      'request_changes',
+      user.id,
+      jobId
+    );
+    const idem = await checkIdempotency<{
+      success: boolean;
+      message: string;
+    }>(idempotencyKey, 'request_changes');
+    if (idem?.isDuplicate && idem.cachedResult) {
+      logger.info('Duplicate request_changes — returning cached result', {
+        service: 'jobs',
+        idempotencyKey,
+        userId: user.id,
+        jobId,
+      });
+      return NextResponse.json(idem.cachedResult);
     }
 
     // 1. Fetch job and verify ownership
@@ -166,10 +197,20 @@ export const POST = withApiHandler(
       contractorId: job.contractor_id,
     });
 
-    return NextResponse.json({
+    const responseData = {
       success: true,
       message:
         'Change request sent to contractor. Job has been reopened for rework.',
-    });
+    };
+
+    await storeIdempotencyResult(
+      idempotencyKey,
+      'request_changes',
+      responseData,
+      user.id,
+      { jobId, contractorId: job.contractor_id }
+    );
+
+    return NextResponse.json(responseData);
   }
 );

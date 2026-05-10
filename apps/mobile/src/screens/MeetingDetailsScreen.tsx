@@ -1,3 +1,14 @@
+/**
+ * MeetingDetailsScreen — meeting info, map + live tracking,
+ * contractor travel controls, action buttons, and updates timeline.
+ *
+ * Was a 664-line monolith. Split 2026-05-09 (AUDIT_PUNCH_LIST P2 #44g)
+ * into shared utilities (`meeting-details/utils.ts`), Alert/Linking
+ * action handlers (`meeting-details/actions.ts`), and 6 leaf
+ * components under `meeting-details/components/`. Public behaviour
+ * preserved.
+ */
+
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -6,69 +17,40 @@ import {
   ScrollView,
   Alert,
   ActivityIndicator,
-  Linking,
-  Platform,
 } from 'react-native';
-import { styles } from './meetingDetailsStyles';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useJobTravelTracking } from '../hooks/useJobTravelTracking';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
-import { useAuth } from '../contexts/AuthContext';
-import { MeetingService } from '../services/MeetingService';
-import {
+import type {
   ContractorMeeting,
   MeetingUpdate,
   LocationData,
 } from '@mintenance/types';
 
+import { styles } from './meetingDetailsStyles';
+import { useJobTravelTracking } from '../hooks/useJobTravelTracking';
+import { useAuth } from '../contexts/AuthContext';
+import { MeetingService } from '../services/MeetingService';
 import type { ContractorLocation } from '../services/meeting/types';
 import { logger } from '../utils/logger';
 import { theme } from '../theme';
-import { goToMessagingThread } from '../navigation/hooks';
 
-// Web-compatible fallback components (react-native-maps removed for web compatibility)
-interface Region {
-  latitude: number;
-  longitude: number;
-  latitudeDelta: number;
-  longitudeDelta: number;
-}
-
-const MapView = React.forwardRef<
-  View,
-  { children?: React.ReactNode; style?: Record<string, unknown> }
->(function MapView({ children }, ref) {
-  return (
-    <View
-      ref={ref}
-      style={{
-        flex: 1,
-        backgroundColor: theme.colors.backgroundSecondary,
-        justifyContent: 'center',
-        alignItems: 'center',
-      }}
-    >
-      <Text>Map view available on mobile devices</Text>
-      {children}
-    </View>
-  );
-});
-
-const Marker = ({
-  children,
-  ..._props
-}: Record<string, unknown> & { children?: React.ReactNode }) => (
-  <View>{children}</View>
-);
-const Polyline = (_props: Record<string, unknown>) => <View />;
+import { calculateDistanceKm } from './meeting-details/utils';
+import {
+  callContractor,
+  cancelMeeting,
+  messageContractor,
+  rescheduleMeeting,
+} from './meeting-details/actions';
+import type { MapRegion } from './meeting-details/components/MapPlaceholder';
+import { MeetingInfoCard } from './meeting-details/components/MeetingInfoCard';
+import { LocationMapSection } from './meeting-details/components/LocationMapSection';
+import { TravelTrackingPanel } from './meeting-details/components/TravelTrackingPanel';
+import { MeetingActionsRow } from './meeting-details/components/MeetingActionsRow';
+import { UpdatesTimeline } from './meeting-details/components/UpdatesTimeline';
 
 interface Props {
-  route: {
-    params: {
-      meetingId: string;
-    };
-  };
+  route: { params: { meetingId: string } };
   navigation: {
     goBack: () => void;
     navigate: (screen: string, params?: Record<string, unknown>) => void;
@@ -84,27 +66,21 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   const [meeting, setMeeting] = useState<ContractorMeeting | null>(null);
   const [contractorLocation, setContractorLocation] =
     useState<ContractorLocation | null>(null);
-  const [userLocation, setUserLocation] = useState<LocationData | null>(null);
+  const [, setUserLocation] = useState<LocationData | null>(null);
   const [updates, setUpdates] = useState<MeetingUpdate[]>([]);
-  const [region, setRegion] = useState<Region | null>(null);
+  const [region, setRegion] = useState<MapRegion | null>(null);
 
-  const mapRef = useRef<View>(null);
   const locationSubscription = useRef<{ unsubscribe: () => void } | null>(null);
   const meetingSubscription = useRef<{ unsubscribe: () => void } | null>(null);
 
-  // Travel tracking hook (for contractors)
   const travelTracking = useJobTravelTracking({
     meetingId,
     jobId: meeting?.job_id,
     destination:
       meeting?.latitude && meeting?.longitude
-        ? {
-            latitude: meeting.latitude,
-            longitude: meeting.longitude,
-          }
+        ? { latitude: meeting.latitude, longitude: meeting.longitude }
         : { latitude: 0, longitude: 0 },
     onLocationUpdate: (location) => {
-      // Update contractor location state when tracking
       setContractorLocation({
         id: 'tracking',
         contractorId: meeting?.contractor_id || '',
@@ -125,219 +101,73 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   });
 
   useEffect(() => {
+    const initializeScreen = async () => {
+      try {
+        setLoading(true);
+
+        const meetingData = await MeetingService.getMeetingById(meetingId);
+        if (!meetingData) {
+          Alert.alert('Error', 'Meeting not found');
+          navigation.goBack();
+          return;
+        }
+        setMeeting(meetingData);
+
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === 'granted') {
+          const location = await Location.getCurrentPositionAsync({});
+          setUserLocation({
+            latitude: location.coords.latitude,
+            longitude: location.coords.longitude,
+          });
+        }
+
+        setRegion({
+          latitude: meetingData.latitude ?? 0,
+          longitude: meetingData.longitude ?? 0,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        });
+
+        const contractorLoc = await MeetingService.getContractorLocation(
+          meetingData.contractor_id
+        );
+        setContractorLocation(contractorLoc);
+
+        const meetingUpdates =
+          await MeetingService.getMeetingUpdates(meetingId);
+        setUpdates(meetingUpdates);
+
+        // Real-time subscriptions
+        locationSubscription.current =
+          MeetingService.subscribeToContractorLocation(
+            meetingData.contractor_id,
+            (location) => {
+              if (location) setContractorLocation(location);
+            }
+          );
+        meetingSubscription.current = MeetingService.subscribeToMeetingUpdates(
+          meetingId,
+          (updatedMeeting) => {
+            if (updatedMeeting) setMeeting(updatedMeeting);
+          }
+        );
+      } catch (error) {
+        logger.error('Error initializing meeting details:', error);
+        Alert.alert('Error', 'Failed to load meeting details');
+      } finally {
+        setLoading(false);
+      }
+    };
+
     initializeScreen();
 
     return () => {
-      // Cleanup subscriptions
       locationSubscription.current?.unsubscribe();
       meetingSubscription.current?.unsubscribe();
     };
-  }, []);
-
-  const initializeScreen = async () => {
-    try {
-      setLoading(true);
-
-      // Load meeting details
-      const meetingData = await MeetingService.getMeetingById(meetingId);
-      if (!meetingData) {
-        Alert.alert('Error', 'Meeting not found');
-        navigation.goBack();
-        return;
-      }
-      setMeeting(meetingData);
-
-      // Get user location
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status === 'granted') {
-        const location = await Location.getCurrentPositionAsync({});
-        setUserLocation({
-          latitude: location.coords.latitude,
-          longitude: location.coords.longitude,
-        });
-      }
-
-      // Set initial map region
-      setRegion({
-        latitude: meetingData.latitude ?? 0,
-        longitude: meetingData.longitude ?? 0,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
-      });
-
-      // Load contractor location
-      const contractorLoc = await MeetingService.getContractorLocation(
-        meetingData.contractor_id
-      );
-      setContractorLocation(contractorLoc);
-
-      // Load meeting updates
-      const meetingUpdates = await MeetingService.getMeetingUpdates(meetingId);
-      setUpdates(meetingUpdates);
-
-      // Subscribe to real-time updates
-      setupRealTimeSubscriptions(meetingData.contractor_id);
-    } catch (error) {
-      logger.error('Error initializing meeting details:', error);
-      Alert.alert('Error', 'Failed to load meeting details');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const setupRealTimeSubscriptions = (contractorId: string) => {
-    // Subscribe to contractor location updates
-    locationSubscription.current = MeetingService.subscribeToContractorLocation(
-      contractorId,
-      (location) => {
-        if (location) {
-          setContractorLocation(location);
-        }
-      }
-    );
-
-    // Subscribe to meeting updates
-    meetingSubscription.current = MeetingService.subscribeToMeetingUpdates(
-      meetingId,
-      (updatedMeeting) => {
-        if (updatedMeeting) {
-          setMeeting(updatedMeeting);
-        }
-      }
-    );
-  };
-
-  const handleCallContractor = () => {
-    if (meeting?.contractor?.phone) {
-      Linking.openURL(`tel:${meeting.contractor.phone}`);
-    } else {
-      Alert.alert(
-        'No Phone Number',
-        'Phone number not available for this contractor'
-      );
-    }
-  };
-
-  const handleMessageContractor = () => {
-    if (meeting?.job_id) {
-      // 2026-04-30 audit P1: replaces nested `as never` casts.
-      goToMessagingThread(navigation, {
-        conversationId: meeting.job_id,
-        recipientId: meeting.contractor_id,
-      });
-    }
-  };
-
-  const handleReschedule = () => {
-    Alert.alert(
-      'Reschedule Meeting',
-      'Would you like to reschedule this meeting?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Reschedule',
-          onPress: () =>
-            navigation.navigate('MeetingSchedule', {
-              contractorId: meeting?.contractor_id,
-              jobId: meeting?.job_id,
-              rescheduleMeetingId: meetingId,
-            }),
-        },
-      ]
-    );
-  };
-
-  const handleCancelMeeting = () => {
-    Alert.alert(
-      'Cancel Meeting',
-      'Are you sure you want to cancel this meeting?',
-      [
-        { text: 'No', style: 'cancel' },
-        {
-          text: 'Yes, Cancel',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await MeetingService.updateMeetingStatus(
-                meetingId,
-                'cancelled',
-                user?.id || '',
-                'Cancelled by homeowner'
-              );
-              Alert.alert(
-                'Meeting Cancelled',
-                'The meeting has been cancelled.'
-              );
-              navigation.goBack();
-            } catch (error) {
-              Alert.alert('Error', 'Failed to cancel meeting');
-            }
-          },
-        },
-      ]
-    );
-  };
-
-  const calculateDistance = (
-    loc1: LocationData,
-    loc2: LocationData
-  ): number => {
-    const R = 6371; // Earth's radius in kilometers
-    const dLat = (loc2.latitude - loc1.latitude) * (Math.PI / 180);
-    const dLon = (loc2.longitude - loc1.longitude) * (Math.PI / 180);
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(loc1.latitude * (Math.PI / 180)) *
-        Math.cos(loc2.latitude * (Math.PI / 180)) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  };
-
-  const getStatusColor = (status: ContractorMeeting['status']): string => {
-    switch (status) {
-      case 'scheduled':
-        return theme.colors.textPrimary;
-      // 'confirmed' is not a formal status; handled by 'scheduled'
-      case 'in_progress':
-        return theme.colors.accent;
-      case 'completed':
-        return theme.colors.primary;
-      case 'cancelled':
-        return theme.colors.error;
-      case 'rescheduled':
-        return theme.colors.accent;
-      default:
-        return theme.colors.textSecondary;
-    }
-  };
-
-  const formatMeetingTime = (dateTime: string): string => {
-    const date = new Date(dateTime);
-    return date.toLocaleString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
-  const formatUpdateTime = (timestamp: string): string => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    const diffHours = Math.floor(diffMins / 60);
-    if (diffHours < 24) return `${diffHours}h ago`;
-    const diffDays = Math.floor(diffHours / 24);
-    return `${diffDays}d ago`;
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [meetingId]);
 
   if (loading || !meeting) {
     return (
@@ -348,9 +178,9 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
     );
   }
 
-  const distance =
+  const distanceKm =
     contractorLocation && meeting.latitude && meeting.longitude
-      ? calculateDistance(
+      ? calculateDistanceKm(
           {
             latitude: contractorLocation.latitude,
             longitude: contractorLocation.longitude,
@@ -376,286 +206,34 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Meeting Info */}
-        <View style={styles.meetingInfo}>
-          <View style={styles.meetingHeader}>
-            <View style={styles.meetingTitleContainer}>
-              <Text style={styles.meetingTitle}>
-                {meeting.meeting_type.replace('_', ' ').toUpperCase()}
-              </Text>
-              <View
-                style={[
-                  styles.statusBadge,
-                  { backgroundColor: getStatusColor(meeting.status) },
-                ]}
-              >
-                <Text style={styles.statusText}>
-                  {meeting.status.replace('_', ' ').toUpperCase()}
-                </Text>
-              </View>
-            </View>
-            <Text style={styles.meetingTime}>
-              {formatMeetingTime(meeting.scheduled_datetime)}
-            </Text>
-          </View>
+        <MeetingInfoCard meeting={meeting} />
 
-          <View style={styles.participantInfo}>
-            <View style={styles.participant}>
-              <Ionicons
-                name='person-circle'
-                size={40}
-                color={theme.colors.textSecondary}
-              />
-              <View>
-                <Text style={styles.participantName}>
-                  {meeting.contractor
-                    ? `${meeting.contractor.first_name} ${meeting.contractor.last_name}`
-                    : 'Contractor'}
-                </Text>
-                <Text style={styles.participantRole}>Contractor</Text>
-              </View>
-            </View>
-          </View>
+        <LocationMapSection
+          meeting={meeting}
+          region={region}
+          contractorLocation={contractorLocation}
+          distanceKm={distanceKm}
+          etaMinutes={travelTracking.eta}
+        />
 
-          {meeting.notes && (
-            <View style={styles.notesSection}>
-              <Text style={styles.notesTitle}>Notes</Text>
-              <Text style={styles.notesText}>{meeting.notes}</Text>
-            </View>
-          )}
-        </View>
-
-        {/* Map */}
-        <View style={styles.mapSection}>
-          <Text style={styles.sectionTitle}>Location & Tracking</Text>
-          <View style={styles.mapContainer}>
-            {region && (
-              <MapView ref={mapRef} style={{ flex: 1 }}>
-                {/* Meeting Location Marker */}
-                <Marker
-                  coordinate={{
-                    latitude: meeting.latitude ?? 0,
-                    longitude: meeting.longitude ?? 0,
-                  }}
-                  title='Meeting Location'
-                  description={meeting.address ?? ''}
-                  pinColor={theme.colors.textPrimary}
-                />
-
-                {/* Contractor Location Marker */}
-                {contractorLocation && (
-                  <Marker
-                    coordinate={{
-                      latitude: contractorLocation.latitude,
-                      longitude: contractorLocation.longitude,
-                    }}
-                    title='Contractor Location'
-                    description='Live location'
-                    pinColor={theme.colors.primary}
-                  >
-                    <View style={styles.contractorMarker}>
-                      <Ionicons
-                        name='car'
-                        size={20}
-                        color={theme.colors.textInverse}
-                      />
-                    </View>
-                  </Marker>
-                )}
-
-                {/* Route Line */}
-                {contractorLocation && (
-                  <Polyline
-                    coordinates={[
-                      {
-                        latitude: contractorLocation.latitude,
-                        longitude: contractorLocation.longitude,
-                      },
-                      {
-                        latitude: meeting.latitude ?? 0,
-                        longitude: meeting.longitude ?? 0,
-                      },
-                    ]}
-                    strokeColor={theme.colors.textPrimary}
-                    strokeWidth={3}
-                    lineDashPattern={[5, 10]}
-                  />
-                )}
-              </MapView>
-            )}
-
-            {/* Location Info Overlay */}
-            <View style={styles.locationOverlay}>
-              {contractorLocation && distance && (
-                <View style={styles.distanceInfo}>
-                  <Ionicons
-                    name='location'
-                    size={16}
-                    color={theme.colors.textSecondary}
-                  />
-                  <Text style={styles.distanceText}>
-                    {distance.toFixed(1)} km away
-                  </Text>
-                  {travelTracking.eta !== null ? (
-                    <Text style={styles.estimatedTime}>
-                      ETA: {travelTracking.eta} mins
-                    </Text>
-                  ) : (
-                    <Text style={styles.estimatedTime}>
-                      ~{Math.round(distance * 2)} mins
-                    </Text>
-                  )}
-                </View>
-              )}
-            </View>
-          </View>
-        </View>
-
-        {/* Travel Tracking (Contractor Only) */}
-        {user?.role === 'contractor' && meeting?.status === 'scheduled' && (
-          <View style={styles.travelTrackingSection}>
-            <Text style={styles.sectionTitle}>Travel Tracking</Text>
-            {!travelTracking.isTracking ? (
-              <TouchableOpacity
-                style={[styles.travelButton, styles.startTravelButton]}
-                onPress={travelTracking.startTracking}
-                disabled={travelTracking.error !== null}
-              >
-                <Ionicons
-                  name='navigate'
-                  size={24}
-                  color={theme.colors.textInverse}
-                />
-                <Text style={styles.travelButtonText}>Start Traveling</Text>
-              </TouchableOpacity>
-            ) : (
-              <View style={styles.trackingActiveContainer}>
-                <View style={styles.etaDisplay}>
-                  <Ionicons
-                    name='time'
-                    size={20}
-                    color={theme.colors.textSecondary}
-                  />
-                  <Text style={styles.etaText}>
-                    ETA:{' '}
-                    {travelTracking.eta
-                      ? `${travelTracking.eta} minutes`
-                      : 'Calculating...'}
-                  </Text>
-                </View>
-                <View style={styles.trackingButtons}>
-                  <TouchableOpacity
-                    style={[styles.travelButton, styles.arrivedButton]}
-                    onPress={travelTracking.markArrived}
-                  >
-                    <Ionicons
-                      name='checkmark-circle'
-                      size={20}
-                      color={theme.colors.textInverse}
-                    />
-                    <Text style={styles.travelButtonText}>Mark Arrived</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.travelButton, styles.stopTravelButton]}
-                    onPress={travelTracking.stopTracking}
-                  >
-                    <Ionicons
-                      name='stop-circle'
-                      size={20}
-                      color={theme.colors.textInverse}
-                    />
-                    <Text style={styles.travelButtonText}>Stop</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            )}
-            {travelTracking.error && (
-              <Text style={styles.errorText}>{travelTracking.error}</Text>
-            )}
-          </View>
+        {user?.role === 'contractor' && meeting.status === 'scheduled' && (
+          <TravelTrackingPanel travel={travelTracking} />
         )}
 
-        {/* Actions */}
-        <View style={styles.actionsSection}>
-          <Text style={styles.sectionTitle}>Actions</Text>
-          <View style={styles.actionButtons}>
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={handleCallContractor}
-            >
-              <Ionicons name='call' size={20} color={theme.colors.primary} />
-              <Text style={styles.actionButtonText}>Call</Text>
-            </TouchableOpacity>
+        <MeetingActionsRow
+          onCall={() => callContractor(meeting)}
+          onMessage={() => messageContractor(meeting, navigation)}
+          onReschedule={() => rescheduleMeeting(meeting, meetingId, navigation)}
+          onCancel={() =>
+            cancelMeeting({
+              meetingId,
+              userId: user?.id || '',
+              onCancelled: () => navigation.goBack(),
+            })
+          }
+        />
 
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={handleMessageContractor}
-            >
-              <Ionicons
-                name='chatbubble'
-                size={20}
-                color={theme.colors.textSecondary}
-              />
-              <Text style={styles.actionButtonText}>Message</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={handleReschedule}
-            >
-              <Ionicons
-                name='calendar'
-                size={20}
-                color={theme.colors.textSecondary}
-              />
-              <Text style={styles.actionButtonText}>Reschedule</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={handleCancelMeeting}
-            >
-              <Ionicons
-                name='close-circle'
-                size={20}
-                color={theme.colors.error}
-              />
-              <Text style={styles.actionButtonText}>Cancel</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        {/* Updates Timeline */}
-        {updates.length > 0 && (
-          <View style={styles.updatesSection}>
-            <Text style={styles.sectionTitle}>Updates</Text>
-            {updates.map((update) => (
-              <View key={update.id} style={styles.updateItem}>
-                <View style={styles.updateIcon}>
-                  <Ionicons
-                    name={
-                      update.updateType === 'rescheduled'
-                        ? 'calendar'
-                        : update.updateType === 'location_update'
-                          ? 'location'
-                          : update.updateType === 'status_change'
-                            ? 'checkmark-circle'
-                            : 'notifications'
-                    }
-                    size={16}
-                    color={theme.colors.textSecondary}
-                  />
-                </View>
-                <View style={styles.updateContent}>
-                  <Text style={styles.updateMessage}>{update.message}</Text>
-                  <Text style={styles.updateTime}>
-                    {formatUpdateTime(update.timestamp)}
-                  </Text>
-                </View>
-              </View>
-            ))}
-          </View>
-        )}
+        <UpdatesTimeline updates={updates} />
       </ScrollView>
     </View>
   );

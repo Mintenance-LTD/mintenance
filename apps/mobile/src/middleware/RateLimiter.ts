@@ -101,8 +101,13 @@ export function resetRateLimit(
 
 /**
  * Get remaining attempts for an action.
+ *
+ * AUDIT_PUNCH_LIST P2 #51 (B4-P2-5) — exported 2026-05-09 so login /
+ * password-reset / payment screens can render a "X attempts left
+ * before lockout" hint to the user. Returns the bucket's headroom
+ * without consuming an attempt.
  */
-function getRemainingAttempts(
+export function getRemainingAttempts(
   action: keyof typeof LIMITS,
   identifier: string = 'default'
 ): number {

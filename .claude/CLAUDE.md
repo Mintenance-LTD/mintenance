@@ -286,10 +286,9 @@ drift detection vs prior CLAUDE.md claims.
 
 **New P0 findings (not in prior audits):**
 
-1. **Admin MFA gaps**: `/api/admin/maintenance/rotate-totp-secrets`, `/api/admin/migrations/apply`,
-   `/api/admin/migrations/apply-combined` — all wrapped in `withApiHandler` with `roles: ['admin']`
-   but no `requireMfaVerifiedWithinMinutes`. Rotating TOTP secrets or executing arbitrary SQL
-   without step-up is high-impact. Also applies to `/api/admin/synthetic-data/generate`.
+1. ~~**Admin MFA gaps**~~ — **RESOLVED 2026-05-09 (drift)**. All 3 originally-flagged routes plus
+   `/api/admin/synthetic-data/generate` already had `requireMfaVerifiedWithinMinutes: 15`. Sweep of
+   all 67 admin routes confirms every mutation route (POST/PUT/DELETE/PATCH) is covered.
 2. **Uncommitted Mint AI session work** — 5 files in working tree from 2026-04-19 session
    (`AssessmentGenerator.ts`, `yolo-class-names.ts`, `upload-yolo-to-storage.ts`,
    `PropertyAssessmentScreen.tsx`, `AIAssessmentScreen.tsx`). `AssessmentGenerator.ts` lost its
@@ -297,17 +296,22 @@ drift detection vs prior CLAUDE.md claims.
 
 **New P1 findings:**
 
-3. **`reviews_select_policy` is `qual=true, roles={public}`** — all reviews publicly readable by
-   anonymous users. Likely intentional for marketplace trust but should be explicitly confirmed.
-4. **`sanitize-postgrest.ts` helper exists but 0 callers** — 15 `.ilike()`/`.or()` routes inline
-   ad-hoc regex instead.
-5. **Mobile `sendPushNotification()` is a no-op stub** after 04-22 cross-user phishing fix. No
-   server-side replacement built — client-triggered CTA notifications silently drop.
+3. ~~**`reviews_select_policy` is `qual=true, roles={public}`**~~ — **RESOLVED 2026-04-26 (drift)**.
+   Migration `20260426134304_harden_review_reply_rls.sql` replaced it with
+   `reviews_public_read_published_replies` (a smart policy that hides unpublished/blocked replies
+   while keeping reviews themselves public). Verified live 2026-05-09 via `pg_policy`.
+4. ~~**`sanitize-postgrest.ts` helper exists but 0 callers**~~ — **RESOLVED 2026-05-09 (drift +
+   today's fix)**. Helper has 10 callers; remaining 2 admin user routes consolidated this session
+   via new `sanitizeEmailIlikePattern` variant (preserves `@.` for email search).
+5. ~~**Mobile `sendPushNotification()` is a no-op stub**~~ — **RESOLVED 2026-04-24 (drift)**.
+   `POST /api/notifications/send` ships with the proper business-relationship gate; mobile file
+   forwards to it. Both files audited 2026-05-09.
 6. **10+ "Coming soon" dead-end pages** on web (contractor/connections, resources, social, team,
    video-calls, learn, admin/review-moderation, admin/api-documentation). Routable but
    non-functional.
-7. **8 auth routes use raw `x-forwarded-for` in logging** (not rate-limit enforcement) — consistency
-   issue, replace with `getClientIp()`.
+7. ~~**8 auth routes use raw `x-forwarded-for` in logging**~~ — **RESOLVED on inspection 2026-05-09
+   (drift)**. Comprehensive grep finds only doc comments + canonical `request-ip.ts` helper + 1 dead
+   function (`initializeFeatureFlags`, zero callers). Audit was stale.
 
 **Drift corrections from prior CLAUDE.md state:**
 
@@ -344,6 +348,92 @@ drift detection vs prior CLAUDE.md claims.
   guards on 8 auth/payment screens)
 - ✅ Mint AI v2 deployed to Modal — 78% damageType accuracy, 98% pipe_leak, shadow mode wired
 - ✅ Mobile HIBP parity via `/api/auth/check-password-breach` endpoint
+
+### 2026-05-09 — Audit re-remediation pass (drift sweep + targeted fixes)
+
+Two-batch remediation session. Verified four "outstanding" priority-list items were already resolved
+(CLAUDE.md drift) and shipped concrete code fixes for several others. Live-DB checks via Supabase
+MCP throughout.
+
+**P0 fixes (production-broken paths):**
+
+- **Disputes feature, all 5 broken entry points** — `/api/disputes/create`, `/api/disputes/[id]`,
+  `DisputeWorkflowService.attemptAutoResolution`, `DisputeResolutionAgent.attemptAutoResolution`,
+  `/api/jobs/[id]/dispute` insert. All were selecting/writing non-existent columns:
+  `escrow_transactions` has `payer_id`/`payee_id` not `contractor_id`/`client_id`/`homeowner_id`;
+  the `disputes` table uses `raised_by`/`against` not `homeowner_id`/`contractor_id`/`category`.
+  `[id]` route now returns the flat shape the frontend expects by JOINing both tables on `job_id`.
+- **`/jobs/[id]/review` page** — deleted dead photo-upload UI (photos went to `URL.createObjectURL`
+  blob URLs and never POSTed). `wouldRecommend` was accepted by the API but silently dropped: added
+  column via migration `20260509155315_reviews_would_recommend_column.sql`, persisted on insert,
+  surfaced in GET response.
+
+**P1 fixes:**
+
+- **`users!` → `profiles!` foreign-table joins (8 files batch-fix)** — original audit flagged only
+  `/jobs/tracking`. Grep surfaced same broken pattern in `lib/cache/user-queries.ts`,
+  `lib/queries/scheduling.ts`, `lib/services/admin/AdminEscrowHoldService.ts`,
+  `lib/services/building-surveyor/DataCollectionQueryService.ts`,
+  `lib/services/payment/FeeTransferService.ts`, `app/api/admin/jobs/route.ts`,
+  `lib/services/AdvancedSearchService.ts` (special case — constraint name didn't exist either,
+  rewrote to `profiles!contractor_profiles_id_fkey`). All 6 distinct FK targets verified to point at
+  `profiles` on live DB. Root cause: legacy `users` view from pre-2025 schema is not embeddable via
+  PostgREST resource-name lookup.
+- **`/api/contractors/[id]/location`** — POST tightened to contractor-only (admin escape was dead
+  code; line `if (user.role !== 'contractor')` immediately rejected admin); GET adds explicit
+  admin-oversight branch (doc string already promised it).
+- **`/api/payments/refund`** — added `roles: ['homeowner']` lock (defense-in-depth; downstream code
+  was already restricting).
+- **`/api/agents/decision`** — added `roles: ['homeowner', 'contractor']` lock (admin excluded;
+  endpoint is mobile-facing for end-user automation).
+- **`navigator.onLine` cluster (4 mobile files)** — original audit flagged `serviceErrorHandler`. In
+  React Native `navigator.onLine` is `undefined`, so `!navigator.onLine` always evaluated true and
+  every network error showed "No internet connection". Same bug found in `ErrorManager.ts`,
+  `errorHandler.ts` (2 sites). Added `isOnlineCached()` to `apps/mobile/src/utils/networkUtils.ts`
+  backed by `NetInfo.addEventListener` subscriber, swapped all 3 broken call sites.
+  `HealthCheckManager.ts:82` left as-is — correctly platform-gated to `Platform.OS === 'web'`.
+
+**P2 fixes:**
+
+- **`sanitize-postgrest.ts` consolidation** — added `sanitizeEmailIlikePattern` variant for admin
+  email-search use case; adopted in `/api/admin/users` + `/api/admin/users/export` (replacing
+  duplicate inline regex). Helper now used in 12 files total.
+- **6-file refactor pass** — web (3): `LocationPricingService.ts` (667→238), `PredictiveAgent.ts`
+  (669→197), `AssessmentOrchestrator.ts` (652→298). Mobile (3): `VideoService.ts` (756→307),
+  `SyncManager.ts` (640→285), `AuthService.ts` (629→311). 25 new helper modules across
+  `services/location/`, `services/agents/predictive/`, `services/building-surveyor/orchestration/`,
+  `services/video/upload/`, `services/sync/`, `services/auth/`. All web modules under the 300-line
+  cap; the 3 mobile facades sit at 285-311 (kept that way for public-API stability — trimming
+  pass-through delegates would break callers). Web tsc baseline unchanged; mobile tsc clean for
+  changed files.
+
+**Migration sync:**
+
+- 12 P0-flagged live migrations pulled into `supabase/migrations/` (canonical-schema renames for
+  `contractor_certifications`, `notifications`, `notification_queue`,
+  `user_notification_preferences`, etc.).
+- New: `20260509155315_reviews_would_recommend_column.sql` (applied live + persisted).
+- **Discovered wider drift**: 49 live migration versions still missing locally + 50 local-only files
+  unpushed. Quantified for follow-up; not bulk-synced this session.
+
+**Drift corrections (audit claims found stale, no code action needed beyond documenting):**
+
+- ✅ Admin MFA on 3 mutation routes — already had `requireMfaVerifiedWithinMinutes: 15`.
+- ✅ Reviews RLS `qual=true` — was replaced 2026-04-26 by `reviews_public_read_published_replies`.
+- ✅ `sanitize-postgrest.ts` "0 callers" — 10 callers; only 2 inline-regex stragglers (now also
+  consolidated, see above).
+- ✅ "8 auth routes use raw `x-forwarded-for`" — comprehensive grep finds only doc comments,
+  canonical helper, and 1 dead function. Already cleaned up.
+
+**Discovered-during-fixing:**
+
+- ⚠️ OpenAI API keys verified safe in mobile binary — hardcoded empty + runtime SECURITY guard +
+  zero `eas.json` references (false alarm).
+
+**Verification:**
+
+- Web `tsc`: 119 → 63 non-`TS6305` errors (improvement); zero new errors from these changes.
+- Mobile `tsc`: clean for changed files.
 
 ### 2026-04-17 — Audit Remediation Sprint (16-item run)
 

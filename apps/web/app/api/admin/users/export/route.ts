@@ -4,6 +4,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { ExportService } from '@/lib/services/admin/ExportService';
 import { InternalServerError } from '@/lib/errors/api-error';
+import { sanitizeEmailIlikePattern } from '@/lib/utils/sanitize-postgrest';
 
 // Audit P1 (2026-05-10): bulk PII export (up to 10k profile rows: email,
 // names, role, company, verification status). A stolen admin session is
@@ -46,10 +47,7 @@ export const GET = withApiHandler(
     }
 
     if (search) {
-      const sanitizedSearch = search
-        .replace(/[^a-zA-Z0-9\s\-'@.]/g, '')
-        .substring(0, 100)
-        .trim();
+      const sanitizedSearch = sanitizeEmailIlikePattern(search);
 
       if (sanitizedSearch.length > 0) {
         query = query.or(

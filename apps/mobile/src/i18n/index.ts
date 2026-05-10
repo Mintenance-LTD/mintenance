@@ -5,12 +5,16 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { logger } from '../utils/logger';
 
 // Import translations.
-// Sprint 7 (4.3): pruned to only the locales that have meaningful coverage.
-// The 9 other locales (pt/de/it/nl/pl/ru/zh/ja/ko/ar/hi) were stubs with
-// 1–3 keys and would silently fall back to English for every string —
-// worse UX than just falling back to English. Detector now routes any
-// unsupported device locale straight to 'en'. If/when real translations
-// land, re-add the import, the `availableLanguages` entry, and the
+//
+// Only en/es/fr have meaningful coverage. The detector routes any
+// unsupported device locale to 'en'.
+//
+// AUDIT_PUNCH_LIST P2 #49 (B4-P2-2) — 2026-05-09: the 11 stub JSON
+// files (pt/de/it/nl/pl/ru/zh/ja/ko/ar/hi) that previously lived in
+// `./locales/` were deleted. They had 1-3 keys each and would have
+// silently fallen back to English for every string — worse UX than
+// the explicit 'en' fallback. If/when real translations land,
+// re-add the import + the `availableLanguages` entry + the
 // `resources` entry below.
 import en from './locales/en.json';
 import es from './locales/es.json';
@@ -147,6 +151,20 @@ export const isRTL = (language?: Language): boolean => {
   return availableLanguages[lang]?.isRTL || false;
 };
 
+// AUDIT_PUNCH_LIST P2 #50 (B4-P2-3) — three bugs fixed 2026-05-09:
+//   1. Default currency was 'USD'. Mintenance is UK-only — flipped to
+//      'GBP' to match `apps/mobile/src/utils/formatCurrency.ts`.
+//   2. English locale was hard-coded to 'en-US'. Flipped to 'en-GB'
+//      so the date/decimal separators match user expectations.
+//   3. The Intl-failure fallback printed `$${amount}`. Now uses a
+//      resolved-currency symbol map so a broken Intl runtime in the
+//      UK doesn't show "$120.00" on a £120.00 quote.
+const CURRENCY_SYMBOLS: Record<string, string> = {
+  GBP: '£',
+  USD: '$',
+  EUR: '€',
+};
+
 export const formatCurrency = (
   amount: number,
   currency?: string,
@@ -160,18 +178,18 @@ export const formatCurrency = (
     typeof getCurrenciesFn === 'function'
       ? (getCurrenciesFn() as string[])?.[0]
       : undefined;
-  const resolvedCurrency = currency || deviceCurrency || 'USD';
+  const resolvedCurrency = currency || deviceCurrency || 'GBP';
 
   try {
-    return new Intl.NumberFormat(lang === 'en' ? 'en-US' : lang, {
+    return new Intl.NumberFormat(lang === 'en' ? 'en-GB' : lang, {
       style: 'currency',
       currency: resolvedCurrency,
       minimumFractionDigits: 0,
       maximumFractionDigits: 2,
     }).format(amount);
-  } catch (error) {
-    // Fallback to simple formatting
-    return `$${amount.toFixed(2)}`;
+  } catch {
+    const symbol = CURRENCY_SYMBOLS[resolvedCurrency] ?? `${resolvedCurrency} `;
+    return `${symbol}${amount.toFixed(2)}`;
   }
 };
 

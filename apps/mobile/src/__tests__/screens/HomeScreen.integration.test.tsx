@@ -1,14 +1,15 @@
-
 import React from 'react';
 import { render, waitFor } from '../test-utils';
-import HomeScreen from '../../screens/HomeScreen';
+import { HomeScreen } from '../../screens/home';
 
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaProvider: ({ children }) => children,
   SafeAreaView: ({ children }) => children,
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
-jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock')
+);
 
 const mockNavigation = {
   navigate: jest.fn(),
@@ -97,7 +98,6 @@ describe('HomeScreen Integration Tests', () => {
     jest.clearAllMocks();
   });
 
-
   it('renders without crashing for homeowner', async () => {
     const mockUser = {
       id: '1',
@@ -131,7 +131,7 @@ describe('HomeScreen Integration Tests', () => {
   it('renders without crashing for contractor', async () => {
     const mockUser = {
       id: '2',
-      email: 'contractor@test.com', 
+      email: 'contractor@test.com',
       role: 'contractor',
       first_name: 'Jane',
       last_name: 'Contractor',
@@ -158,7 +158,7 @@ describe('HomeScreen Integration Tests', () => {
     await waitFor(() => {
       expect(getByTestId('home-screen')).toBeTruthy();
     });
-    
+
     // Wait for data to load and check for contractor-specific content
     await waitFor(() => {
       expect(getByText('Good morning!')).toBeTruthy();
@@ -217,7 +217,7 @@ describe('HomeScreen Integration Tests', () => {
     await waitFor(() => {
       expect(getByTestId('home-screen')).toBeTruthy();
     });
-    
+
     // Should have scroll view for refresh functionality
     await waitFor(() => {
       expect(getByTestId('home-scroll-view')).toBeTruthy();

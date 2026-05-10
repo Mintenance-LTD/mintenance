@@ -23,12 +23,43 @@ import {
   BadRequestError,
   ForbiddenError,
 } from '@/lib/errors/api-error';
+import {
+  getIdempotencyKeyFromRequest,
+  checkIdempotency,
+  storeIdempotencyResult,
+} from '@/lib/idempotency';
 
 export const POST = withApiHandler(
   { roles: ['contractor'] },
   async (request, { user, params }) => {
     const userDb = createRequestScopedClient(request) ?? serverSupabase;
     const jobId = params.id;
+
+    // 0. Idempotency — guard against double-tap, network retries, or
+    //    background-task re-fires. Without this, a retried request
+    //    would re-fan out notifications + re-send the job-started
+    //    email even though the status transition itself is already
+    //    blocked (validateStatusTransition rejects in_progress→
+    //    in_progress). AUDIT_PUNCH_LIST P2 #75.
+    const idempotencyKey = getIdempotencyKeyFromRequest(
+      request,
+      'job_start',
+      user.id,
+      jobId
+    );
+    const idem = await checkIdempotency<{
+      success: boolean;
+      message: string;
+    }>(idempotencyKey, 'job_start');
+    if (idem?.isDuplicate && idem.cachedResult) {
+      logger.info('Duplicate job_start — returning cached result', {
+        service: 'jobs',
+        idempotencyKey,
+        userId: user.id,
+        jobId,
+      });
+      return NextResponse.json(idem.cachedResult);
+    }
 
     // 1. Fetch job (user-scoped read)
     const { data: job, error } = await userDb
@@ -205,9 +236,19 @@ export const POST = withApiHandler(
       beforePhotoCount: count,
     });
 
-    return NextResponse.json({
+    const responseData = {
       success: true,
       message: 'Job started successfully',
-    });
+    };
+
+    await storeIdempotencyResult(
+      idempotencyKey,
+      'job_start',
+      responseData,
+      user.id,
+      { jobId, contractorId: user.id }
+    );
+
+    return NextResponse.json(responseData);
   }
 );

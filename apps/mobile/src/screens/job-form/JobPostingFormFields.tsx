@@ -249,7 +249,7 @@ export const JobPostingFormFields: React.FC<JobPostingFormFieldsProps> = ({
     {aiPricingAnalysis && (
       <View style={styles.budgetComparisonContainer}>
         <Text style={styles.budgetComparisonText}>
-          AI Suggestion: £{aiPricingAnalysis.suggestedPrice.min} - £
+          Estimated range: £{aiPricingAnalysis.suggestedPrice.min} - £
           {aiPricingAnalysis.suggestedPrice.max}
         </Text>
       </View>
@@ -257,7 +257,7 @@ export const JobPostingFormFields: React.FC<JobPostingFormFieldsProps> = ({
 
     <View style={styles.budgetHint}>
       <Text style={styles.hintText}>
-        Use AI-powered pricing above for market-accurate budget suggestions
+        See the pricing estimate above for typical budgets in this category
       </Text>
     </View>
   </View>
