@@ -17,6 +17,7 @@ import { ThemeProvider } from './src/design-system/theme';
 import { HapticService } from './src/utils/haptics';
 import { BackgroundSyncService } from './src/services/BackgroundSyncService';
 import { NotificationService } from './src/services/NotificationService';
+import { runStorageMigrations } from './src/config/storageMigrations';
 // Side-effect import: registers the contractor background-location TaskManager
 // task at module-load so that Expo can resume delivery after the app relaunches
 // from a killed state. See BackgroundLocationTask.ts for details.
@@ -162,6 +163,21 @@ export default function App(): React.JSX.Element {
     const initialize = async (): Promise<void> => {
       try {
         logger.info('Mintenance app initializing', { service: 'app' });
+
+        // Audit P2 (2026-05-10): run AsyncStorage migrations BEFORE any
+        // consumer reads a possibly-migrated key (QueryProvider hydration,
+        // auth-session restore, theme load, etc.). The function is a
+        // no-op when already at latest, so it's safe on every cold start.
+        await runStorageMigrations().catch((err: unknown) => {
+          logger.warn(
+            'Storage migrations failed; continuing with current schema',
+            {
+              service: 'app',
+              error: err instanceof Error ? err.message : String(err),
+            }
+          );
+        });
+
         // Load Inter font to match web app branding (falls back to System if unavailable)
         await Font.loadAsync({
           'Inter-Regular': require('./assets/fonts/Inter-Regular.ttf'),

@@ -15,9 +15,14 @@ import { logAuditEvent, getClientIp } from '@/lib/audit';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-const disableMFASchema = z.object({
-  password: z.string().min(1, 'Password is required for verification'),
-});
+// Audit P2 (2026-05-10): `.strict()` rejects unknown body keys so a
+// rogue client can't smuggle e.g. `code` / `userId` overrides into a
+// future schema-extension. Pattern matched across all auth/MFA routes.
+const disableMFASchema = z
+  .object({
+    password: z.string().min(1, 'Password is required for verification'),
+  })
+  .strict();
 
 /**
  * POST /api/auth/mfa/disable - disable MFA (requires password confirmation).

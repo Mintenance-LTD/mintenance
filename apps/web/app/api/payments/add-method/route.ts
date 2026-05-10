@@ -8,10 +8,15 @@ import { validateRequest } from '@/lib/validation/validator';
 import { stripe } from '@/lib/stripe';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 
-const addMethodSchema = z.object({
-  paymentMethodId: z.string().regex(/^pm_[a-zA-Z0-9]+$/, 'Invalid payment method ID'),
-  setAsDefault: z.boolean().default(false),
-});
+// Audit P2 (2026-05-10): `.strict()` rejects unknown body keys.
+const addMethodSchema = z
+  .object({
+    paymentMethodId: z
+      .string()
+      .regex(/^pm_[a-zA-Z0-9]+$/, 'Invalid payment method ID'),
+    setAsDefault: z.boolean().default(false),
+  })
+  .strict();
 
 /**
  * POST /api/payments/add-method
@@ -47,12 +52,16 @@ export const POST = withApiHandler(
       .eq('id', user.id)
       .single();
     if (stripeData) {
-      stripeCustomerId = (stripeData as Record<string, unknown>).stripe_customer_id as string | null;
+      stripeCustomerId = (stripeData as Record<string, unknown>)
+        .stripe_customer_id as string | null;
     }
 
     // If not in DB, search Stripe by email to avoid creating duplicates
     if (!stripeCustomerId) {
-      const existing = await stripe.customers.list({ email: userData.email, limit: 1 });
+      const existing = await stripe.customers.list({
+        email: userData.email,
+        limit: 1,
+      });
       stripeCustomerId = existing.data[0]?.id || null;
     }
 
@@ -79,7 +88,9 @@ export const POST = withApiHandler(
       });
     } catch (error) {
       if (error instanceof Stripe.errors.StripeError) {
-        logger.error('Stripe error adding payment method', error, { service: 'payments' });
+        logger.error('Stripe error adding payment method', error, {
+          service: 'payments',
+        });
         throw new BadRequestError(error.message);
       }
       throw error;
@@ -99,7 +110,7 @@ export const POST = withApiHandler(
       userId: user.id,
       paymentMethodId: paymentMethod.id,
       type: paymentMethod.type,
-      isDefault: setAsDefault
+      isDefault: setAsDefault,
     });
 
     return NextResponse.json({

@@ -16,8 +16,15 @@ import { getClientIp } from '@/lib/request-ip';
 // 2026-05-01 audit follow-up (check-api-contracts): Zod-validated body
 // replaces the manual `typeof accessToken === 'string'` + JWT-pattern
 // regex + dual `password` / `newPassword` accepted-key compatibility.
-// The schema preserves the legacy frontend behaviour (either field
-// works) via a `.transform` that normalises to `password`.
+//
+// Audit P2 (2026-05-10): the legacy `newPassword` alias was removed
+// after a code-wide grep confirmed the only API consumer is
+// `apps/web/app/reset-password/page.tsx` which has always posted
+// `password`. Mobile reset goes via the deep-linked web URL (not a
+// direct API call) so installed mobile clients are not a concern.
+// The schema is now `.strict()` against a single canonical field;
+// any rogue client sending `newPassword` will fail validation
+// loudly, which is preferable to a silent dual-key-accepting alias.
 const resetPasswordSchema = z
   .object({
     accessToken: z
@@ -28,18 +35,12 @@ const resetPasswordSchema = z
         /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/,
         'Invalid reset link. Please request a new password reset.'
       ),
-    password: z.string().min(1).max(128).optional(),
-    newPassword: z.string().min(1).max(128).optional(),
+    password: z
+      .string()
+      .min(1, 'Password is required')
+      .max(128, 'Password too long'),
   })
-  .strict()
-  .transform((d) => ({
-    accessToken: d.accessToken,
-    password: d.password ?? d.newPassword ?? '',
-  }))
-  .refine((d) => d.password.length > 0, {
-    path: ['password'],
-    message: 'Password is required',
-  });
+  .strict();
 
 /**
  * POST /api/auth/reset-password

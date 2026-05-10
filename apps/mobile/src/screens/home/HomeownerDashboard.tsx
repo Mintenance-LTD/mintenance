@@ -40,6 +40,7 @@ import { ReferralCard } from './components/ReferralCard';
 import { LandlordPayerJobsCard } from './components/LandlordPayerJobsCard';
 import { HomeHealthCtaCard } from './components/HomeHealthCtaCard';
 import { FinishSetupCard } from './components/FinishSetupCard';
+import { PushPermissionRecoveryBanner } from '../../components/onboarding/PushPermissionRecoveryBanner';
 
 const appIcon = require('../../../assets/icon.png');
 
@@ -398,6 +399,15 @@ export const HomeownerDashboard: React.FC = () => {
           <FadeIn duration={400} delay={380}>
             <FinishSetupCard />
           </FadeIn>
+
+          {/* Audit P1 (2026-05-10) — recovery banner for the cohort that
+              denied the iOS push dialog (their one-shot is burned, so the
+              soft-ask modal can't re-prompt). Self-hides unless the OS
+              status is 'denied' AND the user hasn't dismissed within 30
+              days. Mounted here on the homeowner dashboard for the
+              biggest possible recovery surface; contractor-side pairing
+              can mount the same component when convenient. */}
+          <PushPermissionRecoveryBanner />
 
           {/* Appointments */}
           <DashboardAppointmentsSection appointments={appointments} />

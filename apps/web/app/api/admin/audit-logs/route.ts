@@ -2,14 +2,23 @@ import { NextResponse } from 'next/server';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { sanitizeIlikePattern } from '@/lib/utils/sanitize-postgrest';
 
 /**
  * GET /api/admin/audit-logs
  * Fetch audit logs with filtering and pagination.
  * Normalises the response to match the client-side AuditLog interface.
  */
+// Audit P1 (2026-05-10): admin_activity_log read endpoint. A stolen
+// admin session reading this could plan further actions and (if combined
+// with the migrations/synthetic-data routes) cover its own traces. Gate
+// behind fresh MFA, same 15-min window as the mutating admin routes.
 export const GET = withApiHandler(
-  { roles: ['admin'], rateLimit: { maxRequests: 20 } },
+  {
+    roles: ['admin'],
+    rateLimit: { maxRequests: 20 },
+    requireMfaVerifiedWithinMinutes: 15,
+  },
   async (request) => {
     const url = new URL(request.url);
     const limit = Math.min(Number(url.searchParams.get('limit') || '100'), 500);
@@ -28,10 +37,19 @@ export const GET = withApiHandler(
       .limit(limit);
 
     if (action) query = query.eq('action_type', action);
-    if (search)
-      query = query.or(
-        `action_type.ilike.%${search}%,description.ilike.%${search}%`
-      );
+    if (search) {
+      // Audit P2 (2026-05-10): the previous template-literal `.or()` was a
+      // PostgREST filter-injection vector — a `,` in `search` would inject
+      // an extra clause and read rows the caller didn't ask for. Route the
+      // user input through the canonical helper (allowlist [A-Za-z0-9\s\-'],
+      // 80-char cap) before interpolating into the filter DSL.
+      const safeSearch = sanitizeIlikePattern(search);
+      if (safeSearch.length > 0) {
+        query = query.or(
+          `action_type.ilike.%${safeSearch}%,description.ilike.%${safeSearch}%`
+        );
+      }
+    }
 
     if (dateRange && dateRange !== 'all') {
       const now = new Date();

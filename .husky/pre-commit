@@ -15,6 +15,9 @@ fi
 # Check for existing hex validation
 node scripts/ci/check-no-hex.js || exit 1
 
+# Block hardcoded non-GBP currency in supabase/functions/ (audit P0 2026-05-10)
+node scripts/ci/check-edge-fn-currency.js || exit 1
+
 # Run pre-commit checks script
 node scripts/pre-commit-checks.js || exit 1
 

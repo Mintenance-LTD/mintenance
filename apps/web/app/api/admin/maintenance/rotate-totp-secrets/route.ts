@@ -18,6 +18,15 @@ export const POST = withApiHandler(
     // re-keyed — demand fresh MFA proof within 15 min, matching the
     // escrow/refund precedent in apps/web/app/api/admin/refunds/[id]/route.ts.
     requireMfaVerifiedWithinMinutes: 15,
+    // Audit P1 (2026-05-10): mass-rekey of MFA secrets is an extremely
+    // high-impact security primitive. Every successful run writes to
+    // admin_activity_log so the audit-logs UI surfaces it, including
+    // the IP / UA captured by AdminActivityLogger.logFromRequest.
+    logActivity: {
+      actionType: 'totp_secrets_rotated',
+      category: 'security',
+      description: 'Rotated flagged TOTP secrets',
+    },
   },
   async (_request, { user }) => {
     // Fetch flagged profiles (batch limit to prevent memory exhaustion)

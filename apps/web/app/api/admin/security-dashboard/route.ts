@@ -26,8 +26,16 @@ const securityDashboardActionSchema = z.discriminatedUnion('action', [
   }),
 ]);
 
+// Audit P1 (2026-05-10): exposes the system security state (open
+// security events, blocked IPs, recent breach signals). A stolen admin
+// session reading this learns exactly which detections to evade. Gate
+// behind fresh MFA, same 15-min window the POST handler already uses.
 export const GET = withApiHandler(
-  { roles: ['admin'], rateLimit: { maxRequests: 10 } },
+  {
+    roles: ['admin'],
+    rateLimit: { maxRequests: 10 },
+    requireMfaVerifiedWithinMinutes: 15,
+  },
   async (request, { user }) => {
     const { searchParams } = new URL(request.url);
     const VALID_TIMEFRAMES = ['1h', '24h', '7d', '30d'] as const;

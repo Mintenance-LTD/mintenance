@@ -15,12 +15,17 @@ import { validateRequest } from '@/lib/validation/validator';
 import { stripe } from '@/lib/stripe';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 
-const confirmIntentSchema = z.object({
-  paymentIntentId: z
-    .string()
-    .regex(/^pi_[a-zA-Z0-9]+$/, 'Invalid payment intent ID'),
-  jobId: z.string().uuid('Invalid job ID'),
-});
+// Audit P2 (2026-05-10): `.strict()` blocks unknown body keys so a
+// rogue client can't smuggle e.g. `amount` / `escrowId` overrides
+// past the server-authoritative state-machine in the handler.
+const confirmIntentSchema = z
+  .object({
+    paymentIntentId: z
+      .string()
+      .regex(/^pi_[a-zA-Z0-9]+$/, 'Invalid payment intent ID'),
+    jobId: z.string().uuid('Invalid job ID'),
+  })
+  .strict();
 
 /**
  * POST /api/payments/confirm-intent

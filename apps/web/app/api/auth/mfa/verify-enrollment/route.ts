@@ -10,12 +10,15 @@ import { logAuditEvent, getClientIp } from '@/lib/audit';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-const verifyEnrollmentSchema = z.object({
-  token: z
-    .string()
-    .length(6)
-    .regex(/^\d{6}$/, 'Token must be 6 digits'),
-});
+// Audit P2 (2026-05-10): `.strict()` to reject unknown keys.
+const verifyEnrollmentSchema = z
+  .object({
+    token: z
+      .string()
+      .length(6)
+      .regex(/^\d{6}$/, 'Token must be 6 digits'),
+  })
+  .strict();
 
 /**
  * POST /api/auth/mfa/verify-enrollment

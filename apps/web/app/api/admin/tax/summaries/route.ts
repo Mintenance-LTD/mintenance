@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { RATE_LIMIT_TIERS } from '@/lib/api/rate-limit-tiers';
 import { BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 
 // -- Validation ---------------------------------------------------------------
@@ -71,8 +72,12 @@ interface SummaryRow {
  *
  * Requires admin role.
  */
+// Audit P2 (2026-05-10): added explicit STANDARD rate limit (was using
+// the wrapper's 30/min default). Tax summaries are non-sensitive
+// aggregates over already-paginated data, so STANDARD (20/min) is the
+// right tier — no need for FREQUENT.
 export const GET = withApiHandler(
-  { roles: ['admin'], csrf: false },
+  { roles: ['admin'], csrf: false, rateLimit: RATE_LIMIT_TIERS.STANDARD },
   async (request: NextRequest, { user }) => {
     const url = new URL(request.url);
     const parsed = summariesQuerySchema.safeParse({

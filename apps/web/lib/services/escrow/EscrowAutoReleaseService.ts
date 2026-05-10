@@ -20,12 +20,13 @@ import {
   type PaymentType,
 } from '@/lib/services/payment/FeeCalculationService';
 import { FeeTransferService } from '@/lib/services/payment/FeeTransferService';
-import Stripe from 'stripe';
-import { env } from '@/lib/env';
-
-const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
-  apiVersion: '2024-04-10',
-});
+// Audit P2 (2026-05-10): use the centralised `stripe` proxy from
+// `lib/stripe.ts` so this service inherits the canonical API version
+// (currently '2025-01-27.acacia'). The previous local construction
+// pinned '2024-04-10' and was ~9 months behind the rest of the
+// platform — risk of subtle behavioural drift on transfers.create /
+// paymentIntents.capture / accounts.retrieve responses.
+import { stripe } from '@/lib/stripe';
 
 const ESCROW_BATCH_LIMIT = 50;
 

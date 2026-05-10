@@ -13,8 +13,16 @@ import { logger } from '@mintenance/shared';
  *
  * Requires admin role.
  */
+// Audit P1 (2026-05-10): downloads tax form 1099-NEC for any contractor
+// + year. PII (contractor name, TIN, payments). Stolen admin session
+// would let an attacker exfil tax docs without any forensic mark — gate
+// behind fresh MFA, same 15-min window the tax/generate-* mutations use.
 export const GET = withApiHandler(
-  { roles: ['admin'], rateLimit: { maxRequests: 30, windowMs: 60_000 } },
+  {
+    roles: ['admin'],
+    rateLimit: { maxRequests: 30, windowMs: 60_000 },
+    requireMfaVerifiedWithinMinutes: 15,
+  },
   async (request: NextRequest, { user }) => {
     const { searchParams } = new URL(request.url);
     const contractorId = searchParams.get('contractorId');

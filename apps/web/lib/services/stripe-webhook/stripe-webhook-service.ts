@@ -115,18 +115,24 @@ export class StripeWebhookService {
     // hammering the endpoint with garbage that would never pass signature
     // verification but would still consume CPU.
     //
-    // Threshold is intentionally generous (1000 req/min/IP) because:
-    //   1. Stripe sends from a small pool of IPs that rotate, so a tight
-    //      per-IP limit can false-positive on legitimate traffic for high
-    //      volume accounts.
-    //   2. A burst of failed signature-verification attempts from one IP
-    //      is the only realistic abuse pattern, and 1000/min still bounds
-    //      the worst case.
+    // Audit P3 (2026-05-10): tightened from 1000 → 200 req/min/IP.
+    //   - Stripe documents that webhook delivery from any single source IP
+    //     stays well under 200/min in normal operation, even for a high-
+    //     traffic account, because Stripe rotates IPs aggressively.
+    //   - 200/min still leaves a 4× headroom over Stripe's published
+    //     ~50/min steady-state burst rate.
+    //   - The limit only fires per-IP, so a real Stripe IP rotation hides
+    //     legitimate volume across many buckets; an attacker hammering a
+    //     single IP gets cut off 5× faster than before.
+    //   - If you see false-positives in prod, pin Stripe IPs at the edge
+    //     (Vercel firewall) and remove this rate limit entirely — that's
+    //     the proper long-term fix.
     const ip = getClientIp(request);
+    const MAX_REQUESTS = 200;
     const rateLimitResult = await rateLimiter.checkRateLimit({
       identifier: `stripe-webhook:${ip}`,
       windowMs: 60_000,
-      maxRequests: 1000,
+      maxRequests: MAX_REQUESTS,
     });
 
     if (!rateLimitResult.allowed) {
@@ -141,7 +147,7 @@ export class StripeWebhookService {
           status: 429,
           headers: {
             'Retry-After': String(rateLimitResult.retryAfter || 60),
-            'X-RateLimit-Limit': String(1000),
+            'X-RateLimit-Limit': String(MAX_REQUESTS),
             'X-RateLimit-Remaining': String(rateLimitResult.remaining),
             'X-RateLimit-Reset': new Date(
               rateLimitResult.resetTime

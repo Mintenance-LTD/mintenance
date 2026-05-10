@@ -102,14 +102,23 @@ export const POST = withApiHandler(
       throw new BadRequestError('Can only request changes on completed jobs');
     }
 
-    // 2. Roll back job status to in_progress so contractor can re-do work
-    // Note: This is a special business rule — homeowner requesting changes bypasses
-    // the normal terminal state restriction on 'completed' jobs.
+    // 2. Roll back job status to in_progress so contractor can re-do work.
+    //
+    // Audit P1 (2026-05-10): also reset `completion_confirmed_by_homeowner`.
+    // Without this, a homeowner who confirmed completion and later requested
+    // changes would leave the flag = true, which lets the escrow auto-release
+    // cron fire even though the job is back to in_progress. The cron's
+    // eligibility query filters on `homeowner_approval`, but the safest
+    // posture is to make the rollback symmetric with confirm-completion.
+    //
+    // Note: This is a special business rule — homeowner requesting changes
+    // bypasses the normal terminal state restriction on 'completed' jobs.
     const { error: updateError } = await serverSupabase
       .from('jobs')
       .update({
         status: JOB_STATUS.IN_PROGRESS,
         completed_at: null,
+        completion_confirmed_by_homeowner: false,
         updated_at: new Date().toISOString(),
       })
       .eq('id', jobId);
@@ -123,8 +132,12 @@ export const POST = withApiHandler(
       throw new Error('Failed to process change request');
     }
 
-    // 3. Notify contractor
-    await NotificationService.createNotification({
+    // 3. Notify contractor.
+    //
+    // Audit P2 (2026-05-10): capture the notification id so we can flip
+    // `email_sent = true` after the email provider accepts the message.
+    // Same pattern as /api/payments/confirm-intent and /api/jobs/[id]/start.
+    const contractorNotifId = await NotificationService.createNotification({
       userId: job.contractor_id,
       title: 'Changes Requested',
       message: `The homeowner has requested changes on "${job.title}": ${comments}`,
@@ -156,13 +169,19 @@ export const POST = withApiHandler(
             'The homeowner'
           : 'The homeowner';
 
-        await EmailService.sendChangesRequestedEmail(contractorProfile.email, {
-          contractorName,
-          homeownerName,
-          jobTitle: job.title || 'Job',
-          comments,
-          viewUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.com'}/contractor/jobs/${jobId}`,
-        });
+        const emailOk = await EmailService.sendChangesRequestedEmail(
+          contractorProfile.email,
+          {
+            contractorName,
+            homeownerName,
+            jobTitle: job.title || 'Job',
+            comments,
+            viewUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.com'}/contractor/jobs/${jobId}`,
+          }
+        );
+        if (emailOk) {
+          await NotificationService.markEmailSent(contractorNotifId);
+        }
       }
     } catch (emailError) {
       logger.error('Failed to send changes requested email', emailError, {
