@@ -45,12 +45,6 @@ export function useNavSections(
             icon: Home,
             shortcut: 'g d',
           },
-          {
-            label: 'Discover',
-            href: '/discover',
-            icon: Compass,
-            shortcut: 'g x',
-          },
         ],
       },
       {

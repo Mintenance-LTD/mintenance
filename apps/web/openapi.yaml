@@ -731,62 +731,6 @@ paths:
   # =====================
   # CONTRACTORS
   # =====================
-  /api/discover:
-    get:
-      tags:
-        - Contractors
-      summary: Discover contractors
-      description: Search and discover contractors with filtering
-      operationId: discoverContractors
-      parameters:
-        - name: category
-          in: query
-          schema:
-            type: string
-        - name: location
-          in: query
-          schema:
-            type: string
-        - name: radius
-          in: query
-          schema:
-            type: integer
-            default: 25
-        - name: rating_min
-          in: query
-          schema:
-            type: number
-            minimum: 0
-            maximum: 5
-        - name: verified_only
-          in: query
-          schema:
-            type: boolean
-        - name: page
-          in: query
-          schema:
-            type: integer
-            default: 1
-        - name: per_page
-          in: query
-          schema:
-            type: integer
-            default: 20
-      responses:
-        '200':
-          description: Contractors list
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  data:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Contractor'
-                  meta:
-                    $ref: '#/components/schemas/PaginationMeta'
-
   /api/contractors/{id}:
     get:
       tags:
