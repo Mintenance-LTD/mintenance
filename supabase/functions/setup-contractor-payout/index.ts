@@ -2,7 +2,11 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import Stripe from 'https://esm.sh/stripe@12.18.0';
 import { handleCorsPreflight, createCorsResponse } from '../_shared/cors.ts';
-import { verifyAuth, AuthError, unauthorizedResponse } from '../_shared/auth.ts';
+import {
+  verifyAuth,
+  AuthError,
+  unauthorizedResponse,
+} from '../_shared/auth.ts';
 
 serve(async (req) => {
   // SECURITY: Handle CORS preflight with whitelist-based origin validation
@@ -35,7 +39,10 @@ serve(async (req) => {
       const authUser = await verifyAuth(req);
       // Only allow contractors to set up their own payout account
       if (authUser.userId !== contractorId) {
-        return unauthorizedResponse(req, 'Not authorized to set up payout for another user');
+        return unauthorizedResponse(
+          req,
+          'Not authorized to set up payout for another user'
+        );
       }
     }
 
@@ -44,11 +51,11 @@ serve(async (req) => {
     const appUrl = Deno.env.get('APP_URL');
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-    
+
     if (!stripeSecretKey) {
       throw new Error('STRIPE_SECRET_KEY environment variable is not set');
     }
-    
+
     if (!appUrl) {
       throw new Error('APP_URL environment variable is not set');
     }
@@ -58,12 +65,20 @@ serve(async (req) => {
     }
 
     if (!supabaseServiceRoleKey) {
-      throw new Error('SUPABASE_SERVICE_ROLE_KEY environment variable is not set');
+      throw new Error(
+        'SUPABASE_SERVICE_ROLE_KEY environment variable is not set'
+      );
     }
 
-    // Initialize Stripe and Supabase
+    // Initialize Stripe and Supabase.
+    // Audit P2 (2026-05-10): API version pinned to match the central
+    // `apps/web/lib/stripe.ts` proxy. Was '2023-10-16' (~17 months
+    // behind), creating behavioural drift on accounts.create /
+    // accountLinks.create response shape. Deno edge runtime can't
+    // import from the web workspace, so we duplicate the literal —
+    // the canonical source is `apps/web/lib/stripe.ts`.
     const stripe = new Stripe(stripeSecretKey, {
-      apiVersion: '2023-10-16',
+      apiVersion: '2025-01-27.acacia',
     });
 
     const supabase = createClient(supabaseUrl, supabaseServiceRoleKey);
@@ -71,7 +86,9 @@ serve(async (req) => {
     // Get contractor information
     const { data: contractor, error: contractorError } = await supabase
       .from('profiles')
-      .select('email, first_name, last_name, country, stripe_connect_account_id')
+      .select(
+        'email, first_name, last_name, country, stripe_connect_account_id'
+      )
       .eq('id', contractorId)
       .eq('role', 'contractor')
       .single();
@@ -93,14 +110,18 @@ serve(async (req) => {
     if (contractor.stripe_connect_account_id) {
       try {
         // Verify the account still exists in Stripe
-        const existingAccount = await stripe.accounts.retrieve(contractor.stripe_connect_account_id);
-        
+        const existingAccount = await stripe.accounts.retrieve(
+          contractor.stripe_connect_account_id
+        );
+
         // Create account link for existing account
         const accountLink = await stripe.accountLinks.create({
           account: existingAccount.id,
           refresh_url: `${appUrl}/contractor/payout/refresh`,
           return_url: `${appUrl}/contractor/payout/success`,
-          type: existingAccount.details_submitted ? 'account_onboarding' : 'account_onboarding',
+          type: existingAccount.details_submitted
+            ? 'account_onboarding'
+            : 'account_onboarding',
         });
 
         return createCorsResponse(
@@ -117,7 +138,10 @@ serve(async (req) => {
         );
       } catch (stripeError) {
         // If account doesn't exist in Stripe, continue to create new one
-        console.warn('Existing Stripe account not found, creating new one:', stripeError);
+        console.warn(
+          'Existing Stripe account not found, creating new one:',
+          stripeError
+        );
       }
     }
 
@@ -127,14 +151,14 @@ serve(async (req) => {
     if (contractor.country) {
       // Map common country values to Stripe country codes
       const countryMap: Record<string, string> = {
-        'UK': 'GB',
+        UK: 'GB',
         'United Kingdom': 'GB',
-        'US': 'US',
+        US: 'US',
         'United States': 'US',
-        'CA': 'CA',
-        'Canada': 'CA',
-        'AU': 'AU',
-        'Australia': 'AU',
+        CA: 'CA',
+        Canada: 'CA',
+        AU: 'AU',
+        Australia: 'AU',
       };
       countryCode = countryMap[contractor.country] || 'GB';
     }
@@ -170,11 +194,13 @@ serve(async (req) => {
     // Save to database - both contractor_payout_accounts and users tables
     const { error: dbError } = await supabase
       .from('contractor_payout_accounts')
-      .insert([{
-        contractor_id: contractorId,
-        stripe_account_id: account.id,
-        account_complete: false,
-      }]);
+      .insert([
+        {
+          contractor_id: contractorId,
+          stripe_account_id: account.id,
+          account_complete: false,
+        },
+      ]);
 
     if (dbError) {
       // If account already exists, update it
@@ -196,7 +222,10 @@ serve(async (req) => {
       .eq('id', contractorId);
 
     if (userUpdateError) {
-      console.error('Failed to update users.stripe_connect_account_id:', userUpdateError);
+      console.error(
+        'Failed to update users.stripe_connect_account_id:',
+        userUpdateError
+      );
       // Don't fail the whole request, but log the error
     }
 
@@ -215,7 +244,8 @@ serve(async (req) => {
     if (error instanceof AuthError) {
       return unauthorizedResponse(req, error.message);
     }
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    const errorMessage =
+      error instanceof Error ? error.message : 'Unknown error occurred';
     console.error('Error setting up contractor payout:', {
       message: errorMessage,
       contractorId: contractorId || 'unknown',

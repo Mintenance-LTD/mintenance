@@ -11,12 +11,17 @@ import { getClientIp } from '@/lib/request-ip';
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
-const verifyMFASchema = z.object({
-  preMfaToken: z.string().min(1, 'Pre-MFA token is required'),
-  code: z.string().min(6, 'Code must be at least 6 characters'),
-  method: z.enum(['totp', 'backup_code', 'sms', 'email']),
-  rememberDevice: z.boolean().optional().default(false),
-});
+// Audit P2 (2026-05-10): `.strict()` blocks mass-assignment via
+// unknown body keys (e.g. someone trying to inject `userId` to bypass
+// the preMfaToken-keyed user lookup).
+const verifyMFASchema = z
+  .object({
+    preMfaToken: z.string().min(1, 'Pre-MFA token is required'),
+    code: z.string().min(6, 'Code must be at least 6 characters'),
+    method: z.enum(['totp', 'backup_code', 'sms', 'email']),
+    rememberDevice: z.boolean().optional().default(false),
+  })
+  .strict();
 
 // auth-check: ok — auth: false because the user has just passed
 // password but not yet MFA; the preMfaToken in the request body is

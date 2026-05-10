@@ -103,11 +103,24 @@ export const POST = withApiHandler(
       }
     }
 
-    // Phone verification for homeowners
-    // Can be skipped via SKIP_PHONE_VERIFICATION=true env var (useful for testing/early access)
+    // Phone verification for homeowners.
+    //
+    // Audit P0 (2026-05-10): the previous OR-form let an accidental
+    // `SKIP_PHONE_VERIFICATION=true` on the production Vercel project
+    // silently disable the gate platform-wide. Now the explicit-opt-in
+    // path (`SKIP_PHONE_VERIFICATION`) is locked behind
+    // `NODE_ENV !== 'production'`, so even a misconfigured prod env
+    // still enforces phone verification.
+    //
+    // Behaviour preserved:
+    //   - dev (NODE_ENV='development'): auto-skip (developer convenience)
+    //   - test/staging with explicit flag: skip
+    //   - production: ALWAYS enforced, regardless of the flag
+    const isProduction = process.env.NODE_ENV === 'production';
     const skipVerification =
-      process.env.NODE_ENV === 'development' ||
-      process.env.SKIP_PHONE_VERIFICATION === 'true';
+      !isProduction &&
+      (process.env.NODE_ENV === 'development' ||
+        process.env.SKIP_PHONE_VERIFICATION === 'true');
 
     if (user.role === 'homeowner' && !skipVerification) {
       const { HomeownerVerificationService } =

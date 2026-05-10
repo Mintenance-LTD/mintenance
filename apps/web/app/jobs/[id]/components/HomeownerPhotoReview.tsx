@@ -2,9 +2,16 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { BeforeAfterSlider } from './BeforeAfterSlider';
+// Audit P2 (2026-05-10): consolidated to the canonical shared component.
+// Was importing a near-duplicate at './BeforeAfterSlider' (now deleted).
+import { BeforeAfterSlider } from '@/components/ui/BeforeAfterSlider';
 import { Button } from '@/components/ui/Button';
-import { CheckCircle, MessageSquare, ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  CheckCircle,
+  MessageSquare,
+  ChevronLeft,
+  ChevronRight,
+} from 'lucide-react';
 import { fetchWithCsrf } from '@/lib/csrf-client';
 
 interface PhotoRecord {
@@ -55,7 +62,9 @@ export function HomeownerPhotoReview({
       if (!res.ok) throw new Error(data.error || 'Failed to approve');
 
       setIsApproved(true);
-      setSuccessMessage('Work approved! Payment will be released to the contractor.');
+      setSuccessMessage(
+        'Work approved! Payment will be released to the contractor.'
+      );
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to approve work');
@@ -96,45 +105,51 @@ export function HomeownerPhotoReview({
   if (!hasPhotoPairs) return null;
 
   return (
-    <div className="space-y-4">
-      <h3 className="text-lg font-semibold text-gray-900">Review Completed Work</h3>
+    <div className='space-y-4'>
+      <h3 className='text-lg font-semibold text-gray-900'>
+        Review Completed Work
+      </h3>
 
       {/* Approved banner */}
       {isApproved && (
-        <div className="flex items-center gap-2 p-4 bg-green-50 border border-green-200 rounded-xl">
-          <CheckCircle className="h-5 w-5 text-green-600 flex-shrink-0" />
+        <div className='flex items-center gap-2 p-4 bg-green-50 border border-green-200 rounded-xl'>
+          <CheckCircle className='h-5 w-5 text-green-600 flex-shrink-0' />
           <div>
-            <p className="text-sm font-medium text-green-800">Work Approved</p>
-            <p className="text-sm text-green-600">Payment is being processed for the contractor.</p>
+            <p className='text-sm font-medium text-green-800'>Work Approved</p>
+            <p className='text-sm text-green-600'>
+              Payment is being processed for the contractor.
+            </p>
           </div>
         </div>
       )}
 
       {/* Before/After slider */}
       <BeforeAfterSlider
-        beforeImageUrl={beforePhotos[currentIndex]?.photo_url || ''}
-        afterImageUrl={afterPhotos[currentIndex]?.photo_url || ''}
+        beforeUrl={beforePhotos[currentIndex]?.photo_url || ''}
+        afterUrl={afterPhotos[currentIndex]?.photo_url || ''}
       />
 
       {/* Photo navigation (if multiple pairs) */}
       {pairCount > 1 && (
-        <div className="flex items-center justify-center gap-4">
+        <div className='flex items-center justify-center gap-4'>
           <button
-            onClick={() => setCurrentIndex(i => Math.max(0, i - 1))}
+            onClick={() => setCurrentIndex((i) => Math.max(0, i - 1))}
             disabled={currentIndex === 0}
-            className="p-1.5 rounded-full hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed"
+            className='p-1.5 rounded-full hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed'
           >
-            <ChevronLeft className="h-5 w-5 text-gray-600" />
+            <ChevronLeft className='h-5 w-5 text-gray-600' />
           </button>
-          <span className="text-sm text-gray-500">
+          <span className='text-sm text-gray-500'>
             {currentIndex + 1} / {pairCount}
           </span>
           <button
-            onClick={() => setCurrentIndex(i => Math.min(pairCount - 1, i + 1))}
+            onClick={() =>
+              setCurrentIndex((i) => Math.min(pairCount - 1, i + 1))
+            }
             disabled={currentIndex === pairCount - 1}
-            className="p-1.5 rounded-full hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed"
+            className='p-1.5 rounded-full hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed'
           >
-            <ChevronRight className="h-5 w-5 text-gray-600" />
+            <ChevronRight className='h-5 w-5 text-gray-600' />
           </button>
         </div>
       )}
@@ -143,53 +158,56 @@ export function HomeownerPhotoReview({
       {!isApproved && !successMessage && (
         <>
           {!showChangesForm ? (
-            <div className="flex gap-3">
+            <div className='flex gap-3'>
               <Button
                 onClick={handleApprove}
                 disabled={isSubmitting}
-                variant="primary"
-                className="flex-1"
-                size="lg"
+                variant='primary'
+                className='flex-1'
+                size='lg'
               >
-                <CheckCircle className="h-5 w-5 mr-2" />
+                <CheckCircle className='h-5 w-5 mr-2' />
                 {isSubmitting ? 'Approving...' : 'Approve Work'}
               </Button>
               <Button
                 onClick={() => setShowChangesForm(true)}
                 disabled={isSubmitting}
-                variant="outline"
-                className="flex-1"
-                size="lg"
+                variant='outline'
+                className='flex-1'
+                size='lg'
               >
-                <MessageSquare className="h-5 w-5 mr-2" />
+                <MessageSquare className='h-5 w-5 mr-2' />
                 Request Changes
               </Button>
             </div>
           ) : (
-            <div className="space-y-3 p-4 bg-gray-50 rounded-xl">
-              <p className="text-sm font-medium text-gray-700">
+            <div className='space-y-3 p-4 bg-gray-50 rounded-xl'>
+              <p className='text-sm font-medium text-gray-700'>
                 What changes are needed?
               </p>
               <textarea
                 value={comments}
-                onChange={e => setComments(e.target.value)}
-                placeholder="Describe what needs to be fixed or improved..."
-                className="w-full h-24 px-3 py-2 text-sm border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                onChange={(e) => setComments(e.target.value)}
+                placeholder='Describe what needs to be fixed or improved...'
+                className='w-full h-24 px-3 py-2 text-sm border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
               />
-              <div className="flex gap-3">
+              <div className='flex gap-3'>
                 <Button
                   onClick={handleRequestChanges}
                   disabled={isSubmitting || !comments.trim()}
-                  variant="primary"
-                  size="md"
+                  variant='primary'
+                  size='md'
                 >
                   {isSubmitting ? 'Sending...' : 'Send Request'}
                 </Button>
                 <Button
-                  onClick={() => { setShowChangesForm(false); setComments(''); }}
+                  onClick={() => {
+                    setShowChangesForm(false);
+                    setComments('');
+                  }}
                   disabled={isSubmitting}
-                  variant="outline"
-                  size="md"
+                  variant='outline'
+                  size='md'
                 >
                   Cancel
                 </Button>
@@ -201,10 +219,14 @@ export function HomeownerPhotoReview({
 
       {/* Status messages */}
       {error && (
-        <div className="p-3 bg-red-50 text-red-700 text-sm rounded-lg">{error}</div>
+        <div className='p-3 bg-red-50 text-red-700 text-sm rounded-lg'>
+          {error}
+        </div>
       )}
       {successMessage && !isApproved && (
-        <div className="p-3 bg-green-50 text-green-700 text-sm rounded-lg">{successMessage}</div>
+        <div className='p-3 bg-green-50 text-green-700 text-sm rounded-lg'>
+          {successMessage}
+        </div>
       )}
     </div>
   );

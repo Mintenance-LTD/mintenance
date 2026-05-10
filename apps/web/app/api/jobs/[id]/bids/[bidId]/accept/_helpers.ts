@@ -35,6 +35,12 @@ export async function sendBidAcceptedNotificationsAndEmail(params: {
     userDb,
   } = params;
 
+  // Audit P2 (2026-05-10): hoisted out of the in-app try block so the
+  // email-send block below can flip `email_sent = true` on the same
+  // notifications row. Mirrors the pattern in /api/payments/confirm-intent
+  // and /api/jobs/[id]/start.
+  let contractorNotifId: string | null = null;
+
   // --- Contractor in-app notification ---
   try {
     logger.info('Creating notification for contractor', {
@@ -62,6 +68,7 @@ export async function sendBidAcceptedNotificationsAndEmail(params: {
         jobId,
       });
     } else {
+      contractorNotifId = notificationId;
       logger.info('Bid acceptance notification created successfully', {
         service: 'jobs',
         contractorId,
@@ -103,13 +110,19 @@ export async function sendBidAcceptedNotificationsAndEmail(params: {
           'Homeowner'
         : 'Homeowner';
 
-      await EmailService.sendBidAcceptedEmail(contractorProfile.email, {
-        contractorName,
-        homeownerName,
-        jobTitle: jobTitle || 'Job',
-        bidAmount,
-        viewUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.com'}/contractor/jobs/${jobId}`,
-      });
+      const emailOk = await EmailService.sendBidAcceptedEmail(
+        contractorProfile.email,
+        {
+          contractorName,
+          homeownerName,
+          jobTitle: jobTitle || 'Job',
+          bidAmount,
+          viewUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.com'}/contractor/jobs/${jobId}`,
+        }
+      );
+      if (emailOk && contractorNotifId) {
+        await NotificationService.markEmailSent(contractorNotifId);
+      }
     }
   } catch (emailError) {
     logger.error('Failed to send bid accepted email', emailError, {

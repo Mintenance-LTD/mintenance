@@ -39,6 +39,59 @@ interface RateLimitConfig {
   windowMs?: number; // default 60_000
 }
 
+/**
+ * Categories accepted by `admin_activity_log.action_category`. Kept here
+ * (rather than imported from `AdminActivityLogger`) so the wrapper does
+ * not need a runtime import for a value-type that's purely structural.
+ */
+type AdminActionCategory =
+  | 'user_management'
+  | 'verification'
+  | 'security'
+  | 'settings'
+  | 'revenue'
+  | 'communication'
+  | 'ip_blocking';
+
+/**
+ * Audit P1/P2 (2026-05-10): declarative `admin_activity_log` write.
+ *
+ * When set on an admin route's config, the wrapper writes a row to
+ * `admin_activity_log` *after the handler returns successfully* (HTTP
+ * status < 400). On thrown errors or 4xx/5xx responses, no log row is
+ * written — the audit trail tracks what actually happened, not what
+ * was attempted.
+ *
+ * Rationale: only ~31% of mutating admin routes called
+ * `AdminActivityLogger.logFromRequest` manually, so the
+ * `/api/admin/audit-logs` UI saw a partial picture. Routing through
+ * the wrapper enforces audit coverage by construction.
+ */
+interface LogActivityConfig {
+  actionType: string;
+  category: AdminActionCategory;
+  /**
+   * Free-text description. Either a literal string (for routes whose
+   * action is fully determined at config time) or a function that
+   * receives route params + the authenticated user so the description
+   * can include dynamic context like target IDs.
+   */
+  description?:
+    | string
+    | ((ctx: {
+        params: Record<string, string>;
+        user: { id: string; email?: string };
+      }) => string);
+  /** Stable label for the kind of resource the action targets. */
+  targetType?: string;
+  /**
+   * Optional resolver for the target id. Defaults to `params.id` if
+   * the route has one; pass an explicit function when the relevant
+   * id lives in a different param (e.g. `params.userId`).
+   */
+  targetId?: (params: Record<string, string>) => string | undefined;
+}
+
 interface HandlerConfig {
   /** Rate limit config, or false to disable. Defaults to 30 req/min. */
   rateLimit?: RateLimitConfig | false;
@@ -67,6 +120,12 @@ interface HandlerConfig {
    * (see lib/auth/mfa-step-up.ts MAX_WINDOW_SECONDS).
    */
   requireMfaVerifiedWithinMinutes?: number;
+  /**
+   * Declarative admin-activity logging. See `LogActivityConfig`. Only
+   * writes a row when the caller's role is 'admin' and the handler
+   * returned a 2xx/3xx response — failed requests are not logged.
+   */
+  logActivity?: LogActivityConfig;
 }
 
 // ── Handler types ───────────────────────────────────────────────────
@@ -127,6 +186,7 @@ export function withApiHandler(
     roles,
     requireDbAdmin,
     requireMfaVerifiedWithinMinutes,
+    logActivity,
   } = config;
 
   return async (
@@ -246,10 +306,50 @@ export function withApiHandler(
           }
         }
 
-        return await (handler as AuthenticatedHandler)(request, {
+        const response = await (handler as AuthenticatedHandler)(request, {
           user,
           params,
         });
+
+        // 9. Audit log on success. Fire-and-forget: AdminActivityLogger
+        //    swallows its own errors so a transient log-table failure
+        //    never converts a successful 2xx into a 5xx for the caller.
+        //    Restricted to admin callers — non-admins reaching an admin
+        //    route are already blocked by the role check above, but the
+        //    explicit guard here keeps the contract clear if a route
+        //    later opts in to a multi-role audience.
+        if (logActivity && user.role === 'admin' && response.status < 400) {
+          // Lazy-import keeps the auth/cookie path off the
+          // AdminActivityLogger module's initialisation so the cold
+          // path of every public route doesn't load the admin logger.
+          void import('@/lib/services/admin/AdminActivityLogger').then(
+            ({ AdminActivityLogger }) => {
+              const description =
+                typeof logActivity.description === 'function'
+                  ? logActivity.description({
+                      params,
+                      user: { id: user.id, email: user.email },
+                    })
+                  : (logActivity.description ?? logActivity.actionType);
+
+              const targetId = logActivity.targetId
+                ? logActivity.targetId(params)
+                : (params.id ?? undefined);
+
+              return AdminActivityLogger.logFromRequest(
+                request,
+                user.id,
+                logActivity.actionType,
+                logActivity.category,
+                description,
+                logActivity.targetType,
+                targetId
+              );
+            }
+          );
+        }
+
+        return response;
       }
 
       // Public handler (no auth)

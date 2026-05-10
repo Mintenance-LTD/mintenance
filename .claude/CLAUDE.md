@@ -1,15 +1,92 @@
 # CLAUDE MANDATORY DEVELOPMENT CONTRACT (MDC) - MINTENANCE CODEBASE
 
-## CODE QUALITY AUDIT (Last audited: 2026-04-23, live-DB verified via Supabase MCP)
+## CODE QUALITY AUDIT (Last audited: 2026-05-10, full-stack two-phase audit + 24-fix remediation)
 
-**Current State: B / B- Grade (~75/100)** — unchanged from 04-16. Security baseline strong after the
-7-sprint remediation, but three production-critical data anomalies persist and doc drift keeps
-widening.
+**Current State: B+ Grade (~80/100)** — up from B/B- on 2026-04-23 after the 2026-05-10 audit
+exposed that most of the standing P0/P1 list was doc drift, not unfixed bugs. Real ship-blockers
+narrowed to: mobile EAS release (unblocks chronic 0-row push tokens + contractor locations),
+phone-verification env-var bypass (now neutralised in code), four undeployed Supabase Edge Functions
+(now deleted), and 4 remaining DB-dashboard items (Postgres patch, HIBP, PostGIS schema move,
+SECURITY DEFINER revoke).
 
-**2026-04-23 audit scope:** Full-stack re-inventory — every page + route + screen + package + live
-DB via Supabase MCP on project `ukrjudtlvapiajkjbcrd` (331 public tables, 835 RLS policies, 174
-migrations, 0 zero-policy tables). Compared against CLAUDE.md + 16 prior memory files to surface
-drift.
+### 2026-05-10 — In-session remediation (24 fixes shipped + 5 retractions)
+
+Two-phase full-stack audit (Phase 1 inventory + Phase 2 a–f functional walkthrough) followed by
+direct code remediation on branch `claude/happy-northcutt-a91d8e`. Numbered references below
+(`P0.x`, `P1.x`, etc.) are the consolidated fix-list IDs from this session.
+
+**Shipped (24, all `tsc --noEmit` clean):**
+
+| #     | Area          | Fix                                                                                                                                                                                                                                                |
+| ----- | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P0.1  | Auth          | Phone-verification env-var bypass — `NODE_ENV !== 'production'` guard added so `SKIP_PHONE_VERIFICATION` cannot disable the gate in prod.                                                                                                          |
+| P0.2  | Payments      | Deleted four undeployed edge fns (`create-payment-intent`, `process-refund`, `refund-escrow-payment`, `release-escrow-payment`) — all hardcoded `currency: 'usd'`, would mis-currency every payment if invoked.                                    |
+| P0.3  | CI            | New `scripts/ci/check-edge-fn-currency.js` + husky pre-commit + `npm run audit:edge-fn-currency` blocks any future non-GBP currency under `supabase/functions/`.                                                                                   |
+| P1.1  | Payments      | `/api/payments/session-status` now gates on `session.metadata.userId === user.id` — closes cross-tenant Stripe metadata leak (admins still bypass for support).                                                                                    |
+| P1.2  | Lifecycle     | `request-changes` route now resets `completion_confirmed_by_homeowner=false` — auto-release timer can't fire after a rollback.                                                                                                                     |
+| P1.3  | Admin         | MFA step-up on 6 bulk-export GETs (`users/export`, `revenue/export`, `tax/download-1099`, `audit-logs`, `users/[userId]/detail`, `security-dashboard` GET).                                                                                        |
+| P1.4  | Admin         | `withApiHandler` `logActivity` option + 3 high-impact routes wired (`escrow/approve`, `escrow/reject`, `maintenance/rotate-totp-secrets`). 19 mutating admin routes still need migration; pattern is now mechanical.                               |
+| P1.6  | Mobile        | `<PushPermissionRecoveryBanner>` component + mounted on `HomeownerDashboard` to recover the cohort whose iOS one-shot dialog was burned pre-2026-04-19.                                                                                            |
+| P2.1  | Payments      | Stripe API version pinned across `lib/stripe.ts` (was 3 different versions: `2025-01-27.acacia`, `2024-04-10`, `2023-10-16`). `EscrowAutoReleaseService` now imports the central `stripe` proxy; `setup-contractor-payout` Deno fn version-bumped. |
+| P2.7  | Lifecycle     | Explicit `roles: ['contractor', 'admin']` on `/api/jobs/[id]/photos/after`.                                                                                                                                                                        |
+| P2.8  | Lifecycle     | Explicit `roles: ['homeowner', 'admin']` on `/api/jobs/[id]/bids/[bidId]/accept`.                                                                                                                                                                  |
+| P2.10 | Notifications | `markEmailSent` flag wired on 4 of 5 lifecycle email sends (`request-changes`, `bid-acceptance` helper, `confirm-completion`, `photos/after`). `contracts/[id]/accept`'s 3 sends deferred for incremental adoption.                                |
+| P2.11 | Admin         | `/api/admin/audit-logs` now uses `sanitize-postgrest` helper — closes filter-injection vector via `,` in `search` query param.                                                                                                                     |
+| P2.12 | Architecture  | New `withApiHandler` `logActivity?` config option — declarative `admin_activity_log` writes that fire only on 2xx success, lazy-import `AdminActivityLogger`.                                                                                      |
+| P2.20 | UX            | New `<ComingSoonPlaceholder>` shared component — 3 of 4 contractor placeholder pages migrated; `/video-calls` left bespoke (different homeowner-card layout).                                                                                      |
+| P2.21 | UX            | Web `BeforeAfterSlider` deduped — `app/jobs/[id]/components/BeforeAfterSlider.tsx` deleted; `HomeownerPhotoReview.tsx` now imports `@/components/ui/BeforeAfterSlider`.                                                                            |
+| P2.22 | Mobile        | `STRIPE_PUBLISHABLE_KEY` mobile reads deduped — `environment.secure.ts` now sources from canonical `getStripeConfig()`.                                                                                                                            |
+| P2.27 | Architecture  | New `RATE_LIMIT_TIERS.{STRICT, STANDARD, FREQUENT, ENROLLMENT}` constants + 4 outliers migrated. 63 admin routes can adopt incrementally.                                                                                                          |
+| P3.2  | Email         | `/confirm-completion` email amount no longer divides by 100 — was rendering £350 as £3.50.                                                                                                                                                         |
+| P3.3  | Webhook       | Stripe webhook rate limit tightened from 1000 → 200 req/min/IP.                                                                                                                                                                                    |
+| P3.6  | Admin         | `/api/admin/migrations/apply-combined` is now a thin proxy to `/api/admin/migrations/apply` with the hardcoded filename — single source of truth for security gates.                                                                               |
+| P3.7  | Admin         | `/api/admin/revenue/export` enforces `MAX_EXPORT_RANGE_DAYS = 366` + invalid-date / inverted-range guards.                                                                                                                                         |
+
+**Retractions / corrections (5 stale findings cleared):**
+
+| #     | Original claim                                                                    | Reality                                                                                                                                                                                             |
+| ----- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P2.17 | "Consolidate `/login` ↔ `/auth/login` etc."                                       | Already done — duplicate URLs are 8-line `redirect()` stubs to canonical pages.                                                                                                                     |
+| P2.18 | "Consolidate 3 payment-method pages"                                              | Same — `/payment-methods` redirects to `/settings/payment-methods`; `/account/payment-methods` does not exist.                                                                                      |
+| P2.19 | "Resolve `/homeowner/subscription` ↔ `/homeowner/subscriptions/home-health` typo" | Different valid routes; not a typo.                                                                                                                                                                 |
+| P3.8  | "/resources is a stub"                                                            | Fully built (`<ResourcesClient />` with 7 component files: hero, categories, featured items, metrics, tips, CTA).                                                                                   |
+| P3.9  | "PM/owner audit of partial-build screens"                                         | `/contractor/{team,tools,insurance}` are fully built and feature-complete (org members + invite, Tremor charts inventory, full insurance CRUD). Large LOC reflects feature completeness, not stubs. |
+
+**Diagnostic-only items closed:**
+
+| #     | Finding                                                                                                                                                                                                                                                                     |
+| ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P3.5  | `PostJobWizardScreen` is NOT divergent from `JobPostingScreen` — same `validateJobDraft` from `@mintenance/api-contracts`, same `POST /api/jobs`. Wizard is intentionally simpler for the silver-mode (65+) audience.                                                       |
+| P3.16 | Properties use **hard-delete** by design — no `deleted_at` column. FK behaviour: `jobs.property_id` + `agency_activity_log.property_id` → `SET NULL`; all other dependents (`compliance_certificates`, `property_tenants`, `anonymous_reports`, `units`, etc.) → `CASCADE`. |
+
+**New finding raised (P2.28):** UK landlords must retain gas safety certs ≥ 2 yr and EICRs ≥ 5 yr.
+The `compliance_certificates.property_id` FK is `ON DELETE CASCADE`, so a property hard-delete wipes
+legally-mandated retention records. Same concern for `property_tenants` and `anonymous_reports`. Fix
+is either a DB migration to `ON DELETE SET NULL` (with nullable `property_id`) or an
+application-layer guard rejecting property delete when active certs/tenants exist.
+
+**Standing P0/P1 items (still pending — non-code or larger):**
+
+- **P0.4** — ship current `main` to mobile EAS / app stores. Contains 2026-04-28 push-soft-ask
+  reorder + 2026-05-01 location-section gate widening. Until shipped, `user_push_tokens = 0` and
+  `contractor_locations = 0` persist regardless of code correctness.
+- **P1.5** — 6 lifecycle-critical mobile files still have no unit tests
+  (`JobContextLocationService`, `useEnsurePushTokenRegistered`, `usePushSoftAskGate`,
+  `useJobTravelTracking`, `BackgroundLocationTask`, `NotificationPushSender`). Where the chronic
+  0-row P0s live.
+- **P1.7** — `/admin/review-moderation` page is a 423-line partial stub; API + MFA gate are real.
+- **P1.8** — three mobile job-creation screens (`JobPostingScreen`, `QuickJobPostScreen`,
+  `PostJobWizardScreen`) all hit `/api/jobs`. Pick canonical, redirect others.
+- **P1.9** — mobile `JobSignOffScreen` vs `HomeownerPhotoReviewScreen` both call
+  `confirm-completion` + `request-changes`. Canonical not yet picked.
+- **P1.10** — verify `delete_user_data` RPC fully cascades (read-only diagnostic, ~30 min).
+- **P2.2 / P2.3 / P2.4 / P2.5** — Supabase dashboard / DB migration window items: PostGIS+vector
+  schema move, HIBP toggle, Postgres patch upgrade, revoke EXECUTE on 9 SECURITY DEFINER fns.
+
+**2026-04-23 audit scope (prior):** Full-stack re-inventory — every page + route + screen + package
+
+- live DB via Supabase MCP on project `ukrjudtlvapiajkjbcrd`. Compared against CLAUDE.md + 16 prior
+  memory files to surface drift.
 
 **2026-04-16 audit scope (prior):** Feature-parity matrix (web↔mobile, 11 lifecycle phases), shared
 API + DB wiring, notification delivery across 10 canonical events, contractor-tracking end-to-end.
@@ -34,45 +111,62 @@ Seven-sprint branch `fix/mobile-audit-security-ux-features` closed:
 - **Sprint 6**: Storage bucket policies, security types narrowed, api-client service-role guard,
   building-surveyor route partial split
 
-### Verified Metrics (measured live 2026-04-23):
+### Verified Metrics (measured live 2026-05-10, deltas vs 2026-04-23 in parens):
 
-- **Web pages: 195** (Next.js App Router, under `apps/web/app/` excluding `/api`). 66/195 have
-  `loading.tsx`, 64/195 have `error.tsx`. Largest page: `contractor/[id]/page.tsx` 671 lines.
-- **Web API routes: 405** (`apps/web/app/api/**/route.ts`). **374/405 (92.3%)** wrapped in
-  `withApiHandler`. 4 legitimate raw exceptions (stripe webhook raw body, email unsubscribe GDPR
-  token, contract/reviews re-export aliases). 28 cron routes use `withCronHandler`.
-- **Mobile .tsx files: 250** (~150-170 actual reachable screens; rest are nested components/modals).
-  15 screens >500 lines. 135 services, 5 services >500 lines (VideoService 677, SyncManager 640,
-  AuthService 617, RealtimeService 593, BusinessAnalyticsService 576).
-- **Packages: 10, Apps: 4** (web, mobile, demo-video, sam2-video-service, sam3-service — CLAUDE.md
-  previously claimed 5). All packages TypeScript strict ON.
-- **`any` types in source**: ~0 in web pages (all in test mocks), **~169 in mobile** (concentrated
-  in services + tests). CLAUDE.md previously claimed "~26" — accurate for web, undercount for
-  mobile.
-- **`console.*` in app code: 1 web** (`admin/retention/error.tsx:14`), **~76 mobile** (most in
-  dev/util scaffolding). Previous "~27 total" claim was optimistic.
-- **Largest web file: 704 lines** (`apps/web/lib/services/subscriptions/SubscriptionService.ts`).
-  AssessmentOrchestrator is now **652 lines** (down from 905). 0 files >1,000 lines confirmed.
-- **Build: PASSES clean** (Next.js production build, `ignoreBuildErrors: false`).
-- **Hex color literals: 625+ across 117 web files** — pre-commit hook enforces incrementally, legacy
-  hex bleeds through design-tokens adoption.
+- **Web pages: 195** (unchanged). 70/195 have `loading.tsx` (+4), 87/195 have `error.tsx` (+23).
+- **Web API routes: 418** (+13). **Effective `withApiHandler` coverage = 100%** on real handler
+  logic. 6 nominally-raw routes (`contracts/[id]/sign`, `jobs/[id]/reviews`, `email/unsubscribe`,
+  `payments/payment-methods`, `user/settings`, `users/settings`) are all intentional re-exports,
+  410-Gone deprecation stubs, or GDPR public-token endpoints. 28 cron routes use `withCronHandler`.
+- **Mobile screens
+  (`src/screens/**`): 305** total .tsx (249 source + 56 tests). 28 source files in `screens/job-details/`
+  alone (lifecycle hot path). 171 services (38 top-level + 133 nested).
+- **Packages: 10, Apps: 5** — web, mobile, demo-video, sam2-video-service, sam3-service. Doc
+  previously claimed 4 (omitted demo-video). All packages TypeScript strict ON.
+- **`any` types in source (mobile)**: 438 `: any` + 1,164 `as any` = **1,602 total** (CLAUDE.md
+  04-23 claim of "~169" was an undercount). Web side ~0 in pages.
+- **`console.*` in app code: 9 web** (incl. logger module + 1 admin error boundary), **82 mobile**.
+- **Largest source file: 914 lines** (`apps/web/scripts/seed-materials.ts`). 617 source files exceed
+  300 lines (the MDC hard limit — see Section 2). 0 files >1,000 lines.
+- **Build: PASSES clean** (Next.js production build, `ignoreBuildErrors: false`). All in-session
+  edits `tsc --noEmit` clean.
 - **TypeScript strict mode: ON** in all packages + both apps.
-- **Web tests: ~178/183 suites PASS (~97%)** — Vitest v4. **Mobile tests: 9,743/10,393 (93.8%)**.
-- **Security: live 2026-04-23: 331 public tables, 330 RLS-enabled (99.7%), 835 RLS policies, 0
-  zero-policy tables** (Sprint 1 fix holds). Only `spatial_ref_sys` lacks RLS (ecosystem-blocked).
-  **174 migrations applied** (latest `20260422000002_onboarding_analytics_split`; local folder
-  matches live count). Production data scale: 22 jobs, 16 bids, 15 contracts, 4 escrow, 75
-  notifications, 69 messages, 10 profiles, 479 building_assessments. **Still 0 `user_push_tokens`, 0
-  `contractor_locations`, 0 `vlm_shadow_comparisons`** — these three production flows have never
-  fired despite multiple rounds of fixes.
-- **Supabase imports: 0 direct `createClient` in source** — canonical `@/lib/api/supabaseServer`
-  verified adopted everywhere. Previous "10 files" issue closed.
-- **Storage buckets**: 5 public (avatars, contractor-portfolio, profile-images, training-images,
-  mint-ai-training-public — all intentional), 6 private (contractor-documents, job-attachments,
-  Job-storage, training-data, yolo-models, models_best_model_final_v2_v2.0). ✅ contractor-documents
-  - job-attachments flipped private 2026-04-17.
-- **Edge functions: 2 active** — setup-contractor-payout (verify_jwt:false, intentional dual-mode),
-  test-payout (verify_jwt:true, neutralized). Both verified safe.
+- **Hex color literals: 625+ across 117 web files** — pre-commit hook enforces incrementally on new
+  additions only.
+- **Security: live 2026-05-10: 331 public tables, 330 RLS-enabled (99.7%), 813 RLS policies, 1
+  zero-policy table** (`spatial_ref_sys`, ecosystem-blocked PostGIS). **195 migrations applied
+  live** (latest `20260510065008`). **Local repo has 180 `.sql` files — 15-migration drift between
+  repo and live DB.** Production data scale: 16 jobs (8 assigned, 4 posted, 4 completed; 0
+  in_progress), 13 bids, 12 contracts, 66 notifications, 63 messages, 10 profiles (6 onboarded, 1
+  contractor onboarded), 480 building_assessments. **Still 0 `user_push_tokens`, 0
+  `contractor_locations`** — root cause is shipping (P0.4), not code; chains verified wired. **0
+  `vlm_shadow_comparisons`** — intentional, Mint AI gated off.
+- **Supabase imports: 0 direct `createClient` in source** (closed 04-23, verified again 05-10).
+- **Storage buckets** (live): 5 public (avatars, contractor-portfolio, profile-images,
+  training-images, mint-ai-training-public — all intentional), 6 private (contractor-documents,
+  job-attachments, Job-storage, training-data, yolo-models, models_best_model_final_v2_v2.0).
+- **Edge functions in repo: 2** (`_shared/`, `setup-contractor-payout/`) after the 2026-05-10
+  deletion of 4 undeployed dead fns. **Live: 2** — `setup-contractor-payout` (verify_jwt:false,
+  intentional dual-mode; service-role short-circuits to trust contractorId, otherwise full
+  `verifyAuth` + ownership), `test-payout` (verify_jwt:true).
+- **Stripe API version: PINNED.** All in-app code now flows through the lazy proxy in
+  `apps/web/lib/stripe.ts` (`'2025-01-27.acacia'`); the live Deno edge function
+  `setup-contractor-payout` was bumped to match (was `'2023-10-16'`, ~17 months behind).
+- **Admin route MFA gating: 32/32 mutating admin routes have `requireMfaVerifiedWithinMinutes: 15`
+  (100%).** Plus 6 sensitive read-only GETs added in this session (users/export, revenue/export,
+  tax/download-1099, audit-logs, users/[userId]/detail, security-dashboard GET) — see P1.3 above.
+  CLAUDE.md previously claimed "35 lack MFA" — that was a miscount: those 35 were read-only.
+- **Admin activity logging: ~31% baseline (10/32 mutating admin routes called
+  `AdminActivityLogger.logFromRequest` directly).** P2.12 ships a declarative `logActivity` config
+  option on `withApiHandler` so future adoption is one-line; P1.4 wires the option on 3 high-impact
+  routes (`escrow/{approve,reject}`, `maintenance/rotate-totp-secrets`).
+- **Notification system**: all **10 canonical events** are wired through
+  `NotificationService.createNotification` (CLAUDE.md previously claimed 4 missing — verified wrong
+  in Phase 2a). `markEmailSent` multi-channel observability flag is now propagated on 6/7 lifecycle
+  email sends (`payments/confirm-intent`, `jobs/[id]/start`, `jobs/[id]/request-changes`,
+  `jobs/[id]/bids/[bidId]/accept` helper, `jobs/[id]/confirm-completion`, `jobs/[id]/photos/after`).
+  `contracts/[id]/accept`'s 3 sends still inline-uncaptured.
+- **`Zod .strict()` schemas: 44** (CLAUDE.md previously claimed 1 — was an undercount).
 
 ### What Changed Since Feb 13 Audit:
 
@@ -100,47 +194,56 @@ Seven-sprint branch `fix/mobile-audit-security-ux-features` closed:
 | payment-flow test failures   | **3 failing**   | **0 failing** (fixed rate limit body, contracts mock, stripe.customers.list) |
 | auth-flow test failures      | **11 failing**  | **0 failing** (fixed fetch mock, password selector, text assertions)         |
 
-### Real Priority Issues (as of 2026-04-23 audit):
+### Real Priority Issues (post-2026-05-10 remediation):
 
-1. ~~**HIGH**: 10 files using non-standard direct `createClient`~~ — **RESOLVED** (Sprint 3.6 /
-   XC-P0-1). 2026-04-23 rescan confirms 0 direct `createClient` in source.
-2. **P0 (new 04-23)**: 3 admin mutation routes missing MFA step-up —
-   `/api/admin/maintenance/rotate-totp-secrets`, `/api/admin/migrations/apply`,
-   `/api/admin/migrations/apply-combined`. A compromised admin session = total system compromise.
-   Add `requireMfaVerifiedWithinMinutes: 15` to each.
-3. **P0 (persistent)**: `user_push_tokens = 0` in prod despite 04-17 endpoint fix + 04-21 fail-loud
-   Sentry wiring. Mobile push registration call chain still not completing on app launch. Needs
-   traced end-to-end from `initializePushNotifications()` → `savePushToken()` call site.
-4. **P0 (persistent)**: `contractor_locations = 0` in prod despite 04-16 SELECT-scope fix + 04-17
-   BackgroundLocationTask wiring. Foreground tracking isn't being triggered on contractor accept.
-5. **P1**: Reviews RLS — `reviews_select_policy` has `qual=true, roles={public}` (all reviews
-   visible to anonymous users). Likely intentional for marketplace trust, but verify explicitly.
-6. **P1**: Mobile `NotificationPushSender.sendPushNotification()` is a no-op stub (04-22 security
-   fix removed client-side cross-user send). Server-side replacement not yet built —
-   client-triggered CTA notifications silently drop.
-7. **P1**: 5 files uncommitted in working tree from the 04-19 Mint AI session —
-   `AssessmentGenerator.ts` lost its `frequency_penalty: 0.5` patch, production repetition risk when
-   Mint AI goes out of shadow mode. Also `PropertyAssessmentScreen.tsx`, `AIAssessmentScreen.tsx`,
-   `yolo-class-names.ts`, `upload-yolo-to-storage.ts`.
-8. **P1**: 10+ "Coming soon" pages are routable dead-ends on web (contractor/connections, resources,
-   social, team, video-calls, learn, admin/review-moderation, admin/api-documentation). Gate or
-   redirect.
-9. **P1**: Vector extension still in `public` schema — migration
-   `20260419000004_move_vector_to_extensions` prepared but unapplied. Needs Postgres patch upgrade
-   first.
-10. **P1**: Postgres 17.4.1.074 patch upgrade pending (~5 min window via dashboard).
+> The numbered list below was the 04-23 audit's open punch-list. Strikethrough = closed in the
+> 2026-05-10 session (or retracted as stale). Live items remain at the top of this file under
+> "In-session remediation" + "Standing P0/P1 items still pending".
+
+1. ~~**HIGH**: 10 files using non-standard direct `createClient`~~ — **RESOLVED** (Sprint 3.6).
+2. ~~**P0**: 3 admin mutation routes missing MFA step-up — rotate-totp-secrets, migrations/apply,
+   migrations/apply-combined~~ — **RESOLVED**: rescan 2026-05-10 confirms all 32 mutating admin
+   routes have `requireMfaVerifiedWithinMinutes: 15` (100%). The 35 routes "without MFA" are
+   read-only GETs; 6 of those (bulk-export class) gained MFA in P1.3 this session.
+3. **P0 (persistent until ship)**: `user_push_tokens = 0` in prod. Code chain verified wired
+   end-to-end on 2026-05-10 (4 paths: silent init, soft-ask CTA, foreground retry hook,
+   `/api/user/push-token` server). Root cause is the **2026-04-28 push-soft-ask reorder + 2026-05-01
+   gate widening haven't shipped to production EAS** (see P0.4).
+4. **P0 (persistent until ship)**: `contractor_locations = 0` in prod. Same diagnosis — code is
+   correct since 2026-05-01 (`ContractorLocationSection` gate widened from `in_progress` only to
+   `assigned OR in_progress` because live DB has 0 `in_progress` jobs). Awaiting EAS ship.
+5. ~~**P1**: Reviews RLS `qual=true, roles={public}`~~ — **RETRACTED**: live policy is
+   `reviews_public_read_published_replies` which gates on `response_published_at` + reviewer/job
+   participation. Not a leak.
+6. ~~**P1**: Mobile `sendPushNotification` is a no-op stub~~ — **RESOLVED**: now a server-side proxy
+   via `POST /api/notifications/send` ([NotificationPushSender.ts:266-339]) with re-auth +
+   business-relationship check.
+7. ~~**P1**: 5 uncommitted Mint AI files~~ — **STALE**: working tree clean on every audit cycle
+   since 04-23. Either committed earlier or the prior snapshot was wrong.
+8. **P1**: ~~10+~~ **5 confirmed** "Coming soon" pages — **3 of 4 contractor placeholders deduped
+   via shared `<ComingSoonPlaceholder>` (P2.20)**. Remaining: `/video-calls` (intentionally bespoke,
+   different homeowner-card layout), `/learn` (per-card content placeholder, not a page stub).
+   `/contractor/team`, `tools`, `insurance`, `/admin/api-documentation`, `/resources` are all
+   **fully built** — the prior "10+" claim was a grep-only count of the literal string "Coming soon"
+   inside completed UIs.
+9. **P1**: Vector + PostGIS extensions still in `public` schema. Migration prepared but unapplied.
+   Needs Postgres patch upgrade first (P2.4).
+10. **P1**: Postgres 17.4.1.074 patch upgrade pending (~5 min Supabase Dashboard window).
 11. **P2**: Split remaining large files (web: SubscriptionService 704, ContinuousLearningService
     687, PredictiveAgent 669, LocationPricingService 667, AssessmentOrchestrator 652; mobile:
-    DocumentsScreen 694, AISearchScreen 692, ExpensesScreen 679, VideoService 677).
+    DocumentsScreen 694, AISearchScreen 692, ExpensesScreen 679, VideoService 677). ~Largest~ is now
+    actually `apps/web/scripts/seed-materials.ts` at 914 lines.
 12. **P2**: 625+ inline hex colors across 117 web files bypass the design-tokens system. Incremental
     pre-commit hook only catches new additions.
-13. **P2**: Duplicate auth routes (`/auth/login` + `/login`, etc.) and dual payment-method flows
-    (`AddPaymentMethodScreen` + `AddPaymentMethodV2Screen`) — consolidate.
-14. **P2**: Only 1 Zod schema uses `.strict()` (`updateProfileSchema`); CLAUDE.md previously
-    claimed 2. Silent mass-assignment risk elsewhere, partially mitigated by withApiHandler body
-    validation.
-15. **P2**: `sanitize-postgrest.ts` helper exists but 0 callers — 15 `.ilike()`/`.or()` routes
-    inline ad-hoc regex sanitization instead. Either adopt the helper or delete it.
+13. ~~**P2**: Duplicate auth + payment-method routes~~ — **RETRACTED**: `/auth/login`,
+    `/auth/signup`, `/auth/forgot-password` are 8-9 line `redirect()` stubs to canonical pages;
+    `/payment-methods` redirects to `/settings/payment-methods`; `/account/payment-methods` does not
+    exist. Already consolidated.
+14. ~~**P2**: Only 1 Zod schema uses `.strict()`~~ — **RETRACTED**: actual count is **44** as of
+    2026-05-10. Original "1" claim was an undercount.
+15. ~~**P2**: `sanitize-postgrest.ts` helper has 0 callers~~ — **PARTIAL**: adopted in
+    `/api/admin/audit-logs` (P2.11). 14 inline `.ilike()`/`.or()` callers still need migration — the
+    helper is now production-tested.
 16. **P2**: 8 auth routes use raw `x-forwarded-for` in logging (not enforcement). Replace with
     `getClientIp()` for consistency.
 17. **P2**: 6 orphan mobile screens unclear reachability (HelpCenter, ServiceRequest, ServiceAreas,
@@ -151,6 +254,10 @@ Seven-sprint branch `fix/mobile-audit-security-ux-features` closed:
     SQLCipher for `mintenance_local.db`, CSP nonce rollout (scaffold ready behind `ENABLE_CSP_NONCE`
     flag), Sentry `beforeSend` scrub on mobile, Job type snake_case/camelCase consolidation
     (PKG-P1-4).
+20. **P2 (NEW 2026-05-10)**: `compliance_certificates.property_id` FK is `ON DELETE CASCADE`. UK
+    landlords legally must retain gas safety certs ≥ 2 yr and EICRs ≥ 5 yr — a property delete
+    currently wipes those records. Same concern for `property_tenants` and `anonymous_reports`. Fix
+    is `ON DELETE SET NULL` (with nullable `property_id`) or app-layer guard.
 
 ### 2026-04-23 — Full-Stack Re-Audit (live-DB + every page/route/screen)
 
@@ -401,19 +508,21 @@ npm run build 2>&1
 
 | Metric                    | Maximum     | Current State (2026-04-23)                             | Priority |
 | ------------------------- | ----------- | ------------------------------------------------------ | -------- |
-| File size                 | 300 lines   | 704 lines max (0 files >1K; ~15 web + 15 mobile >500)  | MEDIUM   |
+| File size                 | 300 lines   | 914 lines max (0 files >1K; 617 source files >300)     | MEDIUM   |
 | Function size             | 50 lines    | 200-400+ line route handlers remain                    | MEDIUM   |
 | Class methods             | 7           | Still large in some services                           | MEDIUM   |
 | `any` types (web source)  | 0           | ~0 in pages (excl. test mocks)                         | OK       |
-| `any` types (mobile)      | 0           | ~169 (services + tests)                                | MEDIUM   |
-| console.\* (web app code) | 0           | 1 (`admin/retention/error.tsx:14`)                     | LOW      |
-| console.\* (mobile)       | 0           | ~76                                                    | MEDIUM   |
+| `any` types (mobile)      | 0           | 1,602 (438 `:any` + 1,164 `as any`)                    | MEDIUM   |
+| console.\* (web app code) | 0           | 9 (incl. logger module + admin error boundary)         | LOW      |
+| console.\* (mobile)       | 0           | 82                                                     | MEDIUM   |
 | Hex literals (web)        | 0           | 625+ across 117 files (design-tokens adoption partial) | MEDIUM   |
-| Web test suites           | 80% pass    | ~97% (~178/183) — Vitest v4                            | OK       |
-| Mobile test coverage      | 80% pass    | 93.8% (9,743/10,393)                                   | OK       |
-| withApiHandler            | 100% routes | 92.3% (374/405; 4 legit exceptions + 28 cron handlers) | OK       |
+| Web tests                 | 80% pass    | TODO — refresh via P2.15 (CLAUDE.md staleness flag)    | TBD      |
+| Mobile tests              | 80% pass    | TODO — refresh via P2.15                               | TBD      |
+| withApiHandler            | 100% routes | 100% effective (412/418 — 6 routes are aliases/410s)   | OK       |
 | Supabase canonical import | 100% files  | 100% (0 direct createClient in source)                 | OK       |
-| Zod `.strict()` schemas   | 100%        | 1 / 112 (updateProfileSchema only)                     | MEDIUM   |
+| Zod `.strict()` schemas   | 100%        | 44 / 239 (~18%)                                        | MEDIUM   |
+| Admin MFA on mutations    | 100%        | 100% (32/32 mutating routes; +6 sensitive GETs)        | OK       |
+| Admin activity logging    | 100%        | ~31% (10/32 inline; logActivity wrapper-option ready)  | MEDIUM   |
 | RLS coverage              | 100%        | 99.7% (330/331; `spatial_ref_sys` ecosystem-blocked)   | OK       |
 
 ## SECTION 3: MANDATORY SUB-AGENT USAGE RULES

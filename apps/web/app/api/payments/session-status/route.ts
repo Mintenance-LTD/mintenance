@@ -4,16 +4,28 @@ import { z } from 'zod';
 import { logger } from '@mintenance/shared';
 import { env } from '@/lib/env';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { ForbiddenError, NotFoundError } from '@/lib/errors/api-error';
 
 const stripe = new Stripe(env.STRIPE_SECRET_KEY);
 
 const querySchema = z.object({
-  session_id: z.string().min(1, 'Session ID is required'),
+  session_id: z
+    .string()
+    .min(1, 'Session ID is required')
+    .regex(/^cs_(test|live)_[A-Za-z0-9]+$/, 'Invalid session ID format'),
 });
 
 /**
  * Get the status of a Stripe Checkout Session
  * GET /api/payments/session-status?session_id=xxx
+ *
+ * Audit P1 (2026-05-10): the previous implementation returned the
+ * session status + customer email for ANY session_id a signed-in
+ * homeowner/contractor passed. Stripe session ids are unguessable
+ * but leak via referrer / logs / browser history, so the route is
+ * now scoped to sessions the caller actually created. We compare
+ * against `metadata.userId`, which is set at creation time in
+ * `apps/web/app/api/payments/embedded-checkout/route.ts:127`.
  */
 export const GET = withApiHandler(
   { roles: ['homeowner', 'contractor'], rateLimit: { maxRequests: 20 } },
@@ -25,7 +37,10 @@ export const GET = withApiHandler(
 
     if (!parsed.success) {
       return NextResponse.json(
-        { error: 'Invalid query parameters', details: parsed.error.flatten().fieldErrors },
+        {
+          error: 'Invalid query parameters',
+          details: parsed.error.flatten().fieldErrors,
+        },
         { status: 400 }
       );
     }
@@ -33,12 +48,38 @@ export const GET = withApiHandler(
     const { session_id } = parsed.data;
 
     // Retrieve the Checkout Session
-    const session = await stripe.checkout.sessions.retrieve(session_id);
+    let session: Stripe.Checkout.Session;
+    try {
+      session = await stripe.checkout.sessions.retrieve(session_id);
+    } catch (err) {
+      if (err instanceof Stripe.errors.StripeError && err.statusCode === 404) {
+        throw new NotFoundError('Checkout session not found');
+      }
+      throw err;
+    }
+
+    // Ownership check: only the user who created the session may read it.
+    // `metadata.userId` is set in embedded-checkout/route.ts at creation
+    // time. Admins can also see any session for support purposes.
+    const sessionUserId = session.metadata?.userId;
+    if (user.role !== 'admin' && sessionUserId !== user.id) {
+      logger.warn('Cross-tenant session-status access blocked', {
+        service: 'payments',
+        callerId: user.id,
+        callerRole: user.role,
+        sessionUserId: sessionUserId ?? 'missing',
+        sessionId: session.id,
+      });
+      // 404 (not 403) so the route doesn't confirm whether the
+      // session exists for unauthorized callers.
+      throw new NotFoundError('Checkout session not found');
+    }
 
     logger.info('Checkout session status retrieved', {
       service: 'payments',
       sessionId: session.id,
       status: session.status,
+      callerId: user.id,
     });
 
     return NextResponse.json({

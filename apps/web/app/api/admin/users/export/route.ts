@@ -5,8 +5,16 @@ import { logger } from '@mintenance/shared';
 import { ExportService } from '@/lib/services/admin/ExportService';
 import { InternalServerError } from '@/lib/errors/api-error';
 
+// Audit P1 (2026-05-10): bulk PII export (up to 10k profile rows: email,
+// names, role, company, verification status). A stolen admin session is
+// the textbook attack vector — gate behind fresh MFA proof, same 15-min
+// window the mutating admin routes use.
 export const GET = withApiHandler(
-  { roles: ['admin'], rateLimit: { maxRequests: 10 } },
+  {
+    roles: ['admin'],
+    rateLimit: { maxRequests: 10 },
+    requireMfaVerifiedWithinMinutes: 15,
+  },
   async (request) => {
     const { searchParams } = new URL(request.url);
     const format = (searchParams.get('format') as 'csv' | 'pdf') || 'csv';

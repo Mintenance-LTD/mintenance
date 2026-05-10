@@ -18,8 +18,17 @@ const UUID_RE =
  * Includes profile, job counts, bid counts, review stats, escrow history,
  * and recent activity (notifications).
  */
+// Audit P1 (2026-05-10): full single-user PII dossier — profile, jobs,
+// bids, escrow history, notifications. A stolen admin session could
+// enumerate UUIDs and pull a complete dossier per target. Gate behind
+// fresh MFA, same 15-min window as the mutating admin routes.
 export const GET = withApiHandler(
-  { roles: ['admin'], rateLimit: { maxRequests: 10 }, csrf: false },
+  {
+    roles: ['admin'],
+    rateLimit: { maxRequests: 10 },
+    csrf: false,
+    requireMfaVerifiedWithinMinutes: 15,
+  },
   async (request: NextRequest, { params }) => {
     const { userId } = params;
 
