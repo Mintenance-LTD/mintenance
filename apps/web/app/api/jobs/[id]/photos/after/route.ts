@@ -12,6 +12,11 @@ import {
 } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { validateImageUpload } from '@/lib/utils/fileValidation';
+import {
+  getIdempotencyKeyFromRequest,
+  checkIdempotency,
+  storeIdempotencyResult,
+} from '@/lib/idempotency';
 
 const ALLOWED_IMAGE_TYPES = [
   'image/jpeg',
@@ -31,6 +36,32 @@ export const POST = withApiHandler(
   { rateLimit: { maxRequests: 30 } },
   async (request, { user, params }) => {
     const jobId = params.id as string;
+
+    // Idempotency — opt-in via the `Idempotency-Key` header. After
+    // photos auto-trigger job completion + notify the homeowner +
+    // send the "Job Completed - Review Required" email. Without
+    // idempotency, a network retry could double-fire those side
+    // effects even though the second photo upload would no-op
+    // (status already 'completed'). AUDIT_PUNCH_LIST P2 #75.
+    const idempotencyKey = getIdempotencyKeyFromRequest(
+      request,
+      'photos_after',
+      user.id,
+      jobId
+    );
+    const idem = await checkIdempotency<unknown>(
+      idempotencyKey,
+      'photos_after'
+    );
+    if (idem?.isDuplicate && idem.cachedResult) {
+      logger.info('Duplicate photos_after — returning cached result', {
+        service: 'jobs.photos',
+        idempotencyKey,
+        userId: user.id,
+        jobId,
+      });
+      return NextResponse.json(idem.cachedResult);
+    }
 
     // Verify user is contractor for this job (include location for geolocation check)
     const { data: job, error: jobError } = await serverSupabase
@@ -420,12 +451,22 @@ export const POST = withApiHandler(
       }
     }
 
-    return NextResponse.json({
+    const responseData = {
       success: true,
       photos: uploadedPhotos,
       count: uploadedPhotos.length,
       validation: validationResult,
       jobCompleted,
-    });
+    };
+
+    await storeIdempotencyResult(
+      idempotencyKey,
+      'photos_after',
+      responseData,
+      user.id,
+      { jobId, count: uploadedPhotos.length, jobCompleted }
+    );
+
+    return NextResponse.json(responseData);
   }
 );

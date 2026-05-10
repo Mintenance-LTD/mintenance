@@ -127,9 +127,10 @@ describe('SecurityManager', () => {
         }
       );
 
-      expect(SqlInjectionProtection.scanForSqlInjection).toHaveBeenCalledWith(
-        'test input'
-      );
+      // 2026-05-10 (AUDIT_PUNCH_LIST P2 #55): scanForSqlInjection is no
+      // longer called from validateTextInput — see SecurityManager.ts.
+      // Only the InputValidationMiddleware result drives isValid.
+      expect(SqlInjectionProtection.scanForSqlInjection).not.toHaveBeenCalled();
       expect(result).toEqual({
         isValid: true,
         errors: [],
@@ -137,26 +138,26 @@ describe('SecurityManager', () => {
       });
     });
 
-    it('should fail validation when SQL injection is detected', () => {
+    it('should NOT reject SQL-keyword-containing English text (legit homeowner descriptions)', () => {
+      // 2026-05-10 (AUDIT_PUNCH_LIST P2 #55): the previous test asserted
+      // that "'; DROP TABLE users; --" was rejected. That ALSO rejected
+      // legit text like "Need to drop and replace tiles", "Select new
+      // bathroom suite", "Union jack flag installation". Mobile cannot
+      // reach raw SQL via Supabase parameterized queries, so this layer
+      // is unsound + a UX trap. The new behaviour delegates to
+      // InputValidationMiddleware which ONLY guards against XSS.
       (InputValidationMiddleware.validateText as jest.Mock).mockReturnValue({
         isValid: true,
         errors: [],
-        sanitized: 'test',
+        sanitized: 'Need to drop and replace bathroom tiles',
       });
 
-      (SqlInjectionProtection.scanForSqlInjection as jest.Mock).mockReturnValue(
-        {
-          isSafe: false,
-          threats: ['SQL injection detected: DROP TABLE'],
-        }
-      );
-
       const result = SecurityManager.validateTextInput(
-        "'; DROP TABLE users; --"
+        'Need to drop and replace bathroom tiles'
       );
 
-      expect(result.isValid).toBe(false);
-      expect(result.errors).toContain('SQL injection detected: DROP TABLE');
+      expect(result.isValid).toBe(true);
+      expect(SqlInjectionProtection.scanForSqlInjection).not.toHaveBeenCalled();
     });
 
     it('should handle validation with pattern', () => {
@@ -189,27 +190,22 @@ describe('SecurityManager', () => {
       );
     });
 
-    it('should combine middleware and SQL injection errors', () => {
+    it('should propagate middleware errors only (SQL combine path removed P2 #55)', () => {
+      // 2026-05-10 (AUDIT_PUNCH_LIST P2 #55): the SQL "Suspicious
+      // pattern detected" branch was removed (see SecurityManager.ts).
+      // validateTextInput's only error source is now the
+      // InputValidationMiddleware result.
       (InputValidationMiddleware.validateText as jest.Mock).mockReturnValue({
         isValid: false,
         errors: ['Text too short'],
         sanitized: 'test',
       });
 
-      (SqlInjectionProtection.scanForSqlInjection as jest.Mock).mockReturnValue(
-        {
-          isSafe: false,
-          threats: ['Suspicious pattern detected'],
-        }
-      );
-
       const result = SecurityManager.validateTextInput('test');
 
       expect(result.isValid).toBe(false);
-      expect(result.errors).toEqual([
-        'Text too short',
-        'Suspicious pattern detected',
-      ]);
+      expect(result.errors).toEqual(['Text too short']);
+      expect(SqlInjectionProtection.scanForSqlInjection).not.toHaveBeenCalled();
     });
   });
 

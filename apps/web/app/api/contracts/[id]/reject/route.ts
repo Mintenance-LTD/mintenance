@@ -11,6 +11,11 @@ import {
 } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
+import {
+  getIdempotencyKeyFromRequest,
+  checkIdempotency,
+  storeIdempotencyResult,
+} from '@/lib/idempotency';
 
 // 2026-05-01 audit follow-up (check-api-contracts): Zod-validated body
 // (reason is optional but capped) replaces the inline cast.
@@ -41,6 +46,30 @@ export const POST = withApiHandler(
       );
     }
     const reason = (parsed.data.reason ?? '').trim();
+
+    // Idempotency — without this, a network retry would re-send the
+    // contractor notification + the system message in the thread,
+    // even though the status flip is already done. AUDIT_PUNCH_LIST
+    // P2 #75.
+    const idempotencyKey = getIdempotencyKeyFromRequest(
+      request,
+      'contract_reject',
+      user.id,
+      contractId
+    );
+    const idem = await checkIdempotency<unknown>(
+      idempotencyKey,
+      'contract_reject'
+    );
+    if (idem?.isDuplicate && idem.cachedResult) {
+      logger.info('Duplicate contract_reject — returning cached result', {
+        service: 'contracts',
+        idempotencyKey,
+        userId: user.id,
+        contractId,
+      });
+      return NextResponse.json(idem.cachedResult);
+    }
 
     // Fetch contract with ownership check
     const { data: contract, error: contractError } = await serverSupabase
@@ -131,10 +160,20 @@ export const POST = withApiHandler(
       );
     }
 
-    return NextResponse.json({
+    const responseData = {
       success: true,
       contract: updatedContract,
       message: 'Contract sent back to contractor for changes.',
-    });
+    };
+
+    await storeIdempotencyResult(
+      idempotencyKey,
+      'contract_reject',
+      responseData,
+      user.id,
+      { contractId, jobId: contract.job_id }
+    );
+
+    return NextResponse.json(responseData);
   }
 );

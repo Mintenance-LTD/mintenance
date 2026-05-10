@@ -20,6 +20,11 @@ import { NotificationService } from '@/lib/services/notifications/NotificationSe
 import { BadRequestError } from '@/lib/errors/api-error';
 import { z } from 'zod';
 import { validateRequest } from '@/lib/validation/validator';
+import {
+  getIdempotencyKeyFromRequest,
+  checkIdempotency,
+  storeIdempotencyResult,
+} from '@/lib/idempotency';
 
 const disputeSchema = z.object({
   reason: z
@@ -44,6 +49,32 @@ export const POST = withApiHandler(
     const validation = await validateRequest(request, disputeSchema);
     if ('headers' in validation) return validation;
     const { reason, category } = validation.data;
+
+    // Idempotency — without it, a network retry would create
+    // duplicate `disputes` rows (no unique constraint by job_id +
+    // raised_by) and re-fan out two notifications to the contractor.
+    // Status flip itself is guarded by validateStatusTransition but
+    // the side-effects below can still double-fire on retry.
+    // AUDIT_PUNCH_LIST P2 #75.
+    const idempotencyKey = getIdempotencyKeyFromRequest(
+      request,
+      'job_dispute',
+      user.id,
+      jobId
+    );
+    const idem = await checkIdempotency<{
+      success: boolean;
+      message: string;
+    }>(idempotencyKey, 'job_dispute');
+    if (idem?.isDuplicate && idem.cachedResult) {
+      logger.info('Duplicate job_dispute — returning cached result', {
+        service: 'jobs',
+        idempotencyKey,
+        userId: user.id,
+        jobId,
+      });
+      return NextResponse.json(idem.cachedResult);
+    }
 
     // Verify homeowner owns this job
     const job = await requireJobOwnership(jobId, user.id, 'homeowner');
@@ -135,10 +166,20 @@ export const POST = withApiHandler(
       previousStatus: job.status,
     });
 
-    return NextResponse.json({
+    const responseData = {
       success: true,
       message:
         'Dispute filed. The contractor has been notified and escrow funds remain held until resolution.',
-    });
+    };
+
+    await storeIdempotencyResult(
+      idempotencyKey,
+      'job_dispute',
+      responseData,
+      user.id,
+      { jobId, contractorId, category }
+    );
+
+    return NextResponse.json(responseData);
   }
 );

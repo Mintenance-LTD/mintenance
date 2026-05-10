@@ -275,6 +275,17 @@ const KNOWN_LARGE_FILES = new Set([
   // sub-components is a dedicated P2 alongside the other contractor
   // business screens.
   'apps/web/app/contractor/expenses/page.tsx', // 628 lines (was ~624)
+  // Added 2026-05-10: InputValidationMiddleware.ts grew from ~498 to 518
+  // lines via the AUDIT_PUNCH_LIST P2 #55 closure. Net change is the
+  // SECURITY-RATIONALE comment block (why the SQL_INJECTION_PATTERNS
+  // blacklist was removed — mobile uses Supabase parameterized queries,
+  // user input cannot reach raw SQL) plus loosened safeText regex
+  // documentation. The file shrunk on the executable code dimension
+  // (the SQL pattern array + the loop that ran it are both gone).
+  // Splitting the middleware is a dedicated P3 — its 5 validators
+  // (text / email / phone / uuid / number / etc.) share enough setup
+  // that pulling them apart would just relocate the bulk.
+  'apps/mobile/src/middleware/InputValidationMiddleware.ts', // 518 lines (was ~498)
 ]);
 
 function countLines(filePath) {

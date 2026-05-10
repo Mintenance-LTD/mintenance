@@ -13,20 +13,41 @@ const VALIDATION_PATTERNS = {
   email: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
   phone: /^\+?[\d\s()-]{10,}$/,
   alphanumeric: /^[a-zA-Z0-9\s]*$/,
-  safeText: /^[a-zA-Z0-9\s.,!?-]*$/,
+  // Loosened 2026-05-10 (AUDIT_PUNCH_LIST P2 #55): the previous
+  // pattern `[a-zA-Z0-9\s.,!?-]*` rejected normal English text with
+  // apostrophes, ampersands, parentheses, slashes — e.g. "Tom's
+  // bathroom", "Plumbing & electrical", "Pipe-fitting (kitchen)",
+  // "£200/day". Now allows the standard set used in job
+  // titles/descriptions; the SQL/XSS guards below catch the actual
+  // attack patterns.
+  safeText: /^[a-zA-Z0-9\s.,!?'"&()£$/\-:;]*$/,
   uuid: /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
   slug: /^[a-z0-9-]+$/,
 } as const;
 
-// SQL injection patterns to detect and block
-const SQL_INJECTION_PATTERNS = [
-  /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|UNION|SCRIPT)\b)/i,
-  /(;|\||&|\$|\(|\)|<|>|'|"|`)/,
-  /(\bOR\b|\bAND\b)\s*(\d+\s*=\s*\d+|\w+\s*=\s*\w+)/i,
-  /(--|\*\/|\/\*)/,
-  /(\bxp_|\bsp_)/i,
-  /(\bCOUNT\s*\(|\bMAX\s*\(|\bMIN\s*\(|\bSUM\s*\()/i,
-] as const;
+// 2026-05-10 (AUDIT_PUNCH_LIST P2 #55): the previous SQL_INJECTION_PATTERNS
+// regex blacklist was both unsound (the mobile app talks to Supabase via
+// the JS client, which uses parameterized queries — there is no string
+// concatenation path that user input can poison) AND generated wide false
+// positives. Common English use of words like SELECT / DROP / UNION,
+// apostrophes in names ("O'Brien"), ampersands in service categories
+// ("Plumbing & electrical"), and parentheses ("Pipe-fitting (kitchen)")
+// were all being rejected as "potentially dangerous content".
+//
+// The architectural truth is: SQL injection cannot reach Postgres from
+// these forms, because:
+//   1. Mobile writes go through Supabase.from('...').insert(...) which
+//      parameterizes everything.
+//   2. API routes validate body via Zod (type + length).
+//   3. Server-side `sanitize.text` and `sanitize.jobDescription` strip
+//      raw HTML tags before persistence.
+//   4. The narrow injection-adjacent surface (.ilike() in admin search,
+//      FTS query builders) has its own dedicated escape helpers in
+//      apps/web/lib/utils/sanitize-postgrest.ts.
+//
+// XSS guards remain because rendered text CAN execute scripts if not
+// escaped at the React boundary. Those patterns have a much lower
+// false-positive rate (no English homonyms for `<script>`).
 
 // XSS patterns to detect and block
 const XSS_PATTERNS = [
@@ -105,18 +126,11 @@ export class InputValidationMiddleware {
       errors.push(`${fieldName} cannot exceed ${maxLength} characters`);
     }
 
-    // SQL injection detection
-    for (const sqlPattern of SQL_INJECTION_PATTERNS) {
-      if (sqlPattern.test(sanitizedInput)) {
-        errors.push(`${fieldName} contains potentially dangerous content`);
-        logger.warn('InputValidation', 'SQL injection attempt detected', {
-          fieldName,
-          pattern: sqlPattern.source,
-          input: sanitizedInput.substring(0, 100),
-        });
-        break;
-      }
-    }
+    // SQL injection blacklist removed 2026-05-10 (AUDIT_PUNCH_LIST P2 #55).
+    // Mobile DB writes go through Supabase parameterized queries; user
+    // input cannot reach raw SQL. See the comment block on the
+    // (now-deleted) SQL_INJECTION_PATTERNS constant for the full
+    // rationale.
 
     // XSS detection
     for (const xssPattern of XSS_PATTERNS) {
@@ -138,15 +152,16 @@ export class InputValidationMiddleware {
 
     // Sanitization
     if (sanitize && errors.length === 0) {
-      // Remove potentially dangerous characters
+      // XSS-relevant strip only (2026-05-10 P2 #55): the SQL comment
+      // strip (`--`, `/*`, `*/`) was removed because it mangled
+      // legitimate text — e.g. job descriptions with em-dashes
+      // ("--") or inline ratings ("4*/5"). SQL comments cannot reach
+      // Postgres anyway through the parameterized Supabase client.
       sanitizedInput = sanitizedInput
         .replace(/[<>]/g, '') // Remove angle brackets
         .replace(/javascript:/gi, '') // Remove javascript: protocols
         .replace(/vbscript:/gi, '') // Remove vbscript: protocols
-        .replace(/on\w+\s*=/gi, '') // Remove event handlers
-        .replace(/--/g, '') // Remove SQL comments
-        .replace(/\/\*/g, '') // Remove SQL block comments start
-        .replace(/\*\//g, ''); // Remove SQL block comments end
+        .replace(/on\w+\s*=/gi, ''); // Remove event handlers
 
       // Normalize whitespace
       sanitizedInput = sanitizedInput.replace(/\s+/g, ' ').trim();
