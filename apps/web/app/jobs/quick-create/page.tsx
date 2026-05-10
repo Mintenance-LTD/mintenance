@@ -74,7 +74,20 @@ export default function QuickJobPage() {
       })
       .then((data) => {
         if (data.properties && data.properties.length > 0) {
-          const primary = data.properties[0];
+          // Honour the URL's ?property_id= when the user came in from
+          // the AirbnbSearchBar with a specific property selected.
+          // Without this lookup, the fetch would always overwrite the
+          // form's pre-filled property_id with `properties[0]` and
+          // display the wrong property card. Falls back to [0] when
+          // the URL param is missing or doesn't match (e.g. stale
+          // share-link, deleted property).
+          const urlPropertyId = searchParams.get('property_id');
+          const matched = urlPropertyId
+            ? data.properties.find(
+                (p: PrimaryProperty) => p.id === urlPropertyId
+              )
+            : null;
+          const primary = matched || data.properties[0];
           setPrimaryProperty(primary);
           setFormData((prev) => ({ ...prev, property_id: primary.id }));
         } else {
@@ -91,7 +104,7 @@ export default function QuickJobPage() {
         toast.error(message);
       })
       .finally(() => setPropertiesLoading(false));
-  }, [user]);
+  }, [user, searchParams]);
 
   useEffect(() => {
     if (user && user.role === 'homeowner') {
