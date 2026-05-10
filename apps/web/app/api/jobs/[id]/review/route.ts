@@ -49,7 +49,7 @@ export const GET = withApiHandler(
 
     const { data: reviews, error: reviewError } = await userDb
       .from('reviews')
-      .select('id, rating, comment, created_at')
+      .select('id, rating, comment, would_recommend, created_at')
       .eq('job_id', jobId)
       .eq('reviewer_id', userId);
 
@@ -127,7 +127,10 @@ export const POST = withApiHandler(
       throw new BadRequestError('You have already reviewed this job');
     }
 
-    // Insert review
+    // Insert review.
+    // 2026-05-09: persist `would_recommend` (column added by
+    // 20260509155315_reviews_would_recommend_column). Prior version
+    // accepted the field and silently dropped it.
     const { data: review, error: insertError } = await userDb
       .from('reviews')
       .insert({
@@ -136,6 +139,7 @@ export const POST = withApiHandler(
         reviewee_id: revieweeId,
         rating,
         comment,
+        would_recommend: wouldRecommend ?? null,
       })
       .select('id')
       .single();

@@ -40,7 +40,14 @@ interface BidRow {
 }
 
 export const POST = withApiHandler(
-  { rateLimit: { maxRequests: 30 } },
+  // Audit P2 (2026-05-10): added explicit `roles: ['homeowner', 'admin']`.
+  // Functional behaviour unchanged — the manual `user.role !== 'homeowner'`
+  // check below still rejects everyone except homeowners (admins were not
+  // previously allowed to accept on a homeowner's behalf and that hasn't
+  // changed; the wrapper-level admin entry is wider than the body check
+  // and exists only so a future support flow can opt in without touching
+  // the wrapper).
+  { roles: ['homeowner', 'admin'], rateLimit: { maxRequests: 30 } },
   async (request, { user, params }) => {
     // Create a fresh Supabase client per request to avoid singleton auth state corruption
     const serverSupabase = createServerSupabaseClient();

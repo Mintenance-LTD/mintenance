@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { RATE_LIMIT_TIERS } from '@/lib/api/rate-limit-tiers';
 import { BuildingPathologyRAGService } from '@/lib/services/building-surveyor/BuildingPathologyRAGService';
 import { InternalServerError } from '@/lib/errors/api-error';
 import { logger } from '@mintenance/shared';
@@ -15,13 +16,17 @@ import { logger } from '@mintenance/shared';
  * description, why_it_happens and visual_indicators are concatenated into
  * a single embedding document.
  *
- * Rate-limited to 2 requests/min — the operation is idempotent (skips entries
- * that already have an embedding) so it is safe to re-run.
+ * Rate-limited via the shared STRICT tier (5/min) — the operation is
+ * idempotent (skips entries that already have an embedding) so it is
+ * safe to re-run within that envelope.
  */
 export const POST = withApiHandler(
   {
     roles: ['admin'],
-    rateLimit: { maxRequests: 2 },
+    // Audit P2 (2026-05-10): adopt the canonical STRICT tier
+    // (5/min). Was 2/min ad-hoc — same risk class (OpenAI credit
+    // spend) as other STRICT mutations.
+    rateLimit: RATE_LIMIT_TIERS.STRICT,
     // 2026-05-01 audit follow-up: re-embedding the pathology corpus burns
     // OpenAI credits per document. Same threat model as the synthetic-data
     // generator — a stolen cookie could trigger a multi-thousand-row

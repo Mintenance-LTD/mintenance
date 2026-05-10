@@ -40,13 +40,13 @@ export const GET = withApiHandler(
       completed_at,
       homeowner_id,
       contractor_id,
-      homeowner:users!jobs_homeowner_id_fkey (
+      homeowner:profiles!jobs_homeowner_id_fkey (
         id,
         first_name,
         last_name,
         email
       ),
-      contractor:users!jobs_contractor_id_fkey (
+      contractor:profiles!jobs_contractor_id_fkey (
         id,
         first_name,
         last_name,

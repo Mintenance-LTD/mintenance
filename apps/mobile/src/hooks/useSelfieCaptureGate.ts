@@ -11,25 +11,25 @@
  * Gate ordering
  * -------------
  * This is the LAST Tier 1 gate before push soft-ask. Fires when
- * the contractor has no `profile_image_url` on their profile AND
- * they've already done identity + started the background check.
- * Earlier gates (identity, background check) have their own
- * `shouldShow` rules so this one waits for both to be non-
+ * the contractor's profile is missing a verified selfie capture
+ * AND they've already done identity + started the background
+ * check. Earlier gates (identity, background check) have their
+ * own `shouldShow` rules so this one waits for both to be non-
  * visible — handled at the OnboardingGateStack level rather than
  * replicated here.
  *
- * Source-of-truth gap
- * -------------------
- * The existing `profiles.profile_image_url` field accepts any
- * URL — library-picked photos are indistinguishable from
- * live-capture selfies at the DB layer. The PDF's anti-fraud
- * goal would ideally want a `profile_photo_is_selfie` boolean
- * column so we can distinguish a stock photo from a capture;
- * that migration is a follow-up. This commit gates on photo
- * presence only. The live-capture flow (SelfieCaptureScreen)
- * only accepts a fresh camera frame, so any photo uploaded
- * via this flow IS a selfie by construction, even if the DB
- * doesn't know it yet.
+ * Source of truth (2026-05-10, AUDIT_PUNCH_LIST P2 #38 closed)
+ * ------------------------------------------------------------
+ * The gate now reads `profiles.profile_photo_is_selfie` instead of
+ * `profile_image_url` presence. The boolean is set TRUE only by
+ * `SelfieCaptureScreen` (camera-only flow); `/api/users/avatar`
+ * — which accepts library uploads — explicitly clears it to FALSE.
+ * Pre-existing rows default to FALSE so the audit's anti-fraud
+ * intent ("live capture, not library") is honoured for users who
+ * uploaded a stock-photo avatar before the column existed. The
+ * AsyncStorage dismissal handles the "already-onboarded contractor
+ * with a real photo who doesn't want to redo it" case — gate fires
+ * once, dismiss, never seen again on this device.
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -81,7 +81,7 @@ export function useSelfieCaptureGate(): SelfieCaptureGate {
 
       const { data, error } = await supabase
         .from('profiles')
-        .select('profile_image_url, verification_status')
+        .select('profile_photo_is_selfie, verification_status')
         .eq('id', user.id)
         .maybeSingle();
 
@@ -95,15 +95,19 @@ export function useSelfieCaptureGate(): SelfieCaptureGate {
       }
 
       const row = data as {
-        profile_image_url: string | null;
+        profile_photo_is_selfie: boolean | null;
         verification_status: string | null;
       } | null;
 
       const identityDone =
         row && IDENTITY_DONE.has(row.verification_status ?? 'none');
-      const photoMissing = row && !row.profile_image_url;
+      // Gate on the verified-selfie flag, not photo presence.
+      // Library-picked avatars now correctly read as "needs selfie"
+      // (the column defaults to false; /api/users/avatar clears it
+      // back to false on every upload).
+      const needsSelfie = row && !row.profile_photo_is_selfie;
 
-      setShouldShow(Boolean(identityDone && photoMissing));
+      setShouldShow(Boolean(identityDone && needsSelfie));
       setLoading(false);
     } catch (err) {
       logger.warn('useSelfieCaptureGate: probe threw', {

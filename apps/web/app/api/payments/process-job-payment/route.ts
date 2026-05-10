@@ -3,17 +3,31 @@ import Stripe from 'stripe';
 import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { validateRequest } from '@/lib/validation/validator';
-import { ForbiddenError, NotFoundError, BadRequestError } from '@/lib/errors/api-error';
+import {
+  ForbiddenError,
+  NotFoundError,
+  BadRequestError,
+} from '@/lib/errors/api-error';
 import { logger } from '@mintenance/shared';
 import { stripe } from '@/lib/stripe';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 
-const processPaymentSchema = z.object({
-  jobId: z.string().uuid('Invalid job ID'),
-  amount: z.number().positive('Amount must be positive').max(10000, 'Amount exceeds maximum (£10,000)'),
-  paymentMethodId: z.string().regex(/^pm_[a-zA-Z0-9]+$/, 'Invalid payment method ID'),
-  saveForFuture: z.boolean().optional().default(false),
-});
+// Audit P2 (2026-05-10): `.strict()` ensures clients can't sneak
+// `userId`/`escrowId`/`status` overrides past the server-authoritative
+// payment flow.
+const processPaymentSchema = z
+  .object({
+    jobId: z.string().uuid('Invalid job ID'),
+    amount: z
+      .number()
+      .positive('Amount must be positive')
+      .max(10000, 'Amount exceeds maximum (£10,000)'),
+    paymentMethodId: z
+      .string()
+      .regex(/^pm_[a-zA-Z0-9]+$/, 'Invalid payment method ID'),
+    saveForFuture: z.boolean().optional().default(false),
+  })
+  .strict();
 
 type CreateIntentResponse = {
   clientSecret?: string;
@@ -57,21 +71,27 @@ export const POST = withApiHandler(
 
     // Use NEXT_PUBLIC_APP_URL for internal call — never forward cookies to prevent SSRF
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
-    const createIntentResponse = await fetch(`${appUrl}/api/payments/create-intent`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...(request.headers.get('authorization') ? { Authorization: request.headers.get('authorization') as string } : {}),
-      },
-      body: JSON.stringify({
-        amount,
-        currency: 'gbp',
-        jobId,
-        contractorId: job.contractor_id,
-      }),
-    });
+    const createIntentResponse = await fetch(
+      `${appUrl}/api/payments/create-intent`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(request.headers.get('authorization')
+            ? { Authorization: request.headers.get('authorization') as string }
+            : {}),
+        },
+        body: JSON.stringify({
+          amount,
+          currency: 'gbp',
+          jobId,
+          contractorId: job.contractor_id,
+        }),
+      }
+    );
 
-    const createIntentData = await createIntentResponse.json() as CreateIntentResponse;
+    const createIntentData =
+      (await createIntentResponse.json()) as CreateIntentResponse;
     if (!createIntentResponse.ok || !createIntentData.paymentIntentId) {
       return NextResponse.json(
         { error: createIntentData.error || 'Failed to create payment intent' },
@@ -81,19 +101,27 @@ export const POST = withApiHandler(
 
     let confirmedIntent: Stripe.PaymentIntent;
     try {
-      confirmedIntent = await stripe.paymentIntents.confirm(createIntentData.paymentIntentId, {
-        payment_method: paymentMethodId,
-        setup_future_usage: saveForFuture ? 'off_session' : undefined,
-      });
+      confirmedIntent = await stripe.paymentIntents.confirm(
+        createIntentData.paymentIntentId,
+        {
+          payment_method: paymentMethodId,
+          setup_future_usage: saveForFuture ? 'off_session' : undefined,
+        }
+      );
     } catch (error) {
       if (error instanceof Stripe.errors.StripeError) {
-        logger.error('Stripe process payment error', error, { service: 'payments' });
+        logger.error('Stripe process payment error', error, {
+          service: 'payments',
+        });
         return NextResponse.json({ error: error.message }, { status: 400 });
       }
       throw error;
     }
 
-    if (confirmedIntent.status === 'requires_action' || confirmedIntent.status === 'requires_confirmation') {
+    if (
+      confirmedIntent.status === 'requires_action' ||
+      confirmedIntent.status === 'requires_confirmation'
+    ) {
       return NextResponse.json({
         success: false,
         requiresAction: true,

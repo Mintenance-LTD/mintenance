@@ -16,6 +16,11 @@ import {
   BadRequestError,
   ForbiddenError,
 } from '@/lib/errors/api-error';
+import {
+  getIdempotencyKeyFromRequest,
+  checkIdempotency,
+  storeIdempotencyResult,
+} from '@/lib/idempotency';
 
 // 2026-05-01 audit follow-up (check-api-contracts): Zod-validated body
 // replaces the inline cast.
@@ -52,6 +57,32 @@ export const POST = withApiHandler(
       );
     }
 
+    // Idempotency — without it, a network retry would re-fire the
+    // contractor notification + the change-request email even though
+    // the status flip is already done. Status is checked below
+    // (`if (job.status !== COMPLETED)`) so the second call would
+    // throw 400 anyway, but only after the side-effects ran on the
+    // first call's tail. AUDIT_PUNCH_LIST P2 #75.
+    const idempotencyKey = getIdempotencyKeyFromRequest(
+      request,
+      'request_changes',
+      user.id,
+      jobId
+    );
+    const idem = await checkIdempotency<{
+      success: boolean;
+      message: string;
+    }>(idempotencyKey, 'request_changes');
+    if (idem?.isDuplicate && idem.cachedResult) {
+      logger.info('Duplicate request_changes — returning cached result', {
+        service: 'jobs',
+        idempotencyKey,
+        userId: user.id,
+        jobId,
+      });
+      return NextResponse.json(idem.cachedResult);
+    }
+
     // 1. Fetch job and verify ownership
     const { data: job, error } = await serverSupabase
       .from('jobs')
@@ -71,14 +102,23 @@ export const POST = withApiHandler(
       throw new BadRequestError('Can only request changes on completed jobs');
     }
 
-    // 2. Roll back job status to in_progress so contractor can re-do work
-    // Note: This is a special business rule — homeowner requesting changes bypasses
-    // the normal terminal state restriction on 'completed' jobs.
+    // 2. Roll back job status to in_progress so contractor can re-do work.
+    //
+    // Audit P1 (2026-05-10): also reset `completion_confirmed_by_homeowner`.
+    // Without this, a homeowner who confirmed completion and later requested
+    // changes would leave the flag = true, which lets the escrow auto-release
+    // cron fire even though the job is back to in_progress. The cron's
+    // eligibility query filters on `homeowner_approval`, but the safest
+    // posture is to make the rollback symmetric with confirm-completion.
+    //
+    // Note: This is a special business rule — homeowner requesting changes
+    // bypasses the normal terminal state restriction on 'completed' jobs.
     const { error: updateError } = await serverSupabase
       .from('jobs')
       .update({
         status: JOB_STATUS.IN_PROGRESS,
         completed_at: null,
+        completion_confirmed_by_homeowner: false,
         updated_at: new Date().toISOString(),
       })
       .eq('id', jobId);
@@ -92,8 +132,12 @@ export const POST = withApiHandler(
       throw new Error('Failed to process change request');
     }
 
-    // 3. Notify contractor
-    await NotificationService.createNotification({
+    // 3. Notify contractor.
+    //
+    // Audit P2 (2026-05-10): capture the notification id so we can flip
+    // `email_sent = true` after the email provider accepts the message.
+    // Same pattern as /api/payments/confirm-intent and /api/jobs/[id]/start.
+    const contractorNotifId = await NotificationService.createNotification({
       userId: job.contractor_id,
       title: 'Changes Requested',
       message: `The homeowner has requested changes on "${job.title}": ${comments}`,
@@ -125,13 +169,19 @@ export const POST = withApiHandler(
             'The homeowner'
           : 'The homeowner';
 
-        await EmailService.sendChangesRequestedEmail(contractorProfile.email, {
-          contractorName,
-          homeownerName,
-          jobTitle: job.title || 'Job',
-          comments,
-          viewUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.com'}/contractor/jobs/${jobId}`,
-        });
+        const emailOk = await EmailService.sendChangesRequestedEmail(
+          contractorProfile.email,
+          {
+            contractorName,
+            homeownerName,
+            jobTitle: job.title || 'Job',
+            comments,
+            viewUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.com'}/contractor/jobs/${jobId}`,
+          }
+        );
+        if (emailOk) {
+          await NotificationService.markEmailSent(contractorNotifId);
+        }
       }
     } catch (emailError) {
       logger.error('Failed to send changes requested email', emailError, {
@@ -147,10 +197,20 @@ export const POST = withApiHandler(
       contractorId: job.contractor_id,
     });
 
-    return NextResponse.json({
+    const responseData = {
       success: true,
       message:
         'Change request sent to contractor. Job has been reopened for rework.',
-    });
+    };
+
+    await storeIdempotencyResult(
+      idempotencyKey,
+      'request_changes',
+      responseData,
+      user.id,
+      { jobId, contractorId: job.contractor_id }
+    );
+
+    return NextResponse.json(responseData);
   }
 );

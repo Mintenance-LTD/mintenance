@@ -1,6 +1,20 @@
 /**
  * Migration Monitoring Dashboard
- * Real-time tracking of API route migration progress
+ * Real-time tracking of API route migration progress.
+ *
+ * AUDIT_PUNCH_LIST P2 #61 (A2-P2-3) — placeholder defaults updated
+ * 2026-05-09. The page hardcoded `totalRoutes: 248, migratedRoutes: 5`
+ * which was the project state from when the dashboard was first
+ * written. The withApiHandler migration is now substantially complete
+ * (~92% of routes wrapped per CLAUDE.md), so the placeholder values
+ * have been updated to match. The dashboard polls
+ * `/api/admin/migrations/stats` for live data — these defaults are
+ * just the loading-state numbers shown for ~30s before the first
+ * fetch completes.
+ *
+ * The dashboard's original purpose (track legacy → withApiHandler
+ * cutover) is essentially done. Consider deleting this surface in a
+ * follow-up cleanup if the feature-flags table moves elsewhere.
  */
 'use client';
 import { useCallback, useEffect, useState } from 'react';
@@ -25,11 +39,13 @@ interface MigrationStat {
 }
 export default function MigrationDashboard() {
   const [featureFlags, setFeatureFlags] = useState<FeatureFlagStat[]>([]);
+  // Placeholder defaults for the loading-state render before
+  // /api/admin/migrations/stats responds. Current as of 2026-05-09.
   const [migrationStats, setMigrationStats] = useState<MigrationStat>({
-    totalRoutes: 248,
-    migratedRoutes: 5,
+    totalRoutes: 405,
+    migratedRoutes: 374,
     inProgressRoutes: 0,
-    pendingRoutes: 243,
+    pendingRoutes: 31,
     successRate: 99.5,
     errorRate: 0.5,
   });

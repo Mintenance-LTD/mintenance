@@ -95,6 +95,13 @@ export const POST = withApiHandler(
       .from('profiles')
       .update({
         profile_image_url: publicUrl,
+        // 2026-05-10 (AUDIT_PUNCH_LIST P2 #38): this endpoint accepts
+        // any image (library OR camera — we can't tell from the request
+        // body), so explicitly clear the verified-selfie flag on every
+        // upload. The dedicated mobile `SelfieCaptureScreen` writes
+        // directly to the profiles row with `profile_photo_is_selfie:
+        // true` instead of going through this avatar endpoint.
+        profile_photo_is_selfie: false,
         updated_at: new Date().toISOString(),
       })
       .eq('id', user.id);

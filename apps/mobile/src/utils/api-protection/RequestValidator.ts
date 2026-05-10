@@ -1,24 +1,24 @@
 /** API Protection - Request Validator */
 
-import { SecurityConfig } from "./types";
+import { SecurityConfig } from './types';
 
+/**
+ * AUDIT_PUNCH_LIST P1 #26 (B6-P1-2) — `generateSecurityHeaders()` was
+ * removed 2026-05-09. It produced response-side headers (CSP /
+ * X-Frame-Options / HSTS / X-Content-Type-Options / X-XSS-Protection
+ * / Referrer-Policy) and attached them to OUTGOING mobile requests,
+ * which is meaningless: those headers are interpreted by the
+ * BROWSER on a server response, not by the server on a client
+ * request. Real defense lives in middleware on the web tier.
+ */
 export class RequestValidator {
   constructor(private config: SecurityConfig) {}
 
   isBlockedUserAgent(userAgent?: string): boolean {
     if (!userAgent) return false;
     const lowerUA = userAgent.toLowerCase();
-    return this.config.blockedUserAgents.some(blocked => lowerUA.includes(blocked.toLowerCase()));
-  }
-
-  generateSecurityHeaders(): Record<string, string> {
-    return {
-      "X-Content-Type-Options": "nosniff",
-      "X-Frame-Options": "DENY",
-      "X-XSS-Protection": "1; mode=block",
-      "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
-      "Referrer-Policy": "strict-origin-when-cross-origin",
-      "Content-Security-Policy": "default-src 'self'",
-    };
+    return this.config.blockedUserAgents.some((blocked) =>
+      lowerUA.includes(blocked.toLowerCase())
+    );
   }
 }

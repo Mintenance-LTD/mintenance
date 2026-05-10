@@ -31,7 +31,7 @@ import ProfileNavigator from './navigators/ProfileNavigator';
 import BusinessNavigator from './navigators/BusinessNavigator';
 import ModalNavigator from './navigators/ModalNavigator';
 // Import core screens
-import HomeScreen from '../screens/HomeScreen';
+import { HomeScreen } from '../screens/home';
 import { ExploreMapScreen } from '../screens/explore-map/ExploreMapScreen';
 
 // Import context and utilities

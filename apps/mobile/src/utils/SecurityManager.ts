@@ -8,7 +8,8 @@
 import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
-import SqlInjectionProtection from './SqlInjectionProtection';
+// SqlInjectionProtection import removed 2026-05-10 (AUDIT_PUNCH_LIST P2 #55)
+// — see the rationale in `validateTextInput` below.
 import { InputValidationMiddleware } from '../middleware/InputValidationMiddleware';
 import { logger } from './logger';
 
@@ -76,13 +77,16 @@ class SecurityManagerService {
       fieldName: options.fieldName,
     });
 
-    // Additional SQL injection check
-    const sqlCheck = SqlInjectionProtection.scanForSqlInjection(input);
-    if (!sqlCheck.isSafe) {
-      result.errors.push(...sqlCheck.threats);
-      result.isValid = false;
-    }
-
+    // 2026-05-10 (AUDIT_PUNCH_LIST P2 #55): the redundant
+    // `SqlInjectionProtection.scanForSqlInjection(input)` call was
+    // removed. It used a regex blacklist on natural-language form
+    // input, which was both unsound (the mobile app cannot reach
+    // raw SQL through Supabase parameterized queries) and a source
+    // of wide false positives — homeowners typing words like
+    // "select", "drop", "insert" in a job description got rejected.
+    // The XSS guards in InputValidationMiddleware.validateText
+    // remain — they catch real <script>/javascript:/onerror=
+    // payloads that could execute at the React render boundary.
     return {
       isValid: result.isValid,
       errors: result.errors,

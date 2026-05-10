@@ -47,7 +47,8 @@ export async function fetchJobsWithRelations(
     // Homeowner jobs with joins
     const { data, error } = await serverSupabase
       .from('jobs')
-      .select(`
+      .select(
+        `
         id,
         title,
         status,
@@ -56,17 +57,18 @@ export async function fetchJobsWithRelations(
         created_at,
         contractor_id,
         homeowner_id,
-        contractor:users!jobs_contractor_id_fkey (
+        contractor:profiles!jobs_contractor_id_fkey (
           id,
           first_name,
           last_name
         ),
-        homeowner:users!jobs_homeowner_id_fkey (
+        homeowner:profiles!jobs_homeowner_id_fkey (
           id,
           first_name,
           last_name
         )
-      `)
+      `
+      )
       .eq('homeowner_id', userId)
       .order('created_at', { ascending: false });
 
@@ -80,7 +82,8 @@ export async function fetchJobsWithRelations(
     // Contractor: Get assigned jobs
     const { data: assignedJobs, error: assignedError } = await serverSupabase
       .from('jobs')
-      .select(`
+      .select(
+        `
         id,
         title,
         status,
@@ -89,17 +92,18 @@ export async function fetchJobsWithRelations(
         created_at,
         contractor_id,
         homeowner_id,
-        contractor:users!jobs_contractor_id_fkey (
+        contractor:profiles!jobs_contractor_id_fkey (
           id,
           first_name,
           last_name
         ),
-        homeowner:users!jobs_homeowner_id_fkey (
+        homeowner:profiles!jobs_homeowner_id_fkey (
           id,
           first_name,
           last_name
         )
-      `)
+      `
+      )
       .eq('contractor_id', userId)
       .order('created_at', { ascending: false });
 
@@ -117,13 +121,14 @@ export async function fetchJobsWithRelations(
       logger.error('Error fetching bids:', bidsError);
     }
 
-    const bidJobIds = bids?.map(b => b.job_id).filter(Boolean) || [];
+    const bidJobIds = bids?.map((b) => b.job_id).filter(Boolean) || [];
 
     let bidJobs: JobWithRelations[] = [];
     if (bidJobIds.length > 0) {
       const { data: jobsWithBids, error: bidJobsError } = await serverSupabase
         .from('jobs')
-        .select(`
+        .select(
+          `
           id,
           title,
           status,
@@ -132,17 +137,18 @@ export async function fetchJobsWithRelations(
           created_at,
           contractor_id,
           homeowner_id,
-          contractor:users!jobs_contractor_id_fkey (
+          contractor:profiles!jobs_contractor_id_fkey (
             id,
             first_name,
             last_name
           ),
-          homeowner:users!jobs_homeowner_id_fkey (
+          homeowner:profiles!jobs_homeowner_id_fkey (
             id,
             first_name,
             last_name
           )
-        `)
+        `
+        )
         .in('id', bidJobIds)
         .order('created_at', { ascending: false });
 
@@ -155,8 +161,10 @@ export async function fetchJobsWithRelations(
 
     // Combine and deduplicate
     const allJobsMap = new Map<string, JobWithRelations>();
-    (assignedJobs || []).forEach(job => allJobsMap.set(job.id, job as JobWithRelations));
-    bidJobs.forEach(job => {
+    (assignedJobs || []).forEach((job) =>
+      allJobsMap.set(job.id, job as JobWithRelations)
+    );
+    bidJobs.forEach((job) => {
       if (!allJobsMap.has(job.id)) {
         allJobsMap.set(job.id, job);
       }
@@ -169,22 +177,27 @@ export async function fetchJobsWithRelations(
 /**
  * Batch fetch contracts for multiple jobs in a single query
  */
-export async function fetchContractsForJobs(
-  jobIds: string[]
-): Promise<Map<string, {
-  start_date: string | null;
-  end_date: string | null;
-  status: string;
-  contractor_signed_at: string | null;
-  homeowner_signed_at: string | null;
-}>> {
+export async function fetchContractsForJobs(jobIds: string[]): Promise<
+  Map<
+    string,
+    {
+      start_date: string | null;
+      end_date: string | null;
+      status: string;
+      contractor_signed_at: string | null;
+      homeowner_signed_at: string | null;
+    }
+  >
+> {
   if (jobIds.length === 0) {
     return new Map();
   }
 
   const { data, error } = await serverSupabase
     .from('contracts')
-    .select('job_id, start_date, end_date, status, contractor_signed_at, homeowner_signed_at')
+    .select(
+      'job_id, start_date, end_date, status, contractor_signed_at, homeowner_signed_at'
+    )
     .in('job_id', jobIds);
 
   if (error) {
@@ -193,7 +206,7 @@ export async function fetchContractsForJobs(
   }
 
   const contractsMap = new Map();
-  (data || []).forEach(contract => {
+  (data || []).forEach((contract) => {
     contractsMap.set(contract.job_id, {
       start_date: contract.start_date,
       end_date: contract.end_date,
@@ -209,17 +222,30 @@ export async function fetchContractsForJobs(
 /**
  * Fetch meetings for a user with joins
  */
-export async function fetchMeetingsForUser(userId: string): Promise<{ id: string; scheduled_datetime: string; meeting_type: string; status: string; job_id: string; contractor: unknown; job: unknown }[]> {
+export async function fetchMeetingsForUser(
+  userId: string
+): Promise<
+  {
+    id: string;
+    scheduled_datetime: string;
+    meeting_type: string;
+    status: string;
+    job_id: string;
+    contractor: unknown;
+    job: unknown;
+  }[]
+> {
   try {
     const { data } = await serverSupabase
       .from('contractor_meetings')
-      .select(`
+      .select(
+        `
         id,
         scheduled_datetime,
         meeting_type,
         status,
         job_id,
-        contractor:users!contractor_meetings_contractor_id_fkey (
+        contractor:profiles!contractor_meetings_contractor_id_fkey (
           id,
           first_name,
           last_name
@@ -228,7 +254,8 @@ export async function fetchMeetingsForUser(userId: string): Promise<{ id: string
           id,
           title
         )
-      `)
+      `
+      )
       .or(`homeowner_id.eq.${userId},contractor_id.eq.${userId}`)
       .in('status', ['scheduled', 'confirmed'])
       .order('scheduled_datetime', { ascending: true });
@@ -236,8 +263,9 @@ export async function fetchMeetingsForUser(userId: string): Promise<{ id: string
     return data || [];
   } catch (error) {
     // Table might not exist
-    logger.info('contractor_meetings table not found, using jobs scheduled_date instead');
+    logger.info(
+      'contractor_meetings table not found, using jobs scheduled_date instead'
+    );
     return [];
   }
 }
-

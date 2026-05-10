@@ -15,6 +15,11 @@ import { withApiHandler } from '@/lib/api/with-api-handler';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
 import { EmailService } from '@/lib/email-service';
 import { ContractSignatoriesService } from '@/lib/services/contracts/ContractSignatoriesService';
+import {
+  getIdempotencyKeyFromRequest,
+  checkIdempotency,
+  storeIdempotencyResult,
+} from '@/lib/idempotency';
 
 export const POST = withApiHandler(
   { roles: ['homeowner', 'contractor'] },
@@ -25,6 +30,32 @@ export const POST = withApiHandler(
     // SECURITY: Validate UUID format before database query
     if (!isValidUUID(contractId)) {
       throw new BadRequestError('Invalid contract ID format');
+    }
+
+    // Idempotency — guards against double-tap signing, network retries
+    // re-firing the homeowner/contractor counter-party notifications,
+    // and duplicate appointment creation. The contract_accepted_create_
+    // appointment trigger is itself idempotent, but the notifications
+    // and emails further down this handler are not. AUDIT_PUNCH_LIST
+    // P2 #75.
+    const idempotencyKey = getIdempotencyKeyFromRequest(
+      request,
+      'contract_accept',
+      user.id,
+      contractId
+    );
+    const idem = await checkIdempotency<unknown>(
+      idempotencyKey,
+      'contract_accept'
+    );
+    if (idem?.isDuplicate && idem.cachedResult) {
+      logger.info('Duplicate contract_accept — returning cached result', {
+        service: 'contracts',
+        idempotencyKey,
+        userId: user.id,
+        contractId,
+      });
+      return NextResponse.json(idem.cachedResult);
     }
 
     // SECURITY: Fix IDOR - check ownership in query, not after fetch (user-scoped read)
@@ -144,8 +175,11 @@ export const POST = withApiHandler(
           ? 'The contractor'
           : 'The homeowner';
 
+      // Audit P2 (2026-05-10): capture the otherParty notification id
+      // so the email-send block below can flip `email_sent = true`.
+      let otherPartyNotifId: string | null = null;
       try {
-        await NotificationService.createNotification({
+        otherPartyNotifId = await NotificationService.createNotification({
           userId: otherPartyId,
           title: 'Contract Pending Your Signature',
           message: `${signerName} has signed the contract for "${updatedContract.title || 'your job'}". Your signature is required to proceed.`,
@@ -193,14 +227,20 @@ export const POST = withApiHandler(
               ? `${process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.com'}/contractor/jobs/${contract.job_id}`
               : `${process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.com'}/jobs/${contract.job_id}`;
 
-          await EmailService.sendContractSignedEmail(otherPartyProfile.email, {
-            recipientName,
-            signerName,
-            jobTitle: updatedContract.title || 'Job',
-            contractTitle: updatedContract.title || 'Contract',
-            isFullyAccepted: false,
-            viewUrl,
-          });
+          const emailOk = await EmailService.sendContractSignedEmail(
+            otherPartyProfile.email,
+            {
+              recipientName,
+              signerName,
+              jobTitle: updatedContract.title || 'Job',
+              contractTitle: updatedContract.title || 'Contract',
+              isFullyAccepted: false,
+              viewUrl,
+            }
+          );
+          if (emailOk && otherPartyNotifId) {
+            await NotificationService.markEmailSent(otherPartyNotifId);
+          }
         }
       } catch (emailError) {
         logger.error('Failed to send contract signed email', emailError, {
@@ -212,9 +252,15 @@ export const POST = withApiHandler(
 
     // If contract is now accepted, create notifications and schedule job
     if (updatedContract.status === CONTRACT_STATUS.ACCEPTED) {
-      // Notify both parties
+      // Notify both parties.
+      //
+      // Audit P2 (2026-05-10): capture both notification ids so the
+      // email-send block below can flip `email_sent = true` per
+      // recipient. Promise.all preserves order so [0]=contractor, [1]=homeowner.
+      let contractorAcceptedNotifId: string | null = null;
+      let homeownerAcceptedNotifId: string | null = null;
       try {
-        await Promise.all([
+        const [cId, hId] = await Promise.all([
           NotificationService.createNotification({
             userId: contract.contractor_id,
             title: 'Contract Accepted!',
@@ -230,6 +276,8 @@ export const POST = withApiHandler(
             actionUrl: `/jobs/${contract.job_id}`,
           }),
         ]);
+        contractorAcceptedNotifId = cId;
+        homeownerAcceptedNotifId = hId;
       } catch (notificationError) {
         logger.error(
           'Failed to create acceptance notifications',
@@ -264,17 +312,23 @@ export const POST = withApiHandler(
             contractorProfile.first_name && contractorProfile.last_name
               ? `${contractorProfile.first_name} ${contractorProfile.last_name}`
               : contractorProfile.company_name || 'Contractor';
-          await EmailService.sendContractSignedEmail(contractorProfile.email, {
-            recipientName: name,
-            signerName: homeownerProfile2
-              ? `${homeownerProfile2.first_name || ''} ${homeownerProfile2.last_name || ''}`.trim() ||
-                'Homeowner'
-              : 'Homeowner',
-            jobTitle: updatedContract.title || 'Job',
-            contractTitle: updatedContract.title || 'Contract',
-            isFullyAccepted: true,
-            viewUrl: `${baseUrl}/contractor/jobs/${contract.job_id}`,
-          });
+          const emailOk = await EmailService.sendContractSignedEmail(
+            contractorProfile.email,
+            {
+              recipientName: name,
+              signerName: homeownerProfile2
+                ? `${homeownerProfile2.first_name || ''} ${homeownerProfile2.last_name || ''}`.trim() ||
+                  'Homeowner'
+                : 'Homeowner',
+              jobTitle: updatedContract.title || 'Job',
+              contractTitle: updatedContract.title || 'Contract',
+              isFullyAccepted: true,
+              viewUrl: `${baseUrl}/contractor/jobs/${contract.job_id}`,
+            }
+          );
+          if (emailOk && contractorAcceptedNotifId) {
+            await NotificationService.markEmailSent(contractorAcceptedNotifId);
+          }
         }
 
         if (homeownerProfile2?.email) {
@@ -282,18 +336,24 @@ export const POST = withApiHandler(
             homeownerProfile2.first_name && homeownerProfile2.last_name
               ? `${homeownerProfile2.first_name} ${homeownerProfile2.last_name}`
               : 'Homeowner';
-          await EmailService.sendContractSignedEmail(homeownerProfile2.email, {
-            recipientName: name,
-            signerName: contractorProfile
-              ? contractorProfile.first_name && contractorProfile.last_name
-                ? `${contractorProfile.first_name} ${contractorProfile.last_name}`
-                : contractorProfile.company_name || 'Contractor'
-              : 'Contractor',
-            jobTitle: updatedContract.title || 'Job',
-            contractTitle: updatedContract.title || 'Contract',
-            isFullyAccepted: true,
-            viewUrl: `${baseUrl}/jobs/${contract.job_id}`,
-          });
+          const emailOk = await EmailService.sendContractSignedEmail(
+            homeownerProfile2.email,
+            {
+              recipientName: name,
+              signerName: contractorProfile
+                ? contractorProfile.first_name && contractorProfile.last_name
+                  ? `${contractorProfile.first_name} ${contractorProfile.last_name}`
+                  : contractorProfile.company_name || 'Contractor'
+                : 'Contractor',
+              jobTitle: updatedContract.title || 'Job',
+              contractTitle: updatedContract.title || 'Contract',
+              isFullyAccepted: true,
+              viewUrl: `${baseUrl}/jobs/${contract.job_id}`,
+            }
+          );
+          if (emailOk && homeownerAcceptedNotifId) {
+            await NotificationService.markEmailSent(homeownerAcceptedNotifId);
+          }
         }
       } catch (emailError) {
         logger.error('Failed to send contract accepted emails', emailError, {
@@ -361,13 +421,23 @@ export const POST = withApiHandler(
       }
     }
 
-    return NextResponse.json({
+    const responseData = {
       success: true,
       contract: updatedContract,
       message:
         updatedContract.status === CONTRACT_STATUS.ACCEPTED
           ? 'Contract accepted! Both parties have signed.'
           : 'Contract signed. Waiting for other party to sign.',
-    });
+    };
+
+    await storeIdempotencyResult(
+      idempotencyKey,
+      'contract_accept',
+      responseData,
+      user.id,
+      { contractId, jobId: contract.job_id }
+    );
+
+    return NextResponse.json(responseData);
   }
 );

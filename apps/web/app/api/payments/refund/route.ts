@@ -20,10 +20,18 @@ import { getClientIp } from '@/lib/request-ip';
 
 /**
  * POST /api/payments/refund
- * Process a refund for an escrow transaction with MFA and anomaly detection
+ * Process a refund for an escrow transaction with MFA and anomaly
+ * detection.
+ *
+ * 2026-05-09: added an explicit `roles` lock at the framework
+ * boundary. The downstream code already restricts refunds to the
+ * homeowner who paid (lines below), but the absent route-level lock
+ * meant any authenticated role could enter the handler before being
+ * rejected by the inner check — adds defense-in-depth and surfaces the
+ * intent at the perimeter. Admin can hit the dedicated `/api/admin/refunds` endpoints.
  */
 export const POST = withApiHandler(
-  { rateLimit: false },
+  { roles: ['homeowner'], rateLimit: false },
   async (request, { user }) => {
     // Custom rate limiting - key on userId + IP to prevent both enumeration and per-user abuse
     const ip = getClientIp(request);

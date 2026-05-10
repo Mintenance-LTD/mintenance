@@ -20,6 +20,15 @@ export const POST = withApiHandler(
     roles: ['admin'],
     rateLimit: { maxRequests: 10 },
     requireMfaVerifiedWithinMinutes: 15,
+    // Audit P1 (2026-05-10): rejecting an escrow release locks up
+    // contractor funds and must leave a clear forensic trace. Logged
+    // declaratively via the wrapper option — fires only on 2xx success.
+    logActivity: {
+      actionType: 'escrow_reject',
+      category: 'revenue',
+      targetType: 'escrow',
+      description: 'Rejected escrow release',
+    },
   },
   async (request, { user }) => {
     const validation = await validateRequest(request, rejectEscrowSchema);

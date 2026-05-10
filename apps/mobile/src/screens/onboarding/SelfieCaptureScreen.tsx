@@ -91,7 +91,14 @@ export const SelfieCaptureScreen: React.FC = () => {
 
       const { error: profileError } = await supabase
         .from('profiles')
-        .update({ profile_image_url: urlData.publicUrl })
+        .update({
+          profile_image_url: urlData.publicUrl,
+          // 2026-05-10 (AUDIT_PUNCH_LIST P2 #38): the column landed in
+          // migration `20260510071500_profiles_add_profile_photo_is_selfie`.
+          // This screen is camera-only (no library picker), so any upload
+          // through here is by construction a live-capture selfie.
+          profile_photo_is_selfie: true,
+        })
         .eq('id', user.id);
       if (profileError) throw profileError;
 

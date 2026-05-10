@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
+import dynamic from 'next/dynamic';
 import {
   PoundSterling,
   Plus,
@@ -16,7 +17,22 @@ import {
   FileText,
   Loader2,
 } from 'lucide-react';
-import { AreaChart, DonutChart } from '@tremor/react';
+
+// AUDIT_PUNCH_LIST P2 #64 (A2-P2-6) — `@tremor/react` ships ~200KB
+// gzipped (Recharts under the hood). Static-importing it pulled the
+// entire chart library into the initial bundle for every contractor
+// user, even if they never opened /contractor/expenses. Lazy-load
+// matches the proven pattern in `app/admin/ai-monitoring/components/
+// AIMonitoringClient.tsx`. `ssr: false` since charts read window
+// dimensions and have no SSR equivalent.
+const AreaChart = dynamic(
+  () => import('@tremor/react').then((m) => ({ default: m.AreaChart })),
+  { ssr: false }
+);
+const DonutChart = dynamic(
+  () => import('@tremor/react').then((m) => ({ default: m.DonutChart })),
+  { ssr: false }
+);
 import toast from 'react-hot-toast';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import { getCsrfHeaders } from '@/lib/csrf-client';

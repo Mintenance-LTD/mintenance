@@ -4,14 +4,19 @@ import { logger } from '@mintenance/shared';
 import { validateRequest } from '@/lib/validation/validator';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 
-const bankAccountSchema = z.object({
-  accountNumber: z.string().trim().min(6, 'Account number is required'),
-  sortCode: z.string().trim().min(6, 'Sort code is required'),
-  accountHolderName: z
-    .string()
-    .trim()
-    .min(1, 'Account holder name is required'),
-});
+// Audit P2 (2026-05-10): `.strict()` blocks unknown body keys —
+// bank-account registration is high-value and must not silently
+// accept overrides like `contractorId` or `verified=true`.
+const bankAccountSchema = z
+  .object({
+    accountNumber: z.string().trim().min(6, 'Account number is required'),
+    sortCode: z.string().trim().min(6, 'Sort code is required'),
+    accountHolderName: z
+      .string()
+      .trim()
+      .min(1, 'Account holder name is required'),
+  })
+  .strict();
 
 /**
  * POST /api/payments/bank-account
@@ -51,7 +56,7 @@ export const POST = withApiHandler(
           'Direct bank-account submission is not yet enabled. Please complete payout setup via the Stripe Connect onboarding flow.',
         code: 'stripe_connect_pending',
       },
-      { status: 501 },
+      { status: 501 }
     );
   }
 );

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { RATE_LIMIT_TIERS } from '@/lib/api/rate-limit-tiers';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { EmailService } from '@/lib/email-service';
@@ -12,7 +13,10 @@ import { EmailService } from '@/lib/email-service';
 export const POST = withApiHandler(
   {
     roles: ['admin'],
-    rateLimit: { maxRequests: 2 },
+    // Audit P2 (2026-05-10): adopt the canonical STRICT tier
+    // (5/min). Was 2/min ad-hoc — same risk class as other
+    // privilege/blast routes, now using the shared constant.
+    rateLimit: RATE_LIMIT_TIERS.STRICT,
     // 2026-05-01 audit follow-up: blast-emails every coming-soon signup.
     // A stolen admin cookie could fire a brand-impacting mass mail.
     // Require fresh MFA proof — matches the precedent for admin send

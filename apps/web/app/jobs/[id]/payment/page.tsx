@@ -57,7 +57,20 @@ function JobPaymentPageContent() {
   const loadJobDetails = async () => {
     try {
       setLoading(true);
-      const currentUser = await fetchCurrentUser();
+
+      // AUDIT_PUNCH_LIST P2 #67 (A-P2-5) — was 4 sequential awaits
+      // (user → job → contract → payment-details). Each request is a
+      // separate authenticated GET, so server-side checks block any
+      // info leak; we can safely fire them in parallel and let the
+      // server reject if the caller isn't authorized. Drops first
+      // paint by ~3 RTTs.
+      const [currentUser, jobData, contractRes, paymentDetailsResponse] =
+        await Promise.all([
+          fetchCurrentUser(),
+          JobService.getJobById(jobId),
+          fetch(`/api/contracts?job_id=${jobId}`),
+          fetch(`/api/jobs/${jobId}/payment-details`),
+        ]);
 
       if (!currentUser) {
         router.push('/login');
@@ -66,7 +79,6 @@ function JobPaymentPageContent() {
 
       setUser(currentUser);
 
-      const jobData = await JobService.getJobById(jobId);
       if (!jobData) {
         setError('Job not found');
         return;
@@ -112,7 +124,6 @@ function JobPaymentPageContent() {
 
       setJob(normalized);
 
-      const contractRes = await fetch(`/api/contracts?job_id=${jobId}`);
       if (contractRes.ok) {
         const contractData = await contractRes.json();
         const contract = contractData.contracts?.[0];
@@ -127,9 +138,6 @@ function JobPaymentPageContent() {
         return;
       }
 
-      const paymentDetailsResponse = await fetch(
-        `/api/jobs/${jobId}/payment-details`
-      );
       if (paymentDetailsResponse.ok) {
         const detailsData = await paymentDetailsResponse.json();
         setPaymentDetails({

@@ -1,5 +1,27 @@
 import { logger } from '../utils/logger';
 
+/**
+ * AUDIT_PUNCH_LIST P1 #18 (B6-P1-1) — DEPRECATED-NAMING WARNING.
+ *
+ * Despite the name, this service does NOT call any AI / LLM / model.
+ * It is a deterministic, client-side heuristic that combines:
+ *   - A static `BASE_RATES` lookup table (~£140-£250 by category)
+ *   - An urgency multiplier (low / medium / high)
+ *   - A rough complexity heuristic from description length + keywords
+ *
+ * The server's `PricingAgent` is the actual AI surface and may
+ * disagree with this client-side estimate — homeowners should not
+ * be told the suggestion is "AI-powered" since they'll trust it
+ * more than warranted, and contractors will be confused when their
+ * server-side score diverges.
+ *
+ * Renaming the file/class is invasive (8 importers + a __mocks__).
+ * The class name is kept for now; user-facing strings have been
+ * toned down ("Pricing Estimate" / "Estimated price" instead of "AI
+ * Suggestion" / "AI-powered"). A full rename + server-routed
+ * estimator is tracked as a follow-up.
+ */
+
 // Types previously in ./pricing/types - inlined since pricing/ was removed
 export interface JobPricingInput {
   title: string;

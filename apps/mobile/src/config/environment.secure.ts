@@ -6,6 +6,12 @@
  */
 
 import Constants from 'expo-constants';
+// Audit P2 (2026-05-10): Stripe publishable key is sourced from a single
+// canonical accessor (`getStripeConfig().publishableKey` in
+// EnvironmentSecurity.ts) so a future env-name change only has to be
+// applied once. Two independent `process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY`
+// reads previously coexisted; both now flow through that helper.
+import { getStripeConfig } from '../utils/EnvironmentSecurity';
 
 // Environment configuration with security hardening
 const CONFIG = {
@@ -13,8 +19,9 @@ const CONFIG = {
   SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL || '',
   SUPABASE_ANON_KEY: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY || '',
 
-  // Stripe Public Configuration (safe for client)
-  STRIPE_PUBLISHABLE_KEY: process.env.EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY || '',
+  // Stripe Public Configuration (safe for client) — see canonical
+  // source in EnvironmentSecurity.getStripeConfig().
+  STRIPE_PUBLISHABLE_KEY: getStripeConfig().publishableKey || '',
 
   // App Configuration
   APP_NAME: process.env.EXPO_PUBLIC_APP_NAME || 'Mintenance',

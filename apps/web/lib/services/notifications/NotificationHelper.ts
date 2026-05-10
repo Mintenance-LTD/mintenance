@@ -350,33 +350,37 @@ async function notifyJobScheduled(
 }
 
 /**
- * Create notification for job confirmation
+ * Create notification for job confirmation. Returns id (or null on failure)
+ * so callers can pair with `NotificationService.markEmailSent` (P2 2026-05-10).
  */
 export async function notifyJobConfirmed(
   jobId: string,
   jobTitle: string,
   contractorId: string
-): Promise<void> {
+): Promise<string | null> {
   try {
-    await NotificationService.createNotification({
+    const id = await NotificationService.createNotification({
       userId: contractorId,
       type: 'job_confirmed',
       title: 'Job Confirmed ✅',
       message: `The homeowner has confirmed completion of "${jobTitle}". Payment release is being processed.`,
       actionUrl: `/contractor/jobs/${jobId}`,
-    }).catch((error) => {
-      logger.error('Failed to create job confirmed notification', error, {
+    });
+    if (!id) {
+      logger.error('Failed to create job confirmed notification', null, {
         service: 'NotificationHelper',
         jobId,
         contractorId,
       });
-    });
+    }
+    return id;
   } catch (error) {
     logger.error('Error in notifyJobConfirmed', error, {
       service: 'NotificationHelper',
       jobId,
       contractorId,
     });
+    return null;
   }
 }
 

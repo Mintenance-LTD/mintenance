@@ -23,11 +23,16 @@ import { rateLimiter } from '@/lib/rate-limiter';
 import { logger } from '@mintenance/shared';
 import { getClientIp } from '@/lib/request-ip';
 
-const stepUpSchema = z.object({
-  code: z.string().min(6).max(16),
-  method: z.enum(['totp', 'backup_code', 'sms', 'email']),
-  maxAgeMinutes: z.number().int().positive().max(60).default(15),
-});
+// Audit P2 (2026-05-10): `.strict()` so a future client can't widen
+// the step-up gate by smuggling extra fields (e.g. `userId` to step
+// up on someone else's behalf).
+const stepUpSchema = z
+  .object({
+    code: z.string().min(6).max(16),
+    method: z.enum(['totp', 'backup_code', 'sms', 'email']),
+    maxAgeMinutes: z.number().int().positive().max(60).default(15),
+  })
+  .strict();
 
 export const POST = withApiHandler(
   { rateLimit: false, csrf: true },

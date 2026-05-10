@@ -25,13 +25,43 @@ import {
   NotFoundError,
   BadRequestError,
 } from '@/lib/errors/api-error';
+import {
+  getIdempotencyKeyFromRequest,
+  checkIdempotency,
+  storeIdempotencyResult,
+} from '@/lib/idempotency';
 
 export const POST = withApiHandler(
   { rateLimit: { maxRequests: 20 } },
-  async (_request, { user, params }) => {
+  async (request, { user, params }) => {
     const { id: contractId } = await params;
     if (!isValidUUID(contractId)) {
       throw new BadRequestError('Invalid contract ID');
+    }
+
+    // Idempotency — closes the race window between the row.signed_at
+    // check and the UPDATE that follows. Without this, two concurrent
+    // requests could both pass the "already signed" check, both run
+    // UPDATE, both pass the all-signed test, both fire the
+    // dual-promotion notifications. The "already_signed: true" early
+    // return on row.signed_at is a happy-path fast path; this is the
+    // belt-and-braces guard. AUDIT_PUNCH_LIST P2 #75.
+    const idempotencyKey = getIdempotencyKeyFromRequest(
+      request,
+      'contract_sign_cosigner',
+      user.id,
+      contractId
+    );
+    const idem = await checkIdempotency<unknown>(
+      idempotencyKey,
+      'contract_sign_cosigner'
+    );
+    if (idem?.isDuplicate && idem.cachedResult) {
+      logger.info(
+        'Duplicate contract_sign_cosigner — returning cached result',
+        { service: 'contracts', idempotencyKey, userId: user.id, contractId }
+      );
+      return NextResponse.json(idem.cachedResult);
     }
 
     // Find the caller's signatory row for this contract.
@@ -133,10 +163,20 @@ export const POST = withApiHandler(
       }
     }
 
-    return NextResponse.json({
+    const responseData = {
       success: true,
       signed_at: nowIso,
       contract_promoted: promoted,
-    });
+    };
+
+    await storeIdempotencyResult(
+      idempotencyKey,
+      'contract_sign_cosigner',
+      responseData,
+      user.id,
+      { contractId, signatoryId: row.id }
+    );
+
+    return NextResponse.json(responseData);
   }
 );

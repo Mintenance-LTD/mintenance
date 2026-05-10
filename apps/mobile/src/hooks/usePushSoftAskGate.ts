@@ -22,7 +22,7 @@
  *          `NotificationService.initialize({ promptIfUndetermined: true })`.
  *          This is the ONE place in the app that may fire the iOS
  *          system dialog.
- *        - "Not Now" — dismiss for 7 days, then soft-ask again.
+ *        - "Not Now" — dismiss for 24 hours, then soft-ask again.
  *        - (If status is already 'denied') "Open Settings" — deep-link
  *          to the iOS/Android notification settings page.
  *
@@ -31,7 +31,14 @@
  *   - User must have completed onboarding (swiper dismissed).
  *   - Current permission status must be 'undetermined' OR 'denied'.
  *     ('granted' = we're done; nothing to ask.)
- *   - Local dismiss timestamp must be null OR older than 7 days.
+ *   - Local dismiss timestamp must be null OR older than 24 hours.
+ *
+ * Note on cool-off divergence (AUDIT_PUNCH_LIST P2 #39, B2-P2-2):
+ * push uses a **24h** cool-off; location + always-location both use
+ * **7 days**. This is deliberate: push prompts are low-friction and
+ * a same-next-day re-ask is fine, while location prompts are
+ * higher-stakes (continuous tracking) so a weekly re-ask balances
+ * reach with not-being-creepy. Don't unify without product input.
  *
  * Storage contract:
  *   - Key: `push_soft_ask_dismissed_at`
@@ -73,7 +80,7 @@ export interface PushSoftAskGate {
    * Returns the resolved status so the caller can branch UI.
    */
   allowNotifications: () => Promise<PushPermissionStatus>;
-  /** User tapped "Not Now". Sets a 7-day cool-off. */
+  /** User tapped "Not Now". Sets a 24-hour cool-off. */
   dismiss: () => Promise<void>;
   /** Deep-link to OS notification settings (recovery from 'denied'). */
   openSystemSettings: () => Promise<void>;
@@ -129,7 +136,7 @@ export function usePushSoftAskGate(): PushSoftAskGate {
           return;
         }
 
-        // Respect the 7-day cool-off after a "Not Now" dismissal.
+        // Respect the 24-hour cool-off after a "Not Now" dismissal.
         const dismissedAtRaw = await AsyncStorage.getItem(STORAGE_KEY);
         if (dismissedAtRaw) {
           const dismissedAt = Date.parse(dismissedAtRaw);
@@ -220,7 +227,7 @@ export function usePushSoftAskGate(): PushSoftAskGate {
         // path on the next soft-ask cycle (after cool-off).
         setShouldShow(false);
 
-        // Record this attempt so we don't re-prompt for 7 days.
+        // Record this attempt so we don't re-prompt for 24 hours.
         try {
           await AsyncStorage.setItem(STORAGE_KEY, new Date().toISOString());
         } catch {

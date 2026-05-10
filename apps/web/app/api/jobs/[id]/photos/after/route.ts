@@ -12,6 +12,11 @@ import {
 } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { validateImageUpload } from '@/lib/utils/fileValidation';
+import {
+  getIdempotencyKeyFromRequest,
+  checkIdempotency,
+  storeIdempotencyResult,
+} from '@/lib/idempotency';
 
 const ALLOWED_IMAGE_TYPES = [
   'image/jpeg',
@@ -26,11 +31,44 @@ const MAX_FILES = 10;
 /**
  * POST /api/jobs/:id/photos/after
  * Upload after photos at completion
+ *
+ * Audit P2 (2026-05-10): added explicit `roles: ['contractor', 'admin']`
+ * to the wrapper. Functional behaviour is unchanged — the manual
+ * `job.contractor_id !== user.id && user.role !== 'admin'` check below
+ * still fires per-request and enforces the assignment relationship.
+ * The roles array is defence-in-depth so a future refactor that drops
+ * the manual check can't accidentally widen access to homeowners.
  */
 export const POST = withApiHandler(
-  { rateLimit: { maxRequests: 30 } },
+  { roles: ['contractor', 'admin'], rateLimit: { maxRequests: 30 } },
   async (request, { user, params }) => {
     const jobId = params.id as string;
+
+    // Idempotency — opt-in via the `Idempotency-Key` header. After
+    // photos auto-trigger job completion + notify the homeowner +
+    // send the "Job Completed - Review Required" email. Without
+    // idempotency, a network retry could double-fire those side
+    // effects even though the second photo upload would no-op
+    // (status already 'completed'). AUDIT_PUNCH_LIST P2 #75.
+    const idempotencyKey = getIdempotencyKeyFromRequest(
+      request,
+      'photos_after',
+      user.id,
+      jobId
+    );
+    const idem = await checkIdempotency<unknown>(
+      idempotencyKey,
+      'photos_after'
+    );
+    if (idem?.isDuplicate && idem.cachedResult) {
+      logger.info('Duplicate photos_after — returning cached result', {
+        service: 'jobs.photos',
+        idempotencyKey,
+        userId: user.id,
+        jobId,
+      });
+      return NextResponse.json(idem.cachedResult);
+    }
 
     // Verify user is contractor for this job (include location for geolocation check)
     const { data: job, error: jobError } = await serverSupabase
@@ -345,7 +383,11 @@ export const POST = withApiHandler(
             }
 
             // Notify homeowner to review and contractor of completion
-            await Promise.all([
+            // Audit P2 (2026-05-10): capture the homeowner notification
+            // id from Promise.all so the email send below can flip
+            // `email_sent = true` on that row. Contractor copy is
+            // in-app only — no matching email, so no id capture needed.
+            const [homeownerNotifId] = await Promise.all([
               NotificationService.createNotification({
                 userId: job.homeowner_id,
                 title: 'Job Completed - Review Required',
@@ -387,7 +429,7 @@ export const POST = withApiHandler(
                     : contractorProfile.company_name || 'Your contractor'
                   : 'Your contractor';
 
-                await EmailService.sendJobCompletedEmail(
+                const emailOk = await EmailService.sendJobCompletedEmail(
                   homeownerProfile.email,
                   {
                     homeownerName,
@@ -396,6 +438,9 @@ export const POST = withApiHandler(
                     viewUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.com'}/jobs/${jobId}`,
                   }
                 );
+                if (emailOk && homeownerNotifId) {
+                  await NotificationService.markEmailSent(homeownerNotifId);
+                }
               }
             } catch (emailError) {
               logger.error('Failed to send job completed email', emailError, {
@@ -420,12 +465,22 @@ export const POST = withApiHandler(
       }
     }
 
-    return NextResponse.json({
+    const responseData = {
       success: true,
       photos: uploadedPhotos,
       count: uploadedPhotos.length,
       validation: validationResult,
       jobCompleted,
-    });
+    };
+
+    await storeIdempotencyResult(
+      idempotencyKey,
+      'photos_after',
+      responseData,
+      user.id,
+      { jobId, count: uploadedPhotos.length, jobCompleted }
+    );
+
+    return NextResponse.json(responseData);
   }
 );
