@@ -32,7 +32,6 @@ import {
 } from './quotes/QuoteOperations';
 import {
   trackQuoteInteraction,
-  getQuoteAnalytics,
   getQuoteSummaryStats,
 } from './quotes/QuoteAnalytics';
 import {
@@ -62,7 +61,6 @@ export class QuoteBuilderService {
 
   // Analytics
   static trackQuoteInteraction = trackQuoteInteraction;
-  static getQuoteAnalytics = getQuoteAnalytics;
   static getQuoteSummaryStats = getQuoteSummaryStats;
 
   // Revisions

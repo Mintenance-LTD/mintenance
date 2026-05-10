@@ -161,10 +161,10 @@ describe('AIPricingWidget Component', () => {
     it('should render initial state without analysis', () => {
       const { getByText } = render(<AIPricingWidget jobInput={mockJobInput} />);
 
-      expect(getByText('AI Pricing Analysis')).toBeTruthy();
+      expect(getByText('Pricing Estimate')).toBeTruthy();
       expect(
         getByText(
-          'Get intelligent pricing suggestions based on market data and job complexity'
+          'Get a quick price estimate based on category base rates, urgency, and job complexity.'
         )
       ).toBeTruthy();
       expect(getByText('Analyze Pricing')).toBeTruthy();
@@ -265,7 +265,9 @@ describe('AIPricingWidget Component', () => {
         getHomeownerInsights: mockGetHomeownerInsights,
       });
 
-      const { queryByText } = render(<AIPricingWidget jobInput={mockJobInput} />);
+      const { queryByText } = render(
+        <AIPricingWidget jobInput={mockJobInput} />
+      );
 
       expect(queryByText('Analyze Pricing')).toBeNull();
     });
@@ -297,7 +299,7 @@ describe('AIPricingWidget Component', () => {
         <AIPricingWidget jobInput={mockJobInput} showDetails />
       );
 
-      const header = getByText('AI Pricing Analysis');
+      const header = getByText('Pricing Estimate');
 
       // Initially collapsed (no details visible)
       expect(queryByText('Key Pricing Factors')).toBeNull();
@@ -317,7 +319,7 @@ describe('AIPricingWidget Component', () => {
       );
 
       // Expand
-      fireEvent.press(getByText('AI Pricing Analysis'));
+      fireEvent.press(getByText('Pricing Estimate'));
 
       expect(getByText('Key Pricing Factors')).toBeTruthy();
       expect(getByText('Location')).toBeTruthy();
@@ -331,7 +333,7 @@ describe('AIPricingWidget Component', () => {
       );
 
       // Expand
-      fireEvent.press(getByText('AI Pricing Analysis'));
+      fireEvent.press(getByText('Pricing Estimate'));
 
       expect(getByText('Market Context')).toBeTruthy();
       expect(getByText('Average Price')).toBeTruthy();
@@ -346,11 +348,13 @@ describe('AIPricingWidget Component', () => {
       );
 
       // Expand
-      fireEvent.press(getByText('AI Pricing Analysis'));
+      fireEvent.press(getByText('Pricing Estimate'));
 
       expect(getByText('Budget Insights')).toBeTruthy();
       expect(getByText('Price is within market range')).toBeTruthy();
-      expect(getByText('Consider scheduling during off-peak hours')).toBeTruthy();
+      expect(
+        getByText('Consider scheduling during off-peak hours')
+      ).toBeTruthy();
     });
 
     it('should show recommendations when expanded', () => {
@@ -359,7 +363,7 @@ describe('AIPricingWidget Component', () => {
       );
 
       // Expand
-      fireEvent.press(getByText('AI Pricing Analysis'));
+      fireEvent.press(getByText('Pricing Estimate'));
 
       expect(getByText('Recommendations')).toBeTruthy();
       expect(
@@ -374,7 +378,7 @@ describe('AIPricingWidget Component', () => {
       );
 
       // Expand
-      fireEvent.press(getByText('AI Pricing Analysis'));
+      fireEvent.press(getByText('Pricing Estimate'));
 
       const reanalyzeButton = getByText('Re-analyze');
       expect(reanalyzeButton).toBeTruthy();
@@ -389,7 +393,7 @@ describe('AIPricingWidget Component', () => {
       );
 
       // Expand
-      fireEvent.press(getByText('AI Pricing Analysis'));
+      fireEvent.press(getByText('Pricing Estimate'));
 
       // Details should not be shown
       expect(queryByText('Key Pricing Factors')).toBeNull();
@@ -596,7 +600,7 @@ describe('AIPricingWidget Component', () => {
         );
 
         // Expand to see market context
-        fireEvent.press(getByText('AI Pricing Analysis'));
+        fireEvent.press(getByText('Pricing Estimate'));
 
         expect(getByText(displayText)).toBeTruthy();
       }
@@ -625,7 +629,7 @@ describe('AIPricingWidget Component', () => {
       );
 
       // Expand
-      fireEvent.press(getByText('AI Pricing Analysis'));
+      fireEvent.press(getByText('Pricing Estimate'));
 
       // Should not show Key Pricing Factors section
       expect(queryByText('Key Pricing Factors')).toBeNull();
@@ -650,7 +654,7 @@ describe('AIPricingWidget Component', () => {
       );
 
       // Expand
-      fireEvent.press(getByText('AI Pricing Analysis'));
+      fireEvent.press(getByText('Pricing Estimate'));
 
       // Should not show Recommendations section
       expect(queryByText('Recommendations')).toBeNull();
@@ -672,7 +676,7 @@ describe('AIPricingWidget Component', () => {
       );
 
       // Expand
-      fireEvent.press(getByText('AI Pricing Analysis'));
+      fireEvent.press(getByText('Pricing Estimate'));
 
       // Should not show Budget Insights section
       expect(queryByText('Budget Insights')).toBeNull();
@@ -687,10 +691,12 @@ describe('AIPricingWidget Component', () => {
         getHomeownerInsights: mockGetHomeownerInsights,
       });
 
-      const { queryByText } = render(<AIPricingWidget jobInput={mockJobInput} />);
+      const { queryByText } = render(
+        <AIPricingWidget jobInput={mockJobInput} />
+      );
 
       // Should render the initial state (not null)
-      expect(queryByText('AI Pricing Analysis')).toBeTruthy();
+      expect(queryByText('Pricing Estimate')).toBeTruthy();
     });
 
     it('should handle component unmount gracefully', () => {

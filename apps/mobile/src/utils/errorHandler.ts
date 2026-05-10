@@ -1,5 +1,6 @@
 import { Alert } from 'react-native';
 import { logger } from './logger';
+import { isOnlineCached } from './networkUtils';
 
 interface AppError extends Error {
   code?: string;
@@ -122,11 +123,11 @@ export class ErrorHandler {
         return 'Service temporarily unavailable. Please try again later.';
     }
 
-    // Network errors
-    if (
-      err.code === 'NETWORK_ERROR' ||
-      (typeof navigator !== 'undefined' && !navigator.onLine)
-    ) {
+    // Network errors.
+    // 2026-05-09: was guarded `typeof navigator !== 'undefined' && !navigator.onLine`,
+    // but navigator IS defined in RN (the .onLine property is the
+    // missing piece). Read NetInfo-backed cache instead.
+    if (err.code === 'NETWORK_ERROR' || !isOnlineCached()) {
       return 'Please check your internet connection and try again.';
     }
 
@@ -178,7 +179,8 @@ export class ErrorHandler {
 
   static isNetworkError(error: unknown): boolean {
     const err = error as Partial<AppError>;
-    const offline = typeof navigator !== 'undefined' && !navigator.onLine;
+    // 2026-05-09: replaced broken navigator.onLine read with NetInfo cache.
+    const offline = !isOnlineCached();
     return (
       err.code === 'NETWORK_ERROR' ||
       err.message?.toLowerCase?.().includes('network') ||

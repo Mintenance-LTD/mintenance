@@ -30,8 +30,16 @@ export class ApiMiddleware {
   private activeRequests = new Map<string, RequestContext>();
 
   constructor(middlewareConfig: Partial<MiddlewareConfig> = {}) {
+    // AUDIT_PUNCH_LIST P2 #54 (B5-P2-1) — was `=== 'production'` only,
+    // so staging skipped anomaly checks (rate-limit + blocked-UA
+    // detection). Staging exists to catch regressions before prod;
+    // disabling the same protection in staging meant a class of bugs
+    // (broken rate limiter, mis-tagged user-agent block) shipped to
+    // prod undetected. Now enabled in BOTH staging + production.
+    // Local development still skips so dev iterates fast.
     this.config = {
-      enableProtection: config.environment === 'production',
+      enableProtection:
+        config.environment === 'production' || config.environment === 'staging',
       bypassEndpoints: ['/health', '/metrics', '/status'],
       maxRetries: 3,
       retryDelayMs: 1000,

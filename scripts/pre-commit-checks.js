@@ -259,6 +259,33 @@ const KNOWN_LARGE_FILES = new Set([
   // screen into list/upload/star sub-components is a dedicated P2
   // alongside the other contractor-business screens.
   'apps/mobile/src/screens/contractor/DocumentsScreen.tsx', // 699 lines (was 694)
+  // Added 2026-05-09: AIPricingWidget grew from ~520 to 528 lines via
+  // the DEPRECATED-NAMING header docs + user-facing string retone
+  // (audit P1 #18: `AIPricingEngine` is mislabeled — pure client-side
+  // BASE_RATES heuristics, no AI). Net growth is documentation +
+  // 4-5 string changes ("AI Pricing Analysis" → "Pricing Estimate",
+  // etc.); splitting the widget is a dedicated P2 alongside the
+  // server-routed estimator that will replace the local engine.
+  'apps/mobile/src/components/AIPricingWidget.tsx', // 528 lines (was ~520)
+  // Added 2026-05-09: contractor/expenses/page.tsx pre-existed at
+  // ~624 lines (well over the gate). The audit-follow-up touch is
+  // 4 lines added (a small audit-doc comment + sanitize-postgrest
+  // import for the search filter). No new business logic. Splitting
+  // the page into Header / FilterRow / ExpenseTable / AddExpenseForm
+  // sub-components is a dedicated P2 alongside the other contractor
+  // business screens.
+  'apps/web/app/contractor/expenses/page.tsx', // 628 lines (was ~624)
+  // Added 2026-05-10: InputValidationMiddleware.ts grew from ~498 to 518
+  // lines via the AUDIT_PUNCH_LIST P2 #55 closure. Net change is the
+  // SECURITY-RATIONALE comment block (why the SQL_INJECTION_PATTERNS
+  // blacklist was removed — mobile uses Supabase parameterized queries,
+  // user input cannot reach raw SQL) plus loosened safeText regex
+  // documentation. The file shrunk on the executable code dimension
+  // (the SQL pattern array + the loop that ran it are both gone).
+  // Splitting the middleware is a dedicated P3 — its 5 validators
+  // (text / email / phone / uuid / number / etc.) share enough setup
+  // that pulling them apart would just relocate the bulk.
+  'apps/mobile/src/middleware/InputValidationMiddleware.ts', // 518 lines (was ~498)
 ]);
 
 function countLines(filePath) {

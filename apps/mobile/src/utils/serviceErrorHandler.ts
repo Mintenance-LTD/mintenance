@@ -10,6 +10,8 @@ import {
   ErrorContext,
 } from './errorHandling';
 import { logger } from './logger';
+import { isOnlineCached } from './networkUtils';
+import { validatePasswordStrength } from '../services/auth/validators';
 
 // ============================================================================
 // SERVICE-SPECIFIC ERROR TYPES
@@ -257,12 +259,18 @@ export class ServiceErrorHandler {
   }
 
   /**
-   * Validate password strength
+   * Validate password strength.
+   *
+   * AUDIT_PUNCH_LIST P1 #15 (B2-P1-1) — was a 1-rule check (length>=8)
+   * while AuthService.signUp + ResetPasswordScreen enforced 5 rules.
+   * Now delegates to the canonical `validatePasswordStrength` so all
+   * three surfaces share one source of truth.
    */
   static validatePassword(password: string, context: ServiceErrorContext) {
-    if (!password || password.length < 8) {
+    const result = validatePasswordStrength(password);
+    if (!result.valid) {
       throw this.handleValidationError(
-        'Password must be at least 8 characters long',
+        result.message ?? 'Password does not meet requirements',
         'password',
         context
       );
@@ -330,7 +338,10 @@ export class ServiceErrorHandler {
       return 'You do not have permission to perform this action.';
     } else if (status === 404) {
       return 'The requested resource was not found.';
-    } else if (!navigator.onLine) {
+    } else if (!isOnlineCached()) {
+      // 2026-05-09: was `!navigator.onLine`, which is `undefined` in
+      // React Native — every network error therefore showed the
+      // offline message. Now reads a NetInfo-backed cache.
       return 'No internet connection. Please check your network and try again.';
     } else {
       return 'A network error occurred. Please try again.';

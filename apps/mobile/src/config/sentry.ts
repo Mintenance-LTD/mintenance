@@ -25,8 +25,14 @@ export const initSentry = () => {
     environment: config.environment,
     debug: config.environment === 'development',
     beforeSend(event) {
-      // Don't send events in development unless explicitly enabled
-      if (config.environment === 'development') {
+      // AUDIT_PUNCH_LIST P2 #73 (B6-P2-4) — drop dev-environment events
+      // unless `EXPO_PUBLIC_SENTRY_DEBUG=1` is set, matching the
+      // override App.tsx already supports. Without this escape,
+      // there was no way to test Sentry wiring locally.
+      if (
+        config.environment === 'development' &&
+        !process.env.EXPO_PUBLIC_SENTRY_DEBUG
+      ) {
         return null;
       }
       return event;

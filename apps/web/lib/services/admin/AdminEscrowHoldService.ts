@@ -297,12 +297,12 @@ export class AdminEscrowHoldService {
             title,
             contractor_id,
             homeowner_id,
-            contractor:users!jobs_contractor_id_fkey (
+            contractor:profiles!jobs_contractor_id_fkey (
               id,
               first_name,
               last_name
             ),
-            homeowner:users!jobs_homeowner_id_fkey (
+            homeowner:profiles!jobs_homeowner_id_fkey (
               id,
               first_name,
               last_name
@@ -377,12 +377,12 @@ export class AdminEscrowHoldService {
             title,
             contractor_id,
             homeowner_id,
-            contractor:users!jobs_contractor_id_fkey (
+            contractor:profiles!jobs_contractor_id_fkey (
               id,
               first_name,
               last_name
             ),
-            homeowner:users!jobs_homeowner_id_fkey (
+            homeowner:profiles!jobs_homeowner_id_fkey (
               id,
               first_name,
               last_name

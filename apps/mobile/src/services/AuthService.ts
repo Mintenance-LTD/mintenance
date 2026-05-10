@@ -6,50 +6,33 @@ import { logger } from '../utils/logger';
 import { checkRateLimit, resetRateLimit } from '../middleware/RateLimiter';
 import { mobileApiClient } from '../utils/mobileApiClient';
 
-// Validation functions matching @mintenance/auth rules
-// (can't import @mintenance/auth directly — bcryptjs requires Node's crypto module)
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+import {
+  validateEmailFormat,
+  validatePasswordStrength,
+} from './auth/validators';
+import {
+  validateToken as runValidateToken,
+  type TokenValidationResult,
+} from './auth/jwt';
+import {
+  getCurrentSession as readCurrentSession,
+  getCurrentUser as readCurrentUser,
+  resolveSignedInUser,
+  updateUserProfile as runUpdateUserProfile,
+} from './auth/profile-fetch';
+import { restoreSessionFromBiometricTokens as runBiometricRestore } from './auth/biometric-restore';
 
-function validateEmailFormat(email: string): boolean {
-  return EMAIL_REGEX.test(email);
-}
+/**
+ * AuthService — façade over Supabase auth + the canonical web profile
+ * API. Refactored 2026-05-09: validators, JWT helpers, profile fetch,
+ * and biometric session restore extracted to `services/auth/*`. This
+ * file is the orchestrating class with sign-up / sign-in / reset
+ * flows and re-exports the public types.
+ */
 
-function validatePasswordStrength(password: string): {
-  valid: boolean;
-  message?: string;
-} {
-  if (password.length < 8) {
-    return {
-      valid: false,
-      message: 'Password must be at least 8 characters long',
-    };
-  }
-  if (!/(?=.*[a-z])/.test(password)) {
-    return {
-      valid: false,
-      message: 'Password must contain at least one lowercase letter',
-    };
-  }
-  if (!/(?=.*[A-Z])/.test(password)) {
-    return {
-      valid: false,
-      message: 'Password must contain at least one uppercase letter',
-    };
-  }
-  if (!/(?=.*\d)/.test(password)) {
-    return {
-      valid: false,
-      message: 'Password must contain at least one number',
-    };
-  }
-  if (!/(?=.*[@$!%*?&])/.test(password)) {
-    return {
-      valid: false,
-      message: 'Password must contain at least one special character (@$!%*?&)',
-    };
-  }
-  return { valid: true };
-}
+// Re-exports so existing `import { ... } from '@/services/AuthService'`
+// imports continue to work without sweeping every consumer.
+export type { TokenValidationResult } from './auth/jwt';
 
 export interface SignUpData {
   email: string;
@@ -57,21 +40,6 @@ export interface SignUpData {
   firstName: string;
   lastName: string;
   role: 'homeowner' | 'contractor';
-}
-
-interface TokenValidationResult {
-  valid: boolean;
-  userId?: string;
-  error?: string;
-  errorType?: 'expired' | 'invalid' | 'missing' | 'unknown';
-  expiresAt?: number;
-}
-
-interface JWTPayload {
-  exp?: number;
-  iss?: string;
-  sub?: string;
-  [key: string]: unknown;
 }
 
 export class AuthService {
@@ -84,14 +52,12 @@ export class AuthService {
     };
 
     const result = await ServiceErrorHandler.executeOperation(async () => {
-      // Rate limit check
       if (!checkRateLimit('auth_register', userData.email)) {
         throw new Error(
           'Too many registration attempts. Please try again later.'
         );
       }
 
-      // Validation using auth-equivalent validators + ServiceErrorHandler
       ServiceErrorHandler.validateRequired(userData.email, 'Email', context);
       if (!validateEmailFormat(userData.email)) {
         throw new Error('Please enter a valid email address');
@@ -118,23 +84,26 @@ export class AuthService {
         context
       );
 
-      // SECURITY: HIBP breach check via web API (mobile cannot run SHA-1 + range
-      // fetch locally without adding a crypto dependency). Mirrors the inline
-      // check in /api/auth/register on web. Fails open on network error so a
-      // flaky connection doesn't lock users out of signup.
+      // SECURITY: HIBP breach check via web API. Mobile cannot run
+      // SHA-1 + range fetch locally without adding a crypto dep.
+      // Fails open on network error so a flaky connection doesn't
+      // lock users out of signup.
       try {
         const breachResult = await mobileApiClient.post<{
           isBreached: boolean;
           occurrences: number | null;
-        }>('/api/auth/check-password-breach', { password: userData.password });
+        }>('/api/auth/check-password-breach', {
+          password: userData.password,
+        });
         if (breachResult.isBreached) {
           throw new Error(
-            `This password has been exposed in ${(breachResult.occurrences ?? 0).toLocaleString()} data breaches. ` +
+            `This password has been exposed in ${(
+              breachResult.occurrences ?? 0
+            ).toLocaleString()} data breaches. ` +
               `Please choose a different, more secure password.`
           );
         }
       } catch (err) {
-        // Re-throw breach errors verbatim; swallow only network/rate-limit errors.
         if (err instanceof Error && err.message.startsWith('This password')) {
           throw err;
         }
@@ -161,38 +130,24 @@ export class AuthService {
         throw ServiceErrorHandler.handleDatabaseError(error, context);
       }
 
-      // User profile is automatically created by the handle_new_user
-      // trigger. No manual profile creation needed.
-      //
-      // 2026-04-30 audit P1 (Authentication + signup side-effect
-      // parity): the contractor-trial side effect that web's
-      // `/api/auth/register` does is wired into `performSignIn`
-      // (apps/mobile/src/contexts/auth-actions.ts) instead of here,
-      // because signUp may not yield a session immediately when
-      // email confirmation is required. The next sign-in is
-      // guaranteed to have a bearer token, and the reconciliation
-      // endpoint is idempotent.
-
+      // The handle_new_user trigger creates the profile row. The
+      // contractor-trial side-effect that web's /api/auth/register
+      // does is wired into performSignIn (auth-actions.ts) instead
+      // of here, because signUp may not yield a session immediately
+      // when email confirmation is required.
       return data;
     }, context);
 
     if (!result.success || !result.data) {
       throw new Error('Failed to sign up user');
     }
-
     return result.data;
   }
 
   /**
    * Re-issue the email-confirmation link for an unverified signup.
-   *
-   * Supabase throttles resends on the server (default ~60s). The
-   * mobile UI should additionally rate-limit the button on the
-   * client for a visible countdown, but this method intentionally
-   * does NOT enforce that — the caller decides.
-   *
-   * Returns nothing on success; throws on rate-limit or transport
-   * failure so the UI can show the correct toast.
+   * Supabase throttles resends on the server (~60s default); the UI
+   * should additionally rate-limit the button visually.
    */
   static async resendSignupConfirmation(email: string): Promise<void> {
     const context = {
@@ -208,12 +163,8 @@ export class AuthService {
         throw new Error('Please enter a valid email address');
       }
 
-      const { error } = await supabase.auth.resend({
-        type: 'signup',
-        email,
-      });
+      const { error } = await supabase.auth.resend({ type: 'signup', email });
       if (error) {
-        // Supabase throws "Email rate limit exceeded" on rapid resends.
         throw ServiceErrorHandler.handleDatabaseError(error, context);
       }
       logger.info('[AUTH] Resent signup confirmation email');
@@ -237,14 +188,12 @@ export class AuthService {
     };
 
     const result = await ServiceErrorHandler.executeOperation(async () => {
-      // Rate limit check (5 attempts per 15 min, matching web API)
       if (!checkRateLimit('auth_login', email)) {
         throw new Error(
           'Too many login attempts. Please try again in 15 minutes.'
         );
       }
 
-      // Validation using ServiceErrorHandler
       ServiceErrorHandler.validateRequired(email, 'Email', context);
       ServiceErrorHandler.validateEmail(email, context);
       ServiceErrorHandler.validateRequired(password, 'Password', context);
@@ -261,64 +210,20 @@ export class AuthService {
 
       if (error) {
         logger.error('❌ Supabase auth error:', error);
-
-        // Handle specific network errors
         if (
           error.message?.toLowerCase().includes('network request failed') ||
           error.message?.toLowerCase().includes('fetch')
         ) {
           throw ServiceErrorHandler.handleNetworkError(error, context);
         }
-
         throw ServiceErrorHandler.handleDatabaseError(error, context);
       }
 
       logger.info('✅ Supabase auth successful');
       resetRateLimit('auth_login', email);
 
-      // Get user profile directly from Supabase
       if (data.user) {
-        try {
-          // Explicit column list — avoids leaking stripe_connect_account_id,
-          // totp_secret_needs_rotation etc. if column privileges are tightened.
-          const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
-            .select(
-              'id, email, first_name, last_name, role, phone, bio, profile_image_url, avatar_url, city, country, address, postcode, latitude, longitude, rating, total_jobs_completed, verified, admin_verified, skills, company_name, hourly_rate, years_experience, is_available, is_visible_on_map, created_at, updated_at, onboarding_completed, subscription_status, settings, notification_preferences'
-            )
-            .eq('id', data.user.id)
-            .single();
-          if (!profileError && profileData) {
-            const userProfile = profileData as Record<string, unknown>;
-            const enhancedProfile = {
-              ...userProfile,
-              firstName: userProfile.first_name,
-              lastName: userProfile.last_name,
-              createdAt: userProfile.created_at,
-            } as unknown as User;
-            return { user: enhancedProfile, session: data.session };
-          }
-        } catch (profileError) {
-          logger.warn(
-            'Profile fetch from Supabase failed, using auth metadata fallback:',
-            profileError
-          );
-        }
-
-        // Fallback to auth metadata if API call fails
-        const fallbackUser: User = {
-          id: data.user.id,
-          email: data.user.email || '',
-          first_name: (data.user.user_metadata?.first_name as string) || '',
-          last_name: (data.user.user_metadata?.last_name as string) || '',
-          role: (data.user.user_metadata?.role as User['role']) || 'homeowner',
-          created_at: data.user.created_at || new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          firstName: (data.user.user_metadata?.first_name as string) || '',
-          lastName: (data.user.user_metadata?.last_name as string) || '',
-          createdAt: data.user.created_at || new Date().toISOString(),
-        };
-        return { user: fallbackUser, session: data.session };
+        return resolveSignedInUser(data.user, data.session);
       }
 
       return data as unknown as { user: User | null; session: Session | null };
@@ -327,7 +232,6 @@ export class AuthService {
     if (!result.success || !result.data) {
       throw new Error('Failed to sign in user');
     }
-
     return result.data;
   }
 
@@ -337,80 +241,18 @@ export class AuthService {
   }
 
   static async getCurrentUser(): Promise<User | null> {
-    try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      if (!session?.user) return null;
-
-      // Fetch profile via API for consistent data with web app
-      try {
-        const { mobileApiClient } = await import('../utils/mobileApiClient');
-        const response = await mobileApiClient.get<{
-          profile?: Record<string, unknown>;
-          user?: Record<string, unknown>;
-        }>('/api/users/profile');
-        const userProfile = response.profile || response.user;
-        if (userProfile) {
-          return {
-            ...userProfile,
-            firstName: userProfile.first_name,
-            lastName: userProfile.last_name,
-            createdAt: userProfile.created_at,
-          } as User;
-        }
-      } catch (apiError) {
-        logger.warn(
-          'Profile fetch via API failed, using auth metadata fallback:',
-          apiError
-        );
-      }
-
-      // Fallback to auth metadata if API call fails
-      return {
-        id: session.user.id,
-        email: session.user.email || '',
-        first_name: session.user.user_metadata?.first_name || '',
-        last_name: session.user.user_metadata?.last_name || '',
-        role: session.user.user_metadata?.role || 'homeowner',
-        created_at: session.user.created_at || new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        firstName: session.user.user_metadata?.first_name || '',
-        lastName: session.user.user_metadata?.last_name || '',
-        createdAt: session.user.created_at || new Date().toISOString(),
-      };
-    } catch (error) {
-      logger.error('Error fetching current user:', error);
-      return null;
-    }
+    return readCurrentUser();
   }
 
   static async getCurrentSession(): Promise<unknown> {
-    const {
-      data: { session },
-    } = await supabase.auth.getSession();
-    return session;
+    return readCurrentSession();
   }
 
   static async updateUserProfile(
     userId: string,
     updates: Partial<User>
   ): Promise<User> {
-    if (updates.email && !validateEmailFormat(updates.email)) {
-      throw new Error('Invalid email format');
-    }
-
-    const { mobileApiClient } = await import('../utils/mobileApiClient');
-    // PUT /api/users/profile returns `{ success, profile }`, not `{ user }`.
-    // The legacy `response.user` check caused every save to fail with
-    // "No user returned from API" even on a 200 response.
-    const response = await mobileApiClient.put<{
-      success?: boolean;
-      profile?: User;
-    }>('/api/users/profile', updates);
-    if (!response.profile) throw new Error('No profile returned from API');
-    return response.profile;
+    return runUpdateUserProfile(userId, updates);
   }
 
   static async resetPassword(email: string): Promise<void> {
@@ -420,7 +262,6 @@ export class AuthService {
 
     const { error } = await supabase.auth.resetPasswordForEmail(email);
     if (error) {
-      // Provide more user-friendly error messages for password reset
       if (
         error.message.includes('Network request failed') ||
         error.message.includes('fetch')
@@ -446,182 +287,23 @@ export class AuthService {
     );
   }
 
-  // Validate JWT token with proper signature verification
   static async validateToken(token: string): Promise<TokenValidationResult> {
-    try {
-      if (!token) {
-        return { valid: false, error: 'No token provided' };
-      }
-
-      // Simple JWT format validation first
-      const parts = token.split('.');
-      if (parts.length !== 3) {
-        return { valid: false, error: 'Invalid token format' };
-      }
-
-      // Use Supabase's built-in JWT verification which validates signature
-      const { data: user, error } = await supabase.auth.getUser(token);
-
-      if (error) {
-        return { valid: false, error: error.message };
-      }
-
-      if (!user?.user) {
-        return { valid: false, error: 'Invalid or expired token' };
-      }
-
-      // Additional security checks
-      const payload = this.decodeJWTPayload(token);
-      if (!payload) {
-        return { valid: false, error: 'Cannot decode token payload' };
-      }
-
-      // Verify token is not expired (extra check beyond Supabase validation)
-      if (payload.exp && Number(payload.exp) < Date.now() / 1000) {
-        return { valid: false, error: 'Token expired' };
-      }
-
-      // Verify issuer if configured
-      if (payload.iss && !payload.iss.includes('supabase')) {
-        return { valid: false, error: 'Invalid token issuer' };
-      }
-
-      return { valid: true, userId: user.user.id };
-    } catch (error) {
-      return { valid: false, error: 'Token validation failed' };
-    }
+    return runValidateToken(token);
   }
 
-  // Helper method to safely decode JWT payload without signature verification (for additional checks)
-  private static decodeJWTPayload(token: string): JWTPayload | null {
-    try {
-      const parts = token.split('.');
-      if (parts.length !== 3) return null;
-
-      // Safe base64 decode
-      const base64Url = parts[1]!.replace(/-/g, '+').replace(/_/g, '/');
-      let decoded = '';
-
-      interface GlobalWithAtob {
-        atob?: (data: string) => string;
-      }
-      const g = globalThis as GlobalWithAtob;
-      if (typeof g.atob === 'function') {
-        decoded = g.atob(base64Url);
-      } else if (typeof Buffer !== 'undefined') {
-        decoded = Buffer.from(base64Url, 'base64').toString('utf8');
-      } else {
-        return null;
-      }
-
-      return JSON.parse(decoded) as JWTPayload;
-    } catch {
-      return null;
-    }
-  }
-
-  // Restore a session using stored biometric tokens
-  static async restoreSessionFromBiometricTokens({
-    accessToken,
-    refreshToken,
-  }: {
+  static async restoreSessionFromBiometricTokens(args: {
     accessToken: string;
     refreshToken: string;
   }): Promise<{ user: User | null; session: Session | null }> {
-    if (!refreshToken) {
-      throw new Error(
-        'We could not restore your session. Please sign in with your password.'
-      );
-    }
-
-    try {
-      // Biometric flow: BiometricService stores only the refresh token.
-      // When accessToken is missing/empty, use Supabase's refreshSession
-      // to obtain a fresh session (new access + refresh tokens).
-      if (!accessToken) {
-        const { data, error } = await supabase.auth.refreshSession({
-          refresh_token: refreshToken,
-        });
-
-        if (error) {
-          logger.warn('Biometric refresh-only session restoration failed', {
-            error: error.message,
-            service: 'auth',
-          });
-          throw new Error('Your session has expired. Please sign in again.');
-        }
-
-        if (!data.session) {
-          throw new Error('Failed to restore session from refresh token.');
-        }
-
-        const user = await this.getCurrentUser();
-        return { user, session: data.session };
-      }
-
-      // Full token path: validate accessToken before restoring session
-      const tokenValidation = await this.validateToken(accessToken);
-
-      if (!tokenValidation.valid) {
-        logger.warn('Biometric token validation failed', {
-          error: tokenValidation.error,
-          errorType: tokenValidation.errorType || 'unknown',
-          userId: tokenValidation.userId || 'unknown',
-          tokenExpiry: tokenValidation.expiresAt
-            ? new Date(tokenValidation.expiresAt * 1000).toISOString()
-            : 'unknown',
-          currentTime: new Date().toISOString(),
-          service: 'auth',
-        });
-
-        // Provide more specific error message based on validation failure
-        const errorMessage =
-          tokenValidation.errorType === 'expired'
-            ? 'Your session has expired. Please sign in again.'
-            : tokenValidation.errorType === 'invalid'
-              ? 'Invalid credentials detected. Please sign in again.'
-              : 'Stored credentials are invalid or expired. Please sign in again.';
-
-        throw new Error(errorMessage);
-      }
-
-      const { data, error } = await supabase.auth.setSession({
-        access_token: accessToken,
-        refresh_token: refreshToken,
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      const session = data.session;
-      const user = await this.getCurrentUser();
-
-      // Additional security check: verify user exists and matches token
-      if (!user || user.id !== tokenValidation.userId) {
-        logger.error('User mismatch after biometric session restoration', {
-          expectedUserId: tokenValidation.userId,
-          actualUserId: user?.id,
-          service: 'auth',
-        });
-        throw new Error('Session restoration failed. Please sign in again.');
-      }
-
-      return { user, session };
-    } catch (error) {
-      logger.error('Failed to restore session from biometric tokens', error);
-      throw new Error('Unable to restore session from biometric credentials.');
-    }
+    return runBiometricRestore(args);
   }
 
-  // Refresh session token
   static async refreshToken(): Promise<unknown> {
     const { data, error } = await supabase.auth.refreshSession();
     if (error) throw error;
     return data;
   }
 
-  // Check if user is authenticated
   static async isAuthenticated(): Promise<boolean> {
     const session = (await this.getCurrentSession()) as Session | null;
     return !!session?.access_token;

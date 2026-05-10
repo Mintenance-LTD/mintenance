@@ -206,18 +206,37 @@ class MobileApiClient extends ApiClient {
   }
 
   /**
-   * POST with FormData (for file uploads)
+   * POST with FormData (for file uploads).
+   *
+   * AUDIT_PUNCH_LIST P1 #10 (B3-P1-1) — was bypassing the 401 retry
+   * path used by `request()` (GET/POST/PUT/PATCH/DELETE), so any
+   * photo/video upload that hit a stale-but-refreshable token would
+   * fail outright instead of silently re-authing. Now mirrors the
+   * same wait-for-refresh queue: retry once with the freshly-minted
+   * access token before surfacing the upload error to the caller.
    */
   async postFormData<T>(url: string, formData: FormData): Promise<T> {
-    const token = await getAuthToken();
     const fullUrl = url.startsWith('http') ? url : `${API_BASE_URL}${url}`;
-    const response = await fetch(fullUrl, {
-      method: 'POST',
-      headers: {
-        ...(token && { Authorization: `Bearer ${token}` }),
-      },
-      body: formData,
-    });
+
+    const doRequest = async (token: string | null): Promise<Response> => {
+      return fetch(fullUrl, {
+        method: 'POST',
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        body: formData,
+      });
+    };
+
+    const initialToken = await getAuthToken();
+    let response = await doRequest(initialToken);
+
+    if (response.status === 401) {
+      // Mirror request()'s behaviour: wait for the queued refresh, retry once.
+      const newToken = await this.waitForTokenRefresh();
+      response = await doRequest(newToken);
+    }
+
     if (!response.ok) {
       throw new Error(`Upload failed: ${response.status}`);
     }

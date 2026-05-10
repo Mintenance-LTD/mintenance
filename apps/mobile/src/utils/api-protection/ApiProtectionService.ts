@@ -66,7 +66,6 @@ export class ApiProtectionService {
     allowed: boolean;
     reason?: string;
     rateLimitInfo?: RateLimitInfo;
-    securityHeaders?: Record<string, string>;
   }> {
     try {
       if (request.ipAddress && this.blockedIPs.has(request.ipAddress)) {
@@ -121,10 +120,7 @@ export class ApiProtectionService {
         if (!ab.allowed) return ab;
       }
       this.recordRequest(request);
-      return {
-        allowed: true,
-        securityHeaders: this.requestValidator.generateSecurityHeaders(),
-      };
+      return { allowed: true };
     } catch (error) {
       logger.error('ApiProtectionService', 'Error in request check', {
         error,

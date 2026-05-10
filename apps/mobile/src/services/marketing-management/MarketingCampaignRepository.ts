@@ -1,16 +1,19 @@
 /**
- * MarketingCampaignRepository — STUB
+ * MarketingCampaignRepository — DEFERRED FEATURE (no-op stub).
  *
- * 2026-04-30 audit P0-1 follow-up: every method previously hit
+ * 2026-04-30 audit P0-1: every method previously hit
  * `supabase.from('marketing_campaigns').*` directly from mobile. The
- * marketing-campaigns feature has no production UI consumer (only
- * `MarketingScreen.tsx` exists, which renders coaching tips backed by
- * `/api/contractor/marketing-stats`). Rather than ship a phantom CRUD
- * surface that would have to be re-validated server-side later, every
- * method now throws — that way the build stays green for the unit
- * tests + type imports the rest of the codebase relies on, but a
- * runtime call from a screen we missed fails loudly instead of
- * silently writing to the DB through RLS.
+ * marketing-campaigns feature has no production UI consumer
+ * (`MarketingScreen.tsx` only renders coaching tips backed by
+ * `/api/contractor/marketing-stats`).
+ *
+ * 2026-05-10 (AUDIT_PUNCH_LIST P2 #52): converted from
+ * `throw new Error('NOT_IMPLEMENTED')` to safe-empty returns — emits a
+ * one-shot logger.warn so wiring this up is visible in QA/Sentry, then
+ * resolves with empty/null. Zero external callers exist today
+ * (verified via grep: only `MarketingManagementService` orchestrator
+ * imports this, and the orchestrator itself has no callers outside
+ * `contractor-business/index.ts`'s factory). Pure scaffold.
  *
  * Re-enable by:
  *   1. Building `/api/contractor/marketing/campaigns` (CRUD).
@@ -18,6 +21,7 @@
  *   3. Removing this file's deprecation banner.
  */
 
+import { logger } from '../../utils/logger';
 import {
   MarketingCampaign,
   CreateCampaignRequest,
@@ -25,39 +29,98 @@ import {
   CampaignSearchParams,
 } from './types';
 
-const NOT_IMPLEMENTED =
-  'MarketingCampaignRepository methods are stubs — call sites must move to /api/contractor/marketing/campaigns before re-enabling.';
+let _warned = false;
+function warnDeferred(method: string): void {
+  if (_warned) return;
+  _warned = true;
+  logger.warn(
+    'MarketingCampaignRepository: deferred feature called — `marketing_campaigns` API does not exist; returning empty data.',
+    { service: 'marketing', method }
+  );
+}
+
+function emptyCampaign(id: string): MarketingCampaign {
+  // Minimal safe-default MarketingCampaign. Cast via `unknown`
+  // because the canonical type has 14+ required fields. Future
+  // callers see id='deferred' + zeroed metrics — obviously placeholder.
+  return {
+    id,
+    contractorId: '',
+    name: 'Deferred',
+    type: 'content',
+    status: 'draft',
+    budget: 0,
+    spent: 0,
+    startDate: new Date(0).toISOString(),
+    targetAudience: {
+      demographics: {
+        ageRange: [0, 0],
+        income: [],
+        location: [],
+        interests: [],
+      },
+      behaviors: {
+        homeOwnership: false,
+        previousServices: [],
+        seasonalPatterns: [],
+      },
+      size: 0,
+      reach: 0,
+    },
+    objectives: [],
+    channels: [],
+    metrics: {
+      impressions: 0,
+      clicks: 0,
+      conversions: 0,
+      leads: 0,
+      customers: 0,
+      revenue: 0,
+      roi: 0,
+      cac: 0,
+      ltv: 0,
+      engagementRate: 0,
+    },
+    content: [],
+    createdAt: new Date(0).toISOString(),
+    updatedAt: new Date(0).toISOString(),
+  } as unknown as MarketingCampaign;
+}
 
 export class MarketingCampaignRepository {
   async createCampaign(
     _request: CreateCampaignRequest
   ): Promise<MarketingCampaign> {
-    throw new Error(NOT_IMPLEMENTED);
+    warnDeferred('createCampaign');
+    return emptyCampaign('deferred');
   }
 
   async getCampaigns(
     _contractorId: string,
     _params?: CampaignSearchParams
   ): Promise<{ campaigns: MarketingCampaign[]; total: number }> {
-    throw new Error(NOT_IMPLEMENTED);
+    warnDeferred('getCampaigns');
+    return { campaigns: [], total: 0 };
   }
 
-  async getCampaignById(_campaignId: string): Promise<MarketingCampaign> {
-    throw new Error(NOT_IMPLEMENTED);
+  async getCampaignById(campaignId: string): Promise<MarketingCampaign> {
+    warnDeferred('getCampaignById');
+    return emptyCampaign(campaignId);
   }
 
   async updateCampaign(
-    _request: UpdateCampaignRequest
+    request: UpdateCampaignRequest
   ): Promise<MarketingCampaign> {
-    throw new Error(NOT_IMPLEMENTED);
+    warnDeferred('updateCampaign');
+    return emptyCampaign(request.id || 'deferred');
   }
 
   async deleteCampaign(_campaignId: string): Promise<void> {
-    throw new Error(NOT_IMPLEMENTED);
+    warnDeferred('deleteCampaign');
   }
 
   async updateCampaignMetrics(
-    _campaignId: string,
+    campaignId: string,
     _metricsData: {
       impressions?: number;
       clicks?: number;
@@ -66,6 +129,7 @@ export class MarketingCampaignRepository {
       revenue?: number;
     }
   ): Promise<MarketingCampaign> {
-    throw new Error(NOT_IMPLEMENTED);
+    warnDeferred('updateCampaignMetrics');
+    return emptyCampaign(campaignId);
   }
 }

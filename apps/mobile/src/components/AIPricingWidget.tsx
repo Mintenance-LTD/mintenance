@@ -92,12 +92,12 @@ export const AIPricingWidget: React.FC<AIPricingWidgetProps> = ({
       <View style={styles.container}>
         <View style={styles.header}>
           <Ionicons name='analytics' size={24} color='#8B5CF6' />
-          <Text style={styles.headerText}>AI Pricing Analysis</Text>
+          <Text style={styles.headerText}>Pricing Estimate</Text>
         </View>
 
         <Text style={styles.description}>
-          Get intelligent pricing suggestions based on market data and job
-          complexity
+          Get a quick price estimate based on category base rates, urgency, and
+          job complexity.
         </Text>
 
         <TouchableOpacity
@@ -147,7 +147,7 @@ export const AIPricingWidget: React.FC<AIPricingWidgetProps> = ({
       >
         <View style={styles.headerLeft}>
           <Ionicons name='analytics' size={24} color='#8B5CF6' />
-          <Text style={styles.headerText}>AI Pricing Analysis</Text>
+          <Text style={styles.headerText}>Pricing Estimate</Text>
         </View>
         <Ionicons
           name={expanded ? 'chevron-up' : 'chevron-down'}
@@ -303,11 +303,7 @@ export const AIPricingWidget: React.FC<AIPricingWidgetProps> = ({
               <Text style={styles.sectionTitle}>Recommendations</Text>
               {analysis.recommendations.map((recommendation, index) => (
                 <View key={index} style={styles.recommendationItem}>
-                  <Ionicons
-                    name='bulb'
-                    size={16}
-                    color={theme.colors.accent}
-                  />
+                  <Ionicons name='bulb' size={16} color={theme.colors.accent} />
                   <Text style={styles.recommendationText}>
                     {recommendation}
                   </Text>
@@ -321,7 +317,11 @@ export const AIPricingWidget: React.FC<AIPricingWidgetProps> = ({
             style={styles.reanalyzeButton}
             onPress={handleAnalyzePricing}
           >
-            <Ionicons name='refresh' size={16} color={theme.colors.textPrimary} />
+            <Ionicons
+              name='refresh'
+              size={16}
+              color={theme.colors.textPrimary}
+            />
             <Text style={styles.reanalyzeText}>Re-analyze</Text>
           </TouchableOpacity>
         </View>
@@ -337,7 +337,12 @@ const styles = StyleSheet.create({
     padding: 16,
     marginVertical: 8,
     ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
+      ios: {
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.06,
+        shadowRadius: 10,
+      },
       android: { elevation: 2 },
     }),
   },

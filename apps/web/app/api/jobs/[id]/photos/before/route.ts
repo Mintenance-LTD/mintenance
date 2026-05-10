@@ -10,6 +10,11 @@ import {
 } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { validateImageUpload } from '@/lib/utils/fileValidation';
+import {
+  getIdempotencyKeyFromRequest,
+  checkIdempotency,
+  storeIdempotencyResult,
+} from '@/lib/idempotency';
 
 const ALLOWED_IMAGE_TYPES = [
   'image/jpeg',
@@ -29,6 +34,33 @@ export const POST = withApiHandler(
   { rateLimit: { maxRequests: 30 } },
   async (request, { user, params }) => {
     const jobId = params.id as string;
+
+    // Idempotency — opt-in via the `Idempotency-Key` header. Without
+    // a client-supplied key, every request gets a unique generated
+    // key (no caching). With a key, a network retry that ships the
+    // same multipart body returns the cached response instead of
+    // re-uploading + re-inserting metadata rows. Mobile clients
+    // already retry on transient 5xx; this prevents duplicate
+    // job_photos_metadata rows on retry. AUDIT_PUNCH_LIST P2 #75.
+    const idempotencyKey = getIdempotencyKeyFromRequest(
+      request,
+      'photos_before',
+      user.id,
+      jobId
+    );
+    const idem = await checkIdempotency<unknown>(
+      idempotencyKey,
+      'photos_before'
+    );
+    if (idem?.isDuplicate && idem.cachedResult) {
+      logger.info('Duplicate photos_before — returning cached result', {
+        service: 'jobs.photos',
+        idempotencyKey,
+        userId: user.id,
+        jobId,
+      });
+      return NextResponse.json(idem.cachedResult);
+    }
 
     // Verify user is contractor for this job (include location for geolocation check)
     const { data: job, error: jobError } = await serverSupabase
@@ -218,12 +250,22 @@ export const POST = withApiHandler(
       throw new Error('Failed to upload photos');
     }
 
-    return NextResponse.json({
+    const responseData = {
       success: true,
       photos: uploadedPhotos,
       count: uploadedPhotos.length,
       rejected: rejectedPhotos.length,
       ...(rejectedPhotos.length > 0 && { rejectedPhotos }),
-    });
+    };
+
+    await storeIdempotencyResult(
+      idempotencyKey,
+      'photos_before',
+      responseData,
+      user.id,
+      { jobId, count: uploadedPhotos.length }
+    );
+
+    return NextResponse.json(responseData);
   }
 );

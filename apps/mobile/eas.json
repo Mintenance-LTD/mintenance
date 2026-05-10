@@ -59,7 +59,7 @@
         "SENTRY_ORG": "${SENTRY_ORG}",
         "SENTRY_PROJECT": "${SENTRY_PROJECT}",
         "SENTRY_AUTH_TOKEN": "${SENTRY_AUTH_TOKEN}",
-        "SENTRY_DISABLE_AUTO_UPLOAD": "true",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "false",
         "GOOGLE_SERVICES_JSON": "${GOOGLE_SERVICES_JSON}",
         "GOOGLE_SERVICES_PLIST": "${GOOGLE_SERVICES_PLIST}"
       },
@@ -95,7 +95,7 @@
         "SENTRY_ORG": "${SENTRY_ORG}",
         "SENTRY_PROJECT": "${SENTRY_PROJECT}",
         "SENTRY_AUTH_TOKEN": "${SENTRY_AUTH_TOKEN}",
-        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
+        "SENTRY_DISABLE_AUTO_UPLOAD": "false"
       },
       "channel": "staging"
     },
@@ -124,7 +124,7 @@
         "SENTRY_ORG": "${SENTRY_ORG}",
         "SENTRY_PROJECT": "${SENTRY_PROJECT}",
         "SENTRY_AUTH_TOKEN": "${SENTRY_AUTH_TOKEN}",
-        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
+        "SENTRY_DISABLE_AUTO_UPLOAD": "false"
       },
       "channel": "preview"
     },
@@ -145,6 +145,7 @@
         "buildConfiguration": "Release"
       },
       "env": {
+        "NODE_ENV": "production",
         "EXPO_USE_FAST_RESOLVER": "1",
         "EXPO_USE_HERMES": "1",
         "EXPO_OPTIMIZE": "1",
@@ -160,11 +161,12 @@
         "SENTRY_ORG": "${SENTRY_ORG}",
         "SENTRY_PROJECT": "${SENTRY_PROJECT}",
         "SENTRY_AUTH_TOKEN": "${SENTRY_AUTH_TOKEN}",
-        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
+        "SENTRY_DISABLE_AUTO_UPLOAD": "false"
       },
       "channel": "internal"
     },
     "production": {
+      "distribution": "store",
       "node": "20.19.4",
       "cache": {
         "key": "production",

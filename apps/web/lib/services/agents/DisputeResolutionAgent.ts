@@ -18,10 +18,14 @@ export class DisputeResolutionAgent {
     context?: AgentContext
   ): Promise<AgentResult | null> {
     try {
-      // Get dispute/escrow details
+      // Get dispute/escrow details.
+      // 2026-05-09: corrected column names — `escrow_transactions` does
+      // not have `dispute_reason`, `homeowner_id`, or `contractor_id`.
+      // The dispute reason lives on the `disputes` table; payer/payee
+      // are the canonical principal columns on escrow.
       const { data: escrow, error } = await serverSupabase
         .from('escrow_transactions')
-        .select('id, job_id, amount, dispute_reason, status, homeowner_id, contractor_id')
+        .select('id, job_id, amount, status, payer_id, payee_id')
         .eq('id', escrowId)
         .eq('status', 'disputed')
         .single();
@@ -46,15 +50,16 @@ export class DisputeResolutionAgent {
         return null;
       }
 
-      // Get contractor rating
+      // Get contractor (payee) rating
       const { data: reviews } = await serverSupabase
         .from('reviews')
         .select('rating')
-        .eq('contractor_id', escrow.contractor_id);
+        .eq('contractor_id', escrow.payee_id);
 
       const averageRating =
         reviews && reviews.length > 0
-          ? reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length
+          ? reviews.reduce((sum, r) => sum + (r.rating || 0), 0) /
+            reviews.length
           : 0;
 
       // Auto-refund for low-value disputes with high-rated contractors
@@ -84,14 +89,14 @@ export class DisputeResolutionAgent {
         // Create notifications
         await Promise.all([
           NotificationService.createNotification({
-            userId: escrow.homeowner_id,
+            userId: escrow.payer_id,
             title: 'Dispute Auto-Resolved',
             message: `Your dispute has been automatically resolved with a full refund.`,
             type: 'dispute_resolved',
             actionUrl: `/jobs/${escrow.job_id}`,
           }),
           NotificationService.createNotification({
-            userId: escrow.contractor_id,
+            userId: escrow.payee_id,
             title: 'Dispute Resolved',
             message: `A dispute has been automatically resolved.`,
             type: 'dispute_resolved',
@@ -102,7 +107,7 @@ export class DisputeResolutionAgent {
         // Log the decision
         const decision = {
           jobId: escrow.job_id,
-          userId: escrow.homeowner_id,
+          userId: escrow.payer_id,
           agentName: 'dispute-resolution' as const,
           decisionType: 'auto-resolve' as const,
           actionTaken: 'dispute-resolved' as const,
@@ -141,4 +146,3 @@ export class DisputeResolutionAgent {
     }
   }
 }
-

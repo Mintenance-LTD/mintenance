@@ -133,106 +133,87 @@ describe('InputValidationMiddleware', () => {
     });
   });
 
-  describe('validateText - SQL Injection Prevention', () => {
-    it('should detect SELECT statement', () => {
+  describe('validateText - SQL keyword inputs are NO LONGER rejected (P2 #55)', () => {
+    // 2026-05-10 (AUDIT_PUNCH_LIST P2 #55): the SQL_INJECTION_PATTERNS
+    // blacklist was removed from this middleware. The mobile app cannot
+    // reach raw SQL through Supabase parameterized queries, and the
+    // blacklist generated wide false-positives on legitimate English
+    // text containing words like "select", "drop", "insert", "delete",
+    // "union", apostrophes ("Tom's"), ampersands ("Plumbing & electrical"),
+    // and parentheses ("Pipe-fitting (kitchen)"). These tests now assert
+    // the new behaviour: SQL-keyword-containing text is allowed
+    // (subject to the safeText pattern, length, and XSS guards).
+    //
+    // The previous test names are preserved so failures point to the
+    // right expectations.
+
+    it('accepts text containing SELECT keyword (was rejected pre-2026-05-10)', () => {
       const result = InputValidationMiddleware.validateText(
-        'SELECT * FROM users'
+        'Need to select new bathroom tiles'
       );
-      expect(result.isValid).toBe(false);
-      expect(result.errors[0]).toContain('potentially dangerous content');
+      expect(result.isValid).toBe(true);
     });
 
-    it('should detect DROP TABLE statement', () => {
-      const result = InputValidationMiddleware.validateText('DROP TABLE users');
-      expect(result.isValid).toBe(false);
-      expect(result.errors[0]).toContain('potentially dangerous content');
-    });
-
-    it('should detect INSERT statement', () => {
+    it('accepts text containing DROP keyword (was rejected pre-2026-05-10)', () => {
       const result = InputValidationMiddleware.validateText(
-        "INSERT INTO users VALUES ('admin', 'pass')"
+        'Drop in to fix the boiler'
       );
-      expect(result.isValid).toBe(false);
-      expect(result.errors[0]).toContain('potentially dangerous content');
+      expect(result.isValid).toBe(true);
     });
 
-    it('should detect UPDATE statement', () => {
+    it('accepts text containing INSERT keyword (was rejected pre-2026-05-10)', () => {
       const result = InputValidationMiddleware.validateText(
-        'UPDATE users SET admin = true'
+        'Insert a new lock on the front door'
       );
-      expect(result.isValid).toBe(false);
-      expect(result.errors[0]).toContain('potentially dangerous content');
+      expect(result.isValid).toBe(true);
     });
 
-    it('should detect DELETE statement', () => {
+    it('accepts text containing UPDATE keyword (was rejected pre-2026-05-10)', () => {
       const result = InputValidationMiddleware.validateText(
-        'DELETE FROM users WHERE 1=1'
+        'Update the kitchen wiring'
       );
-      expect(result.isValid).toBe(false);
-      expect(result.errors[0]).toContain('potentially dangerous content');
+      expect(result.isValid).toBe(true);
     });
 
-    it('should detect UNION injection', () => {
+    it('accepts text containing DELETE keyword (was rejected pre-2026-05-10)', () => {
       const result = InputValidationMiddleware.validateText(
-        "' UNION SELECT password FROM users--"
+        'Delete old paint and re-prime'
       );
-      expect(result.isValid).toBe(false);
-      expect(result.errors[0]).toContain('potentially dangerous content');
+      expect(result.isValid).toBe(true);
     });
 
-    it('should detect OR 1=1 injection', () => {
-      const result = InputValidationMiddleware.validateText("admin' OR 1=1--");
-      expect(result.isValid).toBe(false);
-      expect(result.errors[0]).toContain('potentially dangerous content');
-    });
-
-    it('should detect SQL comments (--)', () => {
-      const result = InputValidationMiddleware.validateText("admin'-- comment");
-      expect(result.isValid).toBe(false);
-      expect(result.errors[0]).toContain('potentially dangerous content');
-    });
-
-    it('should detect SQL block comments (/* */)', () => {
+    it('accepts text containing UNION keyword (was rejected pre-2026-05-10)', () => {
       const result = InputValidationMiddleware.validateText(
-        'test /* comment */ value'
+        'Union jack flag installation'
       );
-      expect(result.isValid).toBe(false);
-      expect(result.errors[0]).toContain('potentially dangerous content');
+      expect(result.isValid).toBe(true);
     });
 
-    it('should detect stored procedure calls (xp_, sp_)', () => {
-      const result = InputValidationMiddleware.validateText('EXEC xp_cmdshell');
-      expect(result.isValid).toBe(false);
-      expect(result.errors[0]).toContain('potentially dangerous content');
-    });
-
-    it('should detect SQL functions in injection', () => {
+    it('accepts apostrophes in text (was rejected pre-2026-05-10)', () => {
       const result = InputValidationMiddleware.validateText(
-        'SELECT COUNT(*) FROM users'
+        "Repair Tom's bathroom"
       );
-      expect(result.isValid).toBe(false);
-      expect(result.errors[0]).toContain('potentially dangerous content');
+      expect(result.isValid).toBe(true);
     });
 
-    it('should detect case-insensitive SQL keywords', () => {
-      const tests = ['select', 'SELECT', 'SeLeCt', 'drop', 'DROP', 'DrOp'];
-      tests.forEach((keyword) => {
-        const result = InputValidationMiddleware.validateText(
-          `${keyword} * from users`
-        );
-        expect(result.isValid).toBe(false);
-      });
+    it('accepts ampersand in text (was rejected pre-2026-05-10)', () => {
+      const result = InputValidationMiddleware.validateText(
+        'Plumbing & electrical work'
+      );
+      expect(result.isValid).toBe(true);
     });
 
-    it('should sanitize SQL comments when sanitize is enabled', () => {
-      const result = InputValidationMiddleware.validateText('test--comment', {
-        sanitize: true,
-        pattern: /^[a-zA-Z0-9\s]*$/,
-      });
-      // SQL pattern detects -- first, so it's invalid before sanitization
-      // Sanitization only happens when errors.length === 0
-      expect(result.isValid).toBe(false);
-      expect(result.errors[0]).toContain('potentially dangerous content');
+    it('accepts parentheses in text (was rejected pre-2026-05-10)', () => {
+      const result = InputValidationMiddleware.validateText(
+        'Pipe-fitting (kitchen sink)'
+      );
+      expect(result.isValid).toBe(true);
+    });
+
+    it('accepts price strings with £ and / (was rejected pre-2026-05-10)', () => {
+      const result =
+        InputValidationMiddleware.validateText('Day rate £200/day');
+      expect(result.isValid).toBe(true);
     });
   });
 

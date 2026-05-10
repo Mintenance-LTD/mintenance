@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { logger } from '@/lib/logger';
 
 export default function RetentionError({
   error,
@@ -10,8 +11,14 @@ export default function RetentionError({
   reset: () => void;
 }) {
   useEffect(() => {
-    // eslint-disable-next-line no-console
-    console.error('Retention dashboard error', error);
+    // AUDIT_PUNCH_LIST P2 #63 (A2-P2-5) — was the sole `console.*` in
+    // web app code. Routed through the canonical logger so retention
+    // dashboard failures land in Sentry alongside other admin errors.
+    logger.error('RetentionError', 'Retention dashboard failed to load', {
+      error: error.message,
+      stack: error.stack,
+      digest: error.digest,
+    });
   }, [error]);
 
   return (

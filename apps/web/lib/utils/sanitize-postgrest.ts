@@ -29,3 +29,18 @@ export function sanitizeIlikePattern(input: string, maxLen = 80): string {
     .slice(0, maxLen)
     .trim();
 }
+
+/**
+ * Same defence as `sanitizeIlikePattern` but extended to allow `@`
+ * and `.` so admin email-search forms can match against
+ * `email.ilike.%foo@bar.com%` patterns. Use only when the search field
+ * legitimately contains email addresses; otherwise prefer the
+ * narrower `sanitizeIlikePattern`.
+ */
+export function sanitizeEmailIlikePattern(input: string, maxLen = 100): string {
+  if (typeof input !== 'string') return '';
+  return input
+    .replace(/[^a-zA-Z0-9\s\-'@.]/g, '')
+    .slice(0, maxLen)
+    .trim();
+}

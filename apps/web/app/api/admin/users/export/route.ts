@@ -4,6 +4,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { ExportService } from '@/lib/services/admin/ExportService';
 import { InternalServerError } from '@/lib/errors/api-error';
+import { sanitizeEmailIlikePattern } from '@/lib/utils/sanitize-postgrest';
 
 export const GET = withApiHandler(
   { roles: ['admin'], rateLimit: { maxRequests: 10 } },
@@ -38,10 +39,7 @@ export const GET = withApiHandler(
     }
 
     if (search) {
-      const sanitizedSearch = search
-        .replace(/[^a-zA-Z0-9\s\-'@.]/g, '')
-        .substring(0, 100)
-        .trim();
+      const sanitizedSearch = sanitizeEmailIlikePattern(search);
 
       if (sanitizedSearch.length > 0) {
         query = query.or(
