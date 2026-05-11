@@ -17,6 +17,7 @@ import {
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { fetchNotificationFeed } from '@/lib/notifications/feed';
 import { resignJobStorageUrls } from '@/lib/api/job-storage';
+import { buildNeedsYouFeed } from './lib/needs-you-aggregator';
 
 export const metadata: Metadata = {
   title: 'Dashboard | Mintenance',
@@ -88,7 +89,7 @@ export default async function DashboardPage2025() {
   const HELD_STATUSES = ['in_escrow'];
   const SPENT_STATUSES = ['in_escrow', 'released', 'completed'];
 
-  const totalSpent = payments
+  let totalSpent = payments
     .filter((p: { status?: string }) => SPENT_STATUSES.includes(p.status || ''))
     .reduce(
       (sum: number, p: { amount?: number }) => sum + (Number(p.amount) || 0),
@@ -99,6 +100,7 @@ export default async function DashboardPage2025() {
   // cards can show a real escrow badge instead of using job.budget as
   // a proxy (which lied when in_progress jobs had no funded payment).
   const escrowByJob = new Map<string, number>();
+  let totalHeldInEscrow = 0;
   for (const p of payments) {
     const status = (p as { status?: string }).status;
     const jobId = (p as { job_id?: string }).job_id;
@@ -106,6 +108,44 @@ export default async function DashboardPage2025() {
     if (!jobId || !HELD_STATUSES.includes(status || '') || amount <= 0)
       continue;
     escrowByJob.set(jobId, (escrowByJob.get(jobId) || 0) + amount);
+    totalHeldInEscrow += amount;
+  }
+
+  // Bridge to `escrow_transactions` — same drift the /financials and
+  // /payments pages hit on 2026-04-21: the legacy `payments` table is
+  // empty in production, all real money flows live in
+  // `escrow_transactions` keyed by `payer_id`. Without this bridge the
+  // dashboard's "Held in escrow" KPI + the PaymentProtected card both
+  // render £0 and the card silently hides (it gates on `escrow > 0`).
+  const { data: escrowRows } = await serverSupabase
+    .from('escrow_transactions')
+    .select('id, amount, status, job_id')
+    .eq('payer_id', user.id);
+
+  // escrow_transactions status enum: pending / held / release_pending /
+  // released / completed / refunded. Anything once-held counts as
+  // "spent"; only `held` and `release_pending` are still actively
+  // protected ("Payment protected" card surface).
+  const ESCROW_SPENT = new Set([
+    'held',
+    'release_pending',
+    'released',
+    'completed',
+  ]);
+  const ESCROW_HELD = new Set(['held', 'release_pending']);
+
+  for (const row of escrowRows || []) {
+    const status = (row as { status?: string }).status || '';
+    const amount = Number((row as { amount?: number }).amount) || 0;
+    const jobId = (row as { job_id?: string }).job_id;
+    if (amount <= 0) continue;
+    if (ESCROW_SPENT.has(status)) totalSpent += amount;
+    if (ESCROW_HELD.has(status)) {
+      totalHeldInEscrow += amount;
+      if (jobId) {
+        escrowByJob.set(jobId, (escrowByJob.get(jobId) || 0) + amount);
+      }
+    }
   }
 
   // PERFORMANCE FIX: Batch queries instead of N+1
@@ -310,6 +350,19 @@ export default async function DashboardPage2025() {
     .eq('homeowner_id', user.id)
     .eq('action', 'like');
 
+  // Aggregator extracted to ./lib/needs-you-aggregator.ts to keep
+  // page.tsx under the 500-line MDC cap. Same heuristics as before:
+  // pending bids, posted jobs with stale bid windows, unverified
+  // properties.
+  const needsYou = buildNeedsYouFeed({
+    pendingBids,
+    allBids,
+    postedJobs,
+    properties: properties as unknown as Parameters<
+      typeof buildNeedsYouFeed
+    >[0]['properties'],
+  });
+
   // Prepare dashboard data for professional component
   const professionalDashboardData = {
     homeowner: {
@@ -335,6 +388,7 @@ export default async function DashboardPage2025() {
     })),
     metrics: {
       totalSpent,
+      heldInEscrow: totalHeldInEscrow,
       activeJobs: activeJobs.length,
       completedJobs: completedJobs.length,
       savedContractors: savedContractorsCount ?? 0,
@@ -344,6 +398,7 @@ export default async function DashboardPage2025() {
     recentActivity,
     upcomingAppointments,
     recommendations,
+    needsYou,
   };
 
   return (

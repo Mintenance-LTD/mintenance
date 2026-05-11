@@ -15,9 +15,18 @@ export function MintEditorialHomeownerDashboard({
 }: {
   data: DashboardData;
 }) {
-  const { homeowner, metrics, activeJobs, pendingBids, upcomingAppointments } =
-    data;
-  const escrowHeld = metrics.totalSpent;
+  const {
+    homeowner,
+    metrics,
+    activeJobs,
+    pendingBids,
+    upcomingAppointments,
+    needsYou,
+  } = data;
+  // Distinct from totalSpent — see dashboardHelpers.ts. Without this
+  // the PaymentProtected card never rendered (it gates on escrow > 0)
+  // because the legacy `payments` table is empty in production.
+  const escrowHeld = metrics.heldInEscrow;
   const today = new Date().toLocaleDateString('en-GB', {
     weekday: 'long',
     day: 'numeric',
@@ -82,7 +91,11 @@ export function MintEditorialHomeownerDashboard({
           <div className='label'>Held in escrow</div>
           <div className='num'>{formatGBP(escrowHeld)}</div>
           <div className='sub'>
-            <span>released on sign-off</span>
+            <span>
+              {escrowHeld > 0
+                ? 'released on sign-off'
+                : 'no active payments yet'}
+            </span>
           </div>
         </div>
         <div className='kpi'>
@@ -105,6 +118,7 @@ export function MintEditorialHomeownerDashboard({
         <MintEditorialJobsPanel activeJobs={activeJobs} />
         <MintEditorialSidePanel
           topBid={topBid}
+          needsYou={needsYou}
           appointments={upcomingAppointments ?? []}
           escrowHeld={escrowHeld}
         />

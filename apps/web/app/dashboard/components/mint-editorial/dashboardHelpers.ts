@@ -60,6 +60,49 @@ export interface Appointment {
   contractor?: { name: string };
 }
 
+/**
+ * Polymorphic "Needs you" attention item — one row in the right-rail
+ * NeedsYou card. Each variant gets its own icon, copy, and CTA.
+ *
+ * Sourced from server-side queries on /dashboard:
+ *   - bid          → pendingBids[0]   (top pending bid for a homeowner job)
+ *   - bidsClosing  → jobs with several pending bids and a soon-to-expire
+ *                    review window
+ *   - verifyProp   → properties with `verified === false`
+ *   - quote        → contractor quote that needs accept/reject
+ */
+export type NeedsYouItem =
+  | {
+      kind: 'bid';
+      id: string;
+      contractorName: string;
+      jobTitle: string;
+      jobId: string;
+      amount: number;
+    }
+  | {
+      kind: 'bidsClosing';
+      id: string;
+      jobTitle: string;
+      jobId: string;
+      bidCount: number;
+      closesInHours: number;
+    }
+  | {
+      kind: 'verifyProp';
+      id: string;
+      propertyName: string;
+      address: string;
+    }
+  | {
+      kind: 'quote';
+      id: string;
+      contractorName: string;
+      jobTitle: string;
+      jobId: string;
+      amount: number;
+    };
+
 export interface DashboardData {
   homeowner: {
     id: string;
@@ -73,6 +116,10 @@ export interface DashboardData {
   };
   metrics: {
     totalSpent: number;
+    /** Currently-held escrow balance — used by the PaymentProtected
+     *  card and the "Held in escrow" KPI. Distinct from totalSpent,
+     *  which is lifetime money paid (including already-released). */
+    heldInEscrow: number;
     activeJobs: number;
     completedJobs: number;
     savedContractors: number;
@@ -80,4 +127,8 @@ export interface DashboardData {
   activeJobs: ActiveJob[];
   pendingBids?: PendingBid[];
   upcomingAppointments?: Appointment[];
+  /** Right-rail "Needs you" feed, server-aggregated from multiple
+   *  data sources (bids, properties, quotes). When absent the card
+   *  falls back to deriving a single bid item from `pendingBids[0]`. */
+  needsYou?: NeedsYouItem[];
 }

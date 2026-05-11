@@ -13,10 +13,15 @@ interface DashboardClientProps {
       avatar?: string;
       location: string;
       email: string;
+      role?: string;
+      postcode?: string;
     };
     properties: Property[];
     metrics: {
       totalSpent: number;
+      /** Currently-held escrow balance (distinct from totalSpent) — drives
+       *  the "Held in escrow" KPI and the PaymentProtected card. */
+      heldInEscrow: number;
       activeJobs: number;
       completedJobs: number;
       savedContractors: number;
@@ -62,6 +67,40 @@ interface DashboardClientProps {
       status: string;
       contractor?: { name: string };
     }>;
+    /** Polymorphic "Needs you" feed — Mint Editorial only.
+     *  See dashboardHelpers.NeedsYouItem for variants. */
+    needsYou?: Array<
+      | {
+          kind: 'bid';
+          id: string;
+          contractorName: string;
+          jobTitle: string;
+          jobId: string;
+          amount: number;
+        }
+      | {
+          kind: 'bidsClosing';
+          id: string;
+          jobTitle: string;
+          jobId: string;
+          bidCount: number;
+          closesInHours: number;
+        }
+      | {
+          kind: 'verifyProp';
+          id: string;
+          propertyName: string;
+          address: string;
+        }
+      | {
+          kind: 'quote';
+          id: string;
+          contractorName: string;
+          jobTitle: string;
+          jobId: string;
+          amount: number;
+        }
+    >;
     recommendations?: MaintenanceRecommendation[];
   };
 }
