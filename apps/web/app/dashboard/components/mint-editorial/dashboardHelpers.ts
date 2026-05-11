@@ -29,6 +29,9 @@ export interface ActiveJob {
   progress: number;
   bidsCount: number;
   scheduledDate?: string;
+  // Resolved Job-storage URL (signed when stored privately, public CDN
+  // otherwise). When absent we fall back to the category icon tile.
+  photoUrl?: string | null;
 }
 
 export interface PendingBid {

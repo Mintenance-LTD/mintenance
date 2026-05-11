@@ -469,7 +469,142 @@
   font-weight: 600;
 }
 
-/* ---- Job row ---- */
+/* ---- Project / job card (active projects grid) ---- */
+.me-root .me-projects-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+@media (max-width: 900px) {
+  .me-root .me-projects-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.me-root .me-project-card {
+  background: var(--me-surface);
+  border: 1px solid var(--me-line);
+  border-radius: var(--me-radius-card);
+  box-shadow: var(--me-shadow-card);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.me-root .me-project-card:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--me-shadow-pop);
+}
+
+.me-root .me-project-photo {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  background: var(--me-bg-2);
+  overflow: hidden;
+}
+.me-root .me-project-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.me-root .me-project-photo .fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 64px;
+}
+.me-root .me-project-photo .status-pin {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+}
+
+.me-root .me-project-body {
+  padding: 18px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.me-root .me-project-title {
+  font-family: var(--me-font-display);
+  font-weight: var(--me-display-weight);
+  letter-spacing: -0.01em;
+  font-size: 20px;
+  line-height: 1.25;
+  color: var(--me-ink);
+  margin: 0;
+}
+.me-root .me-project-sub {
+  font-size: 13px;
+  color: var(--me-ink-3);
+}
+.me-root .me-project-budget {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 10px 0;
+  border-top: 1px solid var(--me-line-2);
+  border-bottom: 1px solid var(--me-line-2);
+}
+.me-root .me-project-budget .label {
+  font-size: 12px;
+  color: var(--me-ink-3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 500;
+}
+.me-root .me-project-budget .amount {
+  font-family: var(--me-font-display);
+  font-weight: var(--me-display-weight);
+  letter-spacing: -0.01em;
+  font-size: 22px;
+  color: var(--me-ink);
+  font-feature-settings:
+    'tnum' 1,
+    'lnum' 1;
+}
+
+/* Full-width primary action for the project card */
+.me-root .btn-block {
+  width: 100%;
+  justify-content: center;
+}
+
+/* Project section header (replaces inline "Your jobs" header) */
+.me-root .me-section-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.me-root .me-section-head .left h2 {
+  margin: 0 0 4px;
+}
+.me-root .me-section-head .left p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--me-ink-3);
+}
+.me-root .me-section-head a {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--me-brand);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.me-root .me-section-head a:hover {
+  text-decoration: underline;
+}
+
+/* ---- Legacy job row (kept for the bottom of the empty-state) ---- */
 .me-root .job-row {
   display: grid;
   grid-template-columns: 56px 1fr auto;

@@ -34,6 +34,7 @@ interface DashboardClientProps {
       progress: number;
       bidsCount: number;
       scheduledDate?: string;
+      photoUrl?: string | null;
     }>;
     pendingBids?: Array<{
       id: string;
