@@ -636,6 +636,44 @@
   flex-shrink: 0;
 }
 
+/* ---- Tabs (page-level sub-navigation) ---- */
+.me-root .me-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--me-line);
+  margin-bottom: 18px;
+}
+.me-root .me-tab {
+  padding: 10px 14px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--me-ink-3);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  background: transparent;
+  border-left: 0;
+  border-right: 0;
+  border-top: 0;
+  font-family: var(--me-font-ui);
+}
+.me-root .me-tab:hover {
+  color: var(--me-ink);
+}
+.me-root .me-tab.on {
+  color: var(--me-brand);
+  border-bottom-color: var(--me-brand);
+  font-weight: 600;
+}
+.me-root .me-tab .count {
+  margin-left: 6px;
+  color: var(--me-ink-3);
+  font-weight: 500;
+}
+.me-root .me-tab.on .count {
+  color: var(--me-brand);
+}
+
 /* ---- Grouped list section header (jobs list, etc.) ---- */
 .me-root .me-list-section {
   padding: 10px 16px;
