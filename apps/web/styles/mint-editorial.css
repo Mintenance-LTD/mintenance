@@ -542,6 +542,18 @@
   font-size: 13px;
   color: var(--me-ink-3);
 }
+.me-root .me-project-sub-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.me-root .me-project-sub-row .who {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .me-root .me-project-budget {
   display: flex;
   justify-content: space-between;

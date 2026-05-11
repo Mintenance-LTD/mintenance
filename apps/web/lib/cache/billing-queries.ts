@@ -2,7 +2,11 @@ import { unstable_cache } from 'next/cache';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { CACHE_TAGS, CACHE_DURATIONS } from './config';
-import { extractSupabaseError, type PaymentData, type SubscriptionData } from './types';
+import {
+  extractSupabaseError,
+  type PaymentData,
+  type SubscriptionData,
+} from './types';
 
 /**
  * Cached function to get user payments
@@ -14,10 +18,16 @@ export const getCachedUserPayments = unstable_cache(
     let data: PaymentData[] | null = null;
     let error: unknown = null;
 
-    // First try the payments table
+    // First try the payments table. `job_id` is needed so the dashboard
+    // can show held-in-escrow on the specific job card AND aggregate the
+    // KPI from the same rows — previously the dashboard was reading
+    // job.budget when status === 'in_progress' as a proxy, which lied
+    // when escrow was never funded.
     const paymentsResult = await serverSupabase
       .from('payments')
-      .select('id, amount, status, created_at, payment_date')
+      .select(
+        'id, amount, status, created_at, payment_date, job_id, net_amount'
+      )
       .eq('payer_id', userId)
       .order('created_at', { ascending: false })
       .limit(limit);
@@ -27,7 +37,7 @@ export const getCachedUserPayments = unstable_cache(
       if (paymentsResult.error.code === 'PGRST205') {
         const trackingResult = await serverSupabase
           .from('payment_tracking')
-          .select('id, amount, status, created_at')
+          .select('id, amount, status, created_at, job_id')
           .eq('contractor_id', userId)
           .order('created_at', { ascending: false })
           .limit(limit);

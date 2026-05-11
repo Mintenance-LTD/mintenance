@@ -32,6 +32,11 @@ export interface ActiveJob {
   // Resolved Job-storage URL (signed when stored privately, public CDN
   // otherwise). When absent we fall back to the category icon tile.
   photoUrl?: string | null;
+  // Real escrow balance currently held for this job, summed from
+  // payments rows with status='in_escrow'. Used by the card's "£X held"
+  // badge — previously the card faked this from job.budget when
+  // status===in_progress, which lied when escrow was never funded.
+  escrowAmount?: number;
 }
 
 export interface PendingBid {

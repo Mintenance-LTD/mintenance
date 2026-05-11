@@ -65,9 +65,12 @@ function statusBadge(status: string, bidsCount: number) {
 }
 
 function ProjectCard({ job }: { job: ActiveJob }) {
-  const showHeldBadge =
-    (job.status === 'in_progress' || job.status === 'assigned') &&
-    job.budget > 0;
+  // Only show the badge when real escrow rows exist for this job
+  // (page.tsx sums payments.status='in_escrow' into job.escrowAmount).
+  // Previously this was a job.budget proxy that lied when escrow was
+  // never funded — and disagreed with the KPI total.
+  const held = job.escrowAmount ?? 0;
+  const showHeldBadge = held > 0;
 
   return (
     <article className='me-project-card'>
@@ -84,14 +87,15 @@ function ProjectCard({ job }: { job: ActiveJob }) {
       <div className='me-project-body'>
         <div>
           <h3 className='me-project-title'>{job.title}</h3>
-          <div className='me-project-sub'>
-            {job.contractor?.name
-              ? job.contractor.name
-              : (job.category ?? 'Awaiting contractor')}
+          <div className='me-project-sub me-project-sub-row'>
+            <span className='who'>
+              {job.contractor?.name
+                ? job.contractor.name
+                : (job.category ?? 'Awaiting contractor')}
+            </span>
             {showHeldBadge ? (
-              <span className='badge badge-brand' style={{ marginLeft: 8 }}>
-                <ShieldCheck size={11} strokeWidth={2} />{' '}
-                {formatGBP(job.budget)} held
+              <span className='badge badge-brand'>
+                <ShieldCheck size={11} strokeWidth={2} /> {formatGBP(held)} held
               </span>
             ) : null}
           </div>

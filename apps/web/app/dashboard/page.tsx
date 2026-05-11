@@ -76,24 +76,37 @@ export default async function DashboardPage2025() {
       user.email
     : user.email;
 
-  // Calculate total spent from actual payments (escrow transactions), not job
-  // budgets. The previous fallback of "kpiData.jobsData.totalRevenue" when
-  // payments were empty lied to the user: the homeowner Financials page
-  // reads "Total Spent £0.00" for the same data, so the two numbers
-  // disagreed. Now we only count payments in a paid/held/released state.
-  // For a pure budget-sum view the user can look at /financials "Total
-  // Budget".
+  // Calculate total spent from actual payments (escrow transactions),
+  // not job budgets. The previous filter checked for status==='held' but
+  // the canonical payments-table enum uses 'in_escrow' — so even when
+  // money was actually held the KPI read £0. Fixed to use the real
+  // schema enum (`003_payment_system.sql`): in_escrow / released /
+  // completed cover "money the homeowner has paid in".
+  //
+  // For a pure budget-sum view the user can look at /financials
+  // "Total Budget".
+  const HELD_STATUSES = ['in_escrow'];
+  const SPENT_STATUSES = ['in_escrow', 'released', 'completed'];
+
   const totalSpent = payments
-    .filter(
-      (p: { status?: string }) =>
-        p.status === 'released' ||
-        p.status === 'held' ||
-        p.status === 'completed'
-    )
+    .filter((p: { status?: string }) => SPENT_STATUSES.includes(p.status || ''))
     .reduce(
       (sum: number, p: { amount?: number }) => sum + (Number(p.amount) || 0),
       0
     );
+
+  // Build a per-job "currently held in escrow" map so the active-jobs
+  // cards can show a real escrow badge instead of using job.budget as
+  // a proxy (which lied when in_progress jobs had no funded payment).
+  const escrowByJob = new Map<string, number>();
+  for (const p of payments) {
+    const status = (p as { status?: string }).status;
+    const jobId = (p as { job_id?: string }).job_id;
+    const amount = Number((p as { amount?: number }).amount) || 0;
+    if (!jobId || !HELD_STATUSES.includes(status || '') || amount <= 0)
+      continue;
+    escrowByJob.set(jobId, (escrowByJob.get(jobId) || 0) + amount);
+  }
 
   // PERFORMANCE FIX: Batch queries instead of N+1
   // Collect all job and contractor IDs
@@ -192,6 +205,7 @@ export default async function DashboardPage2025() {
           ? job.scheduled_start_date
           : undefined,
       photoUrl,
+      escrowAmount: escrowByJob.get(job.id) ?? 0,
     };
   });
 
