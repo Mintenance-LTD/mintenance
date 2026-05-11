@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { AlertTriangle, RefreshCw, ArrowLeft, Save } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { logger } from '@mintenance/shared';
+import { HomeownerPageWrapper } from '@/app/dashboard/components/HomeownerPageWrapper';
 
 export default function JobCreationError({
   error,
@@ -31,7 +32,9 @@ export default function JobCreationError({
         localStorage.setItem('job-creation-recovery', formData);
       }
     } catch (e) {
-      logger.error('Could not save form data for recovery:', e, { service: 'app' });
+      logger.error('Could not save form data for recovery:', e, {
+        service: 'app',
+      });
     }
   }, [error]);
 
@@ -41,76 +44,80 @@ export default function JobCreationError({
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 py-12 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        <div className="text-center">
-          <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100">
-            <AlertTriangle className="h-8 w-8 text-red-600" />
+    <HomeownerPageWrapper className='me-legacy-fit'>
+      <div className='flex items-center justify-center px-4 py-12 sm:px-6 lg:px-8'>
+        <div className='max-w-md w-full space-y-8'>
+          <div className='text-center'>
+            <div className='mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-red-100'>
+              <AlertTriangle className='h-8 w-8 text-red-600' />
+            </div>
+
+            <h2 className='mt-6 text-3xl font-bold text-gray-900'>
+              Job creation failed
+            </h2>
+
+            <p className='mt-2 text-sm text-gray-600'>
+              We couldn't create your job posting. Don't worry, we've saved your
+              progress.
+            </p>
+
+            {error.digest && (
+              <p className='mt-2 text-xs text-gray-500'>
+                Error ID: {error.digest}
+              </p>
+            )}
+
+            {error.message && error.message.includes('AI') && (
+              <div className='mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md'>
+                <p className='text-sm text-yellow-800'>
+                  The AI assessment service is temporarily unavailable. You can
+                  still post your job without AI-powered pricing.
+                </p>
+              </div>
+            )}
           </div>
 
-          <h2 className="mt-6 text-3xl font-bold text-gray-900">
-            Job creation failed
-          </h2>
+          <div className='mt-8 space-y-3'>
+            <Button
+              onClick={handleRecoverDraft}
+              variant='primary'
+              className='w-full flex items-center justify-center'
+            >
+              <Save className='mr-2 h-4 w-4' />
+              Recover your draft
+            </Button>
 
-          <p className="mt-2 text-sm text-gray-600">
-            We couldn't create your job posting. Don't worry, we've saved your progress.
-          </p>
+            <Button
+              onClick={reset}
+              variant='secondary'
+              className='w-full flex items-center justify-center'
+            >
+              <RefreshCw className='mr-2 h-4 w-4' />
+              Try again
+            </Button>
 
-          {error.digest && (
-            <p className="mt-2 text-xs text-gray-500">
-              Error ID: {error.digest}
-            </p>
-          )}
+            <Button
+              onClick={() => router.push('/dashboard')}
+              variant='outline'
+              className='w-full flex items-center justify-center'
+            >
+              <ArrowLeft className='mr-2 h-4 w-4' />
+              Back to dashboard
+            </Button>
+          </div>
 
-          {error.message && error.message.includes('AI') && (
-            <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-              <p className="text-sm text-yellow-800">
-                The AI assessment service is temporarily unavailable. You can still post your job without AI-powered pricing.
-              </p>
-            </div>
-          )}
-        </div>
-
-        <div className="mt-8 space-y-3">
-          <Button
-            onClick={handleRecoverDraft}
-            variant="primary"
-            className="w-full flex items-center justify-center"
-          >
-            <Save className="mr-2 h-4 w-4" />
-            Recover your draft
-          </Button>
-
-          <Button
-            onClick={reset}
-            variant="secondary"
-            className="w-full flex items-center justify-center"
-          >
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Try again
-          </Button>
-
-          <Button
-            onClick={() => router.push('/dashboard')}
-            variant="outline"
-            className="w-full flex items-center justify-center"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Back to dashboard
-          </Button>
-        </div>
-
-        <div className="mt-6 border-t pt-6">
-          <h3 className="text-sm font-medium text-gray-900">
-            Common issues:
-          </h3>
-          <ul className="mt-2 text-sm text-gray-600 list-disc list-inside">
-            <li>Image files may be too large (max 10MB)</li>
-            <li>Internet connection may be unstable</li>
-            <li>Required fields may be missing</li>
-          </ul>
+          <div className='mt-6 border-t pt-6'>
+            <h3 className='text-sm font-medium text-gray-900'>
+              Common issues:
+            </h3>
+            <ul className='mt-2 text-sm text-gray-600 list-disc list-inside'>
+              <li>Image files may be too large (max 10MB)</li>
+              <li>Internet connection may be unstable</li>
+              <li>Required fields may be missing</li>
+            </ul>
+          </div>
         </div>
       </div>
-    </div>
+    </HomeownerPageWrapper>
   );
 }

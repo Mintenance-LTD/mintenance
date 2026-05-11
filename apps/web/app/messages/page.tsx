@@ -7,7 +7,6 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { HomeownerPageWrapper } from '@/app/dashboard/components/HomeownerPageWrapper';
 import { LoadingSpinner } from '@/components/ui';
 import toast from 'react-hot-toast';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ArrowLeft } from 'lucide-react';
 import { useCSRF } from '@/lib/hooks/useCSRF';
 import { MessagesConversationSidebar } from './components/MessagesConversationSidebar';
@@ -141,14 +140,18 @@ async function fetchThreadMessages(threadId: string): Promise<Message[]> {
 }
 
 export default function MessagesPage2025() {
+  // The route-level `messages/error.tsx` is the authoritative error
+  // surface — it renders inside the homeowner shell with a "Failed to
+  // load messages" message and a retry. The previous component-level
+  // `<ErrorBoundary>` here intercepted first and rendered a full-bleed
+  // "Something went wrong" page outside the shell, which is what
+  // homeowners screenshot-reported on the Vercel preview.
   return (
-    <ErrorBoundary componentName='MessagesPage'>
-      <Suspense
-        fallback={<LoadingSpinner fullScreen message='Loading messages...' />}
-      >
-        <MessagesPageContent />
-      </Suspense>
-    </ErrorBoundary>
+    <Suspense
+      fallback={<LoadingSpinner fullScreen message='Loading messages...' />}
+    >
+      <MessagesPageContent />
+    </Suspense>
   );
 }
 
@@ -292,18 +295,17 @@ function MessagesPageContent() {
     }
   }, [user, loadingUser, router]);
 
-  if (loadingUser) {
-    return <LoadingSpinner fullScreen message='Loading messages...' />;
-  }
-
-  if (!user) return null;
-
   // Phase-2 chrome fit: when Mint Editorial is active, the sidebar
   // already has a "Messages" entry, so the per-page "Back to Dashboard"
   // button is redundant. SSR renders the legacy variant; after mount
-  // we re-render without the back button if the theme is on. Avoids
-  // the SSR/CSR hydration mismatch a direct document.* read would
-  // introduce (same pattern as HomeownerPageWrapper).
+  // we re-render without the back button if the theme is on.
+  //
+  // CRITICAL: these hooks must live BEFORE the early returns below.
+  // The previous order (early-returns first, then useState+useEffect)
+  // violated the React rules-of-hooks — once `user` flipped from null
+  // to defined, the hook call chain grew and React threw an
+  // unrecoverable error, which the component-level ErrorBoundary
+  // caught as "Something went wrong".
   const [isMintEditorial, setIsMintEditorial] = useState(false);
   useEffect(() => {
     if (typeof document === 'undefined') return;
@@ -311,6 +313,12 @@ function MessagesPageContent() {
       document.documentElement.dataset.theme === 'mint-editorial'
     );
   }, []);
+
+  if (loadingUser) {
+    return <LoadingSpinner fullScreen message='Loading messages...' />;
+  }
+
+  if (!user) return null;
 
   return (
     <HomeownerPageWrapper>
