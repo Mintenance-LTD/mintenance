@@ -1,31 +1,62 @@
+'use client';
+
+import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import {
-  Home,
-  Briefcase,
-  MapPin,
-  MessageSquare,
-  WalletCards,
-  Calendar,
-  Bell,
-  Settings,
-  Leaf,
-} from 'lucide-react';
+import { Leaf } from 'lucide-react';
+import { useNavSections } from '@/components/layouts/sidebar/sidebarNavConfig';
+import type {
+  NavItem,
+  NavSection,
+} from '@/components/layouts/sidebar/SidebarNavItems';
 import { initials } from './dashboardHelpers';
 
-const NAV_ITEMS = [
-  { href: '/dashboard', label: 'Dashboard', icon: Home, active: true },
-  { href: '/jobs', label: 'My jobs', icon: Briefcase },
-  { href: '/properties', label: 'Properties', icon: MapPin },
-  { href: '/messages', label: 'Messages', icon: MessageSquare },
-  { href: '/payments', label: 'Payments', icon: WalletCards },
-  { href: '/scheduling', label: 'Schedule', icon: Calendar },
-] as const;
+function isActive(pathname: string | null, href: string): boolean {
+  if (!pathname) return false;
+  const clean = href.split('?')[0];
+  const cleanPath = pathname.split('?')[0];
+  if (clean === '/dashboard') return cleanPath === clean;
+  return cleanPath === clean || cleanPath.startsWith(clean + '/');
+}
 
+function NavLink({
+  item,
+  pathname,
+}: {
+  item: NavItem;
+  pathname: string | null;
+}) {
+  const Icon = item.icon;
+  const active = isActive(pathname, item.href);
+  return (
+    <Link
+      href={item.href}
+      className={'me-nav-item ' + (active ? 'active' : '')}
+      aria-current={active ? 'page' : undefined}
+    >
+      <Icon className='ic' />
+      <span>{item.label}</span>
+    </Link>
+  );
+}
+
+/**
+ * Mint Editorial sidebar. Sources its nav items from the shared
+ * `useNavSections('homeowner')` config — same config the legacy
+ * ProfessionalHomeownerLayout uses — so the two layouts stay in sync
+ * automatically. Parent sections (Jobs with children, etc.) collapse
+ * to a single top-level link to fit the calmer Mint Editorial style;
+ * the children are still reachable from the destination page.
+ */
 export function MintEditorialSidebar({
   homeownerName,
+  email,
 }: {
   homeownerName: string;
+  email?: string;
 }) {
+  const pathname = usePathname();
+  const sections = useNavSections('homeowner') as NavSection[];
+
   return (
     <aside className='me-sidebar'>
       <Link href='/dashboard' className='me-sidebar-brand'>
@@ -34,31 +65,16 @@ export function MintEditorialSidebar({
         </span>
         Mintenance
       </Link>
-      <div className='me-sidebar-section'>Main</div>
-      {NAV_ITEMS.map((n) => {
-        const Icon = n.icon;
-        return (
-          <Link
-            key={n.label}
-            href={n.href}
-            className={
-              'me-nav-item ' + ('active' in n && n.active ? 'active' : '')
-            }
-          >
-            <Icon className='ic' size={16} strokeWidth={1.75} />
-            <span>{n.label}</span>
-          </Link>
-        );
-      })}
-      <div className='me-sidebar-section'>Account</div>
-      <Link href='/notifications' className='me-nav-item'>
-        <Bell className='ic' size={16} strokeWidth={1.75} />
-        Notifications
-      </Link>
-      <Link href='/settings' className='me-nav-item'>
-        <Settings className='ic' size={16} strokeWidth={1.75} />
-        Settings
-      </Link>
+
+      {sections.map((section: NavSection) => (
+        <div key={section.name}>
+          <div className='me-sidebar-section'>{section.name}</div>
+          {section.items.map((item: NavItem) => (
+            <NavLink key={item.label} item={item} pathname={pathname} />
+          ))}
+        </div>
+      ))}
+
       <div style={{ flex: 1 }} />
       <div
         style={{
@@ -80,10 +96,28 @@ export function MintEditorialSidebar({
         >
           {initials(homeownerName)}
         </span>
-        <div className='col' style={{ gap: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 600 }}>{homeownerName}</div>
-          <div style={{ fontSize: 11, color: 'var(--me-ink-3)' }}>
-            Homeowner
+        <div className='col' style={{ gap: 0, minWidth: 0 }}>
+          <div
+            style={{
+              fontSize: 13,
+              fontWeight: 600,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {homeownerName}
+          </div>
+          <div
+            style={{
+              fontSize: 11,
+              color: 'var(--me-ink-3)',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {email || 'Homeowner'}
           </div>
         </div>
       </div>

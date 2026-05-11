@@ -30,7 +30,10 @@ export function MintEditorialHomeownerDashboard({
 
   return (
     <div className='me-root' style={{ display: 'flex' }}>
-      <MintEditorialSidebar homeownerName={homeowner.name} />
+      <MintEditorialSidebar
+        homeownerName={homeowner.name}
+        email={homeowner.email}
+      />
 
       <div
         style={{
