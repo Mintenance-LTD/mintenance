@@ -1,8 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { AgentAutomationPanel } from '@/components/agents/AgentAutomationPanel';
+import { HomeownerPageWrapper } from '@/app/dashboard/components/HomeownerPageWrapper';
 import { useSettingsState } from './_components/use-settings-state';
 import { SettingsSidebar } from './_components/settings-sidebar';
 import { ProfileSection } from './_components/profile-section';
@@ -24,6 +25,18 @@ export default function SettingsPage2025({
   const { user, loadingUser, router, activeSection, setActiveSection } =
     settings;
 
+  // Hide the legacy "Back to Dashboard" link + suppress the legacy
+  // outer `min-h-screen bg-gray-50` strip when the Mint Editorial
+  // shell is active — the persistent sidebar already provides nav
+  // and a page background.
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
+
   if (loadingUser) {
     return (
       <div className='flex items-center justify-center min-h-screen bg-gray-50'>
@@ -41,17 +54,30 @@ export default function SettingsPage2025({
     user.first_name?.[0]?.toUpperCase() || user.email[0].toUpperCase();
 
   return (
-    <>
-      <div className='min-h-screen bg-gray-50 settings-page'>
-        <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
-          {/* Back to Dashboard Button */}
-          <button
-            onClick={() => router.push('/dashboard')}
-            className='flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors mb-6'
-          >
-            <ArrowLeft className='w-5 h-5' />
-            <span className='font-medium'>Back to Dashboard</span>
-          </button>
+    <HomeownerPageWrapper className='me-legacy-fit'>
+      <div
+        className={
+          isMintEditorial
+            ? 'settings-page'
+            : 'min-h-screen bg-gray-50 settings-page'
+        }
+      >
+        <div
+          className={
+            isMintEditorial ? '' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'
+          }
+        >
+          {/* Back to Dashboard Button — legacy only; the shell sidebar
+              already provides global navigation. */}
+          {!isMintEditorial && (
+            <button
+              onClick={() => router.push('/dashboard')}
+              className='flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors mb-6'
+            >
+              <ArrowLeft className='w-5 h-5' />
+              <span className='font-medium'>Back to Dashboard</span>
+            </button>
+          )}
 
           <div className='flex gap-8'>
             <SettingsSidebar
@@ -297,6 +323,6 @@ export default function SettingsPage2025({
           onResend={settings.handleResendCode}
         />
       </div>
-    </>
+    </HomeownerPageWrapper>
   );
 }
