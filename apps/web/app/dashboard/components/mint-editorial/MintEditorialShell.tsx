@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Search, Bell } from 'lucide-react';
 import { MintEditorialSidebar } from './MintEditorialSidebar';
 import { MintEditorialDock } from './MintEditorialDock';
+import { MintEditorialTopNav } from './MintEditorialTopNav';
 
 interface MintEditorialShellProps {
   /** Display name shown in the sidebar user card. */
@@ -64,13 +65,16 @@ export function MintEditorialShell({
           minWidth: 0,
         }}
       >
-        {/* Topbar — minimal: search + bell. Primary CTAs (Post a job,
-            New job, etc.) belong to the page's own greeting row. */}
+        {/* Topbar — search field on the left, sub-nav tabs in the
+            middle (Phase-2 mock parity), bell on the right. Primary
+            CTAs (Post a job, New job, etc.) still belong to the page's
+            own greeting row. */}
         <div className='me-topbar'>
-          <div className='search-pill' style={{ width: 360 }}>
+          <div className='search-pill' style={{ width: 280 }}>
             <Search size={15} strokeWidth={1.75} />
             <span>Search jobs, contractors, invoices</span>
           </div>
+          <MintEditorialTopNav />
           <div style={{ flex: 1 }} />
           <Link
             href='/notifications'

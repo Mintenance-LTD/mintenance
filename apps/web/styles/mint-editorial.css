@@ -454,6 +454,44 @@
   flex-shrink: 0;
 }
 
+/* Top sub-nav — pill row inside the topbar for quick section jumps
+ * (Dashboard / Jobs / Post a job / Messages / Properties / Payments).
+ * Hidden on mobile widths where the sidebar's nav serves the same
+ * purpose. */
+.me-root .me-topnav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--me-bg-2);
+  padding: 4px;
+  border-radius: 9999px;
+  flex-shrink: 0;
+}
+.me-root .me-topnav-tab {
+  padding: 6px 14px;
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--me-ink-2);
+  text-decoration: none;
+  transition:
+    background 120ms ease,
+    color 120ms ease;
+  white-space: nowrap;
+}
+.me-root .me-topnav-tab:hover {
+  color: var(--me-ink);
+}
+.me-root .me-topnav-tab.active {
+  background: var(--me-ink);
+  color: var(--me-on-ink, #fff);
+}
+@media (max-width: 900px) {
+  .me-root .me-topnav {
+    display: none;
+  }
+}
+
 /* ---- KPI tile ---- */
 .me-root .kpi {
   background: var(--me-surface);
