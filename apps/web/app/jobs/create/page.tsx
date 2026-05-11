@@ -16,6 +16,10 @@ import {
   type JobFormData,
 } from './utils/validation';
 import { submitJob } from './utils/submitJob';
+import {
+  initialFormDataFromParams,
+  formDataPatchFromParams,
+} from './utils/url-prefill';
 import { useCSRF } from '@/lib/hooks/useCSRF';
 import toast from 'react-hot-toast';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -87,20 +91,12 @@ export default function CreateJobPage2025() {
   const { csrfToken } = useCSRF();
   const [currentStep, setCurrentStep] = useState(1);
 
-  const [formData, setFormData] = useState<JobFormData>({
-    title: '',
-    description: '',
-    location: searchParams?.get('location') ?? '',
-    category: searchParams?.get('category') ?? '',
-    urgency: 'medium',
-    budget: '',
-    budget_min: '',
-    budget_max: '',
-    show_budget_to_contractors: false,
-    require_itemized_bids: false,
-    requiredSkills: [],
-    property_id: searchParams?.get('property_id') || '',
-  });
+  // Mint AI dock prefills via /api/ai/job-draft → query params. The
+  // initial seed + soft-navigation patch helpers live in
+  // utils/url-prefill.ts to keep this file under the MDC line cap.
+  const [formData, setFormData] = useState<JobFormData>(() =>
+    initialFormDataFromParams(searchParams)
+  );
 
   const [properties, setProperties] = useState<Property[]>([]);
   // Start loading=true so the first render shows "Loading…" instead of flashing
@@ -125,17 +121,12 @@ export default function CreateJobPage2025() {
     },
   });
 
-  // Prefill category and location from URL
+  // Prefill from URL on soft-navigations (Mint AI dock, deep-links).
+  // Initial state already captured the params on mount; this effect
+  // covers later URL changes that don't remount the page.
   useEffect(() => {
-    const qCategory = searchParams?.get('category');
-    const qLocation = searchParams?.get('location');
-    if (qCategory || qLocation) {
-      setFormData((prev) => ({
-        ...prev,
-        ...(qCategory && { category: qCategory }),
-        ...(qLocation && { location: qLocation }),
-      }));
-    }
+    const patch = formDataPatchFromParams(searchParams);
+    if (patch) setFormData((prev) => ({ ...prev, ...patch }));
   }, [searchParams]);
 
   useEffect(() => {

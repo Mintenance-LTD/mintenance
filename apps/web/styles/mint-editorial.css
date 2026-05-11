@@ -681,6 +681,36 @@
   color: var(--me-ink-3);
   font-size: 13.5px;
 }
+.me-root .mint-dock-input {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  outline: 0;
+  color: var(--me-ink);
+  font-family: var(--me-font-body);
+  font-size: 13.5px;
+  min-width: 0;
+}
+.me-root .mint-dock-input::placeholder {
+  color: var(--me-ink-3);
+}
+.me-root .mint-dock-input:disabled {
+  opacity: 0.7;
+  cursor: progress;
+}
+.me-root .mint-dock .icon-btn:disabled,
+.me-root .mint-dock .send:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
 .me-root .mint-dock .actions {
   display: flex;
   gap: 6px;

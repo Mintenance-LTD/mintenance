@@ -43,18 +43,20 @@ export function MintEditorialHomeownerDashboard({
           minWidth: 0,
         }}
       >
-        {/* Topbar */}
+        {/* Topbar. The "New job" CTA lives in the greeting row paired
+            with Export, so the topbar stays minimal — search + bell only. */}
         <div className='me-topbar'>
           <div className='search-pill' style={{ width: 360 }}>
             <Search size={15} strokeWidth={1.75} />
             <span>Search jobs, contractors, invoices</span>
           </div>
           <div style={{ flex: 1 }} />
-          <Link href='/notifications' className='btn btn-ghost btn-sm'>
+          <Link
+            href='/notifications'
+            className='btn btn-ghost btn-sm'
+            aria-label='Notifications'
+          >
             <Bell size={15} strokeWidth={1.75} />
-          </Link>
-          <Link href='/jobs/create' className='btn btn-primary btn-sm'>
-            <Plus size={14} strokeWidth={2} /> Post a job
           </Link>
         </div>
 
