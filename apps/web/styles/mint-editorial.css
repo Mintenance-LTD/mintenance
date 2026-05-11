@@ -364,15 +364,13 @@
   color: var(--me-ink);
   text-decoration: none;
 }
-.me-root .me-sidebar-brand .leaf {
+.me-root .me-sidebar-brand .brand-mark {
   width: 26px;
   height: 26px;
-  background: var(--me-brand);
-  color: #fff;
   border-radius: 7px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  display: inline-block;
+  object-fit: contain;
+  flex-shrink: 0;
 }
 .me-root .me-sidebar-section {
   font-size: 10.5px;

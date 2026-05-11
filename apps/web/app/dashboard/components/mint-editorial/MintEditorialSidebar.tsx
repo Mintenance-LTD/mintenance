@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { Leaf } from 'lucide-react';
+import Image from 'next/image';
 import { useNavSections } from '@/components/layouts/sidebar/sidebarNavConfig';
 import type {
   NavItem,
@@ -60,9 +60,14 @@ export function MintEditorialSidebar({
   return (
     <aside className='me-sidebar'>
       <Link href='/dashboard' className='me-sidebar-brand'>
-        <span className='leaf'>
-          <Leaf size={14} strokeWidth={2} />
-        </span>
+        <Image
+          src='/assets/icon.png'
+          alt=''
+          width={26}
+          height={26}
+          className='brand-mark'
+          priority
+        />
         Mintenance
       </Link>
 
