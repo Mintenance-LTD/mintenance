@@ -2,7 +2,6 @@ import React from 'react';
 import { cookies } from 'next/headers';
 import { DashboardWithAirbnbSearch } from './DashboardWithAirbnbSearch';
 import { MintEditorialHomeownerDashboard } from './MintEditorialHomeownerDashboard';
-import { ThemeSwitchPill } from './ThemeSwitchPill';
 import type { MaintenanceRecommendation } from '@/lib/services/RecommendationsService';
 import type { Property } from './dashboard-search-types';
 
@@ -66,26 +65,18 @@ interface DashboardClientProps {
 }
 
 const DashboardClient: React.FC<DashboardClientProps> = async ({ data }) => {
-  // Phase-1 design rebrand. Cookie is set via /api/theme; root layout
-  // reads the same cookie to attach <html data-theme>. Pick the
-  // matching dashboard surface here so the data prop only needs to
-  // flow into one tree.
+  // Phase-1 design rebrand. Cookie is set via Settings -> Appearance
+  // (also readable by /api/theme directly); root layout reads the same
+  // cookie to attach <html data-theme>. Pick the matching dashboard
+  // surface here so the data prop only needs to flow into one tree.
   const cookieStore = await cookies();
-  const active =
-    cookieStore.get('mintenance-theme')?.value === 'mint-editorial'
-      ? 'mint-editorial'
-      : 'default';
+  const isMintEditorial =
+    cookieStore.get('mintenance-theme')?.value === 'mint-editorial';
 
-  return (
-    <>
-      <ThemeSwitchPill active={active} />
-      {active === 'mint-editorial' ? (
-        <MintEditorialHomeownerDashboard data={data} />
-      ) : (
-        <DashboardWithAirbnbSearch data={data} />
-      )}
-    </>
-  );
+  if (isMintEditorial) {
+    return <MintEditorialHomeownerDashboard data={data} />;
+  }
+  return <DashboardWithAirbnbSearch data={data} />;
 };
 
 export { DashboardClient };

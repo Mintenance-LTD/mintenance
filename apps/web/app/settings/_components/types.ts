@@ -6,7 +6,8 @@ export type SectionKey =
   | 'notifications'
   | 'payments'
   | 'automation'
-  | 'privacy';
+  | 'privacy'
+  | 'appearance';
 
 /** Extended user fields that may come from the database but aren't in the base User type */
 export interface UserWithLocation {
@@ -76,5 +77,6 @@ export const SIDEBAR_SECTIONS: SidebarSection[] = [
   },
   { key: 'payments', label: 'Payments' },
   { key: 'automation', label: 'AI & Automation' },
+  { key: 'appearance', label: 'Appearance' },
   { key: 'privacy', label: 'Privacy' },
 ];

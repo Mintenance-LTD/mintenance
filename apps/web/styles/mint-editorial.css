@@ -577,34 +577,6 @@
   cursor: pointer;
 }
 
-/* ---- Theme switch (floating pill, dev affordance) ---- */
-.me-theme-switch {
-  position: fixed;
-  top: 14px;
-  right: 14px;
-  z-index: 60;
-  background: var(--me-surface, #ffffff);
-  border: 1px solid var(--me-line, #e2e8f0);
-  border-radius: 9999px;
-  padding: 4px;
-  display: inline-flex;
-  gap: 4px;
-  box-shadow: 0 4px 12px rgba(31, 42, 36, 0.06);
-  font-family:
-    'Geist',
-    -apple-system,
-    BlinkMacSystemFont,
-    sans-serif;
-  font-size: 12px;
-  font-weight: 500;
-}
-.me-theme-switch a {
-  padding: 4px 12px;
-  border-radius: 9999px;
-  color: #4a5751;
-  text-decoration: none;
-}
-.me-theme-switch a.on {
-  background: #3f8c7a;
-  color: #fff;
-}
+/* The theme switch lives at /settings → Appearance now (Phase 1). The
+   floating dev pill that previously sat at top-right has been removed
+   so the dashboard chrome matches the design exactly. */
