@@ -636,7 +636,87 @@
   flex-shrink: 0;
 }
 
-/* ---- Tabs (page-level sub-navigation) ---- */
+/* ============================================================
+   .me-legacy-fit — Tailwind → Mint Editorial color overrides for
+   legacy atomic components rendered inside the Mint Editorial shell.
+   Scoped narrowly to keep risk low: every selector requires
+   .me-root .me-legacy-fit ancestry, so the same Tailwind class on
+   any non-Mint Editorial surface (or on the page header / KPI tiles
+   that already use Mint tokens directly) is untouched.
+
+   Used by the /properties/[id] Manage tab to visually unify the
+   five legacy atomic feature cards (TenantContacts, TeamAccess,
+   RecurringMaintenance, BulkOperations, RoomPhotoGallery) with
+   the Mint palette without re-implementing them. Source TSX of
+   the legacy components stays unchanged so the legacy property
+   detail page is unaffected.
+   ============================================================ */
+.me-root .me-legacy-fit .bg-white {
+  background-color: var(--me-surface);
+}
+.me-root .me-legacy-fit .bg-gray-50 {
+  background-color: var(--me-bg-2);
+}
+.me-root .me-legacy-fit .bg-gray-100,
+.me-root .me-legacy-fit .bg-gray-200 {
+  background-color: var(--me-bg-3);
+}
+.me-root .me-legacy-fit .bg-gray-800,
+.me-root .me-legacy-fit .bg-gray-900 {
+  background-color: var(--me-ink);
+}
+.me-root .me-legacy-fit .bg-teal-50,
+.me-root .me-legacy-fit .bg-teal-100 {
+  background-color: var(--me-brand-soft);
+}
+.me-root .me-legacy-fit .bg-teal-600,
+.me-root .me-legacy-fit .bg-teal-700 {
+  background-color: var(--me-brand);
+}
+.me-root .me-legacy-fit .hover\:bg-teal-700:hover,
+.me-root .me-legacy-fit .hover\:bg-teal-600:hover {
+  background-color: var(--me-brand-2);
+}
+
+.me-root .me-legacy-fit .text-gray-300,
+.me-root .me-legacy-fit .text-gray-400 {
+  color: var(--me-ink-4);
+}
+.me-root .me-legacy-fit .text-gray-500 {
+  color: var(--me-ink-3);
+}
+.me-root .me-legacy-fit .text-gray-600,
+.me-root .me-legacy-fit .text-gray-700 {
+  color: var(--me-ink-2);
+}
+.me-root .me-legacy-fit .text-gray-800,
+.me-root .me-legacy-fit .text-gray-900 {
+  color: var(--me-ink);
+}
+.me-root .me-legacy-fit .text-teal-600,
+.me-root .me-legacy-fit .text-teal-700 {
+  color: var(--me-brand);
+}
+
+.me-root .me-legacy-fit .border-gray-100,
+.me-root .me-legacy-fit .border-gray-200,
+.me-root .me-legacy-fit .border-gray-300 {
+  border-color: var(--me-line);
+}
+.me-root .me-legacy-fit .border-teal-400,
+.me-root .me-legacy-fit .border-teal-500,
+.me-root .me-legacy-fit .border-teal-600 {
+  border-color: var(--me-brand);
+}
+
+/* Focus rings — the legacy components use focus:ring-teal-500 etc.
+   Map to the brand color so the focus indicator stays on-theme. */
+.me-root .me-legacy-fit .focus\:ring-teal-500:focus,
+.me-root .me-legacy-fit .focus\:ring-teal-600:focus {
+  --tw-ring-color: var(--me-brand);
+}
+
+/* Tabs (page-level sub-navigation) ---- */
 .me-root .me-tabs {
   display: flex;
   gap: 4px;

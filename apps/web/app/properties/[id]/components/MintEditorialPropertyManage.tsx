@@ -244,7 +244,7 @@ export function MintEditorialPropertyManage({
   jobs,
 }: Props) {
   return (
-    <div className='col' style={{ gap: 14 }}>
+    <div className='col me-legacy-fit' style={{ gap: 14 }}>
       <p className='t-body'>
         Premium tools for this property. Cards you can&rsquo;t open are gated by
         your subscription plan.
