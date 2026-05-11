@@ -61,6 +61,8 @@ export function HomeownerPageWrapper({
       <MintEditorialShell
         homeownerName={fullName}
         email={user?.email ?? undefined}
+        role={user?.role}
+        postcode={user?.postcode}
       >
         <div className={className}>{children}</div>
       </MintEditorialShell>

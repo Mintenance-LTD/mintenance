@@ -318,6 +318,11 @@ export default async function DashboardPage2025() {
       avatar: homeownerProfile?.profile_image_url,
       location: '',
       email: user.email || '',
+      role: user.role,
+      postcode:
+        typeof homeownerProfile?.postcode === 'string'
+          ? homeownerProfile.postcode
+          : undefined,
     },
     properties: properties.map((p) => ({
       id: String(p.id),

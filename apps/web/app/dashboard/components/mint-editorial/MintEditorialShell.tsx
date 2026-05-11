@@ -9,8 +9,13 @@ import { MintEditorialDock } from './MintEditorialDock';
 interface MintEditorialShellProps {
   /** Display name shown in the sidebar user card. */
   homeownerName: string;
-  /** Email shown under the name in the sidebar user card. */
+  /** Email shown under the name in the sidebar user card (fallback if
+   *  no role is provided). */
   email?: string;
+  /** Role label for the sidebar user-card subtitle (e.g. "homeowner"). */
+  role?: string;
+  /** Optional postcode to append to the role line ("Homeowner · SW18"). */
+  postcode?: string;
   /** Page content rendered inside the main scroll area. */
   children: ReactNode;
   /** Optional override for the main content padding. Defaults match
@@ -37,12 +42,19 @@ interface MintEditorialShellProps {
 export function MintEditorialShell({
   homeownerName,
   email,
+  role,
+  postcode,
   children,
   contentPadding = '28px 36px 140px',
 }: MintEditorialShellProps) {
   return (
     <div className='me-root' style={{ display: 'flex' }}>
-      <MintEditorialSidebar homeownerName={homeownerName} email={email} />
+      <MintEditorialSidebar
+        homeownerName={homeownerName}
+        email={email}
+        role={role}
+        postcode={postcode}
+      />
 
       <div
         style={{

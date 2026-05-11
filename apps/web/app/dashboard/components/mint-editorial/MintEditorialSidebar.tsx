@@ -46,16 +46,39 @@ function NavLink({
  * automatically. Parent sections (Jobs with children, etc.) collapse
  * to a single top-level link to fit the calmer Mint Editorial style;
  * the children are still reachable from the destination page.
+ *
+ * Layout: sticky `<aside>` with three rows —
+ *   1. Brand link (top, doesn't scroll)
+ *   2. `.me-sidebar-scroll` — scrollable nav (so long configs don't
+ *      push the user card off-screen on small viewports)
+ *   3. `.me-sidebar-user` — pinned-to-bottom user card with initials
+ *      + name + role/postcode subtitle (matching the mock).
  */
 export function MintEditorialSidebar({
   homeownerName,
   email,
+  role,
+  postcode,
 }: {
   homeownerName: string;
   email?: string;
+  /** Display role (e.g. "Homeowner") for the bottom user-card subtitle. */
+  role?: string;
+  /** Optional postcode appended to the role line ("Homeowner · SW18"). */
+  postcode?: string;
 }) {
   const pathname = usePathname();
   const sections = useNavSections('homeowner') as NavSection[];
+
+  // Subtitle priority: role + postcode → role only → email fallback.
+  const roleLabel = role
+    ? role.charAt(0).toUpperCase() + role.slice(1).toLowerCase()
+    : '';
+  const subtitle = roleLabel
+    ? postcode
+      ? `${roleLabel} · ${postcode}`
+      : roleLabel
+    : email || 'Homeowner';
 
   return (
     <aside className='me-sidebar'>
@@ -71,17 +94,19 @@ export function MintEditorialSidebar({
         Mintenance
       </Link>
 
-      {sections.map((section: NavSection) => (
-        <div key={section.name}>
-          <div className='me-sidebar-section'>{section.name}</div>
-          {section.items.map((item: NavItem) => (
-            <NavLink key={item.label} item={item} pathname={pathname} />
-          ))}
-        </div>
-      ))}
+      <div className='me-sidebar-scroll'>
+        {sections.map((section: NavSection) => (
+          <div key={section.name}>
+            <div className='me-sidebar-section'>{section.name}</div>
+            {section.items.map((item: NavItem) => (
+              <NavLink key={item.label} item={item} pathname={pathname} />
+            ))}
+          </div>
+        ))}
+      </div>
 
-      <div style={{ flex: 1 }} />
       <div
+        className='me-sidebar-user'
         style={{
           padding: 12,
           background: 'var(--me-surface)',
@@ -122,7 +147,7 @@ export function MintEditorialSidebar({
               whiteSpace: 'nowrap',
             }}
           >
-            {email || 'Homeowner'}
+            {subtitle}
           </div>
         </div>
       </div>

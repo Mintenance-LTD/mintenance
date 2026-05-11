@@ -61,7 +61,16 @@ export interface Appointment {
 }
 
 export interface DashboardData {
-  homeowner: { id: string; name: string; avatar?: string; email: string };
+  homeowner: {
+    id: string;
+    name: string;
+    avatar?: string;
+    email: string;
+    /** Role label for the sidebar user-card subtitle. */
+    role?: string;
+    /** Optional postcode appended to the role line. */
+    postcode?: string;
+  };
   metrics: {
     totalSpent: number;
     activeJobs: number;

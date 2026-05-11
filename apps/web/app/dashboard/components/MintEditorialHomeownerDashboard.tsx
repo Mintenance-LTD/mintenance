@@ -28,7 +28,12 @@ export function MintEditorialHomeownerDashboard({
   const topBid = pendingBids?.[0];
 
   return (
-    <MintEditorialShell homeownerName={homeowner.name} email={homeowner.email}>
+    <MintEditorialShell
+      homeownerName={homeowner.name}
+      email={homeowner.email}
+      role={homeowner.role}
+      postcode={homeowner.postcode}
+    >
       {/* Greeting */}
       <div className='between' style={{ marginBottom: 22 }}>
         <div className='col' style={{ gap: 6 }}>
