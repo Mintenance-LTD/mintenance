@@ -4,7 +4,6 @@
 import Link from 'next/link';
 import {
   ArrowRight,
-  Camera,
   CheckCircle2,
   Clock,
   Edit3,
@@ -96,58 +95,10 @@ function StatTile({
   );
 }
 
-export function PhotoHero({ property }: { property: PropertyShape }) {
-  const photo = property.images[0];
-  if (photo) {
-    return (
-      <div
-        className='card'
-        style={{ overflow: 'hidden', padding: 0, marginBottom: 18 }}
-      >
-        <img
-          src={photo}
-          alt={property.name}
-          style={{
-            width: '100%',
-            height: 320,
-            objectFit: 'cover',
-            display: 'block',
-          }}
-        />
-      </div>
-    );
-  }
-  return (
-    <div
-      className='card'
-      style={{
-        padding: '64px 24px',
-        textAlign: 'center',
-        marginBottom: 18,
-        background: 'var(--me-bg-2)',
-        borderStyle: 'dashed',
-      }}
-    >
-      <Camera
-        size={36}
-        strokeWidth={1.25}
-        style={{ color: 'var(--me-ink-3)', marginBottom: 12 }}
-      />
-      <h2 className='t-h4' style={{ marginBottom: 6 }}>
-        No photos yet
-      </h2>
-      <p className='t-body' style={{ marginBottom: 14 }}>
-        Add photos to make this property easier to recognise across jobs.
-      </p>
-      <Link
-        href={`/properties/${property.id}/edit`}
-        className='btn btn-primary btn-sm'
-      >
-        <Plus size={14} strokeWidth={2} /> Add photos
-      </Link>
-    </div>
-  );
-}
+// PhotoHero lives in its own file so this module stays under the
+// 500-line MDC cap. Re-export here so callers can keep importing
+// from MintEditorialPropertyCards.
+export { PhotoHero } from './MintEditorialPropertyPhotoHero';
 
 export function PropertyHeader({
   property,

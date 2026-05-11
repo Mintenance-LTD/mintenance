@@ -254,6 +254,12 @@ export function MintEditorialPropertyManage({
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
           gap: 16,
+          // alignItems: start lets each card size to its own content
+          // instead of being stretched to the tallest neighbour. Room
+          // Photos (with its 11 room chips) used to drag every card
+          // on its row to ~600px, leaving big empty white space below
+          // the content of the other six cards.
+          alignItems: 'start',
         }}
       >
         <FeatureGateCard featureId='HOMEOWNER_ROOM_PHOTOS'>

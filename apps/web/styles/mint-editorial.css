@@ -663,6 +663,15 @@
 }
 .me-root .me-legacy-fit .bg-gray-800,
 .me-root .me-legacy-fit .bg-gray-900 {
+  /* Map dark slate panels / buttons to the warm dark slate
+     (--me-ink-2) instead of the warmest near-black (--me-ink).
+     Keeps the visual hierarchy (secondary affordance, still high
+     contrast on white text) without painting a heavy black block
+     onto the mint surface — fixes Bulk Operations'
+     "Bulk Post to Multiple Properties" button. */
+  background-color: var(--me-ink-2);
+}
+.me-root .me-legacy-fit .hover\:bg-gray-800:hover {
   background-color: var(--me-ink);
 }
 .me-root .me-legacy-fit .bg-teal-50,
