@@ -382,19 +382,36 @@ export default function CreateJobPage2025() {
     (currentStep === 2 && canProceedStep2) ||
     (currentStep === 3 && canProceedStep3);
 
+  // Phase-2 chrome fit: when Mint Editorial is active, the sidebar
+  // already has a "My jobs" entry, so the per-page "Back to Jobs"
+  // button is redundant; also drop the forced bg-gray-50 / min-h-screen
+  // wrapper so the wizard sits on the mint-tinted shell background
+  // instead of fighting it. useState/useEffect avoids SSR/CSR
+  // hydration mismatch (same pattern as HomeownerPageWrapper).
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
+
   return (
     <ErrorBoundary componentName='CreateJobPage'>
       <HomeownerPageWrapper>
-        {/* Back to Jobs Button */}
-        <button
-          onClick={() => router.push('/jobs')}
-          className='flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors mb-4'
-        >
-          <ArrowLeft className='w-5 h-5' />
-          <span className='font-medium'>Back to Jobs</span>
-        </button>
+        {!isMintEditorial && (
+          <button
+            onClick={() => router.push('/jobs')}
+            className='flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors mb-4'
+          >
+            <ArrowLeft className='w-5 h-5' />
+            <span className='font-medium'>Back to Jobs</span>
+          </button>
+        )}
 
-        <div className='min-h-screen bg-gray-50 py-8'>
+        <div
+          className={isMintEditorial ? 'py-2' : 'min-h-screen bg-gray-50 py-8'}
+        >
           <div className='max-w-3xl mx-auto px-4'>
             <ProgressBar currentStep={currentStep} steps={STEPS} />
 

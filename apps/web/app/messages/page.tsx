@@ -298,16 +298,31 @@ function MessagesPageContent() {
 
   if (!user) return null;
 
+  // Phase-2 chrome fit: when Mint Editorial is active, the sidebar
+  // already has a "Messages" entry, so the per-page "Back to Dashboard"
+  // button is redundant. SSR renders the legacy variant; after mount
+  // we re-render without the back button if the theme is on. Avoids
+  // the SSR/CSR hydration mismatch a direct document.* read would
+  // introduce (same pattern as HomeownerPageWrapper).
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
+
   return (
     <HomeownerPageWrapper>
-      {/* Back to Dashboard Button */}
-      <button
-        onClick={() => router.push('/dashboard')}
-        className='flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors mb-4'
-      >
-        <ArrowLeft className='w-5 h-5' />
-        <span className='font-medium'>Back to Dashboard</span>
-      </button>
+      {!isMintEditorial && (
+        <button
+          onClick={() => router.push('/dashboard')}
+          className='flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors mb-4'
+        >
+          <ArrowLeft className='w-5 h-5' />
+          <span className='font-medium'>Back to Dashboard</span>
+        </button>
+      )}
 
       <div className='h-[calc(100vh-120px)] flex bg-white border border-gray-200 rounded-xl overflow-hidden'>
         {/* Sidebar — full-width on mobile, fixed width on md+ */}
