@@ -636,6 +636,30 @@
   flex-shrink: 0;
 }
 
+/* ---- Grouped list section header (jobs list, etc.) ---- */
+.me-root .me-list-section {
+  padding: 10px 16px;
+  background: var(--me-bg-2);
+  font-size: 11px;
+  color: var(--me-ink-3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+}
+.me-root .me-list-section-divider {
+  border-top: 1px solid var(--me-line-2);
+}
+.me-root .me-list-amount {
+  font-family: var(--me-font-display);
+  font-weight: var(--me-display-weight);
+  font-size: 16px;
+  letter-spacing: var(--me-display-tracking);
+  color: var(--me-ink);
+  font-feature-settings:
+    'tnum' 1,
+    'lnum' 1;
+}
+
 /* ---- Chips ---- */
 .me-root .chip {
   display: inline-flex;
