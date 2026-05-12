@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import { MotionButton, MotionDiv } from '@/components/ui/MotionDiv';
 import { getCsrfHeaders } from '@/lib/csrf-client';
 import { logger } from '@mintenance/shared';
+import { MintEditorialReviewsView } from './components/MintEditorialReviewsView';
 
 const fadeIn = {
   hidden: { opacity: 0, y: 20 },
@@ -166,11 +167,43 @@ export default function ContractorReviewsPage() {
     return `${Math.floor(diffDays / 365)} year${Math.floor(diffDays / 365) > 1 ? 's' : ''} ago`;
   };
 
+  // Hydration-safe theme detection — hooks must be called
+  // unconditionally so this lives above any early return.
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
+
   if (loading) {
     return (
       <div className='min-h-0 bg-gray-50 flex items-center justify-center py-24'>
         <Loader2 className='w-8 h-8 animate-spin text-teal-600' />
       </div>
+    );
+  }
+
+  if (isMintEditorial) {
+    return (
+      <MintEditorialReviewsView
+        stats={stats}
+        ratingDistribution={ratingDistribution}
+        filteredReviews={filteredReviews}
+        totalReviewCount={reviews.length}
+        selectedRating={selectedRating}
+        onSelectedRatingChange={setSelectedRating}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        showResponseForm={showResponseForm}
+        onShowResponseForm={setShowResponseForm}
+        responseText={responseText}
+        onResponseTextChange={setResponseText}
+        submittingResponse={submittingResponse}
+        onSubmitResponse={handleSubmitResponse}
+        formatRelativeDate={formatRelativeDate}
+      />
     );
   }
 

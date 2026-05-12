@@ -329,6 +329,17 @@ const KNOWN_LARGE_FILES = new Set([
   // (useContractorMessagesController) and is out of scope for this
   // single-file theme port.
   'apps/web/app/contractor/messages/components/MessagesClient.tsx', // 771 lines (was 585)
+  // Added 2026-05-12 (Phase-4 contractor port): contractor reviews
+  // surface. The page.tsx was already 475 LOC; the Mint Editorial
+  // branch adds the hooked `isMintEditorial` state + ~33-LOC branch
+  // that delegates to `MintEditorialReviewsView`. The view itself
+  // packages the canonical layout (hero card + filter chips +
+  // search-pill + per-review card with reply form). Splitting the
+  // view into hero / filter / list sub-components is a P2 cleanup
+  // but the current shape keeps the canonical layout in one file
+  // for easy review.
+  'apps/web/app/contractor/reviews/page.tsx', // 508 lines (was 475)
+  'apps/web/app/contractor/reviews/components/MintEditorialReviewsView.tsx', // 544 lines
 ]);
 
 function countLines(filePath) {
