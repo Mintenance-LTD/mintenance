@@ -1,4 +1,16 @@
-export default function FinancialsLoading() {
+import { cookies } from 'next/headers';
+import { MintEditorialPageSkeleton } from '@/components/mint-editorial/MintEditorialSkeleton';
+
+export default async function FinancialsLoading() {
+  const cookieStore = await cookies();
+  if (cookieStore.get('mintenance-theme')?.value === 'mint-editorial') {
+    return (
+      <div className='me-root' style={{ minHeight: '100vh' }}>
+        <MintEditorialPageSkeleton kpiCount={4} rowCount={5} />
+      </div>
+    );
+  }
+
   return (
     <div className='max-w-[1440px] mx-auto p-6 flex flex-col gap-6'>
       {/* Hero header skeleton — mirrors the dark gradient hero on /financials */}

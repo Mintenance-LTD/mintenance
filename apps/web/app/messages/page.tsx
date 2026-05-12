@@ -375,16 +375,10 @@ function MessagesPageContent() {
               style={{
                 flex: 1,
                 display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
                 background: 'var(--me-bg-2)',
-                color: 'var(--me-ink-3)',
-                fontSize: 13,
-                textAlign: 'center',
-                padding: 24,
               }}
             >
-              Pick a conversation on the left to see the thread.
+              <MessagesEmptyState />
             </div>
           )}
         </div>

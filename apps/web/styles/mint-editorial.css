@@ -533,6 +533,32 @@
   font-weight: 600;
 }
 
+/* ---- Skeleton shimmer (canonical from states-and-edges.html) ---- */
+@keyframes me-skel {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+.me-root .me-skel {
+  background: linear-gradient(
+    90deg,
+    var(--me-bg-2) 0%,
+    var(--me-bg-3) 50%,
+    var(--me-bg-2) 100%
+  );
+  background-size: 200% 100%;
+  animation: me-skel 1.4s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .me-root .me-skel {
+    animation: none;
+    background: var(--me-bg-2);
+  }
+}
+
 /* ---- Step strip (used on /disputes flow) ---- */
 .me-root .step-strip {
   display: flex;

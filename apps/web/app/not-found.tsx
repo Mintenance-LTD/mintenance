@@ -1,6 +1,34 @@
+import { cookies } from 'next/headers';
 import Link from 'next/link';
+import { MintEditorialErrorView } from '@/components/mint-editorial/MintEditorialErrorView';
 
-export default function NotFound() {
+/**
+ * Root 404 — splits on the `mintenance-theme` cookie so Mint Editorial
+ * users see the canonical 404 (huge serif `404` brand-color code +
+ * .t-h2 + .t-body + two CTAs) and legacy users see the existing
+ * teal-button layout.
+ *
+ * Server component — uses `cookies()` directly; no client-side flash.
+ */
+export default async function NotFound() {
+  const cookieStore = await cookies();
+  const isMintEditorial =
+    cookieStore.get('mintenance-theme')?.value === 'mint-editorial';
+
+  if (isMintEditorial) {
+    return (
+      <div className='me-root' style={{ minHeight: '100vh' }}>
+        <MintEditorialErrorView
+          code='404'
+          title="Can't find that."
+          body="The job, page, or contractor you're after isn't here. Maybe it moved, or maybe we never had it."
+          primary={{ label: 'Back to dashboard', href: '/dashboard' }}
+          secondary={{ label: 'Get help', href: '/help' }}
+        />
+      </div>
+    );
+  }
+
   return (
     <div className='flex min-h-screen flex-col items-center justify-center bg-gray-50 px-4'>
       <div className='text-center'>
