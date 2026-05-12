@@ -14,6 +14,8 @@ import type { Bid } from '../BidCard';
 import type { JobShape, PropertyShape } from './MintEditorialJobCards';
 import { CompareBidsTable } from './CompareBidsTable';
 import { MintEditorialJobTimeline } from './MintEditorialJobTimeline';
+import { BuildingAssessmentDisplay } from '../BuildingAssessmentDisplay';
+import type { Phase1BuildingAssessment } from '@/lib/services/building-surveyor/types';
 
 export type TabKey =
   | 'overview'
@@ -51,6 +53,11 @@ interface Props {
   photos: string[];
   beforePhotos?: PhotoRecord[];
   afterPhotos?: PhotoRecord[];
+  /** Latest `building_assessments` row for this job (or null). The
+   *  Overview tab renders the AI Building Assessment card from
+   *  `.assessment_data` when present, or a "Run analysis" CTA when
+   *  the assessment is missing but photos exist. */
+  buildingAssessment?: Record<string, unknown> | null;
   lifecycle?: LifecycleData;
   selectedId: string | null;
   recommendedId: string | null;
@@ -66,11 +73,18 @@ export function MintEditorialJobTabBody({
   photos,
   beforePhotos,
   afterPhotos,
+  buildingAssessment,
   lifecycle,
   selectedId,
   recommendedId,
   onSelect,
 }: Props) {
+  const aiAssessmentData =
+    (buildingAssessment?.assessment_data as
+      | Phase1BuildingAssessment
+      | undefined) ?? null;
+  const showAiCard =
+    tab === 'overview' && (aiAssessmentData || photos.length > 0);
   return (
     <div className='col' style={{ gap: 18, minWidth: 0 }}>
       {tab === 'bids' || tab === 'overview' ? (
@@ -125,6 +139,25 @@ export function MintEditorialJobTabBody({
               />
             </div>
           ))}
+        </div>
+      ) : null}
+
+      {showAiCard ? (
+        // BuildingAssessmentDisplay carries its own Tailwind chrome
+        // (white card, indigo/purple accents). Wrapping the embed in
+        // `me-legacy-fit` lets the override layer in mint-editorial.css
+        // map the Tailwind colors to the mint palette so the card
+        // doesn't clash with the rest of the Overview surface.
+        // Visual diff from the legacy view = none beyond the colour
+        // mapping; the same component renders the mismatch warning,
+        // damage type, severity, etc.
+        <div className='me-legacy-fit'>
+          <BuildingAssessmentDisplay
+            assessment={aiAssessmentData}
+            jobId={job.id}
+            jobCategory={job.category}
+            photoUrls={photos}
+          />
         </div>
       ) : null}
 

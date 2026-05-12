@@ -47,6 +47,11 @@ interface Props {
   contractContractorSignedAt?: string | null;
   contractHomeownerSignedAt?: string | null;
   escrowStatus: string | null | undefined;
+  /** Row from the `building_assessments` table (or null). The
+   *  `assessment_data` jsonb column carries the actual AI output —
+   *  shape Phase1BuildingAssessment. The Overview tab renders the
+   *  AI assessment card from this. */
+  buildingAssessment?: Record<string, unknown> | null;
   userId: string;
 }
 
@@ -64,6 +69,7 @@ export function MintEditorialJobDetailView({
   contractContractorSignedAt,
   contractHomeownerSignedAt,
   escrowStatus,
+  buildingAssessment,
   userId,
 }: Props) {
   const completionConfirmed = !!job.completion_confirmed_by_homeowner;
@@ -79,6 +85,7 @@ export function MintEditorialJobDetailView({
           photos={photos}
           beforePhotos={beforePhotos}
           afterPhotos={afterPhotos}
+          buildingAssessment={buildingAssessment}
           lifecycle={{
             contractStatus,
             contractContractorSignedAt,

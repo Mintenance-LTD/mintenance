@@ -77,6 +77,10 @@ interface Props {
    *  Photos tab only needs the flat URL list (`photos`). */
   beforePhotos?: PhotoRecord[];
   afterPhotos?: PhotoRecord[];
+  /** Row from `building_assessments` (or null). The `.assessment_data`
+   *  jsonb is what BuildingAssessmentDisplay actually renders. Routed
+   *  through to the Overview tab body so the AI card surfaces. */
+  buildingAssessment?: Record<string, unknown> | null;
   lifecycle: LifecycleData;
 }
 
@@ -136,6 +140,7 @@ export function MintEditorialJobDetail({
   photos,
   beforePhotos,
   afterPhotos,
+  buildingAssessment,
   lifecycle,
 }: Props) {
   const router = useRouter();
@@ -374,6 +379,7 @@ export function MintEditorialJobDetail({
           photos={photos}
           beforePhotos={beforePhotos}
           afterPhotos={afterPhotos}
+          buildingAssessment={buildingAssessment}
           lifecycle={lifecycle}
           selectedId={selectedId}
           recommendedId={recommendedId}

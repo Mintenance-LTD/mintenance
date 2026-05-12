@@ -412,6 +412,7 @@ export default async function JobDetailPage2025({
         contractContractorSignedAt={contract?.contractor_signed_at ?? null}
         contractHomeownerSignedAt={contract?.homeowner_signed_at ?? null}
         escrowStatus={escrowStatus}
+        buildingAssessment={buildingAssessment}
         userId={user.id}
       />
     );
