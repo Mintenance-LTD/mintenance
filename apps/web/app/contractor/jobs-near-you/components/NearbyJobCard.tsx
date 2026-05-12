@@ -11,6 +11,7 @@ import {
   getGradientCardStyle,
   getCardHoverStyle,
 } from '@/lib/theme-enhancements';
+import { useEditorialTokens } from '@/lib/theme/editorial-tokens';
 
 interface JobWithDistance {
   id: string;
@@ -54,6 +55,11 @@ export function NearbyJobCard({
   onSave,
   onClick,
 }: NearbyJobCardProps) {
+  // Editorial-aware token shim — replaces hard-coded theme.colors.*
+  // references with CSS variables when Mint Editorial is active.
+  // Component keeps its existing inline-styled layout; only colour
+  // tokens flip.
+  const tokens = useEditorialTokens();
   // Capture `Date.now()` post-mount via state so render stays pure under
   // `react-hooks/purity`. The NEW badge appears only after hydration —
   // a one-frame delay, but no hydration warning.
@@ -77,8 +83,8 @@ export function NearbyJobCard({
         position: 'relative',
         ...getCardHoverStyle(),
         border: isRecommended
-          ? `2px solid ${theme.colors.primary}`
-          : `1px solid ${theme.colors.border}`,
+          ? `2px solid ${tokens.primary}`
+          : `1px solid ${tokens.border}`,
         boxShadow: isRecommended ? theme.shadows.lg : theme.shadows.md,
         borderRadius: theme.borderRadius.xl,
         transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -106,7 +112,7 @@ export function NearbyJobCard({
             gap: theme.spacing[1],
           }}
         >
-          <Icon name='star' size={12} color={theme.colors.white} />
+          <Icon name='star' size={12} color={tokens.white} />
           Recommended
         </Badge>
       )}
@@ -139,9 +145,9 @@ export function NearbyJobCard({
                   fontSize: theme.typography.fontSize.xs,
                   fontWeight: theme.typography.fontWeight.semibold,
                   padding: `${theme.spacing[1]} ${theme.spacing[3]}`,
-                  backgroundColor: theme.colors.backgroundTertiary,
-                  color: theme.colors.textPrimary,
-                  border: `1px solid ${theme.colors.border}`,
+                  backgroundColor: tokens.backgroundTertiary,
+                  color: tokens.textPrimary,
+                  border: `1px solid ${tokens.border}`,
                   textTransform: 'lowercase',
                 }}
               >
@@ -155,8 +161,8 @@ export function NearbyJobCard({
                   fontSize: theme.typography.fontSize.xs,
                   fontWeight: theme.typography.fontWeight.bold,
                   padding: `${theme.spacing[1]} ${theme.spacing[3]}`,
-                  backgroundColor: theme.colors.success,
-                  color: theme.colors.white,
+                  backgroundColor: tokens.success,
+                  color: tokens.white,
                   boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
                   textTransform: 'uppercase',
                   letterSpacing: '0.05em',
@@ -174,7 +180,7 @@ export function NearbyJobCard({
               style={{
                 margin: 0,
                 fontSize: theme.typography.fontSize.sm,
-                color: theme.colors.textSecondary,
+                color: tokens.textSecondary,
                 lineHeight: 1.5,
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
@@ -202,7 +208,7 @@ export function NearbyJobCard({
             <Icon
               name='loader'
               size={20}
-              color={theme.colors.textSecondary}
+              color={tokens.textSecondary}
               style={{
                 animation: 'spin 1s linear infinite',
               }}
@@ -211,9 +217,7 @@ export function NearbyJobCard({
             <Icon
               name={job.isSaved ? 'bookmark' : 'bookmarkOutline'}
               size={20}
-              color={
-                job.isSaved ? theme.colors.primary : theme.colors.textSecondary
-              }
+              color={job.isSaved ? tokens.primary : tokens.textSecondary}
             />
           )}
         </Button>
@@ -229,7 +233,7 @@ export function NearbyJobCard({
           padding: theme.spacing[4],
           ...getGradientCardStyle('success'),
           borderRadius: theme.borderRadius.lg,
-          border: `1px solid ${theme.colors.success}20`,
+          border: `1px solid ${tokens.success}20`,
         }}
       >
         {job.budget && (
@@ -238,7 +242,7 @@ export function NearbyJobCard({
               style={{
                 fontSize: theme.typography.fontSize.xs,
                 fontWeight: theme.typography.fontWeight.medium,
-                color: theme.colors.textSecondary,
+                color: tokens.textSecondary,
                 marginBottom: theme.spacing[1],
                 textTransform: 'uppercase',
                 letterSpacing: '0.05em',
@@ -250,7 +254,7 @@ export function NearbyJobCard({
               style={{
                 fontSize: theme.typography.fontSize['2xl'],
                 fontWeight: theme.typography.fontWeight.bold,
-                color: theme.colors.textPrimary,
+                color: tokens.textPrimary,
               }}
             >
               <AnimatedCounter
@@ -267,7 +271,7 @@ export function NearbyJobCard({
               style={{
                 fontSize: theme.typography.fontSize.xs,
                 fontWeight: theme.typography.fontWeight.medium,
-                color: theme.colors.textSecondary,
+                color: tokens.textSecondary,
                 marginBottom: theme.spacing[1],
                 textTransform: 'uppercase',
                 letterSpacing: '0.05em',
@@ -279,13 +283,13 @@ export function NearbyJobCard({
               style={{
                 fontSize: theme.typography.fontSize.base,
                 fontWeight: theme.typography.fontWeight.semibold,
-                color: theme.colors.textPrimary,
+                color: tokens.textPrimary,
                 display: 'flex',
                 alignItems: 'center',
                 gap: theme.spacing[1],
               }}
             >
-              <Icon name='mapPin' size={16} color={theme.colors.primary} />
+              <Icon name='mapPin' size={16} color={tokens.primary} />
               <span>{job.location.split(',').slice(-2).join(',').trim()}</span>
             </div>
           </div>
@@ -308,15 +312,15 @@ export function NearbyJobCard({
               fontSize: theme.typography.fontSize.xs,
               fontWeight: theme.typography.fontWeight.medium,
               padding: `${theme.spacing[1]} ${theme.spacing[3]}`,
-              backgroundColor: theme.colors.backgroundSecondary,
-              color: theme.colors.textPrimary,
-              border: `1px solid ${theme.colors.border}`,
+              backgroundColor: tokens.backgroundSecondary,
+              color: tokens.textPrimary,
+              border: `1px solid ${tokens.border}`,
               display: 'flex',
               alignItems: 'center',
               gap: theme.spacing[1],
             }}
           >
-            <Icon name='mapPin' size={12} color={theme.colors.textSecondary} />
+            <Icon name='mapPin' size={12} color={tokens.textSecondary} />
             {job.distance.toFixed(1)} km
           </Badge>
         )}
@@ -329,7 +333,7 @@ export function NearbyJobCard({
             <Icon
               name='checkCircle'
               size={12}
-              color={theme.colors.success}
+              color={tokens.success}
               style={{ marginRight: theme.spacing[1] }}
             />
             {job.skillMatchCount} match
@@ -354,9 +358,9 @@ export function NearbyJobCard({
               variant='success'
               style={{
                 fontSize: theme.typography.fontSize.xs,
-                backgroundColor: `${theme.colors.success}20`,
-                color: theme.colors.success,
-                border: `1px solid ${theme.colors.success}40`,
+                backgroundColor: `${tokens.success}20`,
+                color: tokens.success,
+                border: `1px solid ${tokens.success}40`,
               }}
             >
               {skill}
@@ -382,7 +386,7 @@ export function NearbyJobCard({
             gap: theme.spacing[2],
             marginBottom: theme.spacing[4],
             padding: theme.spacing[2],
-            backgroundColor: theme.colors.backgroundSecondary,
+            backgroundColor: tokens.backgroundSecondary,
             borderRadius: theme.borderRadius.md,
           }}
         >
@@ -391,7 +395,7 @@ export function NearbyJobCard({
               width: '32px',
               height: '32px',
               borderRadius: theme.borderRadius.full,
-              backgroundColor: theme.colors.primary + '20',
+              backgroundColor: tokens.primary + '20',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -402,7 +406,7 @@ export function NearbyJobCard({
               style={{
                 fontSize: theme.typography.fontSize.sm,
                 fontWeight: theme.typography.fontWeight.semibold,
-                color: theme.colors.primary,
+                color: tokens.primary,
               }}
             >
               {job.homeowner.first_name?.[0] || job.homeowner.email?.[0] || 'U'}
@@ -412,7 +416,7 @@ export function NearbyJobCard({
             <div
               style={{
                 fontSize: theme.typography.fontSize.xs,
-                color: theme.colors.textSecondary,
+                color: tokens.textSecondary,
                 marginBottom: theme.spacing[1],
               }}
             >
@@ -422,7 +426,7 @@ export function NearbyJobCard({
               style={{
                 fontSize: theme.typography.fontSize.sm,
                 fontWeight: theme.typography.fontWeight.semibold,
-                color: theme.colors.textPrimary,
+                color: tokens.textPrimary,
               }}
             >
               {job.homeowner.first_name && job.homeowner.last_name
@@ -437,7 +441,7 @@ export function NearbyJobCard({
       <div
         style={{
           paddingTop: theme.spacing[4],
-          borderTop: `1px solid ${theme.colors.border}`,
+          borderTop: `1px solid ${tokens.border}`,
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
@@ -451,11 +455,11 @@ export function NearbyJobCard({
             gap: theme.spacing[1],
           }}
         >
-          <Icon name='calendar' size={14} color={theme.colors.textTertiary} />
+          <Icon name='calendar' size={14} color={tokens.textTertiary} />
           <span
             style={{
               fontSize: theme.typography.fontSize.sm,
-              color: theme.colors.textSecondary,
+              color: tokens.textSecondary,
               fontWeight: theme.typography.fontWeight.medium,
             }}
           >
