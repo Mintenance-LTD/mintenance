@@ -1,7 +1,7 @@
-'use client';
-
 import React from 'react';
+import { cookies } from 'next/headers';
 import { DashboardWithAirbnbSearch } from './DashboardWithAirbnbSearch';
+import { MintEditorialHomeownerDashboard } from './MintEditorialHomeownerDashboard';
 import type { MaintenanceRecommendation } from '@/lib/services/RecommendationsService';
 import type { Property } from './dashboard-search-types';
 
@@ -13,10 +13,15 @@ interface DashboardClientProps {
       avatar?: string;
       location: string;
       email: string;
+      role?: string;
+      postcode?: string;
     };
     properties: Property[];
     metrics: {
       totalSpent: number;
+      /** Currently-held escrow balance (distinct from totalSpent) — drives
+       *  the "Held in escrow" KPI and the PaymentProtected card. */
+      heldInEscrow: number;
       activeJobs: number;
       completedJobs: number;
       savedContractors: number;
@@ -34,6 +39,8 @@ interface DashboardClientProps {
       progress: number;
       bidsCount: number;
       scheduledDate?: string;
+      photoUrl?: string | null;
+      escrowAmount?: number;
     }>;
     pendingBids?: Array<{
       id: string;
@@ -60,11 +67,56 @@ interface DashboardClientProps {
       status: string;
       contractor?: { name: string };
     }>;
+    /** Polymorphic "Needs you" feed — Mint Editorial only.
+     *  See dashboardHelpers.NeedsYouItem for variants. */
+    needsYou?: Array<
+      | {
+          kind: 'bid';
+          id: string;
+          contractorName: string;
+          jobTitle: string;
+          jobId: string;
+          amount: number;
+        }
+      | {
+          kind: 'bidsClosing';
+          id: string;
+          jobTitle: string;
+          jobId: string;
+          bidCount: number;
+          closesInHours: number;
+        }
+      | {
+          kind: 'verifyProp';
+          id: string;
+          propertyName: string;
+          address: string;
+        }
+      | {
+          kind: 'quote';
+          id: string;
+          contractorName: string;
+          jobTitle: string;
+          jobId: string;
+          amount: number;
+        }
+    >;
     recommendations?: MaintenanceRecommendation[];
   };
 }
 
-const DashboardClient: React.FC<DashboardClientProps> = ({ data }) => {
+const DashboardClient: React.FC<DashboardClientProps> = async ({ data }) => {
+  // Phase-1 design rebrand. Cookie is set via Settings -> Appearance
+  // (also readable by /api/theme directly); root layout reads the same
+  // cookie to attach <html data-theme>. Pick the matching dashboard
+  // surface here so the data prop only needs to flow into one tree.
+  const cookieStore = await cookies();
+  const isMintEditorial =
+    cookieStore.get('mintenance-theme')?.value === 'mint-editorial';
+
+  if (isMintEditorial) {
+    return <MintEditorialHomeownerDashboard data={data} />;
+  }
   return <DashboardWithAirbnbSearch data={data} />;
 };
 

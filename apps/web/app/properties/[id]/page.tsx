@@ -1,9 +1,11 @@
 import type { Metadata } from 'next';
 import React from 'react';
+import { cookies } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import PropertyDetailsClient from './components/PropertyDetailsClient';
+import { MintEditorialPropertyDetail } from './components/MintEditorialPropertyDetail';
 
 export const metadata: Metadata = {
   title: 'Property Details | Mintenance',
@@ -106,6 +108,20 @@ export default async function PropertyDetailPage({
       property.photos && property.photos.length > 0 ? property.photos : [],
   };
 
+  // Maintenance Plan tab — fetch recurring_schedules for this
+  // property. The table + RLS already exist (migration 20260214200000);
+  // the row count is just zero for properties that haven't been
+  // configured yet, which is a fine empty state.
+  const { data: schedulesRows } = await serverSupabase
+    .from('recurring_schedules')
+    .select(
+      'id, task_type, title, description, category, frequency, next_due_date, last_completed_date, auto_create_job, is_active'
+    )
+    .eq('owner_id', user.id)
+    .eq('property_id', property.id)
+    .order('next_due_date', { ascending: true });
+  const schedules = schedulesRows || [];
+
   // Format jobs data
   const formattedJobs = (jobs || []).map((job) => {
     // Find an accepted bid if any
@@ -126,6 +142,33 @@ export default async function PropertyDetailPage({
       category: job.category || 'General',
     };
   });
+
+  // Phase-2 design rebrand. Mint Editorial users get the new card
+  // layout (real per-property health score from
+  // calculatePropertyHealthScore, recent jobs list, single Post-a-job
+  // CTA). Spending-trend chart from the legacy view is deliberately
+  // omitted in this first slice — building it would need real
+  // month-bucketed payment data that the page doesn't fetch today.
+  // Skipping a chart that would otherwise be eye-candy beats faking
+  // one (Phase-1 dashboard escrow lesson).
+  const cookieStore = await cookies();
+  const isMintEditorial =
+    cookieStore.get('mintenance-theme')?.value === 'mint-editorial';
+
+  if (isMintEditorial) {
+    return (
+      <MintEditorialPropertyDetail
+        property={formattedProperty}
+        jobs={formattedJobs}
+        stats={{
+          completedJobs,
+          activeJobs,
+          totalSpent,
+        }}
+        schedules={schedules}
+      />
+    );
+  }
 
   return (
     <PropertyDetailsClient

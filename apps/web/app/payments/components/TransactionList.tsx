@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import { LoadingSpinner } from '@/components/ui';
@@ -15,6 +15,7 @@ import {
   CalendarDays,
   User,
 } from 'lucide-react';
+import { MintEditorialTransactionList } from './MintEditorialTransactionList';
 
 interface Transaction {
   id: string;
@@ -111,6 +112,30 @@ export function TransactionList({
   onViewReceipt,
 }: TransactionListProps) {
   const router = useRouter();
+
+  // Mint Editorial branch — canonical .card / .row / display-serif
+  // amounts layout. Legacy bespoke grid stays below.
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
+
+  if (isMintEditorial) {
+    return (
+      <MintEditorialTransactionList
+        transactions={transactions}
+        loading={loading}
+        filter={filter}
+        userRole={userRole}
+        onReleasePayment={onReleasePayment}
+        onRequestRefund={onRequestRefund}
+        onViewReceipt={onViewReceipt}
+      />
+    );
+  }
 
   if (loading) {
     return (

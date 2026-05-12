@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -28,6 +28,31 @@ import { StatCard } from './InvoiceManagement/StatCard';
 import { InvoiceCard } from './InvoiceManagement/InvoiceCard';
 import { InvoiceCardSkeleton } from './InvoiceManagement/InvoiceCardSkeleton';
 import { EmptyState } from './InvoiceManagement/EmptyState';
+
+// Editorial-only header — renders only when the Mint Editorial cookie
+// theme is active. Stays out of the legacy layout entirely so the
+// pre-Mint design is unaffected.
+function InvoicesHeader() {
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
+
+  if (!isMintEditorial) return null;
+
+  return (
+    <div className='col' style={{ gap: 4, marginBottom: 20 }}>
+      <h1 className='t-h1'>Invoices</h1>
+      <p className='t-body'>
+        Send invoices, track payments, and chase overdue balances. Mobile-app
+        invoice creation syncs here automatically.
+      </p>
+    </div>
+  );
+}
 
 // Main Component
 export function InvoiceManagementClient({
@@ -229,6 +254,7 @@ export function InvoiceManagementClient({
 
   return (
     <div className='min-h-screen'>
+      <InvoicesHeader />
       {/* Stats Dashboard */}
       <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8'>
         <StatCard

@@ -10,6 +10,7 @@ import { Icon } from '@/components/ui/Icon';
 import { theme } from '@/lib/theme';
 import { PageLoader } from '@/components/LoadingButton';
 import { getCsrfToken } from '@/lib/csrf-client';
+import { MintEditorialDisputeDetail } from './MintEditorialDisputeDetail';
 
 interface DisputeTimeline {
   status: string;
@@ -35,6 +36,16 @@ export default function DisputeDetailPage() {
   } | null>(null);
   const [timeline, setTimeline] = useState<DisputeTimeline[]>([]);
   const [loadingDispute, setLoadingDispute] = useState(true);
+
+  // Mint Editorial theme detection — swap the entire detail surface
+  // for the canonical "Track resolution" layout when active.
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
 
   useEffect(() => {
     if (disputeId) {
@@ -77,6 +88,16 @@ export default function DisputeDetailPage() {
 
   if (!dispute) {
     return <div>Dispute not found</div>;
+  }
+
+  if (isMintEditorial) {
+    return (
+      <MintEditorialDisputeDetail
+        disputeId={disputeId}
+        dispute={dispute}
+        timeline={timeline}
+      />
+    );
   }
 
   return (

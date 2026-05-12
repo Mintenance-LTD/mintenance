@@ -14,9 +14,17 @@ import { JobsStatusTabs } from './components/JobsStatusTabs';
 import { JobsGrid } from './components/JobsGrid';
 import { JobsHeroHeader } from './components/JobsHeroHeader';
 import { JobsBulkActionsSection } from './components/JobsBulkActionsSection';
+import { MintEditorialJobsList } from './components/MintEditorialJobsList';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 
-type FilterStatus = 'all' | 'posted' | 'assigned' | 'in_progress' | 'completed' | 'draft' | 'awaiting_action';
+type FilterStatus =
+  | 'all'
+  | 'posted'
+  | 'assigned'
+  | 'in_progress'
+  | 'completed'
+  | 'draft'
+  | 'awaiting_action';
 
 interface RawJobData {
   id: string;
@@ -64,7 +72,7 @@ interface ProcessedJob {
 
 export default function JobsPage2025() {
   return (
-    <ErrorBoundary componentName="JobsPage">
+    <ErrorBoundary componentName='JobsPage'>
       <JobsPageContent />
     </ErrorBoundary>
   );
@@ -95,36 +103,60 @@ function JobsPageContent() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedJobs, setSelectedJobs] = useState<Set<string>>(new Set());
-  const { user, loading: loadingUser, error: currentUserError } = useCurrentUser();
+  const {
+    user,
+    loading: loadingUser,
+    error: currentUserError,
+  } = useCurrentUser();
 
   useEffect(() => {
     document.title = 'Your Jobs | Mintenance';
   }, []);
 
-  const { data: allJobs = [], isLoading: loading, error: jobsError } = useQuery({
+  // Phase-2 design rebrand. Read theme cookie via the data-attr that
+  // app/layout.tsx already applies to <html> server-side. Matches the
+  // pattern in HomeownerPageWrapper so SSR + first CSR render the same
+  // DOM (legacy), then upgrade to the Mint Editorial list on the
+  // client when the theme is active. No flash for legacy users.
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
+
+  const {
+    data: allJobs = [],
+    isLoading: loading,
+    error: jobsError,
+  } = useQuery({
     queryKey: ['jobs', user?.id, user?.role],
     queryFn: async () => {
       if (!user) return [];
-      const jobsRaw = user.role === 'homeowner'
-        ? await JobService.getJobsByHomeowner(user.id)
-        : await JobService.getAvailableJobs();
-      return (jobsRaw as RawJobData[]).map((j: RawJobData): ProcessedJob => ({
-        id: j.id,
-        title: j.title ?? '',
-        description: j.description ?? '',
-        location: j.location ?? '',
-        homeowner_id: j.homeowner_id ?? j.homeownerId ?? '',
-        contractor_id: j.contractor_id ?? j.contractorId ?? undefined,
-        status: (j.status as FilterStatus) ?? 'posted',
-        budget: j.budget ?? 0,
-        created_at: j.created_at ?? j.createdAt ?? new Date().toISOString(),
-        updated_at: j.updated_at ?? j.updatedAt ?? new Date().toISOString(),
-        category: j.category ?? undefined,
-        priority: j.priority ?? undefined,
-        photos: j.photos ?? [],
-        view_count: j.view_count,
-        nextAction: getNextAction(j.status ?? 'posted'),
-      }));
+      const jobsRaw =
+        user.role === 'homeowner'
+          ? await JobService.getJobsByHomeowner(user.id)
+          : await JobService.getAvailableJobs();
+      return (jobsRaw as RawJobData[]).map(
+        (j: RawJobData): ProcessedJob => ({
+          id: j.id,
+          title: j.title ?? '',
+          description: j.description ?? '',
+          location: j.location ?? '',
+          homeowner_id: j.homeowner_id ?? j.homeownerId ?? '',
+          contractor_id: j.contractor_id ?? j.contractorId ?? undefined,
+          status: (j.status as FilterStatus) ?? 'posted',
+          budget: j.budget ?? 0,
+          created_at: j.created_at ?? j.createdAt ?? new Date().toISOString(),
+          updated_at: j.updated_at ?? j.updatedAt ?? new Date().toISOString(),
+          category: j.category ?? undefined,
+          priority: j.priority ?? undefined,
+          photos: j.photos ?? [],
+          view_count: j.view_count,
+          nextAction: getNextAction(j.status ?? 'posted'),
+        })
+      );
     },
     enabled: !!user,
     staleTime: 60 * 1000,
@@ -135,22 +167,37 @@ function JobsPageContent() {
     if (activeTab !== 'all') {
       if (activeTab === 'awaiting_action') {
         // Show jobs that need homeowner action: completed (needs review) or assigned (contract/payment)
-        data = data.filter((j) => j.nextAction && (j.nextAction.urgency === 'high' || j.nextAction.urgency === 'medium'));
+        data = data.filter(
+          (j) =>
+            j.nextAction &&
+            (j.nextAction.urgency === 'high' ||
+              j.nextAction.urgency === 'medium')
+        );
       } else if (activeTab === 'in_progress') {
         // "Active" tab (in_progress) should also include 'assigned' status jobs
-        data = data.filter((j) => j.status === 'in_progress' || j.status === 'assigned');
+        data = data.filter(
+          (j) => j.status === 'in_progress' || j.status === 'assigned'
+        );
       } else {
         data = data.filter((j) => j.status === activeTab);
       }
     }
-    if (filters.status && filters.status.length > 0 && !filters.status.includes('all')) {
+    if (
+      filters.status &&
+      filters.status.length > 0 &&
+      !filters.status.includes('all')
+    ) {
       data = data.filter((j) => filters.status?.includes(j.status));
     }
     if (filters.category && filters.category.length > 0) {
-      data = data.filter((j) => j.category && filters.category?.includes(j.category));
+      data = data.filter(
+        (j) => j.category && filters.category?.includes(j.category)
+      );
     }
     if (filters.urgency && filters.urgency.length > 0) {
-      data = data.filter((j) => j.priority && filters.urgency?.includes(j.priority));
+      data = data.filter(
+        (j) => j.priority && filters.urgency?.includes(j.priority)
+      );
     }
     if (filters.budgetRange) {
       data = data.filter(
@@ -170,13 +217,24 @@ function JobsPageContent() {
     }
     return [...data].sort((a, b) => {
       switch (sortBy) {
-        case 'newest': return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-        case 'oldest': return new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
-        case 'budget-high': return b.budget - a.budget;
-        case 'budget-low': return a.budget - b.budget;
-        case 'most-views': return (b.view_count || 0) - (a.view_count || 0);
-        case 'alphabetical': return a.title.localeCompare(b.title);
-        default: return 0;
+        case 'newest':
+          return (
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          );
+        case 'oldest':
+          return (
+            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+          );
+        case 'budget-high':
+          return b.budget - a.budget;
+        case 'budget-low':
+          return a.budget - b.budget;
+        case 'most-views':
+          return (b.view_count || 0) - (a.view_count || 0);
+        case 'alphabetical':
+          return a.title.localeCompare(b.title);
+        default:
+          return 0;
       }
     });
   }, [allJobs, filters, activeTab, sortBy, searchQuery]);
@@ -195,35 +253,35 @@ function JobsPageContent() {
   }, [user, loadingUser, currentUserError, router]);
 
   if (loadingUser) {
-    return <LoadingSpinner fullScreen message="Loading your workspace..." />;
+    return <LoadingSpinner fullScreen message='Loading your workspace...' />;
   }
   if (currentUserError) {
     return (
       <ErrorView
-        title="Unable to load account"
-        message="Please refresh the page or try signing in again."
+        title='Unable to load account'
+        message='Please refresh the page or try signing in again.'
         onRetry={() => window.location.reload()}
-        retryLabel="Refresh Page"
-        variant="fullscreen"
+        retryLabel='Refresh Page'
+        variant='fullscreen'
       />
     );
   }
   if (user && user.role === 'contractor') {
-    return <LoadingSpinner fullScreen message="Redirecting to bid page..." />;
+    return <LoadingSpinner fullScreen message='Redirecting to bid page...' />;
   }
   if (jobsError) {
     return (
       <ErrorView
-        title="Unable to load jobs"
-        message="There was an error loading your jobs. Please try again."
+        title='Unable to load jobs'
+        message='There was an error loading your jobs. Please try again.'
         onRetry={() => window.location.reload()}
-        retryLabel="Refresh Page"
-        variant="fullscreen"
+        retryLabel='Refresh Page'
+        variant='fullscreen'
       />
     );
   }
   if (!user) {
-    return <LoadingSpinner fullScreen message="Redirecting to login..." />;
+    return <LoadingSpinner fullScreen message='Redirecting to login...' />;
   }
 
   const handleCancelSelection = () => {
@@ -231,17 +289,31 @@ function JobsPageContent() {
     setSelectedJobs(new Set());
   };
 
+  if (isMintEditorial) {
+    return (
+      <HomeownerPageWrapper>
+        <MintEditorialJobsList jobs={allJobs} />
+      </HomeownerPageWrapper>
+    );
+  }
+
   return (
     <HomeownerPageWrapper>
       <JobsHeroHeader
         allJobsCount={allJobs.length}
-        activeJobsCount={allJobs.filter(j => j.status === 'in_progress' || j.status === 'assigned').length}
-        postedJobsCount={allJobs.filter(j => j.status === 'posted').length}
-        completedJobsCount={allJobs.filter(j => j.status === 'completed').length}
+        activeJobsCount={
+          allJobs.filter(
+            (j) => j.status === 'in_progress' || j.status === 'assigned'
+          ).length
+        }
+        postedJobsCount={allJobs.filter((j) => j.status === 'posted').length}
+        completedJobsCount={
+          allJobs.filter((j) => j.status === 'completed').length
+        }
         prefersReducedMotion={prefersReducedMotion}
       />
 
-      <div className="w-full space-y-4">
+      <div className='w-full space-y-4'>
         {/* Toolbar + Search */}
         <JobsToolbar
           totalCount={allJobs.length}
@@ -265,11 +337,18 @@ function JobsPageContent() {
           onTabChange={setActiveTab}
           jobCounts={{
             all: allJobs.length,
-            posted: allJobs.filter(j => j.status === 'posted').length,
-            active: allJobs.filter(j => j.status === 'in_progress' || j.status === 'assigned').length,
-            completed: allJobs.filter(j => j.status === 'completed').length,
-            draft: allJobs.filter(j => j.status === 'draft').length,
-            awaitingAction: allJobs.filter(j => j.nextAction && (j.nextAction.urgency === 'high' || j.nextAction.urgency === 'medium')).length,
+            posted: allJobs.filter((j) => j.status === 'posted').length,
+            active: allJobs.filter(
+              (j) => j.status === 'in_progress' || j.status === 'assigned'
+            ).length,
+            completed: allJobs.filter((j) => j.status === 'completed').length,
+            draft: allJobs.filter((j) => j.status === 'draft').length,
+            awaitingAction: allJobs.filter(
+              (j) =>
+                j.nextAction &&
+                (j.nextAction.urgency === 'high' ||
+                  j.nextAction.urgency === 'medium')
+            ).length,
           }}
           prefersReducedMotion={prefersReducedMotion}
         />
@@ -285,11 +364,17 @@ function JobsPageContent() {
           selectedJobs={selectedJobs}
           onToggleSelection={(jobId) => {
             const newSelected = new Set(selectedJobs);
-            if (newSelected.has(jobId)) { newSelected.delete(jobId); }
-            else { newSelected.add(jobId); }
+            if (newSelected.has(jobId)) {
+              newSelected.delete(jobId);
+            } else {
+              newSelected.add(jobId);
+            }
             setSelectedJobs(newSelected);
           }}
-          onClearFilters={() => { setFilters({}); setSearchQuery(''); }}
+          onClearFilters={() => {
+            setFilters({});
+            setSearchQuery('');
+          }}
         />
       </div>
 

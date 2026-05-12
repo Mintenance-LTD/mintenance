@@ -22,7 +22,7 @@ import {
   CheckCircle,
   Star,
   Camera,
-  Heart
+  Heart,
 } from 'lucide-react';
 
 interface Job {
@@ -73,11 +73,28 @@ interface JobDetailsClientProps {
   existingBid: ExistingBid | null;
 }
 
-export function JobDetailsClient({ job, homeowner, existingBid }: JobDetailsClientProps) {
+export function JobDetailsClient({
+  job,
+  homeowner,
+  existingBid,
+}: JobDetailsClientProps) {
   const router = useRouter();
   const [selectedPhoto, setSelectedPhoto] = useState<number>(0);
   const [isSaved, setIsSaved] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Hydration-safe theme detection — Phase-4 contractor port pattern.
+  // Used to swap the hero block + sidebar action buttons to canonical
+  // primitives. Body sections (description, photos, homeowner card,
+  // job stats) inherit colour mapping from the shell-level
+  // .me-legacy-fit boundary and stay on the Tailwind layout.
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
 
   // Check if job is already saved on mount
   useEffect(() => {
@@ -101,13 +118,16 @@ export function JobDetailsClient({ job, homeowner, existingBid }: JobDetailsClie
     try {
       if (isSaved) {
         // Unsave the job
-        const response = await fetch(`/api/contractor/saved-jobs?jobId=${job.id}`, {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-            ...await getCsrfHeaders(),
-          },
-        });
+        const response = await fetch(
+          `/api/contractor/saved-jobs?jobId=${job.id}`,
+          {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(await getCsrfHeaders()),
+            },
+          }
+        );
 
         if (!response.ok) {
           throw new Error('Failed to unsave job');
@@ -121,7 +141,7 @@ export function JobDetailsClient({ job, homeowner, existingBid }: JobDetailsClie
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            ...await getCsrfHeaders(),
+            ...(await getCsrfHeaders()),
           },
           body: JSON.stringify({ jobId: job.id }),
         });
@@ -193,96 +213,265 @@ export function JobDetailsClient({ job, homeowner, existingBid }: JobDetailsClie
   return (
     <ContractorPageWrapper>
       <JobViewTracker jobId={job.id} />
-      <div className="max-w-6xl mx-auto">
-        {/* Header with Back Button */}
-        <div className="mb-6">
+      <div className='max-w-6xl mx-auto'>
+        {/* Back link — canonical .btn-ghost when Mint Editorial,
+            inline ghost link otherwise. */}
+        <div className='mb-6'>
           <button
             onClick={() => router.push('/contractor/discover')}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+            className={
+              isMintEditorial
+                ? 'btn btn-ghost btn-sm'
+                : 'flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors'
+            }
           >
-            <ArrowLeft className="w-5 h-5" />
-            <span>Back to Jobs</span>
+            <ArrowLeft className='w-5 h-5' />
+            <span>Back to jobs</span>
           </button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
           {/* Main Content - Left Side */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Job Header */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h1 className="text-2xl font-bold text-gray-900 mb-2">{job.title}</h1>
-                  <div className="flex items-center gap-4">
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(job.status)}`}>
-                      {job.status?.replace('_', ' ').charAt(0).toUpperCase() + job.status?.slice(1).replace('_', ' ')}
+          <div className='lg:col-span-2 space-y-6'>
+            {/* Job Header — canonical .card with .t-h1 + .badge row
+                when Mint Editorial is on. Body details (description,
+                photos) below this block stay Tailwind because the
+                shell-level .me-legacy-fit boundary already maps their
+                bg-white / border-gray-200 / text-gray-900 utilities
+                to the mint palette. */}
+            {isMintEditorial ? (
+              <div className='card card-pad'>
+                <h1 className='t-h1' style={{ marginBottom: 10 }}>
+                  {job.title}
+                </h1>
+                <div
+                  className='row'
+                  style={{
+                    gap: 8,
+                    flexWrap: 'wrap',
+                    marginBottom: 20,
+                  }}
+                >
+                  <span className='badge badge-info'>
+                    {job.status?.replace('_', ' ').charAt(0).toUpperCase() +
+                      job.status?.slice(1).replace('_', ' ')}
+                  </span>
+                  {job.priority ? (
+                    <span
+                      className={`badge ${
+                        job.priority?.toLowerCase() === 'high' ||
+                        job.priority?.toLowerCase() === 'emergency'
+                          ? 'badge-err'
+                          : job.priority?.toLowerCase() === 'medium'
+                            ? 'badge-warn'
+                            : 'badge-ok'
+                      }`}
+                    >
+                      {job.priority.charAt(0).toUpperCase() +
+                        job.priority.slice(1)}{' '}
+                      priority
                     </span>
-                    {job.priority && (
-                      <span className={`px-3 py-1 rounded-full text-sm font-medium border ${getPriorityColor(job.priority)}`}>
-                        {job.priority.charAt(0).toUpperCase() + job.priority.slice(1)} Priority
-                      </span>
-                    )}
-                    {job.category && (
-                      <span className="px-3 py-1 bg-teal-100 text-teal-700 rounded-full text-sm font-medium">
-                        {job.category}
-                      </span>
-                    )}
-                  </div>
+                  ) : null}
+                  {job.category ? (
+                    <span className='badge badge-brand'>{job.category}</span>
+                  ) : null}
                 </div>
-              </div>
 
-              {/* Key Details Grid */}
-              <div className="grid grid-cols-2 gap-4 mt-6">
-                <div className="flex items-center gap-3">
-                  <PoundSterling className="w-5 h-5 text-gray-400" />
-                  <div>
-                    <p className="text-sm text-gray-600">Budget</p>
-                    <p className="text-lg font-semibold text-gray-900">{formatCurrency(typeof job.budget === 'number' ? job.budget : parseFloat(String(job.budget)))}</p>
+                {/* Key Details Grid — 2×2 .kpi-style mini-cards */}
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                    gap: 12,
+                  }}
+                >
+                  <div
+                    className='row'
+                    style={{ gap: 10, alignItems: 'flex-start' }}
+                  >
+                    <PoundSterling
+                      size={18}
+                      strokeWidth={1.75}
+                      style={{ color: 'var(--me-ink-3)', marginTop: 2 }}
+                    />
+                    <div className='col' style={{ gap: 2 }}>
+                      <span className='t-meta'>Budget</span>
+                      <span style={{ fontSize: 16, fontWeight: 600 }}>
+                        {formatCurrency(
+                          typeof job.budget === 'number'
+                            ? job.budget
+                            : parseFloat(String(job.budget))
+                        )}
+                      </span>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <MapPin className="w-5 h-5 text-gray-400" />
-                  <div>
-                    <p className="text-sm text-gray-600">Location</p>
-                    <p className="text-lg font-semibold text-gray-900">
-                      {job.location && typeof job.location === 'object'
-                        ? [job.location.address, job.location.city, job.location.postcode].filter(Boolean).join(', ') || 'Not specified'
-                        : (job.location || 'Not specified')}
-                    </p>
+                  <div
+                    className='row'
+                    style={{ gap: 10, alignItems: 'flex-start' }}
+                  >
+                    <MapPin
+                      size={18}
+                      strokeWidth={1.75}
+                      style={{ color: 'var(--me-ink-3)', marginTop: 2 }}
+                    />
+                    <div className='col' style={{ gap: 2, minWidth: 0 }}>
+                      <span className='t-meta'>Location</span>
+                      <span style={{ fontSize: 14, fontWeight: 600 }}>
+                        {job.location && typeof job.location === 'object'
+                          ? [
+                              job.location.address,
+                              job.location.city,
+                              job.location.postcode,
+                            ]
+                              .filter(Boolean)
+                              .join(', ') || 'Not specified'
+                          : job.location || 'Not specified'}
+                      </span>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Calendar className="w-5 h-5 text-gray-400" />
-                  <div>
-                    <p className="text-sm text-gray-600">Posted</p>
-                    <p className="text-lg font-semibold text-gray-900">{formatDate(job.created_at)}</p>
+                  <div
+                    className='row'
+                    style={{ gap: 10, alignItems: 'flex-start' }}
+                  >
+                    <Calendar
+                      size={18}
+                      strokeWidth={1.75}
+                      style={{ color: 'var(--me-ink-3)', marginTop: 2 }}
+                    />
+                    <div className='col' style={{ gap: 2 }}>
+                      <span className='t-meta'>Posted</span>
+                      <span style={{ fontSize: 14, fontWeight: 600 }}>
+                        {formatDate(job.created_at)}
+                      </span>
+                    </div>
                   </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Clock className="w-5 h-5 text-gray-400" />
-                  <div>
-                    <p className="text-sm text-gray-600">Timeline</p>
-                    <p className="text-lg font-semibold text-gray-900">
-                      {job.timeline && typeof job.timeline === 'object'
-                        ? [job.timeline.start_date, job.timeline.end_date].filter(Boolean).join(' - ') || 'Flexible'
-                        : (job.timeline || 'Flexible')}
-                    </p>
+                  <div
+                    className='row'
+                    style={{ gap: 10, alignItems: 'flex-start' }}
+                  >
+                    <Clock
+                      size={18}
+                      strokeWidth={1.75}
+                      style={{ color: 'var(--me-ink-3)', marginTop: 2 }}
+                    />
+                    <div className='col' style={{ gap: 2 }}>
+                      <span className='t-meta'>Timeline</span>
+                      <span style={{ fontSize: 14, fontWeight: 600 }}>
+                        {job.timeline && typeof job.timeline === 'object'
+                          ? [job.timeline.start_date, job.timeline.end_date]
+                              .filter(Boolean)
+                              .join(' - ') || 'Flexible'
+                          : job.timeline || 'Flexible'}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
+            ) : (
+              <div className='bg-white rounded-xl border border-gray-200 p-6'>
+                <div className='flex items-start justify-between mb-4'>
+                  <div>
+                    <h1 className='text-2xl font-bold text-gray-900 mb-2'>
+                      {job.title}
+                    </h1>
+                    <div className='flex items-center gap-4'>
+                      <span
+                        className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(job.status)}`}
+                      >
+                        {job.status?.replace('_', ' ').charAt(0).toUpperCase() +
+                          job.status?.slice(1).replace('_', ' ')}
+                      </span>
+                      {job.priority && (
+                        <span
+                          className={`px-3 py-1 rounded-full text-sm font-medium border ${getPriorityColor(job.priority)}`}
+                        >
+                          {job.priority.charAt(0).toUpperCase() +
+                            job.priority.slice(1)}{' '}
+                          Priority
+                        </span>
+                      )}
+                      {job.category && (
+                        <span className='px-3 py-1 bg-teal-100 text-teal-700 rounded-full text-sm font-medium'>
+                          {job.category}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Key Details Grid */}
+                <div className='grid grid-cols-2 gap-4 mt-6'>
+                  <div className='flex items-center gap-3'>
+                    <PoundSterling className='w-5 h-5 text-gray-400' />
+                    <div>
+                      <p className='text-sm text-gray-600'>Budget</p>
+                      <p className='text-lg font-semibold text-gray-900'>
+                        {formatCurrency(
+                          typeof job.budget === 'number'
+                            ? job.budget
+                            : parseFloat(String(job.budget))
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                  <div className='flex items-center gap-3'>
+                    <MapPin className='w-5 h-5 text-gray-400' />
+                    <div>
+                      <p className='text-sm text-gray-600'>Location</p>
+                      <p className='text-lg font-semibold text-gray-900'>
+                        {job.location && typeof job.location === 'object'
+                          ? [
+                              job.location.address,
+                              job.location.city,
+                              job.location.postcode,
+                            ]
+                              .filter(Boolean)
+                              .join(', ') || 'Not specified'
+                          : job.location || 'Not specified'}
+                      </p>
+                    </div>
+                  </div>
+                  <div className='flex items-center gap-3'>
+                    <Calendar className='w-5 h-5 text-gray-400' />
+                    <div>
+                      <p className='text-sm text-gray-600'>Posted</p>
+                      <p className='text-lg font-semibold text-gray-900'>
+                        {formatDate(job.created_at)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className='flex items-center gap-3'>
+                    <Clock className='w-5 h-5 text-gray-400' />
+                    <div>
+                      <p className='text-sm text-gray-600'>Timeline</p>
+                      <p className='text-lg font-semibold text-gray-900'>
+                        {job.timeline && typeof job.timeline === 'object'
+                          ? [job.timeline.start_date, job.timeline.end_date]
+                              .filter(Boolean)
+                              .join(' - ') || 'Flexible'
+                          : job.timeline || 'Flexible'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Job Description */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Job Description</h2>
-              <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">
+            <div className='bg-white rounded-xl border border-gray-200 p-6'>
+              <h2 className='text-xl font-bold text-gray-900 mb-4'>
+                Job Description
+              </h2>
+              <p className='text-gray-700 whitespace-pre-wrap leading-relaxed'>
                 {job.description || 'No description provided.'}
               </p>
 
               {job.requirements && (
-                <div className="mt-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-3">Requirements</h3>
-                  <ul className="space-y-2">
+                <div className='mt-6'>
+                  <h3 className='text-lg font-semibold text-gray-900 mb-3'>
+                    Requirements
+                  </h3>
+                  <ul className='space-y-2'>
                     {(() => {
                       const requirements = job.requirements;
 
@@ -302,13 +491,15 @@ export function JobDetailsClient({ job, homeowner, existingBid }: JobDetailsClie
                       if (Array.isArray(requirements)) {
                         return requirements;
                       }
-                      
+
                       if (hasSplitMethod(requirements)) {
                         try {
                           // Double-check before calling split - convert to string to ensure it's a primitive
                           const reqString = String(requirements);
                           if (typeof reqString.split === 'function') {
-                            return reqString.split('\n').filter((req: string) => req.trim() !== '');
+                            return reqString
+                              .split('\n')
+                              .filter((req: string) => req.trim() !== '');
                           } else {
                             // Fallback if split somehow doesn't exist
                             return [reqString];
@@ -318,17 +509,17 @@ export function JobDetailsClient({ job, homeowner, existingBid }: JobDetailsClie
                           return [String(requirements)];
                         }
                       }
-                      
+
                       // Handle other types (object, number, etc.)
                       if (requirements !== null && requirements !== undefined) {
                         return [String(requirements)];
                       }
-                      
+
                       return [];
                     })().map((req: string, index: number) => (
-                      <li key={index} className="flex items-start gap-2">
-                        <CheckCircle className="w-5 h-5 text-teal-500 flex-shrink-0 mt-0.5" />
-                        <span className="text-gray-700">{req}</span>
+                      <li key={index} className='flex items-start gap-2'>
+                        <CheckCircle className='w-5 h-5 text-teal-500 flex-shrink-0 mt-0.5' />
+                        <span className='text-gray-700'>{req}</span>
                       </li>
                     ))}
                   </ul>
@@ -338,38 +529,40 @@ export function JobDetailsClient({ job, homeowner, existingBid }: JobDetailsClie
 
             {/* Photos */}
             {job.photos && job.photos.length > 0 && (
-              <div className="bg-white rounded-xl border border-gray-200 p-6">
-                <h2 className="text-xl font-bold text-gray-900 mb-4">Photos</h2>
-                <div className="space-y-4">
+              <div className='bg-white rounded-xl border border-gray-200 p-6'>
+                <h2 className='text-xl font-bold text-gray-900 mb-4'>Photos</h2>
+                <div className='space-y-4'>
                   {/* Main Photo Display */}
-                  <div className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden">
+                  <div className='relative aspect-video bg-gray-100 rounded-lg overflow-hidden'>
                     <Image
                       src={job.photos[selectedPhoto]}
                       alt={`Job photo ${selectedPhoto + 1}`}
                       fill
-                      sizes="(max-width: 768px) 100vw, 66vw"
-                      className="object-cover"
+                      sizes='(max-width: 768px) 100vw, 66vw'
+                      className='object-cover'
                       priority
                     />
                   </div>
 
                   {/* Photo Thumbnails */}
                   {job.photos.length > 1 && (
-                    <div className="grid grid-cols-4 gap-2">
+                    <div className='grid grid-cols-4 gap-2'>
                       {job.photos.map((photo: string, index: number) => (
                         <button
                           key={index}
                           onClick={() => setSelectedPhoto(index)}
                           className={`relative aspect-video bg-gray-100 rounded-lg overflow-hidden border-2 transition-all ${
-                            selectedPhoto === index ? 'border-teal-500' : 'border-transparent hover:border-gray-300'
+                            selectedPhoto === index
+                              ? 'border-teal-500'
+                              : 'border-transparent hover:border-gray-300'
                           }`}
                         >
                           <Image
                             src={photo}
                             alt={`Thumbnail ${index + 1}`}
                             fill
-                            sizes="25vw"
-                            className="object-cover"
+                            sizes='25vw'
+                            className='object-cover'
                           />
                         </button>
                       ))}
@@ -381,81 +574,129 @@ export function JobDetailsClient({ job, homeowner, existingBid }: JobDetailsClie
           </div>
 
           {/* Sidebar - Right Side */}
-          <div className="space-y-6">
+          <div className='space-y-6'>
             {/* Homeowner Info */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Posted By</h3>
-              <div className="space-y-4">
-                <div className="flex items-center gap-4">
+            <div className='bg-white rounded-xl border border-gray-200 p-6'>
+              <h3 className='text-lg font-semibold text-gray-900 mb-4'>
+                Posted By
+              </h3>
+              <div className='space-y-4'>
+                <div className='flex items-center gap-4'>
                   {homeowner?.profile_image_url ? (
                     <Image
                       src={homeowner.profile_image_url}
                       alt={`${homeowner.first_name} ${homeowner.last_name}`}
                       width={64}
                       height={64}
-                      className="rounded-full object-cover"
+                      className='rounded-full object-cover'
                     />
                   ) : (
-                    <div className="w-16 h-16 bg-gradient-to-br from-teal-500 to-emerald-500 rounded-full flex items-center justify-center">
-                      <span className="text-2xl font-bold text-white">
+                    <div className='w-16 h-16 bg-gradient-to-br from-teal-500 to-emerald-500 rounded-full flex items-center justify-center'>
+                      <span className='text-2xl font-bold text-white'>
                         {homeowner?.first_name?.charAt(0) || 'H'}
                       </span>
                     </div>
                   )}
                   <div>
-                    <p className="font-semibold text-gray-900">
+                    <p className='font-semibold text-gray-900'>
                       {homeowner?.first_name} {homeowner?.last_name}
                     </p>
-                    <p className="text-sm text-gray-600">
-                      Member since {formatDate(homeowner?.created_at || job.created_at)}
+                    <p className='text-sm text-gray-600'>
+                      Member since{' '}
+                      {formatDate(homeowner?.created_at || job.created_at)}
                     </p>
                   </div>
                 </div>
 
                 {homeowner?.email && (
-                  <div className="flex items-center gap-3 text-sm">
-                    <Mail className="w-4 h-4 text-gray-400" />
-                    <span className="text-gray-600">{homeowner.email}</span>
+                  <div className='flex items-center gap-3 text-sm'>
+                    <Mail className='w-4 h-4 text-gray-400' />
+                    <span className='text-gray-600'>{homeowner.email}</span>
                   </div>
                 )}
 
                 {homeowner?.phone && (
-                  <div className="flex items-center gap-3 text-sm">
-                    <Phone className="w-4 h-4 text-gray-400" />
-                    <span className="text-gray-600">{homeowner.phone}</span>
+                  <div className='flex items-center gap-3 text-sm'>
+                    <Phone className='w-4 h-4 text-gray-400' />
+                    <span className='text-gray-600'>{homeowner.phone}</span>
                   </div>
                 )}
               </div>
             </div>
 
             {/* Action Buttons */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <div className='bg-white rounded-xl border border-gray-200 p-6'>
               {existingBid ? (
-                <div className="space-y-4">
-                  <div className="p-4 bg-teal-50 rounded-lg">
-                    <div className="flex items-center gap-2 mb-2">
-                      <CheckCircle className="w-5 h-5 text-teal-600" />
-                      <span className="font-semibold text-teal-900">You've Already Bid</span>
+                <div className='space-y-4'>
+                  <div className='p-4 bg-teal-50 rounded-lg'>
+                    <div className='flex items-center gap-2 mb-2'>
+                      <CheckCircle className='w-5 h-5 text-teal-600' />
+                      <span className='font-semibold text-teal-900'>
+                        You've Already Bid
+                      </span>
                     </div>
-                    <p className="text-sm text-teal-700">
-                      Your bid: {formatCurrency(existingBid.bid_amount || existingBid.amount || 0)}
+                    <p className='text-sm text-teal-700'>
+                      Your bid:{' '}
+                      {formatCurrency(
+                        existingBid.bid_amount || existingBid.amount || 0
+                      )}
                     </p>
-                    <p className="text-sm text-teal-600 mt-1">
+                    <p className='text-sm text-teal-600 mt-1'>
                       Status: {existingBid.status}
                     </p>
                   </div>
                   <button
                     onClick={() => router.push(`/contractor/bid/${job.id}`)}
-                    className="w-full px-6 py-3 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition-colors"
+                    className='w-full px-6 py-3 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition-colors'
                   >
                     View/Edit Your Bid
                   </button>
                 </div>
+              ) : isMintEditorial ? (
+                <div className='col' style={{ gap: 10 }}>
+                  <button
+                    type='button'
+                    onClick={() => router.push(`/contractor/bid/${job.id}`)}
+                    className='btn btn-primary'
+                    style={{ width: '100%', justifyContent: 'center' }}
+                  >
+                    Place bid
+                  </button>
+                  <button
+                    type='button'
+                    onClick={handleSaveToggle}
+                    disabled={isSaving}
+                    className='btn btn-secondary'
+                    style={{ width: '100%', justifyContent: 'center' }}
+                  >
+                    {isSaving ? (
+                      <div
+                        style={{
+                          width: 14,
+                          height: 14,
+                          border: '2px solid var(--me-ink-3)',
+                          borderTopColor: 'transparent',
+                          borderRadius: '50%',
+                          animation: 'spin 1s linear infinite',
+                        }}
+                      />
+                    ) : isSaved ? (
+                      <CheckCircle
+                        size={15}
+                        strokeWidth={1.75}
+                        style={{ color: 'var(--me-brand)' }}
+                      />
+                    ) : (
+                      <Heart size={15} strokeWidth={1.75} />
+                    )}
+                    <span>{isSaved ? 'Saved' : 'Save job'}</span>
+                  </button>
+                </div>
               ) : (
-                <div className="space-y-3">
+                <div className='space-y-3'>
                   <button
                     onClick={() => router.push(`/contractor/bid/${job.id}`)}
-                    className="w-full px-6 py-4 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-lg font-semibold hover:from-teal-600 hover:to-emerald-600 transition-all transform hover:scale-[1.02] shadow-lg"
+                    className='w-full px-6 py-4 bg-gradient-to-r from-teal-500 to-emerald-500 text-white rounded-lg font-semibold hover:from-teal-600 hover:to-emerald-600 transition-all transform hover:scale-[1.02] shadow-lg'
                   >
                     Place Bid
                   </button>
@@ -469,13 +710,13 @@ export function JobDetailsClient({ job, homeowner, existingBid }: JobDetailsClie
                     } disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
                     {isSaving ? (
-                      <div className="w-5 h-5 border-2 border-gray-600 border-t-transparent rounded-full animate-spin" />
+                      <div className='w-5 h-5 border-2 border-gray-600 border-t-transparent rounded-full animate-spin' />
                     ) : (
                       <>
                         {isSaved ? (
-                          <CheckCircle className="w-5 h-5 text-teal-600" />
+                          <CheckCircle className='w-5 h-5 text-teal-600' />
                         ) : (
-                          <Heart className="w-5 h-5" />
+                          <Heart className='w-5 h-5' />
                         )}
                         <span>{isSaved ? 'Saved' : 'Save Job'}</span>
                       </>
@@ -484,12 +725,14 @@ export function JobDetailsClient({ job, homeowner, existingBid }: JobDetailsClie
                 </div>
               )}
 
-              <div className="mt-6 p-4 bg-amber-50 rounded-lg">
-                <div className="flex items-start gap-2">
-                  <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+              <div className='mt-6 p-4 bg-amber-50 rounded-lg'>
+                <div className='flex items-start gap-2'>
+                  <AlertCircle className='w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5' />
                   <div>
-                    <p className="text-sm font-semibold text-amber-900">Bidding Tips</p>
-                    <ul className="mt-2 space-y-1 text-xs text-amber-700">
+                    <p className='text-sm font-semibold text-amber-900'>
+                      Bidding Tips
+                    </p>
+                    <ul className='mt-2 space-y-1 text-xs text-amber-700'>
                       <li>• Be competitive but fair with pricing</li>
                       <li>• Highlight your relevant experience</li>
                       <li>• Provide a clear timeline</li>
@@ -501,20 +744,28 @@ export function JobDetailsClient({ job, homeowner, existingBid }: JobDetailsClie
             </div>
 
             {/* Quick Stats */}
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Job Stats</h3>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Views</span>
-                  <span className="font-semibold text-gray-900">{job.view_count || 0}</span>
+            <div className='bg-white rounded-xl border border-gray-200 p-6'>
+              <h3 className='text-lg font-semibold text-gray-900 mb-4'>
+                Job Stats
+              </h3>
+              <div className='space-y-3'>
+                <div className='flex justify-between items-center'>
+                  <span className='text-sm text-gray-600'>Views</span>
+                  <span className='font-semibold text-gray-900'>
+                    {job.view_count || 0}
+                  </span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Bids Placed</span>
-                  <span className="font-semibold text-gray-900">{job.bid_count || 0}</span>
+                <div className='flex justify-between items-center'>
+                  <span className='text-sm text-gray-600'>Bids Placed</span>
+                  <span className='font-semibold text-gray-900'>
+                    {job.bid_count || 0}
+                  </span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Saved By</span>
-                  <span className="font-semibold text-gray-900">{job.save_count || 0}</span>
+                <div className='flex justify-between items-center'>
+                  <span className='text-sm text-gray-600'>Saved By</span>
+                  <span className='font-semibold text-gray-900'>
+                    {job.save_count || 0}
+                  </span>
                 </div>
               </div>
             </div>

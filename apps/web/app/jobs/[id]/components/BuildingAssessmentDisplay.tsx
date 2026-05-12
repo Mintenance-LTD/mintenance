@@ -107,7 +107,7 @@ export function BuildingAssessmentDisplay({
       return (
         <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6'>
           <div className='flex items-center gap-3 mb-4'>
-            <div className='w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg flex items-center justify-center'>
+            <div className='w-10 h-10 bg-teal-600 rounded-lg flex items-center justify-center'>
               <Sparkles className='w-6 h-6 text-white' />
             </div>
             <div>
@@ -130,7 +130,7 @@ export function BuildingAssessmentDisplay({
             type='button'
             onClick={handleRunAnalysis}
             disabled={reRunLoading}
-            className='w-full px-4 py-2.5 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors'
+            className='w-full px-4 py-2.5 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700 disabled:opacity-50 flex items-center justify-center gap-2 transition-colors'
           >
             {reRunLoading ? (
               <>
@@ -173,7 +173,7 @@ export function BuildingAssessmentDisplay({
       >
         <div className='flex items-center justify-between'>
           <div className='flex items-center gap-3'>
-            <div className='w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg flex items-center justify-center'>
+            <div className='w-10 h-10 bg-teal-600 rounded-lg flex items-center justify-center'>
               <Sparkles className='w-6 h-6 text-white' />
             </div>
             <div>
@@ -186,7 +186,7 @@ export function BuildingAssessmentDisplay({
             </div>
           </div>
           <div className='flex items-center gap-3'>
-            <span className='px-3 py-1 bg-indigo-100 text-indigo-700 text-sm font-medium rounded-full'>
+            <span className='px-3 py-1 bg-teal-100 text-teal-700 text-sm font-medium rounded-full'>
               {Math.round(confidence)}% Confidence
             </span>
             {expanded ? (
@@ -462,7 +462,7 @@ export function BuildingAssessmentDisplay({
               <button
                 type='button'
                 onClick={() => setShowCorrections(true)}
-                className='px-4 py-2 text-sm font-medium text-indigo-600 hover:text-indigo-700'
+                className='px-4 py-2 text-sm font-medium text-teal-600 hover:text-teal-700'
               >
                 Improve Assessment
               </button>

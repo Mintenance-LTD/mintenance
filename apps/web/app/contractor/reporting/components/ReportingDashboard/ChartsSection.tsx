@@ -6,6 +6,7 @@ import {
   DynamicBarChart,
   DynamicPieChart,
 } from '@/components/charts/DynamicCharts';
+import { useChartPalette } from '@/lib/charts/editorial-palette';
 import {
   Area,
   Bar,
@@ -22,7 +23,11 @@ interface ChartsSectionProps {
   dailyRevenueData: Array<{ date: string; revenue: number; jobs: number }>;
   jobStatusData: Array<{ status: string; count: number; color: string }>;
   topServicesData: Array<{ service: string; revenue: number; jobs: number }>;
-  monthlyComparisonData: Array<{ month: string; revenue: number; jobs: number }>;
+  monthlyComparisonData: Array<{
+    month: string;
+    revenue: number;
+    jobs: number;
+  }>;
 }
 
 export const ChartsSection: React.FC<ChartsSectionProps> = ({
@@ -31,6 +36,7 @@ export const ChartsSection: React.FC<ChartsSectionProps> = ({
   topServicesData,
   monthlyComparisonData,
 }) => {
+  const palette = useChartPalette();
   return (
     <>
       {/* Revenue Over Time - Full Width Chart */}
@@ -59,18 +65,29 @@ export const ChartsSection: React.FC<ChartsSectionProps> = ({
           >
             <defs>
               <linearGradient id='colorRevenue' x1='0' y1='0' x2='0' y2='1'>
-                <stop offset='5%' stopColor='#14B8A6' stopOpacity={0.3} />
-                <stop offset='95%' stopColor='#14B8A6' stopOpacity={0} />
+                <stop
+                  offset='5%'
+                  stopColor={palette.recharts.primary}
+                  stopOpacity={0.3}
+                />
+                <stop
+                  offset='95%'
+                  stopColor={palette.recharts.primary}
+                  stopOpacity={0}
+                />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray='3 3' stroke='#E5E7EB' />
+            <CartesianGrid
+              strokeDasharray='3 3'
+              stroke={palette.recharts.gridStroke}
+            />
             <XAxis
               dataKey='date'
-              stroke='#6B7280'
+              stroke={palette.recharts.axisStroke}
               style={{ fontSize: '12px', fontWeight: 500 }}
             />
             <YAxis
-              stroke='#6B7280'
+              stroke={palette.recharts.axisStroke}
               style={{ fontSize: '12px', fontWeight: 500 }}
               tickFormatter={(value) => `£${value}`}
             />
@@ -85,14 +102,14 @@ export const ChartsSection: React.FC<ChartsSectionProps> = ({
               formatter={(value: unknown) => [`£${value}`, 'Revenue']}
               labelStyle={{
                 fontWeight: 600,
-                color: '#111827',
+                color: palette.recharts.tooltipText,
                 marginBottom: '4px',
               }}
             />
             <Area
               type='monotone'
               dataKey='revenue'
-              stroke='#14B8A6'
+              stroke={palette.recharts.primary}
               strokeWidth={3}
               fill='url(#colorRevenue)'
               animationDuration={1000}
@@ -183,19 +200,19 @@ export const ChartsSection: React.FC<ChartsSectionProps> = ({
             >
               <CartesianGrid
                 strokeDasharray='3 3'
-                stroke='#E5E7EB'
+                stroke={palette.recharts.gridStroke}
                 horizontal={false}
               />
               <XAxis
                 type='number'
-                stroke='#6B7280'
+                stroke={palette.recharts.axisStroke}
                 style={{ fontSize: '12px', fontWeight: 500 }}
                 tickFormatter={(value) => `£${value}`}
               />
               <YAxis
                 type='category'
                 dataKey='service'
-                stroke='#6B7280'
+                stroke={palette.recharts.axisStroke}
                 style={{ fontSize: '12px', fontWeight: 500 }}
                 width={90}
               />
@@ -210,13 +227,13 @@ export const ChartsSection: React.FC<ChartsSectionProps> = ({
                 formatter={(value: unknown) => [`£${value}`, 'Revenue']}
                 labelStyle={{
                   fontWeight: 600,
-                  color: '#111827',
+                  color: palette.recharts.tooltipText,
                   marginBottom: '4px',
                 }}
               />
               <Bar
                 dataKey='revenue'
-                fill='#14B8A6'
+                fill={palette.recharts.primary}
                 radius={[0, 8, 8, 0]}
                 animationDuration={1000}
               />
@@ -239,15 +256,11 @@ export const ChartsSection: React.FC<ChartsSectionProps> = ({
           <div className='flex items-center gap-4'>
             <div className='flex items-center gap-2'>
               <div className='w-3 h-3 bg-teal-500 rounded-full'></div>
-              <span className='text-sm font-medium text-gray-600'>
-                Revenue
-              </span>
+              <span className='text-sm font-medium text-gray-600'>Revenue</span>
             </div>
             <div className='flex items-center gap-2'>
               <div className='w-3 h-3 bg-gray-900 rounded-full'></div>
-              <span className='text-sm font-medium text-gray-600'>
-                Jobs
-              </span>
+              <span className='text-sm font-medium text-gray-600'>Jobs</span>
             </div>
           </div>
         </div>
@@ -257,22 +270,25 @@ export const ChartsSection: React.FC<ChartsSectionProps> = ({
             data={monthlyComparisonData}
             margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
           >
-            <CartesianGrid strokeDasharray='3 3' stroke='#E5E7EB' />
+            <CartesianGrid
+              strokeDasharray='3 3'
+              stroke={palette.recharts.gridStroke}
+            />
             <XAxis
               dataKey='month'
-              stroke='#6B7280'
+              stroke={palette.recharts.axisStroke}
               style={{ fontSize: '12px', fontWeight: 500 }}
             />
             <YAxis
               yAxisId='left'
-              stroke='#6B7280'
+              stroke={palette.recharts.axisStroke}
               style={{ fontSize: '12px', fontWeight: 500 }}
               tickFormatter={(value) => `£${value}`}
             />
             <YAxis
               yAxisId='right'
               orientation='right'
-              stroke='#6B7280'
+              stroke={palette.recharts.axisStroke}
               style={{ fontSize: '12px', fontWeight: 500 }}
             />
             <Tooltip
@@ -289,21 +305,21 @@ export const ChartsSection: React.FC<ChartsSectionProps> = ({
               ]}
               labelStyle={{
                 fontWeight: 600,
-                color: '#111827',
+                color: palette.recharts.tooltipText,
                 marginBottom: '4px',
               }}
             />
             <Bar
               yAxisId='left'
               dataKey='revenue'
-              fill='#14B8A6'
+              fill={palette.recharts.primary}
               radius={[8, 8, 0, 0]}
               animationDuration={1000}
             />
             <Bar
               yAxisId='right'
               dataKey='jobs'
-              fill='#1F2937'
+              fill={palette.recharts.secondary}
               radius={[8, 8, 0, 0]}
               animationDuration={1000}
             />

@@ -16,6 +16,10 @@ import {
   type JobFormData,
 } from './utils/validation';
 import { submitJob } from './utils/submitJob';
+import {
+  initialFormDataFromParams,
+  formDataPatchFromParams,
+} from './utils/url-prefill';
 import { useCSRF } from '@/lib/hooks/useCSRF';
 import toast from 'react-hot-toast';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -87,20 +91,12 @@ export default function CreateJobPage2025() {
   const { csrfToken } = useCSRF();
   const [currentStep, setCurrentStep] = useState(1);
 
-  const [formData, setFormData] = useState<JobFormData>({
-    title: '',
-    description: '',
-    location: searchParams?.get('location') ?? '',
-    category: searchParams?.get('category') ?? '',
-    urgency: 'medium',
-    budget: '',
-    budget_min: '',
-    budget_max: '',
-    show_budget_to_contractors: false,
-    require_itemized_bids: false,
-    requiredSkills: [],
-    property_id: searchParams?.get('property_id') || '',
-  });
+  // Mint AI dock prefills via /api/ai/job-draft → query params. The
+  // initial seed + soft-navigation patch helpers live in
+  // utils/url-prefill.ts to keep this file under the MDC line cap.
+  const [formData, setFormData] = useState<JobFormData>(() =>
+    initialFormDataFromParams(searchParams)
+  );
 
   const [properties, setProperties] = useState<Property[]>([]);
   // Start loading=true so the first render shows "Loading…" instead of flashing
@@ -114,6 +110,22 @@ export default function CreateJobPage2025() {
   const [preferredDate, setPreferredDate] = useState('');
   const aiAutoFilledRef = useRef(false);
 
+  // CRITICAL: keep this hook at the top of the component, NEVER move
+  // it below the early returns at the bottom of the function. Same
+  // bug we hit on /messages — once the `loadingUser` early return
+  // resolves to false, a hook below it would change the hook call
+  // count and React throws "Rendered more hooks than during the
+  // previous render", crashing the whole page (the user's reported
+  // "the selectors don't work" symptom — the page never got past the
+  // first interactive render before crashing).
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
+
   const imageUpload = useImageUpload({
     maxImages: 10,
     onError: (error) => toast.error(error),
@@ -125,17 +137,12 @@ export default function CreateJobPage2025() {
     },
   });
 
-  // Prefill category and location from URL
+  // Prefill from URL on soft-navigations (Mint AI dock, deep-links).
+  // Initial state already captured the params on mount; this effect
+  // covers later URL changes that don't remount the page.
   useEffect(() => {
-    const qCategory = searchParams?.get('category');
-    const qLocation = searchParams?.get('location');
-    if (qCategory || qLocation) {
-      setFormData((prev) => ({
-        ...prev,
-        ...(qCategory && { category: qCategory }),
-        ...(qLocation && { location: qLocation }),
-      }));
-    }
+    const patch = formDataPatchFromParams(searchParams);
+    if (patch) setFormData((prev) => ({ ...prev, ...patch }));
   }, [searchParams]);
 
   useEffect(() => {
@@ -318,6 +325,11 @@ export default function CreateJobPage2025() {
         photoUrls: imageUrls,
         csrfToken: csrfToken || '',
         aiAssessment: buildingAssessment.assessment || undefined,
+        // 2026-05-12 fix: preferredDate was collected by BudgetStep
+        // but never persisted. Now flows into `requirements.preferred_start_date`
+        // (see submitJob.ts) so the value at least survives until a
+        // dedicated DB column ships.
+        preferredDate: preferredDate || undefined,
       });
 
       if (!result.success || !result.jobId) {
@@ -391,19 +403,26 @@ export default function CreateJobPage2025() {
     (currentStep === 2 && canProceedStep2) ||
     (currentStep === 3 && canProceedStep3);
 
+  // `isMintEditorial` is computed at the TOP of the component (above
+  // the loadingUser early return) so the hook count stays stable
+  // between renders. See the long comment up there for context.
+
   return (
     <ErrorBoundary componentName='CreateJobPage'>
       <HomeownerPageWrapper>
-        {/* Back to Jobs Button */}
-        <button
-          onClick={() => router.push('/jobs')}
-          className='flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors mb-4'
-        >
-          <ArrowLeft className='w-5 h-5' />
-          <span className='font-medium'>Back to Jobs</span>
-        </button>
+        {!isMintEditorial && (
+          <button
+            onClick={() => router.push('/jobs')}
+            className='flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors mb-4'
+          >
+            <ArrowLeft className='w-5 h-5' />
+            <span className='font-medium'>Back to Jobs</span>
+          </button>
+        )}
 
-        <div className='min-h-screen bg-gray-50 py-8'>
+        <div
+          className={isMintEditorial ? 'py-2' : 'min-h-screen bg-gray-50 py-8'}
+        >
           <div className='max-w-3xl mx-auto px-4'>
             <ProgressBar currentStep={currentStep} steps={STEPS} />
 

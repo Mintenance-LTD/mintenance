@@ -19,7 +19,7 @@ export interface JobFormData {
   description: string;
   location: string;
   category: string;
-  urgency?: 'low' | 'medium' | 'high' | 'emergency'; // Optional - not used by API
+  urgency?: 'low' | 'medium' | 'high' | 'emergency'; // Optional — forwarded to /api/jobs via submitJob
   budget: string | number; // Can be either string or number
   budget_min?: string | number; // Minimum budget shown to contractors (range)
   budget_max?: string | number; // Maximum budget shown to contractors (range)

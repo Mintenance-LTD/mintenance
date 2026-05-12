@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback, Suspense } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { fetchCurrentUser } from '@/lib/auth-client';
 import { AdvancedSearchService } from '@/lib/services/AdvancedSearchService';
@@ -11,17 +11,25 @@ import type {
   ContractorProfile,
   AdvancedSearchFilters,
   SavedSearch,
-  SearchResult
+  SearchResult,
 } from '@mintenance/types';
 import dynamicImport from 'next/dynamic';
 import { SearchControls } from './components/SearchControls';
 import { SearchResultsArea } from './components/SearchResultsArea';
 
 // Dynamic imports for code splitting
-const AdvancedSearchFiltersComponent = dynamicImport(() => import('@/components/search/AdvancedSearchFilters').then(mod => ({ default: mod.AdvancedSearchFiltersComponent })), {
-  loading: () => <div className="animate-pulse bg-gray-200 h-64 rounded-lg" />,
-  ssr: false
-});
+const AdvancedSearchFiltersComponent = dynamicImport(
+  () =>
+    import('@/components/search/AdvancedSearchFilters').then((mod) => ({
+      default: mod.AdvancedSearchFiltersComponent,
+    })),
+  {
+    loading: () => (
+      <div className='animate-pulse bg-gray-200 h-64 rounded-lg' />
+    ),
+    ssr: false,
+  }
+);
 
 // Disable static optimization for this page
 export const dynamic = 'force-dynamic';
@@ -38,15 +46,17 @@ function SearchContent() {
   const [filters, setFilters] = useState<AdvancedSearchFilters>({
     skills: [],
     projectTypes: [],
-    availability: 'flexible'
+    availability: 'flexible',
   });
   const [showFilters, setShowFilters] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [results, setResults] = useState<SearchResult<Job | ContractorProfile>>({
-    items: [],
-    totalCount: 0,
-    hasMore: false
-  });
+  const [results, setResults] = useState<SearchResult<Job | ContractorProfile>>(
+    {
+      items: [],
+      totalCount: 0,
+      hasMore: false,
+    }
+  );
   const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([]);
 
   useEffect(() => {
@@ -56,7 +66,9 @@ function SearchContent() {
 
       if (currentUser) {
         try {
-          const saved = await AdvancedSearchService.getSavedSearches(currentUser.id);
+          const saved = await AdvancedSearchService.getSavedSearches(
+            currentUser.id
+          );
           setSavedSearches(saved);
         } catch (error) {
           logger.error('Error loading saved searches', error);
@@ -67,15 +79,17 @@ function SearchContent() {
   }, []);
 
   const hasActiveFilters = useMemo(() => {
-    return Boolean(filters.priceRange) ||
-           filters.skills.length > 0 ||
-           filters.projectTypes.length > 0 ||
-           filters.availability !== 'flexible' ||
-           Boolean(filters.urgency) ||
-           Boolean(filters.projectComplexity) ||
-           Boolean(filters.hasInsurance) ||
-           Boolean(filters.isBackgroundChecked) ||
-           Boolean(filters.hasPortfolio);
+    return (
+      Boolean(filters.priceRange) ||
+      filters.skills.length > 0 ||
+      filters.projectTypes.length > 0 ||
+      filters.availability !== 'flexible' ||
+      Boolean(filters.urgency) ||
+      Boolean(filters.projectComplexity) ||
+      Boolean(filters.hasInsurance) ||
+      Boolean(filters.isBackgroundChecked) ||
+      Boolean(filters.hasPortfolio)
+    );
   }, [filters]);
 
   const performSearch = useCallback(async () => {
@@ -90,7 +104,10 @@ function SearchContent() {
       if (searchType === 'jobs') {
         searchResults = await AdvancedSearchService.searchJobs(query, filters);
       } else {
-        searchResults = await AdvancedSearchService.searchContractors(query, filters);
+        searchResults = await AdvancedSearchService.searchContractors(
+          query,
+          filters
+        );
       }
 
       setResults(searchResults);
@@ -126,10 +143,15 @@ function SearchContent() {
     }
 
     const defaultName = `Search: ${trimmedQuery}`;
-    const nameInput = prompt('Name for saved search:', defaultName)?.trim() ?? '';
+    const nameInput =
+      prompt('Name for saved search:', defaultName)?.trim() ?? '';
     const name = nameInput.length > 0 ? nameInput : defaultName;
 
-    if (savedSearches.some(saved => saved.name.trim().toLowerCase() === name.toLowerCase())) {
+    if (
+      savedSearches.some(
+        (saved) => saved.name.trim().toLowerCase() === name.toLowerCase()
+      )
+    ) {
       alert('You already have a saved search with this name.');
       return;
     }
@@ -150,7 +172,7 @@ function SearchContent() {
     setFilters({
       skills: [],
       projectTypes: [],
-      availability: 'flexible'
+      availability: 'flexible',
     });
     setQuery('');
     setResults({ items: [], totalCount: 0, hasMore: false });
@@ -165,7 +187,11 @@ function SearchContent() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', backgroundColor: '#f9fafb' }}>
+    // Outer container is unstyled — the Mint Editorial / legacy shell
+    // supplies the page background and min-height. Previously this
+    // `min-h-100vh + #f9fafb` block painted a grey rectangle inside
+    // the shell content area on top of the sidebar's existing bg.
+    <div>
       <SearchControls
         query={query}
         onQueryChange={setQuery}
@@ -204,9 +230,9 @@ function SearchContent() {
 }
 
 export default function SearchPage() {
-  return (
-    <Suspense fallback={<div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center"><div className="h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-gray-600" /></div>}>
-      <SearchContent />
-    </Suspense>
-  );
+  // No outer Suspense / full-bleed grey backdrop here — the parent
+  // search/layout.tsx already provides the Suspense boundary inside
+  // the shell. A second min-h-screen wrapper would paint over the
+  // shell content area.
+  return <SearchContent />;
 }

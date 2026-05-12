@@ -67,6 +67,17 @@ export function ContractorDiscoverClient({
   const mapRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<google.maps.Marker[]>([]);
 
+  // Hydration-safe theme detection — same pattern used across the
+  // contractor Phase-4 ports. Lives near the other state hooks so
+  // it's well above any early return.
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
+
   // Load saved jobs on mount
   useEffect(() => {
     fetch('/api/contractor/saved-jobs')
@@ -260,6 +271,16 @@ export function ContractorDiscoverClient({
 
   return (
     <ContractorPageWrapper>
+      {isMintEditorial ? (
+        <div className='col' style={{ gap: 4, marginBottom: 16 }}>
+          <h1 className='t-h1'>Discover</h1>
+          <p className='t-body'>
+            Swipe-style discovery of fresh jobs that match your skills,
+            location, and budget — save or skip to refine your feed.
+          </p>
+        </div>
+      ) : null}
+
       <DiscoverQuickStats
         filteredJobCount={filteredJobs.length}
         savedJobCount={savedJobIds.size}
@@ -275,12 +296,22 @@ export function ContractorDiscoverClient({
       {/* Header: count + view toggle + filter chips */}
       <div className='mb-4'>
         <div className='flex items-center justify-between mb-2'>
-          <h3 className='text-base font-semibold text-gray-900'>
-            Available Jobs ({filteredJobs.length})
+          <h3
+            className={
+              isMintEditorial ? 't-h3' : 'text-base font-semibold text-gray-900'
+            }
+          >
+            Available jobs ({filteredJobs.length})
             {hasLocation && (
               <>
                 {' '}
-                <span className='text-sm text-gray-400 font-normal'>
+                <span
+                  className={
+                    isMintEditorial
+                      ? 't-meta'
+                      : 'text-sm text-gray-400 font-normal'
+                  }
+                >
                   within {selectedRadius}km
                 </span>
               </>

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { cookies } from 'next/headers';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { resignJobStorageUrls } from '@/lib/api/job-storage';
@@ -9,6 +10,7 @@ import { JobDetailsProfessional } from './components/JobDetailsProfessional';
 import { JobViewTracker } from './components/JobViewTracker';
 import { ContractManagement } from './components/ContractManagement';
 import { HomeownerPhotoReview } from './components/HomeownerPhotoReview';
+import { MintEditorialJobDetailView } from './components/mint-editorial/MintEditorialJobDetailView';
 
 export const metadata: Metadata = {
   title: 'Job Details | Mintenance',
@@ -355,6 +357,66 @@ export default async function JobDetailPage2025({
         profile_image_url: userProfile.profile_image_url,
       }
     : undefined;
+
+  // Phase-2 design rebrand: server-side cookie check picks the
+  // Mint Editorial detail surface instead of JobDetailsProfessional
+  // when the homeowner has opted in via Settings → Appearance.
+  // No data refetch — both branches consume the same data.
+  const cookieStore = await cookies();
+  const isMintEditorial =
+    cookieStore.get('mintenance-theme')?.value === 'mint-editorial';
+
+  // Pull the homeowner's preferred start date out of `requirements`
+  // (stashed there by job creation — the schema doesn't have a
+  // dedicated column yet). The shape is `requirements.preferred_start_date`
+  // set to an ISO date string.
+  const requirements =
+    job.requirements && typeof job.requirements === 'object'
+      ? (job.requirements as Record<string, unknown>)
+      : null;
+  const preferredStartDate =
+    requirements && typeof requirements.preferred_start_date === 'string'
+      ? requirements.preferred_start_date
+      : null;
+
+  if (isMintEditorial) {
+    return (
+      <MintEditorialJobDetailView
+        job={{
+          id: job.id,
+          title: job.title || 'Untitled Job',
+          description: job.description || '',
+          category: job.category || 'General',
+          status: job.status,
+          priority: job.priority,
+          budget: job.budget || 0,
+          location: job.location || 'Location not specified',
+          created_at: job.created_at,
+          completed_at: job.completed_at,
+          preferred_start_date: preferredStartDate,
+          contractor_id: job.contractor_id,
+          completion_confirmed_by_homeowner:
+            job.completion_confirmed_by_homeowner,
+        }}
+        property={property}
+        contractor={contractor}
+        bids={formattedBids as unknown as import('./components/BidCard').Bid[]}
+        bidCount={bidsWithContractors.length}
+        pendingBidCount={
+          bidsWithContractors.filter((b) => b.status === 'pending').length
+        }
+        photos={jobPhotoUrls}
+        beforePhotos={beforePhotos}
+        afterPhotos={afterPhotos}
+        contractStatus={contractStatus}
+        contractContractorSignedAt={contract?.contractor_signed_at ?? null}
+        contractHomeownerSignedAt={contract?.homeowner_signed_at ?? null}
+        escrowStatus={escrowStatus}
+        buildingAssessment={buildingAssessment}
+        userId={user.id}
+      />
+    );
+  }
 
   return (
     <>

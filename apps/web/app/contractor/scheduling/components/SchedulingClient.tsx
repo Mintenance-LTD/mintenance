@@ -64,7 +64,7 @@ export function SchedulingClient({ userId }: SchedulingClientProps) {
     const prefill = searchParams.get('prefill');
 
     if (prefill === 'true' && clientName) {
-      setNewAppt(prev => ({
+      setNewAppt((prev) => ({
         ...prev,
         clientName: clientName,
         title: jobId ? `Meeting for Job #${jobId}` : 'Project Discussion',
@@ -77,11 +77,7 @@ export function SchedulingClient({ userId }: SchedulingClientProps) {
   const loadData = async () => {
     setLoading(true);
     try {
-      await Promise.all([
-        loadAppointments(),
-        loadStats(),
-        loadAvailability(),
-      ]);
+      await Promise.all([loadAppointments(), loadStats(), loadAvailability()]);
     } catch (error) {
       logger.error('Error loading data', error, { service: 'ui' });
       toast.error('Failed to load scheduling data');
@@ -96,7 +92,9 @@ export function SchedulingClient({ userId }: SchedulingClientProps) {
       if (!response.ok) throw new Error('Failed to fetch appointments');
 
       const data = await response.json();
-      const transformedAppointments: Appointment[] = (data.appointments || []).map((apt: AppointmentApiResponse) => ({
+      const transformedAppointments: Appointment[] = (
+        data.appointments || []
+      ).map((apt: AppointmentApiResponse) => ({
         id: apt.id,
         title: apt.title,
         client: apt.client,
@@ -134,7 +132,15 @@ export function SchedulingClient({ userId }: SchedulingClientProps) {
       const response = await fetch('/api/contractor/availability');
       if (!response.ok) {
         // If no availability set, use defaults
-        const defaultAvailability = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map((day, index) => ({
+        const defaultAvailability = [
+          'Monday',
+          'Tuesday',
+          'Wednesday',
+          'Thursday',
+          'Friday',
+          'Saturday',
+          'Sunday',
+        ].map((day, index) => ({
           day,
           dayOfWeek: (index + 1) % 7, // Monday = 1, Sunday = 0
           startTime: '09:00',
@@ -148,16 +154,28 @@ export function SchedulingClient({ userId }: SchedulingClientProps) {
       const data = await response.json();
 
       // Merge with defaults to ensure all days are present
-      const allDays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const allDays = [
+        'Sunday',
+        'Monday',
+        'Tuesday',
+        'Wednesday',
+        'Thursday',
+        'Friday',
+        'Saturday',
+      ];
       const fullAvailability = allDays.map((day, dayOfWeek) => {
-        const existing = data.availability?.find((a: AvailabilitySlot) => a.dayOfWeek === dayOfWeek);
-        return existing || {
-          day,
-          dayOfWeek,
-          startTime: '09:00',
-          endTime: '17:00',
-          isAvailable: false,
-        };
+        const existing = data.availability?.find(
+          (a: AvailabilitySlot) => a.dayOfWeek === dayOfWeek
+        );
+        return (
+          existing || {
+            day,
+            dayOfWeek,
+            startTime: '09:00',
+            endTime: '17:00',
+            isAvailable: false,
+          }
+        );
       });
 
       setAvailability(fullAvailability);
@@ -174,14 +192,22 @@ export function SchedulingClient({ userId }: SchedulingClientProps) {
   const handleSaveAppointment = async () => {
     try {
       // Validate required fields
-      if (!newAppt.title || !newAppt.appointmentDate || !newAppt.startTime || !newAppt.endTime) {
+      if (
+        !newAppt.title ||
+        !newAppt.appointmentDate ||
+        !newAppt.startTime ||
+        !newAppt.endTime
+      ) {
         toast.error('Please fill in all required fields');
         return;
       }
 
       const response = await fetch('/api/contractor/appointments', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-csrf-token': getCSRFToken() },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-csrf-token': getCSRFToken(),
+        },
         body: JSON.stringify(newAppt),
       });
 
@@ -211,7 +237,9 @@ export function SchedulingClient({ userId }: SchedulingClientProps) {
       await loadData();
     } catch (error: unknown) {
       logger.error('Error creating appointment:', error, { service: 'ui' });
-      toast.error(error instanceof Error ? error.message : 'Failed to create appointment');
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to create appointment'
+      );
     }
   };
 
@@ -220,7 +248,10 @@ export function SchedulingClient({ userId }: SchedulingClientProps) {
     try {
       const response = await fetch('/api/contractor/availability', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'x-csrf-token': getCSRFToken() },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-csrf-token': getCSRFToken(),
+        },
         body: JSON.stringify({ availability }),
       });
 
@@ -237,7 +268,11 @@ export function SchedulingClient({ userId }: SchedulingClientProps) {
     }
   };
 
-  const updateAvailability = (dayOfWeek: number, field: string, value: unknown) => {
+  const updateAvailability = (
+    dayOfWeek: number,
+    field: string,
+    value: unknown
+  ) => {
     setAvailability((prev) =>
       prev.map((slot) =>
         slot.dayOfWeek === dayOfWeek ? { ...slot, [field]: value } : slot
@@ -251,16 +286,28 @@ export function SchedulingClient({ userId }: SchedulingClientProps) {
       const aptDate = new Date(apt.date);
       const today = new Date();
       const weekFromNow = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
-      return aptDate >= today && aptDate <= weekFromNow && apt.status !== 'cancelled';
+      return (
+        aptDate >= today && aptDate <= weekFromNow && apt.status !== 'cancelled'
+      );
     })
     .slice(0, 5); // Show top 5
+
+  // Hydration-safe theme detection — hooks must run unconditionally
+  // so this lives above the loading early-return.
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
 
   if (loading) {
     return (
       <ContractorPageWrapper>
-        <div className="max-w-7xl mx-auto pb-12">
-          <div className="flex items-center justify-center h-64">
-            <div className="text-slate-600">Loading schedule...</div>
+        <div className='max-w-7xl mx-auto pb-12'>
+          <div className='flex items-center justify-center h-64'>
+            <div className='text-slate-600'>Loading schedule...</div>
           </div>
         </div>
       </ContractorPageWrapper>
@@ -269,34 +316,64 @@ export function SchedulingClient({ userId }: SchedulingClientProps) {
 
   return (
     <ContractorPageWrapper>
-      <div className="max-w-7xl mx-auto pb-12">
-        {/* Professional Header */}
-        <MotionDiv
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
-        >
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-slate-900 mb-2">Calendar & Scheduling</h1>
-              <p className="text-slate-600">Manage your appointments and availability</p>
+      <div className='max-w-7xl mx-auto pb-12'>
+        {/* Header — canonical .t-h1 + .btn-primary when Mint Editorial,
+            legacy slate-900 hero otherwise. Stats cards, calendar grid,
+            and availability sidebar inherit colour mapping from the
+            shell-level .me-legacy-fit boundary. */}
+        {isMintEditorial ? (
+          <div
+            className='between'
+            style={{ alignItems: 'flex-start', marginBottom: 24 }}
+          >
+            <div className='col' style={{ gap: 4 }}>
+              <h1 className='t-h1'>Calendar & scheduling</h1>
+              <p className='t-body'>
+                Book new appointments, manage your weekly availability, and keep
+                track of upcoming meetings with homeowners.
+              </p>
             </div>
-            <MotionButton
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+            <button
+              type='button'
+              className='btn btn-primary btn-sm'
               onClick={handleNewAppointment}
-              className="flex items-center gap-2 bg-teal-600 hover:bg-teal-700 px-6 py-3 rounded-xl font-semibold text-white shadow-sm transition-all"
             >
-              <Plus className="w-5 h-5" />
-              New Appointment
-            </MotionButton>
+              <Plus size={14} strokeWidth={1.75} />
+              New appointment
+            </button>
           </div>
-        </MotionDiv>
+        ) : (
+          <MotionDiv
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className='mb-8'
+          >
+            <div className='flex items-center justify-between'>
+              <div>
+                <h1 className='text-3xl font-bold text-slate-900 mb-2'>
+                  Calendar & Scheduling
+                </h1>
+                <p className='text-slate-600'>
+                  Manage your appointments and availability
+                </p>
+              </div>
+              <MotionButton
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleNewAppointment}
+                className='flex items-center gap-2 bg-teal-600 hover:bg-teal-700 px-6 py-3 rounded-xl font-semibold text-white shadow-sm transition-all'
+              >
+                <Plus className='w-5 h-5' />
+                New Appointment
+              </MotionButton>
+            </div>
+          </MotionDiv>
+        )}
 
         <StatsCards stats={stats} />
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2">
+        <div className='grid grid-cols-1 lg:grid-cols-3 gap-8'>
+          <div className='lg:col-span-2'>
             <CalendarView
               selectedDate={selectedDate}
               view={view}

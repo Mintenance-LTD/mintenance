@@ -21,6 +21,12 @@ import {
   getNotificationColor,
 } from './notification-icons';
 import { safeActionUrl } from '@/lib/notifications/safe-action-url';
+import {
+  MintEditorialNotifications,
+  type FilterType as MeFilterType,
+  type NotificationItem,
+} from './MintEditorialNotifications';
+import { LegacyNotificationsView } from './LegacyNotificationsView';
 
 interface Notification {
   id: string;
@@ -41,6 +47,16 @@ export default function NotificationsPage2025() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loadingNotifications, setLoadingNotifications] = useState(true);
   const [filter, setFilter] = useState<FilterType>('all');
+
+  // Phase-2 design rebrand. Hydration-safe theme detection — same
+  // pattern as HomeownerPageWrapper / /jobs / /messages.
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
 
   // Fetch notifications
   useEffect(() => {
@@ -305,258 +321,54 @@ export default function NotificationsPage2025() {
     return date.toLocaleDateString('en-GB', { month: 'short', day: 'numeric' });
   };
 
+  // Mint Editorial branch — shares the same fetched data, realtime
+  // subscription, and mutation handlers as the legacy view; only the
+  // visual layer differs.
+  if (isMintEditorial) {
+    return (
+      <HomeownerPageWrapper>
+        <MintEditorialNotifications
+          notifications={notifications as NotificationItem[]}
+          loading={loadingNotifications}
+          filter={filter as MeFilterType}
+          onFilterChange={(f) => setFilter(f as FilterType)}
+          counts={{
+            all: notifications.length,
+            unread: unreadCount,
+            jobs: jobsCount,
+            messages: messagesCount,
+            payments: paymentsCount,
+          }}
+          onClickNotification={(n) =>
+            handleNotificationClick(n as Notification)
+          }
+          onMarkAllRead={handleMarkAllAsRead}
+          onClearAll={handleClearAll}
+          onDelete={handleDeleteNotification}
+        />
+      </HomeownerPageWrapper>
+    );
+  }
+
   return (
     <HomeownerPageWrapper>
-      {/* Back to Dashboard Button */}
-      <button
-        onClick={() => router.push('/dashboard')}
-        className='flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors mb-4'
-      >
-        <ArrowLeft className='w-5 h-5' />
-        <span className='font-medium'>Back to Dashboard</span>
-      </button>
-
-      {/* Hero Header */}
-      <MotionDiv
-        className='bg-white border border-gray-200 rounded-xl p-8 mb-6'
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
-        <div className='max-w-full'>
-          <div className='flex items-center justify-between'>
-            <div>
-              <h1 className='text-4xl font-bold mb-2 text-gray-900'>
-                Notifications
-              </h1>
-              <p className='text-gray-600 text-lg'>
-                {unreadCount > 0
-                  ? `${unreadCount} unread notification${unreadCount === 1 ? '' : 's'}`
-                  : "You're all caught up!"}
-              </p>
-            </div>
-
-            <div className='flex items-center gap-3'>
-              {notifications.length > 0 && (
-                <button
-                  onClick={handleClearAll}
-                  className='px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-all'
-                >
-                  Clear All
-                </button>
-              )}
-              {unreadCount > 0 && (
-                <button
-                  onClick={handleMarkAllAsRead}
-                  className='px-6 py-3 bg-teal-600 text-white rounded-xl font-semibold hover:bg-teal-700 shadow-lg hover:shadow-xl transition-all'
-                >
-                  Mark All as Read
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      </MotionDiv>
-
-      {/* Content */}
-      <div className='w-full space-y-6'>
-        <div className='flex flex-col gap-6'>
-          {/* Filters */}
-          <MotionDiv
-            className='bg-white rounded-2xl border border-gray-200 shadow-sm p-6'
-            variants={fadeIn}
-            initial='initial'
-            animate='animate'
-          >
-            <div className='flex items-center gap-3 flex-wrap'>
-              {[
-                {
-                  label: 'All',
-                  value: 'all' as FilterType,
-                  count: notifications.length,
-                },
-                {
-                  label: 'Unread',
-                  value: 'unread' as FilterType,
-                  count: unreadCount,
-                },
-                {
-                  label: 'Jobs',
-                  value: 'jobs' as FilterType,
-                  count: jobsCount,
-                },
-                {
-                  label: 'Messages',
-                  value: 'messages' as FilterType,
-                  count: messagesCount,
-                },
-                {
-                  label: 'Payments',
-                  value: 'payments' as FilterType,
-                  count: paymentsCount,
-                },
-              ].map((tab) => (
-                <button
-                  key={tab.value}
-                  onClick={() => setFilter(tab.value)}
-                  className={`px-4 py-2 rounded-xl font-medium text-sm transition-all flex items-center gap-2 ${
-                    filter === tab.value
-                      ? 'bg-teal-600 text-white shadow-md'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  {tab.label}
-                  {tab.count > 0 && (
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-                        filter === tab.value
-                          ? 'bg-white/20 text-white'
-                          : 'bg-gray-200 text-gray-700'
-                      }`}
-                    >
-                      {tab.count}
-                    </span>
-                  )}
-                </button>
-              ))}
-            </div>
-          </MotionDiv>
-
-          {/* Notifications List */}
-          {loadingNotifications ? (
-            <LoadingSpinner message='Loading notifications...' />
-          ) : filteredNotifications.length === 0 ? (
-            <MotionDiv
-              className='bg-white rounded-2xl border border-gray-200 p-12 text-center'
-              variants={fadeIn}
-              initial='initial'
-              animate='animate'
-            >
-              <div className='w-20 h-20 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-4'>
-                <svg
-                  className='w-10 h-10 text-teal-600'
-                  fill='none'
-                  viewBox='0 0 24 24'
-                  stroke='currentColor'
-                >
-                  <path
-                    strokeLinecap='round'
-                    strokeLinejoin='round'
-                    strokeWidth={2}
-                    d='M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9'
-                  />
-                </svg>
-              </div>
-              <h3 className='text-xl font-bold text-gray-900 mb-2'>
-                {filter === 'unread'
-                  ? 'No unread notifications'
-                  : 'No notifications'}
-              </h3>
-              <p className='text-gray-600'>
-                {filter === 'unread'
-                  ? "You're all caught up!"
-                  : 'Notifications will appear here'}
-              </p>
-            </MotionDiv>
-          ) : (
-            <MotionDiv
-              className='bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden'
-              variants={staggerContainer}
-              initial='initial'
-              animate='animate'
-            >
-              <div className='divide-y divide-gray-200'>
-                <AnimatePresence mode='popLayout'>
-                  {filteredNotifications.map((notification) => (
-                    <MotionDiv
-                      key={notification.id}
-                      className={`p-6 cursor-pointer transition-all border-l-4 ${
-                        !notification.is_read
-                          ? 'bg-teal-50/50 hover:bg-teal-50 border-l-teal-600'
-                          : 'bg-white hover:bg-gray-50 border-l-transparent'
-                      }`}
-                      variants={staggerItem}
-                      layout
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: 20 }}
-                      onClick={() => handleNotificationClick(notification)}
-                    >
-                      <div className='flex items-start gap-4'>
-                        {/* Icon with color-coded background */}
-                        <div
-                          className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 text-white ${getNotificationColor(notification.type)}`}
-                        >
-                          {getNotificationIcon(notification.type)}
-                        </div>
-
-                        {/* Content */}
-                        <div className='flex-1 min-w-0'>
-                          <div className='flex items-start justify-between gap-4 mb-2'>
-                            <h3 className='text-lg font-semibold text-gray-900'>
-                              {notification.title}
-                            </h3>
-                            {!notification.is_read && (
-                              <div className='w-3 h-3 bg-teal-600 rounded-full flex-shrink-0 mt-1 animate-pulse' />
-                            )}
-                          </div>
-
-                          <p className='text-gray-700 mb-3 line-clamp-2'>
-                            {notification.message}
-                          </p>
-
-                          <div className='flex items-center justify-between gap-4 flex-wrap'>
-                            <div className='flex items-center gap-3 text-sm text-gray-500'>
-                              <span className='flex items-center gap-1'>
-                                <svg
-                                  className='w-4 h-4'
-                                  fill='none'
-                                  viewBox='0 0 24 24'
-                                  stroke='currentColor'
-                                >
-                                  <path
-                                    strokeLinecap='round'
-                                    strokeLinejoin='round'
-                                    strokeWidth={2}
-                                    d='M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'
-                                  />
-                                </svg>
-                                {formatTimeAgo(notification.created_at)}
-                              </span>
-                            </div>
-
-                            <div className='flex items-center gap-2'>
-                              {notification.action_url && (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleNotificationClick(notification);
-                                  }}
-                                  className='px-3 py-1.5 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700 transition-colors'
-                                >
-                                  View
-                                </button>
-                              )}
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeleteNotification(notification.id);
-                                }}
-                                className='px-3 py-1.5 text-rose-600 hover:bg-rose-50 rounded-lg text-sm font-medium transition-colors'
-                              >
-                                Delete
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </MotionDiv>
-                  ))}
-                </AnimatePresence>
-              </div>
-            </MotionDiv>
-          )}
-        </div>
-      </div>
+      <LegacyNotificationsView
+        notifications={notifications as NotificationItem[]}
+        loading={loadingNotifications}
+        filter={filter as MeFilterType}
+        onFilterChange={(f) => setFilter(f as FilterType)}
+        counts={{
+          all: notifications.length,
+          unread: unreadCount,
+          jobs: jobsCount,
+          messages: messagesCount,
+          payments: paymentsCount,
+        }}
+        onClickNotification={(n) => handleNotificationClick(n as Notification)}
+        onMarkAllRead={handleMarkAllAsRead}
+        onClearAll={handleClearAll}
+        onDelete={handleDeleteNotification}
+      />
     </HomeownerPageWrapper>
   );
 }

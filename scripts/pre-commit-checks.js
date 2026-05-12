@@ -219,7 +219,7 @@ const KNOWN_LARGE_FILES = new Set([
   'apps/mobile/src/services/contractor-business/BusinessAnalyticsService.ts', // 586 lines (was 576) — direct-supabase disposition comment
   'apps/mobile/src/services/video/CallManager.ts', // 523 lines (was 517) — call_participants disposition comment
   'apps/web/app/contractor/crm/components/CRMDashboardEnhanced.tsx', // 528 lines (no change) — CRM detail link fix
-  'apps/web/app/contractor/notifications/page.tsx', // 608 lines (was 606) — safeActionUrl import + call
+  'apps/web/app/contractor/notifications/page.tsx', // 628 lines (was 608) — Phase-4 Mint Editorial branch + type-extract refactor
   'apps/web/app/jobs/quick-create/page.tsx', // 603 lines (no change) — removed description-padding hack + canonical urgency
   'apps/web/app/notifications/page.tsx', // 562 lines (was 558) — safeActionUrl import + call
   // LoginScreen.tsx grew 491 → 614 with the Remember email checkbox
@@ -274,7 +274,7 @@ const KNOWN_LARGE_FILES = new Set([
   // the page into Header / FilterRow / ExpenseTable / AddExpenseForm
   // sub-components is a dedicated P2 alongside the other contractor
   // business screens.
-  'apps/web/app/contractor/expenses/page.tsx', // 628 lines (was ~624)
+  'apps/web/app/contractor/expenses/page.tsx', // 669 lines (was 628) — Phase-4 editorial header swap
   // Added 2026-05-10: InputValidationMiddleware.ts grew from ~498 to 518
   // lines via the AUDIT_PUNCH_LIST P2 #55 closure. Net change is the
   // SECURITY-RATIONALE comment block (why the SQL_INJECTION_PATTERNS
@@ -286,6 +286,147 @@ const KNOWN_LARGE_FILES = new Set([
   // (text / email / phone / uuid / number / etc.) share enough setup
   // that pulling them apart would just relocate the bulk.
   'apps/mobile/src/middleware/InputValidationMiddleware.ts', // 518 lines (was ~498)
+  // Added 2026-05-12 (Phase-4 contractor port): BidSubmissionClient2025
+  // was already 717 lines before the Mint Editorial branch. The +43-line
+  // edit adds a hydration-safe theme-detection hook + a conditional
+  // .t-h1 hero card that swaps in when the cookie is set. The rest of
+  // the file (simple-mode quote form, line-item advanced mode, pricing
+  // suggestion card, submit pipeline, error handlers) is unchanged.
+  // Splitting the file is a dedicated P2 — the simple + advanced
+  // quote modes share enough state (lineItems, taxRate, totals,
+  // submit handler) that pulling them apart would require lifting
+  // state to a hook + threading it through 5-6 props, which is a
+  // separate refactor.
+  'apps/web/app/contractor/bid/[jobId]/components/BidSubmissionClient2025.tsx', // 760 lines (was 717)
+  // Added 2026-05-12: ContractorSettingsPage grew from 554 to 570
+  // lines via the Appearance section (+9 LOC import + section render,
+  // +6 LOC sidebar entry + validSections + SectionKey union, +1 LOC
+  // wrapper line). The file already bundled 6 settings sections
+  // (profile / account / notifications / payments / automation /
+  // privacy) inline; the new Appearance section is the 7th. Splitting
+  // each section into its own client file is the right long-term
+  // shape but is a dedicated P2.
+  'apps/web/app/contractor/settings/page.tsx', // 570 lines (was 554)
+  // Added 2026-05-12 (Phase-4 contractor port): the contractor
+  // MessagesClient already pre-existed at 585 lines before the
+  // Mint Editorial branch. The +186-line edit adds:
+  //   (1) hydration-safe `isMintEditorial` hook above the early
+  //       returns (rules-of-hooks safety — see homeowner-side
+  //       MessagesClient for the same pattern);
+  //   (2) a Mint Editorial branch that reuses the shared
+  //       MintEditorialMessagesSidebar + MintEditorialMessagesChat
+  //       from `app/messages/components/` with a contractor-flavoured
+  //       "Open job" CTA pointing at /contractor/jobs/[id] and a
+  //       "More" overflow menu exposing Schedule / Send quote /
+  //       Share document / Prepare contract;
+  //   (3) the same ShareDocumentDialog + CreateContractDialog modal
+  //       overlays already used by the legacy branch.
+  // Splitting MessagesClient is a dedicated P2 — the file owns:
+  // user-fetch + threads-fetch + messages-fetch + send-message +
+  // 8 contractor action handlers + 3 dialog states + typing
+  // indicator + filter/search state, all sharing a tight closure.
+  // A clean split would lift everything into a hook
+  // (useContractorMessagesController) and is out of scope for this
+  // single-file theme port.
+  'apps/web/app/contractor/messages/components/MessagesClient.tsx', // 771 lines (was 585)
+  // Added 2026-05-12 (Phase-4 contractor port): contractor reviews
+  // surface. The page.tsx was already 475 LOC; the Mint Editorial
+  // branch adds the hooked `isMintEditorial` state + ~33-LOC branch
+  // that delegates to `MintEditorialReviewsView`. The view itself
+  // packages the canonical layout (hero card + filter chips +
+  // search-pill + per-review card with reply form). Splitting the
+  // view into hero / filter / list sub-components is a P2 cleanup
+  // but the current shape keeps the canonical layout in one file
+  // for easy review.
+  'apps/web/app/contractor/reviews/page.tsx', // 508 lines (was 475)
+  'apps/web/app/contractor/reviews/components/MintEditorialReviewsView.tsx', // 544 lines
+  // Added 2026-05-12 (Phase-4 contractor port): contractor
+  // /jobs-near-you discover surface. JobsNearYouClient already
+  // pre-existed at 532 LOC (controller for geocoding, distance
+  // calculation, skill matching, saved-jobs, recommendations,
+  // map ref management). The +35-line edit adds:
+  //   (1) hydration-safe `isMintEditorial` hook;
+  //   (2) a branch that delegates to `MintEditorialJobsNearYouView`
+  //       (419 LOC, presentational only, takes all controller state
+  //       as props).
+  // Splitting JobsNearYouClient into a `useDiscoverController` hook
+  // + thin wrapper is the right long-term shape but is a dedicated
+  // P2 refactor.
+  'apps/web/app/contractor/jobs-near-you/components/JobsNearYouClient.tsx', // 567 lines (was 532)
+  // Added 2026-05-12 (Phase-4 contractor port): contractor
+  // /calendar surface. Page pre-existed at 473 LOC; the editorial
+  // branch adds:
+  //   (1) hydration-safe `isMintEditorial` hook above the loading
+  //       early-return;
+  //   (2) a 4-tile canonical `.kpi` header that swaps in when the
+  //       theme is on (This week / Available days / Total events /
+  //       Pending).
+  // The legacy Airbnb-style banner stays for users on the default
+  // theme. The calendar grid + sidebar (event types, availability
+  // editor, "Save availability" button) inherit colour mapping
+  // from the shell-level `.me-legacy-fit` boundary. A full
+  // canonical rewrite of the calendar grid / event pills is a
+  // dedicated P2.
+  'apps/web/app/contractor/calendar/page.tsx', // 535 lines (was 473)
+  // Added 2026-05-12 (Phase-4 contractor port): contractor /tools
+  // page editorial header swap (.t-h1 + .btn-primary "Add tool"
+  // branch behind hydration-safe `isMintEditorial`). Page already
+  // shipped a deep tool-tracking UI (inventory grid + stats cards +
+  // maintenance alerts + add modal). +33 LOC for the editorial
+  // branch.
+  'apps/web/app/contractor/tools/page.tsx', // 528 lines (was 495)
+  // Added 2026-05-12: time-tracking + certifications + documents +
+  // verification pages all already exceeded 500 LOC before the
+  // editorial header swap. The Phase-4 batch header commit pushed
+  // them further over; this entry recognises the existing state.
+  // A clean split into per-section subcomponents is a P2 refactor.
+  'apps/web/app/contractor/time-tracking/page.tsx', // 666 lines (was ~660)
+  // Added 2026-05-12 (Phase-4 job-detail editorial rewrite): the
+  // /contractor/jobs/[id]/page.tsx server component now also
+  // branches on the `mintenance-theme` cookie and renders the new
+  // `MintEditorialJobDetailView` for editorial users. Both files
+  // exceed 500 LOC — page.tsx because the legacy layout is
+  // preserved verbatim under the `else` branch, the new view
+  // because it bundles the canonical layout target (header +
+  // progress pills + stage card + customer brief + photo grid +
+  // AI assessment + contract + scheduling + sticky earnings
+  // sidebar). A clean split would require lifting state from the
+  // server component into the view — out of scope for this
+  // single-file rewrite.
+  'apps/web/app/contractor/jobs/[id]/page.tsx', // 541 lines (was 482)
+  'apps/web/app/contractor/jobs/[id]/components/MintEditorialJobDetailView.tsx', // 681 lines
+  // Added 2026-05-12 (Phase-4 batch header swap):
+  'apps/web/app/contractor/payouts/components/PayoutsPageClient.tsx', // 506 lines (was ~492)
+  // Added 2026-05-12 (Phase-4 contractor port): /contractor/jobs/[id]
+  // detail page. JobDetailsClient pre-existed at 525 LOC. The
+  // +193-line edit duplicates the hero block (title + status/priority/
+  // category badges + Budget/Location/Posted/Timeline grid) and the
+  // action-button sidebar (Place bid + Save job CTAs) under a
+  // hydration-safe `isMintEditorial` branch. The remaining body
+  // (Job Description, Photos, Posted By, Job Stats) inherits
+  // colour mapping from the shell-level .me-legacy-fit boundary
+  // and is functionally identical between themes. A clean split
+  // into a separate `MintEditorialJobDetailsView` component would
+  // require lifting all 8 controller state slots + handlers via
+  // props — out of scope for this single-file theme port.
+  'apps/web/app/contractor/jobs/[id]/components/JobDetailsClient.tsx', // 718 lines (was 525)
+  // Added 2026-05-12 (Phase-4 contractor port): /contractor/insurance
+  // page editorial header swap (.t-h1 + .btn-primary "Add insurance/
+  // licence" branch behind hydration-safe `isMintEditorial`). Page
+  // pre-existed at 547 LOC with deep insurance + licence tracking
+  // (stats cards + tab switcher + list + add modal). +32 LOC for
+  // the editorial branch.
+  'apps/web/app/contractor/insurance/page.tsx', // 579 lines (was 547)
+  // Added 2026-05-12 (Phase-4 stat-card pass): marketing page grew
+  // when the inline StatCard was made theme-aware (canonical .kpi
+  // when isMintEditorial, legacy bg-white card otherwise). Each
+  // tile call site stayed unchanged.
+  'apps/web/app/contractor/marketing/page.tsx', // 516 lines (was 493)
+  // Self-allowlist: this script grows naturally each Phase-4
+  // commit because the allowlist itself is a documented log of
+  // intentional over-cap files. Splitting the script into a
+  // generator + data file is a P3.
+  'scripts/pre-commit-checks.js', // ~510 lines (grows incrementally)
 ]);
 
 function countLines(filePath) {

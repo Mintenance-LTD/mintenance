@@ -35,6 +35,9 @@ interface DashboardData {
     last_name: string;
     email: string;
     profile_image_url?: string;
+    /** Postcode used by the Mint Editorial sidebar user-card subtitle. */
+    postcode?: string;
+    city?: string;
   } | null;
   jobs: Job[];
   jobIds: string[];

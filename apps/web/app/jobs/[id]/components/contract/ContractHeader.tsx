@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { Building2 } from 'lucide-react';
 import type { StatusConfig } from './contractHelpers';
@@ -20,9 +20,24 @@ export function ContractHeader({
   statusConfig,
 }: ContractHeaderProps) {
   const StatusIcon = statusConfig.icon;
+  // Hydration-safe theme detection — solid brand band on editorial.
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
 
   return (
-    <div className='bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-800 px-6 py-6'>
+    <div
+      className={
+        isMintEditorial
+          ? 'px-6 py-6'
+          : 'bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-800 px-6 py-6'
+      }
+      style={isMintEditorial ? { background: 'var(--me-brand)' } : undefined}
+    >
       <div className='flex items-start justify-between'>
         <div className='flex items-center gap-4'>
           {logoUrl ? (

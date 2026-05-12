@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, Suspense } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { Button } from '@/components/ui';
@@ -10,6 +10,7 @@ import { theme } from '@/lib/theme';
 import { DisputeDocumentationService } from '@/lib/services/disputes/DisputeDocumentationService';
 import { Loader2 } from 'lucide-react';
 import { PageLoader } from '@/components/LoadingButton';
+import { MintEditorialDisputeCreate } from './MintEditorialDisputeCreate';
 
 function CreateDisputeContent() {
   const router = useRouter();
@@ -17,6 +18,17 @@ function CreateDisputeContent() {
   const escrowId = searchParams.get('escrowId');
   const { user, loading } = useCurrentUser();
   const [currentStep, setCurrentStep] = useState(1);
+
+  // Mint Editorial theme detection — when active, swap the entire
+  // form for the canonical "Open dispute" surface from
+  // design-system/project/redesign-v2/dispute-flow.html (HOpen).
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
   const [formData, setFormData] = useState({
     reason: '',
     description: '',
@@ -71,7 +83,7 @@ function CreateDisputeContent() {
   };
 
   if (loading) {
-    return <PageLoader message="Loading dispute form" />;
+    return <PageLoader message='Loading dispute form' />;
   }
 
   if (!user) {
@@ -79,71 +91,102 @@ function CreateDisputeContent() {
     return null;
   }
 
+  if (isMintEditorial) {
+    return <MintEditorialDisputeCreate escrowId={escrowId} />;
+  }
+
   return (
-    <div style={{
-      maxWidth: '800px',
-      margin: '0 auto',
-      padding: theme.spacing[6],
-    }}>
-      <h1 style={{
-        fontSize: theme.typography.fontSize['3xl'],
-        fontWeight: theme.typography.fontWeight.bold,
-        marginBottom: theme.spacing[6],
-      }}>
+    <div
+      style={{
+        maxWidth: '800px',
+        margin: '0 auto',
+        padding: theme.spacing[6],
+      }}
+    >
+      <h1
+        style={{
+          fontSize: theme.typography.fontSize['3xl'],
+          fontWeight: theme.typography.fontWeight.bold,
+          marginBottom: theme.spacing[6],
+        }}
+      >
         Create Dispute
       </h1>
 
       {/* Process Steps */}
-      <Card style={{ marginBottom: theme.spacing[6], padding: theme.spacing[6] }}>
-        <h2 style={{
-          fontSize: theme.typography.fontSize.xl,
-          fontWeight: theme.typography.fontWeight.semibold,
-          marginBottom: theme.spacing[4],
-        }}>
+      <Card
+        style={{ marginBottom: theme.spacing[6], padding: theme.spacing[6] }}
+      >
+        <h2
+          style={{
+            fontSize: theme.typography.fontSize.xl,
+            fontWeight: theme.typography.fontWeight.semibold,
+            marginBottom: theme.spacing[4],
+          }}
+        >
           Dispute Process
         </h2>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[4] }}>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: theme.spacing[4],
+          }}
+        >
           {steps.map((step) => (
-            <div key={step.step} style={{
-              display: 'flex',
-              gap: theme.spacing[4],
-              padding: theme.spacing[4],
-              backgroundColor: currentStep === step.step ? '#F3F4F6' : 'transparent',
-              borderRadius: '8px',
-            }}>
-              <div style={{
-                width: '32px',
-                height: '32px',
-                borderRadius: '50%',
-                backgroundColor: currentStep >= step.step ? '#3B82F6' : '#E5E7EB',
-                color: 'white',
+            <div
+              key={step.step}
+              style={{
                 display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 600,
-                flexShrink: 0,
-              }}>
+                gap: theme.spacing[4],
+                padding: theme.spacing[4],
+                backgroundColor:
+                  currentStep === step.step ? '#F3F4F6' : 'transparent',
+                borderRadius: '8px',
+              }}
+            >
+              <div
+                style={{
+                  width: '32px',
+                  height: '32px',
+                  borderRadius: '50%',
+                  backgroundColor:
+                    currentStep >= step.step ? '#3B82F6' : '#E5E7EB',
+                  color: 'white',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 600,
+                  flexShrink: 0,
+                }}
+              >
                 {step.step}
               </div>
               <div style={{ flex: 1 }}>
-                <h3 style={{
-                  fontSize: theme.typography.fontSize.base,
-                  fontWeight: theme.typography.fontWeight.semibold,
-                  marginBottom: theme.spacing[1],
-                }}>
+                <h3
+                  style={{
+                    fontSize: theme.typography.fontSize.base,
+                    fontWeight: theme.typography.fontWeight.semibold,
+                    marginBottom: theme.spacing[1],
+                  }}
+                >
                   {step.title}
                 </h3>
-                <p style={{
-                  fontSize: theme.typography.fontSize.sm,
-                  color: theme.colors.textSecondary,
-                  marginBottom: theme.spacing[1],
-                }}>
+                <p
+                  style={{
+                    fontSize: theme.typography.fontSize.sm,
+                    color: theme.colors.textSecondary,
+                    marginBottom: theme.spacing[1],
+                  }}
+                >
                   {step.description}
                 </p>
-                <span style={{
-                  fontSize: theme.typography.fontSize.xs,
-                  color: theme.colors.textTertiary,
-                }}>
+                <span
+                  style={{
+                    fontSize: theme.typography.fontSize.xs,
+                    color: theme.colors.textTertiary,
+                  }}
+                >
                   Estimated: {step.estimatedTime}
                 </span>
               </div>
@@ -154,40 +197,54 @@ function CreateDisputeContent() {
 
       {/* Dispute Form */}
       <Card style={{ padding: theme.spacing[6] }}>
-        <h2 style={{
-          fontSize: theme.typography.fontSize.xl,
-          fontWeight: theme.typography.fontWeight.semibold,
-          marginBottom: theme.spacing[4],
-        }}>
+        <h2
+          style={{
+            fontSize: theme.typography.fontSize.xl,
+            fontWeight: theme.typography.fontWeight.semibold,
+            marginBottom: theme.spacing[4],
+          }}
+        >
           Dispute Details
         </h2>
 
         {error && (
-          <div style={{
-            padding: theme.spacing[3],
-            backgroundColor: '#FEE2E2',
-            border: '1px solid #EF4444',
-            borderRadius: '8px',
-            marginBottom: theme.spacing[4],
-            color: '#991B1B',
-          }}>
+          <div
+            style={{
+              padding: theme.spacing[3],
+              backgroundColor: '#FEE2E2',
+              border: '1px solid #EF4444',
+              borderRadius: '8px',
+              marginBottom: theme.spacing[4],
+              color: '#991B1B',
+            }}
+          >
             {error}
           </div>
         )}
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[4] }}>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: theme.spacing[4],
+          }}
+        >
           <div>
-            <label style={{
-              display: 'block',
-              fontSize: theme.typography.fontSize.sm,
-              fontWeight: theme.typography.fontWeight.semibold,
-              marginBottom: theme.spacing[2],
-            }}>
+            <label
+              style={{
+                display: 'block',
+                fontSize: theme.typography.fontSize.sm,
+                fontWeight: theme.typography.fontWeight.semibold,
+                marginBottom: theme.spacing[2],
+              }}
+            >
               Reason *
             </label>
             <select
               value={formData.reason}
-              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFormData({ ...formData, reason: e.target.value })}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                setFormData({ ...formData, reason: e.target.value })
+              }
               style={{
                 width: '100%',
                 padding: theme.spacing[3],
@@ -196,28 +253,32 @@ function CreateDisputeContent() {
                 fontSize: theme.typography.fontSize.base,
               }}
             >
-              <option value="">Select a reason</option>
-              <option value="incomplete_work">Incomplete Work</option>
-              <option value="poor_quality">Poor Quality</option>
-              <option value="damage">Property Damage</option>
-              <option value="not_as_described">Not As Described</option>
-              <option value="other">Other</option>
+              <option value=''>Select a reason</option>
+              <option value='incomplete_work'>Incomplete Work</option>
+              <option value='poor_quality'>Poor Quality</option>
+              <option value='damage'>Property Damage</option>
+              <option value='not_as_described'>Not As Described</option>
+              <option value='other'>Other</option>
             </select>
           </div>
 
           <div>
-            <label style={{
-              display: 'block',
-              fontSize: theme.typography.fontSize.sm,
-              fontWeight: theme.typography.fontWeight.semibold,
-              marginBottom: theme.spacing[2],
-            }}>
+            <label
+              style={{
+                display: 'block',
+                fontSize: theme.typography.fontSize.sm,
+                fontWeight: theme.typography.fontWeight.semibold,
+                marginBottom: theme.spacing[2],
+              }}
+            >
               Description *
             </label>
             <textarea
               value={formData.description}
-              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Provide a detailed description of the issue..."
+              onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                setFormData({ ...formData, description: e.target.value })
+              }
+              placeholder='Provide a detailed description of the issue...'
               rows={6}
               style={{
                 width: '100%',
@@ -231,17 +292,24 @@ function CreateDisputeContent() {
           </div>
 
           <div>
-            <label style={{
-              display: 'block',
-              fontSize: theme.typography.fontSize.sm,
-              fontWeight: theme.typography.fontWeight.semibold,
-              marginBottom: theme.spacing[2],
-            }}>
+            <label
+              style={{
+                display: 'block',
+                fontSize: theme.typography.fontSize.sm,
+                fontWeight: theme.typography.fontWeight.semibold,
+                marginBottom: theme.spacing[2],
+              }}
+            >
               Priority
             </label>
             <select
               value={formData.priority}
-              onChange={(e: React.ChangeEvent<HTMLSelectElement>) => setFormData({ ...formData, priority: e.target.value as typeof formData.priority })}
+              onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                setFormData({
+                  ...formData,
+                  priority: e.target.value as typeof formData.priority,
+                })
+              }
               style={{
                 width: '100%',
                 padding: theme.spacing[3],
@@ -250,38 +318,47 @@ function CreateDisputeContent() {
                 fontSize: theme.typography.fontSize.base,
               }}
             >
-              <option value="low">Low - {resolutionTimes.low}</option>
-              <option value="medium">Medium - {resolutionTimes.medium}</option>
-              <option value="high">High - {resolutionTimes.high}</option>
-              <option value="critical">Critical - {resolutionTimes.critical}</option>
+              <option value='low'>Low - {resolutionTimes.low}</option>
+              <option value='medium'>Medium - {resolutionTimes.medium}</option>
+              <option value='high'>High - {resolutionTimes.high}</option>
+              <option value='critical'>
+                Critical - {resolutionTimes.critical}
+              </option>
             </select>
-            <p style={{
-              fontSize: theme.typography.fontSize.xs,
-              color: theme.colors.textSecondary,
-              marginTop: theme.spacing[1],
-            }}>
+            <p
+              style={{
+                fontSize: theme.typography.fontSize.xs,
+                color: theme.colors.textSecondary,
+                marginTop: theme.spacing[1],
+              }}
+            >
               Estimated resolution time: {resolutionTimes[formData.priority]}
             </p>
           </div>
 
           <div>
-            <label style={{
-              display: 'block',
-              fontSize: theme.typography.fontSize.sm,
-              fontWeight: theme.typography.fontWeight.semibold,
-              marginBottom: theme.spacing[2],
-            }}>
+            <label
+              style={{
+                display: 'block',
+                fontSize: theme.typography.fontSize.sm,
+                fontWeight: theme.typography.fontWeight.semibold,
+                marginBottom: theme.spacing[2],
+              }}
+            >
               Evidence (Photos/Documents)
             </label>
             <input
-              type="file"
+              type='file'
               multiple
-              accept="image/*,.pdf"
+              accept='image/*,.pdf'
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
                 // Handle file upload (simplified)
                 const files = Array.from(e.target.files || []);
                 // In production, upload to storage and get URLs
-                setFormData({ ...formData, evidence: files.map(f => f.name) });
+                setFormData({
+                  ...formData,
+                  evidence: files.map((f) => f.name),
+                });
               }}
               style={{
                 width: '100%',
@@ -290,27 +367,32 @@ function CreateDisputeContent() {
                 borderRadius: '8px',
               }}
             />
-            <p style={{
-              fontSize: theme.typography.fontSize.xs,
-              color: theme.colors.textSecondary,
-              marginTop: theme.spacing[1],
-            }}>
+            <p
+              style={{
+                fontSize: theme.typography.fontSize.xs,
+                color: theme.colors.textSecondary,
+                marginTop: theme.spacing[1],
+              }}
+            >
               Upload photos or documents that support your dispute
             </p>
           </div>
 
-          <div style={{ display: 'flex', gap: theme.spacing[4], marginTop: theme.spacing[4] }}>
+          <div
+            style={{
+              display: 'flex',
+              gap: theme.spacing[4],
+              marginTop: theme.spacing[4],
+            }}
+          >
             <Button
-              variant="primary"
+              variant='primary'
               onClick={handleSubmit}
               disabled={isSubmitting}
             >
               {isSubmitting ? 'Submitting...' : 'Submit Dispute'}
             </Button>
-            <Button
-              variant="secondary"
-              onClick={() => router.back()}
-            >
+            <Button variant='secondary' onClick={() => router.back()}>
               Cancel
             </Button>
           </div>
@@ -322,11 +404,13 @@ function CreateDisputeContent() {
 
 export default function CreateDisputePage() {
   return (
-    <Suspense fallback={
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className='flex items-center justify-center min-h-screen'>
+          <Loader2 className='h-8 w-8 animate-spin text-primary' />
+        </div>
+      }
+    >
       <CreateDisputeContent />
     </Suspense>
   );

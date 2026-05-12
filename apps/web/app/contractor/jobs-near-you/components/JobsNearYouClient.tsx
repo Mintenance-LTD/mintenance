@@ -1,18 +1,31 @@
 'use client';
 
-import React, { useEffect, useRef, useState, useMemo, useCallback } from 'react';
+import React, {
+  useEffect,
+  useRef,
+  useState,
+  useMemo,
+  useCallback,
+} from 'react';
 import { useRouter } from 'next/navigation';
 import { DynamicGoogleMap } from '@/components/maps';
 import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
 import { Card } from '@/components/ui/Card.unified';
-import { getGradientCardStyle, getIconContainerStyle } from '@/lib/theme-enhancements';
+import {
+  getGradientCardStyle,
+  getIconContainerStyle,
+} from '@/lib/theme-enhancements';
 import { logger } from '@mintenance/shared';
 
-import { calculateDistance, calculateRecommendationScore } from './jobsNearYouUtils';
+import {
+  calculateDistance,
+  calculateRecommendationScore,
+} from './jobsNearYouUtils';
 import { updateMarkers, handleMapLoad } from './JobsMapController';
 import { NearbyJobCard } from './NearbyJobCard';
 import { JobsFilterBar } from './JobsFilterBar';
+import { MintEditorialJobsNearYouView } from './MintEditorialJobsNearYouView';
 
 interface ContractorLocation {
   latitude?: number | null;
@@ -69,9 +82,14 @@ export function JobsNearYouClient({
   const mapRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<google.maps.Marker[]>([]);
   const infoWindowsRef = useRef<Map<string, google.maps.InfoWindow>>(new Map());
-  const [jobsWithDistance, setJobsWithDistance] = useState<JobWithDistance[]>([]);
+  const [jobsWithDistance, setJobsWithDistance] = useState<JobWithDistance[]>(
+    []
+  );
   const [loading, setLoading] = useState(true);
-  const [contractorCoords, setContractorCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [contractorCoords, setContractorCoords] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
   const [savedJobIds, setSavedJobIds] = useState<Set<string>>(new Set());
   const [savingJobId, setSavingJobId] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortBy>('skillMatch');
@@ -121,7 +139,9 @@ export function JobsNearYouClient({
             .filter(Boolean)
             .join(', ');
 
-          const response = await fetch(`/api/geocode?address=${encodeURIComponent(address)}`);
+          const response = await fetch(
+            `/api/geocode?address=${encodeURIComponent(address)}`
+          );
           if (response.ok) {
             const data = await response.json();
             if (data.latitude && data.longitude) {
@@ -154,7 +174,9 @@ export function JobsNearYouClient({
         if (!job.location) continue;
 
         try {
-          const response = await fetch(`/api/geocode?address=${encodeURIComponent(job.location)}`);
+          const response = await fetch(
+            `/api/geocode?address=${encodeURIComponent(job.location)}`
+          );
           if (response.ok) {
             const data = await response.json();
             if (data.latitude && data.longitude) {
@@ -166,7 +188,7 @@ export function JobsNearYouClient({
               );
 
               const jobRequiredSkills = job.required_skills || [];
-              const matchedSkills = contractorSkills.filter(skill =>
+              const matchedSkills = contractorSkills.filter((skill) =>
                 jobRequiredSkills.includes(skill)
               );
               const skillMatchCount = matchedSkills.length;
@@ -178,13 +200,16 @@ export function JobsNearYouClient({
                   lat: data.latitude,
                   lng: data.longitude,
                 },
-                requiredSkills: jobRequiredSkills.length > 0 ? jobRequiredSkills : undefined,
-                matchedSkills: matchedSkills.length > 0 ? matchedSkills : undefined,
+                requiredSkills:
+                  jobRequiredSkills.length > 0 ? jobRequiredSkills : undefined,
+                matchedSkills:
+                  matchedSkills.length > 0 ? matchedSkills : undefined,
                 skillMatchCount,
                 isSaved: savedJobIds.has(job.id),
               };
 
-              jobWithDistance.recommendationScore = calculateRecommendationScore(jobWithDistance);
+              jobWithDistance.recommendationScore =
+                calculateRecommendationScore(jobWithDistance);
               jobsWithCoords.push(jobWithDistance);
             }
           }
@@ -205,52 +230,61 @@ export function JobsNearYouClient({
   }, [contractorCoords, jobs, contractorSkills, savedJobIds]);
 
   // Handle save/unsave job
-  const handleSaveJob = useCallback(async (jobId: string, isSaved: boolean) => {
-    if (savingJobId === jobId) return;
+  const handleSaveJob = useCallback(
+    async (jobId: string, isSaved: boolean) => {
+      if (savingJobId === jobId) return;
 
-    setSavingJobId(jobId);
-    try {
-      if (isSaved) {
-        const response = await fetch(`/api/contractor/saved-jobs/${jobId}`, {
-          method: 'DELETE',
-        });
-        if (response.ok) {
-          setSavedJobIds(prev => {
-            const newSet = new Set(prev);
-            newSet.delete(jobId);
-            return newSet;
+      setSavingJobId(jobId);
+      try {
+        if (isSaved) {
+          const response = await fetch(`/api/contractor/saved-jobs/${jobId}`, {
+            method: 'DELETE',
           });
-          setJobsWithDistance(prev =>
-            prev.map(job => job.id === jobId ? { ...job, isSaved: false } : job)
-          );
+          if (response.ok) {
+            setSavedJobIds((prev) => {
+              const newSet = new Set(prev);
+              newSet.delete(jobId);
+              return newSet;
+            });
+            setJobsWithDistance((prev) =>
+              prev.map((job) =>
+                job.id === jobId ? { ...job, isSaved: false } : job
+              )
+            );
+          }
+        } else {
+          const response = await fetch('/api/contractor/saved-jobs', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ jobId }),
+          });
+          if (response.ok) {
+            setSavedJobIds((prev) => new Set([...prev, jobId]));
+            setJobsWithDistance((prev) =>
+              prev.map((job) =>
+                job.id === jobId ? { ...job, isSaved: true } : job
+              )
+            );
+          }
         }
-      } else {
-        const response = await fetch('/api/contractor/saved-jobs', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ jobId }),
-        });
-        if (response.ok) {
-          setSavedJobIds(prev => new Set([...prev, jobId]));
-          setJobsWithDistance(prev =>
-            prev.map(job => job.id === jobId ? { ...job, isSaved: true } : job)
-          );
-        }
+      } catch (error) {
+        logger.error('Error saving/unsaving job:', error);
+      } finally {
+        setSavingJobId(null);
       }
-    } catch (error) {
-      logger.error('Error saving/unsaving job:', error);
-    } finally {
-      setSavingJobId(null);
-    }
-  }, [savingJobId]);
+    },
+    [savingJobId]
+  );
 
   // Filter and sort jobs
   const filteredAndSortedJobs = useMemo(() => {
-    const filtered = jobsWithDistance.filter(job => {
-      if (job.distance !== undefined && job.distance > filters.maxDistance) return false;
+    const filtered = jobsWithDistance.filter((job) => {
+      if (job.distance !== undefined && job.distance > filters.maxDistance)
+        return false;
       if (job.budget) {
         const budget = parseFloat(job.budget);
-        if (budget < filters.minBudget || budget > filters.maxBudget) return false;
+        if (budget < filters.minBudget || budget > filters.maxBudget)
+          return false;
       }
       if ((job.skillMatchCount || 0) < filters.minSkillMatch) return false;
       return true;
@@ -262,9 +296,11 @@ export function JobsNearYouClient({
         case 'distance':
           return (a.distance || Infinity) - (b.distance || Infinity);
         case 'budget':
-          return (parseFloat(b.budget || '0')) - (parseFloat(a.budget || '0'));
+          return parseFloat(b.budget || '0') - parseFloat(a.budget || '0');
         case 'newest':
-          return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+          return (
+            new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+          );
         case 'skillMatch':
         default:
           if ((a.skillMatchCount || 0) !== (b.skillMatchCount || 0)) {
@@ -280,29 +316,86 @@ export function JobsNearYouClient({
   // Get recommendations (top 5)
   const recommendations = useMemo(() => {
     return [...filteredAndSortedJobs]
-      .sort((a, b) => (b.recommendationScore || 0) - (a.recommendationScore || 0))
+      .sort(
+        (a, b) => (b.recommendationScore || 0) - (a.recommendationScore || 0)
+      )
       .slice(0, 5);
   }, [filteredAndSortedJobs]);
 
   // Map refs bundle for the controller
   const mapRefs = { mapRef, markersRef, infoWindowsRef };
 
-  const onMapLoad = useCallback((map: google.maps.Map) => {
-    handleMapLoad(map, mapRefs, contractorCoords, contractorLocation, filteredAndSortedJobs);
-  }, [contractorCoords, contractorLocation, filteredAndSortedJobs]);
+  const onMapLoad = useCallback(
+    (map: google.maps.Map) => {
+      handleMapLoad(
+        map,
+        mapRefs,
+        contractorCoords,
+        contractorLocation,
+        filteredAndSortedJobs
+      );
+    },
+    [contractorCoords, contractorLocation, filteredAndSortedJobs]
+  );
 
   useEffect(() => {
-    if (mapRef.current && filteredAndSortedJobs.length > 0 && viewMode === 'map') {
-      updateMarkers(mapRefs, contractorCoords, contractorLocation, filteredAndSortedJobs);
+    if (
+      mapRef.current &&
+      filteredAndSortedJobs.length > 0 &&
+      viewMode === 'map'
+    ) {
+      updateMarkers(
+        mapRefs,
+        contractorCoords,
+        contractorLocation,
+        filteredAndSortedJobs
+      );
     }
   }, [filteredAndSortedJobs, contractorCoords, viewMode]);
 
   const center = contractorCoords || { lat: 51.5074, lng: -0.1278 };
 
   // Memoize navigation handler
-  const handleJobClick = useCallback((jobId: string) => {
-    router.push(`/contractor/bid/${jobId}`);
-  }, [router]);
+  const handleJobClick = useCallback(
+    (jobId: string) => {
+      router.push(`/contractor/bid/${jobId}`);
+    },
+    [router]
+  );
+
+  // Hydration-safe theme detection — must call hooks unconditionally,
+  // so this lives above the return statement. Same pattern used on
+  // every other contractor surface that was ported in Phase-4.
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
+
+  if (isMintEditorial) {
+    return (
+      <MintEditorialJobsNearYouView
+        contractorLocation={contractorLocation}
+        contractorCoords={contractorCoords}
+        loading={loading}
+        filteredAndSortedJobs={filteredAndSortedJobs}
+        recommendations={recommendations}
+        savedJobIds={savedJobIds}
+        savingJobId={savingJobId}
+        sortBy={sortBy}
+        setSortBy={setSortBy}
+        filters={filters}
+        setFilters={setFilters}
+        viewMode={viewMode}
+        setViewMode={setViewMode}
+        onMapLoad={onMapLoad}
+        onSaveJob={handleSaveJob}
+        onJobClick={handleJobClick}
+      />
+    );
+  }
 
   return (
     <div
@@ -338,7 +431,10 @@ export function JobsNearYouClient({
       >
         {/* Map */}
         {viewMode === 'map' && (
-          <Card padding="none" style={{ overflow: 'hidden', position: 'relative' }}>
+          <Card
+            padding='none'
+            style={{ overflow: 'hidden', position: 'relative' }}
+          >
             {loading ? (
               <div
                 style={{
@@ -371,12 +467,27 @@ export function JobsNearYouClient({
                   color: theme.colors.textSecondary,
                 }}
               >
-                <Icon name="mapPin" size={48} color={theme.colors.textTertiary} />
-                <p style={{ marginTop: theme.spacing[4], fontSize: theme.typography.fontSize.lg }}>
+                <Icon
+                  name='mapPin'
+                  size={48}
+                  color={theme.colors.textTertiary}
+                />
+                <p
+                  style={{
+                    marginTop: theme.spacing[4],
+                    fontSize: theme.typography.fontSize.lg,
+                  }}
+                >
                   Location not available
                 </p>
-                <p style={{ marginTop: theme.spacing[2], fontSize: theme.typography.fontSize.sm }}>
-                  Please update your location in your profile to see jobs near you.
+                <p
+                  style={{
+                    marginTop: theme.spacing[2],
+                    fontSize: theme.typography.fontSize.sm,
+                  }}
+                >
+                  Please update your location in your profile to see jobs near
+                  you.
                 </p>
               </div>
             )}
@@ -404,7 +515,7 @@ export function JobsNearYouClient({
               }}
             >
               <Icon
-                name="loader"
+                name='loader'
                 size={32}
                 color={theme.colors.textTertiary}
                 style={{
@@ -415,7 +526,7 @@ export function JobsNearYouClient({
           )}
           {!loading && filteredAndSortedJobs.length === 0 && (
             <Card
-              padding="lg"
+              padding='lg'
               style={{
                 ...getGradientCardStyle('primary'),
                 border: `1px solid ${theme.colors.border}`,
@@ -429,27 +540,37 @@ export function JobsNearYouClient({
                   padding: theme.spacing[8],
                 }}
               >
-                <div style={{
-                  width: '80px',
-                  height: '80px',
-                  margin: '0 auto',
-                  ...getIconContainerStyle(theme.colors.primary, 80),
-                }}>
-                  <Icon name="briefcase" size={40} color={theme.colors.primary} />
+                <div
+                  style={{
+                    width: '80px',
+                    height: '80px',
+                    margin: '0 auto',
+                    ...getIconContainerStyle(theme.colors.primary, 80),
+                  }}
+                >
+                  <Icon
+                    name='briefcase'
+                    size={40}
+                    color={theme.colors.primary}
+                  />
                 </div>
-                <p style={{
-                  marginTop: theme.spacing[4],
-                  fontSize: theme.typography.fontSize.xl,
-                  fontWeight: theme.typography.fontWeight.semibold,
-                  color: theme.colors.textPrimary,
-                }}>
+                <p
+                  style={{
+                    marginTop: theme.spacing[4],
+                    fontSize: theme.typography.fontSize.xl,
+                    fontWeight: theme.typography.fontWeight.semibold,
+                    color: theme.colors.textPrimary,
+                  }}
+                >
                   No jobs found
                 </p>
-                <p style={{
-                  marginTop: theme.spacing[2],
-                  fontSize: theme.typography.fontSize.sm,
-                  color: theme.colors.textSecondary,
-                }}>
+                <p
+                  style={{
+                    marginTop: theme.spacing[2],
+                    fontSize: theme.typography.fontSize.sm,
+                    color: theme.colors.textSecondary,
+                  }}
+                >
                   Try adjusting your filters to see more opportunities.
                 </p>
               </div>
@@ -457,19 +578,24 @@ export function JobsNearYouClient({
           )}
           {!loading && filteredAndSortedJobs.length > 0 && (
             <div>
-              <div style={{
-                fontSize: theme.typography.fontSize.sm,
-                fontWeight: theme.typography.fontWeight.medium,
-                color: theme.colors.textSecondary,
-                marginBottom: theme.spacing[2],
-              }}>
-                Showing {filteredAndSortedJobs.length} job{filteredAndSortedJobs.length !== 1 ? 's' : ''}
+              <div
+                style={{
+                  fontSize: theme.typography.fontSize.sm,
+                  fontWeight: theme.typography.fontWeight.medium,
+                  color: theme.colors.textSecondary,
+                  marginBottom: theme.spacing[2],
+                }}
+              >
+                Showing {filteredAndSortedJobs.length} job
+                {filteredAndSortedJobs.length !== 1 ? 's' : ''}
               </div>
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: theme.spacing[4],
-              }}>
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: theme.spacing[4],
+                }}
+              >
                 {filteredAndSortedJobs.map((job) => (
                   <NearbyJobCard
                     key={job.id}
@@ -493,16 +619,18 @@ export function JobsNearYouClient({
             marginTop: theme.spacing[6],
           }}
         >
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: theme.spacing[3],
-            marginBottom: theme.spacing[5],
-          }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: theme.spacing[3],
+              marginBottom: theme.spacing[5],
+            }}
+          >
             <div style={getIconContainerStyle(theme.colors.primary, 40)}>
-              <Icon name="star" size={20} color={theme.colors.primary} />
+              <Icon name='star' size={20} color={theme.colors.primary} />
             </div>
-            <h2 className="text-xl font-[560] text-gray-900 m-0 tracking-normal">
+            <h2 className='text-xl font-[560] text-gray-900 m-0 tracking-normal'>
               Recommended for You
             </h2>
           </div>
@@ -513,7 +641,7 @@ export function JobsNearYouClient({
               gap: theme.spacing[5],
             }}
           >
-            {recommendations.map(job => (
+            {recommendations.map((job) => (
               <NearbyJobCard
                 key={job.id}
                 job={job}

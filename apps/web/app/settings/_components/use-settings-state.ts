@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { useCSRF } from '@/lib/hooks/useCSRF';
 import toast from 'react-hot-toast';
@@ -26,12 +26,40 @@ import {
   type PaymentMethod,
 } from './settings-api';
 
+const SECTION_KEYS: SectionKey[] = [
+  'profile',
+  'account',
+  'notifications',
+  'payments',
+  'automation',
+  'privacy',
+  'appearance',
+];
+
+function parseSection(raw: string | null): SectionKey {
+  if (raw && SECTION_KEYS.includes(raw as SectionKey)) {
+    return raw as SectionKey;
+  }
+  return 'profile';
+}
+
 export function useSettingsState() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, loading: loadingUser, refresh } = useCurrentUser();
   const { csrfToken } = useCSRF();
 
-  const [activeSection, setActiveSection] = useState<SectionKey>('profile');
+  // Deep-link via `?section=appearance` (used by /api/theme's redirect
+  // target so the Appearance page is the natural landing spot after
+  // switching). Falls back to 'profile' for any unknown value.
+  const [activeSection, setActiveSection] = useState<SectionKey>(() =>
+    parseSection(searchParams?.get('section') ?? null)
+  );
+
+  useEffect(() => {
+    const next = parseSection(searchParams?.get('section') ?? null);
+    setActiveSection(next);
+  }, [searchParams]);
   const [isExporting, setIsExporting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isSaving, setIsSaving] = useState(false);

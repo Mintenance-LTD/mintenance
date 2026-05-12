@@ -16,6 +16,8 @@ import toast from 'react-hot-toast';
 import { MotionDiv, MotionButton } from '@/components/ui/MotionDiv';
 import { fetchCurrentUser } from '@/lib/auth-client';
 import { useCSRF } from '@/lib/hooks/useCSRF';
+import { HomeownerPageWrapper } from '@/app/dashboard/components/HomeownerPageWrapper';
+import { MintEditorialJobReview } from './MintEditorialJobReview';
 
 // Animation variants
 const fadeIn = {
@@ -63,6 +65,17 @@ export default function ReviewSubmissionPage() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hoveredStar, setHoveredStar] = useState(0);
+
+  // Mint Editorial theme detection — swap the legacy split-flow page
+  // for the unified MintEditorialJobReview surface (approve + rate +
+  // tip + release in one pass) from W5 of the canonical audit.
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
 
   // Fetch real job data
   useEffect(() => {
@@ -218,6 +231,17 @@ export default function ReviewSubmissionPage() {
     : 'Contractor';
 
   const contractorAvatar = job.contractor?.profile_image_url;
+
+  // Mint Editorial branch — single unified surface (approve + rate +
+  // tip + release). Falls through to the legacy stars-only flow below
+  // for default-theme users.
+  if (isMintEditorial) {
+    return (
+      <HomeownerPageWrapper>
+        <MintEditorialJobReview job={job} />
+      </HomeownerPageWrapper>
+    );
+  }
 
   return (
     <div className='min-h-screen bg-gray-50'>

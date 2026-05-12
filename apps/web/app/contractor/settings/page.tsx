@@ -12,12 +12,19 @@ import {
   Shield,
   Download,
   Bot,
+  Palette,
 } from 'lucide-react';
 import { AgentAutomationPanel } from '@/components/agents/AgentAutomationPanel';
 import { ProfileSection } from './components/ProfileSection';
 import { AccountSecuritySection } from './components/AccountSecuritySection';
 import { NotificationsSection } from './components/NotificationsSection';
 import { PaymentsSection } from './components/PaymentsSection';
+// 2026-05-12: contractors now get the same Mint Editorial theme
+// toggle homeowners have. Reusing the shared AppearanceSection so
+// the theme-switch UX stays identical across user types and any
+// future polish (additional themes, accent picker, etc.) lands in
+// one place.
+import { AppearanceSection } from '@/app/settings/_components/appearance-section';
 
 type SectionKey =
   | 'profile'
@@ -25,7 +32,8 @@ type SectionKey =
   | 'notifications'
   | 'payments'
   | 'automation'
-  | 'privacy';
+  | 'privacy'
+  | 'appearance';
 
 type UserWithLocation = { address?: string; city?: string; postcode?: string };
 
@@ -45,6 +53,7 @@ export default function ContractorSettingsPage() {
         'payments',
         'automation',
         'privacy',
+        'appearance',
       ];
       if (sectionParam && validSections.includes(sectionParam))
         setActiveSection(sectionParam);
@@ -425,6 +434,7 @@ export default function ContractorSettingsPage() {
       icon: Bot,
     },
     { key: 'privacy' as SectionKey, label: 'Privacy', icon: Shield },
+    { key: 'appearance' as SectionKey, label: 'Appearance', icon: Palette },
   ];
 
   return (
@@ -545,6 +555,9 @@ export default function ContractorSettingsPage() {
                   </button>
                 </div>
               </div>
+            )}
+            {activeSection === 'appearance' && (
+              <AppearanceSection redirectPath='/contractor/settings?section=appearance' />
             )}
           </main>
         </div>

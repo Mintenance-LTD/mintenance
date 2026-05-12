@@ -130,6 +130,16 @@ export default function ContractorCalendarPage() {
     (s) => s.enabled
   ).length;
 
+  // Hydration-safe theme detection — hooks must be called
+  // unconditionally so this lives above any early return.
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
+
   if (loading) {
     return (
       <div className='min-h-0 bg-gray-50 flex items-center justify-center py-24'>
@@ -140,63 +150,110 @@ export default function ContractorCalendarPage() {
 
   return (
     <div className='min-h-0 bg-gray-50'>
-      {/* Header */}
-      <div className='bg-white border-b border-gray-200'>
-        <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
-          <div className='flex items-center justify-between'>
-            <div>
-              <h1 className='text-3xl font-semibold text-gray-900'>Calendar</h1>
-              <p className='text-gray-600 mt-1'>
-                Manage your schedule and availability
-              </p>
-            </div>
+      {/* Header — canonical .t-h1 + 4 .kpi tiles when Mint Editorial
+          is on, legacy Airbnb-style banner otherwise. The calendar
+          grid + sidebar below inherit colour mapping from the
+          shell-level .me-legacy-fit boundary. */}
+      {isMintEditorial ? (
+        <div className='col' style={{ gap: 16, padding: '20px 0 24px' }}>
+          <div className='col' style={{ gap: 4 }}>
+            <h1 className='t-h1'>Calendar</h1>
+            <p className='t-body'>
+              Manage your weekly schedule, accept bookings, and set the
+              availability that homeowners see on your profile.
+            </p>
           </div>
-
-          {/* Quick Stats */}
-          <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-8'>
-            <div className='bg-white rounded-xl p-4 border border-gray-200'>
-              <div className='flex items-center gap-2 mb-2'>
-                <Briefcase className='w-5 h-5 text-teal-600' />
-                <p className='text-gray-600 text-sm font-medium'>This Week</p>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+              gap: 12,
+            }}
+          >
+            <div className='kpi'>
+              <div className='label'>This week</div>
+              <div className='num'>{thisWeekJobs}</div>
+              <div className='sub'>
+                {thisWeekJobs === 1 ? 'job booked' : 'jobs booked'}
               </div>
-              <p className='text-2xl font-semibold text-gray-900'>
-                {thisWeekJobs} job{thisWeekJobs !== 1 ? 's' : ''}
-              </p>
             </div>
-            <div className='bg-white rounded-xl p-4 border border-gray-200'>
-              <div className='flex items-center gap-2 mb-2'>
-                <CheckCircle className='w-5 h-5 text-green-600' />
-                <p className='text-gray-600 text-sm font-medium'>
-                  Available Days
-                </p>
-              </div>
-              <p className='text-2xl font-semibold text-gray-900'>
-                {availableSlots}/7
-              </p>
+            <div className='kpi'>
+              <div className='label'>Available days</div>
+              <div className='num'>{availableSlots}/7</div>
+              <div className='sub'>per week</div>
             </div>
-            <div className='bg-white rounded-xl p-4 border border-gray-200'>
-              <div className='flex items-center gap-2 mb-2'>
-                <CalendarIcon className='w-5 h-5 text-blue-600' />
-                <p className='text-gray-600 text-sm font-medium'>
-                  Total Events
-                </p>
-              </div>
-              <p className='text-2xl font-semibold text-gray-900'>
-                {events.length}
-              </p>
+            <div className='kpi'>
+              <div className='label'>Total events</div>
+              <div className='num'>{events.length}</div>
+              <div className='sub'>Jobs + meetings combined</div>
             </div>
-            <div className='bg-white rounded-xl p-4 border border-gray-200'>
-              <div className='flex items-center gap-2 mb-2'>
-                <AlertCircle className='w-5 h-5 text-amber-600' />
-                <p className='text-gray-600 text-sm font-medium'>Pending</p>
-              </div>
-              <p className='text-2xl font-semibold text-gray-900'>
-                {pendingEvents}
-              </p>
+            <div className='kpi'>
+              <div className='label'>Pending</div>
+              <div className='num'>{pendingEvents}</div>
+              <div className='sub'>Need confirmation</div>
             </div>
           </div>
         </div>
-      </div>
+      ) : (
+        <div className='bg-white border-b border-gray-200'>
+          <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
+            <div className='flex items-center justify-between'>
+              <div>
+                <h1 className='text-3xl font-semibold text-gray-900'>
+                  Calendar
+                </h1>
+                <p className='text-gray-600 mt-1'>
+                  Manage your schedule and availability
+                </p>
+              </div>
+            </div>
+
+            {/* Quick Stats */}
+            <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-8'>
+              <div className='bg-white rounded-xl p-4 border border-gray-200'>
+                <div className='flex items-center gap-2 mb-2'>
+                  <Briefcase className='w-5 h-5 text-teal-600' />
+                  <p className='text-gray-600 text-sm font-medium'>This Week</p>
+                </div>
+                <p className='text-2xl font-semibold text-gray-900'>
+                  {thisWeekJobs} job{thisWeekJobs !== 1 ? 's' : ''}
+                </p>
+              </div>
+              <div className='bg-white rounded-xl p-4 border border-gray-200'>
+                <div className='flex items-center gap-2 mb-2'>
+                  <CheckCircle className='w-5 h-5 text-green-600' />
+                  <p className='text-gray-600 text-sm font-medium'>
+                    Available Days
+                  </p>
+                </div>
+                <p className='text-2xl font-semibold text-gray-900'>
+                  {availableSlots}/7
+                </p>
+              </div>
+              <div className='bg-white rounded-xl p-4 border border-gray-200'>
+                <div className='flex items-center gap-2 mb-2'>
+                  <CalendarIcon className='w-5 h-5 text-blue-600' />
+                  <p className='text-gray-600 text-sm font-medium'>
+                    Total Events
+                  </p>
+                </div>
+                <p className='text-2xl font-semibold text-gray-900'>
+                  {events.length}
+                </p>
+              </div>
+              <div className='bg-white rounded-xl p-4 border border-gray-200'>
+                <div className='flex items-center gap-2 mb-2'>
+                  <AlertCircle className='w-5 h-5 text-amber-600' />
+                  <p className='text-gray-600 text-sm font-medium'>Pending</p>
+                </div>
+                <p className='text-2xl font-semibold text-gray-900'>
+                  {pendingEvents}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Content */}
       <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>

@@ -15,6 +15,8 @@ import {
   X,
   Video,
   Calendar,
+  MessageSquare,
+  MoreHorizontal,
 } from 'lucide-react';
 import type {
   Conversation,
@@ -29,6 +31,9 @@ import { ChatPanel } from './ChatPanel';
 import { CreateContractDialog } from './CreateContractDialog';
 import { ShareDocumentDialog } from './ShareDocumentDialog';
 import { useTypingIndicator } from '@/lib/hooks/useTypingIndicator';
+import { MintEditorialMessagesSidebar } from '@/app/messages/components/MintEditorialMessagesSidebar';
+import { MintEditorialMessagesChat } from '@/app/messages/components/MintEditorialMessagesChat';
+import { MintEditorialEmptyState } from '@/components/mint-editorial/MintEditorialEmptyState';
 
 export function MessagesClient() {
   const router = useRouter();
@@ -380,6 +385,19 @@ export function MessagesClient() {
     return true;
   });
 
+  // Phase-4 (Mint Editorial): hydration-safe theme detection. Must
+  // live ABOVE the early returns below — see the homeowner-side
+  // MessagesClient comment for the rules-of-hooks rationale (early
+  // returns first would change the hook count once `user` flips,
+  // crashing the component).
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
+
   if (loading && !user) {
     return (
       <div className='flex items-center justify-center min-h-[600px]'>
@@ -418,6 +436,175 @@ export function MessagesClient() {
   }
 
   if (!user) return null;
+
+  // Mint Editorial branch — reuses the canonical sidebar + chat from
+  // the homeowner side, with a contractor-flavoured "Open job" CTA
+  // pointing at /contractor/jobs/[id] and a "More" overflow menu that
+  // exposes the contractor-only actions (Schedule, Send quote, Share
+  // document, Prepare contract). Voice/Video are routed through the
+  // shared `Phone` button which fires the same coming-soon toast. The
+  // three dialogs (Video / ShareDoc / Contract) live at the bottom of
+  // the return and work for both themes.
+  if (isMintEditorial) {
+    return (
+      <>
+        <div className='between' style={{ marginBottom: 14 }}>
+          <div className='col' style={{ gap: 4 }}>
+            <h1 className='t-h1'>Messages</h1>
+            <p className='t-body'>
+              Conversations with your homeowners — quotes, scheduling, and job
+              sign-off.
+            </p>
+          </div>
+        </div>
+        <div
+          style={{
+            display: 'flex',
+            height: 'calc(100vh - 220px)',
+            background: 'var(--me-surface)',
+            border: '1px solid var(--me-line)',
+            borderRadius: 14,
+            overflow: 'hidden',
+          }}
+        >
+          <MintEditorialMessagesSidebar
+            conversations={filteredConversations}
+            selectedConversation={selectedConversation}
+            onSelectConversation={setSelectedConversation}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            loading={loading}
+          />
+          {selectedConversation ? (
+            <MintEditorialMessagesChat
+              conversation={selectedConversation}
+              messages={messages}
+              currentUserId={user.id}
+              loadingMessages={loadingMessages}
+              messageInput={messageInput}
+              onMessageInputChange={(val: string) => {
+                setMessageInput(val);
+                broadcastTyping();
+              }}
+              onSendMessage={handleSendMessage}
+              sending={sending}
+              isTyping={isTyping}
+              viewJobHref={`/contractor/jobs/${selectedConversation.id}`}
+              viewJobLabel='Open job'
+              headerExtras={
+                <div style={{ position: 'relative' }}>
+                  <button
+                    type='button'
+                    className='btn btn-ghost btn-sm'
+                    aria-label='More actions'
+                    onClick={() => setShowMoreOptions(!showMoreOptions)}
+                  >
+                    <MoreHorizontal size={14} strokeWidth={1.75} />
+                  </button>
+                  {showMoreOptions ? (
+                    <div
+                      className='card'
+                      style={{
+                        position: 'absolute',
+                        top: 'calc(100% + 6px)',
+                        right: 0,
+                        minWidth: 200,
+                        padding: 6,
+                        zIndex: 20,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 2,
+                      }}
+                      role='menu'
+                    >
+                      <button
+                        type='button'
+                        className='btn btn-ghost btn-sm'
+                        style={{ justifyContent: 'flex-start' }}
+                        onClick={() => {
+                          setShowMoreOptions(false);
+                          handleScheduleMeeting();
+                        }}
+                      >
+                        Schedule meeting
+                      </button>
+                      <button
+                        type='button'
+                        className='btn btn-ghost btn-sm'
+                        style={{ justifyContent: 'flex-start' }}
+                        onClick={() => {
+                          setShowMoreOptions(false);
+                          handleSendQuote();
+                        }}
+                      >
+                        Send quote
+                      </button>
+                      <button
+                        type='button'
+                        className='btn btn-ghost btn-sm'
+                        style={{ justifyContent: 'flex-start' }}
+                        onClick={() => {
+                          setShowMoreOptions(false);
+                          handleShareDocument();
+                        }}
+                      >
+                        Share document
+                      </button>
+                      <button
+                        type='button'
+                        className='btn btn-ghost btn-sm'
+                        style={{ justifyContent: 'flex-start' }}
+                        onClick={() => {
+                          setShowMoreOptions(false);
+                          handlePrepareContract();
+                        }}
+                      >
+                        Prepare contract
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+              }
+            />
+          ) : (
+            <div
+              style={{
+                flex: 1,
+                display: 'flex',
+                background: 'var(--me-bg-2)',
+              }}
+            >
+              <MintEditorialEmptyState
+                icon={MessageSquare}
+                title='Select a conversation'
+                body='Choose a conversation from the left to message homeowners about their job, send a quote, or share documents.'
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Shared dialogs — modal overlays render fine over either
+            theme's underlying chrome. */}
+        <ShareDocumentDialog
+          open={showShareDocDialog}
+          onOpenChange={setShowShareDocDialog}
+          onShareDocument={handleDocumentSelected}
+        />
+        {selectedConversation && (
+          <CreateContractDialog
+            open={showContractDialog}
+            onOpenChange={setShowContractDialog}
+            jobId={selectedConversation.id}
+            jobTitle={selectedConversation.jobTitle || 'Contract'}
+            onContractCreated={() => {
+              setShowContractDialog(false);
+              toast.success('Contract sent to homeowner for review');
+            }}
+          />
+        )}
+      </>
+    );
+  }
 
   return (
     <div className='h-[calc(100vh-180px)] flex bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden'>

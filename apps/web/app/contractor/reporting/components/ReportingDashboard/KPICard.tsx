@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { ArrowUpRight, ArrowDownRight, Minus } from 'lucide-react';
 
 interface KPICardProps {
@@ -20,6 +20,16 @@ export const KPICard: React.FC<KPICardProps> = ({
   icon,
   trend,
 }) => {
+  // Hydration-safe theme detection — render canonical `.kpi` tile
+  // when Mint Editorial is active.
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
+
   const getTrendIcon = () => {
     if (trend === 'up') return <ArrowUpRight className='w-4 h-4' />;
     if (trend === 'down') return <ArrowDownRight className='w-4 h-4' />;
@@ -31,6 +41,38 @@ export const KPICard: React.FC<KPICardProps> = ({
     if (trend === 'down') return 'text-red-600 bg-red-50';
     return 'text-gray-600 bg-gray-50';
   };
+
+  if (isMintEditorial) {
+    return (
+      <div className='kpi'>
+        <div className='label'>{title}</div>
+        <div className='num'>{value}</div>
+        <div
+          className={
+            trend === 'up'
+              ? 'delta-up'
+              : trend === 'down'
+                ? 'delta-down'
+                : 'sub'
+          }
+          style={{
+            fontSize: 12,
+            fontWeight: 600,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 4,
+            marginTop: 4,
+          }}
+        >
+          {getTrendIcon()}
+          <span>
+            {change > 0 ? '+' : ''}
+            {change}% · {changeLabel}
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className='bg-white rounded-xl p-6 border border-gray-200 hover:border-gray-300 transition-all'>
