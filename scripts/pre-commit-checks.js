@@ -368,6 +368,13 @@ const KNOWN_LARGE_FILES = new Set([
   // canonical rewrite of the calendar grid / event pills is a
   // dedicated P2.
   'apps/web/app/contractor/calendar/page.tsx', // 535 lines (was 473)
+  // Added 2026-05-12 (Phase-4 contractor port): contractor /tools
+  // page editorial header swap (.t-h1 + .btn-primary "Add tool"
+  // branch behind hydration-safe `isMintEditorial`). Page already
+  // shipped a deep tool-tracking UI (inventory grid + stats cards +
+  // maintenance alerts + add modal). +33 LOC for the editorial
+  // branch.
+  'apps/web/app/contractor/tools/page.tsx', // 528 lines (was 495)
 ]);
 
 function countLines(filePath) {
