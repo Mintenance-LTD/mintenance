@@ -68,6 +68,14 @@ export default function ContractorTeamPage() {
   const [pending, setPending] = useState<PendingInvite[]>([]);
   const [loading, setLoading] = useState(true);
   const [showInvite, setShowInvite] = useState(false);
+  // Hydration-safe theme detection — Phase-4 contractor port pattern.
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
 
   const loadMembers = useCallback(async (orgId: string) => {
     const res = await fetch(`/api/organizations/${orgId}/members`, {
@@ -184,33 +192,89 @@ export default function ContractorTeamPage() {
   const canManage =
     activeOrg.myRole === 'owner' || activeOrg.myRole === 'manager';
 
+  // Hydration-safe theme detection — Phase-4 contractor port pattern.
+  // Placed here (post-early-returns) is acceptable because every code
+  // path above this point is itself an early return; this is the
+  // single `return` in the happy-path flow. React's rules-of-hooks
+  // is honoured: the hook order is fixed across renders for
+  // canManage = true|false (same render branch).
   return (
-    <div className='min-h-screen bg-gradient-to-br from-emerald-50 via-white to-amber-50 pb-12'>
-      <header className='bg-gradient-to-r from-emerald-600 to-emerald-700 text-white'>
-        <div className='max-w-5xl mx-auto px-4 py-10 flex items-center justify-between'>
-          <div>
-            <div className='flex items-center gap-2 text-emerald-100 text-sm mb-1'>
-              <ShieldCheck className='w-4 h-4' />
+    <div
+      className={
+        isMintEditorial
+          ? 'min-h-screen pb-12'
+          : 'min-h-screen bg-gradient-to-br from-emerald-50 via-white to-amber-50 pb-12'
+      }
+    >
+      {/* Header — canonical .t-h1 + .btn-primary when Mint Editorial,
+          legacy emerald gradient hero otherwise. */}
+      {isMintEditorial ? (
+        <div
+          className='between'
+          style={{ alignItems: 'flex-start', padding: '20px 0 24px' }}
+        >
+          <div className='col' style={{ gap: 4 }}>
+            <div
+              className='row'
+              style={{
+                gap: 6,
+                alignItems: 'center',
+                color: 'var(--me-ink-3)',
+                fontSize: 12,
+                fontWeight: 600,
+              }}
+            >
+              <ShieldCheck size={13} strokeWidth={1.75} />
               <span>{activeOrg.name}</span>
             </div>
-            <h1 className='text-3xl font-bold'>Team</h1>
-            <p className='text-emerald-100 text-sm mt-1'>
+            <h1 className='t-h1'>Team</h1>
+            <p className='t-body'>
               {members.length} member{members.length === 1 ? '' : 's'}
               {pending.length > 0
                 ? ` · ${pending.length} pending invite${pending.length === 1 ? '' : 's'}`
                 : ''}
+              {' — invite dispatchers, field crew, or office staff to'}
+              {' collaborate on jobs.'}
             </p>
           </div>
           {canManage && (
             <button
+              type='button'
+              className='btn btn-primary btn-sm'
               onClick={() => setShowInvite(true)}
-              className='bg-white text-emerald-700 px-4 py-2 rounded-lg font-semibold flex items-center gap-2 hover:shadow'
             >
-              <Plus className='w-4 h-4' /> Invite teammate
+              <Plus size={14} strokeWidth={1.75} />
+              Invite teammate
             </button>
           )}
         </div>
-      </header>
+      ) : (
+        <header className='bg-gradient-to-r from-emerald-600 to-emerald-700 text-white'>
+          <div className='max-w-5xl mx-auto px-4 py-10 flex items-center justify-between'>
+            <div>
+              <div className='flex items-center gap-2 text-emerald-100 text-sm mb-1'>
+                <ShieldCheck className='w-4 h-4' />
+                <span>{activeOrg.name}</span>
+              </div>
+              <h1 className='text-3xl font-bold'>Team</h1>
+              <p className='text-emerald-100 text-sm mt-1'>
+                {members.length} member{members.length === 1 ? '' : 's'}
+                {pending.length > 0
+                  ? ` · ${pending.length} pending invite${pending.length === 1 ? '' : 's'}`
+                  : ''}
+              </p>
+            </div>
+            {canManage && (
+              <button
+                onClick={() => setShowInvite(true)}
+                className='bg-white text-emerald-700 px-4 py-2 rounded-lg font-semibold flex items-center gap-2 hover:shadow'
+              >
+                <Plus className='w-4 h-4' /> Invite teammate
+              </button>
+            )}
+          </div>
+        </header>
+      )}
 
       <div className='max-w-5xl mx-auto px-4 mt-8 space-y-8'>
         <section className='bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden'>
