@@ -18,6 +18,7 @@ import toast from 'react-hot-toast';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import { getCsrfHeaders } from '@/lib/csrf-client';
 import { logger } from '@mintenance/shared';
+import { useChartPalette } from '@/lib/charts/editorial-palette';
 
 const fadeIn = {
   hidden: { opacity: 0, y: 20 },
@@ -61,6 +62,7 @@ export default function TimeTrackingPage() {
       document.documentElement.dataset.theme === 'mint-editorial'
     );
   }, []);
+  const chartPalette = useChartPalette();
 
   // Add form state
   const [formTask, setFormTask] = useState('');
@@ -421,7 +423,7 @@ export default function TimeTrackingPage() {
                 data={dailyBreakdown}
                 index='day'
                 categories={['billable', 'nonBillable']}
-                colors={['teal', 'gray']}
+                colors={chartPalette.tremor.stack.slice(0, 2)}
                 valueFormatter={(v) => `${v}h`}
                 className='h-60'
                 stack={true}
@@ -436,7 +438,7 @@ export default function TimeTrackingPage() {
                 category='hours'
                 index='job'
                 valueFormatter={(v) => `${v}h`}
-                colors={['teal', 'blue', 'green', 'purple', 'orange']}
+                colors={chartPalette.tremor.stack.slice(0, 5)}
                 className='h-60'
               />
             </div>

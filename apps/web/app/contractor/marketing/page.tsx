@@ -35,6 +35,7 @@ const BarChart = dynamic(
 import toast from 'react-hot-toast';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import { safeCopyToClipboard } from '@/lib/utils/clipboard';
+import { useChartPalette } from '@/lib/charts/editorial-palette';
 
 const fadeIn = {
   hidden: { opacity: 0, y: 20 },
@@ -102,6 +103,7 @@ export default function MarketingToolsPage() {
       document.documentElement.dataset.theme === 'mint-editorial'
     );
   }, []);
+  const chartPalette = useChartPalette();
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -283,7 +285,7 @@ export default function MarketingToolsPage() {
                 data={trendChartData}
                 index='month'
                 categories={['Bids Submitted', 'Bids Won', 'Jobs Completed']}
-                colors={['blue', 'emerald', 'amber']}
+                colors={chartPalette.tremor.stack.slice(0, 3)}
                 valueFormatter={(v) => String(v)}
                 className='h-72'
               />
@@ -308,7 +310,7 @@ export default function MarketingToolsPage() {
                 category='value'
                 index='category'
                 valueFormatter={(v) => `${v} job${v !== 1 ? 's' : ''}`}
-                colors={['teal', 'blue', 'amber', 'emerald', 'rose', 'violet']}
+                colors={chartPalette.tremor.stack}
                 className='h-72'
               />
             ) : (

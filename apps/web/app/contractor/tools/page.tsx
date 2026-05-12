@@ -19,6 +19,7 @@ import toast from 'react-hot-toast';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import { getCsrfHeaders } from '@/lib/csrf-client';
 import { logger } from '@mintenance/shared';
+import { useChartPalette } from '@/lib/charts/editorial-palette';
 
 const fadeIn = {
   hidden: { opacity: 0, y: 20 },
@@ -91,6 +92,7 @@ export default function ToolsEquipmentPage() {
       document.documentElement.dataset.theme === 'mint-editorial'
     );
   }, []);
+  const chartPalette = useChartPalette();
 
   // Add form state
   const [formName, setFormName] = useState('');
@@ -429,7 +431,7 @@ export default function ToolsEquipmentPage() {
                 category='value'
                 index='category'
                 valueFormatter={(value) => `\u00A3${value.toLocaleString()}`}
-                colors={['teal', 'blue', 'green', 'purple', 'orange']}
+                colors={chartPalette.tremor.stack.slice(0, 5)}
                 className='h-60'
               />
             </div>
@@ -452,7 +454,7 @@ export default function ToolsEquipmentPage() {
                 ]}
                 index='status'
                 categories={['count']}
-                colors={['teal']}
+                colors={[chartPalette.tremor.primary]}
                 valueFormatter={(value) => `${value} items`}
                 className='h-60'
               />

@@ -375,6 +375,12 @@ const KNOWN_LARGE_FILES = new Set([
   // maintenance alerts + add modal). +33 LOC for the editorial
   // branch.
   'apps/web/app/contractor/tools/page.tsx', // 528 lines (was 495)
+  // Added 2026-05-12: time-tracking + certifications + documents +
+  // verification pages all already exceeded 500 LOC before the
+  // editorial header swap. The Phase-4 batch header commit pushed
+  // them further over; this entry recognises the existing state.
+  // A clean split into per-section subcomponents is a P2 refactor.
+  'apps/web/app/contractor/time-tracking/page.tsx', // 666 lines (was ~660)
   // Added 2026-05-12 (Phase-4 contractor port): /contractor/jobs/[id]
   // detail page. JobDetailsClient pre-existed at 525 LOC. The
   // +193-line edit duplicates the hero block (title + status/priority/

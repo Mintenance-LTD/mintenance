@@ -34,6 +34,7 @@ const DonutChart = dynamic(
   { ssr: false }
 );
 import toast from 'react-hot-toast';
+import { useChartPalette } from '@/lib/charts/editorial-palette';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import { getCsrfHeaders } from '@/lib/csrf-client';
 import { logger } from '@mintenance/shared';
@@ -105,6 +106,7 @@ export default function ExpenseTrackingPage() {
       document.documentElement.dataset.theme === 'mint-editorial'
     );
   }, []);
+  const chartPalette = useChartPalette();
 
   const [expenses, setExpenses] = useState<Expense[]>([]);
 
@@ -461,7 +463,7 @@ export default function ExpenseTrackingPage() {
               data={monthlyTrend}
               index='month'
               categories={['billable', 'nonBillable']}
-              colors={['green', 'orange']}
+              colors={chartPalette.tremor.stack.slice(0, 2)}
               valueFormatter={(value) => `\u00A3${value.toLocaleString()}`}
               className='h-72'
             />
@@ -480,15 +482,7 @@ export default function ExpenseTrackingPage() {
                 category='amount'
                 index='category'
                 valueFormatter={(value) => `\u00A3${value.toLocaleString()}`}
-                colors={[
-                  'blue',
-                  'green',
-                  'yellow',
-                  'purple',
-                  'red',
-                  'pink',
-                  'gray',
-                ]}
+                colors={chartPalette.tremor.stack}
                 className='h-72'
               />
             ) : (
