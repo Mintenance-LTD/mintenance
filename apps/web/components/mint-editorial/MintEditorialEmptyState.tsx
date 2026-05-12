@@ -47,13 +47,22 @@ export function MintEditorialEmptyState({
   maxWidth = 360,
   align = 'center',
 }: Props) {
-  const IconEl =
-    typeof icon === 'function'
-      ? React.createElement(icon as LucideIcon, {
+  // Lucide icons are React.forwardRef components — their shape is
+  // `{$$typeof, render, displayName}`, so `typeof icon === 'function'`
+  // returns FALSE and the previous check fell through to render the
+  // forwardRef object itself as a child (React error #31, observed
+  // 2026-05-12 on /messages empty state when MessageSquare was passed
+  // in). Detect a rendered React element vs a component (function OR
+  // forwardRef object) with React.isValidElement instead.
+  const IconEl = React.isValidElement(icon)
+    ? icon
+    : React.createElement(
+        icon as React.ComponentType<{ size?: number; strokeWidth?: number }>,
+        {
           size: 36,
           strokeWidth: 1.5,
-        })
-      : icon;
+        }
+      );
 
   return (
     <div
