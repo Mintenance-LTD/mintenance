@@ -72,7 +72,22 @@ export function MintEditorialContractorShell({
           </Link>
         </div>
 
-        <div style={{ padding: contentPadding, flex: 1 }}>{children}</div>
+        {/* `me-legacy-fit` on the content area makes the override
+            layer in mint-editorial.css map Tailwind colour utilities
+            used by legacy contractor pages (bg-white, bg-gray-50,
+            border-gray-200, teal-600, rose-600, emerald-600, etc.)
+            to the mint palette. Every contractor page (~55) picks
+            up the editorial colour story automatically, even before
+            its body is canonically ported to .card / .t-h1 / .field
+            primitives. Pages that already use canonical classes are
+            unaffected — .me-legacy-fit only targets specific Tailwind
+            class names. */}
+        <div
+          className='me-legacy-fit'
+          style={{ padding: contentPadding, flex: 1 }}
+        >
+          {children}
+        </div>
 
         <MintEditorialDock />
       </div>
