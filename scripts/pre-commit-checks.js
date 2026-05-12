@@ -340,6 +340,19 @@ const KNOWN_LARGE_FILES = new Set([
   // for easy review.
   'apps/web/app/contractor/reviews/page.tsx', // 508 lines (was 475)
   'apps/web/app/contractor/reviews/components/MintEditorialReviewsView.tsx', // 544 lines
+  // Added 2026-05-12 (Phase-4 contractor port): contractor
+  // /jobs-near-you discover surface. JobsNearYouClient already
+  // pre-existed at 532 LOC (controller for geocoding, distance
+  // calculation, skill matching, saved-jobs, recommendations,
+  // map ref management). The +35-line edit adds:
+  //   (1) hydration-safe `isMintEditorial` hook;
+  //   (2) a branch that delegates to `MintEditorialJobsNearYouView`
+  //       (419 LOC, presentational only, takes all controller state
+  //       as props).
+  // Splitting JobsNearYouClient into a `useDiscoverController` hook
+  // + thin wrapper is the right long-term shape but is a dedicated
+  // P2 refactor.
+  'apps/web/app/contractor/jobs-near-you/components/JobsNearYouClient.tsx', // 567 lines (was 532)
 ]);
 
 function countLines(filePath) {
