@@ -20,6 +20,7 @@ import {
   HardHat,
   Home,
 } from 'lucide-react';
+import { MintEditorialAnalytics } from './MintEditorialAnalytics';
 
 interface Payment {
   amount: number;
@@ -49,6 +50,18 @@ export default function AnalyticsPage2025() {
     'week' | 'month' | 'quarter' | 'year'
   >('month');
   const [loading, setLoading] = useState(true);
+
+  // Mint Editorial theme detection — swap the entire content area
+  // for the canonical-classes port (.t-h1 / .kpi / .chip / .card)
+  // when the cookie is on. Legacy Tailwind layout below stays for
+  // default-theme users.
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
   const [spendingData, setSpendingData] = useState<
     Array<{ month: string; spending: number; jobs: number }>
   >([]);
@@ -218,6 +231,21 @@ export default function AnalyticsPage2025() {
 
     fetchAnalytics();
   }, [user?.id, selectedPeriod]);
+
+  if (isMintEditorial) {
+    return (
+      <HomeownerPageWrapper>
+        <MintEditorialAnalytics
+          loading={loading}
+          selectedPeriod={selectedPeriod}
+          onPeriodChange={setSelectedPeriod}
+          metrics={metrics}
+          spendingData={spendingData}
+          categoryData={categoryData}
+        />
+      </HomeownerPageWrapper>
+    );
+  }
 
   return (
     <HomeownerPageWrapper className='me-legacy-fit'>

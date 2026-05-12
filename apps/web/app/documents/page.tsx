@@ -17,6 +17,7 @@ import {
   StatCard,
   type DocumentItem,
 } from './components/DocumentRow';
+import { MintEditorialDocumentsBody } from './components/MintEditorialDocumentsBody';
 
 interface ApiResponse {
   documents: DocumentItem[];
@@ -279,141 +280,161 @@ export default function HomeownerDocumentsPage() {
       )}
 
       {/* ─── Tabs + Search ───────────────────────────────── */}
-      <div className='bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden'>
-        {/* Tab Bar */}
-        <div className='flex items-center gap-1 p-1.5 bg-gray-50 border-b border-gray-200'>
-          {tabs.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
-                activeTab === tab.key
-                  ? 'bg-white text-gray-900 shadow-sm border border-gray-200'
-                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
-              }`}
-            >
-              <tab.icon className='h-4 w-4' />
-              {tab.label}
-              {tab.count > 0 && (
-                <span
-                  className={`px-1.5 py-0.5 rounded-md text-xs font-semibold ${
-                    activeTab === tab.key
-                      ? 'bg-indigo-100 text-indigo-700'
-                      : 'bg-gray-200 text-gray-600'
-                  }`}
+      {isMintEditorial ? (
+        <MintEditorialDocumentsBody
+          tabs={tabs}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          sortBy={sortBy}
+          onSortChange={setSortBy}
+          sortOptions={sortOptions}
+          showSortMenu={showSortMenu}
+          onToggleSortMenu={setShowSortMenu}
+          loading={loading}
+          error={error}
+          filteredDocs={filteredDocs}
+          totalCount={counts.total}
+          onRetry={fetchDocuments}
+        />
+      ) : (
+        <div className='bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden'>
+          {/* Tab Bar */}
+          <div className='flex items-center gap-1 p-1.5 bg-gray-50 border-b border-gray-200'>
+            {tabs.map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                  activeTab === tab.key
+                    ? 'bg-white text-gray-900 shadow-sm border border-gray-200'
+                    : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                }`}
+              >
+                <tab.icon className='h-4 w-4' />
+                {tab.label}
+                {tab.count > 0 && (
+                  <span
+                    className={`px-1.5 py-0.5 rounded-md text-xs font-semibold ${
+                      activeTab === tab.key
+                        ? 'bg-indigo-100 text-indigo-700'
+                        : 'bg-gray-200 text-gray-600'
+                    }`}
+                  >
+                    {tab.count}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+
+          {/* Search + Sort Bar */}
+          <div className='flex items-center gap-3 p-4 border-b border-gray-100'>
+            <div className='relative flex-1'>
+              <Search className='absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400' />
+              <input
+                type='text'
+                placeholder='Search by name, contractor, or job...'
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className='w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm placeholder:text-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all'
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className='absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600'
                 >
-                  {tab.count}
-                </span>
+                  <XCircle className='h-4 w-4' />
+                </button>
               )}
-            </button>
-          ))}
-        </div>
+            </div>
 
-        {/* Search + Sort Bar */}
-        <div className='flex items-center gap-3 p-4 border-b border-gray-100'>
-          <div className='relative flex-1'>
-            <Search className='absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400' />
-            <input
-              type='text'
-              placeholder='Search by name, contractor, or job...'
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className='w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm placeholder:text-gray-400 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all'
-            />
-            {searchQuery && (
+            {/* Sort Dropdown */}
+            <div className='relative'>
               <button
-                onClick={() => setSearchQuery('')}
-                className='absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600'
+                onClick={() => setShowSortMenu(!showSortMenu)}
+                className='flex items-center gap-1.5 px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-700 hover:bg-gray-100 transition-colors'
               >
-                <XCircle className='h-4 w-4' />
+                <ArrowUpDown className='h-4 w-4 text-gray-400' />
+                <span className='hidden sm:inline'>
+                  {sortOptions.find((o) => o.value === sortBy)?.label}
+                </span>
               </button>
-            )}
+              {showSortMenu && (
+                <>
+                  <div
+                    className='fixed inset-0 z-10'
+                    onClick={() => setShowSortMenu(false)}
+                  />
+                  <div className='absolute right-0 top-full mt-1.5 w-48 bg-white border border-gray-200 rounded-xl shadow-lg z-20 py-1'>
+                    {sortOptions.map((opt) => (
+                      <button
+                        key={opt.value}
+                        onClick={() => {
+                          setSortBy(opt.value);
+                          setShowSortMenu(false);
+                        }}
+                        className={`w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 ${
+                          sortBy === opt.value
+                            ? 'text-indigo-700 font-medium bg-indigo-50/50'
+                            : 'text-gray-700'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
 
-          {/* Sort Dropdown */}
-          <div className='relative'>
-            <button
-              onClick={() => setShowSortMenu(!showSortMenu)}
-              className='flex items-center gap-1.5 px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-700 hover:bg-gray-100 transition-colors'
-            >
-              <ArrowUpDown className='h-4 w-4 text-gray-400' />
-              <span className='hidden sm:inline'>
-                {sortOptions.find((o) => o.value === sortBy)?.label}
-              </span>
-            </button>
-            {showSortMenu && (
-              <>
-                <div
-                  className='fixed inset-0 z-10'
-                  onClick={() => setShowSortMenu(false)}
-                />
-                <div className='absolute right-0 top-full mt-1.5 w-48 bg-white border border-gray-200 rounded-xl shadow-lg z-20 py-1'>
-                  {sortOptions.map((opt) => (
-                    <button
-                      key={opt.value}
-                      onClick={() => {
-                        setSortBy(opt.value);
-                        setShowSortMenu(false);
-                      }}
-                      className={`w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50 ${
-                        sortBy === opt.value
-                          ? 'text-indigo-700 font-medium bg-indigo-50/50'
-                          : 'text-gray-700'
-                      }`}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* ─── Document List ─────────────────────────────── */}
-        <div className='divide-y divide-gray-100'>
-          {loading ? (
-            <div className='flex items-center justify-center py-20'>
-              <Loader2 className='h-6 w-6 animate-spin text-indigo-500 mr-3' />
-              <span className='text-gray-500'>Loading documents...</span>
-            </div>
-          ) : error ? (
-            <div className='flex flex-col items-center justify-center py-20 text-red-500'>
-              <AlertCircle className='h-8 w-8 mb-3' />
-              <p className='text-sm'>{error}</p>
-              <button
-                onClick={fetchDocuments}
-                className='mt-3 text-sm text-indigo-600 hover:underline'
-              >
-                Try again
-              </button>
-            </div>
-          ) : filteredDocs.length === 0 ? (
-            <div className='flex flex-col items-center justify-center py-20'>
-              <div className='w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mb-4'>
-                <FolderOpen className='h-8 w-8 text-gray-400' />
+          {/* ─── Document List ─────────────────────────────── */}
+          <div className='divide-y divide-gray-100'>
+            {loading ? (
+              <div className='flex items-center justify-center py-20'>
+                <Loader2 className='h-6 w-6 animate-spin text-indigo-500 mr-3' />
+                <span className='text-gray-500'>Loading documents...</span>
               </div>
-              <p className='text-gray-900 font-medium mb-1'>
-                {searchQuery ? 'No results found' : 'No documents yet'}
-              </p>
-              <p className='text-sm text-gray-500'>
-                {searchQuery
-                  ? 'Try adjusting your search or filters'
-                  : 'Documents will appear here as you create jobs and receive bids'}
-              </p>
+            ) : error ? (
+              <div className='flex flex-col items-center justify-center py-20 text-red-500'>
+                <AlertCircle className='h-8 w-8 mb-3' />
+                <p className='text-sm'>{error}</p>
+                <button
+                  onClick={fetchDocuments}
+                  className='mt-3 text-sm text-indigo-600 hover:underline'
+                >
+                  Try again
+                </button>
+              </div>
+            ) : filteredDocs.length === 0 ? (
+              <div className='flex flex-col items-center justify-center py-20'>
+                <div className='w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center mb-4'>
+                  <FolderOpen className='h-8 w-8 text-gray-400' />
+                </div>
+                <p className='text-gray-900 font-medium mb-1'>
+                  {searchQuery ? 'No results found' : 'No documents yet'}
+                </p>
+                <p className='text-sm text-gray-500'>
+                  {searchQuery
+                    ? 'Try adjusting your search or filters'
+                    : 'Documents will appear here as you create jobs and receive bids'}
+                </p>
+              </div>
+            ) : (
+              filteredDocs.map((doc) => <DocumentRow key={doc.id} doc={doc} />)
+            )}
+          </div>
+
+          {/* Footer count */}
+          {!loading && filteredDocs.length > 0 && (
+            <div className='px-4 py-3 bg-gray-50 border-t border-gray-100 text-sm text-gray-500'>
+              Showing {filteredDocs.length} of {counts.total} documents
             </div>
-          ) : (
-            filteredDocs.map((doc) => <DocumentRow key={doc.id} doc={doc} />)
           )}
         </div>
-
-        {/* Footer count */}
-        {!loading && filteredDocs.length > 0 && (
-          <div className='px-4 py-3 bg-gray-50 border-t border-gray-100 text-sm text-gray-500'>
-            Showing {filteredDocs.length} of {counts.total} documents
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 }
