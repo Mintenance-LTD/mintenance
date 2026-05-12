@@ -1047,6 +1047,119 @@
   cursor: pointer;
 }
 
+/* ============================================================
+   Phase-2 W7 utility additions — small layer that maps the canonical
+   redesign-v2/components.css helpers into our scoped `.me-root` layer.
+   Components built in W1–W6 already inline most of these patterns;
+   adding them here as primitives lets future polish work consume the
+   same tokens instead of re-inlining styles.
+   ============================================================ */
+
+/* ---- Type roles (extras) ---- */
+.me-root .t-display {
+  font-family: var(--me-font-display);
+  font-weight: var(--me-display-weight);
+  letter-spacing: var(--me-display-tracking);
+  font-size: 56px;
+  line-height: 1.02;
+  color: var(--me-ink);
+  margin: 0;
+}
+.me-root .t-body-lg {
+  font-size: 16px;
+  color: var(--me-ink-2);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* ---- Stripey image placeholder (contractor map cells, missing
+   property hero, etc.) ---- */
+.me-root .placeholder-img {
+  background:
+    repeating-linear-gradient(
+      135deg,
+      transparent 0 9px,
+      rgba(0, 0, 0, 0.04) 9px 10px
+    ),
+    var(--me-bg-2);
+  border: 1px solid var(--me-line);
+  border-radius: var(--me-radius-card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--me-ink-3);
+  font-family: var(--me-font-ui);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* ---- Star rating ---- */
+.me-root .stars {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--me-warm);
+  font-size: 13px;
+}
+.me-root .stars .v {
+  color: var(--me-ink);
+  margin-left: 4px;
+  font-weight: 600;
+}
+.me-root .stars .n {
+  color: var(--me-ink-3);
+  margin-left: 2px;
+  font-weight: 400;
+}
+
+/* ---- Layout utilities ---- */
+.me-root .grow {
+  flex: 1;
+}
+.me-root .divide-y > * + * {
+  border-top: 1px solid var(--me-line-2);
+}
+.me-root .scroll-y {
+  overflow-y: auto;
+}
+.me-root .scroll-y::-webkit-scrollbar {
+  width: 6px;
+}
+.me-root .scroll-y::-webkit-scrollbar-thumb {
+  background: var(--me-line);
+  border-radius: 3px;
+}
+
+/* ---- Icon size helpers (used by `.me-nav-item .ic` already, but
+   defining the class here lets ad-hoc icons inherit the same tokens
+   without bespoke inline styles). ---- */
+.me-root .ic {
+  width: 16px;
+  height: 16px;
+  stroke-width: 1.75;
+  flex-shrink: 0;
+}
+.me-root .ic-sm {
+  width: 14px;
+  height: 14px;
+}
+.me-root .ic-lg {
+  width: 20px;
+  height: 20px;
+}
+
+/* ---- Breadcrumb inside the topbar (e.g. "Properties / 12 Albion
+   Road / Documents" on deep pages) ---- */
+.me-root .me-topbar .crumb {
+  font-size: 13px;
+  color: var(--me-ink-3);
+}
+.me-root .me-topbar .crumb b {
+  color: var(--me-ink);
+  font-weight: 500;
+}
+
 /* The theme switch lives at /settings → Appearance now (Phase 1). The
    floating dev pill that previously sat at top-right has been removed
    so the dashboard chrome matches the design exactly. */

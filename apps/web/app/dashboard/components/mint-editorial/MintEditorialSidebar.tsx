@@ -8,6 +8,7 @@ import type {
   NavItem,
   NavSection,
 } from '@/components/layouts/sidebar/SidebarNavItems';
+import { useBadgeCounts } from '@/components/layouts/sidebar/SidebarNotifications';
 import { initials } from './dashboardHelpers';
 
 function isActive(pathname: string | null, href: string): boolean {
@@ -21,9 +22,14 @@ function isActive(pathname: string | null, href: string): boolean {
 function NavLink({
   item,
   pathname,
+  badgeCount,
 }: {
   item: NavItem;
   pathname: string | null;
+  /** Resolved unread/pending count to render next to the label. Null
+   *  hides the pill entirely; 0 is intentional ("no unread") and shows
+   *  a muted pill so the icon column stays aligned across rows. */
+  badgeCount: number | null;
 }) {
   const Icon = item.icon;
   const active = isActive(pathname, item.href);
@@ -35,6 +41,11 @@ function NavLink({
     >
       <Icon className='ic' />
       <span>{item.label}</span>
+      {badgeCount !== null && badgeCount > 0 ? (
+        <span className='count' aria-label={`${badgeCount} unread`}>
+          {badgeCount > 99 ? '99+' : badgeCount}
+        </span>
+      ) : null}
     </Link>
   );
 }
@@ -69,6 +80,11 @@ export function MintEditorialSidebar({
 }) {
   const pathname = usePathname();
   const sections = useNavSections('homeowner') as NavSection[];
+  // Same source the legacy ProfessionalHomeownerLayout uses, so the
+  // mint editorial sidebar shows identical message/notification badge
+  // counts. Polls every 30s; render gracefully degrades when the hook
+  // is still loading (returns null → no pill).
+  const { getBadgeCount } = useBadgeCounts();
 
   // Subtitle priority: role + postcode → role only → email fallback.
   const roleLabel = role
@@ -99,7 +115,12 @@ export function MintEditorialSidebar({
           <div key={section.name}>
             <div className='me-sidebar-section'>{section.name}</div>
             {section.items.map((item: NavItem) => (
-              <NavLink key={item.label} item={item} pathname={pathname} />
+              <NavLink
+                key={item.label}
+                item={item}
+                pathname={pathname}
+                badgeCount={getBadgeCount(item.badge)}
+              />
             ))}
           </div>
         ))}
