@@ -375,6 +375,24 @@ const KNOWN_LARGE_FILES = new Set([
   // maintenance alerts + add modal). +33 LOC for the editorial
   // branch.
   'apps/web/app/contractor/tools/page.tsx', // 528 lines (was 495)
+  // Added 2026-05-12 (Phase-4 contractor port): /contractor/jobs/[id]
+  // detail page. JobDetailsClient pre-existed at 525 LOC. The
+  // +193-line edit duplicates the hero block (title + status/priority/
+  // category badges + Budget/Location/Posted/Timeline grid) and the
+  // action-button sidebar (Place bid + Save job CTAs) under a
+  // hydration-safe `isMintEditorial` branch. The remaining body
+  // (Job Description, Photos, Posted By, Job Stats) inherits
+  // colour mapping from the shell-level .me-legacy-fit boundary
+  // and is functionally identical between themes. A clean split
+  // into a separate `MintEditorialJobDetailsView` component would
+  // require lifting all 8 controller state slots + handlers via
+  // props — out of scope for this single-file theme port.
+  'apps/web/app/contractor/jobs/[id]/components/JobDetailsClient.tsx', // 718 lines (was 525)
+  // Self-allowlist: this script grows naturally each Phase-4
+  // commit because the allowlist itself is a documented log of
+  // intentional over-cap files. Splitting the script into a
+  // generator + data file is a P3.
+  'scripts/pre-commit-checks.js', // ~510 lines (grows incrementally)
 ]);
 
 function countLines(filePath) {
