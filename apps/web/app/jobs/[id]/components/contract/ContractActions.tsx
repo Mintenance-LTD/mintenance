@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Icon } from '@/components/ui/Icon';
 import {
   PenTool,
@@ -51,6 +51,16 @@ export function ContractActions({
   onShowRejectForm,
   onRejectReasonChange,
 }: ContractActionsProps) {
+  // Hydration-safe theme detection — swap Sign-button gradient
+  // for canonical `.btn-primary` on editorial.
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
+
   return (
     <>
       {/* Actions Bar */}
@@ -103,7 +113,16 @@ export function ContractActions({
           <button
             onClick={onSign}
             disabled={isSigning || isRejecting}
-            className='w-full py-3.5 px-4 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 disabled:from-gray-300 disabled:to-gray-300 text-white font-semibold rounded-xl transition-all shadow-sm hover:shadow flex items-center justify-center gap-2'
+            className={
+              isMintEditorial
+                ? 'btn btn-primary'
+                : 'w-full py-3.5 px-4 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 disabled:from-gray-300 disabled:to-gray-300 text-white font-semibold rounded-xl transition-all shadow-sm hover:shadow flex items-center justify-center gap-2'
+            }
+            style={
+              isMintEditorial
+                ? { width: '100%', justifyContent: 'center' }
+                : undefined
+            }
             type='button'
           >
             {isSigning ? (

@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { Building2, PenTool, CheckCircle2, Circle } from 'lucide-react';
 import type { StatusConfig } from './contractHelpers';
@@ -25,6 +25,17 @@ export function ContractCompactCard({
   onOpenDetail,
 }: ContractCompactCardProps) {
   const StatusIcon = statusConfig.icon;
+  // Hydration-safe theme detection — swap the legacy
+  // teal-to-emerald gradient banner for a solid brand colour band
+  // when Mint Editorial is active so the contract card aligns with
+  // the rest of the editorial surface.
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
 
   return (
     <div
@@ -36,7 +47,14 @@ export function ContractCompactCard({
         if (e.key === 'Enter' || e.key === ' ') onOpenDetail();
       }}
     >
-      <div className='bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-800 px-5 py-4'>
+      <div
+        className={
+          isMintEditorial
+            ? 'px-5 py-4'
+            : 'bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-800 px-5 py-4'
+        }
+        style={isMintEditorial ? { background: 'var(--me-brand)' } : undefined}
+      >
         <div className='flex items-center justify-between'>
           <div className='flex items-center gap-3'>
             {logoUrl ? (
@@ -122,7 +140,20 @@ export function ContractCompactCard({
               e.stopPropagation();
               onOpenDetail();
             }}
-            className='w-full mt-4 py-2.5 px-4 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-semibold rounded-xl transition-all shadow-sm hover:shadow flex items-center justify-center gap-2 text-sm'
+            className={
+              isMintEditorial
+                ? 'btn btn-primary'
+                : 'w-full mt-4 py-2.5 px-4 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-700 hover:to-emerald-700 text-white font-semibold rounded-xl transition-all shadow-sm hover:shadow flex items-center justify-center gap-2 text-sm'
+            }
+            style={
+              isMintEditorial
+                ? {
+                    width: '100%',
+                    justifyContent: 'center',
+                    marginTop: 16,
+                  }
+                : undefined
+            }
             type='button'
           >
             <PenTool className='w-4 h-4' />
