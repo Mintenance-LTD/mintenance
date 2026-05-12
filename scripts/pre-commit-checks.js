@@ -353,6 +353,21 @@ const KNOWN_LARGE_FILES = new Set([
   // + thin wrapper is the right long-term shape but is a dedicated
   // P2 refactor.
   'apps/web/app/contractor/jobs-near-you/components/JobsNearYouClient.tsx', // 567 lines (was 532)
+  // Added 2026-05-12 (Phase-4 contractor port): contractor
+  // /calendar surface. Page pre-existed at 473 LOC; the editorial
+  // branch adds:
+  //   (1) hydration-safe `isMintEditorial` hook above the loading
+  //       early-return;
+  //   (2) a 4-tile canonical `.kpi` header that swaps in when the
+  //       theme is on (This week / Available days / Total events /
+  //       Pending).
+  // The legacy Airbnb-style banner stays for users on the default
+  // theme. The calendar grid + sidebar (event types, availability
+  // editor, "Save availability" button) inherit colour mapping
+  // from the shell-level `.me-legacy-fit` boundary. A full
+  // canonical rewrite of the calendar grid / event pills is a
+  // dedicated P2.
+  'apps/web/app/contractor/calendar/page.tsx', // 535 lines (was 473)
 ]);
 
 function countLines(filePath) {
