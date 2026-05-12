@@ -12,6 +12,8 @@ import { useCSRF } from '@/lib/hooks/useCSRF';
 import { MessagesConversationSidebar } from './components/MessagesConversationSidebar';
 import { MessagesChatArea } from './components/MessagesChatArea';
 import { MessagesEmptyState } from './components/MessagesEmptyState';
+import { MintEditorialMessagesSidebar } from './components/MintEditorialMessagesSidebar';
+import { MintEditorialMessagesChat } from './components/MintEditorialMessagesChat';
 import { useTypingIndicator } from '@/lib/hooks/useTypingIndicator';
 
 interface Conversation {
@@ -320,17 +322,85 @@ function MessagesPageContent() {
 
   if (!user) return null;
 
+  // Mint Editorial branch — canonical port from
+  // design-system/project/redesign-v2/homeowner-screens.jsx lines 301-408.
+  // The legacy branch below stays for users on the default theme.
+  if (isMintEditorial) {
+    return (
+      <HomeownerPageWrapper>
+        <div className='between' style={{ marginBottom: 14 }}>
+          <div className='col' style={{ gap: 4 }}>
+            <h1 className='t-h1'>Messages</h1>
+            <p className='t-body'>
+              Conversations with your contractors — quotes, scheduling,
+              sign-off.
+            </p>
+          </div>
+        </div>
+        <div
+          style={{
+            display: 'flex',
+            height: 'calc(100vh - 220px)',
+            background: 'var(--me-surface)',
+            border: '1px solid var(--me-line)',
+            borderRadius: 14,
+            overflow: 'hidden',
+          }}
+        >
+          <MintEditorialMessagesSidebar
+            conversations={conversations}
+            selectedConversation={selectedConversation}
+            onSelectConversation={setSelectedConversation}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            loading={loadingConversations}
+          />
+          {selectedConversation ? (
+            <MintEditorialMessagesChat
+              conversation={selectedConversation}
+              messages={messages}
+              currentUserId={user.id}
+              loadingMessages={loadingMessages}
+              messageInput={messageInput}
+              onMessageInputChange={(val: string) => {
+                setMessageInput(val);
+                broadcastTyping();
+              }}
+              onSendMessage={handleSendMessage}
+              sending={sending}
+              isTyping={isOtherTyping}
+            />
+          ) : (
+            <div
+              style={{
+                flex: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: 'var(--me-bg-2)',
+                color: 'var(--me-ink-3)',
+                fontSize: 13,
+                textAlign: 'center',
+                padding: 24,
+              }}
+            >
+              Pick a conversation on the left to see the thread.
+            </div>
+          )}
+        </div>
+      </HomeownerPageWrapper>
+    );
+  }
+
   return (
     <HomeownerPageWrapper>
-      {!isMintEditorial && (
-        <button
-          onClick={() => router.push('/dashboard')}
-          className='flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors mb-4'
-        >
-          <ArrowLeft className='w-5 h-5' />
-          <span className='font-medium'>Back to Dashboard</span>
-        </button>
-      )}
+      <button
+        onClick={() => router.push('/dashboard')}
+        className='flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors mb-4'
+      >
+        <ArrowLeft className='w-5 h-5' />
+        <span className='font-medium'>Back to Dashboard</span>
+      </button>
 
       <div className='h-[calc(100vh-120px)] flex bg-white border border-gray-200 rounded-xl overflow-hidden'>
         {/* Sidebar — full-width on mobile, fixed width on md+ */}

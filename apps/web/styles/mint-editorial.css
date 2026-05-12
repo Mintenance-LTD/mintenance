@@ -533,6 +533,58 @@
   font-weight: 600;
 }
 
+/* ---- Step strip (used on /disputes flow) ---- */
+.me-root .step-strip {
+  display: flex;
+  gap: 0;
+  margin-bottom: 28px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.me-root .step-pill {
+  padding: 10px 16px;
+  background: var(--me-surface);
+  border: 1px solid var(--me-line);
+  font-size: 13px;
+  color: var(--me-ink-3);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--me-font-ui);
+}
+.me-root .step-pill:first-child {
+  border-top-left-radius: 9999px;
+  border-bottom-left-radius: 9999px;
+  padding-left: 20px;
+}
+.me-root .step-pill:last-child {
+  border-top-right-radius: 9999px;
+  border-bottom-right-radius: 9999px;
+  padding-right: 20px;
+}
+.me-root .step-pill + .step-pill {
+  border-left: 0;
+}
+.me-root .step-pill.on {
+  background: var(--me-brand);
+  color: var(--me-on-brand);
+  border-color: var(--me-brand);
+  font-weight: 600;
+}
+.me-root .step-pill .num {
+  width: 22px;
+  height: 22px;
+  border-radius: 9999px;
+  background: rgba(0, 0, 0, 0.08);
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 700;
+}
+.me-root .step-pill.on .num {
+  background: rgba(255, 255, 255, 0.2);
+}
+
 /* ---- Project / job card (active projects grid) ---- */
 .me-root .me-projects-grid {
   display: grid;
