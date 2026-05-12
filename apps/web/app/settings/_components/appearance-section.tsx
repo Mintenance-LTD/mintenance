@@ -33,7 +33,16 @@ const OPTIONS: Array<{
   },
 ];
 
-export function AppearanceSection() {
+interface AppearanceSectionProps {
+  /** Where to redirect the user after the cookie is set. Defaults to
+   *  the homeowner settings appearance section; contractors pass
+   *  their own settings path so they don't land on the wrong page. */
+  redirectPath?: string;
+}
+
+export function AppearanceSection({
+  redirectPath = '/settings?section=appearance',
+}: AppearanceSectionProps = {}) {
   const [active, setActive] = useState<Theme>('default');
 
   // Read the cookie on the client only — the page is rendered as a
@@ -41,6 +50,11 @@ export function AppearanceSection() {
   useEffect(() => {
     setActive(readThemeCookie());
   }, []);
+
+  // Encode the redirect path so query strings inside it survive
+  // being nested in our own ?redirect= query string. Without this
+  // the second `?section=appearance` would split the URL.
+  const encodedRedirect = encodeURIComponent(redirectPath);
 
   return (
     <div className='space-y-6'>
@@ -59,7 +73,7 @@ export function AppearanceSection() {
           return (
             <a
               key={opt.value}
-              href={`/api/theme?value=${opt.value}&redirect=/settings?section=appearance`}
+              href={`/api/theme?value=${opt.value}&redirect=${encodedRedirect}`}
               className={`relative block rounded-xl border-2 p-6 transition-colors ${
                 isActive
                   ? 'border-teal-600 bg-teal-50/40'

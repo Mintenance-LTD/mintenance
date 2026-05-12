@@ -286,6 +286,27 @@ const KNOWN_LARGE_FILES = new Set([
   // (text / email / phone / uuid / number / etc.) share enough setup
   // that pulling them apart would just relocate the bulk.
   'apps/mobile/src/middleware/InputValidationMiddleware.ts', // 518 lines (was ~498)
+  // Added 2026-05-12 (Phase-4 contractor port): BidSubmissionClient2025
+  // was already 717 lines before the Mint Editorial branch. The +43-line
+  // edit adds a hydration-safe theme-detection hook + a conditional
+  // .t-h1 hero card that swaps in when the cookie is set. The rest of
+  // the file (simple-mode quote form, line-item advanced mode, pricing
+  // suggestion card, submit pipeline, error handlers) is unchanged.
+  // Splitting the file is a dedicated P2 — the simple + advanced
+  // quote modes share enough state (lineItems, taxRate, totals,
+  // submit handler) that pulling them apart would require lifting
+  // state to a hook + threading it through 5-6 props, which is a
+  // separate refactor.
+  'apps/web/app/contractor/bid/[jobId]/components/BidSubmissionClient2025.tsx', // 760 lines (was 717)
+  // Added 2026-05-12: ContractorSettingsPage grew from 554 to 570
+  // lines via the Appearance section (+9 LOC import + section render,
+  // +6 LOC sidebar entry + validSections + SectionKey union, +1 LOC
+  // wrapper line). The file already bundled 6 settings sections
+  // (profile / account / notifications / payments / automation /
+  // privacy) inline; the new Appearance section is the 7th. Splitting
+  // each section into its own client file is the right long-term
+  // shape but is a dedicated P2.
+  'apps/web/app/contractor/settings/page.tsx', // 570 lines (was 554)
 ]);
 
 function countLines(filePath) {
