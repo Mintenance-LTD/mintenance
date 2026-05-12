@@ -110,6 +110,22 @@ export default function CreateJobPage2025() {
   const [preferredDate, setPreferredDate] = useState('');
   const aiAutoFilledRef = useRef(false);
 
+  // CRITICAL: keep this hook at the top of the component, NEVER move
+  // it below the early returns at the bottom of the function. Same
+  // bug we hit on /messages — once the `loadingUser` early return
+  // resolves to false, a hook below it would change the hook call
+  // count and React throws "Rendered more hooks than during the
+  // previous render", crashing the whole page (the user's reported
+  // "the selectors don't work" symptom — the page never got past the
+  // first interactive render before crashing).
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
+
   const imageUpload = useImageUpload({
     maxImages: 10,
     onError: (error) => toast.error(error),
@@ -309,6 +325,11 @@ export default function CreateJobPage2025() {
         photoUrls: imageUrls,
         csrfToken: csrfToken || '',
         aiAssessment: buildingAssessment.assessment || undefined,
+        // 2026-05-12 fix: preferredDate was collected by BudgetStep
+        // but never persisted. Now flows into `requirements.preferred_start_date`
+        // (see submitJob.ts) so the value at least survives until a
+        // dedicated DB column ships.
+        preferredDate: preferredDate || undefined,
       });
 
       if (!result.success || !result.jobId) {
@@ -382,19 +403,9 @@ export default function CreateJobPage2025() {
     (currentStep === 2 && canProceedStep2) ||
     (currentStep === 3 && canProceedStep3);
 
-  // Phase-2 chrome fit: when Mint Editorial is active, the sidebar
-  // already has a "My jobs" entry, so the per-page "Back to Jobs"
-  // button is redundant; also drop the forced bg-gray-50 / min-h-screen
-  // wrapper so the wizard sits on the mint-tinted shell background
-  // instead of fighting it. useState/useEffect avoids SSR/CSR
-  // hydration mismatch (same pattern as HomeownerPageWrapper).
-  const [isMintEditorial, setIsMintEditorial] = useState(false);
-  useEffect(() => {
-    if (typeof document === 'undefined') return;
-    setIsMintEditorial(
-      document.documentElement.dataset.theme === 'mint-editorial'
-    );
-  }, []);
+  // `isMintEditorial` is computed at the TOP of the component (above
+  // the loadingUser early return) so the hook count stays stable
+  // between renders. See the long comment up there for context.
 
   return (
     <ErrorBoundary componentName='CreateJobPage'>

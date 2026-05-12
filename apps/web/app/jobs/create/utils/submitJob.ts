@@ -73,6 +73,10 @@ interface SubmitJobOptions {
   photoUrls: string[];
   csrfToken: string;
   aiAssessment?: BuildingAssessmentData;
+  /** ISO date (YYYY-MM-DD) — homeowner's preferred start date from the
+   *  Budget step. Stashed in `requirements.preferred_start_date` until
+   *  the jobs table grows a dedicated column. */
+  preferredDate?: string;
 }
 
 interface SubmitJobResult {
@@ -89,6 +93,7 @@ export async function submitJob({
   photoUrls,
   csrfToken,
   aiAssessment,
+  preferredDate,
 }: SubmitJobOptions): Promise<SubmitJobResult> {
   // CRITICAL FIX: Fetch a fresh CSRF token right before submission to ensure cookie and header match
   // This ensures consistency with the image upload which also fetches a fresh token
@@ -130,18 +135,36 @@ export async function submitJob({
       : parseFloat(String(formData.budget));
   const propertyIdValue = formData.property_id || null;
 
+  // Coerce optional number-ish strings to numbers for the schema.
+  // `budget_min` / `budget_max` are stored as strings in the form
+  // state (BudgetRangeSelector uses string inputs) but the canonical
+  // schema in @mintenance/api-contracts accepts `z.coerce.number()`,
+  // so we send them as numbers if parsable.
+  const toNum = (v: string | number | undefined): number | undefined => {
+    if (v === undefined || v === '' || v === null) return undefined;
+    const n = typeof v === 'number' ? v : parseFloat(String(v));
+    return Number.isFinite(n) && n > 0 ? n : undefined;
+  };
+  const budgetMin = toNum(formData.budget_min);
+  const budgetMax = toNum(formData.budget_max);
+
   const requestBody: {
     title: string;
     description: string;
     location: string;
     category: string;
     budget: number;
+    budget_min?: number;
+    budget_max?: number;
+    show_budget_to_contractors?: boolean;
+    require_itemized_bids?: boolean;
+    urgency?: 'low' | 'medium' | 'high' | 'emergency';
     requiredSkills: string[];
     property_id: string | null;
     photoUrls: string[];
     latitude?: number;
     longitude?: number;
-    aiAssessmentMetadata?: BuildingAssessmentData;
+    requirements?: Record<string, unknown>;
     is_rental_property?: boolean;
     tenancy_metadata?: Record<string, unknown>;
   } = {
@@ -154,6 +177,26 @@ export async function submitJob({
     property_id: propertyIdValue,
     photoUrls,
   };
+
+  // Fields the form collects but the previous version of this helper
+  // silently dropped before sending to /api/jobs:
+  //   - urgency        (Budget step's "When do you need this done?"
+  //                     selector — quick-create relies on this too)
+  //   - budget_min/max (Budget step's range slider)
+  //   - show_budget_to_contractors / require_itemized_bids (Budget
+  //                     step toggles)
+  // The schema in @mintenance/api-contracts/jobs.ts accepts all of
+  // them; this helper just wasn't forwarding the values.
+  if (formData.urgency) requestBody.urgency = formData.urgency;
+  if (budgetMin !== undefined) requestBody.budget_min = budgetMin;
+  if (budgetMax !== undefined) requestBody.budget_max = budgetMax;
+  if (formData.show_budget_to_contractors !== undefined) {
+    requestBody.show_budget_to_contractors =
+      formData.show_budget_to_contractors;
+  }
+  if (formData.require_itemized_bids !== undefined) {
+    requestBody.require_itemized_bids = formData.require_itemized_bids;
+  }
 
   // R6 #19 landlord / tenancy fields. We forward the booleans + email
   // intent; the server can look up payer_user_id from the email in a
@@ -174,10 +217,19 @@ export async function submitJob({
     requestBody.longitude = coordinates.longitude;
   }
 
-  // Optionally attach AI assessment metadata (non-blocking)
-  // The API will store this for future use (e.g., matching, insights)
-  if (aiAssessment) {
-    requestBody.aiAssessmentMetadata = aiAssessment;
+  // AI assessment + preferred date are stashed inside `requirements`
+  // (a generic jsonb on the jobs table — the schema accepts any keys
+  // under it). The previous version sent `aiAssessmentMetadata` as a
+  // top-level key, which the strict schema in @mintenance/api-contracts
+  // REJECTED with "Unrecognized key" — every photo-bearing submit that
+  // ran the AI assessment failed with a generic 400. Bug confirmed
+  // 2026-05-12 user report (the "selectors don't work" / "post job"
+  // appears stuck symptom).
+  const reqs: Record<string, unknown> = {};
+  if (aiAssessment) reqs.ai_assessment_metadata = aiAssessment;
+  if (preferredDate) reqs.preferred_start_date = preferredDate;
+  if (Object.keys(reqs).length > 0) {
+    requestBody.requirements = reqs;
   }
 
   try {
