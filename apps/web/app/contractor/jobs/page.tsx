@@ -19,6 +19,7 @@ import {
 import { JobsHero } from './components/JobsHero';
 import { JobsFilters } from './components/JobsFilters';
 import { JobCard } from './components/JobCard';
+import { MintEditorialContractorJobs } from './MintEditorialContractorJobs';
 
 /**
  * /contractor/jobs — refactored 2026-05-09 (AUDIT_PUNCH_LIST P2 #42).
@@ -41,6 +42,17 @@ export default function ContractorJobsPage2025() {
     totalValue: 0,
   });
   const [loadingStats, setLoadingStats] = useState(true);
+
+  // Hydration-safe Mint Editorial detection — kept at the top of the
+  // component above any early returns. Same rules-of-hooks pattern we
+  // hit on /jobs/create + /messages earlier in the project.
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
 
   // Fetch KPI stats (all jobs for contractor)
   useEffect(() => {
@@ -83,6 +95,21 @@ export default function ContractorJobsPage2025() {
   }
 
   if (!user) return null;
+
+  if (isMintEditorial) {
+    return (
+      <MintEditorialContractorJobs
+        filter={filter}
+        setFilter={setFilter}
+        categoryFilter={categoryFilter}
+        setCategoryFilter={setCategoryFilter}
+        stats={allJobsStats}
+        loadingStats={loadingStats}
+        jobs={jobs}
+        loadingJobs={loadingJobs}
+      />
+    );
+  }
 
   return (
     <ContractorPageWrapper>
