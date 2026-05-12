@@ -219,7 +219,7 @@ const KNOWN_LARGE_FILES = new Set([
   'apps/mobile/src/services/contractor-business/BusinessAnalyticsService.ts', // 586 lines (was 576) — direct-supabase disposition comment
   'apps/mobile/src/services/video/CallManager.ts', // 523 lines (was 517) — call_participants disposition comment
   'apps/web/app/contractor/crm/components/CRMDashboardEnhanced.tsx', // 528 lines (no change) — CRM detail link fix
-  'apps/web/app/contractor/notifications/page.tsx', // 608 lines (was 606) — safeActionUrl import + call
+  'apps/web/app/contractor/notifications/page.tsx', // 628 lines (was 608) — Phase-4 Mint Editorial branch + type-extract refactor
   'apps/web/app/jobs/quick-create/page.tsx', // 603 lines (no change) — removed description-padding hack + canonical urgency
   'apps/web/app/notifications/page.tsx', // 562 lines (was 558) — safeActionUrl import + call
   // LoginScreen.tsx grew 491 → 614 with the Remember email checkbox

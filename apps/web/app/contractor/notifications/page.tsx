@@ -20,33 +20,8 @@ import {
 } from './notification-icons';
 import { safeActionUrl } from '@/lib/notifications/safe-action-url';
 import { logger } from '@mintenance/shared';
-
-interface Notification {
-  id: string;
-  type:
-    | 'job'
-    | 'bid'
-    | 'message'
-    | 'payment'
-    | 'system'
-    | 'bid_received'
-    | 'bid_accepted'
-    | 'bid_rejected'
-    | 'job_update'
-    | 'job_viewed'
-    | 'job_nearby'
-    | 'quote_viewed'
-    | 'quote_accepted'
-    | 'project_reminder';
-  title: string;
-  message: string;
-  created_at: string;
-  is_read: boolean;
-  action_url?: string;
-  metadata?: Record<string, unknown>;
-}
-
-type FilterType = 'all' | 'unread' | 'jobs' | 'messages' | 'payments';
+import { MintEditorialNotificationsView } from './components/MintEditorialNotificationsView';
+import type { Notification, FilterType } from './notification-types';
 
 export default function ContractorNotificationsPage2025() {
   const router = useRouter();
@@ -283,6 +258,17 @@ export default function ContractorNotificationsPage2025() {
     }
   }, [user, loadingUser, router]);
 
+  // Hydration-safe theme detection — must call hooks unconditionally
+  // so this lives above all early returns. Same rules-of-hooks pattern
+  // used on every other contractor surface ported in Phase-4.
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
+
   if (loadingUser) {
     return <LoadingSpinner fullScreen />;
   }
@@ -350,6 +336,40 @@ export default function ContractorNotificationsPage2025() {
     if (diffDays < 7) return `${diffDays}d ago`;
     return date.toLocaleDateString('en-GB', { month: 'short', day: 'numeric' });
   };
+
+  if (isMintEditorial) {
+    const filterTabs = [
+      { label: 'All', value: 'all' as FilterType, count: notifications.length },
+      { label: 'Unread', value: 'unread' as FilterType, count: unreadCount },
+      { label: 'Jobs', value: 'jobs' as FilterType, count: jobsCount },
+      {
+        label: 'Messages',
+        value: 'messages' as FilterType,
+        count: messagesCount,
+      },
+      {
+        label: 'Payments',
+        value: 'payments' as FilterType,
+        count: paymentsCount,
+      },
+    ];
+    return (
+      <MintEditorialNotificationsView
+        notifications={notifications}
+        filteredNotifications={filteredNotifications}
+        loadingNotifications={loadingNotifications}
+        unreadCount={unreadCount}
+        filterTabs={filterTabs}
+        filter={filter}
+        onFilterChange={setFilter}
+        onMarkAllAsRead={handleMarkAllAsRead}
+        onClearAll={handleClearAll}
+        onNotificationClick={handleNotificationClick}
+        onDeleteNotification={handleDeleteNotification}
+        formatTimeAgo={formatTimeAgo}
+      />
+    );
+  }
 
   return (
     <ContractorPageWrapper>
