@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FileText, Plus } from 'lucide-react';
@@ -7,6 +8,7 @@ import { useQuotesData } from './components/useQuotesData';
 import { QuotesStatsGrid } from './components/QuotesStatsGrid';
 import { QuotesFilterBar } from './components/QuotesFilterBar';
 import { QuoteCard } from './components/QuoteCard';
+import { MintEditorialQuotesView } from './components/MintEditorialQuotesView';
 
 const fadeInUp = {
   hidden: { opacity: 0, y: 20 },
@@ -32,6 +34,33 @@ export default function QuotesPage() {
     showActionMenu,
     setShowActionMenu,
   } = useQuotesData();
+
+  // Hydration-safe theme detection — must call hooks unconditionally,
+  // so this lives at the top of the component before any return.
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
+
+  if (isMintEditorial) {
+    return (
+      <MintEditorialQuotesView
+        loading={loading}
+        stats={stats}
+        filteredQuotes={filteredQuotes}
+        filterTabs={filterTabs}
+        activeFilter={activeFilter}
+        onFilterChange={setActiveFilter}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        showActionMenu={showActionMenu}
+        setShowActionMenu={setShowActionMenu}
+      />
+    );
+  }
 
   return (
     <div className='space-y-6'>

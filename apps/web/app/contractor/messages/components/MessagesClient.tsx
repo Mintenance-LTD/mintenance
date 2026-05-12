@@ -15,6 +15,8 @@ import {
   X,
   Video,
   Calendar,
+  MessageSquare,
+  MoreHorizontal,
 } from 'lucide-react';
 import type {
   Conversation,
@@ -32,7 +34,6 @@ import { useTypingIndicator } from '@/lib/hooks/useTypingIndicator';
 import { MintEditorialMessagesSidebar } from '@/app/messages/components/MintEditorialMessagesSidebar';
 import { MintEditorialMessagesChat } from '@/app/messages/components/MintEditorialMessagesChat';
 import { MintEditorialEmptyState } from '@/components/mint-editorial/MintEditorialEmptyState';
-import { MessageSquare, MoreHorizontal } from 'lucide-react';
 
 export function MessagesClient() {
   const router = useRouter();
