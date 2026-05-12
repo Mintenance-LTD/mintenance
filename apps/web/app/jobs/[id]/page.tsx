@@ -379,6 +379,7 @@ export default async function JobDetailPage2025({
           budget: job.budget || 0,
           location: job.location || 'Location not specified',
           created_at: job.created_at,
+          completed_at: job.completed_at,
           contractor_id: job.contractor_id,
           completion_confirmed_by_homeowner:
             job.completion_confirmed_by_homeowner,
@@ -394,6 +395,8 @@ export default async function JobDetailPage2025({
         beforePhotos={beforePhotos}
         afterPhotos={afterPhotos}
         contractStatus={contractStatus}
+        contractContractorSignedAt={contract?.contractor_signed_at ?? null}
+        contractHomeownerSignedAt={contract?.homeowner_signed_at ?? null}
         escrowStatus={escrowStatus}
         userId={user.id}
       />

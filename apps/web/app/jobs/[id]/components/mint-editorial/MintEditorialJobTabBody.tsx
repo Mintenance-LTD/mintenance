@@ -13,6 +13,7 @@ import Link from 'next/link';
 import type { Bid } from '../BidCard';
 import type { JobShape, PropertyShape } from './MintEditorialJobCards';
 import { CompareBidsTable } from './CompareBidsTable';
+import { MintEditorialJobTimeline } from './MintEditorialJobTimeline';
 
 export type TabKey =
   | 'overview'
@@ -22,12 +23,35 @@ export type TabKey =
   | 'payments'
   | 'timeline';
 
+interface PhotoRecord {
+  id: string;
+  photo_url: string;
+  created_at?: string | null;
+}
+
+interface LifecycleData {
+  contractStatus?: string | null;
+  contractContractorSignedAt?: string | null;
+  contractHomeownerSignedAt?: string | null;
+  escrowStatus?: string | null;
+  bidCount?: number;
+  pendingBidCount?: number;
+  completionConfirmed: boolean;
+}
+
 interface Props {
   tab: TabKey;
   job: JobShape;
   property?: PropertyShape | null;
   pendingBids: Bid[];
+  /** Full bids list (including accepted / rejected) — Timeline tab
+   *  emits one event per bid received. The Bids tab continues to
+   *  render only pending bids via `pendingBids`. */
+  allBids?: Bid[];
   photos: string[];
+  beforePhotos?: PhotoRecord[];
+  afterPhotos?: PhotoRecord[];
+  lifecycle?: LifecycleData;
   selectedId: string | null;
   recommendedId: string | null;
   onSelect: (id: string) => void;
@@ -38,7 +62,11 @@ export function MintEditorialJobTabBody({
   job,
   property,
   pendingBids,
+  allBids,
   photos,
+  beforePhotos,
+  afterPhotos,
+  lifecycle,
   selectedId,
   recommendedId,
   onSelect,
@@ -162,15 +190,19 @@ export function MintEditorialJobTabBody({
       ) : null}
 
       {tab === 'timeline' ? (
-        <div className='card card-pad'>
-          <h2 className='t-h4' style={{ marginBottom: 8 }}>
-            Timeline
-          </h2>
-          <p className='t-body'>
-            A per-job timeline is being rebuilt for the web dashboard. You can
-            review milestones from the mobile app in the meantime.
-          </p>
-        </div>
+        <MintEditorialJobTimeline
+          job={job}
+          allBids={allBids ?? pendingBids}
+          beforePhotos={beforePhotos ?? []}
+          afterPhotos={afterPhotos ?? []}
+          lifecycle={{
+            contractStatus: lifecycle?.contractStatus,
+            contractContractorSignedAt: lifecycle?.contractContractorSignedAt,
+            contractHomeownerSignedAt: lifecycle?.contractHomeownerSignedAt,
+            escrowStatus: lifecycle?.escrowStatus,
+            completionConfirmed: !!lifecycle?.completionConfirmed,
+          }}
+        />
       ) : null}
     </div>
   );

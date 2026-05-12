@@ -50,10 +50,20 @@ import {
 
 interface LifecycleData {
   contractStatus?: string | null;
+  /** Raw ISO timestamps so the Timeline tab can render real
+   *  signing events. Null while unsigned. */
+  contractContractorSignedAt?: string | null;
+  contractHomeownerSignedAt?: string | null;
   escrowStatus?: string | null;
   bidCount: number;
   pendingBidCount: number;
   completionConfirmed: boolean;
+}
+
+interface PhotoRecord {
+  id: string;
+  photo_url: string;
+  created_at?: string | null;
 }
 
 interface Props {
@@ -62,6 +72,11 @@ interface Props {
   contractor?: ContractorShape | null;
   bids: Bid[];
   photos: string[];
+  /** Before / after photo records with timestamps — passed through
+   *  to the Timeline tab so each upload can emit an event. The
+   *  Photos tab only needs the flat URL list (`photos`). */
+  beforePhotos?: PhotoRecord[];
+  afterPhotos?: PhotoRecord[];
   lifecycle: LifecycleData;
 }
 
@@ -119,6 +134,8 @@ export function MintEditorialJobDetail({
   contractor,
   bids,
   photos,
+  beforePhotos,
+  afterPhotos,
   lifecycle,
 }: Props) {
   const router = useRouter();
@@ -337,7 +354,11 @@ export function MintEditorialJobDetail({
           job={job}
           property={property}
           pendingBids={pending}
+          allBids={bids}
           photos={photos}
+          beforePhotos={beforePhotos}
+          afterPhotos={afterPhotos}
+          lifecycle={lifecycle}
           selectedId={selectedId}
           recommendedId={recommendedId}
           onSelect={setSelectedId}

@@ -31,6 +31,10 @@ export interface JobShape {
   budget: number;
   location: string;
   created_at: string;
+  /** Set when the contractor marks the job complete. Used by the
+   *  Timeline tab to render the "Job complete" event. Null while
+   *  the job is still posted / in flight. */
+  completed_at?: string | null;
   contractor_id?: string;
 }
 

@@ -24,6 +24,10 @@ interface PhotoRecord {
   photo_url: string;
 }
 
+interface PhotoRecordWithDate extends PhotoRecord {
+  created_at?: string | null;
+}
+
 interface Props {
   job: JobShape & {
     completion_confirmed_by_homeowner?: boolean | null;
@@ -34,9 +38,14 @@ interface Props {
   bidCount: number;
   pendingBidCount: number;
   photos: string[];
-  beforePhotos: PhotoRecord[];
-  afterPhotos: PhotoRecord[];
+  beforePhotos: PhotoRecordWithDate[];
+  afterPhotos: PhotoRecordWithDate[];
   contractStatus: string | null | undefined;
+  /** Raw ISO timestamps from the contract row — let the Timeline tab
+   *  reconstruct the actual signing events instead of just showing a
+   *  binary "contract accepted". Null when the party hasn't signed. */
+  contractContractorSignedAt?: string | null;
+  contractHomeownerSignedAt?: string | null;
   escrowStatus: string | null | undefined;
   userId: string;
 }
@@ -52,6 +61,8 @@ export function MintEditorialJobDetailView({
   beforePhotos,
   afterPhotos,
   contractStatus,
+  contractContractorSignedAt,
+  contractHomeownerSignedAt,
   escrowStatus,
   userId,
 }: Props) {
@@ -66,8 +77,12 @@ export function MintEditorialJobDetailView({
           contractor={contractor}
           bids={bids}
           photos={photos}
+          beforePhotos={beforePhotos}
+          afterPhotos={afterPhotos}
           lifecycle={{
             contractStatus,
+            contractContractorSignedAt,
+            contractHomeownerSignedAt,
             escrowStatus,
             bidCount,
             pendingBidCount,
