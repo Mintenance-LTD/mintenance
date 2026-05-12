@@ -1,13 +1,119 @@
 import type { Metadata } from 'next';
-import { theme } from '@/lib/theme';
+import { cookies } from 'next/headers';
 import Link from 'next/link';
+import { theme } from '@/lib/theme';
 
 export const metadata: Metadata = {
   title: 'Contractor Support | Mintenance',
-  description: 'Get help with your Mintenance contractor account. Contact support, browse guides, and find answers.',
+  description:
+    'Get help with your Mintenance contractor account. Contact support, browse guides, and find answers.',
 };
 
-export default function ContractorSupportPage() {
+export default async function ContractorSupportPage() {
+  // Server-side theme detection — the contractor /layout.tsx already
+  // branches on the same cookie key when mounting MintEditorialContractorShell.
+  const cookieStore = await cookies();
+  const isMintEditorial =
+    cookieStore.get('mintenance-theme')?.value === 'mint-editorial';
+
+  if (isMintEditorial) {
+    return (
+      <div className='col' style={{ gap: 20 }}>
+        <div className='col' style={{ gap: 4 }}>
+          <h1 className='t-h1'>Contractor support</h1>
+          <p className='t-body'>
+            Need a hand? Reach out to our team or browse guides tailored to your
+            workflow.
+          </p>
+        </div>
+
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+            gap: 16,
+          }}
+        >
+          <div className='card card-pad'>
+            <h2 className='t-h3' style={{ marginBottom: 8 }}>
+              Contact support
+            </h2>
+            <p className='t-body'>
+              Email{' '}
+              <a
+                href='mailto:support@mintenance.co.uk'
+                style={{ color: 'var(--me-brand)' }}
+              >
+                support@mintenance.co.uk
+              </a>{' '}
+              or start a chat with our contractor success team.
+            </p>
+          </div>
+
+          <div className='card card-pad'>
+            <h2 className='t-h3' style={{ marginBottom: 8 }}>
+              Browse quick help
+            </h2>
+            <ul
+              className='col'
+              style={{
+                gap: 6,
+                margin: 0,
+                padding: 0,
+                listStylePosition: 'inside',
+                color: 'var(--me-ink-2)',
+              }}
+            >
+              <li>
+                <Link
+                  href='/contractor/verification'
+                  style={{ color: 'var(--me-brand)' }}
+                >
+                  Verification checklist
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href='/contractor/quotes'
+                  style={{ color: 'var(--me-brand)' }}
+                >
+                  Build and send quotes
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href='/contractor/service-areas'
+                  style={{ color: 'var(--me-brand)' }}
+                >
+                  Manage service coverage
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href='/contractor/insurance'
+                  style={{ color: 'var(--me-brand)' }}
+                >
+                  Insurance & licensing
+                </Link>
+              </li>
+            </ul>
+          </div>
+
+          <div className='card card-pad'>
+            <h2 className='t-h3' style={{ marginBottom: 8 }}>
+              Response times
+            </h2>
+            <p className='t-body'>
+              Standard support replies within 24 working hours. Payment + escrow
+              issues are prioritised and typically answered within 2 hours
+              during business hours.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       style={{
@@ -37,7 +143,8 @@ export default function ContractorSupportPage() {
             fontSize: theme.typography.fontSize.sm,
           }}
         >
-          Need a hand? Reach out to our team or browse guides tailored to your workflow.
+          Need a hand? Reach out to our team or browse guides tailored to your
+          workflow.
         </p>
       </div>
 
@@ -68,9 +175,18 @@ export default function ContractorSupportPage() {
           >
             Contact support
           </h2>
-          <p style={{ margin: 0, color: theme.colors.textSecondary, fontSize: theme.typography.fontSize.sm }}>
+          <p
+            style={{
+              margin: 0,
+              color: theme.colors.textSecondary,
+              fontSize: theme.typography.fontSize.sm,
+            }}
+          >
             Email{' '}
-            <a href="mailto:support@mintenance.co.uk" style={{ color: theme.colors.primary }}>
+            <a
+              href='mailto:support@mintenance.co.uk'
+              style={{ color: theme.colors.primary }}
+            >
               support@mintenance.co.uk
             </a>{' '}
             or start a chat with our contractor success team.
@@ -97,19 +213,34 @@ export default function ContractorSupportPage() {
           >
             Browse quick help
           </h2>
-          <ul style={{ margin: 0, paddingLeft: theme.spacing[4], color: theme.colors.textSecondary }}>
+          <ul
+            style={{
+              margin: 0,
+              paddingLeft: theme.spacing[4],
+              color: theme.colors.textSecondary,
+            }}
+          >
             <li>
-              <Link href="/contractor/verification" style={{ color: theme.colors.primary }}>
+              <Link
+                href='/contractor/verification'
+                style={{ color: theme.colors.primary }}
+              >
                 Verification checklist
               </Link>
             </li>
             <li>
-              <Link href="/contractor/quotes" style={{ color: theme.colors.primary }}>
+              <Link
+                href='/contractor/quotes'
+                style={{ color: theme.colors.primary }}
+              >
                 Build and send quotes
               </Link>
             </li>
             <li>
-              <Link href="/contractor/service-areas" style={{ color: theme.colors.primary }}>
+              <Link
+                href='/contractor/service-areas'
+                style={{ color: theme.colors.primary }}
+              >
                 Manage service coverage
               </Link>
             </li>
@@ -119,4 +250,3 @@ export default function ContractorSupportPage() {
     </div>
   );
 }
-
