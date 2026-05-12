@@ -1,7 +1,7 @@
 'use client';
 
 import { ContractorPageWrapper } from '@/app/contractor/components/ContractorPageWrapper';
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { Download, Settings } from 'lucide-react';
@@ -180,6 +180,17 @@ export default function ContractorFinancePage2025() {
     router.push('/contractor/payouts');
   };
 
+  // Hydration-safe theme detection — must call hooks unconditionally,
+  // so this lives at the top of the component before any early
+  // returns / branch logic.
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
+
   if (loading) {
     return (
       <ContractorPageWrapper>
@@ -198,37 +209,74 @@ export default function ContractorFinancePage2025() {
   return (
     <ContractorPageWrapper>
       <div className='max-w-7xl mx-auto pb-12'>
-        {/* Clean Header - Airbnb Style */}
-        <div className='bg-white border-b border-gray-200'>
-          <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
-            <div className='flex items-center justify-between'>
-              <div>
-                <h1 className='text-3xl font-semibold text-gray-900'>
-                  Finance
-                </h1>
-                <p className='text-gray-600 mt-1'>
-                  Track your revenue and manage payouts
-                </p>
-              </div>
-              <div className='flex gap-3'>
-                <button
-                  onClick={handleExport}
-                  className='px-4 py-2 text-gray-700 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition-colors flex items-center gap-2'
-                >
-                  <Download className='w-5 h-5' />
-                  Export
-                </button>
-                <button
-                  onClick={handlePayoutSettings}
-                  className='px-6 py-2 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 transition-colors flex items-center gap-2'
-                >
-                  <Settings className='w-5 h-5' />
-                  Settings
-                </button>
+        {/* Header — canonical .t-h1 + .btn pair when Mint Editorial
+            is active; otherwise the existing Airbnb-style header. The
+            `.me-legacy-fit` shell boundary maps the legacy header's
+            Tailwind colours so the visual delta is mostly typography
+            + button polish. */}
+        {isMintEditorial ? (
+          <div
+            className='between'
+            style={{ padding: '20px 0 12px', alignItems: 'flex-start' }}
+          >
+            <div className='col' style={{ gap: 4 }}>
+              <h1 className='t-h1'>Finance</h1>
+              <p className='t-body'>
+                Track revenue, monitor payouts, and reconcile escrow transfers
+                from completed jobs.
+              </p>
+            </div>
+            <div className='row' style={{ gap: 8 }}>
+              <button
+                type='button'
+                className='btn btn-secondary btn-sm'
+                onClick={handleExport}
+              >
+                <Download size={14} strokeWidth={1.75} />
+                Export
+              </button>
+              <button
+                type='button'
+                className='btn btn-primary btn-sm'
+                onClick={handlePayoutSettings}
+              >
+                <Settings size={14} strokeWidth={1.75} />
+                Payout settings
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className='bg-white border-b border-gray-200'>
+            <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
+              <div className='flex items-center justify-between'>
+                <div>
+                  <h1 className='text-3xl font-semibold text-gray-900'>
+                    Finance
+                  </h1>
+                  <p className='text-gray-600 mt-1'>
+                    Track your revenue and manage payouts
+                  </p>
+                </div>
+                <div className='flex gap-3'>
+                  <button
+                    onClick={handleExport}
+                    className='px-4 py-2 text-gray-700 border border-gray-300 rounded-lg font-medium hover:bg-gray-50 transition-colors flex items-center gap-2'
+                  >
+                    <Download className='w-5 h-5' />
+                    Export
+                  </button>
+                  <button
+                    onClick={handlePayoutSettings}
+                    className='px-6 py-2 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 transition-colors flex items-center gap-2'
+                  >
+                    <Settings className='w-5 h-5' />
+                    Settings
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
 
         <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
           <KpiCards
