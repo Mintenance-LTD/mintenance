@@ -1,3 +1,4 @@
+import { cookies } from 'next/headers';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { serverSupabase } from '@/lib/api/supabaseServer';
@@ -5,6 +6,7 @@ import { formatMoney } from '@/lib/utils/currency';
 import { TrialService } from '@/lib/services/subscription/TrialService';
 import { OnboardingService } from '@/lib/services/OnboardingService';
 import { ContractorDashboardProfessional } from './components/ContractorDashboardProfessional';
+import { MintEditorialContractorDashboard } from './MintEditorialContractorDashboard';
 
 export const metadata = {
   title: 'Dashboard | Mintenance',
@@ -325,6 +327,18 @@ export default async function ContractorDashboard2025() {
       isComplete?: boolean;
     } | null,
   };
+
+  // Phase-4: Mint Editorial port of the contractor dashboard. Same
+  // dashboardData shape feeds both branches; the chrome already comes
+  // from the contractor /layout.tsx cookie branch, so this just
+  // picks the body component.
+  const cookieStore = await cookies();
+  const isMintEditorial =
+    cookieStore.get('mintenance-theme')?.value === 'mint-editorial';
+
+  if (isMintEditorial) {
+    return <MintEditorialContractorDashboard data={dashboardData} />;
+  }
 
   return <ContractorDashboardProfessional data={dashboardData} />;
 }
