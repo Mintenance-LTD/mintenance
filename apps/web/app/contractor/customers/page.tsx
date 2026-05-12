@@ -1,3 +1,4 @@
+import { cookies } from 'next/headers';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { serverSupabase } from '@/lib/api/supabaseServer';
@@ -21,17 +22,23 @@ export default async function CustomersPage() {
   const [jobsData, bidsData, messagesData] = await Promise.all([
     serverSupabase
       .from('jobs')
-      .select('homeowner_id, homeowner:homeowner_id (id, first_name, last_name, profile_image_url, email)')
+      .select(
+        'homeowner_id, homeowner:homeowner_id (id, first_name, last_name, profile_image_url, email)'
+      )
       .eq('contractor_id', user.id)
       .not('homeowner_id', 'is', null),
     serverSupabase
       .from('bids')
-      .select('homeowner_id, homeowner:homeowner_id (id, first_name, last_name, profile_image_url, email)')
+      .select(
+        'homeowner_id, homeowner:homeowner_id (id, first_name, last_name, profile_image_url, email)'
+      )
       .eq('contractor_id', user.id)
       .not('homeowner_id', 'is', null),
     serverSupabase
       .from('messages')
-      .select('sender_id, receiver_id, sender:sender_id (id, first_name, last_name, profile_image_url, email), receiver:receiver_id (id, first_name, last_name, profile_image_url, email)')
+      .select(
+        'sender_id, receiver_id, sender:sender_id (id, first_name, last_name, profile_image_url, email), receiver:receiver_id (id, first_name, last_name, profile_image_url, email)'
+      )
       .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`),
   ]);
 
@@ -61,30 +68,44 @@ export default async function CustomersPage() {
   const customerMap = new Map<string, CustomerData>();
 
   // Add customers from jobs
-  ((jobsData.data || []) as JobWithHomeowner[]).forEach((job: JobWithHomeowner) => {
-    const homeowner = Array.isArray(job.homeowner) ? job.homeowner[0] : job.homeowner;
-    if (homeowner && homeowner.id) {
-      customerMap.set(homeowner.id, homeowner);
+  ((jobsData.data || []) as JobWithHomeowner[]).forEach(
+    (job: JobWithHomeowner) => {
+      const homeowner = Array.isArray(job.homeowner)
+        ? job.homeowner[0]
+        : job.homeowner;
+      if (homeowner && homeowner.id) {
+        customerMap.set(homeowner.id, homeowner);
+      }
     }
-  });
+  );
 
   // Add customers from bids
-  ((bidsData.data || []) as BidWithHomeowner[]).forEach((bid: BidWithHomeowner) => {
-    const homeowner = Array.isArray(bid.homeowner) ? bid.homeowner[0] : bid.homeowner;
-    if (homeowner && homeowner.id) {
-      customerMap.set(homeowner.id, homeowner);
+  ((bidsData.data || []) as BidWithHomeowner[]).forEach(
+    (bid: BidWithHomeowner) => {
+      const homeowner = Array.isArray(bid.homeowner)
+        ? bid.homeowner[0]
+        : bid.homeowner;
+      if (homeowner && homeowner.id) {
+        customerMap.set(homeowner.id, homeowner);
+      }
     }
-  });
+  );
 
   // Add customers from messages
-  ((messagesData.data || []) as MessageWithUsers[]).forEach((message: MessageWithUsers) => {
-    const sender = Array.isArray(message.sender) ? message.sender[0] : message.sender;
-    const receiver = Array.isArray(message.receiver) ? message.receiver[0] : message.receiver;
-    const otherUser = message.sender_id === user.id ? receiver : sender;
-    if (otherUser && otherUser.id && otherUser.id !== user.id) {
-      customerMap.set(otherUser.id, otherUser);
+  ((messagesData.data || []) as MessageWithUsers[]).forEach(
+    (message: MessageWithUsers) => {
+      const sender = Array.isArray(message.sender)
+        ? message.sender[0]
+        : message.sender;
+      const receiver = Array.isArray(message.receiver)
+        ? message.receiver[0]
+        : message.receiver;
+      const otherUser = message.sender_id === user.id ? receiver : sender;
+      if (otherUser && otherUser.id && otherUser.id !== user.id) {
+        customerMap.set(otherUser.id, otherUser);
+      }
     }
-  });
+  );
 
   const customers = Array.from(customerMap.values()).map((c) => ({
     id: c.id,
@@ -99,7 +120,9 @@ export default async function CustomersPage() {
   const { data: recentMessages } = await serverSupabase
     .from('messages')
     .select('id, sender_id, receiver_id, content, created_at, read_at')
-    .or(`sender_id.in.(${customerIds.join(',')}),receiver_id.in.(${customerIds.join(',')})`)
+    .or(
+      `sender_id.in.(${customerIds.join(',')}),receiver_id.in.(${customerIds.join(',')})`
+    )
     .order('created_at', { ascending: false })
     .limit(100);
 
@@ -112,23 +135,50 @@ export default async function CustomersPage() {
     }
   });
 
-  return (
-    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Customers</h1>
-        <p className="text-sm text-gray-600 mt-1">
-          {customers.length} total {customers.length === 1 ? 'customer' : 'customers'}
-        </p>
-      </div>
+  // Server-side theme detection — the contractor /layout.tsx already
+  // mounts MintEditorialContractorShell when this cookie is set, so
+  // child pages can branch the same way without a hydration round-trip.
+  const cookieStore = await cookies();
+  const isMintEditorial =
+    cookieStore.get('mintenance-theme')?.value === 'mint-editorial';
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  return (
+    <div
+      className={
+        isMintEditorial
+          ? undefined
+          : 'w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'
+      }
+    >
+      {isMintEditorial ? (
+        <div className='col' style={{ gap: 4, marginBottom: 20 }}>
+          <h1 className='t-h1'>Customers</h1>
+          <p className='t-body'>
+            {customers.length === 0
+              ? 'Homeowners you’ve worked with or messaged will appear here.'
+              : `${customers.length} ${
+                  customers.length === 1 ? 'customer' : 'customers'
+                } from your job history, bids, and message threads.`}
+          </p>
+        </div>
+      ) : (
+        <div className='mb-8'>
+          <h1 className='text-3xl font-bold text-gray-900'>Customers</h1>
+          <p className='text-sm text-gray-600 mt-1'>
+            {customers.length} total{' '}
+            {customers.length === 1 ? 'customer' : 'customers'}
+          </p>
+        </div>
+      )}
+
+      <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
         {/* Customers Table - Left (2/3 width on large screens) */}
-        <div className="lg:col-span-2">
+        <div className='lg:col-span-2'>
           <CustomersTable customers={customers} />
         </div>
 
         {/* Messages Sidebar - Right (1/3 width on large screens) */}
-        <div className="lg:col-span-1">
+        <div className='lg:col-span-1'>
           <MessagesSidebar
             customers={customers}
             messages={recentMessages || []}
@@ -140,4 +190,3 @@ export default async function CustomersPage() {
     </div>
   );
 }
-
