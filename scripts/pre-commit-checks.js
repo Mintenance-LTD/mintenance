@@ -395,6 +395,11 @@ const KNOWN_LARGE_FILES = new Set([
   // (stats cards + tab switcher + list + add modal). +32 LOC for
   // the editorial branch.
   'apps/web/app/contractor/insurance/page.tsx', // 579 lines (was 547)
+  // Added 2026-05-12 (Phase-4 stat-card pass): marketing page grew
+  // when the inline StatCard was made theme-aware (canonical .kpi
+  // when isMintEditorial, legacy bg-white card otherwise). Each
+  // tile call site stayed unchanged.
+  'apps/web/app/contractor/marketing/page.tsx', // 516 lines (was 493)
   // Self-allowlist: this script grows naturally each Phase-4
   // commit because the allowlist itself is a documented log of
   // intentional over-cap files. Splitting the script into a

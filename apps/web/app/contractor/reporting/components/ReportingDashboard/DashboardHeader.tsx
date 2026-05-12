@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Download, FileText, Calendar, Printer } from 'lucide-react';
 import type { DateRange } from './types';
 
@@ -28,6 +28,88 @@ export const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   handlePrint,
   handleExport,
 }) => {
+  // Hydration-safe theme detection.
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
+
+  if (isMintEditorial) {
+    return (
+      <div className='col' style={{ gap: 16, padding: '20px 0 24px' }}>
+        <div className='between' style={{ alignItems: 'flex-start' }}>
+          <div className='col' style={{ gap: 4 }}>
+            <h1 className='t-h1'>Business analytics</h1>
+            <p className='t-body'>
+              Track revenue trends, job completion rates, and customer
+              satisfaction across the period you select.
+            </p>
+          </div>
+          <div className='row' style={{ gap: 8 }}>
+            <button
+              type='button'
+              className='btn btn-secondary btn-sm'
+              onClick={handlePrint}
+              disabled={isLoading}
+            >
+              <Printer size={14} strokeWidth={1.75} />
+              Print
+            </button>
+            <button
+              type='button'
+              className='btn btn-secondary btn-sm'
+              onClick={() => handleExport('csv')}
+              disabled={isLoading}
+            >
+              <FileText size={14} strokeWidth={1.75} />
+              CSV
+            </button>
+            <button
+              type='button'
+              className='btn btn-primary btn-sm'
+              onClick={() => handleExport('pdf')}
+              disabled={isLoading}
+            >
+              <Download size={14} strokeWidth={1.75} />
+              Export PDF
+            </button>
+          </div>
+        </div>
+
+        <div
+          className='row'
+          style={{ gap: 8, alignItems: 'center', flexWrap: 'wrap' }}
+        >
+          <span
+            className='t-meta'
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+              fontWeight: 600,
+            }}
+          >
+            <Calendar size={12} strokeWidth={1.75} />
+            Time period:
+          </span>
+          {dateRanges.map((range) => (
+            <button
+              key={range.value}
+              type='button'
+              className={`chip ${selectedPeriod === range.value ? 'on' : ''}`}
+              onClick={() => setSelectedPeriod(range.value)}
+            >
+              {range.label}
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className='bg-white border-b border-gray-200'>
       <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>

@@ -459,6 +459,29 @@ function StatCard({
   value: string | number;
   sub?: string;
 }) {
+  // Hydration-safe theme detection — when Mint Editorial is active,
+  // render the canonical `.kpi` tile (no icon — the editorial KPI
+  // primitive relies on .label / .num / .sub typography rather than
+  // colour-coded icons). Legacy theme keeps the bg-white + iconBg
+  // layout.
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
+
+  if (isMintEditorial) {
+    return (
+      <div className='kpi'>
+        <div className='label'>{label}</div>
+        <div className='num'>{value}</div>
+        {sub ? <div className='sub'>{sub}</div> : null}
+      </div>
+    );
+  }
+
   return (
     <MotionDiv
       variants={staggerItem}
