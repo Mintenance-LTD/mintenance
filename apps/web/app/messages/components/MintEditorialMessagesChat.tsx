@@ -54,6 +54,20 @@ interface Props {
   onSendMessage: () => void;
   sending: boolean;
   isTyping?: boolean;
+  /**
+   * Override the right-side "View bid" CTA so the same chat shell can
+   * be reused for the contractor surface (where the link should point
+   * at `/contractor/jobs/[id]` and read "Open job" instead of
+   * "View bid"). Defaults preserve the homeowner behaviour.
+   */
+  viewJobHref?: string;
+  viewJobLabel?: string;
+  /**
+   * Optional extra action slot rendered immediately to the right of
+   * the View-job CTA. Contractors use this for Schedule / Send quote
+   * / Share document / Prepare contract dropdown.
+   */
+  headerExtras?: React.ReactNode;
 }
 
 function getInitials(name: string): string {
@@ -117,8 +131,14 @@ export function MintEditorialMessagesChat({
   onSendMessage,
   sending,
   isTyping = false,
+  viewJobHref,
+  viewJobLabel = 'View bid',
+  headerExtras,
 }: Props) {
   const groups = groupByDay(messages);
+  const jobHref =
+    viewJobHref ??
+    (conversation.jobTitle ? `/jobs/${conversation.id}` : undefined);
 
   return (
     <div
@@ -177,14 +197,12 @@ export function MintEditorialMessagesChat({
         >
           <Phone size={14} strokeWidth={1.75} />
         </button>
-        {conversation.jobTitle ? (
-          <a
-            href={`/jobs/${conversation.id}`}
-            className='btn btn-secondary btn-sm'
-          >
-            View bid
+        {jobHref ? (
+          <a href={jobHref} className='btn btn-secondary btn-sm'>
+            {viewJobLabel}
           </a>
         ) : null}
+        {headerExtras}
       </div>
 
       {/* Body */}

@@ -307,6 +307,28 @@ const KNOWN_LARGE_FILES = new Set([
   // each section into its own client file is the right long-term
   // shape but is a dedicated P2.
   'apps/web/app/contractor/settings/page.tsx', // 570 lines (was 554)
+  // Added 2026-05-12 (Phase-4 contractor port): the contractor
+  // MessagesClient already pre-existed at 585 lines before the
+  // Mint Editorial branch. The +186-line edit adds:
+  //   (1) hydration-safe `isMintEditorial` hook above the early
+  //       returns (rules-of-hooks safety — see homeowner-side
+  //       MessagesClient for the same pattern);
+  //   (2) a Mint Editorial branch that reuses the shared
+  //       MintEditorialMessagesSidebar + MintEditorialMessagesChat
+  //       from `app/messages/components/` with a contractor-flavoured
+  //       "Open job" CTA pointing at /contractor/jobs/[id] and a
+  //       "More" overflow menu exposing Schedule / Send quote /
+  //       Share document / Prepare contract;
+  //   (3) the same ShareDocumentDialog + CreateContractDialog modal
+  //       overlays already used by the legacy branch.
+  // Splitting MessagesClient is a dedicated P2 — the file owns:
+  // user-fetch + threads-fetch + messages-fetch + send-message +
+  // 8 contractor action handlers + 3 dialog states + typing
+  // indicator + filter/search state, all sharing a tight closure.
+  // A clean split would lift everything into a hook
+  // (useContractorMessagesController) and is out of scope for this
+  // single-file theme port.
+  'apps/web/app/contractor/messages/components/MessagesClient.tsx', // 771 lines (was 585)
 ]);
 
 function countLines(filePath) {
