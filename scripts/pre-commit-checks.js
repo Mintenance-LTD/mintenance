@@ -274,7 +274,7 @@ const KNOWN_LARGE_FILES = new Set([
   // the page into Header / FilterRow / ExpenseTable / AddExpenseForm
   // sub-components is a dedicated P2 alongside the other contractor
   // business screens.
-  'apps/web/app/contractor/expenses/page.tsx', // 628 lines (was ~624)
+  'apps/web/app/contractor/expenses/page.tsx', // 669 lines (was 628) — Phase-4 editorial header swap
   // Added 2026-05-10: InputValidationMiddleware.ts grew from ~498 to 518
   // lines via the AUDIT_PUNCH_LIST P2 #55 closure. Net change is the
   // SECURITY-RATIONALE comment block (why the SQL_INJECTION_PATTERNS
@@ -388,6 +388,13 @@ const KNOWN_LARGE_FILES = new Set([
   // require lifting all 8 controller state slots + handlers via
   // props — out of scope for this single-file theme port.
   'apps/web/app/contractor/jobs/[id]/components/JobDetailsClient.tsx', // 718 lines (was 525)
+  // Added 2026-05-12 (Phase-4 contractor port): /contractor/insurance
+  // page editorial header swap (.t-h1 + .btn-primary "Add insurance/
+  // licence" branch behind hydration-safe `isMintEditorial`). Page
+  // pre-existed at 547 LOC with deep insurance + licence tracking
+  // (stats cards + tab switcher + list + add modal). +32 LOC for
+  // the editorial branch.
+  'apps/web/app/contractor/insurance/page.tsx', // 579 lines (was 547)
   // Self-allowlist: this script grows naturally each Phase-4
   // commit because the allowlist itself is a documented log of
   // intentional over-cap files. Splitting the script into a

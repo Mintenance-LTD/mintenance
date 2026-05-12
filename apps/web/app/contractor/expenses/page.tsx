@@ -97,6 +97,14 @@ export default function ExpenseTrackingPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  // Hydration-safe theme detection — Phase-4 contractor port pattern.
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
 
   const [expenses, setExpenses] = useState<Expense[]>([]);
 
@@ -366,37 +374,71 @@ export default function ExpenseTrackingPage() {
 
   return (
     <div className='min-h-0 bg-gray-50'>
-      {/* Header */}
-      <div className='border-b border-gray-200 bg-white'>
-        <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
-          <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'>
-            <div>
-              <h1 className='text-3xl font-semibold text-gray-900'>
-                Expense Tracking
-              </h1>
-              <p className='text-gray-600 mt-1'>
-                Track and manage your business expenses
-              </p>
-            </div>
-            <div className='flex flex-wrap gap-3'>
-              <button
-                onClick={handleExport}
-                className='flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors'
-              >
-                <Download className='w-5 h-5' />
-                Export CSV
-              </button>
-              <button
-                onClick={() => setShowAddModal(true)}
-                className='flex items-center gap-2 px-6 py-3 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors font-medium'
-              >
-                <Plus className='w-5 h-5' />
-                Add Expense
-              </button>
+      {/* Header — canonical .t-h1 + .btn pair when Mint Editorial,
+          legacy white banner otherwise. */}
+      {isMintEditorial ? (
+        <div
+          className='between'
+          style={{ alignItems: 'flex-start', padding: '20px 0 24px' }}
+        >
+          <div className='col' style={{ gap: 4 }}>
+            <h1 className='t-h1'>Expense tracking</h1>
+            <p className='t-body'>
+              Log mileage, materials, and tool purchases against your jobs —
+              export at year-end for self-assessment or accountant handover.
+            </p>
+          </div>
+          <div className='row' style={{ gap: 8 }}>
+            <button
+              type='button'
+              className='btn btn-secondary btn-sm'
+              onClick={handleExport}
+            >
+              <Download size={14} strokeWidth={1.75} />
+              Export CSV
+            </button>
+            <button
+              type='button'
+              className='btn btn-primary btn-sm'
+              onClick={() => setShowAddModal(true)}
+            >
+              <Plus size={14} strokeWidth={1.75} />
+              Add expense
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className='border-b border-gray-200 bg-white'>
+          <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
+            <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'>
+              <div>
+                <h1 className='text-3xl font-semibold text-gray-900'>
+                  Expense Tracking
+                </h1>
+                <p className='text-gray-600 mt-1'>
+                  Track and manage your business expenses
+                </p>
+              </div>
+              <div className='flex flex-wrap gap-3'>
+                <button
+                  onClick={handleExport}
+                  className='flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors'
+                >
+                  <Download className='w-5 h-5' />
+                  Export CSV
+                </button>
+                <button
+                  onClick={() => setShowAddModal(true)}
+                  className='flex items-center gap-2 px-6 py-3 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors font-medium'
+                >
+                  <Plus className='w-5 h-5' />
+                  Add Expense
+                </button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
 
       <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
         <ExpenseStatsCards
