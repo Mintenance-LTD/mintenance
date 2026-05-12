@@ -10,6 +10,7 @@ import { toast } from 'react-hot-toast';
 import { logger } from '@mintenance/shared';
 import Image from 'next/image';
 import { safeCopyToClipboard } from '@/lib/utils/clipboard';
+import { HomeownerPageWrapper } from '@/app/dashboard/components/HomeownerPageWrapper';
 
 interface MFAStatus {
   enabled: boolean;
@@ -213,234 +214,244 @@ export default function MFASettingsPage() {
     );
   }
 
+  // Wrapped in <HomeownerPageWrapper className='me-legacy-fit'> so
+  // the Mint Editorial sidebar + topbar persist when users navigate
+  // here from /settings (same fix as the other 3 settings sub-pages).
   return (
-    <div className='max-w-4xl mx-auto p-6 space-y-6'>
-      <div>
-        <h1 className='text-3xl font-bold text-gray-900'>
-          Two-Factor Authentication
-        </h1>
-        <p className='mt-2 text-gray-600'>
-          Add an extra layer of security to your account
-        </p>
-      </div>
-
-      {/* Current status */}
-      <Card className='p-6'>
-        <div className='flex items-center justify-between'>
-          <div>
-            <h2 className='text-xl font-semibold text-gray-900'>MFA Status</h2>
-            <p className='mt-1 text-sm text-gray-600'>
-              {mfaStatus?.enabled ? (
-                <>
-                  <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800'>
-                    Enabled
-                  </span>
-                  <span className='ml-2'>
-                    Using {mfaStatus.method?.toUpperCase()}
-                  </span>
-                </>
-              ) : (
-                <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800'>
-                  Disabled
-                </span>
-              )}
-            </p>
-          </div>
-          {mfaStatus?.enabled ? (
-            <Button variant='outline' onClick={() => setShowDisableModal(true)}>
-              Disable MFA
-            </Button>
-          ) : (
-            <Button
-              onClick={handleStartEnrollment}
-              disabled={enrolling || !!enrollmentData}
-            >
-              {enrolling ? 'Setting up...' : 'Enable MFA'}
-            </Button>
-          )}
+    <HomeownerPageWrapper className='me-legacy-fit'>
+      <div className='max-w-4xl mx-auto p-6 space-y-6'>
+        <div>
+          <h1 className='text-3xl font-bold text-gray-900'>
+            Two-Factor Authentication
+          </h1>
+          <p className='mt-2 text-gray-600'>
+            Add an extra layer of security to your account
+          </p>
         </div>
 
-        {mfaStatus?.enabled && (
-          <div className='mt-4 pt-4 border-t border-gray-200 space-y-2'>
-            <div className='flex justify-between text-sm'>
-              <span className='text-gray-600'>Backup codes remaining:</span>
-              <span className='font-medium text-gray-900'>
-                {mfaStatus.backupCodesCount}
-              </span>
+        {/* Current status */}
+        <Card className='p-6'>
+          <div className='flex items-center justify-between'>
+            <div>
+              <h2 className='text-xl font-semibold text-gray-900'>
+                MFA Status
+              </h2>
+              <p className='mt-1 text-sm text-gray-600'>
+                {mfaStatus?.enabled ? (
+                  <>
+                    <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800'>
+                      Enabled
+                    </span>
+                    <span className='ml-2'>
+                      Using {mfaStatus.method?.toUpperCase()}
+                    </span>
+                  </>
+                ) : (
+                  <span className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800'>
+                    Disabled
+                  </span>
+                )}
+              </p>
             </div>
-            <div className='flex justify-between text-sm'>
-              <span className='text-gray-600'>Trusted devices:</span>
-              <span className='font-medium text-gray-900'>
-                {mfaStatus.trustedDevicesCount}
-              </span>
-            </div>
-          </div>
-        )}
-      </Card>
-
-      {/* Enrollment flow */}
-      {enrollmentData && (
-        <Card className='p-6 space-y-6'>
-          <div>
-            <h2 className='text-xl font-semibold text-gray-900'>
-              Set Up Authenticator App
-            </h2>
-            <p className='mt-1 text-sm text-gray-600'>
-              Scan the QR code with your authenticator app
-            </p>
-          </div>
-
-          {/* QR Code */}
-          <div className='flex justify-center'>
-            <div className='p-4 bg-white rounded-lg border-2 border-gray-200'>
-              <Image
-                src={enrollmentData.qrCode}
-                alt='QR Code'
-                width={200}
-                height={200}
-              />
-            </div>
-          </div>
-
-          {/* Manual entry */}
-          <div className='text-center'>
-            <p className='text-sm text-gray-600 mb-2'>
-              Can't scan? Enter this code manually:
-            </p>
-            <code className='px-3 py-2 bg-gray-100 rounded font-mono text-sm'>
-              {enrollmentData.secret}
-            </code>
-          </div>
-
-          {/* Verification */}
-          <div>
-            <label
-              htmlFor='verificationCode'
-              className='block text-sm font-medium text-gray-700 mb-2'
-            >
-              Enter verification code from app
-            </label>
-            <div className='flex gap-2'>
-              <Input
-                id='verificationCode'
-                type='text'
-                value={verificationCode}
-                onChange={(e) =>
-                  setVerificationCode(e.target.value.replace(/\D/g, ''))
-                }
-                placeholder='000000'
-                maxLength={6}
-                className='text-center text-xl tracking-widest font-mono flex-1'
-                disabled={enrolling}
-              />
+            {mfaStatus?.enabled ? (
               <Button
-                onClick={handleVerifyEnrollment}
-                disabled={enrolling || verificationCode.length !== 6}
+                variant='outline'
+                onClick={() => setShowDisableModal(true)}
               >
-                {enrolling ? 'Verifying...' : 'Verify'}
+                Disable MFA
               </Button>
-            </div>
+            ) : (
+              <Button
+                onClick={handleStartEnrollment}
+                disabled={enrolling || !!enrollmentData}
+              >
+                {enrolling ? 'Setting up...' : 'Enable MFA'}
+              </Button>
+            )}
           </div>
 
-          {/* Backup codes - show initially, hide after acknowledged */}
-          {showBackupCodes && (
-            <div className='border-t border-gray-200 pt-6'>
-              <div className='bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4'>
-                <h3 className='text-sm font-medium text-yellow-800 mb-2'>
-                  Save Your Backup Codes
-                </h3>
-                <p className='text-sm text-yellow-700'>
-                  Save these backup codes in a secure location. You can use each
-                  code once if you lose access to your authenticator app.
-                </p>
+          {mfaStatus?.enabled && (
+            <div className='mt-4 pt-4 border-t border-gray-200 space-y-2'>
+              <div className='flex justify-between text-sm'>
+                <span className='text-gray-600'>Backup codes remaining:</span>
+                <span className='font-medium text-gray-900'>
+                  {mfaStatus.backupCodesCount}
+                </span>
               </div>
-
-              <div className='grid grid-cols-2 gap-2 mb-4'>
-                {enrollmentData.backupCodes.map((code, index) => (
-                  <button
-                    key={index}
-                    onClick={() => handleCopyBackupCode(code)}
-                    className='p-3 bg-gray-50 hover:bg-gray-100 rounded font-mono text-sm text-left transition-colors'
-                  >
-                    {code}
-                  </button>
-                ))}
-              </div>
-
-              <div className='flex gap-2'>
-                <Button
-                  variant='outline'
-                  onClick={handlePrintBackupCodes}
-                  className='flex-1'
-                >
-                  Print Codes
-                </Button>
-                <Button
-                  onClick={() => setShowBackupCodes(false)}
-                  className='flex-1'
-                >
-                  I've Saved My Codes
-                </Button>
+              <div className='flex justify-between text-sm'>
+                <span className='text-gray-600'>Trusted devices:</span>
+                <span className='font-medium text-gray-900'>
+                  {mfaStatus.trustedDevicesCount}
+                </span>
               </div>
             </div>
           )}
         </Card>
-      )}
 
-      {/* Disable MFA modal */}
-      <Modal
-        isOpen={showDisableModal}
-        onClose={() => {
-          setShowDisableModal(false);
-          setDisablePassword('');
-        }}
-        title='Disable Two-Factor Authentication'
-      >
-        <div className='space-y-4'>
-          <p className='text-sm text-gray-600'>
-            Disabling MFA will make your account less secure. Enter your
-            password to confirm.
-          </p>
+        {/* Enrollment flow */}
+        {enrollmentData && (
+          <Card className='p-6 space-y-6'>
+            <div>
+              <h2 className='text-xl font-semibold text-gray-900'>
+                Set Up Authenticator App
+              </h2>
+              <p className='mt-1 text-sm text-gray-600'>
+                Scan the QR code with your authenticator app
+              </p>
+            </div>
 
-          <div>
-            <label
-              htmlFor='disablePassword'
-              className='block text-sm font-medium text-gray-700 mb-2'
-            >
-              Password
-            </label>
-            <Input
-              id='disablePassword'
-              type='password'
-              value={disablePassword}
-              onChange={(e) => setDisablePassword(e.target.value)}
-              placeholder='Enter your password'
-              disabled={disabling}
-            />
+            {/* QR Code */}
+            <div className='flex justify-center'>
+              <div className='p-4 bg-white rounded-lg border-2 border-gray-200'>
+                <Image
+                  src={enrollmentData.qrCode}
+                  alt='QR Code'
+                  width={200}
+                  height={200}
+                />
+              </div>
+            </div>
+
+            {/* Manual entry */}
+            <div className='text-center'>
+              <p className='text-sm text-gray-600 mb-2'>
+                Can't scan? Enter this code manually:
+              </p>
+              <code className='px-3 py-2 bg-gray-100 rounded font-mono text-sm'>
+                {enrollmentData.secret}
+              </code>
+            </div>
+
+            {/* Verification */}
+            <div>
+              <label
+                htmlFor='verificationCode'
+                className='block text-sm font-medium text-gray-700 mb-2'
+              >
+                Enter verification code from app
+              </label>
+              <div className='flex gap-2'>
+                <Input
+                  id='verificationCode'
+                  type='text'
+                  value={verificationCode}
+                  onChange={(e) =>
+                    setVerificationCode(e.target.value.replace(/\D/g, ''))
+                  }
+                  placeholder='000000'
+                  maxLength={6}
+                  className='text-center text-xl tracking-widest font-mono flex-1'
+                  disabled={enrolling}
+                />
+                <Button
+                  onClick={handleVerifyEnrollment}
+                  disabled={enrolling || verificationCode.length !== 6}
+                >
+                  {enrolling ? 'Verifying...' : 'Verify'}
+                </Button>
+              </div>
+            </div>
+
+            {/* Backup codes - show initially, hide after acknowledged */}
+            {showBackupCodes && (
+              <div className='border-t border-gray-200 pt-6'>
+                <div className='bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4'>
+                  <h3 className='text-sm font-medium text-yellow-800 mb-2'>
+                    Save Your Backup Codes
+                  </h3>
+                  <p className='text-sm text-yellow-700'>
+                    Save these backup codes in a secure location. You can use
+                    each code once if you lose access to your authenticator app.
+                  </p>
+                </div>
+
+                <div className='grid grid-cols-2 gap-2 mb-4'>
+                  {enrollmentData.backupCodes.map((code, index) => (
+                    <button
+                      key={index}
+                      onClick={() => handleCopyBackupCode(code)}
+                      className='p-3 bg-gray-50 hover:bg-gray-100 rounded font-mono text-sm text-left transition-colors'
+                    >
+                      {code}
+                    </button>
+                  ))}
+                </div>
+
+                <div className='flex gap-2'>
+                  <Button
+                    variant='outline'
+                    onClick={handlePrintBackupCodes}
+                    className='flex-1'
+                  >
+                    Print Codes
+                  </Button>
+                  <Button
+                    onClick={() => setShowBackupCodes(false)}
+                    className='flex-1'
+                  >
+                    I've Saved My Codes
+                  </Button>
+                </div>
+              </div>
+            )}
+          </Card>
+        )}
+
+        {/* Disable MFA modal */}
+        <Modal
+          isOpen={showDisableModal}
+          onClose={() => {
+            setShowDisableModal(false);
+            setDisablePassword('');
+          }}
+          title='Disable Two-Factor Authentication'
+        >
+          <div className='space-y-4'>
+            <p className='text-sm text-gray-600'>
+              Disabling MFA will make your account less secure. Enter your
+              password to confirm.
+            </p>
+
+            <div>
+              <label
+                htmlFor='disablePassword'
+                className='block text-sm font-medium text-gray-700 mb-2'
+              >
+                Password
+              </label>
+              <Input
+                id='disablePassword'
+                type='password'
+                value={disablePassword}
+                onChange={(e) => setDisablePassword(e.target.value)}
+                placeholder='Enter your password'
+                disabled={disabling}
+              />
+            </div>
+
+            <div className='flex gap-2'>
+              <Button
+                variant='outline'
+                onClick={() => {
+                  setShowDisableModal(false);
+                  setDisablePassword('');
+                }}
+                disabled={disabling}
+                className='flex-1'
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleDisableMFA}
+                disabled={disabling || !disablePassword}
+                className='flex-1 bg-red-600 hover:bg-red-700'
+              >
+                {disabling ? 'Disabling...' : 'Disable MFA'}
+              </Button>
+            </div>
           </div>
-
-          <div className='flex gap-2'>
-            <Button
-              variant='outline'
-              onClick={() => {
-                setShowDisableModal(false);
-                setDisablePassword('');
-              }}
-              disabled={disabling}
-              className='flex-1'
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleDisableMFA}
-              disabled={disabling || !disablePassword}
-              className='flex-1 bg-red-600 hover:bg-red-700'
-            >
-              {disabling ? 'Disabling...' : 'Disable MFA'}
-            </Button>
-          </div>
-        </div>
-      </Modal>
-    </div>
+        </Modal>
+      </div>
+    </HomeownerPageWrapper>
   );
 }

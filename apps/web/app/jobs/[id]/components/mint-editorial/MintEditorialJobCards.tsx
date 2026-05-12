@@ -35,6 +35,10 @@ export interface JobShape {
    *  Timeline tab to render the "Job complete" event. Null while
    *  the job is still posted / in flight. */
   completed_at?: string | null;
+  /** Homeowner's preferred start date, stashed during job creation
+   *  in `jobs.requirements.preferred_start_date` until a dedicated
+   *  column ships. ISO date string (YYYY-MM-DD). */
+  preferred_start_date?: string | null;
   contractor_id?: string;
 }
 

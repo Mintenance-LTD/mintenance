@@ -366,6 +366,19 @@ export default async function JobDetailPage2025({
   const isMintEditorial =
     cookieStore.get('mintenance-theme')?.value === 'mint-editorial';
 
+  // Pull the homeowner's preferred start date out of `requirements`
+  // (stashed there by job creation — the schema doesn't have a
+  // dedicated column yet). The shape is `requirements.preferred_start_date`
+  // set to an ISO date string.
+  const requirements =
+    job.requirements && typeof job.requirements === 'object'
+      ? (job.requirements as Record<string, unknown>)
+      : null;
+  const preferredStartDate =
+    requirements && typeof requirements.preferred_start_date === 'string'
+      ? requirements.preferred_start_date
+      : null;
+
   if (isMintEditorial) {
     return (
       <MintEditorialJobDetailView
@@ -380,6 +393,7 @@ export default async function JobDetailPage2025({
           location: job.location || 'Location not specified',
           created_at: job.created_at,
           completed_at: job.completed_at,
+          preferred_start_date: preferredStartDate,
           contractor_id: job.contractor_id,
           completion_confirmed_by_homeowner:
             job.completion_confirmed_by_homeowner,

@@ -180,6 +180,19 @@ export function MintEditorialJobDetail({
         }`;
 
   const escrowHeld = lifecycle.escrowStatus === 'held' ? job.budget : 0;
+
+  // Preferred start date is stashed in `requirements.preferred_start_date`
+  // by the job-creation wizard (see /jobs/create utils/submitJob.ts).
+  // Surface it as a 5th hero meta pill so homeowners can see what
+  // they asked for, and contractors can see what to bid against.
+  const preferredStartLabel = job.preferred_start_date
+    ? new Date(job.preferred_start_date).toLocaleDateString('en-GB', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+      })
+    : null;
+
   const headerMeta: { Icon: typeof MapPin; text: string }[] = [
     {
       Icon: MapPin,
@@ -200,6 +213,9 @@ export function MintEditorialJobDetail({
           ? `${formatGBP(escrowHeld)} escrow held`
           : `Budget ${job.budget > 0 ? formatGBP(job.budget) : '—'}`,
     },
+    ...(preferredStartLabel
+      ? [{ Icon: Calendar, text: `Prefers ${preferredStartLabel}` }]
+      : []),
   ];
 
   const handleAccept = async () => {
