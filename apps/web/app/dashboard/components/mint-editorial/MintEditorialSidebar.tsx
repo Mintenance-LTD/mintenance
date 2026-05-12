@@ -9,7 +9,7 @@ import type {
   NavSection,
 } from '@/components/layouts/sidebar/SidebarNavItems';
 import { useBadgeCounts } from '@/components/layouts/sidebar/SidebarNotifications';
-import { initials } from './dashboardHelpers';
+import { MintEditorialSidebarUserMenu } from './MintEditorialSidebarUserMenu';
 
 function isActive(pathname: string | null, href: string): boolean {
   if (!pathname) return false;
@@ -70,6 +70,7 @@ export function MintEditorialSidebar({
   email,
   role,
   postcode,
+  profileImageUrl,
 }: {
   homeownerName: string;
   email?: string;
@@ -77,6 +78,8 @@ export function MintEditorialSidebar({
   role?: string;
   /** Optional postcode appended to the role line ("Homeowner · SW18"). */
   postcode?: string;
+  /** Avatar URL — falls back to initials in the user card when null. */
+  profileImageUrl?: string | null;
 }) {
   const pathname = usePathname();
   const sections = useNavSections('homeowner') as NavSection[];
@@ -126,52 +129,11 @@ export function MintEditorialSidebar({
         ))}
       </div>
 
-      <div
-        className='me-sidebar-user'
-        style={{
-          padding: 12,
-          background: 'var(--me-surface)',
-          border: '1px solid var(--me-line)',
-          borderRadius: 12,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10,
-        }}
-      >
-        <span
-          className='avatar avatar-md'
-          style={{
-            background: 'var(--me-brand)',
-            color: 'var(--me-on-brand)',
-          }}
-        >
-          {initials(homeownerName)}
-        </span>
-        <div className='col' style={{ gap: 0, minWidth: 0 }}>
-          <div
-            style={{
-              fontSize: 13,
-              fontWeight: 600,
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {homeownerName}
-          </div>
-          <div
-            style={{
-              fontSize: 11,
-              color: 'var(--me-ink-3)',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {subtitle}
-          </div>
-        </div>
-      </div>
+      <MintEditorialSidebarUserMenu
+        homeownerName={homeownerName}
+        subtitle={subtitle}
+        profileImageUrl={profileImageUrl}
+      />
     </aside>
   );
 }

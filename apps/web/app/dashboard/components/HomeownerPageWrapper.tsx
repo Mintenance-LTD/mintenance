@@ -63,6 +63,7 @@ export function HomeownerPageWrapper({
         email={user?.email ?? undefined}
         role={user?.role}
         postcode={user?.postcode}
+        profileImageUrl={user?.profile_image_url ?? null}
       >
         <div className={className}>{children}</div>
       </MintEditorialShell>

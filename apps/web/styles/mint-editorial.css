@@ -1160,6 +1160,99 @@
   font-weight: 500;
 }
 
+/* ============================================================
+   Phase-2 follow-up — sidebar user-menu popover (logout + profile)
+   The bottom user card used to be a non-interactive div, so users
+   on Mint Editorial had no way to sign out. The card is now a
+   button-styled trigger; on click it opens a small popover above
+   itself with Profile / Settings / Sign out actions.
+   ============================================================ */
+.me-root .me-sidebar-user-trigger {
+  width: 100%;
+  padding: 12px;
+  background: var(--me-surface);
+  border: 1px solid var(--me-line);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: background 0.12s ease;
+}
+.me-root .me-sidebar-user-trigger:hover {
+  background: var(--me-bg-2);
+}
+.me-root .me-sidebar-user-trigger[aria-expanded='true'] {
+  background: var(--me-bg-2);
+  border-color: var(--me-line);
+}
+.me-root .me-sidebar-user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--me-brand);
+  color: var(--me-on-brand);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 13px;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.me-root .me-sidebar-user-avatar > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.me-root .me-sidebar-user-menu {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  background: var(--me-surface);
+  border: 1px solid var(--me-line);
+  border-radius: 12px;
+  box-shadow: var(--me-shadow-pop);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 50;
+}
+.me-root .me-sidebar-user-menu .item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--me-ink);
+  font-weight: 500;
+  background: transparent;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  text-decoration: none;
+}
+.me-root .me-sidebar-user-menu .item:hover {
+  background: var(--me-bg-2);
+}
+.me-root .me-sidebar-user-menu .item.danger {
+  color: var(--me-err-fg);
+}
+.me-root .me-sidebar-user-menu .item.danger:hover {
+  background: var(--me-err-bg);
+}
+.me-root .me-sidebar-user-menu .divider {
+  height: 1px;
+  background: var(--me-line-2);
+  margin: 4px 2px;
+}
+
 /* The theme switch lives at /settings → Appearance now (Phase 1). The
    floating dev pill that previously sat at top-right has been removed
    so the dashboard chrome matches the design exactly. */

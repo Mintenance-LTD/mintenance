@@ -17,6 +17,10 @@ interface MintEditorialShellProps {
   role?: string;
   /** Optional postcode to append to the role line ("Homeowner · SW18"). */
   postcode?: string;
+  /** Optional profile picture for the sidebar user card. When set the
+   *  card renders an <Image> from the avatars bucket; otherwise it
+   *  falls back to initials. */
+  profileImageUrl?: string | null;
   /** Page content rendered inside the main scroll area. */
   children: ReactNode;
   /** Optional override for the main content padding. Defaults match
@@ -45,6 +49,7 @@ export function MintEditorialShell({
   email,
   role,
   postcode,
+  profileImageUrl,
   children,
   contentPadding = '28px 36px 140px',
 }: MintEditorialShellProps) {
@@ -55,6 +60,7 @@ export function MintEditorialShell({
         email={email}
         role={role}
         postcode={postcode}
+        profileImageUrl={profileImageUrl}
       />
 
       <div

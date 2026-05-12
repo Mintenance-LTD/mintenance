@@ -42,6 +42,7 @@ export function MintEditorialHomeownerDashboard({
       email={homeowner.email}
       role={homeowner.role}
       postcode={homeowner.postcode}
+      profileImageUrl={homeowner.avatar}
     >
       {/* Greeting */}
       <div className='between' style={{ marginBottom: 22 }}>
