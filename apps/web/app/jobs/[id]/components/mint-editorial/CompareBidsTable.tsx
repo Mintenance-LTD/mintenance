@@ -170,15 +170,10 @@ export function CompareBidsTable({
                 ) : null}
                 {rating != null ? (
                   <>
-                    <Star
-                      size={10}
-                      strokeWidth={1.75}
-                      style={{
-                        verticalAlign: '-1px',
-                        color: 'var(--me-warm)',
-                      }}
-                    />{' '}
-                    {rating.toFixed(1)}
+                    <span className='stars' style={{ fontSize: 12 }}>
+                      <Star size={11} strokeWidth={1.75} fill='currentColor' />
+                      <span className='v'>{rating.toFixed(1)}</span>
+                    </span>
                     {' · '}
                   </>
                 ) : null}

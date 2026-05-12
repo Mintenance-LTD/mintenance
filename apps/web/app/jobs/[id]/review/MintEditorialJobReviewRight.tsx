@@ -9,7 +9,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Shield } from 'lucide-react';
+import { Shield, Star } from 'lucide-react';
 import { formatMoney } from '@/lib/utils/currency';
 
 const TIP_PRESETS = [0, 5, 10, 15, 20];
@@ -202,9 +202,15 @@ export function MintEditorialJobReviewRight({
           <div style={{ flex: 1, minWidth: 0 }}>
             <h3 className='t-h4'>{contractorName}</h3>
             <div className='t-meta'>
-              {contractor?.rating != null
-                ? `${contractor.rating.toFixed(1)} ★ · `
-                : ''}
+              {contractor?.rating != null ? (
+                <>
+                  <span className='stars' style={{ fontSize: 12 }}>
+                    <Star size={11} strokeWidth={1.75} fill='currentColor' />
+                    <span className='v'>{contractor.rating.toFixed(1)}</span>
+                  </span>
+                  {' · '}
+                </>
+              ) : null}
               {contractor?.total_jobs_completed != null
                 ? `${contractor.total_jobs_completed} jobs`
                 : 'Verified pro'}

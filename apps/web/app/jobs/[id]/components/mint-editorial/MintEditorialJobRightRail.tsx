@@ -101,17 +101,10 @@ export function SelectedContractorCard({
           <Row
             label='Rating'
             value={
-              <>
-                <Star
-                  size={11}
-                  strokeWidth={1.75}
-                  style={{
-                    verticalAlign: '-1px',
-                    color: 'var(--me-warm)',
-                  }}
-                />{' '}
-                {rating.toFixed(1)}
-              </>
+              <span className='stars'>
+                <Star size={12} strokeWidth={1.75} fill='currentColor' />
+                <span className='v'>{rating.toFixed(1)}</span>
+              </span>
             }
           />
         ) : null}
