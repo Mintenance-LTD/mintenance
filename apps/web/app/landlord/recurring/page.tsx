@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
+import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { RecurringTasksClient } from './RecurringTasksClient';
+import { MintEditorialRecurringTasks } from './MintEditorialRecurringTasks';
 
 export const metadata: Metadata = {
   title: 'Recurring Tasks | Mintenance',
@@ -32,6 +34,19 @@ export default async function RecurringTasksPage() {
     .select('*')
     .eq('owner_id', user.id)
     .order('next_due_date', { ascending: true });
+
+  const cookieStore = await cookies();
+  const isMintEditorial =
+    cookieStore.get('mintenance-theme')?.value === 'mint-editorial';
+
+  if (isMintEditorial) {
+    return (
+      <MintEditorialRecurringTasks
+        properties={properties || []}
+        schedules={schedules || []}
+      />
+    );
+  }
 
   return (
     <RecurringTasksClient
