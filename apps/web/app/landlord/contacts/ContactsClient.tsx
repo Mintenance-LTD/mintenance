@@ -69,6 +69,8 @@ export function ContactsClient({
     contact_role: 'tenant',
     unit_label: '',
     notes: '',
+    move_in_date: '',
+    lease_end_date: '',
   });
 
   const filtered =
@@ -99,6 +101,8 @@ export function ContactsClient({
           phone: formData.phone.trim() || null,
           unit_label: formData.unit_label.trim() || null,
           notes: formData.notes.trim() || null,
+          move_in_date: formData.move_in_date || null,
+          lease_end_date: formData.lease_end_date || null,
         }),
       });
 
@@ -115,6 +119,8 @@ export function ContactsClient({
         contact_role: 'tenant',
         unit_label: '',
         notes: '',
+        move_in_date: '',
+        lease_end_date: '',
       });
       toast.success('Contact added');
     } catch {
@@ -226,6 +232,41 @@ export function ContactsClient({
                 className='rounded-lg border border-gray-300 px-3 py-2 text-sm'
               />
             </div>
+            {/* Tenancy dates — only for the tenant role; other contact
+                types (keyholder / emergency / managing agent) don't
+                have a lease cycle. */}
+            {formData.contact_role === 'tenant' && (
+              <div className='grid grid-cols-1 sm:grid-cols-2 gap-3'>
+                <label className='flex flex-col gap-1 text-xs text-gray-600'>
+                  Move-in date
+                  <input
+                    type='date'
+                    value={formData.move_in_date}
+                    onChange={(e) =>
+                      setFormData((p) => ({
+                        ...p,
+                        move_in_date: e.target.value,
+                      }))
+                    }
+                    className='rounded-lg border border-gray-300 px-3 py-2 text-sm'
+                  />
+                </label>
+                <label className='flex flex-col gap-1 text-xs text-gray-600'>
+                  Lease end date
+                  <input
+                    type='date'
+                    value={formData.lease_end_date}
+                    onChange={(e) =>
+                      setFormData((p) => ({
+                        ...p,
+                        lease_end_date: e.target.value,
+                      }))
+                    }
+                    className='rounded-lg border border-gray-300 px-3 py-2 text-sm'
+                  />
+                </label>
+              </div>
+            )}
             <button
               type='submit'
               className='px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-colors'

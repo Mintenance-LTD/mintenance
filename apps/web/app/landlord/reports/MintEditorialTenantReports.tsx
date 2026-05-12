@@ -19,7 +19,17 @@
 
 import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { MessageSquare, FileText, X, Link2 } from 'lucide-react';
+import {
+  MessageSquare,
+  FileText,
+  X,
+  Link2,
+  CheckCircle2,
+  XCircle,
+  RotateCcw,
+} from 'lucide-react';
+import toast from 'react-hot-toast';
+import { getCsrfHeaders } from '@/lib/csrf-client';
 import { MintEditorialEmptyState } from '@/components/mint-editorial/MintEditorialEmptyState';
 
 interface Report {
@@ -83,9 +93,71 @@ function formatDate(iso: string): string {
   });
 }
 
-export function MintEditorialTenantReports({ reports }: { reports: Report[] }) {
+export function MintEditorialTenantReports({
+  reports: initialReports,
+}: {
+  reports: Report[];
+}) {
+  // Reports are kept in local state so a status mutation re-renders
+  // the list + chip counts without a full page reload.
+  const [reports, setReports] = useState(initialReports);
   const [filter, setFilter] = useState<StatusKey>('all');
   const [selected, setSelected] = useState<Report | null>(null);
+  const [updating, setUpdating] = useState(false);
+
+  /** Optimistic status update — flips status locally, fires PATCH,
+   *  rolls back on error. Auto-closes the modal after success unless
+   *  the new status is 'acknowledged' (user might want to take more
+   *  action like create-job from the same modal). */
+  const updateStatus = async (
+    report: Report,
+    nextStatus: StatusKey,
+    closeAfter = true
+  ) => {
+    if (updating || nextStatus === 'all') return;
+    setUpdating(true);
+    const previous = report.status;
+    const optimistic: Report = { ...report, status: nextStatus };
+    setReports((prev) =>
+      prev.map((r) => (r.id === report.id ? optimistic : r))
+    );
+    setSelected(optimistic);
+    try {
+      const csrfHeaders = await getCsrfHeaders();
+      const res = await fetch(`/api/landlord/reports/${report.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders },
+        body: JSON.stringify({ status: nextStatus }),
+      });
+      if (!res.ok) throw new Error(`Update failed (${res.status})`);
+      const { report: fresh } = (await res.json()) as { report: Report };
+      // Reconcile with the server's authoritative row.
+      setReports((prev) => prev.map((r) => (r.id === fresh.id ? fresh : r)));
+      toast.success(
+        nextStatus === 'resolved'
+          ? 'Marked resolved'
+          : nextStatus === 'dismissed'
+            ? 'Dismissed'
+            : nextStatus === 'acknowledged'
+              ? 'Acknowledged'
+              : 'Status updated'
+      );
+      if (closeAfter) setSelected(null);
+    } catch (err) {
+      // Roll back
+      setReports((prev) =>
+        prev.map((r) => (r.id === report.id ? { ...r, status: previous } : r))
+      );
+      setSelected((prev) =>
+        prev && prev.id === report.id ? { ...prev, status: previous } : prev
+      );
+      toast.error(
+        err instanceof Error ? err.message : 'Failed to update status'
+      );
+    } finally {
+      setUpdating(false);
+    }
+  };
 
   // Per-tab counts so every chip shows its own number (the legacy
   // client only emitted counts on `all` + `new`).
@@ -325,28 +397,93 @@ export function MintEditorialTenantReports({ reports }: { reports: Report[] }) {
                   <p className='t-meta'>{selected.properties.address}</p>
                 </div>
               ) : null}
-              <div className='row' style={{ gap: 8, marginTop: 6 }}>
-                {selected.properties ? (
+              <div className='col' style={{ gap: 8, marginTop: 6 }}>
+                {/* Status-aware action row — buttons depend on the
+                    current state. `converted` is a terminal state
+                    (the job already exists) so we only show a
+                    secondary Manage-links link there. */}
+                <div className='row' style={{ gap: 8, flexWrap: 'wrap' }}>
+                  {selected.status === 'new' ? (
+                    <>
+                      <button
+                        type='button'
+                        className='btn btn-primary btn-sm'
+                        disabled={updating}
+                        onClick={() =>
+                          updateStatus(selected, 'acknowledged', false)
+                        }
+                      >
+                        <CheckCircle2 size={13} strokeWidth={1.75} />
+                        Acknowledge
+                      </button>
+                      <button
+                        type='button'
+                        className='btn btn-secondary btn-sm'
+                        disabled={updating}
+                        onClick={() => updateStatus(selected, 'dismissed')}
+                      >
+                        <XCircle size={13} strokeWidth={1.75} /> Dismiss
+                      </button>
+                    </>
+                  ) : null}
+                  {selected.status === 'acknowledged' ? (
+                    <>
+                      <button
+                        type='button'
+                        className='btn btn-primary btn-sm'
+                        disabled={updating}
+                        onClick={() => updateStatus(selected, 'resolved')}
+                      >
+                        <CheckCircle2 size={13} strokeWidth={1.75} />
+                        Mark resolved
+                      </button>
+                      <button
+                        type='button'
+                        className='btn btn-secondary btn-sm'
+                        disabled={updating}
+                        onClick={() => updateStatus(selected, 'dismissed')}
+                      >
+                        <XCircle size={13} strokeWidth={1.75} /> Dismiss
+                      </button>
+                    </>
+                  ) : null}
+                  {selected.status === 'resolved' ||
+                  selected.status === 'dismissed' ? (
+                    <button
+                      type='button'
+                      className='btn btn-secondary btn-sm'
+                      disabled={updating}
+                      onClick={() => updateStatus(selected, 'new')}
+                    >
+                      <RotateCcw size={13} strokeWidth={1.75} /> Reopen
+                    </button>
+                  ) : null}
+                </div>
+                <div className='row' style={{ gap: 8, flexWrap: 'wrap' }}>
+                  {selected.properties &&
+                  selected.status !== 'converted' &&
+                  selected.status !== 'dismissed' ? (
+                    <Link
+                      href={{
+                        pathname: '/jobs/create',
+                        query: {
+                          property_id: selected.properties.id,
+                          category: selected.category,
+                          description: selected.description,
+                        },
+                      }}
+                      className='btn btn-primary btn-sm'
+                    >
+                      <FileText size={13} strokeWidth={1.75} /> Create job
+                    </Link>
+                  ) : null}
                   <Link
-                    href={{
-                      pathname: '/jobs/create',
-                      query: {
-                        property_id: selected.properties.id,
-                        category: selected.category,
-                        description: selected.description,
-                      },
-                    }}
-                    className='btn btn-primary btn-sm'
+                    href='/landlord/reporting-links'
+                    className='btn btn-ghost btn-sm'
                   >
-                    <FileText size={13} strokeWidth={1.75} /> Create job
+                    <Link2 size={13} strokeWidth={1.75} /> Manage links
                   </Link>
-                ) : null}
-                <Link
-                  href='/landlord/reporting-links'
-                  className='btn btn-secondary btn-sm'
-                >
-                  <Link2 size={13} strokeWidth={1.75} /> Manage links
-                </Link>
+                </div>
               </div>
             </div>
           </div>

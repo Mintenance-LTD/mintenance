@@ -30,7 +30,7 @@ import React, { useEffect, useRef, useState } from 'react';
 // remotePatterns allow-list because Job-storage signed URLs rotate).
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { LogOut, Settings, User as UserIcon } from 'lucide-react';
+import { LogOut, Settings } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { getCsrfHeaders } from '@/lib/csrf-client';
 import { logger } from '@mintenance/shared';
@@ -147,15 +147,10 @@ export function MintEditorialSidebarUserMenu({
 
       {open ? (
         <div role='menu' className='me-sidebar-user-menu'>
-          <Link
-            href='/profile'
-            className='item'
-            onClick={() => setOpen(false)}
-            role='menuitem'
-          >
-            <UserIcon size={14} strokeWidth={1.75} />
-            Profile
-          </Link>
+          {/* /profile is just a redirect to /settings (see
+              apps/web/app/profile/page.tsx) — keeping both menu items
+              would send users through a 301-bounce to the same surface.
+              One canonical entry. */}
           <Link
             href='/settings'
             className='item'
@@ -163,7 +158,7 @@ export function MintEditorialSidebarUserMenu({
             role='menuitem'
           >
             <Settings size={14} strokeWidth={1.75} />
-            Settings
+            Profile &amp; settings
           </Link>
           <div className='divider' />
           <button

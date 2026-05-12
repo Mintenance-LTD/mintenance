@@ -13,11 +13,14 @@ export const GET = withApiHandler(
       .order('name');
 
     if (error) {
-      return NextResponse.json({ error: 'Failed to fetch contacts' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Failed to fetch contacts' },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({ contacts: data || [] });
-  },
+  }
 );
 
 // POST /api/landlord/contacts - Create a new contact
@@ -25,10 +28,23 @@ export const POST = withApiHandler(
   { roles: ['homeowner', 'admin'] },
   async (req, { user }) => {
     const body = await req.json();
-    const { property_id, name, email, phone, contact_role, unit_label, notes } = body;
+    const {
+      property_id,
+      name,
+      email,
+      phone,
+      contact_role,
+      unit_label,
+      notes,
+      move_in_date,
+      lease_end_date,
+    } = body;
 
     if (!property_id || !name?.trim()) {
-      return NextResponse.json({ error: 'property_id and name are required' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'property_id and name are required' },
+        { status: 400 }
+      );
     }
 
     // Verify property ownership
@@ -39,11 +55,35 @@ export const POST = withApiHandler(
       .single();
 
     if (!property || (property.owner_id !== user.id && user.role !== 'admin')) {
-      return NextResponse.json({ error: 'Property not found or forbidden' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Property not found or forbidden' },
+        { status: 404 }
+      );
     }
 
-    const validRoles = ['tenant', 'keyholder', 'emergency_contact', 'managing_agent'];
-    const safeRole = validRoles.includes(contact_role) ? contact_role : 'tenant';
+    const validRoles = [
+      'tenant',
+      'keyholder',
+      'emergency_contact',
+      'managing_agent',
+    ];
+    const safeRole = validRoles.includes(contact_role)
+      ? contact_role
+      : 'tenant';
+
+    // 2026-05-12: also persist move_in_date + lease_end_date when set.
+    // The DB columns exist (migration 20260214200000) but the form
+    // previously dropped them, so every contact landed with both
+    // fields NULL. Strings of the form YYYY-MM-DD round-trip through
+    // PostgREST as `date` values.
+    const isoDate = (v: unknown): string | null => {
+      if (typeof v !== 'string') return null;
+      const trimmed = v.trim();
+      // Light validation — postgres will reject a malformed date too
+      // but a clean 400 here gives the homeowner a better message.
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) return null;
+      return trimmed;
+    };
 
     const { data: contact, error } = await serverSupabase
       .from('property_contacts')
@@ -56,14 +96,19 @@ export const POST = withApiHandler(
         contact_role: safeRole,
         unit_label: unit_label?.trim() || null,
         notes: notes?.trim() || null,
+        move_in_date: isoDate(move_in_date),
+        lease_end_date: isoDate(lease_end_date),
       })
       .select()
       .single();
 
     if (error) {
-      return NextResponse.json({ error: 'Failed to create contact' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Failed to create contact' },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({ contact }, { status: 201 });
-  },
+  }
 );

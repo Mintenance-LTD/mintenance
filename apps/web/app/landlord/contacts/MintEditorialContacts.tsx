@@ -102,6 +102,8 @@ export function MintEditorialContacts({
     contact_role: 'tenant',
     unit_label: '',
     notes: '',
+    move_in_date: '',
+    lease_end_date: '',
   });
 
   const propertyName = (id: string) =>
@@ -131,6 +133,8 @@ export function MintEditorialContacts({
           phone: formData.phone.trim() || null,
           unit_label: formData.unit_label.trim() || null,
           notes: formData.notes.trim() || null,
+          move_in_date: formData.move_in_date || null,
+          lease_end_date: formData.lease_end_date || null,
         }),
       });
       if (!res.ok) throw new Error('Failed');
@@ -145,6 +149,8 @@ export function MintEditorialContacts({
         contact_role: 'tenant',
         unit_label: '',
         notes: '',
+        move_in_date: '',
+        lease_end_date: '',
       });
       toast.success('Contact added');
     } catch {
@@ -266,6 +272,47 @@ export function MintEditorialContacts({
                 style={{ flex: '1 1 120px', minWidth: 120 }}
               />
             </div>
+            {/* Tenancy dates — only render for the tenant role; other
+                roles (keyholder / emergency contact / managing agent)
+                don't have a lease cycle. Optional fields either way. */}
+            {formData.contact_role === 'tenant' ? (
+              <div className='row' style={{ gap: 10, flexWrap: 'wrap' }}>
+                <label
+                  className='col'
+                  style={{ flex: '1 1 200px', minWidth: 180, gap: 4 }}
+                >
+                  <span className='t-meta'>Move-in date</span>
+                  <input
+                    type='date'
+                    className='field'
+                    value={formData.move_in_date}
+                    onChange={(e) =>
+                      setFormData((p) => ({
+                        ...p,
+                        move_in_date: e.target.value,
+                      }))
+                    }
+                  />
+                </label>
+                <label
+                  className='col'
+                  style={{ flex: '1 1 200px', minWidth: 180, gap: 4 }}
+                >
+                  <span className='t-meta'>Lease end date</span>
+                  <input
+                    type='date'
+                    className='field'
+                    value={formData.lease_end_date}
+                    onChange={(e) =>
+                      setFormData((p) => ({
+                        ...p,
+                        lease_end_date: e.target.value,
+                      }))
+                    }
+                  />
+                </label>
+              </div>
+            ) : null}
             <button
               type='submit'
               className='btn btn-primary'
@@ -371,6 +418,20 @@ export function MintEditorialContacts({
                   {propertyName(contact.property_id)}
                   {contact.unit_label ? ` · Unit ${contact.unit_label}` : ''}
                 </span>
+                {contact.contact_role === 'tenant' &&
+                (contact.move_in_date || contact.lease_end_date) ? (
+                  <span className='t-meta' style={{ fontSize: 11 }}>
+                    {contact.move_in_date
+                      ? `Since ${new Date(contact.move_in_date).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}`
+                      : ''}
+                    {contact.move_in_date && contact.lease_end_date
+                      ? ' · '
+                      : ''}
+                    {contact.lease_end_date
+                      ? `Lease ends ${new Date(contact.lease_end_date).toLocaleDateString('en-GB', { month: 'short', year: 'numeric' })}`
+                      : ''}
+                  </span>
+                ) : null}
               </div>
               <div className='row' style={{ gap: 6, flexShrink: 0 }}>
                 {contact.phone ? (
