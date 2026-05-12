@@ -1,29 +1,52 @@
 'use client';
 
-/* eslint-disable @next/next/no-img-element */
+/**
+ * Mint Editorial /jobs/[id] surface — canonical layout from
+ * design-system/project/redesign-v2/job-detail.html lines 100-296.
+ *
+ * Replaces the prior card-grid bid view with the canonical
+ * comparison-table layout: hero strip + Mint AI summary card +
+ * Overview/Bids/Photos/Messages/Payments/Timeline tabs + 2-col body
+ * (compare-bids table on the left, sticky right-rail with the
+ * currently-selected contractor card + "How payment works" trust
+ * panel + Quick actions).
+ *
+ * Acceptance still flows through the existing
+ * `/api/jobs/[id]/bids/[bidId]/accept` route via the rail's
+ * onAccept callback — same as the legacy BidCard, just rerouted.
+ */
+
+import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
-import { BidCard, type Bid } from '../BidCard';
+import { useRouter } from 'next/navigation';
 import {
-  buildLifecyclePhases,
-  computeNextStep,
-  type JobLifecycleInputs,
-} from './jobDetailHelpers';
+  ArrowLeft,
+  MapPin,
+  Calendar,
+  Shield,
+  Sparkles,
+  Wrench,
+} from 'lucide-react';
+import { getCsrfHeaders } from '@/lib/csrf-client';
+import { logger } from '@mintenance/shared';
+import type { Bid } from '../BidCard';
 import {
-  BudgetCard,
-  ContractorCard,
-  DescriptionCard,
-  JobInfoStrip,
-  JobProgressCard,
-  NextStepCard,
-  formatPosted,
-  getCategorySwatch,
-  statusBadge,
   formatGBP,
+  formatPosted,
+  statusBadge,
   type ContractorShape,
   type JobShape,
   type PropertyShape,
 } from './MintEditorialJobCards';
+import {
+  SelectedContractorCard,
+  HowPaymentWorksCard,
+  QuickActionsList,
+} from './MintEditorialJobRightRail';
+import {
+  MintEditorialJobTabBody,
+  type TabKey,
+} from './MintEditorialJobTabBody';
 
 interface LifecycleData {
   contractStatus?: string | null;
@@ -42,57 +65,53 @@ interface Props {
   lifecycle: LifecycleData;
 }
 
-function JobHeader({
-  job,
-  property,
-}: {
-  job: JobShape;
-  property?: PropertyShape | null;
-}) {
-  const cat = getCategorySwatch(job.category);
-  const Icon = cat.Icon;
-  return (
-    <div className='row' style={{ gap: 18, alignItems: 'flex-start' }}>
-      <div
-        style={{
-          width: 80,
-          height: 80,
-          borderRadius: 14,
-          background: `var(--me-cat-${cat.key}-bg)`,
-          color: `var(--me-cat-${cat.key}-fg)`,
-          display: 'inline-flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0,
-        }}
-      >
-        <Icon size={36} strokeWidth={1.5} />
-      </div>
-      <div className='col' style={{ gap: 8, flex: 1, minWidth: 0 }}>
-        <div className='row' style={{ gap: 8, flexWrap: 'wrap' }}>
-          {statusBadge(job.status)}
-          <span className='badge badge-mute'>{job.category || 'General'}</span>
-          <span className='t-meta'>{formatPosted(job.created_at)}</span>
-        </div>
-        <h1 className='t-h1' style={{ wordBreak: 'break-word' }}>
-          {job.title}
-        </h1>
-        <p className='t-body'>
-          {property?.address || job.location || 'Location not set'}
-        </p>
-      </div>
-      <div
-        className='col'
-        style={{ alignItems: 'flex-end', gap: 4, flexShrink: 0 }}
-      >
-        <div className='t-meta'>Your budget</div>
-        <div className='me-list-amount' style={{ fontSize: 28 }}>
-          {job.budget > 0 ? formatGBP(job.budget) : '—'}
-        </div>
-      </div>
-    </div>
-  );
+function pendingOnly(bids: Bid[]): Bid[] {
+  return bids.filter((b) => b.status === 'pending');
 }
+
+/**
+ * Pick the "recommended" bid by a small heuristic: highest rating
+ * × verified status, then lowest amount as a tiebreaker. Returns
+ * null if there's nothing to score. The canonical mock uses a
+ * dedicated AI model; this is a transparent in-page approximation.
+ */
+function pickRecommended(bids: Bid[]): string | null {
+  if (bids.length === 0) return null;
+  let bestId: string | null = null;
+  let bestScore = -Infinity;
+  for (const b of bids) {
+    const rating = b.contractor.rating ?? 4.0;
+    const verified = b.contractor.admin_verified ? 0.4 : 0;
+    const priceWeight = 1 - Math.min(1, (b.amount || 0) / 5000) * 0.3;
+    const score = rating + verified + priceWeight;
+    if (score > bestScore) {
+      bestScore = score;
+      bestId = b.id;
+    }
+  }
+  return bestId;
+}
+
+function median(values: number[]): number {
+  if (values.length === 0) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 0
+    ? Math.round((sorted[mid - 1] + sorted[mid]) / 2)
+    : sorted[mid];
+}
+
+const TABS: {
+  id: TabKey;
+  label: (counts: { bids: number; photos: number }) => string;
+}[] = [
+  { id: 'overview', label: () => 'Overview' },
+  { id: 'bids', label: (c) => `Bids · ${c.bids}` },
+  { id: 'photos', label: (c) => `Photos · ${c.photos}` },
+  { id: 'messages', label: () => 'Messages' },
+  { id: 'payments', label: () => 'Payments' },
+  { id: 'timeline', label: () => 'Timeline' },
+];
 
 export function MintEditorialJobDetail({
   job,
@@ -102,21 +121,94 @@ export function MintEditorialJobDetail({
   photos,
   lifecycle,
 }: Props) {
-  const inputs: JobLifecycleInputs = {
-    jobStatus: job.status,
-    bidCount: lifecycle.bidCount,
-    contractorAssigned: !!job.contractor_id,
-    contractStatus: lifecycle.contractStatus,
-    escrowStatus: lifecycle.escrowStatus,
-    completionConfirmed: lifecycle.completionConfirmed,
-  };
-  const phases = buildLifecyclePhases(inputs);
-  const nextStep = computeNextStep(inputs);
+  const router = useRouter();
+  const pending = useMemo(() => pendingOnly(bids), [bids]);
+  const recommendedId = useMemo(() => pickRecommended(pending), [pending]);
+  const [selectedId, setSelectedId] = useState<string | null>(
+    recommendedId || pending[0]?.id || null
+  );
+  useEffect(() => {
+    if (!selectedId && pending.length > 0) {
+      setSelectedId(recommendedId || pending[0].id);
+    }
+  }, [pending, recommendedId, selectedId]);
 
-  // Render only pending bids — the ones the homeowner can act on.
-  // History (rejected / withdrawn) is intentionally out of scope for
-  // this first slice.
-  const pendingBids = bids.filter((b) => b.status === 'pending');
+  const [tab, setTab] = useState<TabKey>(
+    pending.length > 0 ? 'bids' : 'overview'
+  );
+  const [accepting, setAccepting] = useState(false);
+
+  const selectedBid =
+    pending.find((b) => b.id === selectedId) || pending[0] || null;
+
+  // Mint AI summary copy — derives from the bids data, no fake numbers.
+  const verifiedCount = pending.filter(
+    (b) => b.contractor.admin_verified
+  ).length;
+  const med = median(pending.map((b) => b.amount));
+  const recommended = pending.find((b) => b.id === recommendedId);
+  const aiSummary =
+    pending.length === 0
+      ? 'Waiting for bids. We typically see the first bid within an hour of posting.'
+      : `${pending.length} ${pending.length === 1 ? 'bid' : 'bids'} in${
+          verifiedCount > 0 ? ` (${verifiedCount} verified)` : ''
+        }. Median ${formatGBP(med)}.${
+          recommended
+            ? ` ${
+                recommended.contractor.first_name ||
+                recommended.contractor.company_name?.split(' ')[0] ||
+                'Top pick'
+              } is recommended — highest fit on rating and verification.`
+            : ''
+        }`;
+
+  const escrowHeld = lifecycle.escrowStatus === 'held' ? job.budget : 0;
+  const headerMeta: { Icon: typeof MapPin; text: string }[] = [
+    {
+      Icon: MapPin,
+      text: property?.address || job.location || 'Location not set',
+    },
+    {
+      Icon: Calendar,
+      text: formatPosted(job.created_at),
+    },
+    {
+      Icon: Wrench,
+      text: job.category || 'General',
+    },
+    {
+      Icon: Shield,
+      text:
+        escrowHeld > 0
+          ? `${formatGBP(escrowHeld)} escrow held`
+          : `Budget ${job.budget > 0 ? formatGBP(job.budget) : '—'}`,
+    },
+  ];
+
+  const handleAccept = async () => {
+    if (!selectedBid) return;
+    setAccepting(true);
+    try {
+      const csrfHeaders = await getCsrfHeaders();
+      const res = await fetch(
+        `/api/jobs/${job.id}/bids/${selectedBid.id}/accept`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...csrfHeaders },
+        }
+      );
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Failed to accept bid');
+      }
+      router.refresh();
+    } catch (e) {
+      logger.error('Failed to accept bid', e);
+      setAccepting(false);
+    }
+  };
+
+  const tabCounts = { bids: pending.length, photos: photos.length };
 
   return (
     <>
@@ -129,73 +221,173 @@ export function MintEditorialJobDetail({
         <ArrowLeft size={14} strokeWidth={1.75} /> My jobs
       </Link>
 
-      {/* Header */}
-      <div style={{ marginBottom: 22 }}>
-        <JobHeader job={job} property={property} />
-      </div>
-
-      {/* Optional hero photo */}
-      {photos.length > 0 ? (
-        <div
-          className='card'
-          style={{ overflow: 'hidden', marginBottom: 18, padding: 0 }}
-        >
-          <img
-            src={photos[0]}
-            alt={job.title}
-            style={{ width: '100%', height: 280, objectFit: 'cover' }}
-          />
-        </div>
-      ) : null}
-
-      {/* Two-column grid */}
+      {/* Hero strip — left: status/title/meta, right: Mint AI summary */}
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: 'minmax(0, 1.6fr) minmax(0, 1fr)',
-          gap: 18,
+          gridTemplateColumns: 'minmax(0, 1fr) 320px',
+          gap: 22,
+          marginBottom: 18,
+          alignItems: 'flex-start',
         }}
       >
-        {/* Main column */}
-        <div className='col' style={{ gap: 18 }}>
-          <JobInfoStrip job={job} property={property} />
-          <DescriptionCard description={job.description} />
-          {contractor ? <ContractorCard contractor={contractor} /> : null}
-
-          {pendingBids.length > 0 ? (
-            <div id='bids' className='col' style={{ gap: 12 }}>
-              <div className='between' style={{ marginBottom: 4 }}>
-                <h2 className='t-h3'>Bids · {pendingBids.length}</h2>
-                <span className='t-meta'>Approve one to start work</span>
-              </div>
-              <div
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-                  gap: 14,
-                }}
+        <div className='col' style={{ gap: 8, minWidth: 0 }}>
+          <div className='row' style={{ gap: 10, flexWrap: 'wrap' }}>
+            {statusBadge(job.status)}
+            <span className='t-meta'>
+              {formatPosted(job.created_at)} · Job #
+              {job.id.slice(0, 6).toUpperCase()}
+            </span>
+          </div>
+          <h1 className='t-h1' style={{ wordBreak: 'break-word' }}>
+            {job.title}
+          </h1>
+          <div
+            className='row'
+            style={{
+              gap: 14,
+              flexWrap: 'wrap',
+              color: 'var(--me-ink-2)',
+              fontSize: 13,
+            }}
+          >
+            {headerMeta.map((m, i) => (
+              <span
+                key={i}
+                style={{ display: 'inline-flex', gap: 5, alignItems: 'center' }}
               >
-                {pendingBids.map((bid) => (
-                  <BidCard key={bid.id} bid={bid} jobId={job.id} />
-                ))}
-              </div>
-            </div>
-          ) : null}
+                <m.Icon size={13} strokeWidth={1.75} /> {m.text}
+              </span>
+            ))}
+          </div>
         </div>
 
-        {/* Right column — sticky progress + next-step + budget */}
+        <div className='card card-pad'>
+          <div className='row' style={{ gap: 8, marginBottom: 8 }}>
+            <span
+              style={{
+                width: 22,
+                height: 22,
+                borderRadius: 6,
+                background: 'var(--me-brand-soft)',
+                color: 'var(--me-brand)',
+                display: 'grid',
+                placeItems: 'center',
+              }}
+            >
+              <Sparkles size={13} strokeWidth={1.75} />
+            </span>
+            <div style={{ fontSize: 12, fontWeight: 600 }}>Mint AI summary</div>
+          </div>
+          <p className='t-body' style={{ fontSize: 12, lineHeight: 1.55 }}>
+            {aiSummary}
+          </p>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div
+        role='tablist'
+        style={{
+          display: 'flex',
+          gap: 22,
+          borderBottom: '1px solid var(--me-line-2)',
+          marginBottom: 18,
+          overflowX: 'auto',
+        }}
+      >
+        {TABS.map((t) => {
+          const on = tab === t.id;
+          return (
+            <button
+              key={t.id}
+              type='button'
+              role='tab'
+              aria-selected={on}
+              onClick={() => setTab(t.id)}
+              style={{
+                padding: '10px 2px',
+                fontSize: 13,
+                fontWeight: 600,
+                color: on ? 'var(--me-ink)' : 'var(--me-ink-3)',
+                background: 'transparent',
+                border: 'none',
+                borderBottom: `2px solid ${on ? 'var(--me-ink)' : 'transparent'}`,
+                cursor: 'pointer',
+                fontFamily: 'inherit',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {t.label(tabCounts)}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Body — 2-col with sticky right rail */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'minmax(0, 1fr) 360px',
+          gap: 24,
+        }}
+      >
+        <MintEditorialJobTabBody
+          tab={tab}
+          job={job}
+          property={property}
+          pendingBids={pending}
+          photos={photos}
+          selectedId={selectedId}
+          recommendedId={recommendedId}
+          onSelect={setSelectedId}
+        />
+
+        {/* Right rail — sticky */}
         <aside
           className='col'
           style={{
-            gap: 18,
+            gap: 14,
             position: 'sticky',
             top: 84,
             alignSelf: 'start',
           }}
         >
-          <JobProgressCard phases={phases} />
-          <NextStepCard step={nextStep} />
-          <BudgetCard budget={job.budget} />
+          {selectedBid ? (
+            <SelectedContractorCard
+              bid={selectedBid}
+              jobId={job.id}
+              onAccept={handleAccept}
+              accepting={accepting}
+            />
+          ) : contractor ? (
+            <div className='card card-pad'>
+              <h3 className='t-h4'>Assigned contractor</h3>
+              <p className='t-body' style={{ marginTop: 6, fontSize: 13 }}>
+                {contractor.first_name} {contractor.last_name}
+              </p>
+            </div>
+          ) : null}
+
+          {selectedBid ? (
+            <HowPaymentWorksCard
+              escrowDisplay={formatGBP(selectedBid.amount)}
+              contractorFirstName={
+                selectedBid.contractor.first_name ||
+                selectedBid.contractor.company_name?.split(' ')[0] ||
+                'the contractor'
+              }
+            />
+          ) : (
+            <HowPaymentWorksCard
+              escrowDisplay={
+                job.budget > 0 ? formatGBP(job.budget) : 'your funds'
+              }
+              contractorFirstName='the contractor'
+            />
+          )}
+
+          <QuickActionsList jobId={job.id} status={job.status} />
         </aside>
       </div>
     </>
