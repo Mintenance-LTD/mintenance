@@ -1,11 +1,30 @@
 'use client';
 
-import { useState } from 'react';
+/**
+ * Mint Editorial /properties/[id] orchestrator.
+ *
+ * Canonical mock (property-management.html "PROPERTY DETAIL — RICH"
+ * lines 186-340) expects 6 sub-sections: Overview, Systems (rolled
+ * into Overview as the Major Systems table), Documents, Timeline,
+ * Access & contacts, plus the Assessments / Manage premium tabs.
+ *
+ * Each tab body lives in its own component to keep this file under
+ * the 500-line MDC cap. Overview shows: photo hero → header → Mint
+ * Says advice card → details + recent jobs → systems table → right
+ * rail with health score.
+ */
+
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { HomeownerPageWrapper } from '@/app/dashboard/components/HomeownerPageWrapper';
 import PropertyAssessments from './PropertyAssessments';
 import { MintEditorialPropertyManage } from './MintEditorialPropertyManage';
+import { MintEditorialPropertyMintSays } from './MintEditorialPropertyMintSays';
+import { MintEditorialPropertySystemsTable } from './MintEditorialPropertySystemsTable';
+import { MintEditorialPropertyDocuments } from './MintEditorialPropertyDocuments';
+import { MintEditorialPropertyTimeline } from './MintEditorialPropertyTimeline';
+import { MintEditorialPropertyAccess } from './MintEditorialPropertyAccess';
 import {
   PhotoHero,
   PropertyDetailsCard,
@@ -23,16 +42,35 @@ interface Props {
   stats: Stats;
 }
 
-type Tab = 'overview' | 'assessments' | 'manage';
+type Tab =
+  | 'overview'
+  | 'documents'
+  | 'timeline'
+  | 'access'
+  | 'assessments'
+  | 'manage';
 
-const TABS: { id: Tab; label: string }[] = [
-  { id: 'overview', label: 'Overview' },
-  { id: 'assessments', label: 'Assessments' },
-  { id: 'manage', label: 'Manage' },
-];
+interface TabDef {
+  id: Tab;
+  label: string;
+  count?: number;
+}
 
 export function MintEditorialPropertyDetail({ property, jobs, stats }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>('overview');
+
+  const tabs: TabDef[] = [
+    { id: 'overview', label: 'Overview', count: jobs.length },
+    {
+      id: 'documents',
+      label: 'Documents',
+      count: jobs.filter((j) => j.status === 'completed').length,
+    },
+    { id: 'timeline', label: 'Timeline' },
+    { id: 'access', label: 'Access & contacts' },
+    { id: 'assessments', label: 'Assessments' },
+    { id: 'manage', label: 'Manage' },
+  ];
 
   return (
     <HomeownerPageWrapper>
@@ -48,7 +86,7 @@ export function MintEditorialPropertyDetail({ property, jobs, stats }: Props) {
       <PropertyHeader property={property} stats={stats} />
 
       <div className='me-tabs' role='tablist' aria-label='Property sections'>
-        {TABS.map((t) => (
+        {tabs.map((t) => (
           <button
             key={t.id}
             type='button'
@@ -58,8 +96,8 @@ export function MintEditorialPropertyDetail({ property, jobs, stats }: Props) {
             onClick={() => setActiveTab(t.id)}
           >
             {t.label}
-            {t.id === 'overview' ? (
-              <span className='count'>· {jobs.length}</span>
+            {typeof t.count === 'number' ? (
+              <span className='count'>· {t.count}</span>
             ) : null}
           </button>
         ))}
@@ -74,7 +112,12 @@ export function MintEditorialPropertyDetail({ property, jobs, stats }: Props) {
           }}
         >
           <div className='col' style={{ gap: 18 }}>
+            <MintEditorialPropertyMintSays property={property} jobs={jobs} />
             <PropertyDetailsCard property={property} />
+            <MintEditorialPropertySystemsTable
+              propertyId={property.id}
+              jobs={jobs}
+            />
             <RecentJobsCard jobs={jobs} propertyId={property.id} />
           </div>
           <aside
@@ -89,6 +132,18 @@ export function MintEditorialPropertyDetail({ property, jobs, stats }: Props) {
             <PropertyHealthCard property={property} jobs={jobs} stats={stats} />
           </aside>
         </div>
+      ) : null}
+
+      {activeTab === 'documents' ? (
+        <MintEditorialPropertyDocuments propertyId={property.id} jobs={jobs} />
+      ) : null}
+
+      {activeTab === 'timeline' ? (
+        <MintEditorialPropertyTimeline jobs={jobs} />
+      ) : null}
+
+      {activeTab === 'access' ? (
+        <MintEditorialPropertyAccess propertyId={property.id} jobs={jobs} />
       ) : null}
 
       {activeTab === 'assessments' ? (
