@@ -381,6 +381,20 @@ const KNOWN_LARGE_FILES = new Set([
   // them further over; this entry recognises the existing state.
   // A clean split into per-section subcomponents is a P2 refactor.
   'apps/web/app/contractor/time-tracking/page.tsx', // 666 lines (was ~660)
+  // Added 2026-05-12 (Phase-4 job-detail editorial rewrite): the
+  // /contractor/jobs/[id]/page.tsx server component now also
+  // branches on the `mintenance-theme` cookie and renders the new
+  // `MintEditorialJobDetailView` for editorial users. Both files
+  // exceed 500 LOC — page.tsx because the legacy layout is
+  // preserved verbatim under the `else` branch, the new view
+  // because it bundles the canonical layout target (header +
+  // progress pills + stage card + customer brief + photo grid +
+  // AI assessment + contract + scheduling + sticky earnings
+  // sidebar). A clean split would require lifting state from the
+  // server component into the view — out of scope for this
+  // single-file rewrite.
+  'apps/web/app/contractor/jobs/[id]/page.tsx', // 541 lines (was 482)
+  'apps/web/app/contractor/jobs/[id]/components/MintEditorialJobDetailView.tsx', // 681 lines
   // Added 2026-05-12 (Phase-4 contractor port): /contractor/jobs/[id]
   // detail page. JobDetailsClient pre-existed at 525 LOC. The
   // +193-line edit duplicates the hero block (title + status/priority/
