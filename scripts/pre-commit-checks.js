@@ -395,6 +395,8 @@ const KNOWN_LARGE_FILES = new Set([
   // single-file rewrite.
   'apps/web/app/contractor/jobs/[id]/page.tsx', // 541 lines (was 482)
   'apps/web/app/contractor/jobs/[id]/components/MintEditorialJobDetailView.tsx', // 681 lines
+  // Added 2026-05-12 (Phase-4 batch header swap):
+  'apps/web/app/contractor/payouts/components/PayoutsPageClient.tsx', // 506 lines (was ~492)
   // Added 2026-05-12 (Phase-4 contractor port): /contractor/jobs/[id]
   // detail page. JobDetailsClient pre-existed at 525 LOC. The
   // +193-line edit duplicates the hero block (title + status/priority/

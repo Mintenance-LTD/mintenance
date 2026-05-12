@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   SubscriptionService,
   SubscriptionPlanDetails,
@@ -46,6 +46,14 @@ export function SubscriptionClient({
   const [currentSubscription, setCurrentSubscription] = useState(subscription);
   const [isLoading, setIsLoading] = useState(false);
   const { csrfToken, loading: csrfLoading } = useCSRF();
+  // Hydration-safe theme detection — Phase-4 contractor port pattern.
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
   const [alertDialog, setAlertDialog] = useState<{
     open: boolean;
     title: string;
@@ -203,26 +211,36 @@ export function SubscriptionClient({
         margin: '0 auto',
       }}
     >
-      <div style={{ marginBottom: theme.spacing[8] }}>
-        <h1
-          style={{
-            fontSize: theme.typography.fontSize['3xl'],
-            fontWeight: theme.typography.fontWeight.bold,
-            color: theme.colors.textPrimary,
-            marginBottom: theme.spacing[2],
-          }}
-        >
-          Subscription & Billing
-        </h1>
-        <p
-          style={{
-            fontSize: theme.typography.fontSize.base,
-            color: theme.colors.textSecondary,
-          }}
-        >
-          Manage your subscription plan and billing preferences
-        </p>
-      </div>
+      {isMintEditorial ? (
+        <div className='col' style={{ gap: 4, marginBottom: 24 }}>
+          <h1 className='t-h1'>Subscription & billing</h1>
+          <p className='t-body'>
+            Manage your plan, payment method, and billing history. Switch tiers
+            any time — pro-rated within the current cycle.
+          </p>
+        </div>
+      ) : (
+        <div style={{ marginBottom: theme.spacing[8] }}>
+          <h1
+            style={{
+              fontSize: theme.typography.fontSize['3xl'],
+              fontWeight: theme.typography.fontWeight.bold,
+              color: theme.colors.textPrimary,
+              marginBottom: theme.spacing[2],
+            }}
+          >
+            Subscription & Billing
+          </h1>
+          <p
+            style={{
+              fontSize: theme.typography.fontSize.base,
+              color: theme.colors.textSecondary,
+            }}
+          >
+            Manage your subscription plan and billing preferences
+          </p>
+        </div>
+      )}
 
       {/* Trial Status Banner */}
       {trialStatus && trialStatus.isTrialActive && (

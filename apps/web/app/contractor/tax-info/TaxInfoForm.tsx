@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { FileText, Loader2, CheckCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { ContractorPageWrapper } from '@/app/contractor/components/ContractorPageWrapper';
@@ -10,7 +10,10 @@ import { getCsrfHeaders } from '@/lib/csrf-client';
 import type { FormData, FormErrors } from './TaxInfoForm/types';
 import { fadeIn } from './TaxInfoForm/types';
 import { isValidZip } from './TaxInfoForm/helpers';
-import { fieldErrorRenderer, inputClassRenderer } from './TaxInfoForm/FieldHelpers';
+import {
+  fieldErrorRenderer,
+  inputClassRenderer,
+} from './TaxInfoForm/FieldHelpers';
 import { IdentitySection } from './TaxInfoForm/IdentitySection';
 import { TinSection } from './TaxInfoForm/TinSection';
 import { AddressSection } from './TaxInfoForm/AddressSection';
@@ -20,6 +23,14 @@ import { CertificationSection } from './TaxInfoForm/CertificationSection';
 // ── Component ──────────────────────────────────────────────────────────
 
 export function TaxInfoForm() {
+  // Hydration-safe theme detection — Phase-4 contractor port pattern.
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
   const [formData, setFormData] = useState<FormData>({
     legalName: '',
     businessName: '',
@@ -43,17 +54,20 @@ export function TaxInfoForm() {
 
   // ── Field update helper ──────────────────────────────────────────
 
-  const updateField = useCallback(<K extends keyof FormData>(field: K, value: FormData[K]) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    // Clear error for the field on change
-    if (errors[field as keyof FormErrors]) {
-      setErrors(prev => {
-        const next = { ...prev };
-        delete next[field as keyof FormErrors];
-        return next;
-      });
-    }
-  }, [errors]);
+  const updateField = useCallback(
+    <K extends keyof FormData>(field: K, value: FormData[K]) => {
+      setFormData((prev) => ({ ...prev, [field]: value }));
+      // Clear error for the field on change
+      if (errors[field as keyof FormErrors]) {
+        setErrors((prev) => {
+          const next = { ...prev };
+          delete next[field as keyof FormErrors];
+          return next;
+        });
+      }
+    },
+    [errors]
+  );
 
   // ── Validation ───────────────────────────────────────────────────
 
@@ -94,7 +108,8 @@ export function TaxInfoForm() {
     }
 
     if (!formData.certificationAccepted) {
-      newErrors.certificationAccepted = 'You must certify that the information is correct.';
+      newErrors.certificationAccepted =
+        'You must certify that the information is correct.';
     }
 
     if (w9File && w9File.size > 10 * 1024 * 1024) {
@@ -154,14 +169,20 @@ export function TaxInfoForm() {
       });
 
       if (!res.ok) {
-        const data = await res.json().catch(() => ({ error: 'Submission failed' }));
+        const data = await res
+          .json()
+          .catch(() => ({ error: 'Submission failed' }));
         throw new Error(data.error || 'Failed to submit tax information');
       }
 
       setSubmitted(true);
       toast.success('Tax information submitted successfully.');
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to submit tax information');
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'Failed to submit tax information'
+      );
     } finally {
       setSubmitting(false);
     }
@@ -184,7 +205,7 @@ export function TaxInfoForm() {
     }
     setW9File(file);
     if (errors.w9File) {
-      setErrors(prev => {
+      setErrors((prev) => {
         const next = { ...prev };
         delete next.w9File;
         return next;
@@ -205,20 +226,22 @@ export function TaxInfoForm() {
     return (
       <ContractorPageWrapper>
         <MotionDiv
-          initial="hidden"
-          animate="visible"
+          initial='hidden'
+          animate='visible'
           variants={fadeIn}
-          className="bg-white border border-gray-200 rounded-xl p-12 text-center max-w-xl mx-auto mt-8"
+          className='bg-white border border-gray-200 rounded-xl p-12 text-center max-w-xl mx-auto mt-8'
         >
-          <CheckCircle className="w-16 h-16 text-teal-600 mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Tax Information Submitted</h1>
-          <p className="text-gray-600 mb-6">
+          <CheckCircle className='w-16 h-16 text-teal-600 mx-auto mb-4' />
+          <h1 className='text-2xl font-bold text-gray-900 mb-2'>
+            Tax Information Submitted
+          </h1>
+          <p className='text-gray-600 mb-6'>
             Your W-9 tax information has been received and is being processed.
             You will be notified if any additional information is needed.
           </p>
           <button
             onClick={() => setSubmitted(false)}
-            className="px-6 py-3 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 transition-colors"
+            className='px-6 py-3 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 transition-colors'
           >
             Update Information
           </button>
@@ -237,25 +260,72 @@ export function TaxInfoForm() {
   return (
     <ContractorPageWrapper>
       {/* Header */}
-      <MotionDiv initial="hidden" animate="visible" variants={fadeIn} className="bg-white border-b border-gray-200">
-        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-teal-50 rounded-2xl flex items-center justify-center flex-shrink-0">
-              <FileText className="w-7 h-7 text-teal-600" />
-            </div>
-            <div>
-              <h1 id="tax-info-heading" className="text-3xl font-bold text-gray-900">Tax Information (W-9)</h1>
-              <p className="text-gray-600 mt-1">
-                Provide your taxpayer information for 1099-NEC reporting. All fields marked with * are required.
-              </p>
-            </div>
+      {isMintEditorial ? (
+        <div
+          className='row'
+          style={{ gap: 14, alignItems: 'center', marginBottom: 24 }}
+        >
+          <span
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 12,
+              background: 'var(--me-brand-soft)',
+              color: 'var(--me-brand)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0,
+            }}
+          >
+            <FileText size={24} strokeWidth={1.5} />
+          </span>
+          <div className='col' style={{ gap: 4 }}>
+            <h1 id='tax-info-heading' className='t-h1'>
+              Tax information (W-9)
+            </h1>
+            <p className='t-body'>
+              Provide your taxpayer information for 1099-NEC reporting. All
+              fields marked with * are required.
+            </p>
           </div>
         </div>
-      </MotionDiv>
+      ) : (
+        <MotionDiv
+          initial='hidden'
+          animate='visible'
+          variants={fadeIn}
+          className='bg-white border-b border-gray-200'
+        >
+          <div className='max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
+            <div className='flex items-center gap-4'>
+              <div className='w-14 h-14 bg-teal-50 rounded-2xl flex items-center justify-center flex-shrink-0'>
+                <FileText className='w-7 h-7 text-teal-600' />
+              </div>
+              <div>
+                <h1
+                  id='tax-info-heading'
+                  className='text-3xl font-bold text-gray-900'
+                >
+                  Tax Information (W-9)
+                </h1>
+                <p className='text-gray-600 mt-1'>
+                  Provide your taxpayer information for 1099-NEC reporting. All
+                  fields marked with * are required.
+                </p>
+              </div>
+            </div>
+          </div>
+        </MotionDiv>
+      )}
 
       {/* Form */}
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <form onSubmit={handleSubmit} noValidate aria-labelledby="tax-info-heading">
+      <div className='max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
+        <form
+          onSubmit={handleSubmit}
+          noValidate
+          aria-labelledby='tax-info-heading'
+        >
           <IdentitySection
             formData={formData}
             errors={errors}
@@ -299,22 +369,26 @@ export function TaxInfoForm() {
           />
 
           {/* Submit */}
-          <div className="flex flex-col sm:flex-row gap-3 justify-end">
+          <div className='flex flex-col sm:flex-row gap-3 justify-end'>
             <button
-              type="submit"
+              type='submit'
               disabled={submitting}
-              className="px-8 py-3 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className='px-8 py-3 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2'
             >
-              {submitting && <Loader2 className="w-5 h-5 animate-spin" />}
+              {submitting && <Loader2 className='w-5 h-5 animate-spin' />}
               {submitting ? 'Submitting...' : 'Submit Tax Information'}
             </button>
           </div>
 
           {/* Disclaimer */}
-          <p className="mt-6 text-xs text-gray-500 text-center">
-            Your tax information is transmitted securely and encrypted at rest. We use it solely for
-            1099-NEC tax reporting as required by the IRS. For questions, contact{' '}
-            <a href="mailto:support@mintenance.co.uk" className="text-teal-600 hover:underline">
+          <p className='mt-6 text-xs text-gray-500 text-center'>
+            Your tax information is transmitted securely and encrypted at rest.
+            We use it solely for 1099-NEC tax reporting as required by the IRS.
+            For questions, contact{' '}
+            <a
+              href='mailto:support@mintenance.co.uk'
+              className='text-teal-600 hover:underline'
+            >
               support@mintenance.co.uk
             </a>
             .

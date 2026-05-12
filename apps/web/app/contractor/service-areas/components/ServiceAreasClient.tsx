@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { theme } from '@/lib/theme';
 import { MapPin, List, Map } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
@@ -10,7 +10,11 @@ import { DataTable, Column } from '@/components/ui/DataTable';
 import { StatusBadge } from '@/components/ui/Badge.unified';
 import { Card } from '@/components/ui/Card.unified';
 import { ServiceAreasMap } from './ServiceAreasMap';
-import { findOverlappingAreas, getOverlapWarningMessage, type ServiceArea as OverlapServiceArea } from '@/lib/maps';
+import {
+  findOverlappingAreas,
+  getOverlapWarningMessage,
+  type ServiceArea as OverlapServiceArea,
+} from '@/lib/maps';
 
 interface ServiceArea {
   id: string;
@@ -26,18 +30,36 @@ interface ServiceArea {
   priority?: number;
 }
 
-export function ServiceAreasClient({ serviceAreas: initial }: { serviceAreas: ServiceArea[] }) {
+export function ServiceAreasClient({
+  serviceAreas: initial,
+}: {
+  serviceAreas: ServiceArea[];
+}) {
   const [serviceAreas, setServiceAreas] = useState<ServiceArea[]>(initial);
   const [newLocation, setNewLocation] = useState('');
   const [newRadius, setNewRadius] = useState(25);
   const [isAdding, setIsAdding] = useState(false);
-  const [notification, setNotification] = useState<{ tone: 'success' | 'error' | 'info'; message: string } | null>(null);
+  const [notification, setNotification] = useState<{
+    tone: 'success' | 'error' | 'info';
+    message: string;
+  } | null>(null);
   const [viewMode, setViewMode] = useState<'table' | 'map'>('table');
   const [selectedAreaId, setSelectedAreaId] = useState<string | null>(null);
+  // Hydration-safe theme detection — Phase-4 contractor port pattern.
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
 
   const handleAddArea = async () => {
     if (!newLocation.trim()) {
-      setNotification({ tone: 'error', message: 'Please enter a location before adding a service area.' });
+      setNotification({
+        tone: 'error',
+        message: 'Please enter a location before adding a service area.',
+      });
       return;
     }
 
@@ -55,9 +77,15 @@ export function ServiceAreasClient({ serviceAreas: initial }: { serviceAreas: Se
       setServiceAreas([...serviceAreas, newArea]);
       setNewLocation('');
       setNewRadius(25);
-      setNotification({ tone: 'success', message: 'Service area added successfully.' });
+      setNotification({
+        tone: 'success',
+        message: 'Service area added successfully.',
+      });
     } catch (error) {
-      setNotification({ tone: 'error', message: 'Failed to add service area.' });
+      setNotification({
+        tone: 'error',
+        message: 'Failed to add service area.',
+      });
     } finally {
       setIsAdding(false);
     }
@@ -77,7 +105,10 @@ export function ServiceAreasClient({ serviceAreas: initial }: { serviceAreas: Se
       });
     } catch (error) {
       setServiceAreas(serviceAreas);
-      setNotification({ tone: 'error', message: 'Failed to update area status.' });
+      setNotification({
+        tone: 'error',
+        message: 'Failed to update area status.',
+      });
       return;
     }
 
@@ -94,8 +125,8 @@ export function ServiceAreasClient({ serviceAreas: initial }: { serviceAreas: Se
   // Detect overlapping service areas
   const overlaps = findOverlappingAreas(
     serviceAreas
-      .filter(area => area.latitude && area.longitude)
-      .map(area => ({
+      .filter((area) => area.latitude && area.longitude)
+      .map((area) => ({
         id: area.id,
         latitude: area.latitude!,
         longitude: area.longitude!,
@@ -111,14 +142,28 @@ export function ServiceAreasClient({ serviceAreas: initial }: { serviceAreas: Se
       key: 'location',
       label: 'Location',
       render: (area) => (
-        <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[2] }}>
-          <MapPin className="h-[18px] w-[18px]" style={{ color: theme.colors.primary }} />
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: theme.spacing[2],
+          }}
+        >
+          <MapPin
+            className='h-[18px] w-[18px]'
+            style={{ color: theme.colors.primary }}
+          />
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <span style={{ fontWeight: theme.typography.fontWeight.semibold }}>
               {area.location}
             </span>
             {area.zipCode && (
-              <span style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>
+              <span
+                style={{
+                  fontSize: theme.typography.fontSize.xs,
+                  color: theme.colors.textSecondary,
+                }}
+              >
                 {area.zipCode}
               </span>
             )}
@@ -141,7 +186,12 @@ export function ServiceAreasClient({ serviceAreas: initial }: { serviceAreas: Se
       label: 'Total Area',
       align: 'center' as const,
       render: (area) => (
-        <span style={{ color: theme.colors.textSecondary, fontSize: theme.typography.fontSize.sm }}>
+        <span
+          style={{
+            color: theme.colors.textSecondary,
+            fontSize: theme.typography.fontSize.sm,
+          }}
+        >
           {(Math.PI * area.radius_km * area.radius_km).toFixed(0)} km²
         </span>
       ),
@@ -168,7 +218,12 @@ export function ServiceAreasClient({ serviceAreas: initial }: { serviceAreas: Se
       key: 'is_active',
       label: 'Status',
       align: 'center' as const,
-      render: (area) => <StatusBadge status={area.is_active ? 'active' : 'inactive'} size="sm" />,
+      render: (area) => (
+        <StatusBadge
+          status={area.is_active ? 'active' : 'inactive'}
+          size='sm'
+        />
+      ),
     },
     {
       key: 'actions' as keyof ServiceArea,
@@ -177,7 +232,7 @@ export function ServiceAreasClient({ serviceAreas: initial }: { serviceAreas: Se
       render: (area) => (
         <Button
           variant={area.is_active ? 'outline' : 'primary'}
-          size="sm"
+          size='sm'
           onClick={() => handleToggleActive(area.id, area.is_active)}
         >
           {area.is_active ? 'Deactivate' : 'Activate'}
@@ -187,58 +242,113 @@ export function ServiceAreasClient({ serviceAreas: initial }: { serviceAreas: Se
   ];
 
   return (
-    <div style={{ padding: theme.spacing[6], display: 'flex', flexDirection: 'column', gap: theme.spacing[6] }}>
+    <div
+      style={{
+        padding: theme.spacing[6],
+        display: 'flex',
+        flexDirection: 'column',
+        gap: theme.spacing[6],
+      }}
+    >
       {notification && (
         <NotificationBanner
-          tone={notification.tone === 'info' ? 'info' : notification.tone === 'success' ? 'success' : 'error'}
+          tone={
+            notification.tone === 'info'
+              ? 'info'
+              : notification.tone === 'success'
+                ? 'success'
+                : 'error'
+          }
           message={notification.message}
           onDismiss={() => setNotification(null)}
         />
       )}
 
       {/* Overlap Detection Warnings */}
-      {overlaps.length > 0 && overlaps.slice(0, 3).map((overlap, index) => (
-        <NotificationBanner
-          key={`overlap-${index}`}
-          tone="warning"
-          message={getOverlapWarningMessage(overlap)}
-          onDismiss={() => {/* Keep showing until areas are adjusted */}}
-        />
-      ))}
+      {overlaps.length > 0 &&
+        overlaps.slice(0, 3).map((overlap, index) => (
+          <NotificationBanner
+            key={`overlap-${index}`}
+            tone='warning'
+            message={getOverlapWarningMessage(overlap)}
+            onDismiss={() => {
+              /* Keep showing until areas are adjusted */
+            }}
+          />
+        ))}
 
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: theme.spacing[4] }}>
-        <div>
-          <h1
+      {isMintEditorial ? (
+        <header className='between' style={{ alignItems: 'flex-start' }}>
+          <div className='col' style={{ gap: 4 }}>
+            <h1 className='t-h1'>Service coverage areas</h1>
+            <p className='t-body'>
+              Define exactly where you accept work so the right homeowners can
+              find you faster.
+            </p>
+          </div>
+          <span
+            className='badge badge-info'
             style={{
-              fontSize: theme.typography.fontSize['3xl'],
-              fontWeight: theme.typography.fontWeight.bold,
-              color: theme.colors.textPrimary,
-              marginBottom: theme.spacing[2],
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
             }}
           >
-            Service Coverage Areas
-          </h1>
-          <p style={{ color: theme.colors.textSecondary, fontSize: theme.typography.fontSize.sm }}>
-            Define exactly where you accept work so the right homeowners can find you faster.
-          </p>
-        </div>
-        <span
+            <MapPin size={12} strokeWidth={1.75} />
+            {serviceAreas.filter((a) => a.is_active).length} active zones
+          </span>
+        </header>
+      ) : (
+        <header
           style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: theme.spacing[2],
-            padding: `${theme.spacing[1]} ${theme.spacing[3]}`,
-            borderRadius: '12px',
-            border: `1px solid ${theme.colors.border}`,
-            backgroundColor: theme.colors.surface,
-            fontSize: theme.typography.fontSize.xs,
-            color: theme.colors.textSecondary,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            gap: theme.spacing[4],
           }}
         >
-          <MapPin className="h-3.5 w-3.5" style={{ color: theme.colors.textSecondary }} />
-          {serviceAreas.filter((a) => a.is_active).length} active zones
-        </span>
-      </header>
+          <div>
+            <h1
+              style={{
+                fontSize: theme.typography.fontSize['3xl'],
+                fontWeight: theme.typography.fontWeight.bold,
+                color: theme.colors.textPrimary,
+                marginBottom: theme.spacing[2],
+              }}
+            >
+              Service Coverage Areas
+            </h1>
+            <p
+              style={{
+                color: theme.colors.textSecondary,
+                fontSize: theme.typography.fontSize.sm,
+              }}
+            >
+              Define exactly where you accept work so the right homeowners can
+              find you faster.
+            </p>
+          </div>
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: theme.spacing[2],
+              padding: `${theme.spacing[1]} ${theme.spacing[3]}`,
+              borderRadius: '12px',
+              border: `1px solid ${theme.colors.border}`,
+              backgroundColor: theme.colors.surface,
+              fontSize: theme.typography.fontSize.xs,
+              color: theme.colors.textSecondary,
+            }}
+          >
+            <MapPin
+              className='h-3.5 w-3.5'
+              style={{ color: theme.colors.textSecondary }}
+            />
+            {serviceAreas.filter((a) => a.is_active).length} active zones
+          </span>
+        </header>
+      )}
 
       <section
         style={{
@@ -248,26 +358,26 @@ export function ServiceAreasClient({ serviceAreas: initial }: { serviceAreas: Se
         }}
       >
         <Card.Metric
-          label="Total Areas"
+          label='Total Areas'
           value={serviceAreas.length.toString()}
-          subtitle="Including inactive zones"
-          icon="mapPin"
+          subtitle='Including inactive zones'
+          icon='mapPin'
           color={theme.colors.primary}
         />
 
         <Card.Metric
-          label="Active Zones"
+          label='Active Zones'
           value={serviceAreas.filter((a) => a.is_active).length.toString()}
-          subtitle="Live regions receiving requests"
-          icon="checkCircle"
+          subtitle='Live regions receiving requests'
+          icon='checkCircle'
           color={theme.colors.success}
         />
 
         <Card.Metric
-          label="Total Coverage"
+          label='Total Coverage'
           value={`${totalCoverage.toFixed(0)} km²`}
-          subtitle="Based on active radius zones"
-          icon="globe"
+          subtitle='Based on active radius zones'
+          icon='globe'
           color={theme.colors.info}
         />
       </section>
@@ -283,7 +393,13 @@ export function ServiceAreasClient({ serviceAreas: initial }: { serviceAreas: Se
           gap: theme.spacing[4],
         }}
       >
-        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <header
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+          }}
+        >
           <div>
             <h2
               style={{
@@ -294,18 +410,26 @@ export function ServiceAreasClient({ serviceAreas: initial }: { serviceAreas: Se
             >
               Add new area
             </h2>
-            <p style={{ margin: 0, fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>
+            <p
+              style={{
+                margin: 0,
+                fontSize: theme.typography.fontSize.xs,
+                color: theme.colors.textSecondary,
+              }}
+            >
               Define a city or postcode and choose how far you travel.
             </p>
           </div>
         </header>
-        <div style={{ display: 'flex', gap: theme.spacing[4], flexWrap: 'wrap' }}>
+        <div
+          style={{ display: 'flex', gap: theme.spacing[4], flexWrap: 'wrap' }}
+        >
           <div style={{ flex: '1 1 320px' }}>
             <Input
-              label="Location"
+              label='Location'
               value={newLocation}
               onChange={(e) => setNewLocation(e.target.value)}
-              placeholder="e.g. London, Birmingham, Manchester"
+              placeholder='e.g. London, Birmingham, Manchester'
             />
           </div>
           <div style={{ flex: '0 0 160px' }}>
@@ -338,7 +462,11 @@ export function ServiceAreasClient({ serviceAreas: initial }: { serviceAreas: Se
             </select>
           </div>
           <div style={{ flex: '0 0 auto', alignSelf: 'flex-end' }}>
-            <Button onClick={handleAddArea} disabled={isAdding} variant="primary">
+            <Button
+              onClick={handleAddArea}
+              disabled={isAdding}
+              variant='primary'
+            >
               {isAdding ? 'Adding...' : 'Add area'}
             </Button>
           </div>
@@ -346,20 +474,26 @@ export function ServiceAreasClient({ serviceAreas: initial }: { serviceAreas: Se
       </section>
 
       {/* View Toggle Buttons */}
-      <div style={{ display: 'flex', gap: theme.spacing[2], justifyContent: 'flex-start' }}>
+      <div
+        style={{
+          display: 'flex',
+          gap: theme.spacing[2],
+          justifyContent: 'flex-start',
+        }}
+      >
         <Button
           variant={viewMode === 'table' ? 'primary' : 'outline'}
-          size="md"
+          size='md'
           onClick={() => setViewMode('table')}
-          leftIcon={<List className="h-[18px] w-[18px]" />}
+          leftIcon={<List className='h-[18px] w-[18px]' />}
         >
           Table View
         </Button>
         <Button
           variant={viewMode === 'map' ? 'primary' : 'outline'}
-          size="md"
+          size='md'
           onClick={() => setViewMode('map')}
-          leftIcon={<Map className="h-[18px] w-[18px]" />}
+          leftIcon={<Map className='h-[18px] w-[18px]' />}
         >
           Map View
         </Button>
@@ -367,8 +501,8 @@ export function ServiceAreasClient({ serviceAreas: initial }: { serviceAreas: Se
       {viewMode === 'map' ? (
         <ServiceAreasMap
           serviceAreas={serviceAreas
-            .filter(area => area.latitude && area.longitude)
-            .map(area => ({
+            .filter((area) => area.latitude && area.longitude)
+            .map((area) => ({
               id: area.id,
               city: area.city || area.location,
               state: area.state || '',
@@ -389,8 +523,8 @@ export function ServiceAreasClient({ serviceAreas: initial }: { serviceAreas: Se
         <DataTable
           data={serviceAreas}
           columns={areaColumns}
-          title="Your Service Areas"
-          emptyMessage="No service areas defined yet. Add your first area to start receiving job requests in your region."
+          title='Your Service Areas'
+          emptyMessage='No service areas defined yet. Add your first area to start receiving job requests in your region.'
         />
       )}
     </div>
