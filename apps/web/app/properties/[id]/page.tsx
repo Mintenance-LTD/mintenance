@@ -108,6 +108,20 @@ export default async function PropertyDetailPage({
       property.photos && property.photos.length > 0 ? property.photos : [],
   };
 
+  // Maintenance Plan tab — fetch recurring_schedules for this
+  // property. The table + RLS already exist (migration 20260214200000);
+  // the row count is just zero for properties that haven't been
+  // configured yet, which is a fine empty state.
+  const { data: schedulesRows } = await serverSupabase
+    .from('recurring_schedules')
+    .select(
+      'id, task_type, title, description, category, frequency, next_due_date, last_completed_date, auto_create_job, is_active'
+    )
+    .eq('owner_id', user.id)
+    .eq('property_id', property.id)
+    .order('next_due_date', { ascending: true });
+  const schedules = schedulesRows || [];
+
   // Format jobs data
   const formattedJobs = (jobs || []).map((job) => {
     // Find an accepted bid if any
@@ -151,6 +165,7 @@ export default async function PropertyDetailPage({
           activeJobs,
           totalSpent,
         }}
+        schedules={schedules}
       />
     );
   }

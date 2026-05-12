@@ -26,6 +26,10 @@ import { MintEditorialPropertyDocuments } from './MintEditorialPropertyDocuments
 import { MintEditorialPropertyTimeline } from './MintEditorialPropertyTimeline';
 import { MintEditorialPropertyAccess } from './MintEditorialPropertyAccess';
 import {
+  MintEditorialPropertyMaintenancePlan,
+  type PropertySchedule,
+} from './MintEditorialPropertyMaintenancePlan';
+import {
   PhotoHero,
   PropertyDetailsCard,
   PropertyHeader,
@@ -40,10 +44,14 @@ interface Props {
   property: PropertyShape;
   jobs: JobItem[];
   stats: Stats;
+  /** Per-property recurring schedules fed into the Maintenance tab.
+   *  Empty array renders the empty-state CTA. */
+  schedules?: PropertySchedule[];
 }
 
 type Tab =
   | 'overview'
+  | 'maintenance'
   | 'documents'
   | 'timeline'
   | 'access'
@@ -56,11 +64,22 @@ interface TabDef {
   count?: number;
 }
 
-export function MintEditorialPropertyDetail({ property, jobs, stats }: Props) {
+export function MintEditorialPropertyDetail({
+  property,
+  jobs,
+  stats,
+  schedules = [],
+}: Props) {
   const [activeTab, setActiveTab] = useState<Tab>('overview');
 
+  const activeScheduleCount = schedules.filter((s) => s.is_active).length;
   const tabs: TabDef[] = [
     { id: 'overview', label: 'Overview', count: jobs.length },
+    {
+      id: 'maintenance',
+      label: 'Maintenance',
+      count: activeScheduleCount > 0 ? activeScheduleCount : undefined,
+    },
     {
       id: 'documents',
       label: 'Documents',
@@ -132,6 +151,13 @@ export function MintEditorialPropertyDetail({ property, jobs, stats }: Props) {
             <PropertyHealthCard property={property} jobs={jobs} stats={stats} />
           </aside>
         </div>
+      ) : null}
+
+      {activeTab === 'maintenance' ? (
+        <MintEditorialPropertyMaintenancePlan
+          _propertyId={property.id}
+          schedules={schedules}
+        />
       ) : null}
 
       {activeTab === 'documents' ? (
