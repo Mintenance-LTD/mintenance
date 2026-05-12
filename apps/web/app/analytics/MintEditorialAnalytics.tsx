@@ -2,15 +2,18 @@
 
 /**
  * Mint Editorial /analytics surface — canonical-classes port from
- * the design system. The page-level data path (jobs + payments via
+ * the design system. The page-level data path (jobs + escrow via
  * supabase) stays in `page.tsx`; this component owns presentation
  * only.
  *
- * Audit note (2026-05-12): the data still flows from the legacy
- * `payments` table which has 0 rows in production. Bridging to
- * `escrow_transactions` (same fix /financials and /dashboard
- * already use) is W4 scope, not this chrome-fit. KPIs will read
- * the right shape once page.tsx is updated.
+ * Data bridge (2026-05-12, post-Phase-2 follow-up): page.tsx now
+ * pulls amounts from `escrow_transactions` (payer_id = me, status in
+ * held/release_pending/released/completed) and joins back to `jobs`
+ * by id for the category-spending donut. Matches the bridge pattern
+ * /financials shipped in W4. Period-over-period deltas removed —
+ * the previous "+18%" / "+12%" / "+5%" / "+contractorCount" values
+ * were hardcoded placeholders that lied. Real deltas need a second
+ * comparison query that hasn't shipped yet.
  */
 
 import React from 'react';
