@@ -49,6 +49,8 @@ import { OnMyWayButton } from './OnMyWayButton';
 import { LocationSharing } from './LocationSharing';
 import { PrepareContractButton } from './PrepareContractButton';
 import { PreArrivalChecklist } from './PreArrivalChecklist';
+import { RunningLateButton } from './RunningLateButton';
+import { JobIssueButton } from './JobIssueButton';
 
 interface ProgressStep {
   label: string;
@@ -111,6 +113,7 @@ interface MintEditorialJobDetailViewProps {
   steps: ProgressStep[];
   escrowHeld: boolean;
   escrowStatus: string;
+  escrowId: string | null;
   jobPhotoUrls: string[];
   buildingAssessment: unknown;
   userId: string;
@@ -163,6 +166,7 @@ export function MintEditorialJobDetailView({
   steps,
   escrowHeld,
   escrowStatus,
+  escrowId,
   jobPhotoUrls,
   buildingAssessment,
   userId,
@@ -376,6 +380,28 @@ export function MintEditorialJobDetailView({
                       homeowner
                     </button>
                   </Link>
+                )}
+
+                {/* Secondary actions — "I'm running late" + "Issue
+                    with this job". Only shown once the work is
+                    actually relevant (ready_to_start / in_progress).
+                    At earlier stages the homeowner hasn't paid yet,
+                    so a "running late" message is meaningless. */}
+                {(currentStage === 'ready_to_start' ||
+                  currentStage === 'in_progress') && (
+                  <div
+                    className='row'
+                    style={{
+                      gap: 8,
+                      flexWrap: 'wrap',
+                      paddingTop: 6,
+                      borderTop: '1px solid var(--me-line-2)',
+                      marginTop: 4,
+                    }}
+                  >
+                    <RunningLateButton jobId={job.id} />
+                    <JobIssueButton jobId={job.id} escrowId={escrowId} />
+                  </div>
                 )}
               </div>
             </div>

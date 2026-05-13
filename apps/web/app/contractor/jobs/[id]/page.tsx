@@ -254,6 +254,7 @@ export default async function ContractorJobDetailPage({
         }))}
         escrowHeld={escrowHeld}
         escrowStatus={escrowStatus}
+        escrowId={escrowTransaction?.id ?? null}
         jobPhotoUrls={jobPhotoUrls}
         buildingAssessment={buildingAssessment}
         userId={user.id}
