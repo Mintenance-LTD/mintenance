@@ -40,15 +40,23 @@ async function handleTipPaymentSucceeded(
     }
 
     // Fire notification to the contractor. sendNotification is
-    // positional `(userId, title, message, type)` — see
-    // webhook-helpers.ts.
+    // positional `(userId, title, message, type, actionUrl?)` — see
+    // webhook-helpers.ts. The actionUrl deep-links to the contractor's
+    // job-detail view, where the new ContractorTipsReceivedCard
+    // surfaces total received + note (2026-05-13 commit bd7a238ec).
     try {
       const amountLabel = `£${Number(tip.amount).toFixed(2)}`;
       const title = `You received a ${amountLabel} tip 💚`;
       const message = tip.note
         ? `${amountLabel} tip on your completed job. Note: "${tip.note}"`
         : `${amountLabel} tip on your completed job — funds land in your next payout.`;
-      await sendNotification(tip.payee_id, title, message, 'job_tip_received');
+      await sendNotification(
+        tip.payee_id,
+        title,
+        message,
+        'job_tip_received',
+        tip.job_id ? `/contractor/jobs/${tip.job_id}` : undefined
+      );
     } catch (notifyErr) {
       logger.error('Tip recorded but notification failed', notifyErr, {
         service: 'stripe-webhook',

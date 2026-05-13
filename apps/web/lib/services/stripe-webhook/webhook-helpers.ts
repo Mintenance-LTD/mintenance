@@ -5,7 +5,8 @@ export type SendNotificationFn = (
   userId: string,
   title: string,
   message: string,
-  type: string
+  type: string,
+  actionUrl?: string
 ) => Promise<void>;
 
 /** Validate that a string is a valid UUID v4. Used for metadata validation. */
@@ -28,7 +29,8 @@ export async function sendNotification(
   userId: string,
   title: string,
   message: string,
-  type: string
+  type: string,
+  actionUrl?: string
 ): Promise<void> {
   try {
     await NotificationService.createNotification({
@@ -36,6 +38,7 @@ export async function sendNotification(
       type,
       title,
       message,
+      actionUrl,
       metadata: { source: 'stripe-webhook' },
     });
   } catch (notifError) {
