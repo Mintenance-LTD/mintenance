@@ -4,7 +4,79 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { isValidUUID, type SendNotificationFn } from './webhook-helpers';
 
 /**
+ * Tip-jar success — flip the `job_tips` row to completed + fire a
+ * notification to the contractor. Called from
+ * handlePaymentIntentSucceeded when metadata.type === 'job_tip'.
+ *
+ * Tips don't have an escrow row, so they short-circuit the regular
+ * escrow-update path.
+ */
+async function handleTipPaymentSucceeded(
+  paymentIntent: Stripe.PaymentIntent,
+  sendNotification: SendNotificationFn
+): Promise<void> {
+  try {
+    const jobId = paymentIntent.metadata?.job_id;
+    const payerId = paymentIntent.metadata?.payer_id;
+    const payeeId = paymentIntent.metadata?.payee_id;
+
+    const { data: tip, error } = await serverSupabase
+      .from('job_tips')
+      .update({
+        status: 'completed',
+        paid_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('stripe_payment_intent_id', paymentIntent.id)
+      .select('id, amount, currency, job_id, payee_id, note')
+      .single();
+
+    if (error || !tip) {
+      logger.error('Failed to flip job_tips row to completed', error, {
+        service: 'stripe-webhook',
+        paymentIntentId: paymentIntent.id,
+      });
+      return;
+    }
+
+    // Fire notification to the contractor. sendNotification is
+    // positional `(userId, title, message, type)` — see
+    // webhook-helpers.ts.
+    try {
+      const amountLabel = `£${Number(tip.amount).toFixed(2)}`;
+      const title = `You received a ${amountLabel} tip 💚`;
+      const message = tip.note
+        ? `${amountLabel} tip on your completed job. Note: "${tip.note}"`
+        : `${amountLabel} tip on your completed job — funds land in your next payout.`;
+      await sendNotification(tip.payee_id, title, message, 'job_tip_received');
+    } catch (notifyErr) {
+      logger.error('Tip recorded but notification failed', notifyErr, {
+        service: 'stripe-webhook',
+        tipId: tip.id,
+      });
+    }
+
+    logger.info('Job tip marked completed', {
+      service: 'stripe-webhook',
+      paymentIntentId: paymentIntent.id,
+      tipId: tip.id,
+      jobId,
+      payerId,
+      payeeId,
+    });
+  } catch (err) {
+    logger.error('Error handling tip payment success', err, {
+      service: 'stripe-webhook',
+      paymentIntentId: paymentIntent.id,
+    });
+  }
+}
+
+/**
  * Payment succeeded — mark escrow as held, update job payment status.
+ *
+ * If the PaymentIntent metadata marks this as a `job_tip`, we
+ * short-circuit to the tip handler (tips don't have an escrow row).
  */
 export async function handlePaymentIntentSucceeded(
   paymentIntent: Stripe.PaymentIntent,
@@ -14,6 +86,12 @@ export async function handlePaymentIntentSucceeded(
     service: 'stripe-webhook',
     paymentIntentId: paymentIntent.id,
   });
+
+  // Tip-jar short-circuit — no escrow row to look up.
+  if (paymentIntent.metadata?.type === 'job_tip') {
+    await handleTipPaymentSucceeded(paymentIntent, sendNotification);
+    return;
+  }
 
   try {
     const { data: escrowTransaction, error: escrowError } = await serverSupabase

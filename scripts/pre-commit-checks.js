@@ -427,6 +427,15 @@ const KNOWN_LARGE_FILES = new Set([
   // when isMintEditorial, legacy bg-white card otherwise). Each
   // tile call site stayed unchanged.
   'apps/web/app/contractor/marketing/page.tsx', // 516 lines (was 493)
+  // Added 2026-05-13 (tip jar feature): payment-handlers.ts grew from
+  // ~480 to 580 lines via the new `handleTipPaymentSucceeded` branch +
+  // metadata-type short-circuit in `handlePaymentIntentSucceeded`. The
+  // file already bundled 6 lifecycle handlers (payment_intent.succeeded
+  // / payment_intent.payment_failed / payment_intent.canceled / charge
+  // .dispute.* / charge.refunded / transfer.created). Splitting into
+  // per-event modules is the right long-term shape but is a dedicated
+  // P2 alongside the wider stripe-webhook service refactor.
+  'apps/web/lib/services/stripe-webhook/payment-handlers.ts', // 580 lines (was ~480)
   // Self-allowlist: this script grows naturally each Phase-4
   // commit because the allowlist itself is a documented log of
   // intentional over-cap files. Splitting the script into a

@@ -45,6 +45,7 @@ import {
   AccessSharedCard,
 } from './MintEditorialJobRightRail';
 import { HomeownerChecklistEditor } from './HomeownerChecklistEditor';
+import { TipJarCard } from './TipJarCard';
 import {
   MintEditorialJobTabBody,
   type TabKey,
@@ -457,6 +458,15 @@ export function MintEditorialJobDetail({
               }
             />
           ) : null}
+
+          {/* Tip jar — only renders for completed jobs. Self-gates
+              on jobStatus so we don't have to duplicate the check
+              here. */}
+          <TipJarCard
+            jobId={job.id}
+            jobStatus={job.status}
+            contractorFirstName={contractor?.first_name ?? null}
+          />
 
           <QuickActionsList jobId={job.id} status={job.status} />
         </aside>
