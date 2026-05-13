@@ -15,7 +15,7 @@ export const TablesSection: React.FC<TablesSectionProps> = ({ analytics }) => {
       {/* Category Breakdown Table */}
       <div className='bg-white rounded-xl border border-gray-200 overflow-hidden'>
         <div className='p-6 border-b border-gray-200'>
-          <h2 className='text-xl font-semibold text-gray-900 mb-1'>
+          <h2 className='t-h2 text-gray-900 mb-1'>
             Detailed Category Breakdown
           </h2>
           <p className='text-sm text-gray-500'>
@@ -104,9 +104,7 @@ export const TablesSection: React.FC<TablesSectionProps> = ({ analytics }) => {
       {analytics.topClients && analytics.topClients.length > 0 && (
         <div className='bg-white rounded-xl border border-gray-200 overflow-hidden'>
           <div className='p-6 border-b border-gray-200'>
-            <h2 className='text-xl font-semibold text-gray-900 mb-1'>
-              Top Clients
-            </h2>
+            <h2 className='t-h2 text-gray-900 mb-1'>Top Clients</h2>
             <p className='text-sm text-gray-500'>
               Your highest value clients by total revenue
             </p>

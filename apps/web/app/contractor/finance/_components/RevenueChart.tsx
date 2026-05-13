@@ -28,9 +28,7 @@ export function RevenueChart({
     <div className='bg-white rounded-xl border border-gray-200 p-6 mb-6'>
       <div className='flex items-center justify-between mb-6'>
         <div>
-          <h2 className='text-lg font-semibold text-gray-900'>
-            Revenue Overview
-          </h2>
+          <h2 className='t-h3 text-gray-900'>Revenue Overview</h2>
           <p className='text-sm text-gray-600 mt-1'>
             Monthly revenue trend (last 6 months)
           </p>
