@@ -30,6 +30,7 @@ import { JobBidsList, type BidListItem } from './components/JobBidsList';
 import { JobQuickActions } from './components/JobQuickActions';
 import { LogExpenseRow } from './components/LogExpenseRow';
 import { WithdrawBidButton } from './components/WithdrawBidButton';
+import { TipsReceivedSection } from './components/TipsReceivedSection';
 import { useAuth } from '../../contexts/AuthContext';
 import type { JobsStackParamList } from '../../navigation/types';
 import { normalizePhotoUrls } from '../../utils/photoUrls';
@@ -404,6 +405,20 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
               jobId: job.id,
               jobTitle: job.title,
             })
+          }
+        />
+
+        {/* Tips received (contractor read-only mirror of the web
+            TipJarCard). Gated on completed + contractor — the GET
+            in TipsReceivedSection is also RLS-scoped so a homeowner
+            can't bypass and see the section. Renders null with no
+            completed tips landed (silent UX). */}
+        <TipsReceivedSection
+          jobId={job.id}
+          visible={
+            isContractor &&
+            job.contractor_id === user?.id &&
+            job.status === 'completed'
           }
         />
       </ScrollView>
