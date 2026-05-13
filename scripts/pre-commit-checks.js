@@ -178,7 +178,7 @@ const KNOWN_LARGE_FILES = new Set([
   // Splitting the contractor profile page (header + booking widget +
   // contact modal + portfolio + reviews + bid actions) is a dedicated
   // P2, not a blocker on this XSS-adjacent fix.
-  'apps/web/app/contractors/[id]/page.tsx', // 511 lines (was 523)
+  'apps/web/app/contractors/[id]/page.tsx', // 525 lines (was 511) — portfolio audit fix 2026-05-13
   // Added 2026-04-27: JobQueryService grew from 442 → 535 lines via the
   // job_photos_metadata fallback (audit: production data showed jobs
   // with 0 job_attachments but with before/after lifecycle photos

@@ -6,6 +6,17 @@
  * limit after R7 #9 + #11 added postcode-proof + dispute-history fields.
  */
 
+export interface PortfolioItem {
+  id: string;
+  title: string;
+  category: string;
+  images: string[];
+  description: string;
+  completionDate: string;
+  cost?: number;
+  featured: boolean;
+}
+
 export interface RawContractorData {
   id: string;
   name?: string;
@@ -24,6 +35,14 @@ export interface RawContractorData {
   verified?: boolean;
   postcode_prefix?: string | null;
   postcode_proof_count?: number | null;
+  /** 2026-05-13 portfolio audit fix: structured per-completed-job
+   *  portfolio tiles returned by /api/contractors/[id]. May be omitted
+   *  on older API responses — page treats `undefined` as `[]`. */
+  portfolio?: PortfolioItem[];
+  /** Legacy flat-URL portfolio field. Still emitted by the API for
+   *  backwards compatibility, but new callers should consume
+   *  `portfolio` (structured) instead. */
+  portfolio_images?: string[];
   dispute_history?: {
     resolved_count: number;
     unresolved_count: number;

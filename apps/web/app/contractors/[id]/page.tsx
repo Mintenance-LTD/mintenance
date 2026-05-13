@@ -163,6 +163,17 @@ function ContractorPublicProfilePage2025() {
 
         setContractor(transformed);
         if (reviews.length > 0) setFetchedReviews(reviews);
+
+        // 2026-05-13 portfolio audit fix: the API now returns
+        // `portfolio: PortfolioItem[]` (one tile per completed job
+        // with after-photos, plus an "Other past work" tile for
+        // manual entries that aren't tied to a job). Previously this
+        // state was initialised as [] and never populated, so the
+        // ContractorPortfolio section always rendered empty even when
+        // the contractor had finished jobs with photos.
+        if (rawContractor.portfolio && rawContractor.portfolio.length > 0) {
+          setFetchedPortfolio(rawContractor.portfolio);
+        }
       } catch (err) {
         logger.error('Error fetching contractor:', err, { service: 'app' });
         setError(
