@@ -10,6 +10,7 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { HomeownerPageWrapper } from '@/app/dashboard/components/HomeownerPageWrapper';
 import { useImageUpload } from './hooks/useImageUpload';
 import { useBuildingAssessment } from './hooks/useBuildingAssessment';
+import { HireAgainBanner } from './components/HireAgainBanner';
 import {
   validateJobForm,
   isFormValid,
@@ -424,6 +425,19 @@ export default function CreateJobPage2025() {
           className={isMintEditorial ? 'py-2' : 'min-h-screen bg-gray-50 py-8'}
         >
           <div className='max-w-3xl mx-auto px-4'>
+            {/* Hire-again banner — surfaces when the homeowner came
+                in via the "Hire again" CTA on a completed job. The
+                deep link sets `?preferredContractor=<id>` (and the
+                other prefilled fields). We don't change the post-job
+                flow yet; the banner sets expectation that the
+                contractor will be notified first. The actual auto-
+                routing of the job to that contractor's bid inbox is
+                wired in the job-creation API in a follow-up. */}
+            <HireAgainBanner
+              preferredContractorId={
+                searchParams?.get('preferredContractor') ?? null
+              }
+            />
             <ProgressBar currentStep={currentStep} steps={STEPS} />
 
             {/* Main Card */}
