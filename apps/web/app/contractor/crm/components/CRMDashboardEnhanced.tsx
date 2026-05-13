@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
 import { Button } from '@/components/ui/Button';
@@ -74,6 +74,14 @@ export function CRMDashboardEnhanced(props: CRMDashboardEnhancedProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState<FilterKey>('all');
   const [viewMode, setViewMode] = useState<'cards' | 'table'>('cards');
+  // Hydration-safe theme detection — Phase-4 contractor port pattern.
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
 
   // useMemo must be before any early return (Rules of Hooks)
   const filteredClients = useMemo(() => {
@@ -126,36 +134,81 @@ export function CRMDashboardEnhanced(props: CRMDashboardEnhancedProps) {
         boxSizing: 'border-box',
       }}
     >
-      {/* Header - Modern Design */}
-      <div className='flex justify-between items-start gap-4 flex-wrap'>
-        <div>
-          <h1 className='text-heading-md font-[640] text-gray-900 mb-3 tracking-tighter'>
-            Client Relationship Management
-          </h1>
-          <div className='flex items-center gap-4 flex-wrap'>
-            <p className='text-base font-[560] text-gray-700 m-0'>
-              {filteredClients.length} clients
-            </p>
-            <span className='text-gray-300'>•</span>
-            <div className='flex items-center gap-2'>
-              <span className='w-2 h-2 rounded-full bg-green-500'></span>
-              <p className='text-base font-[560] text-gray-700 m-0'>
-                {clients.filter((c) => c.active_jobs > 0).length} active
-              </p>
+      {/* Header — canonical .t-h1 + meta row + .btn-primary on
+          editorial, legacy modern-design header otherwise. */}
+      {isMintEditorial ? (
+        <div className='between' style={{ alignItems: 'flex-start' }}>
+          <div className='col' style={{ gap: 6 }}>
+            <h1 className='t-h1'>Client relationship management</h1>
+            <div
+              className='row'
+              style={{
+                gap: 10,
+                alignItems: 'center',
+                flexWrap: 'wrap',
+              }}
+            >
+              <span style={{ fontSize: 14, fontWeight: 600 }}>
+                {filteredClients.length} clients
+              </span>
+              <span style={{ color: 'var(--me-ink-3)' }}>·</span>
+              <span className='row' style={{ gap: 6, alignItems: 'center' }}>
+                <span
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: '50%',
+                    background: 'var(--me-ok)',
+                  }}
+                />
+                <span style={{ fontSize: 14, fontWeight: 600 }}>
+                  {clients.filter((c) => c.active_jobs > 0).length} active
+                </span>
+              </span>
             </div>
           </div>
+          <button
+            type='button'
+            className='btn btn-primary btn-sm'
+            onClick={() => {
+              /* Add client action */
+            }}
+          >
+            <Icon name='plus' size={14} color='currentColor' />
+            Add client
+          </button>
         </div>
-        <Button
-          variant='primary'
-          onClick={() => {
-            /* Add client action */
-          }}
-          className='px-6 py-3 rounded-xl'
-        >
-          <Icon name='plus' size={18} color='white' />
-          Add Client
-        </Button>
-      </div>
+      ) : (
+        <div className='flex justify-between items-start gap-4 flex-wrap'>
+          <div>
+            <h1 className='text-heading-md font-[640] text-gray-900 mb-3 tracking-tighter'>
+              Client Relationship Management
+            </h1>
+            <div className='flex items-center gap-4 flex-wrap'>
+              <p className='text-base font-[560] text-gray-700 m-0'>
+                {filteredClients.length} clients
+              </p>
+              <span className='text-gray-300'>•</span>
+              <div className='flex items-center gap-2'>
+                <span className='w-2 h-2 rounded-full bg-green-500'></span>
+                <p className='text-base font-[560] text-gray-700 m-0'>
+                  {clients.filter((c) => c.active_jobs > 0).length} active
+                </p>
+              </div>
+            </div>
+          </div>
+          <Button
+            variant='primary'
+            onClick={() => {
+              /* Add client action */
+            }}
+            className='px-6 py-3 rounded-xl'
+          >
+            <Icon name='plus' size={18} color='white' />
+            Add Client
+          </Button>
+        </div>
+      )}
 
       {/* KPI Cards - Modern Grid */}
       <div className='grid grid-cols-12 gap-6'>

@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import {
@@ -88,6 +88,15 @@ export function ProfileHeroSection({
     e.target.value = '';
     if (file && handler) handler(file);
   };
+  // Hydration-safe theme detection — swap the legacy teal gradient
+  // cover band for a solid brand band when Mint Editorial is active.
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
 
   return (
     <>
@@ -113,7 +122,16 @@ export function ProfileHeroSection({
         animate={{ opacity: 1, y: 0 }}
         className='relative mb-8'
       >
-        <div className='relative h-72 rounded-xl overflow-hidden bg-gradient-to-br from-teal-600 to-teal-700 shadow-sm'>
+        <div
+          className={
+            isMintEditorial
+              ? 'relative h-72 rounded-xl overflow-hidden shadow-sm'
+              : 'relative h-72 rounded-xl overflow-hidden bg-gradient-to-br from-teal-600 to-teal-700 shadow-sm'
+          }
+          style={
+            isMintEditorial ? { background: 'var(--me-brand)' } : undefined
+          }
+        >
           <div className='absolute inset-0 bg-gradient-to-r from-transparent to-black/10' />
           {isEditMode && (
             <button
@@ -137,7 +155,18 @@ export function ProfileHeroSection({
                   className='object-cover'
                 />
               ) : (
-                <div className='w-full h-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center'>
+                <div
+                  className={
+                    isMintEditorial
+                      ? 'w-full h-full flex items-center justify-center'
+                      : 'w-full h-full bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center'
+                  }
+                  style={
+                    isMintEditorial
+                      ? { background: 'var(--me-brand)' }
+                      : undefined
+                  }
+                >
                   <span className='text-5xl font-bold text-white'>
                     {contractorName.charAt(0).toUpperCase()}
                   </span>
