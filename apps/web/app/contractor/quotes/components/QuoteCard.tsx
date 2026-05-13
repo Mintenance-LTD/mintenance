@@ -84,11 +84,12 @@ export function QuoteCard({
   const [isSending, setIsSending] = useState(false);
 
   const handleView = () => router.push(`/contractor/quotes/${quote.id}`);
-  // Audit follow-up (2026-04-29): `/contractor/quotes/[id]/edit` doesn't
-  // exist as a route. The quote view page (`[id]`) is currently the
-  // closest surface a contractor can act on a draft from. Once a
-  // dedicated edit page ships, swap this back to `${id}/edit`.
-  const handleEdit = () => router.push(`/contractor/quotes/${quote.id}`);
+  // 2026-05-13: edit route now exists — see
+  // /contractor/quotes/[id]/edit/page.tsx. Quick-edit covers title,
+  // total_amount, status (draft / sent / expired), valid_until,
+  // terms, notes. Line-item edits intentionally stay on the
+  // duplicate-and-recreate path.
+  const handleEdit = () => router.push(`/contractor/quotes/${quote.id}/edit`);
 
   // 2026-05-13: wire to the existing /api/contractor/send-quote endpoint
   // (was a toast stub). Endpoint emails the client when client_email is
