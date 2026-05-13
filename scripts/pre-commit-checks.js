@@ -195,7 +195,7 @@ const KNOWN_LARGE_FILES = new Set([
   'apps/web/app/contractor/discover/components/JobCard.tsx', // 623 lines (was 618)
   'apps/web/app/contractor/jobs-near-you/components/NearbyJobCard.tsx', // 511 lines (was 502)
   'apps/web/app/discover/components/JobCard.tsx', // 568 lines (was 563)
-  'apps/web/app/properties/[id]/components/PropertyDetailsClient.tsx', // 670 lines (was 665)
+  'apps/web/app/properties/[id]/components/PropertyDetailsClient.tsx', // 862 lines (was 670) — +retention-aware delete confirm 2026-05-13
   // Added 2026-04-28: pre-existing large mobile files (550 / 510 lines
   // on HEAD) touched by the BidService consolidation + priority→urgency
   // rename. ContractorAssignment.tsx swapped camelCase ApiBid reads
