@@ -98,9 +98,23 @@ export const getStatusConfig = (status: string): StatusConfig => {
 
 // ── Constants ─────────────────────────────────────────────────────
 
+/**
+ * Keys in `contracts.terms` that the ContractScope component should NOT
+ * surface in the generic "Additional Terms" list because they are
+ * rendered by purpose-built UI elsewhere (Insured Pro badge,
+ * ContractQuoteBreakdown) or are purely internal metadata.
+ *
+ * 2026-05-13 audit: the auto-create-from-bid flow now stuffs richer
+ * fields into terms (estimated_duration_days, warranty_months,
+ * materials_included, insurance_expiry_date). The first three render
+ * cleanly with the existing key/value list, but `insurance_expiry_date`
+ * would surface as a raw ISO date — hide it and let the Insured Pro
+ * badge (and contractor profile expiry pill) own that surface instead.
+ */
 export const TERMS_HIDDEN_KEYS = [
   'insurance_provider',
   'insurance_policy_number',
+  'insurance_expiry_date',
   'source',
   'bid_id',
   'created_from',

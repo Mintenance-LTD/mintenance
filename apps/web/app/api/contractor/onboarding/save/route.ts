@@ -143,19 +143,62 @@ export const POST = withApiHandler(
         }
       }
 
-      // Mirror license + insurance fields onto the profile for the
-      // public-profile + verification surfaces.
+      // 2026-05-13 schema audit: only `license_number` lives on
+      // `profiles`. Insurance is normalised into the dedicated
+      // `contractor_insurance` table (provider/policy_number/status),
+      // so we upsert that row separately rather than trying to write
+      // a non-existent `profiles.insurance_provider` column (which
+      // would 42703 and silently fail the whole skills step).
       const profilePatch: Record<string, unknown> = {
         updated_at: new Date().toISOString(),
       };
       if (data.license_number.trim()) {
         profilePatch.license_number = data.license_number.trim();
       }
-      if (data.insurance_provider.trim()) {
-        profilePatch.insurance_provider = data.insurance_provider.trim();
-      }
       if (Object.keys(profilePatch).length > 1) {
         await userDb.from('profiles').update(profilePatch).eq('id', user.id);
+      }
+
+      if (data.insurance_provider.trim()) {
+        // contractor_insurance has NO unique constraint on contractor_id
+        // (verified live 2026-05-13: only contractor_insurance_pkey on
+        // `id`), so we cannot use `.upsert(..., { onConflict })` —
+        // that would 42P10 immediately. Manual check-then-update or
+        // insert keeps onboarding non-fatal.
+        const insuranceValues = {
+          provider: data.insurance_provider.trim(),
+          type: 'general_liability',
+          status: 'active',
+          updated_at: new Date().toISOString(),
+        };
+        const { data: existing } = await userDb
+          .from('contractor_insurance')
+          .select('id')
+          .eq('contractor_id', user.id)
+          .eq('status', 'active')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        const { error: insuranceErr } = existing
+          ? await userDb
+              .from('contractor_insurance')
+              .update(insuranceValues)
+              .eq('id', existing.id)
+          : await userDb.from('contractor_insurance').insert({
+              contractor_id: user.id,
+              ...insuranceValues,
+            });
+        if (insuranceErr) {
+          // Non-fatal — skills step itself succeeded. Log for retry
+          // via a later edit on /contractor/profile.
+          logger.warn('Failed to write contractor insurance', {
+            service: 'contractor-onboarding',
+            userId: user.id,
+            errorMessage: insuranceErr.message,
+            errorCode: insuranceErr.code,
+          });
+        }
       }
       return NextResponse.json({ success: true });
     }

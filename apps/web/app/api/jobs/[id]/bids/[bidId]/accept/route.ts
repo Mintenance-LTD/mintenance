@@ -40,6 +40,17 @@ interface BidRow {
   contractor_id: string;
   status: string;
   amount: number;
+  // 2026-05-13 contract-pipeline audit: pulling extra fields so the
+  // auto-created draft contract reflects what the contractor actually
+  // bid on (proposal text, schedule, quote link, warranty terms),
+  // rather than the previous generic boilerplate.
+  description: string | null;
+  message: string | null;
+  estimated_duration_days: number | null;
+  proposed_start_date: string | null;
+  quote_id: string | null;
+  warranty_months: number | null;
+  materials_included: boolean | null;
 }
 
 export const POST = withApiHandler(
@@ -119,7 +130,9 @@ export const POST = withApiHandler(
     // Verify the bid exists and belongs to this job (user-scoped read)
     const { data: bidData, error: bidError } = await userDb
       .from('bids')
-      .select('id, job_id, contractor_id, status, amount')
+      .select(
+        'id, job_id, contractor_id, status, amount, description, message, estimated_duration_days, proposed_start_date, quote_id, warranty_months, materials_included'
+      )
       .eq('id', bidId)
       .eq('job_id', jobId)
       .single();
@@ -355,6 +368,25 @@ export const POST = withApiHandler(
     }
 
     // Auto-create draft contract from accepted bid (idempotency guard)
+    //
+    // 2026-05-13 bid → contract pipeline audit: this block previously
+    // wrote a near-empty contract — generic title, boilerplate
+    // description ("Contract created from accepted bid for X"), no
+    // schedule, no contractor identity, no insurance, no quote link.
+    // Homeowner was then asked to sign a contract whose body told
+    // them nothing about what the contractor actually proposed.
+    //
+    // The contractor's full submission lived in three places:
+    //   • bids.message          — proposal text (50–5000 chars)
+    //   • bids.proposed_start_date / estimated_duration_days
+    //   • bids.warranty_months / materials_included
+    //   • bids.quote_id → contractor_quotes (line items, subtotal,
+    //     tax_rate, tax_amount, total_amount, terms text)
+    //   • profiles (company_name, license_number, license_type)
+    //   • contractor_insurance (provider, policy_number)
+    //
+    // We now pull all of that into the draft so the homeowner sees the
+    // real proposal at the signature step.
     try {
       const { data: existingContract } = await serverSupabase
         .from('contracts')
@@ -372,25 +404,108 @@ export const POST = withApiHandler(
           }
         );
       } else {
+        // Pull the contractor's identity + insurance in parallel with
+        // the rest of the accept-flow side-effects. Failures here are
+        // non-fatal — we degrade to the previous bare-bones contract
+        // rather than block acceptance.
+        const [profileRes, insuranceRes] = await Promise.all([
+          serverSupabase
+            .from('profiles')
+            .select('company_name, license_number, license_type')
+            .eq('id', bid.contractor_id)
+            .maybeSingle(),
+          serverSupabase
+            .from('contractor_insurance')
+            .select('provider, policy_number, expiry_date')
+            .eq('contractor_id', bid.contractor_id)
+            .eq('status', 'active')
+            .order('created_at', { ascending: false })
+            .limit(1)
+            .maybeSingle(),
+        ]);
+
+        const contractorProfile = profileRes.data;
+        const insurance = insuranceRes.data;
         const bidAmount = bid.amount || 0;
+
+        // Prefer `message` (the canonical proposal column on bids) but
+        // fall back to `description` for older rows.
+        const proposalText =
+          (bid.message ?? bid.description ?? '').toString().trim() || null;
+
+        // contracts.start_date / end_date are `timestamp with time
+        // zone`; bids.proposed_start_date is a `date`. Promote to ISO
+        // and compute the projected end-date from the duration if both
+        // are present.
+        let startDateIso: string | null = null;
+        let endDateIso: string | null = null;
+        if (bid.proposed_start_date) {
+          const start = new Date(`${bid.proposed_start_date}T09:00:00.000Z`);
+          if (!Number.isNaN(start.getTime())) {
+            startDateIso = start.toISOString();
+            if (
+              bid.estimated_duration_days &&
+              bid.estimated_duration_days > 0
+            ) {
+              const end = new Date(start);
+              end.setUTCDate(end.getUTCDate() + bid.estimated_duration_days);
+              endDateIso = end.toISOString();
+            }
+          }
+        }
+
+        const termsPayload: Record<string, unknown> = {
+          source: 'accepted_bid',
+          bid_id: bidId,
+          created_from: 'bid_acceptance',
+        };
+        if (insurance?.provider) {
+          termsPayload.insurance_provider = insurance.provider;
+        }
+        if (insurance?.policy_number) {
+          termsPayload.insurance_policy_number = insurance.policy_number;
+        }
+        if (insurance?.expiry_date) {
+          termsPayload.insurance_expiry_date = insurance.expiry_date;
+        }
+        if (bid.estimated_duration_days && bid.estimated_duration_days > 0) {
+          termsPayload.estimated_duration_days = bid.estimated_duration_days;
+        }
+        if (bid.warranty_months && bid.warranty_months > 0) {
+          termsPayload.warranty_months = bid.warranty_months;
+        }
+        // Only persist `materials_included: true` — the falsy case
+        // would render as literal "false" under ContractScope's
+        // additional-terms list, which is confusing UX.
+        if (bid.materials_included === true) {
+          termsPayload.materials_included = true;
+        }
+
+        const contractPayload: Record<string, unknown> = {
+          job_id: jobId,
+          contractor_id: bid.contractor_id,
+          homeowner_id: user.id,
+          title: `Contract for ${jobDetails?.title || 'Job'}`,
+          description:
+            proposalText ||
+            `Contract created from accepted bid for "${jobDetails?.title || 'this job'}"`,
+          amount: bidAmount,
+          status: CONTRACT_STATUS.PENDING_CONTRACTOR,
+          start_date: startDateIso,
+          end_date: endDateIso,
+          terms: termsPayload,
+          contractor_company_name: contractorProfile?.company_name ?? null,
+          contractor_license_registration:
+            contractorProfile?.license_number ?? null,
+          contractor_license_type: contractorProfile?.license_type ?? null,
+          quote_id: bid.quote_id ?? null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+
         const { error: contractError } = await serverSupabase
           .from('contracts')
-          .insert({
-            job_id: jobId,
-            contractor_id: bid.contractor_id,
-            homeowner_id: user.id,
-            title: `Contract for ${jobDetails?.title || 'Job'}`,
-            description: `Contract created from accepted bid for "${jobDetails?.title || 'this job'}"`,
-            amount: bidAmount,
-            status: CONTRACT_STATUS.PENDING_CONTRACTOR,
-            terms: {
-              source: 'accepted_bid',
-              bid_id: bidId,
-              created_from: 'bid_acceptance',
-            },
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          });
+          .insert(contractPayload);
 
         if (contractError) {
           logger.error('Failed to create draft contract', contractError, {

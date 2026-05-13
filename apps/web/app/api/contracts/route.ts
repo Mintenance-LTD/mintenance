@@ -39,13 +39,22 @@ export const GET = withApiHandler(
     const jobId = searchParams.get('job_id');
     const status = searchParams.get('status');
 
+    // 2026-05-13 bid → contract pipeline audit: pull the linked
+    // contractor_quotes row inline so the UI can render the actual
+    // quote breakdown (line items, tax, terms) that the contractor
+    // submitted alongside their bid. Previously the contract page only
+    // had `amount` to render, even though `contracts.quote_id` already
+    // existed in the schema — the auto-create flow now populates it,
+    // and the contractor "Edit Contract" dialog has been populating
+    // it for months. This embed activates that data.
     let query = serverSupabase.from('contracts').select(`
       id, job_id, contractor_id, homeowner_id, status, title, description, amount,
       start_date, end_date, terms, contractor_signed_at, homeowner_signed_at,
       contractor_company_name, contractor_license_registration, contractor_license_type,
-      created_at, updated_at,
+      quote_id, created_at, updated_at,
       contractor:profiles!contractor_id(first_name, last_name, company_name, profile_image_url, insurance_expiry_date),
-      homeowner:profiles!homeowner_id(first_name, last_name)
+      homeowner:profiles!homeowner_id(first_name, last_name),
+      quote:contractor_quotes!quote_id(id, subtotal, tax_rate, tax_amount, total_amount, line_items, terms, quote_number, valid_until)
     `);
 
     // Filter by role
