@@ -10,14 +10,21 @@ import { getCsrfHeaders } from '@/lib/csrf-client';
 interface JobCardQuickActionsProps {
   jobId: string;
   status: string;
+  /** When set + status === 'completed', the menu surfaces a "Hire
+   *  again" entry that deep-links to /jobs/create with prefilled
+   *  fields + the previous contractor pre-selected via query
+   *  string. Drives repeat business. */
+  previousContractorId?: string | null;
   onRefresh?: () => void;
 }
 
 export function JobCardQuickActions({
   jobId,
   status,
+  previousContractorId,
   onRefresh,
 }: JobCardQuickActionsProps) {
+  const isCompleted = status === 'completed';
   const [showMenu, setShowMenu] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -32,6 +39,37 @@ export function JobCardQuickActions({
   const handleEdit = () => {
     router.push(`/jobs/${jobId}/edit`);
   };
+
+  /**
+   * Hire-again deep-link to /jobs/create. The create page already
+   * accepts title/description/category/location via query string
+   * (see /jobs/create/utils/url-prefill.ts). We add
+   * `preferredContractor` so the wizard can show "Hiring X again"
+   * messaging and (when later wired) auto-route the job to that
+   * contractor's bid inbox.
+   */
+  const handleHireAgain = useCallback(async () => {
+    setShowMenu(false);
+    try {
+      const getRes = await fetch(`/api/jobs/${jobId}`);
+      if (!getRes.ok) {
+        throw new Error('Failed to fetch job details');
+      }
+      const { job } = await getRes.json();
+      const params = new URLSearchParams();
+      if (job.title) params.set('title', job.title);
+      if (job.description) params.set('description', job.description);
+      if (job.category) params.set('category', job.category);
+      if (job.location) params.set('location', job.location);
+      if (previousContractorId)
+        params.set('preferredContractor', previousContractorId);
+      router.push(`/jobs/create?${params.toString()}`);
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to start rebooking'
+      );
+    }
+  }, [jobId, previousContractorId, router]);
 
   const handleDuplicate = useCallback(async () => {
     setIsLoading(true);
@@ -194,6 +232,34 @@ export function JobCardQuickActions({
               className='absolute top-full right-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-xl overflow-hidden z-20'
               onClick={(e) => e.stopPropagation()}
             >
+              {/* Hire again — top of menu for completed jobs to
+                  surface the repeat-business path. */}
+              {isCompleted && (
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleHireAgain();
+                  }}
+                  className='w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-teal-700 hover:bg-teal-50 transition-colors'
+                >
+                  <svg
+                    className='w-4 h-4'
+                    fill='none'
+                    viewBox='0 0 24 24'
+                    stroke='currentColor'
+                  >
+                    <path
+                      strokeLinecap='round'
+                      strokeLinejoin='round'
+                      strokeWidth={2}
+                      d='M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15'
+                    />
+                  </svg>
+                  Hire again
+                </button>
+              )}
+
               <button
                 onClick={(e) => {
                   e.preventDefault();

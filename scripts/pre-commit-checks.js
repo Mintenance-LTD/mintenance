@@ -380,7 +380,7 @@ const KNOWN_LARGE_FILES = new Set([
   // editorial header swap. The Phase-4 batch header commit pushed
   // them further over; this entry recognises the existing state.
   // A clean split into per-section subcomponents is a P2 refactor.
-  'apps/web/app/contractor/time-tracking/page.tsx', // 666 lines (was ~660)
+  'apps/web/app/contractor/time-tracking/page.tsx', // 725 lines (was 666) — linked-job picker
   // Added 2026-05-12 (Phase-4 job-detail editorial rewrite): the
   // /contractor/jobs/[id]/page.tsx server component now also
   // branches on the `mintenance-theme` cookie and renders the new

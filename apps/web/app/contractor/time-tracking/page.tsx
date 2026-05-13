@@ -64,8 +64,37 @@ export default function TimeTrackingPage() {
   }, []);
   const chartPalette = useChartPalette();
 
+  // Linkable jobs — fetched once on first modal open. Contractors
+  // tag a time entry to one of their assigned/completed jobs so the
+  // entry rolls up into per-job earnings + future invoicing.
+  const [linkableJobs, setLinkableJobs] = useState<
+    Array<{ id: string; title: string; status: string }>
+  >([]);
+  const fetchLinkableJobs = useCallback(async () => {
+    if (linkableJobs.length > 0) return;
+    try {
+      const res = await fetch('/api/contractor/my-jobs?status=all', {
+        credentials: 'include',
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      setLinkableJobs(
+        (data.jobs || data || []).map(
+          (j: { id: string; title: string; status: string }) => ({
+            id: j.id,
+            title: j.title || 'Untitled job',
+            status: j.status || 'unknown',
+          })
+        )
+      );
+    } catch (err) {
+      logger.warn('Failed to fetch linkable jobs', { error: err });
+    }
+  }, [linkableJobs.length]);
+
   // Add form state
   const [formTask, setFormTask] = useState('');
+  const [formJobId, setFormJobId] = useState<string>('');
   const [formDate, setFormDate] = useState(
     new Date().toISOString().slice(0, 10)
   );
@@ -98,6 +127,7 @@ export default function TimeTrackingPage() {
 
   const resetForm = () => {
     setFormTask('');
+    setFormJobId('');
     setFormDate(new Date().toISOString().slice(0, 10));
     setFormStartTime('09:00');
     setFormEndTime('17:00');
@@ -132,6 +162,7 @@ export default function TimeTrackingPage() {
         credentials: 'include',
         body: JSON.stringify({
           taskDescription: formTask.trim(),
+          jobId: formJobId || undefined,
           date: formDate,
           startTime: formStartTime,
           endTime: formEndTime,
@@ -300,7 +331,10 @@ export default function TimeTrackingPage() {
             <button
               type='button'
               className='btn btn-primary btn-sm'
-              onClick={() => setShowAddModal(true)}
+              onClick={() => {
+                fetchLinkableJobs();
+                setShowAddModal(true);
+              }}
             >
               <Plus size={14} strokeWidth={1.75} />
               Add entry
@@ -332,7 +366,10 @@ export default function TimeTrackingPage() {
                   <Download className='w-5 h-5' /> Export
                 </button>
                 <button
-                  onClick={() => setShowAddModal(true)}
+                  onClick={() => {
+                    fetchLinkableJobs();
+                    setShowAddModal(true);
+                  }}
                   className='flex items-center gap-2 px-5 py-2.5 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors font-medium'
                 >
                   <Plus className='w-5 h-5' /> Add Entry
@@ -561,6 +598,29 @@ export default function TimeTrackingPage() {
                   className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent'
                   placeholder='e.g. Cabinet installation'
                 />
+              </div>
+              {/* Link to job — optional. When set, the entry rolls
+                  up into per-job earnings + future invoice line
+                  items. Wired via /api/contractor/my-jobs?status=all. */}
+              <div>
+                <label className='block text-sm font-medium text-gray-700 mb-1'>
+                  Linked job (optional)
+                </label>
+                <select
+                  value={formJobId}
+                  onChange={(e) => setFormJobId(e.target.value)}
+                  className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent'
+                >
+                  <option value=''>— No job link —</option>
+                  {linkableJobs.map((j) => (
+                    <option key={j.id} value={j.id}>
+                      {j.title}
+                      {j.status !== 'in_progress' && j.status !== 'assigned'
+                        ? ` (${j.status})`
+                        : ''}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div>
                 <label className='block text-sm font-medium text-gray-700 mb-1'>
