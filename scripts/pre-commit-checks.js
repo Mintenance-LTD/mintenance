@@ -306,7 +306,7 @@ const KNOWN_LARGE_FILES = new Set([
   // privacy) inline; the new Appearance section is the 7th. Splitting
   // each section into its own client file is the right long-term
   // shape but is a dedicated P2.
-  'apps/web/app/contractor/settings/page.tsx', // 570 lines (was 554)
+  'apps/web/app/contractor/settings/page.tsx', // 693 lines (was 570) — editorial branch on header + sidebar + privacy/automation inline cards 2026-05-13
   // Added 2026-05-12 (Phase-4 contractor port): the contractor
   // MessagesClient already pre-existed at 585 lines before the
   // Mint Editorial branch. The +186-line edit adds:
