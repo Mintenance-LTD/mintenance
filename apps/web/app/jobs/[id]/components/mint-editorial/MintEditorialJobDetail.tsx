@@ -44,6 +44,7 @@ import {
   QuickActionsList,
   AccessSharedCard,
 } from './MintEditorialJobRightRail';
+import { HomeownerChecklistEditor } from './HomeownerChecklistEditor';
 import {
   MintEditorialJobTabBody,
   type TabKey,
@@ -430,6 +431,13 @@ export function MintEditorialJobDetail({
               contractorFirstName='the contractor'
             />
           )}
+
+          {/* Pre-arrival checklist editor — homeowner can add/remove
+              items while job.status is `posted` or `assigned`. After
+              that the editor becomes read-only (still shows ticked
+              state from the contractor) so changing the checklist
+              mid-job doesn't confuse the contractor. */}
+          <HomeownerChecklistEditor jobId={job.id} jobStatus={job.status} />
 
           {/* Access shared with contractor — mirror of what the
               contractor sees on `/contractor/jobs/[id]`. The code is

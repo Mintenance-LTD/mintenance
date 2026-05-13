@@ -48,6 +48,7 @@ import { JobPhotoUpload } from './JobPhotoUpload';
 import { OnMyWayButton } from './OnMyWayButton';
 import { LocationSharing } from './LocationSharing';
 import { PrepareContractButton } from './PrepareContractButton';
+import { PreArrivalChecklist } from './PreArrivalChecklist';
 
 interface ProgressStep {
   label: string;
@@ -428,6 +429,11 @@ export function MintEditorialJobDetailView({
               </div>
             </div>
           )}
+
+          {/* Pre-arrival checklist — hidden when there are no items
+              (component renders null), so the homeowner controls
+              whether this slot appears. */}
+          <PreArrivalChecklist jobId={job.id} />
 
           {/* AI Building Assessment */}
           {(buildingAssessment || jobPhotoUrls.length > 0) && (
