@@ -1,7 +1,7 @@
 'use client';
 
 import { ContractorPageWrapper } from '@/app/contractor/components/ContractorPageWrapper';
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { useCSRF } from '@/lib/hooks/useCSRF';
 import { useRouter } from 'next/navigation';
@@ -48,6 +48,19 @@ export function ContractorProfileClient2025({
 }: ContractorProfileClient2025Props) {
   const router = useRouter();
   const { getCsrfHeaders } = useCSRF();
+
+  // 2026-05-13 polish pass: hydration-safe theme detection for the tabs
+  // nav. The hero is already editorial-aware (see ProfileHeroSection);
+  // the legacy teal-bg tab rail was the most obvious clash with the
+  // rest of the page under Mint Editorial.
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
+
   const [activeTab, setActiveTab] = useState<
     | 'overview'
     | 'company'
@@ -264,24 +277,73 @@ export function ContractorProfileClient2025({
         />
 
         {/* Tabs Navigation */}
-        <div className='bg-white rounded-xl border border-gray-200 mb-6 overflow-hidden'>
-          <div className='flex overflow-x-auto'>
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex-1 min-w-fit px-6 py-4 font-medium text-sm transition-colors border-b-2 flex items-center justify-center gap-2 ${
-                  activeTab === tab.id
-                    ? 'border-teal-600 text-teal-700 bg-teal-50/50'
-                    : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                }`}
-              >
-                <tab.icon className='w-4 h-4' />
-                {tab.label}
-              </button>
-            ))}
+        {isMintEditorial ? (
+          <div
+            className='card'
+            style={{
+              padding: 6,
+              marginBottom: 24,
+              overflow: 'hidden',
+            }}
+          >
+            <div
+              className='row'
+              style={{ gap: 4, overflowX: 'auto', flexWrap: 'nowrap' }}
+            >
+              {tabs.map((tab) => {
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    style={{
+                      flex: 1,
+                      minWidth: 'fit-content',
+                      padding: '10px 16px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 8,
+                      borderRadius: 8,
+                      border: 'none',
+                      background: isActive
+                        ? 'var(--me-brand-soft)'
+                        : 'transparent',
+                      color: isActive ? 'var(--me-brand)' : 'var(--me-ink-2)',
+                      fontWeight: isActive ? 600 : 500,
+                      fontSize: 13,
+                      whiteSpace: 'nowrap',
+                      cursor: 'pointer',
+                      transition: 'background 0.15s, color 0.15s',
+                    }}
+                  >
+                    <tab.icon className='w-4 h-4' />
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className='bg-white rounded-xl border border-gray-200 mb-6 overflow-hidden'>
+            <div className='flex overflow-x-auto'>
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex-1 min-w-fit px-6 py-4 font-medium text-sm transition-colors border-b-2 flex items-center justify-center gap-2 ${
+                    activeTab === tab.id
+                      ? 'border-teal-600 text-teal-700 bg-teal-50/50'
+                      : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  }`}
+                >
+                  <tab.icon className='w-4 h-4' />
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <ProfileTabPanels
           activeTab={activeTab}
