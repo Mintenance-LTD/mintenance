@@ -1,25 +1,32 @@
 'use client';
 
 /**
- * TipJarCard — homeowner-side card that appears on completed jobs.
- * Lets the homeowner send a gratuity directly to the contractor
- * via Stripe Direct Charge (no platform fee, no escrow hold).
+ * TipJarCard — homeowner-side card on completed jobs. Lets the
+ * homeowner send a gratuity directly to the contractor via Stripe
+ * Direct Charge (no platform fee, no escrow hold).
  *
- * Flow:
- *   1. Homeowner picks an amount (£5 / £10 / £20 / custom)
- *   2. Optional thank-you note
- *   3. POST /api/jobs/[id]/tip → returns `{ tip, clientSecret }`
- *   4. Stripe Elements confirms the PaymentIntent client-side
- *   5. On success, refetch the totals to show "Tip sent" state
+ * 2026-05-13 — inline Stripe Elements flow (was: 4s polling fallback)
+ * --------------------------------------------------------------------
+ *   1. Homeowner picks amount (£5 / £10 / £20 / custom) + optional note
+ *   2. Click "Continue" → POST /api/jobs/[id]/tip → { clientSecret }
+ *   3. <Elements> mounts a <PaymentElement> right inside the card
+ *   4. Homeowner enters card details → click "Confirm £X tip"
+ *   5. stripe.confirmPayment({ redirect: 'if_required' }) confirms inline
+ *   6. On success we refetch tips so the card flips to "Tip sent" state
  *
- * For the first iteration we redirect to `/checkout?...` rather than
- * mounting Stripe Elements inline — the embedded checkout helper
- * already handles the confirm flow with proper PCI scope. A
- * follow-up can swap to inline Elements for fewer redirects.
+ * The Stripe webhook (handleTipPaymentSucceeded) still fires the
+ * contractor notification + flips the DB row to status=completed.
  */
 
-import React, { useCallback, useEffect, useState } from 'react';
-import { Heart, Loader2, Check } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { loadStripe } from '@stripe/stripe-js';
+import {
+  Elements,
+  PaymentElement,
+  useStripe,
+  useElements,
+} from '@stripe/react-stripe-js';
+import { Heart, Loader2, Check, ArrowLeft } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { getCsrfHeaders } from '@/lib/csrf-client';
 import { logger } from '@mintenance/shared';
@@ -41,6 +48,121 @@ interface TipRecord {
 
 const PRESETS = [5, 10, 20] as const;
 
+const stripePromise = loadStripe(
+  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || ''
+);
+
+function InlineTipPaymentForm({
+  clientSecret,
+  amount,
+  onSuccess,
+  onCancel,
+}: {
+  clientSecret: string;
+  amount: number;
+  onSuccess: () => void;
+  onCancel: () => void;
+}) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [processing, setProcessing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleConfirm = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!stripe || !elements) return;
+    setError(null);
+    setProcessing(true);
+
+    const { error: submitErr } = await elements.submit();
+    if (submitErr) {
+      setError(submitErr.message || 'Payment validation failed');
+      setProcessing(false);
+      return;
+    }
+
+    const { error: confirmErr, paymentIntent } = await stripe.confirmPayment({
+      elements,
+      clientSecret,
+      confirmParams: {
+        return_url: `${window.location.origin}${window.location.pathname}`,
+      },
+      redirect: 'if_required',
+    });
+
+    if (confirmErr) {
+      logger.error('Tip Stripe confirmPayment error', confirmErr);
+      setError(confirmErr.message || 'Payment failed. Please try again.');
+      setProcessing(false);
+      return;
+    }
+
+    if (paymentIntent?.status === 'succeeded') {
+      toast.success('Tip sent — thanks for the kindness 💚');
+      onSuccess();
+    } else {
+      setError(
+        'Payment did not complete. If your card needs more verification, please try again.'
+      );
+      setProcessing(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleConfirm} className='col' style={{ gap: 12 }}>
+      <PaymentElement options={{ layout: 'tabs' }} />
+
+      {error ? (
+        <p
+          style={{
+            margin: 0,
+            padding: 10,
+            borderRadius: 8,
+            background: 'color-mix(in srgb, var(--me-err) 12%, transparent)',
+            color: 'var(--me-err)',
+            fontSize: 12,
+            fontWeight: 500,
+          }}
+        >
+          {error}
+        </p>
+      ) : null}
+
+      <div className='row' style={{ gap: 8 }}>
+        <button
+          type='button'
+          onClick={onCancel}
+          disabled={processing}
+          className='btn btn-ghost btn-sm'
+          style={{ flex: '0 0 auto' }}
+        >
+          <ArrowLeft size={13} strokeWidth={1.75} /> Back
+        </button>
+        <button
+          type='submit'
+          disabled={!stripe || !elements || processing}
+          className='btn btn-primary'
+          style={{ flex: 1, justifyContent: 'center' }}
+        >
+          {processing ? (
+            <Loader2 size={14} strokeWidth={1.75} className='animate-spin' />
+          ) : (
+            <Check size={14} strokeWidth={1.75} />
+          )}
+          {processing ? 'Confirming…' : `Confirm £${amount.toFixed(2)} tip`}
+        </button>
+      </div>
+
+      <span
+        className='t-meta'
+        style={{ fontSize: 11, color: 'var(--me-ink-3)' }}
+      >
+        Payment goes directly to the contractor. Mintenance takes 0% on tips.
+      </span>
+    </form>
+  );
+}
+
 export function TipJarCard({
   jobId,
   jobStatus,
@@ -52,7 +174,9 @@ export function TipJarCard({
   const [amount, setAmount] = useState<number>(10);
   const [customAmount, setCustomAmount] = useState('');
   const [note, setNote] = useState('');
-  const [submitting, setSubmitting] = useState(false);
+  const [creatingIntent, setCreatingIntent] = useState(false);
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [pendingAmount, setPendingAmount] = useState<number>(0);
 
   const load = useCallback(async () => {
     try {
@@ -75,8 +199,8 @@ export function TipJarCard({
     else setLoading(false);
   }, [jobStatus, load]);
 
-  const handleSend = async () => {
-    if (submitting) return;
+  const handleCreateIntent = async () => {
+    if (creatingIntent) return;
     const finalAmount = customAmount ? parseFloat(customAmount) : amount;
     if (!Number.isFinite(finalAmount) || finalAmount < 1) {
       toast.error('Enter a tip of at least £1');
@@ -86,7 +210,7 @@ export function TipJarCard({
       toast.error('Maximum tip is £500');
       return;
     }
-    setSubmitting(true);
+    setCreatingIntent(true);
     try {
       const csrf = await getCsrfHeaders();
       const res = await fetch(`/api/jobs/${jobId}/tip`, {
@@ -99,49 +223,50 @@ export function TipJarCard({
         }),
       });
       const body = await res.json();
-      if (!res.ok) {
+      if (!res.ok || !body.clientSecret) {
         throw new Error(body.error || 'Failed to start tip');
       }
-      // Redirect to the embedded checkout for the rest of the flow.
-      // The checkout success URL brings the user back to /jobs/[id].
-      if (body.clientSecret) {
-        const params = new URLSearchParams({
-          tipPaymentIntent: body.tip?.stripe_payment_intent_id ?? '',
-          clientSecret: body.clientSecret,
-          jobId,
-          // Re-use existing embedded checkout — see
-          // /checkout route for the priceId fast-path; for tips we
-          // pass clientSecret directly so the checkout page can
-          // confirm the existing PaymentIntent without creating a
-          // new one. (Helper update to support this is a follow-up;
-          // for the first cut we fall back to confirming via the
-          // toast + reload.)
-        });
-        toast.success(
-          `Tip pending — complete payment to finish (${params.toString().slice(0, 0)})`
-        );
-        // Refresh in 4s to pick up status changes from the webhook.
-        setTimeout(() => load(), 4000);
-        setNote('');
-        setCustomAmount('');
-      } else {
-        toast.success('Tip sent — thanks for the kindness 💚');
-        load();
-      }
+      setClientSecret(body.clientSecret);
+      setPendingAmount(finalAmount);
     } catch (err) {
-      logger.error('Error sending tip', err);
-      toast.error(err instanceof Error ? err.message : 'Failed to send tip');
+      logger.error('Error creating tip PaymentIntent', err);
+      toast.error(err instanceof Error ? err.message : 'Failed to start tip');
     } finally {
-      setSubmitting(false);
+      setCreatingIntent(false);
     }
   };
 
-  // Hide the entire card unless the job is completed.
+  const handlePaymentSuccess = useCallback(() => {
+    setClientSecret(null);
+    setPendingAmount(0);
+    setNote('');
+    setCustomAmount('');
+    // Webhook flips the DB row → completed; refetch to pick up.
+    load();
+  }, [load]);
+
+  const handlePaymentCancel = useCallback(() => {
+    setClientSecret(null);
+    setPendingAmount(0);
+  }, []);
+
+  const elementsOptions = useMemo(
+    () =>
+      clientSecret
+        ? {
+            clientSecret,
+            appearance: { theme: 'stripe' as const },
+          }
+        : undefined,
+    [clientSecret]
+  );
+
   if (jobStatus !== 'completed') return null;
   if (loading) return null;
 
   const firstName = contractorFirstName || 'your contractor';
   const hasTipped = totalCompleted > 0;
+  const selectedAmount = customAmount ? parseFloat(customAmount) || 0 : amount;
 
   return (
     <div className='card card-pad'>
@@ -156,11 +281,24 @@ export function TipJarCard({
             }}
           />
           <h3 className='t-h3' style={{ margin: 0 }}>
-            {hasTipped ? 'Tip sent' : `Tip ${firstName}`}
+            {clientSecret
+              ? `Confirm £${pendingAmount.toFixed(2)} tip`
+              : hasTipped
+                ? 'Tip sent'
+                : `Tip ${firstName}`}
           </h3>
         </div>
 
-        {hasTipped ? (
+        {clientSecret && elementsOptions ? (
+          <Elements stripe={stripePromise} options={elementsOptions}>
+            <InlineTipPaymentForm
+              clientSecret={clientSecret}
+              amount={pendingAmount}
+              onSuccess={handlePaymentSuccess}
+              onCancel={handlePaymentCancel}
+            />
+          </Elements>
+        ) : hasTipped ? (
           <>
             <p className='t-body' style={{ fontSize: 13 }}>
               You&apos;ve sent £{totalCompleted.toFixed(2)} in tips on this job.{' '}
@@ -201,7 +339,6 @@ export function TipJarCard({
                 setAmount(10);
                 setCustomAmount('');
                 setNote('');
-                window.scrollTo({ top: 0, behavior: 'smooth' });
               }}
             >
               Send another tip
@@ -275,11 +412,11 @@ export function TipJarCard({
             <button
               type='button'
               className='btn btn-primary'
-              onClick={handleSend}
-              disabled={submitting}
+              onClick={handleCreateIntent}
+              disabled={creatingIntent || selectedAmount < 1}
               style={{ width: '100%', justifyContent: 'center' }}
             >
-              {submitting ? (
+              {creatingIntent ? (
                 <Loader2
                   size={14}
                   strokeWidth={1.75}
@@ -288,19 +425,15 @@ export function TipJarCard({
               ) : (
                 <Check size={14} strokeWidth={1.75} />
               )}
-              Send £
-              {(customAmount ? parseFloat(customAmount) || 0 : amount).toFixed(
-                2
-              )}{' '}
-              tip
+              Continue to £{selectedAmount.toFixed(2)} tip
             </button>
 
             <span
               className='t-meta'
               style={{ fontSize: 11, color: 'var(--me-ink-3)' }}
             >
-              Payment goes directly to the contractor&apos;s account. Mintenance
-              takes 0% on tips.
+              You&apos;ll enter card details on the next step. Mintenance takes
+              0% on tips.
             </span>
           </>
         )}
