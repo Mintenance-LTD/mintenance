@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { CheckCircle } from 'lucide-react';
+import { Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import {
@@ -38,6 +38,21 @@ export function OnboardingWizard() {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState<OnboardingFormData>(INITIAL_DATA);
   const [saving, setSaving] = useState(false);
+
+  // 2026-05-13 polish pass: hydration-safe theme detection. Under Mint
+  // Editorial the wizard chrome (page background, header, step
+  // indicator, card shell, skip link, submit button on each step)
+  // swaps to canonical .t-h1 / .card / .btn-primary / brand-soft
+  // active states. Step bodies (form-field layouts) inherit colour
+  // mapping from the shell; rewriting the inputs themselves is a P2
+  // alongside the wider form-control consolidation.
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
 
   async function saveStep(patch: Partial<OnboardingFormData>) {
     const merged = { ...formData, ...patch };
@@ -108,60 +123,141 @@ export function OnboardingWizard() {
   }
 
   return (
-    <div className='min-h-screen bg-gray-50 flex flex-col items-center justify-start py-10 px-4'>
+    <div
+      className={
+        isMintEditorial
+          ? 'min-h-screen flex flex-col items-center justify-start py-10 px-4'
+          : 'min-h-screen bg-gray-50 flex flex-col items-center justify-start py-10 px-4'
+      }
+      style={isMintEditorial ? { background: 'var(--me-bg)' } : undefined}
+    >
       <div className='w-full max-w-2xl'>
         {/* Header */}
         <div className='text-center mb-8'>
-          <h1 className='text-3xl font-bold text-gray-900'>
-            Set Up Your Account
+          <h1
+            className={
+              isMintEditorial ? 't-h1' : 'text-3xl font-bold text-gray-900'
+            }
+          >
+            Set up your account
           </h1>
-          <p className='text-gray-500 mt-2'>
+          <p
+            className={isMintEditorial ? 't-body' : 'text-gray-500 mt-2'}
+            style={isMintEditorial ? { marginTop: 8 } : undefined}
+          >
             Complete these steps to start receiving job opportunities.
           </p>
         </div>
 
         {/* Step indicator */}
         <div className='flex items-center justify-center mb-8 gap-0'>
-          {STEPS.map((s, i) => (
-            <React.Fragment key={s.number}>
-              <div className='flex flex-col items-center'>
-                <div
-                  className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold border-2 transition-colors ${
-                    step > s.number
-                      ? 'bg-emerald-600 border-emerald-600 text-white'
-                      : step === s.number
-                        ? 'bg-white border-emerald-600 text-emerald-600'
-                        : 'bg-white border-gray-300 text-gray-400'
-                  }`}
-                >
-                  {step > s.number ? (
-                    <CheckCircle className='w-5 h-5' />
-                  ) : (
-                    s.number
-                  )}
+          {STEPS.map((s, i) => {
+            const isDone = step > s.number;
+            const isCurrent = step === s.number;
+            return (
+              <React.Fragment key={s.number}>
+                <div className='flex flex-col items-center'>
+                  <div
+                    className={
+                      isMintEditorial
+                        ? 'w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold border-2 transition-colors'
+                        : `w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold border-2 transition-colors ${
+                            isDone
+                              ? 'bg-emerald-600 border-emerald-600 text-white'
+                              : isCurrent
+                                ? 'bg-white border-emerald-600 text-emerald-600'
+                                : 'bg-white border-gray-300 text-gray-400'
+                          }`
+                    }
+                    style={
+                      isMintEditorial
+                        ? {
+                            background: isDone
+                              ? 'var(--me-brand)'
+                              : isCurrent
+                                ? 'var(--me-brand-soft)'
+                                : 'var(--me-surface)',
+                            borderColor: isDone
+                              ? 'var(--me-brand)'
+                              : isCurrent
+                                ? 'var(--me-brand)'
+                                : 'var(--me-line)',
+                            color: isDone
+                              ? 'var(--me-on-brand)'
+                              : isCurrent
+                                ? 'var(--me-brand)'
+                                : 'var(--me-ink-3)',
+                          }
+                        : undefined
+                    }
+                  >
+                    {isDone ? (
+                      <Check className='w-5 h-5' strokeWidth={2.25} />
+                    ) : (
+                      s.number
+                    )}
+                  </div>
+                  <span
+                    className={
+                      isMintEditorial
+                        ? 'text-xs mt-1 font-medium'
+                        : `text-xs mt-1 font-medium ${
+                            step >= s.number
+                              ? 'text-emerald-600'
+                              : 'text-gray-400'
+                          }`
+                    }
+                    style={
+                      isMintEditorial
+                        ? {
+                            color:
+                              step >= s.number
+                                ? 'var(--me-brand)'
+                                : 'var(--me-ink-3)',
+                          }
+                        : undefined
+                    }
+                  >
+                    {s.label}
+                  </span>
                 </div>
-                <span
-                  className={`text-xs mt-1 font-medium ${step >= s.number ? 'text-emerald-600' : 'text-gray-400'}`}
-                >
-                  {s.label}
-                </span>
-              </div>
-              {i < STEPS.length - 1 && (
-                <div
-                  className={`h-0.5 w-16 mb-5 transition-colors ${step > s.number ? 'bg-emerald-600' : 'bg-gray-200'}`}
-                />
-              )}
-            </React.Fragment>
-          ))}
+                {i < STEPS.length - 1 && (
+                  <div
+                    className={
+                      isMintEditorial
+                        ? 'h-0.5 w-16 mb-5 transition-colors'
+                        : `h-0.5 w-16 mb-5 transition-colors ${isDone ? 'bg-emerald-600' : 'bg-gray-200'}`
+                    }
+                    style={
+                      isMintEditorial
+                        ? {
+                            background: isDone
+                              ? 'var(--me-brand)'
+                              : 'var(--me-line)',
+                          }
+                        : undefined
+                    }
+                  />
+                )}
+              </React.Fragment>
+            );
+          })}
         </div>
 
         {/* Step content */}
-        <div className='bg-white rounded-2xl shadow-sm border border-gray-200 p-8'>
+        <div
+          className={
+            isMintEditorial
+              ? 'card card-pad'
+              : 'bg-white rounded-2xl shadow-sm border border-gray-200 p-8'
+          }
+        >
           {step === 1 && (
             <BusinessInfoStep
               data={formData.business}
               onNext={(data) => handleNext({ business: data })}
               saving={saving}
+              isMintEditorial={isMintEditorial}
             />
           )}
           {step === 2 && (
@@ -170,6 +266,7 @@ export function OnboardingWizard() {
               onNext={(data) => handleNext({ skills: data })}
               onBack={handleBack}
               saving={saving}
+              isMintEditorial={isMintEditorial}
             />
           )}
           {step === 3 && (
@@ -178,6 +275,7 @@ export function OnboardingWizard() {
               onNext={(data) => handleNext({ serviceArea: data })}
               onBack={handleBack}
               saving={saving}
+              isMintEditorial={isMintEditorial}
             />
           )}
           {step === 4 && (
@@ -186,15 +284,24 @@ export function OnboardingWizard() {
               onBack={handleBack}
               userId={user?.id ?? ''}
               saving={saving}
+              isMintEditorial={isMintEditorial}
             />
           )}
         </div>
 
         {/* Skip link */}
-        <p className='text-center text-sm text-gray-400 mt-6'>
+        <p
+          className={
+            isMintEditorial
+              ? 'text-center text-sm mt-6'
+              : 'text-center text-sm text-gray-400 mt-6'
+          }
+          style={isMintEditorial ? { color: 'var(--me-ink-3)' } : undefined}
+        >
           <button
             onClick={() => router.push('/contractor/dashboard-enhanced')}
             className='underline hover:text-gray-600 transition-colors'
+            style={isMintEditorial ? { color: 'var(--me-ink-2)' } : undefined}
           >
             Skip for now — I&apos;ll complete this later
           </button>
