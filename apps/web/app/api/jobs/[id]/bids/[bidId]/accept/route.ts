@@ -138,7 +138,17 @@ export const POST = withApiHandler(
       throw new NotFoundError('Bid not found');
     }
 
-    // Log Stripe payment setup status (non-blocking - payment enforcement comes later)
+    // 2026-05-13 onboarding audit fix: previously this only logged a
+    // warning when a bid came from a contractor without Stripe Connect,
+    // and accepted the bid anyway. Result: homeowner pays into escrow,
+    // platform can't release funds, and only the auto-release safety
+    // net (7 days later) would surface the problem. BidCard already
+    // has a helpful client-side prompt that triggers on error messages
+    // containing the literal "payment account setup" / "payment setup"
+    // — that branch was effectively dead. Now we throw a 403 with the
+    // expected phrasing so the homeowner gets the explanation
+    // immediately and the bid stays `pending` (selectable again once
+    // the contractor finishes Stripe Connect).
     const { data: contractor } = await userDb
       .from('profiles')
       .select('stripe_connect_account_id, first_name, last_name')
@@ -146,12 +156,15 @@ export const POST = withApiHandler(
       .single();
 
     if (!contractor?.stripe_connect_account_id) {
-      logger.warn('Contractor accepting bid without Stripe setup', {
+      logger.warn('Bid acceptance blocked — contractor has no Stripe setup', {
         service: 'jobs',
         contractorId: bid.contractor_id,
         bidId,
         jobId,
       });
+      throw new ForbiddenError(
+        'This contractor has not completed their payment account setup. They must finish Stripe Connect onboarding before their bid can be accepted.'
+      );
     }
 
     // Validate bid status transition (must be pending -> accepted)

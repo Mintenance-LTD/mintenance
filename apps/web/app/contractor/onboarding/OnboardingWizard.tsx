@@ -54,15 +54,29 @@ export function OnboardingWizard() {
     );
   }, []);
 
+  /**
+   * 2026-05-13 onboarding audit fix: the wizard previously POSTed to
+   * `/api/profiles/update`, which never existed — every save returned
+   * 404 and the catch block silently swallowed it, so the contractor
+   * advanced through the wizard but nothing persisted. Now points at
+   * the dedicated step-aware endpoint that routes per-step writes to
+   * profiles + contractor_skills.
+   */
   async function saveStep(patch: Partial<OnboardingFormData>) {
     const merged = { ...formData, ...patch };
     setFormData(merged);
 
+    const body = buildProfilePatch(merged, step);
+    if (!body) {
+      // No-op step (e.g. step 4 has no direct payload — handleFinish
+      // sends its own `step=finish` request).
+      return true;
+    }
+
     setSaving(true);
     try {
-      const body = buildProfilePatch(merged, step);
-      const res = await fetch('/api/profiles/update', {
-        method: 'PATCH',
+      const res = await fetch('/api/contractor/onboarding/save', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
@@ -76,33 +90,37 @@ export function OnboardingWizard() {
     return true;
   }
 
-  function buildProfilePatch(data: OnboardingFormData, currentStep: number) {
+  function buildProfilePatch(
+    data: OnboardingFormData,
+    currentStep: number
+  ): Record<string, unknown> | null {
     if (currentStep === 1) {
+      const parsed = parseInt(data.business.yearsExperience, 10);
       return {
+        step: 'business',
         business_name: data.business.businessName,
         phone: data.business.phoneNumber,
-        years_experience: data.business.yearsExperience
-          ? parseInt(data.business.yearsExperience, 10)
-          : null,
+        years_experience: Number.isFinite(parsed) ? parsed : null,
         bio: data.business.bio,
       };
     }
     if (currentStep === 2) {
       return {
+        step: 'skills',
         skills: data.skills.selectedSkills,
         license_number: data.skills.licenseNumber,
         insurance_provider: data.skills.insuranceProvider,
       };
     }
     if (currentStep === 3) {
+      const radius = parseInt(data.serviceArea.radiusMiles, 10);
       return {
-        service_radius_miles: data.serviceArea.radiusMiles
-          ? parseInt(data.serviceArea.radiusMiles, 10)
-          : 10,
+        step: 'serviceArea',
+        service_radius_miles: Number.isFinite(radius) ? radius : 10,
         service_postcode: data.serviceArea.postcode,
       };
     }
-    return {};
+    return null;
   }
 
   async function handleNext(patch: Partial<OnboardingFormData>) {
@@ -116,8 +134,29 @@ export function OnboardingWizard() {
   }
 
   async function handleFinish(patch: Partial<OnboardingFormData>) {
+    // Step 4 (Get Paid) has no direct payload — Stripe Connect onboarding
+    // happens inside PaymentSetupStep against its own endpoint. Once
+    // the contractor lands here, we just need to mark onboarding
+    // complete so the welcome banners + onboarding gates disappear.
     const ok = await saveStep(patch);
     if (!ok) return;
+
+    setSaving(true);
+    try {
+      const res = await fetch('/api/contractor/onboarding/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ step: 'finish' }),
+      });
+      if (!res.ok) throw new Error('Finish failed');
+    } catch {
+      toast.error(
+        'Could not finalise onboarding — please retry, or skip to the dashboard.'
+      );
+      setSaving(false);
+      return;
+    }
+    setSaving(false);
     toast.success('Profile set up! Welcome to Mintenance.');
     router.push('/contractor/dashboard-enhanced');
   }
