@@ -37,10 +37,8 @@ import {
   MessageCircle,
   Phone,
   ShieldCheck,
-  Navigation,
   Info,
 } from 'lucide-react';
-import { DynamicGoogleMap } from '@/components/maps';
 import { ContractManagement } from '@/app/jobs/[id]/components/ContractManagement';
 import { JobScheduling } from '@/app/jobs/[id]/components/JobScheduling';
 import { BuildingAssessmentDisplay } from '@/app/jobs/[id]/components/BuildingAssessmentDisplay';
@@ -51,6 +49,7 @@ import { PrepareContractButton } from './PrepareContractButton';
 import { PreArrivalChecklist } from './PreArrivalChecklist';
 import { RunningLateButton } from './RunningLateButton';
 import { JobIssueButton } from './JobIssueButton';
+import { JobMapCard } from './JobMapCard';
 
 interface ProgressStep {
   label: string;
@@ -517,8 +516,16 @@ export function MintEditorialJobDetailView({
             />
           )}
 
-          {/* On My Way + Location Sharing */}
-          {(currentStage === 'ready_to_start' ||
+          {/* On My Way + Location Sharing — visible at every stage
+              where the contractor might reasonably need to head out:
+              awaiting_payment (homeowner could pay any moment),
+              ready_to_start (escrow funded, work expected), and
+              in_progress (mid-job updates). Previously only shown at
+              ready_to_start/in_progress, which meant the contractor
+              had to wait for escrow to even prepare the trip
+              tracking. */}
+          {(currentStage === 'awaiting_payment' ||
+            currentStage === 'ready_to_start' ||
             currentStage === 'in_progress') && (
             <div
               style={{
@@ -641,74 +648,11 @@ export function MintEditorialJobDetailView({
               Maps. Tap "Navigate" opens the OS-default maps app with
               turn-by-turn directions from the contractor's current
               location. */}
-          {(job.latitude && job.longitude) || job.location ? (
-            <div className='card' style={{ padding: 0, overflow: 'hidden' }}>
-              {job.latitude && job.longitude ? (
-                <div style={{ height: 180, position: 'relative' }}>
-                  <DynamicGoogleMap
-                    center={{ lat: job.latitude, lng: job.longitude }}
-                    zoom={15}
-                    onMapLoad={(map) => {
-                      if (typeof google === 'undefined') return;
-                      new google.maps.Marker({
-                        position: {
-                          lat: job.latitude!,
-                          lng: job.longitude!,
-                        },
-                        map,
-                      });
-                    }}
-                    style={{ width: '100%', height: '100%' }}
-                  />
-                </div>
-              ) : (
-                <div
-                  style={{
-                    height: 100,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    background: 'var(--me-bg-2)',
-                    color: 'var(--me-ink-3)',
-                    fontSize: 13,
-                  }}
-                >
-                  Address-only — open in Maps for directions.
-                </div>
-              )}
-              <div
-                className='col'
-                style={{
-                  gap: 10,
-                  padding: 14,
-                  borderTop: '1px solid var(--me-line)',
-                }}
-              >
-                {job.location ? (
-                  <div className='col' style={{ gap: 2 }}>
-                    <span className='t-meta'>Job address</span>
-                    <span style={{ fontSize: 13, fontWeight: 600 }}>
-                      {job.location}
-                    </span>
-                  </div>
-                ) : null}
-                <a
-                  href={
-                    job.latitude && job.longitude
-                      ? `https://www.google.com/maps/dir/?api=1&destination=${job.latitude},${job.longitude}&travelmode=driving`
-                      : `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(job.location || '')}&travelmode=driving`
-                  }
-                  target='_blank'
-                  rel='noopener noreferrer'
-                  className='btn btn-primary btn-sm'
-                  style={{ width: '100%', justifyContent: 'center' }}
-                >
-                  <Navigation size={13} strokeWidth={1.75} />
-                  Navigate
-                </a>
-              </div>
-            </div>
-          ) : null}
+          <JobMapCard
+            jobLatitude={job.latitude}
+            jobLongitude={job.longitude}
+            jobLocation={job.location}
+          />
 
           {/* Access details — uses the property fields from migration
               20260520000003. When the homeowner has set the access mode
