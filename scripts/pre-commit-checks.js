@@ -421,7 +421,7 @@ const KNOWN_LARGE_FILES = new Set([
   // pre-existed at 547 LOC with deep insurance + licence tracking
   // (stats cards + tab switcher + list + add modal). +32 LOC for
   // the editorial branch.
-  'apps/web/app/contractor/insurance/page.tsx', // 579 lines (was 547)
+  'apps/web/app/contractor/insurance/page.tsx', // 972 lines (was 579) — editorial modal branch 2026-05-13
   // Added 2026-05-12 (Phase-4 stat-card pass): marketing page grew
   // when the inline StatCard was made theme-aware (canonical .kpi
   // when isMintEditorial, legacy bg-white card otherwise). Each

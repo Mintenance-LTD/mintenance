@@ -672,15 +672,32 @@ export default function InsuranceLicensingPage() {
 
       {/* Add Modal */}
       {showAddModal && (
-        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50'>
+        <div
+          className='fixed inset-0 flex items-center justify-center p-4 z-50'
+          style={{
+            background: isMintEditorial
+              ? 'color-mix(in srgb, var(--me-ink) 70%, transparent)'
+              : 'rgba(0,0,0,0.5)',
+          }}
+        >
           <MotionDiv
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className='bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto'
+            className={
+              isMintEditorial
+                ? 'card max-w-lg w-full max-h-[90vh] overflow-y-auto'
+                : 'bg-white rounded-xl shadow-2xl max-w-lg w-full p-6 max-h-[90vh] overflow-y-auto'
+            }
+            style={isMintEditorial ? { padding: 24 } : undefined}
           >
             <div className='flex items-center justify-between mb-6'>
-              <h3 className='text-xl font-bold text-gray-900'>
-                Add {activeTab === 'insurance' ? 'Insurance' : 'Licence'}
+              <h3
+                className={
+                  isMintEditorial ? 't-h3' : 'text-xl font-bold text-gray-900'
+                }
+                style={isMintEditorial ? { margin: 0 } : undefined}
+              >
+                Add {activeTab === 'insurance' ? 'insurance' : 'licence'}
               </h3>
               <button
                 onClick={() => {
@@ -688,7 +705,14 @@ export default function InsuranceLicensingPage() {
                   resetInsuranceForm();
                   resetLicenseForm();
                 }}
-                className='p-1 hover:bg-gray-100 rounded'
+                className={
+                  isMintEditorial
+                    ? 'p-1 rounded'
+                    : 'p-1 hover:bg-gray-100 rounded'
+                }
+                style={
+                  isMintEditorial ? { color: 'var(--me-ink-2)' } : undefined
+                }
               >
                 <X className='w-5 h-5' />
               </button>
@@ -822,17 +846,27 @@ export default function InsuranceLicensingPage() {
                       setShowAddModal(false);
                       resetInsuranceForm();
                     }}
-                    className='flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors'
+                    className={
+                      isMintEditorial
+                        ? 'btn btn-secondary'
+                        : 'flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors'
+                    }
+                    style={isMintEditorial ? { flex: 1 } : undefined}
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleAddInsurance}
                     disabled={submitting}
-                    className='flex-1 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2'
+                    className={
+                      isMintEditorial
+                        ? 'btn-primary'
+                        : 'flex-1 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2'
+                    }
+                    style={isMintEditorial ? { flex: 1 } : undefined}
                   >
                     {submitting && <Loader2 className='w-4 h-4 animate-spin' />}
-                    Add Insurance
+                    Add insurance
                   </button>
                 </div>
               </div>
@@ -903,17 +937,27 @@ export default function InsuranceLicensingPage() {
                       setShowAddModal(false);
                       resetLicenseForm();
                     }}
-                    className='flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors'
+                    className={
+                      isMintEditorial
+                        ? 'btn btn-secondary'
+                        : 'flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors'
+                    }
+                    style={isMintEditorial ? { flex: 1 } : undefined}
                   >
                     Cancel
                   </button>
                   <button
                     onClick={handleAddLicense}
                     disabled={submitting}
-                    className='flex-1 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2'
+                    className={
+                      isMintEditorial
+                        ? 'btn-primary'
+                        : 'flex-1 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2'
+                    }
+                    style={isMintEditorial ? { flex: 1 } : undefined}
                   >
                     {submitting && <Loader2 className='w-4 h-4 animate-spin' />}
-                    Add Licence
+                    Add licence
                   </button>
                 </div>
               </div>
