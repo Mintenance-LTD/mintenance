@@ -50,6 +50,8 @@ import { PreArrivalChecklist } from './PreArrivalChecklist';
 import { RunningLateButton } from './RunningLateButton';
 import { JobIssueButton } from './JobIssueButton';
 import { JobMapCard } from './JobMapCard';
+import { ContractorTipsReceivedCard } from './ContractorTipsReceivedCard';
+import { PreArrivalPhotoGallery } from './PreArrivalPhotoGallery';
 
 interface ProgressStep {
   label: string;
@@ -405,6 +407,21 @@ export function MintEditorialJobDetailView({
               </div>
             </div>
           )}
+
+          {/* Pre-arrival photo gallery — hero + thumb strip + lightbox.
+              Mounted at the stages where the contractor is heading out or
+              mid-job and may want to confirm "before" state quickly. The
+              Customer brief below still shows the same photos as part of
+              the deeper context, but this hero is the eye-level "what
+              you'll find" preview. */}
+          {(currentStage === 'ready_to_start' ||
+            currentStage === 'in_progress') &&
+          jobPhotoUrls.length > 0 ? (
+            <PreArrivalPhotoGallery
+              jobPhotoUrls={jobPhotoUrls}
+              jobTitle={job.title || 'Job'}
+            />
+          ) : null}
 
           {/* Customer brief */}
           {(job.description || jobPhotoUrls.length > 0) && (
@@ -884,6 +901,14 @@ export function MintEditorialJobDetailView({
                 </p>
               </div>
             </div>
+          ) : null}
+
+          {/* Tips received — homeowner-side TipJarCard mirror. Only
+              renders on completed jobs, and only when there's at least
+              one completed tip (silence if the homeowner didn't tip).
+              See ContractorTipsReceivedCard for the empty-state policy. */}
+          {currentStage === 'completed' ? (
+            <ContractorTipsReceivedCard jobId={job.id} />
           ) : null}
         </aside>
       </div>
