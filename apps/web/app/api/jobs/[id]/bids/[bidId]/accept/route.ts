@@ -28,7 +28,10 @@ import {
   InternalServerError,
 } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
-import { sendBidAcceptedNotificationsAndEmail } from './_helpers';
+import {
+  sendBidAcceptedNotificationsAndEmail,
+  syncLinkedQuoteStatuses,
+} from './_helpers';
 
 /** Type for bid data from Supabase query */
 interface BidRow {
@@ -248,6 +251,18 @@ export const POST = withApiHandler(
       jobTitle: jobDetails?.title,
       bidAmount: Number(bid.amount || 0),
       userDb,
+    });
+
+    // Sync `contractor_quotes` status to mirror the bid outcome. This
+    // closes the quote → bid → outcome loop so the contractor's
+    // /contractor/quotes dashboard reflects reality (accepted count +
+    // total-revenue tile). Fire-and-forget — never blocks accept flow.
+    syncLinkedQuoteStatuses({ acceptedBidId: bidId, jobId }).catch((err) => {
+      logger.error('Quote status sync failed (non-blocking)', err, {
+        service: 'quotes',
+        jobId,
+        bidId,
+      });
     });
 
     // Auto-create welcome message thread + insert welcome message

@@ -5,7 +5,111 @@
 import { logger } from '@mintenance/shared';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
 import { EmailService } from '@/lib/email-service';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 import type { SupabaseClient } from '@supabase/supabase-js';
+
+// ---------------------------------------------------------------------------
+// Quote → Bid pipeline closure (2026-05-13)
+// ---------------------------------------------------------------------------
+
+/**
+ * Closes the quote ↔ bid loop on the contractor's analytics dashboard.
+ *
+ * `submit-bid` already creates a `contractor_quotes` row + sets
+ * `bids.quote_id` on the forward path (see
+ * `app/api/contractor/submit-bid/quote-processor.ts`). The backward
+ * path was never wired — accepted/rejected bids left their linked
+ * quote stuck at `'sent'` forever, breaking the funnel stats on
+ * /contractor/quotes (Accepted card always 0, Total Revenue
+ * undercounted).
+ *
+ * This helper:
+ *   - flips the accepted bid's `quote_id` → `accepted`
+ *   - flips every losing bid's `quote_id` → `declined`
+ *
+ * All failures are swallowed — accept flow must not block on this.
+ */
+export async function syncLinkedQuoteStatuses(params: {
+  acceptedBidId: string;
+  jobId: string;
+}): Promise<void> {
+  const { acceptedBidId, jobId } = params;
+
+  try {
+    // Fetch every bid on this job that has a linked quote
+    const { data: linkedBids, error } = await serverSupabase
+      .from('bids')
+      .select('id, quote_id, status')
+      .eq('job_id', jobId)
+      .not('quote_id', 'is', null);
+
+    if (error || !linkedBids?.length) {
+      if (error) {
+        logger.warn('syncLinkedQuoteStatuses: bid lookup failed', {
+          service: 'quotes',
+          jobId,
+          error: error.message,
+        });
+      }
+      return;
+    }
+
+    // Group by target status
+    const acceptedQuoteIds: string[] = [];
+    const declinedQuoteIds: string[] = [];
+
+    for (const b of linkedBids) {
+      if (!b.quote_id) continue;
+      if (b.id === acceptedBidId) {
+        acceptedQuoteIds.push(b.quote_id);
+      } else {
+        declinedQuoteIds.push(b.quote_id);
+      }
+    }
+
+    const updatedAt = new Date().toISOString();
+
+    if (acceptedQuoteIds.length > 0) {
+      const { error: acceptErr } = await serverSupabase
+        .from('contractor_quotes')
+        .update({ status: 'accepted', updated_at: updatedAt })
+        .in('id', acceptedQuoteIds);
+      if (acceptErr) {
+        logger.warn('syncLinkedQuoteStatuses: accepted flip failed', {
+          service: 'quotes',
+          jobId,
+          error: acceptErr.message,
+        });
+      }
+    }
+
+    if (declinedQuoteIds.length > 0) {
+      const { error: declineErr } = await serverSupabase
+        .from('contractor_quotes')
+        .update({ status: 'declined', updated_at: updatedAt })
+        .in('id', declinedQuoteIds);
+      if (declineErr) {
+        logger.warn('syncLinkedQuoteStatuses: declined flip failed', {
+          service: 'quotes',
+          jobId,
+          error: declineErr.message,
+        });
+      }
+    }
+
+    logger.info('Linked quote statuses synced', {
+      service: 'quotes',
+      jobId,
+      acceptedCount: acceptedQuoteIds.length,
+      declinedCount: declinedQuoteIds.length,
+    });
+  } catch (err) {
+    logger.error('syncLinkedQuoteStatuses unexpected error', err, {
+      service: 'quotes',
+      jobId,
+    });
+  }
+}
 
 // ---------------------------------------------------------------------------
 // Notify contractor and homeowner about bid acceptance + send email

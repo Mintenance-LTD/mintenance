@@ -427,6 +427,13 @@ const KNOWN_LARGE_FILES = new Set([
   // when isMintEditorial, legacy bg-white card otherwise). Each
   // tile call site stayed unchanged.
   'apps/web/app/contractor/marketing/page.tsx', // 516 lines (was 493)
+  // Added 2026-05-13 (quote↔bid pipeline closure): the bid-accept route
+  // grew from 493 → 508 lines via the small `syncLinkedQuoteStatuses`
+  // call-site (fire-and-forget) wired after `accept_bid_atomic` succeeds.
+  // Implementation lives in `./_helpers.ts`. Splitting the accept route
+  // further (out of `_helpers.ts`) is a P2 — the orchestration sequence
+  // is canonical and benefits from being in one place.
+  'apps/web/app/api/jobs/[id]/bids/[bidId]/accept/route.ts', // 508 lines (was 493)
   // Added 2026-05-13 (tip jar feature): payment-handlers.ts grew from
   // ~480 to 580 lines via the new `handleTipPaymentSucceeded` branch +
   // metadata-type short-circuit in `handlePaymentIntentSucceeded`. The
