@@ -393,8 +393,8 @@ const KNOWN_LARGE_FILES = new Set([
   // sidebar). A clean split would require lifting state from the
   // server component into the view — out of scope for this
   // single-file rewrite.
-  'apps/web/app/contractor/jobs/[id]/page.tsx', // 541 lines (was 482)
-  'apps/web/app/contractor/jobs/[id]/components/MintEditorialJobDetailView.tsx', // 681 lines
+  'apps/web/app/contractor/jobs/[id]/page.tsx', // 602 lines (was 541) — +map/access fetch
+  'apps/web/app/contractor/jobs/[id]/components/MintEditorialJobDetailView.tsx', // 922 lines (was 681) — +map widget + access details card
   // Added 2026-05-12 (Phase-4 batch header swap):
   'apps/web/app/contractor/payouts/components/PayoutsPageClient.tsx', // 506 lines (was ~492)
   // Added 2026-05-12 (Phase-4 contractor port): /contractor/jobs/[id]

@@ -37,7 +37,10 @@ import {
   MessageCircle,
   Phone,
   ShieldCheck,
+  Navigation,
+  Info,
 } from 'lucide-react';
+import { DynamicGoogleMap } from '@/components/maps';
 import { ContractManagement } from '@/app/jobs/[id]/components/ContractManagement';
 import { JobScheduling } from '@/app/jobs/[id]/components/JobScheduling';
 import { BuildingAssessmentDisplay } from '@/app/jobs/[id]/components/BuildingAssessmentDisplay';
@@ -80,10 +83,26 @@ interface ContractShape {
   end_date: string | null;
 }
 
+export interface PropertyAccessShape {
+  access_mode: 'key_safe' | 'smart_lock' | 'in_person' | null;
+  /**
+   * Sensitive — should ONLY be populated when the contractor is
+   * allowed to see it (stage = ready_to_start | in_progress, and
+   * ideally within 1h of scheduled start). The caller is responsible
+   * for masking; this prop trusts what it receives.
+   */
+  key_safe_code: string | null;
+  access_notes: string | null;
+  stopcock_location: string | null;
+  gas_isolator_location: string | null;
+  consumer_unit_location: string | null;
+}
+
 interface MintEditorialJobDetailViewProps {
   job: JobShape;
   homeowner: HomeownerShape | null;
   contract: ContractShape | null;
+  property: PropertyAccessShape | null;
   contractStatus: string;
   currentStage: string;
   stageTitle: string;
@@ -135,6 +154,7 @@ export function MintEditorialJobDetailView({
   job,
   homeowner,
   contract,
+  property,
   contractStatus,
   currentStage,
   stageTitle,
@@ -583,6 +603,236 @@ export function MintEditorialJobDetailView({
               </div>
             </div>
           </div>
+
+          {/* Map + Navigate — shown when the job has either explicit
+              lat/lng or a location string we can hand to Google/Apple
+              Maps. Tap "Navigate" opens the OS-default maps app with
+              turn-by-turn directions from the contractor's current
+              location. */}
+          {(job.latitude && job.longitude) || job.location ? (
+            <div className='card' style={{ padding: 0, overflow: 'hidden' }}>
+              {job.latitude && job.longitude ? (
+                <div style={{ height: 180, position: 'relative' }}>
+                  <DynamicGoogleMap
+                    center={{ lat: job.latitude, lng: job.longitude }}
+                    zoom={15}
+                    onMapLoad={(map) => {
+                      if (typeof google === 'undefined') return;
+                      new google.maps.Marker({
+                        position: {
+                          lat: job.latitude!,
+                          lng: job.longitude!,
+                        },
+                        map,
+                      });
+                    }}
+                    style={{ width: '100%', height: '100%' }}
+                  />
+                </div>
+              ) : (
+                <div
+                  style={{
+                    height: 100,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: 'var(--me-bg-2)',
+                    color: 'var(--me-ink-3)',
+                    fontSize: 13,
+                  }}
+                >
+                  Address-only — open in Maps for directions.
+                </div>
+              )}
+              <div
+                className='col'
+                style={{
+                  gap: 10,
+                  padding: 14,
+                  borderTop: '1px solid var(--me-line)',
+                }}
+              >
+                {job.location ? (
+                  <div className='col' style={{ gap: 2 }}>
+                    <span className='t-meta'>Job address</span>
+                    <span style={{ fontSize: 13, fontWeight: 600 }}>
+                      {job.location}
+                    </span>
+                  </div>
+                ) : null}
+                <a
+                  href={
+                    job.latitude && job.longitude
+                      ? `https://www.google.com/maps/dir/?api=1&destination=${job.latitude},${job.longitude}&travelmode=driving`
+                      : `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(job.location || '')}&travelmode=driving`
+                  }
+                  target='_blank'
+                  rel='noopener noreferrer'
+                  className='btn btn-primary btn-sm'
+                  style={{ width: '100%', justifyContent: 'center' }}
+                >
+                  <Navigation size={13} strokeWidth={1.75} />
+                  Navigate
+                </a>
+              </div>
+            </div>
+          ) : null}
+
+          {/* Access details — uses the property fields from migration
+              20260520000003. When the homeowner has set the access mode
+              on /properties/[id], the contractor sees it here without
+              having to chase via chat. Key safe code is only surfaced
+              once the contractor is on a job stage that needs it
+              (ready_to_start / in_progress) — the page-level fetch
+              should mask it before this view ever sees the value
+              (defence-in-depth for any future client-side hydration). */}
+          {property?.access_mode ||
+          property?.access_notes ||
+          property?.stopcock_location ? (
+            <div className='card card-pad'>
+              <div className='col' style={{ gap: 10 }}>
+                <div className='row' style={{ gap: 8, alignItems: 'center' }}>
+                  <Info
+                    size={14}
+                    strokeWidth={1.75}
+                    style={{ color: 'var(--me-brand)' }}
+                  />
+                  <h3 className='t-h3' style={{ margin: 0 }}>
+                    Access details
+                  </h3>
+                </div>
+
+                {property.access_mode ? (
+                  <div className='col' style={{ gap: 4 }}>
+                    <span className='t-meta'>How to get in</span>
+                    <span style={{ fontSize: 14, fontWeight: 600 }}>
+                      {property.access_mode === 'key_safe'
+                        ? 'Key safe'
+                        : property.access_mode === 'smart_lock'
+                          ? 'Smart lock'
+                          : 'Homeowner will be home'}
+                    </span>
+                  </div>
+                ) : null}
+
+                {property.key_safe_code &&
+                (currentStage === 'ready_to_start' ||
+                  currentStage === 'in_progress') ? (
+                  <div className='col' style={{ gap: 4 }}>
+                    <span className='t-meta'>Lock-box code</span>
+                    <span
+                      style={{
+                        fontFamily: 'monospace',
+                        fontSize: 18,
+                        fontWeight: 700,
+                        letterSpacing: '0.1em',
+                        color: 'var(--me-brand)',
+                      }}
+                    >
+                      {property.key_safe_code}
+                    </span>
+                  </div>
+                ) : null}
+
+                {property.access_notes ? (
+                  <div className='col' style={{ gap: 4 }}>
+                    <span className='t-meta'>Notes from homeowner</span>
+                    <p
+                      className='t-body'
+                      style={{
+                        fontSize: 13,
+                        whiteSpace: 'pre-wrap',
+                        lineHeight: 1.5,
+                      }}
+                    >
+                      {property.access_notes}
+                    </p>
+                  </div>
+                ) : null}
+
+                {(property.stopcock_location ||
+                  property.gas_isolator_location ||
+                  property.consumer_unit_location) && (
+                  <div
+                    className='col'
+                    style={{
+                      gap: 6,
+                      padding: 10,
+                      borderRadius: 8,
+                      background: 'var(--me-bg-2)',
+                      marginTop: 4,
+                    }}
+                  >
+                    <span className='t-meta' style={{ fontWeight: 600 }}>
+                      Stopcock & isolators
+                    </span>
+                    {property.stopcock_location ? (
+                      <span style={{ fontSize: 12 }}>
+                        Water stopcock: {property.stopcock_location}
+                      </span>
+                    ) : null}
+                    {property.gas_isolator_location ? (
+                      <span style={{ fontSize: 12 }}>
+                        Gas isolator: {property.gas_isolator_location}
+                      </span>
+                    ) : null}
+                    {property.consumer_unit_location ? (
+                      <span style={{ fontSize: 12 }}>
+                        Consumer unit: {property.consumer_unit_location}
+                      </span>
+                    ) : null}
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            // Fallback: no access info on file → tell the contractor to ask.
+            <div
+              className='card'
+              style={{
+                padding: 12,
+                background: 'var(--me-bg-2)',
+                borderColor: 'var(--me-line)',
+              }}
+            >
+              <div
+                className='row'
+                style={{ gap: 10, alignItems: 'flex-start' }}
+              >
+                <Info
+                  size={16}
+                  strokeWidth={1.75}
+                  style={{
+                    color: 'var(--me-warm)',
+                    marginTop: 2,
+                    flexShrink: 0,
+                  }}
+                />
+                <div className='col' style={{ gap: 4 }}>
+                  <span style={{ fontSize: 13, fontWeight: 600 }}>
+                    Access details
+                  </span>
+                  <p className='t-body' style={{ fontSize: 13 }}>
+                    Homeowner hasn&apos;t set default access yet. Confirm how to
+                    get in via the message thread before you set off.
+                  </p>
+                  {messageHref ? (
+                    <Link
+                      href={messageHref}
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 600,
+                        color: 'var(--me-brand)',
+                        textDecoration: 'underline',
+                      }}
+                    >
+                      Open conversation →
+                    </Link>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* You'll be paid */}
           {budgetNum > 0 ? (
