@@ -331,6 +331,11 @@ export default function CreateJobPage2025() {
         // (see submitJob.ts) so the value at least survives until a
         // dedicated DB column ships.
         preferredDate: preferredDate || undefined,
+        // 2026-05-13 (Hire-Again loop closure): pass through the
+        // `preferredContractor` query param so the server fires a
+        // direct invite notification to that contractor.
+        preferredContractorId:
+          searchParams?.get('preferredContractor') ?? undefined,
       });
 
       if (!result.success || !result.jobId) {

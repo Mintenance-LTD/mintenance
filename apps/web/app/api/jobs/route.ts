@@ -166,7 +166,7 @@ export const POST = withApiHandler(
     // Apply web-only sanitization on top of the validated payload.
     // The shared schema deliberately keeps sanitize-text out of the
     // contract so mobile (which has no DOM) doesn't pull DOMPurify.
-    const { priority, ...rest } = parsed.data;
+    const { priority, preferred_contractor_id, ...rest } = parsed.data;
     const payload = {
       ...rest,
       title: sanitizeText(rest.title, 200),
@@ -178,6 +178,8 @@ export const POST = withApiHandler(
         ? sanitizeText(rest.location, 256)
         : rest.location,
       urgency: rest.urgency ?? priority,
+      // Hire-Again loop signal — pure UUID, no sanitisation needed
+      preferred_contractor_id,
     };
     const job = await JobCreationService.getInstance().createJob(user, payload);
 

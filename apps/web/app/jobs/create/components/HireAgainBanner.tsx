@@ -12,8 +12,11 @@
  * we fall back to "Hiring your previous contractor again" rather
  * than disappearing — the intent of the rebook is still conveyed.
  *
- * The full auto-routing of the job to that contractor's bid inbox
- * is a separate follow-up — for now this is informational only.
+ * 2026-05-13 loop closure: the form now forwards `preferredContractor`
+ * to /api/jobs which fires a direct `job_invitation_from_repeat_client`
+ * notification to the contractor. The normal nearby-broadcast still
+ * runs (so other contractors can still bid). This banner is no longer
+ * informational-only.
  */
 
 import React, { useEffect, useState } from 'react';
