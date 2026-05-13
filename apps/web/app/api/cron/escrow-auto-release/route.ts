@@ -6,12 +6,17 @@ import { EscrowAutoReleaseService } from '@/lib/services/escrow/EscrowAutoReleas
  * Evaluates eligible escrows, calculates fees, and transfers funds
  * to contractor Stripe Connect accounts.
  *
- * Schedule: daily at 00:00 UTC (see `vercel.json` -> crons). Daily
- * cadence is fine — auto-release windows are measured in days
- * (3-14d hold depending on tier), so worst-case latency is one
- * day after the `auto_release_date` becomes due. If we ever need
- * tighter SLAs (e.g. hourly), bump the schedule to `0 * * * *` and
- * keep this handler unchanged.
+ * Schedule: hourly at :00 (see `vercel.json` -> crons). Bumped from
+ * daily 2026-05-13 once `/api/jobs/[id]/confirm-completion` started
+ * setting `auto_release_date = now()` on homeowner approval — the
+ * cron is now the actual processor for the homeowner-approved path,
+ * not just the 7-day-timeout safety net, so the worst-case
+ * approve-to-transfer latency drops from ~24h to ~1h. The 7-day
+ * timeout path is unaffected; only the picker frequency changes.
+ *
+ * Batch size is 50 escrows per run (ESCROW_BATCH_LIMIT in the
+ * service); running hourly comfortably absorbs typical volume
+ * without straining Stripe rate limits.
  */
 export const GET = withCronHandler('escrow-auto-release', async () => {
   return await EscrowAutoReleaseService.processAutoReleases();

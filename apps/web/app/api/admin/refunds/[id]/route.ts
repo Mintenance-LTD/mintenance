@@ -242,17 +242,34 @@ export const POST = withApiHandler(
         const refundCents = Math.round(refundAmountValue * 100);
 
         try {
-          const refund = await stripe.refunds.create({
-            payment_intent: escrow.payment_intent_id,
-            amount: refundCents,
-            reason: 'requested_by_customer',
-            metadata: {
-              escrow_id: escrowId,
-              job_id: job.id,
-              admin_id: user.id,
-              admin_reason: reason,
+          // 2026-05-13 reconciliation audit: aligned with
+          // terminate-contractor — Stripe idempotency key prevents
+          // double-refund on retry, and the refund id is persisted to
+          // escrow.metadata so reconciliation scripts can identify
+          // refunds processed via this admin route (vs the
+          // terminate-contractor / homeowner self-refund routes).
+          const refund = await stripe.refunds.create(
+            {
+              payment_intent: escrow.payment_intent_id,
+              amount: refundCents,
+              reason: 'requested_by_customer',
+              metadata: {
+                escrow_id: escrowId,
+                job_id: job.id,
+                admin_id: user.id,
+                admin_reason: reason,
+                source: 'admin-refund',
+              },
             },
-          });
+            {
+              idempotencyKey: `admin_refund_${escrowId}_${refundCents}`,
+            }
+          );
+
+          const existingEscrowMetadata =
+            typeof escrow.metadata === 'object' && escrow.metadata
+              ? (escrow.metadata as Record<string, unknown>)
+              : {};
 
           // Update escrow status
           await serverSupabase
@@ -260,7 +277,16 @@ export const POST = withApiHandler(
             .update({
               status: ESCROW_STATUS.REFUNDED,
               release_reason: `admin_refund: ${reason}`,
+              refunded_at: now,
               released_at: now,
+              metadata: {
+                ...existingEscrowMetadata,
+                stripe_refund_id: refund.id,
+                refunded_via: 'admin-refund',
+                refunded_reason_text: reason,
+                refunded_by_admin_id: user.id,
+                refund_amount_minor: refundCents,
+              },
               updated_at: now,
             })
             .eq('id', escrowId);
