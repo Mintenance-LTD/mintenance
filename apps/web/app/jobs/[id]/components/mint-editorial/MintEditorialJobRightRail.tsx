@@ -17,9 +17,19 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { Shield, Brush, Calendar, X, Star } from 'lucide-react';
+import {
+  Shield,
+  Brush,
+  Calendar,
+  X,
+  Star,
+  KeyRound,
+  Lock,
+  User as UserIcon,
+  Info,
+} from 'lucide-react';
 import type { Bid } from '../BidCard';
-import { formatGBP } from './MintEditorialJobCards';
+import { formatGBP, type PropertyShape } from './MintEditorialJobCards';
 
 interface SelectedCardProps {
   bid: Bid;
@@ -151,6 +161,199 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
     >
       <span style={{ color: 'var(--me-ink-3)' }}>{label}</span>
       <span style={{ fontWeight: 600 }}>{value}</span>
+    </div>
+  );
+}
+
+/**
+ * AccessSharedCard — the homeowner's mirror of what the contractor
+ * sees on `/contractor/jobs/[id]`. Shown once escrow is funded (the
+ * lifecycle stage at which the contractor can actually see the
+ * lock-box code), and falls back to a "Update access on the property"
+ * link when the homeowner hasn't set anything yet.
+ *
+ * Why on the job detail (when we already have a Property page):
+ *  1. Confidence — homeowner verifies what they shared at the moment
+ *     the contractor is about to act on it.
+ *  2. Audit — clear marker that the code IS being exposed now.
+ *  3. Convenience — one click back to /properties/[id] to amend
+ *     without losing job context.
+ */
+export function AccessSharedCard({
+  property,
+  jobStage,
+}: {
+  property: PropertyShape | null | undefined;
+  /**
+   * Pass the same lifecycle stage the contractor side uses. We only
+   * surface the code when the contractor would actually see it
+   * (`ready_to_start` or `in_progress`) — at every other stage the
+   * card shows the mode + notes but masks the code with a hint.
+   */
+  jobStage: string;
+}) {
+  if (!property) return null;
+  const canSeeCode =
+    jobStage === 'ready_to_start' || jobStage === 'in_progress';
+  const hasAnyAccess =
+    property.access_mode || property.access_notes || property.stopcock_location;
+
+  const modeLabel = (() => {
+    switch (property.access_mode) {
+      case 'key_safe':
+        return 'Key safe';
+      case 'smart_lock':
+        return 'Smart lock';
+      case 'in_person':
+        return "You'll be home";
+      default:
+        return 'Not set yet';
+    }
+  })();
+  const ModeIcon =
+    property.access_mode === 'smart_lock'
+      ? Lock
+      : property.access_mode === 'in_person'
+        ? UserIcon
+        : KeyRound;
+
+  return (
+    <div className='card card-pad'>
+      <div className='col' style={{ gap: 10 }}>
+        <div className='between' style={{ alignItems: 'center' }}>
+          <div className='row' style={{ gap: 8, alignItems: 'center' }}>
+            <Info
+              size={14}
+              strokeWidth={1.75}
+              style={{ color: 'var(--me-brand)' }}
+            />
+            <h3 className='t-h3' style={{ margin: 0 }}>
+              Access shared with contractor
+            </h3>
+          </div>
+          {property.id ? (
+            <Link
+              href={`/properties/${property.id}?tab=access`}
+              style={{
+                fontSize: 12,
+                fontWeight: 600,
+                color: 'var(--me-brand)',
+                textDecoration: 'underline',
+              }}
+            >
+              Edit
+            </Link>
+          ) : null}
+        </div>
+
+        {!hasAnyAccess ? (
+          <p className='t-body' style={{ fontSize: 13 }}>
+            You haven&apos;t set default access for this property yet. The
+            contractor will see a prompt to ask you in the message thread.
+            {property.id ? (
+              <>
+                {' '}
+                <Link
+                  href={`/properties/${property.id}?tab=access`}
+                  style={{
+                    color: 'var(--me-brand)',
+                    fontWeight: 600,
+                    textDecoration: 'underline',
+                  }}
+                >
+                  Set it up now →
+                </Link>
+              </>
+            ) : null}
+          </p>
+        ) : (
+          <>
+            <div className='row' style={{ gap: 8, alignItems: 'center' }}>
+              <ModeIcon
+                size={14}
+                strokeWidth={1.75}
+                style={{ color: 'var(--me-ink-2)' }}
+              />
+              <span style={{ fontSize: 14, fontWeight: 600 }}>{modeLabel}</span>
+            </div>
+
+            {property.key_safe_code ? (
+              <div className='col' style={{ gap: 4 }}>
+                <span className='t-meta'>Lock-box code</span>
+                <span
+                  style={{
+                    fontFamily: 'monospace',
+                    fontSize: canSeeCode ? 16 : 14,
+                    fontWeight: 700,
+                    letterSpacing: '0.1em',
+                    color: canSeeCode ? 'var(--me-brand)' : 'var(--me-ink-3)',
+                  }}
+                >
+                  {canSeeCode ? property.key_safe_code : '••••'}
+                </span>
+                <span
+                  className='t-meta'
+                  style={{ fontSize: 11, color: 'var(--me-ink-3)' }}
+                >
+                  {canSeeCode
+                    ? '✓ Visible to contractor now'
+                    : 'Reveals to contractor when escrow funds + work is ready to start'}
+                </span>
+              </div>
+            ) : null}
+
+            {property.access_notes ? (
+              <div className='col' style={{ gap: 4 }}>
+                <span className='t-meta'>Notes</span>
+                <p
+                  className='t-body'
+                  style={{
+                    fontSize: 13,
+                    whiteSpace: 'pre-wrap',
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {property.access_notes}
+                </p>
+              </div>
+            ) : null}
+
+            {property.stopcock_location ||
+            property.gas_isolator_location ||
+            property.consumer_unit_location ? (
+              <div
+                className='col'
+                style={{
+                  gap: 6,
+                  padding: 10,
+                  borderRadius: 8,
+                  background: 'var(--me-bg-2)',
+                  marginTop: 4,
+                }}
+              >
+                <span className='t-meta' style={{ fontWeight: 600 }}>
+                  Stopcock & isolators
+                </span>
+                {property.stopcock_location ? (
+                  <span style={{ fontSize: 12 }}>
+                    Water stopcock: {property.stopcock_location}
+                  </span>
+                ) : null}
+                {property.gas_isolator_location ? (
+                  <span style={{ fontSize: 12 }}>
+                    Gas isolator: {property.gas_isolator_location}
+                  </span>
+                ) : null}
+                {property.consumer_unit_location ? (
+                  <span style={{ fontSize: 12 }}>
+                    Consumer unit: {property.consumer_unit_location}
+                  </span>
+                ) : null}
+              </div>
+            ) : null}
+          </>
+        )}
+      </div>
     </div>
   );
 }

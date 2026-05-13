@@ -106,6 +106,19 @@ export default async function PropertyDetailPage({
     yearBuilt: property.year_built || new Date().getFullYear(),
     images:
       property.photos && property.photos.length > 0 ? property.photos : [],
+    // Access & contacts (migration 20260520000003). These may be
+    // undefined on installs where the migration hasn't run — guard
+    // with `??` so the picker just starts empty rather than crashing.
+    access_mode: (property.access_mode ?? null) as
+      | 'key_safe'
+      | 'smart_lock'
+      | 'in_person'
+      | null,
+    key_safe_code: property.key_safe_code ?? null,
+    access_notes: property.access_notes ?? null,
+    stopcock_location: property.stopcock_location ?? null,
+    gas_isolator_location: property.gas_isolator_location ?? null,
+    consumer_unit_location: property.consumer_unit_location ?? null,
   };
 
   // Maintenance Plan tab — fetch recurring_schedules for this

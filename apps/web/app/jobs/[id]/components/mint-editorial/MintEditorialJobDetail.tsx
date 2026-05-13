@@ -42,6 +42,7 @@ import {
   SelectedContractorCard,
   HowPaymentWorksCard,
   QuickActionsList,
+  AccessSharedCard,
 } from './MintEditorialJobRightRail';
 import {
   MintEditorialJobTabBody,
@@ -429,6 +430,25 @@ export function MintEditorialJobDetail({
               contractorFirstName='the contractor'
             />
           )}
+
+          {/* Access shared with contractor — mirror of what the
+              contractor sees on `/contractor/jobs/[id]`. The code is
+              revealed to the contractor once escrow is funded and
+              the job is at ready_to_start / in_progress; reveal here
+              follows the same rule so the homeowner sees the same
+              window the contractor does. */}
+          {property ? (
+            <AccessSharedCard
+              property={property}
+              jobStage={
+                lifecycle.escrowStatus === 'held' && job.status === 'assigned'
+                  ? 'ready_to_start'
+                  : job.status === 'in_progress'
+                    ? 'in_progress'
+                    : ((job.status as string) ?? 'posted')
+              }
+            />
+          ) : null}
 
           <QuickActionsList jobId={job.id} status={job.status} />
         </aside>

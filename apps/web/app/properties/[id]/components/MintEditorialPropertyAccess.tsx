@@ -7,42 +7,65 @@
  * access picker, contractor notes textarea, saved-trades list,
  * emergency-contacts card, stopcock/isolators card.
  *
- * Storage: the canonical fields (access_mode, key_safe_code, notes,
- * stopcock_location, etc.) don't have a DB home yet. To stay honest
- * with the W1-W5 "no fake persistence" rule we render the picker as
- * read-only with a clear "Setup coming soon" affordance, plus a link
- * to the team-access feature card on the Manage tab (which DOES
- * persist tenant contacts today). Saved trades are derived from real
- * job history — contractors who've completed work here.
+ * Storage: the access fields (access_mode, key_safe_code, access_notes,
+ * stopcock_location, etc.) are persisted on `public.properties` per
+ * migration `20260520000003_property_access_fields.sql`. PATCH endpoint:
+ * `/api/properties/[id]/access`. The contractor side
+ * (/contractor/jobs/[id]) surfaces these values to the assigned
+ * contractor with `key_safe_code` masked unless the job is at the
+ * `ready_to_start` or `in_progress` lifecycle stage.
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
-import { KeyRound, Lock, User, ArrowRight, AlertTriangle } from 'lucide-react';
+import {
+  KeyRound,
+  Lock,
+  User,
+  ArrowRight,
+  AlertTriangle,
+  Save,
+  Loader2,
+  CheckCircle2,
+} from 'lucide-react';
+import toast from 'react-hot-toast';
+import { getCsrfHeaders } from '@/lib/csrf-client';
+import { logger } from '@mintenance/shared';
 import { type JobItem } from './MintEditorialPropertyCards';
 
-interface AccessMode {
-  key: string;
+type AccessModeKey = 'key_safe' | 'smart_lock' | 'in_person';
+
+export interface PropertyAccessValues {
+  access_mode: AccessModeKey | null;
+  key_safe_code: string | null;
+  access_notes: string | null;
+  stopcock_location: string | null;
+  gas_isolator_location: string | null;
+  consumer_unit_location: string | null;
+}
+
+interface AccessModeOption {
+  key: AccessModeKey;
   icon: React.ReactNode;
   label: string;
   sub: string;
 }
 
-const MODES: AccessMode[] = [
+const MODES: AccessModeOption[] = [
   {
-    key: 'keysafe',
+    key: 'key_safe',
     icon: <KeyRound size={16} strokeWidth={1.75} />,
     label: 'Key safe',
     sub: 'Code revealed 1h before each job',
   },
   {
-    key: 'smartlock',
+    key: 'smart_lock',
     icon: <Lock size={16} strokeWidth={1.75} />,
     label: 'Smart lock',
     sub: 'One-time code per contractor',
   },
   {
-    key: 'inperson',
+    key: 'in_person',
     icon: <User size={16} strokeWidth={1.75} />,
     label: "You'll be home",
     sub: 'Default — needs scheduling',
@@ -101,10 +124,79 @@ function initials(name: string): string {
 interface Props {
   propertyId: string;
   jobs: JobItem[];
+  /** Initial server-fetched access values. Null fields render as
+   *  empty inputs / unselected picker. */
+  initialAccess?: PropertyAccessValues | null;
 }
 
-export function MintEditorialPropertyAccess({ propertyId, jobs }: Props) {
+export function MintEditorialPropertyAccess({
+  propertyId,
+  jobs,
+  initialAccess,
+}: Props) {
   const trades = deriveSavedTrades(jobs);
+  const [mode, setMode] = useState<AccessModeKey | null>(
+    initialAccess?.access_mode ?? null
+  );
+  const [keySafeCode, setKeySafeCode] = useState(
+    initialAccess?.key_safe_code ?? ''
+  );
+  const [accessNotes, setAccessNotes] = useState(
+    initialAccess?.access_notes ?? ''
+  );
+  const [stopcock, setStopcock] = useState(
+    initialAccess?.stopcock_location ?? ''
+  );
+  const [gasIsolator, setGasIsolator] = useState(
+    initialAccess?.gas_isolator_location ?? ''
+  );
+  const [consumerUnit, setConsumerUnit] = useState(
+    initialAccess?.consumer_unit_location ?? ''
+  );
+  const [saving, setSaving] = useState(false);
+  const [savedAt, setSavedAt] = useState<number | null>(null);
+
+  // Dirty flag — only enable Save when something changed from the
+  // server-side initial state.
+  const isDirty =
+    mode !== (initialAccess?.access_mode ?? null) ||
+    keySafeCode !== (initialAccess?.key_safe_code ?? '') ||
+    accessNotes !== (initialAccess?.access_notes ?? '') ||
+    stopcock !== (initialAccess?.stopcock_location ?? '') ||
+    gasIsolator !== (initialAccess?.gas_isolator_location ?? '') ||
+    consumerUnit !== (initialAccess?.consumer_unit_location ?? '');
+
+  const handleSave = async () => {
+    if (saving || !isDirty) return;
+    setSaving(true);
+    try {
+      const csrfHeaders = await getCsrfHeaders();
+      const res = await fetch(`/api/properties/${propertyId}/access`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...csrfHeaders },
+        credentials: 'include',
+        body: JSON.stringify({
+          access_mode: mode,
+          key_safe_code: keySafeCode.trim() || null,
+          access_notes: accessNotes.trim() || null,
+          stopcock_location: stopcock.trim() || null,
+          gas_isolator_location: gasIsolator.trim() || null,
+          consumer_unit_location: consumerUnit.trim() || null,
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({ error: 'Save failed' }));
+        throw new Error(body.error || 'Failed to save access details');
+      }
+      setSavedAt(Date.now());
+      toast.success('Access details saved');
+    } catch (error) {
+      logger.error('Failed to save property access', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to save');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className='col' style={{ gap: 22 }}>
@@ -132,75 +224,231 @@ export function MintEditorialPropertyAccess({ propertyId, jobs }: Props) {
               How contractors get in
             </h3>
             <div className='card card-pad'>
+              {/* Tri-mode picker — clickable now. The selected card
+                  uses brand border + brand-soft background; the others
+                  stay neutral until clicked. */}
               <div className='row' style={{ gap: 12, marginBottom: 16 }}>
-                {MODES.map((m, i) => (
-                  <div
-                    key={m.key}
-                    style={{
-                      flex: 1,
-                      padding: 14,
-                      borderRadius: 12,
-                      border:
-                        i === 0
+                {MODES.map((m) => {
+                  const active = mode === m.key;
+                  return (
+                    <button
+                      key={m.key}
+                      type='button'
+                      onClick={() => setMode(m.key)}
+                      style={{
+                        flex: 1,
+                        padding: 14,
+                        borderRadius: 12,
+                        border: active
                           ? '2px solid var(--me-brand)'
                           : '1px solid var(--me-line)',
-                      background:
-                        i === 0 ? 'var(--me-brand-soft)' : 'var(--me-surface)',
-                    }}
-                  >
-                    <div
-                      className='row'
-                      style={{
-                        gap: 8,
-                        marginBottom: 6,
-                        color: i === 0 ? 'var(--me-brand)' : 'var(--me-ink-2)',
+                        background: active
+                          ? 'var(--me-brand-soft)'
+                          : 'var(--me-surface)',
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                        fontFamily: 'inherit',
                       }}
+                      aria-pressed={active}
                     >
-                      {m.icon}
-                      <span
+                      <div
+                        className='row'
                         style={{
-                          fontWeight: 600,
-                          fontSize: 13,
-                          color: 'var(--me-ink)',
+                          gap: 8,
+                          marginBottom: 6,
+                          color: active ? 'var(--me-brand)' : 'var(--me-ink-2)',
                         }}
                       >
-                        {m.label}
-                      </span>
-                    </div>
-                    <p className='t-meta' style={{ margin: 0, fontSize: 12 }}>
-                      {m.sub}
-                    </p>
-                  </div>
-                ))}
+                        {m.icon}
+                        <span
+                          style={{
+                            fontWeight: 600,
+                            fontSize: 13,
+                            color: 'var(--me-ink)',
+                          }}
+                        >
+                          {m.label}
+                        </span>
+                      </div>
+                      <p className='t-meta' style={{ margin: 0, fontSize: 12 }}>
+                        {m.sub}
+                      </p>
+                    </button>
+                  );
+                })}
               </div>
+
+              {/* Key-safe code input — only shown when key_safe is
+                  picked. Marked sensitive in copy. */}
+              {mode === 'key_safe' ? (
+                <div className='col' style={{ gap: 6, marginBottom: 16 }}>
+                  <label
+                    htmlFor='access-keysafe-code'
+                    className='t-meta'
+                    style={{ fontWeight: 600 }}
+                  >
+                    Lock-box code (only revealed to contractors within 1h of the
+                    scheduled start)
+                  </label>
+                  <input
+                    id='access-keysafe-code'
+                    type='text'
+                    className='field'
+                    value={keySafeCode}
+                    onChange={(e) => setKeySafeCode(e.target.value)}
+                    placeholder='e.g. 4827'
+                    maxLength={64}
+                    autoComplete='off'
+                    style={{ fontFamily: 'monospace', letterSpacing: '0.1em' }}
+                  />
+                </div>
+              ) : null}
+
+              {/* Free-text notes — homeowners can leave guidance
+                  ("Keys with neighbour at no. 22. Cat in kitchen,
+                  please keep door closed."). */}
+              <div className='col' style={{ gap: 6, marginBottom: 16 }}>
+                <label
+                  htmlFor='access-notes'
+                  className='t-meta'
+                  style={{ fontWeight: 600 }}
+                >
+                  Notes for the contractor
+                </label>
+                <textarea
+                  id='access-notes'
+                  className='field'
+                  value={accessNotes}
+                  onChange={(e) => setAccessNotes(e.target.value)}
+                  placeholder='Anything they need to know — neighbour with spare keys, pets, parking instructions…'
+                  rows={3}
+                  maxLength={2000}
+                  style={{ resize: 'vertical', fontFamily: 'inherit' }}
+                />
+              </div>
+
+              {/* Stopcock / isolator / consumer-unit locations —
+                  small inputs side-by-side on wide viewports. */}
               <div
                 style={{
-                  padding: 12,
-                  borderRadius: 9,
-                  background: 'var(--me-bg-2)',
-                  border: '1px solid var(--me-line-2)',
-                  fontSize: 12,
-                  color: 'var(--me-ink-2)',
-                  display: 'flex',
-                  gap: 10,
-                  alignItems: 'flex-start',
-                  lineHeight: 1.5,
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                  gap: 12,
+                  marginBottom: 16,
                 }}
               >
-                <AlertTriangle
-                  size={14}
-                  strokeWidth={1.75}
+                <div className='col' style={{ gap: 4 }}>
+                  <label
+                    htmlFor='access-stopcock'
+                    className='t-meta'
+                    style={{ fontWeight: 600 }}
+                  >
+                    Water stopcock
+                  </label>
+                  <input
+                    id='access-stopcock'
+                    type='text'
+                    className='field'
+                    value={stopcock}
+                    onChange={(e) => setStopcock(e.target.value)}
+                    placeholder='Under kitchen sink'
+                    maxLength={500}
+                  />
+                </div>
+                <div className='col' style={{ gap: 4 }}>
+                  <label
+                    htmlFor='access-gas'
+                    className='t-meta'
+                    style={{ fontWeight: 600 }}
+                  >
+                    Gas isolator
+                  </label>
+                  <input
+                    id='access-gas'
+                    type='text'
+                    className='field'
+                    value={gasIsolator}
+                    onChange={(e) => setGasIsolator(e.target.value)}
+                    placeholder='Meter cupboard, hall'
+                    maxLength={500}
+                  />
+                </div>
+                <div className='col' style={{ gap: 4 }}>
+                  <label
+                    htmlFor='access-consumer-unit'
+                    className='t-meta'
+                    style={{ fontWeight: 600 }}
+                  >
+                    Consumer unit
+                  </label>
+                  <input
+                    id='access-consumer-unit'
+                    type='text'
+                    className='field'
+                    value={consumerUnit}
+                    onChange={(e) => setConsumerUnit(e.target.value)}
+                    placeholder='Top of stairs cupboard'
+                    maxLength={500}
+                  />
+                </div>
+              </div>
+
+              {/* Save bar */}
+              <div
+                className='between'
+                style={{ alignItems: 'center', flexWrap: 'wrap', gap: 12 }}
+              >
+                <div
+                  className='row'
                   style={{
-                    color: 'var(--me-warn-fg)',
-                    flexShrink: 0,
-                    marginTop: 1,
+                    gap: 6,
+                    alignItems: 'center',
+                    color: 'var(--me-ink-3)',
+                    fontSize: 12,
                   }}
-                />
-                <span>
-                  Editing your default access mode + notes ships in the next
-                  release. Until then, share access details directly in the job
-                  thread.
-                </span>
+                >
+                  {savedAt && !isDirty ? (
+                    <>
+                      <CheckCircle2
+                        size={13}
+                        strokeWidth={1.75}
+                        style={{ color: 'var(--me-ok)' }}
+                      />
+                      <span>
+                        Saved · contractors on assigned jobs will see this.
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <AlertTriangle
+                        size={13}
+                        strokeWidth={1.75}
+                        style={{ color: 'var(--me-warn-fg)' }}
+                      />
+                      <span>
+                        Lock-box codes are masked from contractors until escrow
+                        is funded.
+                      </span>
+                    </>
+                  )}
+                </div>
+                <button
+                  type='button'
+                  className='btn btn-primary btn-sm'
+                  onClick={handleSave}
+                  disabled={saving || !isDirty}
+                >
+                  {saving ? (
+                    <Loader2
+                      size={13}
+                      strokeWidth={1.75}
+                      className='animate-spin'
+                    />
+                  ) : (
+                    <Save size={13} strokeWidth={1.75} />
+                  )}
+                  {saving ? 'Saving…' : 'Save access details'}
+                </button>
               </div>
             </div>
           </div>

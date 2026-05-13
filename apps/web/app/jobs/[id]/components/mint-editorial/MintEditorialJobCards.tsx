@@ -57,6 +57,16 @@ export interface PropertyShape {
   id?: string;
   property_name?: string | null;
   address?: string | null;
+  // Access & contacts (migration 20260520000003) — shown on the
+  // homeowner's job detail when the job is at a stage where the
+  // contractor can see them, so the homeowner can confirm what
+  // they've shared.
+  access_mode?: 'key_safe' | 'smart_lock' | 'in_person' | null;
+  key_safe_code?: string | null;
+  access_notes?: string | null;
+  stopcock_location?: string | null;
+  gas_isolator_location?: string | null;
+  consumer_unit_location?: string | null;
 }
 
 export const formatGBP = (n: number) =>

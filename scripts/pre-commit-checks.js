@@ -395,6 +395,10 @@ const KNOWN_LARGE_FILES = new Set([
   // single-file rewrite.
   'apps/web/app/contractor/jobs/[id]/page.tsx', // 602 lines (was 541) — +map/access fetch
   'apps/web/app/contractor/jobs/[id]/components/MintEditorialJobDetailView.tsx', // 922 lines (was 681) — +map widget + access details card
+  // Added 2026-05-13 (property access feature):
+  'apps/web/app/properties/[id]/components/MintEditorialPropertyAccess.tsx', // 602 lines — picker now interactive with PATCH save
+  'apps/web/app/jobs/[id]/components/mint-editorial/MintEditorialJobRightRail.tsx', // 491 lines — +AccessSharedCard (homeowner mirror)
+  'apps/web/app/jobs/[id]/page.tsx', // 505 lines — +property access fields in fetch
   // Added 2026-05-12 (Phase-4 batch header swap):
   'apps/web/app/contractor/payouts/components/PayoutsPageClient.tsx', // 506 lines (was ~492)
   // Added 2026-05-12 (Phase-4 contractor port): /contractor/jobs/[id]

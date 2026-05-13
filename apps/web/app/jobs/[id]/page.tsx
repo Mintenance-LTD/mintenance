@@ -65,13 +65,18 @@ export default async function JobDetailPage2025({
     redirect('/jobs');
   }
 
-  // Fetch related data
+  // Fetch related data. Include the access-info columns (migration
+  // 20260520000003) so the "Access shared with contractor" card on
+  // the right rail can render. Wrap in try/catch-style maybeSingle
+  // so installs without the migration applied gracefully degrade.
   const { data: property } = job.property_id
     ? await serverSupabase
         .from('properties')
-        .select('id, property_name, address')
+        .select(
+          'id, property_name, address, access_mode, key_safe_code, access_notes, stopcock_location, gas_isolator_location, consumer_unit_location'
+        )
         .eq('id', job.property_id)
-        .single()
+        .maybeSingle()
     : { data: null };
 
   const { data: contractor } = job.contractor_id
