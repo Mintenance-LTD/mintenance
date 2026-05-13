@@ -31,6 +31,7 @@
     { "path": "/api/cron/anniversary-recognition",      "schedule": "0 8 * * *"   },
     { "path": "/api/cron/contractor-job-digest",        "schedule": "0 8 * * 1"   },
     { "path": "/api/cron/compliance-expiry-reminders",  "schedule": "0 7 * * *"   },
+    { "path": "/api/cron/contractor-credential-reminders","schedule": "30 7 * * *" },
     { "path": "/api/cron/recurring-job-creator",        "schedule": "0 6 * * *"   },
     { "path": "/api/cron/escrow-auto-release",          "schedule": "0 0 * * *"   },
     { "path": "/api/cron/agent-processor",              "schedule": "0 1 * * *"   },
