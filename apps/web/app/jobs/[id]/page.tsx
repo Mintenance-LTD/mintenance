@@ -89,7 +89,12 @@ export default async function JobDetailPage2025({
         .single()
     : { data: null };
 
-  // Fetch bids with contractor info and quote line items
+  // Fetch bids with contractor info, quote breakdown, and the
+  // schedule + warranty fields the BidCard now surfaces so the
+  // homeowner can compare bids on more than just price. Quote embed
+  // pulls subtotal/tax/total/terms in addition to line_items —
+  // populated by `app/api/contractor/submit-bid/quote-processor.ts`
+  // for every bid, previously invisible on this page.
   const { data: bids, error: bidsError } = await serverSupabase
     .from('bids')
     .select(
@@ -101,6 +106,10 @@ export default async function JobDetailPage2025({
       created_at,
       contractor_id,
       quote_id,
+      estimated_duration_days,
+      proposed_start_date,
+      warranty_months,
+      materials_included,
       contractor:profiles!bids_contractor_id_fkey (
         id,
         first_name,
@@ -116,7 +125,13 @@ export default async function JobDetailPage2025({
       ),
       quote:contractor_quotes!quote_id (
         id,
-        line_items
+        subtotal,
+        tax_rate,
+        tax_amount,
+        total_amount,
+        line_items,
+        terms,
+        quote_number
       )
     `
     )
@@ -204,6 +219,7 @@ export default async function JobDetailPage2025({
           reviews_count: reviewCountMap.get(contractor.id) || 0,
         },
         lineItems,
+        quote: quote ?? null,
       };
     })
     .filter((b): b is NonNullable<typeof b> => b !== null);
@@ -257,6 +273,13 @@ export default async function JobDetailPage2025({
     created_at: string;
     contractor_id: string;
     quote_id?: string;
+    // 2026-05-13 BidCard upgrade: comparison axes beyond price.
+    // Homeowners need schedule + warranty visibility to weigh bids
+    // properly; previously these were on the bid but never surfaced.
+    estimated_duration_days?: number | null;
+    proposed_start_date?: string | null;
+    warranty_months?: number | null;
+    materials_included?: boolean | null;
     lineItems?: Array<{
       id: string;
       description: string;
@@ -265,6 +288,15 @@ export default async function JobDetailPage2025({
       unitPrice: number;
       total: number;
     }>;
+    quote?: {
+      id?: string;
+      subtotal?: number | null;
+      tax_rate?: number | null;
+      tax_amount?: number | null;
+      total_amount?: number | null;
+      terms?: string | null;
+      quote_number?: string | null;
+    } | null;
     contractor?: {
       id: string;
       first_name?: string;
@@ -333,10 +365,24 @@ export default async function JobDetailPage2025({
       status: bid.status,
       created_at: bid.created_at,
       quote_id: bid.quote_id,
+      estimatedDurationDays: bid.estimated_duration_days ?? null,
+      proposedStartDate: bid.proposed_start_date ?? null,
+      warrantyMonths: bid.warranty_months ?? null,
+      materialsIncluded: bid.materials_included ?? null,
       lineItems: bid.lineItems?.map((li) => ({
         ...li,
         type: li.type || ('labor' as const),
       })),
+      quote: bid.quote
+        ? {
+            subtotal: bid.quote.subtotal ?? null,
+            taxRate: bid.quote.tax_rate ?? null,
+            taxAmount: bid.quote.tax_amount ?? null,
+            totalAmount: bid.quote.total_amount ?? null,
+            terms: bid.quote.terms ?? null,
+            quoteNumber: bid.quote.quote_number ?? null,
+          }
+        : null,
       contractor: {
         id: bid.contractor?.id || '',
         first_name: bid.contractor?.first_name,

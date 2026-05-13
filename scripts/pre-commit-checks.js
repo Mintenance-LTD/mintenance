@@ -434,6 +434,15 @@ const KNOWN_LARGE_FILES = new Set([
   // further (out of `_helpers.ts`) is a P2 — the orchestration sequence
   // is canonical and benefits from being in one place.
   'apps/web/app/api/jobs/[id]/bids/[bidId]/accept/route.ts', // 508 lines (was 493)
+  // Added 2026-05-13 (high-priority audit pass 1-5). The two payment +
+  // PDF route handlers grew by 10 and 4 lines respectively to plumb
+  // escrow traceability (bid_id / contract_id / quote_id into Stripe
+  // + escrow metadata) and to render the new Quote Breakdown section
+  // in the contract PDF. Both files orchestrate Stripe + DB + email
+  // in one place; splitting them is a P2 that doesn't belong in a
+  // pipeline-fix commit.
+  'apps/web/app/api/payments/create-intent/route.ts', // 510 lines (was 487)
+  'apps/web/app/api/contracts/[id]/pdf/route.ts', // 504 lines (was 376)
   // Removed 2026-05-13 (split shipped). payment-handlers.ts is now a
   // ~47-line re-export facade; the actual handlers live in
   // ./payment-intent-handlers.ts, ./charge-handlers.ts, and

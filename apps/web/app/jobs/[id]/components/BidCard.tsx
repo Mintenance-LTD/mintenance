@@ -5,7 +5,15 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { getCsrfHeaders } from '@/lib/csrf-client';
 import { logger } from '@mintenance/shared';
-import { Star, User, Shield } from 'lucide-react';
+import {
+  Star,
+  User,
+  Shield,
+  CalendarDays,
+  Clock,
+  Package,
+  ShieldCheck,
+} from 'lucide-react';
 import { formatRelativeDate } from './JobDetailHelpers';
 import type { Contractor } from './JobDetailHelpers';
 
@@ -18,6 +26,21 @@ interface BidLineItem {
   total: number;
 }
 
+/**
+ * Per-bid quote breakdown. Populated by submit-bid (writes a row
+ * into `contractor_quotes`, FK'd via `bids.quote_id`). 2026-05-13
+ * audit: surfaced on the card so the homeowner can see whether the
+ * headline amount is VAT-inclusive before comparing bids.
+ */
+export interface BidQuoteSummary {
+  subtotal: number | null;
+  taxRate: number | null;
+  taxAmount: number | null;
+  totalAmount: number | null;
+  terms: string | null;
+  quoteNumber: string | null;
+}
+
 export interface Bid {
   id: string;
   amount: number;
@@ -26,6 +49,14 @@ export interface Bid {
   created_at: string;
   contractor: Contractor;
   lineItems?: BidLineItem[];
+  // 2026-05-13 BidCard upgrade — comparison axes the homeowner
+  // needs alongside price/rating. Stored on the bid since the
+  // 2026-03-20 schema migration; previously never rendered.
+  estimatedDurationDays?: number | null;
+  proposedStartDate?: string | null;
+  warrantyMonths?: number | null;
+  materialsIncluded?: boolean | null;
+  quote?: BidQuoteSummary | null;
 }
 
 /* ==========================================
@@ -241,6 +272,85 @@ export function BidCard({ bid, jobId }: { bid: Bid; jobId: string }) {
             </div>
           ) : null;
         })()}
+
+      {/* Schedule + warranty + materials chips. Renders only when at
+          least one comparison axis is present — keeps the card tidy
+          for sparse bids. 2026-05-13: previously these fields were
+          stored on the bid but never surfaced on the homeowner UI. */}
+      {(bid.proposedStartDate ||
+        (typeof bid.estimatedDurationDays === 'number' &&
+          bid.estimatedDurationDays > 0) ||
+        (typeof bid.warrantyMonths === 'number' && bid.warrantyMonths > 0) ||
+        bid.materialsIncluded === true) && (
+        <div className='mb-4 flex flex-wrap gap-2'>
+          {bid.proposedStartDate && (
+            <div className='inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-50 border border-gray-100 text-xs text-gray-700'>
+              <CalendarDays className='w-3.5 h-3.5 text-teal-600' />
+              <span>
+                Start{' '}
+                {new Date(bid.proposedStartDate).toLocaleDateString('en-GB', {
+                  day: 'numeric',
+                  month: 'short',
+                })}
+              </span>
+            </div>
+          )}
+          {typeof bid.estimatedDurationDays === 'number' &&
+            bid.estimatedDurationDays > 0 && (
+              <div className='inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-50 border border-gray-100 text-xs text-gray-700'>
+                <Clock className='w-3.5 h-3.5 text-teal-600' />
+                <span>
+                  ~{bid.estimatedDurationDays}{' '}
+                  {bid.estimatedDurationDays === 1 ? 'day' : 'days'}
+                </span>
+              </div>
+            )}
+          {typeof bid.warrantyMonths === 'number' && bid.warrantyMonths > 0 && (
+            <div className='inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-50 border border-gray-100 text-xs text-gray-700'>
+              <ShieldCheck className='w-3.5 h-3.5 text-teal-600' />
+              <span>{bid.warrantyMonths}-month warranty</span>
+            </div>
+          )}
+          {bid.materialsIncluded === true && (
+            <div className='inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-50 border border-gray-100 text-xs text-gray-700'>
+              <Package className='w-3.5 h-3.5 text-teal-600' />
+              <span>Materials included</span>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* VAT breakdown — show only when the contractor explicitly
+          declared VAT on the linked quote (tax_rate > 0 + tax_amount
+          > 0). Otherwise homeowners are left guessing whether the
+          headline `amount` is inclusive or exclusive. */}
+      {bid.quote &&
+        typeof bid.quote.taxAmount === 'number' &&
+        bid.quote.taxAmount > 0 && (
+          <div className='mb-4 px-3 py-2 rounded-lg bg-gray-50 border border-gray-100 text-xs text-gray-600 space-y-0.5'>
+            {typeof bid.quote.subtotal === 'number' && (
+              <div className='flex justify-between'>
+                <span>Subtotal</span>
+                <span>£{bid.quote.subtotal.toLocaleString()}</span>
+              </div>
+            )}
+            <div className='flex justify-between'>
+              <span>
+                VAT
+                {typeof bid.quote.taxRate === 'number' && bid.quote.taxRate > 0
+                  ? ` (${bid.quote.taxRate}%)`
+                  : ''}
+              </span>
+              <span>£{bid.quote.taxAmount.toLocaleString()}</span>
+            </div>
+            {typeof bid.quote.totalAmount === 'number' && (
+              <div className='flex justify-between font-semibold text-gray-900 pt-0.5'>
+                <span>Total inc. VAT</span>
+                <span>£{bid.quote.totalAmount.toLocaleString()}</span>
+              </div>
+            )}
+          </div>
+        )}
 
       {/* Actions */}
       <div className='flex gap-3'>
