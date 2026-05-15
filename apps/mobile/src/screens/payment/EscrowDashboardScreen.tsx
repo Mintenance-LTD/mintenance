@@ -19,7 +19,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../config/supabase';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { logger } from '../../utils/logger';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 type Props = NativeStackScreenProps<ProfileStackParamList, 'EscrowDashboard'>;
 
@@ -170,11 +170,7 @@ const EscrowDashboardScreen: React.FC<Props> = ({ navigation }) => {
             accessibilityLabel='Go back'
             style={styles.headerBackBtn}
           >
-            <Ionicons
-              name='arrow-back'
-              size={24}
-              color={theme.colors.textPrimary}
-            />
+            <Ionicons name='arrow-back' size={24} color={me.ink} />
           </TouchableOpacity>
           <View style={styles.headerTitleGroup}>
             <Text style={styles.headerOverline}>FINANCIAL OVERVIEW</Text>
@@ -185,7 +181,7 @@ const EscrowDashboardScreen: React.FC<Props> = ({ navigation }) => {
 
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size='large' color={theme.colors.primary} />
+            <ActivityIndicator size='large' color={me.brand} />
           </View>
         ) : records.length === 0 ? (
           <EmptyState
@@ -205,7 +201,7 @@ const EscrowDashboardScreen: React.FC<Props> = ({ navigation }) => {
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={handleRefresh}
-                tintColor={theme.colors.primary}
+                tintColor={me.brand}
               />
             }
             ListHeaderComponent={
@@ -240,11 +236,11 @@ const EscrowDashboardScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
   },
   container: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg,
   },
   headerBar: {
     flexDirection: 'row',
@@ -252,8 +248,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
+    borderBottomColor: me.line,
+    backgroundColor: me.surface,
   },
   headerBackBtn: {
     padding: 8,
@@ -265,14 +261,15 @@ const styles = StyleSheet.create({
   headerOverline: {
     fontSize: 10,
     fontWeight: '700',
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     letterSpacing: 1.2,
     marginBottom: 2,
   },
   headerBarTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
+    fontFamily: me.font.display,
+    fontSize: 20,
+    color: me.ink,
+    letterSpacing: me.displayTracking,
   },
   headerSpacer: {
     width: 40,
@@ -297,12 +294,13 @@ const styles = StyleSheet.create({
   },
   summaryCard: {
     flex: 1,
-    backgroundColor: theme.colors.surface,
-    borderRadius: 20,
+    backgroundColor: me.surface,
+    borderRadius: me.radius.card,
     padding: 14,
     borderLeftWidth: 3,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
+    ...me.shadow.card,
   },
   summaryIconWrap: {
     width: 32,
@@ -315,22 +313,24 @@ const styles = StyleSheet.create({
   summaryLabel: {
     fontSize: 10,
     fontWeight: '700',
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 4,
   },
   summaryAmount: {
+    fontFamily: me.font.display,
     fontSize: 22,
-    fontWeight: '800',
+    letterSpacing: me.displayTracking,
   },
   recordCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 20,
+    backgroundColor: me.surface,
+    borderRadius: me.radius.card,
     padding: 16,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
+    ...me.shadow.card,
   },
   recordHeader: {
     flexDirection: 'row',
@@ -342,7 +342,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginRight: 8,
   },
   statusBadge: {
@@ -360,13 +360,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   recordAmount: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
+    fontFamily: me.font.display,
+    fontSize: 18,
+    color: me.ink,
+    letterSpacing: me.displayTracking,
   },
   recordDate: {
     fontSize: 13,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
   },
 });
 
