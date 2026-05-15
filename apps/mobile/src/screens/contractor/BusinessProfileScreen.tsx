@@ -18,7 +18,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import { ScreenHeader, LoadingSpinner } from '../../components/shared';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 
 interface BusinessProfileResponse {
@@ -159,10 +159,7 @@ export const BusinessProfileScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={s.container}>
-      <StatusBar
-        barStyle='dark-content'
-        backgroundColor={theme.colors.backgroundSecondary}
-      />
+      <StatusBar barStyle='dark-content' backgroundColor={me.bg2} />
       <ScreenHeader
         title='Business Profile'
         showBack
@@ -189,7 +186,7 @@ export const BusinessProfileScreen: React.FC = () => {
                 setHasEdits(true);
               }}
               placeholder='Your company or trading name'
-              placeholderTextColor={theme.colors.textTertiary}
+              placeholderTextColor={me.ink3}
             />
             <Text style={s.label}>Business Address</Text>
             <TextInput
@@ -200,7 +197,7 @@ export const BusinessProfileScreen: React.FC = () => {
                 setHasEdits(true);
               }}
               placeholder='Registered business address'
-              placeholderTextColor={theme.colors.textTertiary}
+              placeholderTextColor={me.ink3}
             />
           </View>
 
@@ -216,7 +213,7 @@ export const BusinessProfileScreen: React.FC = () => {
                 setHasEdits(true);
               }}
               placeholder='e.g. LIC-12345'
-              placeholderTextColor={theme.colors.textTertiary}
+              placeholderTextColor={me.ink3}
             />
             <Text style={s.label}>License Type</Text>
             <ScrollView
@@ -242,7 +239,7 @@ export const BusinessProfileScreen: React.FC = () => {
                       <Ionicons
                         name='checkmark'
                         size={14}
-                        color={theme.colors.textInverse}
+                        color={me.onBrand}
                         style={{ marginRight: 4 }}
                       />
                     )}
@@ -284,7 +281,7 @@ export const BusinessProfileScreen: React.FC = () => {
                 setHasEdits(true);
               }}
               placeholder='e.g. Hiscox, AXA'
-              placeholderTextColor={theme.colors.textTertiary}
+              placeholderTextColor={me.ink3}
             />
             <Text style={s.label}>Policy Number</Text>
             <TextInput
@@ -295,7 +292,7 @@ export const BusinessProfileScreen: React.FC = () => {
                 setHasEdits(true);
               }}
               placeholder='e.g. POL-123456'
-              placeholderTextColor={theme.colors.textTertiary}
+              placeholderTextColor={me.ink3}
             />
           </View>
 
@@ -322,21 +319,21 @@ export const BusinessProfileScreen: React.FC = () => {
 const s = {
   container: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   } as const,
   content: { padding: 16, paddingBottom: 40 } as const,
   card: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 20,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   } as const,
   sectionLabel: {
     fontSize: 12,
     fontWeight: '700' as const,
-    color: theme.colors.primary,
+    color: me.brand,
     textTransform: 'uppercase' as const,
     letterSpacing: 0.8,
     marginBottom: 14,
@@ -344,19 +341,19 @@ const s = {
   label: {
     fontSize: 13,
     fontWeight: '600' as const,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginBottom: 6,
     marginTop: 8,
   },
   input: {
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 13,
     fontSize: 15,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
     marginBottom: 4,
   },
   chipScroll: { marginBottom: 8, flexGrow: 0 as const } as const,
@@ -366,24 +363,24 @@ const s = {
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 16,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     marginRight: 6,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   } as const,
   chipActive: {
-    backgroundColor: theme.colors.textPrimary,
-    borderColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
+    borderColor: me.ink,
   } as const,
   chipText: {
     fontSize: 12,
     fontWeight: '600' as const,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
-  chipTextActive: { color: theme.colors.textInverse },
+  chipTextActive: { color: me.onBrand },
   hintText: {
     fontSize: 11,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     marginTop: 2,
     marginBottom: 4,
   },
@@ -413,7 +410,7 @@ const s = {
     lineHeight: 18,
   },
   saveBtn: {
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
     borderRadius: 28,
     paddingVertical: 16,
     flexDirection: 'row' as const,

@@ -1,7 +1,7 @@
 import React from 'react';
 import { TouchableOpacity, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 import { styles } from '../jobDetailsStyles';
 
 /**
@@ -19,13 +19,9 @@ export function LogExpenseRow({ onPress }: { onPress: () => void }) {
       accessibilityRole='button'
       accessibilityLabel='Log expense for this job'
     >
-      <Ionicons name='receipt-outline' size={18} color={theme.colors.primary} />
+      <Ionicons name='receipt-outline' size={18} color={me.brand} />
       <Text style={styles.logExpenseText}>Log Expense for this Job</Text>
-      <Ionicons
-        name='chevron-forward'
-        size={18}
-        color={theme.colors.textTertiary}
-      />
+      <Ionicons name='chevron-forward' size={18} color={me.ink3} />
     </TouchableOpacity>
   );
 }

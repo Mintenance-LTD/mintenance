@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 interface TimelineEvent {
   label: string;
@@ -60,7 +60,7 @@ export function ContractTimeline({
   return (
     <View style={styles.container}>
       <View style={styles.sectionHeader}>
-        <Ionicons name='time-outline' size={16} color={theme.colors.primary} />
+        <Ionicons name='time-outline' size={16} color={me.brand} />
         <Text style={styles.sectionLabel}>TIMELINE</Text>
       </View>
       {events.map((ev, i) => (
@@ -70,7 +70,7 @@ export function ContractTimeline({
               <Ionicons
                 name={ev.done ? ev.icon : 'ellipse-outline'}
                 size={ev.done ? 14 : 12}
-                color={ev.done ? '#fff' : theme.colors.textTertiary}
+                color={ev.done ? me.onBrand : me.ink3}
               />
             </View>
             {i < events.length - 1 && (
@@ -95,7 +95,7 @@ export function ContractTimeline({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 0.8,
-    color: theme.colors.primary,
+    color: me.brand,
   },
   eventRow: {
     flexDirection: 'row',
@@ -124,21 +124,21 @@ const styles = StyleSheet.create({
     width: 26,
     height: 26,
     borderRadius: 13,
-    backgroundColor: theme.colors.backgroundTertiary,
+    backgroundColor: me.bg3,
     alignItems: 'center',
     justifyContent: 'center',
   },
   dotDone: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
   },
   line: {
     width: 2,
     flex: 1,
-    backgroundColor: theme.colors.border,
+    backgroundColor: me.line,
     marginVertical: 2,
   },
   lineDone: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
   },
   eventContent: {
     flex: 1,
@@ -148,14 +148,14 @@ const styles = StyleSheet.create({
   eventLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   eventLabelPending: {
-    color: theme.colors.textTertiary,
+    color: me.ink3,
   },
   eventDate: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginTop: 2,
   },
 });

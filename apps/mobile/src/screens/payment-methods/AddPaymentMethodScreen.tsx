@@ -12,7 +12,7 @@ import { Button } from '../../components/ui/Button';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import { logger } from '../../utils/logger';
 import { useToast } from '../../components/ui/Toast';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 import { useScreenCaptureGuard } from '../../hooks/useScreenCaptureGuard';
 
 /**
@@ -127,19 +127,20 @@ const AddPaymentMethodScreen: React.FC = () => {
 
         {initializing && (
           <View style={styles.centered}>
-            <ActivityIndicator size='large' color={theme.colors.primary} />
+            <ActivityIndicator size='large' color={me.brand} />
           </View>
         )}
 
         {!initializing && error && (
           <View style={styles.errorBox}>
             <Text style={styles.errorText}>{error}</Text>
-            <Button onPress={initialisePaymentSheet} title='Try again' />
+            <Button mint onPress={initialisePaymentSheet} title='Try again' />
           </View>
         )}
 
         {!initializing && sheetReady && !error && (
           <Button
+            mint
             onPress={openSheet}
             title={submitting ? 'Opening…' : 'Continue'}
             disabled={submitting}
@@ -153,7 +154,7 @@ const AddPaymentMethodScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: me.bg,
   },
   content: {
     flex: 1,
@@ -161,13 +162,14 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   title: {
-    fontSize: 22,
-    fontWeight: '600',
-    color: theme.colors.textPrimary,
+    fontFamily: me.font.display,
+    fontSize: 24,
+    color: me.ink,
+    letterSpacing: me.displayTracking,
   },
   subtitle: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     lineHeight: 20,
   },
   centered: {
@@ -177,15 +179,15 @@ const styles = StyleSheet.create({
   },
   errorBox: {
     padding: 12,
-    borderRadius: 8,
+    borderRadius: me.radius.input,
     borderWidth: 1,
-    borderColor: '#fecaca',
-    backgroundColor: '#fef2f2',
+    borderColor: me.errFg,
+    backgroundColor: me.errBg,
     gap: 8,
   },
   errorText: {
     fontSize: 14,
-    color: '#991b1b',
+    color: me.errFg,
   },
 });
 

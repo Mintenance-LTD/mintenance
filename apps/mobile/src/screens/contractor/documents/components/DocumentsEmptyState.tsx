@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../../theme';
+import { me } from '../../../../design-system/mint-editorial';
 import { styles } from '../../DocumentsStyles';
 import { EMPTY_MESSAGES, FILTER_CONFIG, type DocFilter } from '../types';
 
@@ -25,17 +25,13 @@ export function DocumentsEmptyState({
   return (
     <View style={styles.emptyContainer}>
       <View style={styles.emptyIconWrap}>
-        <Ionicons name={icon} size={32} color={theme.colors.primary} />
+        <Ionicons name={icon} size={32} color={me.brand} />
       </View>
       <Text style={styles.emptyTitle}>{message.title}</Text>
       <Text style={styles.emptyDesc}>{message.desc}</Text>
       {isContractor && (
         <TouchableOpacity style={styles.emptyUploadBtn} onPress={onUpload}>
-          <Ionicons
-            name='cloud-upload-outline'
-            size={18}
-            color={theme.colors.textInverse}
-          />
+          <Ionicons name='cloud-upload-outline' size={18} color={me.onBrand} />
           <Text style={styles.emptyUploadText}>Upload Document</Text>
         </TouchableOpacity>
       )}

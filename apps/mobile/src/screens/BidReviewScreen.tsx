@@ -34,7 +34,7 @@ import SwipeableCardWrapper, {
   SwipeableCardRef,
 } from '../components/SwipeableCardWrapper';
 import type { JobsStackParamList } from '../navigation/types';
-import { theme } from '../theme';
+import { me } from '../design-system/mint-editorial';
 import { styles } from './BidReviewStyles';
 import { BidReviewCard } from './BidReviewCard';
 
@@ -286,7 +286,7 @@ export const BidReviewScreen: React.FC = () => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centered}>
-          <ActivityIndicator size='large' color={theme.colors.textPrimary} />
+          <ActivityIndicator size='large' color={me.ink} />
           <Text style={styles.loadingText}>Loading bids...</Text>
         </View>
       </SafeAreaView>
@@ -303,22 +303,14 @@ export const BidReviewScreen: React.FC = () => {
             accessibilityRole='button'
             accessibilityLabel='Go back'
           >
-            <Ionicons
-              name='arrow-back'
-              size={24}
-              color={theme.colors.textPrimary}
-            />
+            <Ionicons name='arrow-back' size={24} color={me.ink} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Review Bids</Text>
           <View style={{ width: 40 }} />
         </View>
         <View style={styles.centered}>
           <View style={styles.emptyIconWrap}>
-            <Ionicons
-              name='checkmark-circle'
-              size={36}
-              color={theme.colors.primary}
-            />
+            <Ionicons name='checkmark-circle' size={36} color={me.brand} />
           </View>
           <Text style={styles.emptyTitle}>All Bids Reviewed</Text>
           <Text style={styles.emptySubtitle}>
@@ -346,11 +338,7 @@ export const BidReviewScreen: React.FC = () => {
           accessibilityRole='button'
           accessibilityLabel='Go back'
         >
-          <Ionicons
-            name='arrow-back'
-            size={24}
-            color={theme.colors.textPrimary}
-          />
+          <Ionicons name='arrow-back' size={24} color={me.ink} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>Review Bids</Text>
@@ -372,8 +360,8 @@ export const BidReviewScreen: React.FC = () => {
             {
               label: 'Low',
               value: formatCurrency(Math.min(...bids.map((b) => b.amount))),
-              iconColor: theme.colors.primary,
-              iconBg: theme.colors.primaryLight,
+              iconColor: me.brand,
+              iconBg: me.brandSoft,
               icon: 'trending-down-outline' as const,
             },
             {
@@ -388,15 +376,15 @@ export const BidReviewScreen: React.FC = () => {
             {
               label: 'High',
               value: formatCurrency(Math.max(...bids.map((b) => b.amount))),
-              iconColor: theme.colors.error,
+              iconColor: me.errFg,
               iconBg: '#FEE2E2',
               icon: 'trending-up-outline' as const,
             },
             {
               label: 'Top Rating',
               value: `${Math.max(...bids.map((b) => b.contractor?.rating ?? 0)).toFixed(1)}★`,
-              iconColor: theme.colors.accent,
-              iconBg: theme.colors.accentLight,
+              iconColor: me.accent,
+              iconBg: me.warnBg,
               icon: 'star-outline' as const,
             },
           ].map((item) => (
@@ -468,7 +456,7 @@ export const BidReviewScreen: React.FC = () => {
             left: {
               element: (
                 <View style={styles.overlayPass}>
-                  <Ionicons name='close' size={48} color={theme.colors.error} />
+                  <Ionicons name='close' size={48} color={me.errFg} />
                   <Text style={styles.overlayPassText}>PASS</Text>
                 </View>
               ),
@@ -476,11 +464,7 @@ export const BidReviewScreen: React.FC = () => {
             right: {
               element: (
                 <View style={styles.overlayAccept}>
-                  <Ionicons
-                    name='checkmark'
-                    size={48}
-                    color={theme.colors.primary}
-                  />
+                  <Ionicons name='checkmark' size={48} color={me.brand} />
                   <Text style={styles.overlayAcceptText}>ACCEPT</Text>
                 </View>
               ),
@@ -498,7 +482,7 @@ export const BidReviewScreen: React.FC = () => {
           accessibilityRole='button'
           accessibilityLabel='Reject this bid'
         >
-          <Ionicons name='close' size={30} color={theme.colors.error} />
+          <Ionicons name='close' size={30} color={me.errFg} />
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -508,13 +492,13 @@ export const BidReviewScreen: React.FC = () => {
           accessibilityRole='button'
           accessibilityLabel='Accept this bid'
         >
-          <Ionicons name='checkmark' size={30} color={theme.colors.primary} />
+          <Ionicons name='checkmark' size={30} color={me.brand} />
         </TouchableOpacity>
       </View>
 
       {processing && (
         <View style={styles.processingOverlay}>
-          <ActivityIndicator size='small' color={theme.colors.textInverse} />
+          <ActivityIndicator size='small' color={me.onBrand} />
         </View>
       )}
 
@@ -557,11 +541,7 @@ export const BidReviewScreen: React.FC = () => {
         ]}
       >
         <View style={styles.celebrationCircle}>
-          <Ionicons
-            name='checkmark'
-            size={56}
-            color={theme.colors.textInverse}
-          />
+          <Ionicons name='checkmark' size={56} color={me.onBrand} />
         </View>
       </Animated.View>
     </SafeAreaView>

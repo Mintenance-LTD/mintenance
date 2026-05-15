@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../../theme';
+import { me } from '../../../../design-system/mint-editorial';
 import { styles } from '../../DocumentsStyles';
 import { type Document, formatFileSize, getDocStyle } from '../types';
 
@@ -77,19 +77,11 @@ export function DocumentCard({
                 <Ionicons
                   name={document.starred ? 'star' : 'star-outline'}
                   size={18}
-                  color={
-                    document.starred
-                      ? theme.colors.accent
-                      : theme.colors.textTertiary
-                  }
+                  color={document.starred ? me.accent : me.ink3}
                 />
               </TouchableOpacity>
             )}
-            <Ionicons
-              name='chevron-forward'
-              size={16}
-              color={theme.colors.textTertiary}
-            />
+            <Ionicons name='chevron-forward' size={16} color={me.ink3} />
           </View>
         </View>
       </View>

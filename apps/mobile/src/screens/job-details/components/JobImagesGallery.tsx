@@ -8,10 +8,17 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Image, Dimensions, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Image,
+  Dimensions,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { Job } from '@mintenance/types';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 const { width } = Dimensions.get('window');
 const IMAGE_SIZE = (width - 48) / 2;
@@ -25,12 +32,12 @@ export const JobImagesGallery: React.FC<JobImagesGalleryProps> = ({ job }) => {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <Ionicons name="images-outline" size={20} color={theme.colors.textSecondary} />
+          <Ionicons name='images-outline' size={20} color={me.ink2} />
           <Text style={styles.title}>Job Photos</Text>
         </View>
         <View style={styles.emptyState}>
           <View style={styles.emptyIconWrap}>
-            <Ionicons name="image-outline" size={28} color={theme.colors.textTertiary} />
+            <Ionicons name='image-outline' size={28} color={me.ink3} />
           </View>
           <Text style={styles.emptyText}>No photos uploaded</Text>
         </View>
@@ -41,7 +48,7 @@ export const JobImagesGallery: React.FC<JobImagesGalleryProps> = ({ job }) => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Ionicons name="images-outline" size={20} color={theme.colors.textSecondary} />
+        <Ionicons name='images-outline' size={20} color={me.ink2} />
         <Text style={styles.title}>Job Photos ({job.photos.length})</Text>
       </View>
 
@@ -51,24 +58,29 @@ export const JobImagesGallery: React.FC<JobImagesGalleryProps> = ({ job }) => {
         contentContainerStyle={styles.galleryContainer}
       >
         {job.photos.map((photo, index) => {
-          const photoUrl = typeof photo === 'string' ? photo : (photo as { url: string }).url;
-          const photoDesc = typeof photo === 'string' ? undefined : (photo as { description?: string }).description;
+          const photoUrl =
+            typeof photo === 'string' ? photo : (photo as { url: string }).url;
+          const photoDesc =
+            typeof photo === 'string'
+              ? undefined
+              : (photo as { description?: string }).description;
           return (
-          <View key={index} style={styles.imageContainer}>
-            <Image
-              source={{ uri: photoUrl }}
-              style={styles.image}
-              resizeMode="cover"
-            />
-            {photoDesc && (
-              <View style={styles.imageOverlay}>
-                <Text style={styles.imageDescription} numberOfLines={2}>
-                  {photoDesc}
-                </Text>
-              </View>
-            )}
-          </View>
-        ); })}
+            <View key={index} style={styles.imageContainer}>
+              <Image
+                source={{ uri: photoUrl }}
+                style={styles.image}
+                resizeMode='cover'
+              />
+              {photoDesc && (
+                <View style={styles.imageOverlay}>
+                  <Text style={styles.imageDescription} numberOfLines={2}>
+                    {photoDesc}
+                  </Text>
+                </View>
+              )}
+            </View>
+          );
+        })}
       </ScrollView>
     </View>
   );
@@ -76,14 +88,11 @@ export const JobImagesGallery: React.FC<JobImagesGalleryProps> = ({ job }) => {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
-    ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   header: {
     flexDirection: 'row',
@@ -94,7 +103,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   galleryContainer: {
     paddingRight: 20,
@@ -107,7 +116,7 @@ const styles = StyleSheet.create({
     width: IMAGE_SIZE,
     height: IMAGE_SIZE,
     borderRadius: 12,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   imageOverlay: {
     position: 'absolute',
@@ -121,7 +130,7 @@ const styles = StyleSheet.create({
   },
   imageDescription: {
     fontSize: 13,
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     textAlign: 'center',
   },
   emptyState: {
@@ -132,13 +141,13 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
   },
   emptyText: {
     fontSize: 15,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
 });

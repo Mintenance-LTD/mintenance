@@ -11,7 +11,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   Alert,
-  Platform,
   StatusBar,
   ScrollView,
 } from 'react-native';
@@ -26,7 +25,7 @@ import {
 } from '../../components/shared';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import { useAuth } from '../../contexts/AuthContext';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 type DBSType = 'basic' | 'standard' | 'enhanced';
 
@@ -75,11 +74,11 @@ const STATUS_CONFIG: Record<
   in_progress: { label: 'In Progress', color: '#2563EB', bg: '#DBEAFE' },
   completed: {
     label: 'Verified',
-    color: theme.colors.primaryDark,
-    bg: theme.colors.primaryLight,
+    color: me.brand2,
+    bg: me.brandSoft,
   },
-  failed: { label: 'Failed', color: theme.colors.error, bg: '#FEE2E2' },
-  expired: { label: 'Expired', color: theme.colors.error, bg: '#FEE2E2' },
+  failed: { label: 'Failed', color: me.errFg, bg: me.errBg },
+  expired: { label: 'Expired', color: me.errFg, bg: me.errBg },
 };
 
 export const DBSCheckScreen: React.FC = () => {
@@ -148,10 +147,7 @@ export const DBSCheckScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar
-        barStyle='dark-content'
-        backgroundColor={theme.colors.backgroundSecondary}
-      />
+      <StatusBar barStyle='dark-content' backgroundColor={me.bg2} />
       <ScreenHeader
         title='DBS Check'
         showBack
@@ -161,11 +157,7 @@ export const DBSCheckScreen: React.FC = () => {
       <ScrollView contentContainerStyle={styles.content}>
         {/* Info banner */}
         <View style={styles.infoBanner}>
-          <Ionicons
-            name='shield-checkmark'
-            size={24}
-            color={theme.colors.primary}
-          />
+          <Ionicons name='shield-checkmark' size={24} color={me.brand} />
           <View style={styles.infoBannerContent}>
             <Text style={styles.infoBannerTitle}>
               Build Trust with Homeowners
@@ -220,11 +212,7 @@ export const DBSCheckScreen: React.FC = () => {
             )}
             {check.boostPercentage && check.boostPercentage > 0 && (
               <View style={styles.boostRow}>
-                <Ionicons
-                  name='trending-up'
-                  size={16}
-                  color={theme.colors.primary}
-                />
+                <Ionicons name='trending-up' size={16} color={me.brand} />
                 <Text style={styles.boostText}>
                   +{check.boostPercentage}% profile visibility boost
                 </Text>
@@ -254,11 +242,7 @@ export const DBSCheckScreen: React.FC = () => {
                   <Ionicons
                     name={type.icon}
                     size={22}
-                    color={
-                      selectedType === type.value
-                        ? theme.colors.primary
-                        : theme.colors.textSecondary
-                    }
+                    color={selectedType === type.value ? me.brand : me.ink2}
                   />
                   <Text
                     style={[
@@ -272,7 +256,7 @@ export const DBSCheckScreen: React.FC = () => {
                     <Ionicons
                       name='checkmark-circle'
                       size={20}
-                      color={theme.colors.primary}
+                      color={me.brand}
                     />
                   )}
                 </View>
@@ -289,11 +273,7 @@ export const DBSCheckScreen: React.FC = () => {
               disabled={initiateMutation.isPending}
               accessibilityRole='button'
             >
-              <Ionicons
-                name='shield-checkmark'
-                size={20}
-                color={theme.colors.textInverse}
-              />
+              <Ionicons name='shield-checkmark' size={20} color={me.onBrand} />
               <Text style={styles.initiateButtonText}>
                 {initiateMutation.isPending
                   ? 'Submitting...'
@@ -308,11 +288,11 @@ export const DBSCheckScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
+  container: { flex: 1, backgroundColor: me.bg2 },
   content: { padding: 16, paddingBottom: 32 },
   infoBanner: {
     flexDirection: 'row',
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: me.brandSoft,
     borderRadius: 16,
     padding: 16,
     gap: 12,
@@ -322,37 +302,29 @@ const styles = StyleSheet.create({
   infoBannerTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: theme.colors.primaryDark,
+    color: me.brand2,
     marginBottom: 4,
   },
   infoBannerText: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     lineHeight: 18,
   },
   sectionLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 10,
     marginTop: 8,
   },
   statusCard: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   statusRow: {
     flexDirection: 'row',
@@ -362,29 +334,29 @@ const styles = StyleSheet.create({
   },
   statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
   statusText: { fontSize: 12, fontWeight: '700' },
-  dbsTypeText: { fontSize: 14, color: theme.colors.textSecondary },
+  dbsTypeText: { fontSize: 14, color: me.ink2 },
   certNumber: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginBottom: 4,
   },
-  expiryText: { fontSize: 13, color: theme.colors.textSecondary },
+  expiryText: { fontSize: 13, color: me.ink2 },
   boostRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
     marginTop: 8,
   },
-  boostText: { fontSize: 13, fontWeight: '600', color: theme.colors.primary },
+  boostText: { fontSize: 13, fontWeight: '600', color: me.brand },
   typeCard: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 14,
     padding: 14,
     marginBottom: 8,
     borderWidth: 2,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
-  typeCardSelected: { borderColor: theme.colors.primary },
+  typeCardSelected: { borderColor: me.brand },
   typeCardHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -395,12 +367,12 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
-  typeLabelSelected: { color: theme.colors.primary },
+  typeLabelSelected: { color: me.brand },
   typeDescription: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     lineHeight: 17,
     marginLeft: 32,
   },
@@ -409,13 +381,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
     borderRadius: 28,
     paddingVertical: 16,
     marginTop: 16,
   },
   initiateButtonText: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontSize: 16,
     fontWeight: '700',
   },

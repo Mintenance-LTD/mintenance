@@ -17,7 +17,7 @@ import { AIPricingWidget } from '../../components/AIPricingWidget';
 import { BuildingAssessmentCard } from '../../components/ai/BuildingAssessmentCard';
 import type { PricingAnalysis } from '../../services/AIPricingEngine';
 import type { BuildingAssessment } from '@mintenance/ai-core';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 interface JobCategory {
   label: string;
@@ -126,7 +126,7 @@ export const JobPostingFormFields: React.FC<JobPostingFormFieldsProps> = ({
       numberOfLines={4}
       textAlignVertical='top'
       maxLength={500}
-      placeholderTextColor={theme.colors.textTertiary}
+      placeholderTextColor={me.ink3}
     />
     <Text style={styles.characterCount}>
       {description.length}/500 characters
@@ -143,7 +143,7 @@ export const JobPostingFormFields: React.FC<JobPostingFormFieldsProps> = ({
       value={location}
       onChangeText={(value) => onFieldChange('location', value)}
       maxLength={100}
-      placeholderTextColor={theme.colors.textTertiary}
+      placeholderTextColor={me.ink3}
     />
     {validationErrors.location && (
       <Text style={styles.errorText}>{validationErrors.location}</Text>
@@ -202,7 +202,7 @@ export const JobPostingFormFields: React.FC<JobPostingFormFieldsProps> = ({
         value={budget}
         onChangeText={(value) => onFieldChange('budget', value)}
         keyboardType='numeric'
-        placeholderTextColor={theme.colors.textTertiary}
+        placeholderTextColor={me.ink3}
       />
     </View>
     {validationErrors.budget && (
@@ -270,30 +270,30 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 8,
     marginTop: 16,
   },
   input: {
     height: 50,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 12,
     paddingHorizontal: 14,
     fontSize: 15,
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   textArea: {
     height: 120,
     paddingTop: 14,
   },
   pickerContainer: {
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 12,
     overflow: 'hidden',
   },
   picker: {
     height: 50,
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   urgencyContainer: {
     flexDirection: 'row',
@@ -305,52 +305,52 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 14,
     borderRadius: 20,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     alignItems: 'center',
   },
   urgencyButtonActive: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
   },
   urgencyButtonText: {
     fontSize: 14,
     fontWeight: '500',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   urgencyButtonTextActive: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
   },
   budgetInputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     height: 50,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 12,
     paddingHorizontal: 14,
   },
   currencySymbol: {
     fontSize: 18,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginRight: 4,
   },
   budgetInput: {
     flex: 1,
     fontSize: 15,
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   budgetComparisonContainer: {
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: me.brandSoft,
     padding: 12,
     borderRadius: 12,
     marginTop: 8,
   },
   budgetComparisonText: {
     fontSize: 14,
-    color: theme.colors.primaryDark,
+    color: me.brand2,
     fontWeight: '600',
   },
   budgetHint: {
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     padding: 14,
     borderRadius: 12,
     marginTop: 16,
@@ -358,11 +358,11 @@ const styles = StyleSheet.create({
   },
   hintText: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     lineHeight: 20,
   },
   addPhotoButton: {
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 12,
     paddingVertical: 16,
     paddingHorizontal: 14,
@@ -371,7 +371,7 @@ const styles = StyleSheet.create({
   },
   addPhotoButtonText: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     fontWeight: '500',
   },
   photosContainer: {
@@ -388,14 +388,14 @@ const styles = StyleSheet.create({
   photoPlaceholder: {
     width: '100%',
     height: '100%',
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
   },
   photoText: {
     fontSize: 11,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   deletePhotoButton: {
     position: 'absolute',
@@ -404,29 +404,29 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: theme.colors.error,
+    backgroundColor: me.errFg,
     justifyContent: 'center',
     alignItems: 'center',
   },
   deletePhotoText: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontSize: 16,
     fontWeight: '700',
     lineHeight: 16,
   },
   inputError: {
-    borderColor: theme.colors.error,
+    borderColor: me.errFg,
     borderWidth: 2,
   },
   errorText: {
     fontSize: 12,
-    color: theme.colors.error,
+    color: me.errFg,
     marginTop: 4,
     marginLeft: 4,
   },
   characterCount: {
     fontSize: 11,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     textAlign: 'right',
     marginTop: 4,
   },

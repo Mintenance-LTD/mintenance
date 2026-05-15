@@ -1,5 +1,5 @@
 import type { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../../theme';
+import { me } from '../../../../design-system/mint-editorial';
 
 /**
  * Static catalogues backing the QuickJobPostScreen UI:
@@ -32,8 +32,8 @@ export const REPAIR_TEMPLATES: RepairTemplate[] = [
     description: 'Fix dripping tap, leaking pipe, or water issue',
     budgetRange: '£50-150',
     budget: '100',
-    iconColor: theme.colors.primary,
-    iconBg: theme.colors.primaryLight,
+    iconColor: me.brand,
+    iconBg: me.brandSoft,
   },
   {
     id: 'electrical-issue',
@@ -44,7 +44,7 @@ export const REPAIR_TEMPLATES: RepairTemplate[] = [
     budgetRange: '£75-200',
     budget: '150',
     iconColor: '#92400E',
-    iconBg: theme.colors.accentLight,
+    iconBg: me.warnBg,
   },
   {
     id: 'paint-touchup',
@@ -65,8 +65,8 @@ export const REPAIR_TEMPLATES: RepairTemplate[] = [
     description: 'Fix door, window, furniture, or general maintenance',
     budgetRange: '£50-200',
     budget: '100',
-    iconColor: theme.colors.textSecondary,
-    iconBg: theme.colors.backgroundSecondary,
+    iconColor: me.ink2,
+    iconBg: me.bg2,
   },
   {
     id: 'blocked-drain',
@@ -117,19 +117,19 @@ export const URGENCY_OPTIONS: UrgencyOption[] = [
     label: 'Tomorrow',
     value: 'tomorrow',
     color: '#FEE2E2',
-    textColor: theme.colors.error,
+    textColor: me.errFg,
   },
   {
     label: 'This Week',
     value: 'this_week',
-    color: theme.colors.accentLight,
-    textColor: theme.colors.accent,
+    color: me.warnBg,
+    textColor: me.accent,
   },
   {
     label: 'Not Urgent',
     value: 'not_urgent',
-    color: theme.colors.backgroundSecondary,
-    textColor: theme.colors.textSecondary,
+    color: me.bg2,
+    textColor: me.ink2,
   },
 ];
 

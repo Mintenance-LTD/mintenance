@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 import { styles } from '../jobDetailsStyles';
 
 interface JobQuickActionsProps {
@@ -41,17 +41,9 @@ export function JobQuickActions({
         onPress={onTimelinePress}
         accessibilityRole='button'
       >
-        <Ionicons
-          name='time-outline'
-          size={20}
-          color={theme.colors.textSecondary}
-        />
+        <Ionicons name='time-outline' size={20} color={me.ink2} />
         <Text style={styles.quickActionText}>View Timeline</Text>
-        <Ionicons
-          name='chevron-forward'
-          size={18}
-          color={theme.colors.textTertiary}
-        />
+        <Ionicons name='chevron-forward' size={18} color={me.ink3} />
       </TouchableOpacity>
 
       {isOwner && status === 'posted' && (
@@ -60,17 +52,9 @@ export function JobQuickActions({
           onPress={onEditPress}
           accessibilityRole='button'
         >
-          <Ionicons
-            name='create-outline'
-            size={20}
-            color={theme.colors.textSecondary}
-          />
+          <Ionicons name='create-outline' size={20} color={me.ink2} />
           <Text style={styles.quickActionText}>Edit Job</Text>
-          <Ionicons
-            name='chevron-forward'
-            size={18}
-            color={theme.colors.textTertiary}
-          />
+          <Ionicons name='chevron-forward' size={18} color={me.ink3} />
         </TouchableOpacity>
       )}
 
@@ -85,16 +69,12 @@ export function JobQuickActions({
             <Ionicons
               name='checkmark-done-outline'
               size={20}
-              color={theme.colors.primary}
+              color={me.brand}
             />
             <Text style={styles.quickActionText}>
               Approve / Request Changes
             </Text>
-            <Ionicons
-              name='chevron-forward'
-              size={18}
-              color={theme.colors.textTertiary}
-            />
+            <Ionicons name='chevron-forward' size={18} color={me.ink3} />
           </TouchableOpacity>
         )}
 
@@ -104,19 +84,11 @@ export function JobQuickActions({
           onPress={onDisputePress}
           accessibilityRole='button'
         >
-          <Ionicons
-            name='warning-outline'
-            size={20}
-            color={theme.colors.error}
-          />
-          <Text style={[styles.quickActionText, { color: theme.colors.error }]}>
+          <Ionicons name='warning-outline' size={20} color={me.errFg} />
+          <Text style={[styles.quickActionText, { color: me.errFg }]}>
             Report a Problem
           </Text>
-          <Ionicons
-            name='chevron-forward'
-            size={18}
-            color={theme.colors.textTertiary}
-          />
+          <Ionicons name='chevron-forward' size={18} color={me.ink3} />
         </TouchableOpacity>
       )}
     </View>

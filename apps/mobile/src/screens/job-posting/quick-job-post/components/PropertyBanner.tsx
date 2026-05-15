@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../../theme';
+import { me } from '../../../../design-system/mint-editorial';
 import { styles } from '../theme/styles';
 
 /**
@@ -19,7 +19,7 @@ export function PropertyBanner({
     <View style={styles.propertyBanner}>
       <Text style={styles.propertyLabel}>Property</Text>
       <View style={styles.propertyRow}>
-        <Ionicons name='home' size={20} color={theme.colors.textSecondary} />
+        <Ionicons name='home' size={20} color={me.ink2} />
         <View style={styles.propertyText}>
           <Text style={styles.propertyNameText}>
             {propertyName || 'My Property'}

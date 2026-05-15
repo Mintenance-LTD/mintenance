@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   ScrollView,
-  Platform,
   StatusBar,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -16,7 +15,7 @@ import { useQuery } from '@tanstack/react-query';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { supabase } from '../../config/supabase';
 import type { RootStackParamList } from '../../navigation/types';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 interface Props {
   navigation: NativeStackNavigationProp<RootStackParamList, 'BookingDetails'>;
@@ -62,20 +61,13 @@ export const BookingDetailsScreen: React.FC<Props> = ({
   if (error || !job) {
     return (
       <View style={styles.container}>
-        <StatusBar
-          barStyle='dark-content'
-          backgroundColor={theme.colors.surface}
-        />
+        <StatusBar barStyle='dark-content' backgroundColor={me.surface} />
         <View style={[styles.header, { paddingTop: insets.top }]}>
           <TouchableOpacity
             style={styles.headerButton}
             onPress={() => navigation.goBack()}
           >
-            <Ionicons
-              name='arrow-back'
-              size={24}
-              color={theme.colors.textPrimary}
-            />
+            <Ionicons name='arrow-back' size={24} color={me.ink} />
           </TouchableOpacity>
           <Text style={styles.headerTitle} numberOfLines={1}>
             Booking Details
@@ -83,11 +75,7 @@ export const BookingDetailsScreen: React.FC<Props> = ({
           <View style={styles.headerButton} />
         </View>
         <View style={styles.errorState}>
-          <Ionicons
-            name='alert-circle-outline'
-            size={48}
-            color={theme.colors.error}
-          />
+          <Ionicons name='alert-circle-outline' size={48} color={me.errFg} />
           <Text style={styles.errorTitle}>
             {error ? 'Failed to load booking' : 'Booking not found'}
           </Text>
@@ -102,11 +90,7 @@ export const BookingDetailsScreen: React.FC<Props> = ({
             disabled={isRefetching}
             accessibilityRole='button'
           >
-            <Ionicons
-              name='refresh'
-              size={16}
-              color={theme.colors.textInverse}
-            />
+            <Ionicons name='refresh' size={16} color={me.onBrand} />
             <Text style={styles.retryButtonText}>
               {isRefetching ? 'Retrying...' : 'Retry'}
             </Text>
@@ -118,20 +102,13 @@ export const BookingDetailsScreen: React.FC<Props> = ({
 
   return (
     <View style={styles.container}>
-      <StatusBar
-        barStyle='dark-content'
-        backgroundColor={theme.colors.surface}
-      />
+      <StatusBar barStyle='dark-content' backgroundColor={me.surface} />
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity
           style={styles.headerButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons
-            name='arrow-back'
-            size={24}
-            color={theme.colors.textPrimary}
-          />
+          <Ionicons name='arrow-back' size={24} color={me.ink} />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>
           {job?.title ?? 'Booking Details'}
@@ -180,60 +157,52 @@ export const BookingDetailsScreen: React.FC<Props> = ({
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
+  container: { flex: 1, backgroundColor: me.bg2 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   headerButton: { padding: 8, width: 40 },
   headerTitle: {
     flex: 1,
     fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     textAlign: 'center',
   },
   content: { padding: 16 },
   card: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     padding: 20,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   label: {
     fontSize: 12,
     fontWeight: '700',
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 4,
   },
-  value: { fontSize: 15, color: theme.colors.textPrimary, lineHeight: 22 },
+  value: { fontSize: 15, color: me.ink, lineHeight: 22 },
   statusBadge: {
     alignSelf: 'flex-start',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 8,
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
   },
   statusText: {
     fontSize: 11,
     fontWeight: '700',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
   },
   errorState: {
     flex: 1,
@@ -245,12 +214,12 @@ const styles = StyleSheet.create({
   errorTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginTop: 8,
   },
   errorMessage: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     textAlign: 'center',
     lineHeight: 20,
   },
@@ -259,13 +228,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     marginTop: 8,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 10,
   },
   retryButtonText: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontSize: 14,
     fontWeight: '600',
   },

@@ -20,7 +20,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { mobileApiClient, API_BASE_URL } from '../../utils/mobileApiClient';
 import { JobCRUDService } from '../../services/JobCRUDService';
 import { JobsStackParamList } from '../../navigation/types';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 import { ContractSignatureSection } from './components/ContractSignatureSection';
 import { ContractTermsView } from './components/ContractTermsView';
 import { ContractRevisionRequest } from './components/ContractRevisionRequest';
@@ -73,11 +73,11 @@ const formatDate = (dateStr: string) =>
   });
 
 const STATUS_COLORS: Record<string, string> = {
-  accepted: theme.colors.primary,
-  pending_contractor: theme.colors.accent,
-  pending_homeowner: theme.colors.accent,
-  rejected: theme.colors.error,
-  cancelled: theme.colors.error,
+  accepted: me.brand,
+  pending_contractor: me.accent,
+  pending_homeowner: me.accent,
+  rejected: me.errFg,
+  cancelled: me.errFg,
 };
 const STATUS_LABELS: Record<string, string> = {
   draft: 'Draft',
@@ -87,8 +87,7 @@ const STATUS_LABELS: Record<string, string> = {
   rejected: 'Rejected',
   cancelled: 'Cancelled',
 };
-const getStatusColor = (s: string) =>
-  STATUS_COLORS[s] || theme.colors.textSecondary;
+const getStatusColor = (s: string) => STATUS_COLORS[s] || me.ink2;
 const getStatusLabel = (s: string) => STATUS_LABELS[s] || s;
 
 export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
@@ -312,7 +311,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
   if (loading) {
     return (
       <View style={[styles.centered, { paddingTop: insets.top }]}>
-        <ActivityIndicator size='large' color={theme.colors.textPrimary} />
+        <ActivityIndicator size='large' color={me.ink} />
         <Text style={styles.loadingText}>Loading contract...</Text>
       </View>
     );
@@ -322,11 +321,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
     return (
       <View style={[styles.centered, { paddingTop: insets.top }]}>
         <View style={styles.emptyIconWrap}>
-          <Ionicons
-            name='document-text-outline'
-            size={32}
-            color={theme.colors.textTertiary}
-          />
+          <Ionicons name='document-text-outline' size={32} color={me.ink3} />
         </View>
         <Text style={styles.emptyTitle}>{error || 'No Contract Found'}</Text>
         <Text style={styles.emptySubtitle}>
@@ -348,10 +343,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <StatusBar
-        barStyle='dark-content'
-        backgroundColor={theme.colors.surface}
-      />
+      <StatusBar barStyle='dark-content' backgroundColor={me.surface} />
 
       {/* Header */}
       <View style={styles.header}>
@@ -361,11 +353,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
           accessibilityRole='button'
           accessibilityLabel='Go back'
         >
-          <Ionicons
-            name='arrow-back'
-            size={22}
-            color={theme.colors.textPrimary}
-          />
+          <Ionicons name='arrow-back' size={22} color={me.ink} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Contract</Text>
         <TouchableOpacity
@@ -374,11 +362,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
           accessibilityRole='button'
           accessibilityLabel='Download PDF'
         >
-          <Ionicons
-            name='download-outline'
-            size={20}
-            color={theme.colors.textPrimary}
-          />
+          <Ionicons name='download-outline' size={20} color={me.ink} />
         </TouchableOpacity>
         <View
           style={[
@@ -408,11 +392,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
         {/* Draft contract banner */}
         {showPrepareButton && (
           <View style={styles.draftBanner}>
-            <Ionicons
-              name='alert-circle-outline'
-              size={22}
-              color={theme.colors.accent}
-            />
+            <Ionicons name='alert-circle-outline' size={22} color={me.accent} />
             <View style={styles.draftBannerContent}>
               <Text style={styles.draftBannerTitle}>
                 Contract needs preparation
@@ -442,11 +422,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
               </Text>
             </View>
             <View style={styles.escrowBadge}>
-              <Ionicons
-                name='shield-checkmark'
-                size={14}
-                color={theme.colors.primary}
-              />
+              <Ionicons name='shield-checkmark' size={14} color={me.brand} />
               <Text style={styles.escrowBadgeText}>Escrow Protected</Text>
             </View>
           </View>
@@ -456,7 +432,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
         {quoteItems.length > 0 && (
           <View style={styles.scopeCard}>
             <View style={styles.scopeHeader}>
-              <Ionicons name='list' size={16} color={theme.colors.primary} />
+              <Ionicons name='list' size={16} color={me.brand} />
               <Text style={styles.scopeTitle}>Agreed Scope</Text>
             </View>
             {quoteItems.map((item, idx) => (
@@ -536,11 +512,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
             accessibilityRole='button'
             accessibilityLabel='Prepare contract'
           >
-            <Ionicons
-              name='document-text'
-              size={20}
-              color={theme.colors.textInverse}
-            />
+            <Ionicons name='document-text' size={20} color={me.onBrand} />
             <Text style={styles.signButtonText}>Prepare Contract</Text>
           </TouchableOpacity>
         </View>
@@ -562,14 +534,10 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
             accessibilityLabel='Sign contract'
           >
             {signing ? (
-              <ActivityIndicator color={theme.colors.textInverse} />
+              <ActivityIndicator color={me.onBrand} />
             ) : (
               <>
-                <Ionicons
-                  name='create'
-                  size={20}
-                  color={theme.colors.textInverse}
-                />
+                <Ionicons name='create' size={20} color={me.onBrand} />
                 <Text style={styles.signButtonText}>Sign Contract</Text>
               </>
             )}

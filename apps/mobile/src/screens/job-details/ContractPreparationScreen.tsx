@@ -19,7 +19,7 @@ import { mobileApiClient } from '../../utils/mobileApiClient';
 import { useAuth } from '../../contexts/AuthContext';
 import { HapticService } from '../../utils/haptics';
 import { JobsStackParamList } from '../../navigation/types';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 import { styles } from './ContractPreparationStyles';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 import {
@@ -363,7 +363,7 @@ export const ContractPreparationScreen: React.FC<Props> = ({
   if (loading) {
     return (
       <View style={[styles.centered, { paddingTop: insets.top }]}>
-        <ActivityIndicator size='large' color={theme.colors.textPrimary} />
+        <ActivityIndicator size='large' color={me.ink} />
         <Text style={styles.loadingText}>Loading contract details...</Text>
       </View>
     );
@@ -371,20 +371,13 @@ export const ContractPreparationScreen: React.FC<Props> = ({
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <StatusBar
-        barStyle='dark-content'
-        backgroundColor={theme.colors.surface}
-      />
+      <StatusBar barStyle='dark-content' backgroundColor={me.surface} />
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons
-            name='arrow-back'
-            size={22}
-            color={theme.colors.textPrimary}
-          />
+          <Ionicons name='arrow-back' size={22} color={me.ink} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Prepare Contract</Text>
         <View style={{ width: 44 }} />
@@ -399,11 +392,7 @@ export const ContractPreparationScreen: React.FC<Props> = ({
           keyboardShouldPersistTaps='handled'
         >
           <View style={styles.infoBanner}>
-            <Ionicons
-              name='document-text-outline'
-              size={20}
-              color={theme.colors.textPrimary}
-            />
+            <Ionicons name='document-text-outline' size={20} color={me.ink} />
             <Text style={styles.infoText}>
               Fill in the contract details. This will be sent to the homeowner
               for review and signature.
@@ -423,7 +412,7 @@ export const ContractPreparationScreen: React.FC<Props> = ({
               markDirty();
             }}
             placeholder='e.g., Kitchen Plumbing Repair'
-            placeholderTextColor={theme.colors.textTertiary}
+            placeholderTextColor={me.ink3}
           />
           <FErr f='title' />
 
@@ -440,7 +429,7 @@ export const ContractPreparationScreen: React.FC<Props> = ({
               markDirty();
             }}
             placeholder='Describe the work to be performed in detail...'
-            placeholderTextColor={theme.colors.textTertiary}
+            placeholderTextColor={me.ink3}
             multiline
             numberOfLines={4}
             textAlignVertical='top'
@@ -457,7 +446,7 @@ export const ContractPreparationScreen: React.FC<Props> = ({
               markDirty();
             }}
             placeholder='0.00'
-            placeholderTextColor={theme.colors.textTertiary}
+            placeholderTextColor={me.ink3}
             keyboardType='decimal-pad'
           />
           <Text style={styles.escrowNote}>
@@ -492,7 +481,7 @@ export const ContractPreparationScreen: React.FC<Props> = ({
               markDirty();
             }}
             placeholder='Your company name'
-            placeholderTextColor={theme.colors.textTertiary}
+            placeholderTextColor={me.ink3}
           />
           <FErr f='companyName' />
 
@@ -510,7 +499,7 @@ export const ContractPreparationScreen: React.FC<Props> = ({
                   markDirty();
                 }}
                 placeholder='e.g. LIC-12345'
-                placeholderTextColor={theme.colors.textTertiary}
+                placeholderTextColor={me.ink3}
               />
               <FErr f='licenseNumber' />
             </View>
@@ -551,7 +540,7 @@ export const ContractPreparationScreen: React.FC<Props> = ({
               markDirty();
             }}
             placeholder='Any additional terms, conditions, or special requirements...'
-            placeholderTextColor={theme.colors.textTertiary}
+            placeholderTextColor={me.ink3}
             multiline
             numberOfLines={3}
             textAlignVertical='top'

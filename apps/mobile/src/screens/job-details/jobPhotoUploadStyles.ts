@@ -1,10 +1,10 @@
-import { StyleSheet, Platform } from 'react-native';
-import { theme } from '../../theme';
+import { StyleSheet } from 'react-native';
+import { me } from '../../design-system/mint-editorial';
 
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   header: {
     flexDirection: 'row',
@@ -12,14 +12,14 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
+    borderBottomColor: me.line,
+    backgroundColor: me.surface,
   },
   backButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -30,11 +30,11 @@ export const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   headerSubtitle: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginTop: 2,
   },
   scrollView: {
@@ -46,26 +46,18 @@ export const styles = StyleSheet.create({
   },
   infoCard: {
     flexDirection: 'row',
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     padding: 16,
     gap: 12,
     marginBottom: 20,
     alignItems: 'flex-start',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   infoText: {
     flex: 1,
     fontSize: 13,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     lineHeight: 20,
   },
   photoGrid: {
@@ -104,21 +96,21 @@ export const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 2,
     borderStyle: 'dashed',
-    borderColor: theme.colors.border,
+    borderColor: me.line,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
   },
   addPhotoText: {
     fontSize: 13,
     fontWeight: '500',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   photoCount: {
     marginTop: 16,
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     textAlign: 'center',
   },
   bottomBar: {
@@ -126,23 +118,15 @@ export const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     paddingHorizontal: 20,
     paddingTop: 16,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: theme.colors.border,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: -2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 12,
-      },
-      android: { elevation: 8 },
-    }),
+    borderTopColor: me.line,
+    ...me.shadow.pop,
   },
   uploadButton: {
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
     borderRadius: 28,
     paddingVertical: 16,
     flexDirection: 'row',
@@ -155,7 +139,7 @@ export const styles = StyleSheet.create({
     opacity: 0.5,
   },
   uploadButtonText: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontSize: 15,
     fontWeight: '600',
   },
@@ -173,7 +157,7 @@ export const styles = StyleSheet.create({
   },
   progressBarFill: {
     height: 4,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 2,
   },
 });

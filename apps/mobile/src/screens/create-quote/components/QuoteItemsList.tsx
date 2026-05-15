@@ -6,16 +6,10 @@
  */
 
 import React from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Platform,
-} from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { LineItem } from '../viewmodels/CreateQuoteViewModel';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 import { formatCurrency } from '../../../utils/formatCurrency';
 
 interface QuoteItemsListProps {
@@ -30,19 +24,19 @@ const CATEGORY_ACCENT: Record<
   { color: string; bg: string; label: string }
 > = {
   labour: {
-    color: theme.colors.primary,
-    bg: theme.colors.primaryLight,
+    color: me.brand,
+    bg: me.brandSoft,
     label: 'Labour',
   },
   labor: {
-    color: theme.colors.primary,
-    bg: theme.colors.primaryLight,
+    color: me.brand,
+    bg: me.brandSoft,
     label: 'Labour',
   },
   materials: { color: '#3B82F6', bg: '#DBEAFE', label: 'Materials' },
   equipment: {
-    color: theme.colors.accent,
-    bg: theme.colors.accentLight,
+    color: me.accent,
+    bg: me.warnBg,
     label: 'Equipment',
   },
 };
@@ -51,8 +45,8 @@ const getAccent = (category: string) => {
   const key = category?.toLowerCase() || '';
   return (
     CATEGORY_ACCENT[key] || {
-      color: theme.colors.textSecondary,
-      bg: theme.colors.backgroundTertiary,
+      color: me.ink2,
+      bg: me.bg3,
       label: category || 'Item',
     }
   );
@@ -69,7 +63,7 @@ export const QuoteItemsList: React.FC<QuoteItemsListProps> = ({
       <View style={styles.sectionHeader}>
         <View style={styles.sectionLeft}>
           <View style={styles.sectionIconWrap}>
-            <Ionicons name='list' size={16} color={theme.colors.accent} />
+            <Ionicons name='list' size={16} color={me.accent} />
           </View>
           <Text style={styles.sectionTitle}>Line Items</Text>
           {lineItems.length > 0 && (
@@ -79,7 +73,7 @@ export const QuoteItemsList: React.FC<QuoteItemsListProps> = ({
           )}
         </View>
         <TouchableOpacity style={styles.addButton} onPress={onAddItem}>
-          <Ionicons name='add' size={18} color={theme.colors.textInverse} />
+          <Ionicons name='add' size={18} color={me.onBrand} />
           <Text style={styles.addButtonText}>Add</Text>
         </TouchableOpacity>
       </View>
@@ -91,11 +85,7 @@ export const QuoteItemsList: React.FC<QuoteItemsListProps> = ({
           activeOpacity={0.7}
         >
           <View style={styles.emptyIconWrap}>
-            <Ionicons
-              name='add-circle-outline'
-              size={32}
-              color={theme.colors.primary}
-            />
+            <Ionicons name='add-circle-outline' size={32} color={me.brand} />
           </View>
           <Text style={styles.emptyTitle}>No items yet</Text>
           <Text style={styles.emptySubtext}>
@@ -163,7 +153,7 @@ export const QuoteItemsList: React.FC<QuoteItemsListProps> = ({
                         <Ionicons
                           name='pencil-outline'
                           size={16}
-                          color={theme.colors.textSecondary}
+                          color={me.ink2}
                         />
                       </TouchableOpacity>
                       <TouchableOpacity
@@ -174,7 +164,7 @@ export const QuoteItemsList: React.FC<QuoteItemsListProps> = ({
                         <Ionicons
                           name='trash-outline'
                           size={16}
-                          color={theme.colors.error}
+                          color={me.errFg}
                         />
                       </TouchableOpacity>
                     </View>
@@ -191,19 +181,11 @@ export const QuoteItemsList: React.FC<QuoteItemsListProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 20,
     padding: 20,
     marginBottom: 12,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.04,
-        shadowRadius: 6,
-      },
-      android: { elevation: 1 },
-    }),
+    ...me.shadow.card,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -220,18 +202,18 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 8,
-    backgroundColor: theme.colors.accentLight,
+    backgroundColor: me.warnBg,
     alignItems: 'center',
     justifyContent: 'center',
   },
   sectionTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     letterSpacing: -0.2,
   },
   countBadge: {
-    backgroundColor: theme.colors.backgroundTertiary,
+    backgroundColor: me.bg3,
     borderRadius: 10,
     minWidth: 22,
     height: 22,
@@ -242,12 +224,12 @@ const styles = StyleSheet.create({
   countBadgeText: {
     fontSize: 12,
     fontWeight: '700',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 8,
@@ -256,7 +238,7 @@ const styles = StyleSheet.create({
   addButtonText: {
     fontSize: 13,
     fontWeight: '700',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
   },
 
   // Empty state
@@ -264,7 +246,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 32,
     borderWidth: 2,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
     borderStyle: 'dashed',
     borderRadius: 16,
   },
@@ -274,11 +256,11 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   emptySubtext: {
     fontSize: 13,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     marginTop: 2,
   },
 
@@ -288,7 +270,7 @@ const styles = StyleSheet.create({
   },
   itemCard: {
     flexDirection: 'row',
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 14,
     overflow: 'hidden',
   },
@@ -308,7 +290,7 @@ const styles = StyleSheet.create({
   itemName: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 4,
   },
   itemCategoryRow: {
@@ -328,12 +310,12 @@ const styles = StyleSheet.create({
   itemTotal: {
     fontSize: 16,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginLeft: 12,
   },
   itemDescription: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     lineHeight: 18,
     marginBottom: 8,
   },
@@ -345,7 +327,7 @@ const styles = StyleSheet.create({
   },
   itemQty: {
     fontSize: 13,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     fontWeight: '500',
   },
   itemActions: {
@@ -356,7 +338,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 10,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -22,7 +22,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../contexts/AuthContext';
-import { theme, gradients } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 import { styles } from './ReportingStyles';
 import {
   fetchReportingData,
@@ -93,12 +93,12 @@ export const ReportingScreen: React.FC = () => {
             refreshing={false}
             onRefresh={refetch}
             tintColor='#FFFFFF'
-            colors={[theme.colors.primary]}
+            colors={[me.brand]}
           />
         }
       >
         {/* Green Gradient Hero — full bleed behind status bar */}
-        <LinearGradient colors={gradients.heroGreen} style={styles.hero}>
+        <LinearGradient colors={[me.brand2, me.brand]} style={styles.hero}>
           {/* Safe area spacing for content only */}
           <View style={{ height: insets.top }} />
           <View style={styles.decorCircle1} />
@@ -109,11 +109,7 @@ export const ReportingScreen: React.FC = () => {
               style={styles.frostedCircle}
               onPress={() => navigation.goBack()}
             >
-              <Ionicons
-                name='arrow-back'
-                size={20}
-                color={theme.colors.textInverse}
-              />
+              <Ionicons name='arrow-back' size={20} color={me.onBrand} />
             </TouchableOpacity>
             <View style={{ width: 40 }} />
           </View>
@@ -156,7 +152,7 @@ export const ReportingScreen: React.FC = () => {
         <View style={styles.content}>
           {isLoading && (
             <View style={styles.loadingWrap}>
-              <ActivityIndicator size='large' color={theme.colors.primary} />
+              <ActivityIndicator size='large' color={me.brand} />
               <Text style={styles.loadingText}>Loading analytics...</Text>
             </View>
           )}
@@ -164,11 +160,7 @@ export const ReportingScreen: React.FC = () => {
           {error && !data && (
             <View style={styles.errorCard}>
               <View style={styles.errorIconWrap}>
-                <Ionicons
-                  name='warning-outline'
-                  size={24}
-                  color={theme.colors.error}
-                />
+                <Ionicons name='warning-outline' size={24} color={me.errFg} />
               </View>
               <Text style={styles.errorText}>
                 Failed to load reporting data
@@ -223,9 +215,7 @@ export const ReportingScreen: React.FC = () => {
               >
                 <View>
                   <Text style={styles.sectionTitle}>Activity Details</Text>
-                  <Text
-                    style={{ fontSize: 13, color: theme.colors.textSecondary }}
-                  >
+                  <Text style={{ fontSize: 13, color: me.ink2 }}>
                     Real-time business insights
                   </Text>
                 </View>
@@ -266,7 +256,7 @@ export const ReportingScreen: React.FC = () => {
                                 {
                                   height,
                                   width: chartBarWidth,
-                                  backgroundColor: theme.colors.primary,
+                                  backgroundColor: me.brand,
                                 },
                               ]}
                             />
@@ -280,7 +270,7 @@ export const ReportingScreen: React.FC = () => {
                       <Ionicons
                         name='bar-chart-outline'
                         size={28}
-                        color={theme.colors.textTertiary}
+                        color={me.ink3}
                       />
                       <Text style={styles.chartEmptyText}>
                         Complete jobs to see trends
@@ -313,7 +303,7 @@ export const ReportingScreen: React.FC = () => {
                                 {
                                   height,
                                   width: chartBarWidth,
-                                  backgroundColor: theme.colors.accent,
+                                  backgroundColor: me.accent,
                                 },
                               ]}
                             />
@@ -324,11 +314,7 @@ export const ReportingScreen: React.FC = () => {
                     </View>
                   ) : (
                     <View style={styles.chartEmpty}>
-                      <Ionicons
-                        name='cash-outline'
-                        size={28}
-                        color={theme.colors.textTertiary}
-                      />
+                      <Ionicons name='cash-outline' size={28} color={me.ink3} />
                       <Text style={styles.chartEmptyText}>
                         Earnings will appear here
                       </Text>
@@ -365,7 +351,7 @@ export const ReportingScreen: React.FC = () => {
                       <Ionicons
                         name='pie-chart-outline'
                         size={28}
-                        color={theme.colors.textTertiary}
+                        color={me.ink3}
                       />
                       <Text style={styles.chartEmptyText}>
                         Category data will appear here
@@ -402,17 +388,9 @@ export const ReportingScreen: React.FC = () => {
                     <View style={styles.gaugeDivider} />
                     <View style={styles.gaugeItem}>
                       <View
-                        style={[
-                          styles.gaugeCircle,
-                          { borderColor: theme.colors.accent },
-                        ]}
+                        style={[styles.gaugeCircle, { borderColor: me.accent }]}
                       >
-                        <Text
-                          style={[
-                            styles.gaugeValue,
-                            { color: theme.colors.accent },
-                          ]}
-                        >
+                        <Text style={[styles.gaugeValue, { color: me.accent }]}>
                           {stats.totalReviews}
                         </Text>
                       </View>
@@ -433,11 +411,7 @@ export const ReportingScreen: React.FC = () => {
                       return (
                         <View key={star} style={styles.ratingRow}>
                           <Text style={styles.ratingLabel}>{star}</Text>
-                          <Ionicons
-                            name='star'
-                            size={12}
-                            color={theme.colors.accent}
-                          />
+                          <Ionicons name='star' size={12} color={me.accent} />
                           <View style={styles.ratingBar}>
                             <View
                               style={[
@@ -452,11 +426,7 @@ export const ReportingScreen: React.FC = () => {
                     })
                   ) : (
                     <View style={styles.chartEmpty}>
-                      <Ionicons
-                        name='star-outline'
-                        size={28}
-                        color={theme.colors.textTertiary}
-                      />
+                      <Ionicons name='star-outline' size={28} color={me.ink3} />
                       <Text style={styles.chartEmptyText}>
                         Ratings will appear after reviews
                       </Text>
@@ -467,7 +437,7 @@ export const ReportingScreen: React.FC = () => {
 
               {/* Architect Tier Banner */}
               <LinearGradient
-                colors={gradients.heroGreen}
+                colors={[me.brand2, me.brand]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={styles.tierBanner}
@@ -506,7 +476,7 @@ export const ReportingScreen: React.FC = () => {
                                   i < review.rating ? 'star' : 'star-outline'
                                 }
                                 size={14}
-                                color={theme.colors.accent}
+                                color={me.accent}
                               />
                             ))}
                           </View>

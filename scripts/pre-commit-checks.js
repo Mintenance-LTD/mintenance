@@ -216,6 +216,11 @@ const KNOWN_LARGE_FILES = new Set([
   'apps/mobile/src/screens/InvoiceManagementScreen.tsx', // 500 lines (was 497) — API migration + route fix
   'apps/mobile/src/screens/MeetingDetailsScreen.tsx', // 578 lines (was 579) — typed cross-stack helper
   'apps/mobile/src/screens/contractor/ReportingScreen.tsx', // 534 lines (was 531) — user!.id guard
+  // Added 2026-05-15: pre-existing >500-line file touched by the
+  // Mint Editorial mobile token migration (Batch 3). The migration is
+  // a line-neutral colour-token swap; this file was already 514 lines
+  // at HEAD. Split is a P2 follow-up, not a migration blocker.
+  'apps/mobile/src/screens/contractor/ContractorPayoutsScreen.tsx', // 515 lines (was 514)
   'apps/mobile/src/services/contractor-business/BusinessAnalyticsService.ts', // 586 lines (was 576) — direct-supabase disposition comment
   'apps/mobile/src/services/video/CallManager.ts', // 523 lines (was 517) — call_participants disposition comment
   'apps/web/app/contractor/crm/components/CRMDashboardEnhanced.tsx', // 584 lines (was 528) — Phase-4 editorial header swap

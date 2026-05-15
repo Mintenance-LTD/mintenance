@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../../theme';
+import { me } from '../../../../design-system/mint-editorial';
 import { styles } from '../theme/styles';
 
 /**
@@ -12,11 +12,7 @@ export function EmptyState({ onAddPress }: { onAddPress: () => void }) {
   return (
     <View style={styles.emptyWrap}>
       <View style={styles.emptyIconWrap}>
-        <Ionicons
-          name='receipt-outline'
-          size={32}
-          color={theme.colors.primary}
-        />
+        <Ionicons name='receipt-outline' size={32} color={me.brand} />
       </View>
       <Text style={styles.emptyTitle}>No expenses logged yet</Text>
       <Text style={styles.emptySubtitle}>
@@ -29,11 +25,7 @@ export function EmptyState({ onAddPress }: { onAddPress: () => void }) {
         accessibilityRole='button'
         accessibilityLabel='Log first expense'
       >
-        <Ionicons
-          name='add-circle-outline'
-          size={18}
-          color={theme.colors.textInverse}
-        />
+        <Ionicons name='add-circle-outline' size={18} color={me.onBrand} />
         <Text style={styles.emptyCtaText}>Log First Expense</Text>
       </TouchableOpacity>
     </View>

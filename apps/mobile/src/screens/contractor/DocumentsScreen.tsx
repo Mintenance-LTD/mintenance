@@ -31,7 +31,7 @@ try {
 }
 
 import { useAuth } from '../../contexts/AuthContext';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 import { styles } from './DocumentsStyles';
 
 import {
@@ -131,7 +131,7 @@ export const DocumentsScreen: React.FC = () => {
             refreshing={isLoading}
             onRefresh={refetch}
             tintColor='#FFFFFF'
-            colors={[theme.colors.primary]}
+            colors={[me.brand]}
             progressViewOffset={140}
           />
         }
@@ -183,7 +183,7 @@ export const DocumentsScreen: React.FC = () => {
           onPress={handlePickDocument}
           accessibilityLabel='Upload document'
         >
-          <Ionicons name='add' size={28} color={theme.colors.textInverse} />
+          <Ionicons name='add' size={28} color={me.onBrand} />
         </TouchableOpacity>
       )}
     </View>

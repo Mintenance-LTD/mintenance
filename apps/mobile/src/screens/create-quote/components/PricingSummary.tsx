@@ -6,9 +6,9 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 import { formatCurrency } from '../../../utils/formatCurrency';
 
 interface PricingSummaryProps {
@@ -39,7 +39,7 @@ export const PricingSummary: React.FC<PricingSummaryProps> = ({
     <View style={styles.container}>
       <View style={styles.sectionHeader}>
         <View style={styles.sectionIconWrap}>
-          <Ionicons name='calculator' size={16} color={theme.colors.primary} />
+          <Ionicons name='calculator' size={16} color={me.brand} />
         </View>
         <Text style={styles.sectionTitle}>Pricing Summary</Text>
       </View>
@@ -117,19 +117,11 @@ const PriceRow: React.FC<{
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 20,
     padding: 20,
     marginBottom: 12,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.04,
-        shadowRadius: 6,
-      },
-      android: { elevation: 1 },
-    }),
+    ...me.shadow.card,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -141,14 +133,14 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 8,
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: me.brandSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
   sectionTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     letterSpacing: -0.2,
   },
   breakdownSection: {
@@ -160,20 +152,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.borderLight,
+    borderBottomColor: me.line2,
   },
   pricingLabel: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   pricingLabelBold: {
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   pricingValue: {
     fontSize: 14,
     fontWeight: '500',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   pricingValueBold: {
     fontWeight: '700',
@@ -183,7 +175,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
     borderRadius: 16,
     padding: 18,
     marginTop: 16,
@@ -202,7 +194,7 @@ const styles = StyleSheet.create({
   totalValue: {
     fontSize: 24,
     fontWeight: '800',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     letterSpacing: -0.5,
   },
 });

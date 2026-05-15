@@ -3,7 +3,7 @@
  * Shows status steps: Posted -> Bids -> Assigned -> Contract -> Payment -> In Progress -> Completed -> Review -> Paid
  */
 import React from 'react';
-import { View, Text, ScrollView, StyleSheet, Platform } from 'react-native';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { RouteProp } from '@react-navigation/native';
@@ -15,7 +15,7 @@ import {
 } from '../../components/shared';
 import { useJobDetailsViewModel } from './viewmodels/JobDetailsViewModel';
 import type { JobsStackParamList } from '../../navigation/types';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 type Props = {
   route: RouteProp<JobsStackParamList, 'JobTimeline'>;
@@ -107,9 +107,9 @@ export const JobTimelineScreen: React.FC<Props> = ({ route, navigation }) => {
   const currentStepIndex = STATUS_TO_STEP_INDEX[viewModel.job.status] ?? 0;
 
   const getStepColor = (index: number) => {
-    if (index < currentStepIndex) return theme.colors.primary;
-    if (index === currentStepIndex) return theme.colors.textPrimary;
-    return theme.colors.textTertiary;
+    if (index < currentStepIndex) return me.brand;
+    if (index === currentStepIndex) return me.ink;
+    return me.ink3;
   };
 
   const getStepOpacity = (index: number) => {
@@ -149,18 +149,14 @@ export const JobTimelineScreen: React.FC<Props> = ({ route, navigation }) => {
                       backgroundColor:
                         index <= currentStepIndex
                           ? getStepColor(index)
-                          : theme.colors.border,
+                          : me.line,
                     },
                   ]}
                 >
                   <Ionicons
                     name={index <= currentStepIndex ? 'checkmark' : step.icon}
                     size={16}
-                    color={
-                      index <= currentStepIndex
-                        ? theme.colors.textInverse
-                        : theme.colors.textTertiary
-                    }
+                    color={index <= currentStepIndex ? me.onBrand : me.ink3}
                   />
                 </View>
                 {index < LIFECYCLE_STEPS.length - 1 && (
@@ -169,9 +165,7 @@ export const JobTimelineScreen: React.FC<Props> = ({ route, navigation }) => {
                       styles.stepLine,
                       {
                         backgroundColor:
-                          index < currentStepIndex
-                            ? theme.colors.primary
-                            : theme.colors.border,
+                          index < currentStepIndex ? me.brand : me.line,
                       },
                     ]}
                   />
@@ -199,35 +193,27 @@ export const JobTimelineScreen: React.FC<Props> = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   scrollContent: {
     padding: 16,
   },
   jobInfo: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 20,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   jobTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 8,
   },
   statusBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     paddingVertical: 4,
     paddingHorizontal: 12,
     borderRadius: 6,
@@ -235,7 +221,7 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 12,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     letterSpacing: 0.5,
   },
   timeline: {
@@ -269,15 +255,15 @@ const styles = StyleSheet.create({
   stepLabel: {
     fontSize: 15,
     fontWeight: '500',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   currentStepLabel: {
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   stepDescription: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginTop: 2,
   },
 });

@@ -18,7 +18,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Booking } from './BookingStatusScreen';
 import { useHaptics } from '../../utils/haptics';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 interface CancellationModalProps {
   visible: boolean;
@@ -76,26 +76,30 @@ export const CancellationModal: React.FC<CancellationModalProps> = ({
     <Modal
       visible={visible}
       transparent
-      animationType="fade"
+      animationType='fade'
       onRequestClose={handleCancel}
     >
       <View style={styles.overlay}>
         <View style={styles.modal}>
           <View style={styles.header}>
-            <Text style={styles.title} accessibilityRole='header'>Cancel Booking</Text>
+            <Text style={styles.title} accessibilityRole='header'>
+              Cancel Booking
+            </Text>
             <TouchableOpacity
               style={styles.closeButton}
               onPress={handleCancel}
-              accessibilityRole="button"
-              accessibilityLabel="Close modal"
+              accessibilityRole='button'
+              accessibilityLabel='Close modal'
             >
-              <Ionicons name="close" size={24} color={theme.colors.textSecondary} />
+              <Ionicons name='close' size={24} color={me.ink2} />
             </TouchableOpacity>
           </View>
 
           <View style={styles.bookingInfo}>
             <Text style={styles.serviceName}>{booking.serviceName}</Text>
-            <Text style={styles.bookingDate}>{booking.date} at {booking.time}</Text>
+            <Text style={styles.bookingDate}>
+              {booking.date} at {booking.time}
+            </Text>
           </View>
 
           <Text style={styles.reasonLabel}>Why are you cancelling?</Text>
@@ -112,7 +116,7 @@ export const CancellationModal: React.FC<CancellationModalProps> = ({
                   haptics.buttonPress();
                   setSelectedReason(reason.id);
                 }}
-                accessibilityRole="button"
+                accessibilityRole='button'
                 accessibilityLabel={`Select reason: ${reason.reason}`}
               >
                 <Text
@@ -124,7 +128,7 @@ export const CancellationModal: React.FC<CancellationModalProps> = ({
                   {reason.reason}
                 </Text>
                 {selectedReason === reason.id && (
-                  <Ionicons name="checkmark" size={20} color={theme.colors.textPrimary} />
+                  <Ionicons name='checkmark' size={20} color={me.ink} />
                 )}
               </TouchableOpacity>
             ))}
@@ -137,11 +141,11 @@ export const CancellationModal: React.FC<CancellationModalProps> = ({
                 style={styles.customReasonInput}
                 value={customReason}
                 onChangeText={setCustomReason}
-                placeholder="Enter your reason..."
-                placeholderTextColor={theme.colors.textTertiary}
+                placeholder='Enter your reason...'
+                placeholderTextColor={me.ink3}
                 multiline
                 numberOfLines={3}
-                textAlignVertical="top"
+                textAlignVertical='top'
                 accessibilityLabel='Cancellation reason'
                 accessibilityHint='Enter your reason for cancelling the booking'
               />
@@ -163,16 +167,22 @@ export const CancellationModal: React.FC<CancellationModalProps> = ({
             <TouchableOpacity
               style={[
                 styles.confirmButton,
-                (!selectedReason || (selectedReason === 'other' && !customReason.trim())) && styles.disabledButton,
+                (!selectedReason ||
+                  (selectedReason === 'other' && !customReason.trim())) &&
+                  styles.disabledButton,
               ]}
               onPress={handleConfirm}
-              disabled={!selectedReason || (selectedReason === 'other' && !customReason.trim()) || cancelling}
+              disabled={
+                !selectedReason ||
+                (selectedReason === 'other' && !customReason.trim()) ||
+                cancelling
+              }
               accessibilityRole='button'
               accessibilityLabel='Cancel booking'
               accessibilityHint='Double tap to confirm cancellation of your booking'
             >
               {cancelling ? (
-                <ActivityIndicator size="small" color={theme.colors.textInverse} />
+                <ActivityIndicator size='small' color={me.onBrand} />
               ) : (
                 <Text style={styles.confirmButtonText}>Cancel Booking</Text>
               )}
@@ -193,7 +203,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   modal: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 20,
     width: '100%',
     maxHeight: '80%',
@@ -209,12 +219,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   title: {
     fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   closeButton: {
     padding: 4,
@@ -222,22 +232,22 @@ const styles = StyleSheet.create({
   bookingInfo: {
     padding: 20,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   serviceName: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 4,
   },
   bookingDate: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   reasonLabel: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     padding: 20,
     paddingBottom: 12,
   },
@@ -253,17 +263,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     borderRadius: 12,
     marginBottom: 8,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   selectedReasonItem: {
     backgroundColor: '#DBEAFE',
   },
   reasonText: {
     fontSize: 15,
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   selectedReasonText: {
-    color: theme.colors.textPrimary,
+    color: me.ink,
     fontWeight: '600',
   },
   customReasonContainer: {
@@ -273,15 +283,15 @@ const styles = StyleSheet.create({
   customReasonLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 8,
   },
   customReasonInput: {
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 12,
     padding: 14,
     fontSize: 15,
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   actions: {
     flexDirection: 'row',
@@ -290,7 +300,7 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     paddingVertical: 14,
     borderRadius: 28,
     alignItems: 'center',
@@ -298,21 +308,21 @@ const styles = StyleSheet.create({
   cancelButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   confirmButton: {
     flex: 1,
-    backgroundColor: theme.colors.error,
+    backgroundColor: me.errFg,
     paddingVertical: 14,
     borderRadius: 28,
     alignItems: 'center',
   },
   disabledButton: {
-    backgroundColor: theme.colors.textTertiary,
+    backgroundColor: me.ink3,
   },
   confirmButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
   },
 });

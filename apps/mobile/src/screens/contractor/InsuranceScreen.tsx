@@ -5,7 +5,6 @@ import {
   FlatList,
   StyleSheet,
   TouchableOpacity,
-  Platform,
   RefreshControl,
   StatusBar,
 } from 'react-native';
@@ -21,7 +20,7 @@ import {
 import { EmptyState } from '../../components/ui/EmptyState';
 import { supabase } from '../../config/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 interface InsurancePolicy {
   id: string;
@@ -39,15 +38,15 @@ interface InsurancePolicy {
 const getStatusConfig = (status: string, expiryDate: string) => {
   const isExpired = new Date(expiryDate) < new Date();
   if (isExpired || status === 'expired') {
-    return { label: 'Expired', bg: '#FEE2E2', color: '#DC2626' };
+    return { label: 'Expired', bg: me.errBg, color: me.errFg };
   }
   if (status === 'pending') {
-    return { label: 'Pending', bg: theme.colors.accentLight, color: '#D97706' };
+    return { label: 'Pending', bg: me.warnBg, color: me.warnFg };
   }
   return {
     label: 'Active',
-    bg: theme.colors.primaryLight,
-    color: theme.colors.primaryDark,
+    bg: me.brandSoft,
+    color: me.brand2,
   };
 };
 
@@ -94,10 +93,7 @@ export const InsuranceScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar
-        barStyle='dark-content'
-        backgroundColor={theme.colors.backgroundSecondary}
-      />
+      <StatusBar barStyle='dark-content' backgroundColor={me.bg2} />
       <ScreenHeader
         title='Insurance'
         showBack
@@ -112,8 +108,8 @@ export const InsuranceScreen: React.FC = () => {
           <RefreshControl
             refreshing={false}
             onRefresh={refetch}
-            tintColor={theme.colors.textPrimary}
-            colors={[theme.colors.textPrimary]}
+            tintColor={me.ink}
+            colors={[me.ink]}
           />
         }
         ListEmptyComponent={
@@ -129,11 +125,7 @@ export const InsuranceScreen: React.FC = () => {
             <View style={styles.card}>
               <View style={styles.cardHeader}>
                 <View style={styles.iconWrap}>
-                  <Ionicons
-                    name='shield-checkmark'
-                    size={22}
-                    color={theme.colors.textPrimary}
-                  />
+                  <Ionicons name='shield-checkmark' size={22} color={me.ink} />
                 </View>
                 <View style={styles.headerInfo}>
                   <Text style={styles.policyType}>{item.type}</Text>
@@ -182,36 +174,28 @@ export const InsuranceScreen: React.FC = () => {
         onPress={() => navigation.navigate('BusinessProfile')}
         accessibilityLabel='Add insurance details'
       >
-        <Ionicons name='add' size={26} color={theme.colors.textInverse} />
+        <Ionicons name='add' size={26} color={me.onBrand} />
       </TouchableOpacity>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
+  container: { flex: 1, backgroundColor: me.bg2 },
   list: { padding: 16, paddingBottom: 80 },
   card: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
   iconWrap: {
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: theme.colors.backgroundTertiary,
+    backgroundColor: me.bg3,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -220,9 +204,9 @@ const styles = StyleSheet.create({
   policyType: {
     fontSize: 16,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
-  provider: { fontSize: 13, color: theme.colors.textSecondary, marginTop: 2 },
+  provider: { fontSize: 13, color: me.ink2, marginTop: 2 },
   badge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
   badgeText: { fontSize: 12, fontWeight: '600' },
   coverageRow: {
@@ -231,21 +215,21 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: theme.colors.borderLight,
+    borderTopColor: me.line2,
   },
   coverageItem: { flex: 1 },
   coverageLabel: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginBottom: 2,
   },
   coverageValue: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   metaRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  metaText: { fontSize: 12, color: theme.colors.textTertiary },
+  metaText: { fontSize: 12, color: me.ink3 },
   fab: {
     position: 'absolute',
     bottom: 24,
@@ -253,17 +237,9 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
     justifyContent: 'center',
     alignItems: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.15,
-        shadowRadius: 12,
-      },
-      android: { elevation: 8 },
-    }),
+    ...me.shadow.pop,
   },
 });

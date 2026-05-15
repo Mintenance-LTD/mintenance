@@ -6,10 +6,10 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { Review } from '../viewmodels/ContractorProfileViewModel';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 interface ReviewsListProps {
   reviews: Review[];
@@ -70,7 +70,7 @@ export const ReviewsList: React.FC<ReviewsListProps> = ({
                         i < Math.floor(averageRating) ? 'star' : 'star-outline'
                       }
                       size={14}
-                      color={theme.colors.accent}
+                      color={me.accent}
                     />
                   ))}
               </View>
@@ -105,22 +105,14 @@ export const ReviewsList: React.FC<ReviewsListProps> = ({
       {featured && (
         <View style={styles.featuredCard}>
           <View style={styles.quoteIcon}>
-            <Ionicons
-              name='chatbubble-ellipses'
-              size={16}
-              color={theme.colors.primary}
-            />
+            <Ionicons name='chatbubble-ellipses' size={16} color={me.brand} />
           </View>
           <Text style={styles.featuredComment} numberOfLines={4}>
             {featured.comment}
           </Text>
           <View style={styles.featuredFooter}>
             <View style={styles.reviewerAvatar}>
-              <Ionicons
-                name='person'
-                size={14}
-                color={theme.colors.textTertiary}
-              />
+              <Ionicons name='person' size={14} color={me.ink3} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.featuredName}>{featured.reviewerName}</Text>
@@ -132,7 +124,7 @@ export const ReviewsList: React.FC<ReviewsListProps> = ({
                       key={i}
                       name={i < featured.rating ? 'star' : 'star-outline'}
                       size={10}
-                      color={theme.colors.accent}
+                      color={me.accent}
                     />
                   ))}
                 <Text style={styles.featuredDate}>{featured.date}</Text>
@@ -151,11 +143,7 @@ export const ReviewsList: React.FC<ReviewsListProps> = ({
         >
           <View style={styles.reviewHeader}>
             <View style={styles.reviewerAvatarSmall}>
-              <Ionicons
-                name='person'
-                size={12}
-                color={theme.colors.textTertiary}
-              />
+              <Ionicons name='person' size={12} color={me.ink3} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.reviewerName}>{review.reviewerName}</Text>
@@ -167,7 +155,7 @@ export const ReviewsList: React.FC<ReviewsListProps> = ({
                       key={i}
                       name={i < review.rating ? 'star' : 'star-outline'}
                       size={12}
-                      color={theme.colors.accent}
+                      color={me.accent}
                     />
                   ))}
                 <Text style={styles.reviewDate}>{review.date}</Text>
@@ -184,11 +172,7 @@ export const ReviewsList: React.FC<ReviewsListProps> = ({
       {reviews.length === 0 && (
         <View style={styles.emptyState}>
           <View style={styles.emptyIcon}>
-            <Ionicons
-              name='chatbubbles-outline'
-              size={28}
-              color={theme.colors.textTertiary}
-            />
+            <Ionicons name='chatbubbles-outline' size={28} color={me.ink3} />
           </View>
           <Text style={styles.emptyTitle}>No Reviews Yet</Text>
           <Text style={styles.emptyDesc}>
@@ -212,24 +196,16 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     letterSpacing: -0.3,
   },
   breakdownCard: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 20,
     marginHorizontal: 16,
     padding: 20,
     marginBottom: 12,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.04,
-        shadowRadius: 6,
-      },
-      android: { elevation: 1 },
-    }),
+    ...me.shadow.card,
   },
   ratingOverview: {
     flexDirection: 'row',
@@ -243,7 +219,7 @@ const styles = StyleSheet.create({
   bigRating: {
     fontSize: 36,
     fontWeight: '800',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     letterSpacing: -1,
   },
   starsRow: {
@@ -253,7 +229,7 @@ const styles = StyleSheet.create({
   },
   ratingSubtext: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginTop: 4,
   },
   barChart: {
@@ -269,58 +245,50 @@ const styles = StyleSheet.create({
   barLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     width: 12,
     textAlign: 'right',
   },
   barTrack: {
     flex: 1,
     height: 8,
-    backgroundColor: theme.colors.backgroundTertiary,
+    backgroundColor: me.bg3,
     borderRadius: 4,
     overflow: 'hidden',
   },
   barFill: {
     height: '100%',
-    backgroundColor: theme.colors.accent,
+    backgroundColor: me.accent,
     borderRadius: 4,
   },
   barCount: {
     fontSize: 11,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     width: 20,
     textAlign: 'right',
   },
   featuredCard: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 20,
     marginHorizontal: 16,
     padding: 20,
     marginBottom: 12,
     borderLeftWidth: 3,
-    borderLeftColor: theme.colors.primary,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.04,
-        shadowRadius: 6,
-      },
-      android: { elevation: 1 },
-    }),
+    borderLeftColor: me.brand,
+    ...me.shadow.card,
   },
   quoteIcon: {
     width: 32,
     height: 32,
     borderRadius: 10,
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: me.brandSoft,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 10,
   },
   featuredComment: {
     fontSize: 15,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     lineHeight: 22,
     fontStyle: 'italic',
     marginBottom: 14,
@@ -333,7 +301,7 @@ const styles = StyleSheet.create({
   featuredName: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   featuredMeta: {
     flexDirection: 'row',
@@ -343,24 +311,16 @@ const styles = StyleSheet.create({
   },
   featuredDate: {
     fontSize: 12,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     marginLeft: 6,
   },
   reviewCard: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     marginHorizontal: 16,
     padding: 16,
     marginBottom: 10,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.04,
-        shadowRadius: 6,
-      },
-      android: { elevation: 1 },
-    }),
+    ...me.shadow.card,
   },
   reviewHeader: {
     flexDirection: 'row',
@@ -371,7 +331,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: theme.colors.backgroundTertiary,
+    backgroundColor: me.bg3,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -379,7 +339,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: theme.colors.backgroundTertiary,
+    backgroundColor: me.bg3,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
@@ -387,7 +347,7 @@ const styles = StyleSheet.create({
   reviewerName: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   reviewRatingRow: {
     flexDirection: 'row',
@@ -397,12 +357,12 @@ const styles = StyleSheet.create({
   },
   reviewDate: {
     fontSize: 12,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     marginLeft: 6,
   },
   reviewComment: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     lineHeight: 20,
   },
   emptyState: {
@@ -414,7 +374,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: theme.colors.backgroundTertiary,
+    backgroundColor: me.bg3,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
@@ -422,11 +382,11 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   emptyDesc: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     textAlign: 'center',
     marginTop: 4,
     lineHeight: 20,

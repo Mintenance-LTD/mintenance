@@ -17,7 +17,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Booking } from './BookingStatusScreen';
 import { BookingCard } from './BookingCard';
 import { goToTab } from '../../navigation/hooks';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 interface BookingListProps {
   bookings: Booking[];
@@ -36,7 +36,7 @@ const EmptyBookingsState = () => {
         <Ionicons
           name='calendar-outline'
           size={32}
-          color={theme.colors.textSecondary}
+          color={me.ink2}
           accessible={false}
         />
       </View>
@@ -91,7 +91,7 @@ export const BookingList: React.FC<BookingListProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   contentContainer: {
     padding: 16,
@@ -109,7 +109,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -117,24 +117,24 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 6,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     textAlign: 'center',
     lineHeight: 20,
   },
   emptyCta: {
     marginTop: 20,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 12,
   },
   emptyCtaText: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontSize: 15,
     fontWeight: '600',
   },

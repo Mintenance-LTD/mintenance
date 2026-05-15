@@ -6,7 +6,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 import { styles } from './jobDetailsStyles';
 
 interface EscrowInfoModalProps {
@@ -34,16 +34,9 @@ export const EscrowInfoModal: React.FC<EscrowInfoModalProps> = ({
 
         <View style={styles.escrowStep}>
           <View
-            style={[
-              styles.escrowStepIcon,
-              { backgroundColor: theme.colors.primaryLight },
-            ]}
+            style={[styles.escrowStepIcon, { backgroundColor: me.brandSoft }]}
           >
-            <Ionicons
-              name='shield-checkmark'
-              size={24}
-              color={theme.colors.primary}
-            />
+            <Ionicons name='shield-checkmark' size={24} color={me.brand} />
           </View>
           <View style={styles.escrowStepContent}>
             <Text style={styles.escrowStepTitle}>Payment Held Securely</Text>
@@ -56,16 +49,9 @@ export const EscrowInfoModal: React.FC<EscrowInfoModalProps> = ({
 
         <View style={styles.escrowStep}>
           <View
-            style={[
-              styles.escrowStepIcon,
-              { backgroundColor: theme.colors.primaryLight },
-            ]}
+            style={[styles.escrowStepIcon, { backgroundColor: me.brandSoft }]}
           >
-            <Ionicons
-              name='checkmark-circle'
-              size={24}
-              color={theme.colors.primary}
-            />
+            <Ionicons name='checkmark-circle' size={24} color={me.brand} />
           </View>
           <View style={styles.escrowStepContent}>
             <Text style={styles.escrowStepTitle}>Approve Completed Work</Text>
@@ -77,12 +63,9 @@ export const EscrowInfoModal: React.FC<EscrowInfoModalProps> = ({
 
         <View style={styles.escrowStep}>
           <View
-            style={[
-              styles.escrowStepIcon,
-              { backgroundColor: theme.colors.primaryLight },
-            ]}
+            style={[styles.escrowStepIcon, { backgroundColor: me.brandSoft }]}
           >
-            <Ionicons name='cash' size={24} color={theme.colors.primary} />
+            <Ionicons name='cash' size={24} color={me.brand} />
           </View>
           <View style={styles.escrowStepContent}>
             <Text style={styles.escrowStepTitle}>Payment Released</Text>

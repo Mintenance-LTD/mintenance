@@ -6,11 +6,12 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Booking } from './BookingStatusScreen';
 import { useHaptics } from '../../utils/haptics';
-import { theme, getStatusBadge } from '../../theme';
+import { getStatusBadge } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 interface BookingCardProps {
   booking: Booking;
@@ -51,7 +52,9 @@ export const BookingCard: React.FC<BookingCardProps> = ({
       <View style={styles.header}>
         <View style={styles.serviceInfo}>
           <Text style={styles.serviceName}>{booking.serviceName}</Text>
-          <View style={[styles.statusChip, { backgroundColor: statusColor.bg }]}>
+          <View
+            style={[styles.statusChip, { backgroundColor: statusColor.bg }]}
+          >
             <Ionicons name={statusIcon} size={14} color={statusColor.text} />
             <Text style={[styles.statusText, { color: statusColor.text }]}>
               {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
@@ -60,11 +63,14 @@ export const BookingCard: React.FC<BookingCardProps> = ({
         </View>
         <TouchableOpacity
           style={styles.shareButton}
-          onPress={() => { haptics.buttonPress(); onShare(booking); }}
-          accessibilityRole="button"
-          accessibilityLabel="Share booking"
+          onPress={() => {
+            haptics.buttonPress();
+            onShare(booking);
+          }}
+          accessibilityRole='button'
+          accessibilityLabel='Share booking'
         >
-          <Ionicons name="share-outline" size={18} color={theme.colors.textSecondary} />
+          <Ionicons name='share-outline' size={18} color={me.ink2} />
         </TouchableOpacity>
       </View>
 
@@ -82,15 +88,15 @@ export const BookingCard: React.FC<BookingCardProps> = ({
 
       <View style={styles.bookingDetails}>
         <View style={styles.detailRow}>
-          <Ionicons name="calendar-outline" size={15} color={theme.colors.textSecondary} />
+          <Ionicons name='calendar-outline' size={15} color={me.ink2} />
           <Text style={styles.detailText}>{booking.date}</Text>
         </View>
         <View style={styles.detailRow}>
-          <Ionicons name="time-outline" size={15} color={theme.colors.textSecondary} />
+          <Ionicons name='time-outline' size={15} color={me.ink2} />
           <Text style={styles.detailText}>{booking.time}</Text>
         </View>
         <View style={styles.detailRow}>
-          <Ionicons name="hourglass-outline" size={15} color={theme.colors.textSecondary} />
+          <Ionicons name='hourglass-outline' size={15} color={me.ink2} />
           <Text style={styles.detailText}>{booking.estimatedDuration}</Text>
         </View>
       </View>
@@ -98,14 +104,19 @@ export const BookingCard: React.FC<BookingCardProps> = ({
       {booking.specialInstructions && (
         <View style={styles.instructionsContainer}>
           <Text style={styles.instructionsLabel}>Special Instructions</Text>
-          <Text style={styles.instructionsText}>{booking.specialInstructions}</Text>
+          <Text style={styles.instructionsText}>
+            {booking.specialInstructions}
+          </Text>
         </View>
       )}
 
       <View style={styles.footer}>
         <View style={styles.priceContainer}>
           <Text style={styles.priceLabel}>Total</Text>
-          <Text style={styles.price}>{'\u00A3'}{booking.amount}</Text>
+          <Text style={styles.price}>
+            {'\u00A3'}
+            {booking.amount}
+          </Text>
         </View>
 
         <View style={styles.actions}>
@@ -114,19 +125,29 @@ export const BookingCard: React.FC<BookingCardProps> = ({
               {booking.canReschedule && (
                 <TouchableOpacity
                   style={styles.actionButton}
-                  onPress={() => { haptics.buttonPress(); onReschedule(booking); }}
+                  onPress={() => {
+                    haptics.buttonPress();
+                    onReschedule(booking);
+                  }}
                 >
-                  <Ionicons name="refresh-outline" size={14} color={theme.colors.textSecondary} />
+                  <Ionicons name='refresh-outline' size={14} color={me.ink2} />
                   <Text style={styles.actionButtonText}>Reschedule</Text>
                 </TouchableOpacity>
               )}
               {booking.canCancel && (
                 <TouchableOpacity
                   style={[styles.actionButton, styles.cancelButton]}
-                  onPress={() => { haptics.buttonPress(); onCancel(booking); }}
+                  onPress={() => {
+                    haptics.buttonPress();
+                    onCancel(booking);
+                  }}
                 >
-                  <Ionicons name="close-outline" size={14} color={theme.colors.error} />
-                  <Text style={[styles.actionButtonText, styles.cancelButtonText]}>Cancel</Text>
+                  <Ionicons name='close-outline' size={14} color={me.errFg} />
+                  <Text
+                    style={[styles.actionButtonText, styles.cancelButtonText]}
+                  >
+                    Cancel
+                  </Text>
                 </TouchableOpacity>
               )}
             </>
@@ -135,19 +156,25 @@ export const BookingCard: React.FC<BookingCardProps> = ({
           {booking.status === 'completed' && !booking.rating && (
             <TouchableOpacity
               style={styles.actionButton}
-              onPress={() => { haptics.buttonPress(); onRate(booking); }}
+              onPress={() => {
+                haptics.buttonPress();
+                onRate(booking);
+              }}
             >
-              <Ionicons name="star-outline" size={14} color={theme.colors.accent} />
+              <Ionicons name='star-outline' size={14} color={me.accent} />
               <Text style={styles.actionButtonText}>Rate</Text>
             </TouchableOpacity>
           )}
 
           <TouchableOpacity
             style={styles.viewDetailsButton}
-            onPress={() => { haptics.buttonPress(); onViewDetails(booking); }}
+            onPress={() => {
+              haptics.buttonPress();
+              onViewDetails(booking);
+            }}
           >
             <Text style={styles.viewDetailsText}>Details</Text>
-            <Ionicons name="chevron-forward" size={14} color={theme.colors.textTertiary} />
+            <Ionicons name='chevron-forward' size={14} color={me.ink3} />
           </TouchableOpacity>
         </View>
       </View>
@@ -157,20 +184,12 @@ export const BookingCard: React.FC<BookingCardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    borderColor: me.line,
+    ...me.shadow.card,
   },
   header: {
     flexDirection: 'row',
@@ -185,7 +204,7 @@ const styles = StyleSheet.create({
   serviceName: {
     fontSize: 17,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   statusChip: {
     flexDirection: 'row',
@@ -204,7 +223,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -217,7 +236,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -225,7 +244,7 @@ const styles = StyleSheet.create({
   contractorInitial: {
     fontSize: 15,
     fontWeight: '700',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
   },
   contractorDetails: {
     flex: 1,
@@ -233,12 +252,12 @@ const styles = StyleSheet.create({
   contractorName: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 2,
   },
   address: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   bookingDetails: {
     marginBottom: 14,
@@ -251,10 +270,10 @@ const styles = StyleSheet.create({
   },
   detailText: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   instructionsContainer: {
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 12,
     padding: 12,
     marginBottom: 14,
@@ -262,14 +281,14 @@ const styles = StyleSheet.create({
   instructionsLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 4,
   },
   instructionsText: {
     fontSize: 13,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     lineHeight: 19,
   },
   footer: {
@@ -282,13 +301,13 @@ const styles = StyleSheet.create({
   },
   priceLabel: {
     fontSize: 11,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     marginBottom: 2,
   },
   price: {
     fontSize: 20,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   actions: {
     flexDirection: 'row',
@@ -298,7 +317,7 @@ const styles = StyleSheet.create({
   actionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 10,
@@ -307,13 +326,13 @@ const styles = StyleSheet.create({
   actionButtonText: {
     fontSize: 12,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   cancelButton: {
     backgroundColor: '#FEE2E2',
   },
   cancelButtonText: {
-    color: theme.colors.error,
+    color: me.errFg,
   },
   viewDetailsButton: {
     flexDirection: 'row',
@@ -323,6 +342,6 @@ const styles = StyleSheet.create({
   viewDetailsText: {
     fontSize: 13,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
 });

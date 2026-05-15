@@ -23,7 +23,7 @@ import { useTranslation } from 'react-i18next';
 import { PhotoUploadService } from '../../services/PhotoUploadService';
 import { JobService } from '../../services/JobService';
 import { JobsStackParamList } from '../../navigation/types';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 import { styles } from './jobPhotoUploadStyles';
 
 type ScreenRouteProp = RouteProp<JobsStackParamList, 'PhotoUpload'>;
@@ -245,11 +245,7 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({
           accessibilityRole='button'
           accessibilityLabel='Go back'
         >
-          <Ionicons
-            name='arrow-back'
-            size={22}
-            color={theme.colors.textPrimary}
-          />
+          <Ionicons name='arrow-back' size={22} color={me.ink} />
         </TouchableOpacity>
         <View style={styles.headerText}>
           <Text style={styles.headerTitle}>{title}</Text>
@@ -267,7 +263,7 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({
           <Ionicons
             name={isBefore ? 'camera-outline' : 'checkmark-circle-outline'}
             size={24}
-            color={isBefore ? theme.colors.textPrimary : theme.colors.primary}
+            color={isBefore ? me.ink : me.brand}
           />
           <Text style={styles.infoText}>
             {isBefore
@@ -286,7 +282,7 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({
                   <Ionicons
                     name='checkmark-circle'
                     size={28}
-                    color={theme.colors.primary}
+                    color={me.brand}
                   />
                 </View>
               )}
@@ -296,11 +292,7 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({
                   onPress={() => removePhoto(index)}
                   accessibilityLabel={`Remove photo ${index + 1}`}
                 >
-                  <Ionicons
-                    name='close-circle'
-                    size={28}
-                    color={theme.colors.error}
-                  />
+                  <Ionicons name='close-circle' size={28} color={me.errFg} />
                 </TouchableOpacity>
               )}
             </View>
@@ -312,11 +304,7 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({
             onPress={pickFromCamera}
             accessibilityLabel='Take a photo'
           >
-            <Ionicons
-              name='camera'
-              size={32}
-              color={theme.colors.textPrimary}
-            />
+            <Ionicons name='camera' size={32} color={me.ink} />
             <Text style={styles.addPhotoText}>Camera</Text>
           </TouchableOpacity>
 
@@ -325,11 +313,7 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({
             onPress={pickFromGallery}
             accessibilityLabel='Choose from gallery'
           >
-            <Ionicons
-              name='images'
-              size={32}
-              color={theme.colors.textPrimary}
-            />
+            <Ionicons name='images' size={32} color={me.ink} />
             <Text style={styles.addPhotoText}>Gallery</Text>
           </TouchableOpacity>
         </View>
@@ -383,7 +367,7 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({
               <Ionicons
                 name={hasFailedPhotos ? 'refresh' : 'cloud-upload'}
                 size={20}
-                color={theme.colors.textInverse}
+                color={me.onBrand}
               />
               <Text style={styles.uploadButtonText}>
                 {hasFailedPhotos

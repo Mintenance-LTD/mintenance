@@ -1,5 +1,5 @@
-import { Platform, StyleSheet } from 'react-native';
-import { theme } from '../../../../theme';
+import { StyleSheet } from 'react-native';
+import { me } from '../../../../design-system/mint-editorial';
 
 /**
  * StyleSheet for the QuickJobPostScreen + sub-components.
@@ -8,7 +8,7 @@ import { theme } from '../../../../theme';
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   header: {
     flexDirection: 'row',
@@ -16,22 +16,22 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingVertical: 12,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   backButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   headerSpacer: {
     width: 44,
@@ -42,30 +42,22 @@ export const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginTop: 16,
     marginBottom: 20,
   },
 
   propertyBanner: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 24,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   propertyLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 8,
@@ -81,11 +73,11 @@ export const styles = StyleSheet.create({
   propertyNameText: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   propertyAddressText: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginTop: 1,
   },
 
@@ -95,7 +87,7 @@ export const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 14,
   },
 
@@ -106,23 +98,15 @@ export const styles = StyleSheet.create({
   },
   templateCard: {
     width: '31%',
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     padding: 14,
     alignItems: 'flex-start',
     minHeight: 110,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   templateCardActive: {
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   templateIconCircle: {
     width: 36,
@@ -134,32 +118,32 @@ export const styles = StyleSheet.create({
   templateTitle: {
     fontSize: 13,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginTop: 8,
   },
   templateTitleActive: {
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   templateBudget: {
     fontSize: 11,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     marginTop: 4,
   },
 
   inputLabel: {
     fontSize: 14,
     fontWeight: '500',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginBottom: 8,
     marginTop: 4,
   },
   input: {
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 15,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 12,
   },
   textArea: {
@@ -175,28 +159,20 @@ export const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     borderRadius: 12,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     alignItems: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.04,
-        shadowRadius: 6,
-      },
-      android: { elevation: 1 },
-    }),
+    ...me.shadow.card,
   },
   budgetChipActive: {
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
   },
   budgetText: {
     fontSize: 13,
     fontWeight: '500',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   budgetTextActive: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontWeight: '700',
   },
 
@@ -233,7 +209,7 @@ export const styles = StyleSheet.create({
   },
   moreOptionsText: {
     fontSize: 14,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     fontWeight: '500',
   },
 
@@ -242,26 +218,18 @@ export const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: theme.colors.border,
+    borderTopColor: me.line,
     paddingHorizontal: 20,
     paddingTop: 12,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: -2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 12,
-      },
-      android: { elevation: 8 },
-    }),
+    ...me.shadow.pop,
   },
   submitButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
     borderRadius: 28,
     paddingVertical: 16,
     gap: 8,
@@ -271,7 +239,7 @@ export const styles = StyleSheet.create({
     opacity: 0.5,
   },
   submitText: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontSize: 16,
     fontWeight: '700',
   },

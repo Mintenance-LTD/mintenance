@@ -1,20 +1,20 @@
 /**
  * Styles for JobDetailsScreen and its extracted sub-components.
  */
-import { StyleSheet, Dimensions, Platform } from 'react-native';
-import { theme } from '../../theme';
+import { StyleSheet, Dimensions } from 'react-native';
+import { me } from '../../design-system/mint-editorial';
 
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
   },
   scrollView: {
     flex: 1,
   },
   placeholderHero: {
     height: Math.round(Dimensions.get('window').width * 0.6),
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -32,15 +32,7 @@ export const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.45)',
     alignItems: 'center',
     justifyContent: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 10,
-      },
-      android: { elevation: 3 },
-    }),
+    ...me.shadow.pop,
   },
   shareButton: {
     position: 'absolute',
@@ -51,15 +43,7 @@ export const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.45)',
     alignItems: 'center',
     justifyContent: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 10,
-      },
-      android: { elevation: 3 },
-    }),
+    ...me.shadow.pop,
   },
 
   // -- Sections --
@@ -74,14 +58,14 @@ export const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 12,
   },
   divider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: theme.colors.border,
+    backgroundColor: me.line,
     marginHorizontal: 20,
   },
 
@@ -89,7 +73,7 @@ export const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 8,
   },
   tagRow: {
@@ -100,19 +84,19 @@ export const styles = StyleSheet.create({
   tag: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
     gap: 4,
   },
   urgentTag: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: me.errBg,
   },
   tagText: {
     fontSize: 13,
     fontWeight: '500',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   locationRow: {
     flexDirection: 'row',
@@ -122,21 +106,21 @@ export const styles = StyleSheet.create({
   },
   locationText: {
     fontSize: 15,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   metaText: {
     fontSize: 13,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     marginTop: 4,
   },
 
   // -- Pricing --
   pricingCard: {
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
   pricingMain: {
     marginBottom: 12,
@@ -144,11 +128,11 @@ export const styles = StyleSheet.create({
   pricingAmount: {
     fontSize: 32,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   pricingLabelText: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginTop: 2,
   },
   escrowBadge: {
@@ -159,7 +143,7 @@ export const styles = StyleSheet.create({
   escrowText: {
     fontSize: 13,
     fontWeight: '500',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
 
   // -- Details --
@@ -178,12 +162,12 @@ export const styles = StyleSheet.create({
   },
   detailLabel: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   detailValue: {
     fontSize: 15,
     fontWeight: '500',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginTop: 2,
   },
 
@@ -196,25 +180,25 @@ export const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 28,
     borderWidth: 1.5,
-    borderColor: theme.colors.error,
+    borderColor: me.errFg,
     backgroundColor: 'transparent',
   },
   withdrawBidText: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.error,
+    color: me.errFg,
   },
 
   // -- Description --
   description: {
     fontSize: 15,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     lineHeight: 24,
   },
 
   // -- Bids Section (inline styles kept minimal) --
   bidCard: {
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 12,
     padding: 12,
     marginBottom: 8,
@@ -227,7 +211,7 @@ export const styles = StyleSheet.create({
   bidContractorName: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   bidAmountRow: {
     flexDirection: 'row',
@@ -236,7 +220,7 @@ export const styles = StyleSheet.create({
   bidAmount: {
     fontSize: 17,
     fontWeight: '700',
-    color: theme.colors.primary,
+    color: me.brand,
   },
   bidStatusBadge: {
     marginLeft: 8,
@@ -250,7 +234,7 @@ export const styles = StyleSheet.create({
   },
   bidMessage: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginTop: 6,
   },
 
@@ -263,7 +247,7 @@ export const styles = StyleSheet.create({
     padding: 20,
   },
   modalContent: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 24,
     padding: 24,
     width: '100%',
@@ -272,7 +256,7 @@ export const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     textAlign: 'center',
     marginBottom: 20,
   },
@@ -295,17 +279,17 @@ export const styles = StyleSheet.create({
   escrowStepTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 2,
   },
   escrowStepDescription: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     lineHeight: 20,
   },
   escrowFooterNote: {
     fontSize: 13,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     textAlign: 'center',
     marginTop: 4,
     marginBottom: 20,
@@ -313,7 +297,7 @@ export const styles = StyleSheet.create({
     fontStyle: 'italic',
   },
   escrowModalButton: {
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
     borderRadius: 28,
     paddingVertical: 14,
     alignItems: 'center',
@@ -321,7 +305,7 @@ export const styles = StyleSheet.create({
   escrowModalButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
   },
   quickActionsSection: {
     paddingHorizontal: 16,
@@ -333,14 +317,14 @@ export const styles = StyleSheet.create({
     alignItems: 'center' as const,
     paddingVertical: 14,
     borderBottomWidth: 0.5,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
     gap: 12,
   },
   quickActionText: {
     flex: 1,
     fontSize: 14,
     fontWeight: '500' as const,
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   logExpenseRow: {
     flexDirection: 'row' as const,
@@ -349,12 +333,12 @@ export const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 14,
     borderRadius: 12,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   logExpenseText: {
     flex: 1,
     fontSize: 15,
     fontWeight: '600' as const,
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
 });

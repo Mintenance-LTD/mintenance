@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 import { styles } from './ContractPreparationStyles';
 
 interface QuoteItem {
@@ -32,11 +32,7 @@ export const AgreedQuoteCard: React.FC<AgreedQuoteProps> = ({
   return (
     <View style={styles.agreedQuoteCard}>
       <View style={styles.agreedQuoteHeader}>
-        <Ionicons
-          name='checkmark-circle'
-          size={18}
-          color={theme.colors.primary}
-        />
+        <Ionicons name='checkmark-circle' size={18} color={me.brand} />
         <Text style={styles.agreedQuoteTitle}>Agreed Quote</Text>
       </View>
       <Text style={styles.agreedQuoteSub}>
@@ -123,7 +119,7 @@ export const InsuranceDetailsCard: React.FC<InsuranceCardProps> = ({
           value={provider}
           onChangeText={setProvider}
           placeholder='e.g. Hiscox, AXA'
-          placeholderTextColor={theme.colors.textTertiary}
+          placeholderTextColor={me.ink3}
         />
       </View>
       <View style={styles.dateField}>
@@ -133,7 +129,7 @@ export const InsuranceDetailsCard: React.FC<InsuranceCardProps> = ({
           value={policyNumber}
           onChangeText={setPolicyNumber}
           placeholder='e.g. POL-123456'
-          placeholderTextColor={theme.colors.textTertiary}
+          placeholderTextColor={me.ink3}
         />
       </View>
     </View>
@@ -176,11 +172,7 @@ export const DateRangePicker: React.FC<DateRangeProps> = ({
             <Text style={startDate ? styles.dateText : styles.datePlaceholder}>
               {startDate ? formatDate(startDate) : 'Select start date'}
             </Text>
-            <Ionicons
-              name='calendar-outline'
-              size={18}
-              color={theme.colors.textTertiary}
-            />
+            <Ionicons name='calendar-outline' size={18} color={me.ink3} />
           </TouchableOpacity>
           {startError ? (
             <Text style={styles.fieldError}>{startError}</Text>
@@ -198,11 +190,7 @@ export const DateRangePicker: React.FC<DateRangeProps> = ({
             <Text style={endDate ? styles.dateText : styles.datePlaceholder}>
               {endDate ? formatDate(endDate) : 'Select end date'}
             </Text>
-            <Ionicons
-              name='calendar-outline'
-              size={18}
-              color={theme.colors.textTertiary}
-            />
+            <Ionicons name='calendar-outline' size={18} color={me.ink3} />
           </TouchableOpacity>
           {endError ? <Text style={styles.fieldError}>{endError}</Text> : null}
         </View>

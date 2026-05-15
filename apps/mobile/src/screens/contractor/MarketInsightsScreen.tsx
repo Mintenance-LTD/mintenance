@@ -5,7 +5,6 @@ import {
   FlatList,
   StyleSheet,
   TouchableOpacity,
-  Platform,
   RefreshControl,
   StatusBar,
 } from 'react-native';
@@ -21,7 +20,7 @@ import {
 import { EmptyState } from '../../components/ui/EmptyState';
 import { supabase } from '../../config/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 interface DemandCategory {
   id: string;
@@ -33,9 +32,9 @@ interface DemandCategory {
 }
 
 const DEMAND_COLORS = {
-  high: theme.colors.primaryDark,
+  high: me.brand2,
   medium: '#D97706',
-  low: theme.colors.textTertiary,
+  low: me.ink3,
 };
 const DEMAND_LABELS = { high: 'High Demand', medium: 'Medium', low: 'Low' };
 
@@ -83,10 +82,7 @@ export const MarketInsightsScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar
-        barStyle='dark-content'
-        backgroundColor={theme.colors.backgroundSecondary}
-      />
+      <StatusBar barStyle='dark-content' backgroundColor={me.bg2} />
       <ScreenHeader
         title='Market Insights'
         showBack
@@ -101,8 +97,8 @@ export const MarketInsightsScreen: React.FC = () => {
           <RefreshControl
             refreshing={false}
             onRefresh={refetch}
-            tintColor={theme.colors.textPrimary}
-            colors={[theme.colors.textPrimary]}
+            tintColor={me.ink}
+            colors={[me.ink]}
           />
         }
         ListEmptyComponent={
@@ -156,11 +152,7 @@ export const MarketInsightsScreen: React.FC = () => {
             </View>
             <View style={styles.metricsRow}>
               <View style={styles.metric}>
-                <Ionicons
-                  name='cash-outline'
-                  size={16}
-                  color={theme.colors.textSecondary}
-                />
+                <Ionicons name='cash-outline' size={16} color={me.ink2} />
                 <Text style={styles.metricLabel}>Avg Price</Text>
                 <Text style={styles.metricValue}>
                   {'\u00A3'}
@@ -168,20 +160,12 @@ export const MarketInsightsScreen: React.FC = () => {
                 </Text>
               </View>
               <View style={styles.metric}>
-                <Ionicons
-                  name='briefcase-outline'
-                  size={16}
-                  color={theme.colors.textSecondary}
-                />
+                <Ionicons name='briefcase-outline' size={16} color={me.ink2} />
                 <Text style={styles.metricLabel}>Jobs</Text>
                 <Text style={styles.metricValue}>{item.job_count}</Text>
               </View>
               <View style={styles.metric}>
-                <Ionicons
-                  name='people-outline'
-                  size={16}
-                  color={theme.colors.textSecondary}
-                />
+                <Ionicons name='people-outline' size={16} color={me.ink2} />
                 <Text style={styles.metricLabel}>Competitors</Text>
                 <Text style={styles.metricValue}>{item.competition_count}</Text>
               </View>
@@ -194,49 +178,33 @@ export const MarketInsightsScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
+  container: { flex: 1, backgroundColor: me.bg2 },
   list: { padding: 16 },
   summaryRow: { flexDirection: 'row', gap: 10, marginBottom: 20 },
   summaryCard: {
     flex: 1,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     padding: 14,
     alignItems: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   summaryValue: {
     fontSize: 22,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   summaryLabel: {
     fontSize: 11,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginTop: 2,
   },
   card: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 10,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -247,7 +215,7 @@ const styles = StyleSheet.create({
   categoryName: {
     fontSize: 16,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     flex: 1,
   },
   demandBadge: {
@@ -264,13 +232,13 @@ const styles = StyleSheet.create({
   metric: { alignItems: 'center', flex: 1 },
   metricLabel: {
     fontSize: 11,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginTop: 4,
   },
   metricValue: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginTop: 2,
   },
 });

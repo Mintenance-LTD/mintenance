@@ -16,7 +16,7 @@ import type { RouteProp } from '@react-navigation/native';
 import { useToast } from '../../components/ui/Toast';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import type { RootStackParamList } from '../../navigation/types';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 interface Props {
   navigation: NativeStackNavigationProp<
@@ -91,20 +91,13 @@ export const RescheduleBookingScreen: React.FC<Props> = ({
 
   return (
     <View style={styles.container}>
-      <StatusBar
-        barStyle='dark-content'
-        backgroundColor={theme.colors.surface}
-      />
+      <StatusBar barStyle='dark-content' backgroundColor={me.surface} />
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity
           style={styles.headerButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons
-            name='arrow-back'
-            size={24}
-            color={theme.colors.textPrimary}
-          />
+          <Ionicons name='arrow-back' size={24} color={me.ink} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Reschedule Booking</Text>
         <View style={styles.headerButton} />
@@ -128,11 +121,7 @@ export const RescheduleBookingScreen: React.FC<Props> = ({
               <Text style={styles.pickerLabel}>Date</Text>
               <Text style={styles.pickerValue}>{formatDate(selectedDate)}</Text>
             </View>
-            <Ionicons
-              name='chevron-forward'
-              size={20}
-              color={theme.colors.textTertiary}
-            />
+            <Ionicons name='chevron-forward' size={20} color={me.ink3} />
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -148,11 +137,7 @@ export const RescheduleBookingScreen: React.FC<Props> = ({
               <Text style={styles.pickerLabel}>Time</Text>
               <Text style={styles.pickerValue}>{formatTime(selectedDate)}</Text>
             </View>
-            <Ionicons
-              name='chevron-forward'
-              size={20}
-              color={theme.colors.textTertiary}
-            />
+            <Ionicons name='chevron-forward' size={20} color={me.ink3} />
           </TouchableOpacity>
         </View>
 
@@ -193,48 +178,40 @@ export const RescheduleBookingScreen: React.FC<Props> = ({
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
+  container: { flex: 1, backgroundColor: me.bg2 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   headerButton: { padding: 8, width: 40 },
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   content: { padding: 16 },
   card: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     padding: 20,
     marginBottom: 20,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   cardTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 4,
   },
   cardSubtitle: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginBottom: 20,
   },
   pickerRow: {
@@ -242,7 +219,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 14,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: theme.colors.border,
+    borderTopColor: me.line,
   },
   pickerIconWrap: {
     width: 36,
@@ -255,23 +232,23 @@ const styles = StyleSheet.create({
   pickerInfo: { flex: 1, marginLeft: 12 },
   pickerLabel: {
     fontSize: 12,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     marginBottom: 2,
   },
   pickerValue: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   confirmButton: {
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
     borderRadius: 28,
     paddingVertical: 16,
     alignItems: 'center',
   },
   confirmButtonDisabled: { opacity: 0.6 },
   confirmButtonText: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontSize: 16,
     fontWeight: '700',
   },

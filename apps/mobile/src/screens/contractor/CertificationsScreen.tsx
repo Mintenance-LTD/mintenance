@@ -6,7 +6,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   RefreshControl,
-  Platform,
   StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -22,7 +21,7 @@ import { EmptyState } from '../../components/ui/EmptyState';
 import { Badge } from '../../components/ui/Badge';
 import { supabase } from '../../config/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 interface Certification {
   id: string;
@@ -88,10 +87,7 @@ export const CertificationsScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar
-        barStyle='dark-content'
-        backgroundColor={theme.colors.backgroundSecondary}
-      />
+      <StatusBar barStyle='dark-content' backgroundColor={me.bg2} />
       <ScreenHeader
         title='Certifications'
         showBack
@@ -106,8 +102,8 @@ export const CertificationsScreen: React.FC = () => {
           <RefreshControl
             refreshing={false}
             onRefresh={refetch}
-            tintColor={theme.colors.textPrimary}
-            colors={[theme.colors.textPrimary]}
+            tintColor={me.ink}
+            colors={[me.ink]}
           />
         }
         ListEmptyComponent={
@@ -136,7 +132,7 @@ export const CertificationsScreen: React.FC = () => {
                     <Ionicons
                       name='checkmark-circle'
                       size={18}
-                      color={theme.colors.primary}
+                      color={me.brand}
                     />
                   )}
                 </View>
@@ -167,17 +163,9 @@ export const CertificationsScreen: React.FC = () => {
         onPress={() => navigation.navigate('DBSCheck')}
         accessibilityRole='button'
       >
-        <Ionicons
-          name='shield-checkmark-outline'
-          size={18}
-          color={theme.colors.primary}
-        />
+        <Ionicons name='shield-checkmark-outline' size={18} color={me.brand} />
         <Text style={styles.dbsButtonText}>DBS Background Check</Text>
-        <Ionicons
-          name='chevron-forward'
-          size={16}
-          color={theme.colors.textTertiary}
-        />
+        <Ionicons name='chevron-forward' size={16} color={me.ink3} />
       </TouchableOpacity>
 
       <TouchableOpacity
@@ -185,29 +173,21 @@ export const CertificationsScreen: React.FC = () => {
         onPress={() => navigation.navigate('AddCertification')}
         accessibilityLabel='Add certification'
       >
-        <Ionicons name='add' size={28} color={theme.colors.textInverse} />
+        <Ionicons name='add' size={28} color={me.onBrand} />
       </TouchableOpacity>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
+  container: { flex: 1, backgroundColor: me.bg2 },
   list: { padding: 16, paddingBottom: 80 },
   certRow: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 10,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   certHeader: {
     flexDirection: 'row',
@@ -219,15 +199,15 @@ const styles = StyleSheet.create({
   certName: {
     fontSize: 16,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
-  certIssuer: { fontSize: 13, color: theme.colors.textSecondary, marginTop: 2 },
+  certIssuer: { fontSize: 13, color: me.ink2, marginTop: 2 },
   certBadges: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   certMeta: { flexDirection: 'row', justifyContent: 'space-between' },
-  certDate: { fontSize: 12, color: theme.colors.textTertiary },
+  certDate: { fontSize: 12, color: me.ink3 },
   credentialId: {
     fontSize: 12,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     marginTop: 6,
   },
   dbsButton: {
@@ -237,16 +217,16 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginBottom: 80,
     padding: 14,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
   dbsButtonText: {
     flex: 1,
     fontSize: 14,
     fontWeight: '600' as const,
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   fab: {
     position: 'absolute' as const,
@@ -255,17 +235,9 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
     justifyContent: 'center' as const,
     alignItems: 'center' as const,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.15,
-        shadowRadius: 12,
-      },
-      android: { elevation: 8 },
-    }),
+    ...me.shadow.pop,
   },
 });

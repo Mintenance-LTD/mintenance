@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { theme, gradients } from '../../../../theme';
+import { me } from '../../../../design-system/mint-editorial';
 import { styles } from '../../DocumentsStyles';
 import { formatFileSize } from '../types';
 import { UPLOAD_ICON_ON_GREEN_GRADIENT } from '../theme/heroColors';
@@ -31,7 +31,7 @@ export function DocumentsHero({
 }) {
   return (
     <LinearGradient
-      colors={gradients.heroGreen}
+      colors={[me.brand2, me.brand]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={[styles.hero, { paddingTop: topInset + 12 }]}
@@ -46,11 +46,7 @@ export function DocumentsHero({
           accessibilityRole='button'
           accessibilityLabel='Go back'
         >
-          <Ionicons
-            name='arrow-back'
-            size={20}
-            color={theme.colors.textInverse}
-          />
+          <Ionicons name='arrow-back' size={20} color={me.onBrand} />
         </TouchableOpacity>
         <View style={{ flex: 1, marginLeft: 12 }}>
           <Text style={styles.heroTitle}>Documents</Text>

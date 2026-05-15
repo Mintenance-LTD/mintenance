@@ -7,7 +7,10 @@ import {
   ActivityIndicator,
   RefreshControl,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import * as WebBrowser from 'expo-web-browser';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,7 +18,7 @@ import Button from '../../components/ui/Button';
 import { ScreenHeader } from '../../components/shared';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import { logger } from '../../utils/logger';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 /**
  * Contractor Stripe Connect onboarding + payout status screen (mobile).
@@ -63,7 +66,7 @@ const ContractorPayoutsScreen: React.FC = () => {
         success: boolean;
         status: ConnectStatus | null;
       }>(
-        `/api/payments/stripe-connect/status${refresh ? '?refresh=true' : ''}`,
+        `/api/payments/stripe-connect/status${refresh ? '?refresh=true' : ''}`
       );
       setStatus(res.status ?? null);
 
@@ -104,7 +107,7 @@ const ContractorPayoutsScreen: React.FC = () => {
       // Open Stripe onboarding in system browser
       const result = await WebBrowser.openAuthSessionAsync(
         res.url,
-        'mintenance://payouts/return',
+        'mintenance://payouts/return'
       );
 
       if (result.type === 'success' || result.type === 'dismiss') {
@@ -142,7 +145,7 @@ const ContractorPayoutsScreen: React.FC = () => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <ActivityIndicator size='large' color={me.brand} />
         </View>
       </SafeAreaView>
     );
@@ -177,15 +180,9 @@ const ContractorPayoutsScreen: React.FC = () => {
           </>
         )}
 
-        {status &&
-          status.detailsSubmitted &&
-          !status.canReceivePayouts && (
-            <ReviewCard
-              status={status}
-              onResume={startOnboarding}
-              busy={busy}
-            />
-          )}
+        {status && status.detailsSubmitted && !status.canReceivePayouts && (
+          <ReviewCard status={status} onResume={startOnboarding} busy={busy} />
+        )}
 
         {status?.canReceivePayouts && (
           <ReadyCard
@@ -232,7 +229,7 @@ const ReviewCard: React.FC<{
 }> = ({ status, onResume, busy }) => (
   <View style={styles.card}>
     <View style={styles.row}>
-      <ActivityIndicator size="small" color="#d97706" />
+      <ActivityIndicator size='small' color={me.warnFg} />
       <Text style={styles.cardTitle}>Account under review</Text>
     </View>
     <Text style={styles.cardBody}>
@@ -252,7 +249,7 @@ const ReviewCard: React.FC<{
           onPress={onResume}
           title={busy ? 'Opening…' : 'Complete information'}
           disabled={busy}
-          variant="outline"
+          variant='outline'
         />
       </View>
     )}
@@ -273,7 +270,7 @@ const ReadyCard: React.FC<{
     <>
       <View style={styles.card}>
         <View style={styles.row}>
-          <Ionicons name="checkmark-circle" size={22} color="#10b981" />
+          <Ionicons name='checkmark-circle' size={22} color={me.okFg} />
           <Text style={styles.cardTitle}>Ready to receive payouts</Text>
         </View>
 
@@ -302,9 +299,7 @@ const ReadyCard: React.FC<{
               </Text>
             </View>
             <View style={styles.progressTrack}>
-              <View
-                style={[styles.progressFill, { width: `${progress}%` }]}
-              />
+              <View style={[styles.progressFill, { width: `${progress}%` }]} />
             </View>
           </View>
         ) : (
@@ -327,13 +322,13 @@ const ReadyCard: React.FC<{
           </Text>
         )}
 
-        <Button onPress={onOpenDashboard} title="Open Stripe Dashboard" />
+        <Button onPress={onOpenDashboard} title='Open Stripe Dashboard' />
       </View>
 
       {hasPendingRequirements && (
         <View style={styles.warnCard}>
           <View style={styles.row}>
-            <Ionicons name="alert-circle" size={18} color="#d97706" />
+            <Ionicons name='alert-circle' size={18} color={me.warnFg} />
             <Text style={styles.warnCardTitle}>Action required soon</Text>
           </View>
           <Text style={styles.warnCardBody}>
@@ -351,34 +346,37 @@ const PayoutInfoSection: React.FC = () => (
     <Text style={styles.infoTitle}>How payouts work</Text>
     <View style={styles.infoItem}>
       <View style={styles.infoIconWrap}>
-        <Ionicons name="shield-checkmark" size={18} color={theme.colors.primary} />
+        <Ionicons name='shield-checkmark' size={18} color={me.brand} />
       </View>
       <View style={styles.infoTextWrap}>
         <Text style={styles.infoItemTitle}>Escrow-protected</Text>
         <Text style={styles.infoItemDesc}>
-          Homeowner payment is held in escrow before you start. You always get paid for completed work.
+          Homeowner payment is held in escrow before you start. You always get
+          paid for completed work.
         </Text>
       </View>
     </View>
     <View style={styles.infoItem}>
       <View style={styles.infoIconWrap}>
-        <Ionicons name="calendar" size={18} color={theme.colors.primary} />
+        <Ionicons name='calendar' size={18} color={me.brand} />
       </View>
       <View style={styles.infoTextWrap}>
         <Text style={styles.infoItemTitle}>Weekly payouts</Text>
         <Text style={styles.infoItemDesc}>
-          Completed job payments are transferred to your bank every Friday via Stripe.
+          Completed job payments are transferred to your bank every Friday via
+          Stripe.
         </Text>
       </View>
     </View>
     <View style={styles.infoItem}>
       <View style={styles.infoIconWrap}>
-        <Ionicons name="lock-closed" size={18} color={theme.colors.primary} />
+        <Ionicons name='lock-closed' size={18} color={me.brand} />
       </View>
       <View style={styles.infoTextWrap}>
         <Text style={styles.infoItemTitle}>Secure & private</Text>
         <Text style={styles.infoItemDesc}>
-          Stripe handles all bank details and tax documents. Mintenance never sees your financial data.
+          Stripe handles all bank details and tax documents. Mintenance never
+          sees your financial data.
         </Text>
       </View>
     </View>
@@ -400,79 +398,79 @@ function formatRequirement(key: string): string {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
+  container: { flex: 1, backgroundColor: me.bg2 },
   content: { padding: 16, gap: 16 },
   centered: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   card: {
-    backgroundColor: theme.colors.surface ?? '#fff',
+    backgroundColor: me.surface,
     padding: 16,
     borderRadius: 12,
     gap: 12,
     borderWidth: 1,
-    borderColor: theme.colors.border ?? '#e5e7eb',
+    borderColor: me.line,
   },
-  cardTitle: { fontSize: 18, fontWeight: '600', color: theme.colors.textPrimary },
+  cardTitle: { fontSize: 18, fontWeight: '600', color: me.ink },
   cardBody: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     lineHeight: 20,
   },
   bulletList: { gap: 4 },
-  bullet: { fontSize: 13, color: theme.colors.textSecondary },
+  bullet: { fontSize: 13, color: me.ink2 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   balanceRow: { flexDirection: 'row', gap: 16 },
   balanceCell: { flex: 1 },
-  balanceLabel: { fontSize: 12, color: theme.colors.textSecondary },
+  balanceLabel: { fontSize: 12, color: me.ink2 },
   balanceAmount: {
     fontSize: 20,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   progressSection: { gap: 6 },
   progressLabels: { flexDirection: 'row', justifyContent: 'space-between' },
-  progressText: { fontSize: 12, color: theme.colors.textSecondary },
+  progressText: { fontSize: 12, color: me.ink2 },
   progressTrack: {
     height: 8,
-    backgroundColor: '#e5e7eb',
+    backgroundColor: me.bg3,
     borderRadius: 4,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
   },
   successBox: {
     padding: 10,
-    backgroundColor: '#d1fae5',
+    backgroundColor: me.okBg,
     borderRadius: 8,
   },
-  successText: { fontSize: 13, color: '#065f46' },
-  lastPayout: { fontSize: 11, color: theme.colors.textSecondary },
+  successText: { fontSize: 13, color: me.okFg },
+  lastPayout: { fontSize: 11, color: me.ink2 },
   warnBox: {
     padding: 10,
-    backgroundColor: '#fef3c7',
+    backgroundColor: me.warnBg,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#fcd34d',
+    borderColor: me.warnFg,
   },
-  warnHeader: { fontSize: 13, fontWeight: '600', color: '#92400e' },
-  warnItem: { fontSize: 12, color: '#92400e', marginTop: 2 },
+  warnHeader: { fontSize: 13, fontWeight: '600', color: me.warnFg },
+  warnItem: { fontSize: 12, color: me.warnFg, marginTop: 2 },
   warnCard: {
     padding: 12,
-    backgroundColor: '#fef3c7',
+    backgroundColor: me.warnBg,
     borderRadius: 8,
     gap: 6,
   },
-  warnCardTitle: { fontSize: 13, fontWeight: '600', color: '#92400e' },
-  warnCardBody: { fontSize: 12, color: '#92400e' },
+  warnCardTitle: { fontSize: 13, fontWeight: '600', color: me.warnFg },
+  warnCardBody: { fontSize: 12, color: me.warnFg },
   errorBox: {
     padding: 12,
-    backgroundColor: '#fef2f2',
+    backgroundColor: me.errBg,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#fecaca',
+    borderColor: me.errFg,
   },
-  errorText: { fontSize: 14, color: '#991b1b' },
+  errorText: { fontSize: 14, color: me.errFg },
   infoSection: {
     gap: 16,
     marginTop: 8,
@@ -480,7 +478,7 @@ const styles = StyleSheet.create({
   infoTitle: {
     fontSize: 16,
     fontWeight: '600' as const,
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   infoItem: {
     flexDirection: 'row' as const,
@@ -490,7 +488,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: theme.colors.primaryLight ?? '#d1fae5',
+    backgroundColor: me.brandSoft,
     alignItems: 'center' as const,
     justifyContent: 'center' as const,
     marginTop: 2,
@@ -501,12 +499,12 @@ const styles = StyleSheet.create({
   infoItemTitle: {
     fontSize: 14,
     fontWeight: '600' as const,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 2,
   },
   infoItemDesc: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     lineHeight: 18,
   },
 });

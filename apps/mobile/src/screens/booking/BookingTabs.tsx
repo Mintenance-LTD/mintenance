@@ -6,9 +6,9 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { BookingStatus, Booking } from './BookingStatusScreen';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 interface BookingTabsProps {
   activeTab: BookingStatus;
@@ -25,17 +25,17 @@ export const BookingTabs: React.FC<BookingTabsProps> = ({
     {
       id: 'upcoming' as BookingStatus,
       name: 'Upcoming',
-      count: bookings.filter(b => b.status === 'upcoming').length,
+      count: bookings.filter((b) => b.status === 'upcoming').length,
     },
     {
       id: 'completed' as BookingStatus,
       name: 'Completed',
-      count: bookings.filter(b => b.status === 'completed').length,
+      count: bookings.filter((b) => b.status === 'completed').length,
     },
     {
       id: 'cancelled' as BookingStatus,
       name: 'Cancelled',
-      count: bookings.filter(b => b.status === 'cancelled').length,
+      count: bookings.filter((b) => b.status === 'cancelled').length,
     },
   ];
 
@@ -49,7 +49,7 @@ export const BookingTabs: React.FC<BookingTabsProps> = ({
             style={[styles.tab, isActive && styles.activeTab]}
             onPress={() => onTabChange(tab.id)}
             activeOpacity={0.7}
-            accessibilityRole="tab"
+            accessibilityRole='tab'
             accessibilityLabel={`${tab.name} tab, ${tab.count} bookings`}
             accessibilityState={{ selected: isActive }}
           >
@@ -58,7 +58,9 @@ export const BookingTabs: React.FC<BookingTabsProps> = ({
             </Text>
             {tab.count > 0 && (
               <View style={[styles.badge, isActive && styles.activeBadge]}>
-                <Text style={[styles.badgeText, isActive && styles.activeBadgeText]}>
+                <Text
+                  style={[styles.badgeText, isActive && styles.activeBadgeText]}
+                >
                   {tab.count}
                 </Text>
               </View>
@@ -73,20 +75,12 @@ export const BookingTabs: React.FC<BookingTabsProps> = ({
 const styles = StyleSheet.create({
   tabsContainer: {
     flexDirection: 'row',
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     marginHorizontal: 16,
     marginTop: 12,
     borderRadius: 14,
     padding: 4,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.04,
-        shadowRadius: 6,
-      },
-      android: { elevation: 1 },
-    }),
+    ...me.shadow.card,
   },
   tab: {
     flex: 1,
@@ -99,18 +93,18 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   activeTab: {
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
   },
   tabText: {
     fontSize: 13,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   activeTabText: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
   },
   badge: {
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 10,
     minWidth: 20,
     height: 20,
@@ -124,9 +118,9 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 11,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   activeBadgeText: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
   },
 });

@@ -27,7 +27,7 @@ import {
   PricingSummary,
   QuoteActions,
 } from './components';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 import { formatCurrency } from '../../utils/formatCurrency';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 
@@ -79,7 +79,7 @@ export const CreateQuoteScreen: React.FC<CreateQuoteScreenProps> = ({
     return (
       <View style={styles.loadingContainer}>
         <StatusBar barStyle='dark-content' />
-        <ActivityIndicator size='large' color={theme.colors.textPrimary} />
+        <ActivityIndicator size='large' color={me.ink} />
         <Text style={styles.loadingText}>Creating quote...</Text>
       </View>
     );
@@ -112,11 +112,7 @@ export const CreateQuoteScreen: React.FC<CreateQuoteScreenProps> = ({
               accessibilityRole='button'
               accessibilityLabel='Go back'
             >
-              <Ionicons
-                name='arrow-back'
-                size={20}
-                color={theme.colors.textPrimary}
-              />
+              <Ionicons name='arrow-back' size={20} color={me.ink} />
             </TouchableOpacity>
             <View style={styles.headerCenter}>
               <Text style={styles.headerTitle}>New Quote</Text>
@@ -128,11 +124,7 @@ export const CreateQuoteScreen: React.FC<CreateQuoteScreenProps> = ({
               accessibilityRole='button'
               accessibilityLabel='Use template'
             >
-              <Ionicons
-                name='document-text-outline'
-                size={18}
-                color={theme.colors.textPrimary}
-              />
+              <Ionicons name='document-text-outline' size={18} color={me.ink} />
             </TouchableOpacity>
           </View>
 
@@ -260,27 +252,27 @@ export const CreateQuoteScreen: React.FC<CreateQuoteScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
 
   // Header
   header: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     paddingHorizontal: 16,
     paddingBottom: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   headerTop: {
     flexDirection: 'row',
@@ -291,7 +283,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -302,12 +294,12 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     letterSpacing: -0.3,
   },
   headerSubtitle: {
     fontSize: 12,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     fontWeight: '500',
     marginTop: 1,
   },
@@ -315,7 +307,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -330,10 +322,10 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 3,
     borderRadius: 1.5,
-    backgroundColor: theme.colors.border,
+    backgroundColor: me.line,
   },
   progressSegmentActive: {
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
   },
   progressLabels: {
     flexDirection: 'row',
@@ -343,10 +335,10 @@ const styles = StyleSheet.create({
   progressLabel: {
     fontSize: 11,
     fontWeight: '500',
-    color: theme.colors.textTertiary,
+    color: me.ink3,
   },
   progressLabelActive: {
-    color: theme.colors.textPrimary,
+    color: me.ink,
     fontWeight: '600',
   },
 
@@ -360,20 +352,12 @@ const styles = StyleSheet.create({
 
   // Floating bar
   floatingBar: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: theme.colors.border,
+    borderTopColor: me.line,
     paddingHorizontal: 16,
     paddingTop: 12,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: -4 },
-        shadowOpacity: 0.06,
-        shadowRadius: 12,
-      },
-      android: { elevation: 8 },
-    }),
+    ...me.shadow.pop,
   },
   floatingTop: {
     flexDirection: 'row',
@@ -383,17 +367,17 @@ const styles = StyleSheet.create({
   },
   floatingLabel: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     fontWeight: '500',
   },
   floatingAmount: {
     fontSize: 22,
     fontWeight: '800',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     letterSpacing: -0.5,
   },
   itemBadge: {
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 10,
@@ -401,6 +385,6 @@ const styles = StyleSheet.create({
   itemBadgeText: {
     fontSize: 12,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
 });
