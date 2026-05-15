@@ -17,7 +17,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 import { logger } from '../../../utils/logger';
 import { mobileApiClient } from '../../../utils/mobileApiClient';
 
@@ -107,7 +107,7 @@ export function TipsReceivedSection({
   return (
     <View style={styles.container}>
       <View style={styles.headerRow}>
-        <Ionicons name='heart' size={18} color={theme.colors.primary} />
+        <Ionicons name='heart' size={18} color={me.brand} />
         <Text style={styles.headerText}>Tips received</Text>
       </View>
 
@@ -142,10 +142,10 @@ const styles = StyleSheet.create({
   container: {
     margin: 16,
     padding: 16,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
   headerRow: {
     flexDirection: 'row',
@@ -156,25 +156,25 @@ const styles = StyleSheet.create({
   headerText: {
     fontSize: 16,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   totalText: {
     fontSize: 28,
     fontWeight: '700',
-    color: theme.colors.primary,
+    color: me.brand,
     lineHeight: 32,
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     lineHeight: 18,
   },
   notesBox: {
     marginTop: 12,
     padding: 12,
     borderRadius: 8,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     gap: 12,
   },
   noteRow: {
@@ -188,16 +188,16 @@ const styles = StyleSheet.create({
   noteAmount: {
     fontSize: 13,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   noteDate: {
     fontSize: 11,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
   },
   noteBody: {
     fontSize: 12,
     fontStyle: 'italic',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     lineHeight: 16,
   },
 });

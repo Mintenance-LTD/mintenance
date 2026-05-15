@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 import { styles } from '../jobDetailsStyles';
 
 /**
@@ -15,7 +15,7 @@ export const DetailRow: React.FC<{
 }> = ({ icon, label, value }) => (
   <View style={styles.detailRow}>
     <View style={styles.detailIconContainer}>
-      <Ionicons name={icon} size={20} color={theme.colors.textSecondary} />
+      <Ionicons name={icon} size={20} color={me.ink2} />
     </View>
     <View style={styles.detailContent}>
       <Text style={styles.detailLabel}>{label}</Text>

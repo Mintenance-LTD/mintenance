@@ -1,10 +1,10 @@
-import { Platform, StyleSheet } from 'react-native';
-import { theme } from '../../theme';
+import { StyleSheet } from 'react-native';
+import { me } from '../../design-system/mint-editorial';
 
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   centered: {
     flex: 1,
@@ -15,7 +15,7 @@ export const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   header: {
     flexDirection: 'row',
@@ -24,13 +24,13 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   backButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -42,17 +42,17 @@ export const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   headerSubtitle: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginTop: 2,
   },
   photoCount: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   content: {
     flex: 1,
@@ -73,12 +73,12 @@ export const styles = StyleSheet.create({
     gap: 4,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 6,
   },
   timestampText: {
     fontSize: 11,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     fontWeight: '500',
   },
   thumbnailRow: {
@@ -92,20 +92,20 @@ export const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
     borderColor: 'transparent',
   },
   thumbnailActive: {
-    borderColor: theme.colors.textPrimary,
-    backgroundColor: theme.colors.border,
+    borderColor: me.ink,
+    backgroundColor: me.line,
   },
   thumbnailText: {
     fontSize: 14,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   instructions: {
     flexDirection: 'row',
@@ -114,42 +114,34 @@ export const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 16,
     padding: 12,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 12,
   },
   instructionsText: {
     flex: 1,
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     lineHeight: 20,
   },
   changesForm: {
     margin: 16,
     padding: 16,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   changesLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 12,
   },
   changesInput: {
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 12,
     padding: 12,
     fontSize: 15,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     minHeight: 100,
   },
   changesActions: {
@@ -165,18 +157,18 @@ export const styles = StyleSheet.create({
   },
   cancelButtonText: {
     fontSize: 15,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     fontWeight: '600',
   },
   submitButton: {
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 28,
   },
   submitButtonText: {
     fontSize: 15,
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontWeight: '600',
   },
   buttonDisabled: {
@@ -188,7 +180,7 @@ export const styles = StyleSheet.create({
     paddingVertical: 16,
     gap: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: theme.colors.border,
+    borderTopColor: me.line,
   },
   requestChangesButton: {
     flex: 1,
@@ -198,12 +190,12 @@ export const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 14,
     borderRadius: 28,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   requestChangesText: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   approveButton: {
     flex: 1,
@@ -213,18 +205,18 @@ export const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 14,
     borderRadius: 28,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
   },
   approveButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
   },
   emptyIconWrap: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
@@ -232,12 +224,12 @@ export const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 22,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginTop: 16,
   },
   emptySubtitle: {
     fontSize: 15,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     textAlign: 'center',
     marginTop: 8,
     lineHeight: 22,

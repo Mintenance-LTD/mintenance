@@ -8,7 +8,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useJobTravelTracking } from '../../../hooks/useJobTravelTracking';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 interface Props {
   jobId: string;
@@ -75,11 +75,7 @@ export const ContractorLocationSection: React.FC<Props> = ({
               accessibilityRole='button'
               accessibilityLabel='Mark as arrived'
             >
-              <Ionicons
-                name='flag'
-                size={16}
-                color={theme.colors.textInverse}
-              />
+              <Ionicons name='flag' size={16} color={me.onBrand} />
               <Text style={styles.arrivedButtonText}>Arrived</Text>
             </TouchableOpacity>
 
@@ -89,11 +85,7 @@ export const ContractorLocationSection: React.FC<Props> = ({
               accessibilityRole='button'
               accessibilityLabel='Stop tracking'
             >
-              <Ionicons
-                name='stop-circle-outline'
-                size={16}
-                color={theme.colors.error}
-              />
+              <Ionicons name='stop-circle-outline' size={16} color={me.errFg} />
               <Text style={styles.stopButtonText}>Stop</Text>
             </TouchableOpacity>
           </View>
@@ -106,11 +98,7 @@ export const ContractorLocationSection: React.FC<Props> = ({
           accessibilityRole='button'
           accessibilityLabel='Start location tracking'
         >
-          <Ionicons
-            name='navigate'
-            size={18}
-            color={theme.colors.textInverse}
-          />
+          <Ionicons name='navigate' size={18} color={me.onBrand} />
           <Text style={styles.startButtonText}>
             {hasDestination ? 'Share My Location' : 'Job location unavailable'}
           </Text>
@@ -124,18 +112,18 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 12,
   },
   errorText: {
     fontSize: 13,
-    color: theme.colors.error,
+    color: me.errFg,
     marginBottom: 8,
   },
   trackingCard: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     padding: 16,
   },
@@ -149,16 +137,16 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
   },
   trackingText: {
     fontSize: 14,
     fontWeight: '500',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   etaText: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginBottom: 12,
   },
   trackingActions: {
@@ -171,12 +159,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
     borderRadius: 28,
     paddingVertical: 10,
   },
   arrivedButtonText: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -185,13 +173,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: '#FEE2E2',
+    backgroundColor: me.errBg,
     borderRadius: 28,
     paddingVertical: 10,
     paddingHorizontal: 16,
   },
   stopButtonText: {
-    color: theme.colors.error,
+    color: me.errFg,
     fontSize: 14,
     fontWeight: '600',
   },
@@ -200,7 +188,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
     borderRadius: 28,
     paddingVertical: 14,
   },
@@ -208,7 +196,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   startButtonText: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontSize: 15,
     fontWeight: '600',
   },

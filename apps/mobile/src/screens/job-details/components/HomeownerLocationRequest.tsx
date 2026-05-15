@@ -6,7 +6,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { mobileApiClient } from '../../../utils/mobileApiClient';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 interface Props {
   jobId: string;
@@ -22,7 +22,10 @@ export const HomeownerLocationRequest: React.FC<Props> = ({ jobId }) => {
       await mobileApiClient.post(`/api/jobs/${jobId}/request-location`);
       setRequested(true);
     } catch {
-      Alert.alert('Unable to Request', 'Could not send location request. Please try again.');
+      Alert.alert(
+        'Unable to Request',
+        'Could not send location request. Please try again.'
+      );
     } finally {
       setLoading(false);
     }
@@ -35,7 +38,7 @@ export const HomeownerLocationRequest: React.FC<Props> = ({ jobId }) => {
       {requested ? (
         <View style={styles.requestedCard}>
           <View style={styles.statusRow}>
-            <Ionicons name="checkmark-circle" size={20} color={theme.colors.primary} />
+            <Ionicons name='checkmark-circle' size={20} color={me.brand} />
             <Text style={styles.requestedText}>Location request sent</Text>
           </View>
           <Text style={styles.requestedSubtext}>
@@ -47,10 +50,10 @@ export const HomeownerLocationRequest: React.FC<Props> = ({ jobId }) => {
           style={styles.requestButton}
           onPress={handleRequestLocation}
           disabled={loading}
-          accessibilityRole="button"
-          accessibilityLabel="Request contractor location"
+          accessibilityRole='button'
+          accessibilityLabel='Request contractor location'
         >
-          <Ionicons name="navigate-outline" size={20} color={theme.colors.textInverse} />
+          <Ionicons name='navigate-outline' size={20} color={me.onBrand} />
           <Text style={styles.requestButtonText}>
             {loading ? 'Sending...' : 'Request Live Location'}
           </Text>
@@ -64,7 +67,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 12,
@@ -73,7 +76,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
     paddingVertical: 14,
     paddingHorizontal: 20,
     borderRadius: 12,
@@ -82,10 +85,10 @@ const styles = StyleSheet.create({
   requestButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
   },
   requestedCard: {
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: me.brandSoft,
     borderRadius: 12,
     padding: 16,
   },
@@ -98,11 +101,11 @@ const styles = StyleSheet.create({
   requestedText: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.primary,
+    color: me.brand,
   },
   requestedSubtext: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginLeft: 28,
   },
 });

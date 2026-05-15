@@ -25,7 +25,7 @@ import { RouteProp } from '@react-navigation/native';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import { HapticService } from '../../utils/haptics';
 import { JobsStackParamList } from '../../navigation/types';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 type ScreenRouteProp = RouteProp<JobsStackParamList, 'ReviewSubmission'>;
 type ScreenNavigationProp = NativeStackNavigationProp<
@@ -81,10 +81,7 @@ export const ReviewSubmissionScreen: React.FC<Props> = ({
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <StatusBar
-        barStyle='dark-content'
-        backgroundColor={theme.colors.surface}
-      />
+      <StatusBar barStyle='dark-content' backgroundColor={me.surface} />
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -93,11 +90,7 @@ export const ReviewSubmissionScreen: React.FC<Props> = ({
           accessibilityRole='button'
           accessibilityLabel='Go back'
         >
-          <Ionicons
-            name='arrow-back'
-            size={22}
-            color={theme.colors.textPrimary}
-          />
+          <Ionicons name='arrow-back' size={22} color={me.ink} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Leave a Review</Text>
         <View style={styles.headerSpacer} />
@@ -143,11 +136,7 @@ export const ReviewSubmissionScreen: React.FC<Props> = ({
                   <Ionicons
                     name={star <= rating ? 'star' : 'star-outline'}
                     size={40}
-                    color={
-                      star <= rating
-                        ? theme.colors.accent
-                        : theme.colors.textTertiary
-                    }
+                    color={star <= rating ? me.accent : me.ink3}
                   />
                 </TouchableOpacity>
               ))}
@@ -169,7 +158,7 @@ export const ReviewSubmissionScreen: React.FC<Props> = ({
             <TextInput
               style={styles.commentInput}
               placeholder='Share your experience with this job...'
-              placeholderTextColor={theme.colors.textTertiary}
+              placeholderTextColor={me.ink3}
               multiline
               numberOfLines={6}
               textAlignVertical='top'
@@ -214,14 +203,10 @@ export const ReviewSubmissionScreen: React.FC<Props> = ({
           accessibilityLabel='Submit review'
         >
           {submitting ? (
-            <ActivityIndicator color={theme.colors.textInverse} />
+            <ActivityIndicator color={me.onBrand} />
           ) : (
             <>
-              <Ionicons
-                name='send'
-                size={20}
-                color={theme.colors.textInverse}
-              />
+              <Ionicons name='send' size={20} color={me.onBrand} />
               <Text style={styles.submitButtonText}>Submit Review</Text>
             </>
           )}
@@ -234,7 +219,7 @@ export const ReviewSubmissionScreen: React.FC<Props> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   flex: {
     flex: 1,
@@ -245,14 +230,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
+    borderBottomColor: me.line,
+    backgroundColor: me.surface,
   },
   backButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -260,7 +245,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginLeft: 8,
   },
   headerSpacer: {
@@ -273,28 +258,20 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   jobInfoCard: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 20,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   jobTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   contractorName: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginTop: 4,
   },
   ratingSection: {
@@ -304,7 +281,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 12,
     alignSelf: 'flex-start',
   },
@@ -318,64 +295,48 @@ const styles = StyleSheet.create({
   ratingLabel: {
     fontSize: 13,
     fontWeight: '500',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginTop: 8,
   },
   commentSection: {
     marginBottom: 20,
   },
   commentInput: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     padding: 16,
     fontSize: 15,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     minHeight: 140,
     lineHeight: 22,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   charCount: {
     fontSize: 12,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     marginTop: 8,
     textAlign: 'right',
   },
   charCountWarning: {
-    color: theme.colors.accent,
+    color: me.accent,
   },
   charCountNearLimit: {
-    color: theme.colors.error,
+    color: me.errFg,
   },
   bottomBar: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     paddingHorizontal: 20,
     paddingTop: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: theme.colors.border,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: -2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 12,
-      },
-      android: { elevation: 8 },
-    }),
+    borderTopColor: me.line,
+    ...me.shadow.pop,
   },
   submitButton: {
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
     borderRadius: 28,
     paddingVertical: 16,
     flexDirection: 'row',
@@ -388,7 +349,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   submitButtonText: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontSize: 16,
     fontWeight: '600',
   },

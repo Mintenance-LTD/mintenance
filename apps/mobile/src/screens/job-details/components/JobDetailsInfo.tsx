@@ -5,20 +5,44 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { Job } from '@mintenance/types';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 interface JobDetailsInfoProps {
   job: Job;
 }
 
 const INFO_ITEMS = [
-  { key: 'location', label: 'Location', icon: 'location-outline' as const, color: theme.colors.error, bg: '#FEE2E2' },
-  { key: 'budget', label: 'Budget Range', icon: 'cash-outline' as const, color: theme.colors.primary, bg: theme.colors.primaryLight },
-  { key: 'timeline', label: 'Timeline', icon: 'calendar-outline' as const, color: '#3B82F6', bg: '#DBEAFE' },
-  { key: 'created', label: 'Created', icon: 'time-outline' as const, color: '#8B5CF6', bg: '#EDE9FE' },
+  {
+    key: 'location',
+    label: 'Location',
+    icon: 'location-outline' as const,
+    color: me.errFg,
+    bg: me.errBg,
+  },
+  {
+    key: 'budget',
+    label: 'Budget Range',
+    icon: 'cash-outline' as const,
+    color: me.brand,
+    bg: me.brandSoft,
+  },
+  {
+    key: 'timeline',
+    label: 'Timeline',
+    icon: 'calendar-outline' as const,
+    color: '#3B82F6',
+    bg: '#DBEAFE',
+  },
+  {
+    key: 'created',
+    label: 'Created',
+    icon: 'time-outline' as const,
+    color: '#8B5CF6',
+    bg: '#EDE9FE',
+  },
 ];
 
 export const JobDetailsInfo: React.FC<JobDetailsInfoProps> = ({ job }) => {
@@ -40,7 +64,9 @@ export const JobDetailsInfo: React.FC<JobDetailsInfoProps> = ({ job }) => {
   const getValue = (key: string) => {
     switch (key) {
       case 'location':
-        return typeof job.location === 'string' ? job.location : 'Not specified';
+        return typeof job.location === 'string'
+          ? job.location
+          : 'Not specified';
       case 'budget':
         return job.budget_min && job.budget_max
           ? `${formatCurrency(job.budget_min)} - ${formatCurrency(job.budget_max)}`
@@ -77,24 +103,16 @@ export const JobDetailsInfo: React.FC<JobDetailsInfoProps> = ({ job }) => {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     padding: 20,
     marginBottom: 12,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 16,
     letterSpacing: -0.3,
   },
@@ -119,12 +137,12 @@ const styles = StyleSheet.create({
   infoLabel: {
     fontSize: 12,
     fontWeight: '500',
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     marginBottom: 2,
   },
   infoValue: {
     fontSize: 15,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     fontWeight: '500',
   },
 });

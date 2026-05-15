@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 import { styles } from '../jobDetailsStyles';
 
 interface Props {
@@ -23,11 +23,7 @@ export const JobPricingCard: React.FC<Props> = ({ budget, onEscrowInfo }) => (
           <Text style={styles.pricingLabelText}>Estimated cost</Text>
         </View>
         <View style={styles.escrowBadge}>
-          <Ionicons
-            name='shield-checkmark'
-            size={16}
-            color={theme.colors.textSecondary}
-          />
+          <Ionicons name='shield-checkmark' size={16} color={me.ink2} />
           <Text style={styles.escrowText}>Escrow protected</Text>
           <TouchableOpacity
             onPress={onEscrowInfo}
@@ -38,7 +34,7 @@ export const JobPricingCard: React.FC<Props> = ({ budget, onEscrowInfo }) => (
             <Ionicons
               name='information-circle-outline'
               size={18}
-              color={theme.colors.textSecondary}
+              color={me.ink2}
             />
           </TouchableOpacity>
         </View>

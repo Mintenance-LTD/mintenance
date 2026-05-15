@@ -3,9 +3,9 @@
  * Extracted from ContractViewScreen to keep file size manageable.
  */
 import React from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 interface Contract {
   contractor_signed_at: string | null;
@@ -34,11 +34,7 @@ export const ContractSignatureSection: React.FC<
                 : 'ellipse-outline'
             }
             size={24}
-            color={
-              contract.contractor_signed_at
-                ? theme.colors.primary
-                : theme.colors.textTertiary
-            }
+            color={contract.contractor_signed_at ? me.brand : me.ink3}
           />
           <View style={styles.signatureInfo}>
             <Text style={styles.signatureLabel}>
@@ -60,11 +56,7 @@ export const ContractSignatureSection: React.FC<
                 : 'ellipse-outline'
             }
             size={24}
-            color={
-              contract.homeowner_signed_at
-                ? theme.colors.primary
-                : theme.colors.textTertiary
-            }
+            color={contract.homeowner_signed_at ? me.brand : me.ink3}
           />
           <View style={styles.signatureInfo}>
             <Text style={styles.signatureLabel}>
@@ -81,11 +73,7 @@ export const ContractSignatureSection: React.FC<
 
       {contract.status === 'accepted' && (
         <View style={styles.acceptedBanner}>
-          <Ionicons
-            name='checkmark-circle'
-            size={24}
-            color={theme.colors.primary}
-          />
+          <Ionicons name='checkmark-circle' size={24} color={me.brand} />
           <Text style={styles.acceptedText}>
             Contract accepted! Both parties have signed.
           </Text>
@@ -97,24 +85,16 @@ export const ContractSignatureSection: React.FC<
 
 const styles = StyleSheet.create({
   signaturesCard: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 20,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   signaturesTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 12,
   },
   signatureRow: {
@@ -128,19 +108,19 @@ const styles = StyleSheet.create({
   },
   signatureLabel: {
     fontSize: 15,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     fontWeight: '500',
   },
   signatureDate: {
     fontSize: 12,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     marginTop: 2,
   },
   acceptedBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: me.brandSoft,
     borderRadius: 16,
     padding: 16,
   },
@@ -148,6 +128,6 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     fontWeight: '500',
-    color: theme.colors.primaryDark,
+    color: me.brand2,
   },
 });

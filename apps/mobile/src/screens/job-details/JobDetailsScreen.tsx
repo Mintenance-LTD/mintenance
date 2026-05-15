@@ -34,7 +34,7 @@ import { TipsReceivedSection } from './components/TipsReceivedSection';
 import { useAuth } from '../../contexts/AuthContext';
 import type { JobsStackParamList } from '../../navigation/types';
 import { normalizePhotoUrls } from '../../utils/photoUrls';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 import { getPriorityCTA, type CTAContext } from './JobDetailsCTA';
 import { EscrowInfoModal } from './EscrowInfoModal';
 import { styles } from './jobDetailsStyles';
@@ -181,11 +181,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           />
         ) : (
           <View style={styles.placeholderHero}>
-            <Ionicons
-              name={categoryIcon}
-              size={64}
-              color={theme.colors.textTertiary}
-            />
+            <Ionicons name={categoryIcon} size={64} color={me.ink3} />
           </View>
         )}
 
@@ -195,11 +191,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           accessibilityRole='button'
           accessibilityLabel='Go back'
         >
-          <Ionicons
-            name='arrow-back'
-            size={24}
-            color={theme.colors.textInverse}
-          />
+          <Ionicons name='arrow-back' size={24} color={me.onBrand} />
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -212,11 +204,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           accessibilityRole='button'
           accessibilityLabel='Share this job'
         >
-          <Ionicons
-            name='share-outline'
-            size={22}
-            color={theme.colors.textInverse}
-          />
+          <Ionicons name='share-outline' size={22} color={me.onBrand} />
         </TouchableOpacity>
 
         <JobLifecycleStepper

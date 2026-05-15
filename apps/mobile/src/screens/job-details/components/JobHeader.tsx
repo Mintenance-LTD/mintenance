@@ -5,10 +5,11 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { Job } from '@mintenance/types';
-import { theme, getStatusBadge } from '../../../theme';
+import { getStatusBadge } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 interface JobHeaderProps {
   job: Job;
@@ -31,23 +32,32 @@ export const JobHeader: React.FC<JobHeaderProps> = ({ job }) => {
   const status = {
     color: badge.text,
     bg: badge.bg,
-    icon: STATUS_ICONS[job.status] || ('help-circle' as keyof typeof Ionicons.glyphMap),
+    icon:
+      STATUS_ICONS[job.status] ||
+      ('help-circle' as keyof typeof Ionicons.glyphMap),
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.jobTitle} accessibilityRole='header'>{job.title}</Text>
+      <Text style={styles.jobTitle} accessibilityRole='header'>
+        {job.title}
+      </Text>
 
       <View style={styles.statusRow}>
         <View style={[styles.statusBadge, { backgroundColor: status.bg }]}>
-          <Ionicons name={status.icon} size={14} color={status.color} accessible={false} />
+          <Ionicons
+            name={status.icon}
+            size={14}
+            color={status.color}
+            accessible={false}
+          />
           <Text style={[styles.statusText, { color: status.color }]}>
             {job.status.replace('_', ' ').toUpperCase()}
           </Text>
         </View>
 
         <View style={styles.dateRow}>
-          <Ionicons name="calendar-outline" size={14} color={theme.colors.textTertiary} />
+          <Ionicons name='calendar-outline' size={14} color={me.ink3} />
           <Text style={styles.dateText}>
             {new Date(job.created_at).toLocaleDateString()}
           </Text>
@@ -63,24 +73,16 @@ export const JobHeader: React.FC<JobHeaderProps> = ({ job }) => {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     padding: 20,
     marginBottom: 12,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   jobTitle: {
     fontSize: 22,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 12,
     letterSpacing: -0.3,
   },
@@ -109,11 +111,11 @@ const styles = StyleSheet.create({
   },
   dateText: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   description: {
     fontSize: 15,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     lineHeight: 22,
   },
 });
