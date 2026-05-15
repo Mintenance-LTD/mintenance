@@ -36,7 +36,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { useOnboardingProgress } from '../../../hooks/useOnboardingProgress';
 import type { OnboardingActionKey } from '../../../hooks/useOnboardingProgress';
 import { logger } from '../../../utils/logger';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 type Navigation = NavigationProp<Record<string, object | undefined>>;
 
@@ -112,7 +112,7 @@ export const FinishSetupCard: React.FC = () => {
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.headerTitleWrap}>
-          <Ionicons name='sparkles' size={18} color={theme.colors.primary} />
+          <Ionicons name='sparkles' size={18} color={me.brand} />
           <Text style={styles.title}>Finish setting up</Text>
         </View>
         <Text style={styles.progressText}>
@@ -151,17 +151,9 @@ export const FinishSetupCard: React.FC = () => {
               ]}
             >
               {step.complete ? (
-                <Ionicons
-                  name='checkmark'
-                  size={16}
-                  color={theme.colors.textInverse}
-                />
+                <Ionicons name='checkmark' size={16} color={me.onBrand} />
               ) : (
-                <Ionicons
-                  name={step.icon}
-                  size={16}
-                  color={theme.colors.primary}
-                />
+                <Ionicons name={step.icon} size={16} color={me.brand} />
               )}
             </View>
             <View style={styles.stepTextWrap}>
@@ -184,11 +176,7 @@ export const FinishSetupCard: React.FC = () => {
               </Text>
             </View>
             {!step.complete && (
-              <Ionicons
-                name='chevron-forward'
-                size={18}
-                color={theme.colors.textTertiary}
-              />
+              <Ionicons name='chevron-forward' size={18} color={me.ink3} />
             )}
           </TouchableOpacity>
         ))}
@@ -199,21 +187,15 @@ export const FinishSetupCard: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 20,
+    backgroundColor: me.surface,
+    borderRadius: me.radius.card,
     marginHorizontal: 16,
     marginTop: 8,
     marginBottom: 8,
     padding: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: theme.colors.textPrimary,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    borderWidth: 1,
+    borderColor: me.line,
+    ...me.shadow.card,
   },
   header: {
     flexDirection: 'row',
@@ -229,23 +211,23 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 15,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   progressText: {
     fontSize: 12,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   progressBarTrack: {
     height: 6,
     borderRadius: 3,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     overflow: 'hidden',
     marginBottom: 12,
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
     borderRadius: 3,
   },
   stepsList: {
@@ -261,12 +243,12 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: me.brandSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
   stepIconWrapComplete: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
   },
   stepTextWrap: {
     flex: 1,
@@ -274,18 +256,18 @@ const styles = StyleSheet.create({
   stepTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   stepTitleComplete: {
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     textDecorationLine: 'line-through',
   },
   stepDescription: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginTop: 2,
   },
   stepDescriptionComplete: {
-    color: theme.colors.textTertiary,
+    color: me.ink3,
   },
 });

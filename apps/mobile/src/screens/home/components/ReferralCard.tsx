@@ -5,6 +5,8 @@
  * Homeowner generates + shares a neighbour-referral link pinned to their
  * postcode prefix. Uses the system Share sheet so iOS / Android can hand
  * off to Messages, WhatsApp, etc.
+ *
+ * Direction A · Mint Editorial — token-styled.
  */
 
 import React, { useEffect, useState } from 'react';
@@ -19,7 +21,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { mobileApiClient as apiClient } from '../../../utils/mobileApiClient';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 interface ReferralPayload {
   referral: {
@@ -93,29 +95,25 @@ export const ReferralCard: React.FC<{ defaultPostcode?: string }> = ({
   return (
     <View
       style={{
-        backgroundColor: theme.colors.surface,
-        borderRadius: 14,
+        backgroundColor: me.surface,
+        borderRadius: me.radius.card,
         padding: 16,
         marginHorizontal: 16,
         marginTop: 12,
         borderWidth: 1,
-        borderColor: theme.colors.border,
+        borderColor: me.line,
       }}
     >
       <View
         style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}
       >
-        <Ionicons
-          name='people-circle-outline'
-          size={20}
-          color={theme.colors.primary}
-        />
+        <Ionicons name='people-circle-outline' size={20} color={me.brand} />
         <Text
           style={{
             marginLeft: 6,
             fontSize: 16,
             fontWeight: '700',
-            color: theme.colors.textPrimary,
+            color: me.ink,
           }}
         >
           £20 off for your neighbour
@@ -124,7 +122,7 @@ export const ReferralCard: React.FC<{ defaultPostcode?: string }> = ({
       <Text
         style={{
           fontSize: 13,
-          color: theme.colors.textSecondary,
+          color: me.ink2,
           marginBottom: 12,
         }}
       >
@@ -135,14 +133,14 @@ export const ReferralCard: React.FC<{ defaultPostcode?: string }> = ({
       {balancePence > 0 && (
         <View
           style={{
-            backgroundColor: theme.colors.primaryLight,
+            backgroundColor: me.brandSoft,
             paddingHorizontal: 12,
             paddingVertical: 8,
             borderRadius: 10,
             marginBottom: 12,
           }}
         >
-          <Text style={{ color: theme.colors.primary, fontSize: 13 }}>
+          <Text style={{ color: me.brand2, fontSize: 13 }}>
             You have £{(balancePence / 100).toFixed(2)} of neighbour credit
             ready to use.
           </Text>
@@ -155,15 +153,15 @@ export const ReferralCard: React.FC<{ defaultPostcode?: string }> = ({
             value={postcode}
             onChangeText={setPostcode}
             placeholder='Your postcode, e.g. M14 5AB'
-            placeholderTextColor={theme.colors.textSecondary}
+            placeholderTextColor={me.ink4}
             autoCapitalize='characters'
             style={{
               borderWidth: 1,
-              borderColor: theme.colors.border,
-              borderRadius: 10,
+              borderColor: me.line,
+              borderRadius: me.radius.input,
               paddingHorizontal: 12,
               paddingVertical: 10,
-              color: theme.colors.textPrimary,
+              color: me.ink,
               marginBottom: 10,
             }}
           />
@@ -171,17 +169,17 @@ export const ReferralCard: React.FC<{ defaultPostcode?: string }> = ({
             onPress={generate}
             disabled={loading}
             style={{
-              backgroundColor: theme.colors.primary,
+              backgroundColor: me.brand,
               paddingVertical: 12,
-              borderRadius: 10,
+              borderRadius: me.radius.btn,
               alignItems: 'center',
               opacity: loading ? 0.6 : 1,
             }}
           >
             {loading ? (
-              <ActivityIndicator color={theme.colors.surface} />
+              <ActivityIndicator color={me.onBrand} />
             ) : (
-              <Text style={{ color: theme.colors.surface, fontWeight: '700' }}>
+              <Text style={{ color: me.onBrand, fontWeight: '700' }}>
                 Generate link
               </Text>
             )}
@@ -192,7 +190,7 @@ export const ReferralCard: React.FC<{ defaultPostcode?: string }> = ({
           <Text
             style={{
               fontSize: 12,
-              color: theme.colors.textSecondary,
+              color: me.ink2,
               marginBottom: 4,
             }}
           >
@@ -203,7 +201,7 @@ export const ReferralCard: React.FC<{ defaultPostcode?: string }> = ({
             style={{
               flexDirection: 'row',
               alignItems: 'center',
-              backgroundColor: theme.colors.background,
+              backgroundColor: me.bg2,
               borderRadius: 10,
               padding: 10,
               marginBottom: 10,
@@ -211,7 +209,7 @@ export const ReferralCard: React.FC<{ defaultPostcode?: string }> = ({
           >
             <Text
               numberOfLines={1}
-              style={{ flex: 1, color: theme.colors.textPrimary, fontSize: 12 }}
+              style={{ flex: 1, color: me.ink, fontSize: 12 }}
             >
               {shareUrl}
             </Text>
@@ -219,22 +217,18 @@ export const ReferralCard: React.FC<{ defaultPostcode?: string }> = ({
           <TouchableOpacity
             onPress={share}
             style={{
-              backgroundColor: theme.colors.primary,
+              backgroundColor: me.brand,
               paddingVertical: 12,
-              borderRadius: 10,
+              borderRadius: me.radius.btn,
               alignItems: 'center',
               flexDirection: 'row',
               justifyContent: 'center',
             }}
           >
-            <Ionicons
-              name='share-outline'
-              size={18}
-              color={theme.colors.surface}
-            />
+            <Ionicons name='share-outline' size={18} color={me.onBrand} />
             <Text
               style={{
-                color: theme.colors.surface,
+                color: me.onBrand,
                 fontWeight: '700',
                 marginLeft: 8,
               }}

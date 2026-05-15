@@ -6,17 +6,12 @@
  */
 
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Platform,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { OptimizedImage } from '../../components/optimized/OptimizedImage';
 import { Skeleton } from '../../components/skeletons/Skeleton';
-import { theme, getStatusBadge } from '../../theme';
+import { getStatusBadge } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 import { normalizePhotoUrls } from '../../utils/photoUrls';
 
 interface RecentJob {
@@ -222,9 +217,7 @@ export const RecentJobs: React.FC<RecentJobsProps> = ({
                       }
                       size={22}
                       color={
-                        savedJobIds.includes(job.id)
-                          ? theme.colors.error
-                          : theme.colors.textInverse
+                        savedJobIds.includes(job.id) ? me.errFg : me.onBrand
                       }
                     />
                   </TouchableOpacity>
@@ -272,11 +265,7 @@ export const RecentJobs: React.FC<RecentJobsProps> = ({
                     job.status === 'in_progress') && (
                     <View style={styles.contractorRow}>
                       <View style={styles.contractorAvatar}>
-                        <Ionicons
-                          name='person'
-                          size={12}
-                          color={theme.colors.textSecondary}
-                        />
+                        <Ionicons name='person' size={12} color={me.ink2} />
                       </View>
                       <Text style={styles.contractorText}>
                         Contractor: {job.contractor.first_name}{' '}
@@ -292,7 +281,7 @@ export const RecentJobs: React.FC<RecentJobsProps> = ({
                       <Ionicons
                         name='hourglass-outline'
                         size={12}
-                        color={theme.colors.textSecondary}
+                        color={me.ink2}
                       />
                     </View>
                     <Text style={styles.contractorText}>
@@ -307,11 +296,7 @@ export const RecentJobs: React.FC<RecentJobsProps> = ({
       ) : (
         <View style={styles.emptyState}>
           <View style={styles.emptyIconWrap}>
-            <Ionicons
-              name='briefcase-outline'
-              size={28}
-              color={theme.colors.textTertiary}
-            />
+            <Ionicons name='briefcase-outline' size={28} color={me.ink3} />
           </View>
           <Text style={styles.emptyText}>No jobs posted yet</Text>
           <Text style={styles.emptySubtext}>
@@ -334,31 +319,24 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-    letterSpacing: -0.3,
+    fontFamily: me.font.display,
+    fontSize: 22,
+    color: me.ink,
+    letterSpacing: me.displayTracking,
   },
   viewAllLink: {
     fontSize: 14,
-    color: theme.colors.textPrimary,
+    color: me.brand,
     fontWeight: '600',
-    textDecorationLine: 'underline',
   },
   listing: {
     marginBottom: 20,
-    backgroundColor: theme.colors.surface,
-    borderRadius: 24,
+    backgroundColor: me.surface,
+    borderRadius: me.radius.card,
     overflow: 'hidden',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.06,
-        shadowRadius: 16,
-      },
-      android: { elevation: 3 },
-    }),
+    borderWidth: 1,
+    borderColor: me.line,
+    ...me.shadow.pop,
   },
   imageContainer: {
     position: 'relative',
@@ -426,7 +404,7 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 12,
     fontWeight: '600',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
   },
   listingContent: {
     padding: 16,
@@ -443,21 +421,21 @@ const styles = StyleSheet.create({
   categoryLabel: {
     fontSize: 10,
     fontWeight: '700',
-    color: theme.colors.primary,
+    color: me.brand,
     letterSpacing: 1.2,
     marginBottom: 4,
   },
   jobTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     letterSpacing: -0.3,
   },
   budgetText: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: theme.colors.textPrimary,
-    letterSpacing: -0.5,
+    fontFamily: me.font.display,
+    fontSize: 22,
+    color: me.ink,
+    letterSpacing: me.displayTracking,
   },
   contractorRow: {
     flexDirection: 'row',
@@ -466,43 +444,35 @@ const styles = StyleSheet.create({
     marginTop: 14,
     paddingTop: 14,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: theme.colors.border,
+    borderTopColor: me.line2,
   },
   contractorAvatar: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
   },
   contractorText: {
     fontSize: 13,
     fontWeight: '500',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   emptyState: {
     padding: 40,
     alignItems: 'center',
-    backgroundColor: theme.colors.surface,
-    borderRadius: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.04,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 1,
-      },
-    }),
+    backgroundColor: me.surface,
+    borderRadius: me.radius.card,
+    borderWidth: 1,
+    borderColor: me.line,
+    ...me.shadow.card,
   },
   emptyIconWrap: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
@@ -510,12 +480,12 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     textAlign: 'center',
   },
   emptySubtext: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginTop: 4,
   },
 });
