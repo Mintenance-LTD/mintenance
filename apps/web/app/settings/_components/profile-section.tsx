@@ -1,5 +1,6 @@
 import type { Dispatch, SetStateAction } from 'react';
 import Image from 'next/image';
+import { Check } from 'lucide-react';
 import type { ProfileData } from './types';
 
 interface ProfileSectionProps {
@@ -12,6 +13,25 @@ interface ProfileSectionProps {
   onAvatarUpload: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
 }
 
+/**
+ * Profile settings section — Direction A · Mint Editorial. Renders on
+ * the `--me-*` tokens + `.card` / `.field` / `.btn` primitives.
+ */
+
+const labelStyle: React.CSSProperties = {
+  display: 'block',
+  fontSize: 12,
+  fontWeight: 600,
+  color: 'var(--me-ink-2)',
+  marginBottom: 6,
+};
+
+const hintStyle: React.CSSProperties = {
+  fontSize: 12,
+  color: 'var(--me-ink-3)',
+  margin: '6px 0 0',
+};
+
 export function ProfileSection({
   userInitial,
   profileData,
@@ -22,58 +42,80 @@ export function ProfileSection({
   onAvatarUpload,
 }: ProfileSectionProps) {
   return (
-    <div className='space-y-6'>
-      <h1 className='text-3xl font-bold text-gray-900 mb-2'>Profile</h1>
-      <p className='text-gray-600 mb-6'>Manage your personal information</p>
+    <div>
+      <h1 className='t-h1' style={{ marginBottom: 4 }}>
+        Profile
+      </h1>
+      <p className='t-body' style={{ margin: '0 0 20px' }}>
+        Manage your personal information
+      </p>
 
-      <div className='bg-white rounded-xl border border-gray-200 p-8'>
+      <div className='card' style={{ padding: 28 }}>
         {/* Avatar Upload */}
-        <div className='mb-8'>
-          <label className='block text-sm font-medium text-gray-900 mb-2'>
-            Profile Photo
-          </label>
-          <div className='flex items-center gap-6'>
-            <div className='relative'>
-              {profileData.profile_image_url ? (
-                <Image
-                  src={profileData.profile_image_url}
-                  alt='Profile'
-                  width={120}
-                  height={120}
-                  className='rounded-full object-cover'
-                />
-              ) : (
-                <div className='w-[120px] h-[120px] rounded-full bg-teal-600 flex items-center justify-center text-white text-4xl font-bold'>
-                  {userInitial}
-                </div>
-              )}
-            </div>
+        <div style={{ marginBottom: 28 }}>
+          <span style={labelStyle}>Profile photo</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+            {profileData.profile_image_url ? (
+              <Image
+                src={profileData.profile_image_url}
+                alt='Profile'
+                width={96}
+                height={96}
+                style={{ borderRadius: 9999, objectFit: 'cover' }}
+              />
+            ) : (
+              <div
+                style={{
+                  width: 96,
+                  height: 96,
+                  borderRadius: 9999,
+                  background: 'var(--me-brand)',
+                  color: 'var(--me-on-brand)',
+                  display: 'grid',
+                  placeItems: 'center',
+                  fontSize: 34,
+                  fontWeight: 600,
+                  fontFamily: 'var(--me-font-display)',
+                }}
+              >
+                {userInitial}
+              </div>
+            )}
             <div>
-              <label className='cursor-pointer inline-block px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors'>
+              <label
+                className='btn btn-secondary'
+                style={{ cursor: 'pointer' }}
+              >
                 Change photo
                 <input
                   type='file'
                   accept='image/*'
                   onChange={onAvatarUpload}
-                  className='hidden'
+                  style={{ display: 'none' }}
                 />
               </label>
-              <p className='text-sm text-gray-500 mt-2'>
-                JPG, PNG or WEBP. Max 5MB.
-              </p>
+              <p style={hintStyle}>JPG, PNG or WEBP. Max 5MB.</p>
             </div>
           </div>
         </div>
 
         {/* Form Fields */}
-        <div className='space-y-6'>
-          <div className='grid grid-cols-2 gap-6'>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1fr 1fr',
+              gap: 16,
+            }}
+          >
             <div>
-              <label className='block text-sm font-medium text-gray-900 mb-2'>
+              <label htmlFor='profile-firstName' style={labelStyle}>
                 First name
               </label>
               <input
+                id='profile-firstName'
                 type='text'
+                className='field'
                 value={profileData.first_name}
                 onChange={(e) =>
                   setProfileData((prev) => ({
@@ -81,15 +123,16 @@ export function ProfileSection({
                     first_name: e.target.value,
                   }))
                 }
-                className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-600 focus:border-transparent bg-white text-gray-900'
               />
             </div>
             <div>
-              <label className='block text-sm font-medium text-gray-900 mb-2'>
+              <label htmlFor='profile-lastName' style={labelStyle}>
                 Last name
               </label>
               <input
+                id='profile-lastName'
                 type='text'
+                className='field'
                 value={profileData.last_name}
                 onChange={(e) =>
                   setProfileData((prev) => ({
@@ -97,78 +140,89 @@ export function ProfileSection({
                     last_name: e.target.value,
                   }))
                 }
-                className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-600 focus:border-transparent bg-white text-gray-900'
               />
             </div>
           </div>
 
           <div>
-            <label className='block text-sm font-medium text-gray-900 mb-2'>
+            <label htmlFor='profile-email' style={labelStyle}>
               Email
             </label>
             <input
+              id='profile-email'
               type='email'
+              className='field'
               value={profileData.email}
               readOnly
               disabled
-              className='w-full px-4 py-3 border border-gray-200 rounded-lg bg-gray-50 text-gray-500 cursor-not-allowed'
+              style={{
+                background: 'var(--me-bg-2)',
+                color: 'var(--me-ink-3)',
+                cursor: 'not-allowed',
+              }}
             />
-            <p className='text-sm text-gray-500 mt-1'>
+            <p style={hintStyle}>
               Email cannot be changed. Contact support if you need to update it.
             </p>
           </div>
 
           <div>
-            <label className='block text-sm font-medium text-gray-900 mb-2'>
+            <label htmlFor='profile-phone' style={labelStyle}>
               Phone
             </label>
             <input
+              id='profile-phone'
               type='tel'
+              className='field'
               value={profileData.phone}
               onChange={(e) =>
                 setProfileData((prev) => ({ ...prev, phone: e.target.value }))
               }
-              className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-600 focus:border-transparent bg-white text-gray-900'
             />
-            <p className='text-sm text-gray-500 mt-1'>
-              Optional contact number
-            </p>
+            <p style={hintStyle}>Optional contact number</p>
           </div>
 
           <div>
-            <label className='block text-sm font-medium text-gray-900 mb-2'>
+            <label htmlFor='profile-bio' style={labelStyle}>
               Bio
             </label>
             <textarea
+              id='profile-bio'
+              className='field'
               value={profileData.bio}
               onChange={(e) =>
                 setProfileData((prev) => ({ ...prev, bio: e.target.value }))
               }
               rows={4}
-              className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-600 focus:border-transparent bg-white text-gray-900'
               placeholder='Tell us about yourself...'
             />
-            <p className='text-sm text-gray-500 mt-1'>
-              Brief description for your profile
-            </p>
+            <p style={hintStyle}>Brief description for your profile</p>
           </div>
 
           {/* Location Section */}
-          <div className='border-t border-gray-200 pt-6 mt-6'>
-            <h3 className='text-lg font-semibold text-gray-900 mb-4'>
+          <div
+            style={{
+              borderTop: '1px solid var(--me-line-2)',
+              paddingTop: 22,
+              marginTop: 4,
+            }}
+          >
+            <h3 className='t-h3' style={{ marginBottom: 4 }}>
               Location
             </h3>
-            <p className='text-sm text-gray-600 mb-6'>
+            <p className='t-body' style={{ margin: '0 0 18px' }}>
               Your location helps us match you with nearby jobs and homeowners.
             </p>
 
-            <div className='space-y-4'>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               <div>
-                <label className='block text-sm font-medium text-gray-900 mb-2'>
+                <label htmlFor='profile-address' style={labelStyle}>
                   Address
                 </label>
                 <input
+                  id='profile-address'
                   type='text'
+                  className='field'
                   value={profileData.address}
                   onChange={(e) =>
                     setProfileData((prev) => ({
@@ -176,18 +230,25 @@ export function ProfileSection({
                       address: e.target.value,
                     }))
                   }
-                  className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-600 focus:border-transparent bg-white text-gray-900'
                   placeholder='123 Main Street'
                 />
               </div>
 
-              <div className='grid grid-cols-2 gap-4'>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: 16,
+                }}
+              >
                 <div>
-                  <label className='block text-sm font-medium text-gray-900 mb-2'>
+                  <label htmlFor='profile-city' style={labelStyle}>
                     City
                   </label>
                   <input
+                    id='profile-city'
                     type='text'
+                    className='field'
                     value={profileData.city}
                     onChange={(e) =>
                       setProfileData((prev) => ({
@@ -195,16 +256,17 @@ export function ProfileSection({
                         city: e.target.value,
                       }))
                     }
-                    className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-600 focus:border-transparent bg-white text-gray-900'
                     placeholder='London'
                   />
                 </div>
                 <div>
-                  <label className='block text-sm font-medium text-gray-900 mb-2'>
+                  <label htmlFor='profile-postcode' style={labelStyle}>
                     Postcode
                   </label>
                   <input
+                    id='profile-postcode'
                     type='text'
+                    className='field'
                     value={profileData.postcode}
                     onChange={(e) =>
                       setProfileData((prev) => ({
@@ -212,38 +274,60 @@ export function ProfileSection({
                         postcode: e.target.value.toUpperCase(),
                       }))
                     }
-                    className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-600 focus:border-transparent bg-white text-gray-900 uppercase'
                     autoCapitalize='characters'
                     spellCheck={false}
                     placeholder='SW1A 1AA'
+                    style={{ textTransform: 'uppercase' }}
                   />
                 </div>
               </div>
 
-              <div className='bg-teal-50 border border-teal-200 rounded-lg p-4 mt-4'>
-                <div className='flex items-start gap-3'>
-                  <div className='flex-shrink-0 w-5 h-5 bg-teal-600 rounded-full flex items-center justify-center mt-0.5'>
-                    <svg
-                      className='w-3 h-3 text-white'
-                      fill='currentColor'
-                      viewBox='0 0 20 20'
-                    >
-                      <path
-                        fillRule='evenodd'
-                        d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z'
-                        clipRule='evenodd'
-                      />
-                    </svg>
-                  </div>
-                  <div className='flex-1'>
-                    <p className='text-sm font-medium text-teal-900'>
-                      Location will be geocoded automatically
-                    </p>
-                    <p className='text-xs text-teal-700 mt-1'>
-                      When you save, we&apos;ll automatically determine your
-                      precise coordinates
-                    </p>
-                  </div>
+              <div
+                style={{
+                  background: 'var(--me-brand-soft)',
+                  borderRadius: 'var(--me-radius-input)',
+                  padding: 14,
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 12,
+                }}
+              >
+                <span
+                  style={{
+                    width: 20,
+                    height: 20,
+                    borderRadius: 9999,
+                    background: 'var(--me-brand)',
+                    color: 'var(--me-on-brand)',
+                    display: 'grid',
+                    placeItems: 'center',
+                    flexShrink: 0,
+                    marginTop: 1,
+                  }}
+                >
+                  <Check className='w-3 h-3' />
+                </span>
+                <div>
+                  <p
+                    style={{
+                      margin: 0,
+                      fontSize: 13,
+                      fontWeight: 600,
+                      color: 'var(--me-brand-2)',
+                    }}
+                  >
+                    Location will be geocoded automatically
+                  </p>
+                  <p
+                    style={{
+                      margin: '2px 0 0',
+                      fontSize: 12,
+                      color: 'var(--me-ink-2)',
+                    }}
+                  >
+                    When you save, we&apos;ll automatically determine your
+                    precise coordinates
+                  </p>
                 </div>
               </div>
             </div>
@@ -251,18 +335,24 @@ export function ProfileSection({
         </div>
 
         {/* Action Buttons */}
-        <div className='flex gap-3 mt-8 pt-6 border-t border-gray-200'>
+        <div
+          style={{
+            display: 'flex',
+            gap: 12,
+            marginTop: 28,
+            paddingTop: 22,
+            borderTop: '1px solid var(--me-line-2)',
+          }}
+        >
           <button
             onClick={onSave}
             disabled={isSaving}
-            className='px-6 py-3 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 transition-colors disabled:opacity-50'
+            className='btn btn-primary btn-lg'
+            style={{ opacity: isSaving ? 0.6 : 1 }}
           >
-            {isSaving ? 'Saving...' : 'Save changes'}
+            {isSaving ? 'Saving…' : 'Save changes'}
           </button>
-          <button
-            onClick={onReset}
-            className='px-6 py-3 text-gray-700 hover:text-gray-900 font-medium transition-colors'
-          >
+          <button onClick={onReset} className='btn btn-ghost btn-lg'>
             Cancel
           </button>
         </div>

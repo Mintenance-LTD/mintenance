@@ -3,6 +3,12 @@
 import React, { useEffect, useState } from 'react';
 import { Check } from 'lucide-react';
 
+/**
+ * Appearance settings section — Direction A · Mint Editorial. Renders
+ * on the `--me-*` tokens. The swatch arrays below intentionally carry
+ * raw hex — they are literal colour previews of each theme palette.
+ */
+
 type Theme = 'default' | 'mint-editorial';
 
 function readThemeCookie(): Theme {
@@ -55,63 +61,121 @@ export function AppearanceSection({
   }, []);
 
   // Encode the redirect path so query strings inside it survive
-  // being nested in our own ?redirect= query string. Without this
-  // the second `?section=appearance` would split the URL.
+  // being nested in our own ?redirect= query string.
   const encodedRedirect = encodeURIComponent(redirectPath);
 
   return (
-    <div className='space-y-6'>
-      <div>
-        <h1 className='text-3xl font-bold text-gray-900 mb-2'>Appearance</h1>
-        <p className='text-gray-600 mb-6'>
-          Choose how Mintenance looks in your browser. Mint Editorial is the
-          current platform design. You can switch back to the classic Navy &amp;
-          Emerald look if you prefer it.
-        </p>
-      </div>
+    <div>
+      <h1 className='t-h1' style={{ marginBottom: 4 }}>
+        Appearance
+      </h1>
+      <p className='t-body' style={{ margin: '0 0 20px' }}>
+        Choose how Mintenance looks in your browser. Mint Editorial is the
+        current platform design. You can switch back to the classic Navy &amp;
+        Emerald look if you prefer it.
+      </p>
 
-      <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+          gap: 16,
+        }}
+      >
         {OPTIONS.map((opt) => {
           const isActive = active === opt.value;
           return (
             <a
               key={opt.value}
               href={`/api/theme?value=${opt.value}&redirect=${encodedRedirect}`}
-              className={`relative block rounded-xl border-2 p-6 transition-colors ${
-                isActive
-                  ? 'border-teal-600 bg-teal-50/40'
-                  : 'border-gray-200 bg-white hover:border-gray-300'
-              }`}
               aria-current={isActive ? 'true' : undefined}
+              style={{
+                position: 'relative',
+                display: 'block',
+                borderRadius: 'var(--me-radius-card)',
+                border: `2px solid ${
+                  isActive ? 'var(--me-brand)' : 'var(--me-line)'
+                }`,
+                background: isActive
+                  ? 'var(--me-brand-soft)'
+                  : 'var(--me-surface)',
+                padding: 20,
+                textDecoration: 'none',
+                color: 'var(--me-ink)',
+              }}
             >
               {isActive && (
-                <span className='absolute top-4 right-4 inline-flex items-center justify-center w-6 h-6 rounded-full bg-teal-600 text-white'>
+                <span
+                  style={{
+                    position: 'absolute',
+                    top: 14,
+                    right: 14,
+                    width: 24,
+                    height: 24,
+                    borderRadius: 9999,
+                    background: 'var(--me-brand)',
+                    color: 'var(--me-on-brand)',
+                    display: 'grid',
+                    placeItems: 'center',
+                  }}
+                >
                   <Check size={14} strokeWidth={3} />
                 </span>
               )}
-              <div className='flex items-center gap-2 mb-3'>
+              <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
                 {opt.swatches.map((c) => (
                   <span
                     key={c}
-                    className='w-6 h-6 rounded-full border border-gray-200'
-                    style={{ background: c }}
                     aria-hidden='true'
+                    style={{
+                      width: 24,
+                      height: 24,
+                      borderRadius: 9999,
+                      background: c,
+                      border: '1px solid var(--me-line)',
+                    }}
                   />
                 ))}
               </div>
-              <h2 className='text-lg font-semibold text-gray-900 mb-1'>
+              <h2 className='t-h4' style={{ marginBottom: 4 }}>
                 {opt.title}
               </h2>
-              <p className='text-sm text-gray-600'>{opt.description}</p>
-              <div className='mt-4 inline-flex items-center text-sm font-medium text-teal-700'>
+              <p
+                style={{
+                  margin: 0,
+                  fontSize: 13,
+                  lineHeight: 1.55,
+                  color: 'var(--me-ink-2)',
+                }}
+              >
+                {opt.description}
+              </p>
+              <span
+                style={{
+                  display: 'inline-block',
+                  marginTop: 14,
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: 'var(--me-brand)',
+                }}
+              >
                 {isActive ? 'Active' : 'Use this theme'}
-              </div>
+              </span>
             </a>
           );
         })}
       </div>
 
-      <div className='rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600'>
+      <div
+        style={{
+          marginTop: 20,
+          borderRadius: 'var(--me-radius-card)',
+          background: 'var(--me-bg-2)',
+          padding: 16,
+          fontSize: 13,
+          color: 'var(--me-ink-2)',
+        }}
+      >
         Your choice is stored as a 1-year cookie on this device. Switching
         themes reloads the page; signed-in state and unsaved form input are
         preserved.
