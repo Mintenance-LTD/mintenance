@@ -56,7 +56,10 @@ export default function LandingPage() {
     <div className='min-h-screen bg-gray-50'>
       <LandingNavigation />
 
-      <main id='main-content' className='pt-16'>
+      {/* No top padding — LandingNavigation is `position: sticky`
+          (Mint Editorial rebuild), so it occupies layout flow and
+          no longer needs a fixed-nav offset. */}
+      <main id='main-content'>
         <HeroSection />
         <AppPreviewSection />
         <BentoFeaturesSection />
