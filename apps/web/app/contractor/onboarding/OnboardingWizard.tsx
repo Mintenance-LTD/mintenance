@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Check } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -13,11 +13,54 @@ import { SkillsStep, type SkillsData } from './steps/SkillsStep';
 import { ServiceAreaStep, type ServiceAreaData } from './steps/ServiceAreaStep';
 import { PaymentSetupStep } from './steps/PaymentSetupStep';
 
-const STEPS = [
-  { number: 1, label: 'Business Info' },
-  { number: 2, label: 'Skills' },
-  { number: 3, label: 'Service Area' },
-  { number: 4, label: 'Get Paid' },
+/**
+ * Contractor onboarding wizard — Direction A · Mint Editorial.
+ *
+ * 2026-05-13 design-system rebuild. Source of truth:
+ * `mintenance-design-system/project/redesign-v2/auth.html`
+ * (WebOnboarding). Converted from the old centred single-column
+ * wizard to the spec's left-rail layout: a numbered step list +
+ * "why we ask" card on the left, the active step in the centre.
+ *
+ * Renders unconditionally under `data-theme="mint-editorial"` +
+ * `.me-root` — Mint Editorial is the default now, no cookie gate.
+ * The step components still receive `isMintEditorial` (always true)
+ * until their own legacy branches are collapsed in a later pass.
+ */
+
+interface StepDef {
+  number: number;
+  label: string;
+  title: string;
+  blurb: string;
+}
+
+const STEPS: StepDef[] = [
+  {
+    number: 1,
+    label: 'Business info',
+    title: 'Tell us about your business',
+    blurb: 'The basics homeowners see when they compare contractors.',
+  },
+  {
+    number: 2,
+    label: 'Skills',
+    title: 'What can you take on?',
+    blurb:
+      'Pick your trades — we match jobs from here. Add a licence and insurer to build trust.',
+  },
+  {
+    number: 3,
+    label: 'Service area',
+    title: 'Where do you work?',
+    blurb: 'Set the area you cover so we only send you reachable jobs.',
+  },
+  {
+    number: 4,
+    label: 'Get paid',
+    title: 'Set up payments',
+    blurb: 'Connect a payout account so released escrow reaches you fast.',
+  },
 ];
 
 interface OnboardingFormData {
@@ -32,27 +75,32 @@ const INITIAL_DATA: OnboardingFormData = {
   serviceArea: { radiusMiles: '10', postcode: '' },
 };
 
+/** Brand leaf mark — matches the design-system logo. */
+function LeafMark({ size = 18 }: { size?: number }) {
+  return (
+    <svg
+      viewBox='0 0 24 24'
+      width={size}
+      height={size}
+      fill='none'
+      stroke='currentColor'
+      strokeWidth='1.6'
+      strokeLinecap='round'
+      strokeLinejoin='round'
+      aria-hidden='true'
+    >
+      <path d='M12 21c-2-5 1-12 9-13-1 7-4 11-9 13z' />
+      <path d='M12 21c-1-3 1-7 5-9' />
+    </svg>
+  );
+}
+
 export function OnboardingWizard() {
   const router = useRouter();
   const { user } = useCurrentUser();
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState<OnboardingFormData>(INITIAL_DATA);
   const [saving, setSaving] = useState(false);
-
-  // 2026-05-13 polish pass: hydration-safe theme detection. Under Mint
-  // Editorial the wizard chrome (page background, header, step
-  // indicator, card shell, skip link, submit button on each step)
-  // swaps to canonical .t-h1 / .card / .btn-primary / brand-soft
-  // active states. Step bodies (form-field layouts) inherit colour
-  // mapping from the shell; rewriting the inputs themselves is a P2
-  // alongside the wider form-control consolidation.
-  const [isMintEditorial, setIsMintEditorial] = useState(false);
-  useEffect(() => {
-    if (typeof document === 'undefined') return;
-    setIsMintEditorial(
-      document.documentElement.dataset.theme === 'mint-editorial'
-    );
-  }, []);
 
   /**
    * 2026-05-13 onboarding audit fix: the wizard previously POSTed to
@@ -161,191 +209,259 @@ export function OnboardingWizard() {
     router.push('/contractor/dashboard-enhanced');
   }
 
+  const current = STEPS[step - 1];
+
   return (
     <div
-      className={
-        isMintEditorial
-          ? 'min-h-screen flex flex-col items-center justify-start py-10 px-4'
-          : 'min-h-screen bg-gray-50 flex flex-col items-center justify-start py-10 px-4'
-      }
-      style={isMintEditorial ? { background: 'var(--me-bg)' } : undefined}
+      data-theme='mint-editorial'
+      className='me-root'
+      style={{ display: 'flex', minHeight: '100vh' }}
     >
-      <div className='w-full max-w-2xl'>
-        {/* Header */}
-        <div className='text-center mb-8'>
-          <h1
-            className={
-              isMintEditorial ? 't-h1' : 'text-3xl font-bold text-gray-900'
-            }
+      {/* ── Left rail — step list ───────────────────────────────── */}
+      <aside
+        className='onboarding-rail'
+        style={{
+          width: 320,
+          flexShrink: 0,
+          background: 'var(--me-bg-2)',
+          borderRight: '1px solid var(--me-line)',
+          padding: '40px 32px',
+        }}
+      >
+        {/* Logo */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            marginBottom: 36,
+          }}
+        >
+          <span
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 8,
+              background: 'var(--me-brand)',
+              color: 'var(--me-on-brand)',
+              display: 'grid',
+              placeItems: 'center',
+            }}
           >
-            Set up your account
+            <LeafMark />
+          </span>
+          <span
+            style={{
+              fontFamily: 'var(--me-font-display)',
+              fontSize: 22,
+              letterSpacing: '-0.01em',
+              color: 'var(--me-ink)',
+            }}
+          >
+            Mintenance
+          </span>
+        </div>
+
+        <div className='t-eyebrow' style={{ marginBottom: 18 }}>
+          Setup · {step} of {STEPS.length}
+        </div>
+
+        {STEPS.map((s) => {
+          const isDone = step > s.number;
+          const isActive = step === s.number;
+          return (
+            <div
+              key={s.number}
+              style={{
+                display: 'flex',
+                gap: 12,
+                padding: '12px 0',
+                borderTop: s.number === 1 ? 0 : '1px solid var(--me-line-2)',
+              }}
+            >
+              <span
+                style={{
+                  width: 26,
+                  height: 26,
+                  borderRadius: 9999,
+                  flexShrink: 0,
+                  display: 'grid',
+                  placeItems: 'center',
+                  fontWeight: 600,
+                  fontSize: 12,
+                  background: isDone
+                    ? 'var(--me-brand)'
+                    : isActive
+                      ? 'var(--me-ink)'
+                      : 'var(--me-bg-3)',
+                  color:
+                    isDone || isActive
+                      ? 'var(--me-on-brand)'
+                      : 'var(--me-ink-3)',
+                }}
+              >
+                {isDone ? (
+                  <Check className='w-3.5 h-3.5' strokeWidth={2.5} />
+                ) : (
+                  s.number
+                )}
+              </span>
+              <div>
+                <div
+                  style={{
+                    fontWeight: 600,
+                    fontSize: 14,
+                    color: isActive ? 'var(--me-ink)' : 'var(--me-ink-2)',
+                  }}
+                >
+                  {s.label}
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--me-ink-3)' }}>
+                  {isDone ? 'Complete' : isActive ? 'In progress' : 'Pending'}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Why we ask */}
+        <div className='card' style={{ marginTop: 32, padding: 14 }}>
+          <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 4 }}>
+            💡 Why we ask
+          </div>
+          <div
+            style={{
+              fontSize: 12,
+              color: 'var(--me-ink-2)',
+              lineHeight: 1.5,
+            }}
+          >
+            Contractors with a complete profile — trades, licence and service
+            area — get noticeably more job invites in their first month.
+          </div>
+        </div>
+      </aside>
+
+      {/* ── Centre — active step ────────────────────────────────── */}
+      <main
+        style={{
+          flex: 1,
+          overflowY: 'auto',
+          padding: '56px 48px',
+          background: 'var(--me-bg)',
+        }}
+      >
+        <div style={{ maxWidth: 560, margin: '0 auto' }}>
+          {/* Mobile progress — the rail is hidden below 1024px */}
+          <div
+            className='onboarding-mobile-progress'
+            style={{ display: 'none', marginBottom: 24 }}
+          >
+            <div className='t-eyebrow' style={{ marginBottom: 8 }}>
+              Step {step} of {STEPS.length}
+            </div>
+            <div
+              style={{
+                height: 4,
+                borderRadius: 9999,
+                background: 'var(--me-bg-3)',
+                overflow: 'hidden',
+              }}
+            >
+              <div
+                style={{
+                  height: '100%',
+                  width: `${(step / STEPS.length) * 100}%`,
+                  background: 'var(--me-brand)',
+                  transition: 'width .2s ease',
+                }}
+              />
+            </div>
+          </div>
+
+          <h1 className='t-h1' style={{ marginBottom: 6 }}>
+            {current.title}
           </h1>
           <p
-            className={isMintEditorial ? 't-body' : 'text-gray-500 mt-2'}
-            style={isMintEditorial ? { marginTop: 8 } : undefined}
+            className='t-body'
+            style={{ marginBottom: 28, color: 'var(--me-ink-2)' }}
           >
-            Complete these steps to start receiving job opportunities.
+            {current.blurb}
+          </p>
+
+          <div className='card card-pad'>
+            {step === 1 && (
+              <BusinessInfoStep
+                data={formData.business}
+                onNext={(data) => handleNext({ business: data })}
+                saving={saving}
+                isMintEditorial
+              />
+            )}
+            {step === 2 && (
+              <SkillsStep
+                data={formData.skills}
+                onNext={(data) => handleNext({ skills: data })}
+                onBack={handleBack}
+                saving={saving}
+                isMintEditorial
+              />
+            )}
+            {step === 3 && (
+              <ServiceAreaStep
+                data={formData.serviceArea}
+                onNext={(data) => handleNext({ serviceArea: data })}
+                onBack={handleBack}
+                saving={saving}
+                isMintEditorial
+              />
+            )}
+            {step === 4 && (
+              <PaymentSetupStep
+                onFinish={() => handleFinish({})}
+                onBack={handleBack}
+                userId={user?.id ?? ''}
+                saving={saving}
+                isMintEditorial
+              />
+            )}
+          </div>
+
+          {/* Skip link */}
+          <p
+            style={{
+              textAlign: 'center',
+              fontSize: 13,
+              marginTop: 24,
+              color: 'var(--me-ink-3)',
+            }}
+          >
+            <button
+              type='button'
+              onClick={() => router.push('/contractor/dashboard-enhanced')}
+              style={{
+                background: 'transparent',
+                border: 0,
+                cursor: 'pointer',
+                color: 'var(--me-ink-2)',
+                textDecoration: 'underline',
+                font: 'inherit',
+              }}
+            >
+              Skip for now — I&apos;ll complete this later
+            </button>
           </p>
         </div>
+      </main>
 
-        {/* Step indicator */}
-        <div className='flex items-center justify-center mb-8 gap-0'>
-          {STEPS.map((s, i) => {
-            const isDone = step > s.number;
-            const isCurrent = step === s.number;
-            return (
-              <React.Fragment key={s.number}>
-                <div className='flex flex-col items-center'>
-                  <div
-                    className={
-                      isMintEditorial
-                        ? 'w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold border-2 transition-colors'
-                        : `w-9 h-9 rounded-full flex items-center justify-center text-sm font-semibold border-2 transition-colors ${
-                            isDone
-                              ? 'bg-emerald-600 border-emerald-600 text-white'
-                              : isCurrent
-                                ? 'bg-white border-emerald-600 text-emerald-600'
-                                : 'bg-white border-gray-300 text-gray-400'
-                          }`
-                    }
-                    style={
-                      isMintEditorial
-                        ? {
-                            background: isDone
-                              ? 'var(--me-brand)'
-                              : isCurrent
-                                ? 'var(--me-brand-soft)'
-                                : 'var(--me-surface)',
-                            borderColor: isDone
-                              ? 'var(--me-brand)'
-                              : isCurrent
-                                ? 'var(--me-brand)'
-                                : 'var(--me-line)',
-                            color: isDone
-                              ? 'var(--me-on-brand)'
-                              : isCurrent
-                                ? 'var(--me-brand)'
-                                : 'var(--me-ink-3)',
-                          }
-                        : undefined
-                    }
-                  >
-                    {isDone ? (
-                      <Check className='w-5 h-5' strokeWidth={2.25} />
-                    ) : (
-                      s.number
-                    )}
-                  </div>
-                  <span
-                    className={
-                      isMintEditorial
-                        ? 'text-xs mt-1 font-medium'
-                        : `text-xs mt-1 font-medium ${
-                            step >= s.number
-                              ? 'text-emerald-600'
-                              : 'text-gray-400'
-                          }`
-                    }
-                    style={
-                      isMintEditorial
-                        ? {
-                            color:
-                              step >= s.number
-                                ? 'var(--me-brand)'
-                                : 'var(--me-ink-3)',
-                          }
-                        : undefined
-                    }
-                  >
-                    {s.label}
-                  </span>
-                </div>
-                {i < STEPS.length - 1 && (
-                  <div
-                    className={
-                      isMintEditorial
-                        ? 'h-0.5 w-16 mb-5 transition-colors'
-                        : `h-0.5 w-16 mb-5 transition-colors ${isDone ? 'bg-emerald-600' : 'bg-gray-200'}`
-                    }
-                    style={
-                      isMintEditorial
-                        ? {
-                            background: isDone
-                              ? 'var(--me-brand)'
-                              : 'var(--me-line)',
-                          }
-                        : undefined
-                    }
-                  />
-                )}
-              </React.Fragment>
-            );
-          })}
-        </div>
-
-        {/* Step content */}
-        <div
-          className={
-            isMintEditorial
-              ? 'card card-pad'
-              : 'bg-white rounded-2xl shadow-sm border border-gray-200 p-8'
-          }
-        >
-          {step === 1 && (
-            <BusinessInfoStep
-              data={formData.business}
-              onNext={(data) => handleNext({ business: data })}
-              saving={saving}
-              isMintEditorial={isMintEditorial}
-            />
-          )}
-          {step === 2 && (
-            <SkillsStep
-              data={formData.skills}
-              onNext={(data) => handleNext({ skills: data })}
-              onBack={handleBack}
-              saving={saving}
-              isMintEditorial={isMintEditorial}
-            />
-          )}
-          {step === 3 && (
-            <ServiceAreaStep
-              data={formData.serviceArea}
-              onNext={(data) => handleNext({ serviceArea: data })}
-              onBack={handleBack}
-              saving={saving}
-              isMintEditorial={isMintEditorial}
-            />
-          )}
-          {step === 4 && (
-            <PaymentSetupStep
-              onFinish={() => handleFinish({})}
-              onBack={handleBack}
-              userId={user?.id ?? ''}
-              saving={saving}
-              isMintEditorial={isMintEditorial}
-            />
-          )}
-        </div>
-
-        {/* Skip link */}
-        <p
-          className={
-            isMintEditorial
-              ? 'text-center text-sm mt-6'
-              : 'text-center text-sm text-gray-400 mt-6'
-          }
-          style={isMintEditorial ? { color: 'var(--me-ink-3)' } : undefined}
-        >
-          <button
-            onClick={() => router.push('/contractor/dashboard-enhanced')}
-            className='underline hover:text-gray-600 transition-colors'
-            style={isMintEditorial ? { color: 'var(--me-ink-2)' } : undefined}
-          >
-            Skip for now — I&apos;ll complete this later
-          </button>
-        </p>
-      </div>
+      {/* Responsive: hide the rail on small screens, show the inline
+          progress bar instead. Scoped to the onboarding-only classes. */}
+      <style>{`
+        @media (max-width: 1023px) {
+          .onboarding-rail { display: none !important; }
+          .onboarding-mobile-progress { display: block !important; }
+        }
+      `}</style>
     </div>
   );
 }
