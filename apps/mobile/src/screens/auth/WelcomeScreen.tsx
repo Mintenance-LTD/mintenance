@@ -26,7 +26,6 @@
 import React from 'react';
 import {
   Image,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -38,7 +37,7 @@ import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 import type { AuthStackParamList } from '../../navigation/types';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 type WelcomeScreenNavigationProp = NativeStackNavigationProp<
   AuthStackParamList,
@@ -125,11 +124,7 @@ export const WelcomeScreen: React.FC = () => {
                 <Text style={styles.tileTitle}>{tile.title}</Text>
                 <Text style={styles.tileSubtitle}>{tile.subtitle}</Text>
               </View>
-              <Ionicons
-                name='chevron-forward'
-                size={22}
-                color={theme.colors.textTertiary}
-              />
+              <Ionicons name='chevron-forward' size={22} color={me.ink3} />
             </TouchableOpacity>
           ))}
         </View>
@@ -155,7 +150,7 @@ export default WelcomeScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg,
   },
   scrollContent: {
     flexGrow: 1,
@@ -166,33 +161,34 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
     marginBottom: 40,
   },
   logo: {
     width: 40,
     height: 40,
-    borderRadius: 10,
+    borderRadius: me.radius.input,
   },
   brand: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
+    fontFamily: me.font.display,
+    fontSize: 24,
+    color: me.ink,
+    letterSpacing: me.displayTracking,
   },
   valueProp: {
     marginBottom: 32,
   },
   valueTitle: {
-    fontSize: 30,
-    fontWeight: '800',
-    color: theme.colors.textPrimary,
-    lineHeight: 38,
+    fontFamily: me.font.display,
+    fontSize: 36,
+    color: me.ink,
+    lineHeight: 40,
     marginBottom: 12,
-    letterSpacing: -0.5,
+    letterSpacing: me.displayTracking,
   },
   valueSubtitle: {
     fontSize: 15,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     lineHeight: 22,
   },
   tiles: {
@@ -202,43 +198,37 @@ const styles = StyleSheet.create({
   tile: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.surface,
-    borderRadius: 20,
+    backgroundColor: me.surface,
+    borderRadius: me.radius.card,
+    borderWidth: 1,
+    borderColor: me.line,
     padding: 18,
     gap: 14,
-    ...Platform.select({
-      ios: {
-        shadowColor: theme.colors.textPrimary,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   tileIconWrap: {
-    width: 56,
-    height: 56,
-    borderRadius: 18,
-    backgroundColor: theme.colors.primaryLight,
+    width: 52,
+    height: 52,
+    borderRadius: 12,
+    backgroundColor: me.brandSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
   tileEmoji: {
-    fontSize: 28,
+    fontSize: 26,
   },
   tileBody: {
     flex: 1,
   },
   tileTitle: {
     fontSize: 17,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
+    fontWeight: '600',
+    color: me.ink,
     marginBottom: 4,
   },
   tileSubtitle: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     lineHeight: 18,
   },
   signInRow: {
@@ -251,11 +241,11 @@ const styles = StyleSheet.create({
   },
   signInLabel: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   signInLink: {
     fontSize: 14,
-    fontWeight: '700',
-    color: theme.colors.primary,
+    fontWeight: '600',
+    color: me.brand,
   },
 });
