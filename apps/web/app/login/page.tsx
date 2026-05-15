@@ -130,39 +130,29 @@ export default function LoginPage() {
             'Too many login attempts. Please wait a few minutes and try again.'
           );
         } else if (response.status === 401) {
-          // Ensure errorMsg is always a string
-          let errorMsg = responseData.error || responseData.message || '';
-          if (typeof errorMsg !== 'string') {
-            errorMsg =
-              typeof errorMsg === 'object'
-                ? JSON.stringify(errorMsg)
-                : String(errorMsg);
-          }
-          // Check for email verification requirement FIRST (before generic email check)
-          if (
-            errorMsg.toLowerCase().includes('verify') ||
-            errorMsg.toLowerCase().includes('confirm') ||
-            errorMsg.toLowerCase().includes('email_not_confirmed')
-          ) {
-            throw new Error(
-              'Please verify your email address before signing in. Check your inbox for a confirmation email.'
-            );
-          } else if (errorMsg.toLowerCase().includes('not found')) {
-            throw new Error(
-              'No account found with this email address. Please check your email or sign up for a new account.'
-            );
-          } else if (
-            errorMsg.toLowerCase().includes('password') ||
-            errorMsg.toLowerCase().includes('invalid')
-          ) {
-            throw new Error(
-              'Incorrect password. Please check your password or use "Forgot password" to reset it.'
-            );
-          } else {
-            throw new Error(
-              'Invalid email or password. Please check your credentials and try again.'
-            );
-          }
+          // 2026-05-13 login audit — account-enumeration fix.
+          //
+          // This block previously string-matched the server error and
+          // rewrote it into "No account found with this email" or
+          // "Incorrect password". Both LEAK account existence: an
+          // attacker probing emails learns which are registered. The
+          // server's `mapLoginAuthError` deliberately returns a single
+          // generic "Invalid email or password" for both the
+          // wrong-password and unknown-email cases (Supabase itself
+          // never distinguishes them), plus a safe, well-worded
+          // verify-your-email message when that's the actual cause.
+          //
+          // So the correct client behaviour is to display the server's
+          // message verbatim — it is already user-safe — rather than
+          // second-guessing it with fragile `includes()` matching that
+          // re-introduces the enumeration signal and can be flat wrong
+          // (claiming "incorrect password" when the email was bad).
+          const rawError = responseData.error ?? responseData.message;
+          const safeError =
+            typeof rawError === 'string' && rawError.trim().length > 0
+              ? rawError
+              : 'Invalid email or password. Please check your credentials and try again.';
+          throw new Error(safeError);
         } else if (response.status === 403) {
           throw new Error(
             'Access denied. Please refresh the page and try again.'

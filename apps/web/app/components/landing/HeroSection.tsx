@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import {
   BadgeCheck,
@@ -164,10 +165,19 @@ export function HeroSection({
             <div className='overflow-hidden rounded-xl bg-white shadow-[0_30px_80px_rgba(15,23,42,0.16)] ring-1 ring-slate-200'>
               <div className='grid grid-cols-[1fr_1.1fr]'>
                 <div className='relative min-h-[440px] bg-slate-900'>
-                  <img
+                  {/* 2026-05-13 landing audit: was a raw <img>, which is
+                      the LCP element on the landing page — no
+                      optimization, no responsive srcset, no priority
+                      hint. Swapped to next/image with `fill` + `priority`
+                      so it's preloaded and served at the right size,
+                      improving Largest Contentful Paint. */}
+                  <Image
                     src='/hero-assets/plumber-repair.jpg'
                     alt='Kitchen tap repair job'
-                    className='absolute inset-0 h-full w-full object-cover'
+                    fill
+                    priority
+                    sizes='(max-width: 1024px) 100vw, 45vw'
+                    className='object-cover'
                   />
                   <div className='absolute inset-0 bg-[linear-gradient(180deg,rgba(15,23,42,0.05)_0%,rgba(15,23,42,0.72)_100%)]' />
                   <div className='absolute bottom-5 left-5 right-5 rounded-lg bg-white/95 p-4 shadow-lg backdrop-blur'>
