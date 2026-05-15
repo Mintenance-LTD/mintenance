@@ -288,6 +288,76 @@ export class JobNotificationService {
     return R * c;
   }
 
+  /**
+   * Hire-Again loop closure (2026-05-13): direct, higher-priority
+   * invitation to a contractor the homeowner previously hired.
+   *
+   * Sends a distinct in-app notification (type:
+   * `job_invitation_from_repeat_client`) so the contractor's inbox
+   * surfaces it above the generic nearby-job feed. The homeowner's
+   * display name is resolved best-effort; on lookup failure we fall
+   * back to "a previous client".
+   *
+   * Side-effects only — return is void. Caller must wrap in
+   * `.catch()` because preferred-contractor failures must never
+   * block the primary job-creation flow.
+   */
+  async notifyPreferredContractor(
+    preferredContractorId: string,
+    jobId: string,
+    jobTitle: string,
+    homeownerId: string
+  ): Promise<void> {
+    // Skip if the contractor was deleted between hire and rebook
+    const { data: contractor, error: contractorErr } = await serverSupabase
+      .from('profiles')
+      .select('id, role')
+      .eq('id', preferredContractorId)
+      .eq('role', 'contractor')
+      .maybeSingle();
+
+    if (contractorErr || !contractor) {
+      logger.info('Preferred contractor no longer exists — skipping invite', {
+        service: 'job-notification',
+        jobId,
+        preferredContractorId,
+      });
+      return;
+    }
+
+    // Resolve homeowner display name (best-effort)
+    const { data: homeowner } = await serverSupabase
+      .from('profiles')
+      .select('first_name, last_name')
+      .eq('id', homeownerId)
+      .maybeSingle();
+
+    const homeownerName = homeowner
+      ? [homeowner.first_name, homeowner.last_name].filter(Boolean).join(' ') ||
+        'a previous client'
+      : 'a previous client';
+
+    await NotificationService.createNotification({
+      userId: preferredContractorId,
+      type: 'job_invitation_from_repeat_client',
+      title: `${homeownerName} wants to hire you again`,
+      message: `They've posted "${jobTitle}" and chose you specifically. Place your bid before other contractors are notified.`,
+      actionUrl: `/contractor/jobs/${jobId}`,
+      metadata: {
+        job_id: jobId,
+        homeowner_id: homeownerId,
+        source: 'hire_again',
+      },
+    });
+
+    logger.info('Preferred contractor invited to bid', {
+      service: 'job-notification',
+      jobId,
+      preferredContractorId,
+      homeownerId,
+    });
+  }
+
   private getBudgetText(payload: NotificationPayload): string {
     if (
       !payload.show_budget_to_contractors &&

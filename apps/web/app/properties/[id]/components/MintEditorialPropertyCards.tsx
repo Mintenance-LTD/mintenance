@@ -28,6 +28,15 @@ export interface PropertyShape {
   squareFeet: number;
   yearBuilt: number;
   images: string[];
+  // Access & contacts (migration 20260520000003). Nullable on
+  // every install — the picker on the Access tab initialises empty
+  // when these are unset.
+  access_mode?: 'key_safe' | 'smart_lock' | 'in_person' | null;
+  key_safe_code?: string | null;
+  access_notes?: string | null;
+  stopcock_location?: string | null;
+  gas_isolator_location?: string | null;
+  consumer_unit_location?: string | null;
 }
 
 export interface JobItem {

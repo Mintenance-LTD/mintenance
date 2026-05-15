@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Search,
   Calendar,
@@ -55,14 +55,41 @@ export function TransactionsTable({
   setFilterStatus,
   onViewDetails,
 }: TransactionsTableProps) {
+  // 2026-05-13 polish pass: editorial-branched shell + filter pills +
+  // table header. Row internals stay the same — they read fine on
+  // either theme through .me-legacy-fit colour mapping.
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
+
   return (
-    <div className='bg-white rounded-xl border border-gray-200 p-6 mb-6'>
+    <div
+      className={
+        isMintEditorial
+          ? 'card card-pad'
+          : 'bg-white rounded-xl border border-gray-200 p-6 mb-6'
+      }
+      style={isMintEditorial ? { marginBottom: 16 } : undefined}
+    >
       <div className='flex items-center justify-between mb-6'>
         <div>
-          <h2 className='text-lg font-semibold text-gray-900'>
-            Recent Transactions
+          <h2
+            className={
+              isMintEditorial ? 't-h3' : 'text-lg font-semibold text-gray-900'
+            }
+          >
+            Recent transactions
           </h2>
-          <p className='text-sm text-gray-600 mt-1'>
+          <p
+            className={
+              isMintEditorial ? 't-meta' : 'text-sm text-gray-600 mt-1'
+            }
+            style={isMintEditorial ? { marginTop: 2 } : undefined}
+          >
             View and manage your payment history
           </p>
         </div>
@@ -71,47 +98,79 @@ export function TransactionsTable({
       {/* Filters */}
       <div className='flex flex-col sm:flex-row gap-4 mb-6'>
         <div className='relative flex-1'>
-          <Search className='absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5' />
+          <Search
+            className={
+              isMintEditorial
+                ? 'absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4'
+                : 'absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5'
+            }
+            style={isMintEditorial ? { color: 'var(--me-ink-3)' } : undefined}
+          />
           <input
             type='text'
             placeholder='Search transactions...'
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className='w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all'
+            className={
+              isMintEditorial
+                ? 'field'
+                : 'w-full pl-12 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all'
+            }
+            style={isMintEditorial ? { paddingLeft: 36 } : undefined}
           />
         </div>
-        <div className='flex gap-2'>
-          <button
-            onClick={() => setFilterStatus('all')}
-            className={`px-5 py-3 rounded-lg text-sm font-medium transition-colors ${
-              filterStatus === 'all'
-                ? 'bg-gray-900 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            All
-          </button>
-          <button
-            onClick={() => setFilterStatus('pending')}
-            className={`px-5 py-3 rounded-lg text-sm font-medium transition-colors ${
-              filterStatus === 'pending'
-                ? 'bg-amber-100 text-amber-700 border-2 border-amber-300'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            Pending
-          </button>
-          <button
-            onClick={() => setFilterStatus('completed')}
-            className={`px-5 py-3 rounded-lg text-sm font-medium transition-colors ${
-              filterStatus === 'completed'
-                ? 'bg-emerald-100 text-emerald-700 border-2 border-emerald-300'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            Completed
-          </button>
-        </div>
+        {isMintEditorial ? (
+          <div className='flex gap-2'>
+            {(
+              [
+                { key: 'all', label: 'All' },
+                { key: 'pending', label: 'Pending' },
+                { key: 'completed', label: 'Completed' },
+              ] as const
+            ).map(({ key, label }) => (
+              <button
+                key={key}
+                onClick={() => setFilterStatus(key)}
+                className={filterStatus === key ? 'chip on' : 'chip'}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className='flex gap-2'>
+            <button
+              onClick={() => setFilterStatus('all')}
+              className={`px-5 py-3 rounded-lg text-sm font-medium transition-colors ${
+                filterStatus === 'all'
+                  ? 'bg-gray-900 text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => setFilterStatus('pending')}
+              className={`px-5 py-3 rounded-lg text-sm font-medium transition-colors ${
+                filterStatus === 'pending'
+                  ? 'bg-amber-100 text-amber-700 border-2 border-amber-300'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              Pending
+            </button>
+            <button
+              onClick={() => setFilterStatus('completed')}
+              className={`px-5 py-3 rounded-lg text-sm font-medium transition-colors ${
+                filterStatus === 'completed'
+                  ? 'bg-emerald-100 text-emerald-700 border-2 border-emerald-300'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              Completed
+            </button>
+          </div>
+        )}
       </div>
 
       {filteredTransactions.length === 0 ? (

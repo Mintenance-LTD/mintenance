@@ -164,7 +164,7 @@ const KNOWN_LARGE_FILES = new Set([
   // is a single .ilike → .eq swap with an 8-line audit comment.
   // Splitting the JobCreationService is a dedicated P2 — orthogonal
   // to closing the profile-enumeration vector.
-  'apps/web/lib/services/job-creation-service.ts', // 550 lines (was 541)
+  'apps/web/lib/services/job-creation-service.ts', // 594 lines (was 550) — Hire-Again preferred-contractor notify
   // Added 2026-04-25: TimeTrackingScreen grew from 489 → 547 lines via
   // the Time-Tracking → Invoice bridge (audit P1 #14). The added code
   // is the aggregation logic + CTA banner + matching styles, all
@@ -178,7 +178,7 @@ const KNOWN_LARGE_FILES = new Set([
   // Splitting the contractor profile page (header + booking widget +
   // contact modal + portfolio + reviews + bid actions) is a dedicated
   // P2, not a blocker on this XSS-adjacent fix.
-  'apps/web/app/contractors/[id]/page.tsx', // 511 lines (was 523)
+  'apps/web/app/contractors/[id]/page.tsx', // 525 lines (was 511) — portfolio audit fix 2026-05-13
   // Added 2026-04-27: JobQueryService grew from 442 → 535 lines via the
   // job_photos_metadata fallback (audit: production data showed jobs
   // with 0 job_attachments but with before/after lifecycle photos
@@ -195,7 +195,7 @@ const KNOWN_LARGE_FILES = new Set([
   'apps/web/app/contractor/discover/components/JobCard.tsx', // 623 lines (was 618)
   'apps/web/app/contractor/jobs-near-you/components/NearbyJobCard.tsx', // 511 lines (was 502)
   'apps/web/app/discover/components/JobCard.tsx', // 568 lines (was 563)
-  'apps/web/app/properties/[id]/components/PropertyDetailsClient.tsx', // 670 lines (was 665)
+  'apps/web/app/properties/[id]/components/PropertyDetailsClient.tsx', // 862 lines (was 670) — +retention-aware delete confirm 2026-05-13
   // Added 2026-04-28: pre-existing large mobile files (550 / 510 lines
   // on HEAD) touched by the BidService consolidation + priority→urgency
   // rename. ContractorAssignment.tsx swapped camelCase ApiBid reads
@@ -218,7 +218,7 @@ const KNOWN_LARGE_FILES = new Set([
   'apps/mobile/src/screens/contractor/ReportingScreen.tsx', // 534 lines (was 531) — user!.id guard
   'apps/mobile/src/services/contractor-business/BusinessAnalyticsService.ts', // 586 lines (was 576) — direct-supabase disposition comment
   'apps/mobile/src/services/video/CallManager.ts', // 523 lines (was 517) — call_participants disposition comment
-  'apps/web/app/contractor/crm/components/CRMDashboardEnhanced.tsx', // 528 lines (no change) — CRM detail link fix
+  'apps/web/app/contractor/crm/components/CRMDashboardEnhanced.tsx', // 584 lines (was 528) — Phase-4 editorial header swap
   'apps/web/app/contractor/notifications/page.tsx', // 628 lines (was 608) — Phase-4 Mint Editorial branch + type-extract refactor
   'apps/web/app/jobs/quick-create/page.tsx', // 603 lines (no change) — removed description-padding hack + canonical urgency
   'apps/web/app/notifications/page.tsx', // 562 lines (was 558) — safeActionUrl import + call
@@ -306,7 +306,7 @@ const KNOWN_LARGE_FILES = new Set([
   // privacy) inline; the new Appearance section is the 7th. Splitting
   // each section into its own client file is the right long-term
   // shape but is a dedicated P2.
-  'apps/web/app/contractor/settings/page.tsx', // 570 lines (was 554)
+  'apps/web/app/contractor/settings/page.tsx', // 693 lines (was 570) — editorial branch on header + sidebar + privacy/automation inline cards 2026-05-13
   // Added 2026-05-12 (Phase-4 contractor port): the contractor
   // MessagesClient already pre-existed at 585 lines before the
   // Mint Editorial branch. The +186-line edit adds:
@@ -380,7 +380,7 @@ const KNOWN_LARGE_FILES = new Set([
   // editorial header swap. The Phase-4 batch header commit pushed
   // them further over; this entry recognises the existing state.
   // A clean split into per-section subcomponents is a P2 refactor.
-  'apps/web/app/contractor/time-tracking/page.tsx', // 666 lines (was ~660)
+  'apps/web/app/contractor/time-tracking/page.tsx', // 725 lines (was 666) — linked-job picker
   // Added 2026-05-12 (Phase-4 job-detail editorial rewrite): the
   // /contractor/jobs/[id]/page.tsx server component now also
   // branches on the `mintenance-theme` cookie and renders the new
@@ -393,8 +393,13 @@ const KNOWN_LARGE_FILES = new Set([
   // sidebar). A clean split would require lifting state from the
   // server component into the view — out of scope for this
   // single-file rewrite.
-  'apps/web/app/contractor/jobs/[id]/page.tsx', // 541 lines (was 482)
-  'apps/web/app/contractor/jobs/[id]/components/MintEditorialJobDetailView.tsx', // 681 lines
+  'apps/web/app/contractor/jobs/[id]/page.tsx', // 602 lines (was 541) — +map/access fetch
+  'apps/web/app/contractor/jobs/[id]/components/MintEditorialJobDetailView.tsx', // 922 lines (was 681) — +map widget + access details card
+  'apps/web/app/jobs/create/page.tsx', // 514 lines — HireAgainBanner mount + preferredContractor passthrough
+  // Added 2026-05-13 (property access feature):
+  'apps/web/app/properties/[id]/components/MintEditorialPropertyAccess.tsx', // 602 lines — picker now interactive with PATCH save
+  'apps/web/app/jobs/[id]/components/mint-editorial/MintEditorialJobRightRail.tsx', // 491 lines — +AccessSharedCard (homeowner mirror)
+  'apps/web/app/jobs/[id]/page.tsx', // 505 lines — +property access fields in fetch
   // Added 2026-05-12 (Phase-4 batch header swap):
   'apps/web/app/contractor/payouts/components/PayoutsPageClient.tsx', // 506 lines (was ~492)
   // Added 2026-05-12 (Phase-4 contractor port): /contractor/jobs/[id]
@@ -416,12 +421,40 @@ const KNOWN_LARGE_FILES = new Set([
   // pre-existed at 547 LOC with deep insurance + licence tracking
   // (stats cards + tab switcher + list + add modal). +32 LOC for
   // the editorial branch.
-  'apps/web/app/contractor/insurance/page.tsx', // 579 lines (was 547)
+  'apps/web/app/contractor/insurance/page.tsx', // 972 lines (was 579) — editorial modal branch 2026-05-13
   // Added 2026-05-12 (Phase-4 stat-card pass): marketing page grew
   // when the inline StatCard was made theme-aware (canonical .kpi
   // when isMintEditorial, legacy bg-white card otherwise). Each
   // tile call site stayed unchanged.
   'apps/web/app/contractor/marketing/page.tsx', // 516 lines (was 493)
+  // Added 2026-05-13 (quote↔bid pipeline closure): the bid-accept route
+  // grew from 493 → 508 lines via the small `syncLinkedQuoteStatuses`
+  // call-site (fire-and-forget) wired after `accept_bid_atomic` succeeds.
+  // Implementation lives in `./_helpers.ts`. Splitting the accept route
+  // further (out of `_helpers.ts`) is a P2 — the orchestration sequence
+  // is canonical and benefits from being in one place.
+  'apps/web/app/api/jobs/[id]/bids/[bidId]/accept/route.ts', // 508 lines (was 493)
+  // Added 2026-05-13 (high-priority audit pass 1-5). The two payment +
+  // PDF route handlers grew by 10 and 4 lines respectively to plumb
+  // escrow traceability (bid_id / contract_id / quote_id into Stripe
+  // + escrow metadata) and to render the new Quote Breakdown section
+  // in the contract PDF. Both files orchestrate Stripe + DB + email
+  // in one place; splitting them is a P2 that doesn't belong in a
+  // pipeline-fix commit.
+  'apps/web/app/api/payments/create-intent/route.ts', // 510 lines (was 487)
+  'apps/web/app/api/contracts/[id]/pdf/route.ts', // 504 lines (was 376)
+  // Added 2026-05-13 (audit items 1-2-5). The contract accept/sign
+  // route grew by ~45 lines to close the simultaneous-sign race that
+  // stranded fully-signed contracts in a pending status. The handler
+  // orchestrates signature UPDATE + race reconciliation + dual-party
+  // notification/email fan-out + job scheduling in one place;
+  // splitting it is a P2, not a blocker on a race-condition fix.
+  'apps/web/app/api/contracts/[id]/accept/route.ts', // 504 lines (was 443)
+  // Removed 2026-05-13 (split shipped). payment-handlers.ts is now a
+  // ~47-line re-export facade; the actual handlers live in
+  // ./payment-intent-handlers.ts, ./charge-handlers.ts, and
+  // ./tip-payment-handler.ts. Allowlist entry can stay deleted —
+  // every file in the split is well under the 500-LOC gate.
   // Self-allowlist: this script grows naturally each Phase-4
   // commit because the allowlist itself is a documented log of
   // intentional over-cap files. Splitting the script into a

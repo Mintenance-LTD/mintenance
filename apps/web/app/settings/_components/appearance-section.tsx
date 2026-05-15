@@ -6,9 +6,12 @@ import { Check } from 'lucide-react';
 type Theme = 'default' | 'mint-editorial';
 
 function readThemeCookie(): Theme {
-  if (typeof document === 'undefined') return 'default';
+  // Mint Editorial is the platform default — only an explicit `default`
+  // cookie value opts a user out. A missing cookie therefore resolves to
+  // Mint Editorial, matching what the middleware injects.
+  if (typeof document === 'undefined') return 'mint-editorial';
   const match = document.cookie.match(/(?:^|;\s*)mintenance-theme=([^;]+)/);
-  return match?.[1] === 'mint-editorial' ? 'mint-editorial' : 'default';
+  return match?.[1] === 'default' ? 'default' : 'mint-editorial';
 }
 
 const OPTIONS: Array<{
@@ -18,18 +21,18 @@ const OPTIONS: Array<{
   swatches: string[];
 }> = [
   {
-    value: 'default',
-    title: 'Default — Navy & Emerald',
+    value: 'mint-editorial',
+    title: 'Mint Editorial (default)',
     description:
-      'The current Mintenance look: deep navy, emerald accents, Inter, cool slate neutrals.',
-    swatches: ['#0F172A', '#10B981', '#F8FAFC', '#F59E0B'],
+      'The current Mintenance look: teal-mint, warm near-black, Instrument Serif headlines, calm paper shadows.',
+    swatches: ['#3F8C7A', '#1A2520', '#F3F7F4', '#C49A4D'],
   },
   {
-    value: 'mint-editorial',
-    title: 'Mint Editorial (preview)',
+    value: 'default',
+    title: 'Classic — Navy & Emerald',
     description:
-      'Calmer Claude-leaning palette: teal-mint, warm near-black, Instrument Serif headlines, paper shadows. Currently applied to the homeowner dashboard only.',
-    swatches: ['#3F8C7A', '#1A2520', '#F3F7F4', '#C49A4D'],
+      'The previous Mintenance look: deep navy, emerald accents, Inter, cool slate neutrals.',
+    swatches: ['#0F172A', '#10B981', '#F8FAFC', '#F59E0B'],
   },
 ];
 
@@ -43,7 +46,7 @@ interface AppearanceSectionProps {
 export function AppearanceSection({
   redirectPath = '/settings?section=appearance',
 }: AppearanceSectionProps = {}) {
-  const [active, setActive] = useState<Theme>('default');
+  const [active, setActive] = useState<Theme>('mint-editorial');
 
   // Read the cookie on the client only — the page is rendered as a
   // client component so we don't have access to `next/headers`.
@@ -61,9 +64,9 @@ export function AppearanceSection({
       <div>
         <h1 className='text-3xl font-bold text-gray-900 mb-2'>Appearance</h1>
         <p className='text-gray-600 mb-6'>
-          Choose how Mintenance looks in your browser. The Mint Editorial
-          preview is a rolling rebrand — pages migrate one at a time, and the
-          rest stay on the current design until they're ready.
+          Choose how Mintenance looks in your browser. Mint Editorial is the
+          current platform design. You can switch back to the classic Navy &amp;
+          Emerald look if you prefer it.
         </p>
       </div>
 
@@ -109,7 +112,7 @@ export function AppearanceSection({
       </div>
 
       <div className='rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-600'>
-        Your choice is stored as a 30-day cookie on this device. Switching
+        Your choice is stored as a 1-year cookie on this device. Switching
         themes reloads the page; signed-in state and unsaved form input are
         preserved.
       </div>

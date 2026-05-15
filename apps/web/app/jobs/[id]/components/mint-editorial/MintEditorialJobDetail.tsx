@@ -42,7 +42,10 @@ import {
   SelectedContractorCard,
   HowPaymentWorksCard,
   QuickActionsList,
+  AccessSharedCard,
 } from './MintEditorialJobRightRail';
+import { HomeownerChecklistEditor } from './HomeownerChecklistEditor';
+import { TipJarCard } from './TipJarCard';
 import {
   MintEditorialJobTabBody,
   type TabKey,
@@ -429,6 +432,41 @@ export function MintEditorialJobDetail({
               contractorFirstName='the contractor'
             />
           )}
+
+          {/* Pre-arrival checklist editor — homeowner can add/remove
+              items while job.status is `posted` or `assigned`. After
+              that the editor becomes read-only (still shows ticked
+              state from the contractor) so changing the checklist
+              mid-job doesn't confuse the contractor. */}
+          <HomeownerChecklistEditor jobId={job.id} jobStatus={job.status} />
+
+          {/* Access shared with contractor — mirror of what the
+              contractor sees on `/contractor/jobs/[id]`. The code is
+              revealed to the contractor once escrow is funded and
+              the job is at ready_to_start / in_progress; reveal here
+              follows the same rule so the homeowner sees the same
+              window the contractor does. */}
+          {property ? (
+            <AccessSharedCard
+              property={property}
+              jobStage={
+                lifecycle.escrowStatus === 'held' && job.status === 'assigned'
+                  ? 'ready_to_start'
+                  : job.status === 'in_progress'
+                    ? 'in_progress'
+                    : ((job.status as string) ?? 'posted')
+              }
+            />
+          ) : null}
+
+          {/* Tip jar — only renders for completed jobs. Self-gates
+              on jobStatus so we don't have to duplicate the check
+              here. */}
+          <TipJarCard
+            jobId={job.id}
+            jobStatus={job.status}
+            contractorFirstName={contractor?.first_name ?? null}
+          />
 
           <QuickActionsList jobId={job.id} status={job.status} />
         </aside>

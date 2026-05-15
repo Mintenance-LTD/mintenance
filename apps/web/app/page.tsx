@@ -9,7 +9,13 @@ import { TrustIndicators } from '@/components/landing/trust-indicators';
 import { FAQSection } from '@/components/landing/faq-section';
 import { ContractorCTA } from '@/components/landing/contractor-cta';
 import { FinalCTA } from '@/components/landing/final-cta';
-import { AppPreviewSection } from '@/components/landing/app-preview-section';
+
+// 2026-05-13 Mint Editorial rebuild: AppPreviewSection was dropped —
+// the new hero already shows the browser + phone "both platforms"
+// mock, and the design-system landing spec has no separate
+// app-preview section. Section order now follows redesign-v2/
+// landing.html: hero → trust band → how-it-works → features →
+// comparison → for-tradespeople → FAQ → closer.
 
 /**
  * MINTENANCE LANDING PAGE - SERVER-RENDERED
@@ -53,18 +59,24 @@ export const metadata: Metadata = {
 
 export default function LandingPage() {
   return (
-    <div className='min-h-screen bg-gray-50'>
+    <div
+      className='min-h-screen'
+      data-theme='mint-editorial'
+      style={{ background: 'var(--me-bg)' }}
+    >
       <LandingNavigation />
 
-      <main id='main-content' className='pt-16'>
+      {/* No top padding — LandingNavigation is `position: sticky`
+          (Mint Editorial rebuild), so it occupies layout flow and
+          no longer needs a fixed-nav offset. */}
+      <main id='main-content'>
         <HeroSection />
-        <AppPreviewSection />
+        <TrustIndicators />
+        <HowItWorks />
         <BentoFeaturesSection />
         <ComparisonTable />
-        <HowItWorks />
-        <TrustIndicators />
-        <FAQSection />
         <ContractorCTA />
+        <FAQSection />
         <FinalCTA />
       </main>
 

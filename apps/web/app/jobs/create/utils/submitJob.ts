@@ -77,6 +77,11 @@ interface SubmitJobOptions {
    *  Budget step. Stashed in `requirements.preferred_start_date` until
    *  the jobs table grows a dedicated column. */
   preferredDate?: string;
+  /** 2026-05-13 (Hire-Again loop closure): UUID of a contractor the
+   *  homeowner wants to re-engage. Passed straight through to
+   *  /api/jobs which fires a direct "invited bid" notification on
+   *  top of the normal nearby-broadcast. */
+  preferredContractorId?: string;
 }
 
 interface SubmitJobResult {
@@ -94,6 +99,7 @@ export async function submitJob({
   csrfToken,
   aiAssessment,
   preferredDate,
+  preferredContractorId,
 }: SubmitJobOptions): Promise<SubmitJobResult> {
   // CRITICAL FIX: Fetch a fresh CSRF token right before submission to ensure cookie and header match
   // This ensures consistency with the image upload which also fetches a fresh token
@@ -167,6 +173,7 @@ export async function submitJob({
     requirements?: Record<string, unknown>;
     is_rental_property?: boolean;
     tenancy_metadata?: Record<string, unknown>;
+    preferred_contractor_id?: string;
   } = {
     title: formData.title.trim(),
     description: formData.description?.trim() || '',
@@ -215,6 +222,11 @@ export async function submitJob({
   if (coordinates) {
     requestBody.latitude = coordinates.latitude;
     requestBody.longitude = coordinates.longitude;
+  }
+
+  // Hire-Again loop signal — UUID only, server validates as z.uuid()
+  if (preferredContractorId) {
+    requestBody.preferred_contractor_id = preferredContractorId;
   }
 
   // AI assessment + preferred date are stashed inside `requirements`

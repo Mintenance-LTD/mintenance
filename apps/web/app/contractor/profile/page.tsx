@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
+import { cookies } from 'next/headers';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { getJobPhotosByJobId } from '@/lib/api/job-photos';
@@ -20,6 +21,12 @@ export default async function ContractorProfilePage2025() {
   if (!user || user.role !== 'contractor') {
     redirect('/login');
   }
+
+  // Server-side theme detection — same pattern as the contractor /layout.tsx
+  // (which already gates MintEditorialContractorShell on the same cookie).
+  const cookieStore = await cookies();
+  const isMintEditorial =
+    cookieStore.get('mintenance-theme')?.value === 'mint-editorial';
 
   // Fetch all data in parallel
   const [
@@ -141,7 +148,16 @@ export default async function ContractorProfilePage2025() {
       <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4'>
         <Link
           href='/contractor/dashboard-enhanced'
-          className='inline-flex items-center gap-1.5 text-sm text-teal-600 hover:text-teal-700 font-medium transition-colors'
+          className={
+            isMintEditorial
+              ? 'btn btn-ghost btn-sm'
+              : 'inline-flex items-center gap-1.5 text-sm text-teal-600 hover:text-teal-700 font-medium transition-colors'
+          }
+          style={
+            isMintEditorial
+              ? { display: 'inline-flex', alignItems: 'center', gap: 6 }
+              : undefined
+          }
         >
           <ArrowLeft className='w-4 h-4' />
           Back to Dashboard

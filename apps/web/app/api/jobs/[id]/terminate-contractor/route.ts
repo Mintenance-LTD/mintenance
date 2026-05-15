@@ -21,6 +21,7 @@ import { requireJobOwnership } from '@/lib/security/ownership-validators';
 import { notifyJobStatusChange } from '@/lib/services/notifications/NotificationHelper';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
 import { BadRequestError } from '@/lib/errors/api-error';
+import { stripe } from '@/lib/stripe';
 import { z } from 'zod';
 import { validateRequest } from '@/lib/validation/validator';
 
@@ -72,11 +73,28 @@ export const POST = withApiHandler(
       JOB_STATUS.POSTED as JobStatus
     );
 
-    // Handle escrow refund if payment is held
+    // Handle escrow refund if payment is held.
+    //
+    // 2026-05-13 funds-stuck audit: this block previously flipped
+    // `escrow.status` to `refunded` in the DB without ever calling
+    // `stripe.refunds.create()`. The homeowner's card had been
+    // charged when escrow was funded (via `/api/payments/create-intent`),
+    // so the platform held real money but the DB said "refunded" —
+    // the homeowner never saw the funds back. Two independent code
+    // paths actually issue Stripe refunds (`/api/payments/refund` and
+    // `/api/admin/refunds/[id]`); terminate-contractor was silently
+    // not one of them.
+    //
+    // The fix: issue the Stripe refund first (with idempotency key so
+    // a retry is safe), then flip the DB status and persist the
+    // refund id on the escrow metadata. A Stripe failure aborts the
+    // termination so the contractor's assignment stays intact —
+    // safer than the previous "DB says refunded, money isn't moving"
+    // posture.
     let escrowRefunded = false;
     const { data: escrow } = await serverSupabase
       .from('escrow_transactions')
-      .select('id, status, amount')
+      .select('id, status, amount, payment_intent_id, metadata')
       .eq('job_id', jobId)
       .in('status', [
         ESCROW_STATUS.HELD,
@@ -91,18 +109,10 @@ export const POST = withApiHandler(
         ESCROW_STATUS.REFUNDED as EscrowStatusValue
       );
 
-      const { error: escrowError } = await serverSupabase
-        .from('escrow_transactions')
-        .update({
-          status: ESCROW_STATUS.REFUNDED,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', escrow.id);
-
-      if (escrowError) {
+      if (!escrow.payment_intent_id) {
         logger.error(
-          'Failed to refund escrow during termination',
-          escrowError,
+          'Cannot Stripe-refund escrow without payment_intent_id',
+          new Error('Missing payment_intent_id on held escrow'),
           {
             service: 'jobs',
             jobId,
@@ -110,17 +120,91 @@ export const POST = withApiHandler(
           }
         );
         throw new BadRequestError(
-          'Failed to process escrow refund. Please contact support.'
+          'Cannot process refund: escrow is missing its Stripe link. Please contact support.'
+        );
+      }
+
+      let stripeRefundId: string | null = null;
+      try {
+        const refund = await stripe.refunds.create(
+          {
+            payment_intent: escrow.payment_intent_id,
+            // amount omitted → full refund of the captured charge.
+            reason: 'requested_by_customer',
+            metadata: {
+              jobId,
+              escrowId: escrow.id,
+              homeownerId: user.id,
+              terminatedContractorId: contractorId,
+              source: 'terminate-contractor',
+            },
+          },
+          {
+            // Same key on retry → Stripe returns the existing refund
+            // rather than creating a second one.
+            idempotencyKey: `terminate_refund_${escrow.id}`,
+          }
+        );
+        stripeRefundId = refund.id;
+        logger.info('Stripe refund issued for terminated job', {
+          service: 'jobs',
+          jobId,
+          escrowId: escrow.id,
+          refundId: stripeRefundId,
+          amount: escrow.amount,
+        });
+      } catch (stripeErr) {
+        logger.error('Stripe refund failed during termination', stripeErr, {
+          service: 'jobs',
+          jobId,
+          escrowId: escrow.id,
+          paymentIntentId: escrow.payment_intent_id,
+        });
+        throw new BadRequestError(
+          'Failed to refund payment. Please try again, or contact support if the issue persists.'
+        );
+      }
+
+      const existingMetadata =
+        typeof escrow.metadata === 'object' && escrow.metadata
+          ? escrow.metadata
+          : {};
+
+      const { error: escrowError } = await serverSupabase
+        .from('escrow_transactions')
+        .update({
+          status: ESCROW_STATUS.REFUNDED,
+          refunded_at: new Date().toISOString(),
+          release_reason: 'terminate_contractor',
+          metadata: {
+            ...existingMetadata,
+            stripe_refund_id: stripeRefundId,
+            refunded_via: 'terminate-contractor',
+            refunded_reason_text: reason,
+          },
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', escrow.id);
+
+      if (escrowError) {
+        // Stripe refund already succeeded — DB is now drifted. Log
+        // loudly so reconciliation catches it.
+        logger.error(
+          'CRITICAL: Stripe refund succeeded but escrow DB update failed',
+          escrowError,
+          {
+            service: 'jobs',
+            jobId,
+            escrowId: escrow.id,
+            stripeRefundId,
+          }
+        );
+        throw new BadRequestError(
+          'Refund was issued but the platform record is out of sync. Please contact support.'
         );
       }
 
       escrowRefunded = true;
-      logger.info('Escrow refunded due to contractor termination', {
-        service: 'jobs',
-        jobId,
-        escrowId: escrow.id,
-        amount: escrow.amount,
-      });
     }
 
     // Cancel the active contract

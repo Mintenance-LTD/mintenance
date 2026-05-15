@@ -29,6 +29,8 @@
     "migrate:rollback": "npm run migrate rollback",
     "seed:materials": "npx tsx scripts/seed-materials.ts",
     "test:materials-api": "npx tsx scripts/test-materials-api.ts",
+    "reconcile:release-pending": "npx tsx scripts/reconcile-release-pending-escrows.ts",
+    "reconcile:missing-refunds": "npx tsx scripts/reconcile-missing-stripe-refunds.ts",
     "clean": "rimraf .next .turbo dist build",
     "clean:cache": "rimraf .next/cache",
     "analyze": "npm run build:analyze",

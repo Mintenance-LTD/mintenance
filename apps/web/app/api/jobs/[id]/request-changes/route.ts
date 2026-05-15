@@ -107,9 +107,13 @@ export const POST = withApiHandler(
     // Audit P1 (2026-05-10): also reset `completion_confirmed_by_homeowner`.
     // Without this, a homeowner who confirmed completion and later requested
     // changes would leave the flag = true, which lets the escrow auto-release
-    // cron fire even though the job is back to in_progress. The cron's
-    // eligibility query filters on `homeowner_approval`, but the safest
-    // posture is to make the rollback symmetric with confirm-completion.
+    // cron fire even though the job is back to in_progress.
+    //
+    // 2026-05-13 funds-stuck audit: the auto-release cron actually
+    // filters on `escrow.auto_release_date <= now` + `status='held'`,
+    // not on the job-level flag. confirm-completion sets the escrow
+    // fields directly so we must reset those here too, otherwise the
+    // cron would happily release funds during a rework cycle.
     //
     // Note: This is a special business rule — homeowner requesting changes
     // bypasses the normal terminal state restriction on 'completed' jobs.
@@ -130,6 +134,32 @@ export const POST = withApiHandler(
         error: updateError.message,
       });
       throw new Error('Failed to process change request');
+    }
+
+    // 2b. Reset escrow homeowner-approval + auto-release fields. Best-
+    // effort: a failure here is non-fatal (the job is already back to
+    // in_progress and the cron's risk evaluator would normally re-defer
+    // a release on an in_progress job, but the defence-in-depth reset
+    // closes the race window).
+    const { error: escrowResetErr } = await serverSupabase
+      .from('escrow_transactions')
+      .update({
+        homeowner_approval: false,
+        homeowner_approval_at: null,
+        homeowner_inspection_completed: false,
+        homeowner_inspection_at: null,
+        auto_release_date: null,
+        release_reason: null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('job_id', jobId)
+      .eq('status', 'held');
+    if (escrowResetErr) {
+      logger.warn('Failed to reset escrow approval fields on rework', {
+        service: 'jobs',
+        jobId,
+        error: escrowResetErr.message,
+      });
     }
 
     // 3. Notify contractor.

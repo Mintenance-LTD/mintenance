@@ -35,6 +35,10 @@ interface JobCreationPayload {
   // rows already, so it's the right destination — the path was just
   // missing from the API contract.
   requirements?: Record<string, unknown>;
+  // 2026-05-13 (Hire-Again loop closure): when set, the create flow
+  // fires an extra "invited bid" notification to this contractor on
+  // top of the standard nearby broadcast. Not persisted on the job.
+  preferred_contractor_id?: string;
 }
 
 type JobRow = {
@@ -145,6 +149,29 @@ export class JobCreationService {
         budget_max: insertPayload.budget_max,
       }
     );
+
+    // Hire-Again loop closure (2026-05-13): fire a direct, higher-priority
+    // notification to the previously-hired contractor. The broadcast above
+    // already covered them (assuming they're in range / skill-matched), but
+    // this is the "first-look" signal the HireAgainBanner promises ("They'll
+    // be notified first"). Fire-and-forget — never blocks the job creation.
+    if (payload.preferred_contractor_id) {
+      this.notificationService
+        .notifyPreferredContractor(
+          payload.preferred_contractor_id,
+          jobRow.id,
+          jobRow.title,
+          user.id
+        )
+        .catch((err: unknown) => {
+          logger.warn('Preferred-contractor notification failed', {
+            service: 'job-creation',
+            jobId: jobRow.id,
+            preferredContractorId: payload.preferred_contractor_id,
+            error: err instanceof Error ? err.message : String(err),
+          });
+        });
+    }
 
     return mapRowToJobDetail(jobRow);
   }

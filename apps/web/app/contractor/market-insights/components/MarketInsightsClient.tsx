@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   DynamicLineChart,
   DynamicBarChart,
@@ -34,6 +34,20 @@ interface MarketInsightsClientProps {
 }
 
 export function MarketInsightsClient({ insights }: MarketInsightsClientProps) {
+  // 2026-05-13 polish pass: hydration-safe theme detection. Under Mint
+  // Editorial the header + 3 summary tiles swap to canonical .t-h1 /
+  // .t-body + .kpi. Chart cards keep their <Card padding='lg'> shells
+  // and inherit colour mapping from the shell-level .me-legacy-fit
+  // boundary; rewriting recharts internals is a P2 alongside the
+  // wider charts-theme consolidation.
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
+
   return (
     <div
       style={{
@@ -43,158 +57,220 @@ export function MarketInsightsClient({ insights }: MarketInsightsClientProps) {
       }}
     >
       {/* Header */}
-      <div>
-        <h1
-          style={{
-            fontSize: theme.typography.fontSize['3xl'],
-            fontWeight: theme.typography.fontWeight.bold,
-            color: theme.colors.textPrimary,
-            marginBottom: theme.spacing[2],
-          }}
-        >
-          Market Insights
-        </h1>
-        <p
-          style={{
-            fontSize: theme.typography.fontSize.base,
-            color: theme.colors.textSecondary,
-          }}
-        >
-          Pricing trends, demand forecasting, and market analysis to help you
-          make informed decisions
-        </p>
-      </div>
-
-      {/* Market Analysis Summary Cards */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-          gap: theme.spacing[4],
-        }}
-      >
-        <Card padding='lg'>
-          <div
+      {isMintEditorial ? (
+        <div className='col' style={{ gap: 4 }}>
+          <h1 className='t-h1'>Market insights</h1>
+          <p className='t-body'>
+            Pricing trends, demand forecasting, and market analysis to help you
+            make informed decisions.
+          </p>
+        </div>
+      ) : (
+        <div>
+          <h1
             style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: theme.spacing[2],
-              paddingLeft: theme.spacing[4],
+              fontSize: theme.typography.fontSize['3xl'],
+              fontWeight: theme.typography.fontWeight.bold,
+              color: theme.colors.textPrimary,
+              marginBottom: theme.spacing[2],
             }}
           >
-            <div
-              style={{
-                fontSize: theme.typography.fontSize.sm,
-                color: theme.colors.textSecondary,
-                fontWeight: theme.typography.fontWeight.medium,
-              }}
-            >
-              Market Average Rate
-            </div>
-            <div
-              style={{
-                fontSize: theme.typography.fontSize['2xl'],
-                fontWeight: theme.typography.fontWeight.bold,
-                color: theme.colors.textPrimary,
-              }}
-            >
+            Market Insights
+          </h1>
+          <p
+            style={{
+              fontSize: theme.typography.fontSize.base,
+              color: theme.colors.textSecondary,
+            }}
+          >
+            Pricing trends, demand forecasting, and market analysis to help you
+            make informed decisions
+          </p>
+        </div>
+      )}
+
+      {/* Market Analysis Summary Cards */}
+      {isMintEditorial ? (
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+            gap: 12,
+          }}
+        >
+          <div className='kpi'>
+            <div className='label'>Market average rate</div>
+            <div className='num'>
               £{insights.marketAnalysis.averageMarketRate.toLocaleString()}
             </div>
-            <div
-              style={{
-                fontSize: theme.typography.fontSize.xs,
-                color: theme.colors.textTertiary,
-              }}
-            >
-              vs Your Average: £
+            <div className='sub'>
+              vs your average: £
               {insights.marketAnalysis.yourAverageRate.toLocaleString()}
             </div>
           </div>
-        </Card>
 
-        <Card padding='lg'>
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: theme.spacing[2],
-              paddingLeft: theme.spacing[4],
-            }}
-          >
+          <div className='kpi'>
+            <div className='label'>Market position</div>
             <div
+              className='num'
               style={{
-                fontSize: theme.typography.fontSize.sm,
-                color: theme.colors.textSecondary,
-                fontWeight: theme.typography.fontWeight.medium,
-              }}
-            >
-              Market Position
-            </div>
-            <div
-              style={{
-                fontSize: theme.typography.fontSize['2xl'],
-                fontWeight: theme.typography.fontWeight.bold,
                 color:
                   insights.marketAnalysis.marketPosition === 'above_average'
-                    ? theme.colors.success
+                    ? 'var(--me-ok)'
                     : insights.marketAnalysis.marketPosition === 'below_average'
-                      ? theme.colors.warning
-                      : theme.colors.textPrimary,
+                      ? 'var(--me-warn)'
+                      : 'var(--me-ink)',
                 textTransform: 'capitalize',
               }}
             >
               {insights.marketAnalysis.marketPosition.replace('_', ' ')}
             </div>
-            <div
-              style={{
-                fontSize: theme.typography.fontSize.xs,
-                color: theme.colors.textTertiary,
-              }}
-            >
+            <div className='sub'>
               {insights.marketAnalysis.competitorCount} competitors in market
             </div>
           </div>
-        </Card>
 
-        <Card padding='lg'>
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: theme.spacing[2],
-              paddingLeft: theme.spacing[4],
-            }}
-          >
-            <div
-              style={{
-                fontSize: theme.typography.fontSize.sm,
-                color: theme.colors.textSecondary,
-                fontWeight: theme.typography.fontWeight.medium,
-              }}
-            >
-              Suggested Rate
-            </div>
-            <div
-              style={{
-                fontSize: theme.typography.fontSize['2xl'],
-                fontWeight: theme.typography.fontWeight.bold,
-                color: theme.colors.primary,
-              }}
-            >
+          <div className='kpi'>
+            <div className='label'>Suggested rate</div>
+            <div className='num' style={{ color: 'var(--me-brand)' }}>
               £
               {insights.marketAnalysis.pricingRecommendation.suggestedRate.toLocaleString()}
             </div>
+            <div className='sub'>Based on market analysis</div>
+          </div>
+        </div>
+      ) : (
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+            gap: theme.spacing[4],
+          }}
+        >
+          <Card padding='lg'>
             <div
               style={{
-                fontSize: theme.typography.fontSize.xs,
-                color: theme.colors.textTertiary,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: theme.spacing[2],
+                paddingLeft: theme.spacing[4],
               }}
             >
-              Based on market analysis
+              <div
+                style={{
+                  fontSize: theme.typography.fontSize.sm,
+                  color: theme.colors.textSecondary,
+                  fontWeight: theme.typography.fontWeight.medium,
+                }}
+              >
+                Market Average Rate
+              </div>
+              <div
+                style={{
+                  fontSize: theme.typography.fontSize['2xl'],
+                  fontWeight: theme.typography.fontWeight.bold,
+                  color: theme.colors.textPrimary,
+                }}
+              >
+                £{insights.marketAnalysis.averageMarketRate.toLocaleString()}
+              </div>
+              <div
+                style={{
+                  fontSize: theme.typography.fontSize.xs,
+                  color: theme.colors.textTertiary,
+                }}
+              >
+                vs Your Average: £
+                {insights.marketAnalysis.yourAverageRate.toLocaleString()}
+              </div>
             </div>
-          </div>
-        </Card>
-      </div>
+          </Card>
+
+          <Card padding='lg'>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: theme.spacing[2],
+                paddingLeft: theme.spacing[4],
+              }}
+            >
+              <div
+                style={{
+                  fontSize: theme.typography.fontSize.sm,
+                  color: theme.colors.textSecondary,
+                  fontWeight: theme.typography.fontWeight.medium,
+                }}
+              >
+                Market Position
+              </div>
+              <div
+                style={{
+                  fontSize: theme.typography.fontSize['2xl'],
+                  fontWeight: theme.typography.fontWeight.bold,
+                  color:
+                    insights.marketAnalysis.marketPosition === 'above_average'
+                      ? theme.colors.success
+                      : insights.marketAnalysis.marketPosition ===
+                          'below_average'
+                        ? theme.colors.warning
+                        : theme.colors.textPrimary,
+                  textTransform: 'capitalize',
+                }}
+              >
+                {insights.marketAnalysis.marketPosition.replace('_', ' ')}
+              </div>
+              <div
+                style={{
+                  fontSize: theme.typography.fontSize.xs,
+                  color: theme.colors.textTertiary,
+                }}
+              >
+                {insights.marketAnalysis.competitorCount} competitors in market
+              </div>
+            </div>
+          </Card>
+
+          <Card padding='lg'>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: theme.spacing[2],
+                paddingLeft: theme.spacing[4],
+              }}
+            >
+              <div
+                style={{
+                  fontSize: theme.typography.fontSize.sm,
+                  color: theme.colors.textSecondary,
+                  fontWeight: theme.typography.fontWeight.medium,
+                }}
+              >
+                Suggested Rate
+              </div>
+              <div
+                style={{
+                  fontSize: theme.typography.fontSize['2xl'],
+                  fontWeight: theme.typography.fontWeight.bold,
+                  color: theme.colors.primary,
+                }}
+              >
+                £
+                {insights.marketAnalysis.pricingRecommendation.suggestedRate.toLocaleString()}
+              </div>
+              <div
+                style={{
+                  fontSize: theme.typography.fontSize.xs,
+                  color: theme.colors.textTertiary,
+                }}
+              >
+                Based on market analysis
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
 
       {/* Pricing Trends Chart */}
       <Card padding='lg'>

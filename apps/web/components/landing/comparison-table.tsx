@@ -1,39 +1,12 @@
 import React from 'react';
 import Link from 'next/link';
+import { Check, X } from 'lucide-react';
 
-function CrossIcon() {
-  return (
-    <svg
-      className='w-5 h-5 text-red-500 flex-shrink-0 mt-0.5'
-      fill='currentColor'
-      viewBox='0 0 20 20'
-      aria-hidden='true'
-    >
-      <path
-        fillRule='evenodd'
-        d='M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z'
-        clipRule='evenodd'
-      />
-    </svg>
-  );
-}
-
-function CheckIcon() {
-  return (
-    <svg
-      className='w-5 h-5 text-teal-600 flex-shrink-0 mt-0.5'
-      fill='currentColor'
-      viewBox='0 0 20 20'
-      aria-hidden='true'
-    >
-      <path
-        fillRule='evenodd'
-        d='M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z'
-        clipRule='evenodd'
-      />
-    </svg>
-  );
-}
+/**
+ * Mintenance-vs-traditional comparison — Direction A · Mint Editorial.
+ * Source of truth: redesign-v2/landing.html comparison table
+ * (Feature / Traditional / Mintenance, brand-highlighted column).
+ */
 
 const COMPARISON_ROWS = [
   {
@@ -52,96 +25,170 @@ const COMPARISON_ROWS = [
     mintenance: 'Contractor details are visible before you hire',
   },
   {
-    feature: 'Payment Protection',
-    traditional: 'Upfront payment (risky)',
-    mintenance: 'Protected until you approve',
+    feature: 'Payment protection',
+    traditional: 'Pay up front — and hope',
+    mintenance: 'Held safely until you approve the work',
   },
 ];
 
-/**
- * Comparison table showing Mintenance vs traditional methods
- */
 export function ComparisonTable() {
   return (
-    <section className='py-24 bg-gradient-to-b from-gray-50 to-white'>
-      <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8'>
-        <div className='text-center mb-16'>
-          <h2 className='text-5xl font-bold text-gray-900 mb-4'>
-            A calmer way to get repairs done
+    <section
+      data-theme='mint-editorial'
+      style={{
+        background: 'var(--me-surface)',
+        color: 'var(--me-ink)',
+        fontFamily: 'var(--me-font-body)',
+        padding: '88px 32px',
+      }}
+    >
+      <div style={{ maxWidth: 1080, margin: '0 auto' }}>
+        <div style={{ textAlign: 'center', marginBottom: 48 }}>
+          <h2
+            style={{
+              fontFamily: 'var(--me-font-display)',
+              fontWeight: 500,
+              fontSize: 'clamp(34px, 4.4vw, 52px)',
+              lineHeight: 1.06,
+              letterSpacing: '-0.02em',
+              margin: '0 auto 16px',
+              maxWidth: 720,
+            }}
+          >
+            A calmer way to get repairs done.
           </h2>
-          <p className='text-xl text-gray-600 max-w-2xl mx-auto'>
+          <p
+            style={{
+              fontSize: 17,
+              color: 'var(--me-ink-2)',
+              lineHeight: 1.55,
+              maxWidth: 560,
+              margin: '0 auto',
+            }}
+          >
             Less chasing, clearer quotes, and better protection from first
             message to final payment.
           </p>
         </div>
 
-        <div className='overflow-x-auto'>
-          <table className='w-full bg-white rounded-2xl shadow-lg overflow-hidden'>
-            <thead>
-              <tr className='bg-gradient-to-r from-slate-900 to-slate-800 text-white'>
-                <th className='px-6 py-4 text-left text-lg font-bold'>
-                  Feature
-                </th>
-                <th className='px-6 py-4 text-left text-lg font-bold'>
-                  Traditional Method
-                </th>
-                <th className='px-6 py-4 text-left text-lg font-bold bg-teal-600'>
-                  <div className='flex items-center gap-2'>
-                    Mintenance
-                    <svg
-                      className='w-5 h-5'
-                      fill='currentColor'
-                      viewBox='0 0 20 20'
-                      aria-hidden='true'
-                    >
-                      <path
-                        fillRule='evenodd'
-                        d='M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z'
-                        clipRule='evenodd'
-                      />
-                    </svg>
-                  </div>
-                </th>
-              </tr>
-            </thead>
-            <tbody className='divide-y divide-gray-200'>
-              {COMPARISON_ROWS.map((row) => (
-                <tr
-                  key={row.feature}
-                  className='hover:bg-gray-50 transition-colors'
-                >
-                  <td className='px-6 py-5 font-semibold text-gray-900'>
-                    {row.feature}
-                  </td>
-                  <td className='px-6 py-5 text-gray-600'>
-                    <div className='flex items-start gap-2'>
-                      <CrossIcon />
-                      <span>{row.traditional}</span>
-                    </div>
-                  </td>
-                  <td className='px-6 py-5 bg-teal-50'>
-                    <div className='flex items-start gap-2'>
-                      <CheckIcon />
-                      <strong className='text-teal-900'>
-                        {row.mintenance}
-                      </strong>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div
+          style={{
+            border: '1px solid var(--me-line)',
+            borderRadius: 'var(--me-radius-card)',
+            overflow: 'hidden',
+            boxShadow: 'var(--me-shadow-card)',
+          }}
+        >
+          {/* Header */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1.1fr 1fr 1fr',
+              background: 'var(--me-bg-2)',
+              borderBottom: '1px solid var(--me-line)',
+            }}
+          >
+            <div style={cellHeadStyle}>What you&apos;re comparing</div>
+            <div style={cellHeadStyle}>The old way</div>
+            <div
+              style={{
+                ...cellHeadStyle,
+                background: 'var(--me-brand-soft)',
+                color: 'var(--me-brand)',
+              }}
+            >
+              With Mintenance
+            </div>
+          </div>
+
+          {/* Rows */}
+          {COMPARISON_ROWS.map((row, i) => (
+            <div
+              key={row.feature}
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1.1fr 1fr 1fr',
+                borderTop: i === 0 ? 'none' : '1px solid var(--me-line-2)',
+              }}
+            >
+              <div
+                style={{
+                  ...cellStyle,
+                  fontWeight: 600,
+                  color: 'var(--me-ink)',
+                }}
+              >
+                {row.feature}
+              </div>
+              <div style={{ ...cellStyle, color: 'var(--me-ink-2)' }}>
+                <span style={iconWrap}>
+                  <X
+                    className='w-4 h-4'
+                    style={{ color: 'var(--me-err-fg)', flexShrink: 0 }}
+                  />
+                  {row.traditional}
+                </span>
+              </div>
+              <div
+                style={{
+                  ...cellStyle,
+                  background: 'var(--me-brand-soft)',
+                  fontWeight: 600,
+                  color: 'var(--me-brand-2)',
+                }}
+              >
+                <span style={iconWrap}>
+                  <Check
+                    className='w-4 h-4'
+                    style={{ color: 'var(--me-brand)', flexShrink: 0 }}
+                  />
+                  {row.mintenance}
+                </span>
+              </div>
+            </div>
+          ))}
         </div>
 
-        <div className='text-center mt-12'>
+        <div style={{ textAlign: 'center', marginTop: 40 }}>
           <Link
             href='/jobs/create'
-            className='inline-flex px-10 py-5 bg-teal-600 text-white text-lg font-bold rounded-2xl hover:bg-teal-700 hover:shadow-lg transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2'
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '14px 22px',
+              borderRadius: 'var(--me-radius-btn)',
+              background: 'var(--me-brand)',
+              color: 'var(--me-on-brand)',
+              fontSize: 15,
+              fontWeight: 600,
+              textDecoration: 'none',
+              boxShadow: 'var(--me-shadow-btn)',
+            }}
           >
-            Post a Job
+            Post a job
           </Link>
         </div>
       </div>
     </section>
   );
 }
+
+const cellHeadStyle: React.CSSProperties = {
+  padding: '14px 18px',
+  fontSize: 13,
+  fontWeight: 600,
+  color: 'var(--me-ink-2)',
+};
+
+const cellStyle: React.CSSProperties = {
+  padding: '16px 18px',
+  fontSize: 14,
+  lineHeight: 1.5,
+};
+
+const iconWrap: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'flex-start',
+  gap: 8,
+};

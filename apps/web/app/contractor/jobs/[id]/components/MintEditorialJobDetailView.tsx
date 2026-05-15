@@ -37,6 +37,7 @@ import {
   MessageCircle,
   Phone,
   ShieldCheck,
+  Info,
 } from 'lucide-react';
 import { ContractManagement } from '@/app/jobs/[id]/components/ContractManagement';
 import { JobScheduling } from '@/app/jobs/[id]/components/JobScheduling';
@@ -45,6 +46,12 @@ import { JobPhotoUpload } from './JobPhotoUpload';
 import { OnMyWayButton } from './OnMyWayButton';
 import { LocationSharing } from './LocationSharing';
 import { PrepareContractButton } from './PrepareContractButton';
+import { PreArrivalChecklist } from './PreArrivalChecklist';
+import { RunningLateButton } from './RunningLateButton';
+import { JobIssueButton } from './JobIssueButton';
+import { JobMapCard } from './JobMapCard';
+import { ContractorTipsReceivedCard } from './ContractorTipsReceivedCard';
+import { PreArrivalPhotoGallery } from './PreArrivalPhotoGallery';
 
 interface ProgressStep {
   label: string;
@@ -80,10 +87,26 @@ interface ContractShape {
   end_date: string | null;
 }
 
+export interface PropertyAccessShape {
+  access_mode: 'key_safe' | 'smart_lock' | 'in_person' | null;
+  /**
+   * Sensitive — should ONLY be populated when the contractor is
+   * allowed to see it (stage = ready_to_start | in_progress, and
+   * ideally within 1h of scheduled start). The caller is responsible
+   * for masking; this prop trusts what it receives.
+   */
+  key_safe_code: string | null;
+  access_notes: string | null;
+  stopcock_location: string | null;
+  gas_isolator_location: string | null;
+  consumer_unit_location: string | null;
+}
+
 interface MintEditorialJobDetailViewProps {
   job: JobShape;
   homeowner: HomeownerShape | null;
   contract: ContractShape | null;
+  property: PropertyAccessShape | null;
   contractStatus: string;
   currentStage: string;
   stageTitle: string;
@@ -91,6 +114,7 @@ interface MintEditorialJobDetailViewProps {
   steps: ProgressStep[];
   escrowHeld: boolean;
   escrowStatus: string;
+  escrowId: string | null;
   jobPhotoUrls: string[];
   buildingAssessment: unknown;
   userId: string;
@@ -135,6 +159,7 @@ export function MintEditorialJobDetailView({
   job,
   homeowner,
   contract,
+  property,
   contractStatus,
   currentStage,
   stageTitle,
@@ -142,6 +167,7 @@ export function MintEditorialJobDetailView({
   steps,
   escrowHeld,
   escrowStatus,
+  escrowId,
   jobPhotoUrls,
   buildingAssessment,
   userId,
@@ -356,9 +382,46 @@ export function MintEditorialJobDetailView({
                     </button>
                   </Link>
                 )}
+
+                {/* Secondary actions — "I'm running late" + "Issue
+                    with this job". Only shown once the work is
+                    actually relevant (ready_to_start / in_progress).
+                    At earlier stages the homeowner hasn't paid yet,
+                    so a "running late" message is meaningless. */}
+                {(currentStage === 'ready_to_start' ||
+                  currentStage === 'in_progress') && (
+                  <div
+                    className='row'
+                    style={{
+                      gap: 8,
+                      flexWrap: 'wrap',
+                      paddingTop: 6,
+                      borderTop: '1px solid var(--me-line-2)',
+                      marginTop: 4,
+                    }}
+                  >
+                    <RunningLateButton jobId={job.id} />
+                    <JobIssueButton jobId={job.id} escrowId={escrowId} />
+                  </div>
+                )}
               </div>
             </div>
           )}
+
+          {/* Pre-arrival photo gallery — hero + thumb strip + lightbox.
+              Mounted at the stages where the contractor is heading out or
+              mid-job and may want to confirm "before" state quickly. The
+              Customer brief below still shows the same photos as part of
+              the deeper context, but this hero is the eye-level "what
+              you'll find" preview. */}
+          {(currentStage === 'ready_to_start' ||
+            currentStage === 'in_progress') &&
+          jobPhotoUrls.length > 0 ? (
+            <PreArrivalPhotoGallery
+              jobPhotoUrls={jobPhotoUrls}
+              jobTitle={job.title || 'Job'}
+            />
+          ) : null}
 
           {/* Customer brief */}
           {(job.description || jobPhotoUrls.length > 0) && (
@@ -408,6 +471,11 @@ export function MintEditorialJobDetailView({
               </div>
             </div>
           )}
+
+          {/* Pre-arrival checklist — hidden when there are no items
+              (component renders null), so the homeowner controls
+              whether this slot appears. */}
+          <PreArrivalChecklist jobId={job.id} />
 
           {/* AI Building Assessment */}
           {(buildingAssessment || jobPhotoUrls.length > 0) && (
@@ -465,8 +533,16 @@ export function MintEditorialJobDetailView({
             />
           )}
 
-          {/* On My Way + Location Sharing */}
-          {(currentStage === 'ready_to_start' ||
+          {/* On My Way + Location Sharing — visible at every stage
+              where the contractor might reasonably need to head out:
+              awaiting_payment (homeowner could pay any moment),
+              ready_to_start (escrow funded, work expected), and
+              in_progress (mid-job updates). Previously only shown at
+              ready_to_start/in_progress, which meant the contractor
+              had to wait for escrow to even prepare the trip
+              tracking. */}
+          {(currentStage === 'awaiting_payment' ||
+            currentStage === 'ready_to_start' ||
             currentStage === 'in_progress') && (
             <div
               style={{
@@ -584,6 +660,173 @@ export function MintEditorialJobDetailView({
             </div>
           </div>
 
+          {/* Map + Navigate — shown when the job has either explicit
+              lat/lng or a location string we can hand to Google/Apple
+              Maps. Tap "Navigate" opens the OS-default maps app with
+              turn-by-turn directions from the contractor's current
+              location. */}
+          <JobMapCard
+            jobLatitude={job.latitude}
+            jobLongitude={job.longitude}
+            jobLocation={job.location}
+          />
+
+          {/* Access details — uses the property fields from migration
+              20260520000003. When the homeowner has set the access mode
+              on /properties/[id], the contractor sees it here without
+              having to chase via chat. Key safe code is only surfaced
+              once the contractor is on a job stage that needs it
+              (ready_to_start / in_progress) — the page-level fetch
+              should mask it before this view ever sees the value
+              (defence-in-depth for any future client-side hydration). */}
+          {property?.access_mode ||
+          property?.access_notes ||
+          property?.stopcock_location ? (
+            <div className='card card-pad'>
+              <div className='col' style={{ gap: 10 }}>
+                <div className='row' style={{ gap: 8, alignItems: 'center' }}>
+                  <Info
+                    size={14}
+                    strokeWidth={1.75}
+                    style={{ color: 'var(--me-brand)' }}
+                  />
+                  <h3 className='t-h3' style={{ margin: 0 }}>
+                    Access details
+                  </h3>
+                </div>
+
+                {property.access_mode ? (
+                  <div className='col' style={{ gap: 4 }}>
+                    <span className='t-meta'>How to get in</span>
+                    <span style={{ fontSize: 14, fontWeight: 600 }}>
+                      {property.access_mode === 'key_safe'
+                        ? 'Key safe'
+                        : property.access_mode === 'smart_lock'
+                          ? 'Smart lock'
+                          : 'Homeowner will be home'}
+                    </span>
+                  </div>
+                ) : null}
+
+                {property.key_safe_code &&
+                (currentStage === 'ready_to_start' ||
+                  currentStage === 'in_progress') ? (
+                  <div className='col' style={{ gap: 4 }}>
+                    <span className='t-meta'>Lock-box code</span>
+                    <span
+                      style={{
+                        fontFamily: 'monospace',
+                        fontSize: 18,
+                        fontWeight: 700,
+                        letterSpacing: '0.1em',
+                        color: 'var(--me-brand)',
+                      }}
+                    >
+                      {property.key_safe_code}
+                    </span>
+                  </div>
+                ) : null}
+
+                {property.access_notes ? (
+                  <div className='col' style={{ gap: 4 }}>
+                    <span className='t-meta'>Notes from homeowner</span>
+                    <p
+                      className='t-body'
+                      style={{
+                        fontSize: 13,
+                        whiteSpace: 'pre-wrap',
+                        lineHeight: 1.5,
+                      }}
+                    >
+                      {property.access_notes}
+                    </p>
+                  </div>
+                ) : null}
+
+                {(property.stopcock_location ||
+                  property.gas_isolator_location ||
+                  property.consumer_unit_location) && (
+                  <div
+                    className='col'
+                    style={{
+                      gap: 6,
+                      padding: 10,
+                      borderRadius: 8,
+                      background: 'var(--me-bg-2)',
+                      marginTop: 4,
+                    }}
+                  >
+                    <span className='t-meta' style={{ fontWeight: 600 }}>
+                      Stopcock & isolators
+                    </span>
+                    {property.stopcock_location ? (
+                      <span style={{ fontSize: 12 }}>
+                        Water stopcock: {property.stopcock_location}
+                      </span>
+                    ) : null}
+                    {property.gas_isolator_location ? (
+                      <span style={{ fontSize: 12 }}>
+                        Gas isolator: {property.gas_isolator_location}
+                      </span>
+                    ) : null}
+                    {property.consumer_unit_location ? (
+                      <span style={{ fontSize: 12 }}>
+                        Consumer unit: {property.consumer_unit_location}
+                      </span>
+                    ) : null}
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            // Fallback: no access info on file → tell the contractor to ask.
+            <div
+              className='card'
+              style={{
+                padding: 12,
+                background: 'var(--me-bg-2)',
+                borderColor: 'var(--me-line)',
+              }}
+            >
+              <div
+                className='row'
+                style={{ gap: 10, alignItems: 'flex-start' }}
+              >
+                <Info
+                  size={16}
+                  strokeWidth={1.75}
+                  style={{
+                    color: 'var(--me-warm)',
+                    marginTop: 2,
+                    flexShrink: 0,
+                  }}
+                />
+                <div className='col' style={{ gap: 4 }}>
+                  <span style={{ fontSize: 13, fontWeight: 600 }}>
+                    Access details
+                  </span>
+                  <p className='t-body' style={{ fontSize: 13 }}>
+                    Homeowner hasn&apos;t set default access yet. Confirm how to
+                    get in via the message thread before you set off.
+                  </p>
+                  {messageHref ? (
+                    <Link
+                      href={messageHref}
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 600,
+                        color: 'var(--me-brand)',
+                        textDecoration: 'underline',
+                      }}
+                    >
+                      Open conversation →
+                    </Link>
+                  ) : null}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* You'll be paid */}
           {budgetNum > 0 ? (
             <div className='card card-pad'>
@@ -658,6 +901,14 @@ export function MintEditorialJobDetailView({
                 </p>
               </div>
             </div>
+          ) : null}
+
+          {/* Tips received — homeowner-side TipJarCard mirror. Only
+              renders on completed jobs, and only when there's at least
+              one completed tip (silence if the homeowner didn't tip).
+              See ContractorTipsReceivedCard for the empty-state policy. */}
+          {currentStage === 'completed' ? (
+            <ContractorTipsReceivedCard jobId={job.id} />
           ) : null}
         </aside>
       </div>

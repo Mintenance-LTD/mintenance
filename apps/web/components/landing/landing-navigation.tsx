@@ -3,17 +3,44 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 
+/**
+ * Landing top navigation — Direction A · Mint Editorial.
+ * Source of truth: redesign-v2/landing.html `.nav-fixed`.
+ *
+ * Self-contained: manages its own mobile menu state + escape-key
+ * handler. Scoped under `data-theme="mint-editorial"` so the
+ * `--me-*` tokens resolve.
+ */
+
 const NAV_LINKS = [
-  { href: '#how-it-works', label: 'How It Works' },
-  { href: '/login?redirect=/dashboard', label: 'For Homeowners' },
-  { href: '/login?redirect=/contractor/dashboard-enhanced', label: 'For Contractors' },
+  { href: '#how-it-works', label: 'How it works' },
+  { href: '/login?redirect=/dashboard', label: 'For homeowners' },
+  {
+    href: '/login?redirect=/contractor/dashboard-enhanced',
+    label: 'For tradespeople',
+  },
   { href: '/about', label: 'About' },
 ];
 
-/**
- * Landing page top navigation bar.
- * Self-contained: manages its own mobile menu state and escape-key handler.
- */
+function LeafMark({ size = 18 }: { size?: number }) {
+  return (
+    <svg
+      viewBox='0 0 24 24'
+      width={size}
+      height={size}
+      fill='none'
+      stroke='currentColor'
+      strokeWidth='1.6'
+      strokeLinecap='round'
+      strokeLinejoin='round'
+      aria-hidden='true'
+    >
+      <path d='M12 21c-2-5 1-12 9-13-1 7-4 11-9 13z' />
+      <path d='M12 21c-1-3 1-7 5-9' />
+    </svg>
+  );
+}
+
 export function LandingNavigation() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -27,84 +54,211 @@ export function LandingNavigation() {
     return () => document.removeEventListener('keydown', handleEscape);
   }, [isMobileMenuOpen]);
 
+  const linkStyle: React.CSSProperties = {
+    color: 'var(--me-ink-2)',
+    textDecoration: 'none',
+    fontSize: 14,
+    fontWeight: 500,
+  };
+
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-100 shadow-sm">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          <Link href="/" className="text-2xl font-bold text-slate-900">
-            Mintenance
-          </Link>
-
-          <div className="hidden md:flex items-center gap-8">
-            {NAV_LINKS.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="text-gray-700 hover:text-slate-900 font-medium transition-colors"
-              >
-                {link.label}
-              </Link>
-            ))}
-          </div>
-
-          {/* Mobile menu button */}
-          <button
-            type="button"
-            className="md:hidden p-2 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2"
-            aria-label="Toggle navigation menu"
-            aria-expanded={isMobileMenuOpen}
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                setIsMobileMenuOpen(!isMobileMenuOpen);
-              }
+    <nav
+      data-theme='mint-editorial'
+      style={{
+        position: 'sticky',
+        top: 0,
+        zIndex: 50,
+        background: 'color-mix(in srgb, var(--me-bg) 88%, transparent)',
+        backdropFilter: 'blur(10px)',
+        borderBottom: '1px solid var(--me-line)',
+        fontFamily: 'var(--me-font-body)',
+      }}
+    >
+      <div
+        style={{
+          maxWidth: 1280,
+          margin: '0 auto',
+          padding: '14px 32px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 40,
+        }}
+      >
+        {/* Logo */}
+        <Link
+          href='/'
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            textDecoration: 'none',
+            color: 'var(--me-ink)',
+          }}
+        >
+          <span
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 9,
+              background: 'var(--me-brand)',
+              color: 'var(--me-on-brand)',
+              display: 'grid',
+              placeItems: 'center',
             }}
           >
-            {isMobileMenuOpen ? (
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            ) : (
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-              </svg>
-            )}
-          </button>
-
-          {/* Mobile menu */}
-          {isMobileMenuOpen && (
-            <div className="absolute top-16 left-0 right-0 bg-white border-b border-gray-100 shadow-lg md:hidden z-50">
-              <nav className="px-4 py-4 space-y-3">
-                {NAV_LINKS.map((link) => (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className="block px-4 py-2 text-gray-700 hover:text-slate-900 hover:bg-gray-50 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    {link.label}
-                  </Link>
-                ))}
-                <Link
-                  href="/login"
-                  className="block px-4 py-2 bg-slate-900 text-white rounded-lg hover:bg-slate-800 font-semibold transition-colors text-center mt-4 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  Get Started
-                </Link>
-              </nav>
-            </div>
-          )}
-
-          <Link
-            href="/login"
-            className="hidden md:inline-flex px-6 py-2.5 bg-slate-900 text-white rounded-xl hover:bg-slate-800 font-semibold transition-all hover:shadow-lg transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2"
+            <LeafMark />
+          </span>
+          <span
+            style={{
+              fontFamily: 'var(--me-font-display)',
+              fontSize: 22,
+              letterSpacing: '-0.02em',
+            }}
           >
-            Get Started
+            Mintenance
+          </span>
+        </Link>
+
+        {/* Desktop links */}
+        <div
+          className='landing-nav-links'
+          style={{ display: 'flex', gap: 28, flex: 1 }}
+        >
+          {NAV_LINKS.map((link) => (
+            <Link key={link.href} href={link.href} style={linkStyle}>
+              {link.label}
+            </Link>
+          ))}
+        </div>
+
+        {/* Desktop CTAs */}
+        <div
+          className='landing-nav-cta'
+          style={{ display: 'flex', gap: 8, alignItems: 'center' }}
+        >
+          <Link
+            href='/login'
+            style={{
+              padding: '8px 14px',
+              borderRadius: 'var(--me-radius-btn)',
+              fontSize: 13,
+              fontWeight: 600,
+              color: 'var(--me-ink-2)',
+              textDecoration: 'none',
+            }}
+          >
+            Sign in
+          </Link>
+          <Link
+            href='/register'
+            style={{
+              padding: '8px 16px',
+              borderRadius: 'var(--me-radius-btn)',
+              background: 'var(--me-brand)',
+              color: 'var(--me-on-brand)',
+              fontSize: 13,
+              fontWeight: 600,
+              textDecoration: 'none',
+              boxShadow: 'var(--me-shadow-btn)',
+            }}
+          >
+            Get started
           </Link>
         </div>
+
+        {/* Mobile menu button */}
+        <button
+          type='button'
+          className='landing-nav-burger'
+          aria-label='Toggle navigation menu'
+          aria-expanded={isMobileMenuOpen}
+          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          style={{
+            display: 'none',
+            padding: 8,
+            borderRadius: 8,
+            background: 'transparent',
+            border: 0,
+            cursor: 'pointer',
+            color: 'var(--me-ink-2)',
+          }}
+        >
+          <svg
+            width='24'
+            height='24'
+            fill='none'
+            stroke='currentColor'
+            viewBox='0 0 24 24'
+            aria-hidden='true'
+          >
+            <path
+              strokeLinecap='round'
+              strokeLinejoin='round'
+              strokeWidth={2}
+              d={
+                isMobileMenuOpen
+                  ? 'M6 18L18 6M6 6l12 12'
+                  : 'M4 6h16M4 12h16M4 18h16'
+              }
+            />
+          </svg>
+        </button>
       </div>
+
+      {/* Mobile menu */}
+      {isMobileMenuOpen && (
+        <div
+          className='landing-nav-mobile'
+          style={{
+            borderTop: '1px solid var(--me-line)',
+            background: 'var(--me-surface)',
+            padding: '12px 32px 20px',
+          }}
+        >
+          {NAV_LINKS.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              onClick={() => setIsMobileMenuOpen(false)}
+              style={{
+                ...linkStyle,
+                display: 'block',
+                padding: '10px 0',
+              }}
+            >
+              {link.label}
+            </Link>
+          ))}
+          <Link
+            href='/register'
+            onClick={() => setIsMobileMenuOpen(false)}
+            style={{
+              display: 'block',
+              textAlign: 'center',
+              marginTop: 10,
+              padding: '12px 16px',
+              borderRadius: 'var(--me-radius-btn)',
+              background: 'var(--me-brand)',
+              color: 'var(--me-on-brand)',
+              fontSize: 14,
+              fontWeight: 600,
+              textDecoration: 'none',
+            }}
+          >
+            Get started
+          </Link>
+        </div>
+      )}
+
+      {/* Responsive: collapse desktop links/CTAs into the burger menu
+          below 900px. */}
+      <style>{`
+        @media (max-width: 899px) {
+          .landing-nav-links,
+          .landing-nav-cta { display: none !important; }
+          .landing-nav-burger { display: block !important; }
+        }
+      `}</style>
     </nav>
   );
 }

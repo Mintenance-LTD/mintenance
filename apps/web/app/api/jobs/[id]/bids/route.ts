@@ -45,7 +45,12 @@ export const GET = withApiHandler(
     const { searchParams } = new URL(request.url);
     const statusFilter = searchParams.get('status');
 
-    // Fetch bids with contractor profile and job info
+    // Fetch bids with contractor profile, job info, AND the linked
+    // contractor_quotes row. The quote embed unlocks the full
+    // breakdown on the BidCard (line items, VAT, contractor terms)
+    // — these were stored by submit-bid but invisible on the
+    // homeowner's bid list until the 2026-05-13 bid → contract
+    // pipeline audit.
     let bidsQuery = userDb
       .from('bids')
       .select(
@@ -59,6 +64,8 @@ export const GET = withApiHandler(
         estimated_duration_days,
         materials_included,
         warranty_months,
+        proposed_start_date,
+        quote_id,
         created_at,
         updated_at,
         contractor:contractor_id (
@@ -78,6 +85,16 @@ export const GET = withApiHandler(
           category,
           status,
           budget
+        ),
+        quote:contractor_quotes!quote_id (
+          id,
+          subtotal,
+          tax_rate,
+          tax_amount,
+          total_amount,
+          line_items,
+          terms,
+          quote_number
         )
       `
       )

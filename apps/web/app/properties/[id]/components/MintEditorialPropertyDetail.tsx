@@ -169,7 +169,18 @@ export function MintEditorialPropertyDetail({
       ) : null}
 
       {activeTab === 'access' ? (
-        <MintEditorialPropertyAccess propertyId={property.id} jobs={jobs} />
+        <MintEditorialPropertyAccess
+          propertyId={property.id}
+          jobs={jobs}
+          initialAccess={{
+            access_mode: property.access_mode ?? null,
+            key_safe_code: property.key_safe_code ?? null,
+            access_notes: property.access_notes ?? null,
+            stopcock_location: property.stopcock_location ?? null,
+            gas_isolator_location: property.gas_isolator_location ?? null,
+            consumer_unit_location: property.consumer_unit_location ?? null,
+          }}
+        />
       ) : null}
 
       {activeTab === 'assessments' ? (

@@ -1,111 +1,227 @@
 import React from 'react';
 import Link from 'next/link';
+import { Check } from 'lucide-react';
+
+/**
+ * "For tradespeople" CTA — Direction A · Mint Editorial.
+ * Source of truth: redesign-v2/landing.html contractor block —
+ * a dark brand panel.
+ *
+ * The old version embedded raw <img> product screenshots; replaced
+ * with a clean token-styled "what you get" card so there's no
+ * dependency on screenshot assets.
+ */
 
 const BENEFITS = [
   {
-    title: 'Real Jobs, Not Leads',
-    description: 'See real posted jobs with budgets and details — no credits, no guessing',
+    title: 'Real jobs, not leads',
+    description:
+      'See real posted jobs with budgets and details — no credits, no guessing.',
   },
   {
-    title: 'Guaranteed Payment',
-    description: 'The homeowner\'s money is held securely before you pick up a tool. You will get paid.',
+    title: 'Guaranteed payment',
+    description:
+      "The homeowner's money is held safely before you pick up a tool. You will get paid.",
   },
   {
-    title: 'Your Work Speaks for Itself',
-    description: 'Photo proof protects you from bad-faith disputes. Verified badges show your credentials from day one.',
+    title: 'Your work speaks for itself',
+    description:
+      'Before/after photos protect you from bad-faith disputes. Verified badges show your credentials from day one.',
   },
 ];
 
-const CONTRACTOR_PROMISES = [
-  { label: 'No monthly fees', description: 'You only pay when you win a job' },
-  { label: 'No credit system', description: 'See full job details before you bid' },
-  { label: 'Payment protected', description: 'Funds secured before work begins' },
+const PROMISES = [
+  { label: 'No monthly fees', sub: 'You only pay when you win a job' },
+  { label: 'No credit system', sub: 'See full job details before you bid' },
+  { label: 'Payment protected', sub: 'Funds secured before work begins' },
 ];
 
-function CheckCircleIcon() {
-  return (
-    <svg className="w-6 h-6 text-teal-400 flex-shrink-0 mt-1" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
-      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-    </svg>
-  );
-}
-
-
-/**
- * Contractor call-to-action section with benefits and stats
- */
 export function ContractorCTA() {
   return (
-    <section className="py-24 bg-gradient-to-br from-slate-900 to-slate-800">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-          <div>
-            <h2 className="text-5xl font-bold text-white mb-6">Are you a contractor?</h2>
-            <p className="text-xl text-white/80 mb-10 leading-relaxed">
-              We know you&apos;ve tried the others. Here&apos;s what&apos;s actually different: real jobs from real homeowners, payment secured before you start, and photo proof that protects your reputation.
-            </p>
+    <section
+      id='contractors'
+      data-theme='mint-editorial'
+      style={{
+        background: 'var(--me-brand-2)',
+        color: 'var(--me-on-brand)',
+        fontFamily: 'var(--me-font-body)',
+        padding: '88px 32px',
+      }}
+    >
+      <div
+        style={{
+          maxWidth: 1180,
+          margin: '0 auto',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+          gap: 48,
+          alignItems: 'center',
+        }}
+      >
+        {/* Left — pitch */}
+        <div>
+          <div
+            style={{
+              fontSize: 12,
+              textTransform: 'uppercase',
+              letterSpacing: '.12em',
+              color: 'rgba(255,255,255,0.65)',
+              fontWeight: 600,
+              marginBottom: 16,
+            }}
+          >
+            For tradespeople
+          </div>
+          <h2
+            style={{
+              fontFamily: 'var(--me-font-display)',
+              fontWeight: 500,
+              fontSize: 'clamp(34px, 4.4vw, 52px)',
+              lineHeight: 1.06,
+              letterSpacing: '-0.02em',
+              margin: '0 0 16px',
+            }}
+          >
+            Work you can count on.
+          </h2>
+          <p
+            style={{
+              fontSize: 16,
+              lineHeight: 1.6,
+              color: 'rgba(255,255,255,0.82)',
+              maxWidth: 460,
+              margin: '0 0 28px',
+            }}
+          >
+            You&apos;ve tried the others. Here&apos;s what&apos;s actually
+            different: real jobs from real homeowners, payment secured before
+            you start, and photo proof that protects your reputation.
+          </p>
 
-            <div className="space-y-6 mb-10">
-              {BENEFITS.map((benefit) => (
-                <div key={benefit.title} className="flex items-start gap-4">
-                  <CheckCircleIcon />
-                  <div>
-                    <h3 className="text-xl font-bold text-white mb-2">{benefit.title}</h3>
-                    <p className="text-white/70 leading-relaxed">{benefit.description}</p>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 18,
+              marginBottom: 32,
+            }}
+          >
+            {BENEFITS.map((b) => (
+              <div
+                key={b.title}
+                style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}
+              >
+                <span
+                  style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: 9999,
+                    background: 'rgba(255,255,255,0.14)',
+                    display: 'grid',
+                    placeItems: 'center',
+                    flexShrink: 0,
+                    marginTop: 2,
+                  }}
+                >
+                  <Check className='w-3.5 h-3.5' />
+                </span>
+                <div>
+                  <div style={{ fontSize: 16, fontWeight: 600 }}>{b.title}</div>
+                  <div
+                    style={{
+                      fontSize: 14,
+                      lineHeight: 1.55,
+                      color: 'rgba(255,255,255,0.72)',
+                    }}
+                  >
+                    {b.description}
                   </div>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
+          </div>
 
-            <Link
-              href="/contractor/dashboard-enhanced"
-              className="inline-flex px-10 py-5 bg-amber-500 text-white text-lg font-bold rounded-2xl hover:bg-amber-600 hover:shadow-2xl transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2 focus:ring-offset-slate-800"
+          <Link
+            href='/register?role=contractor'
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '14px 24px',
+              borderRadius: 'var(--me-radius-btn)',
+              background: 'var(--me-surface)',
+              color: 'var(--me-ink)',
+              fontSize: 15,
+              fontWeight: 600,
+              textDecoration: 'none',
+            }}
+          >
+            Join as a tradesperson
+          </Link>
+        </div>
+
+        {/* Right — "what you get" card */}
+        <div
+          style={{
+            background: 'var(--me-surface)',
+            color: 'var(--me-ink)',
+            borderRadius: 'var(--me-radius-card)',
+            padding: 28,
+            boxShadow: 'var(--me-shadow-pop)',
+          }}
+        >
+          <div
+            style={{
+              fontFamily: 'var(--me-font-display)',
+              fontSize: 22,
+              letterSpacing: '-0.01em',
+              marginBottom: 4,
+            }}
+          >
+            Every job, on fair terms
+          </div>
+          <div
+            style={{
+              fontSize: 13,
+              color: 'var(--me-ink-3)',
+              marginBottom: 18,
+            }}
+          >
+            What you get on Mintenance
+          </div>
+          {PROMISES.map((p, i) => (
+            <div
+              key={p.label}
+              style={{
+                display: 'flex',
+                gap: 12,
+                alignItems: 'flex-start',
+                padding: '14px 0',
+                borderTop: i === 0 ? 'none' : '1px solid var(--me-line-2)',
+              }}
             >
-              Join as a Contractor
-            </Link>
-          </div>
-
-          <div className="relative">
-            {/* Contractor app screenshot in device frame */}
-            <div className="relative bg-gray-800 rounded-2xl p-2 shadow-2xl border border-white/10">
-              <div className="flex items-center gap-1.5 px-3 py-2">
-                <div className="w-2.5 h-2.5 rounded-full bg-red-400" />
-                <div className="w-2.5 h-2.5 rounded-full bg-yellow-400" />
-                <div className="w-2.5 h-2.5 rounded-full bg-green-400" />
-                <div className="flex-1 mx-3 h-4 bg-gray-700 rounded" />
-              </div>
-              <div className="rounded-xl overflow-hidden">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                  src="/screenshots/contractor/discover-jobs.png"
-                  alt="Contractor Discover Jobs — map view with available jobs, trade filters, and Quick Bid"
-                  width={700}
-                  height={440}
-                  className="w-full h-auto"
-                />
-              </div>
-            </div>
-            {/* Floating mobile */}
-            <div className="absolute -bottom-6 -right-4 w-36 rounded-2xl overflow-hidden shadow-xl border-4 border-white/20 hidden lg:block">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src="/screenshots/mobile/contractor-business-hub.png"
-                alt="Mobile Business Hub — Finance, Invoices, Quotes, Clients"
-                width={180}
-                height={390}
-                className="w-full h-auto"
-              />
-            </div>
-            {/* Promise pills below */}
-            <div className="flex flex-wrap gap-3 mt-8 justify-center">
-              {CONTRACTOR_PROMISES.map((item) => (
-                <div key={item.label} className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full border border-white/20">
-                  <CheckCircleIcon />
-                  <span className="text-sm font-medium text-white">{item.label}</span>
+              <span
+                style={{
+                  width: 26,
+                  height: 26,
+                  borderRadius: 9999,
+                  background: 'var(--me-brand-soft)',
+                  color: 'var(--me-brand)',
+                  display: 'grid',
+                  placeItems: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <Check className='w-3.5 h-3.5' />
+              </span>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 600 }}>{p.label}</div>
+                <div style={{ fontSize: 13, color: 'var(--me-ink-2)' }}>
+                  {p.sub}
                 </div>
-              ))}
+              </div>
             </div>
-          </div>
+          ))}
         </div>
       </div>
     </section>

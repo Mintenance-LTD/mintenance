@@ -58,10 +58,14 @@ export const POST = withApiHandler(
       throw new ForbiddenError('Not authorized to reject bids for this job');
     }
 
-    // Verify the bid exists and belongs to this job (user-scoped read)
+    // Verify the bid exists and belongs to this job (user-scoped read).
+    // `quote_id` is selected too — if the contractor sent a quote tied
+    // to this bid, we flip the quote → declined further down so the
+    // contractor's funnel stats stay accurate (see 2026-05-13 quote↔bid
+    // pipeline closure).
     const { data: bid, error: bidError } = await userDb
       .from('bids')
-      .select('id, job_id, status')
+      .select('id, job_id, status, quote_id')
       .eq('id', bidId)
       .eq('job_id', jobId)
       .single();
@@ -123,6 +127,28 @@ export const POST = withApiHandler(
       jobId,
       homeownerId: user.id,
     });
+
+    // Mirror outcome onto linked contractor_quotes row (see helper docs
+    // on the accept route). Fire-and-forget — never blocks reject flow.
+    if (bid.quote_id) {
+      serverSupabase
+        .from('contractor_quotes')
+        .update({
+          status: 'declined',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', bid.quote_id)
+        .then(({ error }) => {
+          if (error) {
+            logger.warn('Failed to flip linked quote → declined', {
+              service: 'quotes',
+              quoteId: bid.quote_id,
+              bidId,
+              error: error.message,
+            });
+          }
+        });
+    }
 
     // Send notification to the contractor whose bid was rejected
     try {

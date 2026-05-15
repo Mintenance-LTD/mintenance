@@ -23,6 +23,15 @@ export interface Review {
   rating: number;
   review_text?: string | null;
   comment?: string | null;
+  /**
+   * 2026-05-13 audit: the `would_recommend` column was added by
+   * `20260509155315_reviews_would_recommend_column` and populated by
+   * `POST /api/jobs/[id]/review`, but never surfaced on the contractor
+   * public profile. Now read and rendered as a "Would recommend" /
+   * "Wouldn't recommend" pill on each review card, plus an aggregate
+   * "X% recommend" stat at the section header.
+   */
+  would_recommend?: boolean | null;
   created_at: string;
   reviewer?: {
     first_name?: string | null;

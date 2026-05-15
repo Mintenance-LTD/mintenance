@@ -275,7 +275,92 @@ export default function PropertyDetailsClient({
   };
 
   const handleDelete = async () => {
-    if (confirm('Are you sure you want to delete this property?')) {
+    // Fetch retention preview so the confirmation dialog can warn the
+    // homeowner about records that will be preserved (compliance
+    // certs, tenants, contacts, anonymous reports, recurring schedules
+    // — see migration 20260520000002_landlord_fk_retention.sql) vs the
+    // records that will be cascade-deleted (jobs, photos).
+    let confirmMessage = 'Are you sure you want to delete this property?';
+    try {
+      const previewRes = await fetch(
+        `/api/properties/${property.id}/delete-preview`,
+        { credentials: 'include' }
+      );
+      if (previewRes.ok) {
+        const preview = (await previewRes.json()) as {
+          preserved: {
+            compliance_certificates: number;
+            property_tenants: number;
+            property_contacts: number;
+            anonymous_reports: number;
+            recurring_schedules: number;
+          };
+          cascaded: { jobs: number; property_photos: number };
+          preservedTotal: number;
+          cascadedTotal: number;
+        };
+        const lines: string[] = [
+          'Are you sure you want to delete this property?',
+          '',
+        ];
+        if (preview.preservedTotal > 0) {
+          lines.push('The following records will be PRESERVED for legal');
+          lines.push(
+            'retention (gas safety ≥2yr, EICR ≥5yr, HMRC tenancy 6yr):'
+          );
+          if (preview.preserved.compliance_certificates > 0) {
+            lines.push(
+              `  • ${preview.preserved.compliance_certificates} compliance cert${preview.preserved.compliance_certificates === 1 ? '' : 's'}`
+            );
+          }
+          if (preview.preserved.property_tenants > 0) {
+            lines.push(
+              `  • ${preview.preserved.property_tenants} tenant record${preview.preserved.property_tenants === 1 ? '' : 's'}`
+            );
+          }
+          if (preview.preserved.property_contacts > 0) {
+            lines.push(
+              `  • ${preview.preserved.property_contacts} contact${preview.preserved.property_contacts === 1 ? '' : 's'}`
+            );
+          }
+          if (preview.preserved.anonymous_reports > 0) {
+            lines.push(
+              `  • ${preview.preserved.anonymous_reports} anonymous report${preview.preserved.anonymous_reports === 1 ? '' : 's'}`
+            );
+          }
+          if (preview.preserved.recurring_schedules > 0) {
+            lines.push(
+              `  • ${preview.preserved.recurring_schedules} recurring schedule${preview.preserved.recurring_schedules === 1 ? '' : 's'}`
+            );
+          }
+          lines.push('');
+        }
+        if (preview.cascadedTotal > 0) {
+          lines.push('The following will be PERMANENTLY DELETED:');
+          if (preview.cascaded.jobs > 0) {
+            lines.push(
+              `  • ${preview.cascaded.jobs} job${preview.cascaded.jobs === 1 ? '' : 's'}`
+            );
+          }
+          if (preview.cascaded.property_photos > 0) {
+            lines.push(
+              `  • ${preview.cascaded.property_photos} property photo${preview.cascaded.property_photos === 1 ? '' : 's'}`
+            );
+          }
+          lines.push('');
+        }
+        lines.push('This cannot be undone.');
+        confirmMessage = lines.join('\n');
+      }
+    } catch (err) {
+      // Preview is non-blocking — fall back to the plain confirm
+      logger.warn('Delete preview failed, falling back to plain confirm', {
+        service: 'ui',
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
+
+    if (confirm(confirmMessage)) {
       try {
         const response = await fetch(`/api/properties/${property.id}`, {
           method: 'DELETE',

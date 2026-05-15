@@ -129,6 +129,14 @@ export function HomeownerSubscriptionClient({
   const [message, setMessage] = useState<string | null>(null);
   const [data, setData] = useState<HomeownerStatusResponse | null>(null);
   const [isAnnual, setIsAnnual] = useState(false);
+  // Hydration-safe theme detection — Phase-4 contractor port pattern.
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
 
   const success = searchParams.get('success');
 
@@ -287,31 +295,67 @@ export function HomeownerSubscriptionClient({
   return (
     <HomeownerPageWrapper>
       <main className='mx-auto w-full max-w-4xl px-4 py-8 sm:px-6 lg:px-8 space-y-6 me-legacy-fit'>
-        {/* Header */}
-        <header className='rounded-xl border border-gray-200 bg-white p-6'>
-          <div className='flex items-center gap-4'>
-            <div
-              className={`flex h-12 w-12 items-center justify-center rounded-xl ${tierConfig.bgColor}`}
-            >
-              <TierIcon className={`h-6 w-6 ${tierConfig.color}`} />
-            </div>
-            <div className='flex-1'>
-              <div className='flex items-center gap-3'>
-                <h1 className='text-2xl font-bold text-gray-900'>
-                  Subscription
-                </h1>
-                <span
-                  className={`rounded-full px-3 py-0.5 text-xs font-semibold ${tierConfig.bgColor} ${tierConfig.color} border ${tierConfig.borderColor}`}
-                >
-                  {HOMEOWNER_TIER_PRICING[currentTier].name}
-                </span>
+        {/* Header — canonical .card with brand-soft tier tile when
+            editorial; legacy rounded-xl border header otherwise. */}
+        {isMintEditorial ? (
+          <div className='card card-pad'>
+            <div className='row' style={{ gap: 14, alignItems: 'center' }}>
+              <span
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 12,
+                  background: 'var(--me-brand-soft)',
+                  color: 'var(--me-brand)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <TierIcon className='h-6 w-6' />
+              </span>
+              <div className='col' style={{ gap: 4, flex: 1 }}>
+                <div className='row' style={{ gap: 10, alignItems: 'center' }}>
+                  <h1 className='t-h1' style={{ margin: 0 }}>
+                    Subscription
+                  </h1>
+                  <span className='badge badge-brand'>
+                    {HOMEOWNER_TIER_PRICING[currentTier].name}
+                  </span>
+                </div>
+                <p className='t-body'>
+                  Manage your plan and billing preferences
+                </p>
               </div>
-              <p className='mt-1 text-sm text-gray-500'>
-                Manage your plan and billing preferences
-              </p>
             </div>
           </div>
-        </header>
+        ) : (
+          <header className='rounded-xl border border-gray-200 bg-white p-6'>
+            <div className='flex items-center gap-4'>
+              <div
+                className={`flex h-12 w-12 items-center justify-center rounded-xl ${tierConfig.bgColor}`}
+              >
+                <TierIcon className={`h-6 w-6 ${tierConfig.color}`} />
+              </div>
+              <div className='flex-1'>
+                <div className='flex items-center gap-3'>
+                  <h1 className='text-2xl font-bold text-gray-900'>
+                    Subscription
+                  </h1>
+                  <span
+                    className={`rounded-full px-3 py-0.5 text-xs font-semibold ${tierConfig.bgColor} ${tierConfig.color} border ${tierConfig.borderColor}`}
+                  >
+                    {HOMEOWNER_TIER_PRICING[currentTier].name}
+                  </span>
+                </div>
+                <p className='mt-1 text-sm text-gray-500'>
+                  Manage your plan and billing preferences
+                </p>
+              </div>
+            </div>
+          </header>
+        )}
 
         {/* Banners */}
         {loading && (

@@ -128,6 +128,13 @@ const baseJobSchema = z.object({
   // Live audit (2026-04-28) confirmed the column has 16 prod rows
   // already.
   requirements: z.record(z.string(), z.unknown()).optional(),
+  // 2026-05-13 (Hire-Again loop closure): UUID of a contractor the
+  // homeowner wants to re-engage. Set by the "Hire again" CTA on a
+  // completed-job card and consumed by JobCreationService to fire a
+  // direct, higher-priority "you've been invited" notification to
+  // that contractor on top of the normal nearby-contractor broadcast.
+  // Not persisted on the jobs row — purely a one-shot routing signal.
+  preferred_contractor_id: z.string().uuid().optional(),
 });
 
 export const createJobRequestSchema = baseJobSchema.strict();

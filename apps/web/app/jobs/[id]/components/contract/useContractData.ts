@@ -16,6 +16,34 @@ export interface HomeownerProfile {
   last_name: string | null;
 }
 
+/**
+ * Quote breakdown linked to the contract via `contracts.quote_id`.
+ * Populated by the contractor when they submit a bid (every bid
+ * automatically writes a `contractor_quotes` row — see
+ * `app/api/contractor/submit-bid/quote-processor.ts`), and embedded
+ * into the contracts GET response 2026-05-13 so the homeowner can
+ * see the per-line breakdown before signing.
+ */
+export interface ContractQuoteLineItem {
+  description: string;
+  type?: 'labor' | 'material' | 'equipment';
+  quantity: number;
+  unitPrice: number;
+  total: number;
+}
+
+export interface ContractQuote {
+  id: string;
+  subtotal: number | null;
+  tax_rate: number | null;
+  tax_amount: number | null;
+  total_amount: number | null;
+  line_items: ContractQuoteLineItem[] | null;
+  terms: string | null;
+  quote_number: string | null;
+  valid_until: string | null;
+}
+
 export interface Contract {
   id: string;
   job_id: string;
@@ -39,6 +67,8 @@ export interface Contract {
   contractor_license_registration: string | null;
   contractor_license_type: string | null;
   terms: Record<string, unknown>;
+  quote_id: string | null;
+  quote: ContractQuote | null;
   created_at: string;
   updated_at: string;
   contractor: ContractorProfile | null;

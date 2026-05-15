@@ -153,6 +153,61 @@ export const POST = withApiHandler(
       throw new InternalServerError('Failed to sign contract');
     }
 
+    // 2026-05-13 race-condition fix. The status above is computed from
+    // the PRE-update read of `contract`. If both parties sign within
+    // the same window, each request reads the other's signature as
+    // still NULL and writes `pending_*` — the second UPDATE leaves the
+    // row with BOTH `contractor_signed_at` + `homeowner_signed_at` set
+    // but status `pending_contractor`/`pending_homeowner`. The
+    // double-sign guard above then blocks either party from re-signing,
+    // so the contract is fully signed yet can NEVER reach `accepted` —
+    // payment is permanently blocked and only admin can unstick it.
+    //
+    // Reconcile here: if the post-update row shows both timestamps set
+    // but status isn't accepted, promote it. The `.neq('status',
+    // 'accepted')` guard means only ONE of the two racing requests
+    // actually flips the row, so the "Contract Accepted!" fan-out
+    // below fires exactly once.
+    const originalUpdateSetAccepted =
+      updateData.status === CONTRACT_STATUS.ACCEPTED;
+    let thisRequestPromotedToAccepted = false;
+
+    if (
+      updatedContract.status !== CONTRACT_STATUS.ACCEPTED &&
+      updatedContract.contractor_signed_at &&
+      updatedContract.homeowner_signed_at
+    ) {
+      const cosignersOkNow =
+        await ContractSignatoriesService.areAllCosignersSigned(contractId);
+      if (cosignersOkNow) {
+        const { data: promoted } = await serverSupabase
+          .from('contracts')
+          .update({
+            status: CONTRACT_STATUS.ACCEPTED,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', contractId)
+          .neq('status', CONTRACT_STATUS.ACCEPTED)
+          .select('id')
+          .maybeSingle();
+        thisRequestPromotedToAccepted = !!promoted;
+        updatedContract.status = CONTRACT_STATUS.ACCEPTED;
+        logger.warn('Contract signature race detected — promoted to accepted', {
+          service: 'contracts',
+          contractId,
+          promotedByThisRequest: thisRequestPromotedToAccepted,
+        });
+      }
+    }
+
+    // The "Contract Accepted!" fan-out should fire exactly once. It
+    // runs when either: (a) the normal path's UPDATE itself set
+    // ACCEPTED, or (b) THIS request won the race-fix promotion. The
+    // losing racer skips it (the winner already sent it).
+    const shouldFireAcceptedFanout =
+      updatedContract.status === CONTRACT_STATUS.ACCEPTED &&
+      (originalUpdateSetAccepted || thisRequestPromotedToAccepted);
+
     // Notify the other party that they need to sign (if contract is not yet fully accepted)
     if (updatedContract.status !== CONTRACT_STATUS.ACCEPTED) {
       const otherPartyId = isContractor
@@ -250,8 +305,10 @@ export const POST = withApiHandler(
       }
     }
 
-    // If contract is now accepted, create notifications and schedule job
-    if (updatedContract.status === CONTRACT_STATUS.ACCEPTED) {
+    // If contract is now accepted, create notifications and schedule job.
+    // Guarded by `shouldFireAcceptedFanout` so the simultaneous-sign
+    // race fires this exactly once (see race-condition fix above).
+    if (shouldFireAcceptedFanout) {
       // Notify both parties.
       //
       // Audit P2 (2026-05-10): capture both notification ids so the
