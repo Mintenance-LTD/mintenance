@@ -9,7 +9,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Card } from '../../../../components/ui/Card';
 import { Button } from '../../../../components/ui/Button';
-import { theme } from '../../../../theme';
+import { me } from '../../../../design-system/mint-editorial';
 import { styles } from '../theme/styles';
 import { EXPENSE_CATEGORIES } from '../types';
 
@@ -47,11 +47,7 @@ export function AddExpenseForm({
     <Card variant='elevated' padding='md' style={styles.formCard}>
       {jobIdParam && (
         <View style={styles.jobScopeBanner}>
-          <Ionicons
-            name='briefcase-outline'
-            size={14}
-            color={theme.colors.primary}
-          />
+          <Ionicons name='briefcase-outline' size={14} color={me.brand} />
           <Text style={styles.jobScopeBannerText} numberOfLines={1}>
             For: {jobTitleParam || 'selected job'}
           </Text>
@@ -60,14 +56,14 @@ export function AddExpenseForm({
       <TextInput
         style={styles.input}
         placeholder='Description'
-        placeholderTextColor={theme.colors.textTertiary}
+        placeholderTextColor={me.ink3}
         value={formData.description}
         onChangeText={(t) => setFormData((p) => ({ ...p, description: t }))}
       />
       <TextInput
         style={styles.input}
         placeholder='Amount'
-        placeholderTextColor={theme.colors.textTertiary}
+        placeholderTextColor={me.ink3}
         keyboardType='decimal-pad'
         value={formData.amount}
         onChangeText={(t) => setFormData((p) => ({ ...p, amount: t }))}
@@ -114,9 +110,7 @@ export function AddExpenseForm({
         <Ionicons
           name={formData.billable ? 'checkbox' : 'square-outline'}
           size={22}
-          color={
-            formData.billable ? theme.colors.primary : theme.colors.textTertiary
-          }
+          color={formData.billable ? me.brand : me.ink3}
         />
         <View style={styles.billableCopy}>
           <Text style={styles.billableTitle}>Billable to client</Text>

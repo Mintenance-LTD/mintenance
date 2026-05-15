@@ -6,7 +6,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   RefreshControl,
-  Platform,
   ActivityIndicator,
   StatusBar,
 } from 'react-native';
@@ -19,7 +18,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Badge } from '../../components/ui/Badge';
 import { supabase } from '../../config/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { theme, gradients } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 import type { ProfileStackParamList } from '../../navigation/types';
 
 interface TimeEntry {
@@ -174,7 +173,7 @@ export const TimeTrackingScreen: React.FC = () => {
         barStyle='light-content'
       />
       {/* Green gradient hero */}
-      <LinearGradient colors={gradients.heroGreen} style={styles.hero}>
+      <LinearGradient colors={[me.brand2, me.brand]} style={styles.hero}>
         <View style={styles.decorCircle1} />
         <View style={styles.decorCircle2} />
 
@@ -187,11 +186,7 @@ export const TimeTrackingScreen: React.FC = () => {
           accessibilityLabel='Go back'
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Ionicons
-            name='chevron-back'
-            size={22}
-            color={theme.colors.textInverse}
-          />
+          <Ionicons name='chevron-back' size={22} color={me.onBrand} />
         </TouchableOpacity>
 
         <Text style={styles.heroTitle}>Time Tracking</Text>
@@ -246,7 +241,7 @@ export const TimeTrackingScreen: React.FC = () => {
             <Ionicons
               name='document-text-outline'
               size={16}
-              color={theme.colors.textInverse}
+              color={me.onBrand}
             />
             <Text style={styles.invoiceBannerCtaText}>Create Invoice</Text>
           </TouchableOpacity>
@@ -256,17 +251,13 @@ export const TimeTrackingScreen: React.FC = () => {
       {/* Content */}
       {isLoading ? (
         <View style={styles.loadingWrap}>
-          <ActivityIndicator size='large' color={theme.colors.primary} />
+          <ActivityIndicator size='large' color={me.brand} />
           <Text style={styles.loadingText}>Loading entries...</Text>
         </View>
       ) : error ? (
         <View style={styles.emptyState}>
           <View style={[styles.emptyIconWrap, { backgroundColor: '#FEE2E2' }]}>
-            <Ionicons
-              name='alert-circle-outline'
-              size={28}
-              color={theme.colors.error}
-            />
+            <Ionicons name='alert-circle-outline' size={28} color={me.errFg} />
           </View>
           <Text style={styles.emptyTitle}>Failed to load</Text>
           <TouchableOpacity onPress={() => refetch()}>
@@ -282,18 +273,14 @@ export const TimeTrackingScreen: React.FC = () => {
             <RefreshControl
               refreshing={false}
               onRefresh={refetch}
-              tintColor={theme.colors.primary}
-              colors={[theme.colors.primary]}
+              tintColor={me.brand}
+              colors={[me.brand]}
             />
           }
           ListEmptyComponent={
             <View style={styles.emptyState}>
               <View style={styles.emptyIconWrap}>
-                <Ionicons
-                  name='time-outline'
-                  size={28}
-                  color={theme.colors.primary}
-                />
+                <Ionicons name='time-outline' size={28} color={me.brand} />
               </View>
               <Text style={styles.emptyTitle}>No Time Entries</Text>
               <Text style={styles.emptySubtitle}>
@@ -338,14 +325,14 @@ export const TimeTrackingScreen: React.FC = () => {
         accessibilityRole='button'
         accessibilityLabel='Add time entry'
       >
-        <Ionicons name='add' size={28} color={theme.colors.textInverse} />
+        <Ionicons name='add' size={28} color={me.onBrand} />
       </TouchableOpacity>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
+  container: { flex: 1, backgroundColor: me.bg2 },
   hero: {
     paddingBottom: 28,
     paddingHorizontal: 20,
@@ -381,7 +368,7 @@ const styles = StyleSheet.create({
   heroTitle: {
     fontSize: 26,
     fontWeight: '700',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     letterSpacing: -0.5,
     marginBottom: 18,
   },
@@ -396,7 +383,7 @@ const styles = StyleSheet.create({
   heroStatValue: {
     fontSize: 22,
     fontWeight: '700',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     letterSpacing: -0.5,
   },
   heroStatLabel: {
@@ -416,13 +403,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
   },
-  loadingText: { fontSize: 14, color: theme.colors.textSecondary },
+  loadingText: { fontSize: 14, color: me.ink2 },
   emptyState: { alignItems: 'center', paddingTop: 60, paddingHorizontal: 40 },
   emptyIconWrap: {
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: me.brandSoft,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
@@ -430,17 +417,17 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 4,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     textAlign: 'center',
   },
   retryText: {
     fontSize: 14,
-    color: theme.colors.primary,
+    color: me.brand,
     fontWeight: '600',
     marginTop: 8,
   },
@@ -448,7 +435,7 @@ const styles = StyleSheet.create({
   sectionHeader: {
     fontSize: 12,
     fontWeight: '700',
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginTop: 8,
@@ -458,34 +445,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     padding: 14,
     marginBottom: 8,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   entryInfo: { flex: 1, marginRight: 12 },
   entryTask: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
-  entryJob: { fontSize: 12, color: theme.colors.textTertiary, marginTop: 2 },
+  entryJob: { fontSize: 12, color: me.ink3, marginTop: 2 },
   entryRight: { alignItems: 'flex-end', gap: 2 },
   entryHours: {
     fontSize: 17,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
-  entryRate: { fontSize: 12, color: theme.colors.textTertiary },
+  entryRate: { fontSize: 12, color: me.ink3 },
   fab: {
     position: 'absolute',
     bottom: 24,
@@ -493,28 +472,20 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
     justifyContent: 'center',
     alignItems: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: theme.colors.primary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 12,
-      },
-      android: { elevation: 8 },
-    }),
+    ...me.shadow.pop,
   },
   // Audit P1 #14 (2026-04-25): Time-Tracking → Invoice CTA banner.
   invoiceBanner: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
     paddingHorizontal: 16,
     paddingVertical: 12,
     gap: 12,
@@ -523,23 +494,23 @@ const styles = StyleSheet.create({
   invoiceBannerTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   invoiceBannerSubtitle: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   invoiceBannerCta: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
     paddingHorizontal: 14,
     paddingVertical: 9,
     borderRadius: 20,
   },
   invoiceBannerCtaText: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontSize: 13,
     fontWeight: '600',
   },

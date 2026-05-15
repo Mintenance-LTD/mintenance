@@ -5,9 +5,9 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 interface ProfileStatsProps {
   jobsCompleted: number;
@@ -25,40 +25,66 @@ export const ProfileStats: React.FC<ProfileStatsProps> = ({
   const hasHalf = rating - fullStars >= 0.5;
 
   return (
-    <View style={styles.container} testID="profile-stats-container">
+    <View style={styles.container} testID='profile-stats-container'>
       {/* Jobs Completed */}
-      <View style={styles.card} testID="jobs-stat" accessibilityLabel={`${jobsCompleted} jobs completed`}>
-        <View style={[styles.iconCircle, { backgroundColor: theme.colors.primaryLight }]}>
-          <Ionicons name="briefcase" size={18} color={theme.colors.primary} />
+      <View
+        style={styles.card}
+        testID='jobs-stat'
+        accessibilityLabel={`${jobsCompleted} jobs completed`}
+      >
+        <View style={[styles.iconCircle, { backgroundColor: me.brandSoft }]}>
+          <Ionicons name='briefcase' size={18} color={me.brand} />
         </View>
-        <Text style={styles.statValue} testID="jobs-value">{jobsCompleted}</Text>
+        <Text style={styles.statValue} testID='jobs-value'>
+          {jobsCompleted}
+        </Text>
         <Text style={styles.statLabel}>Jobs Done</Text>
       </View>
 
       {/* Rating */}
-      <View style={styles.card} testID="rating-stat" accessibilityLabel={`Rating: ${rating} out of 5`}>
-        <View style={[styles.iconCircle, { backgroundColor: theme.colors.accentLight }]}>
-          <Ionicons name="star" size={18} color={theme.colors.accent} />
+      <View
+        style={styles.card}
+        testID='rating-stat'
+        accessibilityLabel={`Rating: ${rating} out of 5`}
+      >
+        <View style={[styles.iconCircle, { backgroundColor: me.warnBg }]}>
+          <Ionicons name='star' size={18} color={me.accent} />
         </View>
-        <Text style={styles.statValue} testID="rating-value">{displayRating}</Text>
+        <Text style={styles.statValue} testID='rating-value'>
+          {displayRating}
+        </Text>
         <View style={styles.starsRow}>
-          {Array(5).fill(0).map((_, i) => (
-            <Ionicons
-              key={i}
-              name={i < fullStars ? 'star' : (i === fullStars && hasHalf ? 'star-half' : 'star-outline')}
-              size={10}
-              color={theme.colors.accent}
-            />
-          ))}
+          {Array(5)
+            .fill(0)
+            .map((_, i) => (
+              <Ionicons
+                key={i}
+                name={
+                  i < fullStars
+                    ? 'star'
+                    : i === fullStars && hasHalf
+                      ? 'star-half'
+                      : 'star-outline'
+                }
+                size={10}
+                color={me.accent}
+              />
+            ))}
         </View>
       </View>
 
       {/* Reviews */}
-      <View style={styles.card} testID="reviews-stat" accessibilityLabel={`${reviewCount} reviews`}>
+      <View
+        style={styles.card}
+        testID='reviews-stat'
+        accessibilityLabel={`${reviewCount} reviews`}
+      >
         <View style={[styles.iconCircle, { backgroundColor: '#DBEAFE' }]}>
-          <Ionicons name="chatbubbles" size={18} color="#3B82F6" />
+          <Ionicons name='chatbubbles' size={18} color='#3B82F6' />
         </View>
-        <Text style={styles.statValue} testID="reviews-value">{reviewCount}</Text>
+        <Text style={styles.statValue} testID='reviews-value'>
+          {reviewCount}
+        </Text>
         <Text style={styles.statLabel}>Reviews</Text>
       </View>
     </View>
@@ -76,14 +102,11 @@ const styles = StyleSheet.create({
   card: {
     flex: 1,
     alignItems: 'center',
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     paddingVertical: 16,
     paddingHorizontal: 8,
-    ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 6 },
-      android: { elevation: 1 },
-    }),
+    ...me.shadow.card,
   },
   iconCircle: {
     width: 36,
@@ -96,12 +119,12 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 22,
     fontWeight: '800',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     letterSpacing: -0.5,
   },
   statLabel: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginTop: 2,
     fontWeight: '500',
   },

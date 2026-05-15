@@ -1,5 +1,5 @@
 import type { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../../theme';
+import { me } from '../../../../design-system/mint-editorial';
 
 /**
  * Per-document-category icon + colour palette for the Documents screen.
@@ -19,36 +19,36 @@ interface CategoryStyle {
 
 const CATEGORY_STYLE: Record<string, CategoryStyle> = {
   contracts: {
-    color: theme.colors.primary,
-    bg: theme.colors.primaryLight,
+    color: me.brand,
+    bg: me.brandSoft,
     icon: 'document-text',
   },
   contract: {
-    color: theme.colors.primary,
-    bg: theme.colors.primaryLight,
+    color: me.brand,
+    bg: me.brandSoft,
     icon: 'document-text',
   },
   photos: { color: '#3B82F6', bg: '#DBEAFE', icon: 'image' },
   photo: { color: '#3B82F6', bg: '#DBEAFE', icon: 'image' },
   certifications: {
-    color: theme.colors.accent,
-    bg: theme.colors.accentLight,
+    color: me.accent,
+    bg: me.warnBg,
     icon: 'ribbon',
   },
   certification: {
-    color: theme.colors.accent,
-    bg: theme.colors.accentLight,
+    color: me.accent,
+    bg: me.warnBg,
     icon: 'ribbon',
   },
   insurance: { color: '#8B5CF6', bg: '#EDE9FE', icon: 'shield-checkmark' },
   receipts: {
-    color: theme.colors.textSecondary,
-    bg: theme.colors.backgroundTertiary,
+    color: me.ink2,
+    bg: me.bg3,
     icon: 'receipt',
   },
   receipt: {
-    color: theme.colors.textSecondary,
-    bg: theme.colors.backgroundTertiary,
+    color: me.ink2,
+    bg: me.bg3,
     icon: 'receipt',
   },
   templates: { color: '#3B82F6', bg: '#DBEAFE', icon: 'copy' },
@@ -59,8 +59,8 @@ export function getDocStyle(category: string): CategoryStyle {
   const key = category?.toLowerCase() || '';
   return (
     CATEGORY_STYLE[key] || {
-      color: theme.colors.textSecondary,
-      bg: theme.colors.backgroundTertiary,
+      color: me.ink2,
+      bg: me.bg3,
       icon: 'document-outline',
     }
   );

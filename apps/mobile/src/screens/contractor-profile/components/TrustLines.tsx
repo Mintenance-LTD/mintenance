@@ -12,7 +12,7 @@
 import React from 'react';
 import { View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 interface Props {
   postcodePrefix?: string | null;
@@ -44,14 +44,8 @@ export const TrustLines: React.FC<Props> = ({
           marginTop: 6,
         }}
       >
-        <Ionicons
-          name='location-outline'
-          size={14}
-          color={theme.colors.primary}
-        />
-        <Text
-          style={{ fontSize: 12, color: theme.colors.primary, marginLeft: 4 }}
-        >
+        <Ionicons name='location-outline' size={14} color={me.brand} />
+        <Text style={{ fontSize: 12, color: me.brand, marginLeft: 4 }}>
           Hired by {postcodeProofCount} household
           {postcodeProofCount === 1 ? '' : 's'} on {postcodePrefix} in the last
           12 months
@@ -73,14 +67,8 @@ export const TrustLines: React.FC<Props> = ({
             marginTop: 4,
           }}
         >
-          <Ionicons
-            name='warning-outline'
-            size={14}
-            color={theme.colors.accent}
-          />
-          <Text
-            style={{ fontSize: 12, color: theme.colors.accent, marginLeft: 4 }}
-          >
+          <Ionicons name='warning-outline' size={14} color={me.accent} />
+          <Text style={{ fontSize: 12, color: me.accent, marginLeft: 4 }}>
             {disputeHistory.unresolvedCount} unresolved dispute
             {disputeHistory.unresolvedCount === 1 ? '' : 's'}
             {disputeHistory.resolvedCount > 0
@@ -101,12 +89,12 @@ export const TrustLines: React.FC<Props> = ({
           <Ionicons
             name='shield-checkmark-outline'
             size={14}
-            color={theme.colors.primary}
+            color={me.brand}
           />
           <Text
             style={{
               fontSize: 12,
-              color: theme.colors.textSecondary,
+              color: me.ink2,
               marginLeft: 4,
             }}
           >

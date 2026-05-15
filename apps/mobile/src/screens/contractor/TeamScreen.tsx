@@ -15,7 +15,6 @@ import {
   FlatList,
   StyleSheet,
   TouchableOpacity,
-  Platform,
   RefreshControl,
   StatusBar,
   Alert,
@@ -26,7 +25,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ScreenHeader, LoadingSpinner } from '../../components/shared';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { mobileApiClient as apiClient } from '../../utils/mobileApiClient';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 import { InviteTeamMemberSheet, type OrgRole } from './InviteTeamMemberSheet';
 
 interface Org {
@@ -173,10 +172,7 @@ export const TeamScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar
-        barStyle='dark-content'
-        backgroundColor={theme.colors.backgroundSecondary}
-      />
+      <StatusBar barStyle='dark-content' backgroundColor={me.bg2} />
       <ScreenHeader title='Team' showBack onBack={() => navigation.goBack()} />
 
       <FlatList
@@ -187,8 +183,8 @@ export const TeamScreen: React.FC = () => {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={theme.colors.textPrimary}
-            colors={[theme.colors.textPrimary]}
+            tintColor={me.ink}
+            colors={[me.ink]}
           />
         }
         ListHeaderComponent={
@@ -210,11 +206,7 @@ export const TeamScreen: React.FC = () => {
         renderItem={({ item }) => (
           <View style={styles.card}>
             <View style={styles.avatar}>
-              <Ionicons
-                name='person'
-                size={22}
-                color={theme.colors.textSecondary}
-              />
+              <Ionicons name='person' size={22} color={me.ink2} />
             </View>
             <View style={styles.info}>
               <Text style={styles.name} numberOfLines={1}>
@@ -233,11 +225,7 @@ export const TeamScreen: React.FC = () => {
                 accessibilityLabel='Remove teammate'
                 style={styles.removeBtn}
               >
-                <Ionicons
-                  name='trash-outline'
-                  size={18}
-                  color={theme.colors.error}
-                />
+                <Ionicons name='trash-outline' size={18} color={me.errFg} />
               </TouchableOpacity>
             )}
           </View>
@@ -249,11 +237,7 @@ export const TeamScreen: React.FC = () => {
               {pending.map((p) => (
                 <View key={p.id} style={styles.card}>
                   <View style={styles.avatar}>
-                    <Ionicons
-                      name='mail-outline'
-                      size={20}
-                      color={theme.colors.textSecondary}
-                    />
+                    <Ionicons name='mail-outline' size={20} color={me.ink2} />
                   </View>
                   <View style={styles.info}>
                     <Text style={styles.name} numberOfLines={1}>
@@ -276,11 +260,7 @@ export const TeamScreen: React.FC = () => {
           onPress={() => setShowInvite(true)}
           accessibilityLabel='Invite team member'
         >
-          <Ionicons
-            name='person-add'
-            size={24}
-            color={theme.colors.textInverse}
-          />
+          <Ionicons name='person-add' size={24} color={me.onBrand} />
         </TouchableOpacity>
       )}
 
@@ -296,54 +276,46 @@ export const TeamScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
+  container: { flex: 1, backgroundColor: me.bg2 },
   list: { padding: 16, paddingBottom: 80 },
   orgSubtitle: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginBottom: 12,
   },
   sectionHeader: {
     fontSize: 13,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 8,
   },
   card: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     padding: 14,
     marginBottom: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: theme.colors.textPrimary,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   avatar: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: theme.colors.backgroundTertiary,
+    backgroundColor: me.bg3,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
   },
   info: { flex: 1 },
-  name: { fontSize: 15, fontWeight: '700', color: theme.colors.textPrimary },
+  name: { fontSize: 15, fontWeight: '700', color: me.ink },
   role: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginTop: 2,
     textTransform: 'capitalize',
   },
-  email: { fontSize: 12, color: theme.colors.textTertiary, marginTop: 2 },
+  email: { fontSize: 12, color: me.ink3, marginTop: 2 },
   removeBtn: { padding: 6 },
   fab: {
     position: 'absolute',
@@ -352,17 +324,9 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
     justifyContent: 'center',
     alignItems: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: theme.colors.textPrimary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.15,
-        shadowRadius: 12,
-      },
-      android: { elevation: 8 },
-    }),
+    ...me.shadow.pop,
   },
 });

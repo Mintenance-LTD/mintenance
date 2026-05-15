@@ -4,7 +4,6 @@ import {
   Text,
   FlatList,
   StyleSheet,
-  Platform,
   RefreshControl,
   StatusBar,
 } from 'react-native';
@@ -19,7 +18,7 @@ import {
 } from '../../components/shared';
 import { useAuth } from '../../contexts/AuthContext';
 import { mobileApiClient } from '../../utils/mobileApiClient';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 interface MarketingStatsResponse {
   profile: {
@@ -141,10 +140,7 @@ export const MarketingScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar
-        barStyle='dark-content'
-        backgroundColor={theme.colors.backgroundSecondary}
-      />
+      <StatusBar barStyle='dark-content' backgroundColor={me.bg2} />
       <ScreenHeader
         title='Marketing'
         showBack
@@ -159,8 +155,8 @@ export const MarketingScreen: React.FC = () => {
           <RefreshControl
             refreshing={isRefetching}
             onRefresh={refetch}
-            tintColor={theme.colors.textPrimary}
-            colors={[theme.colors.textPrimary]}
+            tintColor={me.ink}
+            colors={[me.ink]}
           />
         }
         ListHeaderComponent={
@@ -168,11 +164,7 @@ export const MarketingScreen: React.FC = () => {
             <View style={styles.statsGrid}>
               {statCards.map((s) => (
                 <View key={s.label} style={styles.statCard}>
-                  <Ionicons
-                    name={s.icon}
-                    size={20}
-                    color={theme.colors.textPrimary}
-                  />
+                  <Ionicons name={s.icon} size={20} color={me.ink} />
                   <Text style={styles.statValue}>{s.value}</Text>
                   <Text style={styles.statLabel}>{s.label}</Text>
                 </View>
@@ -190,7 +182,7 @@ export const MarketingScreen: React.FC = () => {
                           key={i}
                           name={i <= r.rating ? 'star' : 'star-outline'}
                           size={14}
-                          color={theme.colors.warning}
+                          color={me.warnFg}
                         />
                       ))}
                     </View>
@@ -210,11 +202,7 @@ export const MarketingScreen: React.FC = () => {
         renderItem={({ item }) => (
           <View style={styles.tipCard}>
             <View style={styles.tipIcon}>
-              <Ionicons
-                name={item.icon}
-                size={22}
-                color={theme.colors.textPrimary}
-              />
+              <Ionicons name={item.icon} size={22} color={me.ink} />
             </View>
             <View style={styles.tipContent}>
               <Text style={styles.tipTitle}>{item.title}</Text>
@@ -228,7 +216,7 @@ export const MarketingScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
+  container: { flex: 1, backgroundColor: me.bg2 },
   list: { padding: 16, paddingBottom: 32 },
   statsGrid: {
     flexDirection: 'row',
@@ -239,36 +227,28 @@ const styles = StyleSheet.create({
   statCard: {
     flexBasis: '31%',
     flexGrow: 1,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 14,
     padding: 12,
     alignItems: 'flex-start',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 6,
-      },
-      android: { elevation: 1 },
-    }),
+    ...me.shadow.card,
   },
   statValue: {
     fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginTop: 6,
   },
-  statLabel: { fontSize: 11, color: theme.colors.textSecondary, marginTop: 2 },
+  statLabel: { fontSize: 11, color: me.ink2, marginTop: 2 },
   sectionTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginTop: 8,
     marginBottom: 10,
   },
   reviewCard: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 12,
     padding: 12,
     marginBottom: 8,
@@ -276,12 +256,12 @@ const styles = StyleSheet.create({
   reviewHeader: { flexDirection: 'row', gap: 2, marginBottom: 6 },
   reviewComment: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     lineHeight: 18,
   },
   tipCard: {
     flexDirection: 'row',
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 12,
     padding: 12,
     marginBottom: 8,
@@ -291,7 +271,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -299,8 +279,8 @@ const styles = StyleSheet.create({
   tipTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 2,
   },
-  tipDesc: { fontSize: 12, color: theme.colors.textSecondary, lineHeight: 17 },
+  tipDesc: { fontSize: 12, color: me.ink2, lineHeight: 17 },
 });

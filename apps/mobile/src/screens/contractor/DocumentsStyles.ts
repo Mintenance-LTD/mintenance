@@ -1,10 +1,10 @@
-import { StyleSheet, Platform } from 'react-native';
-import { theme } from '../../theme';
+import { StyleSheet } from 'react-native';
+import { me } from '../../design-system/mint-editorial';
 
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
 
   // Hero
@@ -47,7 +47,7 @@ export const styles = StyleSheet.create({
   heroTitle: {
     fontSize: 24,
     fontWeight: '800',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     letterSpacing: -0.5,
   },
   heroSubtitle: {
@@ -59,7 +59,7 @@ export const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -81,7 +81,7 @@ export const styles = StyleSheet.create({
   statValue: {
     fontSize: 18,
     fontWeight: '800',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     letterSpacing: -0.3,
   },
   statLabel: {
@@ -103,31 +103,23 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     gap: 5,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.04,
-        shadowRadius: 4,
-      },
-      android: { elevation: 1 },
-    }),
+    ...me.shadow.card,
   },
   filterChipActive: {
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
   },
   filterChipText: {
     fontSize: 13,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   filterChipTextActive: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
   },
   chipBadge: {
-    backgroundColor: theme.colors.backgroundTertiary,
+    backgroundColor: me.bg3,
     borderRadius: 8,
     minWidth: 18,
     height: 18,
@@ -142,10 +134,10 @@ export const styles = StyleSheet.create({
   chipBadgeText: {
     fontSize: 11,
     fontWeight: '700',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   chipBadgeTextActive: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
   },
 
   // Results
@@ -155,7 +147,7 @@ export const styles = StyleSheet.create({
   },
   resultsText: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     fontWeight: '500',
   },
 
@@ -167,20 +159,12 @@ export const styles = StyleSheet.create({
   // Document card
   docCard: {
     flexDirection: 'row',
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     marginHorizontal: 16,
     marginBottom: 8,
     overflow: 'hidden',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.04,
-        shadowRadius: 6,
-      },
-      android: { elevation: 1 },
-    }),
+    ...me.shadow.card,
   },
   docAccent: {
     width: 4,
@@ -208,7 +192,7 @@ export const styles = StyleSheet.create({
   docName: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 4,
   },
   docMeta: {
@@ -230,11 +214,11 @@ export const styles = StyleSheet.create({
   },
   docDate: {
     fontSize: 12,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
   },
   docSize: {
     fontSize: 12,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
   },
   docActions: {
     flexDirection: 'row',
@@ -255,7 +239,7 @@ export const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 24,
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: me.brandSoft,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -263,12 +247,12 @@ export const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     textAlign: 'center',
   },
   emptyDesc: {
     fontSize: 15,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     textAlign: 'center',
     lineHeight: 22,
     marginTop: 6,
@@ -278,7 +262,7 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
     paddingHorizontal: 24,
     paddingVertical: 14,
     borderRadius: 14,
@@ -287,7 +271,7 @@ export const styles = StyleSheet.create({
   emptyUploadText: {
     fontSize: 15,
     fontWeight: '700',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
   },
 
   // FAB
@@ -297,17 +281,9 @@ export const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
     justifyContent: 'center',
     alignItems: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: theme.colors.primary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 12,
-      },
-      android: { elevation: 8 },
-    }),
+    ...me.shadow.pop,
   },
 });

@@ -29,7 +29,7 @@ import {
 } from './components';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../config/supabase';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 interface ContractorProfileScreenProps {
   navigation: { goBack: () => void };
@@ -117,7 +117,7 @@ export const ContractorProfileScreen: React.FC<
       <View style={styles.container}>
         <StatusBar barStyle='light-content' />
         <View style={styles.centered}>
-          <ActivityIndicator size='large' color={theme.colors.primary} />
+          <ActivityIndicator size='large' color={me.brand} />
           <Text style={styles.loadingText}>Loading profile...</Text>
         </View>
       </View>
@@ -130,11 +130,7 @@ export const ContractorProfileScreen: React.FC<
         <StatusBar barStyle='dark-content' />
         <View style={[styles.centered, { paddingTop: insets.top + 60 }]}>
           <View style={styles.errorIconWrap}>
-            <Ionicons
-              name='alert-circle-outline'
-              size={28}
-              color={theme.colors.error}
-            />
+            <Ionicons name='alert-circle-outline' size={28} color={me.errFg} />
           </View>
           <Text style={styles.errorText}>{viewModel.error}</Text>
           <TouchableOpacity
@@ -147,11 +143,7 @@ export const ContractorProfileScreen: React.FC<
             style={styles.backLink}
             onPress={() => navigation.goBack()}
           >
-            <Ionicons
-              name='arrow-back'
-              size={16}
-              color={theme.colors.textSecondary}
-            />
+            <Ionicons name='arrow-back' size={16} color={me.ink2} />
             <Text style={styles.backLinkText}>Go Back</Text>
           </TouchableOpacity>
         </View>
@@ -171,7 +163,7 @@ export const ContractorProfileScreen: React.FC<
             refreshing={viewModel.loading}
             onRefresh={viewModel.refresh}
             tintColor='#FFFFFF'
-            colors={[theme.colors.primary]}
+            colors={[me.brand]}
           />
         }
       >
@@ -231,7 +223,7 @@ export const ContractorProfileScreen: React.FC<
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   scrollView: {
     flex: 1,
@@ -245,7 +237,7 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   errorIconWrap: {
     width: 64,
@@ -259,18 +251,18 @@ const styles = StyleSheet.create({
   errorText: {
     marginTop: 4,
     fontSize: 16,
-    color: theme.colors.error,
+    color: me.errFg,
     textAlign: 'center',
   },
   retryButton: {
     marginTop: 16,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
     paddingHorizontal: 24,
     paddingVertical: 14,
     borderRadius: 14,
   },
   retryText: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontSize: 15,
     fontWeight: '700',
   },
@@ -282,7 +274,7 @@ const styles = StyleSheet.create({
   },
   backLinkText: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     fontWeight: '500',
   },
 });

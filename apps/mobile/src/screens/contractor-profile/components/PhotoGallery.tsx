@@ -13,11 +13,10 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
-  Platform,
   Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 const CARD_WIDTH = Dimensions.get('window').width * 0.6;
 
@@ -43,15 +42,17 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title} accessibilityRole="header">Portfolio</Text>
+        <Text style={styles.title} accessibilityRole='header'>
+          Portfolio
+        </Text>
         <TouchableOpacity
           style={styles.seeAllBtn}
           onPress={onAddPhoto}
-          accessibilityRole="button"
-          accessibilityLabel="See all photos"
+          accessibilityRole='button'
+          accessibilityLabel='See all photos'
         >
           <Text style={styles.seeAllText}>See All</Text>
-          <Ionicons name="arrow-forward" size={14} color={theme.colors.primary} />
+          <Ionicons name='arrow-forward' size={14} color={me.brand} />
         </TouchableOpacity>
       </View>
 
@@ -61,7 +62,11 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
         contentContainerStyle={styles.scrollContent}
       >
         {projects.map((project, index) => (
-          <TouchableOpacity key={index} style={styles.projectCard} activeOpacity={0.9}>
+          <TouchableOpacity
+            key={index}
+            style={styles.projectCard}
+            activeOpacity={0.9}
+          >
             <View style={styles.coverImage}>
               {project[0] ? (
                 <Image
@@ -72,11 +77,7 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
                 />
               ) : (
                 <View style={styles.emptyCover}>
-                  <Ionicons
-                    name="image-outline"
-                    size={32}
-                    color={theme.colors.textTertiary}
-                  />
+                  <Ionicons name='image-outline' size={32} color={me.ink3} />
                   <Text style={styles.emptyCoverText}>No photos yet</Text>
                 </View>
               )}
@@ -93,7 +94,7 @@ export const PhotoGallery: React.FC<PhotoGalleryProps> = ({
                 {project.length > 0 ? `Project ${index + 1}` : 'Portfolio'}
               </Text>
               <View style={styles.photoCountRow}>
-                <Ionicons name="camera-outline" size={12} color={theme.colors.textSecondary} />
+                <Ionicons name='camera-outline' size={12} color={me.ink2} />
                 <Text style={styles.photoCountText}>
                   {project.length} {project.length === 1 ? 'photo' : 'photos'}
                 </Text>
@@ -121,7 +122,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     letterSpacing: -0.3,
   },
   seeAllBtn: {
@@ -132,7 +133,7 @@ const styles = StyleSheet.create({
   seeAllText: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.primary,
+    color: me.brand,
   },
   scrollContent: {
     paddingHorizontal: 16,
@@ -140,18 +141,15 @@ const styles = StyleSheet.create({
   },
   projectCard: {
     width: CARD_WIDTH,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     overflow: 'hidden',
-    ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   coverImage: {
     width: '100%',
     height: 140,
-    backgroundColor: theme.colors.backgroundTertiary,
+    backgroundColor: me.bg3,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -166,14 +164,14 @@ const styles = StyleSheet.create({
   },
   emptyCoverText: {
     fontSize: 12,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     fontWeight: '600',
   },
   beforeAfterBadge: {
     position: 'absolute',
     top: 8,
     left: 8,
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -181,7 +179,7 @@ const styles = StyleSheet.create({
   beforeAfterText: {
     fontSize: 10,
     fontWeight: '700',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
   },
   projectInfo: {
     padding: 12,
@@ -189,7 +187,7 @@ const styles = StyleSheet.create({
   projectName: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 4,
   },
   photoCountRow: {
@@ -199,6 +197,6 @@ const styles = StyleSheet.create({
   },
   photoCountText: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
 });

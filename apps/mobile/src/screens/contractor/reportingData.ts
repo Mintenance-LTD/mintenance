@@ -1,5 +1,5 @@
 import { supabase } from '../../config/supabase';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 interface MarketingStats {
   completedJobs: number;
@@ -31,8 +31,8 @@ export const KPI_CONFIG = [
   {
     key: 'jobs',
     icon: 'checkmark-circle-outline' as const,
-    color: theme.colors.primary,
-    bg: theme.colors.primaryLight,
+    color: me.brand,
+    bg: me.brandSoft,
     label: 'Jobs Done',
   },
   {
@@ -45,8 +45,8 @@ export const KPI_CONFIG = [
   {
     key: 'earnings',
     icon: 'cash-outline' as const,
-    color: theme.colors.accent,
-    bg: theme.colors.accentLight,
+    color: me.accent,
+    bg: me.warnBg,
     label: 'Earnings',
   },
   {

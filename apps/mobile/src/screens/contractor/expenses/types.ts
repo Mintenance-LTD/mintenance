@@ -1,4 +1,4 @@
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 /**
  * Shared types + constants for the contractor Expenses screen.
@@ -29,11 +29,11 @@ export type CategoryFilter =
 export const CATEGORY_COLORS: Record<string, string> = {
   materials: '#3B82F6',
   tools: '#8B5CF6',
-  fuel: theme.colors.accent,
+  fuel: me.accent,
   software: '#3B82F6',
-  insurance: theme.colors.primary,
-  marketing: theme.colors.error,
-  other: theme.colors.textSecondary,
+  insurance: me.brand,
+  marketing: me.errFg,
+  other: me.ink2,
 };
 
 export const CATEGORY_FILTERS: CategoryFilter[] = [

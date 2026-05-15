@@ -6,17 +6,10 @@
  */
 
 import React from 'react';
-import {
-  View,
-  Text,
-  Image,
-  TouchableOpacity,
-  StyleSheet,
-  Platform,
-} from 'react-native';
+import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { theme, gradients } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 import { TrustLines } from './TrustLines';
 
 interface ProfileHeaderProps {
@@ -64,7 +57,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     <View>
       {/* Full-bleed gradient hero */}
       <LinearGradient
-        colors={gradients.heroGreen}
+        colors={[me.brand2, me.brand]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={[styles.hero, { paddingTop: topInset + 12 }]}
@@ -82,11 +75,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               accessibilityRole='button'
               accessibilityLabel='Go back'
             >
-              <Ionicons
-                name='arrow-back'
-                size={20}
-                color={theme.colors.textInverse}
-              />
+              <Ionicons name='arrow-back' size={20} color={me.onBrand} />
             </TouchableOpacity>
           )}
           <View style={{ flex: 1 }} />
@@ -97,11 +86,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               accessibilityRole='button'
               accessibilityLabel='Share profile'
             >
-              <Ionicons
-                name='share-outline'
-                size={20}
-                color={theme.colors.textInverse}
-              />
+              <Ionicons name='share-outline' size={20} color={me.onBrand} />
             </TouchableOpacity>
           )}
         </View>
@@ -122,20 +107,12 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             />
           ) : (
             <View style={styles.avatar}>
-              <Ionicons
-                name='person'
-                size={40}
-                color={theme.colors.textTertiary}
-              />
+              <Ionicons name='person' size={40} color={me.ink3} />
             </View>
           )}
           {verified && (
             <View style={styles.verifiedBadge}>
-              <Ionicons
-                name='checkmark'
-                size={14}
-                color={theme.colors.textInverse}
-              />
+              <Ionicons name='checkmark' size={14} color={me.onBrand} />
             </View>
           )}
         </View>
@@ -146,11 +123,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 
         {location ? (
           <View style={styles.locationRow}>
-            <Ionicons
-              name='location-outline'
-              size={14}
-              color={theme.colors.textSecondary}
-            />
+            <Ionicons name='location-outline' size={14} color={me.ink2} />
             <Text style={styles.locationText}>{location}</Text>
           </View>
         ) : null}
@@ -173,16 +146,12 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         <View style={styles.trustRow}>
           {verified && (
             <View style={styles.trustPill}>
-              <Ionicons
-                name='shield-checkmark'
-                size={14}
-                color={theme.colors.primary}
-              />
+              <Ionicons name='shield-checkmark' size={14} color={me.brand} />
               <Text style={styles.trustText}>Verified</Text>
             </View>
           )}
           <View style={styles.trustPill}>
-            <Ionicons name='flash' size={14} color={theme.colors.accent} />
+            <Ionicons name='flash' size={14} color={me.accent} />
             <Text style={styles.trustText}>{'< 1hr Response'}</Text>
           </View>
           <View style={styles.trustPill}>
@@ -249,7 +218,7 @@ const styles = StyleSheet.create({
     marginTop: -48,
     paddingHorizontal: 24,
     paddingBottom: 20,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   avatarWrapper: {
     position: 'relative',
@@ -259,20 +228,12 @@ const styles = StyleSheet.create({
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: theme.colors.border,
+    backgroundColor: me.line,
     borderWidth: 4,
-    borderColor: theme.colors.surface,
+    borderColor: me.surface,
     alignItems: 'center',
     justifyContent: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-      },
-      android: { elevation: 4 },
-    }),
+    ...me.shadow.card,
   },
   verifiedBadge: {
     position: 'absolute',
@@ -281,23 +242,23 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 3,
-    borderColor: theme.colors.surface,
+    borderColor: me.surface,
   },
   name: {
     fontSize: 24,
     fontWeight: '800',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     letterSpacing: -0.5,
     textAlign: 'center',
   },
   tradeText: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.primary,
+    color: me.brand,
     marginTop: 2,
     textAlign: 'center',
   },
@@ -309,11 +270,11 @@ const styles = StyleSheet.create({
   },
   locationText: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   bio: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     lineHeight: 20,
     textAlign: 'center',
     marginTop: 10,
@@ -330,17 +291,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
   trustText: {
     fontSize: 12,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   skillsRow: {
     flexDirection: 'row',
@@ -350,7 +311,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   skillPill: {
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: me.brandSoft,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 10,
@@ -358,6 +319,6 @@ const styles = StyleSheet.create({
   skillText: {
     fontSize: 12,
     fontWeight: '600',
-    color: theme.colors.primary,
+    color: me.brand,
   },
 });

@@ -19,7 +19,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { mobileApiClient as apiClient } from '../../utils/mobileApiClient';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 export type OrgRole =
   | 'owner'
@@ -114,7 +114,7 @@ export const InviteTeamMemberSheet: React.FC<Props> = ({
       >
         <View
           style={{
-            backgroundColor: theme.colors.surface,
+            backgroundColor: me.surface,
             borderTopLeftRadius: 20,
             borderTopRightRadius: 20,
             padding: 20,
@@ -132,24 +132,20 @@ export const InviteTeamMemberSheet: React.FC<Props> = ({
               style={{
                 fontSize: 18,
                 fontWeight: '700',
-                color: theme.colors.textPrimary,
+                color: me.ink,
               }}
             >
               Invite a teammate
             </Text>
             <TouchableOpacity onPress={onClose}>
-              <Ionicons
-                name='close'
-                size={22}
-                color={theme.colors.textSecondary}
-              />
+              <Ionicons name='close' size={22} color={me.ink2} />
             </TouchableOpacity>
           </View>
 
           <Text
             style={{
               fontSize: 13,
-              color: theme.colors.textSecondary,
+              color: me.ink2,
               marginBottom: 14,
             }}
           >
@@ -162,7 +158,7 @@ export const InviteTeamMemberSheet: React.FC<Props> = ({
             value={email}
             onChangeText={setEmail}
             placeholder='teammate@yourcompany.co.uk'
-            placeholderTextColor={theme.colors.textTertiary}
+            placeholderTextColor={me.ink3}
             keyboardType='email-address'
             autoCapitalize='none'
             style={inputStyle}
@@ -186,27 +182,19 @@ export const InviteTeamMemberSheet: React.FC<Props> = ({
                     role === r.value ? 'radio-button-on' : 'radio-button-off'
                   }
                   size={20}
-                  color={
-                    role === r.value
-                      ? theme.colors.primary
-                      : theme.colors.textSecondary
-                  }
+                  color={role === r.value ? me.brand : me.ink2}
                 />
                 <View style={{ marginLeft: 10 }}>
                   <Text
                     style={{
                       fontSize: 14,
                       fontWeight: '600',
-                      color: theme.colors.textPrimary,
+                      color: me.ink,
                     }}
                   >
                     {r.label}
                   </Text>
-                  <Text
-                    style={{ fontSize: 12, color: theme.colors.textSecondary }}
-                  >
-                    {r.help}
-                  </Text>
+                  <Text style={{ fontSize: 12, color: me.ink2 }}>{r.help}</Text>
                 </View>
               </TouchableOpacity>
             ))}
@@ -216,7 +204,7 @@ export const InviteTeamMemberSheet: React.FC<Props> = ({
             onPress={submit}
             disabled={submitting}
             style={{
-              backgroundColor: theme.colors.primary,
+              backgroundColor: me.brand,
               paddingVertical: 12,
               borderRadius: 10,
               alignItems: 'center',
@@ -224,9 +212,9 @@ export const InviteTeamMemberSheet: React.FC<Props> = ({
             }}
           >
             {submitting ? (
-              <ActivityIndicator color={theme.colors.surface} />
+              <ActivityIndicator color={me.surface} />
             ) : (
-              <Text style={{ color: theme.colors.surface, fontWeight: '700' }}>
+              <Text style={{ color: me.surface, fontWeight: '700' }}>
                 Send invite
               </Text>
             )}
@@ -240,16 +228,16 @@ export const InviteTeamMemberSheet: React.FC<Props> = ({
 const labelStyle = {
   fontSize: 13,
   fontWeight: '600' as const,
-  color: theme.colors.textPrimary,
+  color: me.ink,
   marginBottom: 4,
 };
 
 const inputStyle = {
   borderWidth: 1,
-  borderColor: theme.colors.border,
+  borderColor: me.line,
   borderRadius: 10,
   paddingHorizontal: 12,
   paddingVertical: 10,
-  color: theme.colors.textPrimary,
+  color: me.ink,
   marginBottom: 12,
 };
