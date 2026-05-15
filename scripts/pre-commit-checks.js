@@ -443,6 +443,13 @@ const KNOWN_LARGE_FILES = new Set([
   // pipeline-fix commit.
   'apps/web/app/api/payments/create-intent/route.ts', // 510 lines (was 487)
   'apps/web/app/api/contracts/[id]/pdf/route.ts', // 504 lines (was 376)
+  // Added 2026-05-13 (audit items 1-2-5). The contract accept/sign
+  // route grew by ~45 lines to close the simultaneous-sign race that
+  // stranded fully-signed contracts in a pending status. The handler
+  // orchestrates signature UPDATE + race reconciliation + dual-party
+  // notification/email fan-out + job scheduling in one place;
+  // splitting it is a P2, not a blocker on a race-condition fix.
+  'apps/web/app/api/contracts/[id]/accept/route.ts', // 504 lines (was 443)
   // Removed 2026-05-13 (split shipped). payment-handlers.ts is now a
   // ~47-line re-export facade; the actual handlers live in
   // ./payment-intent-handlers.ts, ./charge-handlers.ts, and
