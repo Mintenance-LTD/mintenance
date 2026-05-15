@@ -5,6 +5,8 @@
  * £9.99/mo Home Health plan. Self-hides when the user is already
  * subscribed (we check `/api/subscriptions/home-health` GET, which
  * R5 shipped). Tapping jumps to the HomeHealthSubscribe modal.
+ *
+ * Direction A · Mint Editorial — token-styled.
  */
 
 import React, { useEffect, useState } from 'react';
@@ -12,7 +14,7 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { mobileApiClient } from '../../../utils/mobileApiClient';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 interface Response {
   subscription: { status: string } | null;
@@ -58,13 +60,13 @@ export const HomeHealthCtaCard: React.FC = () => {
         })
       }
       style={{
-        backgroundColor: theme.colors.surface,
-        borderRadius: 14,
+        backgroundColor: me.surface,
+        borderRadius: me.radius.card,
         padding: 16,
         marginHorizontal: 16,
         marginTop: 12,
         borderWidth: 1,
-        borderColor: theme.colors.primaryLight,
+        borderColor: me.line,
         flexDirection: 'row',
         alignItems: 'center',
       }}
@@ -75,24 +77,20 @@ export const HomeHealthCtaCard: React.FC = () => {
           width: 44,
           height: 44,
           borderRadius: 22,
-          backgroundColor: theme.colors.primaryLight,
+          backgroundColor: me.brandSoft,
           alignItems: 'center',
           justifyContent: 'center',
           marginRight: 12,
         }}
       >
-        <Ionicons
-          name='shield-checkmark'
-          size={22}
-          color={theme.colors.primary}
-        />
+        <Ionicons name='shield-checkmark' size={22} color={me.brand} />
       </View>
       <View style={{ flex: 1 }}>
         <Text
           style={{
             fontSize: 15,
             fontWeight: '700',
-            color: theme.colors.textPrimary,
+            color: me.ink,
           }}
         >
           Home Health — £9.99/mo
@@ -100,7 +98,7 @@ export const HomeHealthCtaCard: React.FC = () => {
         <Text
           style={{
             fontSize: 12,
-            color: theme.colors.textSecondary,
+            color: me.ink2,
             marginTop: 2,
           }}
           numberOfLines={2}
@@ -109,11 +107,7 @@ export const HomeHealthCtaCard: React.FC = () => {
           automatically.
         </Text>
       </View>
-      <Ionicons
-        name='chevron-forward'
-        size={20}
-        color={theme.colors.textTertiary}
-      />
+      <Ionicons name='chevron-forward' size={20} color={me.ink3} />
     </TouchableOpacity>
   );
 };

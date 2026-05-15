@@ -16,11 +16,11 @@
  */
 
 import React from 'react';
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useContractorBadges } from '../../../hooks/useContractorBadges';
 import { ContractorBadgeStack } from '../../../components/contractor/ContractorBadgeStack';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 type IoniconName = keyof typeof Ionicons.glyphMap;
 
@@ -39,7 +39,7 @@ export const ContractorBadgesCard: React.FC = () => {
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.headerTitleWrap}>
-          <Ionicons name='ribbon' size={18} color={theme.colors.primary} />
+          <Ionicons name='ribbon' size={18} color={me.brand} />
           <Text style={styles.title}>Your trust badges</Text>
         </View>
         <Text style={styles.progressText}>{badges.length} of 5</Text>
@@ -60,7 +60,7 @@ export const ContractorBadgesCard: React.FC = () => {
             <Ionicons
               name={next.iconName as IoniconName}
               size={16}
-              color={theme.colors.textSecondary}
+              color={me.ink2}
             />
           </View>
           <View style={styles.nextTextWrap}>
@@ -77,20 +77,14 @@ export const ContractorBadgesCard: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 20,
+    backgroundColor: me.surface,
+    borderRadius: me.radius.card,
     marginHorizontal: 16,
     marginVertical: 8,
     padding: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: theme.colors.textPrimary,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    borderWidth: 1,
+    borderColor: me.line,
+    ...me.shadow.card,
   },
   header: {
     flexDirection: 'row',
@@ -106,16 +100,16 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 15,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   progressText: {
     fontSize: 12,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   emptyText: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     lineHeight: 18,
   },
   nextRow: {
@@ -125,13 +119,13 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: theme.colors.border,
+    borderTopColor: me.line2,
   },
   nextIconWrap: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -141,12 +135,12 @@ const styles = StyleSheet.create({
   nextLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 2,
   },
   nextDescription: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     lineHeight: 16,
   },
 });

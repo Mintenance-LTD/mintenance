@@ -8,6 +8,7 @@ import {
   ViewStyle,
 } from 'react-native';
 import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 type InputVariant = 'default' | 'outline' | 'error' | 'filled' | 'underline';
 
@@ -23,7 +24,26 @@ interface InputProps extends TextInputProps {
   required?: boolean;
   state?: string;
   errorText?: string;
+  /**
+   * Opt in to the Direction A · Mint Editorial palette. Off by default
+   * so existing callers render unchanged.
+   */
+  mint?: boolean;
 }
+
+// Mint Editorial field palette — see design-system/mint-editorial.ts.
+const MINT_FIELD = {
+  borderColor: me.line,
+  backgroundColor: me.surface,
+  color: me.ink,
+  placeholderTextColor: me.ink4,
+};
+const MINT_FIELD_ERROR = {
+  borderColor: me.errFg,
+  backgroundColor: me.errBg,
+  color: me.ink,
+  placeholderTextColor: me.ink4,
+};
 
 const VARIANT_STYLES: Record<
   InputVariant,
@@ -81,19 +101,25 @@ export const Input = forwardRef<TextInput, InputProps>(
       required,
       state,
       errorText,
+      mint = false,
       ...props
     },
     ref
   ) => {
     const hasError = !!errorText;
-    const v = hasError
-      ? VARIANT_STYLES.error
-      : (VARIANT_STYLES[variant] ?? VARIANT_STYLES.default);
+    const v = mint
+      ? hasError
+        ? MINT_FIELD_ERROR
+        : MINT_FIELD
+      : hasError
+        ? VARIANT_STYLES.error
+        : (VARIANT_STYLES[variant] ?? VARIANT_STYLES.default);
     return (
       <View style={containerStyle}>
         <View
           style={[
             styles.container,
+            mint && { borderRadius: me.radius.input },
             { borderColor: v.borderColor, backgroundColor: v.backgroundColor },
           ]}
         >
@@ -104,7 +130,11 @@ export const Input = forwardRef<TextInput, InputProps>(
             {...props}
           />
         </View>
-        {hasError && <Text style={styles.errorText}>{errorText}</Text>}
+        {hasError && (
+          <Text style={[styles.errorText, mint && { color: me.errFg }]}>
+            {errorText}
+          </Text>
+        )}
       </View>
     );
   }

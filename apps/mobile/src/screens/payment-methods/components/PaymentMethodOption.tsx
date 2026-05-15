@@ -1,17 +1,14 @@
 /**
- * PaymentMethodOption Component
+ * PaymentMethodOption Component — Direction A · Mint Editorial.
  *
  * Single payment method option with icon and selection state.
- *
- * @filesize Target: <70 lines
- * @compliance Single Responsibility
  */
 
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { PaymentMethod } from '../viewmodels/PaymentMethodsViewModel';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 interface PaymentMethodOptionProps {
   method: PaymentMethod;
@@ -35,7 +32,11 @@ export const PaymentMethodOption: React.FC<PaymentMethodOptionProps> = ({
     >
       <View style={styles.left}>
         <View style={styles.iconContainer}>
-          <Ionicons name={method.icon as keyof typeof Ionicons.glyphMap} size={24} color={theme.colors.textSecondary} />
+          <Ionicons
+            name={method.icon as keyof typeof Ionicons.glyphMap}
+            size={24}
+            color={me.ink2}
+          />
         </View>
         <Text style={styles.text}>{method.name}</Text>
       </View>
@@ -49,17 +50,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: theme.colors.surface,
-    borderRadius: 16,
+    backgroundColor: me.surface,
+    borderRadius: me.radius.card,
     padding: 16,
     marginBottom: 12,
-    ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
-      android: { elevation: 2 },
-    }),
+    borderWidth: 1,
+    borderColor: me.line,
+    ...me.shadow.card,
   },
   selected: {
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.brandSoft,
+    borderColor: me.brand,
   },
   left: {
     flexDirection: 'row',
@@ -69,24 +70,24 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 12,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 14,
   },
   text: {
     fontSize: 16,
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   radio: {
     width: 24,
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
   radioSelected: {
-    borderColor: theme.colors.textPrimary,
-    backgroundColor: theme.colors.textPrimary,
+    borderColor: me.brand,
+    backgroundColor: me.brand,
   },
 });

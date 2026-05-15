@@ -10,6 +10,7 @@ import {
   Platform,
 } from 'react-native';
 import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 type ButtonVariant =
   | 'primary'
@@ -46,7 +47,55 @@ export interface ButtonProps {
   testID?: string;
   leftIcon?: string;
   rightIcon?: string;
+  /**
+   * Opt in to the Direction A · Mint Editorial palette. Off by default
+   * so the ~305 existing callers render unchanged; Mint Editorial
+   * screens pass `mint`.
+   */
+  mint?: boolean;
 }
+
+// Mint Editorial palette overrides — see design-system/mint-editorial.ts.
+const MINT_VARIANT_STYLES: Record<
+  ButtonVariant,
+  { backgroundColor: string; color: string; borderColor: string }
+> = {
+  primary: {
+    backgroundColor: me.brand,
+    color: me.onBrand,
+    borderColor: 'transparent',
+  },
+  secondary: {
+    backgroundColor: me.surface,
+    color: me.ink,
+    borderColor: me.line,
+  },
+  outline: {
+    backgroundColor: 'transparent',
+    color: me.ink,
+    borderColor: me.line,
+  },
+  tertiary: {
+    backgroundColor: 'transparent',
+    color: me.brand,
+    borderColor: 'transparent',
+  },
+  ghost: {
+    backgroundColor: 'transparent',
+    color: me.ink2,
+    borderColor: 'transparent',
+  },
+  danger: {
+    backgroundColor: me.errFg,
+    color: me.onBrand,
+    borderColor: 'transparent',
+  },
+  success: {
+    backgroundColor: me.brand,
+    color: me.onBrand,
+    borderColor: 'transparent',
+  },
+};
 
 const VARIANT_STYLES: Record<
   ButtonVariant,
@@ -105,13 +154,18 @@ export const Button: React.FC<ButtonProps> = ({
   iconPosition = 'left',
   iconOnly = false,
   testID,
+  mint = false,
 }) => {
-  const variantStyles = VARIANT_STYLES[variant];
+  const variantStyles = mint
+    ? MINT_VARIANT_STYLES[variant]
+    : VARIANT_STYLES[variant];
   const backgroundColor = disabled
-    ? theme.colors.textTertiary
+    ? mint
+      ? me.line
+      : theme.colors.textTertiary
     : variantStyles.backgroundColor;
   const borderColor = variantStyles.borderColor;
-  const color = variantStyles.color;
+  const color = disabled && mint ? me.ink4 : variantStyles.color;
   const isTertiary = variant === 'tertiary';
 
   const handlePress = () => {
@@ -138,6 +192,9 @@ export const Button: React.FC<ButtonProps> = ({
           borderColor,
           width: fullWidth ? ('100%' as const) : undefined,
         },
+        // Mint Editorial uses a calmer 10px radius (vs the legacy 28px
+        // pill) on the non-icon sizes.
+        mint && !iconOnly && { borderRadius: me.radius.btn },
         !disabled &&
           !loading &&
           backgroundColor !== 'transparent' &&
@@ -146,7 +203,10 @@ export const Button: React.FC<ButtonProps> = ({
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={theme.colors.textInverse} size='small' />
+        <ActivityIndicator
+          color={mint ? color : theme.colors.textInverse}
+          size='small'
+        />
       ) : iconOnly ? (
         <View>{icon}</View>
       ) : (

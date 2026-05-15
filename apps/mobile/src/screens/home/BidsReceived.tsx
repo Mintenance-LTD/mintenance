@@ -6,16 +6,10 @@
  */
 
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Platform,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Skeleton } from '../../components/skeletons/Skeleton';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 import { formatCurrency } from '../../utils/formatCurrency';
 
 const AVATAR_COLORS = [
@@ -55,8 +49,8 @@ const getBidLabel = (
   if (sorted[0]?.id === bid.id)
     return {
       text: 'Best Price',
-      color: theme.colors.primary,
-      bg: theme.colors.primaryLight,
+      color: me.brand,
+      bg: me.brandSoft,
     };
   return null;
 };
@@ -107,11 +101,7 @@ export const BidsReceived: React.FC<BidsReceivedProps> = ({
         <View style={styles.emptyCard}>
           <View style={styles.emptyCardLeft}>
             <View style={styles.emptyIconCircle}>
-              <Ionicons
-                name='mail-outline'
-                size={24}
-                color={theme.colors.primary}
-              />
+              <Ionicons name='mail-outline' size={24} color={me.brand} />
             </View>
             <View style={styles.emptyCardText}>
               <Text style={styles.emptyCardTitle}>Bids Received</Text>
@@ -128,11 +118,7 @@ export const BidsReceived: React.FC<BidsReceivedProps> = ({
               accessibilityLabel='View your posted jobs'
             >
               <Text style={styles.emptyCardButtonText}>View jobs</Text>
-              <Ionicons
-                name='arrow-forward'
-                size={14}
-                color={theme.colors.primary}
-              />
+              <Ionicons name='arrow-forward' size={14} color={me.brand} />
             </TouchableOpacity>
           )}
         </View>
@@ -215,49 +201,34 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   title: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-    letterSpacing: -0.3,
+    fontFamily: me.font.display,
+    fontSize: 22,
+    color: me.ink,
+    letterSpacing: me.displayTracking,
   },
   viewAll: {
-    color: theme.colors.textPrimary,
+    color: me.brand,
     fontWeight: '600',
     fontSize: 14,
-    textDecorationLine: 'underline',
   },
   bidCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.surface,
-    borderRadius: 16,
+    backgroundColor: me.surface,
+    borderRadius: me.radius.card,
     padding: 14,
     marginBottom: 8,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 8,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
+    borderWidth: 1,
+    borderColor: me.line,
+    ...me.shadow.card,
   },
   emptyCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 20,
+    backgroundColor: me.surface,
+    borderRadius: me.radius.card,
     padding: 20,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.06,
-        shadowRadius: 12,
-      },
-      android: { elevation: 2 },
-    }),
+    borderWidth: 1,
+    borderColor: me.line,
+    ...me.shadow.card,
   },
   emptyCardLeft: {
     flexDirection: 'row',
@@ -269,7 +240,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: me.brandSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -279,19 +250,19 @@ const styles = StyleSheet.create({
   emptyCardTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 2,
   },
   emptyCardSubtitle: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   emptyCardButton: {
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-end',
     gap: 6,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 12,
@@ -299,7 +270,7 @@ const styles = StyleSheet.create({
   emptyCardButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.primary,
+    color: me.brand,
   },
   bidAvatar: {
     width: 44,
@@ -312,7 +283,7 @@ const styles = StyleSheet.create({
   avatarInitial: {
     fontSize: 16,
     fontWeight: '700',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
   },
   bidInfo: {
     flex: 1,
@@ -335,31 +306,31 @@ const styles = StyleSheet.create({
   contractorName: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   jobTitle: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   bidRight: {
     alignItems: 'flex-end',
     marginLeft: 12,
   },
   bidAmount: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
+    fontFamily: me.font.display,
+    fontSize: 22,
+    color: me.ink,
     marginBottom: 4,
-    letterSpacing: -0.3,
+    letterSpacing: me.displayTracking,
   },
   reviewButton: {
-    backgroundColor: theme.colors.primary,
-    borderRadius: 10,
+    backgroundColor: me.brand,
+    borderRadius: me.radius.btn,
     paddingHorizontal: 14,
     paddingVertical: 6,
   },
   reviewText: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontSize: 12,
     fontWeight: '600',
   },

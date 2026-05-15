@@ -2,7 +2,7 @@ import React from 'react';
 import { Modal, Pressable, TouchableOpacity, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 import { goToTab } from '../../../navigation/hooks';
 import { styles } from '../homeownerDashboardStyles';
 
@@ -72,18 +72,10 @@ export const DashboardProfileMenu: React.FC<DashboardProfileMenuProps> = ({
               accessibilityLabel={item.label}
             >
               <View style={styles.dropdownIconWrap}>
-                <Ionicons
-                  name={item.icon}
-                  size={18}
-                  color={theme.colors.textSecondary}
-                />
+                <Ionicons name={item.icon} size={18} color={me.ink2} />
               </View>
               <Text style={styles.dropdownItemText}>{item.label}</Text>
-              <Ionicons
-                name='chevron-forward'
-                size={14}
-                color={theme.colors.textTertiary}
-              />
+              <Ionicons name='chevron-forward' size={14} color={me.ink3} />
             </TouchableOpacity>
           ))}
 
@@ -99,18 +91,10 @@ export const DashboardProfileMenu: React.FC<DashboardProfileMenuProps> = ({
             accessibilityLabel='View profile'
           >
             <View style={styles.dropdownIconWrap}>
-              <Ionicons
-                name='person-outline'
-                size={18}
-                color={theme.colors.textSecondary}
-              />
+              <Ionicons name='person-outline' size={18} color={me.ink2} />
             </View>
             <Text style={styles.dropdownItemText}>View Profile</Text>
-            <Ionicons
-              name='chevron-forward'
-              size={14}
-              color={theme.colors.textTertiary}
-            />
+            <Ionicons name='chevron-forward' size={14} color={me.ink3} />
           </TouchableOpacity>
 
           <View style={styles.dropdownDivider} />
@@ -125,17 +109,11 @@ export const DashboardProfileMenu: React.FC<DashboardProfileMenuProps> = ({
             accessibilityLabel='Sign out'
           >
             <View
-              style={[styles.dropdownIconWrap, { backgroundColor: '#FEE2E2' }]}
+              style={[styles.dropdownIconWrap, { backgroundColor: me.errBg }]}
             >
-              <Ionicons
-                name='log-out-outline'
-                size={18}
-                color={theme.colors.error}
-              />
+              <Ionicons name='log-out-outline' size={18} color={me.errFg} />
             </View>
-            <Text
-              style={[styles.dropdownItemText, { color: theme.colors.error }]}
-            >
+            <Text style={[styles.dropdownItemText, { color: me.errFg }]}>
               Sign Out
             </Text>
           </TouchableOpacity>

@@ -25,7 +25,7 @@ import { WizardStep1Identity } from './register/components/WizardStep1Identity';
 import { WizardStep2Name } from './register/components/WizardStep2Name';
 import { WizardStep3Contact } from './register/components/WizardStep3Contact';
 import { useRegistrationForm } from './register/hooks/useRegistrationForm';
-import { theme } from '../theme';
+import { me } from '../design-system/mint-editorial';
 import { useScreenCaptureGuard } from '../hooks/useScreenCaptureGuard';
 
 type RegisterScreenNavigationProp = NativeStackNavigationProp<
@@ -143,6 +143,7 @@ const RegisterScreen: React.FC<Props> = () => {
             <View style={styles.formContainer}>
               {submissionSuccess ? (
                 <Banner
+                  mint
                   message={submissionSuccess}
                   variant='success'
                   testID='register-success-banner'
@@ -150,6 +151,7 @@ const RegisterScreen: React.FC<Props> = () => {
               ) : null}
               {submissionError ? (
                 <Banner
+                  mint
                   message={submissionError}
                   variant='error'
                   testID='register-error-banner'
@@ -221,16 +223,13 @@ const RegisterScreen: React.FC<Props> = () => {
                     accessibilityLabel='Go to previous step'
                     hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                   >
-                    <Ionicons
-                      name='chevron-back'
-                      size={20}
-                      color={theme.colors.textPrimary}
-                    />
+                    <Ionicons name='chevron-back' size={20} color={me.ink} />
                     <Text style={styles.backButtonText}>Back</Text>
                   </TouchableOpacity>
                 )}
                 <View style={styles.primaryWrap}>
                   <Button
+                    mint
                     testID={
                       loading && isLastStep
                         ? 'loading-spinner'
@@ -249,7 +248,6 @@ const RegisterScreen: React.FC<Props> = () => {
                         : 'Continue to next step'
                     }
                     fullWidth
-                    style={{ borderRadius: 28 }}
                   />
                 </View>
               </View>
@@ -294,14 +292,14 @@ const RegisterScreen: React.FC<Props> = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.bg,
   },
   container: {
     flex: 1,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.bg,
   },
   header: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.bg,
     paddingTop: 20,
     paddingBottom: 12,
     paddingHorizontal: 24,
@@ -319,13 +317,14 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   headerTitle: {
+    fontFamily: me.font.display,
     fontSize: 28,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
+    letterSpacing: me.displayTracking,
   },
   headerSubtitle: {
     fontSize: 15,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     textAlign: 'center',
   },
   keyboardContainer: {
@@ -333,7 +332,7 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     flexGrow: 1,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.bg,
     paddingTop: 20,
     paddingBottom: 32,
   },
@@ -342,15 +341,15 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   formTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
+    fontFamily: me.font.display,
+    fontSize: 26,
+    color: me.ink,
     marginBottom: 4,
-    letterSpacing: -0.3,
+    letterSpacing: me.displayTracking,
   },
   formSubtitle: {
     fontSize: 15,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   formContainer: {
     paddingHorizontal: 24,
@@ -372,7 +371,7 @@ const styles = StyleSheet.create({
   backButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   primaryWrap: {
     flex: 1,
@@ -382,7 +381,7 @@ const styles = StyleSheet.create({
   },
   loginDivider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: theme.colors.border,
+    backgroundColor: me.line,
     marginBottom: 16,
   },
   loginLinkContainer: {
@@ -392,11 +391,11 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   loginPromptText: {
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     fontSize: 15,
   },
   loginLinkText: {
-    color: theme.colors.primary,
+    color: me.brand,
     fontSize: 15,
     fontWeight: '600',
   },

@@ -31,7 +31,7 @@ import { logger } from '../../utils/logger';
 import { goToTab } from '../../navigation/hooks';
 import { RecentJobs } from './RecentJobs';
 import { BidsReceived } from './BidsReceived';
-import { theme, gradients } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 import { STATUS_COLORS } from '@mintenance/design-tokens';
 import { styles } from './homeownerDashboardStyles';
 import { DashboardProfileMenu } from './components/DashboardProfileMenu';
@@ -165,11 +165,7 @@ export const HomeownerDashboard: React.FC = () => {
     return (
       <View style={styles.errorContainer}>
         <View style={styles.errorIconWrap}>
-          <Ionicons
-            name='alert-circle-outline'
-            size={32}
-            color={theme.colors.error}
-          />
+          <Ionicons name='alert-circle-outline' size={32} color={me.errFg} />
         </View>
         <Text style={styles.errorText}>Failed to load dashboard</Text>
         <TouchableOpacity
@@ -220,14 +216,14 @@ export const HomeownerDashboard: React.FC = () => {
           <RefreshControl
             refreshing={isFetching}
             onRefresh={handleRefresh}
-            tintColor={theme.colors.textInverse}
-            colors={[theme.colors.primary]}
+            tintColor={me.brand}
+            colors={[me.brand]}
           />
         }
       >
         {/* Full-Bleed Gradient Hero */}
         <LinearGradient
-          colors={gradients.heroGreen}
+          colors={[me.brand2, me.brand]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.hero}
@@ -263,7 +259,7 @@ export const HomeownerDashboard: React.FC = () => {
                 <Ionicons
                   name='notifications-outline'
                   size={22}
-                  color={theme.colors.textInverse}
+                  color={me.onBrand}
                 />
                 {unreadCount > 0 && (
                   <View style={styles.notificationBadge}>
@@ -317,14 +313,10 @@ export const HomeownerDashboard: React.FC = () => {
               <View
                 style={[
                   styles.statCardIconWrap,
-                  { backgroundColor: theme.colors.primaryLight },
+                  { backgroundColor: me.brandSoft },
                 ]}
               >
-                <Ionicons
-                  name='briefcase'
-                  size={20}
-                  color={theme.colors.primary}
-                />
+                <Ionicons name='briefcase' size={20} color={me.brand} />
               </View>
               <View style={styles.statCardTextCol}>
                 <Text style={styles.statCardValue}>
