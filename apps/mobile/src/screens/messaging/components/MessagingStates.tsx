@@ -1,17 +1,24 @@
 /**
- * MessagingStates — Loading, Error, and Empty states
+ * MessagingStates — Loading, Error, and Empty states.
+ * Direction A · Mint Editorial — token-styled.
  *
  * Empty state shows job context with quick-action suggestion pills.
  */
 
 import React from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  ActivityIndicator,
+  StyleSheet,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 export const MessagingLoading: React.FC = () => (
   <View style={styles.loadingContainer}>
-    <ActivityIndicator size="large" color={theme.colors.primary} />
+    <ActivityIndicator size='large' color={me.brand} />
     <Text style={styles.loadingText}>Loading messages...</Text>
   </View>
 );
@@ -23,7 +30,7 @@ interface MessagingErrorProps {
 export const MessagingError: React.FC<MessagingErrorProps> = ({ onRetry }) => (
   <View style={styles.loadingContainer}>
     <View style={styles.errorIconWrap}>
-      <Ionicons name="warning-outline" size={28} color={theme.colors.error} />
+      <Ionicons name='warning-outline' size={28} color={me.errFg} />
     </View>
     <Text style={styles.errorTitle}>Failed to load messages</Text>
     <Text style={styles.errorDesc}>Check your connection and try again.</Text>
@@ -50,7 +57,7 @@ export const MessagingEmpty: React.FC<MessagingEmptyProps> = ({
 }) => (
   <View style={styles.emptyContainer}>
     <View style={styles.emptyIconWrap}>
-      <Ionicons name="chatbubbles-outline" size={32} color={theme.colors.primary} />
+      <Ionicons name='chatbubbles-outline' size={32} color={me.brand} />
     </View>
     <Text style={styles.emptyTitle}>No Messages Yet</Text>
     <Text style={styles.emptySubtext}>
@@ -66,10 +73,10 @@ export const MessagingEmpty: React.FC<MessagingEmptyProps> = ({
             key={starter.text}
             style={styles.quickPill}
             onPress={() => onQuickMessage(starter.text)}
-            accessibilityRole="button"
+            accessibilityRole='button'
             accessibilityLabel={`Send: ${starter.text}`}
           >
-            <Ionicons name={starter.icon} size={14} color={theme.colors.primary} />
+            <Ionicons name={starter.icon} size={14} color={me.brand} />
             <Text style={styles.quickPillText}>{starter.text}</Text>
           </TouchableOpacity>
         ))}
@@ -83,18 +90,18 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg,
   },
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   errorIconWrap: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#FEE2E2',
+    backgroundColor: me.errBg,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
@@ -102,22 +109,22 @@ const styles = StyleSheet.create({
   errorTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   errorDesc: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginTop: 4,
   },
   retryButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
     paddingHorizontal: 28,
     paddingVertical: 14,
-    borderRadius: 14,
+    borderRadius: me.radius.btn,
     marginTop: 20,
   },
   retryText: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontWeight: '700',
     fontSize: 15,
   },
@@ -130,20 +137,20 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 24,
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: me.brandSoft,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
   },
   emptyTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-    letterSpacing: -0.3,
+    fontFamily: me.font.display,
+    fontSize: 22,
+    color: me.ink,
+    letterSpacing: me.displayTracking,
   },
   emptySubtext: {
     fontSize: 15,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     textAlign: 'center',
     marginTop: 6,
     lineHeight: 22,
@@ -159,9 +166,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderWidth: 1,
-    borderColor: theme.colors.primaryLight,
+    borderColor: me.brandSoft,
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 20,
@@ -169,6 +176,6 @@ const styles = StyleSheet.create({
   quickPillText: {
     fontSize: 13,
     fontWeight: '600',
-    color: theme.colors.primary,
+    color: me.brand,
   },
 });

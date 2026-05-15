@@ -1,8 +1,9 @@
 /**
- * MessageComposer — Modern input bar with green send button
+ * MessageComposer — Modern input bar with brand send button.
+ * Direction A · Mint Editorial — token-styled.
  *
- * Pill-shaped input, camera + gallery attach icons,
- * green send button that activates when text is present.
+ * Pill-shaped input, camera + gallery attach icons, brand send
+ * button that activates when text is present.
  */
 
 import React from 'react';
@@ -16,7 +17,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Banner } from '../../../components/ui/Banner';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 interface MessageComposerProps {
   value: string;
@@ -48,6 +49,7 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
     >
       {error ? (
         <Banner
+          mint
           message={error}
           variant='error'
           testID='messaging-composer-error'
@@ -63,11 +65,7 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
               disabled={isSending}
               accessibilityLabel='Attach image from gallery'
             >
-              <Ionicons
-                name='image-outline'
-                size={22}
-                color={theme.colors.textSecondary}
-              />
+              <Ionicons name='image-outline' size={22} color={me.ink2} />
             </TouchableOpacity>
           )}
           {onCamera && (
@@ -77,11 +75,7 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
               disabled={isSending}
               accessibilityLabel='Take a photo'
             >
-              <Ionicons
-                name='camera-outline'
-                size={22}
-                color={theme.colors.textSecondary}
-              />
+              <Ionicons name='camera-outline' size={22} color={me.ink2} />
             </TouchableOpacity>
           )}
         </View>
@@ -93,7 +87,7 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
             value={value}
             onChangeText={onChangeText}
             placeholder='Type a message...'
-            placeholderTextColor={theme.colors.textTertiary}
+            placeholderTextColor={me.ink4}
             multiline
             maxLength={500}
             editable={!isSending}
@@ -115,12 +109,12 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
           accessibilityLabel='Send message'
         >
           {isSending ? (
-            <ActivityIndicator size='small' color={theme.colors.textInverse} />
+            <ActivityIndicator size='small' color={me.onBrand} />
           ) : (
             <Ionicons
               name='send'
               size={18}
-              color={theme.colors.textInverse}
+              color={me.onBrand}
               style={{ marginLeft: 2 }}
             />
           )}
@@ -132,11 +126,11 @@ export const MessageComposer: React.FC<MessageComposerProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     paddingHorizontal: 12,
     paddingTop: 10,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: theme.colors.border,
+    borderTopColor: me.line,
     gap: 6,
   },
   inputRow: {
@@ -159,7 +153,7 @@ const styles = StyleSheet.create({
   },
   inputWrapper: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundTertiary,
+    backgroundColor: me.bg2,
     borderRadius: 24,
     paddingHorizontal: 16,
     paddingVertical: Platform.OS === 'ios' ? 10 : 4,
@@ -168,7 +162,7 @@ const styles = StyleSheet.create({
   },
   textInput: {
     fontSize: 16,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     maxHeight: 100,
     lineHeight: 22,
     paddingVertical: 0,
@@ -182,18 +176,10 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   sendButtonActive: {
-    backgroundColor: theme.colors.primary,
-    ...Platform.select({
-      ios: {
-        shadowColor: theme.colors.primary,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.3,
-        shadowRadius: 4,
-      },
-      android: { elevation: 3 },
-    }),
+    backgroundColor: me.brand,
+    ...me.shadow.btn,
   },
   sendButtonInactive: {
-    backgroundColor: theme.colors.border,
+    backgroundColor: me.line,
   },
 });
