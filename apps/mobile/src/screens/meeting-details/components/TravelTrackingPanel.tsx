@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 import { styles } from '../../meetingDetailsStyles';
 
 interface TravelState {
@@ -28,21 +28,13 @@ export function TravelTrackingPanel({ travel }: { travel: TravelState }) {
           onPress={travel.startTracking}
           disabled={travel.error !== null}
         >
-          <Ionicons
-            name='navigate'
-            size={24}
-            color={theme.colors.textInverse}
-          />
+          <Ionicons name='navigate' size={24} color={me.onBrand} />
           <Text style={styles.travelButtonText}>Start Traveling</Text>
         </TouchableOpacity>
       ) : (
         <View style={styles.trackingActiveContainer}>
           <View style={styles.etaDisplay}>
-            <Ionicons
-              name='time'
-              size={20}
-              color={theme.colors.textSecondary}
-            />
+            <Ionicons name='time' size={20} color={me.ink2} />
             <Text style={styles.etaText}>
               ETA: {travel.eta ? `${travel.eta} minutes` : 'Calculating...'}
             </Text>
@@ -52,22 +44,14 @@ export function TravelTrackingPanel({ travel }: { travel: TravelState }) {
               style={[styles.travelButton, styles.arrivedButton]}
               onPress={travel.markArrived}
             >
-              <Ionicons
-                name='checkmark-circle'
-                size={20}
-                color={theme.colors.textInverse}
-              />
+              <Ionicons name='checkmark-circle' size={20} color={me.onBrand} />
               <Text style={styles.travelButtonText}>Mark Arrived</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.travelButton, styles.stopTravelButton]}
               onPress={travel.stopTracking}
             >
-              <Ionicons
-                name='stop-circle'
-                size={20}
-                color={theme.colors.textInverse}
-              />
+              <Ionicons name='stop-circle' size={20} color={me.onBrand} />
               <Text style={styles.travelButtonText}>Stop</Text>
             </TouchableOpacity>
           </View>

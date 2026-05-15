@@ -37,7 +37,7 @@ import Reanimated, {
   withRepeat,
   withSequence,
 } from 'react-native-reanimated';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -300,11 +300,7 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.permissionContainer}>
-          <Icon
-            name='videocam-off'
-            size={64}
-            color={theme.colors.textTertiary}
-          />
+          <Icon name='videocam-off' size={64} color={me.ink3} />
           <Text style={styles.permissionText}>
             {t('permissions.camera.title')}
           </Text>
@@ -383,11 +379,7 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
             <View style={styles.instructionsList}>
               {currentPhase.instructions.map((instruction, index) => (
                 <View key={index} style={styles.instructionItem}>
-                  <Icon
-                    name='check-circle'
-                    size={16}
-                    color={theme.colors.primary}
-                  />
+                  <Icon name='check-circle' size={16} color={me.brand} />
                   <Text style={styles.instructionText}>{instruction}</Text>
                 </View>
               ))}
@@ -395,11 +387,7 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
 
             {(currentPhase.tips?.length ?? 0) > 0 && (
               <View style={styles.tipsContainer}>
-                <Icon
-                  name='lightbulb-outline'
-                  size={20}
-                  color={theme.colors.accent}
-                />
+                <Icon name='lightbulb-outline' size={20} color={me.accent} />
                 <Text style={styles.tipText}>{currentPhase.tips?.[0]}</Text>
               </View>
             )}
@@ -481,11 +469,7 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
 
           <View style={styles.videoPreviewContainer}>
             <View style={styles.videoPlaceholder}>
-              <Icon
-                name='play-circle-outline'
-                size={64}
-                color={theme.colors.textTertiary}
-              />
+              <Icon name='play-circle-outline' size={64} color={me.ink3} />
               <Text style={styles.videoInfo}>
                 Duration: {formatDuration(recordingDuration)}
               </Text>
@@ -498,11 +482,7 @@ export const VideoCaptureScreen: React.FC<Props> = ({ navigation, route }) => {
               style={[styles.actionButton, styles.retakeButton]}
               onPress={retakeVideo}
             >
-              <Icon
-                name='refresh'
-                size={24}
-                color={theme.colors.textTertiary}
-              />
+              <Icon name='refresh' size={24} color={me.ink3} />
               <Text style={styles.actionButtonText}>Retake</Text>
             </TouchableOpacity>
 

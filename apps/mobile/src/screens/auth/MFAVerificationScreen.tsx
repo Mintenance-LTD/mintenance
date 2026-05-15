@@ -27,7 +27,7 @@ import * as LocalAuthentication from 'expo-local-authentication';
 import * as SecureStore from 'expo-secure-store';
 import { logger } from '@mintenance/shared';
 import { mobileApiClient } from '../../utils/mobileApiClient';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 import { useScreenCaptureGuard } from '../../hooks/useScreenCaptureGuard';
 
 interface MFAVerificationScreenProps {
@@ -269,7 +269,7 @@ export default function MFAVerificationScreen() {
               value={code}
               onChangeText={handleCodeChange}
               placeholder={method === 'totp' ? '000000' : 'XXXXXXXX'}
-              placeholderTextColor={theme.colors.textTertiary}
+              placeholderTextColor={me.ink3}
               maxLength={method === 'totp' ? 6 : 8}
               keyboardType={method === 'totp' ? 'number-pad' : 'default'}
               autoCapitalize='characters'
@@ -330,7 +330,7 @@ export default function MFAVerificationScreen() {
             accessibilityLabel={loading ? 'Verifying code' : 'Verify code'}
           >
             {loading ? (
-              <ActivityIndicator color={theme.colors.textInverse} />
+              <ActivityIndicator color={me.onBrand} />
             ) : (
               <Text style={styles.buttonText}>Verify</Text>
             )}
@@ -372,7 +372,7 @@ export default function MFAVerificationScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   scrollContent: {
     flexGrow: 1,
@@ -400,30 +400,22 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 24,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 8,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     textAlign: 'center',
   },
   methodSelector: {
     flexDirection: 'row',
     marginBottom: 24,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     padding: 4,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   methodButton: {
     flex: 1,
@@ -432,15 +424,15 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   methodButtonActive: {
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
   },
   methodButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   methodButtonTextActive: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
   },
   inputContainer: {
     marginBottom: 24,
@@ -448,33 +440,25 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 12,
     fontWeight: '700',
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 8,
   },
   input: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 12,
     padding: 16,
     fontSize: 20,
     fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
     textAlign: 'center',
     letterSpacing: 4,
-    color: theme.colors.textPrimary,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    color: me.ink,
+    ...me.shadow.card,
   },
   hint: {
     fontSize: 12,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     marginTop: 8,
     textAlign: 'center',
   },
@@ -488,27 +472,27 @@ const styles = StyleSheet.create({
     width: 24,
     height: 24,
     borderWidth: 2,
-    borderColor: theme.colors.textTertiary,
+    borderColor: me.ink3,
     borderRadius: 6,
     marginRight: 10,
     alignItems: 'center',
     justifyContent: 'center',
   },
   checkboxChecked: {
-    backgroundColor: theme.colors.textPrimary,
-    borderColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
+    borderColor: me.ink,
   },
   checkmark: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontSize: 14,
     fontWeight: '700',
   },
   checkboxLabel: {
     fontSize: 14,
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   button: {
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
     borderRadius: 28,
     padding: 16,
     alignItems: 'center',
@@ -518,7 +502,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   buttonText: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -527,16 +511,16 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     paddingTop: 16,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: theme.colors.border,
+    borderTopColor: me.line,
   },
   helpText: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginBottom: 8,
   },
   helpLink: {
     fontSize: 14,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     fontWeight: '600',
   },
   backButton: {
@@ -544,6 +528,6 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
 });

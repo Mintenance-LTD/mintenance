@@ -18,7 +18,7 @@ import { useToast } from '../../components/ui/Toast';
 import { FinancialManagementService } from '../../services/contractor-business';
 import type { InvoiceLineItem } from '../../services/contractor-business/types';
 import type { ProfileStackParamList } from '../../navigation/types';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 import { formatCurrency } from '../../utils/formatCurrency';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 
@@ -198,11 +198,7 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({
           accessibilityRole='button'
           accessibilityLabel='Go back'
         >
-          <Ionicons
-            name='arrow-back'
-            size={22}
-            color={theme.colors.textPrimary}
-          />
+          <Ionicons name='arrow-back' size={22} color={me.ink} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>New Invoice</Text>
         <TouchableOpacity
@@ -227,11 +223,7 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({
             by the populated form. */}
         {seededFromTimeTracking && (
           <View style={styles.timeTrackingHint}>
-            <Ionicons
-              name='time-outline'
-              size={16}
-              color={theme.colors.primary}
-            />
+            <Ionicons name='time-outline' size={16} color={me.brand} />
             <Text style={styles.timeTrackingHintText}>
               {
                 "Pre-filled from this week's billable hours. Edit before saving."
@@ -246,14 +238,14 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({
           <TextInput
             style={styles.input}
             placeholder='Client name *'
-            placeholderTextColor={theme.colors.textTertiary}
+            placeholderTextColor={me.ink3}
             value={clientName}
             onChangeText={setClientName}
           />
           <TextInput
             style={styles.input}
             placeholder='Job reference (optional)'
-            placeholderTextColor={theme.colors.textTertiary}
+            placeholderTextColor={me.ink3}
             value={jobRef}
             onChangeText={setJobRef}
           />
@@ -266,17 +258,9 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({
             style={styles.dateButton}
             onPress={() => setShowDatePicker(true)}
           >
-            <Ionicons
-              name='calendar-outline'
-              size={18}
-              color={theme.colors.textSecondary}
-            />
+            <Ionicons name='calendar-outline' size={18} color={me.ink2} />
             <Text style={styles.dateText}>{formatDate(dueDate)}</Text>
-            <Ionicons
-              name='chevron-forward'
-              size={16}
-              color={theme.colors.textTertiary}
-            />
+            <Ionicons name='chevron-forward' size={16} color={me.ink3} />
           </TouchableOpacity>
           {showDatePicker && (
             <DateTimePicker
@@ -299,7 +283,7 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({
               style={styles.addItemButton}
               onPress={addLineItem}
             >
-              <Ionicons name='add' size={18} color={theme.colors.textInverse} />
+              <Ionicons name='add' size={18} color={me.onBrand} />
               <Text style={styles.addItemText}>Add Item</Text>
             </TouchableOpacity>
           </View>
@@ -310,18 +294,14 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({
                 <Text style={styles.lineItemLabel}>Item {index + 1}</Text>
                 {lineItems.length > 1 && (
                   <TouchableOpacity onPress={() => removeLineItem(index)}>
-                    <Ionicons
-                      name='trash-outline'
-                      size={18}
-                      color={theme.colors.error}
-                    />
+                    <Ionicons name='trash-outline' size={18} color={me.errFg} />
                   </TouchableOpacity>
                 )}
               </View>
               <TextInput
                 style={styles.input}
                 placeholder='Description *'
-                placeholderTextColor={theme.colors.textTertiary}
+                placeholderTextColor={me.ink3}
                 value={item.description}
                 onChangeText={(v) => updateLineItem(index, 'description', v)}
               />
@@ -331,7 +311,7 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({
                   <TextInput
                     style={styles.input}
                     placeholder='1'
-                    placeholderTextColor={theme.colors.textTertiary}
+                    placeholderTextColor={me.ink3}
                     keyboardType='numeric'
                     value={item.quantity}
                     onChangeText={(v) => updateLineItem(index, 'quantity', v)}
@@ -342,7 +322,7 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({
                   <TextInput
                     style={styles.input}
                     placeholder='0.00'
-                    placeholderTextColor={theme.colors.textTertiary}
+                    placeholderTextColor={me.ink3}
                     keyboardType='decimal-pad'
                     value={item.rate}
                     onChangeText={(v) => updateLineItem(index, 'rate', v)}
@@ -370,7 +350,7 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({
           <TextInput
             style={[styles.input, styles.notesInput]}
             placeholder='Payment terms, notes to client…'
-            placeholderTextColor={theme.colors.textTertiary}
+            placeholderTextColor={me.ink3}
             value={notes}
             onChangeText={setNotes}
             multiline
@@ -402,22 +382,22 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
+  container: { flex: 1, backgroundColor: me.bg2 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   backButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -426,30 +406,22 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   saveText: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     textAlign: 'right',
   },
   scroll: { flex: 1 },
   section: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     marginHorizontal: 16,
     marginTop: 16,
     borderRadius: 16,
     padding: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -460,33 +432,33 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 12,
   },
   input: {
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 14,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 8,
   },
   notesInput: { height: 80, paddingTop: 12 },
   dateButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 14,
     gap: 8,
   },
-  dateText: { flex: 1, fontSize: 14, color: theme.colors.textPrimary },
+  dateText: { flex: 1, fontSize: 14, color: me.ink },
   addItemButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
     borderRadius: 20,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -495,10 +467,10 @@ const styles = StyleSheet.create({
   addItemText: {
     fontSize: 13,
     fontWeight: '600',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
   },
   lineItem: {
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 12,
     padding: 12,
     marginBottom: 12,
@@ -512,39 +484,31 @@ const styles = StyleSheet.create({
   lineItemLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   lineItemRow: { flexDirection: 'row', gap: 8 },
   lineItemField: { flex: 1 },
   fieldLabel: {
     fontSize: 11,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     marginBottom: 4,
   },
   amountDisplay: {
     justifyContent: 'center',
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
   },
   amountText: {
     fontSize: 14,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     fontWeight: '500',
   },
   totalsSection: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     marginHorizontal: 16,
     marginTop: 16,
     borderRadius: 16,
     padding: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   totalRow: {
     flexDirection: 'row',
@@ -553,32 +517,32 @@ const styles = StyleSheet.create({
   },
   totalRowFinal: {
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: theme.colors.border,
+    borderTopColor: me.line,
     marginTop: 8,
     paddingTop: 12,
   },
-  totalLabel: { fontSize: 14, color: theme.colors.textSecondary },
+  totalLabel: { fontSize: 14, color: me.ink2 },
   totalValue: {
     fontSize: 14,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     fontWeight: '500',
   },
   grandTotalLabel: {
     fontSize: 16,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   grandTotalValue: {
     fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   // Audit P1 #14 (2026-04-25): pre-fill-from-time-tracking hint banner.
   timeTrackingHint: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: me.brandSoft,
     marginHorizontal: 16,
     marginTop: 12,
     paddingHorizontal: 12,
@@ -588,7 +552,7 @@ const styles = StyleSheet.create({
   timeTrackingHintText: {
     flex: 1,
     fontSize: 13,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     fontWeight: '500',
   },
 });

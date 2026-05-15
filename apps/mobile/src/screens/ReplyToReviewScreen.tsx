@@ -21,7 +21,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { mobileApiClient as apiClient } from '../utils/mobileApiClient';
-import { theme } from '../theme';
+import { me } from '../design-system/mint-editorial';
 import type { ProfileStackParamList } from '../navigation/types';
 import { useUnsavedChanges } from '../hooks/useUnsavedChanges';
 
@@ -62,7 +62,7 @@ export const ReplyToReviewScreen: React.FC<Props> = ({ route, navigation }) => {
   }
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: me.bg }}>
       <ScrollView contentContainerStyle={{ padding: 16 }}>
         <View
           style={{
@@ -75,18 +75,14 @@ export const ReplyToReviewScreen: React.FC<Props> = ({ route, navigation }) => {
             onPress={() => navigation.goBack()}
             style={{ padding: 4 }}
           >
-            <Ionicons
-              name='arrow-back'
-              size={22}
-              color={theme.colors.textPrimary}
-            />
+            <Ionicons name='arrow-back' size={22} color={me.ink} />
           </TouchableOpacity>
           <Text
             style={{
               marginLeft: 8,
               fontSize: 18,
               fontWeight: '700',
-              color: theme.colors.textPrimary,
+              color: me.ink,
             }}
           >
             Reply to review
@@ -96,7 +92,7 @@ export const ReplyToReviewScreen: React.FC<Props> = ({ route, navigation }) => {
         {/* Original review summary */}
         <View
           style={{
-            backgroundColor: theme.colors.surface,
+            backgroundColor: me.surface,
             borderRadius: 12,
             padding: 14,
             marginBottom: 16,
@@ -106,7 +102,7 @@ export const ReplyToReviewScreen: React.FC<Props> = ({ route, navigation }) => {
             style={{
               fontWeight: '700',
               fontSize: 14,
-              color: theme.colors.textPrimary,
+              color: me.ink,
             }}
           >
             {reviewerName}
@@ -117,13 +113,13 @@ export const ReplyToReviewScreen: React.FC<Props> = ({ route, navigation }) => {
                 key={n}
                 name={n <= rating ? 'star' : 'star-outline'}
                 size={14}
-                color={theme.colors.accent}
+                color={me.accent}
               />
             ))}
           </View>
           <Text
             style={{
-              color: theme.colors.textSecondary,
+              color: me.ink2,
               fontSize: 14,
               lineHeight: 20,
             }}
@@ -135,7 +131,7 @@ export const ReplyToReviewScreen: React.FC<Props> = ({ route, navigation }) => {
         <Text
           style={{
             fontSize: 13,
-            color: theme.colors.textSecondary,
+            color: me.ink2,
             marginBottom: 6,
           }}
         >
@@ -148,21 +144,21 @@ export const ReplyToReviewScreen: React.FC<Props> = ({ route, navigation }) => {
           numberOfLines={6}
           maxLength={2000}
           placeholder="Acknowledge the feedback, explain anything you'd change, and keep it polite — this stays public."
-          placeholderTextColor={theme.colors.textSecondary}
+          placeholderTextColor={me.ink2}
           style={{
             borderWidth: 1,
-            borderColor: theme.colors.border,
+            borderColor: me.line,
             borderRadius: 10,
             padding: 12,
             minHeight: 120,
             textAlignVertical: 'top',
-            color: theme.colors.textPrimary,
+            color: me.ink,
           }}
         />
         <Text
           style={{
             fontSize: 11,
-            color: theme.colors.textSecondary,
+            color: me.ink2,
             marginTop: 6,
             marginBottom: 16,
           }}
@@ -175,7 +171,7 @@ export const ReplyToReviewScreen: React.FC<Props> = ({ route, navigation }) => {
           onPress={submit}
           disabled={submitting}
           style={{
-            backgroundColor: theme.colors.primary,
+            backgroundColor: me.brand,
             paddingVertical: 12,
             borderRadius: 10,
             alignItems: 'center',
@@ -183,9 +179,9 @@ export const ReplyToReviewScreen: React.FC<Props> = ({ route, navigation }) => {
           }}
         >
           {submitting ? (
-            <ActivityIndicator color={theme.colors.surface} />
+            <ActivityIndicator color={me.surface} />
           ) : (
-            <Text style={{ color: theme.colors.surface, fontWeight: '700' }}>
+            <Text style={{ color: me.surface, fontWeight: '700' }}>
               Submit reply
             </Text>
           )}

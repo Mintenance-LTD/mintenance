@@ -12,7 +12,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 interface MapSearchBarProps {
   jobCount: number;
@@ -50,33 +50,35 @@ export const MapSearchBar: React.FC<MapSearchBarProps> = ({
         <TouchableOpacity
           style={styles.backButton}
           onPress={onBackToList}
-          accessibilityRole="button"
-          accessibilityLabel="Back to list"
+          accessibilityRole='button'
+          accessibilityLabel='Back to list'
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Ionicons name="arrow-back" size={20} color={theme.colors.textPrimary} />
+          <Ionicons name='arrow-back' size={20} color={me.ink} />
         </TouchableOpacity>
       )}
       <TouchableOpacity
         style={styles.pill}
         onPress={onPress}
-        accessibilityRole="search"
+        accessibilityRole='search'
         accessibilityLabel={`Search jobs. ${subtitle}`}
         activeOpacity={0.9}
       >
-        <Ionicons name="search" size={18} color={theme.colors.textPrimary} />
+        <Ionicons name='search' size={18} color={me.ink} />
         <View style={styles.textContainer}>
           <Text style={styles.title}>Near you</Text>
-          <Text style={styles.subtitle} numberOfLines={1}>{subtitle}</Text>
+          <Text style={styles.subtitle} numberOfLines={1}>
+            {subtitle}
+          </Text>
         </View>
         <TouchableOpacity
           style={styles.filterButton}
           onPress={onFilterPress}
-          accessibilityRole="button"
-          accessibilityLabel="Open filters"
+          accessibilityRole='button'
+          accessibilityLabel='Open filters'
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Ionicons name="options-outline" size={16} color={theme.colors.textPrimary} />
+          <Ionicons name='options-outline' size={16} color={me.ink} />
         </TouchableOpacity>
       </TouchableOpacity>
     </View>
@@ -99,10 +101,10 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000000',
+    shadowColor: me.ink,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.12,
     shadowRadius: 8,
@@ -113,12 +115,12 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 32,
     paddingLeft: 16,
     paddingRight: 8,
     paddingVertical: 10,
-    shadowColor: '#000000',
+    shadowColor: me.ink,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.12,
     shadowRadius: 8,
@@ -131,18 +133,18 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   subtitle: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginTop: 1,
   },
   filterButton: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
   },

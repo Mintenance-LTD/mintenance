@@ -6,7 +6,6 @@ import {
   FlatList,
   TouchableOpacity,
   RefreshControl,
-  Platform,
 } from 'react-native';
 import SearchBar from '../components/SearchBar';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,7 +20,7 @@ import { Banner } from '../components/ui/Banner';
 import { useMessageThreadsWithRealTime } from '../hooks/useMessaging';
 import type { MessageThread } from '../services/MessagingService';
 import type { MessagingStackParamList } from '../navigation/types';
-import { theme } from '../theme';
+import { me } from '../design-system/mint-editorial';
 
 const AVATAR_COLORS = [
   '#222222',
@@ -125,7 +124,7 @@ const MessagesListScreen: React.FC = () => {
             <Ionicons
               name={isSearching ? 'close-outline' : 'search-outline'}
               size={22}
-              color={theme.colors.textPrimary}
+              color={me.ink}
             />
           </TouchableOpacity>
         </View>
@@ -157,7 +156,7 @@ const MessagesListScreen: React.FC = () => {
               <Ionicons
                 name='refresh'
                 size={18}
-                color={theme.colors.textInverse}
+                color={me.onBrand}
                 style={styles.retryIcon}
               />
               <Text style={styles.retryText}>Retry</Text>
@@ -176,9 +175,9 @@ const MessagesListScreen: React.FC = () => {
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={handleRefresh}
-                tintColor={theme.colors.primary}
-                colors={[theme.colors.primary]}
-                progressBackgroundColor={theme.colors.surface}
+                tintColor={me.brand}
+                colors={[me.brand]}
+                progressBackgroundColor={me.surface}
               />
             }
             ListEmptyComponent={
@@ -187,7 +186,7 @@ const MessagesListScreen: React.FC = () => {
                   <Ionicons
                     name='chatbubbles-outline'
                     size={32}
-                    color={theme.colors.textSecondary}
+                    color={me.ink2}
                     accessible={false}
                   />
                 </View>
@@ -288,11 +287,7 @@ const MessagesListScreen: React.FC = () => {
                     )}
                   </View>
 
-                  <Ionicons
-                    name='chevron-forward'
-                    size={14}
-                    color={theme.colors.textTertiary}
-                  />
+                  <Ionicons name='chevron-forward' size={14} color={me.ink3} />
                 </TouchableOpacity>
               );
             }}
@@ -306,14 +301,14 @@ const MessagesListScreen: React.FC = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
   },
   container: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   header: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     paddingTop: 12,
     paddingBottom: 12,
     paddingHorizontal: 20,
@@ -321,26 +316,26 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     letterSpacing: -0.3,
   },
   searchButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
   },
   searchContainer: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
   },
   content: {
     flex: 1,
@@ -351,21 +346,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 14,
     paddingHorizontal: 20,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     marginHorizontal: 12,
     marginTop: 8,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.04,
-        shadowRadius: 8,
-      },
-      android: { elevation: 1 },
-    }),
+    borderColor: me.line,
+    ...me.shadow.card,
   },
   avatarContainer: {
     position: 'relative',
@@ -381,7 +368,7 @@ const styles = StyleSheet.create({
   avatarInitials: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
   },
   unreadDot: {
     position: 'absolute',
@@ -389,10 +376,10 @@ const styles = StyleSheet.create({
     right: 0,
     width: 12,
     height: 12,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: theme.colors.surface,
+    borderColor: me.surface,
   },
   conversationContent: {
     flex: 1,
@@ -406,26 +393,26 @@ const styles = StyleSheet.create({
   contractorName: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   timestamp: {
     fontSize: 12,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
   },
   jobType: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     fontWeight: '500',
     marginBottom: 2,
   },
   snippet: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     lineHeight: 18,
   },
   unreadSnippet: {
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   errorContainer: {
     alignItems: 'center',
@@ -433,7 +420,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   retryButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 12,
@@ -445,7 +432,7 @@ const styles = StyleSheet.create({
     marginRight: 6,
   },
   retryText: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontWeight: '600',
     fontSize: 14,
   },
@@ -458,7 +445,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -466,12 +453,12 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     textAlign: 'center',
   },
   emptySubtext: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginTop: 6,
     textAlign: 'center',
     lineHeight: 20,
@@ -480,7 +467,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 0,
     top: 8,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
     borderRadius: 10,
     minWidth: 20,
     height: 20,
@@ -489,7 +476,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
   },
   unreadCount: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontSize: 11,
     fontWeight: '700',
   },

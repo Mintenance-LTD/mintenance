@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { MeetingUpdate } from '@mintenance/types';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 import { styles } from '../../meetingDetailsStyles';
 import { formatUpdateTime } from '../utils';
 
@@ -22,7 +22,7 @@ export function UpdatesTimeline({ updates }: { updates: MeetingUpdate[] }) {
             <Ionicons
               name={iconForUpdate(update.updateType)}
               size={16}
-              color={theme.colors.textSecondary}
+              color={me.ink2}
             />
           </View>
           <View style={styles.updateContent}>

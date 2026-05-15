@@ -8,10 +8,10 @@
  */
 
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { TopContractor } from '../viewmodels/EnhancedHomeViewModel';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 interface TopContractorsListProps {
   contractors: TopContractor[];
@@ -27,7 +27,9 @@ export const TopContractorsList: React.FC<TopContractorsListProps> = ({
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.sectionTitle} accessibilityRole='header'>Top Contractors</Text>
+        <Text style={styles.sectionTitle} accessibilityRole='header'>
+          Top Contractors
+        </Text>
         <TouchableOpacity
           onPress={onSeeAllPress}
           accessibilityRole='button'
@@ -50,9 +52,11 @@ export const TopContractorsList: React.FC<TopContractorsListProps> = ({
           <View style={styles.contractorInfo}>
             <Text style={styles.contractorName}>{contractor.name}</Text>
             <View style={styles.ratingRow}>
-              <Ionicons name="star" size={14} color={theme.colors.accent} />
+              <Ionicons name='star' size={14} color={me.accent} />
               <Text style={styles.rating}>{contractor.rating}</Text>
-              <Text style={styles.reviewCount}>({contractor.reviewCount} reviews)</Text>
+              <Text style={styles.reviewCount}>
+                ({contractor.reviewCount} reviews)
+              </Text>
             </View>
             <View style={styles.servicesRow}>
               {contractor.services.map((service, index) => (
@@ -68,7 +72,7 @@ export const TopContractorsList: React.FC<TopContractorsListProps> = ({
             accessibilityRole='button'
             accessibilityLabel={`Add ${contractor.name} to favourites`}
           >
-            <Ionicons name="heart-outline" size={20} color={theme.colors.textSecondary} />
+            <Ionicons name='heart-outline' size={20} color={me.ink2} />
           </TouchableOpacity>
         </TouchableOpacity>
       ))}
@@ -90,28 +94,25 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   seeAllText: {
     fontSize: 15,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   contractorCard: {
     flexDirection: 'row',
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
-    ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   contractorImage: {
     width: 80,
     height: 80,
     borderRadius: 12,
-    backgroundColor: theme.colors.border,
+    backgroundColor: me.line,
   },
   contractorInfo: {
     flex: 1,
@@ -120,7 +121,7 @@ const styles = StyleSheet.create({
   contractorName: {
     fontSize: 18,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 4,
   },
   ratingRow: {
@@ -131,12 +132,12 @@ const styles = StyleSheet.create({
   rating: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginLeft: 4,
   },
   reviewCount: {
     fontSize: 13,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     marginLeft: 4,
   },
   servicesRow: {
@@ -146,24 +147,24 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   serviceTag: {
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 4,
     paddingHorizontal: 8,
     paddingVertical: 4,
   },
   serviceTagText: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   distance: {
     fontSize: 13,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
   },
   favoriteButton: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     justifyContent: 'center',
     alignItems: 'center',
   },

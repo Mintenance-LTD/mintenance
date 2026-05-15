@@ -17,7 +17,7 @@ import { useQuery } from '@tanstack/react-query';
 
 import { useAuth } from '../../contexts/AuthContext';
 import { mobileApiClient } from '../../utils/mobileApiClient';
-import { theme, gradients } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 import { formatCurrency } from '../../utils/formatCurrency';
 import { styles } from '../contractor/DocumentsStyles';
 import {
@@ -60,8 +60,8 @@ const TYPE_STYLE: Record<
   }
 > = {
   contract: {
-    color: theme.colors.primary,
-    bg: theme.colors.primaryLight,
+    color: me.brand,
+    bg: me.brandSoft,
     icon: 'document-text',
     label: 'Contract',
   },
@@ -103,7 +103,7 @@ function getStatusLabel(
       return { label: 'Awaiting Contractor', color: designColors.warning };
     if (status === 'rejected')
       return { label: 'Rejected', color: designColors.error };
-    return { label: status, color: theme.colors.textSecondary };
+    return { label: status, color: me.ink2 };
   }
   if (type === 'bid') {
     if (status === 'accepted')
@@ -112,7 +112,7 @@ function getStatusLabel(
       return { label: 'Pending Review', color: designColors.warning };
     if (status === 'rejected')
       return { label: 'Declined', color: designColors.error };
-    return { label: status, color: theme.colors.textSecondary };
+    return { label: status, color: me.ink2 };
   }
   if (status === 'held')
     return { label: 'In Escrow', color: designColors.info };
@@ -122,9 +122,8 @@ function getStatusLabel(
     return { label: 'Release Pending', color: designColors.warning };
   if (status === 'pending')
     return { label: 'Processing', color: designColors.warning };
-  if (status === 'refunded')
-    return { label: 'Refunded', color: theme.colors.textSecondary };
-  return { label: status, color: theme.colors.textSecondary };
+  if (status === 'refunded') return { label: 'Refunded', color: me.ink2 };
+  return { label: status, color: me.ink2 };
 }
 
 function formatRelative(dateString: string): string {
@@ -228,8 +227,8 @@ export const HomeownerDocumentsScreen: React.FC = () => {
           <RefreshControl
             refreshing={isLoading}
             onRefresh={refetch}
-            tintColor={theme.colors.textInverse}
-            colors={[theme.colors.primary]}
+            tintColor={me.onBrand}
+            colors={[me.brand]}
             progressViewOffset={140}
           />
         }
@@ -237,7 +236,7 @@ export const HomeownerDocumentsScreen: React.FC = () => {
           <View>
             {/* Hero */}
             <LinearGradient
-              colors={gradients.heroGreen}
+              colors={[me.brand2, me.brand] as const}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={[styles.hero, { paddingTop: insets.top + 12 }]}
@@ -252,11 +251,7 @@ export const HomeownerDocumentsScreen: React.FC = () => {
                   accessibilityRole='button'
                   accessibilityLabel='Go back'
                 >
-                  <Ionicons
-                    name='arrow-back'
-                    size={20}
-                    color={theme.colors.textInverse}
-                  />
+                  <Ionicons name='arrow-back' size={20} color={me.onBrand} />
                 </TouchableOpacity>
                 <View style={{ flex: 1, marginLeft: 12 }}>
                   <Text style={styles.heroTitle}>Documents</Text>
@@ -284,19 +279,15 @@ export const HomeownerDocumentsScreen: React.FC = () => {
                     style={[
                       styles.statPill,
                       {
-                        backgroundColor: theme.colors.accentLight,
-                        borderColor: theme.colors.accent,
+                        backgroundColor: me.warnBg,
+                        borderColor: me.accent,
                       },
                     ]}
                   >
-                    <Text
-                      style={[styles.statValue, { color: theme.colors.accent }]}
-                    >
+                    <Text style={[styles.statValue, { color: me.accent }]}>
                       {needsAttention}
                     </Text>
-                    <Text
-                      style={[styles.statLabel, { color: theme.colors.accent }]}
-                    >
+                    <Text style={[styles.statLabel, { color: me.accent }]}>
                       Action
                     </Text>
                   </View>
@@ -312,27 +303,19 @@ export const HomeownerDocumentsScreen: React.FC = () => {
             {/* Search */}
             <View style={localStyles.searchWrap}>
               <View style={localStyles.searchBox}>
-                <Ionicons
-                  name='search'
-                  size={16}
-                  color={theme.colors.textTertiary}
-                />
+                <Ionicons name='search' size={16} color={me.ink3} />
                 <TextInput
                   value={search}
                   onChangeText={setSearch}
                   placeholder='Search by name, contractor, or job…'
-                  placeholderTextColor={theme.colors.textTertiary}
+                  placeholderTextColor={me.ink3}
                   style={localStyles.searchInput}
                   returnKeyType='search'
                   clearButtonMode='while-editing'
                 />
                 {search ? (
                   <TouchableOpacity onPress={() => setSearch('')}>
-                    <Ionicons
-                      name='close-circle'
-                      size={18}
-                      color={theme.colors.textTertiary}
-                    />
+                    <Ionicons name='close-circle' size={18} color={me.ink3} />
                   </TouchableOpacity>
                 ) : null}
               </View>
@@ -361,11 +344,7 @@ export const HomeownerDocumentsScreen: React.FC = () => {
                     <Ionicons
                       name={t.icon}
                       size={14}
-                      color={
-                        active
-                          ? theme.colors.textInverse
-                          : theme.colors.textSecondary
-                      }
+                      color={active ? me.onBrand : me.ink2}
                     />
                     <Text
                       style={[
@@ -408,11 +387,7 @@ export const HomeownerDocumentsScreen: React.FC = () => {
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <View style={styles.emptyIconWrap}>
-              <Ionicons
-                name='folder-open-outline'
-                size={32}
-                color={theme.colors.primary}
-              />
+              <Ionicons name='folder-open-outline' size={32} color={me.brand} />
             </View>
             <Text style={styles.emptyTitle}>
               {error
@@ -497,7 +472,7 @@ export const HomeownerDocumentsScreen: React.FC = () => {
                     <Ionicons
                       name='chevron-forward'
                       size={16}
-                      color={theme.colors.textTertiary}
+                      color={me.ink3}
                     />
                   </View>
                 </View>
@@ -520,23 +495,23 @@ const localStyles = {
     flexDirection: 'row' as const,
     alignItems: 'center' as const,
     gap: 8,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
   searchInput: {
     flex: 1,
     fontSize: 14,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     paddingVertical: 0,
   },
   amount: {
     fontSize: 15,
     fontWeight: '700' as const,
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
 };
 

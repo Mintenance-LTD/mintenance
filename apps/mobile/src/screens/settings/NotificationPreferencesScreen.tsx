@@ -15,12 +15,11 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
-  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { mobileApiClient } from '../../utils/mobileApiClient';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 import { logger } from '../../utils/logger';
 
 interface Prefs {
@@ -131,7 +130,7 @@ export const NotificationPreferencesScreen: React.FC = () => {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator color={theme.colors.primary} />
+        <ActivityIndicator color={me.brand} />
       </View>
     );
   }
@@ -157,8 +156,8 @@ export const NotificationPreferencesScreen: React.FC = () => {
               value={prefs[key]}
               onValueChange={(v) => setPrefs((p) => ({ ...p, [key]: v }))}
               trackColor={{
-                false: theme.colors.border,
-                true: theme.colors.primary,
+                false: me.line,
+                true: me.brand,
               }}
             />
           </View>
@@ -179,8 +178,8 @@ export const NotificationPreferencesScreen: React.FC = () => {
                 value={enabled}
                 onValueChange={() => toggleType(t.type)}
                 trackColor={{
-                  false: theme.colors.border,
-                  true: theme.colors.primary,
+                  false: me.line,
+                  true: me.brand,
                 }}
               />
             </View>
@@ -208,11 +207,7 @@ export const NotificationPreferencesScreen: React.FC = () => {
         onPress={save}
         disabled={saving}
       >
-        <Ionicons
-          name='checkmark-circle'
-          size={18}
-          color={theme.colors.surface}
-        />
+        <Ionicons name='checkmark-circle' size={18} color={me.surface} />
         <Text style={styles.saveButtonText}>
           {saving ? 'Saving…' : 'Save preferences'}
         </Text>
@@ -224,7 +219,7 @@ export const NotificationPreferencesScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   center: {
     flex: 1,
@@ -232,30 +227,22 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   section: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     marginHorizontal: 16,
     marginTop: 16,
     padding: 16,
     borderRadius: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: theme.colors.textPrimary,
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.04,
-        shadowRadius: 4,
-      },
-      android: { elevation: 1 },
-    }),
+    ...me.shadow.card,
   },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 4,
   },
   sectionDesc: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginBottom: 12,
   },
   row: {
@@ -264,17 +251,17 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   rowLabel: {
     fontSize: 14,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     flex: 1,
     marginRight: 12,
   },
   helpText: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginTop: 4,
   },
   saveButton: {
@@ -286,13 +273,13 @@ const styles = StyleSheet.create({
     marginTop: 20,
     paddingVertical: 14,
     borderRadius: 14,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
   },
   saveButtonDisabled: {
     opacity: 0.6,
   },
   saveButtonText: {
-    color: theme.colors.surface,
+    color: me.onBrand,
     fontSize: 15,
     fontWeight: '700',
   },

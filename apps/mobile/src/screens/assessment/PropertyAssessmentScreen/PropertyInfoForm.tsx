@@ -7,7 +7,7 @@ import {
   ScrollView,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 import {
   PropertyInfo,
   PROPERTY_TYPES,
@@ -67,7 +67,7 @@ export const PropertyInfoForm: React.FC<Props> = ({
         setPropertyInfo((prev) => ({ ...prev, bedrooms: t }))
       }
       placeholder='e.g. 3'
-      placeholderTextColor={theme.colors.textTertiary}
+      placeholderTextColor={me.ink3}
       keyboardType='number-pad'
     />
 
@@ -79,7 +79,7 @@ export const PropertyInfoForm: React.FC<Props> = ({
         setPropertyInfo((prev) => ({ ...prev, yearBuilt: t }))
       }
       placeholder='e.g. 1985'
-      placeholderTextColor={theme.colors.textTertiary}
+      placeholderTextColor={me.ink3}
       keyboardType='number-pad'
     />
 
@@ -91,7 +91,7 @@ export const PropertyInfoForm: React.FC<Props> = ({
         setPropertyInfo((prev) => ({ ...prev, description: t }))
       }
       placeholder='Describe the property and any known issues...'
-      placeholderTextColor={theme.colors.textTertiary}
+      placeholderTextColor={me.ink3}
       multiline
       textAlignVertical='top'
     />

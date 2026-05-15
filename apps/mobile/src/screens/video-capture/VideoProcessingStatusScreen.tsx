@@ -27,7 +27,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import VideoService from '../../services/VideoService';
 import { logger } from '@mintenance/shared';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 import { VideoDamageItem } from './VideoDamageItem';
 import {
   DamageData,
@@ -199,7 +199,7 @@ export const VideoProcessingStatusScreen: React.FC<Props> = ({
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Icon name='arrow-back' size={24} color={theme.colors.textPrimary} />
+          <Icon name='arrow-back' size={24} color={me.ink} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Video Processing</Text>
         <View style={styles.placeholder} />
@@ -218,10 +218,10 @@ export const VideoProcessingStatusScreen: React.FC<Props> = ({
               size={64}
               color={
                 currentStage.stage === 'completed'
-                  ? theme.colors.primary
+                  ? me.brand
                   : currentStage.stage === 'failed'
-                    ? theme.colors.error
-                    : theme.colors.textPrimary
+                    ? me.errFg
+                    : me.ink
               }
             />
           </Animated.View>
@@ -243,7 +243,7 @@ export const VideoProcessingStatusScreen: React.FC<Props> = ({
 
               <ActivityIndicator
                 size='small'
-                color={theme.colors.textPrimary}
+                color={me.ink}
                 style={styles.loader}
               />
             </>
@@ -295,11 +295,7 @@ export const VideoProcessingStatusScreen: React.FC<Props> = ({
             style={styles.resultsCard}
           >
             <View style={styles.resultsHeader}>
-              <Icon
-                name='assessment'
-                size={24}
-                color={theme.colors.textPrimary}
-              />
+              <Icon name='assessment' size={24} color={me.ink} />
               <Text style={styles.resultsTitle}>Assessment Results</Text>
             </View>
 
@@ -352,11 +348,7 @@ export const VideoProcessingStatusScreen: React.FC<Props> = ({
                   .length > 0 && (
                   <View style={styles.prioritySection}>
                     <View style={styles.priorityHeader}>
-                      <Icon
-                        name='warning'
-                        size={20}
-                        color={theme.colors.error}
-                      />
+                      <Icon name='warning' size={20} color={me.errFg} />
                       <Text style={styles.priorityTitle}>High Priority</Text>
                     </View>
                     {processingResults.aggregated_assessment.high_priority_damages.map(
@@ -365,7 +357,7 @@ export const VideoProcessingStatusScreen: React.FC<Props> = ({
                           <Icon
                             name='chevron-right'
                             size={16}
-                            color={theme.colors.error}
+                            color={me.errFg}
                           />
                           <Text style={styles.priorityText}>{damage}</Text>
                         </View>
@@ -431,11 +423,7 @@ export const VideoProcessingStatusScreen: React.FC<Props> = ({
         {/* Tips Section */}
         {!isComplete && !error && (
           <View style={styles.tipsCard}>
-            <Icon
-              name='info-outline'
-              size={20}
-              color={theme.colors.textSecondary}
-            />
+            <Icon name='info-outline' size={20} color={me.ink2} />
             <Text style={styles.tipsText}>
               AI processing typically takes 1-2 minutes for a 60-second video.
               You can leave this screen and come back later to check results.

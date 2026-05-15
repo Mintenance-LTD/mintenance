@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 const LIFECYCLE_STEPS = ['posted', 'assigned', 'in_progress', 'completed'];
 
@@ -10,15 +10,23 @@ export const ProgressDots: React.FC<{ status: string }> = ({ status }) => {
     <View style={styles.progressDots}>
       {LIFECYCLE_STEPS.map((step, i) => (
         <React.Fragment key={step}>
-          <View style={[
-            styles.progressDot,
-            i <= currentIndex ? styles.progressDotActive : styles.progressDotInactive,
-          ]} />
+          <View
+            style={[
+              styles.progressDot,
+              i <= currentIndex
+                ? styles.progressDotActive
+                : styles.progressDotInactive,
+            ]}
+          />
           {i < LIFECYCLE_STEPS.length - 1 && (
-            <View style={[
-              styles.progressLine,
-              i < currentIndex ? styles.progressLineActive : styles.progressLineInactive,
-            ]} />
+            <View
+              style={[
+                styles.progressLine,
+                i < currentIndex
+                  ? styles.progressLineActive
+                  : styles.progressLineInactive,
+              ]}
+            />
           )}
         </React.Fragment>
       ))}
@@ -38,19 +46,19 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
   progressDotActive: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
   },
   progressDotInactive: {
-    backgroundColor: theme.colors.border,
+    backgroundColor: me.line,
   },
   progressLine: {
     flex: 1,
     height: 2,
   },
   progressLineActive: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
   },
   progressLineInactive: {
-    backgroundColor: theme.colors.border,
+    backgroundColor: me.line,
   },
 });

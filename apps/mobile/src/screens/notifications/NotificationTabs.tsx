@@ -12,7 +12,7 @@ import {
   StyleSheet,
   ScrollView,
 } from 'react-native';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 import { FILTER_TABS, FilterTab } from './notificationConfig';
 
 interface NotificationTabsProps {
@@ -66,9 +66,9 @@ export const NotificationTabs: React.FC<NotificationTabsProps> = ({
 
 const styles = StyleSheet.create({
   tabsWrapper: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
     flexShrink: 0,
     minHeight: 52,
   },
@@ -84,10 +84,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 9,
     borderRadius: 20,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   tabActive: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
   },
   tabInner: {
     flexDirection: 'row',
@@ -97,14 +97,14 @@ const styles = StyleSheet.create({
   tabText: {
     fontSize: 13,
     fontWeight: '500',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   tabTextActive: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontWeight: '600',
   },
   countBadge: {
-    backgroundColor: theme.colors.error,
+    backgroundColor: me.errFg,
     borderRadius: 10,
     minWidth: 20,
     height: 20,
@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   countBadgeText: {
-    color: '#fff',
+    color: me.onBrand,
     fontSize: 11,
     fontWeight: '700',
     textAlign: 'center',

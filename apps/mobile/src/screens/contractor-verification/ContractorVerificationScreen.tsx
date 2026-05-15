@@ -59,7 +59,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { sanitize } from '@mintenance/security';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import { logger } from '../../utils/logger';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 interface BusinessProfileBundle {
   profile: {
@@ -229,10 +229,7 @@ export const ContractorVerificationScreen: React.FC<
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar
-        barStyle='dark-content'
-        backgroundColor={theme.colors.backgroundSecondary}
-      />
+      <StatusBar barStyle='dark-content' backgroundColor={me.bg2} />
       <View style={styles.header}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
@@ -240,11 +237,7 @@ export const ContractorVerificationScreen: React.FC<
           accessibilityRole='button'
           accessibilityLabel='Go back'
         >
-          <Ionicons
-            name='arrow-back'
-            size={24}
-            color={theme.colors.textPrimary}
-          />
+          <Ionicons name='arrow-back' size={24} color={me.ink} />
         </TouchableOpacity>
         <Text style={styles.headerTitle} accessibilityRole='header'>
           Business Verification
@@ -268,11 +261,7 @@ export const ContractorVerificationScreen: React.FC<
           accessibilityLabel='Open Business Profile to edit company details'
         >
           <View style={styles.infoBannerIconWrap}>
-            <Ionicons
-              name='shield-checkmark'
-              size={24}
-              color={theme.colors.primary}
-            />
+            <Ionicons name='shield-checkmark' size={24} color={me.brand} />
           </View>
           <View style={styles.infoBannerContent}>
             <Text style={styles.infoBannerTitle}>Why Verify?</Text>
@@ -296,7 +285,7 @@ export const ContractorVerificationScreen: React.FC<
                 setFormData({ ...formData, companyName: text })
               }
               placeholder='e.g., ABC Plumbing Ltd'
-              placeholderTextColor={theme.colors.textTertiary}
+              placeholderTextColor={me.ink3}
             />
           </View>
 
@@ -311,7 +300,7 @@ export const ContractorVerificationScreen: React.FC<
                 setFormData({ ...formData, businessAddress: text })
               }
               placeholder='123 Main Street, London, UK'
-              placeholderTextColor={theme.colors.textTertiary}
+              placeholderTextColor={me.ink3}
               multiline
               numberOfLines={3}
             />
@@ -332,7 +321,7 @@ export const ContractorVerificationScreen: React.FC<
                 setFormData({ ...formData, licenseNumber: text })
               }
               placeholder='e.g., LIC-12345-UK'
-              placeholderTextColor={theme.colors.textTertiary}
+              placeholderTextColor={me.ink3}
             />
           </View>
 
@@ -379,9 +368,7 @@ export const ContractorVerificationScreen: React.FC<
             >
               <Text
                 style={{
-                  color: formData.licenseExpiry
-                    ? theme.colors.textPrimary
-                    : theme.colors.textTertiary,
+                  color: formData.licenseExpiry ? me.ink : me.ink3,
                   fontSize: 15,
                 }}
               >
@@ -397,10 +384,7 @@ export const ContractorVerificationScreen: React.FC<
                 accessibilityLabel='Clear license expiry date'
               >
                 <Text
-                  style={[
-                    styles.helpText,
-                    { color: theme.colors.primary, marginTop: 6 },
-                  ]}
+                  style={[styles.helpText, { color: me.brand, marginTop: 6 }]}
                 >
                   Clear date
                 </Text>
@@ -424,7 +408,7 @@ export const ContractorVerificationScreen: React.FC<
                   >
                     <Text
                       style={{
-                        color: theme.colors.primary,
+                        color: me.brand,
                         fontWeight: '600',
                       }}
                     >
@@ -441,11 +425,7 @@ export const ContractorVerificationScreen: React.FC<
           <Text style={styles.benefitsTitle}>Verification Benefits</Text>
           {VERIFICATION_BENEFITS.map((benefit, index) => (
             <View key={index} style={styles.benefitRow}>
-              <Ionicons
-                name='checkmark-circle'
-                size={18}
-                color={theme.colors.primary}
-              />
+              <Ionicons name='checkmark-circle' size={18} color={me.brand} />
               <Text style={styles.benefitItem}>{benefit}</Text>
             </View>
           ))}
@@ -462,7 +442,7 @@ export const ContractorVerificationScreen: React.FC<
           accessibilityState={{ disabled: loading }}
         >
           {loading ? (
-            <ActivityIndicator color={theme.colors.textInverse} />
+            <ActivityIndicator color={me.onBrand} />
           ) : (
             <Text style={styles.submitButtonText}>Submit for Verification</Text>
           )}

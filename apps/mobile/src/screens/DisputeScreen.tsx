@@ -12,7 +12,6 @@ import {
   Alert,
   Image,
   FlatList,
-  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,7 +23,7 @@ import { ScreenHeader, LoadingSpinner } from '../components/shared';
 import { Banner } from '../components/ui/Banner';
 import { mobileApiClient as apiClient } from '../utils/mobileApiClient';
 import { logger } from '../utils/logger';
-import { theme } from '../theme';
+import { me } from '../design-system/mint-editorial';
 
 interface DisputeScreenParams {
   jobId: string;
@@ -41,22 +40,22 @@ const DISPUTE_REASONS = [
     id: 'quality',
     label: 'Work Quality',
     icon: 'construct-outline' as const,
-    iconColor: theme.colors.accent,
-    iconBg: theme.colors.accentLight,
+    iconColor: me.accent,
+    iconBg: me.warnBg,
   },
   {
     id: 'incomplete',
     label: 'Incomplete Work',
     icon: 'alert-circle-outline' as const,
-    iconColor: theme.colors.error,
-    iconBg: '#FEE2E2',
+    iconColor: me.errFg,
+    iconBg: me.errBg,
   },
   {
     id: 'damage',
     label: 'Property Damage',
     icon: 'warning-outline' as const,
-    iconColor: theme.colors.error,
-    iconBg: '#FEE2E2',
+    iconColor: me.errFg,
+    iconBg: me.errBg,
   },
   {
     id: 'timeline',
@@ -76,15 +75,15 @@ const DISPUTE_REASONS = [
     id: 'pricing',
     label: 'Pricing Dispute',
     icon: 'cash-outline' as const,
-    iconColor: theme.colors.primary,
-    iconBg: theme.colors.primaryLight,
+    iconColor: me.brand,
+    iconBg: me.brandSoft,
   },
   {
     id: 'other',
     label: 'Other',
     icon: 'ellipsis-horizontal-outline' as const,
-    iconColor: theme.colors.textSecondary,
-    iconBg: theme.colors.backgroundSecondary,
+    iconColor: me.ink2,
+    iconBg: me.bg2,
   },
 ];
 
@@ -226,7 +225,7 @@ export const DisputeScreen: React.FC<Props> = ({ route, navigation }) => {
           multiline
           numberOfLines={6}
           placeholder='Please describe the issue in detail. Include any relevant dates, communications, or evidence...'
-          placeholderTextColor={theme.colors.textTertiary}
+          placeholderTextColor={me.ink3}
           value={description}
           onChangeText={setDescription}
           textAlignVertical='top'
@@ -253,11 +252,7 @@ export const DisputeScreen: React.FC<Props> = ({ route, navigation }) => {
                   accessibilityRole='button'
                   accessibilityLabel='Remove attached photo'
                 >
-                  <Ionicons
-                    name='close-circle'
-                    size={20}
-                    color={theme.colors.error}
-                  />
+                  <Ionicons name='close-circle' size={20} color={me.errFg} />
                 </TouchableOpacity>
               </View>
             )}
@@ -274,11 +269,7 @@ export const DisputeScreen: React.FC<Props> = ({ route, navigation }) => {
               : `${attachments.length} of 6 photos added, add more`
           }
         >
-          <Ionicons
-            name='camera-outline'
-            size={20}
-            color={theme.colors.textSecondary}
-          />
+          <Ionicons name='camera-outline' size={20} color={me.ink2} />
           <Text style={styles.evidenceButtonText}>
             {attachments.length === 0
               ? 'Add Photos'
@@ -301,11 +292,7 @@ export const DisputeScreen: React.FC<Props> = ({ route, navigation }) => {
             <LoadingSpinner />
           ) : (
             <>
-              <Ionicons
-                name='shield-outline'
-                size={20}
-                color={theme.colors.textInverse}
-              />
+              <Ionicons name='shield-outline' size={20} color={me.onBrand} />
               <Text style={styles.submitButtonText}>Submit Dispute</Text>
             </>
           )}
@@ -324,7 +311,7 @@ export const DisputeScreen: React.FC<Props> = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   scrollContent: {
     padding: 16,
@@ -332,20 +319,12 @@ const styles = StyleSheet.create({
   jobCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     padding: 14,
     marginBottom: 20,
     gap: 12,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   jobIconWrap: {
     width: 40,
@@ -359,12 +338,12 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   sectionTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 12,
   },
   reasonGrid: {
@@ -375,22 +354,14 @@ const styles = StyleSheet.create({
   },
   reasonCard: {
     width: '47%',
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     padding: 14,
     alignItems: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   reasonCardSelected: {
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
   },
   reasonIconWrap: {
     width: 44,
@@ -402,35 +373,27 @@ const styles = StyleSheet.create({
   },
   reasonLabel: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     fontWeight: '500',
     textAlign: 'center',
   },
   reasonLabelSelected: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontWeight: '600',
   },
   descriptionInput: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     padding: 16,
     fontSize: 15,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     minHeight: 140,
     marginBottom: 4,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   charCount: {
     fontSize: 12,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     textAlign: 'right',
     marginBottom: 20,
   },
@@ -438,7 +401,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.colors.error,
+    backgroundColor: me.errFg,
     paddingVertical: 16,
     borderRadius: 28,
     marginBottom: 16,
@@ -448,13 +411,13 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   submitButtonText: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontSize: 16,
     fontWeight: '700',
   },
   disclaimer: {
     fontSize: 12,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     lineHeight: 18,
     textAlign: 'center',
     paddingBottom: 16,
@@ -465,7 +428,7 @@ const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 12,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   thumbRemove: { position: 'absolute', top: -6, right: -6 },
   evidenceButton: {
@@ -476,14 +439,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 16,
     borderWidth: 1.5,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
     borderStyle: 'dashed',
     justifyContent: 'center',
     marginBottom: 20,
   },
   evidenceButtonText: {
     fontSize: 15,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     fontWeight: '600',
   },
 });

@@ -33,7 +33,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { MeetingService } from '../services/MeetingService';
 import type { ContractorLocation } from '../services/meeting/types';
 import { logger } from '../utils/logger';
-import { theme } from '../theme';
+import { me } from '../design-system/mint-editorial';
 
 import { calculateDistanceKm } from './meeting-details/utils';
 import {
@@ -172,7 +172,7 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   if (loading || !meeting) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size='large' color={theme.colors.textPrimary} />
+        <ActivityIndicator size='large' color={me.ink} />
         <Text style={styles.loadingText}>Loading meeting details...</Text>
       </View>
     );
@@ -196,11 +196,7 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           style={styles.backButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons
-            name='arrow-back'
-            size={24}
-            color={theme.colors.textPrimary}
-          />
+          <Ionicons name='arrow-back' size={24} color={me.ink} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Meeting Details</Text>
       </View>

@@ -40,7 +40,7 @@ import { useNavigation } from '@react-navigation/native';
 import { supabase } from '../../config/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { logger } from '../../utils/logger';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 export const SelfieCaptureScreen: React.FC = () => {
   const navigation = useNavigation();
@@ -121,7 +121,7 @@ export const SelfieCaptureScreen: React.FC = () => {
   if (!permission) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator color={theme.colors.primary} />
+        <ActivityIndicator color={me.brand} />
       </View>
     );
   }
@@ -132,7 +132,7 @@ export const SelfieCaptureScreen: React.FC = () => {
           <Ionicons
             name='camera-outline'
             size={48}
-            color={theme.colors.primary}
+            color={me.brand}
             style={{ marginBottom: 16 }}
           />
           <Text style={styles.permissionTitle}>Camera access needed</Text>
@@ -174,7 +174,7 @@ export const SelfieCaptureScreen: React.FC = () => {
             disabled={uploading}
           >
             {uploading ? (
-              <ActivityIndicator color={theme.colors.textInverse} />
+              <ActivityIndicator color={me.onBrand} />
             ) : (
               <Text style={styles.primaryButtonText}>Use Photo</Text>
             )}
@@ -228,11 +228,11 @@ export default SelfieCaptureScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
   },
   centered: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -253,14 +253,14 @@ const styles = StyleSheet.create({
     height: 340,
     borderRadius: 170,
     borderWidth: 4,
-    borderColor: theme.colors.textInverse,
+    borderColor: me.onBrand,
     backgroundColor: 'transparent',
     opacity: 0.85,
   },
   overlayText: {
     position: 'absolute',
     bottom: 48,
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontSize: 14,
     fontWeight: '600',
     textShadowColor: 'rgba(0,0,0,0.4)',
@@ -276,21 +276,21 @@ const styles = StyleSheet.create({
     width: '100%',
     aspectRatio: 3 / 4,
     borderRadius: 24,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   footer: {
     paddingHorizontal: 24,
     paddingBottom: Platform.OS === 'ios' ? 24 : 20,
     paddingTop: 16,
     alignItems: 'center',
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
   },
   captureButton: {
     width: 80,
     height: 80,
     borderRadius: 40,
     borderWidth: 4,
-    borderColor: theme.colors.textInverse,
+    borderColor: me.onBrand,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
@@ -299,19 +299,19 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: theme.colors.textInverse,
+    backgroundColor: me.onBrand,
   },
   cancelLink: {
     paddingVertical: 12,
     paddingHorizontal: 20,
   },
   cancelLinkText: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontSize: 15,
     fontWeight: '600',
   },
   primaryButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
     paddingVertical: 16,
     paddingHorizontal: 32,
     borderRadius: 28,
@@ -324,7 +324,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   primaryButtonText: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontSize: 16,
     fontWeight: '700',
   },
@@ -333,7 +333,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
   },
   secondaryButtonText: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontSize: 15,
     fontWeight: '600',
   },
@@ -342,31 +342,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 32,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   permissionTitle: {
     fontSize: 22,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 8,
     textAlign: 'center',
   },
   permissionBody: {
     fontSize: 15,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 24,
   },
   permissionButton: {
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
     paddingVertical: 14,
     paddingHorizontal: 32,
     borderRadius: 28,
     marginBottom: 12,
   },
   permissionButtonText: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontSize: 16,
     fontWeight: '700',
   },

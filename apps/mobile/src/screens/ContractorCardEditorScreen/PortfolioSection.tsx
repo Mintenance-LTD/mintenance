@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, Image, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ContractorProfile } from '@mintenance/types';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 import { styles } from './styles';
 
 interface LogoSectionProps {
@@ -109,7 +109,7 @@ export const PortfolioSection: React.FC<PortfolioSectionProps> = ({
       accessibilityRole='button'
       accessibilityLabel='Add portfolio images'
     >
-      <Ionicons name='add' size={22} color={theme.colors.textSecondary} />
+      <Ionicons name='add' size={22} color={me.ink2} />
       <Text style={styles.addPortfolioText}>Add Portfolio Images</Text>
     </TouchableOpacity>
 
@@ -159,7 +159,7 @@ export const ServiceAreaSection: React.FC<ServiceAreaSectionProps> = ({
           }))
         }
         placeholder='25'
-        placeholderTextColor={theme.colors.textTertiary}
+        placeholderTextColor={me.ink3}
         keyboardType='numeric'
       />
     </View>

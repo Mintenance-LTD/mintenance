@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, TextInput, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 import { styles } from '../theme/styles';
 
 /**
@@ -26,15 +26,11 @@ export function SearchBar({
   return (
     <View style={styles.searchContainer}>
       <View style={styles.searchBar}>
-        <Ionicons
-          name='search-outline'
-          size={20}
-          color={theme.colors.textTertiary}
-        />
+        <Ionicons name='search-outline' size={20} color={me.ink3} />
         <TextInput
           style={styles.searchInput}
           placeholder='Search jobs, contractors, services...'
-          placeholderTextColor={theme.colors.textTertiary}
+          placeholderTextColor={me.ink3}
           value={query}
           onChangeText={onChangeQuery}
           onSubmitEditing={onSubmit}
@@ -48,11 +44,7 @@ export function SearchBar({
             accessibilityRole='button'
             accessibilityLabel='Clear search'
           >
-            <Ionicons
-              name='close-circle'
-              size={20}
-              color={theme.colors.textTertiary}
-            />
+            <Ionicons name='close-circle' size={20} color={me.ink3} />
           </TouchableOpacity>
         )}
       </View>
@@ -68,9 +60,7 @@ export function SearchBar({
         <Ionicons
           name='options-outline'
           size={20}
-          color={
-            showFilters ? theme.colors.textInverse : theme.colors.textSecondary
-          }
+          color={showFilters ? me.onBrand : me.ink2}
         />
       </TouchableOpacity>
     </View>

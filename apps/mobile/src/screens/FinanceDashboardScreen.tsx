@@ -20,7 +20,7 @@ import { useFinanceDashboard } from '../hooks/useFinanceDashboard';
 import { useI18n } from '../hooks/useI18n';
 import { SkeletonDashboard } from '../components/ui/LoadingStates';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { theme, gradients } from '../theme';
+import { me } from '../design-system/mint-editorial';
 
 interface FinanceDashboardScreenProps {
   navigation: NativeStackNavigationProp<ProfileStackParamList>;
@@ -81,14 +81,14 @@ const FinanceDashboardScreen: React.FC<FinanceDashboardScreenProps> = ({
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            tintColor='#FFFFFF'
-            colors={[theme.colors.primary]}
+            tintColor={me.onBrand}
+            colors={[me.brand]}
           />
         }
       >
         {/* Full-Bleed Gradient Hero — extends to very top */}
         <LinearGradient
-          colors={gradients.heroGreen}
+          colors={[me.brand2, me.brand]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.hero}
@@ -105,11 +105,7 @@ const FinanceDashboardScreen: React.FC<FinanceDashboardScreenProps> = ({
               onPress={() => navigation.goBack()}
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <Ionicons
-                name='arrow-back'
-                size={24}
-                color={theme.colors.textInverse}
-              />
+              <Ionicons name='arrow-back' size={24} color={me.onBrand} />
             </TouchableOpacity>
             <Text style={styles.heroNavTitle}>Finance Dashboard</Text>
             <TouchableOpacity
@@ -151,17 +147,8 @@ const FinanceDashboardScreen: React.FC<FinanceDashboardScreenProps> = ({
         {/* KPI Status Cards */}
         <View style={styles.kpiRow}>
           <View style={styles.kpiCard}>
-            <View
-              style={[
-                styles.kpiIcon,
-                { backgroundColor: theme.colors.primaryLight },
-              ]}
-            >
-              <Ionicons
-                name='cash-outline'
-                size={22}
-                color={theme.colors.primary}
-              />
+            <View style={[styles.kpiIcon, { backgroundColor: me.brandSoft }]}>
+              <Ionicons name='cash-outline' size={22} color={me.brand} />
             </View>
             <View>
               <Text style={styles.kpiLabel}>Revenue</Text>
@@ -183,9 +170,7 @@ const FinanceDashboardScreen: React.FC<FinanceDashboardScreenProps> = ({
                     }
                     size={12}
                     color={
-                      financialData.quarterly_growth > 0
-                        ? theme.colors.primary
-                        : theme.colors.error
+                      financialData.quarterly_growth > 0 ? me.brand : me.errFg
                     }
                   />
                   <Text
@@ -194,8 +179,8 @@ const FinanceDashboardScreen: React.FC<FinanceDashboardScreenProps> = ({
                       fontWeight: '600',
                       color:
                         financialData.quarterly_growth > 0
-                          ? theme.colors.primary
-                          : theme.colors.error,
+                          ? me.brand
+                          : me.errFg,
                     }}
                   >
                     {financialData.quarterly_growth > 0 ? '+' : ''}
@@ -206,17 +191,8 @@ const FinanceDashboardScreen: React.FC<FinanceDashboardScreenProps> = ({
             </View>
           </View>
           <View style={styles.kpiCard}>
-            <View
-              style={[
-                styles.kpiIcon,
-                { backgroundColor: theme.colors.accentLight },
-              ]}
-            >
-              <Ionicons
-                name='time-outline'
-                size={22}
-                color={theme.colors.accent}
-              />
+            <View style={[styles.kpiIcon, { backgroundColor: me.warnBg }]}>
+              <Ionicons name='time-outline' size={22} color={me.accent} />
             </View>
             <View>
               <Text style={styles.kpiLabel}>Outstanding</Text>
@@ -226,16 +202,16 @@ const FinanceDashboardScreen: React.FC<FinanceDashboardScreenProps> = ({
             </View>
           </View>
           <View style={styles.kpiCard}>
-            <View style={[styles.kpiIcon, { backgroundColor: '#FEE2E2' }]}>
+            <View style={[styles.kpiIcon, { backgroundColor: me.errBg }]}>
               <Ionicons
                 name='alert-circle-outline'
                 size={22}
-                color={theme.colors.error}
+                color={me.errFg}
               />
             </View>
             <View>
               <Text style={styles.kpiLabel}>Overdue</Text>
-              <Text style={[styles.kpiValue, { color: theme.colors.error }]}>
+              <Text style={[styles.kpiValue, { color: me.errFg }]}>
                 {fmt(financialData?.overdue_amount ?? 0)}
               </Text>
             </View>
@@ -252,11 +228,7 @@ const FinanceDashboardScreen: React.FC<FinanceDashboardScreenProps> = ({
           {error ? (
             <View style={styles.errorCard}>
               <View style={styles.errorIconWrap}>
-                <Ionicons
-                  name='alert-circle'
-                  size={32}
-                  color={theme.colors.error}
-                />
+                <Ionicons name='alert-circle' size={32} color={me.errFg} />
               </View>
               <Text style={styles.errorTitle}>Unable to load finances</Text>
               <Text style={styles.errorMessage}>{error}</Text>
@@ -291,7 +263,7 @@ const FinanceDashboardScreen: React.FC<FinanceDashboardScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   scroll: {
     flex: 1,
@@ -346,12 +318,12 @@ const styles = StyleSheet.create({
   heroNavTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     letterSpacing: -0.3,
   },
   heroLabel: {
     fontSize: 10,
-    color: theme.colors.primaryLight,
+    color: me.brandSoft,
     fontWeight: '700',
     letterSpacing: 2,
     textTransform: 'uppercase',
@@ -362,7 +334,7 @@ const styles = StyleSheet.create({
   heroAmount: {
     fontSize: 56,
     fontWeight: '800',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     letterSpacing: -2,
     marginBottom: 28,
     zIndex: 1,
@@ -382,7 +354,7 @@ const styles = StyleSheet.create({
   heroStatValue: {
     fontSize: 24,
     fontWeight: '600',
-    color: theme.colors.primaryLight,
+    color: me.brandSoft,
     letterSpacing: -0.3,
   },
   heroStatLabel: {
@@ -405,12 +377,12 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   kpiCard: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 24,
     padding: 18,
     borderLeftWidth: 0,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 16,
@@ -426,13 +398,13 @@ const styles = StyleSheet.create({
   kpiValue: {
     fontSize: 22,
     fontWeight: '800',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     letterSpacing: -0.5,
     marginBottom: 1,
   },
   kpiLabel: {
     fontSize: 10,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.8,
@@ -445,13 +417,13 @@ const styles = StyleSheet.create({
 
   // Error
   errorCard: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 24,
     padding: 32,
     alignItems: 'center',
     marginTop: 16,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
   errorIconWrap: {
     width: 56,
@@ -465,24 +437,24 @@ const styles = StyleSheet.create({
   errorTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 6,
   },
   errorMessage: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     textAlign: 'center',
     marginBottom: 16,
     lineHeight: 20,
   },
   retryButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
     borderRadius: 12,
     paddingHorizontal: 24,
     paddingVertical: 12,
   },
   retryText: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontSize: 15,
     fontWeight: '600',
   },

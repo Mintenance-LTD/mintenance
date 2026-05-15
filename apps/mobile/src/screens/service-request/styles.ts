@@ -1,10 +1,10 @@
 import { StyleSheet } from 'react-native';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
   },
   header: {
     flexDirection: 'row',
@@ -12,22 +12,22 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingBottom: 12,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   backButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   placeholder: {
     width: 40,
@@ -41,17 +41,17 @@ export const styles = StyleSheet.create({
   section: {
     padding: 20,
     borderBottomWidth: 8,
-    borderBottomColor: theme.colors.backgroundSecondary,
+    borderBottomColor: me.bg2,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 8,
   },
   sectionSubtitle: {
     fontSize: 15,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginBottom: 16,
   },
   categoriesGrid: {
@@ -65,7 +65,7 @@ export const styles = StyleSheet.create({
     padding: 20,
     alignItems: 'center',
     marginBottom: 12,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   categoryIcon: {
     width: 60,
@@ -74,12 +74,12 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
-    backgroundColor: theme.colors.border,
+    backgroundColor: me.line,
   },
   categoryName: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     textAlign: 'center',
   },
   subcategoriesContainer: {
@@ -90,32 +90,32 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     marginRight: 8,
     marginBottom: 8,
   },
   subcategoryText: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   subcategoryTextSelected: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontWeight: '600',
   },
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 8,
     marginTop: 16,
   },
   input: {
     height: 50,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 12,
     paddingHorizontal: 14,
     fontSize: 15,
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   textArea: {
     height: 120,
@@ -127,7 +127,7 @@ export const styles = StyleSheet.create({
   priorityCard: {
     padding: 16,
     borderRadius: 16,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     marginBottom: 8,
   },
   priorityName: {
@@ -159,7 +159,7 @@ export const styles = StyleSheet.create({
     width: '47%',
     aspectRatio: 4 / 3,
     borderRadius: 16,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -167,32 +167,32 @@ export const styles = StyleSheet.create({
     position: 'absolute',
     top: 4,
     right: 4,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 12,
   },
   addPhotoText: {
     fontSize: 12,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     marginTop: 4,
   },
   footer: {
     padding: 20,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: theme.colors.border,
+    borderTopColor: me.line,
   },
   submitButton: {
     height: 52,
     borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
   },
   submitButtonDisabled: {
     opacity: 0.5,
   },
   submitButtonText: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontSize: 16,
     fontWeight: '700',
   },
@@ -200,7 +200,7 @@ export const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     marginBottom: 8,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   propertyOptionSelected: {
     backgroundColor: '#DBEAFE',
@@ -216,21 +216,21 @@ export const styles = StyleSheet.create({
   propertyAddress: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   propertyAddressSelected: {
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   propertyLocation: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginTop: 2,
   },
   addPropertyInline: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 16,
     gap: 8,
   },
@@ -238,6 +238,6 @@ export const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
 });

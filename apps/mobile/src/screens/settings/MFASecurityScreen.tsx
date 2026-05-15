@@ -28,7 +28,7 @@ import { ScreenHeader } from '../../components/shared';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import { supabase } from '../../config/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 interface MFAStatus {
   enabled: boolean;
@@ -112,10 +112,7 @@ export const MFASecurityScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar
-        barStyle='dark-content'
-        backgroundColor={theme.colors.backgroundSecondary}
-      />
+      <StatusBar barStyle='dark-content' backgroundColor={me.bg2} />
       <ScreenHeader
         title='MFA Security'
         showBack
@@ -128,7 +125,7 @@ export const MFASecurityScreen: React.FC = () => {
         {isLoading ? (
           <ActivityIndicator
             size='large'
-            color={theme.colors.textPrimary}
+            color={me.ink}
             style={{ marginTop: 40 }}
           />
         ) : (
@@ -160,10 +157,10 @@ export const MFASecurityScreen: React.FC = () => {
                   onValueChange={handleToggle}
                   disabled={isMutating}
                   trackColor={{
-                    false: theme.colors.border,
-                    true: theme.colors.textPrimary,
+                    false: me.line,
+                    true: me.ink,
                   }}
-                  thumbColor={theme.colors.surface}
+                  thumbColor={me.surface}
                 />
               </View>
             </View>
@@ -198,15 +195,12 @@ export const MFASecurityScreen: React.FC = () => {
                 >
                   <View style={styles.rowLeft}>
                     <View
-                      style={[
-                        styles.iconChip,
-                        { backgroundColor: theme.colors.accentLight },
-                      ]}
+                      style={[styles.iconChip, { backgroundColor: me.warnBg }]}
                     >
                       <Ionicons
                         name='key-outline'
                         size={18}
-                        color={theme.colors.accent}
+                        color={me.accent}
                       />
                     </View>
                     <Text style={styles.label}>Recovery Codes</Text>
@@ -214,7 +208,7 @@ export const MFASecurityScreen: React.FC = () => {
                   <Ionicons
                     name={showRecoveryCodes ? 'chevron-up' : 'chevron-down'}
                     size={16}
-                    color={theme.colors.textTertiary}
+                    color={me.ink3}
                   />
                 </TouchableOpacity>
                 {showRecoveryCodes && enrollData?.recoveryCodes && (
@@ -245,23 +239,15 @@ export const MFASecurityScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
+  container: { flex: 1, backgroundColor: me.bg2 },
   scrollView: { flex: 1 },
   content: { padding: 16, paddingBottom: 40 },
   card: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     marginBottom: 16,
     overflow: 'hidden',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   row: {
     flexDirection: 'row',
@@ -277,25 +263,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  label: { fontSize: 15, fontWeight: '500', color: theme.colors.textPrimary },
-  sublabel: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 2 },
+  label: { fontSize: 15, fontWeight: '500', color: me.ink },
+  sublabel: { fontSize: 12, color: me.ink2, marginTop: 2 },
   sectionTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     paddingHorizontal: 14,
     paddingTop: 14,
     paddingBottom: 8,
   },
   bodyText: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     lineHeight: 20,
     paddingHorizontal: 14,
     marginBottom: 6,
   },
   secretBox: {
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 8,
     marginHorizontal: 14,
     marginVertical: 8,
@@ -304,7 +290,7 @@ const styles = StyleSheet.create({
   secretText: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     textAlign: 'center',
     letterSpacing: 1,
   },
@@ -312,18 +298,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingBottom: 14,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: theme.colors.border,
+    borderTopColor: me.line,
   },
-  warningText: { fontSize: 12, color: theme.colors.accent, marginVertical: 8 },
+  warningText: { fontSize: 12, color: me.accent, marginVertical: 8 },
   codeText: {
     fontSize: 13,
     fontFamily: Platform.select({ ios: 'Menlo', android: 'monospace' }),
-    color: theme.colors.textPrimary,
+    color: me.ink,
     paddingVertical: 3,
   },
   footnote: {
     fontSize: 12,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     lineHeight: 18,
     paddingHorizontal: 4,
     marginTop: 8,

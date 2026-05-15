@@ -13,7 +13,7 @@ import { ResponsiveContainer } from '../../components/responsive';
 import { HomeownerDashboard } from './HomeownerDashboard';
 import { ContractorDashboard } from './ContractorDashboard';
 import { HomeScreenLoading } from './HomeScreenLoading';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 interface HomeScreenProps {
   // Navigation and other props can be passed down if needed
@@ -60,10 +60,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   container: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
 });

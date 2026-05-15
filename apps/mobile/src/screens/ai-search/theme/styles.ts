@@ -1,5 +1,5 @@
-import { Platform, StyleSheet } from 'react-native';
-import { theme } from '../../../theme';
+import { StyleSheet } from 'react-native';
+import { me } from '../../../design-system/mint-editorial';
 
 /**
  * StyleSheet for AISearchScreen + sub-components.
@@ -8,23 +8,23 @@ import { theme } from '../../../theme';
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
     gap: 10,
   },
   searchBar: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -32,26 +32,26 @@ export const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 15,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginLeft: 8,
   },
   filterButton: {
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
   },
   filterButtonActive: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
   },
   filtersContainer: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   filterRow: {
     flexDirection: 'row',
@@ -62,12 +62,12 @@ export const styles = StyleSheet.create({
   filterLabel: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   filterValue: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 10,
@@ -75,7 +75,7 @@ export const styles = StyleSheet.create({
   },
   filterValueText: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   clearFiltersButton: {
     alignSelf: 'flex-end',
@@ -83,7 +83,7 @@ export const styles = StyleSheet.create({
   },
   clearFiltersText: {
     fontSize: 13,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     fontWeight: '600',
   },
   loadingContainer: {
@@ -93,7 +93,7 @@ export const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 15,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginTop: 12,
   },
   suggestionsContainer: {
@@ -104,7 +104,7 @@ export const styles = StyleSheet.create({
   suggestionsTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 12,
@@ -114,42 +114,34 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
     gap: 12,
   },
   suggestionIconWrap: {
     width: 32,
     height: 32,
     borderRadius: 10,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
   },
   suggestionText: {
     flex: 1,
     fontSize: 15,
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   resultsContainer: {
     padding: 16,
   },
   resultItem: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 10,
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 14,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   resultIconWrap: {
     width: 44,
@@ -164,12 +156,12 @@ export const styles = StyleSheet.create({
   resultTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 4,
   },
   resultDescription: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginBottom: 8,
     lineHeight: 18,
   },
@@ -185,7 +177,7 @@ export const styles = StyleSheet.create({
   },
   metadataText: {
     fontSize: 12,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
   },
   relevanceScore: {
     alignItems: 'center',
@@ -208,7 +200,7 @@ export const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 14,
   },
   trendingContainer: {
@@ -217,7 +209,7 @@ export const styles = StyleSheet.create({
   },
   trendingItem: {
     flex: 1,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     paddingVertical: 14,
     paddingHorizontal: 12,
@@ -225,20 +217,12 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   trendingText: {
     fontSize: 13,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     textAlign: 'center',
   },
   noResultsContainer: {
@@ -251,29 +235,21 @@ export const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   noResultsTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 6,
   },
   noResultsSubtitle: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     textAlign: 'center',
     lineHeight: 20,
   },

@@ -8,10 +8,13 @@
  */
 
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
-import type { MeetingType, MeetingTypeOption } from '../viewmodels/MeetingScheduleViewModel';
+import { me } from '../../../design-system/mint-editorial';
+import type {
+  MeetingType,
+  MeetingTypeOption,
+} from '../viewmodels/MeetingScheduleViewModel';
 
 interface MeetingTypeSelectorProps {
   meetingTypes: MeetingTypeOption[];
@@ -31,8 +34,13 @@ export const MeetingTypeSelector: React.FC<MeetingTypeSelectorProps> = ({
   const durationOptions = [30, 60, 90, 120, 180, 240];
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.surface }]} testID="meeting-type-container">
-      <Text style={[styles.sectionTitle, { color: theme.colors.textTertiary }]}>MEETING TYPE</Text>
+    <View
+      style={[styles.container, { backgroundColor: me.surface }]}
+      testID='meeting-type-container'
+    >
+      <Text style={[styles.sectionTitle, { color: me.ink3 }]}>
+        MEETING TYPE
+      </Text>
 
       <View style={styles.typeGrid}>
         {meetingTypes.map((type) => (
@@ -41,33 +49,43 @@ export const MeetingTypeSelector: React.FC<MeetingTypeSelectorProps> = ({
             testID={`meeting-type-${type.id}`}
             style={[
               styles.typeCard,
-              { backgroundColor: theme.colors.backgroundSecondary },
-              selectedType === type.id && { backgroundColor: theme.colors.textPrimary },
+              { backgroundColor: me.bg2 },
+              selectedType === type.id && { backgroundColor: me.ink },
             ]}
             onPress={() => {
               onTypeSelect(type.id);
               onDurationChange(type.estimatedDuration);
             }}
           >
-            <View style={[styles.typeIcon, { backgroundColor: theme.colors.surface }, selectedType === type.id && styles.typeIconSelected]}>
+            <View
+              style={[
+                styles.typeIcon,
+                { backgroundColor: me.surface },
+                selectedType === type.id && styles.typeIconSelected,
+              ]}
+            >
               <Ionicons
                 name={type.icon as keyof typeof Ionicons.glyphMap}
                 size={24}
-                color={selectedType === type.id ? theme.colors.textInverse : theme.colors.textSecondary}
+                color={selectedType === type.id ? me.onBrand : me.ink2}
               />
             </View>
-            <Text style={[
-              styles.typeName,
-              { color: theme.colors.textPrimary },
-              selectedType === type.id && { color: theme.colors.textInverse },
-            ]}>
+            <Text
+              style={[
+                styles.typeName,
+                { color: me.ink },
+                selectedType === type.id && { color: me.onBrand },
+              ]}
+            >
               {type.name}
             </Text>
-            <Text style={[
-              styles.typeDescription,
-              { color: theme.colors.textSecondary },
-              selectedType === type.id && styles.typeDescriptionSelected,
-            ]}>
+            <Text
+              style={[
+                styles.typeDescription,
+                { color: me.ink2 },
+                selectedType === type.id && styles.typeDescriptionSelected,
+              ]}
+            >
               {type.description}
             </Text>
           </TouchableOpacity>
@@ -75,7 +93,9 @@ export const MeetingTypeSelector: React.FC<MeetingTypeSelectorProps> = ({
       </View>
 
       <View style={styles.durationSection}>
-        <Text style={[styles.durationLabel, { color: theme.colors.textPrimary }]}>Duration (minutes)</Text>
+        <Text style={[styles.durationLabel, { color: me.ink }]}>
+          Duration (minutes)
+        </Text>
         <View style={styles.durationGrid}>
           {durationOptions.map((option) => (
             <TouchableOpacity
@@ -83,16 +103,18 @@ export const MeetingTypeSelector: React.FC<MeetingTypeSelectorProps> = ({
               testID={`duration-${option}`}
               style={[
                 styles.durationButton,
-                { backgroundColor: theme.colors.backgroundSecondary },
-                duration === option && { backgroundColor: theme.colors.textPrimary },
+                { backgroundColor: me.bg2 },
+                duration === option && { backgroundColor: me.ink },
               ]}
               onPress={() => onDurationChange(option)}
             >
-              <Text style={[
-                styles.durationText,
-                { color: theme.colors.textPrimary },
-                duration === option && { color: theme.colors.textInverse },
-              ]}>
+              <Text
+                style={[
+                  styles.durationText,
+                  { color: me.ink },
+                  duration === option && { color: me.onBrand },
+                ]}
+              >
                 {option}
               </Text>
             </TouchableOpacity>
@@ -108,10 +130,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
-    ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   sectionTitle: {
     fontSize: 12,

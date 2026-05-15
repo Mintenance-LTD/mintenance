@@ -1,10 +1,10 @@
-import { StyleSheet, Platform } from 'react-native';
-import { theme } from '../theme';
+import { StyleSheet } from 'react-native';
+import { me } from '../design-system/mint-editorial';
 
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
 
   // ── Hero ──
@@ -47,14 +47,14 @@ export const styles = StyleSheet.create({
   heroTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     letterSpacing: -0.3,
   },
   todayPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
@@ -62,7 +62,7 @@ export const styles = StyleSheet.create({
   todayPillText: {
     fontSize: 13,
     fontWeight: '700',
-    color: theme.colors.primary,
+    color: me.brand,
   },
 
   // ── Month nav ──
@@ -84,7 +84,7 @@ export const styles = StyleSheet.create({
   monthLabel: {
     fontSize: 16,
     fontWeight: '700',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     letterSpacing: -0.2,
     minWidth: 160,
     textAlign: 'center',
@@ -104,7 +104,7 @@ export const styles = StyleSheet.create({
     borderRadius: 14,
   },
   dayCellSelected: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
   },
   dayCellToday: {
     backgroundColor: 'rgba(255,255,255,0.12)',
@@ -119,13 +119,13 @@ export const styles = StyleSheet.create({
   dayNumber: {
     fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
   },
   dayTextSelected: {
-    color: theme.colors.primary,
+    color: me.brand,
   },
   dayNumberToday: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
   },
   dotsRow: {
     flexDirection: 'row',
@@ -138,7 +138,7 @@ export const styles = StyleSheet.create({
     borderRadius: 2.5,
   },
   eventDotWhite: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
   },
 
   // ── Stats bar ──
@@ -147,15 +147,15 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     gap: 8,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   statPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
@@ -168,7 +168,7 @@ export const styles = StyleSheet.create({
   statText: {
     fontSize: 12,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
 
   // ── Day label ──
@@ -183,13 +183,13 @@ export const styles = StyleSheet.create({
   dayLabelText: {
     fontSize: 16,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     letterSpacing: -0.2,
   },
   dayLabelCount: {
     fontSize: 13,
     fontWeight: '600',
-    color: theme.colors.textTertiary,
+    color: me.ink3,
   },
 
   // ── Schedule cards ──
@@ -200,11 +200,11 @@ export const styles = StyleSheet.create({
   },
   scheduleCard: {
     flexDirection: 'row',
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 20,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
   accentBar: {
     width: 4,
@@ -242,7 +242,7 @@ export const styles = StyleSheet.create({
   scheduleTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   timeColumn: {
     alignItems: 'flex-end',
@@ -251,11 +251,11 @@ export const styles = StyleSheet.create({
   timeStart: {
     fontSize: 14,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   timeEnd: {
     fontSize: 12,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     marginTop: 2,
   },
   addressRow: {
@@ -266,7 +266,7 @@ export const styles = StyleSheet.create({
   },
   addressText: {
     fontSize: 12,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     flex: 1,
   },
   cardChevron: {
@@ -285,7 +285,7 @@ export const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 20,
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: me.brandSoft,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -294,7 +294,7 @@ export const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 24,
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: me.brandSoft,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -302,12 +302,12 @@ export const styles = StyleSheet.create({
   stateTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 4,
   },
   stateSubtitle: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 20,
@@ -316,7 +316,7 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 14,
@@ -325,28 +325,20 @@ export const styles = StyleSheet.create({
   retryButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
   },
   browseButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 14,
-    ...Platform.select({
-      ios: {
-        shadowColor: theme.colors.primary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-      },
-      android: { elevation: 4 },
-    }),
+    ...me.shadow.pop,
   },
   browseButtonText: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontSize: 15,
     fontWeight: '600',
   },
@@ -358,17 +350,9 @@ export const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
     alignItems: 'center',
     justifyContent: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: theme.colors.primary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.35,
-        shadowRadius: 10,
-      },
-      android: { elevation: 6 },
-    }),
+    ...me.shadow.pop,
   },
 });

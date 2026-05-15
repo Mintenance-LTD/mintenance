@@ -14,11 +14,10 @@ import {
   ScrollView,
   Switch,
   ActivityIndicator,
-  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSilverMode } from '../../hooks/useSilverMode';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 export const AccessibilitySettingsScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
@@ -27,7 +26,7 @@ export const AccessibilitySettingsScreen: React.FC = () => {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator color={theme.colors.primary} />
+        <ActivityIndicator color={me.brand} />
       </View>
     );
   }
@@ -52,8 +51,8 @@ export const AccessibilitySettingsScreen: React.FC = () => {
               void toggle();
             }}
             trackColor={{
-              false: theme.colors.border,
-              true: theme.colors.primary,
+              false: me.line,
+              true: me.brand,
             }}
           />
         </View>
@@ -65,7 +64,7 @@ export const AccessibilitySettingsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   center: {
     flex: 1,
@@ -73,20 +72,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   section: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     marginHorizontal: 16,
     marginTop: 16,
     padding: 16,
     borderRadius: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: theme.colors.textPrimary,
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.04,
-        shadowRadius: 4,
-      },
-      android: { elevation: 1 },
-    }),
+    ...me.shadow.card,
   },
   rowTop: {
     flexDirection: 'row',
@@ -100,12 +91,12 @@ const styles = StyleSheet.create({
   rowTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 4,
   },
   rowDesc: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     lineHeight: 18,
   },
 });

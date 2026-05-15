@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { SearchSuggestion } from '../../../services/AISearchService';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 import { styles } from '../theme/styles';
 
 /**
@@ -33,15 +33,11 @@ export function SuggestionItem({
                 : 'location-outline'
           }
           size={16}
-          color={theme.colors.textSecondary}
+          color={me.ink2}
         />
       </View>
       <Text style={styles.suggestionText}>{suggestion.text}</Text>
-      <Ionicons
-        name='arrow-forward'
-        size={16}
-        color={theme.colors.textTertiary}
-      />
+      <Ionicons name='arrow-forward' size={16} color={me.ink3} />
     </TouchableOpacity>
   );
 }

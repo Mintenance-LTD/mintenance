@@ -5,15 +5,9 @@
  */
 
 import React from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Platform,
-} from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 import { NotificationData } from '../../services/NotificationService';
 import { ICON_COLORS, getIconName } from './notificationConfig';
 import { formatRelativeTime, stripEmoji } from './notificationFilters';
@@ -31,8 +25,8 @@ export const CompactNotification: React.FC<CompactNotificationProps> = ({
 }) => {
   const colors = ICON_COLORS[notification.type] ??
     ICON_COLORS.system ?? {
-      icon: theme.colors.textSecondary,
-      bg: theme.colors.backgroundSecondary,
+      icon: me.ink2,
+      bg: me.bg2,
     };
   return (
     <TouchableOpacity
@@ -79,7 +73,7 @@ export const CompactNotification: React.FC<CompactNotificationProps> = ({
           accessibilityRole='button'
           accessibilityLabel='Mark as read'
         >
-          <Ionicons name='checkmark' size={14} color={theme.colors.primary} />
+          <Ionicons name='checkmark' size={14} color={me.brand} />
         </TouchableOpacity>
       )}
     </TouchableOpacity>
@@ -92,25 +86,17 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     paddingVertical: 14,
     paddingHorizontal: 16,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 12,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    borderColor: me.line,
+    ...me.shadow.card,
   },
   notifCardUnread: {
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: me.brandSoft,
     borderLeftWidth: 3,
-    borderLeftColor: theme.colors.primary,
+    borderLeftColor: me.brand,
   },
   markReadBtn: {
     position: 'absolute',
@@ -119,7 +105,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: me.brandSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -144,7 +130,7 @@ const styles = StyleSheet.create({
   notifTitle: {
     fontSize: 15,
     fontWeight: '500',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     flex: 1,
     marginRight: 8,
   },
@@ -153,12 +139,12 @@ const styles = StyleSheet.create({
   },
   notifBody: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     lineHeight: 18,
   },
   notifTime: {
     fontSize: 12,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     flexShrink: 0,
   },
 });

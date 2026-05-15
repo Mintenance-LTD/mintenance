@@ -8,7 +8,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { theme, gradients } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 interface NotificationHeaderProps {
   unreadCount: number;
@@ -23,7 +23,7 @@ export const NotificationHeader: React.FC<NotificationHeaderProps> = ({
 }) => {
   return (
     <LinearGradient
-      colors={gradients.heroGreen}
+      colors={[me.brand2, me.brand]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={[styles.heroHeader, { paddingTop: paddingTop + 12 }]}
@@ -47,7 +47,7 @@ export const NotificationHeader: React.FC<NotificationHeaderProps> = ({
             <Ionicons
               name='checkmark-done-outline'
               size={18}
-              color={theme.colors.primary}
+              color={me.brand}
             />
             <Text style={styles.markAllText}>Mark All</Text>
           </TouchableOpacity>
@@ -89,7 +89,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: '800',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     letterSpacing: -0.5,
   },
   headerSubtitle: {
@@ -103,12 +103,12 @@ const styles = StyleSheet.create({
     gap: 4,
     paddingHorizontal: 14,
     paddingVertical: 8,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 20,
   },
   markAllText: {
     fontSize: 13,
-    color: theme.colors.primary,
+    color: me.brand,
     fontWeight: '600',
   },
 });

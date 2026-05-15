@@ -9,22 +9,22 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { performanceMonitor, usePerformanceMonitoring } from '../../utils/performance';
-import type { PerformanceReport, PerformanceBudget, ComponentPerformance, PerformanceViolation } from '../../utils/performance/types';
+import {
+  performanceMonitor,
+  usePerformanceMonitoring,
+} from '../../utils/performance';
+import type {
+  PerformanceReport,
+  PerformanceBudget,
+  ComponentPerformance,
+  PerformanceViolation,
+} from '../../utils/performance/types';
 import { useHaptics } from '../../utils/haptics';
 import { logger } from '../../utils/logger';
-import {
-  H1,
-  H2,
-  H3,
-  Body1,
-  Body2,
-  Caption,
-  Badge,
-} from '../../components/ui';
+import { H1, H2, H3, Body1, Body2, Caption, Badge } from '../../components/ui';
 import { Button } from '../../components/ui/Button/Button';
 import { Card, CardHeader, CardBody } from '../../components/ui/Card/Card';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 // ============================================================================
 // TYPES
@@ -59,7 +59,9 @@ export const PerformanceDashboard: React.FC = () => {
   const [monitoringEnabled, setMonitoringEnabled] = useState(true);
   const [reportData, setReportData] = useState<PerformanceReport | null>(null);
   const [budgetStatus, setBudgetStatus] = useState<PerformanceBudget[]>([]);
-  const [componentMetrics, setComponentMetrics] = useState<ComponentPerformance[]>([]);
+  const [componentMetrics, setComponentMetrics] = useState<
+    ComponentPerformance[]
+  >([]);
 
   useEffect(() => {
     loadPerformanceData();
@@ -120,7 +122,10 @@ export const PerformanceDashboard: React.FC = () => {
       };
 
       logger.info('Performance report exported', { data: exportData });
-      Alert.alert('Export Complete', 'Performance report has been exported to logs');
+      Alert.alert(
+        'Export Complete',
+        'Performance report has been exported to logs'
+      );
     } catch (error) {
       logger.error('Failed to export performance report', { data: error });
       Alert.alert('Export Failed', 'Could not export performance report');
@@ -137,7 +142,7 @@ export const PerformanceDashboard: React.FC = () => {
     return (
       <View style={styles.container}>
         <View style={styles.loading}>
-          <Body1 style={{ color: theme.colors.textSecondary }}>Loading performance data...</Body1>
+          <Body1 style={{ color: me.ink2 }}>Loading performance data...</Body1>
         </View>
       </View>
     );
@@ -148,14 +153,19 @@ export const PerformanceDashboard: React.FC = () => {
       <ScrollView
         style={styles.scrollView}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} tintColor={theme.colors.textPrimary} colors={[theme.colors.textPrimary]} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            tintColor={me.ink}
+            colors={[me.ink]}
+          />
         }
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
         <View style={styles.header}>
-          <H1 style={{ color: theme.colors.textPrimary }}>Performance Dashboard</H1>
-          <Caption style={{ color: theme.colors.textSecondary, marginTop: 4 }}>
+          <H1 style={{ color: me.ink }}>Performance Dashboard</H1>
+          <Caption style={{ color: me.ink2, marginTop: 4 }}>
             Real-time app performance monitoring
           </Caption>
         </View>
@@ -164,12 +174,12 @@ export const PerformanceDashboard: React.FC = () => {
         <Card style={styles.controlsCard}>
           <CardBody>
             <View style={styles.controlRow}>
-              <Body1 style={{ color: theme.colors.textPrimary }}>Real-time Monitoring</Body1>
+              <Body1 style={{ color: me.ink }}>Real-time Monitoring</Body1>
               <Switch
                 value={monitoringEnabled}
                 onValueChange={toggleMonitoring}
-                trackColor={{ false: theme.colors.border, true: theme.colors.textPrimary }}
-                thumbColor={theme.colors.backgroundSecondary}
+                trackColor={{ false: me.line, true: me.ink }}
+                thumbColor={me.bg2}
               />
             </View>
           </CardBody>
@@ -177,44 +187,56 @@ export const PerformanceDashboard: React.FC = () => {
 
         {/* Overview Metrics */}
         <View style={styles.section}>
-          <H2 style={{ color: theme.colors.textPrimary, marginBottom: 16 }}>Overview</H2>
+          <H2 style={{ color: me.ink, marginBottom: 16 }}>Overview</H2>
           <View style={styles.metricsGrid}>
             <MetricCard
-              title="Total Metrics"
+              title='Total Metrics'
               value={reportData.summary.totalMetrics}
-              status="good"
-              icon="analytics"
-              description="Metrics collected in last 30 minutes"
+              status='good'
+              icon='analytics'
+              description='Metrics collected in last 30 minutes'
             />
             <MetricCard
-              title="Average Render"
+              title='Average Render'
               value={Math.round(reportData.summary.averageRenderTime ?? 0)}
-              unit="ms"
-              status={(reportData.summary.averageRenderTime ?? 0) > 16 ? 'warning' : 'good'}
-              icon="speedometer"
-              description="Component render time"
+              unit='ms'
+              status={
+                (reportData.summary.averageRenderTime ?? 0) > 16
+                  ? 'warning'
+                  : 'good'
+              }
+              icon='speedometer'
+              description='Component render time'
             />
             <MetricCard
-              title="Network Time"
+              title='Network Time'
               value={Math.round(reportData.summary.averageNetworkTime ?? 0)}
-              unit="ms"
-              status={(reportData.summary.averageNetworkTime ?? 0) > 2000 ? 'critical' : 'good'}
-              icon="cloud"
-              description="Average API response time"
+              unit='ms'
+              status={
+                (reportData.summary.averageNetworkTime ?? 0) > 2000
+                  ? 'critical'
+                  : 'good'
+              }
+              icon='cloud'
+              description='Average API response time'
             />
             <MetricCard
-              title="Budget Violations"
+              title='Budget Violations'
               value={reportData.summary.failedBudgets ?? 0}
-              status={(reportData.summary.failedBudgets ?? 0) > 0 ? 'critical' : 'good'}
-              icon="warning"
-              description="Performance budget failures"
+              status={
+                (reportData.summary.failedBudgets ?? 0) > 0
+                  ? 'critical'
+                  : 'good'
+              }
+              icon='warning'
+              description='Performance budget failures'
             />
           </View>
         </View>
 
         {/* Budget Status */}
         <View style={styles.section}>
-          <H2 style={{ color: theme.colors.textPrimary, marginBottom: 16 }}>Budget Status</H2>
+          <H2 style={{ color: me.ink, marginBottom: 16 }}>Budget Status</H2>
           <Card>
             <CardBody>
               {budgetStatus.slice(0, 8).map((budget, index) => (
@@ -233,13 +255,17 @@ export const PerformanceDashboard: React.FC = () => {
         {/* Component Performance */}
         {componentMetrics.length > 0 && (
           <View style={styles.section}>
-            <H2 style={{ color: theme.colors.textPrimary, marginBottom: 16 }}>
+            <H2 style={{ color: me.ink, marginBottom: 16 }}>
               Top Components by Render Time
             </H2>
             <Card>
               <CardBody>
                 {componentMetrics.map((component, index) => (
-                  <ComponentMetricRow key={index} component={component} rank={index + 1} />
+                  <ComponentMetricRow
+                    key={index}
+                    component={component}
+                    rank={index + 1}
+                  />
                 ))}
               </CardBody>
             </Card>
@@ -249,7 +275,9 @@ export const PerformanceDashboard: React.FC = () => {
         {/* Recent Violations */}
         {(reportData.violations?.length ?? 0) > 0 && (
           <View style={styles.section}>
-            <H2 style={{ color: theme.colors.textPrimary, marginBottom: 16 }}>Recent Violations</H2>
+            <H2 style={{ color: me.ink, marginBottom: 16 }}>
+              Recent Violations
+            </H2>
             <Card>
               <CardBody>
                 {reportData.violations?.slice(0, 5).map((violation, index) => (
@@ -264,16 +292,16 @@ export const PerformanceDashboard: React.FC = () => {
         <View style={styles.section}>
           <View style={styles.actionButtons}>
             <Button
-              variant="outline"
-              leftIcon="download"
+              variant='outline'
+              leftIcon='download'
               onPress={handleExportReport}
               style={styles.actionButton}
             >
               Export Report
             </Button>
             <Button
-              variant="outline"
-              leftIcon="trash"
+              variant='outline'
+              leftIcon='trash'
               onPress={handleClearMetrics}
               style={styles.actionButton}
             >
@@ -284,8 +312,9 @@ export const PerformanceDashboard: React.FC = () => {
 
         {/* Footer */}
         <View style={styles.footer}>
-          <Caption style={{ color: theme.colors.textTertiary, textAlign: 'center' }}>
-            Last updated: {new Date(reportData.timestamp ?? Date.now()).toLocaleTimeString()}
+          <Caption style={{ color: me.ink3, textAlign: 'center' }}>
+            Last updated:{' '}
+            {new Date(reportData.timestamp ?? Date.now()).toLocaleTimeString()}
           </Caption>
         </View>
       </ScrollView>
@@ -308,10 +337,14 @@ const MetricCard: React.FC<MetricCardProps> = ({
 }) => {
   const getStatusColor = () => {
     switch (status) {
-      case 'good': return theme.colors.primaryDark;
-      case 'warning': return theme.colors.accent;
-      case 'critical': return theme.colors.error;
-      default: return theme.colors.textSecondary;
+      case 'good':
+        return me.brand2;
+      case 'warning':
+        return me.accent;
+      case 'critical':
+        return me.errFg;
+      default:
+        return me.ink2;
     }
   };
 
@@ -319,23 +352,33 @@ const MetricCard: React.FC<MetricCardProps> = ({
     <Card style={styles.metricCard}>
       <CardBody>
         <View style={styles.metricHeader}>
-          <Ionicons name={icon as keyof typeof Ionicons.glyphMap} size={24} color={getStatusColor()} />
+          <Ionicons
+            name={icon as keyof typeof Ionicons.glyphMap}
+            size={24}
+            color={getStatusColor()}
+          />
           {trend && (
             <Ionicons
-              name={trend === 'up' ? 'trending-up' : trend === 'down' ? 'trending-down' : 'remove'}
+              name={
+                trend === 'up'
+                  ? 'trending-up'
+                  : trend === 'down'
+                    ? 'trending-down'
+                    : 'remove'
+              }
               size={16}
-              color={trend === 'up' ? theme.colors.error : theme.colors.primary}
+              color={trend === 'up' ? me.errFg : me.brand}
               style={styles.trendIcon}
             />
           )}
         </View>
-        <H3 style={{ color: theme.colors.textPrimary, marginTop: 12 }}>
+        <H3 style={{ color: me.ink, marginTop: 12 }}>
           {value}
-          {unit && <Caption style={{ color: theme.colors.textSecondary }}> {unit}</Caption>}
+          {unit && <Caption style={{ color: me.ink2 }}> {unit}</Caption>}
         </H3>
-        <Body2 style={{ color: theme.colors.textSecondary, marginTop: 4 }}>{title}</Body2>
+        <Body2 style={{ color: me.ink2, marginTop: 4 }}>{title}</Body2>
         {description && (
-          <Caption style={{ color: theme.colors.textTertiary, marginTop: 4 }}>
+          <Caption style={{ color: me.ink3, marginTop: 4 }}>
             {description}
           </Caption>
         )}
@@ -348,22 +391,31 @@ const MetricCard: React.FC<MetricCardProps> = ({
 // BUDGET STATUS ROW
 // ============================================================================
 
-const BudgetStatusRow: React.FC<BudgetStatusProps> = ({ metric, current, budget, status }) => {
+const BudgetStatusRow: React.FC<BudgetStatusProps> = ({
+  metric,
+  current,
+  budget,
+  status,
+}) => {
   const percentage = Math.round((current / budget) * 100);
   const getBadgeVariant = () => {
     switch (status) {
-      case 'pass': return 'success';
-      case 'warn': return 'warning';
-      case 'fail': return 'error';
-      default: return 'neutral';
+      case 'pass':
+        return 'success';
+      case 'warn':
+        return 'warning';
+      case 'fail':
+        return 'error';
+      default:
+        return 'neutral';
     }
   };
 
   return (
     <View style={styles.budgetRow}>
       <View style={styles.budgetInfo}>
-        <Body1 style={{ color: theme.colors.textPrimary }}>{metric.replace(/_/g, ' ')}</Body1>
-        <Caption style={{ color: theme.colors.textSecondary }}>
+        <Body1 style={{ color: me.ink }}>{metric.replace(/_/g, ' ')}</Body1>
+        <Caption style={{ color: me.ink2 }}>
           {current.toFixed(0)} / {budget.toFixed(0)} ({percentage}%)
         </Caption>
       </View>
@@ -376,20 +428,24 @@ const BudgetStatusRow: React.FC<BudgetStatusProps> = ({ metric, current, budget,
 // COMPONENT METRIC ROW
 // ============================================================================
 
-const ComponentMetricRow: React.FC<{ component: ComponentPerformance; rank: number }> = ({ component, rank }) => {
+const ComponentMetricRow: React.FC<{
+  component: ComponentPerformance;
+  rank: number;
+}> = ({ component, rank }) => {
   return (
     <View style={styles.componentRow}>
       <View style={styles.rankBadge}>
-        <Caption style={{ color: theme.colors.textInverse }}>{rank}</Caption>
+        <Caption style={{ color: me.onBrand }}>{rank}</Caption>
       </View>
       <View style={styles.componentInfo}>
-        <Body1 style={{ color: theme.colors.textPrimary }}>{component.componentName}</Body1>
-        <Caption style={{ color: theme.colors.textSecondary }}>
-          Renders: {component.renderCount} • Avg: {component.averageRenderTime.toFixed(1)}ms
+        <Body1 style={{ color: me.ink }}>{component.componentName}</Body1>
+        <Caption style={{ color: me.ink2 }}>
+          Renders: {component.renderCount} • Avg:{' '}
+          {component.averageRenderTime.toFixed(1)}ms
         </Caption>
       </View>
       <View style={styles.componentMetrics}>
-        <Body2 style={{ color: theme.colors.textPrimary }}>
+        <Body2 style={{ color: me.ink }}>
           {component.lastRenderTime.toFixed(1)}ms
         </Body2>
       </View>
@@ -401,33 +457,41 @@ const ComponentMetricRow: React.FC<{ component: ComponentPerformance; rank: numb
 // VIOLATION ROW
 // ============================================================================
 
-const ViolationRow: React.FC<{ violation: PerformanceViolation }> = ({ violation }) => {
+const ViolationRow: React.FC<{ violation: PerformanceViolation }> = ({
+  violation,
+}) => {
   const getSeverityColor = () => {
     switch (violation.severity) {
-      case 'critical': return theme.colors.error;
-      case 'high': return theme.colors.error;
-      case 'medium': return theme.colors.accent;
-      default: return theme.colors.textSecondary;
+      case 'critical':
+        return me.errFg;
+      case 'high':
+        return me.errFg;
+      case 'medium':
+        return me.accent;
+      default:
+        return me.ink2;
     }
   };
 
   return (
     <View style={styles.violationRow}>
       <Ionicons
-        name="warning"
+        name='warning'
         size={20}
         color={getSeverityColor()}
         style={styles.violationIcon}
       />
       <View style={styles.violationInfo}>
-        <Body1 style={{ color: theme.colors.textPrimary }}>
+        <Body1 style={{ color: me.ink }}>
           {violation.metric.replace(/_/g, ' ')}
         </Body1>
-        <Caption style={{ color: theme.colors.textSecondary }}>
-          Expected: {violation.threshold}ms • Actual: {violation.actual.toFixed(0)}ms
+        <Caption style={{ color: me.ink2 }}>
+          Expected: {violation.threshold}ms • Actual:{' '}
+          {violation.actual.toFixed(0)}ms
         </Caption>
         <Caption style={{ color: getSeverityColor() }}>
-          {violation.severity.toUpperCase()} • {new Date(violation.timestamp).toLocaleTimeString()}
+          {violation.severity.toUpperCase()} •{' '}
+          {new Date(violation.timestamp).toLocaleTimeString()}
         </Caption>
       </View>
     </View>
@@ -441,7 +505,7 @@ const ViolationRow: React.FC<{ violation: PerformanceViolation }> = ({ violation
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   scrollView: {
     flex: 1,
@@ -492,7 +556,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   budgetInfo: {
     flex: 1,
@@ -502,13 +566,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   rankBadge: {
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -524,7 +588,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   violationIcon: {
     marginRight: 12,

@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 import {
   CATEGORY_CONFIG,
   STATUS_COLORS,
@@ -31,11 +31,7 @@ export const RecentTransactions: React.FC<RecentTransactionsProps> = ({
       {recentPayments.length === 0 ? (
         <View style={styles.emptyWrap}>
           <View style={styles.emptyIcon}>
-            <Ionicons
-              name='receipt-outline'
-              size={24}
-              color={theme.colors.textTertiary}
-            />
+            <Ionicons name='receipt-outline' size={24} color={me.ink3} />
           </View>
           <Text style={styles.emptyTitle}>No transactions yet</Text>
           <Text style={styles.emptySubtext}>

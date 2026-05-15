@@ -17,7 +17,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import type { SpecialOffer } from '../viewmodels/EnhancedHomeViewModel';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 const { width } = Dimensions.get('window');
 
@@ -102,14 +102,14 @@ const styles = StyleSheet.create({
   },
   offerCard: {
     width: width - 60,
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
     borderRadius: 20,
     padding: 24,
     marginHorizontal: 14,
   },
   offerBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 4,
@@ -118,12 +118,12 @@ const styles = StyleSheet.create({
   offerBadgeText: {
     fontSize: 12,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   offerTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     marginBottom: 8,
   },
   discountContainer: {
@@ -133,13 +133,13 @@ const styles = StyleSheet.create({
   },
   discountText: {
     fontSize: 16,
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     marginRight: 8,
   },
   discountValue: {
     fontSize: 48,
     fontWeight: '700',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     lineHeight: 48,
   },
   offerDescription: {
@@ -148,7 +148,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   claimButton: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 28,
     paddingVertical: 14,
     alignItems: 'center',
@@ -156,7 +156,7 @@ const styles = StyleSheet.create({
   claimButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   pagination: {
     flexDirection: 'row',
@@ -169,10 +169,10 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: theme.colors.border,
+    backgroundColor: me.line,
   },
   paginationDotActive: {
     width: 24,
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
   },
 });

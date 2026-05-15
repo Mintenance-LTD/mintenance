@@ -8,9 +8,9 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 import type { User, Job } from '@mintenance/types';
 
 interface MeetingHeaderProps {
@@ -18,31 +18,38 @@ interface MeetingHeaderProps {
   job?: Job;
 }
 
-export const MeetingHeader: React.FC<MeetingHeaderProps> = ({ contractor, job }) => {
+export const MeetingHeader: React.FC<MeetingHeaderProps> = ({
+  contractor,
+  job,
+}) => {
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.surface }]}>
+    <View style={[styles.container, { backgroundColor: me.surface }]}>
       <View style={styles.headerRow}>
         <View style={styles.iconWrap}>
-          <Ionicons name="calendar-outline" size={20} color="#3B82F6" />
+          <Ionicons name='calendar-outline' size={20} color='#3B82F6' />
         </View>
-        <Text style={[styles.title, { color: theme.colors.textPrimary }]}>Schedule Meeting</Text>
+        <Text style={[styles.title, { color: me.ink }]}>Schedule Meeting</Text>
       </View>
 
       {contractor && (
         <View style={styles.infoRow}>
-          <View style={[styles.infoIconWrap, { backgroundColor: theme.colors.backgroundSecondary }]}>
-            <Ionicons name="person-outline" size={14} color={theme.colors.textSecondary} />
+          <View style={[styles.infoIconWrap, { backgroundColor: me.bg2 }]}>
+            <Ionicons name='person-outline' size={14} color={me.ink2} />
           </View>
-          <Text style={[styles.infoText, { color: theme.colors.textSecondary }]}>With: {contractor.first_name} {contractor.last_name}</Text>
+          <Text style={[styles.infoText, { color: me.ink2 }]}>
+            With: {contractor.first_name} {contractor.last_name}
+          </Text>
         </View>
       )}
 
       {job && (
         <View style={styles.infoRow}>
-          <View style={[styles.infoIconWrap, { backgroundColor: theme.colors.backgroundSecondary }]}>
-            <Ionicons name="briefcase-outline" size={14} color={theme.colors.textSecondary} />
+          <View style={[styles.infoIconWrap, { backgroundColor: me.bg2 }]}>
+            <Ionicons name='briefcase-outline' size={14} color={me.ink2} />
           </View>
-          <Text style={[styles.infoText, { color: theme.colors.textSecondary }]}>Job: {job.title}</Text>
+          <Text style={[styles.infoText, { color: me.ink2 }]}>
+            Job: {job.title}
+          </Text>
         </View>
       )}
     </View>
@@ -55,10 +62,7 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 16,
     marginTop: 16,
-    ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   headerRow: {
     flexDirection: 'row',

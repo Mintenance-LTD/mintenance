@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 interface IconConfig {
   name: keyof typeof Ionicons.glyphMap;
@@ -11,38 +11,38 @@ export const SETTING_ICONS: Record<string, IconConfig> = {
   notifications: { name: 'notifications', color: '#3B82F6', bg: '#DBEAFE' },
   briefcase: {
     name: 'briefcase',
-    color: theme.colors.primary,
-    bg: theme.colors.primaryLight,
+    color: me.brand,
+    bg: me.brandSoft,
   },
   pricetag: {
     name: 'pricetag',
-    color: theme.colors.accent,
-    bg: theme.colors.accentLight,
+    color: me.accent,
+    bg: me.warnBg,
   },
   chatbubble: { name: 'chatbubble', color: '#8B5CF6', bg: '#EDE9FE' },
   refresh: { name: 'refresh', color: '#3B82F6', bg: '#DBEAFE' },
   card: {
     name: 'card',
-    color: theme.colors.primary,
-    bg: theme.colors.primaryLight,
+    color: me.brand,
+    bg: me.brandSoft,
   },
-  mail: { name: 'mail', color: theme.colors.error, bg: '#FEE2E2' },
+  mail: { name: 'mail', color: me.errFg, bg: me.errBg },
   calendar: {
     name: 'calendar',
-    color: theme.colors.accent,
-    bg: theme.colors.accentLight,
+    color: me.accent,
+    bg: me.warnBg,
   },
   'shield-checkmark': {
     name: 'shield-checkmark',
-    color: theme.colors.error,
-    bg: '#FEE2E2',
+    color: me.errFg,
+    bg: me.errBg,
   },
   'volume-high': { name: 'volume-high', color: '#3B82F6', bg: '#DBEAFE' },
   'phone-portrait': { name: 'phone-portrait', color: '#8B5CF6', bg: '#EDE9FE' },
   megaphone: {
     name: 'megaphone',
-    color: theme.colors.accent,
-    bg: theme.colors.accentLight,
+    color: me.accent,
+    bg: me.warnBg,
   },
   'information-circle': {
     name: 'information-circle',
@@ -52,18 +52,18 @@ export const SETTING_ICONS: Record<string, IconConfig> = {
   'moon-outline': { name: 'moon-outline', color: '#8B5CF6', bg: '#EDE9FE' },
   'time-outline': {
     name: 'time-outline',
-    color: theme.colors.textSecondary,
-    bg: theme.colors.backgroundSecondary,
+    color: me.ink2,
+    bg: me.bg2,
   },
   'checkmark-circle': {
     name: 'checkmark-circle',
-    color: theme.colors.primary,
-    bg: theme.colors.primaryLight,
+    color: me.brand,
+    bg: me.brandSoft,
   },
   'close-circle': {
     name: 'close-circle',
-    color: theme.colors.error,
-    bg: '#FEE2E2',
+    color: me.errFg,
+    bg: me.errBg,
   },
 };
 

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 import SettingsSection from './SettingsSection';
 import SettingRow from './SettingRow';
 import {
@@ -46,16 +46,9 @@ const QuietHoursSection: React.FC<QuietHoursSectionProps> = ({
             >
               <View style={styles.settingLeft}>
                 <View
-                  style={[
-                    styles.iconContainer,
-                    { backgroundColor: theme.colors.backgroundSecondary },
-                  ]}
+                  style={[styles.iconContainer, { backgroundColor: me.bg2 }]}
                 >
-                  <Ionicons
-                    name='time-outline'
-                    size={18}
-                    color={theme.colors.textSecondary}
-                  />
+                  <Ionicons name='time-outline' size={18} color={me.ink2} />
                 </View>
                 <View style={styles.settingInfo}>
                   <Text style={styles.settingTitle}>Start Time</Text>
@@ -64,11 +57,7 @@ const QuietHoursSection: React.FC<QuietHoursSectionProps> = ({
                   </Text>
                 </View>
               </View>
-              <Ionicons
-                name='chevron-forward'
-                size={16}
-                color={theme.colors.textTertiary}
-              />
+              <Ionicons name='chevron-forward' size={16} color={me.ink3} />
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.settingRow}
@@ -76,16 +65,9 @@ const QuietHoursSection: React.FC<QuietHoursSectionProps> = ({
             >
               <View style={styles.settingLeft}>
                 <View
-                  style={[
-                    styles.iconContainer,
-                    { backgroundColor: theme.colors.backgroundSecondary },
-                  ]}
+                  style={[styles.iconContainer, { backgroundColor: me.bg2 }]}
                 >
-                  <Ionicons
-                    name='time-outline'
-                    size={18}
-                    color={theme.colors.textSecondary}
-                  />
+                  <Ionicons name='time-outline' size={18} color={me.ink2} />
                 </View>
                 <View style={styles.settingInfo}>
                   <Text style={styles.settingTitle}>End Time</Text>
@@ -94,11 +76,7 @@ const QuietHoursSection: React.FC<QuietHoursSectionProps> = ({
                   </Text>
                 </View>
               </View>
-              <Ionicons
-                name='chevron-forward'
-                size={16}
-                color={theme.colors.textTertiary}
-              />
+              <Ionicons name='chevron-forward' size={16} color={me.ink3} />
             </TouchableOpacity>
           </>
         )}
@@ -147,7 +125,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   settingLeft: {
     flexDirection: 'row',
@@ -169,12 +147,12 @@ const styles = StyleSheet.create({
   settingTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 2,
   },
   settingDescription: {
     fontSize: 13,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     lineHeight: 18,
   },
 });

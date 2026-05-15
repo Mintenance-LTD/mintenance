@@ -7,17 +7,11 @@
  */
 
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Platform,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { User } from '@mintenance/types';
-import { theme, gradients } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 import { formatCurrency } from '../../utils/formatCurrency';
 
 interface ContractorBannerProps {
@@ -48,7 +42,7 @@ export const ContractorBanner: React.FC<ContractorBannerProps> = ({
 
   return (
     <LinearGradient
-      colors={gradients.heroGreen}
+      colors={[me.brand2, me.brand]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={styles.hero}
@@ -88,11 +82,7 @@ export const ContractorBanner: React.FC<ContractorBannerProps> = ({
           accessibilityLabel='Browse available jobs'
         >
           <Text style={styles.ctaText}>Browse Available Jobs</Text>
-          <Ionicons
-            name='arrow-forward'
-            size={16}
-            color={theme.colors.primaryDark}
-          />
+          <Ionicons name='arrow-forward' size={16} color={me.brand2} />
         </TouchableOpacity>
       </View>
     </LinearGradient>
@@ -106,17 +96,7 @@ const styles = StyleSheet.create({
     marginTop: 16,
     marginBottom: 8,
     overflow: 'hidden',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#134E4A',
-        shadowOffset: { width: 0, height: 10 },
-        shadowOpacity: 0.3,
-        shadowRadius: 20,
-      },
-      android: {
-        elevation: 8,
-      },
-    }),
+    ...me.shadow.pop,
   },
   decorTopRight: {
     position: 'absolute',
@@ -160,7 +140,7 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 28,
     fontWeight: '700',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     marginBottom: 20,
     letterSpacing: -0.5,
   },
@@ -175,7 +155,7 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 30,
     fontWeight: '700',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     letterSpacing: -0.3,
   },
   statLabel: {
@@ -194,26 +174,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 14,
     paddingVertical: 13,
     paddingHorizontal: 20,
     alignSelf: 'flex-start',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 6,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
+    ...me.shadow.card,
   },
   ctaText: {
     fontSize: 15,
     fontWeight: '700',
-    color: theme.colors.primaryDark,
+    color: me.brand2,
   },
 });

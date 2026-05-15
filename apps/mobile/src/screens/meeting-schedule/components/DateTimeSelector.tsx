@@ -8,10 +8,16 @@
  */
 
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Platform,
+} from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 interface DateTimeSelectorProps {
   selectedDate: Date;
@@ -52,51 +58,64 @@ export const DateTimeSelector: React.FC<DateTimeSelectorProps> = ({
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.surface }]}>
-      <Text style={[styles.sectionTitle, { color: theme.colors.textTertiary }]} accessibilityRole='header'>DATE & TIME</Text>
+    <View style={[styles.container, { backgroundColor: me.surface }]}>
+      <Text
+        style={[styles.sectionTitle, { color: me.ink3 }]}
+        accessibilityRole='header'
+      >
+        DATE & TIME
+      </Text>
 
       <View style={styles.selectorRow}>
         <TouchableOpacity
-          style={[styles.selectorButton, { backgroundColor: theme.colors.backgroundSecondary }]}
+          style={[styles.selectorButton, { backgroundColor: me.bg2 }]}
           onPress={() => onShowDatePicker(true)}
           accessibilityRole='button'
           accessibilityLabel={`Selected date: ${formatDate(selectedDate)}. Double tap to change`}
         >
           <View style={styles.selectorContent}>
             <View style={styles.iconWrap}>
-              <Ionicons name="calendar-outline" size={16} color="#3B82F6" />
+              <Ionicons name='calendar-outline' size={16} color='#3B82F6' />
             </View>
             <View style={styles.selectorText}>
-              <Text style={[styles.selectorLabel, { color: theme.colors.textSecondary }]}>Date</Text>
-              <Text style={[styles.selectorValue, { color: theme.colors.textPrimary }]}>{formatDate(selectedDate)}</Text>
+              <Text style={[styles.selectorLabel, { color: me.ink2 }]}>
+                Date
+              </Text>
+              <Text style={[styles.selectorValue, { color: me.ink }]}>
+                {formatDate(selectedDate)}
+              </Text>
             </View>
           </View>
-          <Ionicons name="chevron-down" size={20} color={theme.colors.textTertiary} />
+          <Ionicons name='chevron-down' size={20} color={me.ink3} />
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.selectorButton, { backgroundColor: theme.colors.backgroundSecondary }]}
+          style={[styles.selectorButton, { backgroundColor: me.bg2 }]}
           onPress={() => onShowTimePicker(true)}
           accessibilityRole='button'
           accessibilityLabel={`Selected time: ${formatTime(selectedTime)}. Double tap to change`}
         >
           <View style={styles.selectorContent}>
             <View style={[styles.iconWrap, { backgroundColor: '#EDE9FE' }]}>
-              <Ionicons name="time-outline" size={16} color="#8B5CF6" />
+              <Ionicons name='time-outline' size={16} color='#8B5CF6' />
             </View>
             <View style={styles.selectorText}>
-              <Text style={[styles.selectorLabel, { color: theme.colors.textSecondary }]}>Time</Text>
-              <Text style={[styles.selectorValue, { color: theme.colors.textPrimary }]}>{formatTime(selectedTime)}</Text>
+              <Text style={[styles.selectorLabel, { color: me.ink2 }]}>
+                Time
+              </Text>
+              <Text style={[styles.selectorValue, { color: me.ink }]}>
+                {formatTime(selectedTime)}
+              </Text>
             </View>
           </View>
-          <Ionicons name="chevron-down" size={20} color={theme.colors.textTertiary} />
+          <Ionicons name='chevron-down' size={20} color={me.ink3} />
         </TouchableOpacity>
       </View>
 
       {showDatePicker && (
         <DateTimePicker
           value={selectedDate}
-          mode="date"
+          mode='date'
           display={Platform.OS === 'ios' ? 'spinner' : 'default'}
           onChange={(event, date) => {
             onShowDatePicker(false);
@@ -109,7 +128,7 @@ export const DateTimeSelector: React.FC<DateTimeSelectorProps> = ({
       {showTimePicker && (
         <DateTimePicker
           value={selectedTime}
-          mode="time"
+          mode='time'
           display={Platform.OS === 'ios' ? 'spinner' : 'default'}
           onChange={(event, time) => {
             onShowTimePicker(false);
@@ -126,10 +145,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
-    ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   sectionTitle: {
     fontSize: 12,

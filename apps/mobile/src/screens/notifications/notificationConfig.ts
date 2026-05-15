@@ -4,7 +4,7 @@
  */
 
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 import { NotificationData } from '../../services/NotificationService';
 
 export type FilterTab = 'all' | 'unread' | 'jobs' | 'payments' | 'messages';
@@ -19,25 +19,25 @@ export const FILTER_TABS: { key: FilterTab; label: string }[] = [
 
 export const ICON_COLORS: Record<string, { icon: string; bg: string }> = {
   job_update: { icon: '#3B82F6', bg: '#DBEAFE' },
-  bid_received: { icon: theme.colors.primary, bg: theme.colors.primaryLight },
-  bid_accepted: { icon: theme.colors.primary, bg: theme.colors.primaryLight },
+  bid_received: { icon: me.brand, bg: me.brandSoft },
+  bid_accepted: { icon: me.brand, bg: me.brandSoft },
   contract_created: { icon: '#8B5CF6', bg: '#EDE9FE' },
   contract_accepted: {
-    icon: theme.colors.primary,
-    bg: theme.colors.primaryLight,
+    icon: me.brand,
+    bg: me.brandSoft,
   },
   meeting_scheduled: { icon: '#8B5CF6', bg: '#EDE9FE' },
-  payment_received: { icon: theme.colors.accent, bg: theme.colors.accentLight },
+  payment_received: { icon: me.accent, bg: me.warnBg },
   message_received: { icon: '#06B6D4', bg: '#CFFAFE' },
   new_message: { icon: '#06B6D4', bg: '#CFFAFE' },
   new_job: { icon: '#3B82F6', bg: '#DBEAFE' },
   job_posted: { icon: '#3B82F6', bg: '#DBEAFE' },
-  job_completed: { icon: theme.colors.primary, bg: theme.colors.primaryLight },
-  escrow_released: { icon: theme.colors.accent, bg: theme.colors.accentLight },
+  job_completed: { icon: me.brand, bg: me.brandSoft },
+  escrow_released: { icon: me.accent, bg: me.warnBg },
   quote_sent: { icon: '#EC4899', bg: '#FCE7F3' },
   system: {
-    icon: theme.colors.textSecondary,
-    bg: theme.colors.backgroundSecondary,
+    icon: me.ink2,
+    bg: me.bg2,
   },
 };
 

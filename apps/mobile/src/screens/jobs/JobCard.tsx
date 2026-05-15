@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Job } from '@mintenance/types';
 import { ImageCarousel } from '../../components/ui/ImageCarousel';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 import {
   CATEGORY_ICONS,
   CATEGORY_COLORS,
@@ -85,11 +85,7 @@ export const JobCard: React.FC<JobCardProps> = ({
               <View style={styles.overlayRow}>
                 {isUrgent && (
                   <View style={styles.urgentTag}>
-                    <Ionicons
-                      name='flame'
-                      size={11}
-                      color={theme.colors.textInverse}
-                    />
+                    <Ionicons name='flame' size={11} color={me.onBrand} />
                     <Text style={styles.urgentTagText}>Urgent</Text>
                   </View>
                 )}
@@ -112,11 +108,7 @@ export const JobCard: React.FC<JobCardProps> = ({
           />
           {isUrgent && (
             <View style={styles.placeholderUrgent}>
-              <Ionicons
-                name='flame'
-                size={11}
-                color={theme.colors.textInverse}
-              />
+              <Ionicons name='flame' size={11} color={me.onBrand} />
               <Text style={styles.urgentTagText}>Urgent</Text>
             </View>
           )}
@@ -137,7 +129,7 @@ export const JobCard: React.FC<JobCardProps> = ({
         <Ionicons
           name={saved ? 'heart' : 'heart-outline'}
           size={20}
-          color={saved ? theme.colors.error : theme.colors.textInverse}
+          color={saved ? me.errFg : me.onBrand}
         />
       </TouchableOpacity>
 
@@ -175,20 +167,12 @@ export const JobCard: React.FC<JobCardProps> = ({
         <View style={styles.cardMeta}>
           {locationStr ? (
             <View style={styles.metaItem}>
-              <Ionicons
-                name='location-outline'
-                size={13}
-                color={theme.colors.textSecondary}
-              />
+              <Ionicons name='location-outline' size={13} color={me.ink2} />
               <Text style={styles.metaText}>{locationStr}</Text>
             </View>
           ) : null}
           <View style={styles.metaItem}>
-            <Ionicons
-              name='time-outline'
-              size={13}
-              color={theme.colors.textSecondary}
-            />
+            <Ionicons name='time-outline' size={13} color={me.ink2} />
             <Text style={styles.metaText}>{timeLabel}</Text>
           </View>
         </View>
@@ -219,11 +203,7 @@ export const JobCard: React.FC<JobCardProps> = ({
           </View>
           {!!bidCount && bidCount > 0 && (
             <View style={styles.bidBadge}>
-              <Ionicons
-                name='people-outline'
-                size={12}
-                color={theme.colors.accent}
-              />
+              <Ionicons name='people-outline' size={12} color={me.accent} />
               <Text style={styles.bidBadgeText}>
                 {bidCount} {bidCount === 1 ? 'bid' : 'bids'}
               </Text>
@@ -264,11 +244,7 @@ export const JobCard: React.FC<JobCardProps> = ({
                 <Text style={styles.contractorName}>{contractorName}</Text>
                 <Text style={styles.contractorRole}>Assigned Contractor</Text>
               </View>
-              <Ionicons
-                name='chatbubble-outline'
-                size={18}
-                color={theme.colors.primary}
-              />
+              <Ionicons name='chatbubble-outline' size={18} color={me.brand} />
             </View>
           )}
 
@@ -282,11 +258,7 @@ export const JobCard: React.FC<JobCardProps> = ({
               onPress={onPress}
               activeOpacity={0.8}
             >
-              <Ionicons
-                name='people'
-                size={16}
-                color={theme.colors.textInverse}
-              />
+              <Ionicons name='people' size={16} color={me.onBrand} />
               <Text style={styles.viewBidsText}>
                 View {bidCount} {bidCount === 1 ? 'Bid' : 'Bids'}
               </Text>
@@ -305,7 +277,7 @@ export const JobCard: React.FC<JobCardProps> = ({
             accessibilityRole='button'
             accessibilityLabel={`Quick bid on ${item.title}`}
           >
-            <Ionicons name='flash' size={16} color={theme.colors.textInverse} />
+            <Ionicons name='flash' size={16} color={me.onBrand} />
             <Text style={styles.quickBidText}>Quick Bid</Text>
             {budget > 0 && (
               <Text
@@ -319,14 +291,10 @@ export const JobCard: React.FC<JobCardProps> = ({
           <View
             style={[
               styles.quickBidBtn,
-              { backgroundColor: theme.colors.textSecondary, opacity: 0.8 },
+              { backgroundColor: me.ink2, opacity: 0.8 },
             ]}
           >
-            <Ionicons
-              name='checkmark-circle'
-              size={16}
-              color={theme.colors.textInverse}
-            />
+            <Ionicons name='checkmark-circle' size={16} color={me.onBrand} />
             <Text style={styles.quickBidText}>Bid Sent</Text>
           </View>
         )}

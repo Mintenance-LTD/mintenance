@@ -16,7 +16,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigation } from '@react-navigation/native';
 import { ScreenHeader } from '../../components/shared';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 import { styles } from './theme/styles';
 import { plansForRole } from './plans';
@@ -62,10 +62,7 @@ export const SubscriptionScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar
-        barStyle='dark-content'
-        backgroundColor={theme.colors.backgroundSecondary}
-      />
+      <StatusBar barStyle='dark-content' backgroundColor={me.bg2} />
       <ScreenHeader
         title='Subscription'
         showBack
@@ -79,8 +76,8 @@ export const SubscriptionScreen: React.FC = () => {
           <RefreshControl
             refreshing={false}
             onRefresh={refetchStatus}
-            tintColor={theme.colors.primary}
-            colors={[theme.colors.primary]}
+            tintColor={me.brand}
+            colors={[me.brand]}
           />
         }
       >

@@ -1,5 +1,5 @@
 import { StyleSheet, Platform } from 'react-native';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 export const styles = StyleSheet.create({
   container: {
@@ -10,22 +10,22 @@ export const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   permissionText: {
     fontSize: 17,
     marginTop: 16,
     marginBottom: 24,
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   permissionButton: {
     paddingHorizontal: 24,
     paddingVertical: 14,
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
     borderRadius: 28,
   },
   permissionButtonText: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -69,7 +69,7 @@ export const styles = StyleSheet.create({
     marginRight: 8,
   },
   timerText: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontSize: 15,
     fontWeight: '600',
   },
@@ -95,22 +95,22 @@ export const styles = StyleSheet.create({
   phaseTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   phaseTimer: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   progressBar: {
     height: 4,
-    backgroundColor: theme.colors.border,
+    backgroundColor: me.line,
     borderRadius: 2,
     marginBottom: 16,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
   },
   instructionsList: {
     marginBottom: 12,
@@ -123,20 +123,20 @@ export const styles = StyleSheet.create({
   instructionText: {
     marginLeft: 8,
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     flex: 1,
   },
   tipsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.accentLight,
+    backgroundColor: me.warnBg,
     padding: 12,
     borderRadius: 12,
   },
   tipText: {
     marginLeft: 8,
     fontSize: 13,
-    color: theme.colors.accent,
+    color: me.accent,
     flex: 1,
   },
   phaseIndicators: {
@@ -154,7 +154,7 @@ export const styles = StyleSheet.create({
     backgroundColor: 'rgba(255, 255, 255, 0.8)',
   },
   phaseIndicatorComplete: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
   },
   controls: {
     position: 'absolute',
@@ -170,7 +170,7 @@ export const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 6,
@@ -180,7 +180,7 @@ export const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: theme.colors.error,
+    backgroundColor: me.errFg,
   },
   recordButtonStop: {
     borderRadius: 8,
@@ -197,19 +197,19 @@ export const styles = StyleSheet.create({
   },
   previewContainer: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   previewHeader: {
     paddingHorizontal: 16,
     paddingVertical: 16,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   previewTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     textAlign: 'center',
   },
   videoPreviewContainer: {
@@ -221,7 +221,7 @@ export const styles = StyleSheet.create({
   videoPlaceholder: {
     width: '100%',
     aspectRatio: 16 / 9,
-    backgroundColor: theme.colors.border,
+    backgroundColor: me.line,
     borderRadius: 16,
     justifyContent: 'center',
     alignItems: 'center',
@@ -229,14 +229,14 @@ export const styles = StyleSheet.create({
   videoInfo: {
     marginTop: 8,
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   previewActions: {
     flexDirection: 'row',
     padding: 16,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: theme.colors.border,
+    borderTopColor: me.line,
     gap: 12,
   },
   actionButton: {
@@ -249,24 +249,24 @@ export const styles = StyleSheet.create({
     gap: 8,
   },
   retakeButton: {
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   confirmButton: {
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
   },
   actionButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   confirmButtonText: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
   },
   uploadProgress: {
     marginLeft: 8,
     fontSize: 13,
-    color: theme.colors.textInverse,
+    color: me.onBrand,
   },
 });

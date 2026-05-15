@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   RefreshControl,
   Alert,
-  Platform,
   ScrollView,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -25,7 +24,7 @@ import type {
   JobsStackParamList,
   ProfileStackParamList,
 } from '../navigation/types';
-import { theme } from '../theme';
+import { me } from '../design-system/mint-editorial';
 
 type Nav = CompositeNavigationProp<
   NativeStackNavigationProp<JobsStackParamList>,
@@ -217,11 +216,7 @@ export const InvoiceManagementScreen: React.FC<{ navigation: Nav }> = ({
                   style={s.actBtn}
                   onPress={() => toast.success('Sending invoice...')}
                 >
-                  <Ionicons
-                    name='send-outline'
-                    size={16}
-                    color={theme.colors.textSecondary}
-                  />
+                  <Ionicons name='send-outline' size={16} color={me.ink2} />
                   <Text style={s.actText}>Send</Text>
                 </TouchableOpacity>
               )}
@@ -233,25 +228,17 @@ export const InvoiceManagementScreen: React.FC<{ navigation: Nav }> = ({
                   <Ionicons
                     name='checkmark-circle-outline'
                     size={16}
-                    color={theme.colors.primary}
+                    color={me.brand}
                   />
-                  <Text style={[s.actText, { color: theme.colors.primary }]}>
-                    Paid
-                  </Text>
+                  <Text style={[s.actText, { color: me.brand }]}>Paid</Text>
                 </TouchableOpacity>
               )}
               <TouchableOpacity
                 style={s.actBtn}
                 onPress={() => deleteInv(item)}
               >
-                <Ionicons
-                  name='trash-outline'
-                  size={16}
-                  color={theme.colors.error}
-                />
-                <Text style={[s.actText, { color: theme.colors.error }]}>
-                  Delete
-                </Text>
+                <Ionicons name='trash-outline' size={16} color={me.errFg} />
+                <Text style={[s.actText, { color: me.errFg }]}>Delete</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -274,11 +261,7 @@ export const InvoiceManagementScreen: React.FC<{ navigation: Nav }> = ({
             accessibilityRole='button'
             accessibilityLabel='Go back'
           >
-            <Ionicons
-              name='arrow-back'
-              size={22}
-              color={theme.colors.textPrimary}
-            />
+            <Ionicons name='arrow-back' size={22} color={me.ink} />
           </TouchableOpacity>
         ) : (
           <View style={s.hBtn} />
@@ -290,7 +273,7 @@ export const InvoiceManagementScreen: React.FC<{ navigation: Nav }> = ({
           accessibilityRole='button'
           accessibilityLabel='Create new invoice'
         >
-          <Ionicons name='add' size={22} color={theme.colors.textInverse} />
+          <Ionicons name='add' size={22} color={me.onBrand} />
         </TouchableOpacity>
       </View>
 
@@ -338,8 +321,8 @@ export const InvoiceManagementScreen: React.FC<{ navigation: Nav }> = ({
           <RefreshControl
             refreshing={false}
             onRefresh={() => refetch()}
-            tintColor={theme.colors.primary}
-            colors={[theme.colors.primary]}
+            tintColor={me.brand}
+            colors={[me.brand]}
           />
         }
         ListEmptyComponent={
@@ -348,7 +331,7 @@ export const InvoiceManagementScreen: React.FC<{ navigation: Nav }> = ({
               <Ionicons
                 name='document-text-outline'
                 size={40}
-                color={theme.colors.textTertiary}
+                color={me.ink3}
               />
             </View>
             <Text style={s.emptyTitle}>No invoices yet</Text>
@@ -368,28 +351,19 @@ export const InvoiceManagementScreen: React.FC<{ navigation: Nav }> = ({
   );
 };
 
-const shadow = (o: number, r: number, e: number) =>
-  Platform.select({
-    ios: {
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: o },
-      shadowOpacity: 0.06,
-      shadowRadius: r,
-    },
-    android: { elevation: e },
-  });
+const shadow = (_o: number, _r: number, _e: number) => me.shadow.card;
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
+  root: { flex: 1, backgroundColor: me.bg2 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   hBtn: {
     width: 36,
@@ -398,11 +372,11 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  hTitle: { fontSize: 18, fontWeight: '700', color: theme.colors.textPrimary },
-  addBtn: { backgroundColor: theme.colors.primary },
+  hTitle: { fontSize: 18, fontWeight: '700', color: me.ink },
+  addBtn: { backgroundColor: me.brand },
   summary: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     paddingHorizontal: 16,
     paddingTop: 14,
     paddingBottom: 4,
@@ -418,20 +392,20 @@ const s = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 18,
     borderRadius: 20,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     ...shadow(1, 4, 1),
   },
-  pillOn: { backgroundColor: theme.colors.primary },
+  pillOn: { backgroundColor: me.brand },
   pillText: {
     fontSize: 13,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
-  pillTextOn: { color: theme.colors.textInverse },
+  pillTextOn: { color: me.onBrand },
   list: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 32 },
   card: {
     flexDirection: 'row',
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 14,
     marginBottom: 12,
     overflow: 'hidden',
@@ -447,28 +421,28 @@ const s = StyleSheet.create({
   client: {
     fontSize: 15,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     flex: 1,
     marginRight: 8,
   },
   badge: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 12 },
   badgeText: { fontSize: 11, fontWeight: '600' },
-  invNum: { fontSize: 13, color: theme.colors.textSecondary },
-  amount: { fontSize: 18, fontWeight: '700', color: theme.colors.textPrimary },
-  date: { fontSize: 12, color: theme.colors.textTertiary },
+  invNum: { fontSize: 13, color: me.ink2 },
+  amount: { fontSize: 18, fontWeight: '700', color: me.ink },
+  date: { fontSize: 12, color: me.ink3 },
   actions: { flexDirection: 'row', gap: 16, marginTop: 4 },
   actBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   actText: {
     fontSize: 12,
     fontWeight: '500',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   empty: { alignItems: 'center', paddingTop: 80, paddingHorizontal: 32 },
   emptyIcon: {
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -476,24 +450,24 @@ const s = StyleSheet.create({
   emptyTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 6,
   },
   emptyDesc: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 24,
   },
   emptyBtn: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
     paddingVertical: 14,
     paddingHorizontal: 32,
     borderRadius: 28,
   },
   emptyBtnTxt: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontSize: 15,
     fontWeight: '600',
   },

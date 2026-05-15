@@ -10,15 +10,9 @@
  */
 
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Platform,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 export interface Review {
   id: string;
@@ -34,12 +28,7 @@ export interface Review {
   responseBlockedByAdmin: boolean;
 }
 
-const AVATAR_COLORS = [
-  theme.colors.textPrimary,
-  theme.colors.primary,
-  theme.colors.accent,
-  theme.colors.textSecondary,
-];
+const AVATAR_COLORS = [me.ink, me.brand, me.accent, me.ink2];
 
 export const StarRating: React.FC<{ rating: number; size?: number }> = ({
   rating,
@@ -57,11 +46,7 @@ export const StarRating: React.FC<{ rating: number; size?: number }> = ({
               : 'star-outline'
         }
         size={size}
-        color={
-          star <= rating || star - 0.5 <= rating
-            ? theme.colors.accent
-            : theme.colors.border
-        }
+        color={star <= rating || star - 0.5 <= rating ? me.accent : me.line}
       />
     ))}
   </View>
@@ -131,11 +116,7 @@ export const ReviewCard: React.FC<{
       </View>
 
       <View style={styles.jobChip}>
-        <Ionicons
-          name='briefcase-outline'
-          size={12}
-          color={theme.colors.textSecondary}
-        />
+        <Ionicons name='briefcase-outline' size={12} color={me.ink2} />
         <Text style={styles.jobLabel}>{review.job_title}</Text>
       </View>
       {review.comment && (
@@ -157,11 +138,7 @@ export const ReviewCard: React.FC<{
           accessibilityRole='button'
           accessibilityLabel='Reply to this review'
         >
-          <Ionicons
-            name='return-up-back-outline'
-            size={16}
-            color={theme.colors.primary}
-          />
+          <Ionicons name='return-up-back-outline' size={16} color={me.brand} />
           <Text style={styles.replyCtaText}>Reply</Text>
         </TouchableOpacity>
       )}
@@ -171,19 +148,11 @@ export const ReviewCard: React.FC<{
 
 const styles = StyleSheet.create({
   reviewCard: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
-    ...Platform.select({
-      ios: {
-        shadowColor: theme.colors.textPrimary,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   reviewHeader: {
     flexDirection: 'row',
@@ -202,16 +171,16 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 14,
     fontWeight: '700',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
   },
   reviewerName: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   reviewDate: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginTop: 1,
   },
   jobChip: {
@@ -221,51 +190,51 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     paddingHorizontal: 8,
     paddingVertical: 3,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 8,
     marginBottom: 10,
   },
   jobLabel: {
     fontSize: 11,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     fontWeight: '500',
   },
   reviewComment: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     lineHeight: 21,
   },
   replyBlock: {
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
+    borderTopColor: me.line,
   },
   replyHeader: {
     fontSize: 12,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 4,
   },
   replyBody: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     lineHeight: 20,
   },
   replyBannerPublished: {
     marginTop: 6,
     fontSize: 11,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
   },
   replyBannerPending: {
     marginTop: 6,
     fontSize: 11,
-    color: theme.colors.accent,
+    color: me.accent,
   },
   replyBannerBlocked: {
     marginTop: 6,
     fontSize: 11,
-    color: theme.colors.error,
+    color: me.errFg,
   },
   replyCta: {
     marginTop: 12,
@@ -278,6 +247,6 @@ const styles = StyleSheet.create({
   replyCtaText: {
     fontSize: 13,
     fontWeight: '700',
-    color: theme.colors.primary,
+    color: me.brand,
   },
 });

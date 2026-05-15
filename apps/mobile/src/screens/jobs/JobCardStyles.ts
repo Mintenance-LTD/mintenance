@@ -1,15 +1,15 @@
 import { StyleSheet } from 'react-native';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 export const styles = StyleSheet.create({
   jobCard: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 24,
     marginHorizontal: 16,
     marginTop: 12,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
   heroSection: {
     borderTopLeftRadius: 24,
@@ -27,7 +27,7 @@ export const styles = StyleSheet.create({
     left: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.error,
+    backgroundColor: me.errFg,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 20,
@@ -37,7 +37,7 @@ export const styles = StyleSheet.create({
   urgentTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.error,
+    backgroundColor: me.errFg,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 20,
@@ -46,7 +46,7 @@ export const styles = StyleSheet.create({
   urgentTagText: {
     fontSize: 10,
     fontWeight: '800',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
@@ -84,14 +84,14 @@ export const styles = StyleSheet.create({
   budgetText: {
     fontSize: 22,
     fontWeight: '800',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     letterSpacing: -0.5,
     marginBottom: 4,
   },
   jobTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 12,
     lineHeight: 22,
   },
@@ -107,7 +107,7 @@ export const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     fontWeight: '500',
   },
   tagsRow: {
@@ -117,7 +117,7 @@ export const styles = StyleSheet.create({
     marginBottom: 2,
     paddingTop: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: theme.colors.border,
+    borderTopColor: me.line,
   },
   categoryTag: {
     flexDirection: 'row',
@@ -137,7 +137,7 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: theme.colors.accentLight,
+    backgroundColor: me.warnBg,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 20,
@@ -145,10 +145,10 @@ export const styles = StyleSheet.create({
   bidBadgeText: {
     fontSize: 11,
     fontWeight: '700',
-    color: theme.colors.accent,
+    color: me.accent,
   },
   newBadge: {
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: me.brandSoft,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 20,
@@ -156,13 +156,13 @@ export const styles = StyleSheet.create({
   newBadgeText: {
     fontSize: 11,
     fontWeight: '700',
-    color: theme.colors.primary,
+    color: me.brand,
   },
   progressSection: {
     marginTop: 14,
     paddingTop: 14,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: theme.colors.border,
+    borderTopColor: me.line,
   },
   progressLabels: {
     flexDirection: 'row',
@@ -171,7 +171,7 @@ export const styles = StyleSheet.create({
   },
   progressLabelText: {
     fontSize: 10,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     fontWeight: '500',
   },
   contractorRow: {
@@ -179,7 +179,7 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     marginTop: 12,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 14,
     padding: 12,
   },
@@ -187,23 +187,23 @@ export const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: me.brandSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
   contractorInitial: {
     fontSize: 14,
     fontWeight: '700',
-    color: theme.colors.primary,
+    color: me.brand,
   },
   contractorName: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   contractorRole: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginTop: 1,
   },
   viewBidsBtn: {
@@ -211,13 +211,13 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
     borderRadius: 16,
     paddingVertical: 14,
     marginTop: 14,
   },
   viewBidsText: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontSize: 13,
     fontWeight: '700',
     textTransform: 'uppercase',
@@ -228,13 +228,13 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
     borderRadius: 16,
     paddingVertical: 14,
     marginTop: 14,
   },
   quickBidText: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontSize: 13,
     fontWeight: '700',
     textTransform: 'uppercase',

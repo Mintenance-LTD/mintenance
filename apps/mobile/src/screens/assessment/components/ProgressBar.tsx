@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 interface ProgressBarProps {
   percentage: number;
@@ -34,11 +34,11 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   topRow: {
     flexDirection: 'row',
@@ -49,21 +49,21 @@ const styles = StyleSheet.create({
   percentage: {
     fontSize: 28,
     fontWeight: '800',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   stepCount: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   barTrack: {
     height: 8,
-    backgroundColor: theme.colors.border,
+    backgroundColor: me.line,
     borderRadius: 4,
     overflow: 'hidden',
   },
   barFill: {
     height: '100%',
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
     borderRadius: 4,
   },
 });
