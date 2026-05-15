@@ -13,7 +13,7 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { BookingStatus, TabInfo } from '../viewmodels/BookingViewModel';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 interface TabHeaderProps {
   activeTab: BookingStatus;
@@ -36,13 +36,13 @@ export const TabHeader: React.FC<TabHeaderProps> = ({
       {/* Navigation Header */}
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity onPress={onBackPress} style={styles.headerButton}>
-          <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
+          <Ionicons name='arrow-back' size={24} color={me.ink} />
         </TouchableOpacity>
 
         <Text style={styles.headerTitle}>Bookings</Text>
 
         <TouchableOpacity onPress={onSearchPress} style={styles.headerButton}>
-          <Ionicons name="search" size={24} color={theme.colors.textPrimary} />
+          <Ionicons name='search' size={24} color={me.ink} />
         </TouchableOpacity>
       </View>
 
@@ -51,10 +51,7 @@ export const TabHeader: React.FC<TabHeaderProps> = ({
         {tabs.map((tab) => (
           <TouchableOpacity
             key={tab.id}
-            style={[
-              styles.tab,
-              activeTab === tab.id && styles.activeTab
-            ]}
+            style={[styles.tab, activeTab === tab.id && styles.activeTab]}
             onPress={() => onTabPress(tab.id as BookingStatus)}
             activeOpacity={0.7}
           >
@@ -81,7 +78,7 @@ export const TabHeader: React.FC<TabHeaderProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
   },
   header: {
     flexDirection: 'row',
@@ -101,14 +98,14 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   tabsContainer: {
     flexDirection: 'row',
     paddingHorizontal: 20,
     marginBottom: 20,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   tab: {
     flex: 1,
@@ -122,20 +119,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   activeTab: {
-    borderBottomColor: theme.colors.textPrimary,
+    borderBottomColor: me.ink,
   },
   tabText: {
     fontSize: 15,
     fontWeight: '500',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginRight: 6,
   },
   activeTabText: {
-    color: theme.colors.textPrimary,
+    color: me.ink,
     fontWeight: '600',
   },
   tabBadge: {
-    backgroundColor: theme.colors.error,
+    backgroundColor: me.errFg,
     borderRadius: 10,
     minWidth: 20,
     height: 20,
@@ -144,7 +141,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   tabBadgeText: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontSize: 11,
     fontWeight: '600',
   },

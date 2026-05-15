@@ -12,7 +12,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NavigationProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { Bid } from '../services/BidService';
-import { theme } from '../theme';
+import { me } from '../design-system/mint-editorial';
 import { styles } from './BidReviewStyles';
 import { formatCurrency } from '../utils/formatCurrency';
 import type { RootStackParamList } from '../navigation/types';
@@ -35,26 +35,14 @@ function renderStars(rating: number) {
   const stars = [];
   const full = Math.floor(rating);
   for (let i = 0; i < full; i++)
-    stars.push(
-      <Ionicons key={i} name='star' size={14} color={theme.colors.accent} />
-    );
+    stars.push(<Ionicons key={i} name='star' size={14} color={me.accent} />);
   if (rating % 1 !== 0)
     stars.push(
-      <Ionicons
-        key='half'
-        name='star-half'
-        size={14}
-        color={theme.colors.accent}
-      />
+      <Ionicons key='half' name='star-half' size={14} color={me.accent} />
     );
   for (let i = 0; i < 5 - Math.ceil(rating); i++)
     stars.push(
-      <Ionicons
-        key={`e${i}`}
-        name='star-outline'
-        size={14}
-        color={theme.colors.textTertiary}
-      />
+      <Ionicons key={`e${i}`} name='star-outline' size={14} color={me.ink3} />
     );
   return stars;
 }
@@ -128,7 +116,7 @@ export const BidReviewCard: React.FC<Props> = ({ bid, quoteData }) => {
       </ImageBackground>
     ) : (
       <LinearGradient
-        colors={[theme.colors.primary, theme.colors.primaryLight]}
+        colors={[me.brand, me.brandSoft]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.hero}
@@ -161,7 +149,7 @@ export const BidReviewCard: React.FC<Props> = ({ bid, quoteData }) => {
               <Ionicons
                 name='person-circle-outline'
                 size={64}
-                color={theme.colors.textSecondary}
+                color={me.ink2}
               />
             </View>
           )}
@@ -187,21 +175,13 @@ export const BidReviewCard: React.FC<Props> = ({ bid, quoteData }) => {
             </View>
           ) : (
             <View style={[styles.newBadge, styles.heroBadgeCenter]}>
-              <Ionicons
-                name='sparkles'
-                size={12}
-                color={theme.colors.primary}
-              />
+              <Ionicons name='sparkles' size={12} color={me.brand} />
               <Text style={styles.newBadgeText}>New on Mintenance</Text>
             </View>
           )}
           {contractor?.city ? (
             <View style={styles.heroLocationRow}>
-              <Ionicons
-                name='location-outline'
-                size={13}
-                color={theme.colors.textTertiary}
-              />
+              <Ionicons name='location-outline' size={13} color={me.ink3} />
               <Text style={styles.locationText}>{contractor.city}</Text>
             </View>
           ) : null}
@@ -287,11 +267,7 @@ export const BidReviewCard: React.FC<Props> = ({ bid, quoteData }) => {
             <View style={styles.statsRow}>
               {contractor?.hourly_rate != null && (
                 <View style={styles.statChip}>
-                  <Ionicons
-                    name='cash-outline'
-                    size={14}
-                    color={theme.colors.primary}
-                  />
+                  <Ionicons name='cash-outline' size={14} color={me.brand} />
                   <Text style={styles.statText}>
                     {formatCurrency(contractor.hourly_rate)}/hr
                   </Text>
@@ -302,7 +278,7 @@ export const BidReviewCard: React.FC<Props> = ({ bid, quoteData }) => {
                   <Ionicons
                     name='construct-outline'
                     size={14}
-                    color={theme.colors.accent}
+                    color={me.accent}
                   />
                   <Text style={styles.statText}>
                     {contractor.years_experience} yrs exp
@@ -327,14 +303,10 @@ export const BidReviewCard: React.FC<Props> = ({ bid, quoteData }) => {
               <View
                 style={[
                   styles.detailIconWrap,
-                  { backgroundColor: theme.colors.primaryLight },
+                  { backgroundColor: me.brandSoft },
                 ]}
               >
-                <Ionicons
-                  name='calendar-outline'
-                  size={16}
-                  color={theme.colors.primary}
-                />
+                <Ionicons name='calendar-outline' size={16} color={me.brand} />
               </View>
               <Text style={styles.detailText}>
                 Available: {bid.availability}

@@ -1,8 +1,8 @@
-import { StyleSheet, Platform } from 'react-native';
-import { theme } from '../theme';
+import { StyleSheet } from 'react-native';
+import { me } from '../design-system/mint-editorial';
 
 export const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
+  container: { flex: 1, backgroundColor: me.bg2 },
   centered: {
     flex: 1,
     justifyContent: 'center',
@@ -12,7 +12,7 @@ export const styles = StyleSheet.create({
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   header: {
     flexDirection: 'row',
@@ -20,15 +20,15 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   backBtn: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -36,15 +36,15 @@ export const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   headerSubtitle: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginTop: 2,
   },
   bidCountChip: {
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 12,
     paddingHorizontal: 10,
     paddingVertical: 4,
@@ -52,7 +52,7 @@ export const styles = StyleSheet.create({
   bidCountText: {
     fontSize: 13,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   swiperContainer: {
     flex: 1,
@@ -62,13 +62,13 @@ export const styles = StyleSheet.create({
   },
   bidCard: {
     flex: 1,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 20,
     // padding removed so the hero can extend to the card edges; the
     // body block below the hero re-introduces horizontal padding.
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
   cardScroll: { flex: 1 },
   contractorHeader: {
@@ -78,7 +78,7 @@ export const styles = StyleSheet.create({
   },
   avatar: { width: 64, height: 64, borderRadius: 32, marginRight: 14 },
   avatarPlaceholder: {
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -86,22 +86,22 @@ export const styles = StyleSheet.create({
   contractorName: {
     fontSize: 20,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 2,
   },
   companyName: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginBottom: 4,
   },
   ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   stars: { flexDirection: 'row' },
-  ratingText: { fontSize: 13, color: theme.colors.textSecondary },
+  ratingText: { fontSize: 13, color: me.ink2 },
   newBadge: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: me.brandSoft,
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 10,
@@ -111,7 +111,7 @@ export const styles = StyleSheet.create({
   newBadgeText: {
     fontSize: 11,
     fontWeight: '600',
-    color: theme.colors.primary,
+    color: me.brand,
   },
   locationRow: {
     flexDirection: 'row',
@@ -119,16 +119,16 @@ export const styles = StyleSheet.create({
     gap: 3,
     marginTop: 4,
   },
-  locationText: { fontSize: 13, color: theme.colors.textTertiary },
+  locationText: { fontSize: 13, color: me.ink3 },
   viewProfileLink: {
     fontSize: 13,
     fontWeight: '600',
-    color: theme.colors.primary,
+    color: me.brand,
     marginTop: 6,
   },
   bioText: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     lineHeight: 20,
     marginBottom: 16,
     fontStyle: 'italic',
@@ -138,7 +138,7 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
@@ -146,10 +146,10 @@ export const styles = StyleSheet.create({
   statText: {
     fontSize: 13,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   amountSection: {
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 16,
     padding: 16,
     alignItems: 'center',
@@ -157,7 +157,7 @@ export const styles = StyleSheet.create({
   },
   // Quote breakdown (line items)
   quoteBreakdown: {
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 16,
     padding: 14,
     marginBottom: 16,
@@ -165,7 +165,7 @@ export const styles = StyleSheet.create({
   quoteBreakdownTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: theme.colors.primary,
+    color: me.brand,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 10,
@@ -176,19 +176,19 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   lineItemInfo: { flex: 1, marginRight: 12 },
   lineItemDesc: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
-  lineItemQty: { fontSize: 12, color: theme.colors.textTertiary, marginTop: 2 },
+  lineItemQty: { fontSize: 12, color: me.ink3, marginTop: 2 },
   lineItemTotal: {
     fontSize: 14,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   quoteSummary: { marginTop: 10 },
   quoteSummaryRow: {
@@ -196,39 +196,39 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 4,
   },
-  quoteSummaryLabel: { fontSize: 13, color: theme.colors.textSecondary },
+  quoteSummaryLabel: { fontSize: 13, color: me.ink2 },
   quoteSummaryValue: {
     fontSize: 13,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   quoteTotalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
+    borderTopColor: me.line,
     marginTop: 4,
   },
   quoteTotalLabel: {
     fontSize: 15,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   quoteTotalValue: {
     fontSize: 15,
     fontWeight: '800',
-    color: theme.colors.primary,
+    color: me.brand,
   },
   amountLabel: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginBottom: 4,
   },
   amountValue: {
     fontSize: 32,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   detailRow: {
     flexDirection: 'row',
@@ -244,22 +244,22 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  detailText: { fontSize: 15, color: theme.colors.textSecondary },
+  detailText: { fontSize: 15, color: me.ink2 },
   proposalSection: {
     marginTop: 12,
     paddingTop: 16,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: theme.colors.border,
+    borderTopColor: me.line,
   },
   proposalLabel: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 8,
   },
   proposalText: {
     fontSize: 15,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     lineHeight: 22,
   },
   actionButtons: {
@@ -269,8 +269,8 @@ export const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingBottom: 24,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
+    borderTopColor: me.line,
+    backgroundColor: me.surface,
   },
   rejectButton: {
     width: 64,
@@ -279,50 +279,34 @@ export const styles = StyleSheet.create({
     backgroundColor: '#FEE2E2',
     justifyContent: 'center',
     alignItems: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   acceptButton: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: me.brandSoft,
     justifyContent: 'center',
     alignItems: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   overlayPass: { alignItems: 'center' },
   overlayPassText: {
     fontSize: 24,
     fontWeight: '700',
-    color: theme.colors.error,
+    color: me.errFg,
   },
   overlayAccept: { alignItems: 'center' },
   overlayAcceptText: {
     fontSize: 24,
     fontWeight: '700',
-    color: theme.colors.primary,
+    color: me.brand,
   },
   emptyIconWrap: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: me.brandSoft,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
@@ -330,11 +314,11 @@ export const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 22,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   emptySubtitle: {
     fontSize: 15,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     textAlign: 'center',
     marginTop: 8,
   },
@@ -343,10 +327,10 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 28,
     paddingVertical: 14,
     borderRadius: 28,
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
   },
   goBackButtonText: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -374,7 +358,7 @@ export const styles = StyleSheet.create({
     width: 110,
     height: 110,
     borderRadius: 55,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -390,20 +374,20 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
     borderRadius: 14,
     zIndex: 50,
   },
   undoSnackbarText: {
     flex: 1,
     fontSize: 14,
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontWeight: '500',
   },
   undoSnackbarAction: {
     fontSize: 14,
     fontWeight: '700',
-    color: theme.colors.accent,
+    color: me.accent,
     marginLeft: 12,
   },
   summaryRow: {
@@ -411,12 +395,12 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-around',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     marginHorizontal: 16,
     marginTop: 10,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
   summaryItem: { alignItems: 'center' },
   summaryIconWrap: {
@@ -429,14 +413,14 @@ export const styles = StyleSheet.create({
   },
   summaryLabel: {
     fontSize: 11,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     textTransform: 'uppercase',
     letterSpacing: 0.4,
   },
   summaryValue: {
     fontSize: 14,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 2,
   },
   sortRow: {
@@ -449,20 +433,20 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
   sortChipActive: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
+    backgroundColor: me.brand,
+    borderColor: me.brand,
   },
   sortChipText: {
     fontSize: 13,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
-  sortChipTextActive: { color: theme.colors.textInverse },
+  sortChipTextActive: { color: me.onBrand },
 
   // Media-first hero (BidReviewCard #1 step 2): blurred avatar bg or
   // teal gradient, with crisp 96x96 avatar overlapping the body.
@@ -470,7 +454,7 @@ export const styles = StyleSheet.create({
     width: '100%',
     height: 140,
     justifyContent: 'flex-end',
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
   },
   heroImage: { resizeMode: 'cover' },
   heroDimOverlay: {
@@ -483,17 +467,9 @@ export const styles = StyleSheet.create({
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     padding: 4,
-    ...Platform.select({
-      ios: {
-        shadowColor: theme.colors.textPrimary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.12,
-        shadowRadius: 8,
-      },
-      android: { elevation: 4 },
-    }),
+    ...me.shadow.pop,
   },
   heroAvatar: {
     width: 88,
@@ -509,13 +485,13 @@ export const styles = StyleSheet.create({
   heroName: {
     fontSize: 22,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     textAlign: 'center',
     marginTop: 4,
   },
   heroCompany: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     textAlign: 'center',
     marginTop: 2,
   },

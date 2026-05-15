@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../../theme';
+import { me } from '../../../../design-system/mint-editorial';
 import { styles } from '../theme/styles';
 
 /**
@@ -27,14 +27,10 @@ export function SubmitFooter({
         accessibilityLabel={submitting ? 'Posting job' : 'Post job'}
       >
         {submitting ? (
-          <ActivityIndicator color={theme.colors.textInverse} />
+          <ActivityIndicator color={me.onBrand} />
         ) : (
           <>
-            <Ionicons
-              name='paper-plane'
-              size={18}
-              color={theme.colors.textInverse}
-            />
+            <Ionicons name='paper-plane' size={18} color={me.onBrand} />
             <Text style={styles.submitText}>Post Job</Text>
           </>
         )}

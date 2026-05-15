@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../../theme';
+import { me } from '../../../../design-system/mint-editorial';
 import { styles } from '../theme/styles';
 
 /**
@@ -17,11 +17,7 @@ export function QuickJobHeader({ onBack }: { onBack: () => void }) {
         accessibilityRole='button'
         accessibilityLabel='Go back'
       >
-        <Ionicons
-          name='arrow-back'
-          size={22}
-          color={theme.colors.textPrimary}
-        />
+        <Ionicons name='arrow-back' size={22} color={me.ink} />
       </TouchableOpacity>
       <Text style={styles.headerTitle}>Post a Quick Job</Text>
       <View style={styles.headerSpacer} />

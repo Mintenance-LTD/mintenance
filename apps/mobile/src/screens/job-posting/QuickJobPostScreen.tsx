@@ -23,7 +23,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { useAuth } from '../../contexts/AuthContext';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 import { styles } from './quick-job-post/theme/styles';
 import {
@@ -167,11 +167,7 @@ export const QuickJobPostScreen: React.FC = () => {
           <Text style={styles.moreOptionsText}>
             Need more options? Use the full form
           </Text>
-          <Ionicons
-            name='arrow-forward'
-            size={16}
-            color={theme.colors.textTertiary}
-          />
+          <Ionicons name='arrow-forward' size={16} color={me.ink3} />
         </TouchableOpacity>
 
         <View style={{ height: 100 }} />

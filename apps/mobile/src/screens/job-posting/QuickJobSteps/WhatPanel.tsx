@@ -2,39 +2,39 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { JOB_CATEGORIES } from './types';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 const CATEGORY_COLORS: Record<string, { iconColor: string; iconBg: string }> = {
   plumbing: {
-    iconColor: theme.colors.primary,
-    iconBg: theme.colors.primaryLight,
+    iconColor: me.brand,
+    iconBg: me.brandSoft,
   },
-  electrical: { iconColor: '#92400E', iconBg: theme.colors.accentLight },
+  electrical: { iconColor: me.warnFg, iconBg: me.warnBg },
   carpentry: {
-    iconColor: theme.colors.accent,
-    iconBg: theme.colors.accentLight,
+    iconColor: me.accent,
+    iconBg: me.warnBg,
   },
   painting: { iconColor: '#3B82F6', iconBg: '#DBEAFE' },
   roofing: {
-    iconColor: theme.colors.primaryDark,
-    iconBg: theme.colors.primaryLight,
+    iconColor: me.brand2,
+    iconBg: me.brandSoft,
   },
   landscaping: {
-    iconColor: theme.colors.primary,
-    iconBg: theme.colors.primaryLight,
+    iconColor: me.brand,
+    iconBg: me.brandSoft,
   },
   hvac: { iconColor: '#991B1B', iconBg: '#FEE2E2' },
   general: {
-    iconColor: theme.colors.textSecondary,
-    iconBg: theme.colors.backgroundSecondary,
+    iconColor: me.ink2,
+    iconBg: me.bg2,
   },
   cleaning: {
-    iconColor: theme.colors.primary,
-    iconBg: theme.colors.primaryLight,
+    iconColor: me.brand,
+    iconBg: me.brandSoft,
   },
   flooring: {
-    iconColor: theme.colors.primary,
-    iconBg: theme.colors.primaryLight,
+    iconColor: me.brand,
+    iconBg: me.brandSoft,
   },
 };
 
@@ -65,15 +65,14 @@ export const WhatPanel: React.FC<Props> = ({
               style={[
                 styles.iconContainer,
                 {
-                  backgroundColor:
-                    colors?.iconBg ?? theme.colors.backgroundSecondary,
+                  backgroundColor: colors?.iconBg ?? me.bg2,
                 },
               ]}
             >
               <Ionicons
                 name={cat.icon as keyof typeof Ionicons.glyphMap}
                 size={22}
-                color={colors?.iconColor ?? theme.colors.textSecondary}
+                color={colors?.iconColor ?? me.ink2}
               />
             </View>
             <Text
@@ -101,7 +100,7 @@ const styles = StyleSheet.create({
   panelTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 16,
   },
   categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
@@ -111,10 +110,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 14,
     borderRadius: 16,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     gap: 10,
   },
-  categoryCardActive: { backgroundColor: theme.colors.backgroundSecondary },
+  categoryCardActive: { backgroundColor: me.bg2 },
   iconContainer: {
     width: 40,
     height: 40,
@@ -125,20 +124,20 @@ const styles = StyleSheet.create({
   categoryLabel: {
     fontSize: 13,
     fontWeight: '500',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     flex: 1,
   },
-  categoryLabelActive: { color: theme.colors.primary, fontWeight: '700' },
+  categoryLabelActive: { color: me.brand, fontWeight: '700' },
   doneButton: {
     alignSelf: 'flex-end',
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
     paddingHorizontal: 28,
     paddingVertical: 12,
     borderRadius: 28,
     marginTop: 16,
   },
   doneButtonText: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontSize: 15,
     fontWeight: '600',
   },

@@ -6,9 +6,15 @@
  */
 
 import React from 'react';
-import { View, TouchableOpacity, Text, StyleSheet, ActivityIndicator, Platform } from 'react-native';
+import {
+  View,
+  TouchableOpacity,
+  Text,
+  StyleSheet,
+  ActivityIndicator,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 interface QuoteActionsProps {
   loading: boolean;
@@ -28,14 +34,14 @@ export const QuoteActions: React.FC<QuoteActionsProps> = ({
         style={styles.draftButton}
         onPress={onSave}
         disabled={loading}
-        accessibilityRole="button"
+        accessibilityRole='button'
         accessibilityLabel={loading ? 'Saving quote' : 'Save as draft'}
       >
         {loading ? (
-          <ActivityIndicator size="small" color={theme.colors.textPrimary} />
+          <ActivityIndicator size='small' color={me.ink} />
         ) : (
           <>
-            <Ionicons name="bookmark-outline" size={18} color={theme.colors.textPrimary} />
+            <Ionicons name='bookmark-outline' size={18} color={me.ink} />
             <Text style={styles.draftButtonText}>Save Draft</Text>
           </>
         )}
@@ -45,14 +51,14 @@ export const QuoteActions: React.FC<QuoteActionsProps> = ({
         style={styles.sendButton}
         onPress={onSend}
         disabled={loading}
-        accessibilityRole="button"
+        accessibilityRole='button'
         accessibilityLabel={loading ? 'Sending quote' : 'Send quote to client'}
       >
         {loading ? (
-          <ActivityIndicator size="small" color={theme.colors.textInverse} />
+          <ActivityIndicator size='small' color={me.onBrand} />
         ) : (
           <>
-            <Ionicons name="send" size={16} color={theme.colors.textInverse} />
+            <Ionicons name='send' size={16} color={me.onBrand} />
             <Text style={styles.sendButtonText}>Send Quote</Text>
           </>
         )}
@@ -74,14 +80,14 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 14,
     borderRadius: 28,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderWidth: 1.5,
-    borderColor: theme.colors.textPrimary,
+    borderColor: me.ink,
   },
   draftButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   sendButton: {
     flex: 1.4,
@@ -91,20 +97,12 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 14,
     borderRadius: 28,
-    backgroundColor: theme.colors.textPrimary,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.15,
-        shadowRadius: 8,
-      },
-      android: { elevation: 4 },
-    }),
+    backgroundColor: me.ink,
+    ...me.shadow.pop,
   },
   sendButtonText: {
     fontSize: 15,
     fontWeight: '700',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
   },
 });

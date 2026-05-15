@@ -14,7 +14,7 @@
 import React from 'react';
 import { View, Text, TextInput, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 export interface TenancyState {
   isRentalProperty: boolean;
@@ -32,18 +32,18 @@ export const TenancyFields: React.FC<Props> = ({ value, onChange }) => {
     <View
       style={{
         borderWidth: 1,
-        borderColor: theme.colors.border,
+        borderColor: me.line,
         borderRadius: 12,
         padding: 14,
         marginVertical: 12,
-        backgroundColor: theme.colors.backgroundSecondary,
+        backgroundColor: me.bg2,
       }}
     >
       <Text
         style={{
           fontSize: 15,
           fontWeight: '700',
-          color: theme.colors.textPrimary,
+          color: me.ink,
           marginBottom: 4,
         }}
       >
@@ -52,7 +52,7 @@ export const TenancyFields: React.FC<Props> = ({ value, onChange }) => {
       <Text
         style={{
           fontSize: 12,
-          color: theme.colors.textSecondary,
+          color: me.ink2,
           marginBottom: 12,
         }}
       >
@@ -76,18 +76,14 @@ export const TenancyFields: React.FC<Props> = ({ value, onChange }) => {
         <Ionicons
           name={value.isRentalProperty ? 'checkbox' : 'square-outline'}
           size={22}
-          color={
-            value.isRentalProperty
-              ? theme.colors.primary
-              : theme.colors.textSecondary
-          }
+          color={value.isRentalProperty ? me.brand : me.ink2}
         />
         <View style={{ marginLeft: 10, flex: 1 }}>
           <Text
             style={{
               fontSize: 14,
               fontWeight: '600',
-              color: theme.colors.textPrimary,
+              color: me.ink,
             }}
           >
             This is a rental property
@@ -95,7 +91,7 @@ export const TenancyFields: React.FC<Props> = ({ value, onChange }) => {
           <Text
             style={{
               fontSize: 12,
-              color: theme.colors.textSecondary,
+              color: me.ink2,
               marginTop: 2,
             }}
           >
@@ -108,7 +104,7 @@ export const TenancyFields: React.FC<Props> = ({ value, onChange }) => {
         style={{
           fontSize: 13,
           fontWeight: '600',
-          color: theme.colors.textPrimary,
+          color: me.ink,
           marginBottom: 6,
         }}
       >
@@ -125,17 +121,13 @@ export const TenancyFields: React.FC<Props> = ({ value, onChange }) => {
         <Ionicons
           name={value.whoPays === 'me' ? 'radio-button-on' : 'radio-button-off'}
           size={20}
-          color={
-            value.whoPays === 'me'
-              ? theme.colors.primary
-              : theme.colors.textSecondary
-          }
+          color={value.whoPays === 'me' ? me.brand : me.ink2}
         />
         <Text
           style={{
             marginLeft: 10,
             fontSize: 14,
-            color: theme.colors.textPrimary,
+            color: me.ink,
           }}
         >
           I&apos;ll pay
@@ -156,17 +148,13 @@ export const TenancyFields: React.FC<Props> = ({ value, onChange }) => {
               : 'radio-button-off'
           }
           size={20}
-          color={
-            value.whoPays === 'someone_else'
-              ? theme.colors.primary
-              : theme.colors.textSecondary
-          }
+          color={value.whoPays === 'someone_else' ? me.brand : me.ink2}
         />
         <Text
           style={{
             marginLeft: 10,
             fontSize: 14,
-            color: theme.colors.textPrimary,
+            color: me.ink,
           }}
         >
           Someone else pays (landlord / agent)
@@ -178,7 +166,7 @@ export const TenancyFields: React.FC<Props> = ({ value, onChange }) => {
           <Text
             style={{
               fontSize: 12,
-              color: theme.colors.textSecondary,
+              color: me.ink2,
               marginBottom: 4,
             }}
           >
@@ -188,23 +176,23 @@ export const TenancyFields: React.FC<Props> = ({ value, onChange }) => {
             value={value.payerEmail}
             onChangeText={(t) => onChange({ ...value, payerEmail: t })}
             placeholder='landlord@example.co.uk'
-            placeholderTextColor={theme.colors.textTertiary}
+            placeholderTextColor={me.ink3}
             keyboardType='email-address'
             autoCapitalize='none'
             style={{
               borderWidth: 1,
-              borderColor: theme.colors.border,
+              borderColor: me.line,
               borderRadius: 10,
               paddingHorizontal: 12,
               paddingVertical: 8,
-              color: theme.colors.textPrimary,
-              backgroundColor: theme.colors.surface,
+              color: me.ink,
+              backgroundColor: me.surface,
             }}
           />
           <Text
             style={{
               fontSize: 11,
-              color: theme.colors.textSecondary,
+              color: me.ink2,
               marginTop: 4,
             }}
           >
