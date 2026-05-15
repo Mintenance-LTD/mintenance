@@ -1,8 +1,12 @@
 import React from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
+/**
+ * Escrow / protected-payment explainer card — Direction A · Mint
+ * Editorial. Token-styled.
+ */
 export const EscrowInfoCard: React.FC = () => {
   return (
     <View style={styles.escrowCard}>
@@ -11,7 +15,7 @@ export const EscrowInfoCard: React.FC = () => {
           <Ionicons
             name='shield-checkmark-outline'
             size={20}
-            color={theme.colors.primary}
+            color={me.brand}
           />
         </View>
         <Text style={styles.escrowTitle}>Protected Payment</Text>
@@ -33,21 +37,15 @@ export const EscrowInfoCard: React.FC = () => {
 
 const styles = StyleSheet.create({
   escrowCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 16,
+    backgroundColor: me.surface,
+    borderRadius: me.radius.card,
     padding: 20,
     marginBottom: 20,
+    borderWidth: 1,
+    borderColor: me.line,
     borderLeftWidth: 4,
-    borderLeftColor: theme.colors.primary,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    borderLeftColor: me.brand,
+    ...me.shadow.card,
   },
   escrowHeader: {
     flexDirection: 'row',
@@ -58,7 +56,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: me.brandSoft,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,
@@ -66,11 +64,11 @@ const styles = StyleSheet.create({
   escrowTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   escrowDescription: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginBottom: 12,
     lineHeight: 20,
   },
@@ -79,7 +77,7 @@ const styles = StyleSheet.create({
   },
   conditionItem: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginBottom: 4,
   },
 });

@@ -1,6 +1,11 @@
 import React from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
-import { theme } from '../../../theme';
+import { View, Text, StyleSheet } from 'react-native';
+import { me } from '../../../design-system/mint-editorial';
+
+/**
+ * Payment summary / amount-breakdown card — Direction A · Mint
+ * Editorial. Token-styled.
+ */
 
 interface PaymentSummaryCardProps {
   jobTitle: string;
@@ -32,26 +37,19 @@ export const PaymentSummaryCard: React.FC<PaymentSummaryCardProps> = ({
       <View style={styles.amountBreakdown}>
         <View style={styles.amountRow}>
           <Text style={styles.amountLabel}>Job Amount</Text>
-          <Text style={styles.amountValue}>
-            {'\u00A3'}
-            {amount.toFixed(2)}
-          </Text>
+          <Text style={styles.amountValue}>£{amount.toFixed(2)}</Text>
         </View>
 
         {useEscrow && (
           <>
             <View style={styles.amountRow}>
               <Text style={styles.amountLabel}>Platform Fee</Text>
-              <Text style={styles.amountValue}>
-                {'\u00A3'}
-                {platformFee.toFixed(2)}
-              </Text>
+              <Text style={styles.amountValue}>£{platformFee.toFixed(2)}</Text>
             </View>
             <View style={styles.amountRow}>
               <Text style={styles.amountLabel}>Contractor Payout</Text>
               <Text style={styles.amountValue}>
-                {'\u00A3'}
-                {contractorPayout.toFixed(2)}
+                £{contractorPayout.toFixed(2)}
               </Text>
             </View>
           </>
@@ -61,10 +59,7 @@ export const PaymentSummaryCard: React.FC<PaymentSummaryCardProps> = ({
           <Text style={styles.totalLabel}>
             {useEscrow ? 'Total (Protected)' : 'Total'}
           </Text>
-          <Text style={styles.totalValue}>
-            {'\u00A3'}
-            {totalAmount.toFixed(2)}
-          </Text>
+          <Text style={styles.totalValue}>£{totalAmount.toFixed(2)}</Text>
         </View>
       </View>
     </View>
@@ -73,26 +68,21 @@ export const PaymentSummaryCard: React.FC<PaymentSummaryCardProps> = ({
 
 const styles = StyleSheet.create({
   summaryCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 16,
+    backgroundColor: me.surface,
+    borderRadius: me.radius.card,
     padding: 20,
     marginTop: 16,
     marginBottom: 20,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    borderWidth: 1,
+    borderColor: me.line,
+    ...me.shadow.card,
   },
   summaryTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: theme.colors.textPrimary,
+    fontFamily: me.font.display,
+    fontSize: 22,
+    color: me.ink,
     marginBottom: 20,
+    letterSpacing: me.displayTracking,
   },
   jobInfo: {
     marginBottom: 20,
@@ -100,16 +90,16 @@ const styles = StyleSheet.create({
   jobTitle: {
     fontSize: 18,
     fontWeight: '500',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 6,
   },
   jobIdText: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   amountBreakdown: {
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: theme.colors.border,
+    borderTopColor: me.line2,
     paddingTop: 20,
   },
   amountRow: {
@@ -120,27 +110,28 @@ const styles = StyleSheet.create({
   },
   amountLabel: {
     fontSize: 15,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   amountValue: {
     fontSize: 15,
     fontWeight: '500',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   totalRow: {
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: theme.colors.border,
+    borderTopColor: me.line2,
     paddingTop: 16,
     marginTop: 8,
   },
   totalLabel: {
     fontSize: 18,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   totalValue: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
+    fontFamily: me.font.display,
+    fontSize: 20,
+    color: me.ink,
+    letterSpacing: me.displayTracking,
   },
 });
