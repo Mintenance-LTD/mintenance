@@ -1,21 +1,15 @@
 /**
- * ScheduleSection Component
+ * ScheduleSection Component — Direction A · Mint Editorial.
  *
  * Timeline-style schedule section with vertical timeline indicator,
- * clean cards, and Airbnb-minimal empty state.
+ * clean cards, and a minimal empty state.
  */
 
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Platform,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ContractorStats } from '../../services/UserService';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 interface ScheduleJob {
   id: string;
@@ -46,7 +40,7 @@ export const ScheduleSection: React.FC<ScheduleSectionProps> = ({
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle} accessibilityRole='header'>
-          Today's Schedule
+          Today&apos;s Schedule
         </Text>
         <TouchableOpacity
           onPress={onViewAllPress}
@@ -61,13 +55,9 @@ export const ScheduleSection: React.FC<ScheduleSectionProps> = ({
       {!hasContent ? (
         <View style={styles.emptyState}>
           <View style={styles.emptyIconWrap}>
-            <Ionicons
-              name='calendar-outline'
-              size={32}
-              color={theme.colors.textTertiary}
-            />
+            <Ionicons name='calendar-outline' size={32} color={me.ink3} />
           </View>
-          <Text style={styles.emptyTitle}>Today's Schedule</Text>
+          <Text style={styles.emptyTitle}>Today&apos;s Schedule</Text>
           <Text style={styles.emptySubtitle}>
             No schedule items yet. Your daily earnings and job timeline will
             appear here when assigned.
@@ -111,11 +101,7 @@ export const ScheduleSection: React.FC<ScheduleSectionProps> = ({
                   </Text>
                   {job.time && (
                     <View style={styles.timeRow}>
-                      <Ionicons
-                        name='time-outline'
-                        size={13}
-                        color={theme.colors.textSecondary}
-                      />
+                      <Ionicons name='time-outline' size={13} color={me.ink2} />
                       <Text style={styles.timeText}>{job.time}</Text>
                     </View>
                   )}
@@ -142,16 +128,12 @@ export const ScheduleSection: React.FC<ScheduleSectionProps> = ({
                   <Ionicons
                     name='checkmark-circle'
                     size={18}
-                    color={theme.colors.primary}
+                    color={me.brand}
                   />
                   <Text style={styles.completedTitle} numberOfLines={1}>
                     {job.title}
                   </Text>
-                  <Ionicons
-                    name='chevron-forward'
-                    size={14}
-                    color={theme.colors.textTertiary}
-                  />
+                  <Ionicons name='chevron-forward' size={14} color={me.ink3} />
                 </TouchableOpacity>
               ))}
             </View>
@@ -173,58 +155,59 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-    letterSpacing: -0.3,
+    fontFamily: me.font.display,
+    fontSize: 22,
+    color: me.ink,
+    letterSpacing: me.displayTracking,
   },
   viewAllLink: {
     fontSize: 14,
-    color: theme.colors.primary,
+    color: me.brand,
     fontWeight: '600',
   },
   emptyState: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 24,
+    backgroundColor: me.surface,
+    borderRadius: me.radius.card,
     padding: 40,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
+    ...me.shadow.card,
   },
   emptyIconWrap: {
     width: 64,
     height: 64,
     borderRadius: 20,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
   },
   emptyTitle: {
+    fontFamily: me.font.display,
     fontSize: 22,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 8,
-    letterSpacing: -0.3,
+    letterSpacing: me.displayTracking,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     textAlign: 'center',
     lineHeight: 20,
     maxWidth: 260,
   },
   findJobsButton: {
     marginTop: 24,
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: me.brandSoft,
     paddingHorizontal: 28,
     paddingVertical: 14,
-    borderRadius: 14,
+    borderRadius: me.radius.btn,
   },
   findJobsButtonText: {
     fontSize: 15,
     fontWeight: '700',
-    color: theme.colors.primaryDark,
+    color: me.brand2,
   },
   timeline: {
     paddingLeft: 4,
@@ -242,26 +225,26 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
     borderWidth: 2,
-    borderColor: theme.colors.primaryLight,
+    borderColor: me.brandSoft,
   },
   timelineLine: {
     flex: 1,
     width: 2,
-    backgroundColor: theme.colors.border,
+    backgroundColor: me.line,
     marginTop: 4,
   },
   scheduleCard: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.surface,
-    borderRadius: 14,
+    backgroundColor: me.surface,
+    borderRadius: me.radius.card,
     padding: 16,
     marginLeft: 8,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
   cardContent: {
     flex: 1,
@@ -269,7 +252,7 @@ const styles = StyleSheet.create({
   scheduleTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 4,
   },
   timeRow: {
@@ -279,10 +262,10 @@ const styles = StyleSheet.create({
   },
   timeText: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   statusChip: {
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: me.brandSoft,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
@@ -290,7 +273,7 @@ const styles = StyleSheet.create({
   },
   statusText: {
     fontSize: 11,
-    color: theme.colors.primaryDark,
+    color: me.brand2,
     fontWeight: '600',
   },
   completedSection: {
@@ -299,7 +282,7 @@ const styles = StyleSheet.create({
   completedLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginBottom: 10,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -310,14 +293,14 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingVertical: 12,
     paddingHorizontal: 14,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 12,
     marginBottom: 6,
   },
   completedTitle: {
     flex: 1,
     fontSize: 14,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     fontWeight: '500',
   },
 });

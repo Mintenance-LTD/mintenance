@@ -37,7 +37,7 @@ import { FinishSetupCard } from './components/FinishSetupCard';
 import { ContractorBadgesCard } from './components/ContractorBadgesCard';
 import { styles } from './contractorDashboardStyles';
 import { NotificationService } from '../../services/NotificationService';
-import { theme, gradients, semanticBg } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 import { goToTab } from '../../navigation/hooks';
 
 const appIcon = require('../../../assets/icon.png');
@@ -119,8 +119,8 @@ export const ContractorDashboard: React.FC = () => {
       label: 'Browse Jobs',
       subtitle: 'Find new opportunities',
       icon: 'search',
-      iconColor: theme.colors.primary,
-      iconBg: theme.colors.primaryLight,
+      iconColor: me.brand,
+      iconBg: me.brandSoft,
       onPress: openJobsList,
     },
     {
@@ -145,8 +145,8 @@ export const ContractorDashboard: React.FC = () => {
       label: 'Invoices',
       subtitle: 'Manage billing',
       icon: 'receipt',
-      iconColor: theme.colors.accent,
-      iconBg: theme.colors.accentLight,
+      iconColor: me.accent,
+      iconBg: me.warnBg,
       onPress: () =>
         navigation.navigate('BusinessTab', { screen: 'InvoiceManagement' }),
     },
@@ -154,8 +154,8 @@ export const ContractorDashboard: React.FC = () => {
       label: 'Expenses',
       subtitle: 'Track costs',
       icon: 'wallet',
-      iconColor: theme.colors.error,
-      iconBg: semanticBg.error,
+      iconColor: me.errFg,
+      iconBg: me.errBg,
       onPress: () => navigation.navigate('BusinessTab', { screen: 'Expenses' }),
     },
     {
@@ -170,8 +170,8 @@ export const ContractorDashboard: React.FC = () => {
       label: 'Profile & Settings',
       subtitle: 'Edit your account',
       icon: 'person-circle',
-      iconColor: theme.colors.textSecondary,
-      iconBg: theme.colors.backgroundSecondary,
+      iconColor: me.ink2,
+      iconBg: me.bg2,
       onPress: () => goToTab(navigation, 'ProfileTab'),
     },
   ];
@@ -188,9 +188,7 @@ export const ContractorDashboard: React.FC = () => {
   if (isError) {
     return (
       <View style={styles.errorContainer}>
-        <View
-          style={[styles.errorIconWrap, { backgroundColor: semanticBg.error }]}
-        >
+        <View style={[styles.errorIconWrap, { backgroundColor: me.errBg }]}>
           <Text style={styles.errorEmoji}>!</Text>
         </View>
         <Text style={styles.errorText}>Failed to load dashboard</Text>
@@ -221,13 +219,13 @@ export const ContractorDashboard: React.FC = () => {
           <RefreshControl
             refreshing={isFetching}
             onRefresh={handleRefresh}
-            tintColor={theme.colors.primary}
-            colors={[theme.colors.primary]}
+            tintColor={me.brand}
+            colors={[me.brand]}
           />
         }
       >
         {/* Full-bleed green gradient hero — extends behind status bar */}
-        <LinearGradient colors={gradients.heroGreen} style={styles.hero}>
+        <LinearGradient colors={[me.brand2, me.brand]} style={styles.hero}>
           {/* Decorative circles */}
           <View style={styles.decorCircle1} />
           <View style={styles.decorCircle2} />
@@ -252,7 +250,7 @@ export const ContractorDashboard: React.FC = () => {
                 <Ionicons
                   name='notifications-outline'
                   size={22}
-                  color={theme.colors.textInverse}
+                  color={me.onBrand}
                 />
                 {unreadCount > 0 && (
                   <View style={styles.notifBadge}>
@@ -409,11 +407,7 @@ export const ContractorDashboard: React.FC = () => {
                     </Text>
                   )}
                 </View>
-                <Ionicons
-                  name='chevron-forward'
-                  size={14}
-                  color={theme.colors.textTertiary}
-                />
+                <Ionicons name='chevron-forward' size={14} color={me.ink3} />
               </TouchableOpacity>
             ))}
           </ScrollView>
