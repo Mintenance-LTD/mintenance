@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, Image, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { theme, gradients } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 interface ProfileHeaderUser {
   first_name?: string;
@@ -44,7 +44,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 
   const avatarUri = user?.profile_image_url || user?.avatar_url;
   const isContractor = user?.role === 'contractor';
-  const gradientColors = gradients.heroGreen;
+  const gradientColors = [me.brand2, me.brand] as const;
 
   return (
     <LinearGradient
@@ -71,11 +71,7 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         )}
         {user?.verified && (
           <View style={styles.verifiedDot}>
-            <Ionicons
-              name='checkmark-circle'
-              size={18}
-              color={theme.colors.primary}
-            />
+            <Ionicons name='checkmark-circle' size={18} color={me.brand} />
           </View>
         )}
       </View>
@@ -188,13 +184,13 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 34,
     fontWeight: '700',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
   },
   verifiedDot: {
     position: 'absolute',
     bottom: 0,
     right: 0,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 12,
     width: 24,
     height: 24,
@@ -204,7 +200,7 @@ const styles = StyleSheet.create({
   displayName: {
     fontSize: 22,
     fontWeight: '700',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     textAlign: 'center',
     marginBottom: 4,
     letterSpacing: -0.3,

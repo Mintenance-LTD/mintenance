@@ -1,7 +1,7 @@
 import React from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 interface HomeownerStatsProps {
   totalJobs: number;
@@ -32,15 +32,15 @@ export const HomeownerStats: React.FC<HomeownerStatsProps> = ({
     },
     {
       icon: 'checkmark-circle',
-      iconColor: theme.colors.primary,
-      iconBg: theme.colors.primaryLight,
+      iconColor: me.brand,
+      iconBg: me.brandSoft,
       value: completedJobs,
       label: 'Completed',
     },
     {
       icon: 'time',
-      iconColor: theme.colors.accent,
-      iconBg: theme.colors.accentLight,
+      iconColor: me.accent,
+      iconBg: me.warnBg,
       value: activeJobs,
       label: 'Active',
     },
@@ -48,12 +48,16 @@ export const HomeownerStats: React.FC<HomeownerStatsProps> = ({
 
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionTitle} accessibilityRole="header">
+      <Text style={styles.sectionTitle} accessibilityRole='header'>
         Your Activity
       </Text>
       <View style={styles.row}>
         {stats.map((s) => (
-          <View key={s.label} style={styles.card} accessibilityLabel={`${s.value} ${s.label}`}>
+          <View
+            key={s.label}
+            style={styles.card}
+            accessibilityLabel={`${s.value} ${s.label}`}
+          >
             <View style={[styles.iconChip, { backgroundColor: s.iconBg }]}>
               <Ionicons name={s.icon} size={18} color={s.iconColor} />
             </View>
@@ -75,7 +79,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   row: {
     flexDirection: 'row',
@@ -83,19 +87,11 @@ const styles = StyleSheet.create({
   },
   card: {
     flex: 1,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     padding: 14,
     alignItems: 'flex-start',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   iconChip: {
     width: 36,
@@ -108,12 +104,12 @@ const styles = StyleSheet.create({
   value: {
     fontSize: 26,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 2,
   },
   label: {
     fontSize: 12,
     fontWeight: '500',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
 });

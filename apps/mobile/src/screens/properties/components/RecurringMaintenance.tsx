@@ -9,12 +9,11 @@ import {
   TextInput,
   StyleSheet,
   Alert,
-  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { mobileApiClient } from '../../../utils/mobileApiClient';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 interface Schedule {
   id: string;
@@ -142,7 +141,7 @@ export const RecurringMaintenance: React.FC<Props> = ({ propertyId }) => {
           <Ionicons
             name={showForm ? 'close' : 'add-circle-outline'}
             size={22}
-            color={theme.colors.primary}
+            color={me.brand}
           />
         </TouchableOpacity>
       </View>
@@ -154,7 +153,7 @@ export const RecurringMaintenance: React.FC<Props> = ({ propertyId }) => {
             value={title}
             onChangeText={setTitle}
             placeholder='e.g. Boiler Service'
-            placeholderTextColor={theme.colors.textTertiary}
+            placeholderTextColor={me.ink3}
           />
           <View style={styles.freqRow}>
             {(['weekly', 'monthly', 'quarterly', 'yearly'] as const).map(
@@ -193,11 +192,7 @@ export const RecurringMaintenance: React.FC<Props> = ({ propertyId }) => {
 
       {schedules.length === 0 && !showForm ? (
         <View style={styles.emptyWrap}>
-          <Ionicons
-            name='repeat-outline'
-            size={20}
-            color={theme.colors.textTertiary}
-          />
+          <Ionicons name='repeat-outline' size={20} color={me.ink3} />
           <Text style={styles.emptyText}>No recurring schedules yet</Text>
         </View>
       ) : (
@@ -218,9 +213,7 @@ export const RecurringMaintenance: React.FC<Props> = ({ propertyId }) => {
               <Ionicons
                 name={s.is_active ? 'checkmark-circle' : 'ellipse-outline'}
                 size={22}
-                color={
-                  s.is_active ? theme.colors.primary : theme.colors.textTertiary
-                }
+                color={s.is_active ? me.brand : me.ink3}
               />
             </TouchableOpacity>
             <View style={styles.scheduleInfo}>
@@ -263,11 +256,7 @@ export const RecurringMaintenance: React.FC<Props> = ({ propertyId }) => {
               </View>
             </View>
             <TouchableOpacity onPress={() => handleDelete(s.id, s.title)}>
-              <Ionicons
-                name='trash-outline'
-                size={18}
-                color={theme.colors.error}
-              />
+              <Ionicons name='trash-outline' size={18} color={me.errFg} />
             </TouchableOpacity>
           </View>
         ))
@@ -278,19 +267,11 @@ export const RecurringMaintenance: React.FC<Props> = ({ propertyId }) => {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   header: {
     flexDirection: 'row',
@@ -301,23 +282,23 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
   },
   form: {
     marginBottom: 12,
     padding: 12,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 12,
   },
   input: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 12,
     fontSize: 15,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 10,
   },
   freqRow: { flexDirection: 'row', gap: 6, marginBottom: 10 },
@@ -325,29 +306,29 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 14,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   freqText: {
     fontSize: 12,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
-  freqTextActive: { color: '#FFFFFF' },
+  freqTextActive: { color: me.onBrand },
   createBtn: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
     borderRadius: 20,
     paddingVertical: 10,
     alignItems: 'center',
   },
-  createBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
+  createBtnText: { color: me.onBrand, fontSize: 14, fontWeight: '600' },
   emptyWrap: { alignItems: 'center', paddingVertical: 16, gap: 8 },
-  emptyText: { fontSize: 14, color: theme.colors.textTertiary },
+  emptyText: { fontSize: 14, color: me.ink3 },
   scheduleRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   scheduleInactive: { opacity: 0.5 },
   toggleBtn: { marginRight: 10 },
@@ -355,7 +336,7 @@ const styles = StyleSheet.create({
   scheduleTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   textInactive: { textDecorationLine: 'line-through' },
   scheduleMeta: {
@@ -366,5 +347,5 @@ const styles = StyleSheet.create({
   },
   freqBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
   freqBadgeText: { fontSize: 11, fontWeight: '600' },
-  dueDate: { fontSize: 12, color: theme.colors.textTertiary },
+  dueDate: { fontSize: 12, color: me.ink3 },
 });

@@ -22,7 +22,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import type { Property } from '@mintenance/types';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 import { styles } from './PropertiesStyles';
 
 interface Props {
@@ -30,19 +30,19 @@ interface Props {
 }
 
 const PROPERTY_ICON_BG: Record<string, string> = {
-  house: theme.colors.primaryLight,
+  house: me.brandSoft,
   flat: '#DBEAFE',
-  bungalow: theme.colors.accentLight,
+  bungalow: me.warnBg,
   maisonette: '#EDE9FE',
-  other: theme.colors.backgroundSecondary,
+  other: me.bg2,
 };
 
 const PROPERTY_ICON_COLOR: Record<string, string> = {
-  house: theme.colors.primary,
+  house: me.brand,
   flat: '#3B82F6',
-  bungalow: theme.colors.accent,
+  bungalow: me.accent,
   maisonette: '#8B5CF6',
-  other: theme.colors.textSecondary,
+  other: me.ink2,
 };
 
 const PropertyCard: React.FC<{
@@ -59,15 +59,14 @@ const PropertyCard: React.FC<{
           style={[
             styles.propertyIconWrap,
             {
-              backgroundColor:
-                PROPERTY_ICON_BG[pType] || theme.colors.backgroundSecondary,
+              backgroundColor: PROPERTY_ICON_BG[pType] || me.bg2,
             },
           ]}
         >
           <Ionicons
             name='home-outline'
             size={20}
-            color={PROPERTY_ICON_COLOR[pType] || theme.colors.textSecondary}
+            color={PROPERTY_ICON_COLOR[pType] || me.ink2}
           />
         </View>
         <View style={styles.cardHeaderText}>
@@ -85,23 +84,19 @@ const PropertyCard: React.FC<{
           <Ionicons
             name={isFavorite ? 'heart' : 'heart-outline'}
             size={20}
-            color={isFavorite ? '#EF4444' : theme.colors.textTertiary}
+            color={isFavorite ? me.accent : me.ink3}
           />
         </TouchableOpacity>
         <Ionicons
           name='chevron-forward'
           size={20}
-          color={theme.colors.textTertiary}
+          color={me.ink3}
           style={{ marginLeft: 4 }}
         />
       </View>
       <View style={styles.propertyMeta}>
         <View style={styles.metaItem}>
-          <Ionicons
-            name='business-outline'
-            size={14}
-            color={theme.colors.textSecondary}
-          />
+          <Ionicons name='business-outline' size={14} color={me.ink2} />
           <Text style={styles.metaText}>
             {(property.property_type ?? '').charAt(0).toUpperCase() +
               (property.property_type ?? '').slice(1)}
@@ -109,21 +104,13 @@ const PropertyCard: React.FC<{
         </View>
         {property.bedrooms != null && (
           <View style={styles.metaItem}>
-            <Ionicons
-              name='bed-outline'
-              size={14}
-              color={theme.colors.textSecondary}
-            />
+            <Ionicons name='bed-outline' size={14} color={me.ink2} />
             <Text style={styles.metaText}>{property.bedrooms} bed</Text>
           </View>
         )}
         {property.bathrooms != null && (
           <View style={styles.metaItem}>
-            <Ionicons
-              name='water-outline'
-              size={14}
-              color={theme.colors.textSecondary}
-            />
+            <Ionicons name='water-outline' size={14} color={me.ink2} />
             <Text style={styles.metaText}>{property.bathrooms} bath</Text>
           </View>
         )}
@@ -275,11 +262,7 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
             onPress={() => navigation.navigate('AddProperty')}
             accessibilityLabel='Add property'
           >
-            <Ionicons
-              name='add-circle-outline'
-              size={24}
-              color={theme.colors.primary}
-            />
+            <Ionicons name='add-circle-outline' size={24} color={me.brand} />
           </TouchableOpacity>
         }
       />
@@ -321,7 +304,7 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
             <Ionicons
               name={showFavoritesOnly ? 'heart' : 'heart-outline'}
               size={14}
-              color={showFavoritesOnly ? '#EF4444' : theme.colors.textSecondary}
+              color={showFavoritesOnly ? me.accent : me.ink2}
             />
           </TouchableOpacity>
         </View>
@@ -330,11 +313,7 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
       {!properties || properties.length === 0 ? (
         <View style={styles.emptyContainer}>
           <View style={styles.emptyIconCircle}>
-            <Ionicons
-              name='home-outline'
-              size={32}
-              color={theme.colors.primary}
-            />
+            <Ionicons name='home-outline' size={32} color={me.brand} />
           </View>
           <Text style={styles.emptyTitle}>No Properties</Text>
           <Text style={styles.emptySubtitle}>
@@ -344,7 +323,7 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
             style={styles.addButton}
             onPress={() => navigation.navigate('AddProperty')}
           >
-            <Ionicons name='add' size={20} color={theme.colors.textInverse} />
+            <Ionicons name='add' size={20} color={me.onBrand} />
             <Text style={styles.addButtonText}>Add Property</Text>
           </TouchableOpacity>
         </View>
@@ -366,8 +345,8 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={handleRefresh}
-              tintColor={theme.colors.primary}
-              colors={[theme.colors.primary]}
+              tintColor={me.brand}
+              colors={[me.brand]}
             />
           }
           contentContainerStyle={styles.listContainer}

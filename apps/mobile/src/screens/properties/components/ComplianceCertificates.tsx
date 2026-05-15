@@ -2,11 +2,11 @@
  * ComplianceCertificates - Track compliance certificates for a property
  */
 import React from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { mobileApiClient } from '../../../utils/mobileApiClient';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 interface Certificate {
   id: string;
@@ -151,24 +151,16 @@ export const ComplianceCertificates: React.FC<Props> = ({ propertyId }) => {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   sectionTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 12,
@@ -187,7 +179,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   statusDot: {
     width: 34,
@@ -201,12 +193,12 @@ const styles = StyleSheet.create({
   certType: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
-  certDate: { fontSize: 12, color: theme.colors.textTertiary, marginTop: 2 },
+  certDate: { fontSize: 12, color: me.ink3, marginTop: 2 },
   certMissing: {
     fontSize: 12,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     fontStyle: 'italic',
     marginTop: 2,
   },

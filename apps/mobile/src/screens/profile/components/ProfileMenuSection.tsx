@@ -1,7 +1,7 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 interface MenuItem {
   label: string;
@@ -25,7 +25,7 @@ export const ProfileMenuSection: React.FC<ProfileMenuSectionProps> = ({
 }) => {
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle} accessibilityRole="header">
+      <Text style={styles.sectionTitle} accessibilityRole='header'>
         {title}
       </Text>
       <View style={styles.card}>
@@ -44,13 +44,13 @@ export const ProfileMenuSection: React.FC<ProfileMenuSectionProps> = ({
             <View
               style={[
                 styles.iconChip,
-                { backgroundColor: item.iconBg ?? theme.colors.backgroundSecondary },
+                { backgroundColor: item.iconBg ?? me.bg2 },
               ]}
             >
               <Ionicons
                 name={item.icon as keyof typeof Ionicons.glyphMap}
                 size={17}
-                color={item.iconColor ?? theme.colors.textSecondary}
+                color={item.iconColor ?? me.ink2}
               />
             </View>
             <Text style={styles.menuText}>{item.label}</Text>
@@ -61,7 +61,7 @@ export const ProfileMenuSection: React.FC<ProfileMenuSectionProps> = ({
                 </Text>
               </View>
             )}
-            <Ionicons name="chevron-forward" size={14} color={theme.colors.textTertiary} />
+            <Ionicons name='chevron-forward' size={14} color={me.ink3} />
           </TouchableOpacity>
         ))}
       </View>
@@ -78,27 +78,19 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 8,
     paddingHorizontal: 4,
   },
   card: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 12,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    borderColor: me.line,
+    ...me.shadow.card,
   },
   menuItem: {
     flexDirection: 'row',
@@ -109,7 +101,7 @@ const styles = StyleSheet.create({
   },
   menuItemBorder: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   iconChip: {
     width: 34,
@@ -121,11 +113,11 @@ const styles = StyleSheet.create({
   menuText: {
     flex: 1,
     fontSize: 15,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     fontWeight: '500',
   },
   badge: {
-    backgroundColor: theme.colors.error,
+    backgroundColor: me.errFg,
     borderRadius: 10,
     minWidth: 20,
     height: 20,
@@ -135,7 +127,7 @@ const styles = StyleSheet.create({
     marginRight: 4,
   },
   badgeText: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontSize: 11,
     fontWeight: '700',
   },
