@@ -1,5 +1,10 @@
 import React from 'react';
 
+/**
+ * Job-creation step progress bar — Direction A · Mint Editorial.
+ * Token-styled step circles + connector tracks.
+ */
+
 interface StepConfig {
   id: number;
   label: string;
@@ -13,43 +18,76 @@ interface ProgressBarProps {
 
 export function ProgressBar({ currentStep, steps }: ProgressBarProps) {
   return (
-    <div className="mb-8">
-      <div className="flex items-center justify-between mb-4">
-        {steps.map((step, index) => (
-          <React.Fragment key={step.id}>
-            <div
-              className="flex items-center"
-              aria-label={`Step ${step.id}: ${step.label}`}
-              aria-current={currentStep === step.id ? 'step' : undefined}
-            >
+    <div style={{ marginBottom: 28 }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+        }}
+      >
+        {steps.map((step, index) => {
+          const reached = currentStep >= step.id;
+          return (
+            <React.Fragment key={step.id}>
               <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold transition-colors ${
-                  currentStep >= step.id
-                    ? 'bg-teal-600 text-white'
-                    : 'bg-gray-200 text-gray-400'
-                }`}
-                aria-hidden="true"
+                style={{ display: 'flex', alignItems: 'center' }}
+                aria-label={`Step ${step.id}: ${step.label}`}
+                aria-current={currentStep === step.id ? 'step' : undefined}
               >
-                {step.id}
-              </div>
-              <span
-                className={`ml-3 text-sm font-medium hidden sm:inline ${
-                  currentStep >= step.id ? 'text-gray-900' : 'text-gray-400'
-                }`}
-              >
-                {step.label}
-              </span>
-            </div>
-            {index < steps.length - 1 && (
-              <div className="flex-1 h-0.5 mx-4 bg-gray-200">
                 <div
-                  className="h-full bg-teal-600 transition-all duration-300"
-                  style={{ width: currentStep > step.id ? '100%' : '0%' }}
-                />
+                  aria-hidden='true'
+                  style={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: 9999,
+                    display: 'grid',
+                    placeItems: 'center',
+                    fontWeight: 600,
+                    fontSize: 14,
+                    background: reached ? 'var(--me-brand)' : 'var(--me-bg-3)',
+                    color: reached ? 'var(--me-on-brand)' : 'var(--me-ink-3)',
+                    transition: 'background 0.2s ease',
+                  }}
+                >
+                  {step.id}
+                </div>
+                <span
+                  className='hidden sm:inline'
+                  style={{
+                    marginLeft: 10,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: reached ? 'var(--me-ink)' : 'var(--me-ink-3)',
+                  }}
+                >
+                  {step.label}
+                </span>
               </div>
-            )}
-          </React.Fragment>
-        ))}
+              {index < steps.length - 1 && (
+                <div
+                  style={{
+                    flex: 1,
+                    height: 2,
+                    margin: '0 14px',
+                    background: 'var(--me-line)',
+                    borderRadius: 9999,
+                    overflow: 'hidden',
+                  }}
+                >
+                  <div
+                    style={{
+                      height: '100%',
+                      width: currentStep > step.id ? '100%' : '0%',
+                      background: 'var(--me-brand)',
+                      transition: 'width 0.3s ease',
+                    }}
+                  />
+                </div>
+              )}
+            </React.Fragment>
+          );
+        })}
       </div>
     </div>
   );

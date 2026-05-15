@@ -24,7 +24,7 @@ import {
 import { useCSRF } from '@/lib/hooks/useCSRF';
 import toast from 'react-hot-toast';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { ArrowLeft, Info } from 'lucide-react';
+import { Info } from 'lucide-react';
 import { STEPS } from './_components/types';
 import type { Property } from './_components/types';
 import { ProgressBar } from './_components/progress-bar';
@@ -110,22 +110,6 @@ export default function CreateJobPage2025() {
   >({});
   const [preferredDate, setPreferredDate] = useState('');
   const aiAutoFilledRef = useRef(false);
-
-  // CRITICAL: keep this hook at the top of the component, NEVER move
-  // it below the early returns at the bottom of the function. Same
-  // bug we hit on /messages — once the `loadingUser` early return
-  // resolves to false, a hook below it would change the hook call
-  // count and React throws "Rendered more hooks than during the
-  // previous render", crashing the whole page (the user's reported
-  // "the selectors don't work" symptom — the page never got past the
-  // first interactive render before crashing).
-  const [isMintEditorial, setIsMintEditorial] = useState(false);
-  useEffect(() => {
-    if (typeof document === 'undefined') return;
-    setIsMintEditorial(
-      document.documentElement.dataset.theme === 'mint-editorial'
-    );
-  }, []);
 
   const imageUpload = useImageUpload({
     maxImages: 10,
@@ -353,10 +337,23 @@ export default function CreateJobPage2025() {
         errorMessage.toLowerCase().includes('verify your phone')
       ) {
         toast.error('Phone verification required to post jobs');
-        toast.custom((t) => (
-          <div className='flex items-center gap-2 bg-white px-4 py-3 rounded-lg shadow-lg border border-gray-200'>
-            <Info className='w-5 h-5 text-blue-600' />
-            <span>Redirecting to settings for verification...</span>
+        toast.custom(() => (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '12px 16px',
+              borderRadius: 'var(--me-radius-card)',
+              background: 'var(--me-surface)',
+              border: '1px solid var(--me-line)',
+              boxShadow: 'var(--me-shadow-pop)',
+              color: 'var(--me-ink)',
+              fontSize: 14,
+            }}
+          >
+            <Info className='w-5 h-5' style={{ color: 'var(--me-brand)' }} />
+            <span>Redirecting to settings for verification…</span>
           </div>
         ));
         setTimeout(() => {
@@ -376,8 +373,26 @@ export default function CreateJobPage2025() {
 
   if (loadingUser) {
     return (
-      <div className='flex items-center justify-center min-h-screen'>
-        <div className='h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-gray-600' />
+      <div
+        data-theme='mint-editorial'
+        className='me-root'
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: '60vh',
+        }}
+      >
+        <div
+          className='animate-spin'
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 9999,
+            border: '4px solid var(--me-brand-soft)',
+            borderTopColor: 'var(--me-brand)',
+          }}
+        />
       </div>
     );
   }
@@ -409,35 +424,22 @@ export default function CreateJobPage2025() {
     (currentStep === 2 && canProceedStep2) ||
     (currentStep === 3 && canProceedStep3);
 
-  // `isMintEditorial` is computed at the TOP of the component (above
-  // the loadingUser early return) so the hook count stays stable
-  // between renders. See the long comment up there for context.
-
   return (
     <ErrorBoundary componentName='CreateJobPage'>
       <HomeownerPageWrapper>
-        {!isMintEditorial && (
-          <button
-            onClick={() => router.push('/jobs')}
-            className='flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors mb-4'
-          >
-            <ArrowLeft className='w-5 h-5' />
-            <span className='font-medium'>Back to Jobs</span>
-          </button>
-        )}
-
+        {/* Direction A · Mint Editorial — the content subtree carries
+            `data-theme` + `.me-root` so the `--me-*` tokens resolve
+            regardless of the user's global theme cookie. `me-legacy-fit`
+            palette-maps the still-legacy embedded components
+            (HireAgainBanner, SmartJobAnalysis, BudgetRangeSelector). */}
         <div
-          className={isMintEditorial ? 'py-2' : 'min-h-screen bg-gray-50 py-8'}
+          data-theme='mint-editorial'
+          className='me-root me-legacy-fit'
+          style={{ padding: '28px 32px' }}
         >
-          <div className='max-w-3xl mx-auto px-4'>
+          <div style={{ maxWidth: 768, margin: '0 auto' }}>
             {/* Hire-again banner — surfaces when the homeowner came
-                in via the "Hire again" CTA on a completed job. The
-                deep link sets `?preferredContractor=<id>` (and the
-                other prefilled fields). We don't change the post-job
-                flow yet; the banner sets expectation that the
-                contractor will be notified first. The actual auto-
-                routing of the job to that contractor's bid inbox is
-                wired in the job-creation API in a follow-up. */}
+                in via the "Hire again" CTA on a completed job. */}
             <HireAgainBanner
               preferredContractorId={
                 searchParams?.get('preferredContractor') ?? null
@@ -447,7 +449,8 @@ export default function CreateJobPage2025() {
 
             {/* Main Card */}
             <div
-              className='bg-white rounded-xl border border-gray-200 p-4 sm:p-6 md:p-8 mb-6'
+              className='card'
+              style={{ padding: 28, marginBottom: 24 }}
               data-testid='job-create-form'
             >
               {currentStep === 1 && (

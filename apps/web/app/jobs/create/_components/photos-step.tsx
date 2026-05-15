@@ -1,6 +1,11 @@
 import React from 'react';
 import Image from 'next/image';
+import { AlertTriangle, UploadCloud, X } from 'lucide-react';
 import type { ImagePreviewItem, BuildingAssessmentData } from './types';
+
+/**
+ * Job-creation photos step — Direction A · Mint Editorial.
+ */
 
 interface PhotosStepProps {
   imagePreviews: ImagePreviewItem[];
@@ -18,70 +23,115 @@ export function PhotosStep({
   assessment,
 }: PhotosStepProps) {
   return (
-    <div className="space-y-8" data-testid="step-2-photos">
+    <div
+      style={{ display: 'flex', flexDirection: 'column', gap: 28 }}
+      data-testid='step-2-photos'
+    >
       <div>
-        <h1 className="text-3xl font-semibold text-gray-900 mb-2">Add photos of your project</h1>
-        <p className="text-gray-600">Help contractors understand the scope of work (optional)</p>
+        <h2 className='t-h2' style={{ marginBottom: 4 }}>
+          Add photos of your project
+        </h2>
+        <p className='t-body' style={{ margin: 0 }}>
+          Help contractors understand the scope of work (optional)
+        </p>
       </div>
 
       {/* Drag & Drop Zone */}
-      <div>
-        <label
-          htmlFor="photo-upload"
-          className="flex flex-col items-center justify-center w-full h-64 border-2 border-dashed border-gray-300 rounded-xl cursor-pointer hover:border-teal-500 hover:bg-teal-50 transition-colors bg-gray-50"
+      <label
+        htmlFor='photo-upload'
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '100%',
+          height: 232,
+          border: '2px dashed var(--me-line)',
+          borderRadius: 'var(--me-radius-card)',
+          cursor: 'pointer',
+          background: 'var(--me-bg-2)',
+          textAlign: 'center',
+        }}
+      >
+        <UploadCloud
+          className='w-10 h-10'
+          style={{ color: 'var(--me-ink-3)', marginBottom: 14 }}
+        />
+        <p
+          style={{
+            margin: '0 0 4px',
+            fontSize: 15,
+            fontWeight: 600,
+            color: 'var(--me-ink)',
+          }}
         >
-          <div className="flex flex-col items-center justify-center pt-5 pb-6">
-            <svg
-              className="w-12 h-12 mb-4 text-gray-400"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-              />
-            </svg>
-            <p className="mb-2 text-base text-gray-700 font-medium">
-              <span className="text-teal-600">Click to upload</span> or drag and drop
-            </p>
-            <p className="text-sm text-gray-500">PNG, JPG, JPEG up to 10MB (max 10 photos)</p>
-          </div>
-          <input
-            id="photo-upload"
-            type="file"
-            className="hidden"
-            multiple
-            accept="image/*"
-            onChange={onFileChange}
-          />
-        </label>
-      </div>
+          <span style={{ color: 'var(--me-brand)' }}>Click to upload</span> or
+          drag and drop
+        </p>
+        <p style={{ margin: 0, fontSize: 13, color: 'var(--me-ink-3)' }}>
+          PNG, JPG, JPEG up to 10MB (max 10 photos)
+        </p>
+        <input
+          id='photo-upload'
+          type='file'
+          style={{ display: 'none' }}
+          multiple
+          accept='image/*'
+          onChange={onFileChange}
+        />
+      </label>
 
       {/* Photo Previews */}
       {imagePreviews.length > 0 && (
         <div>
-          <h3 className="text-base font-medium text-gray-900 mb-3">
-            Uploaded Photos ({imagePreviews.length}/10)
+          <h3 className='t-h4' style={{ marginBottom: 12 }}>
+            Uploaded photos ({imagePreviews.length}/10)
           </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))',
+              gap: 14,
+            }}
+          >
             {imagePreviews.map((previewItem, index) => (
-              <div key={index} className="relative aspect-square rounded-xl overflow-hidden bg-gray-100 border border-gray-200">
+              <div
+                key={index}
+                style={{
+                  position: 'relative',
+                  aspectRatio: '1 / 1',
+                  borderRadius: 'var(--me-radius-card)',
+                  overflow: 'hidden',
+                  background: 'var(--me-bg-2)',
+                  border: '1px solid var(--me-line)',
+                }}
+              >
                 <Image
                   src={previewItem.preview}
                   alt={`Preview ${index + 1}`}
                   fill
-                  className="object-cover"
+                  style={{ objectFit: 'cover' }}
                 />
                 <button
+                  type='button'
                   onClick={() => onRemoveImage(index)}
-                  className="absolute top-2 right-2 w-8 h-8 bg-rose-600 text-white rounded-full flex items-center justify-center hover:bg-rose-700 transition-colors shadow-lg"
+                  aria-label={`Remove photo ${index + 1}`}
+                  style={{
+                    position: 'absolute',
+                    top: 8,
+                    right: 8,
+                    width: 30,
+                    height: 30,
+                    borderRadius: 9999,
+                    border: 0,
+                    background: 'var(--me-err-fg)',
+                    color: 'var(--me-on-brand)',
+                    display: 'grid',
+                    placeItems: 'center',
+                    cursor: 'pointer',
+                  }}
                 >
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
+                  <X className='w-4 h-4' />
                 </button>
               </div>
             ))}
@@ -90,9 +140,7 @@ export function PhotosStep({
       )}
 
       {/* AI Assessment Loading State */}
-      {isAssessing && (
-        <AssessmentLoadingState />
-      )}
+      {isAssessing && <AssessmentLoadingState />}
 
       {/* AI Assessment Results */}
       {assessment && !isAssessing && (
@@ -104,73 +152,216 @@ export function PhotosStep({
 
 function AssessmentLoadingState() {
   return (
-    <div className="bg-teal-50 border-2 border-teal-200 rounded-xl p-6">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 border-4 border-teal-600 border-t-transparent rounded-full animate-spin" />
-        <div>
-          <h3 className="text-base font-semibold text-gray-900">AI Analysis in Progress</h3>
-          <p className="text-sm text-gray-600">Analyzing images for damage assessment...</p>
-        </div>
+    <div
+      style={{
+        background: 'var(--me-brand-soft)',
+        border: '1px solid var(--me-brand)',
+        borderRadius: 'var(--me-radius-card)',
+        padding: 20,
+        display: 'flex',
+        alignItems: 'center',
+        gap: 14,
+      }}
+    >
+      <div
+        className='animate-spin'
+        style={{
+          width: 36,
+          height: 36,
+          borderRadius: 9999,
+          border: '4px solid var(--me-surface)',
+          borderTopColor: 'var(--me-brand)',
+          flexShrink: 0,
+        }}
+      />
+      <div>
+        <h3 className='t-h4' style={{ marginBottom: 2 }}>
+          AI analysis in progress
+        </h3>
+        <p style={{ margin: 0, fontSize: 13, color: 'var(--me-ink-2)' }}>
+          Analysing images for damage assessment…
+        </p>
       </div>
     </div>
   );
 }
 
-interface AssessmentResultsProps {
+function AssessmentResults({
+  assessment,
+}: {
   assessment: BuildingAssessmentData;
-}
-
-function AssessmentResults({ assessment }: AssessmentResultsProps) {
+}) {
   return (
-    <div className="bg-gradient-to-br from-teal-50 to-blue-50 border-2 border-teal-200 rounded-xl p-6">
-      <div className="flex items-start gap-3 mb-4">
-        <div className="w-10 h-10 bg-teal-600 rounded-lg flex items-center justify-center text-white font-bold text-lg flex-shrink-0">
+    <div
+      style={{
+        background: 'var(--me-brand-soft)',
+        border: '1px solid var(--me-brand)',
+        borderRadius: 'var(--me-radius-card)',
+        padding: 20,
+      }}
+    >
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: 12,
+          marginBottom: 16,
+        }}
+      >
+        <div
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 8,
+            background: 'var(--me-brand)',
+            color: 'var(--me-on-brand)',
+            display: 'grid',
+            placeItems: 'center',
+            fontWeight: 700,
+            flexShrink: 0,
+          }}
+        >
           AI
         </div>
-        <div className="flex-1">
-          <h3 className="text-lg font-bold text-gray-900">Building Damage Assessment</h3>
-          <p className="text-sm text-gray-600">AI-powered analysis complete</p>
+        <div style={{ flex: 1 }}>
+          <h3 className='t-h4'>Building damage assessment</h3>
+          <p style={{ margin: 0, fontSize: 13, color: 'var(--me-ink-2)' }}>
+            AI-powered analysis complete
+          </p>
         </div>
-        <span className="px-3 py-1 bg-teal-600 text-white text-xs font-semibold rounded-full">
-          {assessment.damageAssessment.confidence}% Confidence
+        <span className='badge badge-brand'>
+          {assessment.damageAssessment.confidence}% confidence
         </span>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="bg-white rounded-lg p-4 border border-gray-200">
-          <div className="text-xs font-semibold text-gray-500 mb-1">Damage Type</div>
-          <div className="text-base font-bold text-gray-900 capitalize">
-            {assessment.damageAssessment.damageType}
-          </div>
-        </div>
-
-        <div className="bg-white rounded-lg p-4 border border-gray-200">
-          <div className="text-xs font-semibold text-gray-500 mb-1">Severity</div>
-          <div className="text-base font-bold text-gray-900 capitalize">
-            {assessment.damageAssessment.severity}
-          </div>
-        </div>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gap: 12,
+        }}
+      >
+        <InfoTile
+          label='Damage type'
+          value={assessment.damageAssessment.damageType}
+        />
+        <InfoTile
+          label='Severity'
+          value={assessment.damageAssessment.severity}
+        />
 
         {assessment.safetyHazards.hasSafetyHazards && (
-          <div className="md:col-span-2 bg-rose-50 border border-rose-200 rounded-lg p-4">
-            <div className="flex items-center gap-2 mb-2">
-              <svg className="w-5 h-5 text-rose-600" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-              </svg>
-              <div className="text-sm font-semibold text-rose-900">Safety Hazards Detected</div>
+          <div
+            style={{
+              gridColumn: '1 / -1',
+              background: 'var(--me-err-bg)',
+              border: '1px solid var(--me-err-fg)',
+              borderRadius: 'var(--me-radius-input)',
+              padding: 14,
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                marginBottom: 4,
+              }}
+            >
+              <AlertTriangle
+                className='w-4 h-4'
+                style={{ color: 'var(--me-err-fg)' }}
+              />
+              <span
+                style={{
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: 'var(--me-err-fg)',
+                }}
+              >
+                Safety hazards detected
+              </span>
             </div>
-            <div className="text-xs text-rose-700 ml-7">
+            <div
+              style={{
+                fontSize: 12,
+                color: 'var(--me-err-fg)',
+                marginLeft: 24,
+              }}
+            >
               {assessment.safetyHazards.criticalFlags.join(', ')}
             </div>
           </div>
         )}
       </div>
 
-      <div className="mt-4 p-4 bg-white rounded-lg border border-gray-200">
-        <div className="text-xs font-semibold text-gray-500 mb-2">Description</div>
-        <p className="text-sm text-gray-700 leading-relaxed">
+      <div
+        style={{
+          marginTop: 14,
+          padding: 14,
+          background: 'var(--me-surface)',
+          borderRadius: 'var(--me-radius-input)',
+          border: '1px solid var(--me-line)',
+        }}
+      >
+        <div
+          style={{
+            fontSize: 11,
+            fontWeight: 600,
+            color: 'var(--me-ink-3)',
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
+            marginBottom: 6,
+          }}
+        >
+          Description
+        </div>
+        <p
+          style={{
+            margin: 0,
+            fontSize: 13,
+            lineHeight: 1.55,
+            color: 'var(--me-ink-2)',
+          }}
+        >
           {assessment.damageAssessment.description}
         </p>
+      </div>
+    </div>
+  );
+}
+
+function InfoTile({ label, value }: { label: string; value: string }) {
+  return (
+    <div
+      style={{
+        background: 'var(--me-surface)',
+        borderRadius: 'var(--me-radius-input)',
+        padding: 14,
+        border: '1px solid var(--me-line)',
+      }}
+    >
+      <div
+        style={{
+          fontSize: 11,
+          fontWeight: 600,
+          color: 'var(--me-ink-3)',
+          textTransform: 'uppercase',
+          letterSpacing: '0.05em',
+          marginBottom: 4,
+        }}
+      >
+        {label}
+      </div>
+      <div
+        style={{
+          fontSize: 15,
+          fontWeight: 600,
+          color: 'var(--me-ink)',
+          textTransform: 'capitalize',
+        }}
+      >
+        {value}
       </div>
     </div>
   );

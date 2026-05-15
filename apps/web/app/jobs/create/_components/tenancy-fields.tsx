@@ -7,6 +7,8 @@
  *
  * Both are optional. When not set, behaviour is identical to today's
  * flow (no tenancy_metadata, homeowner = payer).
+ *
+ * Direction A · Mint Editorial — token-styled.
  */
 
 import React from 'react';
@@ -22,16 +24,37 @@ export function TenancyFields({ formData, setFormData }: Props) {
   const whoPays = formData.who_pays ?? 'me';
 
   return (
-    <div className='border border-gray-200 rounded-xl p-5 bg-gray-50/60'>
-      <h3 className='text-base font-semibold text-gray-900 mb-1'>
+    <div
+      style={{
+        border: '1px solid var(--me-line)',
+        borderRadius: 'var(--me-radius-card)',
+        padding: 20,
+        background: 'var(--me-bg-2)',
+      }}
+    >
+      <h3 className='t-h4' style={{ marginBottom: 2 }}>
         About this property
       </h3>
-      <p className='text-sm text-gray-600 mb-4'>
+      <p
+        style={{
+          margin: '0 0 16px',
+          fontSize: 13,
+          color: 'var(--me-ink-2)',
+        }}
+      >
         Optional — helps us contact the right people about scheduling and
         paperwork.
       </p>
 
-      <label className='flex items-start gap-3 mb-4 cursor-pointer'>
+      <label
+        style={{
+          display: 'flex',
+          alignItems: 'flex-start',
+          gap: 12,
+          marginBottom: 16,
+          cursor: 'pointer',
+        }}
+      >
         <input
           type='checkbox'
           checked={isRental}
@@ -41,23 +64,59 @@ export function TenancyFields({ formData, setFormData }: Props) {
               is_rental_property: e.target.checked,
             }))
           }
-          className='mt-1 w-4 h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500'
+          style={{ marginTop: 2, accentColor: 'var(--me-brand)' }}
         />
         <div>
-          <span className='block text-sm font-medium text-gray-900'>
+          <span
+            style={{
+              display: 'block',
+              fontSize: 14,
+              fontWeight: 600,
+              color: 'var(--me-ink)',
+            }}
+          >
             This is a rental property
           </span>
-          <span className='block text-xs text-gray-500'>
+          <span
+            style={{
+              display: 'block',
+              fontSize: 12,
+              color: 'var(--me-ink-3)',
+            }}
+          >
             We&apos;ll route tenant-facing messages accordingly.
           </span>
         </div>
       </label>
 
-      <fieldset className='space-y-2'>
-        <legend className='text-sm font-medium text-gray-900 mb-1'>
+      <fieldset
+        style={{
+          border: 0,
+          padding: 0,
+          margin: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 8,
+        }}
+      >
+        <legend
+          style={{
+            fontSize: 14,
+            fontWeight: 600,
+            color: 'var(--me-ink)',
+            marginBottom: 4,
+          }}
+        >
           Who pays for this job?
         </legend>
-        <label className='flex items-center gap-3 cursor-pointer'>
+        <label
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            cursor: 'pointer',
+          }}
+        >
           <input
             type='radio'
             name='who_pays'
@@ -66,11 +125,20 @@ export function TenancyFields({ formData, setFormData }: Props) {
             onChange={() =>
               setFormData((prev) => ({ ...prev, who_pays: 'me' }))
             }
-            className='w-4 h-4 text-emerald-600 border-gray-300 focus:ring-emerald-500'
+            style={{ accentColor: 'var(--me-brand)' }}
           />
-          <span className='text-sm text-gray-800'>I&apos;ll pay</span>
+          <span style={{ fontSize: 14, color: 'var(--me-ink)' }}>
+            I&apos;ll pay
+          </span>
         </label>
-        <label className='flex items-center gap-3 cursor-pointer'>
+        <label
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+            cursor: 'pointer',
+          }}
+        >
           <input
             type='radio'
             name='who_pays'
@@ -82,21 +150,32 @@ export function TenancyFields({ formData, setFormData }: Props) {
                 who_pays: 'someone_else',
               }))
             }
-            className='w-4 h-4 text-emerald-600 border-gray-300 focus:ring-emerald-500'
+            style={{ accentColor: 'var(--me-brand)' }}
           />
-          <span className='text-sm text-gray-800'>
+          <span style={{ fontSize: 14, color: 'var(--me-ink)' }}>
             Someone else pays (landlord / agent)
           </span>
         </label>
       </fieldset>
 
       {whoPays === 'someone_else' && (
-        <div className='mt-3'>
-          <label className='block text-sm font-medium text-gray-700 mb-1'>
+        <div style={{ marginTop: 12 }}>
+          <label
+            htmlFor='payer-email'
+            style={{
+              display: 'block',
+              fontSize: 12,
+              fontWeight: 600,
+              color: 'var(--me-ink-2)',
+              marginBottom: 6,
+            }}
+          >
             Payer&apos;s email
           </label>
           <input
+            id='payer-email'
             type='email'
+            className='field'
             value={formData.payer_email || ''}
             onChange={(e) =>
               setFormData((prev) => ({
@@ -105,9 +184,14 @@ export function TenancyFields({ formData, setFormData }: Props) {
               }))
             }
             placeholder='landlord@example.co.uk'
-            className='w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm'
           />
-          <p className='text-xs text-gray-500 mt-1'>
+          <p
+            style={{
+              margin: '6px 0 0',
+              fontSize: 12,
+              color: 'var(--me-ink-3)',
+            }}
+          >
             We&apos;ll invite them to fund the job in escrow before work starts.
           </p>
         </div>
