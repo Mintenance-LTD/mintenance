@@ -20,7 +20,7 @@
 import React from 'react';
 import { Text, View, StyleSheet } from 'react-native';
 import { Input } from '../../../components/ui/Input';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 interface WizardStep3ContactProps {
   phoneNumber: string;
@@ -53,6 +53,7 @@ export const WizardStep3Contact: React.FC<WizardStep3ContactProps> = ({
       </Text>
 
       <Input
+        mint
         testID='phone-input'
         label={isContractor ? 'Phone Number' : 'Phone Number (optional)'}
         placeholder={isContractor ? '07xxx xxxxxx' : '07xxx xxxxxx (optional)'}
@@ -82,14 +83,15 @@ export const WizardStep3Contact: React.FC<WizardStep3ContactProps> = ({
 
 const styles = StyleSheet.create({
   stepHeading: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
+    fontFamily: me.font.display,
+    fontSize: 20,
+    color: me.ink,
     marginBottom: 6,
+    letterSpacing: me.displayTracking,
   },
   stepHint: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginBottom: 16,
     lineHeight: 18,
   },
@@ -99,7 +101,7 @@ const styles = StyleSheet.create({
   },
   privacyText: {
     fontSize: 12,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     lineHeight: 18,
   },
 });

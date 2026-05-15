@@ -1,14 +1,21 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
+
+/**
+ * Role segmented control — Direction A · Mint Editorial. Token-styled.
+ */
 
 interface RoleSelectorProps {
   role: 'homeowner' | 'contractor';
   onRoleChange: (role: 'homeowner' | 'contractor') => void;
 }
 
-export const RoleSelector: React.FC<RoleSelectorProps> = ({ role, onRoleChange }) => {
+export const RoleSelector: React.FC<RoleSelectorProps> = ({
+  role,
+  onRoleChange,
+}) => {
   return (
     <View
       style={styles.roleSelectionContainer}
@@ -16,8 +23,11 @@ export const RoleSelector: React.FC<RoleSelectorProps> = ({ role, onRoleChange }
       accessibilityLabel='Account type selection'
     >
       <TouchableOpacity
-        testID="role-homeowner"
-        style={[styles.roleToggle, role === 'homeowner' && styles.roleToggleActive]}
+        testID='role-homeowner'
+        style={[
+          styles.roleToggle,
+          role === 'homeowner' && styles.roleToggleActive,
+        ]}
         onPress={() => onRoleChange('homeowner')}
         accessibilityRole='radio'
         accessibilityLabel='Homeowner account'
@@ -26,9 +36,9 @@ export const RoleSelector: React.FC<RoleSelectorProps> = ({ role, onRoleChange }
       >
         <View style={styles.roleRow}>
           <Ionicons
-            name="home-outline"
+            name='home-outline'
             size={18}
-            color={role === 'homeowner' ? theme.colors.textPrimary : theme.colors.textSecondary}
+            color={role === 'homeowner' ? me.ink : me.ink2}
           />
           <Text
             style={[
@@ -50,8 +60,11 @@ export const RoleSelector: React.FC<RoleSelectorProps> = ({ role, onRoleChange }
       </TouchableOpacity>
 
       <TouchableOpacity
-        testID="role-contractor"
-        style={[styles.roleToggle, role === 'contractor' && styles.roleToggleActive]}
+        testID='role-contractor'
+        style={[
+          styles.roleToggle,
+          role === 'contractor' && styles.roleToggleActive,
+        ]}
         onPress={() => onRoleChange('contractor')}
         accessibilityRole='radio'
         accessibilityLabel='Contractor account'
@@ -60,9 +73,9 @@ export const RoleSelector: React.FC<RoleSelectorProps> = ({ role, onRoleChange }
       >
         <View style={styles.roleRow}>
           <Ionicons
-            name="construct-outline"
+            name='construct-outline'
             size={18}
-            color={role === 'contractor' ? theme.colors.textPrimary : theme.colors.textSecondary}
+            color={role === 'contractor' ? me.ink : me.ink2}
           />
           <Text
             style={[
@@ -89,8 +102,8 @@ export const RoleSelector: React.FC<RoleSelectorProps> = ({ role, onRoleChange }
 const styles = StyleSheet.create({
   roleSelectionContainer: {
     flexDirection: 'row',
-    backgroundColor: theme.colors.backgroundSecondary,
-    borderRadius: 16,
+    backgroundColor: me.bg2,
+    borderRadius: me.radius.card,
     padding: 6,
     marginBottom: 24,
   },
@@ -98,22 +111,12 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 10,
     paddingHorizontal: 12,
-    borderRadius: 12,
+    borderRadius: 10,
     alignItems: 'center',
   },
   roleToggleActive: {
-    backgroundColor: theme.colors.surface,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
+    backgroundColor: me.surface,
+    ...me.shadow.card,
   },
   roleRow: {
     flexDirection: 'row',
@@ -123,18 +126,18 @@ const styles = StyleSheet.create({
   roleToggleText: {
     fontSize: 15,
     fontWeight: '500',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   roleToggleTextActive: {
-    color: theme.colors.textPrimary,
+    color: me.ink,
     fontWeight: '600',
   },
   roleDescription: {
     fontSize: 11,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     marginTop: 2,
   },
   roleDescriptionActive: {
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
 });

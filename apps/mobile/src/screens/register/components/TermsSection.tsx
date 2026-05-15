@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 interface TermsSectionProps {
   termsAccepted: boolean;
@@ -19,7 +19,7 @@ export const TermsSection: React.FC<TermsSectionProps> = ({
   return (
     <>
       <TouchableOpacity
-        testID="terms-checkbox"
+        testID='terms-checkbox'
         style={styles.termsContainer}
         onPress={onToggleTerms}
         accessibilityRole='checkbox'
@@ -32,7 +32,7 @@ export const TermsSection: React.FC<TermsSectionProps> = ({
           style={[styles.checkbox, termsAccepted && styles.checkboxChecked]}
         >
           {termsAccepted ? (
-            <Ionicons name='checkmark' size={16} color={theme.colors.textInverse} />
+            <Ionicons name='checkmark' size={16} color={me.onBrand} />
           ) : null}
         </View>
         <Text style={styles.termsLabel}>I accept the terms and conditions</Text>
@@ -105,26 +105,29 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 8,
-    backgroundColor: theme.colors.backgroundSecondary,
+    borderWidth: 1.5,
+    borderColor: me.line,
+    backgroundColor: me.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },
   checkboxChecked: {
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.brand,
+    borderColor: me.brand,
   },
   termsLabel: {
     marginLeft: 8,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   termsText: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     textAlign: 'center',
     lineHeight: 16,
     paddingHorizontal: 20,
   },
   linkInline: {
-    color: theme.colors.textPrimary,
+    color: me.brand,
     fontWeight: '500',
     textDecorationLine: 'underline' as const,
   },
@@ -135,7 +138,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   linkText: {
-    color: theme.colors.textPrimary,
+    color: me.brand,
     textDecorationLine: 'underline',
     fontWeight: '600',
   },
