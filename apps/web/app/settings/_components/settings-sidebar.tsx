@@ -7,31 +7,46 @@ interface SettingsSidebarProps {
   onSectionChange: (section: SectionKey) => void;
 }
 
+/**
+ * Settings section nav — Direction A · Mint Editorial. A secondary,
+ * in-page nav rail (the global nav lives in the Mint Editorial shell
+ * sidebar). Styled on the `--me-*` tokens.
+ */
 export function SettingsSidebar({
   activeSection,
   onSectionChange,
 }: SettingsSidebarProps) {
   return (
-    <aside className='w-1/5 min-w-[200px]'>
-      <nav className='bg-white rounded-lg border border-gray-200 overflow-hidden sticky top-8'>
+    <aside style={{ width: '22%', minWidth: 200 }}>
+      <nav
+        className='card'
+        style={{ overflow: 'hidden', position: 'sticky', top: 24 }}
+      >
         {SIDEBAR_SECTIONS.map((section) => {
-          const itemClass = `w-full text-left block px-6 py-4 hover:bg-gray-50 transition-colors border-l-4 ${
-            activeSection === section.key
-              ? 'border-teal-600 bg-gray-50 font-medium text-gray-900'
-              : 'border-transparent text-gray-600'
-          }`;
+          const active = activeSection === section.key;
+          const itemStyle: React.CSSProperties = {
+            display: 'block',
+            width: '100%',
+            textAlign: 'left',
+            padding: '13px 18px',
+            fontSize: 14,
+            borderLeft: `3px solid ${
+              active ? 'var(--me-brand)' : 'transparent'
+            }`,
+            background: active ? 'var(--me-brand-soft)' : 'transparent',
+            color: active ? 'var(--me-brand)' : 'var(--me-ink-2)',
+            fontWeight: active ? 600 : 500,
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+            textDecoration: 'none',
+          };
 
           // Audit follow-up (2026-04-29): if a section declares an
           // `href`, route the user to that dedicated page instead of
-          // toggling the in-page `activeSection`. Currently used by
-          // "Notifications" → `/settings/notifications` so the
-          // canonical preference UI is reached from the main sidebar
-          // (the in-page `<NotificationsSection>` posts to the legacy
-          // plural endpoint and would otherwise drift apart from the
-          // mobile + canonical surface).
+          // toggling the in-page `activeSection`.
           if (section.href) {
             return (
-              <Link key={section.key} href={section.href} className={itemClass}>
+              <Link key={section.key} href={section.href} style={itemStyle}>
                 {section.label}
               </Link>
             );
@@ -41,7 +56,11 @@ export function SettingsSidebar({
             <button
               key={section.key}
               onClick={() => onSectionChange(section.key)}
-              className={itemClass}
+              style={{
+                ...itemStyle,
+                border: 0,
+                borderLeft: itemStyle.borderLeft,
+              }}
             >
               {section.label}
             </button>

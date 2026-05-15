@@ -145,60 +145,67 @@ export default async function ContractorProfilePage2025() {
 
   return (
     <ErrorBoundary>
-      <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4'>
-        <Link
-          href='/contractor/dashboard-enhanced'
-          className={
-            isMintEditorial
-              ? 'btn btn-ghost btn-sm'
-              : 'inline-flex items-center gap-1.5 text-sm text-teal-600 hover:text-teal-700 font-medium transition-colors'
-          }
-          style={
-            isMintEditorial
-              ? { display: 'inline-flex', alignItems: 'center', gap: 6 }
-              : undefined
-          }
-        >
-          <ArrowLeft className='w-4 h-4' />
-          Back to Dashboard
-        </Link>
+      {/* `me-legacy-fit` palette-maps this still-legacy page's Tailwind
+          classes onto the Mint Editorial tokens. The shim is self-gating
+          — its selectors require a `.me-root` ancestor (provided by the
+          MintEditorialContractorShell) — so opted-out users are
+          unaffected. */}
+      <div className='me-legacy-fit'>
+        <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4'>
+          <Link
+            href='/contractor/dashboard-enhanced'
+            className={
+              isMintEditorial
+                ? 'btn btn-ghost btn-sm'
+                : 'inline-flex items-center gap-1.5 text-sm text-teal-600 hover:text-teal-700 font-medium transition-colors'
+            }
+            style={
+              isMintEditorial
+                ? { display: 'inline-flex', alignItems: 'center', gap: 6 }
+                : undefined
+            }
+          >
+            <ArrowLeft className='w-4 h-4' />
+            Back to Dashboard
+          </Link>
+        </div>
+        <ContractorProfileClient2025
+          contractor={{
+            id: contractor?.id || user.id,
+            first_name: contractor?.first_name,
+            last_name: contractor?.last_name,
+            email: contractor?.email || user.email,
+            bio: contractor?.bio,
+            city: contractor?.city,
+            country: contractor?.country,
+            profile_image_url: contractor?.profile_image_url,
+            company_name: contractor?.company_name,
+            license_number: contractor?.license_number,
+            admin_verified: contractor?.admin_verified || false,
+            created_at: contractor?.created_at,
+          }}
+          skills={skills}
+          reviews={reviews.map((r) => ({
+            id: r.id,
+            rating: r.rating,
+            comment: r.comment,
+            created_at: r.created_at,
+            reviewer: Array.isArray(r.reviewer) ? r.reviewer[0] : r.reviewer,
+            job: Array.isArray(r.job) ? r.job[0] : r.job,
+          }))}
+          completedJobs={completedJobs}
+          posts={posts}
+          metrics={{
+            profileCompletion,
+            averageRating,
+            totalReviews: reviews.length,
+            jobsCompleted: completedJobs.length,
+            winRate,
+            totalEarnings,
+            totalBids: bids.length,
+          }}
+        />
       </div>
-      <ContractorProfileClient2025
-        contractor={{
-          id: contractor?.id || user.id,
-          first_name: contractor?.first_name,
-          last_name: contractor?.last_name,
-          email: contractor?.email || user.email,
-          bio: contractor?.bio,
-          city: contractor?.city,
-          country: contractor?.country,
-          profile_image_url: contractor?.profile_image_url,
-          company_name: contractor?.company_name,
-          license_number: contractor?.license_number,
-          admin_verified: contractor?.admin_verified || false,
-          created_at: contractor?.created_at,
-        }}
-        skills={skills}
-        reviews={reviews.map((r) => ({
-          id: r.id,
-          rating: r.rating,
-          comment: r.comment,
-          created_at: r.created_at,
-          reviewer: Array.isArray(r.reviewer) ? r.reviewer[0] : r.reviewer,
-          job: Array.isArray(r.job) ? r.job[0] : r.job,
-        }))}
-        completedJobs={completedJobs}
-        posts={posts}
-        metrics={{
-          profileCompletion,
-          averageRating,
-          totalReviews: reviews.length,
-          jobsCompleted: completedJobs.length,
-          winRate,
-          totalEarnings,
-          totalBids: bids.length,
-        }}
-      />
     </ErrorBoundary>
   );
 }

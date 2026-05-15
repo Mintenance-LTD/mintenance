@@ -15,8 +15,21 @@ export default function RegisterLayout({
   return (
     <Suspense
       fallback={
-        <div className='min-h-screen flex items-center justify-center bg-[#F9FAFB]'>
-          <div className='animate-spin h-10 w-10 border-4 border-teal-500 border-t-transparent rounded-full' />
+        // 2026-05-15: Mint Editorial — mint-tinted background + brand
+        // spinner so the loading flash matches the redesigned page.
+        // `data-theme` makes the --me-* tokens resolve on this subtree.
+        <div
+          data-theme='mint-editorial'
+          className='min-h-screen flex items-center justify-center'
+          style={{ background: 'var(--me-bg)' }}
+        >
+          <div
+            className='animate-spin h-10 w-10 rounded-full'
+            style={{
+              border: '4px solid var(--me-brand-soft)',
+              borderTopColor: 'var(--me-brand)',
+            }}
+          />
         </div>
       }
     >

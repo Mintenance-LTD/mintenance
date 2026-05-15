@@ -1,7 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { ArrowLeft } from 'lucide-react';
+import React from 'react';
 import { AgentAutomationPanel } from '@/components/agents/AgentAutomationPanel';
 import { HomeownerPageWrapper } from '@/app/dashboard/components/HomeownerPageWrapper';
 import { useSettingsState } from './_components/use-settings-state';
@@ -12,6 +11,19 @@ import { NotificationsSection } from './_components/notifications-section';
 import { AppearanceSection } from './_components/appearance-section';
 import { PhoneVerificationDialog } from './_components/phone-verification-dialog';
 
+/**
+ * /settings — Direction A · Mint Editorial.
+ *
+ * 2026-05-15 design-system rebuild. The content subtree is wrapped in
+ * `data-theme='mint-editorial' .me-root` so the `--me-*` tokens +
+ * `.card` / `.field` / `.t-h1` primitives resolve regardless of the
+ * user's global theme cookie — settings always renders in Mint
+ * Editorial (this is also the page that hosts the theme toggle).
+ *
+ * `me-legacy-fit` is kept on the wrapper because the embedded
+ * `AgentAutomationPanel` is still a legacy Tailwind component; the
+ * shim maps its classes onto the Mint palette.
+ */
 export default function SettingsPage2025({
   params,
   searchParams,
@@ -22,27 +34,35 @@ export default function SettingsPage2025({
   // Note: params and searchParams are Promises in Next.js 16, but we use hooks instead
   // Accepting them here prevents React DevTools serialization errors
   const settings = useSettingsState();
-  const { user, loadingUser, router, activeSection, setActiveSection } =
-    settings;
-
-  // Hide the legacy "Back to Dashboard" link + suppress the legacy
-  // outer `min-h-screen bg-gray-50` strip when the Mint Editorial
-  // shell is active — the persistent sidebar already provides nav
-  // and a page background.
-  const [isMintEditorial, setIsMintEditorial] = useState(false);
-  useEffect(() => {
-    if (typeof document === 'undefined') return;
-    setIsMintEditorial(
-      document.documentElement.dataset.theme === 'mint-editorial'
-    );
-  }, []);
+  const { user, loadingUser, activeSection, setActiveSection } = settings;
 
   if (loadingUser) {
     return (
-      <div className='flex items-center justify-center min-h-screen bg-gray-50'>
-        <div className='text-center'>
-          <div className='w-16 h-16 border-4 border-teal-600 border-t-transparent rounded-full animate-spin mx-auto mb-4'></div>
-          <p className='text-gray-600'>Loading settings...</p>
+      <div
+        data-theme='mint-editorial'
+        className='me-root'
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: '60vh',
+        }}
+      >
+        <div style={{ textAlign: 'center' }}>
+          <div
+            className='animate-spin'
+            style={{
+              width: 48,
+              height: 48,
+              borderRadius: 9999,
+              border: '4px solid var(--me-brand-soft)',
+              borderTopColor: 'var(--me-brand)',
+              margin: '0 auto 14px',
+            }}
+          />
+          <p style={{ color: 'var(--me-ink-3)', fontSize: 14 }}>
+            Loading settings…
+          </p>
         </div>
       </div>
     );
@@ -54,262 +74,237 @@ export default function SettingsPage2025({
     user.first_name?.[0]?.toUpperCase() || user.email[0].toUpperCase();
 
   return (
-    <HomeownerPageWrapper className='me-legacy-fit'>
+    <HomeownerPageWrapper>
       <div
-        className={
-          isMintEditorial
-            ? 'settings-page'
-            : 'min-h-screen bg-gray-50 settings-page'
-        }
+        data-theme='mint-editorial'
+        className='me-root me-legacy-fit settings-page'
+        style={{ padding: '28px 32px' }}
       >
-        <div
-          className={
-            isMintEditorial ? '' : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'
-          }
-        >
-          {/* Back to Dashboard Button — legacy only; the shell sidebar
-              already provides global navigation. */}
-          {!isMintEditorial && (
-            <button
-              onClick={() => router.push('/dashboard')}
-              className='flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors mb-6'
-            >
-              <ArrowLeft className='w-5 h-5' />
-              <span className='font-medium'>Back to Dashboard</span>
-            </button>
-          )}
+        <div style={{ display: 'flex', gap: 28, maxWidth: 1180 }}>
+          <SettingsSidebar
+            activeSection={activeSection}
+            onSectionChange={setActiveSection}
+          />
 
-          <div className='flex gap-8'>
-            <SettingsSidebar
-              activeSection={activeSection}
-              onSectionChange={setActiveSection}
-            />
+          <main style={{ flex: 1, minWidth: 0 }}>
+            {activeSection === 'profile' && (
+              <ProfileSection
+                userInitial={userInitial}
+                profileData={settings.profileData}
+                setProfileData={settings.setProfileData}
+                isSaving={settings.isSaving}
+                onSave={settings.handleSaveProfile}
+                onReset={settings.handleResetProfile}
+                onAvatarUpload={settings.handleAvatarUpload}
+              />
+            )}
 
-            <main className='flex-1'>
-              {activeSection === 'profile' && (
-                <ProfileSection
-                  userInitial={userInitial}
-                  profileData={settings.profileData}
-                  setProfileData={settings.setProfileData}
-                  isSaving={settings.isSaving}
-                  onSave={settings.handleSaveProfile}
-                  onReset={settings.handleResetProfile}
-                  onAvatarUpload={settings.handleAvatarUpload}
-                />
-              )}
+            {activeSection === 'account' && (
+              <AccountSecuritySection
+                user={{
+                  email: user.email,
+                  phone: user.phone,
+                  email_verified: user.email_verified,
+                  phone_verified: user.phone_verified,
+                }}
+                passwordData={settings.passwordData}
+                setPasswordData={settings.setPasswordData}
+                twoFactorEnabled={settings.twoFactorEnabled}
+                setTwoFactorEnabled={settings.setTwoFactorEnabled}
+                showDeleteConfirm={settings.showDeleteConfirm}
+                setShowDeleteConfirm={settings.setShowDeleteConfirm}
+                isSaving={settings.isSaving}
+                csrfToken={settings.csrfToken}
+                onChangePassword={settings.handleChangePassword}
+                onDeleteAccount={settings.handleDeleteAccount}
+                onSendVerificationCode={settings.handleSendVerificationCode}
+                onAddPhoneNumber={settings.handleAddPhoneNumber}
+                onUpdatePhoneNumber={settings.handleUpdatePhoneNumber}
+              />
+            )}
 
-              {activeSection === 'account' && (
-                <AccountSecuritySection
-                  user={{
-                    email: user.email,
-                    phone: user.phone,
-                    email_verified: user.email_verified,
-                    phone_verified: user.phone_verified,
-                  }}
-                  passwordData={settings.passwordData}
-                  setPasswordData={settings.setPasswordData}
-                  twoFactorEnabled={settings.twoFactorEnabled}
-                  setTwoFactorEnabled={settings.setTwoFactorEnabled}
-                  showDeleteConfirm={settings.showDeleteConfirm}
-                  setShowDeleteConfirm={settings.setShowDeleteConfirm}
-                  isSaving={settings.isSaving}
-                  csrfToken={settings.csrfToken}
-                  onChangePassword={settings.handleChangePassword}
-                  onDeleteAccount={settings.handleDeleteAccount}
-                  onSendVerificationCode={settings.handleSendVerificationCode}
-                  onAddPhoneNumber={settings.handleAddPhoneNumber}
-                  onUpdatePhoneNumber={settings.handleUpdatePhoneNumber}
-                />
-              )}
+            {activeSection === 'notifications' && (
+              <NotificationsSection
+                notificationPrefs={settings.notificationPrefs}
+                setNotificationPrefs={settings.setNotificationPrefs}
+                isSaving={settings.isSaving}
+                onSave={settings.handleSaveNotifications}
+              />
+            )}
 
-              {activeSection === 'notifications' && (
-                <NotificationsSection
-                  notificationPrefs={settings.notificationPrefs}
-                  setNotificationPrefs={settings.setNotificationPrefs}
-                  isSaving={settings.isSaving}
-                  onSave={settings.handleSaveNotifications}
-                />
-              )}
+            {activeSection === 'automation' && (
+              <div>
+                <h1 className='t-h1' style={{ marginBottom: 4 }}>
+                  AI &amp; Automation
+                </h1>
+                <p className='t-body' style={{ margin: '0 0 20px' }}>
+                  Control how AI agents assist you with bids, pricing,
+                  scheduling, and more.
+                </p>
+                <AgentAutomationPanel />
+              </div>
+            )}
 
-              {activeSection === 'automation' && (
-                <div className='space-y-6'>
-                  <h1 className='text-3xl font-bold text-gray-900 mb-2'>
-                    AI & Automation
-                  </h1>
-                  <p className='text-gray-600 mb-6'>
-                    Control how AI agents assist you with bids, pricing,
-                    scheduling, and more.
-                  </p>
-                  <AgentAutomationPanel />
-                </div>
-              )}
-
-              {activeSection === 'payments' && (
-                <div className='space-y-6'>
-                  <h1 className='text-3xl font-bold text-gray-900 mb-2'>
-                    Payments
-                  </h1>
-                  <p className='text-gray-600 mb-6'>
-                    Manage your payment methods
-                  </p>
-                  <div className='bg-white rounded-xl border border-gray-200 p-8'>
-                    <h2 className='text-xl font-semibold text-gray-900 mb-6'>
-                      Payment methods
-                    </h2>
-                    {settings.loadingPayments ? (
-                      <p className='text-gray-500 py-4'>
-                        Loading payment methods...
-                      </p>
-                    ) : settings.paymentMethods.length === 0 ? (
-                      <p className='text-gray-500 py-4'>
-                        No payment methods on file. Add one to get started.
-                      </p>
-                    ) : (
-                      <div className='space-y-4 mb-6'>
-                        {settings.paymentMethods.map((pm) => (
-                          <div
-                            key={pm.id}
-                            className='flex items-center gap-4 p-4 border border-gray-200 rounded-lg'
-                          >
-                            <input
-                              type='radio'
-                              name='payment'
-                              defaultChecked={pm.isDefault}
-                              className='w-4 h-4 text-teal-600'
-                              readOnly
-                            />
-                            <div className='flex-1'>
-                              <p className='font-medium text-gray-900 capitalize'>
-                                {pm.brand} ending in {pm.last4}
-                              </p>
-                              <p className='text-sm text-gray-500'>
-                                Expires {String(pm.expMonth).padStart(2, '0')}/
-                                {pm.expYear}
-                              </p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    <a
-                      href='/settings/payment-methods'
-                      className='inline-block px-6 py-3 border-2 border-teal-600 text-teal-600 rounded-lg font-medium hover:bg-teal-50 transition-colors'
+            {activeSection === 'payments' && (
+              <div>
+                <h1 className='t-h1' style={{ marginBottom: 4 }}>
+                  Payments
+                </h1>
+                <p className='t-body' style={{ margin: '0 0 20px' }}>
+                  Manage your payment methods
+                </p>
+                <div className='card' style={{ padding: 28 }}>
+                  <h2 className='t-h3' style={{ marginBottom: 18 }}>
+                    Payment methods
+                  </h2>
+                  {settings.loadingPayments ? (
+                    <p
+                      style={{
+                        color: 'var(--me-ink-3)',
+                        fontSize: 14,
+                        padding: '8px 0',
+                      }}
                     >
-                      Manage payment methods
-                    </a>
-                  </div>
-                </div>
-              )}
-
-              {activeSection === 'appearance' && <AppearanceSection />}
-
-              {activeSection === 'privacy' && (
-                <div className='space-y-6'>
-                  <h1 className='text-3xl font-bold text-gray-900 mb-2'>
-                    Privacy
-                  </h1>
-                  <p className='text-gray-600 mb-6'>
-                    Manage your privacy and data
-                  </p>
-
-                  {/* Privacy Controls */}
-                  <div className='bg-white rounded-xl border border-gray-200 p-8 space-y-6'>
-                    <h2 className='text-xl font-semibold text-gray-900'>
-                      Privacy Controls
-                    </h2>
-
-                    <div className='flex items-center justify-between py-3 border-b border-gray-100'>
-                      <div>
-                        <p className='font-medium text-gray-900'>
-                          Profile Visible
-                        </p>
-                        <p className='text-sm text-gray-500'>
-                          Allow other users to see your profile in search
-                          results and contractor listings
-                        </p>
-                      </div>
-                      <button
-                        type='button'
-                        role='switch'
-                        aria-checked={
-                          settings.privacySettings?.profileVisible ?? true
-                        }
-                        onClick={() =>
-                          settings.handleTogglePrivacy('profileVisible')
-                        }
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                          settings.privacySettings?.profileVisible !== false
-                            ? 'bg-teal-600'
-                            : 'bg-gray-200'
-                        }`}
-                      >
-                        <span
-                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                            settings.privacySettings?.profileVisible !== false
-                              ? 'translate-x-6'
-                              : 'translate-x-1'
-                          }`}
-                        />
-                      </button>
-                    </div>
-
-                    <div className='flex items-center justify-between py-3'>
-                      <div>
-                        <p className='font-medium text-gray-900'>
-                          Share Activity Data
-                        </p>
-                        <p className='text-sm text-gray-500'>
-                          Help improve Mintenance by sharing anonymised usage
-                          data
-                        </p>
-                      </div>
-                      <button
-                        type='button'
-                        role='switch'
-                        aria-checked={
-                          settings.privacySettings?.shareActivityData ?? false
-                        }
-                        onClick={() =>
-                          settings.handleTogglePrivacy('shareActivityData')
-                        }
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                          settings.privacySettings?.shareActivityData
-                            ? 'bg-teal-600'
-                            : 'bg-gray-200'
-                        }`}
-                      >
-                        <span
-                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                            settings.privacySettings?.shareActivityData
-                              ? 'translate-x-6'
-                              : 'translate-x-1'
-                          }`}
-                        />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Data Export */}
-                  <div className='bg-white rounded-xl border border-gray-200 p-8'>
-                    <h2 className='text-xl font-semibold text-gray-900 mb-4'>
-                      Download your data
-                    </h2>
-                    <p className='text-sm text-gray-600 mb-4'>
-                      You can request a copy of all your personal data we have
-                      stored.
+                      Loading payment methods…
                     </p>
-                    <button
-                      onClick={settings.handleExportData}
-                      disabled={settings.isExporting}
-                      className='px-6 py-3 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 transition-colors disabled:opacity-50'
+                  ) : settings.paymentMethods.length === 0 ? (
+                    <p
+                      style={{
+                        color: 'var(--me-ink-3)',
+                        fontSize: 14,
+                        padding: '8px 0',
+                      }}
                     >
-                      {settings.isExporting ? 'Exporting...' : 'Export my data'}
-                    </button>
-                  </div>
+                      No payment methods on file. Add one to get started.
+                    </p>
+                  ) : (
+                    <div
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 12,
+                        marginBottom: 20,
+                      }}
+                    >
+                      {settings.paymentMethods.map((pm) => (
+                        <div
+                          key={pm.id}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 14,
+                            padding: 14,
+                            border: '1px solid var(--me-line)',
+                            borderRadius: 'var(--me-radius-input)',
+                          }}
+                        >
+                          <input
+                            type='radio'
+                            name='payment'
+                            defaultChecked={pm.isDefault}
+                            readOnly
+                            style={{ accentColor: 'var(--me-brand)' }}
+                          />
+                          <div style={{ flex: 1 }}>
+                            <p
+                              style={{
+                                margin: 0,
+                                fontWeight: 600,
+                                fontSize: 14,
+                                color: 'var(--me-ink)',
+                                textTransform: 'capitalize',
+                              }}
+                            >
+                              {pm.brand} ending in {pm.last4}
+                            </p>
+                            <p
+                              style={{
+                                margin: '2px 0 0',
+                                fontSize: 13,
+                                color: 'var(--me-ink-3)',
+                              }}
+                            >
+                              Expires {String(pm.expMonth).padStart(2, '0')}/
+                              {pm.expYear}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <a
+                    href='/settings/payment-methods'
+                    className='btn btn-secondary'
+                  >
+                    Manage payment methods
+                  </a>
                 </div>
-              )}
-            </main>
-          </div>
+              </div>
+            )}
+
+            {activeSection === 'appearance' && <AppearanceSection />}
+
+            {activeSection === 'privacy' && (
+              <div>
+                <h1 className='t-h1' style={{ marginBottom: 4 }}>
+                  Privacy
+                </h1>
+                <p className='t-body' style={{ margin: '0 0 20px' }}>
+                  Manage your privacy and data
+                </p>
+
+                {/* Privacy Controls */}
+                <div className='card' style={{ padding: 28, marginBottom: 20 }}>
+                  <h2 className='t-h3' style={{ marginBottom: 8 }}>
+                    Privacy controls
+                  </h2>
+
+                  <PrivacyToggleRow
+                    title='Profile visible'
+                    description='Allow other users to see your profile in search results and contractor listings'
+                    checked={settings.privacySettings?.profileVisible !== false}
+                    onToggle={() =>
+                      settings.handleTogglePrivacy('profileVisible')
+                    }
+                    first
+                  />
+                  <PrivacyToggleRow
+                    title='Share activity data'
+                    description='Help improve Mintenance by sharing anonymised usage data'
+                    checked={!!settings.privacySettings?.shareActivityData}
+                    onToggle={() =>
+                      settings.handleTogglePrivacy('shareActivityData')
+                    }
+                  />
+                </div>
+
+                {/* Data Export */}
+                <div className='card' style={{ padding: 28 }}>
+                  <h2 className='t-h3' style={{ marginBottom: 8 }}>
+                    Download your data
+                  </h2>
+                  <p
+                    style={{
+                      margin: '0 0 16px',
+                      fontSize: 13,
+                      color: 'var(--me-ink-2)',
+                    }}
+                  >
+                    You can request a copy of all your personal data we have
+                    stored.
+                  </p>
+                  <button
+                    onClick={settings.handleExportData}
+                    disabled={settings.isExporting}
+                    className='btn btn-primary'
+                    style={{ opacity: settings.isExporting ? 0.6 : 1 }}
+                  >
+                    {settings.isExporting ? 'Exporting…' : 'Export my data'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </main>
         </div>
 
         <PhoneVerificationDialog
@@ -324,5 +319,87 @@ export default function SettingsPage2025({
         />
       </div>
     </HomeownerPageWrapper>
+  );
+}
+
+/** Privacy toggle row — Mint Editorial token-styled switch. */
+function PrivacyToggleRow({
+  title,
+  description,
+  checked,
+  onToggle,
+  first,
+}: {
+  title: string;
+  description: string;
+  checked: boolean;
+  onToggle: () => void;
+  first?: boolean;
+}) {
+  return (
+    <div
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 16,
+        padding: '14px 0',
+        borderTop: first ? 'none' : '1px solid var(--me-line-2)',
+      }}
+    >
+      <div>
+        <p
+          style={{
+            margin: 0,
+            fontWeight: 600,
+            fontSize: 14,
+            color: 'var(--me-ink)',
+          }}
+        >
+          {title}
+        </p>
+        <p
+          style={{
+            margin: '2px 0 0',
+            fontSize: 13,
+            color: 'var(--me-ink-3)',
+          }}
+        >
+          {description}
+        </p>
+      </div>
+      <button
+        type='button'
+        role='switch'
+        aria-checked={checked}
+        aria-label={title}
+        onClick={onToggle}
+        style={{
+          position: 'relative',
+          width: 44,
+          height: 24,
+          borderRadius: 9999,
+          border: 0,
+          flexShrink: 0,
+          cursor: 'pointer',
+          background: checked ? 'var(--me-brand)' : 'var(--me-line)',
+          transition: 'background 0.15s ease',
+        }}
+      >
+        <span
+          style={{
+            position: 'absolute',
+            top: 3,
+            left: checked ? 23 : 3,
+            width: 18,
+            height: 18,
+            borderRadius: 9999,
+            background: 'var(--me-surface)',
+            boxShadow: '0 1px 2px rgba(31,42,36,0.25)',
+            transition: 'left 0.15s ease',
+          }}
+        />
+      </button>
+    </div>
   );
 }

@@ -69,7 +69,7 @@ export default async function BidSubmissionPage2025({
 
     // Instead of redirecting, show an error message
     return (
-      <div className='flex flex-col items-center justify-center min-h-screen p-8'>
+      <div className='flex flex-col items-center justify-center min-h-screen p-8 me-legacy-fit'>
         <h1 className='text-2xl font-bold text-gray-900 mb-4'>Job Not Found</h1>
         <p className='text-gray-600 mb-6'>
           The job you're looking for doesn't exist or has been removed.
@@ -98,38 +98,45 @@ export default async function BidSubmissionPage2025({
     .eq('contractor_id', user.id)
     .single();
 
+  // `me-legacy-fit` palette-maps this still-legacy bid form's Tailwind
+  // classes onto the Mint Editorial tokens. The shim is self-gating —
+  // its selectors require a `.me-root` ancestor (provided by the
+  // MintEditorialContractorShell) — so opted-out users are unaffected.
   return (
-    <BidSubmissionClient2025
-      job={{
-        id: job.id,
-        title: job.title,
-        description: job.description,
-        budget: job.budget?.toString(),
-        location: job.location,
-        category: job.category,
-        createdAt: job.created_at,
-        photos: job.photos || [],
-        homeowner: Array.isArray(job.homeowner)
-          ? job.homeowner[0]
-          : job.homeowner,
-      }}
-      existingBid={
-        existingBid
-          ? {
-              amount: existingBid.bid_amount || existingBid.amount,
-              description: existingBid.proposal_text || existingBid.description,
-              lineItems: existingBid.line_items || [],
-              taxRate: existingBid.tax_rate ?? 0,
-              terms: existingBid.terms || '',
-              estimatedDuration: existingBid.estimated_duration || undefined,
-              proposedStartDate: existingBid.proposed_start_date
-                ? new Date(existingBid.proposed_start_date)
-                    .toISOString()
-                    .split('T')[0]
-                : undefined,
-            }
-          : undefined
-      }
-    />
+    <div className='me-legacy-fit'>
+      <BidSubmissionClient2025
+        job={{
+          id: job.id,
+          title: job.title,
+          description: job.description,
+          budget: job.budget?.toString(),
+          location: job.location,
+          category: job.category,
+          createdAt: job.created_at,
+          photos: job.photos || [],
+          homeowner: Array.isArray(job.homeowner)
+            ? job.homeowner[0]
+            : job.homeowner,
+        }}
+        existingBid={
+          existingBid
+            ? {
+                amount: existingBid.bid_amount || existingBid.amount,
+                description:
+                  existingBid.proposal_text || existingBid.description,
+                lineItems: existingBid.line_items || [],
+                taxRate: existingBid.tax_rate ?? 0,
+                terms: existingBid.terms || '',
+                estimatedDuration: existingBid.estimated_duration || undefined,
+                proposedStartDate: existingBid.proposed_start_date
+                  ? new Date(existingBid.proposed_start_date)
+                      .toISOString()
+                      .split('T')[0]
+                  : undefined,
+              }
+            : undefined
+        }
+      />
+    </div>
   );
 }
