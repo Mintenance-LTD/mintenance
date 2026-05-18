@@ -98,7 +98,7 @@
     "@types/speakeasy": "^2.0.10",
     "@typescript-eslint/eslint-plugin": "^8",
     "@typescript-eslint/parser": "^8",
-    "archiver": "^7.0.1",
+    "archiver": "^8.0.0",
     "bcryptjs": "^3.0.3",
     "dotenv": "^17.2.3",
     "eslint": "^9",
