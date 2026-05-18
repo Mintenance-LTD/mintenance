@@ -1,5 +1,6 @@
 'use client';
 
+import { Sparkles } from 'lucide-react';
 import { MockJobRow, MockPhoneJob } from './HeroMockRows';
 
 /**
@@ -327,9 +328,13 @@ export function HeroMock() {
                 opacity: 0.85,
                 marginBottom: 2,
                 fontWeight: 700,
+                display: 'flex',
+                alignItems: 'center',
+                gap: 3,
               }}
             >
-              ✦ Mint
+              <Sparkles size={8} aria-hidden='true' />
+              Mint
             </div>
             <div style={{ fontSize: 10, lineHeight: 1.4 }}>
               Tomas confirmed 3pm. Your tap should be flowing by tea time.
@@ -408,7 +413,7 @@ export function HeroMock() {
             flexShrink: 0,
           }}
         >
-          ✦
+          <Sparkles size={14} aria-hidden='true' />
         </span>
         <div>
           <div

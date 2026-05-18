@@ -7,6 +7,7 @@
  */
 
 import React from 'react';
+import { Check } from 'lucide-react';
 import { theme } from '@/lib/theme';
 import { Card } from '@/components/ui/Card.unified';
 import { Button } from '@/components/ui/Button';
@@ -75,7 +76,16 @@ export function InspectionChecklist({
         disabled={actionLoading || completed}
         style={{ marginTop: theme.spacing.md }}
       >
-        {completed ? 'Inspection Completed ✓' : 'Mark Inspection Completed'}
+        {completed ? (
+          <span
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}
+          >
+            Inspection Completed
+            <Check size={16} aria-hidden='true' />
+          </span>
+        ) : (
+          'Mark Inspection Completed'
+        )}
       </Button>
     </Card>
   );

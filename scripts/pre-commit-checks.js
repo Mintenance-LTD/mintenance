@@ -481,6 +481,11 @@ const KNOWN_LARGE_FILES = new Set([
   // restyle; both already >500 LOC pre-conversion. Split is a P2.
   'apps/web/app/contractor/discover/components/JobCard.tsx', // 759 (was 756)
   'apps/web/app/contractor/discover/components/LocationPromptModal.tsx', // 602 (was 509)
+  // Pre-existing >500-LOC files touched only by the glyph→lucide-icon
+  // audit pass (2026-05-18). Splits are P2 follow-ups.
+  'apps/web/app/jobs/create/components/SmartJobAnalysis.tsx', // 663
+  'apps/web/app/jobs/components/JobCard2025.tsx', // 649
+  'apps/web/app/dashboard/components/AirbnbSearchBar.tsx', // 570
 ]);
 
 function countLines(filePath) {

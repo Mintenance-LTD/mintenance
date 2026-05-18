@@ -10,6 +10,7 @@ import {
   Gauge,
   TrendingUp,
   AlertCircle,
+  Check,
 } from 'lucide-react';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import type { AssessmentResult } from './TryMintAIClient';
@@ -421,13 +422,14 @@ export function AssessmentResults({
                                 {/* Database Badge */}
                                 {material.source === 'database' && (
                                   <div
-                                    className='absolute top-2 right-2 px-2 py-1 text-xs font-semibold rounded'
+                                    className='absolute top-2 right-2 px-2 py-1 text-xs font-semibold rounded inline-flex items-center gap-1'
                                     style={{
                                       background: 'var(--me-brand-soft)',
                                       color: 'var(--me-brand)',
                                     }}
                                   >
-                                    ✓ DB
+                                    <Check size={12} aria-hidden='true' />
+                                    DB
                                   </div>
                                 )}
 

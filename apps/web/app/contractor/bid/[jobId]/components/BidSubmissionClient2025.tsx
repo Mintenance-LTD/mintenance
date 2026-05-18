@@ -4,7 +4,7 @@ import { ContractorPageWrapper } from '@/app/contractor/components/ContractorPag
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Check } from 'lucide-react';
 import { fadeIn } from '@/lib/animations/variants';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import toast from 'react-hot-toast';
@@ -637,7 +637,17 @@ export function BidSubmissionClient2025(props: BidSubmissionClient2025Props) {
                   ) : (
                     <>
                       {description.trim().length} / 50 characters minimum
-                      {description.trim().length >= 50 && ' ✓'}
+                      {description.trim().length >= 50 && (
+                        <Check
+                          size={14}
+                          aria-hidden='true'
+                          style={{
+                            display: 'inline',
+                            marginLeft: 4,
+                            verticalAlign: 'text-bottom',
+                          }}
+                        />
+                      )}
                     </>
                   )}
                 </div>

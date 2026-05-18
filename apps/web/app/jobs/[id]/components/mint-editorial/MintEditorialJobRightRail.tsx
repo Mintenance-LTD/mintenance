@@ -27,6 +27,7 @@ import {
   Lock,
   User as UserIcon,
   Info,
+  Check,
 } from 'lucide-react';
 import type { Bid } from '../BidCard';
 import { formatGBP, type PropertyShape } from './MintEditorialJobCards';
@@ -295,9 +296,20 @@ export function AccessSharedCard({
                   className='t-meta'
                   style={{ fontSize: 11, color: 'var(--me-ink-3)' }}
                 >
-                  {canSeeCode
-                    ? '✓ Visible to contractor now'
-                    : 'Reveals to contractor when escrow funds + work is ready to start'}
+                  {canSeeCode ? (
+                    <span
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 4,
+                      }}
+                    >
+                      <Check size={12} aria-hidden='true' />
+                      Visible to contractor now
+                    </span>
+                  ) : (
+                    'Reveals to contractor when escrow funds + work is ready to start'
+                  )}
                 </span>
               </div>
             ) : null}

@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { Check } from 'lucide-react';
 import { Icon } from '@/components/ui/Icon';
 import { theme } from '@/lib/theme';
 import { logger } from '@mintenance/shared';
@@ -86,37 +87,40 @@ export function SmartJobAnalysis({
       return;
     }
 
-    const timer = setTimeout(async () => {
-      setLoading(true);
-      try {
-        const csrfToken = await getCsrfToken();
-        const response = await fetch('/api/jobs/analyze', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-Token': csrfToken,
-          },
-          body: JSON.stringify({
-            title,
-            description,
-            location,
-            imageUrls: imageUrls || [],
-          }),
-        });
+    const timer = setTimeout(
+      async () => {
+        setLoading(true);
+        try {
+          const csrfToken = await getCsrfToken();
+          const response = await fetch('/api/jobs/analyze', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRF-Token': csrfToken,
+            },
+            body: JSON.stringify({
+              title,
+              description,
+              location,
+              imageUrls: imageUrls || [],
+            }),
+          });
 
-        if (response.ok) {
-          const data = await response.json();
-          setAnalysis(data);
-          setShowSuggestions(true);
+          if (response.ok) {
+            const data = await response.json();
+            setAnalysis(data);
+            setShowSuggestions(true);
+          }
+        } catch (error) {
+          logger.error('Error analyzing job', error, {
+            service: 'smart-job-analysis',
+          });
+        } finally {
+          setLoading(false);
         }
-      } catch (error) {
-        logger.error('Error analyzing job', error, {
-          service: 'smart-job-analysis',
-        });
-      } finally {
-        setLoading(false);
-      }
-    }, hasImages ? 500 : 1000); // Faster response when images are provided
+      },
+      hasImages ? 500 : 1000
+    ); // Faster response when images are provided
 
     return () => clearTimeout(timer);
   }, [title, description, location, imageUrls]);
@@ -157,115 +161,144 @@ export function SmartJobAnalysis({
   };
 
   return (
-    <div style={{
-      backgroundColor: theme.colors.backgroundSecondary,
-      border: `2px solid ${getConfidenceColor(analysis.confidence)}40`,
-      borderRadius: theme.borderRadius.lg,
-      padding: theme.spacing[4],
-      marginTop: theme.spacing[4],
-      marginBottom: theme.spacing[4],
-    }}>
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: theme.spacing[2],
-        marginBottom: theme.spacing[3],
-      }}>
-        <div style={{
-          width: '40px',
-          height: '40px',
-          borderRadius: theme.borderRadius.lg,
-          backgroundColor: theme.colors.primary + '15',
+    <div
+      style={{
+        backgroundColor: theme.colors.backgroundSecondary,
+        border: `2px solid ${getConfidenceColor(analysis.confidence)}40`,
+        borderRadius: theme.borderRadius.lg,
+        padding: theme.spacing[4],
+        marginTop: theme.spacing[4],
+        marginBottom: theme.spacing[4],
+      }}
+    >
+      <div
+        style={{
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center',
-          color: theme.colors.primary,
-        }}>
-          <Icon name="lightBulb" size={20} />
+          gap: theme.spacing[2],
+          marginBottom: theme.spacing[3],
+        }}
+      >
+        <div
+          style={{
+            width: '40px',
+            height: '40px',
+            borderRadius: theme.borderRadius.lg,
+            backgroundColor: theme.colors.primary + '15',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: theme.colors.primary,
+          }}
+        >
+          <Icon name='lightBulb' size={20} />
         </div>
         <div style={{ flex: 1 }}>
-          <h3 style={{
-            margin: 0,
-            fontSize: theme.typography.fontSize.base,
-            fontWeight: theme.typography.fontWeight.bold,
-            color: theme.colors.textPrimary,
-          }}>
+          <h3
+            style={{
+              margin: 0,
+              fontSize: theme.typography.fontSize.base,
+              fontWeight: theme.typography.fontWeight.bold,
+              color: theme.colors.textPrimary,
+            }}
+          >
             Smart Job Analysis
           </h3>
-          <p style={{
-            margin: 0,
-            fontSize: theme.typography.fontSize.xs,
-            color: theme.colors.textSecondary,
-          }}>
+          <p
+            style={{
+              margin: 0,
+              fontSize: theme.typography.fontSize.xs,
+              color: theme.colors.textSecondary,
+            }}
+          >
             {analysis.imageAnalysis
               ? 'AI suggestions based on your description and images'
               : 'AI suggestions based on your description'}
           </p>
         </div>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: theme.spacing[1],
-        }}>
-          <div style={{
-            width: '8px',
-            height: '8px',
-            borderRadius: '50%',
-            backgroundColor: getConfidenceColor(analysis.confidence),
-          }} />
-          <span style={{
-            fontSize: theme.typography.fontSize.xs,
-            color: theme.colors.textSecondary,
-            fontWeight: theme.typography.fontWeight.semibold,
-          }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: theme.spacing[1],
+          }}
+        >
+          <div
+            style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              backgroundColor: getConfidenceColor(analysis.confidence),
+            }}
+          />
+          <span
+            style={{
+              fontSize: theme.typography.fontSize.xs,
+              color: theme.colors.textSecondary,
+              fontWeight: theme.typography.fontWeight.semibold,
+            }}
+          >
             {analysis.confidence}% confidence
           </span>
         </div>
       </div>
 
       {loading ? (
-        <div style={{
-          padding: theme.spacing[4],
-          textAlign: 'center',
-          color: theme.colors.textSecondary,
-        }}>
+        <div
+          style={{
+            padding: theme.spacing[4],
+            textAlign: 'center',
+            color: theme.colors.textSecondary,
+          }}
+        >
           {imageUrls && imageUrls.length > 0
             ? 'Analyzing images and description...'
             : 'Analyzing job description...'}
         </div>
       ) : (
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: theme.spacing[3],
-        }}>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: theme.spacing[3],
+          }}
+        >
           {/* Category Suggestion */}
-          <div style={{
-            padding: theme.spacing[3],
-            backgroundColor: theme.colors.surface,
-            borderRadius: theme.borderRadius.md,
-            border: `1px solid ${theme.colors.border}`,
-          }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: theme.spacing[2],
-            }}>
+          <div
+            style={{
+              padding: theme.spacing[3],
+              backgroundColor: theme.colors.surface,
+              borderRadius: theme.borderRadius.md,
+              border: `1px solid ${theme.colors.border}`,
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: theme.spacing[2],
+              }}
+            >
               <div>
-                <div style={{
-                  fontSize: theme.typography.fontSize.xs,
-                  color: theme.colors.textSecondary,
-                  marginBottom: theme.spacing[1],
-                }}>
+                <div
+                  style={{
+                    fontSize: theme.typography.fontSize.xs,
+                    color: theme.colors.textSecondary,
+                    marginBottom: theme.spacing[1],
+                  }}
+                >
                   Suggested Category
                 </div>
-                <div style={{
-                  fontSize: theme.typography.fontSize.base,
-                  fontWeight: theme.typography.fontWeight.semibold,
-                  color: theme.colors.textPrimary,
-                }}>
-                  {categoryNames[analysis.suggestedCategory] || analysis.suggestedCategory}
+                <div
+                  style={{
+                    fontSize: theme.typography.fontSize.base,
+                    fontWeight: theme.typography.fontWeight.semibold,
+                    color: theme.colors.textPrimary,
+                  }}
+                >
+                  {categoryNames[analysis.suggestedCategory] ||
+                    analysis.suggestedCategory}
                 </div>
               </div>
               <button
@@ -296,43 +329,56 @@ export function SmartJobAnalysis({
           </div>
 
           {/* Budget Suggestion */}
-          <div style={{
-            padding: theme.spacing[3],
-            backgroundColor: theme.colors.surface,
-            borderRadius: theme.borderRadius.md,
-            border: `1px solid ${theme.colors.border}`,
-          }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: theme.spacing[2],
-            }}>
+          <div
+            style={{
+              padding: theme.spacing[3],
+              backgroundColor: theme.colors.surface,
+              borderRadius: theme.borderRadius.md,
+              border: `1px solid ${theme.colors.border}`,
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginBottom: theme.spacing[2],
+              }}
+            >
               <div>
-                <div style={{
-                  fontSize: theme.typography.fontSize.xs,
-                  color: theme.colors.textSecondary,
-                  marginBottom: theme.spacing[1],
-                }}>
+                <div
+                  style={{
+                    fontSize: theme.typography.fontSize.xs,
+                    color: theme.colors.textSecondary,
+                    marginBottom: theme.spacing[1],
+                  }}
+                >
                   Suggested Budget
                 </div>
-                <div style={{
-                  fontSize: theme.typography.fontSize.base,
-                  fontWeight: theme.typography.fontWeight.semibold,
-                  color: theme.colors.textPrimary,
-                }}>
+                <div
+                  style={{
+                    fontSize: theme.typography.fontSize.base,
+                    fontWeight: theme.typography.fontWeight.semibold,
+                    color: theme.colors.textPrimary,
+                  }}
+                >
                   {formatMoney(analysis.suggestedBudget.recommended)}
                 </div>
-                <div style={{
-                  fontSize: theme.typography.fontSize.xs,
-                  color: theme.colors.textSecondary,
-                  marginTop: theme.spacing[1],
-                }}>
-                  Range: {formatMoney(analysis.suggestedBudget.min)} - {formatMoney(analysis.suggestedBudget.max)}
+                <div
+                  style={{
+                    fontSize: theme.typography.fontSize.xs,
+                    color: theme.colors.textSecondary,
+                    marginTop: theme.spacing[1],
+                  }}
+                >
+                  Range: {formatMoney(analysis.suggestedBudget.min)} -{' '}
+                  {formatMoney(analysis.suggestedBudget.max)}
                 </div>
               </div>
               <button
-                onClick={() => onBudgetSelect(analysis.suggestedBudget.recommended)}
+                onClick={() =>
+                  onBudgetSelect(analysis.suggestedBudget.recommended)
+                }
                 style={{
                   padding: `${theme.spacing[1]} ${theme.spacing[3]}`,
                   backgroundColor: theme.colors.primary,
@@ -359,54 +405,73 @@ export function SmartJobAnalysis({
           </div>
 
           {/* Timeline Suggestion */}
-          <div style={{
-            padding: theme.spacing[3],
-            backgroundColor: theme.colors.surface,
-            borderRadius: theme.borderRadius.md,
-            border: `1px solid ${theme.colors.border}`,
-          }}>
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}>
+          <div
+            style={{
+              padding: theme.spacing[3],
+              backgroundColor: theme.colors.surface,
+              borderRadius: theme.borderRadius.md,
+              border: `1px solid ${theme.colors.border}`,
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
               <div>
-                <div style={{
-                  fontSize: theme.typography.fontSize.xs,
-                  color: theme.colors.textSecondary,
-                  marginBottom: theme.spacing[1],
-                }}>
+                <div
+                  style={{
+                    fontSize: theme.typography.fontSize.xs,
+                    color: theme.colors.textSecondary,
+                    marginBottom: theme.spacing[1],
+                  }}
+                >
                   Estimated Timeline
                 </div>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: theme.spacing[2],
-                }}>
-                  <div style={{
-                    fontSize: theme.typography.fontSize.base,
-                    fontWeight: theme.typography.fontWeight.semibold,
-                    color: theme.colors.textPrimary,
-                  }}>
-                    {analysis.suggestedTimeline.minDays === analysis.suggestedTimeline.maxDays
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: theme.spacing[2],
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: theme.typography.fontSize.base,
+                      fontWeight: theme.typography.fontWeight.semibold,
+                      color: theme.colors.textPrimary,
+                    }}
+                  >
+                    {analysis.suggestedTimeline.minDays ===
+                    analysis.suggestedTimeline.maxDays
                       ? `${analysis.suggestedTimeline.minDays} day${analysis.suggestedTimeline.minDays > 1 ? 's' : ''}`
                       : `${analysis.suggestedTimeline.minDays}-${analysis.suggestedTimeline.maxDays} days`}
                   </div>
-                  <span style={{
-                    padding: `${theme.spacing[1]} ${theme.spacing[2]}`,
-                    backgroundColor: getUrgencyColor(analysis.suggestedTimeline.urgency) + '15',
-                    color: getUrgencyColor(analysis.suggestedTimeline.urgency),
-                    borderRadius: theme.borderRadius.md,
-                    fontSize: theme.typography.fontSize.xs,
-                    fontWeight: theme.typography.fontWeight.semibold,
-                    textTransform: 'capitalize',
-                  }}>
+                  <span
+                    style={{
+                      padding: `${theme.spacing[1]} ${theme.spacing[2]}`,
+                      backgroundColor:
+                        getUrgencyColor(analysis.suggestedTimeline.urgency) +
+                        '15',
+                      color: getUrgencyColor(
+                        analysis.suggestedTimeline.urgency
+                      ),
+                      borderRadius: theme.borderRadius.md,
+                      fontSize: theme.typography.fontSize.xs,
+                      fontWeight: theme.typography.fontWeight.semibold,
+                      textTransform: 'capitalize',
+                    }}
+                  >
                     {analysis.suggestedTimeline.urgency}
                   </span>
                 </div>
               </div>
               <button
-                onClick={() => onUrgencySelect(analysis.suggestedTimeline.urgency)}
+                onClick={() =>
+                  onUrgencySelect(analysis.suggestedTimeline.urgency)
+                }
                 style={{
                   padding: `${theme.spacing[1]} ${theme.spacing[3]}`,
                   backgroundColor: theme.colors.primary,
@@ -433,217 +498,271 @@ export function SmartJobAnalysis({
           </div>
 
           {/* Detected Materials */}
-          {analysis.detectedMaterials && analysis.detectedMaterials.length > 0 && (
-            <div style={{
-              padding: theme.spacing[3],
-              backgroundColor: theme.colors.backgroundTertiary,
-              borderRadius: theme.borderRadius.md,
-              borderLeft: `3px solid ${theme.colors.secondary}`,
-              marginBottom: theme.spacing[2],
-            }}>
-              <div style={{
-                fontSize: theme.typography.fontSize.xs,
-                fontWeight: theme.typography.fontWeight.semibold,
-                color: theme.colors.textSecondary,
-                marginBottom: theme.spacing[2],
-                display: 'flex',
-                alignItems: 'center',
-                gap: theme.spacing[1],
-              }}>
-                <Icon name="package" size={14} />
-                Detected Materials:
-              </div>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
-                gap: theme.spacing[2],
-              }}>
-                {analysis.detectedMaterials.map((material, idx) => (
-                  <div
-                    key={idx}
-                    style={{
-                      padding: theme.spacing[2],
-                      backgroundColor: theme.colors.surface,
-                      borderRadius: theme.borderRadius.md,
-                      border: `1px solid ${theme.colors.border}`,
-                      position: 'relative',
-                    }}
-                  >
-                    {/* Source Badge */}
-                    {material.source === 'database' && (
-                      <div style={{
-                        position: 'absolute',
-                        top: theme.spacing[1],
-                        right: theme.spacing[1],
-                        fontSize: '10px',
-                        padding: '2px 6px',
-                        backgroundColor: '#EBF5FF',
-                        color: '#1E40AF',
-                        borderRadius: theme.borderRadius.sm,
-                        fontWeight: theme.typography.fontWeight.semibold,
-                      }}>
-                        ✓ DB
-                      </div>
-                    )}
-
-                    <div style={{
-                      fontSize: theme.typography.fontSize.sm,
-                      fontWeight: theme.typography.fontWeight.medium,
-                      color: theme.colors.textPrimary,
-                      marginBottom: theme.spacing[1],
-                      paddingRight: theme.spacing[4],
-                    }}>
-                      {material.name}
-                    </div>
-
-                    {/* Quantity */}
-                    {material.quantity && material.unit && (
-                      <div style={{
-                        fontSize: theme.typography.fontSize.xs,
-                        color: theme.colors.textSecondary,
-                      }}>
-                        {material.quantity} {material.unit}
-                      </div>
-                    )}
-
-                    {/* Unit Price & Total Cost */}
-                    {material.unit_price && (
-                      <div style={{
-                        fontSize: theme.typography.fontSize.xs,
-                        color: theme.colors.textSecondary,
-                        marginTop: theme.spacing[1],
-                      }}>
-                        £{material.unit_price.toFixed(2)}/{material.unit}
-                        {material.quantity && material.total_cost && (
-                          <div style={{
-                            fontWeight: theme.typography.fontWeight.semibold,
-                            color: '#059669',
-                            marginTop: '2px',
-                          }}>
-                            Total: £{material.total_cost.toFixed(2)}
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Supplier */}
-                    {material.supplier_name && (
-                      <div style={{
-                        fontSize: '10px',
-                        color: theme.colors.textTertiary,
-                        marginTop: theme.spacing[1],
-                      }}>
-                        {material.supplier_name}
-                      </div>
-                    )}
-
-                    {/* Confidence (only show for non-database materials) */}
-                    {!material.source || material.source !== 'database' ? (
-                      <div style={{
-                        fontSize: theme.typography.fontSize.xs,
-                        color: theme.colors.textTertiary,
-                        marginTop: theme.spacing[1],
-                      }}>
-                        {Math.round(material.confidence * 100)}% confidence
-                      </div>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
-              {analysis.estimatedMaterialCost && analysis.estimatedMaterialCost > 0 && (
-                <div style={{
-                  marginTop: theme.spacing[3],
-                  paddingTop: theme.spacing[3],
-                  borderTop: `1px solid ${theme.colors.border}`,
-                  fontSize: theme.typography.fontSize.sm,
-                  color: theme.colors.textSecondary,
-                }}>
-                  <strong>Estimated material cost:</strong> {formatMoney(analysis.estimatedMaterialCost)}
-                  <div style={{
+          {analysis.detectedMaterials &&
+            analysis.detectedMaterials.length > 0 && (
+              <div
+                style={{
+                  padding: theme.spacing[3],
+                  backgroundColor: theme.colors.backgroundTertiary,
+                  borderRadius: theme.borderRadius.md,
+                  borderLeft: `3px solid ${theme.colors.secondary}`,
+                  marginBottom: theme.spacing[2],
+                }}
+              >
+                <div
+                  style={{
                     fontSize: theme.typography.fontSize.xs,
-                    color: theme.colors.textTertiary,
-                    marginTop: theme.spacing[1],
-                  }}>
-                    This is included in the suggested budget above
-                  </div>
+                    fontWeight: theme.typography.fontWeight.semibold,
+                    color: theme.colors.textSecondary,
+                    marginBottom: theme.spacing[2],
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: theme.spacing[1],
+                  }}
+                >
+                  <Icon name='package' size={14} />
+                  Detected Materials:
                 </div>
-              )}
-            </div>
-          )}
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns:
+                      'repeat(auto-fill, minmax(180px, 1fr))',
+                    gap: theme.spacing[2],
+                  }}
+                >
+                  {analysis.detectedMaterials.map((material, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        padding: theme.spacing[2],
+                        backgroundColor: theme.colors.surface,
+                        borderRadius: theme.borderRadius.md,
+                        border: `1px solid ${theme.colors.border}`,
+                        position: 'relative',
+                      }}
+                    >
+                      {/* Source Badge */}
+                      {material.source === 'database' && (
+                        <div
+                          style={{
+                            position: 'absolute',
+                            top: theme.spacing[1],
+                            right: theme.spacing[1],
+                            fontSize: '10px',
+                            padding: '2px 6px',
+                            backgroundColor: '#EBF5FF',
+                            color: '#1E40AF',
+                            borderRadius: theme.borderRadius.sm,
+                            fontWeight: theme.typography.fontWeight.semibold,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 3,
+                          }}
+                        >
+                          <Check size={12} aria-hidden='true' />
+                          DB
+                        </div>
+                      )}
+
+                      <div
+                        style={{
+                          fontSize: theme.typography.fontSize.sm,
+                          fontWeight: theme.typography.fontWeight.medium,
+                          color: theme.colors.textPrimary,
+                          marginBottom: theme.spacing[1],
+                          paddingRight: theme.spacing[4],
+                        }}
+                      >
+                        {material.name}
+                      </div>
+
+                      {/* Quantity */}
+                      {material.quantity && material.unit && (
+                        <div
+                          style={{
+                            fontSize: theme.typography.fontSize.xs,
+                            color: theme.colors.textSecondary,
+                          }}
+                        >
+                          {material.quantity} {material.unit}
+                        </div>
+                      )}
+
+                      {/* Unit Price & Total Cost */}
+                      {material.unit_price && (
+                        <div
+                          style={{
+                            fontSize: theme.typography.fontSize.xs,
+                            color: theme.colors.textSecondary,
+                            marginTop: theme.spacing[1],
+                          }}
+                        >
+                          £{material.unit_price.toFixed(2)}/{material.unit}
+                          {material.quantity && material.total_cost && (
+                            <div
+                              style={{
+                                fontWeight:
+                                  theme.typography.fontWeight.semibold,
+                                color: '#059669',
+                                marginTop: '2px',
+                              }}
+                            >
+                              Total: £{material.total_cost.toFixed(2)}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Supplier */}
+                      {material.supplier_name && (
+                        <div
+                          style={{
+                            fontSize: '10px',
+                            color: theme.colors.textTertiary,
+                            marginTop: theme.spacing[1],
+                          }}
+                        >
+                          {material.supplier_name}
+                        </div>
+                      )}
+
+                      {/* Confidence (only show for non-database materials) */}
+                      {!material.source || material.source !== 'database' ? (
+                        <div
+                          style={{
+                            fontSize: theme.typography.fontSize.xs,
+                            color: theme.colors.textTertiary,
+                            marginTop: theme.spacing[1],
+                          }}
+                        >
+                          {Math.round(material.confidence * 100)}% confidence
+                        </div>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+                {analysis.estimatedMaterialCost &&
+                  analysis.estimatedMaterialCost > 0 && (
+                    <div
+                      style={{
+                        marginTop: theme.spacing[3],
+                        paddingTop: theme.spacing[3],
+                        borderTop: `1px solid ${theme.colors.border}`,
+                        fontSize: theme.typography.fontSize.sm,
+                        color: theme.colors.textSecondary,
+                      }}
+                    >
+                      <strong>Estimated material cost:</strong>{' '}
+                      {formatMoney(analysis.estimatedMaterialCost)}
+                      <div
+                        style={{
+                          fontSize: theme.typography.fontSize.xs,
+                          color: theme.colors.textTertiary,
+                          marginTop: theme.spacing[1],
+                        }}
+                      >
+                        This is included in the suggested budget above
+                      </div>
+                    </div>
+                  )}
+              </div>
+            )}
 
           {/* Image Analysis Insights */}
-          {analysis.imageAnalysis && analysis.imageAnalysis.detectedFeatures.length > 0 && (
-            <div style={{
-              padding: theme.spacing[3],
-              backgroundColor: theme.colors.backgroundTertiary,
-              borderRadius: theme.borderRadius.md,
-              borderLeft: `3px solid ${theme.colors.primary}`,
-              marginBottom: theme.spacing[2],
-            }}>
-              <div style={{
-                fontSize: theme.typography.fontSize.xs,
-                fontWeight: theme.typography.fontWeight.semibold,
-                color: theme.colors.textSecondary,
-                marginBottom: theme.spacing[2],
-                display: 'flex',
-                alignItems: 'center',
-                gap: theme.spacing[1],
-              }}>
-                <Icon name="camera" size={14} />
-                Image Analysis Detected:
-              </div>
-              <div style={{
-                fontSize: theme.typography.fontSize.sm,
-                color: theme.colors.textSecondary,
-                lineHeight: 1.6,
-              }}>
-                {analysis.imageAnalysis.detectedFeatures.slice(0, 5).join(', ')}
-                {analysis.imageAnalysis.detectedFeatures.length > 5 && '...'}
-              </div>
-              {analysis.imageAnalysis.condition && (
-                <div style={{
-                  fontSize: theme.typography.fontSize.xs,
-                  color: theme.colors.textSecondary,
-                  marginTop: theme.spacing[1],
-                }}>
-                  Property condition: <strong>{analysis.imageAnalysis.condition}</strong>
+          {analysis.imageAnalysis &&
+            analysis.imageAnalysis.detectedFeatures.length > 0 && (
+              <div
+                style={{
+                  padding: theme.spacing[3],
+                  backgroundColor: theme.colors.backgroundTertiary,
+                  borderRadius: theme.borderRadius.md,
+                  borderLeft: `3px solid ${theme.colors.primary}`,
+                  marginBottom: theme.spacing[2],
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: theme.typography.fontSize.xs,
+                    fontWeight: theme.typography.fontWeight.semibold,
+                    color: theme.colors.textSecondary,
+                    marginBottom: theme.spacing[2],
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: theme.spacing[1],
+                  }}
+                >
+                  <Icon name='camera' size={14} />
+                  Image Analysis Detected:
                 </div>
-              )}
-              {analysis.imageAnalysis.complexity && (
-                <div style={{
-                  fontSize: theme.typography.fontSize.xs,
-                  color: theme.colors.textSecondary,
-                  marginTop: theme.spacing[1],
-                }}>
-                  Job complexity: <strong>{analysis.imageAnalysis.complexity}</strong>
+                <div
+                  style={{
+                    fontSize: theme.typography.fontSize.sm,
+                    color: theme.colors.textSecondary,
+                    lineHeight: 1.6,
+                  }}
+                >
+                  {analysis.imageAnalysis.detectedFeatures
+                    .slice(0, 5)
+                    .join(', ')}
+                  {analysis.imageAnalysis.detectedFeatures.length > 5 && '...'}
                 </div>
-              )}
-            </div>
-          )}
+                {analysis.imageAnalysis.condition && (
+                  <div
+                    style={{
+                      fontSize: theme.typography.fontSize.xs,
+                      color: theme.colors.textSecondary,
+                      marginTop: theme.spacing[1],
+                    }}
+                  >
+                    Property condition:{' '}
+                    <strong>{analysis.imageAnalysis.condition}</strong>
+                  </div>
+                )}
+                {analysis.imageAnalysis.complexity && (
+                  <div
+                    style={{
+                      fontSize: theme.typography.fontSize.xs,
+                      color: theme.colors.textSecondary,
+                      marginTop: theme.spacing[1],
+                    }}
+                  >
+                    Job complexity:{' '}
+                    <strong>{analysis.imageAnalysis.complexity}</strong>
+                  </div>
+                )}
+              </div>
+            )}
 
           {/* Reasoning */}
           {analysis.reasoning.length > 0 && (
-            <div style={{
-              padding: theme.spacing[3],
-              backgroundColor: theme.colors.backgroundTertiary,
-              borderRadius: theme.borderRadius.md,
-              borderLeft: `3px solid ${theme.colors.primary}`,
-            }}>
-              <div style={{
-                fontSize: theme.typography.fontSize.xs,
-                fontWeight: theme.typography.fontWeight.semibold,
-                color: theme.colors.textSecondary,
-                marginBottom: theme.spacing[2],
-              }}>
+            <div
+              style={{
+                padding: theme.spacing[3],
+                backgroundColor: theme.colors.backgroundTertiary,
+                borderRadius: theme.borderRadius.md,
+                borderLeft: `3px solid ${theme.colors.primary}`,
+              }}
+            >
+              <div
+                style={{
+                  fontSize: theme.typography.fontSize.xs,
+                  fontWeight: theme.typography.fontWeight.semibold,
+                  color: theme.colors.textSecondary,
+                  marginBottom: theme.spacing[2],
+                }}
+              >
                 Analysis Insights:
               </div>
-              <ul style={{
-                margin: 0,
-                paddingLeft: theme.spacing[4],
-                fontSize: theme.typography.fontSize.sm,
-                color: theme.colors.textSecondary,
-                lineHeight: 1.6,
-              }}>
+              <ul
+                style={{
+                  margin: 0,
+                  paddingLeft: theme.spacing[4],
+                  fontSize: theme.typography.fontSize.sm,
+                  color: theme.colors.textSecondary,
+                  lineHeight: 1.6,
+                }}
+              >
                 {analysis.reasoning.map((reason, idx) => (
                   <li key={idx}>{reason}</li>
                 ))}
@@ -655,4 +774,3 @@ export function SmartJobAnalysis({
     </div>
   );
 }
-
