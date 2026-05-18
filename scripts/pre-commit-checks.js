@@ -477,6 +477,10 @@ const KNOWN_LARGE_FILES = new Set([
   'apps/web/app/try-mint-ai/components/AssessmentResults.tsx', // 596 (was 383)
   'apps/web/app/faq/components/FAQPageClient.tsx', // 543 (was 423)
   'apps/web/app/terms/page.tsx', // 527 (was 474)
+  // contractor "Browse jobs / Discover" feature — Mint Editorial
+  // restyle; both already >500 LOC pre-conversion. Split is a P2.
+  'apps/web/app/contractor/discover/components/JobCard.tsx', // 759 (was 756)
+  'apps/web/app/contractor/discover/components/LocationPromptModal.tsx', // 602 (was 509)
 ]);
 
 function countLines(filePath) {
