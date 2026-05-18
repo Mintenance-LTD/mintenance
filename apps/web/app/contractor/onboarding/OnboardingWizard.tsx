@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { Check } from 'lucide-react';
+import { Check, Lightbulb } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import {
@@ -321,8 +321,18 @@ export function OnboardingWizard() {
 
         {/* Why we ask */}
         <div className='card' style={{ marginTop: 32, padding: 14 }}>
-          <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 4 }}>
-            💡 Why we ask
+          <div
+            style={{
+              fontSize: 12,
+              fontWeight: 600,
+              marginBottom: 4,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+            }}
+          >
+            <Lightbulb size={13} color='var(--me-brand)' aria-hidden='true' />
+            Why we ask
           </div>
           <div
             style={{

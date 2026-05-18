@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { Home, Wrench, type LucideIcon } from 'lucide-react';
 import type { Role } from './useRegisterSubmit';
 
 /**
@@ -9,16 +10,16 @@ import type { Role } from './useRegisterSubmit';
  * Extracted from RegisterForm to keep that file under the 500-line cap.
  */
 
-const ROLES: { id: Role; emoji: string; title: string; sub: string }[] = [
+const ROLES: { id: Role; icon: LucideIcon; title: string; sub: string }[] = [
   {
     id: 'homeowner',
-    emoji: '🏡',
+    icon: Home,
     title: 'Hire trades',
     sub: 'Post jobs, compare bids',
   },
   {
     id: 'contractor',
-    emoji: '🔧',
+    icon: Wrench,
     title: 'Work on jobs',
     sub: 'Get matched, win work',
   },
@@ -60,6 +61,7 @@ export function RegisterRoleChooser({
       >
         {ROLES.map((r) => {
           const active = value === r.id;
+          const Icon = r.icon;
           return (
             <button
               key={r.id}
@@ -90,9 +92,11 @@ export function RegisterRoleChooser({
                   marginBottom: 4,
                 }}
               >
-                <span aria-hidden='true' style={{ fontSize: 18 }}>
-                  {r.emoji}
-                </span>
+                <Icon
+                  size={18}
+                  aria-hidden='true'
+                  color={active ? 'var(--me-brand)' : 'var(--me-ink-2)'}
+                />
                 <span
                   style={{
                     fontWeight: 600,

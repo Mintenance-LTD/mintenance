@@ -14,6 +14,7 @@ import {
   Briefcase,
   X,
   Video,
+  Phone,
   Calendar,
   MessageSquare,
   MoreHorizontal,
@@ -292,7 +293,7 @@ export function MessagesClient() {
     // call session. Replaced with a clear toast until the call surface
     // ships. Keep handleScheduleMeeting as the working alternative.
     toast('Voice calls are coming soon. Use Schedule to book a call.', {
-      icon: '📞',
+      icon: <Phone size={18} />,
     });
   };
 
@@ -723,7 +724,7 @@ export function MessagesClient() {
                     toast(
                       'Video calls are coming soon. Use Schedule to book a call.',
                       {
-                        icon: '🎥',
+                        icon: <Video size={18} />,
                       }
                     );
                     setShowVideoCallDialog(false);

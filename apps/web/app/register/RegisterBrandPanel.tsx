@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { Check } from 'lucide-react';
 
 /**
  * Brand leaf mark — the real Mintenance logo, cropped from the app
@@ -164,10 +165,9 @@ export function RegisterBrandPanel() {
                 background: 'rgba(255,255,255,0.18)',
                 display: 'grid',
                 placeItems: 'center',
-                fontSize: 11,
               }}
             >
-              ✓
+              <Check size={11} strokeWidth={3} color='var(--me-on-brand)' />
             </span>
             {line}
           </li>
