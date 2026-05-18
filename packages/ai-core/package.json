@@ -28,7 +28,7 @@
   },
   "dependencies": {
     "openai": "^4.73.0",
-    "@google-cloud/vision": "^5.3.4",
+    "@google-cloud/vision": "^5.3.6",
     "axios": "^1.6.2"
   },
   "devDependencies": {
