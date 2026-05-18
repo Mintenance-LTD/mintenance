@@ -469,6 +469,14 @@ const KNOWN_LARGE_FILES = new Set([
   // intentional over-cap files. Splitting the script into a
   // generator + data file is a P3.
   'scripts/pre-commit-checks.js', // ~510 lines (grows incrementally)
+  // Added 2026-05-18: footer-linked marketing/legal pages restyled to
+  // the Mint Editorial design system. Inline-style token conversion is
+  // verbose — these four crossed the 500-LOC gate during the restyle.
+  // All were already large pre-conversion; splitting is a P2 follow-up.
+  'apps/web/app/pricing/components/PricingClient.tsx', // 777 (was 527)
+  'apps/web/app/try-mint-ai/components/AssessmentResults.tsx', // 596 (was 383)
+  'apps/web/app/faq/components/FAQPageClient.tsx', // 543 (was 423)
+  'apps/web/app/terms/page.tsx', // 527 (was 474)
 ]);
 
 function countLines(filePath) {

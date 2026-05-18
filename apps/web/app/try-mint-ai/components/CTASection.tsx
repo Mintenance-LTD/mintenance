@@ -14,7 +14,11 @@ export function CTASection() {
   return (
     <section
       aria-labelledby='cta-heading'
-      className='relative overflow-hidden bg-gradient-to-br from-teal-600 via-teal-700 to-emerald-800 py-16 sm:py-24'
+      className='relative overflow-hidden py-16 sm:py-24'
+      style={{
+        background:
+          'linear-gradient(170deg, var(--me-brand-2) 0%, var(--me-brand) 100%)',
+      }}
     >
       {/* Decorative background pattern */}
       <div className='absolute inset-0 opacity-10'>
@@ -37,11 +41,20 @@ export function CTASection() {
         >
           <h2
             id='cta-heading'
-            className='text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-6'
+            className='text-3xl sm:text-4xl md:text-5xl mb-6'
+            style={{
+              color: 'var(--me-on-brand)',
+              fontFamily: 'var(--me-font-display)',
+              fontWeight: 500,
+              letterSpacing: '-0.02em',
+            }}
           >
             Ready to Post a Full Job?
           </h2>
-          <p className='text-xl sm:text-2xl text-white/90 mb-12 max-w-3xl mx-auto'>
+          <p
+            className='text-xl sm:text-2xl mb-12 max-w-3xl mx-auto'
+            style={{ color: 'var(--me-brand-soft)' }}
+          >
             Get detailed quotes from verified contractors in your area
           </p>
 
@@ -50,7 +63,13 @@ export function CTASection() {
               <MotionButton
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className='inline-flex items-center gap-2 px-8 py-4 bg-white text-teal-700 rounded-xl font-semibold text-lg shadow-2xl hover:shadow-3xl transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-white/50'
+                className='inline-flex items-center gap-2 px-8 py-4 font-semibold text-lg transition-all duration-300 focus:outline-none focus:ring-4'
+                style={{
+                  background: 'var(--me-surface)',
+                  color: 'var(--me-brand-2)',
+                  borderRadius: 'var(--me-radius-card)',
+                  boxShadow: 'var(--me-shadow-pop)',
+                }}
               >
                 Get Professional Assessment
                 <ArrowRight className='w-5 h-5' aria-hidden='true' />
@@ -61,7 +80,13 @@ export function CTASection() {
               <MotionButton
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className='inline-flex items-center gap-2 px-8 py-4 bg-white/10 backdrop-blur-sm text-white rounded-xl font-semibold text-lg border-2 border-white/30 hover:bg-white/20 transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-white/50'
+                className='inline-flex items-center gap-2 px-8 py-4 backdrop-blur-sm font-semibold text-lg transition-all duration-300 focus:outline-none focus:ring-4'
+                style={{
+                  background: 'rgba(255, 255, 255, 0.1)',
+                  color: 'var(--me-on-brand)',
+                  borderRadius: 'var(--me-radius-card)',
+                  border: '2px solid rgba(255, 255, 255, 0.3)',
+                }}
               >
                 <BookOpen className='w-5 h-5' aria-hidden='true' />
                 Learn More About Mint AI
@@ -78,21 +103,59 @@ export function CTASection() {
             transition={{ duration: 0.5, delay: 0.2 }}
             className='mt-12 grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-4xl mx-auto'
           >
-            <div className='bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20'>
-              <div className='text-3xl font-bold text-white mb-2'>Free</div>
-              <div className='text-white/80'>
+            <div
+              className='backdrop-blur-sm p-6'
+              style={{
+                background: 'rgba(255, 255, 255, 0.1)',
+                borderRadius: 'var(--me-radius-card)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+              }}
+            >
+              <div
+                className='text-3xl font-bold mb-2'
+                style={{ color: 'var(--me-on-brand)' }}
+              >
+                Free
+              </div>
+              <div style={{ color: 'var(--me-brand-soft)' }}>
                 No cost to post jobs and get quotes
               </div>
             </div>
-            <div className='bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20'>
-              <div className='text-3xl font-bold text-white mb-2'>Verified</div>
-              <div className='text-white/80'>
+            <div
+              className='backdrop-blur-sm p-6'
+              style={{
+                background: 'rgba(255, 255, 255, 0.1)',
+                borderRadius: 'var(--me-radius-card)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+              }}
+            >
+              <div
+                className='text-3xl font-bold mb-2'
+                style={{ color: 'var(--me-on-brand)' }}
+              >
+                Verified
+              </div>
+              <div style={{ color: 'var(--me-brand-soft)' }}>
                 Every tradesperson is ID &amp; insurance checked
               </div>
             </div>
-            <div className='bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20'>
-              <div className='text-3xl font-bold text-white mb-2'>24/7</div>
-              <div className='text-white/80'>Post jobs anytime, anywhere</div>
+            <div
+              className='backdrop-blur-sm p-6'
+              style={{
+                background: 'rgba(255, 255, 255, 0.1)',
+                borderRadius: 'var(--me-radius-card)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+              }}
+            >
+              <div
+                className='text-3xl font-bold mb-2'
+                style={{ color: 'var(--me-on-brand)' }}
+              >
+                24/7
+              </div>
+              <div style={{ color: 'var(--me-brand-soft)' }}>
+                Post jobs anytime, anywhere
+              </div>
             </div>
           </MotionDiv>
         </MotionDiv>

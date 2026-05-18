@@ -31,19 +31,26 @@ export const AccordionItem: React.FC<AccordionItemProps> = ({
   };
 
   return (
-    <div className={`border-b border-gray-200 ${className}`}>
+    <div
+      className={className}
+      style={{ borderBottom: '1px solid var(--me-line)' }}
+    >
       <button
         onClick={handleToggle}
-        className={`w-full flex items-center justify-between py-4 text-left hover:bg-gray-50 transition-colors duration-200 ${titleClassName}`}
+        className={`w-full flex items-center justify-between py-4 text-left transition-colors duration-200 ${titleClassName}`}
         aria-expanded={isOpen}
       >
-        <span className='text-base font-medium text-gray-900 pr-4'>
+        <span
+          className='text-base font-medium pr-4'
+          style={{ color: 'var(--me-ink)' }}
+        >
           {title}
         </span>
         <ChevronDown
-          className={`w-5 h-5 text-gray-500 flex-shrink-0 transition-transform duration-300 ${
+          className={`w-5 h-5 flex-shrink-0 transition-transform duration-300 ${
             isOpen ? 'rotate-180' : 'rotate-0'
           }`}
+          style={{ color: 'var(--me-ink-3)' }}
         />
       </button>
 
@@ -53,7 +60,9 @@ export const AccordionItem: React.FC<AccordionItemProps> = ({
         }`}
       >
         <div className={`pb-4 pt-1 ${contentClassName}`}>
-          <div className='text-gray-700 leading-relaxed'>{content}</div>
+          <div className='leading-relaxed' style={{ color: 'var(--me-ink-2)' }}>
+            {content}
+          </div>
         </div>
       </div>
     </div>
@@ -95,7 +104,7 @@ const Accordion: React.FC<AccordionProps> = ({
   };
 
   return (
-    <div className={`divide-y divide-gray-200 ${className}`}>
+    <div className={className}>
       {items.map((item) => (
         <AccordionItem
           key={item.id}

@@ -5,12 +5,21 @@ import { ArrowLeft } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'Help Article | Mintenance',
-  description: 'Find answers and guidance on using the Mintenance property maintenance platform.',
+  description:
+    'Find answers and guidance on using the Mintenance property maintenance platform.',
 };
 import { PublicLayout } from '@/app/components/layouts/PublicLayout';
 import { theme } from '@/lib/theme';
-import { helpCategories, type Article, type Category } from '../../lib/categories/index';
-import { findArticleBySlug, generateSlug, getAllArticlesWithSlugs } from '../../lib/utils';
+import {
+  helpCategories,
+  type Article,
+  type Category,
+} from '../../lib/categories/index';
+import {
+  findArticleBySlug,
+  generateSlug,
+  getAllArticlesWithSlugs,
+} from '../../lib/utils';
 import { Button } from '@/components/ui/Button';
 import { MarkdownContent } from '../../components/MarkdownContent';
 import { ArticleNavigation } from './components/ArticleNavigation';
@@ -32,7 +41,8 @@ export async function generateStaticParams() {
 
 export default async function HelpArticlePage(props: HelpArticlePageProps) {
   const params = await props.params;
-  const { article, category } = findArticleBySlug(params.category, params.slug) || {};
+  const { article, category } =
+    findArticleBySlug(params.category, params.slug) || {};
 
   if (!article || !category) {
     notFound();
@@ -43,36 +53,40 @@ export default async function HelpArticlePage(props: HelpArticlePageProps) {
   const currentIndex = categoryArticles.findIndex(
     (a: Article) => generateSlug(a.title) === params.slug
   );
-  
-  const prevArticle = currentIndex > 0 
-    ? categoryArticles[currentIndex - 1] 
-    : null;
-  const nextArticle = currentIndex < categoryArticles.length - 1
-    ? categoryArticles[currentIndex + 1]
-    : null;
+
+  const prevArticle =
+    currentIndex > 0 ? categoryArticles[currentIndex - 1] : null;
+  const nextArticle =
+    currentIndex < categoryArticles.length - 1
+      ? categoryArticles[currentIndex + 1]
+      : null;
 
   return (
     <PublicLayout>
-      <div style={{
-        maxWidth: '900px',
-        margin: '0 auto',
-        padding: theme.spacing[8],
-      }}>
+      <div
+        data-theme='mint-editorial'
+        style={{
+          maxWidth: '900px',
+          margin: '0 auto',
+          padding: theme.spacing[8],
+          fontFamily: 'var(--me-font-body)',
+        }}
+      >
         {/* Back Button */}
-        <Link 
-          href="/help" 
-          style={{ 
-            display: 'inline-flex', 
-            alignItems: 'center', 
+        <Link
+          href='/help'
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
             gap: theme.spacing[2],
             marginBottom: theme.spacing[6],
-            color: theme.colors.textSecondary,
+            color: 'var(--me-ink-3)',
             textDecoration: 'none',
             fontSize: theme.typography.fontSize.base,
             fontWeight: theme.typography.fontWeight.medium,
           }}
         >
-          <ArrowLeft className="h-4 w-4" style={{ color: theme.colors.textSecondary }} />
+          <ArrowLeft className='h-4 w-4' style={{ color: 'var(--me-ink-3)' }} />
           Back to Help Centre
         </Link>
 
@@ -99,36 +113,46 @@ export default async function HelpArticlePage(props: HelpArticlePageProps) {
         </div>
 
         {/* Article Content */}
-        <article style={{
-          backgroundColor: theme.colors.white,
-          borderRadius: theme.borderRadius.xl,
-          padding: theme.spacing[8],
-          border: `1px solid ${theme.colors.border}`,
-          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-        }}>
-          <h1 style={{
-            fontSize: theme.typography.fontSize['3xl'],
-            fontWeight: theme.typography.fontWeight.bold,
-            color: theme.colors.textPrimary,
-            marginBottom: theme.spacing[4],
-            lineHeight: 1.2,
-          }}>
+        <article
+          style={{
+            backgroundColor: 'var(--me-surface)',
+            borderRadius: 'var(--me-radius-card)',
+            padding: theme.spacing[8],
+            border: '1px solid var(--me-line)',
+            boxShadow: 'var(--me-shadow-card)',
+          }}
+        >
+          <h1
+            style={{
+              fontSize: theme.typography.fontSize['3xl'],
+              fontFamily: 'var(--me-font-display)',
+              fontWeight: 500,
+              letterSpacing: '-0.02em',
+              color: 'var(--me-ink)',
+              marginBottom: theme.spacing[4],
+              lineHeight: 1.2,
+            }}
+          >
             {article.title}
           </h1>
 
-          <div style={{
-            fontSize: theme.typography.fontSize.base,
-            color: theme.colors.textPrimary,
-            lineHeight: 1.7,
-          }}>
+          <div
+            style={{
+              fontSize: theme.typography.fontSize.base,
+              color: 'var(--me-ink-2)',
+              lineHeight: 1.7,
+            }}
+          >
             {article.fullContent ? (
               <MarkdownContent content={article.fullContent} />
             ) : (
-              <p style={{
-                fontSize: theme.typography.fontSize.base,
-                color: theme.colors.textPrimary,
-                lineHeight: 1.7,
-              }}>
+              <p
+                style={{
+                  fontSize: theme.typography.fontSize.base,
+                  color: 'var(--me-ink-2)',
+                  lineHeight: 1.7,
+                }}
+              >
                 {article.content}
               </p>
             )}
@@ -137,42 +161,62 @@ export default async function HelpArticlePage(props: HelpArticlePageProps) {
 
         {/* Navigation */}
         <ArticleNavigation
-          prevArticle={prevArticle ? { title: prevArticle.title, slug: generateSlug(prevArticle.title) } : null}
-          nextArticle={nextArticle ? { title: nextArticle.title, slug: generateSlug(nextArticle.title) } : null}
+          prevArticle={
+            prevArticle
+              ? {
+                  title: prevArticle.title,
+                  slug: generateSlug(prevArticle.title),
+                }
+              : null
+          }
+          nextArticle={
+            nextArticle
+              ? {
+                  title: nextArticle.title,
+                  slug: generateSlug(nextArticle.title),
+                }
+              : null
+          }
           category={params.category}
         />
 
         {/* Help CTA */}
-        <div style={{
-          marginTop: theme.spacing[8],
-          padding: theme.spacing[6],
-          backgroundColor: theme.colors.backgroundSecondary,
-          borderRadius: theme.borderRadius.xl,
-          textAlign: 'center',
-        }}>
-          <h3 style={{
-            fontSize: theme.typography.fontSize.xl,
-            fontWeight: theme.typography.fontWeight.semibold,
-            color: theme.colors.textPrimary,
-            marginBottom: theme.spacing[2],
-          }}>
+        <div
+          style={{
+            marginTop: theme.spacing[8],
+            padding: theme.spacing[6],
+            backgroundColor: 'var(--me-bg-2)',
+            borderRadius: 'var(--me-radius-card)',
+            textAlign: 'center',
+          }}
+        >
+          <h3
+            style={{
+              fontSize: theme.typography.fontSize.xl,
+              fontFamily: 'var(--me-font-display)',
+              fontWeight: 500,
+              letterSpacing: '-0.01em',
+              color: 'var(--me-ink)',
+              marginBottom: theme.spacing[2],
+            }}
+          >
             Still need help?
           </h3>
-          <p style={{
-            fontSize: theme.typography.fontSize.base,
-            color: theme.colors.textSecondary,
-            marginBottom: theme.spacing[4],
-          }}>
-            Can't find what you're looking for? Our support team is here to help.
+          <p
+            style={{
+              fontSize: theme.typography.fontSize.base,
+              color: 'var(--me-ink-2)',
+              marginBottom: theme.spacing[4],
+            }}
+          >
+            Can't find what you're looking for? Our support team is here to
+            help.
           </p>
-          <Link href="/contact" style={{ textDecoration: 'none' }}>
-            <Button variant="primary">
-              Contact Support
-            </Button>
+          <Link href='/contact' style={{ textDecoration: 'none' }}>
+            <Button variant='primary'>Contact Support</Button>
           </Link>
         </div>
       </div>
     </PublicLayout>
   );
 }
-

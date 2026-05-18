@@ -47,10 +47,16 @@ export function ResourceHero() {
 
   return (
     <MotionDiv
+      data-theme='mint-editorial'
       initial='hidden'
       animate='visible'
       variants={fadeIn}
-      className='bg-gradient-to-r from-teal-600 via-emerald-600 to-teal-700 text-white'
+      style={{
+        background:
+          'linear-gradient(170deg, var(--me-brand-2) 0%, var(--me-brand) 100%)',
+        color: 'var(--me-on-brand)',
+        fontFamily: 'var(--me-font-body)',
+      }}
     >
       <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20'>
         <div className='text-center'>
@@ -58,7 +64,12 @@ export function ResourceHero() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className='text-5xl md:text-6xl font-bold mb-6'
+            className='text-5xl md:text-6xl mb-6'
+            style={{
+              fontFamily: 'var(--me-font-display)',
+              fontWeight: 500,
+              letterSpacing: '-0.02em',
+            }}
           >
             Contractor Resources &amp; Growth Tools
           </MotionH1>
@@ -66,7 +77,8 @@ export function ResourceHero() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className='text-xl md:text-2xl text-teal-100 max-w-3xl mx-auto'
+            className='text-xl md:text-2xl max-w-3xl mx-auto'
+            style={{ color: 'var(--me-brand-soft)' }}
           >
             Everything you need to succeed on the Mintenance platform and grow
             your contracting business
@@ -86,14 +98,24 @@ export function ResourceHero() {
               <MotionDiv
                 key={index}
                 variants={staggerItem}
-                className='bg-white/20 backdrop-blur-sm rounded-xl p-6 text-center hover:bg-white/30 transition-colors duration-300'
+                className='backdrop-blur-sm p-6 text-center transition-colors duration-300'
+                style={{
+                  background: 'rgba(255, 255, 255, 0.16)',
+                  borderRadius: 'var(--me-radius-card)',
+                }}
               >
                 <Icon
-                  className='w-8 h-8 mx-auto mb-3 text-teal-200'
+                  className='w-8 h-8 mx-auto mb-3'
+                  style={{ color: 'var(--me-brand-soft)' }}
                   aria-hidden='true'
                 />
                 <p className='text-lg font-bold mb-1'>{item.title}</p>
-                <p className='text-teal-100 text-sm'>{item.text}</p>
+                <p
+                  className='text-sm'
+                  style={{ color: 'var(--me-brand-soft)' }}
+                >
+                  {item.text}
+                </p>
               </MotionDiv>
             );
           })}

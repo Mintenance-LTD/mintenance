@@ -13,7 +13,14 @@ import { ResourcesCTA } from './ResourcesCTA';
  */
 export function ResourcesClient() {
   return (
-    <div className='min-h-screen bg-gradient-to-br from-teal-50 via-white to-emerald-50'>
+    <div
+      data-theme='mint-editorial'
+      className='min-h-screen'
+      style={{
+        background: 'var(--me-bg)',
+        fontFamily: 'var(--me-font-body)',
+      }}
+    >
       <ResourceHero />
       <ResourceCategories />
       <FeaturedResources />

@@ -40,6 +40,20 @@ const staggerItem = {
   visible: { opacity: 1, y: 0 },
 };
 
+const cardStyle: React.CSSProperties = {
+  background: 'var(--me-surface)',
+  borderRadius: 'var(--me-radius-card)',
+  border: '1px solid var(--me-line)',
+  boxShadow: 'var(--me-shadow-card)',
+};
+
+const displayHeading: React.CSSProperties = {
+  fontFamily: 'var(--me-font-display)',
+  fontWeight: 500,
+  letterSpacing: '-0.02em',
+  color: 'var(--me-ink)',
+};
+
 export default function AboutPageClient() {
   const stats = [
     { label: 'Founded', value: '2025', icon: Award },
@@ -97,13 +111,21 @@ export default function AboutPageClient() {
   ];
 
   return (
-    <div className='min-h-screen bg-gradient-to-br from-teal-50 via-white to-emerald-50'>
+    <div
+      data-theme='mint-editorial'
+      className='min-h-screen'
+      style={{ background: 'var(--me-bg)', fontFamily: 'var(--me-font-body)' }}
+    >
       {/* Hero Section */}
       <MotionDiv
         initial='hidden'
         animate='visible'
         variants={fadeIn}
-        className='bg-gradient-to-r from-teal-600 via-emerald-600 to-teal-700 text-white'
+        style={{
+          background:
+            'linear-gradient(170deg, var(--me-brand-2) 0%, var(--me-brand) 100%)',
+          color: 'var(--me-on-brand)',
+        }}
       >
         <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20'>
           <div className='text-center'>
@@ -111,7 +133,12 @@ export default function AboutPageClient() {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}
-              className='text-5xl md:text-6xl font-bold mb-6'
+              className='text-5xl md:text-6xl mb-6'
+              style={{
+                fontFamily: 'var(--me-font-display)',
+                fontWeight: 500,
+                letterSpacing: '-0.02em',
+              }}
             >
               Transforming Home Maintenance
             </MotionH1>
@@ -119,7 +146,8 @@ export default function AboutPageClient() {
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3 }}
-              className='text-xl md:text-2xl text-teal-100 max-w-3xl mx-auto'
+              className='text-xl md:text-2xl max-w-3xl mx-auto'
+              style={{ color: 'rgba(255,255,255,0.85)' }}
             >
               Connecting homeowners with trusted professionals through
               innovative technology and exceptional service
@@ -139,11 +167,25 @@ export default function AboutPageClient() {
                 <MotionDiv
                   key={index}
                   variants={staggerItem}
-                  className='bg-white/20 backdrop-blur-sm rounded-xl p-6 text-center'
+                  className='rounded-xl p-6 text-center'
+                  style={{ background: 'rgba(255,255,255,0.15)' }}
                 >
-                  <Icon className='w-8 h-8 mx-auto mb-3 text-teal-200' />
-                  <p className='text-3xl font-bold mb-2'>{stat.value}</p>
-                  <p className='text-teal-100'>{stat.label}</p>
+                  <Icon
+                    className='w-8 h-8 mx-auto mb-3'
+                    style={{ color: 'rgba(255,255,255,0.85)' }}
+                  />
+                  <p
+                    className='text-3xl mb-2'
+                    style={{
+                      fontFamily: 'var(--me-font-display)',
+                      fontWeight: 500,
+                    }}
+                  >
+                    {stat.value}
+                  </p>
+                  <p style={{ color: 'rgba(255,255,255,0.85)' }}>
+                    {stat.label}
+                  </p>
                 </MotionDiv>
               );
             })}
@@ -159,11 +201,20 @@ export default function AboutPageClient() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ delay: 0.2 }}
-          className='bg-white rounded-xl shadow-sm border border-gray-200 p-12 mb-16 text-center'
+          className='p-12 mb-16 text-center'
+          style={cardStyle}
         >
-          <Target className='w-16 h-16 text-teal-600 mx-auto mb-6' />
-          <h2 className='text-3xl font-bold text-gray-900 mb-4'>Our Mission</h2>
-          <p className='text-xl text-gray-600 max-w-4xl mx-auto leading-relaxed'>
+          <Target
+            className='w-16 h-16 mx-auto mb-6'
+            style={{ color: 'var(--me-brand)' }}
+          />
+          <h2 className='text-3xl mb-4' style={displayHeading}>
+            Our Mission
+          </h2>
+          <p
+            className='text-xl max-w-4xl mx-auto leading-relaxed'
+            style={{ color: 'var(--me-ink-2)' }}
+          >
             To make home maintenance simple, trustworthy, and accessible for
             everyone by leveraging technology to connect homeowners with the
             right professionals at the right time.
@@ -178,7 +229,7 @@ export default function AboutPageClient() {
           transition={{ delay: 0.3 }}
           className='mb-16'
         >
-          <h2 className='text-3xl font-bold text-gray-900 text-center mb-12'>
+          <h2 className='text-3xl text-center mb-12' style={displayHeading}>
             Our Values
           </h2>
           <div className='grid grid-cols-1 md:grid-cols-2 gap-8'>
@@ -188,15 +239,28 @@ export default function AboutPageClient() {
                 <MotionDiv
                   key={index}
                   whileHover={{ y: -4 }}
-                  className='bg-white rounded-xl shadow-sm border border-gray-200 p-8 hover:shadow-lg transition-all'
+                  className='p-8 transition-all'
+                  style={cardStyle}
                 >
-                  <div className='bg-teal-100 p-4 rounded-xl inline-block mb-4'>
-                    <Icon className='w-8 h-8 text-teal-600' />
+                  <div
+                    className='p-4 rounded-xl inline-block mb-4'
+                    style={{ background: 'var(--me-brand-soft)' }}
+                  >
+                    <Icon
+                      className='w-8 h-8'
+                      style={{ color: 'var(--me-brand)' }}
+                    />
                   </div>
-                  <h3 className='text-xl font-bold text-gray-900 mb-3'>
+                  <h3
+                    className='text-xl mb-3'
+                    style={{ ...displayHeading, fontSize: 22 }}
+                  >
                     {value.title}
                   </h3>
-                  <p className='text-gray-600 leading-relaxed'>
+                  <p
+                    className='leading-relaxed'
+                    style={{ color: 'var(--me-ink-2)' }}
+                  >
                     {value.description}
                   </p>
                 </MotionDiv>
@@ -213,11 +277,17 @@ export default function AboutPageClient() {
           transition={{ delay: 0.4 }}
           className='mb-16'
         >
-          <h2 className='text-3xl font-bold text-gray-900 text-center mb-12'>
+          <h2 className='text-3xl text-center mb-12' style={displayHeading}>
             Our Journey
           </h2>
           <div className='relative'>
-            <div className='absolute left-1/2 transform -translate-x-1/2 h-full w-1 bg-gradient-to-b from-teal-600 to-emerald-600'></div>
+            <div
+              className='absolute left-1/2 transform -translate-x-1/2 h-full w-1'
+              style={{
+                background:
+                  'linear-gradient(180deg, var(--me-brand-2) 0%, var(--me-brand) 100%)',
+              }}
+            ></div>
             <div className='space-y-12'>
               {milestones.map((milestone, index) => (
                 <MotionDiv
@@ -233,15 +303,29 @@ export default function AboutPageClient() {
                   <div
                     className={`flex-1 ${index % 2 === 0 ? 'text-right' : 'text-left'}`}
                   >
-                    <div className='bg-white rounded-xl shadow-sm border border-gray-200 p-6'>
-                      <h3 className='text-xl font-bold text-gray-900 mb-2'>
+                    <div className='p-6' style={cardStyle}>
+                      <h3
+                        className='text-xl mb-2'
+                        style={{ ...displayHeading, fontSize: 22 }}
+                      >
                         {milestone.title}
                       </h3>
-                      <p className='text-gray-600'>{milestone.description}</p>
+                      <p style={{ color: 'var(--me-ink-2)' }}>
+                        {milestone.description}
+                      </p>
                     </div>
                   </div>
                   <div className='relative z-10'>
-                    <div className='bg-teal-600 text-white px-6 py-3 rounded-full font-bold text-lg shadow-lg'>
+                    <div
+                      className='px-6 py-3 rounded-full text-lg'
+                      style={{
+                        background: 'var(--me-brand)',
+                        color: 'var(--me-on-brand)',
+                        fontFamily: 'var(--me-font-display)',
+                        fontWeight: 500,
+                        boxShadow: 'var(--me-shadow-pop)',
+                      }}
+                    >
                       {milestone.year}
                     </div>
                   </div>
@@ -260,11 +344,14 @@ export default function AboutPageClient() {
           transition={{ delay: 0.5 }}
           className='mb-16'
         >
-          <div className='bg-white rounded-xl shadow-sm border border-gray-200 p-12'>
-            <h2 className='text-3xl font-bold text-gray-900 text-center mb-8'>
+          <div className='p-12' style={cardStyle}>
+            <h2 className='text-3xl text-center mb-8' style={displayHeading}>
               Our Story
             </h2>
-            <div className='max-w-3xl mx-auto space-y-4 text-gray-600 text-lg leading-relaxed'>
+            <div
+              className='max-w-3xl mx-auto space-y-4 text-lg leading-relaxed'
+              style={{ color: 'var(--me-ink-2)' }}
+            >
               <p>
                 Mintenance was founded in Manchester in 2025 with a simple
                 question: why is finding a reliable tradesperson still so
@@ -281,7 +368,7 @@ export default function AboutPageClient() {
                 and AI helps match the right professional to the right job. No
                 surprises, no disputes — just quality work, paid fairly.
               </p>
-              <p className='font-medium text-gray-900'>
+              <p className='font-medium' style={{ color: 'var(--me-ink)' }}>
                 We are a small, focused team based in Greater Manchester, and we
                 are building Mintenance to be the most trusted property
                 maintenance platform in the UK.
@@ -296,13 +383,31 @@ export default function AboutPageClient() {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ delay: 0.6 }}
-          className='bg-gradient-to-r from-teal-600 via-emerald-600 to-teal-700 rounded-xl p-12 text-center text-white'
+          className='rounded-xl p-12 text-center'
+          style={{
+            background:
+              'linear-gradient(170deg, var(--me-brand-2) 0%, var(--me-brand) 100%)',
+            color: 'var(--me-on-brand)',
+          }}
         >
-          <Award className='w-16 h-16 mx-auto mb-6 text-teal-200' />
-          <h2 className='text-3xl font-bold mb-4'>
+          <Award
+            className='w-16 h-16 mx-auto mb-6'
+            style={{ color: 'rgba(255,255,255,0.85)' }}
+          />
+          <h2
+            className='text-3xl mb-4'
+            style={{
+              fontFamily: 'var(--me-font-display)',
+              fontWeight: 500,
+              letterSpacing: '-0.02em',
+            }}
+          >
             Join Our Growing Community
           </h2>
-          <p className='text-xl text-teal-100 mb-8 max-w-2xl mx-auto'>
+          <p
+            className='text-xl mb-8 max-w-2xl mx-auto'
+            style={{ color: 'rgba(255,255,255,0.85)' }}
+          >
             Whether you're a homeowner looking for trusted professionals or a
             contractor seeking new opportunities, we're here to help you
             succeed.
@@ -310,13 +415,24 @@ export default function AboutPageClient() {
           <div className='flex flex-col sm:flex-row gap-4 justify-center'>
             <Link
               href='/contractors'
-              className='px-8 py-4 bg-white text-teal-600 hover:bg-gray-50 hover:shadow-lg font-semibold rounded-xl transition-colors text-center'
+              className='px-8 py-4 font-semibold transition-colors text-center'
+              style={{
+                background: 'var(--me-surface)',
+                color: 'var(--me-brand)',
+                borderRadius: 'var(--me-radius-btn)',
+              }}
             >
               Find Contractors
             </Link>
             <Link
               href='/login'
-              className='px-8 py-4 bg-teal-700 hover:bg-teal-800 border-2 border-white/30 text-white font-semibold rounded-xl transition-colors text-center'
+              className='px-8 py-4 font-semibold transition-colors text-center'
+              style={{
+                background: 'var(--me-brand-2)',
+                border: '2px solid rgba(255,255,255,0.3)',
+                color: 'var(--me-on-brand)',
+                borderRadius: 'var(--me-radius-btn)',
+              }}
             >
               Become a Contractor
             </Link>

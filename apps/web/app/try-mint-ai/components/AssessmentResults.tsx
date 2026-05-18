@@ -24,27 +24,51 @@ const fadeIn = {
   visible: { opacity: 1, y: 0 },
 };
 
+/**
+ * Severity badge colours mapped to Mint Editorial status tokens.
+ * Returns inline-style objects rather than Tailwind classes.
+ */
+function getSeverityStyle(severity: string): React.CSSProperties {
+  switch (severity) {
+    case 'Early':
+      return {
+        color: 'var(--me-ok-fg)',
+        background: 'var(--me-ok-bg)',
+        borderColor: 'var(--me-ok-fg)',
+      };
+    case 'Developing':
+      return {
+        color: 'var(--me-warn-fg)',
+        background: 'var(--me-warn-bg)',
+        borderColor: 'var(--me-warn-fg)',
+      };
+    case 'Significant':
+      return {
+        color: 'var(--me-warn-fg)',
+        background: 'var(--me-warn-bg)',
+        borderColor: 'var(--me-warn-fg)',
+      };
+    case 'Dangerous':
+      return {
+        color: 'var(--me-err-fg)',
+        background: 'var(--me-err-bg)',
+        borderColor: 'var(--me-err-fg)',
+      };
+    default:
+      return {
+        color: 'var(--me-ink-2)',
+        background: 'var(--me-bg-2)',
+        borderColor: 'var(--me-line)',
+      };
+  }
+}
+
 export function AssessmentResults({
   result,
   onAccuracyFeedback,
 }: AssessmentResultsProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [feedbackGiven, setFeedbackGiven] = useState(false);
-
-  const getSeverityColor = (severity: string) => {
-    switch (severity) {
-      case 'Early':
-        return 'text-green-700 bg-green-100 border-green-300';
-      case 'Developing':
-        return 'text-amber-700 bg-amber-100 border-amber-300';
-      case 'Significant':
-        return 'text-orange-700 bg-orange-100 border-orange-300';
-      case 'Dangerous':
-        return 'text-red-700 bg-red-100 border-red-300';
-      default:
-        return 'text-gray-700 bg-gray-100 border-gray-300';
-    }
-  };
 
   const getSeverityIcon = (severity: string) => {
     switch (severity) {
@@ -84,14 +108,34 @@ export function AssessmentResults({
         transition={{ duration: 0.5 }}
       >
         {/* Main results card */}
-        <div className='bg-white rounded-3xl shadow-xl overflow-hidden border-2 border-transparent bg-gradient-to-br from-teal-50 to-emerald-50'>
+        <div
+          className='overflow-hidden'
+          style={{
+            background: 'var(--me-surface)',
+            borderRadius: 'var(--me-radius-card)',
+            boxShadow: 'var(--me-shadow-pop)',
+            border: '1px solid var(--me-line)',
+          }}
+        >
           {/* Gradient border effect */}
-          <div className='bg-gradient-to-r from-teal-600 to-emerald-600 h-2' />
+          <div
+            className='h-2'
+            style={{
+              background:
+                'linear-gradient(170deg, var(--me-brand-2) 0%, var(--me-brand) 100%)',
+            }}
+          />
 
           <div className='p-8 sm:p-12'>
             <h2
               id='results-heading'
-              className='text-3xl font-bold text-gray-900 mb-8 text-center'
+              className='text-3xl mb-8 text-center'
+              style={{
+                color: 'var(--me-ink)',
+                fontFamily: 'var(--me-font-display)',
+                fontWeight: 500,
+                letterSpacing: '-0.02em',
+              }}
             >
               Assessment Results
             </h2>
@@ -99,21 +143,39 @@ export function AssessmentResults({
             <div className='space-y-6'>
               {/* Damage type badge */}
               <div>
-                <label className='block text-sm font-medium text-gray-600 mb-2'>
+                <label
+                  className='block text-sm font-medium mb-2'
+                  style={{ color: 'var(--me-ink-2)' }}
+                >
                   Damage Type
                 </label>
-                <div className='inline-flex items-center gap-2 px-4 py-2 bg-teal-100 text-teal-800 rounded-lg font-semibold'>
+                <div
+                  className='inline-flex items-center gap-2 px-4 py-2 font-semibold'
+                  style={{
+                    background: 'var(--me-brand-soft)',
+                    color: 'var(--me-brand)',
+                    borderRadius: 'var(--me-radius-input)',
+                  }}
+                >
                   {result.damageType}
                 </div>
               </div>
 
               {/* Severity indicator */}
               <div>
-                <label className='block text-sm font-medium text-gray-600 mb-2'>
+                <label
+                  className='block text-sm font-medium mb-2'
+                  style={{ color: 'var(--me-ink-2)' }}
+                >
                   Severity Level
                 </label>
                 <div
-                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-semibold border-2 ${getSeverityColor(result.severity)}`}
+                  className='inline-flex items-center gap-2 px-4 py-2 font-semibold'
+                  style={{
+                    borderRadius: 'var(--me-radius-input)',
+                    border: '2px solid',
+                    ...getSeverityStyle(result.severity),
+                  }}
                 >
                   {getSeverityIcon(result.severity)}
                   {result.severity}
@@ -121,50 +183,106 @@ export function AssessmentResults({
               </div>
 
               {/* Cost estimate */}
-              <div className='bg-white rounded-2xl p-6 shadow-md border border-gray-200'>
+              <div
+                className='p-6'
+                style={{
+                  background: 'var(--me-surface)',
+                  borderRadius: 'var(--me-radius-card)',
+                  boxShadow: 'var(--me-shadow-card)',
+                  border: '1px solid var(--me-line)',
+                }}
+              >
                 <div className='flex items-center gap-2 mb-4'>
                   <TrendingUp
-                    className='w-6 h-6 text-teal-600'
+                    className='w-6 h-6'
+                    style={{ color: 'var(--me-brand)' }}
                     aria-hidden='true'
                   />
-                  <h3 className='text-lg font-semibold text-gray-900'>
+                  <h3
+                    className='text-lg font-semibold'
+                    style={{ color: 'var(--me-ink)' }}
+                  >
                     Estimated Repair Cost
                   </h3>
                 </div>
                 <div className='flex items-baseline gap-3'>
-                  <span className='text-4xl font-bold bg-gradient-to-r from-teal-600 to-emerald-600 bg-clip-text text-transparent'>
+                  <span
+                    className='text-4xl'
+                    style={{
+                      color: 'var(--me-brand)',
+                      fontFamily: 'var(--me-font-display)',
+                      fontWeight: 500,
+                    }}
+                  >
                     {formatCurrency(result.costEstimate.min)}
                   </span>
-                  <span className='text-2xl text-gray-500'>-</span>
-                  <span className='text-4xl font-bold bg-gradient-to-r from-teal-600 to-emerald-600 bg-clip-text text-transparent'>
+                  <span
+                    className='text-2xl'
+                    style={{ color: 'var(--me-ink-3)' }}
+                  >
+                    -
+                  </span>
+                  <span
+                    className='text-4xl'
+                    style={{
+                      color: 'var(--me-brand)',
+                      fontFamily: 'var(--me-font-display)',
+                      fontWeight: 500,
+                    }}
+                  >
                     {formatCurrency(result.costEstimate.max)}
                   </span>
                 </div>
-                <p className='text-sm text-gray-600 mt-2'>
+                <p
+                  className='text-sm mt-2'
+                  style={{ color: 'var(--me-ink-2)' }}
+                >
                   Based on typical UK property repair costs
                 </p>
               </div>
 
               {/* Confidence score */}
-              <div className='bg-white rounded-2xl p-6 shadow-md border border-gray-200'>
+              <div
+                className='p-6'
+                style={{
+                  background: 'var(--me-surface)',
+                  borderRadius: 'var(--me-radius-card)',
+                  boxShadow: 'var(--me-shadow-card)',
+                  border: '1px solid var(--me-line)',
+                }}
+              >
                 <div className='flex items-center justify-between mb-2'>
                   <div className='flex items-center gap-2'>
                     <Gauge
-                      className='w-5 h-5 text-gray-600'
+                      className='w-5 h-5'
+                      style={{ color: 'var(--me-ink-2)' }}
                       aria-hidden='true'
                     />
-                    <span className='text-sm font-medium text-gray-600'>
+                    <span
+                      className='text-sm font-medium'
+                      style={{ color: 'var(--me-ink-2)' }}
+                    >
                       AI Confidence
                     </span>
                   </div>
-                  <span className='text-2xl font-bold text-gray-900'>
+                  <span
+                    className='text-2xl font-bold'
+                    style={{ color: 'var(--me-ink)' }}
+                  >
                     {result.confidence}%
                   </span>
                 </div>
-                <div className='bg-gray-200 rounded-full h-3 overflow-hidden'>
+                <div
+                  className='rounded-full h-3 overflow-hidden'
+                  style={{ background: 'var(--me-bg-3)' }}
+                >
                   <div
-                    className='h-full bg-gradient-to-r from-teal-600 to-emerald-600 transition-all duration-500'
-                    style={{ width: `${result.confidence}%` }}
+                    className='h-full transition-all duration-500'
+                    style={{
+                      width: `${result.confidence}%`,
+                      background:
+                        'linear-gradient(170deg, var(--me-brand-2) 0%, var(--me-brand) 100%)',
+                    }}
                     role='progressbar'
                     aria-valuenow={result.confidence}
                     aria-valuemin={0}
@@ -175,24 +293,32 @@ export function AssessmentResults({
               </div>
 
               {/* Expandable details */}
-              <div className='border-t border-gray-200 pt-6'>
+              <div
+                className='pt-6'
+                style={{ borderTop: '1px solid var(--me-line)' }}
+              >
                 <button
                   onClick={() => setIsExpanded(!isExpanded)}
-                  className='flex items-center justify-between w-full text-left focus:outline-none focus:ring-2 focus:ring-teal-500 rounded p-2'
+                  className='flex items-center justify-between w-full text-left focus:outline-none focus:ring-2 rounded p-2'
                   aria-expanded={isExpanded}
                   aria-controls='assessment-details'
                 >
-                  <span className='text-lg font-semibold text-gray-900'>
+                  <span
+                    className='text-lg font-semibold'
+                    style={{ color: 'var(--me-ink)' }}
+                  >
                     Detailed Breakdown
                   </span>
                   {isExpanded ? (
                     <ChevronUp
-                      className='w-6 h-6 text-gray-600'
+                      className='w-6 h-6'
+                      style={{ color: 'var(--me-ink-2)' }}
                       aria-hidden='true'
                     />
                   ) : (
                     <ChevronDown
-                      className='w-6 h-6 text-gray-600'
+                      className='w-6 h-6'
+                      style={{ color: 'var(--me-ink-2)' }}
                       aria-hidden='true'
                     />
                   )}
@@ -201,38 +327,56 @@ export function AssessmentResults({
                 {isExpanded && (
                   <div id='assessment-details' className='mt-4 space-y-4'>
                     <div>
-                      <h4 className='font-medium text-gray-900 mb-2'>
+                      <h4
+                        className='font-medium mb-2'
+                        style={{ color: 'var(--me-ink)' }}
+                      >
                         Description
                       </h4>
-                      <p className='text-gray-700'>
+                      <p style={{ color: 'var(--me-ink-2)' }}>
                         {result.details.description}
                       </p>
                     </div>
 
                     <div className='grid grid-cols-1 sm:grid-cols-2 gap-4'>
                       <div>
-                        <h4 className='font-medium text-gray-900 mb-2'>
+                        <h4
+                          className='font-medium mb-2'
+                          style={{ color: 'var(--me-ink)' }}
+                        >
                           Urgency
                         </h4>
-                        <p className='text-gray-700 capitalize'>
+                        <p
+                          className='capitalize'
+                          style={{ color: 'var(--me-ink-2)' }}
+                        >
                           {result.details.urgency}
                         </p>
                       </div>
                       <div>
-                        <h4 className='font-medium text-gray-900 mb-2'>
+                        <h4
+                          className='font-medium mb-2'
+                          style={{ color: 'var(--me-ink)' }}
+                        >
                           Safety Risk
                         </h4>
-                        <p className='text-gray-700'>
+                        <p style={{ color: 'var(--me-ink-2)' }}>
                           {result.details.safetyRisk}
                         </p>
                       </div>
                     </div>
 
                     <div>
-                      <h4 className='font-medium text-gray-900 mb-2'>
+                      <h4
+                        className='font-medium mb-2'
+                        style={{ color: 'var(--me-ink)' }}
+                      >
                         Recommendations
                       </h4>
-                      <ul className='list-disc list-inside space-y-1 text-gray-700'>
+                      <ul
+                        className='list-disc list-inside space-y-1'
+                        style={{ color: 'var(--me-ink-2)' }}
+                      >
                         {result.details.recommendations.map((rec, index) => (
                           <li key={index}>{rec}</li>
                         ))}
@@ -243,9 +387,13 @@ export function AssessmentResults({
                     {result.details.materials &&
                       result.details.materials.length > 0 && (
                         <div>
-                          <h4 className='font-medium text-gray-900 mb-3 flex items-center gap-2'>
+                          <h4
+                            className='font-medium mb-3 flex items-center gap-2'
+                            style={{ color: 'var(--me-ink)' }}
+                          >
                             <svg
-                              className='w-5 h-5 text-teal-600'
+                              className='w-5 h-5'
+                              style={{ color: 'var(--me-brand)' }}
                               fill='none'
                               viewBox='0 0 24 24'
                               stroke='currentColor'
@@ -263,22 +411,39 @@ export function AssessmentResults({
                             {result.details.materials.map((material, idx) => (
                               <div
                                 key={idx}
-                                className='relative p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-teal-300 transition-colors'
+                                className='relative p-3 transition-colors'
+                                style={{
+                                  background: 'var(--me-bg-2)',
+                                  borderRadius: 'var(--me-radius-input)',
+                                  border: '1px solid var(--me-line)',
+                                }}
                               >
                                 {/* Database Badge */}
                                 {material.source === 'database' && (
-                                  <div className='absolute top-2 right-2 px-2 py-1 text-xs font-semibold bg-teal-100 text-teal-800 rounded'>
+                                  <div
+                                    className='absolute top-2 right-2 px-2 py-1 text-xs font-semibold rounded'
+                                    style={{
+                                      background: 'var(--me-brand-soft)',
+                                      color: 'var(--me-brand)',
+                                    }}
+                                  >
                                     ✓ DB
                                   </div>
                                 )}
 
                                 {/* Material Name */}
-                                <div className='font-medium text-gray-900 pr-12 mb-1'>
+                                <div
+                                  className='font-medium pr-12 mb-1'
+                                  style={{ color: 'var(--me-ink)' }}
+                                >
                                   {material.name}
                                 </div>
 
                                 {/* Quantity */}
-                                <div className='text-sm text-gray-600 mb-2'>
+                                <div
+                                  className='text-sm mb-2'
+                                  style={{ color: 'var(--me-ink-2)' }}
+                                >
                                   {material.quantity}
                                 </div>
 
@@ -286,23 +451,35 @@ export function AssessmentResults({
                                 {material.source === 'database' &&
                                 material.unit_price ? (
                                   <div className='space-y-1'>
-                                    <div className='text-sm text-gray-700'>
+                                    <div
+                                      className='text-sm'
+                                      style={{ color: 'var(--me-ink-2)' }}
+                                    >
                                       £{material.unit_price.toFixed(2)}/
                                       {material.unit}
                                     </div>
                                     {material.total_cost && (
-                                      <div className='text-sm font-semibold text-emerald-600'>
+                                      <div
+                                        className='text-sm font-semibold'
+                                        style={{ color: 'var(--me-brand)' }}
+                                      >
                                         Total: £{material.total_cost.toFixed(2)}
                                       </div>
                                     )}
                                     {material.supplier_name && (
-                                      <div className='text-xs text-gray-500'>
+                                      <div
+                                        className='text-xs'
+                                        style={{ color: 'var(--me-ink-3)' }}
+                                      >
                                         {material.supplier_name}
                                       </div>
                                     )}
                                   </div>
                                 ) : (
-                                  <div className='text-sm text-gray-600'>
+                                  <div
+                                    className='text-sm'
+                                    style={{ color: 'var(--me-ink-2)' }}
+                                  >
                                     Est. cost: £
                                     {material.estimatedCost.toFixed(2)}
                                   </div>
@@ -315,12 +492,23 @@ export function AssessmentResults({
                           {result.details.materials.some(
                             (m) => m.total_cost
                           ) && (
-                            <div className='mt-3 pt-3 border-t border-gray-200'>
+                            <div
+                              className='mt-3 pt-3'
+                              style={{
+                                borderTop: '1px solid var(--me-line)',
+                              }}
+                            >
                               <div className='flex justify-between items-center'>
-                                <span className='font-semibold text-gray-900'>
+                                <span
+                                  className='font-semibold'
+                                  style={{ color: 'var(--me-ink)' }}
+                                >
                                   Estimated Material Cost:
                                 </span>
-                                <span className='text-lg font-bold text-teal-600'>
+                                <span
+                                  className='text-lg font-bold'
+                                  style={{ color: 'var(--me-brand)' }}
+                                >
                                   £
                                   {result.details.materials
                                     .filter((m) => m.total_cost)
@@ -331,7 +519,10 @@ export function AssessmentResults({
                                     .toFixed(2)}
                                 </span>
                               </div>
-                              <p className='text-xs text-gray-500 mt-1'>
+                              <p
+                                className='text-xs mt-1'
+                                style={{ color: 'var(--me-ink-3)' }}
+                              >
                                 Based on current UK supplier prices
                               </p>
                             </div>
@@ -345,21 +536,37 @@ export function AssessmentResults({
 
             {/* Accuracy feedback */}
             {!feedbackGiven && (
-              <div className='mt-8 pt-8 border-t border-gray-200'>
-                <p className='text-center text-gray-900 font-medium mb-4'>
+              <div
+                className='mt-8 pt-8'
+                style={{ borderTop: '1px solid var(--me-line)' }}
+              >
+                <p
+                  className='text-center font-medium mb-4'
+                  style={{ color: 'var(--me-ink)' }}
+                >
                   Was this assessment accurate?
                 </p>
                 <div className='flex justify-center gap-4'>
                   <button
                     onClick={() => handleFeedback(true)}
-                    className='inline-flex items-center gap-2 px-6 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors'
+                    className='inline-flex items-center gap-2 px-6 py-3 font-semibold focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors'
+                    style={{
+                      background: 'var(--me-ok-fg)',
+                      color: 'var(--me-on-brand)',
+                      borderRadius: 'var(--me-radius-input)',
+                    }}
                   >
                     <CheckCircle2 className='w-5 h-5' aria-hidden='true' />
                     Yes, accurate
                   </button>
                   <button
                     onClick={() => handleFeedback(false)}
-                    className='inline-flex items-center gap-2 px-6 py-3 bg-red-600 text-white rounded-lg font-semibold hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition-colors'
+                    className='inline-flex items-center gap-2 px-6 py-3 font-semibold focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors'
+                    style={{
+                      background: 'var(--me-err-fg)',
+                      color: 'var(--me-on-brand)',
+                      borderRadius: 'var(--me-radius-input)',
+                    }}
                   >
                     <XCircle className='w-5 h-5' aria-hidden='true' />
                     No, needs correction
@@ -369,8 +576,11 @@ export function AssessmentResults({
             )}
 
             {feedbackGiven && (
-              <div className='mt-8 pt-8 border-t border-gray-200 text-center'>
-                <p className='text-green-700 font-medium'>
+              <div
+                className='mt-8 pt-8 text-center'
+                style={{ borderTop: '1px solid var(--me-line)' }}
+              >
+                <p className='font-medium' style={{ color: 'var(--me-ok-fg)' }}>
                   Thank you for your feedback!
                 </p>
               </div>

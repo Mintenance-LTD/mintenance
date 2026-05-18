@@ -18,25 +18,21 @@ const features = [
     title: 'Secure Payments',
     description: 'Protected Payment ensures fair handling for both parties',
     icon: Shield,
-    color: 'text-green-600',
   },
   {
     title: 'Verified Contractors',
     description: 'All professionals are background-checked and certified',
     icon: CheckCircle,
-    color: 'text-blue-600',
   },
   {
     title: 'Real-time Chat',
     description: 'Communicate instantly with contractors or homeowners',
     icon: MessageCircle,
-    color: 'text-purple-600',
   },
   {
     title: 'AI Matching',
     description: 'Smart algorithms connect the right people for every job',
     icon: Zap,
-    color: 'text-emerald-600',
   },
 ];
 
@@ -46,9 +42,23 @@ export function HowItWorksFeatures() {
       initial='hidden'
       animate='visible'
       variants={fadeIn}
-      className='bg-white rounded-2xl shadow-xl border border-gray-200 p-12 mb-20'
+      className='p-12 mb-20'
+      style={{
+        background: 'var(--me-surface)',
+        borderRadius: 'var(--me-radius-card)',
+        boxShadow: 'var(--me-shadow-pop)',
+        border: '1px solid var(--me-line)',
+      }}
     >
-      <h2 className='text-3xl font-bold text-center text-gray-900 mb-12'>
+      <h2
+        className='text-3xl text-center mb-12'
+        style={{
+          color: 'var(--me-ink)',
+          fontFamily: 'var(--me-font-display)',
+          fontWeight: 500,
+          letterSpacing: '-0.02em',
+        }}
+      >
         Why Choose Mintenance?
       </h2>
 
@@ -62,17 +72,27 @@ export function HowItWorksFeatures() {
               className='text-center'
             >
               <div className='flex justify-center mb-4'>
-                <div className='p-4 bg-gray-100 rounded-2xl'>
+                <div
+                  className='p-4'
+                  style={{
+                    background: 'var(--me-brand-soft)',
+                    borderRadius: 'var(--me-radius-card)',
+                  }}
+                >
                   <Icon
-                    className={`w-8 h-8 ${feature.color}`}
+                    className='w-8 h-8'
+                    style={{ color: 'var(--me-brand)' }}
                     aria-hidden='true'
                   />
                 </div>
               </div>
-              <h3 className='text-lg font-semibold text-gray-900 mb-2'>
+              <h3
+                className='text-lg font-semibold mb-2'
+                style={{ color: 'var(--me-ink)' }}
+              >
                 {feature.title}
               </h3>
-              <p className='text-gray-600'>{feature.description}</p>
+              <p style={{ color: 'var(--me-ink-2)' }}>{feature.description}</p>
             </MotionDiv>
           );
         })}

@@ -153,13 +153,29 @@ const WHY_MINTENANCE: MarketingTrustPoint[] = [
 
 function BusinessToolsGrid() {
   return (
-    <section className='py-20 bg-gray-50'>
+    <section
+      data-theme='mint-editorial'
+      className='py-20'
+      style={{
+        background: 'var(--me-bg-2)',
+        fontFamily: 'var(--me-font-body)',
+      }}
+    >
       <div className='max-w-5xl mx-auto px-6'>
         <div className='text-center mb-12'>
-          <h2 className='text-3xl font-bold text-gray-900 mb-4'>
+          <h2
+            className='mb-4'
+            style={{
+              fontFamily: 'var(--me-font-display)',
+              fontWeight: 500,
+              fontSize: 'clamp(28px, 3.5vw, 36px)',
+              letterSpacing: '-0.02em',
+              color: 'var(--me-ink)',
+            }}
+          >
             Your Business, All in One Place
           </h2>
-          <p className='text-gray-600 max-w-xl mx-auto'>
+          <p className='max-w-xl mx-auto' style={{ color: 'var(--me-ink-2)' }}>
             Stop juggling apps. Finance, invoicing, CRM, scheduling, expenses,
             and verification &mdash; all built in.
           </p>
@@ -170,15 +186,33 @@ function BusinessToolsGrid() {
             return (
               <div
                 key={tool.title}
-                className='bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md transition-shadow'
+                className='p-6 transition-shadow'
+                style={{
+                  background: 'var(--me-surface)',
+                  borderRadius: 'var(--me-radius-card)',
+                  border: '1px solid var(--me-line)',
+                  boxShadow: 'var(--me-shadow-card)',
+                }}
               >
-                <div className='inline-flex items-center justify-center w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 mb-3'>
+                <div
+                  className='inline-flex items-center justify-center w-10 h-10 mb-3'
+                  style={{
+                    borderRadius: 'var(--me-radius-input)',
+                    background: 'var(--me-brand-soft)',
+                    color: 'var(--me-brand)',
+                  }}
+                >
                   <Icon className='w-5 h-5' />
                 </div>
-                <h3 className='font-semibold text-gray-900 mb-1'>
+                <h3
+                  className='font-semibold mb-1'
+                  style={{ color: 'var(--me-ink)' }}
+                >
                   {tool.title}
                 </h3>
-                <p className='text-sm text-gray-500'>{tool.desc}</p>
+                <p className='text-sm' style={{ color: 'var(--me-ink-3)' }}>
+                  {tool.desc}
+                </p>
               </div>
             );
           })}

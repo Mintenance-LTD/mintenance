@@ -13,7 +13,8 @@ export function FeaturedResources() {
   const featuredGuides = [
     {
       title: 'Complete Your Profile',
-      description: 'A comprehensive guide to creating a winning contractor profile that attracts clients',
+      description:
+        'A comprehensive guide to creating a winning contractor profile that attracts clients',
       readingTime: 8,
       category: 'Getting Started',
       downloadUrl: '#',
@@ -22,7 +23,8 @@ export function FeaturedResources() {
     },
     {
       title: 'Bidding Strategies That Win',
-      description: 'Learn how to write competitive quotes that stand out and convert at higher rates',
+      description:
+        'Learn how to write competitive quotes that stand out and convert at higher rates',
       readingTime: 12,
       category: 'Business Growth',
       downloadUrl: '#',
@@ -31,7 +33,8 @@ export function FeaturedResources() {
     },
     {
       title: 'Pricing Your Services',
-      description: 'Market research and competitive pricing strategies to maximise your profit margins',
+      description:
+        'Market research and competitive pricing strategies to maximise your profit margins',
       readingTime: 10,
       category: 'Finance',
       downloadUrl: '#',
@@ -41,23 +44,38 @@ export function FeaturedResources() {
   ];
 
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+    <section
+      data-theme='mint-editorial'
+      className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16'
+      style={{ fontFamily: 'var(--me-font-body)' }}
+    >
       <MotionDiv
         initial={{ opacity: 0, y: 20 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ delay: 0.2 }}
-        className="text-center mb-12"
+        className='text-center mb-12'
       >
-        <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+        <h2
+          className='text-3xl md:text-4xl mb-4'
+          style={{
+            fontFamily: 'var(--me-font-display)',
+            fontWeight: 500,
+            letterSpacing: '-0.02em',
+            color: 'var(--me-ink)',
+          }}
+        >
           Featured Resources
         </h2>
-        <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+        <p
+          className='text-xl max-w-3xl mx-auto'
+          style={{ color: 'var(--me-ink-2)' }}
+        >
           Our most popular guides to help you get started and succeed quickly
         </p>
       </MotionDiv>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className='grid grid-cols-1 lg:grid-cols-3 gap-8'>
         {featuredGuides.map((guide, index) => {
           const Icon = guide.icon;
           return (
@@ -68,35 +86,78 @@ export function FeaturedResources() {
               viewport={{ once: true }}
               transition={{ delay: index * 0.1 }}
               whileHover={{ y: -8 }}
-              className="group bg-gradient-to-br from-white to-teal-50 rounded-2xl shadow-lg border border-teal-100 p-8 hover:shadow-2xl transition-all duration-300"
+              className='group p-8 transition-all duration-300'
+              style={{
+                background: 'var(--me-surface)',
+                borderRadius: 'var(--me-radius-card)',
+                border: '1px solid var(--me-line)',
+                boxShadow: 'var(--me-shadow-card)',
+              }}
             >
               {/* Icon */}
-              <div className="bg-gradient-to-br from-teal-500 to-emerald-600 w-16 h-16 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                <Icon className="w-8 h-8 text-white" aria-hidden="true" />
+              <div
+                className='w-16 h-16 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300'
+                style={{
+                  background:
+                    'linear-gradient(170deg, var(--me-brand-2) 0%, var(--me-brand) 100%)',
+                  borderRadius: 'var(--me-radius-card)',
+                }}
+              >
+                <Icon
+                  className='w-8 h-8'
+                  style={{ color: 'var(--me-on-brand)' }}
+                  aria-hidden='true'
+                />
               </div>
 
               {/* Badge */}
-              <div className="inline-flex items-center px-3 py-1 bg-amber-100 text-amber-700 rounded-full text-xs font-semibold mb-4">
+              <div
+                className='inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold mb-4'
+                style={{
+                  background: 'var(--me-warn-bg)',
+                  color: 'var(--me-warn-fg)',
+                }}
+              >
                 {guide.category}
               </div>
 
               {/* Title */}
-              <h3 className="text-2xl font-bold text-gray-900 mb-3">
+              <h3
+                className='text-2xl font-bold mb-3'
+                style={{
+                  fontFamily: 'var(--me-font-display)',
+                  fontWeight: 500,
+                  letterSpacing: '-0.01em',
+                  color: 'var(--me-ink)',
+                }}
+              >
                 {guide.title}
               </h3>
 
               {/* Description */}
-              <p className="text-gray-600 mb-6 leading-relaxed">
+              <p
+                className='mb-6 leading-relaxed'
+                style={{ color: 'var(--me-ink-2)' }}
+              >
                 {guide.description}
               </p>
 
               {/* Meta info */}
-              <div className="flex items-center justify-between mb-6 text-sm text-gray-500">
-                <div className="flex items-center gap-2">
-                  <Clock className="w-4 h-4" aria-hidden="true" />
+              <div
+                className='flex items-center justify-between mb-6 text-sm'
+                style={{ color: 'var(--me-ink-3)' }}
+              >
+                <div className='flex items-center gap-2'>
+                  <Clock className='w-4 h-4' aria-hidden='true' />
                   <span>{guide.readingTime} min read</span>
                 </div>
-                <span className="px-2 py-1 bg-teal-100 text-teal-700 rounded-md text-xs font-medium">
+                <span
+                  className='px-2 py-1 rounded-md text-xs font-medium'
+                  style={{
+                    background: 'var(--me-brand-soft)',
+                    color: 'var(--me-brand)',
+                  }}
+                >
                   Featured
                 </span>
               </div>
@@ -104,9 +165,15 @@ export function FeaturedResources() {
               {/* Download button */}
               <Link
                 href={guide.downloadUrl}
-                className="flex items-center justify-center gap-2 w-full px-6 py-3 bg-gradient-to-r from-teal-600 to-emerald-600 text-white rounded-xl font-semibold hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200"
+                className='flex items-center justify-center gap-2 w-full px-6 py-3 font-semibold transform hover:-translate-y-0.5 transition-all duration-200'
+                style={{
+                  background: 'var(--me-brand)',
+                  color: 'var(--me-on-brand)',
+                  borderRadius: 'var(--me-radius-btn)',
+                  boxShadow: 'var(--me-shadow-btn)',
+                }}
               >
-                <Download className="w-5 h-5" aria-hidden="true" />
+                <Download className='w-5 h-5' aria-hidden='true' />
                 Download PDF
               </Link>
             </MotionDiv>
