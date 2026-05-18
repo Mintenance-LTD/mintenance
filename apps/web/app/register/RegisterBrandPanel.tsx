@@ -42,25 +42,23 @@ export function RegisterBrandPanel() {
         overflow: 'hidden',
       }}
     >
-      {/* Leaf watermark */}
-      <svg
-        viewBox='0 0 24 24'
-        width='520'
-        height='520'
-        fill='none'
-        stroke='rgba(255,255,255,0.06)'
-        strokeWidth='0.6'
+      {/* Leaf watermark — the brand mark, tinted white + faded */}
+      <Image
+        src='/assets/logo-mark.png'
+        alt=''
         aria-hidden='true'
+        width={520}
+        height={520}
         style={{
           position: 'absolute',
           right: -120,
           bottom: -160,
           transform: 'rotate(-12deg)',
+          opacity: 0.07,
+          filter: 'brightness(0) invert(1)',
+          pointerEvents: 'none',
         }}
-      >
-        <path d='M12 21c-2-5 1-12 9-13-1 7-4 11-9 13z' />
-        <path d='M12 21c-1-3 1-7 5-9' />
-      </svg>
+      />
 
       {/* Logo */}
       <Link
