@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
@@ -75,23 +76,17 @@ const INITIAL_DATA: OnboardingFormData = {
   serviceArea: { radiusMiles: '10', postcode: '' },
 };
 
-/** Brand leaf mark — matches the design-system logo. */
-function LeafMark({ size = 18 }: { size?: number }) {
+/** Brand leaf mark — the real Mintenance logo (public/assets/logo-mark.png). */
+function LeafMark({ size = 22 }: { size?: number }) {
   return (
-    <svg
-      viewBox='0 0 24 24'
+    <Image
+      src='/assets/logo-mark.png'
+      alt='Mintenance'
       width={size}
       height={size}
-      fill='none'
-      stroke='currentColor'
-      strokeWidth='1.6'
-      strokeLinecap='round'
-      strokeLinejoin='round'
-      aria-hidden='true'
-    >
-      <path d='M12 21c-2-5 1-12 9-13-1 7-4 11-9 13z' />
-      <path d='M12 21c-1-3 1-7 5-9' />
-    </svg>
+      priority
+      style={{ display: 'block', objectFit: 'contain' }}
+    />
   );
 }
 
@@ -242,8 +237,8 @@ export function OnboardingWizard() {
               width: 32,
               height: 32,
               borderRadius: 8,
-              background: 'var(--me-brand)',
-              color: 'var(--me-on-brand)',
+              background: 'var(--me-surface)',
+              border: '1px solid var(--me-line)',
               display: 'grid',
               placeItems: 'center',
             }}

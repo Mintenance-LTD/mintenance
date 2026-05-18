@@ -150,12 +150,13 @@ export function RegisterForm() {
               width: 34,
               height: 34,
               borderRadius: 9,
-              background: 'var(--me-brand)',
+              background: 'var(--me-surface)',
+              border: '1px solid var(--me-line)',
               display: 'grid',
               placeItems: 'center',
             }}
           >
-            <LeafMark size={20} color='var(--me-on-brand)' />
+            <LeafMark size={22} />
           </span>
           <span
             style={{

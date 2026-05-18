@@ -25,7 +25,7 @@ const FAQ_ITEMS = [
   },
   {
     q: 'How long does it take to get quotes?',
-    a: 'Most jobs receive competitive bids within 24–48 hours — often by the next morning. You can review profiles, ratings, past work and quotes before choosing.',
+    a: 'Most jobs receive competitive bids within 24–48 hours. You can review profiles, ratings, past work and quotes before choosing.',
   },
   {
     q: 'Do I have to use Mint AI?',

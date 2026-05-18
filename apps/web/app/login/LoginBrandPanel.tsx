@@ -1,33 +1,22 @@
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 /**
- * Brand leaf mark — matches the design-system logo. Inherits the
- * caller's text colour by default so callers don't pass raw hex.
- * Shared by the login brand panel and the mobile logo lockup.
+ * Brand leaf mark — the real Mintenance logo, cropped from the app
+ * icon PNG (public/assets/logo-mark.png). Shared by the login brand
+ * panel and the mobile logo lockup.
  */
-export function LeafMark({
-  size = 22,
-  color = 'currentColor',
-}: {
-  size?: number;
-  color?: string;
-}) {
+export function LeafMark({ size = 22 }: { size?: number }) {
   return (
-    <svg
-      viewBox='0 0 24 24'
+    <Image
+      src='/assets/logo-mark.png'
+      alt='Mintenance'
       width={size}
       height={size}
-      fill='none'
-      stroke={color}
-      strokeWidth='1.6'
-      strokeLinecap='round'
-      strokeLinejoin='round'
-      aria-hidden='true'
-    >
-      <path d='M12 21c-2-5 1-12 9-13-1 7-4 11-9 13z' />
-      <path d='M12 21c-1-3 1-7 5-9' />
-    </svg>
+      priority
+      style={{ display: 'block', objectFit: 'contain' }}
+    />
   );
 }
 
@@ -99,7 +88,7 @@ export function LoginBrandPanel() {
             placeItems: 'center',
           }}
         >
-          <LeafMark color='var(--me-brand)' />
+          <LeafMark size={24} />
         </span>
         <span
           style={{
@@ -143,49 +132,54 @@ export function LoginBrandPanel() {
         </p>
       </div>
 
-      {/* Testimonial */}
-      <figure
+      {/* How it works — factual, no fabricated metrics */}
+      <ul
         style={{
           position: 'relative',
+          listStyle: 'none',
           margin: 0,
-          padding: '16px 18px',
-          background: 'rgba(255,255,255,0.08)',
-          borderRadius: 14,
-          border: '1px solid rgba(255,255,255,0.12)',
-          backdropFilter: 'blur(8px)',
+          padding: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 12,
         }}
       >
-        <blockquote
-          style={{
-            margin: '0 0 10px',
-            fontSize: 13,
-            lineHeight: 1.6,
-            color: 'rgba(255,255,255,0.92)',
-          }}
-        >
-          &ldquo;Saved me three weekends and a botched repair. The bid
-          comparison alone is worth it.&rdquo;
-        </blockquote>
-        <figcaption style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span
+        {[
+          'Post a job and compare bids from verified trades',
+          'Payments held securely until you approve the work',
+          'Photo proof before and after every job',
+        ].map((line) => (
+          <li
+            key={line}
             style={{
-              width: 28,
-              height: 28,
-              borderRadius: 9999,
-              background: 'rgba(255,255,255,0.2)',
-              display: 'grid',
-              placeItems: 'center',
-              fontWeight: 600,
-              fontSize: 12,
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 10,
+              fontSize: 13.5,
+              lineHeight: 1.5,
+              color: 'rgba(255,255,255,0.9)',
             }}
           >
-            EM
-          </span>
-          <span style={{ fontSize: 12, opacity: 0.85 }}>
-            Eleanor M. · Homeowner, SW18
-          </span>
-        </figcaption>
-      </figure>
+            <span
+              aria-hidden='true'
+              style={{
+                flex: '0 0 auto',
+                marginTop: 2,
+                width: 18,
+                height: 18,
+                borderRadius: 9999,
+                background: 'rgba(255,255,255,0.18)',
+                display: 'grid',
+                placeItems: 'center',
+                fontSize: 11,
+              }}
+            >
+              ✓
+            </span>
+            {line}
+          </li>
+        ))}
+      </ul>
     </aside>
   );
 }

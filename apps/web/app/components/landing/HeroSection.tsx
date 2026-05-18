@@ -178,19 +178,24 @@ export function HeroSection() {
             }}
           >
             <span>
-              <b style={{ color: 'var(--me-ink-2)', fontWeight: 600 }}>4.9/5</b>{' '}
-              · 2,400 reviews
-            </span>
-            <span aria-hidden='true'>·</span>
-            <span>
-              <b style={{ color: 'var(--me-ink-2)', fontWeight: 600 }}>£2m</b>{' '}
-              liability cover on every job
+              <b style={{ color: 'var(--me-ink-2)', fontWeight: 600 }}>
+                Verified
+              </b>{' '}
+              tradespeople
             </span>
             <span aria-hidden='true'>·</span>
             <span>
               <b style={{ color: 'var(--me-ink-2)', fontWeight: 600 }}>
-                Average reply: 14 minutes
-              </b>
+                Escrow-protected
+              </b>{' '}
+              payments
+            </span>
+            <span aria-hidden='true'>·</span>
+            <span>
+              <b style={{ color: 'var(--me-ink-2)', fontWeight: 600 }}>
+                Photo proof
+              </b>{' '}
+              before &amp; after
             </span>
           </motion.div>
         </motion.div>
