@@ -1,6 +1,6 @@
 import { StyleSheet } from 'react-native';
 import type { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 export const CATEGORY_ICONS: Record<
   string,
@@ -16,7 +16,7 @@ export const CATEGORY_ICONS: Record<
 };
 
 export const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
+  container: { flex: 1, backgroundColor: me.bg2 },
   content: { padding: 16 },
   headerActions: { flexDirection: 'row', gap: 12 },
   headerBtn: { padding: 2 },
@@ -26,8 +26,8 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
+    borderBottomColor: me.line,
+    backgroundColor: me.surface,
   },
   tab: {
     flex: 1,
@@ -38,27 +38,27 @@ export const styles = StyleSheet.create({
     gap: 6,
     borderRadius: 10,
   },
-  tabActive: { backgroundColor: theme.colors.primaryLight },
+  tabActive: { backgroundColor: me.brandSoft },
   tabText: {
     fontSize: 13,
     fontWeight: '600',
-    color: theme.colors.textTertiary,
+    color: me.ink3,
   },
-  tabTextActive: { color: theme.colors.primary },
+  tabTextActive: { color: me.brand },
   // Address
   addressCard: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 22,
     padding: 20,
     alignItems: 'center',
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
   addressSectionLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: theme.colors.primary,
+    color: me.brand,
     textTransform: 'uppercase',
     letterSpacing: 1.2,
     marginBottom: 12,
@@ -74,13 +74,13 @@ export const styles = StyleSheet.create({
   addressLine1: {
     fontSize: 20,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginTop: 12,
     textAlign: 'center',
   },
   addressCity: {
     fontSize: 15,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginTop: 4,
     textAlign: 'center',
   },
@@ -88,32 +88,32 @@ export const styles = StyleSheet.create({
   statsRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
   statCard: {
     flex: 1,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 20,
     padding: 14,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
   statNumber: {
     fontSize: 24,
     fontWeight: '800',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
-  statLabel: { fontSize: 12, color: theme.colors.textTertiary, marginTop: 4 },
+  statLabel: { fontSize: 12, color: me.ink3, marginTop: 4 },
   // Section
   section: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 20,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
   sectionTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 12,
@@ -127,12 +127,12 @@ export const styles = StyleSheet.create({
   },
   specTile: {
     width: '47%' as unknown as number,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 16,
     padding: 14,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
   specTileIcon: {
     width: 32,
@@ -145,12 +145,12 @@ export const styles = StyleSheet.create({
   specTileValue: {
     fontSize: 18,
     fontWeight: '800',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 2,
   },
   specTileLabel: {
     fontSize: 12,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
   },
   sizeRow: {
     flexDirection: 'row',
@@ -158,12 +158,12 @@ export const styles = StyleSheet.create({
     gap: 8,
     paddingTop: 10,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: theme.colors.border,
+    borderTopColor: me.line,
   },
   sizeText: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   // Info rows
   infoRow: {
@@ -171,13 +171,13 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   infoIconWrap: {
     width: 32,
     height: 32,
     borderRadius: 10,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -187,15 +187,15 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginLeft: 12,
   },
-  infoLabel: { fontSize: 15, color: theme.colors.textSecondary },
+  infoLabel: { fontSize: 15, color: me.ink2 },
   infoValue: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   notesText: {
     fontSize: 15,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     lineHeight: 22,
   },
   // Jobs
@@ -206,7 +206,7 @@ export const styles = StyleSheet.create({
     marginBottom: 12,
   },
   totalSpentBadge: {
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: me.brandSoft,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
@@ -214,21 +214,21 @@ export const styles = StyleSheet.create({
   totalSpentText: {
     fontSize: 13,
     fontWeight: '700',
-    color: theme.colors.primary,
+    color: me.brand,
   },
   emptyJobsWrap: { alignItems: 'center', paddingVertical: 20 },
   emptyJobsIcon: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
   },
   emptyJobsText: {
     fontSize: 14,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     textAlign: 'center',
   },
   jobCard: {
@@ -236,7 +236,7 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   jobCatIcon: {
     width: 38,
@@ -250,14 +250,14 @@ export const styles = StyleSheet.create({
   jobRowTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
-  jobRowDate: { fontSize: 12, color: theme.colors.textTertiary, marginTop: 2 },
+  jobRowDate: { fontSize: 12, color: me.ink3, marginTop: 2 },
   jobRowRight: { alignItems: 'flex-end', gap: 4 },
   jobRowBudget: {
     fontSize: 15,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   // Action rows
   actionRow: {
@@ -265,7 +265,7 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   actionIcon: {
     width: 34,
@@ -279,6 +279,6 @@ export const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontWeight: '500',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
 });

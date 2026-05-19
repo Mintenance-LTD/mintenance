@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 /**
  * Landing top navigation — Direction A · Mint Editorial.
@@ -22,22 +23,16 @@ const NAV_LINKS = [
   { href: '/about', label: 'About' },
 ];
 
-function LeafMark({ size = 18 }: { size?: number }) {
+function LeafMark({ size = 22 }: { size?: number }) {
   return (
-    <svg
-      viewBox='0 0 24 24'
+    <Image
+      src='/assets/logo-mark.png'
+      alt='Mintenance'
       width={size}
       height={size}
-      fill='none'
-      stroke='currentColor'
-      strokeWidth='1.6'
-      strokeLinecap='round'
-      strokeLinejoin='round'
-      aria-hidden='true'
-    >
-      <path d='M12 21c-2-5 1-12 9-13-1 7-4 11-9 13z' />
-      <path d='M12 21c-1-3 1-7 5-9' />
-    </svg>
+      priority
+      style={{ display: 'block', objectFit: 'contain' }}
+    />
   );
 }
 
@@ -100,8 +95,8 @@ export function LandingNavigation() {
               width: 32,
               height: 32,
               borderRadius: 9,
-              background: 'var(--me-brand)',
-              color: 'var(--me-on-brand)',
+              background: 'var(--me-surface)',
+              border: '1px solid var(--me-line)',
               display: 'grid',
               placeItems: 'center',
             }}

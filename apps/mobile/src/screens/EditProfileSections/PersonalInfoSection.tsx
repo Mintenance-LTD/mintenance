@@ -1,19 +1,32 @@
-import React from "react";
-import { View, Text, TextInput, StyleSheet, Platform } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { theme } from '../../theme';
+import React from 'react';
+import { View, Text, TextInput, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { me } from '../../design-system/mint-editorial';
 
 interface PersonalInfoSectionProps {
-  firstName: string; setFirstName: (v: string) => void;
-  lastName: string; setLastName: (v: string) => void;
+  firstName: string;
+  setFirstName: (v: string) => void;
+  lastName: string;
+  setLastName: (v: string) => void;
   email: string;
-  phone: string; setPhone: (v: string) => void;
-  bio: string; setBio: (v: string) => void;
+  phone: string;
+  setPhone: (v: string) => void;
+  bio: string;
+  setBio: (v: string) => void;
   userRole?: string;
 }
 
 export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({
-  firstName, setFirstName, lastName, setLastName, email, phone, setPhone, bio, setBio, userRole,
+  firstName,
+  setFirstName,
+  lastName,
+  setLastName,
+  email,
+  phone,
+  setPhone,
+  bio,
+  setBio,
+  userRole,
 }) => {
   return (
     <>
@@ -24,13 +37,18 @@ export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({
           <View style={[styles.inputGroup, styles.halfWidth]}>
             <Text style={styles.label}>First Name</Text>
             <View style={styles.inputWrap}>
-              <Ionicons name="person-outline" size={18} color={theme.colors.textTertiary} style={styles.inputIcon} />
+              <Ionicons
+                name='person-outline'
+                size={18}
+                color={me.ink3}
+                style={styles.inputIcon}
+              />
               <TextInput
                 style={styles.inputField}
                 value={firstName}
                 onChangeText={setFirstName}
-                placeholder="First name"
-                placeholderTextColor={theme.colors.textTertiary}
+                placeholder='First name'
+                placeholderTextColor={me.ink3}
               />
             </View>
           </View>
@@ -41,8 +59,8 @@ export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({
                 style={styles.inputField}
                 value={lastName}
                 onChangeText={setLastName}
-                placeholder="Last name"
-                placeholderTextColor={theme.colors.textTertiary}
+                placeholder='Last name'
+                placeholderTextColor={me.ink3}
               />
             </View>
           </View>
@@ -51,15 +69,20 @@ export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Email Address</Text>
           <View style={[styles.inputWrap, styles.disabledInputWrap]}>
-            <Ionicons name="mail-outline" size={18} color={theme.colors.textTertiary} style={styles.inputIcon} />
+            <Ionicons
+              name='mail-outline'
+              size={18}
+              color={me.ink3}
+              style={styles.inputIcon}
+            />
             <TextInput
               style={[styles.inputField, styles.disabledInput]}
               value={email}
               editable={false}
-              placeholderTextColor={theme.colors.textTertiary}
+              placeholderTextColor={me.ink3}
             />
             <View style={styles.lockBadge}>
-              <Ionicons name="lock-closed" size={12} color={theme.colors.textTertiary} />
+              <Ionicons name='lock-closed' size={12} color={me.ink3} />
             </View>
           </View>
           <Text style={styles.helperText}>
@@ -70,14 +93,19 @@ export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Phone Number</Text>
           <View style={styles.inputWrap}>
-            <Ionicons name="call-outline" size={18} color={theme.colors.textTertiary} style={styles.inputIcon} />
+            <Ionicons
+              name='call-outline'
+              size={18}
+              color={me.ink3}
+              style={styles.inputIcon}
+            />
             <TextInput
               style={styles.inputField}
               value={phone}
               onChangeText={setPhone}
-              placeholder="Enter your phone number"
-              placeholderTextColor={theme.colors.textTertiary}
-              keyboardType="phone-pad"
+              placeholder='Enter your phone number'
+              placeholderTextColor={me.ink3}
+              keyboardType='phone-pad'
             />
           </View>
         </View>
@@ -93,16 +121,21 @@ export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({
               value={bio}
               onChangeText={(text) => setBio(text.slice(0, 200))}
               placeholder={
-                userRole === "contractor"
-                  ? "Tell homeowners about your experience, specialties, and approach to work..."
-                  : "Tell contractors about your preferences..."
+                userRole === 'contractor'
+                  ? 'Tell homeowners about your experience, specialties, and approach to work...'
+                  : 'Tell contractors about your preferences...'
               }
-              placeholderTextColor={theme.colors.textTertiary}
+              placeholderTextColor={me.ink3}
               multiline
               numberOfLines={4}
             />
           </View>
-          <Text style={[styles.helperText, bio.length >= 180 && styles.helperTextWarn]}>
+          <Text
+            style={[
+              styles.helperText,
+              bio.length >= 180 && styles.helperTextWarn,
+            ]}
+          >
             {bio.length}/200 characters
           </Text>
         </View>
@@ -113,20 +146,17 @@ export const PersonalInfoSection: React.FC<PersonalInfoSectionProps> = ({
 
 const styles = StyleSheet.create({
   section: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     marginHorizontal: 16,
     marginBottom: 12,
     borderRadius: 16,
     padding: 20,
-    ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 18,
     letterSpacing: -0.3,
   },
@@ -143,7 +173,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 13,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginBottom: 6,
     textTransform: 'uppercase',
     letterSpacing: 0.3,
@@ -151,14 +181,14 @@ const styles = StyleSheet.create({
   inputWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
     paddingHorizontal: 14,
   },
   disabledInputWrap: {
-    backgroundColor: '#F3F3F3',
+    backgroundColor: me.bg3,
   },
   inputIcon: {
     marginRight: 10,
@@ -166,11 +196,11 @@ const styles = StyleSheet.create({
   inputField: {
     flex: 1,
     fontSize: 15,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     paddingVertical: 13,
   },
   disabledInput: {
-    color: theme.colors.textTertiary,
+    color: me.ink3,
   },
   lockBadge: {
     marginLeft: 8,
@@ -185,10 +215,10 @@ const styles = StyleSheet.create({
   },
   helperText: {
     fontSize: 12,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     marginTop: 4,
   },
   helperTextWarn: {
-    color: theme.colors.accent,
+    color: me.accent,
   },
 });

@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { SearchFilters } from '../../../services/AISearchService';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 import { styles } from '../theme/styles';
 
 /**
@@ -27,11 +27,7 @@ export function FiltersPanel({
           <Text style={styles.filterValueText}>
             {filters.category || 'All Categories'}
           </Text>
-          <Ionicons
-            name='chevron-down'
-            size={16}
-            color={theme.colors.textTertiary}
-          />
+          <Ionicons name='chevron-down' size={16} color={me.ink3} />
         </TouchableOpacity>
       </View>
 
@@ -41,11 +37,7 @@ export function FiltersPanel({
           <Text style={styles.filterValueText}>
             {filters.location || 'Any Location'}
           </Text>
-          <Ionicons
-            name='chevron-down'
-            size={16}
-            color={theme.colors.textTertiary}
-          />
+          <Ionicons name='chevron-down' size={16} color={me.ink3} />
         </TouchableOpacity>
       </View>
 

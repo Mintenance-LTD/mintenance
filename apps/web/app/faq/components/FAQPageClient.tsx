@@ -57,37 +57,37 @@ export default function FAQPageClient() {
       id: 'all',
       label: 'All Questions',
       icon: HelpCircle,
-      color: 'text-gray-600',
+      color: 'var(--me-ink-3)',
     },
     {
       id: 'getting-started',
       label: 'Getting Started',
       icon: Users,
-      color: 'text-blue-600',
+      color: 'var(--me-info-fg)',
     },
     {
       id: 'payments',
       label: 'Payments & Billing',
       icon: CreditCard,
-      color: 'text-green-600',
+      color: 'var(--me-ok-fg)',
     },
     {
       id: 'jobs',
       label: 'Jobs & Projects',
       icon: FileText,
-      color: 'text-purple-600',
+      color: 'var(--me-brand-2)',
     },
     {
       id: 'safety',
       label: 'Safety & Trust',
       icon: Shield,
-      color: 'text-red-600',
+      color: 'var(--me-err-fg)',
     },
     {
       id: 'support',
       label: 'Support',
       icon: MessageCircle,
-      color: 'text-emerald-600',
+      color: 'var(--me-brand)',
     },
   ];
 
@@ -256,24 +256,46 @@ export default function FAQPageClient() {
   });
 
   return (
-    <div className='min-h-screen bg-gradient-to-br from-teal-50 via-white to-emerald-50'>
+    <div
+      data-theme='mint-editorial'
+      className='min-h-screen'
+      style={{
+        background: 'var(--me-bg)',
+        fontFamily: 'var(--me-font-body)',
+      }}
+    >
       {/* Header */}
       <MotionDiv
         initial='hidden'
         animate='visible'
         variants={fadeIn}
-        className='bg-gradient-to-r from-teal-600 to-emerald-600 text-white'
+        style={{
+          background:
+            'linear-gradient(170deg, var(--me-brand-2) 0%, var(--me-brand) 100%)',
+          color: 'var(--me-on-brand)',
+        }}
       >
         <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center'>
           <MotionDiv variants={fadeIn} className='mb-6'>
             <HelpCircle className='w-16 h-16 mx-auto mb-4' />
           </MotionDiv>
-          <MotionH1 variants={fadeIn} className='text-5xl font-bold mb-4'>
+          <MotionH1
+            variants={fadeIn}
+            className='mb-4'
+            style={{
+              fontFamily: 'var(--me-font-display)',
+              fontWeight: 500,
+              fontSize: 'clamp(36px, 5vw, 52px)',
+              lineHeight: 1.05,
+              letterSpacing: '-0.02em',
+            }}
+          >
             Frequently Asked Questions
           </MotionH1>
           <MotionP
             variants={fadeIn}
-            className='text-xl text-teal-100 max-w-2xl mx-auto'
+            className='max-w-2xl mx-auto'
+            style={{ fontSize: 20, opacity: 0.9, lineHeight: 1.55 }}
           >
             Find answers to common questions about using Mintenance
           </MotionP>
@@ -289,7 +311,10 @@ export default function FAQPageClient() {
           className='max-w-2xl mx-auto mb-12'
         >
           <div className='relative'>
-            <Search className='absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400' />
+            <Search
+              className='absolute left-4 top-1/2 -translate-y-1/2 w-6 h-6'
+              style={{ color: 'var(--me-ink-3)' }}
+            />
             <input
               type='text'
               value={searchQuery}
@@ -297,7 +322,14 @@ export default function FAQPageClient() {
                 setSearchQuery(e.target.value)
               }
               placeholder='Search for answers...'
-              className='w-full pl-14 pr-4 py-4 text-lg border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-transparent shadow-lg'
+              className='w-full pl-14 pr-4 py-4 text-lg'
+              style={{
+                background: 'var(--me-surface)',
+                color: 'var(--me-ink)',
+                border: '2px solid var(--me-line)',
+                borderRadius: 'var(--me-radius-input)',
+                boxShadow: 'var(--me-shadow-card)',
+              }}
             />
           </div>
         </MotionDiv>
@@ -311,23 +343,31 @@ export default function FAQPageClient() {
         >
           {categories.map((category) => {
             const Icon = category.icon;
+            const isSelected = selectedCategory === category.id;
             return (
               <MotionButton
                 key={category.id}
                 variants={staggerItem}
                 onClick={() => setSelectedCategory(category.id)}
-                className={`p-4 rounded-xl border-2 transition-all ${
-                  selectedCategory === category.id
-                    ? 'bg-teal-600 text-white border-teal-600 shadow-lg'
-                    : 'bg-white text-gray-700 border-gray-200 hover:border-teal-300 hover:shadow-md'
-                }`}
+                className='p-4 transition-all'
+                style={{
+                  borderRadius: 'var(--me-radius-card)',
+                  border: '2px solid',
+                  borderColor: isSelected
+                    ? 'var(--me-brand)'
+                    : 'var(--me-line)',
+                  background: isSelected
+                    ? 'var(--me-brand)'
+                    : 'var(--me-surface)',
+                  color: isSelected ? 'var(--me-on-brand)' : 'var(--me-ink-2)',
+                  boxShadow: isSelected ? 'var(--me-shadow-card)' : undefined,
+                }}
               >
                 <Icon
-                  className={`w-8 h-8 mx-auto mb-2 ${
-                    selectedCategory === category.id
-                      ? 'text-white'
-                      : category.color
-                  }`}
+                  className='w-8 h-8 mx-auto mb-2'
+                  style={{
+                    color: isSelected ? 'var(--me-on-brand)' : category.color,
+                  }}
                 />
                 <p className='text-sm font-medium text-center'>
                   {category.label}
@@ -348,17 +388,30 @@ export default function FAQPageClient() {
         {/* FAQs */}
         <div className='max-w-4xl mx-auto'>
           {filteredFAQs.length > 0 ? (
-            <div className='bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden'>
+            <div
+              className='overflow-hidden'
+              style={{
+                background: 'var(--me-surface)',
+                borderRadius: 'var(--me-radius-card)',
+                border: '1px solid var(--me-line)',
+                boxShadow: 'var(--me-shadow-card)',
+              }}
+            >
               {filteredFAQs.map((faq) => (
                 <AccordionItem
                   key={faq.id}
                   title={faq.question}
                   content={
-                    <p className='text-gray-700 leading-relaxed'>
+                    <p
+                      style={{
+                        color: 'var(--me-ink-2)',
+                        lineHeight: 1.65,
+                      }}
+                    >
                       {faq.answer}
                     </p>
                   }
-                  className='border-b border-gray-200 last:border-b-0'
+                  className='last:border-b-0'
                   titleClassName='px-6'
                   contentClassName='px-6'
                 />
@@ -367,13 +420,31 @@ export default function FAQPageClient() {
           ) : (
             <MotionDiv
               variants={fadeIn}
-              className='text-center py-12 bg-white rounded-xl shadow-lg border border-gray-200'
+              className='text-center py-12'
+              style={{
+                background: 'var(--me-surface)',
+                borderRadius: 'var(--me-radius-card)',
+                border: '1px solid var(--me-line)',
+                boxShadow: 'var(--me-shadow-card)',
+              }}
             >
-              <HelpCircle className='w-16 h-16 text-gray-300 mx-auto mb-4' />
-              <h3 className='text-xl font-semibold text-gray-900 mb-2'>
+              <HelpCircle
+                className='w-16 h-16 mx-auto mb-4'
+                style={{ color: 'var(--me-ink-4)' }}
+              />
+              <h3
+                className='mb-2'
+                style={{
+                  fontFamily: 'var(--me-font-display)',
+                  fontWeight: 500,
+                  fontSize: 20,
+                  letterSpacing: '-0.01em',
+                  color: 'var(--me-ink)',
+                }}
+              >
                 No results found
               </h3>
-              <p className='text-gray-600 mb-6'>
+              <p className='mb-6' style={{ color: 'var(--me-ink-2)' }}>
                 Try adjusting your search or browse different categories
               </p>
               <button
@@ -381,7 +452,14 @@ export default function FAQPageClient() {
                   setSearchQuery('');
                   setSelectedCategory('all');
                 }}
-                className='px-6 py-3 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors font-medium'
+                className='font-medium transition-colors'
+                style={{
+                  padding: '12px 24px',
+                  background: 'var(--me-brand)',
+                  color: 'var(--me-on-brand)',
+                  borderRadius: 'var(--me-radius-btn)',
+                  boxShadow: 'var(--me-shadow-btn)',
+                }}
               >
                 Reset Filters
               </button>
@@ -394,24 +472,59 @@ export default function FAQPageClient() {
           initial='hidden'
           animate='visible'
           variants={fadeIn}
-          className='mt-16 bg-gradient-to-r from-teal-600 to-emerald-600 rounded-2xl shadow-xl p-12 text-center text-white'
+          className='mt-16 p-12 text-center'
+          style={{
+            background:
+              'linear-gradient(170deg, var(--me-brand-2) 0%, var(--me-brand) 100%)',
+            borderRadius: 'var(--me-radius-card)',
+            boxShadow: 'var(--me-shadow-pop)',
+            color: 'var(--me-on-brand)',
+          }}
         >
           <MessageCircle className='w-16 h-16 mx-auto mb-4' />
-          <h2 className='text-3xl font-bold mb-4'>Still Need Help?</h2>
-          <p className='text-xl text-teal-100 mb-8 max-w-2xl mx-auto'>
+          <h2
+            className='mb-4'
+            style={{
+              fontFamily: 'var(--me-font-display)',
+              fontWeight: 500,
+              fontSize: 'clamp(28px, 3.5vw, 36px)',
+              letterSpacing: '-0.02em',
+            }}
+          >
+            Still Need Help?
+          </h2>
+          <p
+            className='mb-8 max-w-2xl mx-auto'
+            style={{ fontSize: 20, opacity: 0.9, lineHeight: 1.55 }}
+          >
             Can't find the answer you're looking for? Our support team is here
             to help.
           </p>
           <div className='flex flex-col sm:flex-row gap-4 justify-center'>
             <Link
               href='/contact'
-              className='px-8 py-4 bg-white text-teal-600 rounded-lg hover:bg-teal-50 transition-colors font-semibold text-lg text-center'
+              className='font-semibold text-lg text-center transition-colors'
+              style={{
+                padding: '16px 32px',
+                background: 'var(--me-surface)',
+                color: 'var(--me-brand)',
+                borderRadius: 'var(--me-radius-btn)',
+                textDecoration: 'none',
+              }}
             >
               Contact Support
             </Link>
             <Link
               href='/contact'
-              className='px-8 py-4 bg-white/10 border-2 border-white text-white rounded-lg hover:bg-white/20 transition-colors font-semibold text-lg text-center'
+              className='font-semibold text-lg text-center transition-colors'
+              style={{
+                padding: '16px 32px',
+                background: 'rgba(255,255,255,0.1)',
+                border: '2px solid var(--me-on-brand)',
+                color: 'var(--me-on-brand)',
+                borderRadius: 'var(--me-radius-btn)',
+                textDecoration: 'none',
+              }}
             >
               Live Chat
             </Link>

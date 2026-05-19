@@ -1,14 +1,8 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Platform,
-} from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 // AUDIT_PUNCH_LIST P2 #45 (B3-P2-1) — renamed 2026-05-09 from
 // `AvailabilitySection` to `AccountSection`. The original name was
@@ -45,11 +39,7 @@ export const AccountSection: React.FC<AccountSectionProps> = ({
           accessibilityLabel='Manage notification settings'
         >
           <View style={styles.actionLeft}>
-            <Ionicons
-              name='notifications-outline'
-              size={20}
-              color={theme.colors.textSecondary}
-            />
+            <Ionicons name='notifications-outline' size={20} color={me.ink2} />
             <View style={styles.actionInfo}>
               <Text style={styles.actionText}>Manage Notifications</Text>
               <Text style={styles.actionDescription}>
@@ -57,11 +47,7 @@ export const AccountSection: React.FC<AccountSectionProps> = ({
               </Text>
             </View>
           </View>
-          <Ionicons
-            name='chevron-forward'
-            size={16}
-            color={theme.colors.textTertiary}
-          />
+          <Ionicons name='chevron-forward' size={16} color={me.ink3} />
         </TouchableOpacity>
       </View>
       <View style={styles.section}>
@@ -73,18 +59,10 @@ export const AccountSection: React.FC<AccountSectionProps> = ({
           accessibilityLabel='Change password'
         >
           <View style={styles.actionLeft}>
-            <Ionicons
-              name='key-outline'
-              size={20}
-              color={theme.colors.textSecondary}
-            />
+            <Ionicons name='key-outline' size={20} color={me.ink2} />
             <Text style={styles.actionText}>Change Password</Text>
           </View>
-          <Ionicons
-            name='chevron-forward'
-            size={16}
-            color={theme.colors.textTertiary}
-          />
+          <Ionicons name='chevron-forward' size={16} color={me.ink3} />
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.actionItem, styles.dangerAction]}
@@ -93,20 +71,12 @@ export const AccountSection: React.FC<AccountSectionProps> = ({
           accessibilityLabel='Delete account'
         >
           <View style={styles.actionLeft}>
-            <Ionicons
-              name='trash-outline'
-              size={20}
-              color={theme.colors.error}
-            />
+            <Ionicons name='trash-outline' size={20} color={me.errFg} />
             <Text style={[styles.actionText, styles.dangerText]}>
               Delete Account
             </Text>
           </View>
-          <Ionicons
-            name='chevron-forward'
-            size={16}
-            color={theme.colors.error}
-          />
+          <Ionicons name='chevron-forward' size={16} color={me.errFg} />
         </TouchableOpacity>
       </View>
     </>
@@ -115,25 +85,17 @@ export const AccountSection: React.FC<AccountSectionProps> = ({
 
 const styles = StyleSheet.create({
   section: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     marginHorizontal: 16,
     marginBottom: 16,
     borderRadius: 16,
     padding: 20,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   sectionTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 20,
   },
   actionItem: {
@@ -142,22 +104,22 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   actionLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
   actionInfo: { marginLeft: 12, flex: 1 },
   actionText: {
     fontSize: 16,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginLeft: 12,
     fontWeight: '500',
   },
   actionDescription: {
     fontSize: 13,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     marginLeft: 12,
     marginTop: 2,
   },
   dangerAction: { borderBottomWidth: 0 },
-  dangerText: { color: theme.colors.error },
+  dangerText: { color: me.errFg },
 });

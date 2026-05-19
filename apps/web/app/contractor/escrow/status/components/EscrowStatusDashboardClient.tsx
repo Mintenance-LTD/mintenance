@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { Check, X } from 'lucide-react';
 import { theme } from '@/lib/theme';
 import { Card } from '@/components/ui/Card.unified';
 import { Button } from '@/components/ui/Button';
@@ -371,7 +372,29 @@ export function EscrowStatusDashboardClient() {
                   <div>Admin Hold: {escrowStatus.adminHoldStatus}</div>
                   <div>
                     Homeowner Approval:{' '}
-                    {escrowStatus.homeownerApproval ? '✓ Yes' : '✗ No'}
+                    {escrowStatus.homeownerApproval ? (
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 4,
+                        }}
+                      >
+                        <Check size={14} aria-hidden='true' />
+                        Yes
+                      </span>
+                    ) : (
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 4,
+                        }}
+                      >
+                        <X size={14} aria-hidden='true' />
+                        No
+                      </span>
+                    )}
                   </div>
                   <div>
                     Photo Verification:{' '}

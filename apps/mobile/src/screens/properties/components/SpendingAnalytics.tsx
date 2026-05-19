@@ -2,8 +2,8 @@
  * SpendingAnalytics - Monthly spending breakdown for a property
  */
 import React from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
-import { theme } from '../../../theme';
+import { View, Text, StyleSheet } from 'react-native';
+import { me } from '../../../design-system/mint-editorial';
 
 interface Job {
   id: string;
@@ -70,8 +70,7 @@ export const SpendingAnalytics: React.FC<Props> = ({ jobs }) => {
                       m.amount > 0
                         ? Math.max((m.amount / maxAmount) * 80, 6)
                         : 0,
-                    backgroundColor:
-                      m.amount > 0 ? theme.colors.primary : 'transparent',
+                    backgroundColor: m.amount > 0 ? me.brand : 'transparent',
                   },
                 ]}
               />
@@ -94,19 +93,11 @@ export const SpendingAnalytics: React.FC<Props> = ({ jobs }) => {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   header: {
     flexDirection: 'row',
@@ -117,17 +108,17 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
   },
   totalBadge: {
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: me.brandSoft,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
   },
-  totalText: { fontSize: 13, fontWeight: '700', color: theme.colors.primary },
+  totalText: { fontSize: 13, fontWeight: '700', color: me.brand },
   chartRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -139,11 +130,11 @@ const styles = StyleSheet.create({
     width: 20,
     height: 80,
     borderRadius: 10,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     justifyContent: 'flex-end',
     overflow: 'hidden',
   },
   barFill: { width: 20, borderRadius: 10 },
-  barLabel: { fontSize: 11, color: theme.colors.textTertiary, marginTop: 6 },
-  barAmount: { fontSize: 10, color: theme.colors.textSecondary, marginTop: 2 },
+  barLabel: { fontSize: 11, color: me.ink3, marginTop: 6 },
+  barAmount: { fontSize: 10, color: me.ink2, marginTop: 2 },
 });

@@ -38,7 +38,7 @@ import { Button } from '../components/ui/Button';
 import { mobileApiClient } from '../utils/mobileApiClient';
 // supabase import removed — notification prefs now use /api/users/notification-preferences
 import { useAuth } from '../contexts/AuthContext';
-import { theme } from '../theme';
+import { me } from '../design-system/mint-editorial';
 import {
   NotificationSettings,
   DEFAULT_SETTINGS,
@@ -166,10 +166,7 @@ const NotificationSettingsScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <StatusBar
-        barStyle='dark-content'
-        backgroundColor={theme.colors.surface}
-      />
+      <StatusBar barStyle='dark-content' backgroundColor={me.surface} />
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity
           style={styles.backButton}
@@ -177,11 +174,7 @@ const NotificationSettingsScreen: React.FC = () => {
           accessibilityRole='button'
           accessibilityLabel='Go back'
         >
-          <Ionicons
-            name='arrow-back'
-            size={24}
-            color={theme.colors.textPrimary}
-          />
+          <Ionicons name='arrow-back' size={24} color={me.ink} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Notification Settings</Text>
         <Button
@@ -223,30 +216,30 @@ const NotificationSettingsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   header: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     paddingBottom: 12,
     paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     flex: 1,
     textAlign: 'center',
     marginHorizontal: 16,

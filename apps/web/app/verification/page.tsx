@@ -131,29 +131,72 @@ export default function VerificationPage() {
     <ErrorBoundary componentName='VerificationPage'>
       <div>
         <LandingNavigation />
-        <div className='min-h-screen bg-gray-50'>
+        <div
+          data-theme='mint-editorial'
+          className='min-h-screen'
+          style={{
+            background: 'var(--me-bg)',
+            fontFamily: 'var(--me-font-body)',
+          }}
+        >
           <div className='max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16'>
             <div className='text-center mb-12'>
-              <div className='inline-flex p-4 rounded-2xl bg-teal-50 mb-6'>
+              <div
+                className='inline-flex p-4 mb-6'
+                style={{
+                  borderRadius: 'var(--me-radius-card)',
+                  background: 'var(--me-brand-soft)',
+                }}
+              >
                 <Shield
-                  className='w-12 h-12 text-teal-600'
+                  className='w-12 h-12'
+                  style={{ color: 'var(--me-brand)' }}
                   aria-hidden='true'
                 />
               </div>
-              <h1 className='text-3xl md:text-4xl font-bold text-gray-900 mb-4'>
+              <h1
+                className='mb-4'
+                style={{
+                  fontFamily: 'var(--me-font-display)',
+                  fontWeight: 500,
+                  fontSize: 'clamp(32px, 4.5vw, 44px)',
+                  letterSpacing: '-0.02em',
+                  color: 'var(--me-ink)',
+                }}
+              >
                 Contractor Verification
               </h1>
-              <p className='text-lg text-gray-600 max-w-2xl mx-auto'>
+              <p
+                className='text-lg max-w-2xl mx-auto'
+                style={{ color: 'var(--me-ink-2)' }}
+              >
                 We verify contractor business details so homeowners can hire
                 with confidence. Below we explain why we do it and how it works.
               </p>
             </div>
 
-            <section className='bg-white rounded-2xl border border-gray-200 shadow-sm p-8 mb-10'>
-              <h2 className='text-2xl font-bold text-gray-900 mb-6'>
+            <section
+              className='p-8 mb-10'
+              style={{
+                background: 'var(--me-surface)',
+                borderRadius: 'var(--me-radius-card)',
+                border: '1px solid var(--me-line)',
+                boxShadow: 'var(--me-shadow-card)',
+              }}
+            >
+              <h2
+                className='mb-6'
+                style={{
+                  fontFamily: 'var(--me-font-display)',
+                  fontWeight: 500,
+                  fontSize: 26,
+                  letterSpacing: '-0.02em',
+                  color: 'var(--me-ink)',
+                }}
+              >
                 Why we verify
               </h2>
-              <p className='text-gray-600 mb-6'>
+              <p className='mb-6' style={{ color: 'var(--me-ink-2)' }}>
                 Verification helps homeowners know they're hiring a real
                 business. We check company name, business address, and licence
                 information so that when you see the verified badge, it means
@@ -166,14 +209,21 @@ export default function VerificationPage() {
                   return (
                     <div key={item.title} className='flex items-start gap-3'>
                       <Icon
-                        className='w-6 h-6 text-teal-600 flex-shrink-0 mt-1'
+                        className='w-6 h-6 flex-shrink-0 mt-1'
+                        style={{ color: 'var(--me-brand)' }}
                         aria-hidden='true'
                       />
                       <div>
-                        <h3 className='font-bold text-gray-900 mb-1'>
+                        <h3
+                          className='font-bold mb-1'
+                          style={{ color: 'var(--me-ink)' }}
+                        >
                           {item.title}
                         </h3>
-                        <p className='text-gray-600 text-sm'>
+                        <p
+                          className='text-sm'
+                          style={{ color: 'var(--me-ink-2)' }}
+                        >
                           {item.description}
                         </p>
                       </div>
@@ -183,11 +233,28 @@ export default function VerificationPage() {
               </div>
             </section>
 
-            <section className='bg-white rounded-2xl border border-gray-200 shadow-sm p-8 mb-10'>
-              <h2 className='text-2xl font-bold text-gray-900 mb-6'>
+            <section
+              className='p-8 mb-10'
+              style={{
+                background: 'var(--me-surface)',
+                borderRadius: 'var(--me-radius-card)',
+                border: '1px solid var(--me-line)',
+                boxShadow: 'var(--me-shadow-card)',
+              }}
+            >
+              <h2
+                className='mb-6'
+                style={{
+                  fontFamily: 'var(--me-font-display)',
+                  fontWeight: 500,
+                  fontSize: 26,
+                  letterSpacing: '-0.02em',
+                  color: 'var(--me-ink)',
+                }}
+              >
                 How it works
               </h2>
-              <p className='text-gray-600 mb-6'>
+              <p className='mb-6' style={{ color: 'var(--me-ink-2)' }}>
                 Contractors submit their business details in the verification
                 centre. We validate the information (including address geocoding
                 and licence format) and our team reviews it. Approved
@@ -199,24 +266,42 @@ export default function VerificationPage() {
                   return (
                     <li
                       key={step.id}
-                      className='flex items-start gap-4 p-4 rounded-xl bg-gray-50 border border-gray-100'
+                      className='flex items-start gap-4 p-4'
+                      style={{
+                        borderRadius: 'var(--me-radius-card)',
+                        background: 'var(--me-bg-2)',
+                        border: '1px solid var(--me-line)',
+                      }}
                     >
                       <Icon
-                        className='w-6 h-6 text-teal-600 flex-shrink-0 mt-0.5'
+                        className='w-6 h-6 flex-shrink-0 mt-0.5'
+                        style={{ color: 'var(--me-brand)' }}
                         aria-hidden='true'
                       />
                       <div>
                         <div className='flex items-center gap-2 mb-1'>
-                          <h3 className='font-bold text-gray-900'>
+                          <h3
+                            className='font-bold'
+                            style={{ color: 'var(--me-ink)' }}
+                          >
                             {step.title}
                           </h3>
                           {step.required && (
-                            <span className='px-2 py-0.5 bg-rose-100 text-rose-700 rounded text-xs font-semibold'>
+                            <span
+                              className='px-2 py-0.5 rounded text-xs font-semibold'
+                              style={{
+                                background: 'var(--me-err-bg)',
+                                color: 'var(--me-err-fg)',
+                              }}
+                            >
                               Required
                             </span>
                           )}
                         </div>
-                        <p className='text-gray-600 text-sm'>
+                        <p
+                          className='text-sm'
+                          style={{ color: 'var(--me-ink-2)' }}
+                        >
                           {step.description}
                         </p>
                       </div>
@@ -224,18 +309,35 @@ export default function VerificationPage() {
                   );
                 })}
               </ul>
-              <p className='mt-4 text-gray-600 text-sm'>
+              <p className='mt-4 text-sm' style={{ color: 'var(--me-ink-2)' }}>
                 Our team reviews submissions and may run additional checks. Once
                 approved, you get the verified badge; we'll notify you of the
                 outcome.
               </p>
             </section>
 
-            <section className='bg-white rounded-2xl border border-gray-200 shadow-sm p-8 mb-10'>
-              <h2 className='text-2xl font-bold text-gray-900 mb-6'>
+            <section
+              className='p-8 mb-10'
+              style={{
+                background: 'var(--me-surface)',
+                borderRadius: 'var(--me-radius-card)',
+                border: '1px solid var(--me-line)',
+                boxShadow: 'var(--me-shadow-card)',
+              }}
+            >
+              <h2
+                className='mb-6'
+                style={{
+                  fontFamily: 'var(--me-font-display)',
+                  fontWeight: 500,
+                  fontSize: 26,
+                  letterSpacing: '-0.02em',
+                  color: 'var(--me-ink)',
+                }}
+              >
                 Why get verified?
               </h2>
-              <p className='text-gray-600 mb-6'>
+              <p className='mb-6' style={{ color: 'var(--me-ink-2)' }}>
                 Verified contractors stand out to homeowners and can get more
                 visibility and opportunities on the platform.
               </p>
@@ -245,14 +347,21 @@ export default function VerificationPage() {
                   return (
                     <div key={item.title} className='flex items-start gap-3'>
                       <Icon
-                        className='w-6 h-6 text-teal-600 flex-shrink-0 mt-1'
+                        className='w-6 h-6 flex-shrink-0 mt-1'
+                        style={{ color: 'var(--me-brand)' }}
                         aria-hidden='true'
                       />
                       <div>
-                        <h3 className='font-bold text-gray-900 mb-1'>
+                        <h3
+                          className='font-bold mb-1'
+                          style={{ color: 'var(--me-ink)' }}
+                        >
                           {item.title}
                         </h3>
-                        <p className='text-gray-600 text-sm'>
+                        <p
+                          className='text-sm'
+                          style={{ color: 'var(--me-ink-2)' }}
+                        >
                           {item.description}
                         </p>
                       </div>
@@ -262,28 +371,61 @@ export default function VerificationPage() {
               </div>
             </section>
 
-            <section className='bg-white rounded-2xl border border-gray-200 shadow-sm p-8 text-center'>
+            <section
+              className='p-8 text-center'
+              style={{
+                background: 'var(--me-surface)',
+                borderRadius: 'var(--me-radius-card)',
+                border: '1px solid var(--me-line)',
+                boxShadow: 'var(--me-shadow-card)',
+              }}
+            >
               <FileCheck
-                className='w-12 h-12 text-teal-600 mx-auto mb-4'
+                className='w-12 h-12 mx-auto mb-4'
+                style={{ color: 'var(--me-brand)' }}
                 aria-hidden='true'
               />
-              <h2 className='text-xl font-bold text-gray-900 mb-2'>
+              <h2
+                className='mb-2'
+                style={{
+                  fontFamily: 'var(--me-font-display)',
+                  fontWeight: 500,
+                  fontSize: 22,
+                  letterSpacing: '-0.01em',
+                  color: 'var(--me-ink)',
+                }}
+              >
                 Ready to get verified?
               </h2>
-              <p className='text-gray-600 mb-6 max-w-md mx-auto'>
+              <p
+                className='mb-6 max-w-md mx-auto'
+                style={{ color: 'var(--me-ink-2)' }}
+              >
                 Create a contractor account and complete verification in your
                 dashboard.
               </p>
               <div className='flex flex-col sm:flex-row gap-4 justify-center'>
                 <Link
                   href='/register?role=contractor'
-                  className='inline-flex items-center justify-center rounded-lg bg-[#1F2937] text-white px-6 py-3 font-semibold hover:bg-[#374151] transition-colors'
+                  className='inline-flex items-center justify-center px-6 py-3 font-semibold transition-colors'
+                  style={{
+                    borderRadius: 'var(--me-radius-btn)',
+                    background: 'var(--me-brand)',
+                    color: 'var(--me-on-brand)',
+                    boxShadow: 'var(--me-shadow-btn)',
+                  }}
                 >
                   Create contractor account
                 </Link>
                 <Link
                   href='/login?redirect=/contractor/verification'
-                  className='inline-flex items-center justify-center rounded-lg border-2 border-gray-300 text-gray-700 px-6 py-3 font-semibold hover:bg-gray-50 transition-colors'
+                  className='inline-flex items-center justify-center px-6 py-3 font-semibold transition-colors'
+                  style={{
+                    borderRadius: 'var(--me-radius-btn)',
+                    border: '1px solid var(--me-line)',
+                    background: 'var(--me-surface)',
+                    color: 'var(--me-ink)',
+                  }}
                 >
                   Log in to complete verification
                 </Link>

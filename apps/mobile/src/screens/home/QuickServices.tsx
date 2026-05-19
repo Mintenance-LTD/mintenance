@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useHaptics } from '../../utils/haptics';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 export interface QuickServicesProps {
   onServicePress: (params: Record<string, unknown>) => void;
@@ -131,11 +131,7 @@ export const QuickServices: React.FC<QuickServicesProps> = ({
               <Ionicons
                 name={service.icon}
                 size={24}
-                color={
-                  isActive
-                    ? theme.colors.textPrimary
-                    : theme.colors.textSecondary
-                }
+                color={isActive ? me.ink : me.ink2}
               />
               <Text
                 style={[styles.tabLabel, isActive && styles.tabLabelActive]}
@@ -169,21 +165,21 @@ const styles = StyleSheet.create({
     minWidth: 68,
   },
   tabActive: {
-    borderBottomColor: theme.colors.textPrimary,
+    borderBottomColor: me.ink,
   },
   tabLabel: {
     fontSize: 13,
     fontWeight: '500',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginTop: 5,
     textAlign: 'center',
   },
   tabLabelActive: {
-    color: theme.colors.textPrimary,
+    color: me.ink,
     fontWeight: '600',
   },
   divider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: theme.colors.border,
+    backgroundColor: me.line,
   },
 });

@@ -37,7 +37,7 @@ import {
   useExploreMapViewModel,
   type JobMapItem,
 } from './viewmodels/ExploreMapViewModel';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 import { styles, CARD_WIDTH, CATEGORY_MARKERS, CATEGORIES } from './styles';
 
 // Loading dots animation
@@ -156,11 +156,7 @@ const CarouselCard: React.FC<{
           activeOpacity={0.7}
         >
           <Text style={styles.carouselDetailsText}>Details</Text>
-          <Ionicons
-            name='arrow-forward'
-            size={12}
-            color={theme.colors.textPrimary}
-          />
+          <Ionicons name='arrow-forward' size={12} color={me.ink} />
         </TouchableOpacity>
       </View>
     </Pressable>
@@ -304,7 +300,7 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({
                     <Ionicons
                       name={cat.icon}
                       size={isSelected ? 18 : 16}
-                      color={isSelected ? cat.bg : theme.colors.textInverse}
+                      color={isSelected ? cat.bg : me.onBrand}
                     />
                   </View>
                   {/* Arrow */}
@@ -325,7 +321,7 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({
         // pointerEvents='none' load-bearing: this absoluteFillObject
         // view absorbs taps meant for the job carousel below.
         <View style={styles.mapUnavailable} pointerEvents='none'>
-          <Ionicons name='map-outline' size={34} color={theme.colors.primary} />
+          <Ionicons name='map-outline' size={34} color={me.brand} />
           <Text style={styles.mapUnavailableTitle}>Map unavailable</Text>
           <Text style={styles.mapUnavailableText}>
             Google Maps not configured for this build. Review jobs from the
@@ -345,18 +341,10 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({
             accessibilityLabel='Back to list'
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
           >
-            <Ionicons
-              name='arrow-back'
-              size={20}
-              color={theme.colors.textPrimary}
-            />
+            <Ionicons name='arrow-back' size={20} color={me.ink} />
           </TouchableOpacity>
           <View style={styles.searchPill}>
-            <Ionicons
-              name='search'
-              size={18}
-              color={theme.colors.textPrimary}
-            />
+            <Ionicons name='search' size={18} color={me.ink} />
             <View style={styles.searchTextWrap}>
               <Text style={styles.searchTitle}>Near you</Text>
               <Text style={styles.searchSubtitle} numberOfLines={1}>
@@ -370,11 +358,7 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({
               accessibilityRole='button'
               accessibilityLabel='Open filters'
             >
-              <Ionicons
-                name='options-outline'
-                size={16}
-                color={theme.colors.textPrimary}
-              />
+              <Ionicons name='options-outline' size={16} color={me.ink} />
             </TouchableOpacity>
           </View>
         </View>
@@ -402,11 +386,7 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({
                 <Ionicons
                   name={cat.icon}
                   size={14}
-                  color={
-                    isActive
-                      ? theme.colors.textInverse
-                      : theme.colors.textSecondary
-                  }
+                  color={isActive ? me.onBrand : me.ink2}
                 />
                 <Text
                   style={[
@@ -463,7 +443,7 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({
         accessibilityLabel='Center on my location'
         onPress={viewModel.centerOnUser}
       >
-        <Ionicons name='navigate' size={20} color={theme.colors.primary} />
+        <Ionicons name='navigate' size={20} color={me.brand} />
       </TouchableOpacity>
 
       {/* Horizontal job card carousel */}

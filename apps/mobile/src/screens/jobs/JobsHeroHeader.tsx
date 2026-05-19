@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import { theme, gradients } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 import type { JobStats } from './types';
 
 interface JobsHeroHeaderProps {
@@ -59,7 +59,7 @@ export const JobsHeroHeader: React.FC<JobsHeroHeaderProps> = ({
               accessibilityRole='button'
               accessibilityLabel='Post a new job'
             >
-              <Ionicons name='add' size={22} color={theme.colors.textInverse} />
+              <Ionicons name='add' size={22} color={me.onBrand} />
             </TouchableOpacity>
           )}
         </View>
@@ -70,13 +70,13 @@ export const JobsHeroHeader: React.FC<JobsHeroHeaderProps> = ({
             <Ionicons
               name='search'
               size={18}
-              color={theme.colors.primary}
+              color={me.brand}
               style={styles.searchIcon}
             />
             <TextInput
               style={styles.searchInput}
               placeholder='Search your jobs...'
-              placeholderTextColor={theme.colors.textTertiary}
+              placeholderTextColor={me.ink3}
               value={searchQuery}
               onChangeText={onSearchChange}
               accessibilityLabel='Search jobs'
@@ -87,11 +87,7 @@ export const JobsHeroHeader: React.FC<JobsHeroHeaderProps> = ({
                 onPress={() => onSearchChange('')}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <Ionicons
-                  name='close-circle'
-                  size={18}
-                  color={theme.colors.textTertiary}
-                />
+                <Ionicons name='close-circle' size={18} color={me.ink3} />
               </TouchableOpacity>
             )}
           </View>
@@ -106,14 +102,14 @@ export const JobsHeroHeader: React.FC<JobsHeroHeaderProps> = ({
               <Ionicons
                 name='navigate'
                 size={18}
-                color={theme.colors.primary}
+                color={me.brand}
                 style={styles.statIcon}
               />
               <Text style={styles.statValue}>{stats.total}</Text>
               <Text style={styles.statLabel}>Local Listings</Text>
             </View>
             <LinearGradient
-              colors={gradients.heroGreen}
+              colors={[me.brand2, me.brand] as const}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.statCardPrimary}
@@ -135,7 +131,7 @@ export const JobsHeroHeader: React.FC<JobsHeroHeaderProps> = ({
               <Ionicons
                 name='sparkles'
                 size={18}
-                color={theme.colors.accent}
+                color={me.accent}
                 style={styles.statIcon}
               />
               <Text style={styles.statValue}>
@@ -152,14 +148,14 @@ export const JobsHeroHeader: React.FC<JobsHeroHeaderProps> = ({
               <Ionicons
                 name='flash'
                 size={18}
-                color={theme.colors.primary}
+                color={me.brand}
                 style={styles.statIcon}
               />
               <Text style={styles.statValue}>{stats.activeCount}</Text>
               <Text style={styles.statLabel}>Active</Text>
             </View>
             <LinearGradient
-              colors={gradients.heroGreen}
+              colors={[me.brand2, me.brand] as const}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={styles.statCardPrimary}
@@ -177,7 +173,7 @@ export const JobsHeroHeader: React.FC<JobsHeroHeaderProps> = ({
               <Ionicons
                 name='checkmark-circle'
                 size={18}
-                color={theme.colors.primary}
+                color={me.brand}
                 style={styles.statIcon}
               />
               <Text style={styles.statValue}>{stats.completedCount}</Text>
@@ -194,7 +190,7 @@ const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 20,
     paddingBottom: 20,
-    backgroundColor: theme.colors.background,
+    backgroundColor: me.bg,
   },
   // Header
   headerSection: {
@@ -212,7 +208,7 @@ const styles = StyleSheet.create({
   headerLabel: {
     fontSize: 10,
     fontWeight: '800',
-    color: theme.colors.primary,
+    color: me.brand,
     textTransform: 'uppercase',
     letterSpacing: 2.5,
     marginBottom: 6,
@@ -220,7 +216,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 36,
     fontWeight: '300',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     letterSpacing: -0.5,
   },
   headerTitleBold: {
@@ -234,13 +230,13 @@ const styles = StyleSheet.create({
   headerAccent: {
     width: 2,
     height: 28,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
     borderRadius: 1,
     marginRight: 12,
   },
   headerSubtitle: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     fontWeight: '500',
     flex: 1,
     lineHeight: 18,
@@ -249,7 +245,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: 12,
@@ -258,13 +254,13 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 24,
     paddingLeft: 18,
     paddingRight: 6,
     height: 52,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
   searchIcon: {
     marginRight: 10,
@@ -272,10 +268,10 @@ const styles = StyleSheet.create({
   searchInput: {
     flex: 1,
     fontSize: 14,
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   searchButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 20,
@@ -283,7 +279,7 @@ const styles = StyleSheet.create({
   searchButtonText: {
     fontSize: 12,
     fontWeight: '700',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
@@ -294,11 +290,11 @@ const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 24,
     padding: 16,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
     justifyContent: 'space-between',
     minHeight: 110,
   },
@@ -315,7 +311,7 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 26,
     fontWeight: '800',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     letterSpacing: -0.5,
   },
   statValueWhite: {
@@ -327,7 +323,7 @@ const styles = StyleSheet.create({
   statLabel: {
     fontSize: 10,
     fontWeight: '700',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginTop: 2,

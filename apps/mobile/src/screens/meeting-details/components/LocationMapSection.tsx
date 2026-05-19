@@ -3,7 +3,7 @@ import { View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { ContractorMeeting } from '@mintenance/types';
 import type { ContractorLocation } from '../../../services/meeting/types';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 import { styles } from '../../meetingDetailsStyles';
 import { MapView, Marker, Polyline, type MapRegion } from './MapPlaceholder';
 
@@ -39,7 +39,7 @@ export function LocationMapSection({
               }}
               title='Meeting Location'
               description={meeting.address ?? ''}
-              pinColor={theme.colors.textPrimary}
+              pinColor={me.ink}
             />
 
             {contractorLocation && (
@@ -50,14 +50,10 @@ export function LocationMapSection({
                 }}
                 title='Contractor Location'
                 description='Live location'
-                pinColor={theme.colors.primary}
+                pinColor={me.brand}
               >
                 <View style={styles.contractorMarker}>
-                  <Ionicons
-                    name='car'
-                    size={20}
-                    color={theme.colors.textInverse}
-                  />
+                  <Ionicons name='car' size={20} color={me.onBrand} />
                 </View>
               </Marker>
             )}
@@ -74,7 +70,7 @@ export function LocationMapSection({
                     longitude: meeting.longitude ?? 0,
                   },
                 ]}
-                strokeColor={theme.colors.textPrimary}
+                strokeColor={me.ink}
                 strokeWidth={3}
                 lineDashPattern={[5, 10]}
               />
@@ -85,11 +81,7 @@ export function LocationMapSection({
         <View style={styles.locationOverlay}>
           {contractorLocation && distanceKm !== null && (
             <View style={styles.distanceInfo}>
-              <Ionicons
-                name='location'
-                size={16}
-                color={theme.colors.textSecondary}
-              />
+              <Ionicons name='location' size={16} color={me.ink2} />
               <Text style={styles.distanceText}>
                 {distanceKm.toFixed(1)} km away
               </Text>

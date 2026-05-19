@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Button } from '../../../components/ui/Button';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 import { styles } from '../theme/styles';
 import { getFeatureStrings, type SubscriptionPlan } from '../types';
 
@@ -47,7 +47,7 @@ export function PlanCard({
         <View style={styles.badgeStack}>
           {plan.recommended && (
             <View style={styles.recommendedBadge}>
-              <Ionicons name='star' size={10} color={theme.colors.accent} />
+              <Ionicons name='star' size={10} color={me.accent} />
               <Text style={styles.recommendedText}>Most Popular</Text>
             </View>
           )}
@@ -62,7 +62,7 @@ export function PlanCard({
       {getFeatureStrings(plan.features).map((feature, idx) => (
         <View key={idx} style={styles.featureRow}>
           <View style={styles.featureCheckWrap}>
-            <Ionicons name='checkmark' size={14} color={theme.colors.primary} />
+            <Ionicons name='checkmark' size={14} color={me.brand} />
           </View>
           <Text style={styles.featureText}>{feature}</Text>
         </View>

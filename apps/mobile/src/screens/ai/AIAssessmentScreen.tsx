@@ -7,7 +7,6 @@ import {
   Image,
   Alert,
   ViewStyle,
-  Platform,
   StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -22,7 +21,7 @@ import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { Badge } from '../../components/ui/Badge';
 import type { RootStackParamList } from '../../navigation/types';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 import { analyzeWithMintAI, type AnalysisResult } from './analyzeWithMintAI';
 
 export const AIAssessmentScreen: React.FC = () => {
@@ -133,10 +132,7 @@ export const AIAssessmentScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar
-        barStyle='dark-content'
-        backgroundColor={theme.colors.backgroundSecondary}
-      />
+      <StatusBar barStyle='dark-content' backgroundColor={me.bg2} />
       <ScreenHeader
         title='AI Assessment'
         showBack
@@ -150,11 +146,7 @@ export const AIAssessmentScreen: React.FC = () => {
         {!imageUri ? (
           <View style={styles.uploadSection}>
             <View style={styles.iconCircle}>
-              <Ionicons
-                name='camera-outline'
-                size={48}
-                color={theme.colors.textSecondary}
-              />
+              <Ionicons name='camera-outline' size={48} color={me.ink2} />
             </View>
             <Text style={styles.uploadTitle}>Analyze Property Damage</Text>
             <Text style={styles.uploadDescription}>
@@ -195,7 +187,7 @@ export const AIAssessmentScreen: React.FC = () => {
 
             {analyzeMutation.isPending && (
               <Card variant='elevated' padding='md' style={styles.loadingCard}>
-                <Ionicons name='sparkles' size={24} color='#8B5CF6' />
+                <Ionicons name='sparkles' size={24} color={me.brand} />
                 <Text style={styles.loadingText}>
                   {analysisElapsedMs < 10_000
                     ? 'Analyzing image...'
@@ -235,12 +227,7 @@ export const AIAssessmentScreen: React.FC = () => {
                   </View>
                   <View style={styles.resultRow}>
                     <Text style={styles.resultLabel}>Estimated Cost</Text>
-                    <Text
-                      style={[
-                        styles.resultValue,
-                        { color: theme.colors.textPrimary },
-                      ]}
-                    >
+                    <Text style={[styles.resultValue, { color: me.ink }]}>
                       {formatCost(result.estimatedCostMin)} -{' '}
                       {formatCost(result.estimatedCostMax)}
                     </Text>
@@ -265,7 +252,7 @@ export const AIAssessmentScreen: React.FC = () => {
                         <Ionicons
                           name='checkmark-circle'
                           size={18}
-                          color={theme.colors.primary}
+                          color={me.brand}
                         />
                         <Text style={styles.actionText}>{action}</Text>
                       </View>
@@ -292,7 +279,7 @@ export const AIAssessmentScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   scrollView: { flex: 1 },
   content: {
@@ -307,29 +294,21 @@ const styles = StyleSheet.create({
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 20,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   uploadTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 8,
   },
   uploadDescription: {
     fontSize: 15,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 24,
@@ -362,7 +341,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     fontSize: 15,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   resultCard: {
     marginBottom: 16,
@@ -376,7 +355,7 @@ const styles = StyleSheet.create({
   resultTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   resultRow: {
     flexDirection: 'row',
@@ -384,16 +363,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 8,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   resultLabel: {
     fontSize: 13,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
   },
   resultValue: {
     fontSize: 15,
     fontWeight: '500',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   actionsCard: {
     marginBottom: 24,
@@ -401,7 +380,7 @@ const styles = StyleSheet.create({
   actionsTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 12,
   },
   actionItem: {
@@ -412,7 +391,7 @@ const styles = StyleSheet.create({
   },
   actionText: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     flex: 1,
     lineHeight: 20,
   },

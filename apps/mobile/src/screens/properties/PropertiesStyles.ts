@@ -1,10 +1,10 @@
 import { StyleSheet } from 'react-native';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   listContainer: {
     padding: 16,
@@ -13,22 +13,22 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: 2,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   screenLabelText: {
     fontSize: 11,
     fontWeight: '700',
-    color: theme.colors.primary,
+    color: me.brand,
     textTransform: 'uppercase',
     letterSpacing: 1.2,
   },
   propertyCard: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 20,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -49,11 +49,11 @@ export const styles = StyleSheet.create({
   propertyAddress: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   propertyLocation: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginTop: 2,
   },
   propertyMeta: {
@@ -61,7 +61,7 @@ export const styles = StyleSheet.create({
     marginTop: 8,
     paddingTop: 10,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: theme.colors.border,
+    borderTopColor: me.line,
   },
   metaItem: {
     flexDirection: 'row',
@@ -70,7 +70,7 @@ export const styles = StyleSheet.create({
   },
   metaText: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginLeft: 4,
   },
   emptyContainer: {
@@ -83,22 +83,22 @@ export const styles = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: me.brandSoft,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
   emptyTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginTop: 16,
     marginBottom: 8,
   },
   emptySubtitle: {
     fontSize: 15,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 24,
@@ -106,14 +106,14 @@ export const styles = StyleSheet.create({
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
     paddingVertical: 14,
     paddingHorizontal: 24,
     borderRadius: 28,
     gap: 8,
   },
   addButtonText: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -127,22 +127,22 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
   sortChipActive: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
   },
   favChipActive: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: me.errBg,
   },
   sortChipText: {
     fontSize: 13,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   sortChipTextActive: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
   },
 });

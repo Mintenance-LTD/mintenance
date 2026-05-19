@@ -16,10 +16,26 @@ export function HowItWorksCTA() {
       initial='hidden'
       animate='visible'
       variants={fadeIn}
-      className='bg-gradient-to-r from-teal-600 to-emerald-600 rounded-2xl shadow-xl p-12 text-center text-white'
+      className='p-12 text-center'
+      style={{
+        background:
+          'linear-gradient(170deg, var(--me-brand-2) 0%, var(--me-brand) 100%)',
+        borderRadius: 'var(--me-radius-card)',
+        boxShadow: 'var(--me-shadow-pop)',
+        color: 'var(--me-on-brand)',
+      }}
     >
-      <h2 className='text-3xl font-bold mb-4'>Ready to Get Started?</h2>
-      <p className='text-xl text-teal-100 mb-8'>
+      <h2
+        className='text-3xl mb-4'
+        style={{
+          fontFamily: 'var(--me-font-display)',
+          fontWeight: 500,
+          letterSpacing: '-0.02em',
+        }}
+      >
+        Ready to Get Started?
+      </h2>
+      <p className='text-xl mb-8' style={{ color: 'var(--me-brand-soft)' }}>
         Join thousands of homeowners and contractors using Mintenance
       </p>
       {/* Audit follow-up (2026-04-29): the marketing CTA used
@@ -29,13 +45,25 @@ export function HowItWorksCTA() {
       <div className='flex flex-col sm:flex-row gap-4 justify-center'>
         <button
           onClick={() => router.push('/register?role=homeowner')}
-          className='px-8 py-4 bg-white text-teal-600 rounded-lg hover:bg-teal-50 transition-colors font-semibold text-lg'
+          className='px-8 py-4 transition-colors font-semibold text-lg'
+          style={{
+            background: 'var(--me-surface)',
+            color: 'var(--me-brand)',
+            borderRadius: 'var(--me-radius-btn)',
+            boxShadow: 'var(--me-shadow-btn)',
+          }}
         >
           Post a Job
         </button>
         <button
           onClick={() => router.push('/register?role=contractor')}
-          className='px-8 py-4 bg-white/10 border-2 border-white text-white rounded-lg hover:bg-white/20 transition-colors font-semibold text-lg'
+          className='px-8 py-4 transition-colors font-semibold text-lg'
+          style={{
+            background: 'rgba(255, 255, 255, 0.1)',
+            border: '2px solid var(--me-on-brand)',
+            color: 'var(--me-on-brand)',
+            borderRadius: 'var(--me-radius-btn)',
+          }}
         >
           Become a Contractor
         </button>

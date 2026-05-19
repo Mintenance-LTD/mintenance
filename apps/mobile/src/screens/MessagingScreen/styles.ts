@@ -1,10 +1,10 @@
-import { StyleSheet, Platform } from 'react-native';
-import { theme } from '../../theme';
+import { StyleSheet } from 'react-native';
+import { me } from '../../design-system/mint-editorial';
 
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   responsiveContainer: {
     flex: 1,
@@ -33,7 +33,7 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     alignSelf: 'flex-start',
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderRadius: 18,
@@ -48,7 +48,7 @@ export const styles = StyleSheet.create({
     width: 7,
     height: 7,
     borderRadius: 3.5,
-    backgroundColor: theme.colors.textTertiary,
+    backgroundColor: me.ink3,
   },
   dot1: {
     opacity: 0.4,
@@ -61,14 +61,14 @@ export const styles = StyleSheet.create({
   },
   typingName: {
     fontSize: 12,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     fontStyle: 'italic',
   },
 
   videoCallOverlay: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 1000,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
 
   // Quick Quote Modal
@@ -78,26 +78,18 @@ export const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   quoteCard: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     paddingHorizontal: 20,
     paddingBottom: 36,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: -4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 16,
-      },
-      android: { elevation: 10 },
-    }),
+    ...me.shadow.pop,
   },
   quoteHandle: {
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: theme.colors.border,
+    backgroundColor: me.line,
     alignSelf: 'center',
     marginTop: 10,
     marginBottom: 16,
@@ -112,26 +104,26 @@ export const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 12,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
   },
   quoteTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     letterSpacing: -0.3,
   },
   quoteSubtitle: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginTop: 1,
   },
   quoteCloseBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -139,7 +131,7 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     alignSelf: 'flex-start',
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -148,13 +140,13 @@ export const styles = StyleSheet.create({
   },
   quoteJobText: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     fontWeight: '500',
   },
   quoteLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 6,
@@ -162,34 +154,34 @@ export const styles = StyleSheet.create({
   quoteAmountRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.surface,
     borderRadius: 16,
     paddingHorizontal: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
   quoteCurrency: {
     fontSize: 24,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginRight: 4,
   },
   quoteAmountInput: {
     flex: 1,
     fontSize: 24,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     paddingVertical: 14,
   },
   quoteDescInput: {
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.surface,
     borderRadius: 16,
     padding: 14,
     fontSize: 15,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
     minHeight: 80,
     marginBottom: 20,
   },
@@ -205,14 +197,14 @@ export const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 14,
     borderRadius: 28,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderWidth: 1.5,
-    borderColor: theme.colors.textPrimary,
+    borderColor: me.line,
   },
   quoteFullBtnText: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   quoteSendBtn: {
     flex: 1.4,
@@ -222,7 +214,7 @@ export const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 14,
     borderRadius: 28,
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.brand,
   },
   quoteSendBtnDisabled: {
     opacity: 0.4,
@@ -230,6 +222,6 @@ export const styles = StyleSheet.create({
   quoteSendBtnText: {
     fontSize: 15,
     fontWeight: '700',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
   },
 });

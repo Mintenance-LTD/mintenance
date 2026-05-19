@@ -13,7 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { mobileApiClient } from '../../../utils/mobileApiClient';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 interface TeamMember {
   id: string;
@@ -110,7 +110,7 @@ export const TeamAccess: React.FC<Props> = ({ propertyId }) => {
           <Ionicons
             name={showForm ? 'close' : 'person-add-outline'}
             size={22}
-            color={theme.colors.primary}
+            color={me.brand}
           />
         </TouchableOpacity>
       </View>
@@ -122,7 +122,7 @@ export const TeamAccess: React.FC<Props> = ({ propertyId }) => {
             value={email}
             onChangeText={setEmail}
             placeholder='Email address'
-            placeholderTextColor={theme.colors.textTertiary}
+            placeholderTextColor={me.ink3}
             keyboardType='email-address'
             autoCapitalize='none'
           />
@@ -161,22 +161,14 @@ export const TeamAccess: React.FC<Props> = ({ propertyId }) => {
 
       {members.length === 0 && !showForm ? (
         <View style={styles.emptyWrap}>
-          <Ionicons
-            name='people-outline'
-            size={20}
-            color={theme.colors.textTertiary}
-          />
+          <Ionicons name='people-outline' size={20} color={me.ink3} />
           <Text style={styles.emptyText}>No team members</Text>
         </View>
       ) : (
         members.map((m) => (
           <View key={m.id} style={styles.memberRow}>
             <View style={styles.avatarWrap}>
-              <Ionicons
-                name='person'
-                size={16}
-                color={theme.colors.textSecondary}
-              />
+              <Ionicons name='person' size={16} color={me.ink2} />
             </View>
             <View style={styles.memberInfo}>
               <Text style={styles.memberEmail} numberOfLines={1}>
@@ -209,7 +201,7 @@ export const TeamAccess: React.FC<Props> = ({ propertyId }) => {
               <Ionicons
                 name='close-circle-outline'
                 size={20}
-                color={theme.colors.error}
+                color={me.errFg}
               />
             </TouchableOpacity>
           </View>
@@ -221,12 +213,12 @@ export const TeamAccess: React.FC<Props> = ({ propertyId }) => {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 20,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
   header: {
     flexDirection: 'row',
@@ -237,23 +229,23 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
   },
   form: {
     marginBottom: 12,
     padding: 12,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 12,
   },
   input: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 12,
     fontSize: 15,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 10,
   },
   roleRow: { flexDirection: 'row', gap: 6, marginBottom: 10 },
@@ -261,35 +253,35 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 14,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   roleChipText: {
     fontSize: 13,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
-  roleChipTextActive: { color: '#FFFFFF' },
+  roleChipTextActive: { color: me.onBrand },
   createBtn: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
     borderRadius: 20,
     paddingVertical: 10,
     alignItems: 'center',
   },
-  createBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
+  createBtnText: { color: me.onBrand, fontSize: 14, fontWeight: '600' },
   emptyWrap: { alignItems: 'center', paddingVertical: 16, gap: 8 },
-  emptyText: { fontSize: 14, color: theme.colors.textTertiary },
+  emptyText: { fontSize: 14, color: me.ink3 },
   memberRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   avatarWrap: {
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -298,7 +290,7 @@ const styles = StyleSheet.create({
   memberEmail: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   metaRow: { flexDirection: 'row', gap: 6, marginTop: 4 },
   roleBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 8 },
@@ -307,7 +299,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 8,
-    backgroundColor: '#FEF3C7',
+    backgroundColor: me.warnBg,
   },
-  pendingText: { fontSize: 11, fontWeight: '600', color: '#F59E0B' },
+  pendingText: { fontSize: 11, fontWeight: '600', color: me.warnFg },
 });

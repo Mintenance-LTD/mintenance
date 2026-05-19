@@ -1,5 +1,5 @@
 import type { ContractorMeeting, LocationData } from '@mintenance/types';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 /**
  * Pure helpers for the MeetingDetailsScreen.
@@ -26,17 +26,17 @@ export function calculateDistanceKm(
 export function getStatusColor(status: ContractorMeeting['status']): string {
   switch (status) {
     case 'scheduled':
-      return theme.colors.textPrimary;
+      return me.ink;
     case 'in_progress':
-      return theme.colors.accent;
+      return me.accent;
     case 'completed':
-      return theme.colors.primary;
+      return me.brand;
     case 'cancelled':
-      return theme.colors.error;
+      return me.errFg;
     case 'rescheduled':
-      return theme.colors.accent;
+      return me.accent;
     default:
-      return theme.colors.textSecondary;
+      return me.ink2;
   }
 }
 

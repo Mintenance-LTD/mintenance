@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 import { AssessmentStep } from '../types';
 
 interface StepCardProps {
@@ -28,12 +28,12 @@ const STATUS_STYLES = {
     statusColor: '#3B82F6',
   },
   pending: {
-    bg: theme.colors.surface,
-    border: theme.colors.border,
-    iconBg: theme.colors.backgroundSecondary,
-    iconColor: theme.colors.textTertiary,
+    bg: me.surface,
+    border: me.line,
+    iconBg: me.bg2,
+    iconColor: me.ink3,
     statusIcon: 'radio-button-unchecked' as const,
-    statusColor: theme.colors.textTertiary,
+    statusColor: me.ink3,
   },
 };
 
@@ -100,12 +100,12 @@ const styles = StyleSheet.create({
   stepNumber: {
     fontSize: 11,
     fontWeight: '700',
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
   },
   requiredBadge: {
-    backgroundColor: '#FEE2E2',
+    backgroundColor: me.errBg,
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 8,
@@ -118,11 +118,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 2,
   },
   description: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
 });

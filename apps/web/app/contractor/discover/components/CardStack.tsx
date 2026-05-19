@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { SwipeableCard } from '@/components/SwipeableCard';
-import { theme } from '@/lib/theme';
 
 interface CardStackProps<T extends { id: string | number }> {
   items: T[];
@@ -25,19 +24,22 @@ export function CardStack<T extends { id: string | number }>({
   onSwipeRight,
   onSwipeUp,
   onSwipeDown,
-  renderCard
+  renderCard,
 }: CardStackProps<T>): React.ReactNode {
   const currentItem = items[currentIndex];
   const upcomingItems = items.slice(currentIndex + 1, currentIndex + 3);
 
   return (
-    <div style={{
-      position: 'relative',
-      width: '100%',
-      maxWidth: '400px',
-      aspectRatio: '3/4',
-      marginBottom: '30px'
-    }}>
+    <div
+      data-theme='mint-editorial'
+      style={{
+        position: 'relative',
+        width: '100%',
+        maxWidth: '400px',
+        aspectRatio: '3/4',
+        marginBottom: '30px',
+      }}
+    >
       {/* Background Cards (Preview of upcoming items) */}
       {upcomingItems.map((item, index) => (
         <div
@@ -48,9 +50,9 @@ export function CardStack<T extends { id: string | number }>({
             left: `${(index + 1) * 2}px`,
             right: `${(index + 1) * 2}px`,
             bottom: 0,
-            backgroundColor: theme.colors.surface,
+            backgroundColor: 'var(--me-surface)',
             borderRadius: '20px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+            boxShadow: 'var(--me-shadow-card)',
             zIndex: index + 1,
             opacity: 1 - (index + 1) * 0.2,
             transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -82,4 +84,3 @@ export function CardStack<T extends { id: string | number }>({
     </div>
   );
 }
-

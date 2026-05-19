@@ -23,7 +23,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { mobileApiClient } from '../utils/mobileApiClient';
 import { goToTab } from '../navigation/hooks';
-import { theme, gradients } from '../theme';
+import { me } from '../design-system/mint-editorial';
 import { styles } from './CalendarStyles';
 
 interface ScheduleItem {
@@ -67,8 +67,8 @@ const TYPE_STYLES: Record<
   }
 > = {
   job: {
-    color: theme.colors.primary,
-    bg: theme.colors.primaryLight,
+    color: me.brand,
+    bg: me.brandSoft,
     icon: 'hammer-outline',
     label: 'Job',
   },
@@ -79,8 +79,8 @@ const TYPE_STYLES: Record<
     label: 'Meeting',
   },
   deadline: {
-    color: theme.colors.error,
-    bg: '#FEE2E2',
+    color: me.errFg,
+    bg: me.errBg,
     icon: 'alarm-outline',
     label: 'Deadline',
   },
@@ -117,8 +117,8 @@ const ScheduleCard: React.FC<{
   onPress: () => void;
 }> = ({ item, onPress }) => {
   const typeStyle = TYPE_STYLES[item.type] || {
-    color: theme.colors.textSecondary,
-    bg: theme.colors.backgroundTertiary,
+    color: me.ink2,
+    bg: me.bg3,
     icon: 'calendar-outline' as const,
     label: 'Event',
   };
@@ -161,11 +161,7 @@ const ScheduleCard: React.FC<{
 
         {item.address && (
           <View style={styles.addressRow}>
-            <Ionicons
-              name='location-outline'
-              size={13}
-              color={theme.colors.textTertiary}
-            />
+            <Ionicons name='location-outline' size={13} color={me.ink3} />
             <Text style={styles.addressText} numberOfLines={1}>
               {item.address}
             </Text>
@@ -174,11 +170,7 @@ const ScheduleCard: React.FC<{
       </View>
 
       <View style={styles.cardChevron}>
-        <Ionicons
-          name='chevron-forward'
-          size={16}
-          color={theme.colors.textTertiary}
-        />
+        <Ionicons name='chevron-forward' size={16} color={me.ink3} />
       </View>
     </TouchableOpacity>
   );
@@ -312,7 +304,7 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
       />
 
       {/* ── Green Gradient Hero ── */}
-      <LinearGradient colors={gradients.heroGreen} style={styles.hero}>
+      <LinearGradient colors={[me.brand2, me.brand]} style={styles.hero}>
         {/* Decorative circles */}
         <View style={[styles.decorCircle, styles.decorCircle1]} />
         <View style={[styles.decorCircle, styles.decorCircle2]} />
@@ -325,11 +317,7 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
             style={styles.frostedCircle}
             onPress={() => navigation.goBack()}
           >
-            <Ionicons
-              name='arrow-back'
-              size={20}
-              color={theme.colors.textInverse}
-            />
+            <Ionicons name='arrow-back' size={20} color={me.onBrand} />
           </TouchableOpacity>
           <Text style={styles.heroTitle}>Calendar</Text>
           <TouchableOpacity
@@ -337,11 +325,7 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
             onPress={() => setSelectedDate(new Date())}
             accessibilityLabel='Go to today'
           >
-            <Ionicons
-              name='today-outline'
-              size={14}
-              color={theme.colors.primary}
-            />
+            <Ionicons name='today-outline' size={14} color={me.brand} />
             <Text style={styles.todayPillText}>Today</Text>
           </TouchableOpacity>
         </View>
@@ -419,7 +403,7 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
                           styles.eventDot,
                           isSel
                             ? styles.eventDotWhite
-                            : { backgroundColor: theme.colors.primary },
+                            : { backgroundColor: me.brand },
                         ]}
                       />
                     )}
@@ -439,7 +423,7 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
                           styles.eventDot,
                           isSel
                             ? styles.eventDotWhite
-                            : { backgroundColor: theme.colors.error },
+                            : { backgroundColor: me.errFg },
                         ]}
                       />
                     )}
@@ -454,9 +438,7 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
       {/* ── Daily Stats Pills ── */}
       <View style={styles.statsBar}>
         <View style={styles.statPill}>
-          <View
-            style={[styles.statDot, { backgroundColor: theme.colors.primary }]}
-          />
+          <View style={[styles.statDot, { backgroundColor: me.brand }]} />
           <Text style={styles.statText}>
             {dailyStats.job} {dailyStats.job === 1 ? 'Job' : 'Jobs'}
           </Text>
@@ -469,9 +451,7 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
           </Text>
         </View>
         <View style={styles.statPill}>
-          <View
-            style={[styles.statDot, { backgroundColor: theme.colors.error }]}
-          />
+          <View style={[styles.statDot, { backgroundColor: me.errFg }]} />
           <Text style={styles.statText}>
             {dailyStats.deadline}{' '}
             {dailyStats.deadline === 1 ? 'Deadline' : 'Deadlines'}
@@ -491,40 +471,28 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
       {isLoading ? (
         <View style={styles.centeredState}>
           <View style={styles.loadingWrap}>
-            <Ionicons name='calendar' size={28} color={theme.colors.primary} />
+            <Ionicons name='calendar' size={28} color={me.brand} />
           </View>
           <Text style={styles.stateTitle}>Loading schedule...</Text>
         </View>
       ) : error ? (
         <View style={styles.centeredState}>
           <View style={[styles.stateIconWrap, { backgroundColor: '#FEE2E2' }]}>
-            <Ionicons
-              name='warning-outline'
-              size={28}
-              color={theme.colors.error}
-            />
+            <Ionicons name='warning-outline' size={28} color={me.errFg} />
           </View>
           <Text style={styles.stateTitle}>Failed to load schedule</Text>
           <TouchableOpacity
             style={styles.retryButton}
             onPress={() => refetch()}
           >
-            <Ionicons
-              name='refresh'
-              size={16}
-              color={theme.colors.textInverse}
-            />
+            <Ionicons name='refresh' size={16} color={me.onBrand} />
             <Text style={styles.retryButtonText}>Retry</Text>
           </TouchableOpacity>
         </View>
       ) : filteredSchedule.length === 0 ? (
         <View style={styles.centeredState}>
           <View style={styles.stateIconWrap}>
-            <Ionicons
-              name='calendar-outline'
-              size={32}
-              color={theme.colors.primary}
-            />
+            <Ionicons name='calendar-outline' size={32} color={me.brand} />
           </View>
           <Text style={styles.stateTitle}>No events</Text>
           <Text style={styles.stateSubtitle}>
@@ -541,11 +509,7 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
               goToTab(navigation, 'JobsTab', { screen: 'JobsList' })
             }
           >
-            <Ionicons
-              name='briefcase-outline'
-              size={16}
-              color={theme.colors.textInverse}
-            />
+            <Ionicons name='briefcase-outline' size={16} color={me.onBrand} />
             <Text style={styles.browseButtonText}>Browse Jobs</Text>
           </TouchableOpacity>
         </View>
@@ -571,8 +535,8 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={handleRefresh}
-              tintColor={theme.colors.primary}
-              colors={[theme.colors.primary]}
+              tintColor={me.brand}
+              colors={[me.brand]}
             />
           }
           contentContainerStyle={styles.listContainer}

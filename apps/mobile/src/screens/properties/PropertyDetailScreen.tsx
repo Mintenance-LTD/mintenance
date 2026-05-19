@@ -24,7 +24,7 @@ import { mobileApiClient } from '../../utils/mobileApiClient';
 import type { Property } from '@mintenance/types';
 import type { ProfileStackParamList } from '../../navigation/types';
 import { Badge } from '../../components/ui/Badge/Badge';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 import { styles, CATEGORY_ICONS } from './PropertyDetailStyles';
 import { PropertyHealthScore } from './components/PropertyHealthScore';
 import { SpendingAnalytics } from './components/SpendingAnalytics';
@@ -173,7 +173,7 @@ export const PropertyDetailScreen: React.FC<Props> = ({
           <Text style={styles.statLabel}>Active</Text>
         </View>
         <View style={styles.statCard}>
-          <Text style={[styles.statNumber, { color: theme.colors.primary }]}>
+          <Text style={[styles.statNumber, { color: me.brand }]}>
             {'\u00A3'}
             {totalSpent >= 1000
               ? `${(totalSpent / 1000).toFixed(1)}k`
@@ -227,11 +227,7 @@ export const PropertyDetailScreen: React.FC<Props> = ({
         </View>
         {property.square_footage != null && (
           <View style={styles.sizeRow}>
-            <Ionicons
-              name='resize-outline'
-              size={16}
-              color={theme.colors.textSecondary}
-            />
+            <Ionicons name='resize-outline' size={16} color={me.ink2} />
             <Text style={styles.sizeText}>{property.square_footage} sq ft</Text>
           </View>
         )}
@@ -259,11 +255,7 @@ export const PropertyDetailScreen: React.FC<Props> = ({
         {propertyJobs.length === 0 ? (
           <View style={styles.emptyJobsWrap}>
             <View style={styles.emptyJobsIcon}>
-              <Ionicons
-                name='briefcase-outline'
-                size={20}
-                color={theme.colors.textTertiary}
-              />
+              <Ionicons name='briefcase-outline' size={20} color={me.ink3} />
             </View>
             <Text style={styles.emptyJobsText}>
               No jobs for this property yet.
@@ -368,11 +360,7 @@ export const PropertyDetailScreen: React.FC<Props> = ({
             <Ionicons name='create-outline' size={18} color='#3B82F6' />
           </View>
           <Text style={styles.actionText}>Edit Property</Text>
-          <Ionicons
-            name='chevron-forward'
-            size={18}
-            color={theme.colors.textTertiary}
-          />
+          <Ionicons name='chevron-forward' size={18} color={me.ink3} />
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.actionRow}
@@ -387,24 +375,16 @@ export const PropertyDetailScreen: React.FC<Props> = ({
             <Ionicons name='videocam-outline' size={18} color='#10B981' />
           </View>
           <Text style={styles.actionText}>Property Assessment</Text>
-          <Ionicons
-            name='chevron-forward'
-            size={18}
-            color={theme.colors.textTertiary}
-          />
+          <Ionicons name='chevron-forward' size={18} color={me.ink3} />
         </TouchableOpacity>
         <TouchableOpacity style={styles.actionRow} onPress={handleDelete}>
-          <View style={[styles.actionIcon, { backgroundColor: '#FEE2E2' }]}>
+          <View style={[styles.actionIcon, { backgroundColor: me.errBg }]}>
             <Ionicons name='trash-outline' size={18} color='#EF4444' />
           </View>
           <Text style={[styles.actionText, { color: '#EF4444' }]}>
             Delete Property
           </Text>
-          <Ionicons
-            name='chevron-forward'
-            size={18}
-            color={theme.colors.textTertiary}
-          />
+          <Ionicons name='chevron-forward' size={18} color={me.ink3} />
         </TouchableOpacity>
       </View>
     </>
@@ -412,10 +392,7 @@ export const PropertyDetailScreen: React.FC<Props> = ({
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar
-        barStyle='dark-content'
-        backgroundColor={theme.colors.backgroundSecondary}
-      />
+      <StatusBar barStyle='dark-content' backgroundColor={me.bg2} />
       <ScreenHeader
         title='Property Details'
         showBack
@@ -432,7 +409,7 @@ export const PropertyDetailScreen: React.FC<Props> = ({
               <Ionicons
                 name={isFavorite ? 'heart' : 'heart-outline'}
                 size={22}
-                color={isFavorite ? '#EF4444' : theme.colors.textSecondary}
+                color={isFavorite ? me.accent : me.ink2}
               />
             </TouchableOpacity>
             <TouchableOpacity
@@ -442,11 +419,7 @@ export const PropertyDetailScreen: React.FC<Props> = ({
               accessibilityLabel='Edit property'
               style={styles.headerBtn}
             >
-              <Ionicons
-                name='create-outline'
-                size={22}
-                color={theme.colors.primary}
-              />
+              <Ionicons name='create-outline' size={22} color={me.brand} />
             </TouchableOpacity>
           </View>
         }
@@ -462,11 +435,7 @@ export const PropertyDetailScreen: React.FC<Props> = ({
             <Ionicons
               name={tab.icon}
               size={16}
-              color={
-                activeTab === tab.key
-                  ? theme.colors.primary
-                  : theme.colors.textTertiary
-              }
+              color={activeTab === tab.key ? me.brand : me.ink3}
             />
             <Text
               style={[
@@ -486,8 +455,8 @@ export const PropertyDetailScreen: React.FC<Props> = ({
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            tintColor={theme.colors.primary}
-            colors={[theme.colors.primary]}
+            tintColor={me.brand}
+            colors={[me.brand]}
           />
         }
       >

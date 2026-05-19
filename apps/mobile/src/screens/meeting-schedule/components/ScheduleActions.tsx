@@ -8,8 +8,14 @@
  */
 
 import React from 'react';
-import { View, TouchableOpacity, Text, StyleSheet, ActivityIndicator } from 'react-native';
-import { theme } from '../../../theme';
+import {
+  View,
+  TouchableOpacity,
+  Text,
+  StyleSheet,
+  ActivityIndicator,
+} from 'react-native';
+import { me } from '../../../design-system/mint-editorial';
 
 interface ScheduleActionsProps {
   loading: boolean;
@@ -26,26 +32,40 @@ export const ScheduleActions: React.FC<ScheduleActionsProps> = ({
     <View style={styles.container}>
       <View style={styles.buttonRow}>
         <TouchableOpacity
-          style={[styles.button, styles.cancelButton, { backgroundColor: theme.colors.backgroundSecondary }]}
+          style={[
+            styles.button,
+            styles.cancelButton,
+            { backgroundColor: me.bg2 },
+          ]}
           onPress={onCancel}
           disabled={loading}
           accessibilityRole='button'
           accessibilityLabel='Cancel scheduling'
         >
-          <Text style={[styles.cancelButtonText, { color: theme.colors.textPrimary }]}>Cancel</Text>
+          <Text style={[styles.cancelButtonText, { color: me.ink }]}>
+            Cancel
+          </Text>
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.button, styles.scheduleButton, { backgroundColor: theme.colors.textPrimary }]}
+          style={[
+            styles.button,
+            styles.scheduleButton,
+            { backgroundColor: me.ink },
+          ]}
           onPress={onSchedule}
           disabled={loading}
           accessibilityRole='button'
-          accessibilityLabel={loading ? 'Scheduling meeting' : 'Schedule meeting'}
+          accessibilityLabel={
+            loading ? 'Scheduling meeting' : 'Schedule meeting'
+          }
         >
           {loading ? (
-            <ActivityIndicator size="small" color={theme.colors.textInverse} />
+            <ActivityIndicator size='small' color={me.onBrand} />
           ) : (
-            <Text style={[styles.scheduleButtonText, { color: theme.colors.textInverse }]}>Schedule Meeting</Text>
+            <Text style={[styles.scheduleButtonText, { color: me.onBrand }]}>
+              Schedule Meeting
+            </Text>
           )}
         </TouchableOpacity>
       </View>
@@ -69,10 +89,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  cancelButton: {
-  },
-  scheduleButton: {
-  },
+  cancelButton: {},
+  scheduleButton: {},
   cancelButtonText: {
     fontSize: 16,
     fontWeight: '600',

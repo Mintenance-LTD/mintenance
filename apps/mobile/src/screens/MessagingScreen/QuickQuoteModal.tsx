@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 import { styles } from './styles';
 
 interface QuickQuoteModalProps {
@@ -41,7 +41,7 @@ export const QuickQuoteModal: React.FC<QuickQuoteModalProps> = ({
   <Modal
     visible={visible}
     transparent
-    animationType="slide"
+    animationType='slide'
     onRequestClose={onClose}
   >
     <View style={styles.quoteOverlay}>
@@ -51,7 +51,7 @@ export const QuickQuoteModal: React.FC<QuickQuoteModalProps> = ({
 
         <View style={styles.quoteHeader}>
           <View style={styles.quoteIconWrap}>
-            <Ionicons name="pricetag" size={18} color={theme.colors.textPrimary} />
+            <Ionicons name='pricetag' size={18} color={me.ink} />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.quoteTitle}>Send Quote</Text>
@@ -60,16 +60,18 @@ export const QuickQuoteModal: React.FC<QuickQuoteModalProps> = ({
           <TouchableOpacity
             style={styles.quoteCloseBtn}
             onPress={onClose}
-            accessibilityLabel="Close"
+            accessibilityLabel='Close'
           >
-            <Ionicons name="close" size={20} color={theme.colors.textSecondary} />
+            <Ionicons name='close' size={20} color={me.ink2} />
           </TouchableOpacity>
         </View>
 
         {jobTitle ? (
           <View style={styles.quoteJobPill}>
-            <Ionicons name="briefcase-outline" size={14} color={theme.colors.textSecondary} />
-            <Text style={styles.quoteJobText} numberOfLines={1}>{jobTitle}</Text>
+            <Ionicons name='briefcase-outline' size={14} color={me.ink2} />
+            <Text style={styles.quoteJobText} numberOfLines={1}>
+              {jobTitle}
+            </Text>
           </View>
         ) : null}
 
@@ -81,9 +83,9 @@ export const QuickQuoteModal: React.FC<QuickQuoteModalProps> = ({
             style={styles.quoteAmountInput}
             value={quoteAmount}
             onChangeText={onChangeAmount}
-            placeholder="0.00"
-            placeholderTextColor={theme.colors.textTertiary}
-            keyboardType="decimal-pad"
+            placeholder='0.00'
+            placeholderTextColor={me.ink4}
+            keyboardType='decimal-pad'
             autoFocus
           />
         </View>
@@ -94,11 +96,11 @@ export const QuickQuoteModal: React.FC<QuickQuoteModalProps> = ({
           style={styles.quoteDescInput}
           value={quoteDescription}
           onChangeText={onChangeDescription}
-          placeholder="e.g. Full bathroom renovation including materials"
-          placeholderTextColor={theme.colors.textTertiary}
+          placeholder='e.g. Full bathroom renovation including materials'
+          placeholderTextColor={me.ink4}
           multiline
           numberOfLines={3}
-          textAlignVertical="top"
+          textAlignVertical='top'
         />
 
         {/* Actions */}
@@ -107,20 +109,24 @@ export const QuickQuoteModal: React.FC<QuickQuoteModalProps> = ({
             style={styles.quoteFullBtn}
             onPress={onOpenFullQuote}
           >
-            <Ionicons name="document-text-outline" size={16} color={theme.colors.textPrimary} />
+            <Ionicons name='document-text-outline' size={16} color={me.ink} />
             <Text style={styles.quoteFullBtnText}>Full Quote</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.quoteSendBtn, (!quoteAmount.trim() || quoteSending) && styles.quoteSendBtnDisabled]}
+            style={[
+              styles.quoteSendBtn,
+              (!quoteAmount.trim() || quoteSending) &&
+                styles.quoteSendBtnDisabled,
+            ]}
             onPress={onSend}
             disabled={!quoteAmount.trim() || quoteSending}
           >
             {quoteSending ? (
-              <ActivityIndicator size="small" color={theme.colors.textInverse} />
+              <ActivityIndicator size='small' color={me.onBrand} />
             ) : (
               <>
-                <Ionicons name="send" size={16} color={theme.colors.textInverse} />
+                <Ionicons name='send' size={16} color={me.onBrand} />
                 <Text style={styles.quoteSendBtnText}>Send</Text>
               </>
             )}

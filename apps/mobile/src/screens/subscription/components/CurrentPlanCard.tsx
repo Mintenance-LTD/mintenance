@@ -3,7 +3,7 @@ import { View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Badge } from '../../../components/ui/Badge';
 import { Button } from '../../../components/ui/Button';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 import { styles } from '../theme/styles';
 import type { SubscriptionStatus } from '../types';
 
@@ -38,7 +38,7 @@ export function CurrentPlanCard({
       </View>
       {trial?.active && (
         <View style={styles.trialChip}>
-          <Ionicons name='time-outline' size={14} color={theme.colors.accent} />
+          <Ionicons name='time-outline' size={14} color={me.accent} />
           <Text style={styles.trialText}>
             {trial.daysRemaining} days remaining in trial
           </Text>

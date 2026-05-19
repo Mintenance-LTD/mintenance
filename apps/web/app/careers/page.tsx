@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
+import { Check } from 'lucide-react';
 import { LandingNavigation } from '../components/landing/LandingNavigation';
 import { Footer2025 } from '../components/landing/Footer2025';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -71,19 +72,27 @@ export default function CareersPage() {
             </h2>
             <ul className='space-y-3 text-gray-600'>
               <li className='flex items-start'>
-                <span className='text-teal-600 mr-3'>✓</span>
+                <span className='text-teal-600 mr-3'>
+                  <Check size={16} aria-hidden='true' />
+                </span>
                 <span>Competitive salary and equity package</span>
               </li>
               <li className='flex items-start'>
-                <span className='text-teal-600 mr-3'>✓</span>
+                <span className='text-teal-600 mr-3'>
+                  <Check size={16} aria-hidden='true' />
+                </span>
                 <span>Flexible working arrangements</span>
               </li>
               <li className='flex items-start'>
-                <span className='text-teal-600 mr-3'>✓</span>
+                <span className='text-teal-600 mr-3'>
+                  <Check size={16} aria-hidden='true' />
+                </span>
                 <span>Health and wellness benefits</span>
               </li>
               <li className='flex items-start'>
-                <span className='text-teal-600 mr-3'>✓</span>
+                <span className='text-teal-600 mr-3'>
+                  <Check size={16} aria-hidden='true' />
+                </span>
                 <span>Opportunity to make a real impact</span>
               </li>
             </ul>

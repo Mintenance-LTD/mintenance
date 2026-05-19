@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 import { fmt } from './constants';
 import { styles } from './styles';
 
@@ -12,12 +12,17 @@ interface BudgetOverviewProps {
   spentPct: number;
 }
 
-export const BudgetOverview: React.FC<BudgetOverviewProps> = ({ budgeted, spent, left, spentPct }) => {
+export const BudgetOverview: React.FC<BudgetOverviewProps> = ({
+  budgeted,
+  spent,
+  left,
+  spentPct,
+}) => {
   return (
     <View style={styles.sectionCard}>
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Budget Overview</Text>
-        <Ionicons name="chevron-forward" size={18} color={theme.colors.textTertiary} />
+        <Ionicons name='chevron-forward' size={18} color={me.ink3} />
       </View>
 
       <View style={styles.budgetRow}>
@@ -27,11 +32,15 @@ export const BudgetOverview: React.FC<BudgetOverviewProps> = ({ budgeted, spent,
         </View>
         <View style={styles.budgetItem}>
           <Text style={styles.budgetLabel}>Spent</Text>
-          <Text style={[styles.budgetValue, { color: theme.colors.error }]}>{fmt(spent)}</Text>
+          <Text style={[styles.budgetValue, { color: me.errFg }]}>
+            {fmt(spent)}
+          </Text>
         </View>
         <View style={styles.budgetItem}>
           <Text style={styles.budgetLabel}>Left</Text>
-          <Text style={[styles.budgetValue, { color: theme.colors.primary }]}>{fmt(left)}</Text>
+          <Text style={[styles.budgetValue, { color: me.brand }]}>
+            {fmt(left)}
+          </Text>
         </View>
       </View>
 
@@ -39,7 +48,11 @@ export const BudgetOverview: React.FC<BudgetOverviewProps> = ({ budgeted, spent,
         <View style={[styles.budgetBarFill, { width: `${spentPct}%` }]} />
       </View>
       <Text style={styles.budgetHint}>
-        {spentPct < 80 ? 'You are on track!' : spentPct < 100 ? 'Getting close to budget' : 'Over budget'}
+        {spentPct < 80
+          ? 'You are on track!'
+          : spentPct < 100
+            ? 'Getting close to budget'
+            : 'Over budget'}
       </Text>
     </View>
   );

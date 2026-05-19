@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 interface AssessmentHeaderProps {
   propertyAddress: string | undefined;
@@ -15,7 +15,7 @@ export const AssessmentHeader: React.FC<AssessmentHeaderProps> = ({
   return (
     <View style={styles.header}>
       <TouchableOpacity style={styles.backButton} onPress={onGoBack}>
-        <Icon name="arrow-back" size={22} color={theme.colors.textPrimary} />
+        <Icon name='arrow-back' size={22} color={me.ink} />
       </TouchableOpacity>
       <View style={styles.headerContent}>
         <Text style={styles.headerTitle}>Property Assessment</Text>
@@ -24,7 +24,7 @@ export const AssessmentHeader: React.FC<AssessmentHeaderProps> = ({
         </Text>
       </View>
       <TouchableOpacity style={styles.menuButton}>
-        <Icon name="more-vert" size={24} color={theme.colors.textPrimary} />
+        <Icon name='more-vert' size={24} color={me.ink} />
       </TouchableOpacity>
     </View>
   );
@@ -36,15 +36,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   backButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -55,11 +55,11 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   headerSubtitle: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginTop: 2,
   },
   menuButton: {

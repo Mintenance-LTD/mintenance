@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Facebook, Twitter, Instagram, Linkedin, Mail } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useCSRF } from '@/lib/hooks/useCSRF';
@@ -68,20 +69,13 @@ const LIGHT_DIM = 'rgba(255,255,255,0.5)';
 
 function LeafMark() {
   return (
-    <svg
-      viewBox='0 0 24 24'
-      width={18}
-      height={18}
-      fill='none'
-      stroke='currentColor'
-      strokeWidth='1.6'
-      strokeLinecap='round'
-      strokeLinejoin='round'
-      aria-hidden='true'
-    >
-      <path d='M12 21c-2-5 1-12 9-13-1 7-4 11-9 13z' />
-      <path d='M12 21c-1-3 1-7 5-9' />
-    </svg>
+    <Image
+      src='/assets/logo-mark.png'
+      alt='Mintenance'
+      width={22}
+      height={22}
+      style={{ display: 'block', objectFit: 'contain' }}
+    />
   );
 }
 
@@ -176,8 +170,7 @@ export function Footer2025() {
                   width: 34,
                   height: 34,
                   borderRadius: 9,
-                  background: 'var(--me-brand)',
-                  color: 'var(--me-on-brand)',
+                  background: 'var(--me-surface)',
                   display: 'grid',
                   placeItems: 'center',
                 }}

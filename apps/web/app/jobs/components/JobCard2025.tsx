@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { Check, AlertTriangle } from 'lucide-react';
 import { cardHover } from '@/lib/animations/variants';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -120,7 +121,7 @@ export const JobCard2025 = React.memo(
           text: 'text-green-700',
           dotBg: 'bg-green-400',
           label: 'Minor',
-          icon: '✓',
+          icon: Check,
         },
         midway: {
           bg: 'bg-amber-50',
@@ -136,7 +137,7 @@ export const JobCard2025 = React.memo(
           text: 'text-red-700',
           dotBg: 'bg-red-400',
           label: 'Severe',
-          icon: '⚠',
+          icon: AlertTriangle,
         },
       };
       return severity ? configs[severity] : null;

@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { ContractorMeeting } from '@mintenance/types';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 import { styles } from '../../meetingDetailsStyles';
 import { formatMeetingTime, getStatusColor } from '../utils';
 
@@ -37,11 +37,7 @@ export function MeetingInfoCard({ meeting }: { meeting: ContractorMeeting }) {
 
       <View style={styles.participantInfo}>
         <View style={styles.participant}>
-          <Ionicons
-            name='person-circle'
-            size={40}
-            color={theme.colors.textSecondary}
-          />
+          <Ionicons name='person-circle' size={40} color={me.ink2} />
           <View>
             <Text style={styles.participantName}>
               {meeting.contractor

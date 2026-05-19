@@ -1,7 +1,7 @@
 import React from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 interface ContractorPerformanceProps {
   rating: number;
@@ -39,16 +39,16 @@ export const ContractorPerformance: React.FC<ContractorPerformanceProps> = ({
   const metrics: MetricCard[] = [
     {
       icon: 'star',
-      iconColor: theme.colors.accent,
-      iconBg: theme.colors.accentLight,
+      iconColor: me.accent,
+      iconBg: me.warnBg,
       value: rating > 0 ? rating.toFixed(1) : '—',
       label: 'Rating',
       sublabel: 'Customer score',
     },
     {
       icon: 'checkmark-circle',
-      iconColor: theme.colors.primary,
-      iconBg: theme.colors.primaryLight,
+      iconColor: me.brand,
+      iconBg: me.brandSoft,
       value:
         completedJobs > 0
           ? `${Math.min(99, 88 + Math.round(completedJobs / 10))}%`
@@ -143,26 +143,18 @@ const VerificationItem: React.FC<VerificationItemProps> = ({
       style={[
         styles.verifyIcon,
         {
-          backgroundColor: verified
-            ? theme.colors.primaryLight
-            : theme.colors.backgroundSecondary,
+          backgroundColor: verified ? me.brandSoft : me.bg2,
         },
       ]}
     >
-      <Ionicons
-        name={icon}
-        size={15}
-        color={verified ? theme.colors.primary : theme.colors.textTertiary}
-      />
+      <Ionicons name={icon} size={15} color={verified ? me.brand : me.ink3} />
     </View>
     <Text style={styles.verificationText}>{label}</Text>
     <View
       style={[
         styles.verifyBadge,
         {
-          backgroundColor: verified
-            ? theme.colors.primaryLight
-            : theme.colors.backgroundSecondary,
+          backgroundColor: verified ? me.brandSoft : me.bg2,
         },
       ]}
     >
@@ -170,7 +162,7 @@ const VerificationItem: React.FC<VerificationItemProps> = ({
         style={[
           styles.verifyBadgeText,
           {
-            color: verified ? theme.colors.primary : theme.colors.textTertiary,
+            color: verified ? me.brand : me.ink3,
           },
         ]}
       >
@@ -189,7 +181,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   grid: {
     flexDirection: 'row',
@@ -198,18 +190,10 @@ const styles = StyleSheet.create({
   },
   card: {
     width: '47.5%',
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     padding: 14,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   iconChip: {
     width: 36,
@@ -222,37 +206,29 @@ const styles = StyleSheet.create({
   value: {
     fontSize: 24,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 2,
   },
   label: {
     fontSize: 13,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 2,
   },
   sublabel: {
     fontSize: 11,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   verificationCard: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     padding: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   verificationTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 12,
   },
   verificationRow: {
@@ -261,7 +237,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     gap: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   verifyIcon: {
     width: 30,
@@ -273,7 +249,7 @@ const styles = StyleSheet.create({
   verificationText: {
     flex: 1,
     fontSize: 14,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     fontWeight: '500',
   },
   verifyBadge: {

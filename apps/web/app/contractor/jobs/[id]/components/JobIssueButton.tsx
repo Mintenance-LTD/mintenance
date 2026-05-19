@@ -72,7 +72,7 @@ export function JobIssueButton({ jobId, escrowId }: JobIssueButtonProps) {
     setSubmitting(true);
     try {
       const selectedReason = REASONS.find((r) => r.key === reason)!;
-      const heading = `⚠️ Issue: ${selectedReason.label.replace(/&apos;/g, "'")}`;
+      const heading = `Issue: ${selectedReason.label.replace(/&apos;/g, "'")}`;
       const lines = [heading, '', details.trim()];
 
       const csrf = await getCsrfHeaders();

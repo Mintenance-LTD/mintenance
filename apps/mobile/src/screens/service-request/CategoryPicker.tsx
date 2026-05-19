@@ -3,7 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { styles } from './styles';
 import { serviceCategories, type ServiceCategory } from './types';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 interface CategoryPickerProps {
   onBack: () => void;
@@ -21,12 +21,12 @@ export const CategoryPicker: React.FC<CategoryPickerProps> = ({
       <TouchableOpacity
         style={styles.backButton}
         onPress={onBack}
-        accessibilityRole="button"
-        accessibilityLabel="Go back"
+        accessibilityRole='button'
+        accessibilityLabel='Go back'
       >
-        <Ionicons name="arrow-back" size={24} color={theme.colors.textPrimary} />
+        <Ionicons name='arrow-back' size={24} color={me.ink} />
       </TouchableOpacity>
-      <Text style={styles.headerTitle} accessibilityRole="header">
+      <Text style={styles.headerTitle} accessibilityRole='header'>
         Request Service
       </Text>
       <View style={styles.placeholder} />
@@ -34,10 +34,12 @@ export const CategoryPicker: React.FC<CategoryPickerProps> = ({
 
     <ScrollView style={styles.content}>
       <View style={styles.categorySection}>
-        <Text style={styles.sectionTitle} accessibilityRole="header">
+        <Text style={styles.sectionTitle} accessibilityRole='header'>
           What service do you need?
         </Text>
-        <Text style={styles.sectionSubtitle}>Select a category to get started</Text>
+        <Text style={styles.sectionSubtitle}>
+          Select a category to get started
+        </Text>
 
         <View style={styles.categoriesGrid}>
           {serviceCategories.map((category) => (
@@ -45,15 +47,15 @@ export const CategoryPicker: React.FC<CategoryPickerProps> = ({
               key={category.id}
               style={styles.categoryCard}
               onPress={() => onSelect(category)}
-              accessibilityRole="button"
+              accessibilityRole='button'
               accessibilityLabel={`${category.name} service category`}
-              accessibilityHint="Double tap to select this category"
+              accessibilityHint='Double tap to select this category'
             >
               <View style={styles.categoryIcon}>
                 <Ionicons
                   name={category.icon as keyof typeof Ionicons.glyphMap}
                   size={30}
-                  color={theme.colors.textSecondary}
+                  color={me.ink2}
                 />
               </View>
               <Text style={styles.categoryName}>{category.name}</Text>

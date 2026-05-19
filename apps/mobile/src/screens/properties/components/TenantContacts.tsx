@@ -14,7 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { mobileApiClient } from '../../../utils/mobileApiClient';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 interface Tenant {
   id: string;
@@ -111,7 +111,7 @@ export const TenantContacts: React.FC<Props> = ({ propertyId }) => {
           <Ionicons
             name={showForm ? 'close' : 'person-add-outline'}
             size={22}
-            color={theme.colors.primary}
+            color={me.brand}
           />
         </TouchableOpacity>
       </View>
@@ -123,14 +123,14 @@ export const TenantContacts: React.FC<Props> = ({ propertyId }) => {
             value={name}
             onChangeText={setName}
             placeholder='Full name *'
-            placeholderTextColor={theme.colors.textTertiary}
+            placeholderTextColor={me.ink3}
           />
           <TextInput
             style={styles.input}
             value={email}
             onChangeText={setEmail}
             placeholder='Email address'
-            placeholderTextColor={theme.colors.textTertiary}
+            placeholderTextColor={me.ink3}
             keyboardType='email-address'
             autoCapitalize='none'
           />
@@ -139,7 +139,7 @@ export const TenantContacts: React.FC<Props> = ({ propertyId }) => {
             value={phone}
             onChangeText={setPhone}
             placeholder='Phone number'
-            placeholderTextColor={theme.colors.textTertiary}
+            placeholderTextColor={me.ink3}
             keyboardType='phone-pad'
           />
           <TouchableOpacity
@@ -156,22 +156,14 @@ export const TenantContacts: React.FC<Props> = ({ propertyId }) => {
 
       {tenants.length === 0 && !showForm ? (
         <View style={styles.emptyWrap}>
-          <Ionicons
-            name='people-outline'
-            size={20}
-            color={theme.colors.textTertiary}
-          />
+          <Ionicons name='people-outline' size={20} color={me.ink3} />
           <Text style={styles.emptyText}>No tenants added</Text>
         </View>
       ) : (
         tenants.map((t) => (
           <View key={t.id} style={styles.tenantRow}>
             <View style={styles.avatarWrap}>
-              <Ionicons
-                name='person'
-                size={18}
-                color={theme.colors.textSecondary}
-              />
+              <Ionicons name='person' size={18} color={me.ink2} />
             </View>
             <View style={styles.tenantInfo}>
               <Text style={styles.tenantName}>{t.name}</Text>
@@ -209,11 +201,7 @@ export const TenantContacts: React.FC<Props> = ({ propertyId }) => {
               )}
             </View>
             <TouchableOpacity onPress={() => handleDelete(t.id, t.name)}>
-              <Ionicons
-                name='trash-outline'
-                size={18}
-                color={theme.colors.error}
-              />
+              <Ionicons name='trash-outline' size={18} color={me.errFg} />
             </TouchableOpacity>
           </View>
         ))
@@ -224,12 +212,12 @@ export const TenantContacts: React.FC<Props> = ({ propertyId }) => {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 20,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
   header: {
     flexDirection: 'row',
@@ -240,46 +228,46 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
   },
   form: {
     marginBottom: 12,
     padding: 12,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 12,
   },
   input: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 12,
     fontSize: 15,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 10,
   },
   createBtn: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
     borderRadius: 20,
     paddingVertical: 10,
     alignItems: 'center',
   },
-  createBtnText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
+  createBtnText: { color: me.onBrand, fontSize: 14, fontWeight: '600' },
   emptyWrap: { alignItems: 'center', paddingVertical: 16, gap: 8 },
-  emptyText: { fontSize: 14, color: theme.colors.textTertiary },
+  emptyText: { fontSize: 14, color: me.ink3 },
   tenantRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   avatarWrap: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -288,20 +276,20 @@ const styles = StyleSheet.create({
   tenantName: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   contactRow: { flexDirection: 'row', gap: 12, marginTop: 2 },
   contactLink: { fontSize: 13, color: '#3B82F6' },
-  leaseDate: { fontSize: 12, color: theme.colors.textTertiary, marginTop: 2 },
+  leaseDate: { fontSize: 12, color: me.ink3, marginTop: 2 },
   inviteStatus: {
     fontSize: 11,
-    color: '#d97706',
+    color: me.warnFg,
     fontWeight: '600',
     marginTop: 2,
   },
   inviteAccepted: {
     fontSize: 11,
-    color: theme.colors.primary,
+    color: me.brand,
     fontWeight: '600',
     marginTop: 2,
   },

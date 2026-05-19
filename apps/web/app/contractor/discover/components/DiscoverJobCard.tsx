@@ -25,7 +25,12 @@ function MatchRing({ score }: { score: number }) {
   const r = 16;
   const circ = 2 * Math.PI * r;
   const fill = (score / 100) * circ;
-  const color = score >= 80 ? '#16a34a' : score >= 60 ? '#ca8a04' : '#9ca3af';
+  const color =
+    score >= 80
+      ? 'var(--me-ok-fg)'
+      : score >= 60
+        ? 'var(--me-warn-fg)'
+        : 'var(--me-ink-4)';
   return (
     <div className='relative w-11 h-11 flex-shrink-0 flex items-center justify-center'>
       <svg
@@ -39,7 +44,7 @@ function MatchRing({ score }: { score: number }) {
           cy={22}
           r={r}
           fill='none'
-          stroke='#f3f4f6'
+          stroke='var(--me-line-2)'
           strokeWidth={3}
         />
         <circle
@@ -107,15 +112,15 @@ interface DiscoverJobCardProps {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-const URGENCY_BORDER: Record<string, string> = {
-  high: 'border-l-[4px] border-l-red-500',
-  medium: 'border-l-[4px] border-l-amber-400',
-  low: 'border-l-[4px] border-l-green-500',
+const URGENCY_BORDER_COLOR: Record<string, string> = {
+  high: 'var(--me-err-fg)',
+  medium: 'var(--me-warn-fg)',
+  low: 'var(--me-ok-fg)',
 };
 
-const URGENCY_DOT: Record<string, string> = {
-  high: 'bg-red-500',
-  medium: 'bg-amber-400',
+const URGENCY_DOT_COLOR: Record<string, string> = {
+  high: 'var(--me-err-fg)',
+  medium: 'var(--me-warn-fg)',
 };
 
 type IconComp = React.ComponentType<{ className?: string }>;
@@ -203,9 +208,21 @@ export function DiscoverJobCard({
   const hasBids = (job.bidCount ?? 0) > 0;
   const hasAI = (job.building_assessments?.length ?? 0) > 0;
 
+  const urgencyBorderColor = URGENCY_BORDER_COLOR[priority];
+
   return (
     <div
-      className={`bg-white rounded-xl border border-gray-100 overflow-hidden cursor-pointer shadow-sm hover:shadow-md transition-shadow ${URGENCY_BORDER[priority] ?? ''}`}
+      data-theme='mint-editorial'
+      className='rounded-xl overflow-hidden cursor-pointer transition-shadow'
+      style={{
+        background: 'var(--me-surface)',
+        border: '1px solid var(--me-line-2)',
+        boxShadow: 'var(--me-shadow-card)',
+        fontFamily: 'var(--me-font-body)',
+        ...(urgencyBorderColor
+          ? { borderLeft: `4px solid ${urgencyBorderColor}` }
+          : {}),
+      }}
       onClick={() => onNavigate(job.id)}
       onMouseEnter={() => onHover?.(job.id)}
       onMouseLeave={() => onHover?.(null)}
@@ -219,10 +236,17 @@ export function DiscoverJobCard({
           isNew={isNew}
         />
       ) : (
-        <div className='relative h-48 bg-gradient-to-br from-gray-50 to-gray-200 flex items-center justify-center'>
+        <div
+          className='relative h-48 flex items-center justify-center'
+          style={{
+            background:
+              'linear-gradient(135deg, var(--me-bg) 0%, var(--me-bg-3) 100%)',
+            color: 'var(--me-ink-4)',
+          }}
+        >
           <CategoryIcon
             category={job.category}
-            className='w-12 h-12 text-gray-400 opacity-40'
+            className='w-12 h-12 opacity-40'
           />
           {distBadge && (
             <span className='absolute top-2 left-2 bg-black/60 text-white text-xs font-medium px-2 py-0.5 rounded-full flex items-center gap-1'>
@@ -230,7 +254,13 @@ export function DiscoverJobCard({
             </span>
           )}
           {isNew && (
-            <span className='absolute top-2 right-2 bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full'>
+            <span
+              className='absolute top-2 right-2 text-[10px] font-bold px-2 py-0.5 rounded-full'
+              style={{
+                background: 'var(--me-brand)',
+                color: 'var(--me-on-brand)',
+              }}
+            >
               NEW
             </span>
           )}
@@ -240,7 +270,10 @@ export function DiscoverJobCard({
       <div className='p-4'>
         {/* Title + match ring */}
         <div className='flex items-start gap-2 mb-1'>
-          <h4 className='text-sm font-semibold text-gray-900 line-clamp-1 flex-1 min-w-0'>
+          <h4
+            className='text-sm font-semibold line-clamp-1 flex-1 min-w-0'
+            style={{ color: 'var(--me-ink)' }}
+          >
             {job.title}
           </h4>
           <MatchRing score={job.matchScore} />
@@ -248,33 +281,57 @@ export function DiscoverJobCard({
 
         {/* Category + urgency dot */}
         <div className='flex items-center gap-1.5 mb-2'>
-          {URGENCY_DOT[priority] && (
+          {URGENCY_DOT_COLOR[priority] && (
             <span
-              className={`w-2 h-2 rounded-full flex-shrink-0 ${URGENCY_DOT[priority]}`}
+              className='w-2 h-2 rounded-full flex-shrink-0'
+              style={{ background: URGENCY_DOT_COLOR[priority] }}
             />
           )}
-          <span className='flex items-center gap-1 text-xs text-gray-500 capitalize truncate'>
+          <span
+            className='flex items-center gap-1 text-xs capitalize truncate'
+            style={{ color: 'var(--me-ink-3)' }}
+          >
             <CategoryIcon
               category={job.category}
               className='w-3.5 h-3.5 flex-shrink-0'
             />
             {job.category ?? 'General'}
             {priority === 'high' && (
-              <span className='text-red-500 font-medium ml-1'>• Urgent</span>
+              <span
+                className='font-medium ml-1'
+                style={{ color: 'var(--me-err-fg)' }}
+              >
+                • Urgent
+              </span>
             )}
           </span>
         </div>
 
         {/* Description */}
-        <p className='text-xs text-gray-500 line-clamp-2 mb-3'>
+        <p
+          className='text-xs line-clamp-2 mb-3'
+          style={{ color: 'var(--me-ink-3)' }}
+        >
           {job.description}
         </p>
 
         {/* Budget + bid count */}
         <div className='flex items-center justify-between mb-3'>
-          <span className='text-sm font-bold text-teal-700'>{budgetStr}</span>
+          <span
+            className='text-sm font-bold'
+            style={{ color: 'var(--me-brand-2)' }}
+          >
+            {budgetStr}
+          </span>
           {hasBids && (
-            <span className='flex items-center gap-1 text-xs text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full border border-orange-100'>
+            <span
+              className='flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border'
+              style={{
+                color: 'var(--me-warn-fg)',
+                background: 'var(--me-warn-bg)',
+                borderColor: 'var(--me-warn-bg)',
+              }}
+            >
               <Users className='w-3 h-3' />
               {job.bidCount} bid{job.bidCount !== 1 ? 's' : ''}
             </span>
@@ -283,7 +340,14 @@ export function DiscoverJobCard({
 
         {/* AI badge */}
         {hasAI && (
-          <span className='inline-flex items-center gap-1 text-xs bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full border border-purple-100 mb-3'>
+          <span
+            className='inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border mb-3'
+            style={{
+              background: 'var(--me-info-bg)',
+              color: 'var(--me-info-fg)',
+              borderColor: 'var(--me-info-bg)',
+            }}
+          >
             <Bot className='w-3 h-3' /> AI Assessed
           </span>
         )}
@@ -295,7 +359,11 @@ export function DiscoverJobCard({
               e.stopPropagation();
               onNavigate(job.id);
             }}
-            className='flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold rounded-lg transition-colors'
+            className='flex-1 flex items-center justify-center gap-1 px-3 py-2 text-xs font-semibold rounded-lg transition-colors'
+            style={{
+              background: 'var(--me-brand)',
+              color: 'var(--me-on-brand)',
+            }}
           >
             View &amp; Bid <ChevronRight className='w-3 h-3' />
           </button>
@@ -303,11 +371,20 @@ export function DiscoverJobCard({
             onClick={(e) => onSaveToggle(job.id, e)}
             disabled={isLoading}
             aria-label={isSaved ? 'Unsave job' : 'Save job'}
-            className={`p-2 rounded-lg border transition-colors ${
+            className='p-2 rounded-lg border transition-colors'
+            style={
               isSaved
-                ? 'bg-teal-50 border-teal-200 text-teal-600'
-                : 'bg-gray-50 border-gray-200 text-gray-400 hover:text-teal-600 hover:border-teal-200'
-            }`}
+                ? {
+                    background: 'var(--me-brand-soft)',
+                    borderColor: 'var(--me-brand-soft)',
+                    color: 'var(--me-brand)',
+                  }
+                : {
+                    background: 'var(--me-bg-2)',
+                    borderColor: 'var(--me-line)',
+                    color: 'var(--me-ink-3)',
+                  }
+            }
           >
             {isSaved ? (
               <BookmarkCheck className='w-4 h-4' />
@@ -318,7 +395,12 @@ export function DiscoverJobCard({
           <button
             onClick={(e) => onSkip(job.id, e)}
             aria-label='Skip job'
-            className='p-2 rounded-lg border border-gray-200 bg-gray-50 text-gray-400 hover:text-red-500 hover:border-red-200 transition-colors'
+            className='p-2 rounded-lg border transition-colors'
+            style={{
+              background: 'var(--me-bg-2)',
+              borderColor: 'var(--me-line)',
+              color: 'var(--me-ink-3)',
+            }}
           >
             <X className='w-4 h-4' />
           </button>

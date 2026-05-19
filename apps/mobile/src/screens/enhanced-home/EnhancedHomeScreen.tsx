@@ -21,7 +21,7 @@ import {
   ServiceCategoryGrid,
   TopContractorsList,
 } from './components';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 export const EnhancedHomeScreen: React.FC = () => {
   const viewModel = useEnhancedHomeViewModel();
@@ -38,10 +38,7 @@ export const EnhancedHomeScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar
-        barStyle='dark-content'
-        backgroundColor={theme.colors.backgroundSecondary}
-      />
+      <StatusBar barStyle='dark-content' backgroundColor={me.bg2} />
       <LocationHeader
         location={viewModel.location}
         onLocationPress={() => {}}
@@ -82,7 +79,7 @@ export const EnhancedHomeScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   scrollView: {
     flex: 1,

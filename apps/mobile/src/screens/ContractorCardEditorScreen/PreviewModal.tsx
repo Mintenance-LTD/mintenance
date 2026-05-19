@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, Image, Modal, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ContractorProfile } from '@mintenance/types';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 import { styles } from './styles';
 
 interface PreviewModalProps {
@@ -12,29 +12,43 @@ interface PreviewModalProps {
   topInset: number;
 }
 
-export const PreviewModal: React.FC<PreviewModalProps> = ({ visible, onClose, profile, topInset }) => (
+export const PreviewModal: React.FC<PreviewModalProps> = ({
+  visible,
+  onClose,
+  profile,
+  topInset,
+}) => (
   <Modal
     visible={visible}
-    animationType="slide"
-    presentationStyle="pageSheet"
+    animationType='slide'
+    presentationStyle='pageSheet'
     onRequestClose={onClose}
   >
     <View style={styles.previewContainer}>
       <View style={[styles.previewHeader, { paddingTop: topInset }]}>
         <Text style={styles.previewTitle}>Discovery Card Preview</Text>
         <TouchableOpacity style={styles.previewCloseBtn} onPress={onClose}>
-          <Ionicons name="close" size={22} color={theme.colors.textPrimary} />
+          <Ionicons name='close' size={22} color={me.ink} />
         </TouchableOpacity>
       </View>
       <View style={styles.previewContent}>
         <View style={styles.cardPreview}>
           {profile.companyLogo && (
-            <Image source={{ uri: profile.companyLogo }} style={styles.previewLogo} />
+            <Image
+              source={{ uri: profile.companyLogo }}
+              style={styles.previewLogo}
+            />
           )}
-          <Text style={styles.previewCompanyName}>{profile.companyName || 'Your Company'}</Text>
-          <Text style={styles.previewBio}>{profile.bio || 'Your professional bio...'}</Text>
+          <Text style={styles.previewCompanyName}>
+            {profile.companyName || 'Your Company'}
+          </Text>
+          <Text style={styles.previewBio}>
+            {profile.bio || 'Your professional bio...'}
+          </Text>
           <View style={styles.previewRateChip}>
-            <Text style={styles.previewRate}>£{profile.hourlyRate || 0}/hr</Text>
+            <Text style={styles.previewRate}>
+              £{profile.hourlyRate || 0}/hr
+            </Text>
           </View>
         </View>
       </View>

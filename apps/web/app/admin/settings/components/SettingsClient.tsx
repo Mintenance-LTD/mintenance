@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { Check } from 'lucide-react';
 import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
 import { Card } from '@/components/ui/Card.unified';
@@ -245,9 +246,13 @@ export function SettingsClient({
                       color: '#065F46',
                       margin: 0,
                       fontWeight: 500,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 4,
                     }}
                   >
-                    ✓ Setting saved successfully
+                    <Check size={14} aria-hidden='true' />
+                    Setting saved successfully
                   </p>
                 </div>
               )}

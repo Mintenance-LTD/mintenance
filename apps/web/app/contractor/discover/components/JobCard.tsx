@@ -168,15 +168,17 @@ export const JobCard: React.FC<JobCardProps> = ({
 
   return (
     <div
+      data-theme='mint-editorial'
       style={{
         width: '100%',
         height: '100%',
-        backgroundColor: theme.colors.surface,
+        backgroundColor: 'var(--me-surface)',
         borderRadius: theme.borderRadius.xl,
-        boxShadow: '0 10px 40px rgba(0,0,0,0.12)',
+        boxShadow: 'var(--me-shadow-pop)',
         overflow: 'hidden',
         display: 'flex',
         flexDirection: 'column',
+        fontFamily: 'var(--me-font-body)',
       }}
     >
       {/* Photo Section - Hero Image */}
@@ -186,7 +188,7 @@ export const JobCard: React.FC<JobCardProps> = ({
             position: 'relative',
             width: '100%',
             aspectRatio: '16/9',
-            backgroundColor: theme.colors.backgroundTertiary,
+            backgroundColor: 'var(--me-bg-3)',
             overflow: 'hidden',
           }}
         >
@@ -215,8 +217,8 @@ export const JobCard: React.FC<JobCardProps> = ({
           >
             <span
               style={{
-                backgroundColor: theme.colors.primary,
-                color: 'white',
+                backgroundColor: 'var(--me-brand)',
+                color: 'var(--me-on-brand)',
                 padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
                 borderRadius: theme.borderRadius.full,
                 fontSize: theme.typography.fontSize.sm,
@@ -229,8 +231,8 @@ export const JobCard: React.FC<JobCardProps> = ({
             {isNewJob && (
               <span
                 style={{
-                  backgroundColor: theme.colors.success,
-                  color: 'white',
+                  backgroundColor: 'var(--me-ok-fg)',
+                  color: 'var(--me-on-brand)',
                   padding: `${theme.spacing[1]} ${theme.spacing[3]}`,
                   borderRadius: theme.borderRadius.full,
                   fontSize: theme.typography.fontSize.xs,
@@ -274,11 +276,11 @@ export const JobCard: React.FC<JobCardProps> = ({
             position: 'relative',
             width: '100%',
             height: '120px',
-            backgroundColor: theme.colors.backgroundSecondary,
+            backgroundColor: 'var(--me-bg-2)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            borderBottom: `1px solid ${theme.colors.border}`,
+            borderBottom: '1px solid var(--me-line)',
           }}
         >
           <div
@@ -287,18 +289,14 @@ export const JobCard: React.FC<JobCardProps> = ({
               flexDirection: 'column',
               alignItems: 'center',
               gap: theme.spacing[2],
-              color: theme.colors.textTertiary,
+              color: 'var(--me-ink-3)',
             }}
           >
-            <Icon
-              name='briefcase'
-              size={32}
-              color={theme.colors.textTertiary}
-            />
+            <Icon name='briefcase' size={32} color='var(--me-ink-3)' />
             <span
               style={{
                 fontSize: theme.typography.fontSize.xs,
-                color: theme.colors.textTertiary,
+                color: 'var(--me-ink-3)',
               }}
             >
               No photos
@@ -319,8 +317,8 @@ export const JobCard: React.FC<JobCardProps> = ({
           >
             <span
               style={{
-                backgroundColor: theme.colors.primary,
-                color: 'white',
+                backgroundColor: 'var(--me-brand)',
+                color: 'var(--me-on-brand)',
                 padding: `${theme.spacing[2]} ${theme.spacing[4]}`,
                 borderRadius: theme.borderRadius.full,
                 fontSize: theme.typography.fontSize.sm,
@@ -332,8 +330,8 @@ export const JobCard: React.FC<JobCardProps> = ({
             {isNewJob && (
               <span
                 style={{
-                  backgroundColor: theme.colors.success,
-                  color: 'white',
+                  backgroundColor: 'var(--me-ok-fg)',
+                  color: 'var(--me-on-brand)',
                   padding: `${theme.spacing[1]} ${theme.spacing[3]}`,
                   borderRadius: theme.borderRadius.full,
                   fontSize: theme.typography.fontSize.xs,
@@ -366,7 +364,8 @@ export const JobCard: React.FC<JobCardProps> = ({
             style={{
               fontSize: theme.typography.fontSize['2xl'],
               fontWeight: theme.typography.fontWeight.bold,
-              color: theme.colors.textPrimary,
+              color: 'var(--me-ink)',
+              fontFamily: 'var(--me-font-display)',
               margin: 0,
               marginBottom: theme.spacing[2],
               lineHeight: 1.3,
@@ -379,7 +378,7 @@ export const JobCard: React.FC<JobCardProps> = ({
           <div
             style={{
               fontSize: theme.typography.fontSize.sm,
-              color: theme.colors.textSecondary,
+              color: 'var(--me-ink-2)',
               marginBottom: theme.spacing[3],
             }}
           >
@@ -398,7 +397,7 @@ export const JobCard: React.FC<JobCardProps> = ({
             <div
               style={{
                 fontSize: theme.typography.fontSize.base,
-                color: theme.colors.textSecondary,
+                color: 'var(--me-ink-2)',
                 lineHeight: 1.6,
                 marginBottom: theme.spacing[2],
               }}
@@ -410,7 +409,7 @@ export const JobCard: React.FC<JobCardProps> = ({
                   style={{
                     background: 'none',
                     border: 'none',
-                    color: theme.colors.primary,
+                    color: 'var(--me-brand)',
                     cursor: 'pointer',
                     padding: `0 ${theme.spacing[1]}`,
                     marginLeft: theme.spacing[1],
@@ -427,10 +426,10 @@ export const JobCard: React.FC<JobCardProps> = ({
             <div
               style={{
                 fontSize: theme.typography.fontSize.base,
-                color: theme.colors.textTertiary,
+                color: 'var(--me-ink-3)',
                 fontStyle: 'italic',
                 padding: theme.spacing[4],
-                backgroundColor: theme.colors.backgroundSecondary,
+                backgroundColor: 'var(--me-bg-2)',
                 borderRadius: theme.borderRadius.md,
                 textAlign: 'center',
               }}
@@ -453,13 +452,13 @@ export const JobCard: React.FC<JobCardProps> = ({
               <span
                 key={idx}
                 style={{
-                  backgroundColor: `${theme.colors.success}15`,
-                  color: theme.colors.success,
+                  backgroundColor: 'var(--me-ok-bg)',
+                  color: 'var(--me-ok-fg)',
                   padding: `${theme.spacing[1]} ${theme.spacing[3]}`,
                   borderRadius: theme.borderRadius.md,
                   fontSize: theme.typography.fontSize.xs,
                   fontWeight: theme.typography.fontWeight.semibold,
-                  border: `1px solid ${theme.colors.success}30`,
+                  border: '1px solid var(--me-ok-bg)',
                 }}
               >
                 {skill}
@@ -468,7 +467,7 @@ export const JobCard: React.FC<JobCardProps> = ({
             {matchedSkills.length > 3 && (
               <span
                 style={{
-                  color: theme.colors.textSecondary,
+                  color: 'var(--me-ink-2)',
                   fontSize: theme.typography.fontSize.xs,
                   padding: `${theme.spacing[1]} ${theme.spacing[3]}`,
                   display: 'flex',
@@ -488,9 +487,9 @@ export const JobCard: React.FC<JobCardProps> = ({
             gridTemplateColumns: '1fr 1fr',
             gap: theme.spacing[4],
             padding: theme.spacing[4],
-            backgroundColor: theme.colors.backgroundSecondary,
+            backgroundColor: 'var(--me-bg-2)',
             borderRadius: theme.borderRadius.lg,
-            border: `1px solid ${theme.colors.border}`,
+            border: '1px solid var(--me-line)',
           }}
         >
           <div>
@@ -502,15 +501,11 @@ export const JobCard: React.FC<JobCardProps> = ({
                 marginBottom: theme.spacing[2],
               }}
             >
-              <Icon
-                name='currencyPound'
-                size={16}
-                color={theme.colors.textSecondary}
-              />
+              <Icon name='currencyPound' size={16} color='var(--me-ink-2)' />
               <div
                 style={{
                   fontSize: theme.typography.fontSize.sm,
-                  color: theme.colors.textTertiary,
+                  color: 'var(--me-ink-3)',
                   fontWeight: theme.typography.fontWeight.medium,
                 }}
               >
@@ -521,7 +516,7 @@ export const JobCard: React.FC<JobCardProps> = ({
               style={{
                 fontSize: theme.typography.fontSize['2xl'],
                 fontWeight: theme.typography.fontWeight.bold,
-                color: theme.colors.primary,
+                color: 'var(--me-brand)',
               }}
             >
               {/* Show budget range if exact budget is hidden, otherwise show exact amount */}
@@ -536,7 +531,7 @@ export const JobCard: React.FC<JobCardProps> = ({
               ) : (
                 <span
                   style={{
-                    color: theme.colors.textSecondary,
+                    color: 'var(--me-ink-2)',
                     fontSize: theme.typography.fontSize.base,
                   }}
                 >
@@ -549,18 +544,14 @@ export const JobCard: React.FC<JobCardProps> = ({
               <div
                 style={{
                   fontSize: theme.typography.fontSize.xs,
-                  color: theme.colors.textSecondary,
+                  color: 'var(--me-ink-2)',
                   marginTop: theme.spacing[1],
                   display: 'flex',
                   alignItems: 'center',
                   gap: theme.spacing[1],
                 }}
               >
-                <Icon
-                  name='list'
-                  size={12}
-                  color={theme.colors.textSecondary}
-                />
+                <Icon name='list' size={12} color='var(--me-ink-2)' />
                 <span>Itemization required</span>
               </div>
             )}
@@ -575,15 +566,11 @@ export const JobCard: React.FC<JobCardProps> = ({
                 marginBottom: theme.spacing[2],
               }}
             >
-              <Icon
-                name='mapPin'
-                size={16}
-                color={theme.colors.textSecondary}
-              />
+              <Icon name='mapPin' size={16} color='var(--me-ink-2)' />
               <div
                 style={{
                   fontSize: theme.typography.fontSize.sm,
-                  color: theme.colors.textTertiary,
+                  color: 'var(--me-ink-3)',
                   fontWeight: theme.typography.fontWeight.medium,
                 }}
               >
@@ -594,7 +581,7 @@ export const JobCard: React.FC<JobCardProps> = ({
               style={{
                 fontSize: theme.typography.fontSize.base,
                 fontWeight: theme.typography.fontWeight.semibold,
-                color: theme.colors.textPrimary,
+                color: 'var(--me-ink)',
                 marginBottom: distanceText ? theme.spacing[1] : 0,
               }}
               title={locationFull}
@@ -605,17 +592,13 @@ export const JobCard: React.FC<JobCardProps> = ({
               <div
                 style={{
                   fontSize: theme.typography.fontSize.xs,
-                  color: theme.colors.textSecondary,
+                  color: 'var(--me-ink-2)',
                   display: 'flex',
                   alignItems: 'center',
                   gap: theme.spacing[1],
                 }}
               >
-                <Icon
-                  name='navigation'
-                  size={12}
-                  color={theme.colors.textSecondary}
-                />
+                <Icon name='navigation' size={12} color='var(--me-ink-2)' />
                 {distanceText} away
               </div>
             )}
@@ -627,9 +610,9 @@ export const JobCard: React.FC<JobCardProps> = ({
           <div
             style={{
               padding: theme.spacing[3],
-              backgroundColor: `${theme.colors.info}10`,
+              backgroundColor: 'var(--me-info-bg)',
               borderRadius: theme.borderRadius.md,
-              border: `1px solid ${theme.colors.info}30`,
+              border: '1px solid var(--me-info-bg)',
             }}
           >
             <div
@@ -640,11 +623,11 @@ export const JobCard: React.FC<JobCardProps> = ({
                 marginBottom: theme.spacing[1],
               }}
             >
-              <Icon name='clock' size={16} color={theme.colors.info} />
+              <Icon name='clock' size={16} color='var(--me-info-fg)' />
               <div
                 style={{
                   fontSize: theme.typography.fontSize.sm,
-                  color: theme.colors.info,
+                  color: 'var(--me-info-fg)',
                   fontWeight: theme.typography.fontWeight.semibold,
                 }}
               >
@@ -654,7 +637,7 @@ export const JobCard: React.FC<JobCardProps> = ({
             <div
               style={{
                 fontSize: theme.typography.fontSize.base,
-                color: theme.colors.textPrimary,
+                color: 'var(--me-ink)',
               }}
             >
               {job.timeline}
@@ -668,7 +651,7 @@ export const JobCard: React.FC<JobCardProps> = ({
             marginTop: 'auto',
             paddingTop: theme.spacing[6],
             paddingBottom: theme.spacing[6],
-            borderTop: `1px solid ${theme.colors.border}`,
+            borderTop: '1px solid var(--me-line)',
             display: 'flex',
             alignItems: 'center',
             gap: theme.spacing[4],
@@ -693,11 +676,11 @@ export const JobCard: React.FC<JobCardProps> = ({
                 width: '56px',
                 height: '56px',
                 borderRadius: '50%',
-                backgroundColor: theme.colors.primary,
+                backgroundColor: 'var(--me-brand)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                color: 'white',
+                color: 'var(--me-on-brand)',
                 fontWeight: theme.typography.fontWeight.bold,
                 fontSize: theme.typography.fontSize.lg,
                 flexShrink: 0,
@@ -710,7 +693,7 @@ export const JobCard: React.FC<JobCardProps> = ({
             <div
               style={{
                 fontSize: theme.typography.fontSize.sm,
-                color: theme.colors.textTertiary,
+                color: 'var(--me-ink-3)',
                 marginBottom: theme.spacing[1],
                 textTransform: 'uppercase',
                 letterSpacing: '0.5px',
@@ -723,7 +706,7 @@ export const JobCard: React.FC<JobCardProps> = ({
               style={{
                 fontSize: theme.typography.fontSize.lg,
                 fontWeight: theme.typography.fontWeight.bold,
-                color: theme.colors.textPrimary,
+                color: 'var(--me-ink)',
                 marginBottom: job.homeowner?.city ? theme.spacing[1] : 0,
                 wordBreak: 'break-word',
               }}
@@ -734,17 +717,13 @@ export const JobCard: React.FC<JobCardProps> = ({
               <div
                 style={{
                   fontSize: theme.typography.fontSize.sm,
-                  color: theme.colors.textSecondary,
+                  color: 'var(--me-ink-2)',
                   display: 'flex',
                   alignItems: 'center',
                   gap: theme.spacing[1],
                 }}
               >
-                <Icon
-                  name='mapPin'
-                  size={12}
-                  color={theme.colors.textSecondary}
-                />
+                <Icon name='mapPin' size={12} color='var(--me-ink-2)' />
                 {job.homeowner.city}
               </div>
             )}

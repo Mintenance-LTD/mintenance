@@ -7,17 +7,40 @@
 
 export { calculateDistance } from '@/lib/utils/location';
 
-/** Map a job priority string to Tailwind colour classes. */
-function getUrgencyColor(priority: string | null): string {
+/**
+ * Map a job priority string to Mint Editorial token CSS values.
+ * Returns an inline-style object (background / text / border tokens).
+ */
+function getUrgencyColor(priority: string | null): {
+  background: string;
+  color: string;
+  borderColor: string;
+} {
   switch (priority?.toLowerCase()) {
     case 'high':
-      return 'bg-rose-100 text-rose-700 border-rose-600';
+      return {
+        background: 'var(--me-err-bg)',
+        color: 'var(--me-err-fg)',
+        borderColor: 'var(--me-err-fg)',
+      };
     case 'medium':
-      return 'bg-amber-100 text-amber-700 border-amber-600';
+      return {
+        background: 'var(--me-warn-bg)',
+        color: 'var(--me-warn-fg)',
+        borderColor: 'var(--me-warn-fg)',
+      };
     case 'low':
-      return 'bg-emerald-100 text-emerald-700 border-emerald-600';
+      return {
+        background: 'var(--me-ok-bg)',
+        color: 'var(--me-ok-fg)',
+        borderColor: 'var(--me-ok-fg)',
+      };
     default:
-      return 'bg-gray-100 text-gray-700 border-gray-600';
+      return {
+        background: 'var(--me-bg-2)',
+        color: 'var(--me-ink-2)',
+        borderColor: 'var(--me-line)',
+      };
   }
 }
 

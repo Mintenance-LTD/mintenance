@@ -21,7 +21,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { AuthStackParamList } from '../../navigation/types';
 import { supabase } from '../../config/supabase';
 import { logger } from '../../utils/logger';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 import { useScreenCaptureGuard } from '../../hooks/useScreenCaptureGuard';
 import {
   getPasswordStrengthBreakdown,
@@ -101,7 +101,7 @@ const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
       <Ionicons
         name={met ? 'checkmark-circle' : 'ellipse-outline'}
         size={16}
-        color={met ? theme.colors.primary : theme.colors.textTertiary}
+        color={met ? me.brand : me.ink3}
       />
       <Text style={[styles.strengthLabel, met && styles.strengthLabelMet]}>
         {label}
@@ -132,7 +132,7 @@ const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
               <Ionicons
                 name='checkmark-circle'
                 size={48}
-                color={theme.colors.primary}
+                color={me.brand}
                 accessible={false}
               />
             </View>
@@ -170,11 +170,7 @@ const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
             accessibilityLabel='Go back'
             accessibilityHint='Return to previous screen'
           >
-            <Ionicons
-              name='arrow-back'
-              size={24}
-              color={theme.colors.textPrimary}
-            />
+            <Ionicons name='arrow-back' size={24} color={me.ink} />
           </TouchableOpacity>
 
           <View style={styles.headerContent}>
@@ -326,21 +322,21 @@ const ResetPasswordScreen: React.FC<Props> = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
   },
   container: {
     flex: 1,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
   },
   header: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     paddingBottom: 20,
     paddingHorizontal: 24,
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   backIconButton: {
     position: 'absolute',
@@ -361,7 +357,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 26,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     letterSpacing: -0.3,
   },
   keyboardContainer: {
@@ -393,14 +389,14 @@ const styles = StyleSheet.create({
   instructionTitle: {
     fontSize: 26,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 12,
     textAlign: 'center',
     letterSpacing: -0.3,
   },
   instructionText: {
     fontSize: 15,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     textAlign: 'center',
     lineHeight: 22,
     paddingHorizontal: 20,
@@ -416,18 +412,18 @@ const styles = StyleSheet.create({
   },
   strengthLabel: {
     fontSize: 13,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     marginLeft: 8,
   },
   strengthLabelMet: {
-    color: theme.colors.primary,
+    color: me.brand,
   },
   backLinkButton: {
     paddingVertical: 12,
     alignItems: 'center',
   },
   backLinkText: {
-    color: theme.colors.primary,
+    color: me.brand,
     fontSize: 15,
     fontWeight: '600',
   },
@@ -441,7 +437,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: me.brandSoft,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
@@ -449,7 +445,7 @@ const styles = StyleSheet.create({
   successTitle: {
     fontSize: 26,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginTop: 16,
     marginBottom: 12,
     textAlign: 'center',
@@ -457,19 +453,19 @@ const styles = StyleSheet.create({
   },
   successMessage: {
     fontSize: 15,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 32,
   },
   backButton: {
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
     borderRadius: 28,
     paddingVertical: 16,
     paddingHorizontal: 32,
   },
   backButtonText: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontSize: 16,
     fontWeight: '700',
   },

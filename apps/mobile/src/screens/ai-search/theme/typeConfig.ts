@@ -1,6 +1,6 @@
 import type { Ionicons } from '@expo/vector-icons';
 import type { SearchResult } from '../../../services/AISearchService';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 /**
  * Per-result-type icon + colour palette for AISearchScreen result rows.
@@ -15,16 +15,16 @@ interface TypeConfig {
 
 const DEFAULT_TYPE_CONFIG: TypeConfig = {
   icon: 'search-outline',
-  color: theme.colors.textSecondary,
-  bg: theme.colors.backgroundSecondary,
+  color: me.ink2,
+  bg: me.bg2,
 };
 
 const RESULT_TYPE_CONFIG: Record<string, TypeConfig> = {
   job: { icon: 'briefcase-outline', color: '#3B82F6', bg: '#DBEAFE' },
   contractor: {
     icon: 'person-outline',
-    color: theme.colors.primary,
-    bg: theme.colors.primaryLight,
+    color: me.brand,
+    bg: me.brandSoft,
   },
   service: { icon: 'construct-outline', color: '#8B5CF6', bg: '#EDE9FE' },
 };

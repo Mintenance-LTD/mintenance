@@ -10,7 +10,7 @@
 
 import { NavigationProp } from '@react-navigation/native';
 import { useHaptics } from '../../../utils/haptics';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyNavigation = NavigationProp<Record<string, object | undefined>>;
@@ -202,7 +202,7 @@ const generateQuickActions = (
       title: 'Settings',
       subtitle: 'Account preferences',
       icon: 'settings-outline',
-      color: theme.colors.textTertiary,
+      color: me.ink3,
       action: navigation.openSettingsScreen,
     },
   ];
@@ -214,7 +214,7 @@ const generateQuickActions = (
         title: 'Post Job',
         subtitle: 'Create service request',
         icon: 'add-circle-outline',
-        color: theme.colors.accent,
+        color: me.accent,
         action: () => navigation.openServiceRequest(),
       },
       {
@@ -234,7 +234,7 @@ const generateQuickActions = (
         title: 'Browse Jobs',
         subtitle: 'Find opportunities',
         icon: 'search-outline',
-        color: theme.colors.primary,
+        color: me.brand,
         action: navigation.openJobsList,
       },
       {
@@ -242,7 +242,7 @@ const generateQuickActions = (
         title: 'Schedule Meeting',
         subtitle: 'Meet with clients',
         icon: 'calendar-outline',
-        color: theme.colors.accent,
+        color: me.accent,
         action: navigation.openMeetingSchedule,
       },
       ...commonActions,

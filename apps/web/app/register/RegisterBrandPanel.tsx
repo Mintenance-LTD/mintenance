@@ -1,32 +1,22 @@
 import React from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
+import { Check } from 'lucide-react';
 
 /**
- * Brand leaf mark — matches the design-system logo. Inherits the
- * caller's text colour by default so callers don't pass raw hex.
+ * Brand leaf mark — the real Mintenance logo, cropped from the app
+ * icon PNG (public/assets/logo-mark.png).
  */
-export function LeafMark({
-  size = 22,
-  color = 'currentColor',
-}: {
-  size?: number;
-  color?: string;
-}) {
+export function LeafMark({ size = 22 }: { size?: number }) {
   return (
-    <svg
-      viewBox='0 0 24 24'
+    <Image
+      src='/assets/logo-mark.png'
+      alt='Mintenance'
       width={size}
       height={size}
-      fill='none'
-      stroke={color}
-      strokeWidth='1.6'
-      strokeLinecap='round'
-      strokeLinejoin='round'
-      aria-hidden='true'
-    >
-      <path d='M12 21c-2-5 1-12 9-13-1 7-4 11-9 13z' />
-      <path d='M12 21c-1-3 1-7 5-9' />
-    </svg>
+      priority
+      style={{ display: 'block', objectFit: 'contain' }}
+    />
   );
 }
 
@@ -53,25 +43,23 @@ export function RegisterBrandPanel() {
         overflow: 'hidden',
       }}
     >
-      {/* Leaf watermark */}
-      <svg
-        viewBox='0 0 24 24'
-        width='520'
-        height='520'
-        fill='none'
-        stroke='rgba(255,255,255,0.06)'
-        strokeWidth='0.6'
+      {/* Leaf watermark — the brand mark, tinted white + faded */}
+      <Image
+        src='/assets/logo-mark.png'
+        alt=''
         aria-hidden='true'
+        width={520}
+        height={520}
         style={{
           position: 'absolute',
           right: -120,
           bottom: -160,
           transform: 'rotate(-12deg)',
+          opacity: 0.07,
+          filter: 'brightness(0) invert(1)',
+          pointerEvents: 'none',
         }}
-      >
-        <path d='M12 21c-2-5 1-12 9-13-1 7-4 11-9 13z' />
-        <path d='M12 21c-1-3 1-7 5-9' />
-      </svg>
+      />
 
       {/* Logo */}
       <Link
@@ -95,7 +83,7 @@ export function RegisterBrandPanel() {
             placeItems: 'center',
           }}
         >
-          <LeafMark color='var(--me-brand)' />
+          <LeafMark size={24} />
         </span>
         <span
           style={{
@@ -138,49 +126,53 @@ export function RegisterBrandPanel() {
         </p>
       </div>
 
-      {/* Testimonial */}
-      <figure
+      {/* What you can do — factual, no fabricated metrics */}
+      <ul
         style={{
           position: 'relative',
+          listStyle: 'none',
           margin: 0,
-          padding: '16px 18px',
-          background: 'rgba(255,255,255,0.08)',
-          borderRadius: 14,
-          border: '1px solid rgba(255,255,255,0.12)',
-          backdropFilter: 'blur(8px)',
+          padding: 0,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 12,
         }}
       >
-        <blockquote
-          style={{
-            margin: '0 0 10px',
-            fontSize: 13,
-            lineHeight: 1.6,
-            color: 'rgba(255,255,255,0.92)',
-          }}
-        >
-          &ldquo;Three jobs in the first week. The verification process actually
-          filters serious customers.&rdquo;
-        </blockquote>
-        <figcaption style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span
+        {[
+          'Post jobs and hire verified tradespeople',
+          'List your own services and bid for work',
+          'Switch between hiring and trading any time',
+        ].map((line) => (
+          <li
+            key={line}
             style={{
-              width: 28,
-              height: 28,
-              borderRadius: 9999,
-              background: 'rgba(255,255,255,0.2)',
-              display: 'grid',
-              placeItems: 'center',
-              fontWeight: 600,
-              fontSize: 12,
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 10,
+              fontSize: 13.5,
+              lineHeight: 1.5,
+              color: 'rgba(255,255,255,0.9)',
             }}
           >
-            JM
-          </span>
-          <span style={{ fontSize: 12, opacity: 0.85 }}>
-            Joe M. · Electrician, 12 yrs
-          </span>
-        </figcaption>
-      </figure>
+            <span
+              aria-hidden='true'
+              style={{
+                flex: '0 0 auto',
+                marginTop: 2,
+                width: 18,
+                height: 18,
+                borderRadius: 9999,
+                background: 'rgba(255,255,255,0.18)',
+                display: 'grid',
+                placeItems: 'center',
+              }}
+            >
+              <Check size={11} strokeWidth={3} color='var(--me-on-brand)' />
+            </span>
+            {line}
+          </li>
+        ))}
+      </ul>
     </aside>
   );
 }

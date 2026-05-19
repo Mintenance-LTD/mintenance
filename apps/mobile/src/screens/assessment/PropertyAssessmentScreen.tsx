@@ -12,7 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import * as ImagePicker from 'expo-image-picker';
 import { logger } from '@mintenance/shared';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 import { useAuth } from '../../contexts/AuthContext';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import { AssessmentStep } from './types';
@@ -434,11 +434,7 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({
           <View style={styles.formSection}>
             <Text style={styles.sectionTitle}>Video Captured</Text>
             <View style={styles.videoDoneRow}>
-              <Icon
-                name='check-circle'
-                size={20}
-                color={theme.colors.primary}
-              />
+              <Icon name='check-circle' size={20} color={me.brand} />
               <Text style={styles.videoDoneText}>
                 Video walkthrough recorded
               </Text>
@@ -465,7 +461,7 @@ export const PropertyAssessmentScreen: React.FC<Props> = ({
               multiline
               numberOfLines={5}
               placeholder='Add your observations, context, or notes about the property...'
-              placeholderTextColor={theme.colors.textTertiary}
+              placeholderTextColor={me.ink3}
               value={manualNotes}
               onChangeText={(text) => {
                 setManualNotes(text);

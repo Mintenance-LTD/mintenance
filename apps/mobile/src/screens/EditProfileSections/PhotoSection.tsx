@@ -1,14 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  Image,
-  StyleSheet,
-  Platform,
-} from 'react-native';
+import { View, Text, TouchableOpacity, Image, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 interface PhotoSectionProps {
   photoUri: string | null;
@@ -60,7 +53,7 @@ export const PhotoSection: React.FC<PhotoSectionProps> = ({
           </View>
         )}
         <View style={styles.photoEditButton}>
-          <Ionicons name='camera' size={16} color={theme.colors.textInverse} />
+          <Ionicons name='camera' size={16} color={me.onBrand} />
         </View>
       </TouchableOpacity>
       <TouchableOpacity onPress={onPickPhoto} style={styles.changePhotoButton}>
@@ -85,40 +78,24 @@ const styles = StyleSheet.create({
     height: 96,
     borderRadius: 48,
     borderWidth: 3,
-    borderColor: theme.colors.surface,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.12,
-        shadowRadius: 12,
-      },
-      android: { elevation: 4 },
-    }),
+    borderColor: me.surface,
+    ...me.shadow.pop,
   },
   avatarPlaceholder: {
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 3,
-    borderColor: theme.colors.surface,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.12,
-        shadowRadius: 12,
-      },
-      android: { elevation: 4 },
-    }),
+    borderColor: me.surface,
+    ...me.shadow.pop,
   },
   avatarText: {
     fontSize: 32,
     fontWeight: '700',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
   },
   photoEditButton: {
     position: 'absolute',
@@ -127,11 +104,11 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: theme.colors.surface,
+    borderColor: me.surface,
   },
   changePhotoButton: {
     paddingVertical: 6,
@@ -139,7 +116,7 @@ const styles = StyleSheet.create({
   },
   changePhotoText: {
     fontSize: 14,
-    color: theme.colors.primary,
+    color: me.brand,
     fontWeight: '600',
   },
 });

@@ -5,12 +5,11 @@ import {
   StyleSheet,
   Animated,
   TouchableOpacity,
-  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { User } from '@mintenance/types';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 interface ProfileCompletenessProps {
   user: User | null;
@@ -102,23 +101,17 @@ export const ProfileCompleteness: React.FC<ProfileCompletenessProps> = ({
       <View style={styles.topRow}>
         {isComplete ? (
           <View style={styles.completeRow}>
-            <Ionicons
-              name="checkmark-circle"
-              size={16}
-              color={theme.colors.primary}
-            />
+            <Ionicons name='checkmark-circle' size={16} color={me.brand} />
             <Text style={styles.completeText}>Profile complete!</Text>
           </View>
         ) : (
           <>
-            <Text style={styles.label}>
-              Profile {percentage}% complete
-            </Text>
+            <Text style={styles.label}>Profile {percentage}% complete</Text>
             <TouchableOpacity
               onPress={() => navigation.navigate('EditProfile')}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              accessibilityRole="link"
-              accessibilityLabel="Complete your profile now"
+              accessibilityRole='link'
+              accessibilityLabel='Complete your profile now'
             >
               <Text style={styles.cta}>Complete now &rarr;</Text>
             </TouchableOpacity>
@@ -132,9 +125,7 @@ export const ProfileCompleteness: React.FC<ProfileCompletenessProps> = ({
             styles.fill,
             {
               width: fillWidth,
-              backgroundColor: isComplete
-                ? theme.colors.primary
-                : theme.colors.textPrimary,
+              backgroundColor: isComplete ? me.brand : me.ink,
             },
           ]}
         />
@@ -156,11 +147,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     padding: 16,
     borderRadius: 16,
-    backgroundColor: theme.colors.surface,
-    ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
-      android: { elevation: 2 },
-    }),
+    backgroundColor: me.surface,
+    ...me.shadow.card,
   },
   topRow: {
     flexDirection: 'row',
@@ -171,12 +159,12 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   cta: {
     fontSize: 13,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   completeRow: {
     flexDirection: 'row',
@@ -186,12 +174,12 @@ const styles = StyleSheet.create({
   completeText: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.primary,
+    color: me.brand,
   },
   track: {
     height: 6,
     borderRadius: 3,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     overflow: 'hidden',
   },
   fill: {
@@ -200,7 +188,7 @@ const styles = StyleSheet.create({
   },
   hint: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginTop: 6,
   },
 });

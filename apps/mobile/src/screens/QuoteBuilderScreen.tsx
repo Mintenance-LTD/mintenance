@@ -23,7 +23,7 @@ import { QuoteCard } from '../components/QuoteCard';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { Banner } from '../components/ui/Banner';
 import { useToast } from '../components/ui/Toast';
-import { theme } from '../theme';
+import { me } from '../design-system/mint-editorial';
 import { styles } from './QuoteBuilderStyles';
 
 interface QuoteBuilderScreenProps {
@@ -159,15 +159,15 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
         {
           value: String(stats.accepted_quotes),
           label: 'Accepted',
-          iconColor: theme.colors.primary,
-          iconBg: theme.colors.primaryLight,
+          iconColor: me.brand,
+          iconBg: me.brandSoft,
           icon: 'checkmark-circle-outline' as const,
         },
         {
           value: formatCurrency(stats.total_value),
           label: 'Value',
-          iconColor: theme.colors.accent,
-          iconBg: theme.colors.accentLight,
+          iconColor: me.accent,
+          iconBg: me.warnBg,
           icon: 'wallet-outline' as const,
         },
         {
@@ -199,8 +199,8 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
     {
       icon: 'add-circle' as const,
       label: 'New Quote',
-      iconColor: theme.colors.primary,
-      iconBg: theme.colors.primaryLight,
+      iconColor: me.brand,
+      iconBg: me.brandSoft,
       onPress: () =>
         (navigation.navigate as (...args: unknown[]) => void)('CreateQuote'),
     },
@@ -221,11 +221,7 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
             accessibilityRole='button'
             accessibilityLabel='Go back'
           >
-            <Ionicons
-              name='arrow-back'
-              size={24}
-              color={theme.colors.textPrimary}
-            />
+            <Ionicons name='arrow-back' size={24} color={me.ink} />
           </TouchableOpacity>
           <View>
             <Text style={styles.headerLabel}>Revenue Growth</Text>
@@ -240,11 +236,7 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
           accessibilityRole='button'
           accessibilityLabel='Create new quote'
         >
-          <Ionicons
-            name='add-circle'
-            size={18}
-            color={theme.colors.textInverse}
-          />
+          <Ionicons name='add-circle' size={18} color={me.onBrand} />
           <Text style={styles.addButtonText}>New Quote</Text>
         </TouchableOpacity>
       </View>
@@ -255,8 +247,8 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            tintColor={theme.colors.textPrimary}
-            colors={[theme.colors.textPrimary]}
+            tintColor={me.ink}
+            colors={[me.ink]}
           />
         }
         showsVerticalScrollIndicator={false}
@@ -421,7 +413,7 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
                 <Ionicons
                   name='document-text-outline'
                   size={32}
-                  color={theme.colors.textTertiary}
+                  color={me.ink3}
                 />
               </View>
               <Text style={styles.emptyTitle}>No quotes found</Text>

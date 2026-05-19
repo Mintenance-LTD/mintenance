@@ -135,11 +135,23 @@ export function UploadSection({
         whileInView='visible'
         viewport={{ once: true }}
         transition={{ duration: 0.5 }}
-        className='bg-white rounded-3xl shadow-xl p-8 sm:p-12'
+        className='p-8 sm:p-12'
+        style={{
+          background: 'var(--me-surface)',
+          borderRadius: 'var(--me-radius-card)',
+          boxShadow: 'var(--me-shadow-pop)',
+          border: '1px solid var(--me-line)',
+        }}
       >
         <h2
           id='upload-heading'
-          className='text-3xl font-bold text-gray-900 mb-6 text-center'
+          className='text-3xl mb-6 text-center'
+          style={{
+            color: 'var(--me-ink)',
+            fontFamily: 'var(--me-font-display)',
+            fontWeight: 500,
+            letterSpacing: '-0.02em',
+          }}
         >
           Upload Property Photos
         </h2>
@@ -150,15 +162,18 @@ export function UploadSection({
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
-          className={`
-            relative border-2 border-dashed rounded-2xl p-12 transition-all duration-300
-            ${
-              isDragging
-                ? 'border-teal-600 bg-teal-50'
-                : 'border-gray-300 bg-gray-50 hover:border-teal-400 hover:bg-gray-100'
-            }
-            ${uploadState === 'analyzing' || uploadState === 'uploading' ? 'opacity-50 pointer-events-none' : ''}
-          `}
+          className={`relative p-12 transition-all duration-300 ${
+            uploadState === 'analyzing' || uploadState === 'uploading'
+              ? 'opacity-50 pointer-events-none'
+              : ''
+          }`}
+          style={{
+            border: `2px dashed ${
+              isDragging ? 'var(--me-brand)' : 'var(--me-line)'
+            }`,
+            borderRadius: 'var(--me-radius-card)',
+            background: isDragging ? 'var(--me-brand-soft)' : 'var(--me-bg-2)',
+          }}
           role='button'
           tabIndex={0}
           aria-label='Upload area for property damage photos. Drag and drop files or click to browse.'
@@ -180,17 +195,30 @@ export function UploadSection({
 
           <div className='text-center'>
             <Upload
-              className={`mx-auto h-16 w-16 mb-4 ${isDragging ? 'text-teal-600' : 'text-gray-400'}`}
+              className='mx-auto h-16 w-16 mb-4'
+              style={{
+                color: isDragging ? 'var(--me-brand)' : 'var(--me-ink-3)',
+              }}
               aria-hidden='true'
             />
-            <p className='text-lg font-medium text-gray-900 mb-2'>
+            <p
+              className='text-lg font-medium mb-2'
+              style={{ color: 'var(--me-ink)' }}
+            >
               {isDragging ? 'Drop files here' : 'Drag and drop files here'}
             </p>
-            <p className='text-gray-600 mb-4'>or</p>
+            <p className='mb-4' style={{ color: 'var(--me-ink-2)' }}>
+              or
+            </p>
             <button
               type='button'
               onClick={() => document.getElementById('file-input')?.click()}
-              className='inline-flex items-center gap-2 px-6 py-3 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 transition-colors'
+              className='inline-flex items-center gap-2 px-6 py-3 font-semibold focus:outline-none focus:ring-2 focus:ring-offset-2 transition-colors'
+              style={{
+                background: 'var(--me-brand)',
+                color: 'var(--me-on-brand)',
+                borderRadius: 'var(--me-radius-btn)',
+              }}
             >
               <ImageIcon className='w-5 h-5' aria-hidden='true' />
               Browse Files
@@ -199,7 +227,8 @@ export function UploadSection({
 
           <p
             id='file-requirements'
-            className='text-sm text-gray-500 text-center mt-6'
+            className='text-sm text-center mt-6'
+            style={{ color: 'var(--me-ink-3)' }}
           >
             Upload 1-3 photos • Supports JPG, PNG, HEIC (max 10MB each)
           </p>
@@ -208,7 +237,10 @@ export function UploadSection({
         {/* Image previews */}
         {imagePreviews.length > 0 && (
           <div className='mt-8'>
-            <h3 className='text-lg font-semibold text-gray-900 mb-4'>
+            <h3
+              className='text-lg font-semibold mb-4'
+              style={{ color: 'var(--me-ink)' }}
+            >
               Selected Images ({uploadedImages.length}/3)
             </h3>
             <div className='grid grid-cols-1 sm:grid-cols-3 gap-4'>
@@ -217,12 +249,20 @@ export function UploadSection({
                   <img
                     src={preview}
                     alt={`Preview ${index + 1} of ${imagePreviews.length}`}
-                    className='w-full h-48 object-cover rounded-lg border-2 border-gray-200'
+                    className='w-full h-48 object-cover'
+                    style={{
+                      borderRadius: 'var(--me-radius-input)',
+                      border: '2px solid var(--me-line)',
+                    }}
                   />
                   <button
                     type='button'
                     onClick={() => removeImage(index)}
-                    className='absolute top-2 right-2 p-2 bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-red-500'
+                    className='absolute top-2 right-2 p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100 focus:outline-none focus:ring-2'
+                    style={{
+                      background: 'var(--me-err-fg)',
+                      color: 'var(--me-on-brand)',
+                    }}
                     aria-label={`Remove image ${index + 1}`}
                   >
                     <X className='w-4 h-4' aria-hidden='true' />
@@ -236,7 +276,10 @@ export function UploadSection({
         {/* Progress indicator */}
         {(uploadState === 'uploading' || uploadState === 'analyzing') && (
           <div className='mt-8' role='status' aria-live='polite'>
-            <div className='flex items-center justify-center gap-3 text-teal-700'>
+            <div
+              className='flex items-center justify-center gap-3'
+              style={{ color: 'var(--me-brand-2)' }}
+            >
               <Loader2 className='w-6 h-6 animate-spin' aria-hidden='true' />
               <span className='text-lg font-medium'>
                 {uploadState === 'uploading'
@@ -244,10 +287,17 @@ export function UploadSection({
                   : 'Analyzing with AI...'}
               </span>
             </div>
-            <div className='mt-4 bg-gray-200 rounded-full h-2 overflow-hidden'>
+            <div
+              className='mt-4 rounded-full h-2 overflow-hidden'
+              style={{ background: 'var(--me-bg-3)' }}
+            >
               <div
-                className='h-full bg-gradient-to-r from-teal-600 to-emerald-600 animate-pulse'
-                style={{ width: uploadState === 'uploading' ? '40%' : '80%' }}
+                className='h-full animate-pulse'
+                style={{
+                  width: uploadState === 'uploading' ? '40%' : '80%',
+                  background:
+                    'linear-gradient(170deg, var(--me-brand-2) 0%, var(--me-brand) 100%)',
+                }}
               />
             </div>
           </div>
@@ -256,11 +306,18 @@ export function UploadSection({
         {/* Error message */}
         {errorMessage && (
           <div
-            className='mt-6 p-4 bg-red-50 border border-red-200 rounded-lg'
+            className='mt-6 p-4'
+            style={{
+              background: 'var(--me-err-bg)',
+              border: '1px solid var(--me-err-fg)',
+              borderRadius: 'var(--me-radius-input)',
+            }}
             role='alert'
             aria-live='assertive'
           >
-            <p className='text-red-800 font-medium'>{errorMessage}</p>
+            <p className='font-medium' style={{ color: 'var(--me-err-fg)' }}>
+              {errorMessage}
+            </p>
           </div>
         )}
 
@@ -270,7 +327,14 @@ export function UploadSection({
             <button
               type='button'
               onClick={onAnalyze}
-              className='inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-teal-600 to-emerald-600 text-white rounded-xl font-semibold text-lg shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2'
+              className='inline-flex items-center gap-2 px-8 py-4 font-semibold text-lg transform hover:-translate-y-0.5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2'
+              style={{
+                background:
+                  'linear-gradient(170deg, var(--me-brand-2) 0%, var(--me-brand) 100%)',
+                color: 'var(--me-on-brand)',
+                borderRadius: 'var(--me-radius-card)',
+                boxShadow: 'var(--me-shadow-pop)',
+              }}
             >
               <CheckCircle2 className='w-6 h-6' aria-hidden='true' />
               Analyze with Mint AI
@@ -282,7 +346,8 @@ export function UploadSection({
         <div className='mt-6 text-center'>
           <a
             href='#how-it-works'
-            className='text-teal-600 hover:text-teal-700 font-medium underline focus:outline-none focus:ring-2 focus:ring-teal-500 rounded'
+            className='font-medium underline focus:outline-none focus:ring-2 rounded'
+            style={{ color: 'var(--me-brand)' }}
           >
             See example photos
           </a>

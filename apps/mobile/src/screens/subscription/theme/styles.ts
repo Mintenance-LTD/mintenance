@@ -1,5 +1,5 @@
-import { Platform, StyleSheet } from 'react-native';
-import { theme } from '../../../theme';
+import { StyleSheet } from 'react-native';
+import { me } from '../../../design-system/mint-editorial';
 
 /**
  * StyleSheet for the Subscription screen + sub-components.
@@ -8,7 +8,7 @@ import { theme } from '../../../theme';
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   scrollView: {
     flex: 1,
@@ -18,23 +18,15 @@ export const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   statusCard: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     padding: 20,
     marginBottom: 24,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   statusLabel: {
     fontSize: 12,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.8,
@@ -48,14 +40,14 @@ export const styles = StyleSheet.create({
   planName: {
     fontSize: 22,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     textTransform: 'capitalize',
   },
   trialChip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: theme.colors.accentLight,
+    backgroundColor: me.warnBg,
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 5,
@@ -64,12 +56,12 @@ export const styles = StyleSheet.create({
   },
   trialText: {
     fontSize: 13,
-    color: theme.colors.accent,
+    color: me.accent,
     fontWeight: '600',
   },
   periodText: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginTop: 6,
   },
   cancelBtn: {
@@ -79,31 +71,23 @@ export const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 14,
   },
   planCard: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     padding: 20,
     marginBottom: 14,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   currentPlanCard: {
     borderWidth: 2,
-    borderColor: theme.colors.primary,
+    borderColor: me.brand,
   },
   selectedPlanCard: {
     borderWidth: 2,
-    borderColor: theme.colors.primary,
+    borderColor: me.brand,
   },
   planHeader: {
     flexDirection: 'row',
@@ -114,18 +98,18 @@ export const styles = StyleSheet.create({
   planTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   planPrice: {
     fontSize: 28,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginTop: 4,
   },
   planCycle: {
     fontSize: 14,
     fontWeight: '400',
-    color: theme.colors.textTertiary,
+    color: me.ink3,
   },
   badgeStack: {
     gap: 4,
@@ -135,7 +119,7 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: theme.colors.accentLight,
+    backgroundColor: me.warnBg,
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 3,
@@ -143,10 +127,10 @@ export const styles = StyleSheet.create({
   recommendedText: {
     fontSize: 11,
     fontWeight: '700',
-    color: theme.colors.accent,
+    color: me.accent,
   },
   currentBadge: {
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: me.brandSoft,
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 3,
@@ -154,7 +138,7 @@ export const styles = StyleSheet.create({
   currentBadgeText: {
     fontSize: 11,
     fontWeight: '700',
-    color: theme.colors.primary,
+    color: me.brand,
   },
   featureRow: {
     flexDirection: 'row',
@@ -166,13 +150,13 @@ export const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: me.brandSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
   featureText: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     flex: 1,
   },
   subscribeBtn: {
@@ -187,17 +171,17 @@ export const styles = StyleSheet.create({
   },
   inlineText: {
     fontSize: 15,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   retryBtn: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
     borderRadius: 20,
     paddingHorizontal: 24,
     paddingVertical: 10,
     marginTop: 4,
   },
   retryBtnText: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontSize: 14,
     fontWeight: '600',
   },

@@ -24,7 +24,7 @@ import { LoadingSpinner } from '../components/LoadingSpinner';
 import SearchBar from '../components/SearchBar';
 import { mobileApiClient } from '../utils/mobileApiClient';
 import { goToMessagingThread } from '../navigation/hooks';
-import { theme } from '../theme';
+import { me } from '../design-system/mint-editorial';
 import { styles as s } from './CRMDashboardStyles';
 import {
   FILTERS,
@@ -165,11 +165,7 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
               onPress={() => handleCall(item)}
               accessibilityLabel='Call'
             >
-              <Ionicons
-                name='call-outline'
-                size={18}
-                color={theme.colors.textSecondary}
-              />
+              <Ionicons name='call-outline' size={18} color={me.ink2} />
             </TouchableOpacity>
           ) : null}
           <TouchableOpacity
@@ -177,11 +173,7 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
             onPress={() => handleMessage(item)}
             accessibilityLabel='Message'
           >
-            <Ionicons
-              name='chatbubble-outline'
-              size={18}
-              color={theme.colors.textSecondary}
-            />
+            <Ionicons name='chatbubble-outline' size={18} color={me.ink2} />
           </TouchableOpacity>
           {item.email ? (
             <TouchableOpacity
@@ -189,11 +181,7 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
               onPress={() => handleEmail(item)}
               accessibilityLabel='Email'
             >
-              <Ionicons
-                name='mail-outline'
-                size={18}
-                color={theme.colors.textSecondary}
-              />
+              <Ionicons name='mail-outline' size={18} color={me.ink2} />
             </TouchableOpacity>
           ) : null}
         </View>
@@ -204,11 +192,7 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
   const emptyState = () => (
     <View style={s.empty}>
       <View style={s.emptyIco}>
-        <Ionicons
-          name='people-outline'
-          size={48}
-          color={theme.colors.textTertiary}
-        />
+        <Ionicons name='people-outline' size={48} color={me.ink3} />
       </View>
       <Text style={s.emptyH}>No clients yet</Text>
       <Text style={s.emptyP}>
@@ -236,11 +220,7 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
           accessibilityRole='button'
           accessibilityLabel='Go back'
         >
-          <Ionicons
-            name='arrow-back'
-            size={22}
-            color={theme.colors.textPrimary}
-          />
+          <Ionicons name='arrow-back' size={22} color={me.ink} />
         </TouchableOpacity>
         <Text style={s.hdrTitle}>My Clients</Text>
         <View style={{ width: 40 }} />
@@ -275,11 +255,7 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
           <Ionicons
             name='options-outline'
             size={20}
-            color={
-              showFilters
-                ? theme.colors.textInverse
-                : theme.colors.textSecondary
-            }
+            color={showFilters ? me.onBrand : me.ink2}
           />
         </TouchableOpacity>
       </View>
@@ -328,8 +304,8 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
           <RefreshControl
             refreshing={refreshing}
             onRefresh={handleRefresh}
-            tintColor={theme.colors.textPrimary}
-            colors={[theme.colors.textPrimary]}
+            tintColor={me.ink}
+            colors={[me.ink]}
           />
         }
       />

@@ -172,7 +172,7 @@ export default async function JobDetailPage2025({
   }
 
   // Fetch review counts per contractor in one round-trip so the bid
-  // card can show "4.5 ★ (12 reviews)" instead of just the rating
+  // card can show "4.5 stars (12 reviews)" instead of just the rating
   // number. Mirrors the mobile BidReviewCard which already renders
   // reviews_count; web was showing only avatar + name + amount.
   const reviewCountMap = new Map<string, number>();

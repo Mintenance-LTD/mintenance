@@ -1,7 +1,14 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { MapPin, Navigation, MapPinned, X, AlertCircle, Loader2 } from 'lucide-react';
+import {
+  MapPin,
+  Navigation,
+  MapPinned,
+  X,
+  AlertCircle,
+  Loader2,
+} from 'lucide-react';
 import { designTokens } from '@/lib/design-tokens';
 import { logger } from '@mintenance/shared';
 import { getCsrfHeaders } from '@/lib/csrf-client';
@@ -74,15 +81,22 @@ export function LocationPromptModal(props: LocationPromptModalProps) {
     // Check permission status first (if supported)
     if ('permissions' in navigator) {
       try {
-        const permission = await navigator.permissions.query({ name: 'geolocation' as PermissionName });
+        const permission = await navigator.permissions.query({
+          name: 'geolocation' as PermissionName,
+        });
         if (permission.state === 'denied') {
-          setError('Location permission denied. Please enable location access in your browser settings.');
+          setError(
+            'Location permission denied. Please enable location access in your browser settings.'
+          );
           setIsLoadingGeo(false);
           return;
         }
       } catch (err) {
         // Permission API not fully supported, continue anyway
-        logger.warn('Permission API check failed', { error: err, service: 'ui' });
+        logger.warn('Permission API check failed', {
+          error: err,
+          service: 'ui',
+        });
       }
     }
 
@@ -123,16 +137,22 @@ export function LocationPromptModal(props: LocationPromptModalProps) {
         // Handle specific geolocation errors
         switch (error.code) {
           case 1: // PERMISSION_DENIED
-            setError('Location permission denied. Please enable location access in your browser settings.');
+            setError(
+              'Location permission denied. Please enable location access in your browser settings.'
+            );
             break;
           case 2: // POSITION_UNAVAILABLE
-            setError('Location information is unavailable. Please try manual entry.');
+            setError(
+              'Location information is unavailable. Please try manual entry.'
+            );
             break;
           case 3: // TIMEOUT
             setError('Location request timed out. Please try again.');
             break;
           default:
-            setError('Unable to retrieve your location. Please try manual entry.');
+            setError(
+              'Unable to retrieve your location. Please try manual entry.'
+            );
         }
       },
       {
@@ -160,7 +180,9 @@ export function LocationPromptModal(props: LocationPromptModalProps) {
       const locationData = await geocodeAddress(manualAddress);
 
       if (!locationData) {
-        setError('Could not find location. Please check the address and try again.');
+        setError(
+          'Could not find location. Please check the address and try again.'
+        );
         setIsLoadingManual(false);
         return;
       }
@@ -182,7 +204,10 @@ export function LocationPromptModal(props: LocationPromptModalProps) {
   };
 
   // Reverse geocode coordinates to address using SECURE PROXY
-  const reverseGeocode = async (lat: number, lng: number): Promise<Partial<LocationData>> => {
+  const reverseGeocode = async (
+    lat: number,
+    lng: number
+  ): Promise<Partial<LocationData>> => {
     try {
       const response = await fetch('/api/geocode-proxy', {
         method: 'POST',
@@ -200,12 +225,17 @@ export function LocationPromptModal(props: LocationPromptModalProps) {
 
       if (data.formatted_address) {
         // Parse address components from formatted address
-        const addressParts = data.formatted_address.split(',').map((p: string) => p.trim());
+        const addressParts = data.formatted_address
+          .split(',')
+          .map((p: string) => p.trim());
 
         return {
           address: data.formatted_address,
           city: addressParts[0] || undefined,
-          postcode: addressParts.find((p: string) => /[A-Z]{1,2}\d{1,2}\s?\d[A-Z]{2}/i.test(p)) || undefined,
+          postcode:
+            addressParts.find((p: string) =>
+              /[A-Z]{1,2}\d{1,2}\s?\d[A-Z]{2}/i.test(p)
+            ) || undefined,
         };
       }
 
@@ -217,7 +247,9 @@ export function LocationPromptModal(props: LocationPromptModalProps) {
   };
 
   // Geocode address to coordinates using SECURE PROXY
-  const geocodeAddress = async (address: string): Promise<LocationData | null> => {
+  const geocodeAddress = async (
+    address: string
+  ): Promise<LocationData | null> => {
     try {
       const response = await fetch('/api/geocode-proxy', {
         method: 'POST',
@@ -235,14 +267,19 @@ export function LocationPromptModal(props: LocationPromptModalProps) {
 
       if (data.latitude && data.longitude && data.formatted_address) {
         // Parse address components from formatted address
-        const addressParts = data.formatted_address.split(',').map((p: string) => p.trim());
+        const addressParts = data.formatted_address
+          .split(',')
+          .map((p: string) => p.trim());
 
         return {
           latitude: data.latitude,
           longitude: data.longitude,
           address: data.formatted_address,
           city: addressParts[0] || undefined,
-          postcode: addressParts.find((p: string) => /[A-Z]{1,2}\d{1,2}\s?\d[A-Z]{2}/i.test(p)) || undefined,
+          postcode:
+            addressParts.find((p: string) =>
+              /[A-Z]{1,2}\d{1,2}\s?\d[A-Z]{2}/i.test(p)
+            ) || undefined,
         };
       }
 
@@ -259,7 +296,7 @@ export function LocationPromptModal(props: LocationPromptModalProps) {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
-        ...await getCsrfHeaders(),
+        ...(await getCsrfHeaders()),
       },
       body: JSON.stringify({
         contractorId,
@@ -282,39 +319,67 @@ export function LocationPromptModal(props: LocationPromptModalProps) {
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 animate-fadeIn"
+        className='fixed inset-0 bg-black/50 backdrop-blur-sm z-50 animate-fadeIn'
         onClick={onClose}
-        aria-hidden="true"
+        aria-hidden='true'
       />
 
       {/* Modal */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+      <div
+        data-theme='mint-editorial'
+        className='fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none'
+        style={{ fontFamily: 'var(--me-font-body)' }}
+      >
         <div
-          className="bg-white rounded-2xl shadow-2xl max-w-md w-full pointer-events-auto animate-slideUp"
+          className='rounded-2xl max-w-md w-full pointer-events-auto animate-slideUp'
+          style={{
+            background: 'var(--me-surface)',
+            boxShadow: 'var(--me-shadow-pop)',
+          }}
           onClick={(e) => e.stopPropagation()}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="location-modal-title"
+          role='dialog'
+          aria-modal='true'
+          aria-labelledby='location-modal-title'
         >
           {/* Header */}
-          <div className="relative px-6 pt-6 pb-4 border-b border-gray-200">
+          <div
+            className='relative px-6 pt-6 pb-4'
+            style={{ borderBottom: '1px solid var(--me-line)' }}
+          >
             <button
               onClick={onClose}
-              className="absolute top-4 right-4 p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
-              aria-label="Close modal"
+              className='absolute top-4 right-4 p-2 rounded-lg transition-colors'
+              style={{ color: 'var(--me-ink-3)' }}
+              aria-label='Close modal'
             >
-              <X className="w-5 h-5" />
+              <X className='w-5 h-5' />
             </button>
 
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 bg-gradient-to-br from-teal-100 to-emerald-100 rounded-2xl flex items-center justify-center flex-shrink-0">
-                <MapPin className="w-7 h-7 text-teal-600" />
+            <div className='flex items-center gap-4'>
+              <div
+                className='w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0'
+                style={{ background: 'var(--me-brand-soft)' }}
+              >
+                <MapPin
+                  className='w-7 h-7'
+                  style={{ color: 'var(--me-brand)' }}
+                />
               </div>
               <div>
-                <h2 id="location-modal-title" className="text-2xl font-bold text-gray-900">
+                <h2
+                  id='location-modal-title'
+                  className='text-2xl font-bold'
+                  style={{
+                    color: 'var(--me-ink)',
+                    fontFamily: 'var(--me-font-display)',
+                  }}
+                >
                   Set Your Location
                 </h2>
-                <p className="text-sm text-gray-600 mt-1">
+                <p
+                  className='text-sm mt-1'
+                  style={{ color: 'var(--me-ink-2)' }}
+                >
                   Get personalized job recommendations near you
                 </p>
               </div>
@@ -322,13 +387,24 @@ export function LocationPromptModal(props: LocationPromptModalProps) {
           </div>
 
           {/* Content */}
-          <div className="px-6 py-6">
+          <div className='px-6 py-6'>
             {/* Error Message */}
             {error && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
-                <div className="flex-1">
-                  <p className="text-sm text-red-800">{error}</p>
+              <div
+                className='mb-4 p-3 rounded-lg flex items-start gap-3'
+                style={{
+                  background: 'var(--me-err-bg)',
+                  border: '1px solid var(--me-err-bg)',
+                }}
+              >
+                <AlertCircle
+                  className='w-5 h-5 flex-shrink-0 mt-0.5'
+                  style={{ color: 'var(--me-err-fg)' }}
+                />
+                <div className='flex-1'>
+                  <p className='text-sm' style={{ color: 'var(--me-err-fg)' }}>
+                    {error}
+                  </p>
                 </div>
               </div>
             )}
@@ -336,30 +412,72 @@ export function LocationPromptModal(props: LocationPromptModalProps) {
             {!showManualForm ? (
               <>
                 {/* Benefits List */}
-                <div className="mb-6 space-y-3">
-                  <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 bg-teal-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <svg className="w-4 h-4 text-teal-600" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                <div className='mb-6 space-y-3'>
+                  <div className='flex items-start gap-3'>
+                    <div
+                      className='w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5'
+                      style={{ background: 'var(--me-brand-soft)' }}
+                    >
+                      <svg
+                        className='w-4 h-4'
+                        fill='currentColor'
+                        viewBox='0 0 20 20'
+                        style={{ color: 'var(--me-brand)' }}
+                      >
+                        <path
+                          fillRule='evenodd'
+                          d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z'
+                          clipRule='evenodd'
+                        />
                       </svg>
                     </div>
-                    <p className="text-sm text-gray-700">See jobs in your area first</p>
+                    <p className='text-sm' style={{ color: 'var(--me-ink-2)' }}>
+                      See jobs in your area first
+                    </p>
                   </div>
-                  <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 bg-teal-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <svg className="w-4 h-4 text-teal-600" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  <div className='flex items-start gap-3'>
+                    <div
+                      className='w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5'
+                      style={{ background: 'var(--me-brand-soft)' }}
+                    >
+                      <svg
+                        className='w-4 h-4'
+                        fill='currentColor'
+                        viewBox='0 0 20 20'
+                        style={{ color: 'var(--me-brand)' }}
+                      >
+                        <path
+                          fillRule='evenodd'
+                          d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z'
+                          clipRule='evenodd'
+                        />
                       </svg>
                     </div>
-                    <p className="text-sm text-gray-700">Filter by distance from your location</p>
+                    <p className='text-sm' style={{ color: 'var(--me-ink-2)' }}>
+                      Filter by distance from your location
+                    </p>
                   </div>
-                  <div className="flex items-start gap-3">
-                    <div className="w-6 h-6 bg-teal-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <svg className="w-4 h-4 text-teal-600" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                  <div className='flex items-start gap-3'>
+                    <div
+                      className='w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5'
+                      style={{ background: 'var(--me-brand-soft)' }}
+                    >
+                      <svg
+                        className='w-4 h-4'
+                        fill='currentColor'
+                        viewBox='0 0 20 20'
+                        style={{ color: 'var(--me-brand)' }}
+                      >
+                        <path
+                          fillRule='evenodd'
+                          d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z'
+                          clipRule='evenodd'
+                        />
                       </svg>
                     </div>
-                    <p className="text-sm text-gray-700">Better match with local homeowners</p>
+                    <p className='text-sm' style={{ color: 'var(--me-ink-2)' }}>
+                      Better match with local homeowners
+                    </p>
                   </div>
                 </div>
 
@@ -367,37 +485,59 @@ export function LocationPromptModal(props: LocationPromptModalProps) {
                 <button
                   onClick={handleUseCurrentLocation}
                   disabled={isLoadingGeo}
-                  className="w-full py-3.5 px-4 bg-gradient-to-r from-teal-600 to-emerald-600 text-white rounded-xl font-semibold hover:from-teal-700 hover:to-emerald-700 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                  className='w-full py-3.5 px-4 rounded-xl font-semibold transform hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none'
+                  style={{
+                    background:
+                      'linear-gradient(170deg, var(--me-brand-2) 0%, var(--me-brand) 100%)',
+                    color: 'var(--me-on-brand)',
+                    boxShadow: 'var(--me-shadow-btn)',
+                  }}
                 >
                   {isLoadingGeo ? (
                     <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <Loader2 className='w-5 h-5 animate-spin' />
                       Getting Your Location...
                     </>
                   ) : (
                     <>
-                      <Navigation className="w-5 h-5" />
+                      <Navigation className='w-5 h-5' />
                       Use My Current Location
                     </>
                   )}
                 </button>
 
                 {/* Divider */}
-                <div className="relative my-4">
-                  <div className="absolute inset-0 flex items-center">
-                    <div className="w-full border-t border-gray-200" />
+                <div className='relative my-4'>
+                  <div className='absolute inset-0 flex items-center'>
+                    <div
+                      className='w-full'
+                      style={{ borderTop: '1px solid var(--me-line)' }}
+                    />
                   </div>
-                  <div className="relative flex justify-center text-sm">
-                    <span className="px-3 bg-white text-gray-500">or</span>
+                  <div className='relative flex justify-center text-sm'>
+                    <span
+                      className='px-3'
+                      style={{
+                        background: 'var(--me-surface)',
+                        color: 'var(--me-ink-3)',
+                      }}
+                    >
+                      or
+                    </span>
                   </div>
                 </div>
 
                 {/* Secondary Action - Manual Entry */}
                 <button
                   onClick={() => setShowManualForm(true)}
-                  className="w-full py-3.5 px-4 bg-white border-2 border-gray-300 text-gray-700 rounded-xl font-semibold hover:border-teal-500 hover:bg-gray-50 transition-all duration-200 flex items-center justify-center gap-2"
+                  className='w-full py-3.5 px-4 rounded-xl font-semibold transition-all duration-200 flex items-center justify-center gap-2'
+                  style={{
+                    background: 'var(--me-surface)',
+                    border: '2px solid var(--me-line)',
+                    color: 'var(--me-ink-2)',
+                  }}
                 >
-                  <MapPinned className="w-5 h-5" />
+                  <MapPinned className='w-5 h-5' />
                   Enter Address Manually
                 </button>
               </>
@@ -405,43 +545,62 @@ export function LocationPromptModal(props: LocationPromptModalProps) {
               <>
                 {/* Manual Address Form */}
                 <form onSubmit={handleManualSubmit}>
-                  <div className="mb-4">
-                    <label htmlFor="manual-address" className="block text-sm font-medium text-gray-700 mb-2">
+                  <div className='mb-4'>
+                    <label
+                      htmlFor='manual-address'
+                      className='block text-sm font-medium mb-2'
+                      style={{ color: 'var(--me-ink-2)' }}
+                    >
                       Enter your address or postcode
                     </label>
                     <input
-                      id="manual-address"
-                      type="text"
+                      id='manual-address'
+                      type='text'
                       value={manualAddress}
                       onChange={(e) => setManualAddress(e.target.value)}
-                      placeholder="e.g., SW1A 1AA or 10 Downing Street, London"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent transition-all"
+                      placeholder='e.g., SW1A 1AA or 10 Downing Street, London'
+                      className='w-full px-4 py-3 rounded-lg transition-all'
+                      style={{
+                        background: 'var(--me-surface)',
+                        border: '1px solid var(--me-line)',
+                        color: 'var(--me-ink)',
+                      }}
                       disabled={isLoadingManual}
                       autoFocus
                     />
                   </div>
 
-                  <div className="flex gap-3">
+                  <div className='flex gap-3'>
                     <button
-                      type="button"
+                      type='button'
                       onClick={() => {
                         setShowManualForm(false);
                         setManualAddress('');
                         setError(null);
                       }}
-                      className="flex-1 py-3 px-4 bg-gray-100 text-gray-700 rounded-lg font-semibold hover:bg-gray-200 transition-colors"
+                      className='flex-1 py-3 px-4 rounded-lg font-semibold transition-colors'
+                      style={{
+                        background: 'var(--me-bg-2)',
+                        color: 'var(--me-ink-2)',
+                      }}
                       disabled={isLoadingManual}
                     >
                       Back
                     </button>
                     <button
-                      type="submit"
+                      type='submit'
                       disabled={isLoadingManual || !manualAddress.trim()}
-                      className="flex-1 py-3 px-4 bg-gradient-to-r from-teal-600 to-emerald-600 text-white rounded-lg font-semibold hover:from-teal-700 hover:to-emerald-700 shadow-lg transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className='flex-1 py-3 px-4 rounded-lg font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed'
+                      style={{
+                        background:
+                          'linear-gradient(170deg, var(--me-brand-2) 0%, var(--me-brand) 100%)',
+                        color: 'var(--me-on-brand)',
+                        boxShadow: 'var(--me-shadow-btn)',
+                      }}
                     >
                       {isLoadingManual ? (
                         <>
-                          <Loader2 className="w-5 h-5 animate-spin" />
+                          <Loader2 className='w-5 h-5 animate-spin' />
                           Saving...
                         </>
                       ) : (
@@ -455,17 +614,27 @@ export function LocationPromptModal(props: LocationPromptModalProps) {
           </div>
 
           {/* Footer */}
-          <div className="px-6 py-4 bg-gray-50 rounded-b-2xl border-t border-gray-200">
+          <div
+            className='px-6 py-4 rounded-b-2xl'
+            style={{
+              background: 'var(--me-bg-2)',
+              borderTop: '1px solid var(--me-line)',
+            }}
+          >
             <button
               onClick={() => {
                 localStorage.setItem('location-prompt-dismissed', 'true');
                 onClose();
               }}
-              className="w-full text-sm text-gray-600 hover:text-gray-800 font-medium transition-colors"
+              className='w-full text-sm font-medium transition-colors'
+              style={{ color: 'var(--me-ink-2)' }}
             >
               Skip for now
             </button>
-            <p className="text-xs text-gray-500 text-center mt-2">
+            <p
+              className='text-xs text-center mt-2'
+              style={{ color: 'var(--me-ink-3)' }}
+            >
               You can always set your location later in settings
             </p>
           </div>

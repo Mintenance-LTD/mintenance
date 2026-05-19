@@ -7,7 +7,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { SkeletonDashboard } from '../../components/SkeletonLoader';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 export const HomeScreenLoading: React.FC = () => {
   return (
@@ -20,6 +20,6 @@ export const HomeScreenLoading: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
 });

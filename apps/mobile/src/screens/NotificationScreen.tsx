@@ -22,7 +22,7 @@ import {
 } from '../services/NotificationService';
 import { useAuth } from '../contexts/AuthContext';
 import { logger } from '../utils/logger';
-import { theme } from '../theme';
+import { me } from '../design-system/mint-editorial';
 import { supabase } from '../config/supabase';
 import {
   NotificationHeader,
@@ -210,8 +210,8 @@ export const NotificationScreen: React.FC = () => {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={handleRefresh}
-              tintColor={theme.colors.primary}
-              colors={[theme.colors.primary]}
+              tintColor={me.brand}
+              colors={[me.brand]}
             />
           }
           contentContainerStyle={styles.listContainer}
@@ -225,7 +225,7 @@ export const NotificationScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   listContainer: {
     paddingHorizontal: 12,

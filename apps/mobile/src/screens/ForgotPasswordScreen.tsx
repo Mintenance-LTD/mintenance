@@ -21,7 +21,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthService } from '../services/AuthService';
 import { AuthStackParamList } from '../navigation/types';
 import { logger } from '../utils/logger';
-import { theme } from '../theme';
+import { me } from '../design-system/mint-editorial';
 import { useScreenCaptureGuard } from '../hooks/useScreenCaptureGuard';
 
 type ForgotPasswordScreenNavigationProp = NativeStackNavigationProp<
@@ -127,7 +127,7 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
               <Ionicons
                 name='checkmark-circle'
                 size={48}
-                color={theme.colors.primary}
+                color={me.brand}
                 accessible={false}
               />
             </View>
@@ -188,11 +188,7 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
             accessibilityLabel='Go back'
             accessibilityHint='Return to login screen'
           >
-            <Ionicons
-              name='arrow-back'
-              size={24}
-              color={theme.colors.textPrimary}
-            />
+            <Ionicons name='arrow-back' size={24} color={me.ink} />
           </TouchableOpacity>
 
           <View style={styles.headerContent}>
@@ -301,21 +297,21 @@ const ForgotPasswordScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
   },
   container: {
     flex: 1,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
   },
   header: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     paddingBottom: 20,
     paddingHorizontal: 24,
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   backIconButton: {
     position: 'absolute',
@@ -336,7 +332,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 26,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     letterSpacing: -0.3,
   },
   keyboardContainer: {
@@ -368,14 +364,14 @@ const styles = StyleSheet.create({
   instructionTitle: {
     fontSize: 26,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 12,
     textAlign: 'center',
     letterSpacing: -0.3,
   },
   instructionText: {
     fontSize: 15,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     textAlign: 'center',
     lineHeight: 22,
     paddingHorizontal: 20,
@@ -385,7 +381,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   backLinkText: {
-    color: theme.colors.primary,
+    color: me.brand,
     fontSize: 15,
     fontWeight: '600',
   },
@@ -399,7 +395,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: me.brandSoft,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
@@ -407,7 +403,7 @@ const styles = StyleSheet.create({
   successTitle: {
     fontSize: 26,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginTop: 16,
     marginBottom: 12,
     textAlign: 'center',
@@ -415,36 +411,36 @@ const styles = StyleSheet.create({
   },
   successMessage: {
     fontSize: 15,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: 32,
   },
   emailHighlight: {
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   resendTimerText: {
     fontSize: 14,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     textAlign: 'center',
     marginBottom: 24,
   },
   resendLinkText: {
     fontSize: 14,
-    color: theme.colors.primary,
+    color: me.brand,
     fontWeight: '600',
     textAlign: 'center',
     marginBottom: 24,
   },
   backButton: {
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
     borderRadius: 28,
     paddingVertical: 16,
     paddingHorizontal: 32,
   },
   backButtonText: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontSize: 16,
     fontWeight: '700',
   },
