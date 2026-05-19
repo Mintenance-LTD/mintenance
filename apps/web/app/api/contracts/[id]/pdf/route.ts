@@ -2,7 +2,11 @@ import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { isValidUUID } from '@/lib/validation/uuid';
-import { NotFoundError, BadRequestError } from '@/lib/errors/api-error';
+import {
+  NotFoundError,
+  BadRequestError,
+  InternalServerError,
+} from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import jsPDF from 'jspdf';
 
@@ -49,6 +53,25 @@ export const GET = withApiHandler(
       .eq('id', contractId)
       .or(`contractor_id.eq.${user.id},homeowner_id.eq.${user.id}`)
       .single();
+
+    // Distinguish a genuine "no row / no access" from a real query
+    // failure. PostgREST returns code PGRST116 when `.single()` matches
+    // zero rows — that is the legitimate 404. Any OTHER error code is a
+    // schema/embed/RLS failure and must NOT be disguised as "not found"
+    // (a stale `profiles.insurance_number` select once failed exactly
+    // this way and surfaced a misleading 404). Log it and return 500 so
+    // it is diagnosable.
+    if (error && error.code !== 'PGRST116') {
+      logger.error('Contract PDF query failed', {
+        contractId,
+        code: error.code,
+        message: error.message,
+        details: error.details,
+      });
+      throw new InternalServerError(
+        'Could not load the contract for PDF export'
+      );
+    }
 
     if (error || !contract) {
       throw new NotFoundError('Contract not found or access denied');
