@@ -27,7 +27,7 @@ export const GET = withApiHandler(
       .from('reviews')
       .select(
         `id, rating, comment, response, response_at, response_blocked_by_admin,
-         contractor_id, reviewee_id,
+         reviewee_id,
          reviewer:profiles!reviews_reviewer_id_fkey ( id, first_name, last_name ),
          contractor:profiles!reviews_reviewee_id_fkey ( id, first_name, last_name, company_name ),
          job:jobs!reviews_job_id_fkey ( id, title )`
@@ -63,7 +63,7 @@ export const GET = withApiHandler(
           ? `${reviewer.first_name ?? ''} ${reviewer.last_name ?? ''}`.trim() ||
             'Homeowner'
           : 'Homeowner',
-        contractorId: r.contractor_id ?? r.reviewee_id,
+        contractorId: r.reviewee_id,
         contractorName: contractor
           ? `${contractor.first_name ?? ''} ${contractor.last_name ?? ''}`.trim() ||
             contractor.company_name ||
