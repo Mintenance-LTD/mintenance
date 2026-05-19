@@ -57,6 +57,7 @@ import { QuickJobModal } from '../screens/job-posting/QuickJobModal';
 // Import messaging hook for unread badge count
 import { useUnreadMessageCount } from '../hooks/useMessaging';
 import { useEnsurePushTokenRegistered } from '../hooks/useEnsurePushTokenRegistered';
+import { useAssignedJobLocationAutoStart } from '../hooks/useAssignedJobLocationAutoStart';
 
 // Import tab screen options
 import {
@@ -137,6 +138,7 @@ const TabNavigator: React.FC = () => {
   // and is safe to call repeatedly because savePushToken is an
   // upsert. See hook header for full rationale.
   useEnsurePushTokenRegistered();
+  useAssignedJobLocationAutoStart();
 
   // Fetch unread notification count for the Profile tab badge.
   // Re-fetches whenever the user changes (login/logout) or focus returns.
