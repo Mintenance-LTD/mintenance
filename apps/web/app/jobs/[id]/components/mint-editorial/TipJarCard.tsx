@@ -98,7 +98,7 @@ function InlineTipPaymentForm({
     }
 
     if (paymentIntent?.status === 'succeeded') {
-      toast.success('Tip sent — thanks for the kindness 💚');
+      toast.success('Tip sent — thanks for the kindness');
       onSuccess();
     } else {
       setError(
