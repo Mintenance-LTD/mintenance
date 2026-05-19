@@ -99,8 +99,18 @@ export function MintEditorialJobDetailView({
         {/* Below-the-fold interactive panels reuse the legacy
             components — they handle real API mutations (sign contract,
             confirm completion) that we don't want to re-implement in
-            this slice. */}
-        <div style={{ marginTop: 24 }}>
+            this slice.
+            Width-constrained (max-w-3xl) so the contract card and
+            photo review sit inside the same visual main column as the
+            hero's AI cards above, instead of stretching edge-to-edge
+            and crowding the Mint AI dock. */}
+        <div
+          style={{
+            marginTop: 24,
+            maxWidth: 768,
+            width: '100%',
+          }}
+        >
           {job.status === 'completed' && afterPhotos.length > 0 && (
             <div id='photo-review'>
               <HomeownerPhotoReview
