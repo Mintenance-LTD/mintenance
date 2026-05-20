@@ -1,7 +1,9 @@
 import type { Metadata } from 'next';
+import { cookies } from 'next/headers';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { QuoteDetailsClient } from './components/QuoteDetailsClient';
+import { MintEditorialQuoteDetailView } from './components/MintEditorialQuoteDetailView';
 import { redirect } from 'next/navigation';
 
 export const metadata: Metadata = {
@@ -26,6 +28,15 @@ export default async function QuoteDetailsPage({ params }: { params: Promise<{ i
 
     if (error || !quote) {
         redirect('/contractor/quotes');
+    }
+
+    // Mint Editorial theme branch — same data shape, polished editorial layout.
+    const cookieStore = await cookies();
+    const isMintEditorial =
+        cookieStore.get('mintenance-theme')?.value === 'mint-editorial';
+
+    if (isMintEditorial) {
+        return <MintEditorialQuoteDetailView quote={quote} />;
     }
 
     return <QuoteDetailsClient quote={quote} />;
