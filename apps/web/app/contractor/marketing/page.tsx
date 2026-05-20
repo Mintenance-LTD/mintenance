@@ -197,7 +197,12 @@ export default function MarketingToolsPage() {
             <Megaphone size={22} strokeWidth={1.5} />
           </span>
           <div className='col' style={{ gap: 4 }}>
-            <h1 className='t-h1'>Marketing & performance</h1>
+            <h1 className='t-h1' style={{ margin: 0 }}>
+              Marketing{' '}
+              <em style={{ color: 'var(--me-brand)', fontStyle: 'italic' }}>
+                & performance
+              </em>
+            </h1>
             <p className='t-body'>
               Track your profile views, bid acceptance, and review velocity —
               share your profile link to bring in new homeowners.

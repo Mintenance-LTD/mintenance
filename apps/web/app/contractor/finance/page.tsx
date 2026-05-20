@@ -220,7 +220,14 @@ export default function ContractorFinancePage2025() {
             style={{ padding: '20px 0 12px', alignItems: 'flex-start' }}
           >
             <div className='col' style={{ gap: 4 }}>
-              <h1 className='t-h1'>Finance</h1>
+              <h1 className='t-h1' style={{ margin: 0 }}>
+                Finance{' '}
+                <em
+                  style={{ color: 'var(--me-brand)', fontStyle: 'italic' }}
+                >
+                  overview
+                </em>
+              </h1>
               <p className='t-body'>
                 Track revenue, monitor payouts, and reconcile escrow transfers
                 from completed jobs.
