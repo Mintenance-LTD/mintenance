@@ -4,7 +4,7 @@ import '../styles/responsive.css';
 import '../styles/print.css';
 import '../styles/animations-enhanced.css';
 import { Inter } from 'next/font/google';
-import { headers } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import CookieConsent from '../components/CookieConsent';
 import { ErrorBoundary } from '../components/ui/ErrorBoundary';
 import { ChunkLoadErrorBoundary } from '../components/ChunkLoadErrorBoundary';
@@ -16,6 +16,13 @@ import { SessionMonitor } from '../components/session/SessionMonitor';
 // Material Symbols font — async loading to avoid render-blocking
 const materialSymbolsUrl =
   'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap';
+
+// Mint Editorial fonts (Phase 1). Loaded async via media="print" swap
+// the same way Material Symbols is — only the homeowner dashboard
+// currently uses them when `data-theme="mint-editorial"` is set, but
+// loading globally lets the toggle flip without re-hydrating.
+const mintEditorialFontsUrl =
+  'https://fonts.googleapis.com/css2?family=Instrument+Serif:ital,wght@0,400;1,400&family=Geist:wght@300;400;500;600;700&display=swap';
 
 // Optimize font loading
 const inter = Inter({
@@ -50,8 +57,18 @@ export default async function RootLayout({
   const headerStore = await headers();
   const cspNonce = headerStore.get('x-csp-nonce') ?? undefined;
 
+  // Mint Editorial Phase-1 theme toggle. Read from cookie set by the
+  // server action triggered by the floating switch (see
+  // app/api/theme/route.ts). Default empty so the legacy look is
+  // untouched on every surface that hasn't been migrated.
+  const cookieStore = await cookies();
+  const theme =
+    cookieStore.get('mintenance-theme')?.value === 'mint-editorial'
+      ? 'mint-editorial'
+      : undefined;
+
   return (
-    <html lang='en' suppressHydrationWarning>
+    <html lang='en' suppressHydrationWarning data-theme={theme}>
       <head>
         <meta
           name='google-site-verification'
@@ -83,6 +100,14 @@ export default async function RootLayout({
         <link
           rel='stylesheet'
           href={materialSymbolsUrl}
+          media='print'
+          crossOrigin='anonymous'
+        />
+        {/* Mint Editorial fonts — async via media="print" so they don't
+            block first paint when the legacy theme is active. */}
+        <link
+          rel='stylesheet'
+          href={mintEditorialFontsUrl}
           media='print'
           crossOrigin='anonymous'
         />

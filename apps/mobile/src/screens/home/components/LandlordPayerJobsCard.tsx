@@ -8,6 +8,8 @@
  *
  * Self-hides when the list is empty so non-landlord homeowners never
  * see an empty card on their dashboard.
+ *
+ * Direction A · Mint Editorial — token-styled.
  */
 
 import React, { useEffect, useState } from 'react';
@@ -15,7 +17,7 @@ import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { mobileApiClient as apiClient } from '../../../utils/mobileApiClient';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 interface PayerJob {
   id: string;
@@ -62,7 +64,7 @@ export const LandlordPayerJobsCard: React.FC = () => {
     // collapse to zero height once we know the list is empty.
     return (
       <View style={{ paddingVertical: 8, alignItems: 'center' }}>
-        <ActivityIndicator size='small' color={theme.colors.primary} />
+        <ActivityIndicator size='small' color={me.brand} />
       </View>
     );
   }
@@ -73,25 +75,25 @@ export const LandlordPayerJobsCard: React.FC = () => {
   return (
     <View
       style={{
-        backgroundColor: theme.colors.surface,
-        borderRadius: 14,
+        backgroundColor: me.surface,
+        borderRadius: me.radius.card,
         padding: 16,
         marginHorizontal: 16,
         marginTop: 12,
         borderWidth: 1,
-        borderColor: theme.colors.accentLight,
+        borderColor: me.line,
       }}
     >
       <View
         style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 6 }}
       >
-        <Ionicons name='wallet-outline' size={20} color={theme.colors.accent} />
+        <Ionicons name='wallet-outline' size={20} color={me.accent} />
         <Text
           style={{
             marginLeft: 6,
             fontSize: 16,
             fontWeight: '700',
-            color: theme.colors.textPrimary,
+            color: me.ink,
           }}
         >
           Jobs posted for you
@@ -100,7 +102,7 @@ export const LandlordPayerJobsCard: React.FC = () => {
       <Text
         style={{
           fontSize: 13,
-          color: theme.colors.textSecondary,
+          color: me.ink2,
           marginBottom: 10,
         }}
       >
@@ -124,7 +126,7 @@ export const LandlordPayerJobsCard: React.FC = () => {
             style={{
               paddingVertical: 10,
               borderTopWidth: 1,
-              borderTopColor: theme.colors.borderLight,
+              borderTopColor: me.line2,
             }}
           >
             <Text
@@ -132,7 +134,7 @@ export const LandlordPayerJobsCard: React.FC = () => {
               style={{
                 fontSize: 14,
                 fontWeight: '600',
-                color: theme.colors.textPrimary,
+                color: me.ink,
               }}
             >
               {j.title}
@@ -145,10 +147,7 @@ export const LandlordPayerJobsCard: React.FC = () => {
                 marginTop: 2,
               }}
             >
-              <Text
-                style={{ fontSize: 12, color: theme.colors.textSecondary }}
-                numberOfLines={1}
-              >
+              <Text style={{ fontSize: 12, color: me.ink2 }} numberOfLines={1}>
                 {j.homeowner.name}
                 {j.contractor ? ` · ${j.contractor.name}` : ''}
               </Text>
@@ -157,7 +156,7 @@ export const LandlordPayerJobsCard: React.FC = () => {
                   style={{
                     fontSize: 12,
                     fontWeight: '700',
-                    color: theme.colors.textPrimary,
+                    color: me.ink,
                   }}
                 >
                   £{amount.toLocaleString()}
@@ -168,7 +167,7 @@ export const LandlordPayerJobsCard: React.FC = () => {
               style={{
                 marginTop: 4,
                 fontSize: 11,
-                color: isHot ? theme.colors.accent : theme.colors.textTertiary,
+                color: isHot ? me.accent : me.ink3,
                 fontWeight: isHot ? '700' : '500',
               }}
             >

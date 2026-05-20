@@ -4,7 +4,7 @@
  */
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 interface ContractTermsViewProps {
   title: string | null;
@@ -80,14 +80,14 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 4,
   },
   sectionValue: {
     fontSize: 15,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     lineHeight: 22,
   },
   datesRow: {
@@ -99,7 +99,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   termsCard: {
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 16,
     padding: 16,
     marginBottom: 20,
@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
   termsTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 12,
   },
   termRow: {
@@ -118,13 +118,13 @@ const styles = StyleSheet.create({
   termKey: {
     fontSize: 13,
     fontWeight: '500',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     textTransform: 'capitalize',
     width: 120,
   },
   termValue: {
     flex: 1,
     fontSize: 13,
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
 });

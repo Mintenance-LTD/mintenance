@@ -15,7 +15,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   Alert,
-  Platform,
   ActivityIndicator,
   StatusBar,
 } from 'react-native';
@@ -27,7 +26,7 @@ import { ScreenHeader } from '../../components/shared';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import { supabase } from '../../config/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 interface ExportStatus {
   id: string;
@@ -47,8 +46,8 @@ const DATA_CATEGORIES = [
   {
     icon: 'briefcase-outline',
     label: 'Job history & bids',
-    color: theme.colors.primary,
-    bg: theme.colors.primaryLight,
+    color: me.brand,
+    bg: me.brandSoft,
   },
   {
     icon: 'chatbubble-outline',
@@ -59,8 +58,8 @@ const DATA_CATEGORIES = [
   {
     icon: 'card-outline',
     label: 'Payment & invoice records',
-    color: theme.colors.accent,
-    bg: theme.colors.accentLight,
+    color: me.accent,
+    bg: me.warnBg,
   },
   {
     icon: 'star-outline',
@@ -82,18 +81,18 @@ const STATUS_CONFIG: Record<
 > = {
   pending: {
     label: 'Queued',
-    color: theme.colors.accent,
+    color: me.accent,
     icon: 'time-outline',
   },
   processing: { label: 'Processing', color: '#3B82F6', icon: 'sync-outline' },
   ready: {
     label: 'Ready to Download',
-    color: theme.colors.primary,
+    color: me.brand,
     icon: 'checkmark-circle-outline',
   },
   expired: {
     label: 'Expired',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     icon: 'alert-circle-outline',
   },
 };
@@ -156,10 +155,7 @@ export const DataExportScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar
-        barStyle='dark-content'
-        backgroundColor={theme.colors.backgroundSecondary}
-      />
+      <StatusBar barStyle='dark-content' backgroundColor={me.bg2} />
       <ScreenHeader
         title='Export My Data'
         showBack
@@ -207,7 +203,7 @@ export const DataExportScreen: React.FC = () => {
         {isLoading ? (
           <ActivityIndicator
             size='small'
-            color={theme.colors.textPrimary}
+            color={me.ink}
             style={{ marginTop: 16 }}
           />
         ) : exports && exports.length > 0 ? (
@@ -247,7 +243,7 @@ export const DataExportScreen: React.FC = () => {
                       <Ionicons
                         name='cloud-download-outline'
                         size={20}
-                        color={theme.colors.primary}
+                        color={me.brand}
                       />
                     )}
                   </View>
@@ -268,14 +264,10 @@ export const DataExportScreen: React.FC = () => {
           activeOpacity={0.8}
         >
           {requestMutation.isPending ? (
-            <ActivityIndicator size='small' color={theme.colors.textInverse} />
+            <ActivityIndicator size='small' color={me.onBrand} />
           ) : (
             <>
-              <Ionicons
-                name='download-outline'
-                size={18}
-                color={theme.colors.textInverse}
-              />
+              <Ionicons name='download-outline' size={18} color={me.onBrand} />
               <Text style={styles.buttonText}>
                 {hasPendingExport
                   ? 'Export In Progress'
@@ -295,23 +287,15 @@ export const DataExportScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
+  container: { flex: 1, backgroundColor: me.bg2 },
   scrollView: { flex: 1 },
   content: { padding: 16, paddingBottom: 40 },
   card: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     marginBottom: 16,
     overflow: 'hidden',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   headerRow: {
     flexDirection: 'row',
@@ -327,10 +311,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: { fontSize: 16, fontWeight: '600', color: theme.colors.textPrimary },
+  title: { fontSize: 16, fontWeight: '600', color: me.ink },
   bodyText: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     lineHeight: 20,
     paddingHorizontal: 14,
     paddingBottom: 14,
@@ -338,7 +322,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 8,
@@ -353,18 +337,18 @@ const styles = StyleSheet.create({
   },
   catBorder: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   catLabel: {
     fontSize: 14,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     fontWeight: '400',
   },
   exportRow: { flexDirection: 'row', alignItems: 'center', padding: 14 },
   exportDate: {
     fontSize: 14,
     fontWeight: '500',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   statusRow: {
     flexDirection: 'row',
@@ -378,21 +362,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
     borderRadius: 12,
     paddingVertical: 15,
     marginTop: 8,
     marginBottom: 12,
   },
-  buttonDisabled: { backgroundColor: theme.colors.textTertiary },
+  buttonDisabled: { backgroundColor: me.ink3 },
   buttonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
   },
   footnote: {
     fontSize: 12,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     lineHeight: 18,
     paddingHorizontal: 4,
     textAlign: 'center',

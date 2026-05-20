@@ -10,7 +10,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 import { getSeverityDisplay } from '../../../utils/severityUtils';
 
 const URGENCY_COLORS: Record<
@@ -272,7 +272,7 @@ const s = StyleSheet.create({
   sectionTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     textTransform: 'uppercase',
     letterSpacing: 0.6,
     marginBottom: 8,
@@ -280,15 +280,15 @@ const s = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 },
   tag: { borderRadius: 12, paddingHorizontal: 10, paddingVertical: 3 },
   tagText: { fontSize: 12, fontWeight: '600', textTransform: 'capitalize' },
-  bodyText: { fontSize: 14, color: theme.colors.textSecondary, lineHeight: 20 },
+  bodyText: { fontSize: 14, color: me.ink2, lineHeight: 20 },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
   chip: {
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 3,
   },
-  chipText: { fontSize: 12, color: theme.colors.textPrimary },
+  chipText: { fontSize: 12, color: me.ink },
   blueCallout: { backgroundColor: '#EFF6FF', borderRadius: 12, padding: 14 },
   redCallout: { backgroundColor: '#FEF2F2', borderRadius: 12, padding: 14 },
   bulletRow: {
@@ -323,12 +323,12 @@ const s = StyleSheet.create({
     justifyContent: 'space-between',
     marginTop: 4,
   },
-  costLabel: { fontSize: 12, color: theme.colors.textTertiary },
-  metaText: { fontSize: 12, color: theme.colors.textTertiary, marginTop: 4 },
+  costLabel: { fontSize: 12, color: me.ink3 },
+  metaText: { fontSize: 12, color: me.ink3, marginTop: 4 },
   subLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 4,

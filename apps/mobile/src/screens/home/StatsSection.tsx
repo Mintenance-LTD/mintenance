@@ -1,17 +1,17 @@
 /**
- * StatsSection Component
+ * StatsSection Component — Direction A · Mint Editorial.
  *
- * Bento-grid layout inspired by the contractor dashboard HTML mockup:
- * - Full-width "Active Portfolio" hero card with gradient bg
+ * Bento-grid layout:
+ * - Full-width "Active Portfolio" hero card with teal corner accent
  * - 2x2 grid of stat cards below (Earnings, Completed, Rating, Success Rate)
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { ContractorStats } from '../../services/UserService';
-import { theme, gradients } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 import { formatCurrency } from '../../utils/formatCurrency';
 
 interface StatsSectionProps {
@@ -26,11 +26,13 @@ interface StatConfig {
   label: string;
 }
 
+// `Completed` + `Success Rate` keep their decorative identity colours;
+// `Earnings` + `Rating` use the Mint Editorial brand / warm tokens.
 const STAT_CONFIG: StatConfig[] = [
   {
     icon: 'cash',
-    iconColor: theme.colors.primary,
-    iconBg: theme.colors.primaryLight,
+    iconColor: me.brand,
+    iconBg: me.brandSoft,
     getValue: (s) => formatCurrency(s?.monthlyEarnings ?? 0),
     label: 'Earnings',
   },
@@ -43,8 +45,8 @@ const STAT_CONFIG: StatConfig[] = [
   },
   {
     icon: 'star',
-    iconColor: theme.colors.accent,
-    iconBg: theme.colors.accentLight,
+    iconColor: me.warm,
+    iconBg: me.warnBg,
     getValue: (s) => s?.rating?.toFixed(1) || 'New',
     label: 'Rating',
   },
@@ -65,9 +67,8 @@ export const StatsSection: React.FC<StatsSectionProps> = ({ stats }) => {
     <View style={styles.container}>
       {/* Hero portfolio card — white with teal corner accent */}
       <View style={styles.heroCard}>
-        {/* Teal corner accent */}
         <LinearGradient
-          colors={gradients.heroGreen}
+          colors={[me.brand2, me.brand]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.heroCornerAccent}
@@ -75,7 +76,7 @@ export const StatsSection: React.FC<StatsSectionProps> = ({ stats }) => {
 
         <View style={styles.heroTop}>
           <View style={styles.heroBadge}>
-            <Ionicons name='rocket' size={16} color={theme.colors.primary} />
+            <Ionicons name='rocket' size={16} color={me.brand} />
           </View>
           <Text style={styles.heroBadgeText}>Active Portfolio</Text>
         </View>
@@ -123,12 +124,13 @@ const styles = StyleSheet.create({
   // Hero portfolio card — white with teal corner
   heroCard: {
     padding: 24,
-    borderRadius: 24,
+    borderRadius: me.radius.card,
     overflow: 'hidden',
     position: 'relative',
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
+    ...me.shadow.pop,
   },
   heroCornerAccent: {
     position: 'absolute',
@@ -148,27 +150,27 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 10,
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: me.brandSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
   heroBadgeText: {
     fontSize: 12,
     fontWeight: '700',
-    color: theme.colors.primary,
+    color: me.brand,
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
   heroValue: {
+    fontFamily: me.font.display,
     fontSize: 52,
-    fontWeight: '800',
-    color: theme.colors.textPrimary,
-    letterSpacing: -2,
+    color: me.ink,
+    letterSpacing: me.displayTracking,
   },
   heroLabel: {
     fontSize: 16,
     fontWeight: '500',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginBottom: 24,
   },
   heroBottom: {
@@ -177,14 +179,14 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   heroPayoutValue: {
+    fontFamily: me.font.display,
     fontSize: 28,
-    fontWeight: '700',
-    color: theme.colors.primary,
-    letterSpacing: -0.5,
+    color: me.brand,
+    letterSpacing: me.displayTracking,
   },
   heroPayoutLabel: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     fontWeight: '500',
   },
   // 2x2 stat grid
@@ -196,23 +198,13 @@ const styles = StyleSheet.create({
   card: {
     flex: 1,
     minWidth: '45%',
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     padding: 18,
-    borderRadius: 20,
+    borderRadius: me.radius.card,
     alignItems: 'flex-start',
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.04,
-        shadowRadius: 4,
-      },
-      android: {
-        elevation: 1,
-      },
-    }),
+    borderColor: me.line,
+    ...me.shadow.card,
   },
   iconWrap: {
     width: 42,
@@ -223,15 +215,15 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   value: {
+    fontFamily: me.font.display,
     fontSize: 26,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 2,
-    letterSpacing: -0.5,
+    letterSpacing: me.displayTracking,
   },
   label: {
     fontSize: 11,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     fontWeight: '600',
     textTransform: 'uppercase',
     letterSpacing: 0.5,

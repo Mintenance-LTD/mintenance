@@ -28,7 +28,7 @@ import { useI18n } from '../hooks/useI18n';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Banner } from '../components/ui/Banner';
-import { theme, gradients } from '../theme';
+import { me } from '../design-system/mint-editorial';
 import { useScreenCaptureGuard } from '../hooks/useScreenCaptureGuard';
 
 // 2026-04-30 audit P1: persist ONLY the email used at last successful
@@ -167,7 +167,7 @@ const LoginScreen: React.FC<Props> = ({ navigation, route }) => {
       <View style={styles.container} testID='login-screen'>
         <FadeIn duration={500}>
           <LinearGradient
-            colors={gradients.heroGreen}
+            colors={[me.brand2, me.brand]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={[styles.header, { paddingTop: insets.top + 24 }]}
@@ -231,6 +231,7 @@ const LoginScreen: React.FC<Props> = ({ navigation, route }) => {
 
             {errorMessage ? (
               <Banner
+                mint
                 message={errorMessage}
                 variant='error'
                 testID='login-error-banner'
@@ -239,6 +240,7 @@ const LoginScreen: React.FC<Props> = ({ navigation, route }) => {
 
             <View style={styles.formContainer}>
               <Input
+                mint
                 testID='email-input'
                 label={String(auth.email())}
                 placeholder={String(auth.email())}
@@ -266,6 +268,7 @@ const LoginScreen: React.FC<Props> = ({ navigation, route }) => {
               />
 
               <Input
+                mint
                 testID='password-input'
                 label={String(auth.password())}
                 placeholder={String(auth.password())}
@@ -315,11 +318,7 @@ const LoginScreen: React.FC<Props> = ({ navigation, route }) => {
                     ]}
                   >
                     {rememberEmail ? (
-                      <Ionicons
-                        name='checkmark'
-                        size={14}
-                        color={theme.colors.textInverse}
-                      />
+                      <Ionicons name='checkmark' size={14} color={me.onBrand} />
                     ) : null}
                   </View>
                   <Text style={styles.rememberLabel}>Remember email</Text>
@@ -346,6 +345,7 @@ const LoginScreen: React.FC<Props> = ({ navigation, route }) => {
               </View>
 
               <Button
+                mint
                 variant='primary'
                 title={
                   loading ? String(t('auth.loggingIn')) : String(auth.login())
@@ -357,7 +357,7 @@ const LoginScreen: React.FC<Props> = ({ navigation, route }) => {
                   loading ? String(t('auth.loggingIn')) : String(auth.login())
                 }
                 fullWidth
-                style={{ borderRadius: 28, marginTop: 8 }}
+                style={{ marginTop: 8 }}
                 textStyle={
                   buttonText.textStyle as import('react-native').TextStyle
                 }
@@ -374,6 +374,7 @@ const LoginScreen: React.FC<Props> = ({ navigation, route }) => {
 
             <View style={{ paddingHorizontal: 24 }}>
               <Button
+                mint
                 variant='secondary'
                 title={String(t('auth.createAccount'))}
                 onPress={() => {
@@ -391,7 +392,6 @@ const LoginScreen: React.FC<Props> = ({ navigation, route }) => {
                   })
                 )}
                 fullWidth
-                style={{ borderRadius: 28 }}
               />
             </View>
 
@@ -414,18 +414,18 @@ const LoginScreen: React.FC<Props> = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#134E4A',
+    backgroundColor: me.brand2,
   },
   container: {
     flex: 1,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.bg,
   },
   header: {
     paddingBottom: 32,
     paddingHorizontal: 24,
     alignItems: 'center',
-    borderBottomLeftRadius: 36,
-    borderBottomRightRadius: 36,
+    borderBottomLeftRadius: 28,
+    borderBottomRightRadius: 28,
     overflow: 'hidden',
   },
   decorCircle1: {
@@ -458,8 +458,9 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   headerTitle: {
-    fontWeight: '700',
-    color: theme.colors.textInverse,
+    fontFamily: me.font.display,
+    color: me.onBrand,
+    letterSpacing: me.displayTracking,
   },
   headerSubtitle: {
     fontSize: 15,
@@ -490,7 +491,7 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     flexGrow: 1,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.bg,
     paddingTop: 20,
     paddingBottom: 24,
   },
@@ -501,30 +502,30 @@ const styles = StyleSheet.create({
   formSectionLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: theme.colors.primary,
+    color: me.brand,
     textTransform: 'uppercase',
     letterSpacing: 1.2,
     marginBottom: 6,
   },
   formTitle: {
-    fontSize: 26,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
+    fontFamily: me.font.display,
+    fontSize: 30,
+    color: me.ink,
     marginBottom: 4,
-    letterSpacing: -0.3,
+    letterSpacing: me.displayTracking,
   },
   formSubtitle: {
     fontSize: 15,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   formContainer: {
     paddingHorizontal: 24,
-    backgroundColor: theme.colors.surface,
-    borderRadius: 20,
+    backgroundColor: me.surface,
+    borderRadius: me.radius.card,
     marginHorizontal: 16,
     padding: 20,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
   rememberRow: {
     flexDirection: 'row',
@@ -545,26 +546,26 @@ const styles = StyleSheet.create({
     height: 22,
     borderRadius: 6,
     borderWidth: 1.5,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
+    borderColor: me.line,
+    backgroundColor: me.surface,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,
   },
   rememberCheckboxChecked: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
+    backgroundColor: me.brand,
+    borderColor: me.brand,
   },
   rememberLabel: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     fontWeight: '500',
   },
   forgotPasswordLink: {
     paddingVertical: 8,
   },
   forgotPasswordText: {
-    color: theme.colors.primary,
+    color: me.brand,
     fontWeight: '600',
   },
   dividerSection: {
@@ -577,35 +578,35 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: StyleSheet.hairlineWidth,
-    backgroundColor: theme.colors.border,
+    backgroundColor: me.line,
   },
   dividerText: {
     marginHorizontal: 12,
     fontSize: 13,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     fontWeight: '500',
   },
   devSection: {
     marginTop: 16,
     marginHorizontal: 24,
     padding: 12,
-    backgroundColor: theme.colors.backgroundSecondary,
-    borderRadius: 20,
+    backgroundColor: me.bg2,
+    borderRadius: me.radius.card,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
     borderStyle: 'dashed',
   },
   devTitle: {
     textAlign: 'center',
     fontSize: 12,
     fontWeight: '700',
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     marginBottom: 4,
   },
   devNote: {
     textAlign: 'center',
     fontSize: 11,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
   },
 });
 

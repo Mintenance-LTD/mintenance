@@ -10,7 +10,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 interface LocationHeaderProps {
   location: string;
@@ -35,9 +35,9 @@ export const LocationHeader: React.FC<LocationHeaderProps> = ({
           accessibilityRole='button'
           accessibilityLabel={`Current location: ${location}. Double tap to change`}
         >
-          <Ionicons name="location" size={16} color={theme.colors.textSecondary} />
+          <Ionicons name='location' size={16} color={me.ink2} />
           <Text style={styles.locationText}>{location}</Text>
-          <Ionicons name="chevron-down" size={16} color={theme.colors.textSecondary} />
+          <Ionicons name='chevron-down' size={16} color={me.ink2} />
         </TouchableOpacity>
       </View>
 
@@ -45,11 +45,17 @@ export const LocationHeader: React.FC<LocationHeaderProps> = ({
         style={styles.notificationButton}
         onPress={onNotificationPress}
         accessibilityRole='button'
-        accessibilityLabel={hasNotifications ? 'Notifications, you have new notifications' : 'Notifications'}
+        accessibilityLabel={
+          hasNotifications
+            ? 'Notifications, you have new notifications'
+            : 'Notifications'
+        }
         accessibilityHint='Double tap to view notifications'
       >
-        <Ionicons name="notifications" size={24} color={theme.colors.textPrimary} />
-        {hasNotifications && <View style={styles.notificationBadge} accessible={false} />}
+        <Ionicons name='notifications' size={24} color={me.ink} />
+        {hasNotifications && (
+          <View style={styles.notificationBadge} accessible={false} />
+        )}
       </TouchableOpacity>
     </View>
   );
@@ -62,14 +68,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
   },
   locationSection: {
     flex: 1,
   },
   locationLabel: {
     fontSize: 12,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     marginBottom: 4,
   },
   locationRow: {
@@ -80,13 +86,13 @@ const styles = StyleSheet.create({
   locationText: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   notificationButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',
@@ -98,6 +104,6 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: theme.colors.error,
+    backgroundColor: me.errFg,
   },
 });

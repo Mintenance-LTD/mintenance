@@ -30,44 +30,44 @@ const homeownerSteps = [
   {
     number: 1,
     title: 'Post Your Job',
-    description: 'Describe your maintenance or renovation project in detail. Add photos, specify your budget, and set your timeline.',
+    description:
+      'Describe your maintenance or renovation project in detail. Add photos, specify your budget, and set your timeline.',
     icon: FileText,
-    color: 'bg-teal-100 text-teal-600',
   },
   {
     number: 2,
     title: 'Get Matched',
-    description: 'Our AI instantly matches you with qualified contractors in your area. Review profiles, ratings, and past work.',
+    description:
+      'Our AI instantly matches you with qualified contractors in your area. Review profiles, ratings, and past work.',
     icon: Users,
-    color: 'bg-blue-100 text-blue-600',
   },
   {
     number: 3,
     title: 'Review Bids',
-    description: 'Receive competitive quotes from multiple contractors. Compare pricing, timelines, and expertise.',
+    description:
+      'Receive competitive quotes from multiple contractors. Compare pricing, timelines, and expertise.',
     icon: Search,
-    color: 'bg-purple-100 text-purple-600',
   },
   {
     number: 4,
     title: 'Choose & Pay Securely',
-    description: 'Select your contractor and pay through our secure platform. Funds are held until work is completed.',
+    description:
+      'Select your contractor and pay through our secure platform. Funds are held until work is completed.',
     icon: CreditCard,
-    color: 'bg-green-100 text-green-600',
   },
   {
     number: 5,
     title: 'Track Progress',
-    description: 'Monitor project milestones, communicate with your contractor, and approve completed work.',
+    description:
+      'Monitor project milestones, communicate with your contractor, and approve completed work.',
     icon: TrendingUp,
-    color: 'bg-emerald-100 text-emerald-600',
   },
   {
     number: 6,
     title: 'Review & Release',
-    description: 'Once satisfied, release payment and leave a review. Your feedback helps other homeowners.',
+    description:
+      'Once satisfied, release payment and leave a review. Your feedback helps other homeowners.',
     icon: Star,
-    color: 'bg-yellow-100 text-yellow-700',
   },
 ];
 
@@ -75,44 +75,44 @@ const contractorSteps = [
   {
     number: 1,
     title: 'Create Your Profile',
-    description: 'Build a professional profile showcasing your skills, certifications, and past projects with photos.',
+    description:
+      'Build a professional profile showcasing your skills, certifications, and past projects with photos.',
     icon: Users,
-    color: 'bg-emerald-100 text-emerald-600',
   },
   {
     number: 2,
     title: 'Get Job Alerts',
-    description: 'Receive instant notifications for jobs matching your expertise and location. Never miss an opportunity.',
+    description:
+      'Receive instant notifications for jobs matching your expertise and location. Never miss an opportunity.',
     icon: Zap,
-    color: 'bg-blue-100 text-blue-600',
   },
   {
     number: 3,
     title: 'Submit Quotes',
-    description: 'Review job details and submit competitive bids. Use our templates to create professional quotes quickly.',
+    description:
+      'Review job details and submit competitive bids. Use our templates to create professional quotes quickly.',
     icon: FileText,
-    color: 'bg-purple-100 text-purple-600',
   },
   {
     number: 4,
     title: 'Win Work',
-    description: 'Get selected by homeowners and receive project details. Communicate directly through our platform.',
+    description:
+      'Get selected by homeowners and receive project details. Communicate directly through our platform.',
     icon: CheckCircle,
-    color: 'bg-green-100 text-green-600',
   },
   {
     number: 5,
     title: 'Complete & Update',
-    description: 'Execute the project professionally. Keep homeowners informed with progress updates and photos.',
+    description:
+      'Execute the project professionally. Keep homeowners informed with progress updates and photos.',
     icon: MessageCircle,
-    color: 'bg-teal-100 text-teal-600',
   },
   {
     number: 6,
     title: 'Get Paid Fast',
-    description: 'Receive secure payments directly to your account. Build your reputation with 5-star reviews.',
+    description:
+      'Receive secure payments directly to your account. Build your reputation with 5-star reviews.',
     icon: CreditCard,
-    color: 'bg-yellow-100 text-yellow-700',
   },
 ];
 
@@ -127,9 +127,9 @@ export function HowItWorksSteps({ activeRole }: HowItWorksStepsProps) {
     <MotionDiv
       key={activeRole}
       variants={staggerContainer}
-      initial="hidden"
-      animate="visible"
-      className="space-y-12 mb-20"
+      initial='hidden'
+      animate='visible'
+      className='space-y-12 mb-20'
     >
       {steps.map((step, index) => {
         const Icon = step.icon;
@@ -143,25 +143,50 @@ export function HowItWorksSteps({ activeRole }: HowItWorksStepsProps) {
               isEven ? 'lg:flex-row' : 'lg:flex-row-reverse'
             } items-center gap-8 lg:gap-12`}
           >
-            <div className="flex-1 text-center lg:text-left">
-              <div className="inline-flex items-center gap-3 mb-4">
+            <div className='flex-1 text-center lg:text-left'>
+              <div className='inline-flex items-center gap-3 mb-4'>
                 <div
-                  className={`w-12 h-12 rounded-full ${
-                    activeRole === 'homeowner' ? 'bg-teal-600' : 'bg-emerald-600'
-                  } text-white flex items-center justify-center font-bold text-xl`}
+                  className='w-12 h-12 rounded-full flex items-center justify-center font-bold text-xl'
+                  style={{
+                    background: 'var(--me-brand)',
+                    color: 'var(--me-on-brand)',
+                    fontFamily: 'var(--me-font-display)',
+                    fontWeight: 500,
+                  }}
                 >
                   {step.number}
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900">{step.title}</h3>
+                <h3
+                  className='text-2xl'
+                  style={{
+                    color: 'var(--me-ink)',
+                    fontFamily: 'var(--me-font-display)',
+                    fontWeight: 500,
+                    letterSpacing: '-0.01em',
+                  }}
+                >
+                  {step.title}
+                </h3>
               </div>
-              <p className="text-lg text-gray-600 leading-relaxed">{step.description}</p>
+              <p
+                className='text-lg leading-relaxed'
+                style={{ color: 'var(--me-ink-2)' }}
+              >
+                {step.description}
+              </p>
             </div>
 
-            <div className="flex-1 flex justify-center">
+            <div className='flex-1 flex justify-center'>
               <div
-                className={`w-64 h-64 rounded-2xl ${step.color} flex items-center justify-center shadow-xl transform hover:scale-105 transition-transform`}
+                className='w-64 h-64 flex items-center justify-center transform hover:scale-105 transition-transform'
+                style={{
+                  borderRadius: 'var(--me-radius-card)',
+                  background: 'var(--me-brand-soft)',
+                  color: 'var(--me-brand)',
+                  boxShadow: 'var(--me-shadow-pop)',
+                }}
               >
-                <Icon className="w-32 h-32" aria-hidden="true" />
+                <Icon className='w-32 h-32' aria-hidden='true' />
               </div>
             </div>
           </MotionDiv>

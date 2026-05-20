@@ -18,7 +18,7 @@ import {
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 import { ScreenHeader, LoadingSpinner } from '../../components/shared';
 import { useMeetingScheduleViewModel } from './viewmodels/MeetingScheduleViewModel';
 import {
@@ -61,12 +61,7 @@ export const MeetingScheduleScreen: React.FC<Props> = ({
   }
 
   return (
-    <SafeAreaView
-      style={[
-        styles.container,
-        { backgroundColor: theme.colors.backgroundSecondary },
-      ]}
-    >
+    <SafeAreaView style={[styles.container, { backgroundColor: me.bg2 }]}>
       <ScreenHeader
         title='Schedule Meeting'
         onBackPress={() => navigation.goBack()}
@@ -109,28 +104,23 @@ export const MeetingScheduleScreen: React.FC<Props> = ({
           />
 
           <View
-            style={[
-              styles.notesContainer,
-              { backgroundColor: theme.colors.surface },
-            ]}
+            style={[styles.notesContainer, { backgroundColor: me.surface }]}
           >
-            <Text
-              style={[styles.notesLabel, { color: theme.colors.textTertiary }]}
-            >
+            <Text style={[styles.notesLabel, { color: me.ink3 }]}>
               Additional Notes (Optional)
             </Text>
             <TextInput
               style={[
                 styles.notesInput,
                 {
-                  backgroundColor: theme.colors.backgroundSecondary,
-                  color: theme.colors.textPrimary,
+                  backgroundColor: me.bg2,
+                  color: me.ink,
                 },
               ]}
               value={viewModel.notes}
               onChangeText={viewModel.setNotes}
               placeholder='Add any additional details about the meeting...'
-              placeholderTextColor={theme.colors.textTertiary}
+              placeholderTextColor={me.ink3}
               multiline
               numberOfLines={4}
               textAlignVertical='top'
@@ -160,15 +150,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   notesLabel: {
     fontSize: 12,

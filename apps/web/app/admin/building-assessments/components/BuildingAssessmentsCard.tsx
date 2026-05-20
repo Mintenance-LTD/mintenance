@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Image from 'next/image';
+import { Check, X, Hourglass } from 'lucide-react';
 import { theme } from '@/lib/theme';
 import { AdminCard } from '@/components/admin/AdminCard';
 import { Button } from '@/components/ui/Button';
@@ -70,11 +71,40 @@ export function BuildingAssessmentsCard({
                       }),
               }}
             >
-              {assessment.validation_status === 'validated'
-                ? '✓ Validated'
-                : assessment.validation_status === 'rejected'
-                  ? '✕ Rejected'
-                  : '⏳ Pending'}
+              {assessment.validation_status === 'validated' ? (
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                  }}
+                >
+                  <Check size={14} aria-hidden='true' />
+                  Validated
+                </span>
+              ) : assessment.validation_status === 'rejected' ? (
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                  }}
+                >
+                  <X size={14} aria-hidden='true' />
+                  Rejected
+                </span>
+              ) : (
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                  }}
+                >
+                  <Hourglass size={14} aria-hidden='true' />
+                  Pending
+                </span>
+              )}
             </span>
             <span
               style={{

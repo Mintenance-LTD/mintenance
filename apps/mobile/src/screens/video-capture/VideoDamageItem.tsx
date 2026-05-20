@@ -5,7 +5,7 @@
 
 import React from 'react';
 import { View, Text } from 'react-native';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 import { styles } from './videoProcessingStatusStyles';
 import {
   normalizeSeverity,
@@ -20,10 +20,10 @@ export interface DamageData {
 }
 
 const severityColors: Record<SeverityTier, string> = {
-  early: theme.colors.primary,
+  early: me.brand,
   developing: '#A16207',
-  significant: theme.colors.accent,
-  dangerous: theme.colors.error,
+  significant: me.accent,
+  dangerous: me.errFg,
 };
 
 interface Props {

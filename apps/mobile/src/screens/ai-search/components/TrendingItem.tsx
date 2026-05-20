@@ -2,7 +2,7 @@ import React from 'react';
 import { Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { SearchSuggestion } from '../../../services/AISearchService';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 import { styles } from '../theme/styles';
 
 /**
@@ -26,7 +26,7 @@ export function TrendingItem({
       <Ionicons
         name='trending-up'
         size={14}
-        color={theme.colors.accent}
+        color={me.accent}
         style={{ marginRight: 6 }}
       />
       <Text style={styles.trendingText}>{trending.text}</Text>

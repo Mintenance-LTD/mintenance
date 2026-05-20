@@ -1,8 +1,12 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { PaymentMethod } from '../../../services/PaymentService';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
+
+/**
+ * Selectable payment-method row — Direction A · Mint Editorial.
+ */
 
 interface PaymentMethodOptionProps {
   method: PaymentMethod;
@@ -25,11 +29,22 @@ const getMethodIcon = (type: string): string => {
 
 const getMethodDetails = (method: PaymentMethod): string => {
   if (method.type === 'card' && method.card) {
-    return `${method.card.brand.toUpperCase()} \u2022\u2022\u2022\u2022 ${method.card.last4}`;
+    return `${method.card.brand.toUpperCase()} •••• ${method.card.last4}`;
   }
-  if (method.type === 'bank_account' && (method as PaymentMethod & { bankAccount?: { bankName: string; last4: string } }).bankAccount) {
-    const bank = (method as PaymentMethod & { bankAccount: { bankName: string; last4: string } }).bankAccount;
-    return `${bank.bankName} \u2022\u2022\u2022\u2022 ${bank.last4}`;
+  if (
+    method.type === 'bank_account' &&
+    (
+      method as PaymentMethod & {
+        bankAccount?: { bankName: string; last4: string };
+      }
+    ).bankAccount
+  ) {
+    const bank = (
+      method as PaymentMethod & {
+        bankAccount: { bankName: string; last4: string };
+      }
+    ).bankAccount;
+    return `${bank.bankName} •••• ${bank.last4}`;
   }
   return 'Payment Method';
 };
@@ -49,18 +64,16 @@ export const PaymentMethodOption: React.FC<PaymentMethodOptionProps> = ({
           <Ionicons
             name={getMethodIcon(method.type) as keyof typeof Ionicons.glyphMap}
             size={24}
-            color={theme.colors.textSecondary}
+            color={me.ink2}
           />
         </View>
         <View style={styles.methodDetails}>
           <Text style={styles.methodType}>{getMethodDetails(method)}</Text>
-          {method.isDefault && (
-            <Text style={styles.defaultLabel}>Default</Text>
-          )}
+          {method.isDefault && <Text style={styles.defaultLabel}>Default</Text>}
         </View>
       </View>
       {isSelected && (
-        <Ionicons name="checkmark-circle" size={24} color={theme.colors.textPrimary} />
+        <Ionicons name='checkmark-circle' size={24} color={me.brand} />
       )}
     </TouchableOpacity>
   );
@@ -68,20 +81,20 @@ export const PaymentMethodOption: React.FC<PaymentMethodOptionProps> = ({
 
 const styles = StyleSheet.create({
   paymentMethodOption: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 16,
+    backgroundColor: me.surface,
+    borderRadius: me.radius.card,
     padding: 16,
     marginBottom: 12,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
-      android: { elevation: 2 },
-    }),
+    borderWidth: 1,
+    borderColor: me.line,
+    ...me.shadow.card,
   },
   selectedMethod: {
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.brandSoft,
+    borderColor: me.brand,
   },
   methodContent: {
     flexDirection: 'row',
@@ -92,7 +105,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 14,
@@ -103,11 +116,11 @@ const styles = StyleSheet.create({
   methodType: {
     fontSize: 15,
     fontWeight: '500',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   defaultLabel: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginTop: 2,
   },
 });

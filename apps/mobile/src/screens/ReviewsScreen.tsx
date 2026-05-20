@@ -9,7 +9,6 @@ import {
   StyleSheet,
   RefreshControl,
   TouchableOpacity,
-  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,7 +20,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useQuery } from '@tanstack/react-query';
 import { mobileApiClient as apiClient } from '../utils/mobileApiClient';
 import { goToTab } from '../navigation/hooks';
-import { theme } from '../theme';
+import { me } from '../design-system/mint-editorial';
 
 import { ReviewCard, StarRating, type Review } from './reviews/ReviewCard';
 
@@ -129,7 +128,7 @@ export const ReviewsScreen: React.FC<Props> = ({ navigation }) => {
               return (
                 <View key={star} style={styles.distRow}>
                   <Text style={styles.distLabel}>{star}</Text>
-                  <Ionicons name='star' size={12} color={theme.colors.accent} />
+                  <Ionicons name='star' size={12} color={me.accent} />
                   <View style={styles.distBarBg}>
                     <View style={[styles.distBarFill, { width: `${pct}%` }]} />
                   </View>
@@ -207,8 +206,8 @@ export const ReviewsScreen: React.FC<Props> = ({ navigation }) => {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={handleRefresh}
-              tintColor={theme.colors.textPrimary}
-              colors={[theme.colors.textPrimary]}
+              tintColor={me.ink}
+              colors={[me.ink]}
             />
           }
           contentContainerStyle={styles.listContainer}
@@ -221,35 +220,27 @@ export const ReviewsScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   summaryCard: {
     alignItems: 'center',
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     marginHorizontal: 16,
     marginTop: 12,
     marginBottom: 10,
     padding: 20,
     borderRadius: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   avgRating: {
     fontSize: 36,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 4,
   },
   reviewCount: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginTop: 6,
   },
   listContainer: {
@@ -257,20 +248,12 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   distributionCard: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     marginHorizontal: 16,
     marginBottom: 10,
     padding: 16,
     borderRadius: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   distRow: {
     flexDirection: 'row',
@@ -282,23 +265,23 @@ const styles = StyleSheet.create({
     width: 16,
     fontSize: 13,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   distBarBg: {
     flex: 1,
     height: 8,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 4,
   },
   distBarFill: {
     height: 8,
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
     borderRadius: 4,
   },
   distCount: {
     width: 24,
     fontSize: 12,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     textAlign: 'right',
   },
   filterRow: {
@@ -311,26 +294,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 7,
     borderRadius: 20,
-    backgroundColor: theme.colors.surface,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.04,
-        shadowRadius: 4,
-      },
-      android: { elevation: 1 },
-    }),
+    backgroundColor: me.surface,
+    ...me.shadow.card,
   },
   filterChipActive: {
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
   },
   filterChipText: {
     fontSize: 13,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   filterChipTextActive: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
   },
 });

@@ -12,6 +12,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { getCsrfHeaders } from '@/lib/csrf-client';
 import { safeCopyToClipboard } from '@/lib/utils/clipboard';
 
 interface Property {
@@ -65,11 +66,17 @@ export function ReportingLinksClient({
     setCreating(true);
 
     try {
+      // The /api/properties/[id]/report-token route uses the default
+      // `csrf: true` on withApiHandler — without an X-CSRF-Token header
+      // every POST + PATCH from this client 403s in production. Audit
+      // 2026-05-12 caught this; the Mint Editorial port already sent
+      // CSRF, the legacy client did not. Both now match.
+      const csrfHeaders = await getCsrfHeaders();
       const res = await fetch(
         `/api/properties/${selectedProperty}/report-token`,
         {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...csrfHeaders },
           body: JSON.stringify({ label: label.trim() || null }),
         }
       );
@@ -90,11 +97,12 @@ export function ReportingLinksClient({
 
   const toggleToken = async (token: Token) => {
     try {
+      const csrfHeaders = await getCsrfHeaders();
       const res = await fetch(
         `/api/properties/${token.property_id}/report-token`,
         {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', ...csrfHeaders },
           body: JSON.stringify({
             token_id: token.id,
             is_active: !token.is_active,

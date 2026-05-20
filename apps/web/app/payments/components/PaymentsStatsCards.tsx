@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Banknote, Clock, RotateCcw, ReceiptPoundSterling } from 'lucide-react';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import { formatMoney } from '@/lib/utils/currency';
@@ -12,12 +12,79 @@ interface PaymentsStatsCardsProps {
   transactionCount: number;
 }
 
+/**
+ * Payments KPI tiles. Under Mint Editorial we render the canonical
+ * `.kpi` pattern from the design system (small sans label + big
+ * Instrument Serif number + ghost subline, no colored accent bars).
+ * Legacy theme keeps the colored left-border + gradient-icon design.
+ *
+ * Reference: redesign-v2/components.css `.kpi` and the dashboard
+ * "Active jobs / Open bids / Held in escrow / Completed" row.
+ */
 export function PaymentsStatsCards({
   totalPaid,
   pendingAmount,
   refundedAmount,
   transactionCount,
 }: PaymentsStatsCardsProps) {
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
+
+  if (isMintEditorial) {
+    return (
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
+          gap: 14,
+          marginBottom: 22,
+        }}
+      >
+        <div className='kpi'>
+          <div className='label'>Total paid</div>
+          <div className='num'>{formatMoney(totalPaid, 'GBP')}</div>
+          <div className='sub'>
+            <span>
+              {transactionCount > 0
+                ? `Across ${transactionCount} ${transactionCount === 1 ? 'transaction' : 'transactions'}`
+                : 'No transactions yet'}
+            </span>
+          </div>
+        </div>
+        <div className='kpi'>
+          <div className='label'>Protected</div>
+          <div className='num'>{formatMoney(pendingAmount, 'GBP')}</div>
+          <div className='sub'>
+            <span>
+              {pendingAmount > 0 ? 'Held in escrow' : 'Nothing held yet'}
+            </span>
+          </div>
+        </div>
+        <div className='kpi'>
+          <div className='label'>Refunded</div>
+          <div className='num'>{formatMoney(refundedAmount, 'GBP')}</div>
+          <div className='sub'>
+            <span>
+              {refundedAmount > 0 ? 'Returned to you' : 'No refunds yet'}
+            </span>
+          </div>
+        </div>
+        <div className='kpi'>
+          <div className='label'>Transactions</div>
+          <div className='num'>{transactionCount}</div>
+          <div className='sub'>
+            <span>all-time</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const stats = [
     {
       label: 'Total Paid',

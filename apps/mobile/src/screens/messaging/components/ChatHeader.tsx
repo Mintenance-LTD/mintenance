@@ -1,15 +1,23 @@
 /**
- * ChatHeader — Presence-aware header with job context pill
+ * ChatHeader — Presence-aware header with job context pill.
+ * Direction A · Mint Editorial — token-styled.
  *
  * Avatar with online/offline dot, name, tappable job context pill,
- * frosted glass action buttons, and dropdown menu.
+ * action buttons, and dropdown menu.
  */
 
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal, Pressable, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Modal,
+  Pressable,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { VideoCallService } from '../../../services/VideoCallService';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 interface ChatHeaderProps {
   otherUserName: string;
@@ -48,10 +56,26 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
     .slice(0, 2);
 
   const menuItems = [
-    { label: 'Prepare Contract', icon: 'document-text-outline' as const, onPress: onPrepareContract },
-    { label: 'Send Quote', icon: 'pricetag-outline' as const, onPress: onSendQuote },
-    { label: 'Share Document', icon: 'attach-outline' as const, onPress: onShareDocument },
-    { label: 'View Job Details', icon: 'briefcase-outline' as const, onPress: onViewJobDetails },
+    {
+      label: 'Prepare Contract',
+      icon: 'document-text-outline' as const,
+      onPress: onPrepareContract,
+    },
+    {
+      label: 'Send Quote',
+      icon: 'pricetag-outline' as const,
+      onPress: onSendQuote,
+    },
+    {
+      label: 'Share Document',
+      icon: 'attach-outline' as const,
+      onPress: onShareDocument,
+    },
+    {
+      label: 'View Job Details',
+      icon: 'briefcase-outline' as const,
+      onPress: onViewJobDetails,
+    },
   ].filter((item) => item.onPress);
 
   return (
@@ -60,10 +84,10 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
       <TouchableOpacity
         style={styles.backButton}
         onPress={onGoBack}
-        accessibilityRole="button"
-        accessibilityLabel="Go back"
+        accessibilityRole='button'
+        accessibilityLabel='Go back'
       >
-        <Ionicons name="arrow-back" size={20} color={theme.colors.textPrimary} />
+        <Ionicons name='arrow-back' size={20} color={me.ink} />
       </TouchableOpacity>
 
       {/* Avatar with presence dot */}
@@ -76,17 +100,21 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
 
       {/* Name + job context pill */}
       <View style={styles.headerInfo}>
-        <Text style={styles.headerTitle} numberOfLines={1}>{otherUserName}</Text>
+        <Text style={styles.headerTitle} numberOfLines={1}>
+          {otherUserName}
+        </Text>
         {jobTitle ? (
           <TouchableOpacity
             style={styles.jobPill}
             onPress={onViewJobDetails}
-            accessibilityRole="button"
+            accessibilityRole='button'
             accessibilityLabel={`View job: ${jobTitle}`}
           >
-            <Ionicons name="briefcase" size={10} color={theme.colors.primary} />
-            <Text style={styles.jobPillText} numberOfLines={1}>{jobTitle}</Text>
-            <Ionicons name="chevron-forward" size={10} color={theme.colors.primary} />
+            <Ionicons name='briefcase' size={10} color={me.brand} />
+            <Text style={styles.jobPillText} numberOfLines={1}>
+              {jobTitle}
+            </Text>
+            <Ionicons name='chevron-forward' size={10} color={me.brand} />
           </TouchableOpacity>
         ) : null}
       </View>
@@ -97,35 +125,35 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
           style={styles.actionCircle}
           onPress={onScheduleCall}
           disabled={isInCall}
-          accessibilityRole="button"
-          accessibilityLabel="Schedule a call"
+          accessibilityRole='button'
+          accessibilityLabel='Schedule a call'
         >
           <Ionicons
-            name="calendar-outline"
+            name='calendar-outline'
             size={18}
-            color={isInCall ? theme.colors.textTertiary : theme.colors.textSecondary}
+            color={isInCall ? me.ink4 : me.ink2}
           />
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.actionCircle, !isInCall && styles.videoActionCircle]}
           onPress={onStartVideoCall}
           disabled={isInCall}
-          accessibilityRole="button"
-          accessibilityLabel="Start video call"
+          accessibilityRole='button'
+          accessibilityLabel='Start video call'
         >
           <Ionicons
-            name="videocam"
+            name='videocam'
             size={18}
-            color={isInCall ? theme.colors.textTertiary : theme.colors.primary}
+            color={isInCall ? me.ink4 : me.brand}
           />
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.actionCircle}
           onPress={() => setShowMenu(true)}
-          accessibilityRole="button"
-          accessibilityLabel="More options"
+          accessibilityRole='button'
+          accessibilityLabel='More options'
         >
-          <Ionicons name="ellipsis-horizontal" size={18} color={theme.colors.textSecondary} />
+          <Ionicons name='ellipsis-horizontal' size={18} color={me.ink2} />
         </TouchableOpacity>
       </View>
 
@@ -133,10 +161,13 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
       <Modal
         visible={showMenu}
         transparent
-        animationType="fade"
+        animationType='fade'
         onRequestClose={() => setShowMenu(false)}
       >
-        <Pressable style={styles.menuOverlay} onPress={() => setShowMenu(false)}>
+        <Pressable
+          style={styles.menuOverlay}
+          onPress={() => setShowMenu(false)}
+        >
           <Pressable style={styles.menuCard}>
             {menuItems.map((item, index) => (
               <React.Fragment key={item.label}>
@@ -146,15 +177,17 @@ export const ChatHeader: React.FC<ChatHeaderProps> = ({
                     setShowMenu(false);
                     item.onPress?.();
                   }}
-                  accessibilityRole="button"
+                  accessibilityRole='button'
                   accessibilityLabel={item.label}
                 >
                   <View style={styles.menuIconWrap}>
-                    <Ionicons name={item.icon} size={18} color={theme.colors.textSecondary} />
+                    <Ionicons name={item.icon} size={18} color={me.ink2} />
                   </View>
                   <Text style={styles.menuItemText}>{item.label}</Text>
                 </TouchableOpacity>
-                {index < menuItems.length - 1 && <View style={styles.menuDivider} />}
+                {index < menuItems.length - 1 && (
+                  <View style={styles.menuDivider} />
+                )}
               </React.Fragment>
             ))}
           </Pressable>
@@ -170,15 +203,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 10,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   backButton: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 10,
@@ -191,14 +224,14 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: me.brandSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
   avatarText: {
     fontSize: 14,
     fontWeight: '700',
-    color: theme.colors.primary,
+    color: me.brand,
   },
   presenceDot: {
     position: 'absolute',
@@ -207,9 +240,9 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
     borderWidth: 2,
-    borderColor: theme.colors.surface,
+    borderColor: me.surface,
   },
   headerInfo: {
     flex: 1,
@@ -218,14 +251,14 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     letterSpacing: -0.3,
   },
   jobPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: me.brandSoft,
     alignSelf: 'flex-start',
     paddingHorizontal: 8,
     paddingVertical: 3,
@@ -235,7 +268,7 @@ const styles = StyleSheet.create({
   jobPillText: {
     fontSize: 11,
     fontWeight: '600',
-    color: theme.colors.primary,
+    color: me.brand,
     maxWidth: 140,
   },
   headerActions: {
@@ -247,12 +280,12 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
   },
   videoActionCircle: {
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: me.brandSoft,
   },
   menuOverlay: {
     flex: 1,
@@ -263,19 +296,13 @@ const styles = StyleSheet.create({
     paddingRight: 16,
   },
   menuCard: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     paddingVertical: 8,
     minWidth: 220,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.15,
-        shadowRadius: 24,
-      },
-      android: { elevation: 8 },
-    }),
+    borderWidth: 1,
+    borderColor: me.line,
+    ...me.shadow.pop,
   },
   menuItem: {
     flexDirection: 'row',
@@ -288,7 +315,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 10,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -296,11 +323,11 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontWeight: '500',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   menuDivider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: theme.colors.border,
+    backgroundColor: me.line2,
     marginHorizontal: 16,
   },
 });

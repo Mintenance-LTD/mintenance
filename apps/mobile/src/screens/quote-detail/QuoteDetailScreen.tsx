@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
-  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,7 +19,7 @@ import {
 } from '../../services/QuoteBuilderService';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import type { ProfileStackParamList } from '../../navigation/types';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 interface QuoteDetailScreenProps {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'QuoteDetail'>;
@@ -28,12 +27,12 @@ interface QuoteDetailScreenProps {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  accepted: theme.colors.primary,
-  rejected: theme.colors.error,
-  sent: theme.colors.textSecondary,
+  accepted: me.brand,
+  rejected: me.errFg,
+  sent: me.ink2,
   viewed: '#3B82F6',
-  expired: theme.colors.textSecondary,
-  draft: theme.colors.textTertiary,
+  expired: me.ink2,
+  draft: me.ink3,
 };
 
 export const QuoteDetailScreen: React.FC<QuoteDetailScreenProps> = ({
@@ -99,11 +98,7 @@ export const QuoteDetailScreen: React.FC<QuoteDetailScreenProps> = ({
     return (
       <View style={[styles.container, styles.centered]}>
         <View style={styles.emptyIconWrap}>
-          <Ionicons
-            name='document-outline'
-            size={32}
-            color={theme.colors.textTertiary}
-          />
+          <Ionicons name='document-outline' size={32} color={me.ink3} />
         </View>
         <Text style={styles.emptyText}>Quote not found</Text>
         <TouchableOpacity onPress={() => navigation.goBack()}>
@@ -113,7 +108,7 @@ export const QuoteDetailScreen: React.FC<QuoteDetailScreenProps> = ({
     );
   }
 
-  const statusColor = STATUS_COLORS[quote.status] ?? theme.colors.textSecondary;
+  const statusColor = STATUS_COLORS[quote.status] ?? me.ink2;
 
   return (
     <View style={styles.container}>
@@ -123,11 +118,7 @@ export const QuoteDetailScreen: React.FC<QuoteDetailScreenProps> = ({
           style={styles.headerButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons
-            name='arrow-back'
-            size={24}
-            color={theme.colors.textPrimary}
-          />
+          <Ionicons name='arrow-back' size={24} color={me.ink} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Quote #{quote.quote_number}</Text>
         <TouchableOpacity
@@ -136,7 +127,7 @@ export const QuoteDetailScreen: React.FC<QuoteDetailScreenProps> = ({
             navigation.navigate('CreateQuote', { jobId: quote.job_id })
           }
         >
-          <Ionicons name='pencil' size={22} color={theme.colors.textPrimary} />
+          <Ionicons name='pencil' size={22} color={me.ink} />
         </TouchableOpacity>
       </View>
 
@@ -212,9 +203,7 @@ export const QuoteDetailScreen: React.FC<QuoteDetailScreenProps> = ({
           {quote.discount_amount ? (
             <View style={styles.detailRow}>
               <Text style={styles.detailLabel}>Discount</Text>
-              <Text
-                style={[styles.detailValue, { color: theme.colors.primary }]}
-              >
+              <Text style={[styles.detailValue, { color: me.brand }]}>
                 -{'\u00A3'}
                 {quote.discount_amount.toFixed(2)}
               </Text>
@@ -253,19 +242,11 @@ export const QuoteDetailScreen: React.FC<QuoteDetailScreenProps> = ({
                 navigation.navigate('CreateQuote', { jobId: quote.job_id })
               }
             >
-              <Ionicons
-                name='pencil-outline'
-                size={18}
-                color={theme.colors.textSecondary}
-              />
+              <Ionicons name='pencil-outline' size={18} color={me.ink2} />
               <Text style={styles.editButtonText}>Edit Quote</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
-              <Ionicons
-                name='send-outline'
-                size={18}
-                color={theme.colors.textInverse}
-              />
+              <Ionicons name='send-outline' size={18} color={me.onBrand} />
               <Text style={styles.sendButtonText}>Send to Client</Text>
             </TouchableOpacity>
           </View>
@@ -278,7 +259,7 @@ export const QuoteDetailScreen: React.FC<QuoteDetailScreenProps> = ({
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
+  container: { flex: 1, backgroundColor: me.bg2 },
   centered: { justifyContent: 'center', alignItems: 'center' },
   header: {
     flexDirection: 'row',
@@ -286,31 +267,23 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   headerButton: { padding: 8 },
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   scroll: { flex: 1 },
   statusCard: {
     margin: 16,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     padding: 20,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   statusBadge: {
     paddingHorizontal: 10,
@@ -322,38 +295,30 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 12,
     fontWeight: '700',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
   },
   totalAmount: {
     fontSize: 28,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   projectTitle: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginTop: 4,
   },
   section: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     marginHorizontal: 16,
     marginBottom: 12,
     borderRadius: 16,
     padding: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   sectionTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     marginBottom: 10,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
@@ -361,44 +326,44 @@ const styles = StyleSheet.create({
   clientName: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
-  detailText: { fontSize: 13, color: theme.colors.textSecondary, marginTop: 4 },
+  detailText: { fontSize: 13, color: me.ink2, marginTop: 4 },
   valueText: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   detailRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingVertical: 6,
   },
-  detailLabel: { fontSize: 14, color: theme.colors.textSecondary },
+  detailLabel: { fontSize: 14, color: me.ink2 },
   detailValue: {
     fontSize: 14,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     fontWeight: '600',
   },
   totalRowFinal: {
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: theme.colors.border,
+    borderTopColor: me.line,
     marginTop: 8,
     paddingTop: 12,
   },
   grandTotalLabel: {
     fontSize: 16,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   grandTotalValue: {
     fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   notesText: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     lineHeight: 20,
   },
   actionsSection: {
@@ -412,7 +377,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 28,
     paddingVertical: 14,
     gap: 6,
@@ -420,14 +385,14 @@ const styles = StyleSheet.create({
   editButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   sendButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
     borderRadius: 28,
     paddingVertical: 14,
     gap: 6,
@@ -435,20 +400,20 @@ const styles = StyleSheet.create({
   sendButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
   },
   emptyIconWrap: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  emptyText: { fontSize: 16, color: theme.colors.textSecondary, marginTop: 16 },
+  emptyText: { fontSize: 16, color: me.ink2, marginTop: 16 },
   backLink: {
     fontSize: 14,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     fontWeight: '600',
     marginTop: 12,
   },

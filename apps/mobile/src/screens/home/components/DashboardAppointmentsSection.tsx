@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { Skeleton } from '../../../components/skeletons/Skeleton';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 import { styles } from '../homeownerDashboardStyles';
 
 interface Appointment {
@@ -101,11 +101,7 @@ export const DashboardAppointmentsSection: React.FC<
               {apt.contractor ? ` · ${apt.contractor.name}` : ''}
             </Text>
           </View>
-          <Ionicons
-            name='chevron-forward'
-            size={16}
-            color={theme.colors.textTertiary}
-          />
+          <Ionicons name='chevron-forward' size={16} color={me.ink3} />
         </TouchableOpacity>
       ))}
     </View>

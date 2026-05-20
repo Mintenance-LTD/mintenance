@@ -1,20 +1,16 @@
 /**
- * Styles for ContractorDashboard.
+ * Styles for ContractorDashboard — Direction A · Mint Editorial.
  *
  * Extracted from ContractorDashboard.tsx (2026-04-20) to keep the
- * dashboard under the 500-line pre-commit gate after Phase 1.3
- * (FinishSetupCard) integration. Mirrors the pattern of
- * homeownerDashboardStyles.ts.
- *
- * No visual changes — these rules are a verbatim move from the
- * original inline StyleSheet.
+ * dashboard under the 500-line pre-commit gate. Token-styled on the
+ * `me` palette (design-system/mint-editorial.ts).
  */
 
-import { Platform, StyleSheet } from 'react-native';
-import { theme } from '../../theme';
+import { StyleSheet } from 'react-native';
+import { me } from '../../design-system/mint-editorial';
 
 export const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
+  container: { flex: 1, backgroundColor: me.bg },
   hero: {
     paddingBottom: 56,
     paddingHorizontal: 20,
@@ -78,15 +74,15 @@ export const styles = StyleSheet.create({
     minWidth: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: theme.colors.error,
+    backgroundColor: me.errFg,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 4,
     borderWidth: 2,
-    borderColor: theme.colors.primary,
+    borderColor: me.brand,
   },
   notifBadgeText: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontSize: 10,
     fontWeight: '700',
   },
@@ -107,7 +103,7 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
   },
   avatarText: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontSize: 13,
     fontWeight: '700',
   },
@@ -120,18 +116,18 @@ export const styles = StyleSheet.create({
     marginBottom: 4,
   },
   heroName: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: theme.colors.textInverse,
+    fontFamily: me.font.display,
+    fontSize: 30,
+    color: me.onBrand,
     marginBottom: 20,
-    letterSpacing: -0.5,
+    letterSpacing: me.displayTracking,
   },
   content: { paddingHorizontal: 20, paddingTop: 8 },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg,
     padding: 40,
   },
   errorIconWrap: {
@@ -142,22 +138,22 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 16,
   },
-  errorEmoji: { fontSize: 28, fontWeight: '700', color: theme.colors.error },
+  errorEmoji: { fontSize: 28, fontWeight: '700', color: me.errFg },
   errorText: {
     fontSize: 16,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     fontWeight: '600',
     marginBottom: 16,
     textAlign: 'center',
   },
   retryButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
     paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: 12,
+    borderRadius: me.radius.btn,
   },
   retryButtonText: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontSize: 15,
     fontWeight: '600',
   },
@@ -170,21 +166,13 @@ export const styles = StyleSheet.create({
     position: 'absolute',
     right: 12,
     width: 260,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 12,
     overflow: 'hidden',
     maxHeight: 420,
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    ...Platform.select({
-      ios: {
-        shadowColor: theme.colors.textPrimary,
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.15,
-        shadowRadius: 24,
-      },
-      android: { elevation: 12 },
-    }),
+    borderColor: me.line,
+    ...me.shadow.pop,
   },
   dropdownHeader: {
     flexDirection: 'row',
@@ -196,12 +184,12 @@ export const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
     justifyContent: 'center',
     alignItems: 'center',
   },
   dropdownAvatarText: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontSize: 14,
     fontWeight: '700',
   },
@@ -209,16 +197,16 @@ export const styles = StyleSheet.create({
   dropdownUserName: {
     fontSize: 14,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   dropdownUserRole: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginTop: 1,
   },
   dropdownDivider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: theme.colors.border,
+    backgroundColor: me.line,
   },
   dropdownItem: {
     flexDirection: 'row',
@@ -227,7 +215,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 14,
     gap: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.borderLight,
+    borderBottomColor: me.line2,
   },
   dropdownItemLast: { borderBottomWidth: 0 },
   dropdownItemIcon: {
@@ -241,11 +229,11 @@ export const styles = StyleSheet.create({
   dropdownItemLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   dropdownItemSubtitle: {
     fontSize: 11,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginTop: 1,
   },
 });

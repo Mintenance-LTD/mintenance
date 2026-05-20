@@ -94,6 +94,37 @@ export const POST = withApiHandler(
       return NextResponse.json({ error: 'Failed to save photos to portfolio' }, { status: 500 });
     }
 
+    // 2026-05-20 audit fix: also append the uploaded URLs to
+    // profiles.portfolio_images. The canonical portfolio source is
+    // now `contractor_posts` (folded by /api/contractors/[id]), but
+    // some legacy surfaces still read `profiles.portfolio_images`
+    // directly. Keeping that field in sync avoids ghost-empty
+    // portfolios on the consumers that haven't migrated yet.
+    // Failure is logged but non-fatal — the canonical insert above
+    // already succeeded.
+    const { data: profile } = await serverSupabase
+      .from('profiles')
+      .select('portfolio_images')
+      .eq('id', user.id)
+      .single();
+    const existingPortfolioImages = Array.isArray(profile?.portfolio_images)
+      ? profile.portfolio_images
+      : [];
+    const nextPortfolioImages = Array.from(
+      new Set([...existingPortfolioImages, ...uploadedUrls])
+    );
+    const { error: profileUpdateError } = await serverSupabase
+      .from('profiles')
+      .update({ portfolio_images: nextPortfolioImages })
+      .eq('id', user.id);
+    if (profileUpdateError) {
+      logger.warn('Failed to sync contractor portfolio images to profile', {
+        service: 'contractor',
+        userId: user.id,
+        error: profileUpdateError.message,
+      });
+    }
+
     return NextResponse.json({ success: true, data, uploadedCount: uploadedUrls.length });
   }
 );

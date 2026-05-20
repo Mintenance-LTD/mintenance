@@ -24,7 +24,7 @@ import {
   ErrorView,
 } from '../../components/shared';
 import { useAuth } from '../../contexts/AuthContext';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 import { styles } from './expenses/theme/styles';
 import {
@@ -119,10 +119,7 @@ export const ExpensesScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar
-        barStyle='dark-content'
-        backgroundColor={theme.colors.backgroundSecondary}
-      />
+      <StatusBar barStyle='dark-content' backgroundColor={me.bg2} />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -172,8 +169,8 @@ export const ExpensesScreen: React.FC = () => {
             <RefreshControl
               refreshing={false}
               onRefresh={refetch}
-              tintColor={theme.colors.textPrimary}
-              colors={[theme.colors.textPrimary]}
+              tintColor={me.ink}
+              colors={[me.ink]}
             />
           }
           ListEmptyComponent={
@@ -201,7 +198,7 @@ export const ExpensesScreen: React.FC = () => {
             accessibilityRole='button'
             accessibilityLabel='Add expense'
           >
-            <Ionicons name='add' size={28} color={theme.colors.textInverse} />
+            <Ionicons name='add' size={28} color={me.onBrand} />
           </TouchableOpacity>
         )}
       </KeyboardAvoidingView>

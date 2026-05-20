@@ -1,6 +1,11 @@
 /* Import custom animations */
 @import '../styles/animations.css';
 
+/* Mint Editorial — Phase 1 design rebrand. Scoped to .me-root /
+   <html data-theme="mint-editorial"> so it does not affect any
+   surface that hasn't been migrated yet. */
+@import '../styles/mint-editorial.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -44,25 +49,32 @@ html {
 }
 
 /* Prevent horizontal scroll and keep content centered */
-html, body {
+html,
+body {
   width: 100%;
   max-width: 100%;
   overflow-x: hidden;
 }
 
 /* Ensure padding doesn't cause overflow */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
 /* Media should never overflow containers */
-img, video, canvas, svg {
+img,
+video,
+canvas,
+svg {
   max-width: 100%;
   height: auto;
 }
 
 /* Prevent any element from causing horizontal overflow */
-#__next, [data-nextjs-scroll-focus-boundary] {
+#__next,
+[data-nextjs-scroll-focus-boundary] {
   width: 100%;
   max-width: 100%;
   overflow-x: hidden;
@@ -86,50 +98,50 @@ textarea::placeholder {
 /* Custom theme colors for Tailwind v4 */
 @theme {
   /* Primary Brand Colors (Navy Blue) */
-  --color-primary-50: #F8FAFC;
-  --color-primary-100: #F1F5F9;
-  --color-primary-200: #E2E8F0;
-  --color-primary-300: #CBD5E1;
-  --color-primary-400: #94A3B8;
-  --color-primary-500: #64748B;
+  --color-primary-50: #f8fafc;
+  --color-primary-100: #f1f5f9;
+  --color-primary-200: #e2e8f0;
+  --color-primary-300: #cbd5e1;
+  --color-primary-400: #94a3b8;
+  --color-primary-500: #64748b;
   --color-primary-600: #475569;
   --color-primary-700: #334155;
-  --color-primary-800: #1E293B;
-  --color-primary-900: #0F172A;
+  --color-primary-800: #1e293b;
+  --color-primary-900: #0f172a;
   --color-primary-950: #020617;
-  --color-primary: #0F172A;
-  --color-primary-light: #1E293B;
+  --color-primary: #0f172a;
+  --color-primary-light: #1e293b;
   --color-primary-dark: #020617;
 
   /* Secondary Brand Colors (Emerald Green) */
-  --color-secondary-50: #ECFDF5;
-  --color-secondary-100: #D1FAE5;
-  --color-secondary-200: #A7F3D0;
-  --color-secondary-300: #6EE7B7;
-  --color-secondary-400: #34D399;
-  --color-secondary-500: #10B981;
+  --color-secondary-50: #ecfdf5;
+  --color-secondary-100: #d1fae5;
+  --color-secondary-200: #a7f3d0;
+  --color-secondary-300: #6ee7b7;
+  --color-secondary-400: #34d399;
+  --color-secondary-500: #10b981;
   --color-secondary-600: #059669;
   --color-secondary-700: #047857;
-  --color-secondary-800: #065F46;
-  --color-secondary-900: #064E3B;
-  --color-secondary: #10B981;
-  --color-secondary-light: #34D399;
+  --color-secondary-800: #065f46;
+  --color-secondary-900: #064e3b;
+  --color-secondary: #10b981;
+  --color-secondary-light: #34d399;
   --color-secondary-dark: #059669;
 
   /* Accent Colors (Amber) */
-  --color-accent-50: #FFFBEB;
-  --color-accent-100: #FEF3C7;
-  --color-accent-200: #FDE68A;
-  --color-accent-300: #FCD34D;
-  --color-accent-400: #FBBF24;
-  --color-accent-500: #F59E0B;
-  --color-accent-600: #D97706;
-  --color-accent-700: #B45309;
-  --color-accent-800: #92400E;
-  --color-accent-900: #78350F;
-  --color-accent: #F59E0B;
-  --color-accent-light: #FCD34D;
-  --color-accent-dark: #D97706;
+  --color-accent-50: #fffbeb;
+  --color-accent-100: #fef3c7;
+  --color-accent-200: #fde68a;
+  --color-accent-300: #fcd34d;
+  --color-accent-400: #fbbf24;
+  --color-accent-500: #f59e0b;
+  --color-accent-600: #d97706;
+  --color-accent-700: #b45309;
+  --color-accent-800: #92400e;
+  --color-accent-900: #78350f;
+  --color-accent: #f59e0b;
+  --color-accent-light: #fcd34d;
+  --color-accent-dark: #d97706;
 
   /* shadcn/ui CSS Variables */
   --background: 0 0% 100%;
@@ -158,32 +170,32 @@ textarea::placeholder {
 /* Targets gradient bars with the data-gradient-bar attribute */
 /* Only applies when not hovering (hover state will override this) */
 @media (min-width: 1024px) {
-  [data-gradient-bar="true"]:not(:hover) {
+  [data-gradient-bar='true']:not(:hover) {
     opacity: 1;
   }
-  
+
   /* Ensure it's visible even when parent is hovered */
-  .group:hover [data-gradient-bar="true"] {
+  .group:hover [data-gradient-bar='true'] {
     opacity: 1;
   }
 }
 
 /* Hide browser debug overlays and rulers */
 [data-debug-overlay],
-[class*="debug"],
-[class*="ruler"],
-[class*="guide"],
-[id*="debug"],
-[id*="ruler"],
-[id*="guide"] {
+[class*='debug'],
+[class*='ruler'],
+[class*='guide'],
+[id*='debug'],
+[id*='ruler'],
+[id*='guide'] {
   display: none !important;
 }
 
 /* Hide any elements that might be creating unwanted red lines */
-hr[style*="red"],
-hr[style*="#EF"],
-div[style*="border"][style*="red"],
-div[style*="background"][style*="red"][style*="height: 1px"],
-div[style*="background"][style*="red"][style*="height: 2px"] {
+hr[style*='red'],
+hr[style*='#EF'],
+div[style*='border'][style*='red'],
+div[style*='background'][style*='red'][style*='height: 1px'],
+div[style*='background'][style*='red'][style*='height: 2px'] {
   display: none !important;
 }

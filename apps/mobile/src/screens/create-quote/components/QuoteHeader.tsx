@@ -5,9 +5,15 @@
  */
 
 import React from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 interface QuoteHeaderProps {
   projectTitle: string;
@@ -24,13 +30,14 @@ export const QuoteHeader: React.FC<QuoteHeaderProps> = ({
   selectedTemplate,
   templates,
 }) => {
-  const selectedTemplateName = templates.find(t => t.id === selectedTemplate)?.name || '';
+  const selectedTemplateName =
+    templates.find((t) => t.id === selectedTemplate)?.name || '';
 
   return (
     <View style={styles.container}>
       <View style={styles.sectionHeader}>
         <View style={styles.sectionIconWrap}>
-          <Ionicons name="document-text" size={16} color={theme.colors.primary} />
+          <Ionicons name='document-text' size={16} color={me.brand} />
         </View>
         <Text style={styles.sectionTitle}>Project Details</Text>
       </View>
@@ -41,15 +48,15 @@ export const QuoteHeader: React.FC<QuoteHeaderProps> = ({
           style={styles.textInput}
           value={projectTitle}
           onChangeText={setProjectTitle}
-          placeholder="e.g. Bathroom Renovation Quote"
-          placeholderTextColor={theme.colors.textTertiary}
-          accessibilityLabel="Project title"
+          placeholder='e.g. Bathroom Renovation Quote'
+          placeholderTextColor={me.ink3}
+          accessibilityLabel='Project title'
         />
       </View>
 
       <TouchableOpacity style={styles.templateButton} onPress={onTemplatePress}>
         <View style={styles.templateIconWrap}>
-          <Ionicons name="copy-outline" size={18} color={theme.colors.primary} />
+          <Ionicons name='copy-outline' size={18} color={me.brand} />
         </View>
         <View style={styles.templateButtonText}>
           <Text style={styles.templateButtonLabel}>Quote Template</Text>
@@ -57,7 +64,7 @@ export const QuoteHeader: React.FC<QuoteHeaderProps> = ({
             {selectedTemplateName || 'Choose a template (optional)'}
           </Text>
         </View>
-        <Ionicons name="chevron-forward" size={18} color={theme.colors.textTertiary} />
+        <Ionicons name='chevron-forward' size={18} color={me.ink3} />
       </TouchableOpacity>
     </View>
   );
@@ -65,14 +72,11 @@ export const QuoteHeader: React.FC<QuoteHeaderProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 20,
     padding: 20,
     marginBottom: 12,
-    ...Platform.select({
-      ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 6 },
-      android: { elevation: 1 },
-    }),
+    ...me.shadow.card,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -84,14 +88,14 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 8,
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: me.brandSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
   sectionTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     letterSpacing: -0.2,
   },
   inputGroup: {
@@ -100,35 +104,35 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 13,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginBottom: 6,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   textInput: {
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 14,
     padding: 14,
     fontSize: 15,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
   templateButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
     gap: 12,
   },
   templateIconWrap: {
     width: 36,
     height: 36,
     borderRadius: 12,
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: me.brandSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -137,7 +141,7 @@ const styles = StyleSheet.create({
   },
   templateButtonLabel: {
     fontSize: 11,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     fontWeight: '500',
     textTransform: 'uppercase',
     letterSpacing: 0.3,
@@ -145,7 +149,7 @@ const styles = StyleSheet.create({
   },
   templateButtonValue: {
     fontSize: 15,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     fontWeight: '500',
   },
 });

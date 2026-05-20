@@ -1,7 +1,7 @@
 import React from 'react';
 import { TouchableOpacity, Text, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 import { styles } from '../jobDetailsStyles';
 
 /**
@@ -27,14 +27,10 @@ export function WithdrawBidButton({
       accessibilityLabel='Withdraw your bid'
     >
       {withdrawing ? (
-        <ActivityIndicator color={theme.colors.error} size='small' />
+        <ActivityIndicator color={me.errFg} size='small' />
       ) : (
         <>
-          <Ionicons
-            name='close-circle-outline'
-            size={20}
-            color={theme.colors.error}
-          />
+          <Ionicons name='close-circle-outline' size={20} color={me.errFg} />
           <Text style={styles.withdrawBidText}>Withdraw Bid</Text>
         </>
       )}

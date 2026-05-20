@@ -1,10 +1,10 @@
 import { StyleSheet } from 'react-native';
-import { theme } from '../theme';
+import { me } from '../design-system/mint-editorial';
 
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   header: {
     flexDirection: 'row',
@@ -12,7 +12,7 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingBottom: 16,
-    backgroundColor: theme.colors.background,
+    backgroundColor: me.bg,
   },
   headerLeft: {
     flexDirection: 'row',
@@ -23,14 +23,14 @@ export const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerLabel: {
     fontSize: 10,
     fontWeight: '700',
-    color: theme.colors.primary,
+    color: me.brand,
     textTransform: 'uppercase',
     letterSpacing: 1.5,
     marginBottom: 2,
@@ -38,14 +38,14 @@ export const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: '800',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     letterSpacing: -0.5,
   },
   addButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 14,
@@ -53,25 +53,25 @@ export const styles = StyleSheet.create({
   addButtonText: {
     fontSize: 13,
     fontWeight: '700',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
   },
   content: {
     flex: 1,
     paddingHorizontal: 16,
   },
   statsCard: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 24,
     padding: 18,
     marginTop: 16,
     marginBottom: 14,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
   statsTitle: {
     fontSize: 11,
     fontWeight: '700',
-    color: theme.colors.primary,
+    color: me.brand,
     marginBottom: 14,
     textTransform: 'uppercase',
     letterSpacing: 1.5,
@@ -95,13 +95,13 @@ export const styles = StyleSheet.create({
   statValue: {
     fontSize: 22,
     fontWeight: '800',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 2,
     letterSpacing: -0.5,
   },
   statLabel: {
     fontSize: 11,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     textAlign: 'center',
   },
   filterContainer: {
@@ -111,23 +111,23 @@ export const styles = StyleSheet.create({
     gap: 8,
   },
   filterChip: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
   filterChipActive: {
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
   },
   filterText: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     fontWeight: '600',
   },
   filterTextActive: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
   },
   actionsContainer: {
     flexDirection: 'row',
@@ -136,12 +136,12 @@ export const styles = StyleSheet.create({
   },
   actionButton: {
     flex: 1,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 20,
     padding: 14,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
   actionIconWrap: {
     width: 40,
@@ -153,7 +153,7 @@ export const styles = StyleSheet.create({
   },
   actionButtonText: {
     fontSize: 12,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     fontWeight: '600',
   },
   quotesContainer: {
@@ -162,7 +162,7 @@ export const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 12,
   },
   emptyState: {
@@ -174,7 +174,7 @@ export const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
@@ -182,40 +182,40 @@ export const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 6,
   },
   emptyText: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     textAlign: 'center',
     marginBottom: 24,
     paddingHorizontal: 32,
     lineHeight: 20,
   },
   createButton: {
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 28,
   },
   createButtonText: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontSize: 15,
     fontWeight: '700',
   },
   analyticsPanel: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     marginBottom: 14,
     borderRadius: 24,
     padding: 18,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
   analyticsTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 12,
   },
   analyticsRow: {
@@ -229,11 +229,11 @@ export const styles = StyleSheet.create({
   analyticsValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   analyticsLabel: {
     fontSize: 11,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginTop: 2,
     textAlign: 'center',
   },

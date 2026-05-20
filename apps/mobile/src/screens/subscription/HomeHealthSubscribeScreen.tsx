@@ -33,7 +33,7 @@ import { ScreenHeader, LoadingSpinner } from '../../components/shared';
 import { Button } from '../../components/ui/Button';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import { logger } from '../../utils/logger';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 interface Property {
   id: string;
@@ -171,11 +171,7 @@ export const HomeHealthSubscribeScreen: React.FC = () => {
       />
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.heroCard}>
-          <Ionicons
-            name='shield-checkmark'
-            size={28}
-            color={theme.colors.primary}
-          />
+          <Ionicons name='shield-checkmark' size={28} color={me.brand} />
           <Text style={styles.price}>£9.99 / month</Text>
           <Text style={styles.tagline}>
             We schedule + run three key maintenance checks on your home every
@@ -188,11 +184,7 @@ export const HomeHealthSubscribeScreen: React.FC = () => {
               'Gutter clean twice a year',
             ].map((b) => (
               <View key={b} style={styles.bullet}>
-                <Ionicons
-                  name='checkmark-circle'
-                  size={16}
-                  color={theme.colors.primary}
-                />
+                <Ionicons name='checkmark-circle' size={16} color={me.brand} />
                 <Text style={styles.bulletText}>{b}</Text>
               </View>
             ))}
@@ -224,9 +216,7 @@ export const HomeHealthSubscribeScreen: React.FC = () => {
                 <Ionicons
                   name={selected ? 'radio-button-on' : 'radio-button-off'}
                   size={22}
-                  color={
-                    selected ? theme.colors.primary : theme.colors.textSecondary
-                  }
+                  color={selected ? me.brand : me.ink2}
                 />
                 <Text style={styles.propertyLabel} numberOfLines={2}>
                   {formatPropertyLabel(p)}
@@ -243,10 +233,7 @@ export const HomeHealthSubscribeScreen: React.FC = () => {
           style={{ marginTop: 20 }}
         />
         {submitting && (
-          <ActivityIndicator
-            color={theme.colors.primary}
-            style={{ marginTop: 12 }}
-          />
+          <ActivityIndicator color={me.brand} style={{ marginTop: 12 }} />
         )}
         <Text style={styles.fineprint}>
           Cancel anytime. Your next card charge won&apos;t be more than £9.99.
@@ -257,66 +244,66 @@ export const HomeHealthSubscribeScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
+  container: { flex: 1, backgroundColor: me.bg2 },
   content: { padding: 16, paddingBottom: 40 },
   heroCard: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     padding: 18,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: theme.colors.primaryLight,
+    borderColor: me.brandSoft,
   },
   price: {
     fontSize: 26,
     fontWeight: '800',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginTop: 10,
   },
   tagline: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginTop: 4,
     marginBottom: 12,
     lineHeight: 20,
   },
   bullets: { gap: 6 },
   bullet: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  bulletText: { fontSize: 14, color: theme.colors.textPrimary },
+  bulletText: { fontSize: 14, color: me.ink },
   sectionTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 8,
   },
   propertyRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 12,
     padding: 14,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
   propertyRowSelected: {
-    borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.primaryLight,
+    borderColor: me.brand,
+    backgroundColor: me.brandSoft,
   },
-  propertyLabel: { flex: 1, fontSize: 14, color: theme.colors.textPrimary },
+  propertyLabel: { flex: 1, fontSize: 14, color: me.ink },
   emptyCard: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
-  emptyText: { fontSize: 13, color: theme.colors.textSecondary },
+  emptyText: { fontSize: 13, color: me.ink2 },
   fineprint: {
     marginTop: 12,
     fontSize: 11,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     textAlign: 'center',
   },
 });

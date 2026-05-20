@@ -134,7 +134,6 @@ export function ProfessionalHomeownerLayout({
       pathToUse.split('?')[0].replace(/\/$/, '') || '/dashboard';
     const routeTitleMap: Record<string, string> = {
       '/dashboard': 'Dashboard',
-      '/discover': 'Discover',
       '/jobs': 'Jobs',
       '/jobs/create': 'Post a Job',
       '/messages': 'Messages',

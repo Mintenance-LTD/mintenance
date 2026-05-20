@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Image from 'next/image';
+import { Check, X } from 'lucide-react';
 import { theme } from '@/lib/theme';
 import { Card } from '@/components/ui/Card.unified';
 import { Button } from '@/components/ui/Button';
@@ -214,19 +215,81 @@ export function EscrowReviewDetailModal({
           >
             <div>
               Photo Quality:{' '}
-              {selectedReview.photoQualityPassed ? '✓ Passed' : '✗ Failed'}
+              {selectedReview.photoQualityPassed ? (
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                  }}
+                >
+                  <Check size={14} aria-hidden='true' />
+                  Passed
+                </span>
+              ) : (
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                  }}
+                >
+                  <X size={14} aria-hidden='true' />
+                  Failed
+                </span>
+              )}
             </div>
             <div>
               Geolocation:{' '}
-              {selectedReview.geolocationVerified
-                ? '✓ Verified'
-                : '✗ Not Verified'}
+              {selectedReview.geolocationVerified ? (
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                  }}
+                >
+                  <Check size={14} aria-hidden='true' />
+                  Verified
+                </span>
+              ) : (
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                  }}
+                >
+                  <X size={14} aria-hidden='true' />
+                  Not Verified
+                </span>
+              )}
             </div>
             <div>
               Timestamp:{' '}
-              {selectedReview.timestampVerified
-                ? '✓ Verified'
-                : '✗ Not Verified'}
+              {selectedReview.timestampVerified ? (
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                  }}
+                >
+                  <Check size={14} aria-hidden='true' />
+                  Verified
+                </span>
+              ) : (
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                  }}
+                >
+                  <X size={14} aria-hidden='true' />
+                  Not Verified
+                </span>
+              )}
             </div>
             <div>
               Before/After Score:{' '}

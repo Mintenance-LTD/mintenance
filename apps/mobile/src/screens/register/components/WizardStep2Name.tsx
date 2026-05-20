@@ -13,7 +13,7 @@ import React from 'react';
 import { Text, View, StyleSheet } from 'react-native';
 import { Input } from '../../../components/ui/Input';
 import { RoleSelector } from './RoleSelector';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 interface WizardStep2NameProps {
   firstName: string;
@@ -49,6 +49,7 @@ export const WizardStep2Name: React.FC<WizardStep2NameProps> = ({
       </Text>
 
       <Input
+        mint
         testID='first-name-input'
         label='First Name'
         placeholder='First name'
@@ -68,6 +69,7 @@ export const WizardStep2Name: React.FC<WizardStep2NameProps> = ({
       />
 
       <Input
+        mint
         testID='last-name-input'
         label='Last Name'
         placeholder='Last name'
@@ -94,21 +96,22 @@ export const WizardStep2Name: React.FC<WizardStep2NameProps> = ({
 
 const styles = StyleSheet.create({
   stepHeading: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
+    fontFamily: me.font.display,
+    fontSize: 20,
+    color: me.ink,
     marginBottom: 6,
+    letterSpacing: me.displayTracking,
   },
   stepHint: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginBottom: 16,
     lineHeight: 18,
   },
   roleLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginTop: 12,

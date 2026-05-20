@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,7 +14,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useToast } from '../../components/ui/Toast';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import type { ProfileStackParamList } from '../../navigation/types';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 
 interface AddClientScreenProps {
@@ -97,11 +96,7 @@ export const AddClientScreen: React.FC<AddClientScreenProps> = ({
           style={styles.headerButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons
-            name='arrow-back'
-            size={24}
-            color={theme.colors.textPrimary}
-          />
+          <Ionicons name='arrow-back' size={24} color={me.ink} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Add Client</Text>
         <TouchableOpacity
@@ -130,7 +125,7 @@ export const AddClientScreen: React.FC<AddClientScreenProps> = ({
           <TextInput
             style={styles.input}
             placeholder='First name'
-            placeholderTextColor={theme.colors.textTertiary}
+            placeholderTextColor={me.ink3}
             value={firstName}
             onChangeText={setFirstName}
             autoCapitalize='words'
@@ -140,7 +135,7 @@ export const AddClientScreen: React.FC<AddClientScreenProps> = ({
           <TextInput
             style={styles.input}
             placeholder='Last name'
-            placeholderTextColor={theme.colors.textTertiary}
+            placeholderTextColor={me.ink3}
             value={lastName}
             onChangeText={setLastName}
             autoCapitalize='words'
@@ -150,7 +145,7 @@ export const AddClientScreen: React.FC<AddClientScreenProps> = ({
           <TextInput
             style={styles.input}
             placeholder='email@example.com'
-            placeholderTextColor={theme.colors.textTertiary}
+            placeholderTextColor={me.ink3}
             value={email}
             onChangeText={setEmail}
             keyboardType='email-address'
@@ -161,7 +156,7 @@ export const AddClientScreen: React.FC<AddClientScreenProps> = ({
           <TextInput
             style={styles.input}
             placeholder='+44 7700 900000'
-            placeholderTextColor={theme.colors.textTertiary}
+            placeholderTextColor={me.ink3}
             value={phone}
             onChangeText={setPhone}
             keyboardType='phone-pad'
@@ -173,7 +168,7 @@ export const AddClientScreen: React.FC<AddClientScreenProps> = ({
           <TextInput
             style={styles.input}
             placeholder='Company name'
-            placeholderTextColor={theme.colors.textTertiary}
+            placeholderTextColor={me.ink3}
             value={companyName}
             onChangeText={setCompanyName}
             autoCapitalize='words'
@@ -185,7 +180,7 @@ export const AddClientScreen: React.FC<AddClientScreenProps> = ({
           <TextInput
             style={[styles.input, styles.notesInput]}
             placeholder='Additional notes about this client\u2026'
-            placeholderTextColor={theme.colors.textTertiary}
+            placeholderTextColor={me.ink3}
             value={notes}
             onChangeText={setNotes}
             multiline
@@ -201,68 +196,60 @@ export const AddClientScreen: React.FC<AddClientScreenProps> = ({
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
+  container: { flex: 1, backgroundColor: me.bg2 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   headerButton: { padding: 8, minWidth: 60 },
   headerButtonDisabled: { opacity: 0.5 },
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   saveText: {
     fontSize: 16,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     textAlign: 'right',
   },
   scroll: { flex: 1 },
   section: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     marginHorizontal: 16,
     marginTop: 16,
     borderRadius: 16,
     padding: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   sectionTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     marginBottom: 12,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
   },
   fieldLabel: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginBottom: 6,
     marginTop: 4,
   },
   input: {
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 15,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 8,
   },
   notesInput: { height: 100, paddingTop: 12 },

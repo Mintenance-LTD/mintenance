@@ -1,5 +1,5 @@
-import { StyleSheet, Platform, Dimensions } from 'react-native';
-import { theme } from '../../theme';
+import { StyleSheet, Dimensions } from 'react-native';
+import { me } from '../../design-system/mint-editorial';
 import type { Ionicons } from '@expo/vector-icons';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -10,16 +10,16 @@ export const CATEGORY_MARKERS: Record<
   string,
   { icon: keyof typeof Ionicons.glyphMap; bg: string }
 > = {
-  plumbing: { icon: 'water', bg: theme.colors.primary },
-  electrical: { icon: 'flash', bg: theme.colors.accent },
-  roofing: { icon: 'home', bg: theme.colors.primary },
+  plumbing: { icon: 'water', bg: me.brand },
+  electrical: { icon: 'flash', bg: me.accent },
+  roofing: { icon: 'home', bg: me.brand },
   painting: { icon: 'color-palette', bg: '#3B82F6' },
-  carpentry: { icon: 'hammer', bg: theme.colors.accent },
+  carpentry: { icon: 'hammer', bg: me.accent },
   cleaning: { icon: 'sparkles', bg: '#3B82F6' },
-  hvac: { icon: 'thermometer', bg: theme.colors.error },
-  landscaping: { icon: 'leaf', bg: theme.colors.primary },
-  appliance: { icon: 'settings', bg: theme.colors.accent },
-  general: { icon: 'construct', bg: theme.colors.textSecondary },
+  hvac: { icon: 'thermometer', bg: me.errFg },
+  landscaping: { icon: 'leaf', bg: me.brand },
+  appliance: { icon: 'settings', bg: me.accent },
+  general: { icon: 'construct', bg: me.ink2 },
 };
 
 // Category tabs
@@ -74,7 +74,7 @@ export const CATEGORIES = [
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   topBar: {
     position: 'absolute',
@@ -82,17 +82,9 @@ export const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 10,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     paddingBottom: 10,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 8,
-      },
-      android: { elevation: 4 },
-    }),
+    ...me.shadow.card,
   },
   searchRow: {
     flexDirection: 'row',
@@ -105,7 +97,7 @@ export const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
@@ -114,7 +106,7 @@ export const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 14,
     paddingLeft: 14,
     paddingRight: 6,
@@ -127,22 +119,22 @@ export const styles = StyleSheet.create({
   searchTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   searchSubtitle: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginTop: 1,
   },
   filterBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
   categoryRow: {
     maxHeight: 38,
@@ -157,22 +149,22 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 20,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     gap: 4,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
   categoryPillActive: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
+    backgroundColor: me.brand,
+    borderColor: me.brand,
   },
   categoryPillText: {
     fontSize: 12,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   categoryPillTextActive: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
   },
   markerWrapper: {
     alignItems: 'center',
@@ -183,15 +175,7 @@ export const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.25,
-        shadowRadius: 6,
-      },
-      android: { elevation: 6 },
-    }),
+    ...me.shadow.pop,
   },
   markerArrow: {
     width: 0,
@@ -210,9 +194,9 @@ export const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: theme.colors.error,
+    backgroundColor: me.errFg,
     borderWidth: 2,
-    borderColor: theme.colors.surface,
+    borderColor: me.surface,
   },
   loadingOverlay: {
     position: 'absolute',
@@ -222,7 +206,7 @@ export const styles = StyleSheet.create({
   },
   loadingDots: {
     flexDirection: 'row',
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
     borderRadius: 16,
     paddingHorizontal: 14,
     paddingVertical: 8,
@@ -232,30 +216,22 @@ export const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
   },
   jobCountPill: {
     position: 'absolute',
     left: 16,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 20,
     paddingHorizontal: 14,
     paddingVertical: 8,
     zIndex: 5,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.12,
-        shadowRadius: 4,
-      },
-      android: { elevation: 3 },
-    }),
+    ...me.shadow.pop,
   },
   jobCountText: {
     fontSize: 13,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   locationButton: {
     position: 'absolute',
@@ -263,19 +239,11 @@ export const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 5,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.12,
-        shadowRadius: 4,
-      },
-      android: { elevation: 3 },
-    }),
+    ...me.shadow.pop,
   },
   carouselContainer: {
     position: 'absolute',
@@ -289,22 +257,14 @@ export const styles = StyleSheet.create({
   },
   carouselCard: {
     width: CARD_WIDTH,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     padding: 14,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.15,
-        shadowRadius: 10,
-      },
-      android: { elevation: 6 },
-    }),
+    ...me.shadow.pop,
   },
   carouselCardSelected: {
     borderWidth: 2,
-    borderColor: theme.colors.primary,
+    borderColor: me.brand,
   },
   carouselCardHeader: {
     flexDirection: 'row',
@@ -315,7 +275,7 @@ export const styles = StyleSheet.create({
   carouselBudget: {
     fontSize: 20,
     fontWeight: '800',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     letterSpacing: -0.5,
   },
   carouselCatPill: {
@@ -328,12 +288,12 @@ export const styles = StyleSheet.create({
   carouselTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 2,
   },
   carouselMeta: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginBottom: 10,
   },
   carouselActions: {
@@ -346,14 +306,14 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 4,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
     borderRadius: 12,
     paddingVertical: 8,
   },
   carouselBidText: {
     fontSize: 13,
     fontWeight: '700',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
   },
   carouselDetailsBtn: {
     flex: 1,
@@ -361,14 +321,14 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 3,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 12,
     paddingVertical: 8,
   },
   carouselDetailsText: {
     fontSize: 13,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   userMarker: {
     alignItems: 'center',
@@ -377,30 +337,22 @@ export const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
     borderWidth: 3,
     borderColor: '#FFFFFF',
     alignItems: 'center',
     justifyContent: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 4,
-      },
-      android: { elevation: 4 },
-    }),
+    ...me.shadow.pop,
   },
   userMarkerLabel: {
     fontSize: 10,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginTop: 2,
   },
   mapUnavailable: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'flex-start',
     paddingHorizontal: 32,
@@ -410,13 +362,13 @@ export const styles = StyleSheet.create({
     marginTop: 12,
     fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   mapUnavailableText: {
     marginTop: 6,
     fontSize: 14,
     lineHeight: 20,
     textAlign: 'center',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
 });

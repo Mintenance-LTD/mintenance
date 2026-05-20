@@ -305,7 +305,7 @@ export const updatePropertySchema = z.object({
     .nullable(),
   squareFeet: z
     .number()
-    .positive('Square feet must be positive')
+    .min(0, 'Square feet cannot be negative')
     .max(100000)
     .optional()
     .nullable(),

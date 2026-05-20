@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 import { styles } from '../theme/styles';
 
 /**
@@ -15,7 +15,7 @@ export function NoResults() {
         <Ionicons
           name='search-outline'
           size={32}
-          color={theme.colors.textTertiary}
+          color={me.ink3}
           accessible={false}
         />
       </View>

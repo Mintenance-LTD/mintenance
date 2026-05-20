@@ -2,7 +2,11 @@ import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { isValidUUID } from '@/lib/validation/uuid';
-import { NotFoundError, BadRequestError } from '@/lib/errors/api-error';
+import {
+  NotFoundError,
+  BadRequestError,
+  InternalServerError,
+} from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import jsPDF from 'jspdf';
 
@@ -22,6 +26,17 @@ export const GET = withApiHandler(
       throw new BadRequestError('Invalid contract ID format');
     }
 
+    // 2026-05-13 PDF audit:
+    //   - `profiles.insurance_number` does NOT exist on the live
+    //     schema (only `insurance_expiry_date`); the previous select
+    //     returned silent nulls and the insurance line never rendered
+    //     a policy number. Pull the policy number from
+    //     `contracts.terms.insurance_policy_number` instead (now
+    //     populated by the auto-create-on-bid-accept flow).
+    //   - Embed the linked `contractor_quotes` row so the PDF can
+    //     surface the per-line cost breakdown + VAT + contractor
+    //     terms text that the homeowner saw on the web UI. Same
+    //     embed shape as the contracts GET endpoint.
     const { data: contract, error } = await serverSupabase
       .from('contracts')
       .select(
@@ -29,14 +44,34 @@ export const GET = withApiHandler(
         id, job_id, contractor_id, homeowner_id, status, title, description, amount,
         start_date, end_date, terms, contractor_signed_at, homeowner_signed_at,
         contractor_company_name, contractor_license_registration, contractor_license_type,
-        created_at, updated_at,
-        contractor:profiles!contractor_id(first_name, last_name, company_name, insurance_number),
-        homeowner:profiles!homeowner_id(first_name, last_name)
+        quote_id, created_at, updated_at,
+        contractor:profiles!contractor_id(first_name, last_name, company_name, insurance_expiry_date),
+        homeowner:profiles!homeowner_id(first_name, last_name),
+        quote:contractor_quotes!quote_id(id, subtotal, tax_rate, tax_amount, total_amount, line_items, terms, quote_number)
       `
       )
       .eq('id', contractId)
       .or(`contractor_id.eq.${user.id},homeowner_id.eq.${user.id}`)
       .single();
+
+    // Distinguish a genuine "no row / no access" from a real query
+    // failure. PostgREST returns code PGRST116 when `.single()` matches
+    // zero rows — that is the legitimate 404. Any OTHER error code is a
+    // schema/embed/RLS failure and must NOT be disguised as "not found"
+    // (a stale `profiles.insurance_number` select once failed exactly
+    // this way and surfaced a misleading 404). Log it and return 500 so
+    // it is diagnosable.
+    if (error && error.code !== 'PGRST116') {
+      logger.error('Contract PDF query failed', {
+        contractId,
+        code: error.code,
+        message: error.message,
+        details: error.details,
+      });
+      throw new InternalServerError(
+        'Could not load the contract for PDF export'
+      );
+    }
 
     if (error || !contract) {
       throw new NotFoundError('Contract not found or access denied');
@@ -150,12 +185,16 @@ export const GET = withApiHandler(
       y += 5;
     }
 
-    const insuranceProvider = (c.terms as Record<string, unknown>)
-      ?.insurance_provider as string | undefined;
-    const insuranceNumber = contractor?.insurance_number;
-    if (insuranceProvider || insuranceNumber) {
+    const termsRecord = (c.terms as Record<string, unknown> | null) ?? {};
+    const insuranceProvider = termsRecord.insurance_provider as
+      | string
+      | undefined;
+    const insurancePolicyNumber = termsRecord.insurance_policy_number as
+      | string
+      | undefined;
+    if (insuranceProvider || insurancePolicyNumber) {
       doc.text(
-        `Insurance: ${insuranceProvider || 'Yes'}${insuranceNumber ? ` — ${insuranceNumber}` : ''}`,
+        `Insurance: ${insuranceProvider || 'Yes'}${insurancePolicyNumber ? ` — ${insurancePolicyNumber}` : ''}`,
         margin + 30,
         y
       );
@@ -200,12 +239,22 @@ export const GET = withApiHandler(
 
     addLine();
 
+    // Section numbering is now driven by a counter so newly-inserted
+    // sections (e.g. the 2026-05-13 quote breakdown) don't force a
+    // cascade of literal-string edits. `nextSection()` returns the
+    // next index and renders the heading in one call.
+    let sectionIndex = 2; // §1 Parties already rendered above
+    const writeHeading = (label: string) => {
+      sectionIndex += 1;
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${sectionIndex}. ${label}`, margin, y);
+      y += 8;
+    };
+
     // Section 3: Payment
     checkPage(25);
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text('3. PAYMENT TERMS', margin, y);
-    y += 8;
+    writeHeading('PAYMENT TERMS');
 
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
@@ -227,13 +276,127 @@ export const GET = withApiHandler(
 
     addLine();
 
-    // Section 4: Schedule
+    // Section: Quote Breakdown (only when a `contractor_quotes` row is
+    // linked and carries an itemised breakdown / VAT / terms text).
+    // 2026-05-13: previously absent from the PDF even though the data
+    // existed on the linked quote — homeowners and contractors had
+    // matching gaps on web display + PDF export.
+    interface QuoteLineItem {
+      description?: string;
+      type?: string;
+      quantity?: number;
+      unitPrice?: number;
+      total?: number;
+    }
+    const quote = (Array.isArray(c.quote) ? c.quote[0] : c.quote) as
+      | (Record<string, unknown> & { line_items?: QuoteLineItem[] })
+      | null;
+    const quoteLineItems: QuoteLineItem[] = Array.isArray(quote?.line_items)
+      ? quote!.line_items
+      : [];
+    const quoteHasTax =
+      typeof quote?.tax_amount === 'number' && (quote.tax_amount as number) > 0;
+    const quoteHasTerms =
+      typeof quote?.terms === 'string' &&
+      (quote.terms as string).trim().length > 0;
+
+    if (quote && (quoteLineItems.length > 0 || quoteHasTax || quoteHasTerms)) {
+      checkPage(30 + quoteLineItems.length * 6);
+      writeHeading('QUOTE BREAKDOWN');
+
+      if (quoteLineItems.length > 0) {
+        // Simple two-column line-item table — keep it readable on A4
+        // without bringing in a table plugin.
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Item', margin, y);
+        doc.text('Qty', margin + 110, y, { align: 'right' });
+        doc.text('Unit', margin + 135, y, { align: 'right' });
+        doc.text('Total', pageWidth - margin, y, { align: 'right' });
+        y += 5;
+        doc.setDrawColor(220, 220, 220);
+        doc.line(margin, y - 1, pageWidth - margin, y - 1);
+        doc.setFont('helvetica', 'normal');
+
+        for (const item of quoteLineItems) {
+          const desc = item.description ?? '—';
+          const qty = typeof item.quantity === 'number' ? item.quantity : 0;
+          const unit =
+            typeof item.unitPrice === 'number'
+              ? formatCurrency(item.unitPrice)
+              : '—';
+          const total =
+            typeof item.total === 'number' ? formatCurrency(item.total) : '—';
+          const lines = doc.splitTextToSize(desc, 90);
+          checkPage(Math.max(lines.length, 1) * 5 + 2);
+          doc.text(lines, margin, y);
+          doc.text(String(qty), margin + 110, y, { align: 'right' });
+          doc.text(unit, margin + 135, y, { align: 'right' });
+          doc.text(total, pageWidth - margin, y, { align: 'right' });
+          y += Math.max(lines.length, 1) * 5 + 1;
+        }
+        y += 2;
+      }
+
+      if (quoteHasTax) {
+        checkPage(20);
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'normal');
+        if (typeof quote?.subtotal === 'number') {
+          doc.text(
+            `Subtotal: ${formatCurrency(quote.subtotal as number)}`,
+            pageWidth - margin,
+            y,
+            { align: 'right' }
+          );
+          y += 5;
+        }
+        const rateStr =
+          typeof quote?.tax_rate === 'number' && (quote.tax_rate as number) > 0
+            ? ` (${quote.tax_rate}%)`
+            : '';
+        doc.text(
+          `VAT${rateStr}: ${formatCurrency(quote!.tax_amount as number)}`,
+          pageWidth - margin,
+          y,
+          { align: 'right' }
+        );
+        y += 5;
+        if (typeof quote?.total_amount === 'number') {
+          doc.setFont('helvetica', 'bold');
+          doc.text(
+            `Quote Total: ${formatCurrency(quote.total_amount as number)}`,
+            pageWidth - margin,
+            y,
+            { align: 'right' }
+          );
+          y += 6;
+          doc.setFont('helvetica', 'normal');
+        }
+      }
+
+      if (quoteHasTerms) {
+        checkPage(20);
+        doc.setFontSize(9);
+        doc.setFont('helvetica', 'bold');
+        doc.text("Contractor's Terms:", margin, y);
+        y += 5;
+        doc.setFont('helvetica', 'normal');
+        const termsLines = doc.splitTextToSize(
+          quote!.terms as string,
+          contentWidth
+        );
+        checkPage(termsLines.length * 4 + 3);
+        doc.text(termsLines, margin, y);
+        y += termsLines.length * 4 + 4;
+      }
+      addLine();
+    }
+
+    // Section: Schedule
     if (c.start_date || c.end_date) {
       checkPage(25);
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'bold');
-      doc.text('4. SCHEDULE', margin, y);
-      y += 8;
+      writeHeading('SCHEDULE');
 
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
@@ -257,11 +420,14 @@ export const GET = withApiHandler(
       addLine();
     }
 
-    // Section 5: Additional Terms
+    // Section: Additional Terms — same hidden-keys list as the web
+    // UI (apps/web/app/jobs/[id]/components/contract/contractHelpers.ts)
+    // so the two surfaces stay in sync.
     const terms = c.terms as Record<string, unknown> | null;
     const hiddenKeys = [
       'insurance_provider',
       'insurance_policy_number',
+      'insurance_expiry_date',
       'source',
       'bid_id',
       'created_from',
@@ -272,11 +438,7 @@ export const GET = withApiHandler(
 
     if (visibleTerms.length > 0) {
       checkPage(20 + visibleTerms.length * 6);
-      const sectionNum = c.start_date || c.end_date ? '5' : '4';
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'bold');
-      doc.text(`${sectionNum}. ADDITIONAL TERMS`, margin, y);
-      y += 8;
+      writeHeading('ADDITIONAL TERMS');
 
       doc.setFontSize(9);
       doc.setFont('helvetica', 'normal');
@@ -296,19 +458,8 @@ export const GET = withApiHandler(
 
     // Signatures
     checkPage(50);
-    const sigSectionNum =
-      visibleTerms.length > 0
-        ? c.start_date || c.end_date
-          ? '6'
-          : '5'
-        : c.start_date || c.end_date
-          ? '5'
-          : '4';
-
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text(`${sigSectionNum}. SIGNATURES`, margin, y);
-    y += 10;
+    writeHeading('SIGNATURES');
+    y += 2;
 
     // Contractor signature
     doc.setFontSize(10);

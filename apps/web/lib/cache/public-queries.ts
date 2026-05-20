@@ -11,7 +11,12 @@ export const getCachedUser = unstable_cache(
   async (userId: string) => {
     const { data, error } = await serverSupabase
       .from('profiles')
-      .select('id, first_name, last_name, email, avatar_url, role, bio, phone')
+      .select(
+        // postcode + city pulled in so the Mint Editorial sidebar
+        // user card can render "Homeowner · SW18" instead of the email,
+        // matching the design mock.
+        'id, first_name, last_name, email, avatar_url, profile_image_url, role, bio, phone, postcode, city'
+      )
       .eq('id', userId)
       .single();
 

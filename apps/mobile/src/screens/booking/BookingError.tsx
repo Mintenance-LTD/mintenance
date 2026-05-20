@@ -7,18 +7,21 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 interface BookingErrorProps {
   error: string;
   onRetry: () => void;
 }
 
-export const BookingError: React.FC<BookingErrorProps> = ({ error, onRetry }) => {
+export const BookingError: React.FC<BookingErrorProps> = ({
+  error,
+  onRetry,
+}) => {
   return (
     <View style={styles.container}>
       <View style={styles.iconWrap}>
-        <Ionicons name="alert-circle-outline" size={32} color={theme.colors.error} />
+        <Ionicons name='alert-circle-outline' size={32} color={me.errFg} />
       </View>
       <Text style={styles.errorTitle}>Oops!</Text>
       <Text style={styles.errorMessage}>{error}</Text>
@@ -26,10 +29,10 @@ export const BookingError: React.FC<BookingErrorProps> = ({ error, onRetry }) =>
       <TouchableOpacity
         style={styles.retryButton}
         onPress={onRetry}
-        accessibilityRole="button"
-        accessibilityLabel="Retry loading bookings"
+        accessibilityRole='button'
+        accessibilityLabel='Retry loading bookings'
       >
-        <Ionicons name="refresh" size={20} color={theme.colors.textInverse} />
+        <Ionicons name='refresh' size={20} color={me.onBrand} />
         <Text style={styles.retryButtonText}>Try Again</Text>
       </TouchableOpacity>
     </View>
@@ -41,7 +44,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     padding: 40,
   },
   iconWrap: {
@@ -56,18 +59,18 @@ const styles = StyleSheet.create({
   errorTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 8,
   },
   errorMessage: {
     fontSize: 16,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     textAlign: 'center',
     lineHeight: 24,
     marginBottom: 24,
   },
   retryButton: {
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 24,
@@ -76,7 +79,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   retryButtonText: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontSize: 16,
     fontWeight: '600',
   },

@@ -1,10 +1,12 @@
 import type { Metadata } from 'next';
+import { cookies } from 'next/headers';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { redirect } from 'next/navigation';
 import { unstable_cache } from 'next/cache';
 import { getCachedUser } from '@/lib/cache';
 import { PropertiesClient2025 } from './components/PropertiesClient2025';
+import { MintEditorialProperties } from './components/MintEditorialProperties';
 import { getFeatureLimit } from '@/lib/feature-access-config';
 import {
   getEffectiveHomeownerTier,
@@ -162,6 +164,23 @@ export default async function PropertiesPage2025() {
       : user.email;
 
   const userProfile = await getCachedUser(user.id);
+
+  // Phase-2 design rebrand. Mint Editorial users get the new card grid
+  // (real per-property stats only — no maintenance-plan table because
+  // we don't have a recurring-tasks-per-property source). Legacy users
+  // see the unchanged PropertiesClient2025.
+  const cookieStore = await cookies();
+  const isMintEditorial =
+    cookieStore.get('mintenance-theme')?.value === 'mint-editorial';
+
+  if (isMintEditorial) {
+    return (
+      <MintEditorialProperties
+        properties={propertiesWithStats}
+        propertyLimit={propertyLimit}
+      />
+    );
+  }
 
   return (
     <PropertiesClient2025

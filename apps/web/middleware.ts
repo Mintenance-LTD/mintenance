@@ -28,11 +28,43 @@ import {
 
 import type { JWTPayload } from '@mintenance/types';
 
+// Mint Editorial is the default platform theme. When a visitor has no
+// `mintenance-theme` cookie we (a) inject it into the *forwarded* request
+// headers so every server component reads `mint-editorial` on the first
+// render — no flash, no per-page changes — and (b) persist it on the
+// response so subsequent requests are already settled. An explicit opt-out
+// is stored as the literal value `default` (see /api/theme), so a present
+// cookie is always honoured verbatim.
+const THEME_COOKIE = 'mintenance-theme';
+const DEFAULT_THEME = 'mint-editorial';
+const THEME_COOKIE_MAX_AGE = 60 * 60 * 24 * 365;
+
+function injectDefaultThemeCookie(requestHeaders: Headers): void {
+  const existing = requestHeaders.get('cookie');
+  requestHeaders.set(
+    'cookie',
+    existing
+      ? `${existing}; ${THEME_COOKIE}=${DEFAULT_THEME}`
+      : `${THEME_COOKIE}=${DEFAULT_THEME}`
+  );
+}
+
+function persistDefaultThemeCookie(response: NextResponse): void {
+  response.cookies.set(THEME_COOKIE, DEFAULT_THEME, {
+    path: '/',
+    maxAge: THEME_COOKIE_MAX_AGE,
+    sameSite: 'lax',
+  });
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // AUDIT FIX: Single isDevelopment declaration — was previously redefined 3 times
   const isDevelopment = process.env.NODE_ENV !== 'production';
+
+  // Resolve once: is the theme already pinned by a cookie on this request?
+  const themeCookiePresent = !!request.cookies.get(THEME_COOKIE);
 
   // Coming Soon mode: redirect all traffic to /coming-soon in production
   if (process.env.NEXT_PUBLIC_LAUNCH_MODE === 'coming-soon') {
@@ -62,9 +94,15 @@ export async function middleware(request: NextRequest) {
     const publicNonce = crypto.randomUUID().replace(/-/g, '');
     requestHeaders.set('x-csp-nonce', publicNonce);
 
+    // Default first-time visitors to Mint Editorial before the response
+    // headers are captured by NextResponse.next().
+    if (!themeCookiePresent) injectDefaultThemeCookie(requestHeaders);
+
     const response = NextResponse.next({
       request: { headers: requestHeaders },
     });
+
+    if (!themeCookiePresent) persistDefaultThemeCookie(response);
 
     // Generate or refresh CSRF token
     const csrfCookieName = isDevelopment ? 'csrf-token' : '__Host-csrf-token';
@@ -221,9 +259,16 @@ export async function middleware(request: NextRequest) {
     const is2025Enabled = is2025FeatureEnabled(request);
     requestHeaders.set('x-ui-version', is2025Enabled ? '2025' : 'current');
 
+    // Default authenticated users to Mint Editorial when they have not
+    // explicitly chosen a theme — the cookie is injected into the forwarded
+    // request so in-app layouts/server components render it on first paint.
+    if (!themeCookiePresent) injectDefaultThemeCookie(requestHeaders);
+
     const response = NextResponse.next({
       request: { headers: requestHeaders },
     });
+
+    if (!themeCookiePresent) persistDefaultThemeCookie(response);
 
     setCsrfCookie(response, request, isDevelopment);
 

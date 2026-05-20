@@ -25,23 +25,41 @@ export function HowItWorksClient() {
   );
 
   return (
-    <div className='min-h-screen bg-gradient-to-br from-teal-50 via-white to-emerald-50'>
+    <div
+      data-theme='mint-editorial'
+      className='min-h-screen'
+      style={{
+        background: 'var(--me-bg)',
+        fontFamily: 'var(--me-font-body)',
+        color: 'var(--me-ink)',
+      }}
+    >
       <MotionDiv
         initial='hidden'
         animate='visible'
         variants={fadeIn}
-        className='bg-gradient-to-r from-teal-600 to-emerald-600 text-white'
+        style={{
+          background:
+            'linear-gradient(170deg, var(--me-brand-2) 0%, var(--me-brand) 100%)',
+          color: 'var(--me-on-brand)',
+        }}
       >
         <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center'>
           <MotionH1
             variants={fadeIn}
-            className='text-5xl md:text-6xl font-bold mb-6'
+            className='text-5xl md:text-6xl mb-6'
+            style={{
+              fontFamily: 'var(--me-font-display)',
+              fontWeight: 500,
+              letterSpacing: '-0.02em',
+            }}
           >
             How Mintenance Works
           </MotionH1>
           <MotionP
             variants={fadeIn}
-            className='text-xl text-teal-100 mb-8 max-w-3xl mx-auto'
+            className='text-xl mb-8 max-w-3xl mx-auto'
+            style={{ color: 'var(--me-brand-soft)' }}
           >
             Connecting homeowners with trusted contractors has never been
             easier. Here's how we make home maintenance simple and stress-free.
@@ -49,7 +67,13 @@ export function HowItWorksClient() {
           <MotionButton
             variants={fadeIn}
             onClick={() => router.push('/register')}
-            className='px-8 py-4 bg-white text-teal-600 rounded-lg hover:bg-teal-50 transition-colors font-semibold text-lg'
+            className='px-8 py-4 transition-colors font-semibold text-lg'
+            style={{
+              background: 'var(--me-surface)',
+              color: 'var(--me-brand)',
+              borderRadius: 'var(--me-radius-btn)',
+              boxShadow: 'var(--me-shadow-btn)',
+            }}
           >
             Get Started Free
           </MotionButton>
@@ -63,25 +87,47 @@ export function HowItWorksClient() {
           variants={fadeIn}
           className='flex justify-center mb-16'
         >
-          <div className='inline-flex bg-white rounded-xl shadow-lg border border-gray-200 p-2'>
+          <div
+            className='inline-flex p-2'
+            style={{
+              background: 'var(--me-surface)',
+              borderRadius: 'var(--me-radius-card)',
+              boxShadow: 'var(--me-shadow-pop)',
+              border: '1px solid var(--me-line)',
+            }}
+          >
             <button
               onClick={() => setActiveRole('homeowner')}
-              className={`px-8 py-3 rounded-lg font-semibold transition-all ${
-                activeRole === 'homeowner'
-                  ? 'bg-teal-600 text-white shadow-md'
-                  : 'text-gray-700 hover:bg-gray-100'
-              }`}
+              className='px-8 py-3 font-semibold transition-all'
+              style={{
+                borderRadius: 'var(--me-radius-btn)',
+                background:
+                  activeRole === 'homeowner'
+                    ? 'var(--me-brand)'
+                    : 'transparent',
+                color:
+                  activeRole === 'homeowner'
+                    ? 'var(--me-on-brand)'
+                    : 'var(--me-ink-2)',
+              }}
               aria-pressed={activeRole === 'homeowner'}
             >
               For Homeowners
             </button>
             <button
               onClick={() => setActiveRole('contractor')}
-              className={`px-8 py-3 rounded-lg font-semibold transition-all ${
-                activeRole === 'contractor'
-                  ? 'bg-emerald-600 text-white shadow-md'
-                  : 'text-gray-700 hover:bg-gray-100'
-              }`}
+              className='px-8 py-3 font-semibold transition-all'
+              style={{
+                borderRadius: 'var(--me-radius-btn)',
+                background:
+                  activeRole === 'contractor'
+                    ? 'var(--me-brand)'
+                    : 'transparent',
+                color:
+                  activeRole === 'contractor'
+                    ? 'var(--me-on-brand)'
+                    : 'var(--me-ink-2)',
+              }}
               aria-pressed={activeRole === 'contractor'}
             >
               For Contractors

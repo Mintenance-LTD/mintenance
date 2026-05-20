@@ -212,7 +212,28 @@ export const POST = withApiHandler(
       );
     }
 
-    // Trigger escrow release workflow
+    // Trigger escrow release workflow.
+    //
+    // 2026-05-13 funds-stuck-in-limbo audit fix: this route previously
+    // flipped escrow.status `held` -> `release_pending` and exited.
+    // Nothing on the platform processes `release_pending` automatically
+    // — /api/cron/escrow-auto-release filters strictly on
+    // `status='held'`, and /api/payments/release-escrow only runs when
+    // the homeowner explicitly visits the /payments page and clicks
+    // "Release Payment". Most homeowners assumed approving from the
+    // job detail page completed the transfer (the in-app notification
+    // and email both say "Payment is being processed"), and funds
+    // stayed in limbo until admin intervention.
+    //
+    // The fix keeps status='held' so the existing daily auto-release
+    // cron is the canonical processor, and stamps the homeowner-
+    // approval fields + `auto_release_date=now()` so the cron picks
+    // this escrow up on the next run (max ~24h, plus the existing
+    // dispute-risk / cooling-off / Stripe-Connect checks).
+    //
+    // request-changes resets these fields symmetrically so a homeowner
+    // who approves then changes their mind doesn't accidentally trip
+    // the cron during the rework cycle.
     try {
       // Check if there's an active escrow transaction for this job
       const { data: escrowTransaction, error: escrowError } =
@@ -232,31 +253,41 @@ export const POST = withApiHandler(
       }
 
       if (escrowTransaction) {
-        // Validate escrow transition before updating
+        // Sanity-check the transition is still valid; we don't actually
+        // flip status (the cron will), but the assertion guards against
+        // race conditions where the escrow is already released or
+        // disputed by the time we get here.
         validateEscrowTransition(
           escrowTransaction.status as EscrowStatusValue,
           ESCROW_STATUS.RELEASE_PENDING as EscrowStatusValue
         );
 
-        // Update escrow status to release_pending
-        // The actual Stripe transfer will be handled by a background job/cron
+        const nowIso = new Date().toISOString();
         const { error: releaseError } = await serverSupabase
           .from('escrow_transactions')
           .update({
-            status: ESCROW_STATUS.RELEASE_PENDING,
-            updated_at: new Date().toISOString(),
+            homeowner_approval: true,
+            homeowner_approval_at: nowIso,
+            homeowner_inspection_completed: true,
+            homeowner_inspection_at: nowIso,
+            auto_release_enabled: true,
+            auto_release_date: nowIso,
+            release_reason: 'homeowner_approved',
+            updated_at: nowIso,
           })
           .eq('id', escrowTransaction.id);
 
         if (releaseError) {
-          logger.error('Failed to update escrow status', releaseError, {
+          logger.error('Failed to mark escrow for auto-release', releaseError, {
             service: 'jobs',
             jobId,
             escrowId: escrowTransaction.id,
           });
-          // Don't fail the request, but log the issue
+          // Don't fail the request, but log the issue. Next cron pass
+          // would have picked it up via the existing auto_release_date
+          // field if it was previously set by the complete-job hook.
         } else {
-          logger.info('Escrow release initiated', {
+          logger.info('Escrow marked for next auto-release cron run', {
             service: 'jobs',
             jobId,
             escrowId: escrowTransaction.id,

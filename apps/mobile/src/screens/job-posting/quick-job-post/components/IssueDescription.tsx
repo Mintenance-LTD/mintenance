@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TextInput } from 'react-native';
-import { theme } from '../../../../theme';
+import { me } from '../../../../design-system/mint-editorial';
 import { styles } from '../theme/styles';
 
 /**
@@ -40,7 +40,7 @@ export function IssueDescription({
             value={title}
             onChangeText={setTitle}
             placeholder='e.g., Leaking kitchen tap'
-            placeholderTextColor={theme.colors.textTertiary}
+            placeholderTextColor={me.ink3}
           />
         </>
       )}
@@ -50,7 +50,7 @@ export function IssueDescription({
         value={description}
         onChangeText={setDescription}
         placeholder='Add any helpful details...'
-        placeholderTextColor={theme.colors.textTertiary}
+        placeholderTextColor={me.ink3}
         multiline
         numberOfLines={3}
         textAlignVertical='top'

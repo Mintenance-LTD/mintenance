@@ -23,7 +23,7 @@ import { DatePicker } from '../components/ui/DatePicker';
 import { QuoteItemsList } from './create-quote/components/QuoteItemsList';
 import { PricingSummary } from './create-quote/components/PricingSummary';
 import type { LineItem } from './create-quote/viewmodels/CreateQuoteViewModel';
-import { theme } from '../theme';
+import { me } from '../design-system/mint-editorial';
 import { styles } from './BidSubmissionStyles';
 import { useUnsavedChanges } from '../hooks/useUnsavedChanges';
 
@@ -221,7 +221,7 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
   if (loading || !job) {
     return (
       <View style={styles.loadingContainer}>
-        <Text style={{ color: theme.colors.textSecondary }}>
+        <Text style={{ color: me.ink2 }}>
           {loading ? 'Loading...' : 'Job not found'}
         </Text>
       </View>
@@ -237,11 +237,7 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
           accessibilityRole='button'
           accessibilityLabel='Go back'
         >
-          <Ionicons
-            name='arrow-back'
-            size={22}
-            color={theme.colors.textPrimary}
-          />
+          <Ionicons name='arrow-back' size={22} color={me.ink} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>
           {mode === 'quick' ? 'Submit Bid' : 'Submit Quote'}
@@ -332,7 +328,7 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
                     value={amount}
                     onChangeText={setAmount}
                     placeholder='e.g. 250'
-                    placeholderTextColor={theme.colors.textTertiary}
+                    placeholderTextColor={me.ink3}
                     keyboardType='decimal-pad'
                     accessibilityLabel='Bid amount in pounds'
                   />
@@ -360,12 +356,7 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
                     <Text style={styles.earningsLabel}>
                       Platform fee ({PLATFORM_FEE_PERCENT}%)
                     </Text>
-                    <Text
-                      style={[
-                        styles.earningsValue,
-                        { color: theme.colors.error },
-                      ]}
-                    >
+                    <Text style={[styles.earningsValue, { color: me.errFg }]}>
                       -{'\u00A3'}
                       {platformFee.toFixed(2)}
                     </Text>
@@ -399,8 +390,8 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
                     value={includeVAT}
                     onValueChange={setIncludeVAT}
                     trackColor={{
-                      false: theme.colors.border,
-                      true: theme.colors.primary,
+                      false: me.line,
+                      true: me.brand,
                     }}
                     thumbColor='#FFF'
                     accessibilityRole='switch'
@@ -440,12 +431,7 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
                     <Text style={styles.earningsLabel}>
                       Platform fee ({PLATFORM_FEE_PERCENT}%)
                     </Text>
-                    <Text
-                      style={[
-                        styles.earningsValue,
-                        { color: theme.colors.error },
-                      ]}
-                    >
+                    <Text style={[styles.earningsValue, { color: me.errFg }]}>
                       -{'\u00A3'}
                       {platformFee.toFixed(2)}
                     </Text>
@@ -473,7 +459,7 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
                 value={description}
                 onChangeText={setDescription}
                 placeholder="Describe your approach, timeline, and why you're the right contractor..."
-                placeholderTextColor={theme.colors.textTertiary}
+                placeholderTextColor={me.ink3}
                 multiline
                 numberOfLines={6}
                 textAlignVertical='top'
@@ -497,7 +483,7 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
                   value={estimatedDuration}
                   onChangeText={setEstimatedDuration}
                   placeholder='e.g. 3'
-                  placeholderTextColor={theme.colors.textTertiary}
+                  placeholderTextColor={me.ink3}
                   keyboardType='number-pad'
                   accessibilityLabel='Estimated duration in days'
                 />
@@ -524,7 +510,7 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
                 value={terms}
                 onChangeText={setTerms}
                 placeholder='Any terms, warranty info, or conditions...'
-                placeholderTextColor={theme.colors.textTertiary}
+                placeholderTextColor={me.ink3}
                 multiline
                 numberOfLines={3}
                 textAlignVertical='top'
@@ -576,11 +562,7 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
           accessibilityLabel='Submit bid'
           accessibilityState={{ disabled: !isValid || submitting }}
         >
-          <Ionicons
-            name='send-outline'
-            size={18}
-            color={theme.colors.textInverse}
-          />
+          <Ionicons name='send-outline' size={18} color={me.onBrand} />
           <Text style={styles.submitButtonText}>
             {submitting
               ? 'Submitting...'

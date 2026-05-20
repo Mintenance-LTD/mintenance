@@ -12,7 +12,7 @@ import { Text, View, StyleSheet } from 'react-native';
 import { Input } from '../../../components/ui/Input';
 import { PasswordStrengthBar } from '../../../components/ui/PasswordStrengthBar';
 import { TermsSection } from './TermsSection';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 interface WizardStep1IdentityProps {
   email: string;
@@ -63,6 +63,7 @@ export const WizardStep1Identity: React.FC<WizardStep1IdentityProps> = ({
       </Text>
 
       <Input
+        mint
         testID='email-input'
         label='Email'
         placeholder='you@example.com'
@@ -84,6 +85,7 @@ export const WizardStep1Identity: React.FC<WizardStep1IdentityProps> = ({
       />
 
       <Input
+        mint
         testID='password-input'
         label='Password'
         placeholder='Create a password'
@@ -106,6 +108,7 @@ export const WizardStep1Identity: React.FC<WizardStep1IdentityProps> = ({
       <PasswordStrengthBar password={password} />
 
       <Input
+        mint
         testID='confirm-password-input'
         label='Confirm Password'
         placeholder='Re-enter password'
@@ -136,14 +139,15 @@ export const WizardStep1Identity: React.FC<WizardStep1IdentityProps> = ({
 
 const styles = StyleSheet.create({
   stepHeading: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
+    fontFamily: me.font.display,
+    fontSize: 20,
+    color: me.ink,
     marginBottom: 6,
+    letterSpacing: me.displayTracking,
   },
   stepHint: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginBottom: 16,
     lineHeight: 18,
   },

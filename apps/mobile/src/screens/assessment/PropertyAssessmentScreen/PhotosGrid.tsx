@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Image, Alert } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 import { styles } from './styles';
 
 interface Props {
@@ -29,7 +29,7 @@ export const PhotosGrid: React.FC<Props> = ({
           ])
         }
       >
-        <Icon name="add-circle" size={24} color={theme.colors.primary} />
+        <Icon name='add-circle' size={24} color={me.brand} />
       </TouchableOpacity>
     </View>
     <View style={styles.photoGrid}>
@@ -40,7 +40,7 @@ export const PhotosGrid: React.FC<Props> = ({
             style={styles.photoRemove}
             onPress={() => onRemovePhoto(idx)}
           >
-            <Icon name="close" size={14} color="#fff" />
+            <Icon name='close' size={14} color='#fff' />
           </TouchableOpacity>
         </View>
       ))}

@@ -7,9 +7,9 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 interface WelcomeBannerProps {
   onWherePress?: () => void;
@@ -33,29 +33,57 @@ export const WelcomeBanner: React.FC<WelcomeBannerProps> = ({
           style={styles.searchIconContainer}
           onPress={onServicePress}
           activeOpacity={0.7}
-          accessibilityRole="button"
-          accessibilityLabel="Request a service"
+          accessibilityRole='button'
+          accessibilityLabel='Request a service'
         >
-          <Ionicons name="search" size={18} color={theme.colors.textInverse} />
+          <Ionicons name='search' size={18} color={me.onBrand} />
         </TouchableOpacity>
         <View style={styles.searchSegments}>
-          <TouchableOpacity style={styles.segment} onPress={onWherePress} activeOpacity={0.6}>
+          <TouchableOpacity
+            style={styles.segment}
+            onPress={onWherePress}
+            activeOpacity={0.6}
+          >
             <Text style={styles.segmentLabel}>Property</Text>
-            <Text style={[styles.segmentValue, propertyLabel ? styles.segmentValueActive : null]} numberOfLines={1}>
+            <Text
+              style={[
+                styles.segmentValue,
+                propertyLabel ? styles.segmentValueActive : null,
+              ]}
+              numberOfLines={1}
+            >
               {propertyLabel || 'Select'}
             </Text>
           </TouchableOpacity>
           <View style={styles.segmentDivider} />
-          <TouchableOpacity style={styles.segment} onPress={onUrgencyPress} activeOpacity={0.6}>
+          <TouchableOpacity
+            style={styles.segment}
+            onPress={onUrgencyPress}
+            activeOpacity={0.6}
+          >
             <Text style={styles.segmentLabel}>Urgency</Text>
-            <Text style={[styles.segmentValue, urgencyLabel && urgencyLabel !== 'Medium' ? styles.segmentValueActive : null]} numberOfLines={1}>
+            <Text
+              style={[
+                styles.segmentValue,
+                urgencyLabel && urgencyLabel !== 'Medium'
+                  ? styles.segmentValueActive
+                  : null,
+              ]}
+              numberOfLines={1}
+            >
               {urgencyLabel || 'Medium'}
             </Text>
           </TouchableOpacity>
           <View style={styles.segmentDivider} />
-          <TouchableOpacity style={styles.segment} onPress={onServicePress} activeOpacity={0.6}>
+          <TouchableOpacity
+            style={styles.segment}
+            onPress={onServicePress}
+            activeOpacity={0.6}
+          >
             <Text style={styles.segmentLabel}>Service</Text>
-            <Text style={styles.segmentValue} numberOfLines={1}>Browse all</Text>
+            <Text style={styles.segmentValue} numberOfLines={1}>
+              Browse all
+            </Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -72,27 +100,17 @@ const styles = StyleSheet.create({
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 40,
     paddingVertical: 12,
     paddingHorizontal: 14,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.08,
-        shadowRadius: 12,
-      },
-      android: {
-        elevation: 3,
-      },
-    }),
+    ...me.shadow.card,
   },
   searchIconContainer: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -109,22 +127,22 @@ const styles = StyleSheet.create({
   segmentLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   segmentValue: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginTop: 1,
   },
   segmentValueActive: {
-    color: theme.colors.textPrimary,
+    color: me.ink,
     fontWeight: '600',
   },
   segmentDivider: {
     width: 1,
     height: 28,
-    backgroundColor: theme.colors.border,
+    backgroundColor: me.line,
   },
 });

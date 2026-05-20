@@ -53,6 +53,17 @@ function CheckoutForm({
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // 2026-05-13 polish pass: editorial card shell + canonical typography
+  // when the cookie is set. Stripe <PaymentElement> internals stay
+  // unchanged — they read fine on either theme.
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -87,71 +98,110 @@ function CheckoutForm({
         router.push(successRedirectPath);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
+      setError(
+        err instanceof Error ? err.message : 'An unexpected error occurred'
+      );
       setIsProcessing(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} style={{ maxWidth: '600px', margin: '0 auto' }}>
-      <div style={{
-        backgroundColor: theme.colors.surface,
-        borderRadius: theme.borderRadius.xl,
-        padding: theme.spacing[6],
-        border: `1px solid ${theme.colors.border}`,
-        marginBottom: theme.spacing[6],
-      }}>
-        <h2 style={{
-          fontSize: theme.typography.fontSize['2xl'],
-          fontWeight: theme.typography.fontWeight.bold,
-          color: theme.colors.textPrimary,
-          marginBottom: theme.spacing[4],
-        }}>
-          Complete Your Subscription
-        </h2>
-        <p style={{
-          fontSize: theme.typography.fontSize.base,
-          color: theme.colors.textSecondary,
-          marginBottom: theme.spacing[6],
-        }}>
-          Enter your payment details to activate your {planType} plan.
-        </p>
+    <form
+      onSubmit={handleSubmit}
+      style={{ maxWidth: '600px', margin: '0 auto' }}
+    >
+      <div
+        className={isMintEditorial ? 'card card-pad' : undefined}
+        style={
+          isMintEditorial
+            ? { marginBottom: theme.spacing[6] }
+            : {
+                backgroundColor: theme.colors.surface,
+                borderRadius: theme.borderRadius.xl,
+                padding: theme.spacing[6],
+                border: `1px solid ${theme.colors.border}`,
+                marginBottom: theme.spacing[6],
+              }
+        }
+      >
+        {isMintEditorial ? (
+          <>
+            <h2 className='t-h2' style={{ marginBottom: 8 }}>
+              Complete your subscription
+            </h2>
+            <p className='t-body' style={{ marginBottom: 24 }}>
+              Enter your payment details to activate your {planType} plan.
+            </p>
+          </>
+        ) : (
+          <>
+            <h2
+              style={{
+                fontSize: theme.typography.fontSize['2xl'],
+                fontWeight: theme.typography.fontWeight.bold,
+                color: theme.colors.textPrimary,
+                marginBottom: theme.spacing[4],
+              }}
+            >
+              Complete Your Subscription
+            </h2>
+            <p
+              style={{
+                fontSize: theme.typography.fontSize.base,
+                color: theme.colors.textSecondary,
+                marginBottom: theme.spacing[6],
+              }}
+            >
+              Enter your payment details to activate your {planType} plan.
+            </p>
+          </>
+        )}
 
         <div style={{ marginBottom: theme.spacing[6] }}>
           <PaymentElement />
         </div>
 
         {error && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertCircle className="h-4 w-4" />
+          <Alert variant='destructive' className='mb-4'>
+            <AlertCircle className='h-4 w-4' />
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
 
         <Button
-          type="submit"
+          type='submit'
           disabled={!stripe || isProcessing}
-          variant="primary"
+          variant='primary'
           fullWidth
-          leftIcon={isProcessing ? <Loader2 className="h-4 w-4 animate-spin" /> : undefined}
+          leftIcon={
+            isProcessing ? (
+              <Loader2 className='h-4 w-4 animate-spin' />
+            ) : undefined
+          }
         >
           {isProcessing ? 'Processing...' : 'Complete Subscription'}
         </Button>
 
-        <p style={{
-          fontSize: theme.typography.fontSize.xs,
-          color: theme.colors.textTertiary,
-          marginTop: theme.spacing[4],
-          textAlign: 'center',
-        }}>
+        <p
+          style={{
+            fontSize: theme.typography.fontSize.xs,
+            color: theme.colors.textTertiary,
+            marginTop: theme.spacing[4],
+            textAlign: 'center',
+          }}
+        >
           Your payment is secure and encrypted. You can cancel anytime.
         </p>
       </div>
 
       <style jsx>{`
         @keyframes spin {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
         }
         .animate-spin {
           animation: spin 1s linear infinite;
@@ -161,7 +211,9 @@ function CheckoutForm({
   );
 }
 
-export function SubscriptionCheckoutClient(props: SubscriptionCheckoutClientProps) {
+export function SubscriptionCheckoutClient(
+  props: SubscriptionCheckoutClientProps
+) {
   const {
     clientSecret,
     subscriptionId,
@@ -177,14 +229,25 @@ export function SubscriptionCheckoutClient(props: SubscriptionCheckoutClientProp
 
   if (!mounted || !clientSecret || !subscriptionId || !planType) {
     return (
-      <div style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}>
+      <div
+        style={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
         <div style={{ display: 'flex', justifyContent: 'center' }}>
-          <div style={{ width: 32, height: 32, border: '4px solid #d1d5db', borderTopColor: '#4b5563', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
+          <div
+            style={{
+              width: 32,
+              height: 32,
+              border: '4px solid #d1d5db',
+              borderTopColor: '#4b5563',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite',
+            }}
+          />
         </div>
       </div>
     );
@@ -198,11 +261,13 @@ export function SubscriptionCheckoutClient(props: SubscriptionCheckoutClientProp
   };
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      padding: theme.spacing[8],
-      backgroundColor: theme.colors.backgroundSecondary,
-    }}>
+    <div
+      style={{
+        minHeight: '100vh',
+        padding: theme.spacing[8],
+        backgroundColor: theme.colors.backgroundSecondary,
+      }}
+    >
       <Elements stripe={getStripe()} options={options}>
         <CheckoutForm
           subscriptionId={subscriptionId}
@@ -214,4 +279,3 @@ export function SubscriptionCheckoutClient(props: SubscriptionCheckoutClientProp
     </div>
   );
 }
-

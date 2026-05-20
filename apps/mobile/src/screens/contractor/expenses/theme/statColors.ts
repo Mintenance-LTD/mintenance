@@ -1,4 +1,4 @@
-import { theme } from '../../../../theme';
+import { me } from '../../../../design-system/mint-editorial';
 
 /**
  * Per-stat icon colour palette for the Expenses StatsRow.
@@ -11,5 +11,5 @@ import { theme } from '../../../../theme';
 export const STAT_PALETTE = {
   total: { color: '#3B82F6', bg: '#DBEAFE' },
   thisMonth: { color: '#8B5CF6', bg: '#EDE9FE' },
-  billable: { color: theme.colors.primary, bg: theme.colors.primaryLight },
+  billable: { color: me.brand, bg: me.brandSoft },
 } as const;

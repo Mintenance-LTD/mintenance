@@ -7,60 +7,77 @@ import { Facebook, Twitter, Instagram, Linkedin, Mail } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useCSRF } from '@/lib/hooks/useCSRF';
 
+/**
+ * Landing footer — Direction A · Mint Editorial.
+ * Source of truth: redesign-v2/landing.html footer (link columns +
+ * newsletter + socials). Dark `--me-ink` panel; the newsletter
+ * submit logic (CSRF + /api/newsletter) is preserved verbatim.
+ */
+
 const navigation = {
   homeowners: [
-    { name: 'Post a Job', href: '/jobs/create' },
-    { name: 'How It Works', href: '/how-it-works' },
+    { name: 'Post a job', href: '/jobs/create' },
+    { name: 'How it works', href: '/how-it-works' },
     { name: 'Pricing', href: '/pricing' },
-    { name: 'Photo Guidance', href: '/try-mint-ai' },
+    { name: 'Mint AI', href: '/try-mint-ai' },
   ],
   contractors: [
-    { name: 'Join as Pro', href: '/for-contractors' },
-    { name: 'Browse Jobs', href: '/contractor/discover' },
+    { name: 'Join as a pro', href: '/for-contractors' },
+    { name: 'Browse jobs', href: '/contractor/discover' },
     { name: 'Resources', href: '/resources' },
-    { name: 'Pricing', href: '/pricing' },
     { name: 'Verification', href: '/verification' },
   ],
   company: [
-    { name: 'About Us', href: '/about' },
+    { name: 'About us', href: '/about' },
     { name: 'Blog', href: '/blog' },
     { name: 'Contact', href: '/contact' },
   ],
   support: [
-    { name: 'Help Centre', href: '/help' },
+    { name: 'Help centre', href: '/help' },
     { name: 'FAQs', href: '/faq' },
     { name: 'Safety', href: '/safety' },
-    { name: 'Terms of Service', href: '/terms' },
-    { name: 'Privacy Policy', href: '/privacy' },
+    { name: 'Terms', href: '/terms' },
+    { name: 'Privacy', href: '/privacy' },
   ],
 };
 
 const socialLinks = [
-  {
-    name: 'Facebook',
-    icon: Facebook,
-    href: 'https://facebook.com/mintenance',
-    ariaLabel: 'Follow us on Facebook',
-  },
-  {
-    name: 'Twitter',
-    icon: Twitter,
-    href: 'https://twitter.com/mintenance',
-    ariaLabel: 'Follow us on Twitter',
-  },
+  { name: 'Facebook', icon: Facebook, href: 'https://facebook.com/mintenance' },
+  { name: 'Twitter', icon: Twitter, href: 'https://twitter.com/mintenance' },
   {
     name: 'Instagram',
     icon: Instagram,
     href: 'https://www.instagram.com/mintenanceltd/',
-    ariaLabel: 'Follow us on Instagram',
   },
   {
     name: 'LinkedIn',
     icon: Linkedin,
     href: 'https://linkedin.com/company/mintenance',
-    ariaLabel: 'Follow us on LinkedIn',
   },
 ];
+
+const COLUMNS: { heading: string; links: { name: string; href: string }[] }[] =
+  [
+    { heading: 'For homeowners', links: navigation.homeowners },
+    { heading: 'For tradespeople', links: navigation.contractors },
+    { heading: 'Company', links: navigation.company },
+    { heading: 'Support', links: navigation.support },
+  ];
+
+const LIGHT = 'rgba(255,255,255,0.72)';
+const LIGHT_DIM = 'rgba(255,255,255,0.5)';
+
+function LeafMark() {
+  return (
+    <Image
+      src='/assets/logo-mark.png'
+      alt='Mintenance'
+      width={22}
+      height={22}
+      style={{ display: 'block', objectFit: 'contain' }}
+    />
+  );
+}
 
 export function Footer2025() {
   const [email, setEmail] = useState('');
@@ -111,49 +128,108 @@ export function Footer2025() {
   };
 
   return (
-    <footer className='bg-gray-900 text-gray-300' role='contentinfo'>
-      <div className='container mx-auto px-4 sm:px-6 lg:px-8 py-16'>
-        {/* Top Section */}
-        <div className='grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-8 mb-12'>
-          {/* Logo & Description */}
-          <div className='col-span-2 lg:col-span-2'>
+    <footer
+      data-theme='mint-editorial'
+      role='contentinfo'
+      style={{
+        background: 'var(--me-ink)',
+        color: LIGHT,
+        fontFamily: 'var(--me-font-body)',
+      }}
+    >
+      <div
+        style={{
+          maxWidth: 1280,
+          margin: '0 auto',
+          padding: '64px 32px 40px',
+        }}
+      >
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'minmax(280px, 1.6fr) repeat(4, 1fr)',
+            gap: 40,
+          }}
+          className='footer-grid'
+        >
+          {/* Brand + newsletter */}
+          <div>
             <Link
               href='/'
-              className='inline-flex items-center gap-2 mb-4 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 focus:ring-offset-gray-900 rounded'
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 10,
+                marginBottom: 14,
+                textDecoration: 'none',
+                color: 'var(--me-on-brand)',
+              }}
             >
-              <div className='w-10 h-10 rounded-xl overflow-hidden flex items-center justify-center bg-white shrink-0'>
-                <Image
-                  src='/assets/icon.png'
-                  alt='Mintenance'
-                  width={40}
-                  height={40}
-                  className='object-contain'
-                />
-              </div>
-              <span className='text-2xl font-bold text-white'>Mintenance</span>
+              <span
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: 9,
+                  background: 'var(--me-surface)',
+                  display: 'grid',
+                  placeItems: 'center',
+                }}
+              >
+                <LeafMark />
+              </span>
+              <span
+                style={{
+                  fontFamily: 'var(--me-font-display)',
+                  fontSize: 22,
+                  letterSpacing: '-0.02em',
+                }}
+              >
+                Mintenance
+              </span>
             </Link>
-            <p className='text-gray-300 mb-6 max-w-sm'>
-              The UK's leading platform for connecting homeowners with verified
-              tradespeople. Secure, fast, and reliable.
+            <p
+              style={{
+                fontSize: 14,
+                lineHeight: 1.6,
+                maxWidth: 320,
+                margin: '0 0 20px',
+              }}
+            >
+              The modern way to hire verified tradespeople — fair prices,
+              protected payments, every job in one place.
             </p>
 
-            {/* Newsletter */}
             <section aria-labelledby='newsletter-heading'>
               <h4
                 id='newsletter-heading'
-                className='text-white font-semibold mb-3'
+                style={{
+                  color: 'var(--me-on-brand)',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  margin: '0 0 10px',
+                }}
               >
-                Subscribe to our newsletter
+                Get occasional updates
               </h4>
-              <form onSubmit={handleNewsletterSubmit} className='flex gap-2'>
-                <div className='flex-1'>
+              <form
+                onSubmit={handleNewsletterSubmit}
+                style={{ display: 'flex', gap: 8, maxWidth: 360 }}
+              >
+                <div style={{ flex: 1 }}>
                   <label htmlFor='newsletter-email' className='sr-only'>
                     Email address for newsletter subscription
                   </label>
-                  <div className='relative'>
+                  <div style={{ position: 'relative' }}>
                     <Mail
-                      className='absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400'
+                      className='w-4 h-4'
                       aria-hidden='true'
+                      style={{
+                        position: 'absolute',
+                        left: 11,
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        color: LIGHT_DIM,
+                      }}
                     />
                     <input
                       type='email'
@@ -166,19 +242,31 @@ export function Footer2025() {
                       placeholder='Your email'
                       required
                       disabled={isSubmitting}
-                      aria-describedby='newsletter-description newsletter-error'
                       aria-invalid={!!emailError}
-                      className='w-full pl-10 pr-4 py-3 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 focus:ring-offset-gray-900 disabled:opacity-50'
+                      aria-describedby={
+                        emailError ? 'newsletter-error' : undefined
+                      }
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px 10px 34px',
+                        borderRadius: 'var(--me-radius-input)',
+                        background: 'rgba(255,255,255,0.06)',
+                        border: '1px solid rgba(255,255,255,0.14)',
+                        color: 'var(--me-on-brand)',
+                        fontSize: 14,
+                        outline: 'none',
+                      }}
                     />
                   </div>
-                  <p id='newsletter-description' className='sr-only'>
-                    Get updates on new features, tips, and special offers
-                  </p>
                   {emailError && (
                     <p
                       id='newsletter-error'
                       role='alert'
-                      className='text-red-400 text-sm mt-2'
+                      style={{
+                        color: 'var(--me-warn-bg)',
+                        fontSize: 12,
+                        margin: '6px 0 0',
+                      }}
                     >
                       {emailError}
                     </p>
@@ -187,147 +275,90 @@ export function Footer2025() {
                 <button
                   type='submit'
                   disabled={isSubmitting}
-                  className='px-6 py-3 bg-gradient-to-r from-[#0066CC] to-[#0052A3] text-white font-semibold rounded-xl hover:shadow-xl transition-all duration-300 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 focus:ring-offset-gray-900'
+                  style={{
+                    padding: '10px 16px',
+                    borderRadius: 'var(--me-radius-btn)',
+                    background: 'var(--me-brand)',
+                    color: 'var(--me-on-brand)',
+                    fontSize: 13,
+                    fontWeight: 600,
+                    border: 0,
+                    cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                    opacity: isSubmitting ? 0.6 : 1,
+                    whiteSpace: 'nowrap',
+                  }}
                 >
-                  {isSubmitting ? 'Subscribing...' : 'Subscribe'}
+                  {isSubmitting ? 'Subscribing…' : 'Subscribe'}
                 </button>
               </form>
             </section>
-
-            {/* Trust Badges */}
-            <div
-              className='flex items-center gap-4 mt-6'
-              role='region'
-              aria-label='Security and verification badges'
-            >
-              <div className='flex items-center gap-2 px-3 py-2 bg-gray-800 rounded-lg border border-gray-700'>
-                <svg
-                  className='w-5 h-5 text-emerald-400'
-                  fill='currentColor'
-                  viewBox='0 0 20 20'
-                  aria-hidden='true'
-                >
-                  <path
-                    fillRule='evenodd'
-                    d='M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z'
-                    clipRule='evenodd'
-                  />
-                </svg>
-                <span className='text-xs font-medium'>Secure Payments</span>
-              </div>
-              <div className='flex items-center gap-2 px-3 py-2 bg-gray-800 rounded-lg border border-gray-700'>
-                <svg
-                  className='w-5 h-5 text-[#0066CC]'
-                  fill='currentColor'
-                  viewBox='0 0 20 20'
-                  aria-hidden='true'
-                >
-                  <path
-                    fillRule='evenodd'
-                    d='M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z'
-                    clipRule='evenodd'
-                  />
-                </svg>
-                <span className='text-xs font-medium'>Verified Pros</span>
-              </div>
-            </div>
           </div>
 
-          {/* For Homeowners */}
-          <nav aria-labelledby='homeowners-heading'>
-            <h3
-              id='homeowners-heading'
-              className='text-white font-semibold mb-4'
-            >
-              For Homeowners
-            </h3>
-            <ul className='space-y-3'>
-              {navigation.homeowners.map((item) => (
-                <li key={item.name}>
-                  <Link
-                    href={item.href}
-                    className='text-gray-300 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 focus:ring-offset-gray-900 rounded'
-                  >
-                    {item.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
-
-          {/* For Contractors */}
-          <nav aria-labelledby='contractors-heading'>
-            <h3
-              id='contractors-heading'
-              className='text-white font-semibold mb-4'
-            >
-              For Contractors
-            </h3>
-            <ul className='space-y-3'>
-              {navigation.contractors.map((item) => (
-                <li key={item.name}>
-                  <Link
-                    href={item.href}
-                    className='text-gray-300 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 focus:ring-offset-gray-900 rounded'
-                  >
-                    {item.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
-
-          {/* Company */}
-          <nav aria-labelledby='company-heading'>
-            <h3 id='company-heading' className='text-white font-semibold mb-4'>
-              Company
-            </h3>
-            <ul className='space-y-3'>
-              {navigation.company.map((item) => (
-                <li key={item.name}>
-                  <Link
-                    href={item.href}
-                    className='text-gray-300 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 focus:ring-offset-gray-900 rounded'
-                  >
-                    {item.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
-
-          {/* Support */}
-          <nav aria-labelledby='support-heading'>
-            <h3 id='support-heading' className='text-white font-semibold mb-4'>
-              Support
-            </h3>
-            <ul className='space-y-3'>
-              {navigation.support.map((item) => (
-                <li key={item.name}>
-                  <Link
-                    href={item.href}
-                    className='text-gray-300 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 focus:ring-offset-gray-900 rounded'
-                  >
-                    {item.name}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
+          {/* Link columns */}
+          {COLUMNS.map((col) => (
+            <nav key={col.heading} aria-label={col.heading}>
+              <h3
+                style={{
+                  color: 'var(--me-on-brand)',
+                  fontSize: 13,
+                  fontWeight: 600,
+                  margin: '0 0 14px',
+                }}
+              >
+                {col.heading}
+              </h3>
+              <ul
+                style={{
+                  listStyle: 'none',
+                  padding: 0,
+                  margin: 0,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 10,
+                }}
+              >
+                {col.links.map((item) => (
+                  <li key={item.name}>
+                    <Link
+                      href={item.href}
+                      style={{
+                        color: LIGHT,
+                        fontSize: 14,
+                        textDecoration: 'none',
+                      }}
+                    >
+                      {item.name}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          ))}
         </div>
 
         {/* Divider */}
-        <div className='border-t border-gray-800 my-8' />
+        <div
+          style={{
+            borderTop: '1px solid rgba(255,255,255,0.10)',
+            margin: '40px 0 24px',
+          }}
+        />
 
-        {/* Bottom Section */}
-        <div className='flex flex-col md:flex-row items-center justify-between gap-4'>
-          {/* Copyright */}
-          <p className='text-gray-300 text-sm'>
+        {/* Bottom row */}
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 16,
+          }}
+        >
+          <p style={{ fontSize: 13, color: LIGHT_DIM, margin: 0 }}>
             © {new Date().getFullYear()} Mintenance. All rights reserved.
           </p>
 
-          {/* Social Links */}
-          <div className='flex items-center gap-4'>
+          <div style={{ display: 'flex', gap: 10 }}>
             {socialLinks.map((social) => {
               const Icon = social.icon;
               return (
@@ -336,38 +367,57 @@ export function Footer2025() {
                   href={social.href}
                   target='_blank'
                   rel='noopener noreferrer'
-                  className='w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-[#0066CC] transition-all duration-300 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 focus:ring-offset-gray-900'
-                  aria-label={social.ariaLabel || social.name}
+                  aria-label={`Follow us on ${social.name}`}
+                  style={{
+                    width: 34,
+                    height: 34,
+                    borderRadius: 9999,
+                    background: 'rgba(255,255,255,0.06)',
+                    border: '1px solid rgba(255,255,255,0.12)',
+                    display: 'grid',
+                    placeItems: 'center',
+                    color: LIGHT,
+                  }}
                 >
-                  <Icon className='w-5 h-5' aria-hidden='true' />
+                  <Icon className='w-4 h-4' aria-hidden='true' />
                 </a>
               );
             })}
           </div>
 
-          {/* Legal Links */}
-          <div className='flex items-center gap-6 text-sm'>
-            <Link
-              href='/terms'
-              className='text-gray-300 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 focus:ring-offset-gray-900 rounded'
-            >
-              Terms
-            </Link>
-            <Link
-              href='/privacy'
-              className='text-gray-300 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 focus:ring-offset-gray-900 rounded'
-            >
-              Privacy
-            </Link>
-            <Link
-              href='/cookies'
-              className='text-gray-300 hover:text-white transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2 focus:ring-offset-gray-900 rounded'
-            >
-              Cookies
-            </Link>
+          <div style={{ display: 'flex', gap: 18 }}>
+            {[
+              { name: 'Terms', href: '/terms' },
+              { name: 'Privacy', href: '/privacy' },
+              { name: 'Cookies', href: '/cookies' },
+            ].map((l) => (
+              <Link
+                key={l.name}
+                href={l.href}
+                style={{
+                  fontSize: 13,
+                  color: LIGHT_DIM,
+                  textDecoration: 'none',
+                }}
+              >
+                {l.name}
+              </Link>
+            ))}
           </div>
         </div>
       </div>
+
+      {/* Responsive: stack the footer grid on narrow viewports. */}
+      <style>{`
+        @media (max-width: 899px) {
+          .footer-grid {
+            grid-template-columns: 1fr 1fr !important;
+          }
+        }
+        @media (max-width: 559px) {
+          .footer-grid { grid-template-columns: 1fr !important; }
+        }
+      `}</style>
     </footer>
   );
 }

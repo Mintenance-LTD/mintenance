@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { SearchResult } from '../../../services/AISearchService';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 import { formatCurrency } from '../../../utils/formatCurrency';
 import { styles } from '../theme/styles';
 import { getTypeConfig } from '../theme/typeConfig';
@@ -31,11 +31,7 @@ export function SearchResultItem({ result }: { result: SearchResult }) {
         <View style={styles.resultMetadata}>
           {result.metadata.location && (
             <View style={styles.metadataItem}>
-              <Ionicons
-                name='location-outline'
-                size={13}
-                color={theme.colors.textTertiary}
-              />
+              <Ionicons name='location-outline' size={13} color={me.ink3} />
               <Text style={styles.metadataText}>
                 {result.metadata.location}
               </Text>
@@ -43,11 +39,7 @@ export function SearchResultItem({ result }: { result: SearchResult }) {
           )}
           {result.metadata.price && (
             <View style={styles.metadataItem}>
-              <Ionicons
-                name='cash-outline'
-                size={13}
-                color={theme.colors.textTertiary}
-              />
+              <Ionicons name='cash-outline' size={13} color={me.ink3} />
               <Text style={styles.metadataText}>
                 {formatCurrency(Number(result.metadata.price))}
               </Text>
@@ -55,7 +47,7 @@ export function SearchResultItem({ result }: { result: SearchResult }) {
           )}
           {result.metadata.rating && (
             <View style={styles.metadataItem}>
-              <Ionicons name='star' size={13} color={theme.colors.accent} />
+              <Ionicons name='star' size={13} color={me.accent} />
               <Text style={styles.metadataText}>
                 {result.metadata.rating.toFixed(1)}
               </Text>

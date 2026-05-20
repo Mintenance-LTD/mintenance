@@ -3,7 +3,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useCSRF } from '@/lib/hooks/useCSRF';
+import { HomeownerPageWrapper } from '@/app/dashboard/components/HomeownerPageWrapper';
 import { HOMEOWNER_TIER_PRICING } from '@/lib/feature-access-config';
+import { CurrentPlanCard } from './current-plan-card';
 import {
   Check,
   X,
@@ -127,6 +129,14 @@ export function HomeownerSubscriptionClient({
   const [message, setMessage] = useState<string | null>(null);
   const [data, setData] = useState<HomeownerStatusResponse | null>(null);
   const [isAnnual, setIsAnnual] = useState(false);
+  // Hydration-safe theme detection — Phase-4 contractor port pattern.
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
 
   const success = searchParams.get('success');
 
@@ -278,247 +288,172 @@ export function HomeownerSubscriptionClient({
     }
   }
 
+  // Wrap in the universal Mint Editorial / legacy shell. The shell
+  // already supplies the sidebar + topbar + content padding; the inner
+  // `mx-auto max-w-4xl` constraint stays for legacy reading width and
+  // remains harmless inside the shell content area.
   return (
-    <main className='mx-auto w-full max-w-4xl px-4 py-8 sm:px-6 lg:px-8 space-y-6'>
-      {/* Header */}
-      <header className='rounded-xl border border-gray-200 bg-white p-6'>
-        <div className='flex items-center gap-4'>
-          <div
-            className={`flex h-12 w-12 items-center justify-center rounded-xl ${tierConfig.bgColor}`}
-          >
-            <TierIcon className={`h-6 w-6 ${tierConfig.color}`} />
-          </div>
-          <div className='flex-1'>
-            <div className='flex items-center gap-3'>
-              <h1 className='text-2xl font-bold text-gray-900'>Subscription</h1>
+    <HomeownerPageWrapper>
+      <main className='mx-auto w-full max-w-4xl px-4 py-8 sm:px-6 lg:px-8 space-y-6 me-legacy-fit'>
+        {/* Header — canonical .card with brand-soft tier tile when
+            editorial; legacy rounded-xl border header otherwise. */}
+        {isMintEditorial ? (
+          <div className='card card-pad'>
+            <div className='row' style={{ gap: 14, alignItems: 'center' }}>
               <span
-                className={`rounded-full px-3 py-0.5 text-xs font-semibold ${tierConfig.bgColor} ${tierConfig.color} border ${tierConfig.borderColor}`}
+                style={{
+                  width: 48,
+                  height: 48,
+                  borderRadius: 12,
+                  background: 'var(--me-brand-soft)',
+                  color: 'var(--me-brand)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
               >
-                {HOMEOWNER_TIER_PRICING[currentTier].name}
+                <TierIcon className='h-6 w-6' />
               </span>
-            </div>
-            <p className='mt-1 text-sm text-gray-500'>
-              Manage your plan and billing preferences
-            </p>
-          </div>
-        </div>
-      </header>
-
-      {/* Banners */}
-      {loading && (
-        <div className='flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-5 text-sm text-gray-600'>
-          <Loader2 className='h-4 w-4 animate-spin' />
-          Loading subscription details...
-        </div>
-      )}
-
-      {!loading && error && (
-        <div className='flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700'>
-          <AlertCircle className='mt-0.5 h-4 w-4 flex-shrink-0' />
-          {error}
-        </div>
-      )}
-
-      {!loading && message && (
-        <div className='flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700'>
-          <CheckCircle2 className='mt-0.5 h-4 w-4 flex-shrink-0' />
-          {message}
-        </div>
-      )}
-
-      {!loading && data && (
-        <>
-          {data.earlyAccess?.eligible && (
-            <div className='flex items-center gap-3 rounded-xl border border-teal-200 bg-teal-50 p-4 text-sm text-teal-700'>
-              <Shield className='h-4 w-4 flex-shrink-0' />
-              <span>
-                Early-access entitlement is active on your account — enjoy
-                premium features free during the beta.
-              </span>
-            </div>
-          )}
-
-          {/* Current Plan Card */}
-          <section className='rounded-xl border border-gray-200 bg-white p-6'>
-            <h2 className='text-sm font-semibold uppercase tracking-wider text-gray-400 mb-4'>
-              Current Plan
-            </h2>
-
-            {data.subscription ? (
-              (() => {
-                // An `incomplete` subscription means Stripe created the row
-                // but the checkout was never finished — no money has moved.
-                // Pairing that with the early-access eligibility banner and
-                // loud "£24.99 / month Incomplete" + Cancel buttons was
-                // confusing: the user thought they were being billed for a
-                // plan they couldn't access. Treat incomplete + early
-                // access as effectively Free, and hide the cancel buttons
-                // (there's nothing to cancel).
-                const isIncomplete = [
-                  'incomplete',
-                  'incomplete_expired',
-                ].includes(data.subscription.status);
-                const hasEarlyAccess = Boolean(data.earlyAccess?.eligible);
-                if (isIncomplete && hasEarlyAccess) {
-                  return (
-                    <div className='flex items-center justify-between'>
-                      <div>
-                        <h3 className='text-xl font-bold text-gray-900'>
-                          Early Access
-                        </h3>
-                        <p className='text-sm text-gray-500 mt-1'>
-                          Premium features are unlocked free during the beta —
-                          no paid subscription required.
-                        </p>
-                      </div>
-                      <span className='rounded-full bg-teal-100 px-3 py-1 text-xs font-semibold text-teal-700'>
-                        Free during beta
-                      </span>
-                    </div>
-                  );
-                }
-                return (
-                  <div className='space-y-4'>
-                    <div className='flex flex-wrap items-start justify-between gap-4'>
-                      <div>
-                        <h3 className='text-xl font-bold text-gray-900'>
-                          {data.subscription.planName}
-                        </h3>
-                        <p className='text-sm text-gray-600 mt-1'>
-                          {formatAmount(
-                            data.subscription.amount,
-                            data.subscription.currency
-                          )}{' '}
-                          / {billingCycle}
-                        </p>
-                      </div>
-                      <span
-                        className={`rounded-full px-3 py-1 text-xs font-medium ${
-                          data.subscription.status === 'active'
-                            ? 'bg-emerald-100 text-emerald-700'
-                            : data.subscription.status === 'past_due'
-                              ? 'bg-amber-100 text-amber-700'
-                              : 'bg-gray-100 text-gray-700'
-                        }`}
-                      >
-                        {data.subscription.status.charAt(0).toUpperCase() +
-                          data.subscription.status.slice(1).replace('_', ' ')}
-                      </span>
-                    </div>
-
-                    {data.subscription.currentPeriodEnd && (
-                      <p className='text-sm text-gray-500'>
-                        Next billing date:{' '}
-                        <span className='font-medium text-gray-700'>
-                          {new Date(
-                            data.subscription.currentPeriodEnd
-                          ).toLocaleDateString('en-GB', {
-                            day: 'numeric',
-                            month: 'long',
-                            year: 'numeric',
-                          })}
-                        </span>
-                      </p>
-                    )}
-
-                    {data.subscription.cancelAtPeriodEnd && (
-                      <div className='flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700'>
-                        <AlertCircle className='h-4 w-4 flex-shrink-0' />
-                        Cancellation scheduled for end of current billing
-                        period.
-                      </div>
-                    )}
-
-                    {!isIncomplete && (
-                      <div className='flex flex-wrap gap-3 pt-2 border-t border-gray-100'>
-                        <button
-                          type='button'
-                          onClick={() => void handleCancel(true)}
-                          disabled={
-                            saving || data.subscription.cancelAtPeriodEnd
-                          }
-                          className='inline-flex items-center rounded-lg border border-amber-300 bg-amber-50 px-4 py-2 text-sm font-medium text-amber-800 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60'
-                        >
-                          {saving ? 'Saving...' : 'Cancel At Period End'}
-                        </button>
-                        <button
-                          type='button'
-                          onClick={() => void handleCancel(false)}
-                          disabled={saving}
-                          className='inline-flex items-center rounded-lg border border-red-300 bg-red-50 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60'
-                        >
-                          {saving ? 'Saving...' : 'Cancel Immediately'}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })()
-            ) : (
-              <div className='flex items-center justify-between'>
-                <div>
-                  <h3 className='text-xl font-bold text-gray-900'>Free Plan</h3>
-                  <p className='text-sm text-gray-500 mt-1'>
-                    Core features for managing your home
-                  </p>
+              <div className='col' style={{ gap: 4, flex: 1 }}>
+                <div className='row' style={{ gap: 10, alignItems: 'center' }}>
+                  <h1 className='t-h1' style={{ margin: 0 }}>
+                    Subscription
+                  </h1>
+                  <span className='badge badge-brand'>
+                    {HOMEOWNER_TIER_PRICING[currentTier].name}
+                  </span>
                 </div>
-                <span className='rounded-full bg-gray-100 px-3 py-1 text-xs font-semibold text-gray-600'>
-                  Free
+                <p className='t-body'>
+                  Manage your plan and billing preferences
+                </p>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <header className='rounded-xl border border-gray-200 bg-white p-6'>
+            <div className='flex items-center gap-4'>
+              <div
+                className={`flex h-12 w-12 items-center justify-center rounded-xl ${tierConfig.bgColor}`}
+              >
+                <TierIcon className={`h-6 w-6 ${tierConfig.color}`} />
+              </div>
+              <div className='flex-1'>
+                <div className='flex items-center gap-3'>
+                  <h1 className='text-2xl font-bold text-gray-900'>
+                    Subscription
+                  </h1>
+                  <span
+                    className={`rounded-full px-3 py-0.5 text-xs font-semibold ${tierConfig.bgColor} ${tierConfig.color} border ${tierConfig.borderColor}`}
+                  >
+                    {HOMEOWNER_TIER_PRICING[currentTier].name}
+                  </span>
+                </div>
+                <p className='mt-1 text-sm text-gray-500'>
+                  Manage your plan and billing preferences
+                </p>
+              </div>
+            </div>
+          </header>
+        )}
+
+        {/* Banners */}
+        {loading && (
+          <div className='flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-5 text-sm text-gray-600'>
+            <Loader2 className='h-4 w-4 animate-spin' />
+            Loading subscription details...
+          </div>
+        )}
+
+        {!loading && error && (
+          <div className='flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700'>
+            <AlertCircle className='mt-0.5 h-4 w-4 flex-shrink-0' />
+            {error}
+          </div>
+        )}
+
+        {!loading && message && (
+          <div className='flex items-start gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700'>
+            <CheckCircle2 className='mt-0.5 h-4 w-4 flex-shrink-0' />
+            {message}
+          </div>
+        )}
+
+        {!loading && data && (
+          <>
+            {data.earlyAccess?.eligible && (
+              <div className='flex items-center gap-3 rounded-xl border border-teal-200 bg-teal-50 p-4 text-sm text-teal-700'>
+                <Shield className='h-4 w-4 flex-shrink-0' />
+                <span>
+                  Early-access entitlement is active on your account — enjoy
+                  premium features free during the beta.
                 </span>
               </div>
             )}
-          </section>
 
-          {/* Your Plan Includes */}
-          <section className='rounded-xl border border-gray-200 bg-white p-6'>
-            <h2 className='text-sm font-semibold uppercase tracking-wider text-gray-400 mb-4'>
-              Your Plan Includes
-            </h2>
+            <CurrentPlanCard
+              subscription={data.subscription}
+              earlyAccessEligible={Boolean(data.earlyAccess?.eligible)}
+              billingCycle={billingCycle}
+              saving={saving}
+              formatAmount={formatAmount}
+              onCancel={(atPeriodEnd) => void handleCancel(atPeriodEnd)}
+            />
 
-            <div className='grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2'>
-              {includedFeatures.map((feature) => (
-                <div key={feature} className='flex items-center gap-2.5 py-1.5'>
-                  <Check className='h-4 w-4 flex-shrink-0 text-emerald-500' />
-                  <span className='text-sm text-gray-700'>{feature}</span>
-                </div>
-              ))}
-            </div>
+            {/* Your Plan Includes */}
+            <section className='rounded-xl border border-gray-200 bg-white p-6'>
+              <h2 className='text-sm font-semibold uppercase tracking-wider text-gray-400 mb-4'>
+                Your Plan Includes
+              </h2>
 
-            {lockedFeatures.length > 0 && (
-              <>
-                <div className='mt-5 mb-3 border-t border-gray-100 pt-4'>
-                  <p className='text-xs font-semibold uppercase tracking-wider text-gray-400'>
-                    Upgrade to unlock
-                  </p>
-                </div>
-                <div className='grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2'>
-                  {lockedFeatures.map((feature) => (
-                    <div
-                      key={feature}
-                      className='flex items-center gap-2.5 py-1.5'
-                    >
-                      <X className='h-4 w-4 flex-shrink-0 text-gray-300' />
-                      <span className='text-sm text-gray-400'>{feature}</span>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
-          </section>
+              <div className='grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2'>
+                {includedFeatures.map((feature) => (
+                  <div
+                    key={feature}
+                    className='flex items-center gap-2.5 py-1.5'
+                  >
+                    <Check className='h-4 w-4 flex-shrink-0 text-emerald-500' />
+                    <span className='text-sm text-gray-700'>{feature}</span>
+                  </div>
+                ))}
+              </div>
 
-          {/* Upgrade Plans — extracted to ./upgrade-plans.tsx */}
-          <UpgradePlans
-            upgradePlans={upgradePlans}
-            tierConfig={TIER_CONFIG}
-            planFeatures={PLAN_FEATURES}
-            isAnnual={isAnnual}
-            onAnnualToggle={setIsAnnual}
-            upgradingPlan={upgradingPlan}
-            onUpgrade={(planKey) => void handleUpgrade(planKey)}
-            formatAmount={formatAmount}
-          />
-        </>
-      )}
-    </main>
+              {lockedFeatures.length > 0 && (
+                <>
+                  <div className='mt-5 mb-3 border-t border-gray-100 pt-4'>
+                    <p className='text-xs font-semibold uppercase tracking-wider text-gray-400'>
+                      Upgrade to unlock
+                    </p>
+                  </div>
+                  <div className='grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-2'>
+                    {lockedFeatures.map((feature) => (
+                      <div
+                        key={feature}
+                        className='flex items-center gap-2.5 py-1.5'
+                      >
+                        <X className='h-4 w-4 flex-shrink-0 text-gray-300' />
+                        <span className='text-sm text-gray-400'>{feature}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </section>
+
+            {/* Upgrade Plans — extracted to ./upgrade-plans.tsx */}
+            <UpgradePlans
+              upgradePlans={upgradePlans}
+              tierConfig={TIER_CONFIG}
+              planFeatures={PLAN_FEATURES}
+              isAnnual={isAnnual}
+              onAnnualToggle={setIsAnnual}
+              upgradingPlan={upgradingPlan}
+              onUpgrade={(planKey) => void handleUpgrade(planKey)}
+              formatAmount={formatAmount}
+            />
+          </>
+        )}
+      </main>
+    </HomeownerPageWrapper>
   );
 }

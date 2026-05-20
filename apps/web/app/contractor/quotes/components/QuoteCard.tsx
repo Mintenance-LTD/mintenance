@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   FileText,
@@ -80,16 +81,44 @@ export function QuoteCard({
 }: QuoteCardProps) {
   const router = useRouter();
   const config = STATUS_CONFIGS[quote.status];
+  const [isSending, setIsSending] = useState(false);
 
   const handleView = () => router.push(`/contractor/quotes/${quote.id}`);
-  // Audit follow-up (2026-04-29): `/contractor/quotes/[id]/edit` doesn't
-  // exist as a route. The quote view page (`[id]`) is currently the
-  // closest surface a contractor can act on a draft from. Once a
-  // dedicated edit page ships, swap this back to `${id}/edit`.
-  const handleEdit = () => router.push(`/contractor/quotes/${quote.id}`);
-  const handleSend = () => {
-    toast.success(`Quote sent to ${quote.customerName}`);
-    onToggleMenu(null);
+  // 2026-05-13: edit route now exists — see
+  // /contractor/quotes/[id]/edit/page.tsx. Quick-edit covers title,
+  // total_amount, status (draft / sent / expired), valid_until,
+  // terms, notes. Line-item edits intentionally stay on the
+  // duplicate-and-recreate path.
+  const handleEdit = () => router.push(`/contractor/quotes/${quote.id}/edit`);
+
+  // 2026-05-13: wire to the existing /api/contractor/send-quote endpoint
+  // (was a toast stub). Endpoint emails the client when client_email is
+  // set + flips status to 'sent'. Bid linkage for platform jobs is done
+  // by the separate /api/contractor/submit-bid flow which auto-creates
+  // a linked contractor_quotes row.
+  const handleSend = async () => {
+    if (isSending) return;
+    setIsSending(true);
+    try {
+      const res = await fetch('/api/contractor/send-quote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ quoteId: quote.id }),
+      });
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as {
+          error?: string;
+        };
+        throw new Error(data.error || 'Failed to send quote');
+      }
+      toast.success(`Quote sent to ${quote.customerName}`);
+      onToggleMenu(null);
+      router.refresh();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to send quote');
+    } finally {
+      setIsSending(false);
+    }
   };
   const handleDuplicate = () => {
     toast.success('Quote duplicated');
@@ -160,9 +189,11 @@ export function QuoteCard({
                   {(quote.status === 'draft' || quote.status === 'expired') && (
                     <button
                       onClick={handleSend}
-                      className='w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-gray-50 transition-all'
+                      disabled={isSending}
+                      className='w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-gray-50 transition-all disabled:opacity-50 disabled:cursor-not-allowed'
                     >
-                      <Send className='w-4 h-4' /> Send Quote
+                      <Send className='w-4 h-4' />
+                      {isSending ? 'Sending…' : 'Send Quote'}
                     </button>
                   )}
                   <button
@@ -260,9 +291,10 @@ export function QuoteCard({
             </button>
             <button
               onClick={handleSend}
-              className='flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-teal-500 to-teal-600 text-white rounded-xl hover:from-teal-600 hover:to-teal-700 transition-all shadow-sm hover:shadow-xl text-sm font-medium'
+              disabled={isSending}
+              className='flex items-center justify-center gap-2 px-4 py-2.5 bg-gradient-to-r from-teal-500 to-teal-600 text-white rounded-xl hover:from-teal-600 hover:to-teal-700 transition-all shadow-sm hover:shadow-xl text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed'
             >
-              <Send className='w-4 h-4' /> Send
+              <Send className='w-4 h-4' /> {isSending ? 'Sending…' : 'Send'}
             </button>
           </div>
         ) : (

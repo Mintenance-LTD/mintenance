@@ -9,7 +9,6 @@ import {
   FlatList,
   StyleSheet,
   TouchableOpacity,
-  Platform,
   RefreshControl,
   TextInput,
   StatusBar,
@@ -26,7 +25,7 @@ import {
 import { EmptyState } from '../../components/ui/EmptyState';
 import { supabase } from '../../config/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 interface TrainingModule {
   id: string;
@@ -39,10 +38,10 @@ interface TrainingModule {
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  safety: theme.colors.error,
+  safety: me.errFg,
   skills: '#3B82F6',
-  compliance: theme.colors.accent,
-  business: theme.colors.primary,
+  compliance: me.accent,
+  business: me.brand,
 };
 
 export const TrainingScreen: React.FC = () => {
@@ -95,10 +94,7 @@ export const TrainingScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar
-        barStyle='dark-content'
-        backgroundColor={theme.colors.backgroundSecondary}
-      />
+      <StatusBar barStyle='dark-content' backgroundColor={me.bg2} />
       <ScreenHeader
         title='Training'
         showBack
@@ -152,8 +148,8 @@ export const TrainingScreen: React.FC = () => {
           <RefreshControl
             refreshing={false}
             onRefresh={refetch}
-            tintColor={theme.colors.textPrimary}
-            colors={[theme.colors.textPrimary]}
+            tintColor={me.ink}
+            colors={[me.ink]}
           />
         }
         ListEmptyComponent={
@@ -179,7 +175,7 @@ export const TrainingScreen: React.FC = () => {
                   <Ionicons
                     name='checkmark-circle'
                     size={24}
-                    color={theme.colors.primary}
+                    color={me.brand}
                   />
                 </View>
               )}
@@ -190,8 +186,7 @@ export const TrainingScreen: React.FC = () => {
                   styles.categoryTag,
                   {
                     backgroundColor:
-                      (CATEGORY_COLORS[item.category] ||
-                        theme.colors.textSecondary) + '18',
+                      (CATEGORY_COLORS[item.category] || me.ink2) + '18',
                   },
                 ]}
               >
@@ -199,9 +194,7 @@ export const TrainingScreen: React.FC = () => {
                   style={[
                     styles.categoryText,
                     {
-                      color:
-                        CATEGORY_COLORS[item.category] ||
-                        theme.colors.textSecondary,
+                      color: CATEGORY_COLORS[item.category] || me.ink2,
                     },
                   ]}
                 >
@@ -210,11 +203,7 @@ export const TrainingScreen: React.FC = () => {
                 </Text>
               </View>
               <View style={styles.duration}>
-                <Ionicons
-                  name='time-outline'
-                  size={14}
-                  color={theme.colors.textTertiary}
-                />
+                <Ionicons name='time-outline' size={14} color={me.ink3} />
                 <Text style={styles.durationText}>
                   {item.duration_minutes} min
                 </Text>
@@ -228,7 +217,7 @@ export const TrainingScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
+  container: { flex: 1, backgroundColor: me.bg2 },
   list: { padding: 16, paddingBottom: 32 },
   chipRow: {
     flexDirection: 'row',
@@ -240,34 +229,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 20,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
   chipActive: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
+    backgroundColor: me.brand,
+    borderColor: me.brand,
   },
   chipText: {
     fontSize: 13,
     fontWeight: '500',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
-  chipTextActive: { color: theme.colors.textInverse },
+  chipTextActive: { color: me.onBrand },
   card: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 10,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -279,11 +260,11 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   cardDesc: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginTop: 4,
     lineHeight: 18,
   },
@@ -296,5 +277,5 @@ const styles = StyleSheet.create({
   categoryTag: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
   categoryText: { fontSize: 12, fontWeight: '600' },
   duration: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  durationText: { fontSize: 12, color: theme.colors.textTertiary },
+  durationText: { fontSize: 12, color: me.ink3 },
 });

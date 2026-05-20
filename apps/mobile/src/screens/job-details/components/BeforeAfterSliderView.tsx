@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { BeforeAfterSlider } from '../../../components/BeforeAfterSlider';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 import { styles } from '../photoReviewStyles';
 
 interface PhotoInfo {
@@ -44,11 +44,7 @@ export const BeforeAfterSliderView: React.FC<BeforeAfterSliderViewProps> = ({
           <View style={styles.timestampRow}>
             {currentPair.before.timestamp && (
               <View style={styles.timestampBadge}>
-                <Ionicons
-                  name='camera-outline'
-                  size={12}
-                  color={theme.colors.textTertiary}
-                />
+                <Ionicons name='camera-outline' size={12} color={me.ink3} />
                 <Text style={styles.timestampText}>
                   Before:{' '}
                   {new Date(currentPair.before.timestamp).toLocaleDateString(
@@ -68,7 +64,7 @@ export const BeforeAfterSliderView: React.FC<BeforeAfterSliderViewProps> = ({
                 <Ionicons
                   name='checkmark-circle-outline'
                   size={12}
-                  color={theme.colors.textTertiary}
+                  color={me.ink3}
                 />
                 <Text style={styles.timestampText}>
                   After:{' '}
@@ -115,11 +111,7 @@ export const BeforeAfterSliderView: React.FC<BeforeAfterSliderViewProps> = ({
 
       {/* Instructions */}
       <View style={styles.instructions}>
-        <Ionicons
-          name='information-circle-outline'
-          size={20}
-          color={theme.colors.textTertiary}
-        />
+        <Ionicons name='information-circle-outline' size={20} color={me.ink3} />
         <Text style={styles.instructionsText}>
           Drag the slider to compare before and after photos. Approve if
           satisfied, or request changes.

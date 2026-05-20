@@ -9,7 +9,7 @@
 
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 interface ProfileTabsProps {
   activeTab: 'photos' | 'reviews';
@@ -29,7 +29,12 @@ export const ProfileTabs: React.FC<ProfileTabsProps> = ({
         accessibilityLabel='Photos tab'
         accessibilityState={{ selected: activeTab === 'photos' }}
       >
-        <Text style={[styles.tabText, activeTab === 'photos' && styles.activeTabText]}>
+        <Text
+          style={[
+            styles.tabText,
+            activeTab === 'photos' && styles.activeTabText,
+          ]}
+        >
           Photos
         </Text>
       </TouchableOpacity>
@@ -41,7 +46,12 @@ export const ProfileTabs: React.FC<ProfileTabsProps> = ({
         accessibilityLabel='Reviews tab'
         accessibilityState={{ selected: activeTab === 'reviews' }}
       >
-        <Text style={[styles.tabText, activeTab === 'reviews' && styles.activeTabText]}>
+        <Text
+          style={[
+            styles.tabText,
+            activeTab === 'reviews' && styles.activeTabText,
+          ]}
+        >
           Reviews
         </Text>
       </TouchableOpacity>
@@ -52,9 +62,9 @@ export const ProfileTabs: React.FC<ProfileTabsProps> = ({
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   tab: {
     flex: 1,
@@ -64,14 +74,14 @@ const styles = StyleSheet.create({
     borderBottomColor: 'transparent',
   },
   activeTab: {
-    borderBottomColor: theme.colors.textPrimary,
+    borderBottomColor: me.ink,
   },
   tabText: {
     fontSize: 16,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
   },
   activeTabText: {
-    color: theme.colors.textPrimary,
+    color: me.ink,
     fontWeight: '600',
   },
 });

@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 interface QuickActionsProps {
   onStartVideoCapture: () => void;
@@ -21,11 +21,11 @@ const QuickActions: React.FC<QuickActionsProps> = ({ onStartVideoCapture }) => {
 
       <View style={styles.secondaryRow}>
         <TouchableOpacity style={styles.secondaryAction} activeOpacity={0.7}>
-          <Icon name='save' size={18} color={theme.colors.textSecondary} />
+          <Icon name='save' size={18} color={me.ink2} />
           <Text style={styles.secondaryText}>Save Draft</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.secondaryAction} activeOpacity={0.7}>
-          <Icon name='share' size={18} color={theme.colors.textSecondary} />
+          <Icon name='share' size={18} color={me.ink2} />
           <Text style={styles.secondaryText}>Share</Text>
         </TouchableOpacity>
       </View>
@@ -59,7 +59,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
     borderRadius: 24,
     paddingVertical: 16,
     gap: 10,
@@ -79,17 +79,17 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     paddingVertical: 12,
     gap: 8,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
   secondaryText: {
     fontSize: 13,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   tipsCard: {
     flexDirection: 'row',

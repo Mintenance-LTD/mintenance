@@ -1,16 +1,14 @@
 /**
- * CreditCardPreview Component
+ * CreditCardPreview Component — Direction A · Mint Editorial.
  *
- * Visual credit card preview showing card details.
- *
- * @filesize Target: <80 lines
- * @compliance Single Responsibility - Card display
+ * Visual credit card preview showing card details — a dark brand
+ * panel.
  */
 
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 interface CreditCardPreviewProps {
   holderName: string;
@@ -42,7 +40,7 @@ export const CreditCardPreview: React.FC<CreditCardPreviewProps> = ({
             <Text style={styles.value}>{expiry || '02/30'}</Text>
           </View>
           <View style={styles.chipIcon}>
-            <Ionicons name="card" size={32} color={theme.colors.textInverse} />
+            <Ionicons name='card' size={32} color={me.onBrand} />
           </View>
         </View>
       </View>
@@ -55,7 +53,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   card: {
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.brand2,
     borderRadius: 20,
     padding: 24,
     height: 200,
@@ -63,13 +61,13 @@ const styles = StyleSheet.create({
   visa: {
     fontSize: 24,
     fontWeight: '700',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     alignSelf: 'flex-end',
   },
   number: {
     fontSize: 22,
     fontWeight: '600',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     letterSpacing: 2,
     marginTop: 40,
   },
@@ -81,13 +79,13 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 10,
-    color: theme.colors.textTertiary,
+    color: 'rgba(255,255,255,0.6)',
     marginBottom: 4,
   },
   value: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
   },
   chipIcon: {
     opacity: 0.5,

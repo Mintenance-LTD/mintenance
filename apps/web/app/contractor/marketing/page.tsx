@@ -35,6 +35,7 @@ const BarChart = dynamic(
 import toast from 'react-hot-toast';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import { safeCopyToClipboard } from '@/lib/utils/clipboard';
+import { useChartPalette } from '@/lib/charts/editorial-palette';
 
 const fadeIn = {
   hidden: { opacity: 0, y: 20 },
@@ -93,6 +94,16 @@ export default function MarketingToolsPage() {
   const [data, setData] = useState<MarketingStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Hydration-safe theme detection — same pattern as the other
+  // Phase-4 contractor surfaces.
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
+  const chartPalette = useChartPalette();
 
   useEffect(() => {
     const fetchStats = async () => {
@@ -163,25 +174,56 @@ export default function MarketingToolsPage() {
 
   return (
     <div className='min-h-0 bg-gray-50'>
-      {/* Header */}
-      <MotionDiv
-        initial='hidden'
-        animate='visible'
-        variants={fadeIn}
-        className='bg-white border border-gray-200 rounded-xl p-8 mb-6'
-      >
-        <div className='flex items-center gap-3 mb-2'>
-          <Megaphone className='w-8 h-8 text-teal-600' />
-          <div>
-            <h1 className='text-3xl font-bold text-gray-900'>
-              Marketing & Performance
-            </h1>
-            <p className='text-gray-600 mt-1'>
-              Track your profile performance and grow your business
+      {/* Header — canonical .t-h1 + .t-body with brand-soft icon
+          tile when Mint Editorial is on, legacy framer-motion banner
+          otherwise. */}
+      {isMintEditorial ? (
+        <div
+          className='row'
+          style={{ gap: 12, alignItems: 'center', marginBottom: 20 }}
+        >
+          <span
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 10,
+              background: 'var(--me-brand-soft)',
+              color: 'var(--me-brand)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <Megaphone size={22} strokeWidth={1.5} />
+          </span>
+          <div className='col' style={{ gap: 4 }}>
+            <h1 className='t-h1'>Marketing & performance</h1>
+            <p className='t-body'>
+              Track your profile views, bid acceptance, and review velocity —
+              share your profile link to bring in new homeowners.
             </p>
           </div>
         </div>
-      </MotionDiv>
+      ) : (
+        <MotionDiv
+          initial='hidden'
+          animate='visible'
+          variants={fadeIn}
+          className='bg-white border border-gray-200 rounded-xl p-8 mb-6'
+        >
+          <div className='flex items-center gap-3 mb-2'>
+            <Megaphone className='w-8 h-8 text-teal-600' />
+            <div>
+              <h1 className='text-3xl font-bold text-gray-900'>
+                Marketing & Performance
+              </h1>
+              <p className='text-gray-600 mt-1'>
+                Track your profile performance and grow your business
+              </p>
+            </div>
+          </div>
+        </MotionDiv>
+      )}
 
       <div className='space-y-6'>
         {/* Quick Stats */}
@@ -243,7 +285,7 @@ export default function MarketingToolsPage() {
                 data={trendChartData}
                 index='month'
                 categories={['Bids Submitted', 'Bids Won', 'Jobs Completed']}
-                colors={['blue', 'emerald', 'amber']}
+                colors={chartPalette.tremor.stack.slice(0, 3)}
                 valueFormatter={(v) => String(v)}
                 className='h-72'
               />
@@ -268,7 +310,7 @@ export default function MarketingToolsPage() {
                 category='value'
                 index='category'
                 valueFormatter={(v) => `${v} job${v !== 1 ? 's' : ''}`}
-                colors={['teal', 'blue', 'amber', 'emerald', 'rose', 'violet']}
+                colors={chartPalette.tremor.stack}
                 className='h-72'
               />
             ) : (
@@ -419,6 +461,29 @@ function StatCard({
   value: string | number;
   sub?: string;
 }) {
+  // Hydration-safe theme detection — when Mint Editorial is active,
+  // render the canonical `.kpi` tile (no icon — the editorial KPI
+  // primitive relies on .label / .num / .sub typography rather than
+  // colour-coded icons). Legacy theme keeps the bg-white + iconBg
+  // layout.
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
+
+  if (isMintEditorial) {
+    return (
+      <div className='kpi'>
+        <div className='label'>{label}</div>
+        <div className='num'>{value}</div>
+        {sub ? <div className='sub'>{sub}</div> : null}
+      </div>
+    );
+  }
+
   return (
     <MotionDiv
       variants={staggerItem}

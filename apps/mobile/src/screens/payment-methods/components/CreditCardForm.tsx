@@ -1,17 +1,20 @@
 /**
- * CreditCardForm Component
+ * CreditCardForm Component — Direction A · Mint Editorial.
  *
  * Form inputs for credit card details.
- *
- * @filesize Target: <140 lines
- * @compliance Single Responsibility - Card form
  */
 
 import React from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { CardDetails } from '../viewmodels/PaymentMethodsViewModel';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 interface CreditCardFormProps {
   cardDetails: CardDetails;
@@ -38,8 +41,8 @@ export const CreditCardForm: React.FC<CreditCardFormProps> = ({
           style={styles.input}
           value={cardDetails.holderName}
           onChangeText={(text) => onUpdateDetails({ holderName: text })}
-          placeholder="Esther Howard"
-          placeholderTextColor={theme.colors.textTertiary}
+          placeholder='Esther Howard'
+          placeholderTextColor={me.ink4}
           accessibilityLabel='Card holder name'
           accessibilityHint='Enter the name as it appears on your card'
         />
@@ -50,10 +53,12 @@ export const CreditCardForm: React.FC<CreditCardFormProps> = ({
         <TextInput
           style={styles.input}
           value={cardDetails.number}
-          onChangeText={(text) => onUpdateDetails({ number: formatCardNumber(text) })}
-          placeholder="4716 9627 1635 8047"
-          placeholderTextColor={theme.colors.textTertiary}
-          keyboardType="numeric"
+          onChangeText={(text) =>
+            onUpdateDetails({ number: formatCardNumber(text) })
+          }
+          placeholder='4716 9627 1635 8047'
+          placeholderTextColor={me.ink4}
+          keyboardType='numeric'
           maxLength={19}
           accessibilityLabel='Card number'
           accessibilityHint='Enter your 16-digit card number'
@@ -66,10 +71,12 @@ export const CreditCardForm: React.FC<CreditCardFormProps> = ({
           <TextInput
             style={styles.input}
             value={cardDetails.expiry}
-            onChangeText={(text) => onUpdateDetails({ expiry: formatExpiry(text) })}
-            placeholder="02/30"
-            placeholderTextColor={theme.colors.textTertiary}
-            keyboardType="numeric"
+            onChangeText={(text) =>
+              onUpdateDetails({ expiry: formatExpiry(text) })
+            }
+            placeholder='02/30'
+            placeholderTextColor={me.ink4}
+            keyboardType='numeric'
             maxLength={5}
             accessibilityLabel='Expiry date'
             accessibilityHint='Enter expiry date in month and year format'
@@ -80,10 +87,12 @@ export const CreditCardForm: React.FC<CreditCardFormProps> = ({
           <TextInput
             style={styles.input}
             value={cardDetails.cvv}
-            onChangeText={(text) => onUpdateDetails({ cvv: text.replace(/\D/g, '') })}
-            placeholder="000"
-            placeholderTextColor={theme.colors.textTertiary}
-            keyboardType="numeric"
+            onChangeText={(text) =>
+              onUpdateDetails({ cvv: text.replace(/\D/g, '') })
+            }
+            placeholder='000'
+            placeholderTextColor={me.ink4}
+            keyboardType='numeric'
             maxLength={3}
             secureTextEntry
             accessibilityLabel='CVV security code'
@@ -100,7 +109,9 @@ export const CreditCardForm: React.FC<CreditCardFormProps> = ({
         accessibilityState={{ checked: saveCard }}
       >
         <View style={[styles.checkbox, saveCard && styles.checkboxSelected]}>
-          {saveCard && <Ionicons name="checkmark" size={16} color={theme.colors.textInverse} />}
+          {saveCard && (
+            <Ionicons name='checkmark' size={16} color={me.onBrand} />
+          )}
         </View>
         <Text style={styles.saveCardText}>Save Card</Text>
       </TouchableOpacity>
@@ -110,9 +121,11 @@ export const CreditCardForm: React.FC<CreditCardFormProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 16,
+    backgroundColor: me.surface,
+    borderRadius: me.radius.card,
     padding: 20,
+    borderWidth: 1,
+    borderColor: me.line,
   },
   inputGroup: {
     marginBottom: 20,
@@ -120,15 +133,17 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 15,
     fontWeight: '500',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 8,
   },
   input: {
-    backgroundColor: theme.colors.backgroundSecondary,
-    borderRadius: 12,
+    backgroundColor: me.surface,
+    borderRadius: me.radius.input,
+    borderWidth: 1,
+    borderColor: me.line,
     padding: 14,
     fontSize: 16,
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   row: {
     flexDirection: 'row',
@@ -147,17 +162,17 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 6,
     borderWidth: 2,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 8,
   },
   checkboxSelected: {
-    borderColor: theme.colors.textPrimary,
-    backgroundColor: theme.colors.textPrimary,
+    borderColor: me.brand,
+    backgroundColor: me.brand,
   },
   saveCardText: {
     fontSize: 15,
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
 });

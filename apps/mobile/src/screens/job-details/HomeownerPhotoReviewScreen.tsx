@@ -25,7 +25,7 @@ import { JobService } from '../../services/JobService';
 import { PhotoUploadService } from '../../services/PhotoUploadService';
 import type { JobsStackParamList } from '../../navigation/types';
 import { logger } from '../../utils/logger';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 import { styles } from './photoReviewStyles';
 import { BeforeAfterSliderView } from './components/BeforeAfterSliderView';
 import { PhotoReviewControls } from './components/PhotoReviewControls';
@@ -174,7 +174,7 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centered}>
-          <ActivityIndicator size='large' color={theme.colors.textPrimary} />
+          <ActivityIndicator size='large' color={me.ink} />
           <Text style={styles.loadingText}>Loading photos...</Text>
         </View>
       </SafeAreaView>
@@ -190,22 +190,14 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
             onPress={() => navigation.goBack()}
             accessibilityRole='button'
           >
-            <Ionicons
-              name='arrow-back'
-              size={22}
-              color={theme.colors.textPrimary}
-            />
+            <Ionicons name='arrow-back' size={22} color={me.ink} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Review Work</Text>
           <View style={{ width: 44 }} />
         </View>
         <View style={styles.centered}>
           <View style={styles.emptyIconWrap}>
-            <Ionicons
-              name='images-outline'
-              size={32}
-              color={theme.colors.textTertiary}
-            />
+            <Ionicons name='images-outline' size={32} color={me.ink3} />
           </View>
           <Text style={styles.emptyTitle}>No Photos Available</Text>
           <Text style={styles.emptySubtitle}>
@@ -219,10 +211,7 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar
-        barStyle='dark-content'
-        backgroundColor={theme.colors.backgroundSecondary}
-      />
+      <StatusBar barStyle='dark-content' backgroundColor={me.bg2} />
 
       {/* Header */}
       <View style={styles.header}>
@@ -231,11 +220,7 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
           onPress={() => navigation.goBack()}
           accessibilityRole='button'
         >
-          <Ionicons
-            name='arrow-back'
-            size={22}
-            color={theme.colors.textPrimary}
-          />
+          <Ionicons name='arrow-back' size={22} color={me.ink} />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>Review Work</Text>

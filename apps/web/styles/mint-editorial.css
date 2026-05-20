@@ -1,0 +1,1258 @@
+/* ==============================================================
+   Mintenance — Mint Editorial theme (Phase 1)
+   Source: anthropic.com/v1/design handoff (Direction A · Mint Editorial)
+   Scope: only applies when <html data-theme="mint-editorial"> is set.
+   Designed to coexist with the existing Tailwind/shadcn system —
+   the legacy tokens are untouched.
+   ============================================================== */
+
+[data-theme='mint-editorial'] {
+  /* ---- surfaces ---- */
+  --me-bg: #f3f7f4; /* mint-tinted near-white */
+  --me-bg-2: #e9f1eb; /* sidebar / sunken */
+  --me-bg-3: #dee9e0; /* hover */
+  --me-surface: #ffffff;
+  --me-ink: #1a2520; /* near-black, slightly warm */
+  --me-ink-2: #4a5751;
+  --me-ink-3: #768079;
+  --me-ink-4: #a6aea8;
+  --me-line: #d8e2da;
+  --me-line-2: #e6ece7;
+
+  /* ---- brand ---- */
+  --me-brand: #3f8c7a;
+  --me-brand-2: #2f6f5f;
+  --me-brand-soft: #dceae5;
+  --me-accent: #e26b4f; /* sparingly */
+  --me-warm: #c49a4d; /* ratings */
+
+  /* ---- status ---- */
+  --me-ok-bg: #d9efe2;
+  --me-ok-fg: #166b49;
+  --me-warn-bg: #fbe9cb;
+  --me-warn-fg: #8a5a18;
+  --me-info-bg: #e1e6f2;
+  --me-info-fg: #2d3a78;
+  --me-err-bg: #f5ddd2;
+  --me-err-fg: #8a2e1b;
+
+  /* ---- type ---- */
+  --me-font-display: 'Instrument Serif', 'Iowan Old Style', Georgia, serif;
+  --me-font-body:
+    'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --me-font-ui:
+    'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --me-display-tracking: -0.012em;
+  --me-display-weight: 400;
+  --me-body-weight: 400;
+
+  /* ---- shape ---- */
+  --me-radius-card: 14px;
+  --me-radius-input: 10px;
+  --me-radius-btn: 10px;
+  --me-radius-pill: 9999px;
+
+  /* ---- shadows (paper) ---- */
+  --me-shadow-card:
+    0 1px 0 rgba(31, 42, 36, 0.04), 0 1px 2px rgba(31, 42, 36, 0.05);
+  --me-shadow-pop:
+    0 4px 12px rgba(31, 42, 36, 0.06), 0 12px 28px rgba(31, 42, 36, 0.08);
+  --me-shadow-btn: 0 1px 0 rgba(31, 42, 36, 0.04);
+
+  /* ---- trade-category swatches (job thumbs) ---- */
+  --me-cat-plumbing-bg: #dceef5;
+  --me-cat-plumbing-fg: #1f5d78;
+  --me-cat-electrical-bg: #f5e9cc;
+  --me-cat-electrical-fg: #7a5a0f;
+  --me-cat-landscape-bg: #ddebe0;
+  --me-cat-landscape-fg: #2a5c39;
+  --me-cat-painting-bg: #f5decc;
+  --me-cat-painting-fg: #7a3f0f;
+  --me-cat-default-bg: #dceae5;
+  --me-cat-default-fg: #2f6f5f;
+  --me-on-brand: #ffffff;
+}
+
+/* The Mint Editorial layer scopes ALL its styling under .me-root so
+   the rest of the app (Tailwind utilities, shadcn primitives, the
+   landing page) keeps its existing look. */
+
+.me-root {
+  background: var(--me-bg);
+  color: var(--me-ink);
+  font-family: var(--me-font-body);
+  font-weight: var(--me-body-weight);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+.me-root *,
+.me-root *::before,
+.me-root *::after {
+  box-sizing: border-box;
+}
+
+/* ---- Type roles ---- */
+.me-root .t-h1,
+.me-root .t-h2,
+.me-root .t-h3 {
+  font-family: var(--me-font-display);
+  font-weight: var(--me-display-weight);
+  letter-spacing: var(--me-display-tracking);
+  color: var(--me-ink);
+  margin: 0;
+}
+.me-root .t-h1 {
+  font-size: 36px;
+  line-height: 1.1;
+}
+.me-root .t-h2 {
+  font-size: 26px;
+  line-height: 1.15;
+}
+.me-root .t-h3 {
+  font-size: 19px;
+  line-height: 1.25;
+}
+.me-root .t-h4 {
+  font-family: var(--me-font-ui);
+  font-weight: 600;
+  font-size: 15px;
+  line-height: 1.3;
+  color: var(--me-ink);
+  margin: 0;
+  letter-spacing: -0.005em;
+}
+.me-root .t-body {
+  font-size: 14px;
+  color: var(--me-ink-2);
+  line-height: 1.55;
+}
+.me-root .t-meta {
+  font-size: 12px;
+  color: var(--me-ink-3);
+}
+.me-root .t-eyebrow {
+  font-size: 11px;
+  color: var(--me-ink-3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  font-family: var(--me-font-ui);
+}
+.me-root .t-num {
+  font-feature-settings:
+    'tnum' 1,
+    'lnum' 1;
+}
+
+/* ---- Layout helpers ---- */
+.me-root .row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.me-root .col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.me-root .between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* ---- Buttons ---- */
+.me-root .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  font-family: var(--me-font-ui);
+  font-weight: 600;
+  font-size: 14px;
+  border-radius: var(--me-radius-btn);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    background 0.15s,
+    box-shadow 0.15s,
+    border-color 0.15s;
+  white-space: nowrap;
+  text-decoration: none;
+  color: inherit;
+  background: transparent;
+}
+.me-root .btn:hover {
+  transform: translateY(-1px);
+}
+.me-root .btn-primary {
+  background: var(--me-brand);
+  color: #fff;
+  box-shadow: var(--me-shadow-btn);
+  letter-spacing: 0.005em;
+}
+.me-root .btn-primary:hover {
+  background: var(--me-brand-2);
+}
+.me-root .btn-secondary {
+  background: var(--me-surface);
+  color: var(--me-ink);
+  border-color: var(--me-line);
+}
+.me-root .btn-secondary:hover {
+  background: var(--me-bg-2);
+}
+.me-root .btn-ghost {
+  background: transparent;
+  color: var(--me-ink-2);
+}
+.me-root .btn-ghost:hover {
+  background: var(--me-bg-2);
+  color: var(--me-ink);
+}
+.me-root .btn-sm {
+  padding: 7px 12px;
+  font-size: 13px;
+  gap: 6px;
+}
+.me-root .btn-lg {
+  padding: 14px 22px;
+  font-size: 15px;
+}
+
+/* ---- Inputs / search ---- */
+.me-root .field {
+  width: 100%;
+  padding: 10px 14px;
+  font: inherit;
+  font-size: 14px;
+  background: var(--me-surface);
+  color: var(--me-ink);
+  border: 1px solid var(--me-line);
+  border-radius: var(--me-radius-input);
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+.me-root .field::placeholder {
+  color: var(--me-ink-4);
+}
+.me-root .field:focus {
+  outline: none;
+  border-color: var(--me-ink);
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
+}
+.me-root .search-pill {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--me-surface);
+  border: 1px solid var(--me-line);
+  border-radius: var(--me-radius-input);
+  color: var(--me-ink-3);
+  font-size: 14px;
+}
+
+/* ---- Cards ---- */
+.me-root .card {
+  background: var(--me-surface);
+  border: 1px solid var(--me-line);
+  border-radius: var(--me-radius-card);
+  box-shadow: var(--me-shadow-card);
+}
+.me-root .card-pad {
+  padding: 20px;
+}
+.me-root .card-pad-lg {
+  padding: 24px;
+}
+
+/* ---- Badges / pills ---- */
+.me-root .badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 9999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  font-family: var(--me-font-ui);
+  letter-spacing: 0;
+  line-height: 1.4;
+}
+.me-root .badge-ok {
+  background: var(--me-ok-bg);
+  color: var(--me-ok-fg);
+}
+.me-root .badge-warn {
+  background: var(--me-warn-bg);
+  color: var(--me-warn-fg);
+}
+.me-root .badge-info {
+  background: var(--me-info-bg);
+  color: var(--me-info-fg);
+}
+.me-root .badge-err {
+  background: var(--me-err-bg);
+  color: var(--me-err-fg);
+}
+.me-root .badge-mute {
+  background: var(--me-bg-3);
+  color: var(--me-ink-2);
+}
+.me-root .badge-brand {
+  background: var(--me-brand-soft);
+  color: var(--me-brand);
+}
+
+/* ---- Avatar ---- */
+.me-root .avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--me-bg-3);
+  color: var(--me-ink-2);
+  font-family: var(--me-font-ui);
+  font-weight: 600;
+  font-size: 13px;
+  border-radius: 9999px;
+  flex-shrink: 0;
+}
+.me-root .avatar-sm {
+  width: 28px;
+  height: 28px;
+  font-size: 11px;
+}
+.me-root .avatar-md {
+  width: 36px;
+  height: 36px;
+  font-size: 13px;
+}
+.me-root .avatar-lg {
+  width: 48px;
+  height: 48px;
+  font-size: 16px;
+}
+
+/* ---- Sidebar ---- */
+.me-root .me-sidebar {
+  width: 240px;
+  background: var(--me-bg-2);
+  border-right: 1px solid var(--me-line);
+  padding: 20px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex-shrink: 0;
+  /* Stick to viewport so the nav + user card stay visible while
+   * the content area scrolls. Without this, long nav configs
+   * pushed the bottom user card off-screen and users had to scroll
+   * the page just to see their own avatar. */
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: hidden;
+}
+/* Inner scroller for the nav items so the user card at the bottom
+ * stays pinned regardless of how many sections are rendered. */
+.me-root .me-sidebar-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  /* slim scrollbar that doesn't break the calm Mint Editorial feel */
+  scrollbar-width: thin;
+  scrollbar-color: var(--me-line-2) transparent;
+}
+.me-root .me-sidebar-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+.me-root .me-sidebar-scroll::-webkit-scrollbar-thumb {
+  background: var(--me-line-2);
+  border-radius: 9999px;
+}
+.me-root .me-sidebar-user {
+  flex-shrink: 0;
+  margin-top: 12px;
+}
+.me-root .me-sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px 22px;
+  font-family: var(--me-font-display);
+  font-weight: var(--me-display-weight);
+  letter-spacing: -0.01em;
+  font-size: 19px;
+  color: var(--me-ink);
+  text-decoration: none;
+}
+.me-root .me-sidebar-brand .brand-mark {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  display: inline-block;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+.me-root .me-sidebar-section {
+  font-size: 10.5px;
+  color: var(--me-ink-3);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 18px 10px 8px;
+  font-weight: 600;
+}
+.me-root .me-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  color: var(--me-ink-2);
+  font-size: 13.5px;
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+}
+.me-root .me-nav-item:hover {
+  background: var(--me-bg-3);
+  color: var(--me-ink);
+}
+.me-root .me-nav-item.active {
+  background: var(--me-brand-soft);
+  color: var(--me-brand);
+}
+.me-root .me-nav-item .count {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--me-ink-3);
+  background: var(--me-bg-3);
+  padding: 1px 7px;
+  border-radius: 9999px;
+  font-weight: 600;
+}
+.me-root .me-nav-item.active .count {
+  background: var(--me-bg);
+  color: var(--me-ink-2);
+}
+
+/* ---- Topbar ---- */
+.me-root .me-topbar {
+  height: 60px;
+  border-bottom: 1px solid var(--me-line);
+  background: var(--me-bg);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 24px;
+  flex-shrink: 0;
+}
+
+/* Top sub-nav — pill row inside the topbar for quick section jumps
+ * (Dashboard / Jobs / Post a job / Messages / Properties / Payments).
+ * Hidden on mobile widths where the sidebar's nav serves the same
+ * purpose. */
+.me-root .me-topnav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--me-bg-2);
+  padding: 4px;
+  border-radius: 9999px;
+  flex-shrink: 0;
+}
+.me-root .me-topnav-tab {
+  padding: 6px 14px;
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--me-ink-2);
+  text-decoration: none;
+  transition:
+    background 120ms ease,
+    color 120ms ease;
+  white-space: nowrap;
+}
+.me-root .me-topnav-tab:hover {
+  color: var(--me-ink);
+}
+.me-root .me-topnav-tab.active {
+  background: var(--me-ink);
+  color: var(--me-on-ink, #fff);
+}
+@media (max-width: 900px) {
+  .me-root .me-topnav {
+    display: none;
+  }
+}
+
+/* ---- KPI tile ---- */
+.me-root .kpi {
+  background: var(--me-surface);
+  border: 1px solid var(--me-line);
+  border-radius: var(--me-radius-card);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.me-root .kpi .label {
+  font-size: 12px;
+  color: var(--me-ink-3);
+  font-weight: 500;
+}
+.me-root .kpi .num {
+  font-family: var(--me-font-display);
+  font-weight: var(--me-display-weight);
+  font-size: 30px;
+  letter-spacing: var(--me-display-tracking);
+  color: var(--me-ink);
+  font-feature-settings:
+    'tnum' 1,
+    'lnum' 1;
+}
+.me-root .kpi .sub {
+  font-size: 12px;
+  color: var(--me-ink-3);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.me-root .kpi .delta-up {
+  color: var(--me-ok-fg);
+  font-weight: 600;
+}
+.me-root .kpi .delta-down {
+  color: var(--me-err-fg);
+  font-weight: 600;
+}
+
+/* ---- Skeleton shimmer (canonical from states-and-edges.html) ---- */
+@keyframes me-skel {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+.me-root .me-skel {
+  background: linear-gradient(
+    90deg,
+    var(--me-bg-2) 0%,
+    var(--me-bg-3) 50%,
+    var(--me-bg-2) 100%
+  );
+  background-size: 200% 100%;
+  animation: me-skel 1.4s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .me-root .me-skel {
+    animation: none;
+    background: var(--me-bg-2);
+  }
+}
+
+/* ---- Step strip (used on /disputes flow) ---- */
+.me-root .step-strip {
+  display: flex;
+  gap: 0;
+  margin-bottom: 28px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.me-root .step-pill {
+  padding: 10px 16px;
+  background: var(--me-surface);
+  border: 1px solid var(--me-line);
+  font-size: 13px;
+  color: var(--me-ink-3);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--me-font-ui);
+}
+.me-root .step-pill:first-child {
+  border-top-left-radius: 9999px;
+  border-bottom-left-radius: 9999px;
+  padding-left: 20px;
+}
+.me-root .step-pill:last-child {
+  border-top-right-radius: 9999px;
+  border-bottom-right-radius: 9999px;
+  padding-right: 20px;
+}
+.me-root .step-pill + .step-pill {
+  border-left: 0;
+}
+.me-root .step-pill.on {
+  background: var(--me-brand);
+  color: var(--me-on-brand);
+  border-color: var(--me-brand);
+  font-weight: 600;
+}
+.me-root .step-pill .num {
+  width: 22px;
+  height: 22px;
+  border-radius: 9999px;
+  background: rgba(0, 0, 0, 0.08);
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 700;
+}
+.me-root .step-pill.on .num {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ---- Project / job card (active projects grid) ---- */
+.me-root .me-projects-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+@media (max-width: 900px) {
+  .me-root .me-projects-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.me-root .me-project-card {
+  background: var(--me-surface);
+  border: 1px solid var(--me-line);
+  border-radius: var(--me-radius-card);
+  box-shadow: var(--me-shadow-card);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.me-root .me-project-card:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--me-shadow-pop);
+}
+
+.me-root .me-project-photo {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  background: var(--me-bg-2);
+  overflow: hidden;
+}
+.me-root .me-project-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.me-root .me-project-photo .fallback {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 64px;
+}
+.me-root .me-project-photo .status-pin {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+}
+
+.me-root .me-project-body {
+  padding: 18px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.me-root .me-project-title {
+  font-family: var(--me-font-display);
+  font-weight: var(--me-display-weight);
+  letter-spacing: -0.01em;
+  font-size: 20px;
+  line-height: 1.25;
+  color: var(--me-ink);
+  margin: 0;
+}
+.me-root .me-project-sub {
+  font-size: 13px;
+  color: var(--me-ink-3);
+}
+.me-root .me-project-sub-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.me-root .me-project-sub-row .who {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.me-root .me-project-budget {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 10px 0;
+  border-top: 1px solid var(--me-line-2);
+  border-bottom: 1px solid var(--me-line-2);
+}
+.me-root .me-project-budget .label {
+  font-size: 12px;
+  color: var(--me-ink-3);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 500;
+}
+.me-root .me-project-budget .amount {
+  font-family: var(--me-font-display);
+  font-weight: var(--me-display-weight);
+  letter-spacing: -0.01em;
+  font-size: 22px;
+  color: var(--me-ink);
+  font-feature-settings:
+    'tnum' 1,
+    'lnum' 1;
+}
+
+/* Full-width primary action for the project card */
+.me-root .btn-block {
+  width: 100%;
+  justify-content: center;
+}
+
+/* Project section header (replaces inline "Your jobs" header) */
+.me-root .me-section-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.me-root .me-section-head .left h2 {
+  margin: 0 0 4px;
+}
+.me-root .me-section-head .left p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--me-ink-3);
+}
+.me-root .me-section-head a {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--me-brand);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.me-root .me-section-head a:hover {
+  text-decoration: underline;
+}
+
+/* ---- Legacy job row (kept for the bottom of the empty-state) ---- */
+.me-root .job-row {
+  display: grid;
+  grid-template-columns: 56px 1fr auto;
+  gap: 14px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--me-line-2);
+  align-items: center;
+}
+.me-root .job-row:last-child {
+  border-bottom: 0;
+}
+.me-root .job-thumb {
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ============================================================
+   .me-legacy-fit — Tailwind → Mint Editorial color overrides for
+   legacy atomic components rendered inside the Mint Editorial shell.
+   Scoped narrowly to keep risk low: every selector requires
+   .me-root .me-legacy-fit ancestry, so the same Tailwind class on
+   any non-Mint Editorial surface (or on the page header / KPI tiles
+   that already use Mint tokens directly) is untouched.
+
+   Used by the /properties/[id] Manage tab to visually unify the
+   five legacy atomic feature cards (TenantContacts, TeamAccess,
+   RecurringMaintenance, BulkOperations, RoomPhotoGallery) with
+   the Mint palette without re-implementing them. Source TSX of
+   the legacy components stays unchanged so the legacy property
+   detail page is unaffected.
+   ============================================================ */
+.me-root .me-legacy-fit .bg-white {
+  background-color: var(--me-surface);
+}
+.me-root .me-legacy-fit .bg-gray-50 {
+  background-color: var(--me-bg-2);
+}
+.me-root .me-legacy-fit .bg-gray-100,
+.me-root .me-legacy-fit .bg-gray-200 {
+  background-color: var(--me-bg-3);
+}
+.me-root .me-legacy-fit .bg-gray-800,
+.me-root .me-legacy-fit .bg-gray-900 {
+  /* Map dark slate panels / buttons to the warm dark slate
+     (--me-ink-2) instead of the warmest near-black (--me-ink).
+     Keeps the visual hierarchy (secondary affordance, still high
+     contrast on white text) without painting a heavy black block
+     onto the mint surface — fixes Bulk Operations'
+     "Bulk Post to Multiple Properties" button. */
+  background-color: var(--me-ink-2);
+}
+.me-root .me-legacy-fit .hover\:bg-gray-800:hover {
+  background-color: var(--me-ink);
+}
+.me-root .me-legacy-fit .bg-teal-50,
+.me-root .me-legacy-fit .bg-teal-100 {
+  background-color: var(--me-brand-soft);
+}
+.me-root .me-legacy-fit .bg-teal-600,
+.me-root .me-legacy-fit .bg-teal-700 {
+  background-color: var(--me-brand);
+}
+.me-root .me-legacy-fit .hover\:bg-teal-700:hover,
+.me-root .me-legacy-fit .hover\:bg-teal-600:hover {
+  background-color: var(--me-brand-2);
+}
+
+.me-root .me-legacy-fit .text-gray-300,
+.me-root .me-legacy-fit .text-gray-400 {
+  color: var(--me-ink-4);
+}
+.me-root .me-legacy-fit .text-gray-500 {
+  color: var(--me-ink-3);
+}
+.me-root .me-legacy-fit .text-gray-600,
+.me-root .me-legacy-fit .text-gray-700 {
+  color: var(--me-ink-2);
+}
+.me-root .me-legacy-fit .text-gray-800,
+.me-root .me-legacy-fit .text-gray-900 {
+  color: var(--me-ink);
+}
+.me-root .me-legacy-fit .text-teal-600,
+.me-root .me-legacy-fit .text-teal-700 {
+  color: var(--me-brand);
+}
+
+.me-root .me-legacy-fit .border-gray-100,
+.me-root .me-legacy-fit .border-gray-200,
+.me-root .me-legacy-fit .border-gray-300 {
+  border-color: var(--me-line);
+}
+.me-root .me-legacy-fit .border-teal-400,
+.me-root .me-legacy-fit .border-teal-500,
+.me-root .me-legacy-fit .border-teal-600 {
+  border-color: var(--me-brand);
+}
+
+/* Focus rings — the legacy components use focus:ring-teal-500 etc.
+   Map to the brand color so the focus indicator stays on-theme. */
+.me-root .me-legacy-fit .focus\:ring-teal-500:focus,
+.me-root .me-legacy-fit .focus\:ring-teal-600:focus {
+  --tw-ring-color: var(--me-brand);
+}
+
+/* Tabs (page-level sub-navigation) ---- */
+.me-root .me-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--me-line);
+  margin-bottom: 18px;
+}
+.me-root .me-tab {
+  padding: 10px 14px;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--me-ink-3);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  background: transparent;
+  border-left: 0;
+  border-right: 0;
+  border-top: 0;
+  font-family: var(--me-font-ui);
+}
+.me-root .me-tab:hover {
+  color: var(--me-ink);
+}
+.me-root .me-tab.on {
+  color: var(--me-brand);
+  border-bottom-color: var(--me-brand);
+  font-weight: 600;
+}
+.me-root .me-tab .count {
+  margin-left: 6px;
+  color: var(--me-ink-3);
+  font-weight: 500;
+}
+.me-root .me-tab.on .count {
+  color: var(--me-brand);
+}
+
+/* ---- Grouped list section header (jobs list, etc.) ---- */
+.me-root .me-list-section {
+  padding: 10px 16px;
+  background: var(--me-bg-2);
+  font-size: 11px;
+  color: var(--me-ink-3);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+}
+.me-root .me-list-section-divider {
+  border-top: 1px solid var(--me-line-2);
+}
+.me-root .me-list-amount {
+  font-family: var(--me-font-display);
+  font-weight: var(--me-display-weight);
+  font-size: 16px;
+  letter-spacing: var(--me-display-tracking);
+  color: var(--me-ink);
+  font-feature-settings:
+    'tnum' 1,
+    'lnum' 1;
+}
+
+/* ---- Chips ---- */
+.me-root .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 12.5px;
+  font-weight: 500;
+  background: var(--me-surface);
+  color: var(--me-ink-2);
+  border: 1px solid var(--me-line);
+  border-radius: 9999px;
+  cursor: pointer;
+}
+.me-root .chip:hover {
+  background: var(--me-bg-2);
+  color: var(--me-ink);
+}
+.me-root .chip.on {
+  background: var(--me-brand);
+  border-color: var(--me-brand);
+  color: #fff;
+}
+
+/* ---- Mint AI compose dock ---- */
+.me-root .mint-dock {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  width: min(640px, calc(100% - 48px));
+  background: var(--me-surface);
+  border: 1px solid var(--me-line);
+  border-radius: var(--me-radius-card);
+  box-shadow: var(--me-shadow-pop);
+  padding: 12px 14px 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 40;
+}
+.me-root .mint-dock .spark {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--me-brand);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.me-root .mint-dock .ph {
+  flex: 1;
+  color: var(--me-ink-3);
+  font-size: 13.5px;
+}
+.me-root .mint-dock-input {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  outline: 0;
+  color: var(--me-ink);
+  font-family: var(--me-font-body);
+  font-size: 13.5px;
+  min-width: 0;
+}
+.me-root .mint-dock-input::placeholder {
+  color: var(--me-ink-3);
+}
+.me-root .mint-dock-input:disabled {
+  opacity: 0.7;
+  cursor: progress;
+}
+.me-root .mint-dock .icon-btn:disabled,
+.me-root .mint-dock .send:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+.me-root .mint-dock .actions {
+  display: flex;
+  gap: 6px;
+}
+.me-root .mint-dock .icon-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--me-bg-2);
+  color: var(--me-ink-2);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--me-line-2);
+  cursor: pointer;
+}
+.me-root .mint-dock .send {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--me-brand);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  cursor: pointer;
+}
+
+/* ============================================================
+   Phase-2 W7 utility additions — small layer that maps the canonical
+   redesign-v2/components.css helpers into our scoped `.me-root` layer.
+   Components built in W1–W6 already inline most of these patterns;
+   adding them here as primitives lets future polish work consume the
+   same tokens instead of re-inlining styles.
+   ============================================================ */
+
+/* ---- Type roles (extras) ---- */
+.me-root .t-display {
+  font-family: var(--me-font-display);
+  font-weight: var(--me-display-weight);
+  letter-spacing: var(--me-display-tracking);
+  font-size: 56px;
+  line-height: 1.02;
+  color: var(--me-ink);
+  margin: 0;
+}
+.me-root .t-body-lg {
+  font-size: 16px;
+  color: var(--me-ink-2);
+  line-height: 1.6;
+  margin: 0;
+}
+
+/* ---- Stripey image placeholder (contractor map cells, missing
+   property hero, etc.) ---- */
+.me-root .placeholder-img {
+  background:
+    repeating-linear-gradient(
+      135deg,
+      transparent 0 9px,
+      rgba(0, 0, 0, 0.04) 9px 10px
+    ),
+    var(--me-bg-2);
+  border: 1px solid var(--me-line);
+  border-radius: var(--me-radius-card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--me-ink-3);
+  font-family: var(--me-font-ui);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* ---- Star rating ---- */
+.me-root .stars {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--me-warm);
+  font-size: 13px;
+}
+.me-root .stars .v {
+  color: var(--me-ink);
+  margin-left: 4px;
+  font-weight: 600;
+}
+.me-root .stars .n {
+  color: var(--me-ink-3);
+  margin-left: 2px;
+  font-weight: 400;
+}
+
+/* ---- Layout utilities ---- */
+.me-root .grow {
+  flex: 1;
+}
+.me-root .divide-y > * + * {
+  border-top: 1px solid var(--me-line-2);
+}
+.me-root .scroll-y {
+  overflow-y: auto;
+}
+.me-root .scroll-y::-webkit-scrollbar {
+  width: 6px;
+}
+.me-root .scroll-y::-webkit-scrollbar-thumb {
+  background: var(--me-line);
+  border-radius: 3px;
+}
+
+/* ---- Icon size helpers (used by `.me-nav-item .ic` already, but
+   defining the class here lets ad-hoc icons inherit the same tokens
+   without bespoke inline styles). ---- */
+.me-root .ic {
+  width: 16px;
+  height: 16px;
+  stroke-width: 1.75;
+  flex-shrink: 0;
+}
+.me-root .ic-sm {
+  width: 14px;
+  height: 14px;
+}
+.me-root .ic-lg {
+  width: 20px;
+  height: 20px;
+}
+
+/* ---- Breadcrumb inside the topbar (e.g. "Properties / 12 Albion
+   Road / Documents" on deep pages) ---- */
+.me-root .me-topbar .crumb {
+  font-size: 13px;
+  color: var(--me-ink-3);
+}
+.me-root .me-topbar .crumb b {
+  color: var(--me-ink);
+  font-weight: 500;
+}
+
+/* ============================================================
+   Phase-2 follow-up — sidebar user-menu popover (logout + profile)
+   The bottom user card used to be a non-interactive div, so users
+   on Mint Editorial had no way to sign out. The card is now a
+   button-styled trigger; on click it opens a small popover above
+   itself with Profile / Settings / Sign out actions.
+   ============================================================ */
+.me-root .me-sidebar-user-trigger {
+  width: 100%;
+  padding: 12px;
+  background: var(--me-surface);
+  border: 1px solid var(--me-line);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: background 0.12s ease;
+}
+.me-root .me-sidebar-user-trigger:hover {
+  background: var(--me-bg-2);
+}
+.me-root .me-sidebar-user-trigger[aria-expanded='true'] {
+  background: var(--me-bg-2);
+  border-color: var(--me-line);
+}
+.me-root .me-sidebar-user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--me-brand);
+  color: var(--me-on-brand);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 13px;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.me-root .me-sidebar-user-avatar > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.me-root .me-sidebar-user-menu {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  background: var(--me-surface);
+  border: 1px solid var(--me-line);
+  border-radius: 12px;
+  box-shadow: var(--me-shadow-pop);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  z-index: 50;
+}
+.me-root .me-sidebar-user-menu .item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--me-ink);
+  font-weight: 500;
+  background: transparent;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  text-decoration: none;
+}
+.me-root .me-sidebar-user-menu .item:hover {
+  background: var(--me-bg-2);
+}
+.me-root .me-sidebar-user-menu .item.danger {
+  color: var(--me-err-fg);
+}
+.me-root .me-sidebar-user-menu .item.danger:hover {
+  background: var(--me-err-bg);
+}
+.me-root .me-sidebar-user-menu .divider {
+  height: 1px;
+  background: var(--me-line-2);
+  margin: 4px 2px;
+}
+
+/* The theme switch lives at /settings → Appearance now (Phase 1). The
+   floating dev pill that previously sat at top-right has been removed
+   so the dashboard chrome matches the design exactly. */

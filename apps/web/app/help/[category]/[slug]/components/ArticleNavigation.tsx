@@ -11,16 +11,22 @@ interface ArticleNavigationProps {
   category: string;
 }
 
-export function ArticleNavigation({ prevArticle, nextArticle, category }: ArticleNavigationProps) {
+export function ArticleNavigation({
+  prevArticle,
+  nextArticle,
+  category,
+}: ArticleNavigationProps) {
   return (
-    <div style={{
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginTop: theme.spacing[8],
-      paddingTop: theme.spacing[6],
-      borderTop: `1px solid ${theme.colors.border}`,
-    }}>
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginTop: theme.spacing[8],
+        paddingTop: theme.spacing[6],
+        borderTop: '1px solid var(--me-line)',
+      }}
+    >
       {prevArticle ? (
         <Link
           href={`/help/${category}/${prevArticle.slug}`}
@@ -29,27 +35,35 @@ export function ArticleNavigation({ prevArticle, nextArticle, category }: Articl
             alignItems: 'center',
             gap: theme.spacing[2],
             padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
-            borderRadius: theme.borderRadius.lg,
-            border: `1px solid ${theme.colors.border}`,
-            backgroundColor: theme.colors.white,
+            borderRadius: 'var(--me-radius-card)',
+            border: '1px solid var(--me-line)',
+            backgroundColor: 'var(--me-surface)',
             textDecoration: 'none',
-            color: theme.colors.textPrimary,
+            color: 'var(--me-ink)',
             fontSize: theme.typography.fontSize.base,
             fontWeight: theme.typography.fontWeight.medium,
             transition: 'all 0.2s',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = theme.colors.primary;
-            e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
+            e.currentTarget.style.borderColor = 'var(--me-brand)';
+            e.currentTarget.style.backgroundColor = 'var(--me-bg-2)';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = theme.colors.border;
-            e.currentTarget.style.backgroundColor = theme.colors.white;
+            e.currentTarget.style.borderColor = 'var(--me-line)';
+            e.currentTarget.style.backgroundColor = 'var(--me-surface)';
           }}
         >
-          <ChevronLeft className="h-5 w-5" style={{ color: theme.colors.textSecondary }} />
+          <ChevronLeft
+            className='h-5 w-5'
+            style={{ color: 'var(--me-ink-3)' }}
+          />
           <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <span style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>
+            <span
+              style={{
+                fontSize: theme.typography.fontSize.xs,
+                color: 'var(--me-ink-3)',
+              }}
+            >
               Previous
             </span>
             <span>{prevArticle.title}</span>
@@ -67,34 +81,47 @@ export function ArticleNavigation({ prevArticle, nextArticle, category }: Articl
             alignItems: 'center',
             gap: theme.spacing[2],
             padding: `${theme.spacing[3]} ${theme.spacing[4]}`,
-            borderRadius: theme.borderRadius.lg,
-            border: `1px solid ${theme.colors.border}`,
-            backgroundColor: theme.colors.white,
+            borderRadius: 'var(--me-radius-card)',
+            border: '1px solid var(--me-line)',
+            backgroundColor: 'var(--me-surface)',
             textDecoration: 'none',
-            color: theme.colors.textPrimary,
+            color: 'var(--me-ink)',
             fontSize: theme.typography.fontSize.base,
             fontWeight: theme.typography.fontWeight.medium,
             transition: 'all 0.2s',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.borderColor = theme.colors.primary;
-            e.currentTarget.style.backgroundColor = theme.colors.backgroundSecondary;
+            e.currentTarget.style.borderColor = 'var(--me-brand)';
+            e.currentTarget.style.backgroundColor = 'var(--me-bg-2)';
           }}
           onMouseLeave={(e) => {
-            e.currentTarget.style.borderColor = theme.colors.border;
-            e.currentTarget.style.backgroundColor = theme.colors.white;
+            e.currentTarget.style.borderColor = 'var(--me-line)';
+            e.currentTarget.style.backgroundColor = 'var(--me-surface)';
           }}
         >
-          <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'right' }}>
-            <span style={{ fontSize: theme.typography.fontSize.xs, color: theme.colors.textSecondary }}>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              textAlign: 'right',
+            }}
+          >
+            <span
+              style={{
+                fontSize: theme.typography.fontSize.xs,
+                color: 'var(--me-ink-3)',
+              }}
+            >
               Next
             </span>
             <span>{nextArticle.title}</span>
           </div>
-          <ChevronRight className="h-5 w-5" style={{ color: theme.colors.textSecondary }} />
+          <ChevronRight
+            className='h-5 w-5'
+            style={{ color: 'var(--me-ink-3)' }}
+          />
         </Link>
       )}
     </div>
   );
 }
-

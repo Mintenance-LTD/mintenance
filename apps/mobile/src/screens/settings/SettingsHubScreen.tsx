@@ -6,7 +6,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   Switch,
-  Platform,
   StatusBar,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -18,7 +17,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../contexts/AuthContext';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 // supabase import removed — settings now use /api/users/settings endpoint
-import { theme, gradients } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 const LEGAL_URLS = {
   privacyPolicy: 'https://mintenance.app/privacy',
@@ -113,18 +112,14 @@ export const SettingsHubScreen: React.FC = () => {
           style={[
             styles.iconChip,
             {
-              backgroundColor: item.iconBg ?? theme.colors.backgroundSecondary,
+              backgroundColor: item.iconBg ?? me.bg2,
             },
           ]}
         >
           <Ionicons
             name={item.icon as 'settings'}
             size={17}
-            color={
-              item.destructive
-                ? theme.colors.error
-                : (item.iconColor ?? theme.colors.textSecondary)
-            }
+            color={item.destructive ? me.errFg : (item.iconColor ?? me.ink2)}
           />
         </View>
         <Text
@@ -135,11 +130,7 @@ export const SettingsHubScreen: React.FC = () => {
       </View>
       {item.rightElement ||
         (item.onPress && (
-          <Ionicons
-            name='chevron-forward'
-            size={14}
-            color={theme.colors.textTertiary}
-          />
+          <Ionicons name='chevron-forward' size={14} color={me.ink3} />
         ))}
     </TouchableOpacity>
   );
@@ -168,15 +159,15 @@ export const SettingsHubScreen: React.FC = () => {
       // Granular per-event opt-in surface backed by user_notification_preferences.
       label: 'Notification Preferences',
       icon: 'options-outline',
-      iconColor: theme.colors.primary,
-      iconBg: theme.colors.primaryLight,
+      iconColor: me.brand,
+      iconBg: me.brandSoft,
       onPress: () => navigation.navigate('NotificationPreferences'),
     },
     {
       label: 'Accessibility',
       icon: 'accessibility-outline',
-      iconColor: theme.colors.primary,
-      iconBg: theme.colors.primaryLight,
+      iconColor: me.brand,
+      iconBg: me.brandSoft,
       onPress: () => navigation.navigate('AccessibilitySettings'),
     },
     {
@@ -189,8 +180,8 @@ export const SettingsHubScreen: React.FC = () => {
     {
       label: 'Payment Methods',
       icon: 'card-outline',
-      iconColor: theme.colors.primary,
-      iconBg: theme.colors.primaryLight,
+      iconColor: me.brand,
+      iconBg: me.brandSoft,
       onPress: () => navigation.navigate('PaymentMethods'),
     },
     {
@@ -213,10 +204,10 @@ export const SettingsHubScreen: React.FC = () => {
           value={settings?.privacy?.profileVisible ?? true}
           onValueChange={() => togglePrivacy('profileVisible')}
           trackColor={{
-            false: theme.colors.border,
-            true: theme.colors.primary,
+            false: me.line,
+            true: me.brand,
           }}
-          thumbColor={theme.colors.surface}
+          thumbColor={me.surface}
         />
       ),
     },
@@ -230,10 +221,10 @@ export const SettingsHubScreen: React.FC = () => {
           value={settings?.privacy?.shareActivityData ?? false}
           onValueChange={() => togglePrivacy('shareActivityData')}
           trackColor={{
-            false: theme.colors.border,
-            true: theme.colors.primary,
+            false: me.line,
+            true: me.brand,
           }}
-          thumbColor={theme.colors.surface}
+          thumbColor={me.surface}
         />
       ),
     },
@@ -243,15 +234,15 @@ export const SettingsHubScreen: React.FC = () => {
     {
       label: 'Privacy Policy',
       icon: 'shield-checkmark-outline',
-      iconColor: theme.colors.primary,
-      iconBg: theme.colors.primaryLight,
+      iconColor: me.brand,
+      iconBg: me.brandSoft,
       onPress: () => WebBrowser.openBrowserAsync(LEGAL_URLS.privacyPolicy),
     },
     {
       label: 'Terms & Conditions',
       icon: 'document-text-outline',
-      iconColor: theme.colors.textSecondary,
-      iconBg: theme.colors.backgroundSecondary,
+      iconColor: me.ink2,
+      iconBg: me.bg2,
       onPress: () => WebBrowser.openBrowserAsync(LEGAL_URLS.termsAndConditions),
     },
   ];
@@ -260,15 +251,15 @@ export const SettingsHubScreen: React.FC = () => {
     {
       label: 'Export My Data',
       icon: 'download-outline',
-      iconColor: theme.colors.textSecondary,
-      iconBg: theme.colors.backgroundSecondary,
+      iconColor: me.ink2,
+      iconBg: me.bg2,
       onPress: () => navigation.navigate('DataExport'),
     },
     {
       label: 'Delete Account',
       icon: 'trash-outline',
-      iconColor: theme.colors.error,
-      iconBg: '#FEE2E2',
+      iconColor: me.errFg,
+      iconBg: me.errBg,
       onPress: () => navigation.navigate('DeleteAccount'),
       destructive: true,
     },
@@ -282,7 +273,7 @@ export const SettingsHubScreen: React.FC = () => {
         barStyle='light-content'
       />
       {/* Green gradient hero */}
-      <LinearGradient colors={gradients.heroGreen} style={styles.hero}>
+      <LinearGradient colors={[me.brand2, me.brand]} style={styles.hero}>
         <View style={styles.decorCircle1} />
         <View style={styles.decorCircle2} />
 
@@ -297,11 +288,7 @@ export const SettingsHubScreen: React.FC = () => {
           accessibilityLabel='Go back'
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Ionicons
-            name='chevron-back'
-            size={22}
-            color={theme.colors.textInverse}
-          />
+          <Ionicons name='chevron-back' size={22} color={me.onBrand} />
         </TouchableOpacity>
 
         <Text style={styles.heroTitle}>Settings</Text>
@@ -322,7 +309,7 @@ export const SettingsHubScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
+  container: { flex: 1, backgroundColor: me.bg2 },
   hero: {
     paddingBottom: 24,
     paddingHorizontal: 20,
@@ -358,7 +345,7 @@ const styles = StyleSheet.create({
   heroTitle: {
     fontSize: 26,
     fontWeight: '700',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     letterSpacing: -0.5,
   },
   heroSubtitle: {
@@ -372,25 +359,17 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 8,
     paddingHorizontal: 4,
   },
   card: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     overflow: 'hidden',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   row: {
     flexDirection: 'row',
@@ -401,7 +380,7 @@ const styles = StyleSheet.create({
   },
   rowBorder: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   rowLeft: { flexDirection: 'row', alignItems: 'center', flex: 1, gap: 12 },
   iconChip: {
@@ -414,7 +393,7 @@ const styles = StyleSheet.create({
   rowLabel: {
     fontSize: 15,
     fontWeight: '500',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
-  destructiveText: { color: theme.colors.error },
+  destructiveText: { color: me.errFg },
 });

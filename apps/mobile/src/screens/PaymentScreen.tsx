@@ -24,7 +24,7 @@ import { PaymentSummaryCard } from './payment/components/PaymentSummaryCard';
 import { EscrowInfoCard } from './payment/components/EscrowInfoCard';
 import { PaymentMethodOption } from './payment/components/PaymentMethodOption';
 import { usePayment } from './payment/hooks/usePayment';
-import { theme } from '../theme';
+import { me } from '../design-system/mint-editorial';
 import { useScreenCaptureGuard } from '../hooks/useScreenCaptureGuard';
 
 interface PaymentScreenProps {
@@ -124,7 +124,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
                 accessibilityLabel='Add payment method'
               >
                 <View style={styles.addMethodIconWrap}>
-                  <Ionicons name='add' size={22} color={theme.colors.primary} />
+                  <Ionicons name='add' size={22} color={me.brand} />
                 </View>
                 <View style={styles.addMethodContent}>
                   <Text style={styles.addMethodText}>Add Payment Method</Text>
@@ -132,11 +132,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
                     Credit card, debit card, or bank account
                   </Text>
                 </View>
-                <Ionicons
-                  name='chevron-forward'
-                  size={16}
-                  color={theme.colors.textTertiary}
-                />
+                <Ionicons name='chevron-forward' size={16} color={me.ink3} />
               </TouchableOpacity>
             ) : (
               payment.paymentMethods.map((method) => (
@@ -154,11 +150,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
 
           <View style={styles.securityNote}>
             <View style={styles.securityIconWrap}>
-              <Ionicons
-                name='shield-checkmark'
-                size={16}
-                color={theme.colors.primary}
-              />
+              <Ionicons name='shield-checkmark' size={16} color={me.brand} />
             </View>
             <Text style={styles.securityText}>
               Your payment is protected by 256-bit SSL encryption and held
@@ -184,14 +176,10 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
           }}
         >
           {payment.processing ? (
-            <LoadingSpinner size='small' color={theme.colors.textInverse} />
+            <LoadingSpinner size='small' color={me.onBrand} />
           ) : (
             <>
-              <Ionicons
-                name='lock-closed'
-                size={18}
-                color={theme.colors.textInverse}
-              />
+              <Ionicons name='lock-closed' size={18} color={me.onBrand} />
               <Text style={styles.paymentButtonText}>
                 Pay {'\u00A3'}
                 {payment.totalAmount.toFixed(2)}
@@ -207,7 +195,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   scrollView: {
     flex: 1,
@@ -219,31 +207,23 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 12,
   },
   addMethodButton: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   addMethodIconWrap: {
     width: 44,
     height: 44,
     borderRadius: 14,
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: me.brandSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -253,12 +233,12 @@ const styles = StyleSheet.create({
   addMethodText: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 2,
   },
   addMethodSubtext: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   securityNote: {
     flexDirection: 'row',
@@ -271,24 +251,24 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: me.brandSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
   securityText: {
     flex: 1,
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     lineHeight: 17,
   },
   paymentButtonContainer: {
     padding: 16,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: theme.colors.border,
+    borderTopColor: me.line,
   },
   paymentButton: {
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
     borderRadius: 28,
     paddingVertical: 16,
     flexDirection: 'row',
@@ -297,11 +277,11 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   paymentButtonDisabled: {
-    backgroundColor: theme.colors.textTertiary,
+    backgroundColor: me.ink3,
   },
   paymentButtonText: {
     fontSize: 17,
     fontWeight: '700',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
   },
 });

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { cookies } from 'next/headers';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { resignJobStorageUrls } from '@/lib/api/job-storage';
@@ -18,6 +19,7 @@ import { PrepareContractButton } from './components/PrepareContractButton';
 import { BuildingAssessmentDisplay } from '@/app/jobs/[id]/components/BuildingAssessmentDisplay';
 import { JobInfoSidebar } from './components/JobInfoSidebar';
 import { JobProgressStepper } from './components/JobProgressStepper';
+import { MintEditorialJobDetailView } from './components/MintEditorialJobDetailView';
 import {
   JOB_STATUS_CONFIG,
   buildContractorProgressSteps,
@@ -64,6 +66,28 @@ export default async function ContractorJobDetailPage({
         .eq('id', job.homeowner_id)
         .single()
     : { data: null };
+
+  // Fetch property access details when the job is linked to a
+  // property. Surfaces "Access details" on the contractor sidebar so
+  // the contractor doesn't have to chase the homeowner over chat.
+  // Columns added in migration 20260520000003. On installs where the
+  // migration hasn't run yet the SELECT errors out (column does not
+  // exist) — catch that and fall back to null so the view renders the
+  // generic "ask the homeowner in chat" placeholder instead of
+  // crashing the whole page.
+  let property: Record<string, unknown> | null = null;
+  if (job.property_id) {
+    const propertyResult = await serverSupabase
+      .from('properties')
+      .select(
+        'id, access_mode, key_safe_code, access_notes, stopcock_location, gas_isolator_location, consumer_unit_location'
+      )
+      .eq('id', job.property_id)
+      .maybeSingle();
+    if (!propertyResult.error && propertyResult.data) {
+      property = propertyResult.data as Record<string, unknown>;
+    }
+  }
 
   const { data: contract } = await serverSupabase
     .from('contracts')
@@ -140,6 +164,104 @@ export default async function ContractorJobDetailPage({
   const messageHref = homeowner
     ? `/contractor/messages?jobId=${resolvedParams.id}`
     : null;
+
+  // Server-side theme detection — render the Mint Editorial layout
+  // when the `mintenance-theme=mint-editorial` cookie is present. The
+  // contractor /layout.tsx already branches on the same cookie key to
+  // mount MintEditorialContractorShell, so we re-use the same approach
+  // here without a client hydration round-trip.
+  const cookieStore = await cookies();
+  const isMintEditorial =
+    cookieStore.get('mintenance-theme')?.value === 'mint-editorial';
+
+  // Access-info defence-in-depth: only surface the key-safe code to
+  // the contractor when the job is at the "ready to start" or "in
+  // progress" lifecycle stage. Earlier stages (contract_pending,
+  // awaiting_payment) shouldn't see the code — escrow must be funded
+  // first. The view also gates the render but masking server-side
+  // ensures the code never ships to the client when it shouldn't.
+  const canSeeKeySafeCode =
+    currentStage === 'ready_to_start' || currentStage === 'in_progress';
+  const safeProperty = property
+    ? {
+        access_mode: (property as Record<string, unknown>).access_mode as
+          | 'key_safe'
+          | 'smart_lock'
+          | 'in_person'
+          | null,
+        key_safe_code: canSeeKeySafeCode
+          ? (((property as Record<string, unknown>).key_safe_code as
+              | string
+              | null) ?? null)
+          : null,
+        access_notes:
+          ((property as Record<string, unknown>).access_notes as
+            | string
+            | null) ?? null,
+        stopcock_location:
+          ((property as Record<string, unknown>).stopcock_location as
+            | string
+            | null) ?? null,
+        gas_isolator_location:
+          ((property as Record<string, unknown>).gas_isolator_location as
+            | string
+            | null) ?? null,
+        consumer_unit_location:
+          ((property as Record<string, unknown>).consumer_unit_location as
+            | string
+            | null) ?? null,
+      }
+    : null;
+
+  if (isMintEditorial) {
+    return (
+      <MintEditorialJobDetailView
+        job={{
+          id: job.id,
+          title: job.title ?? null,
+          description: job.description ?? null,
+          status: job.status ?? null,
+          budget: job.budget ?? null,
+          location: job.location ?? null,
+          latitude: job.latitude ?? null,
+          longitude: job.longitude ?? null,
+          created_at: job.created_at ?? null,
+          scheduled_start_date: job.scheduled_start_date ?? null,
+          scheduled_end_date: job.scheduled_end_date ?? null,
+          scheduled_duration_hours: job.scheduled_duration_hours ?? null,
+        }}
+        homeowner={homeowner}
+        contract={
+          contract
+            ? {
+                start_date: contract.start_date ?? null,
+                end_date: contract.end_date ?? null,
+              }
+            : null
+        }
+        property={safeProperty}
+        contractStatus={contractStatus}
+        currentStage={currentStage}
+        stageTitle={stageConfig.title}
+        stageSubtitle={stageConfig.subtitle}
+        steps={steps.map((s) => ({
+          label: s.label,
+          state: s.completed
+            ? ('complete' as const)
+            : s.active
+              ? ('current' as const)
+              : ('pending' as const),
+        }))}
+        escrowHeld={escrowHeld}
+        escrowStatus={escrowStatus}
+        escrowId={escrowTransaction?.id ?? null}
+        jobPhotoUrls={jobPhotoUrls}
+        buildingAssessment={buildingAssessment}
+        userId={user.id}
+        messageHref={messageHref}
+      />
+    );
+  }
 
   return (
     <div style={{ width: '100%', maxWidth: '100%', margin: 0, padding: 0 }}>

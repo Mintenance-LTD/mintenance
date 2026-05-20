@@ -7,7 +7,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 import { styles } from '../photoReviewStyles';
 
 interface PhotoReviewControlsProps {
@@ -40,7 +40,7 @@ export const PhotoReviewControls: React.FC<PhotoReviewControlsProps> = ({
           value={changesComment}
           onChangeText={onChangesCommentChange}
           placeholder='Describe what needs to be fixed or improved...'
-          placeholderTextColor={theme.colors.textTertiary}
+          placeholderTextColor={me.ink3}
           multiline
           numberOfLines={4}
           textAlignVertical='top'
@@ -65,10 +65,7 @@ export const PhotoReviewControls: React.FC<PhotoReviewControlsProps> = ({
             accessibilityLabel='Submit change request'
           >
             {submitting ? (
-              <ActivityIndicator
-                size='small'
-                color={theme.colors.textInverse}
-              />
+              <ActivityIndicator size='small' color={me.onBrand} />
             ) : (
               <Text style={styles.submitButtonText}>Send to Contractor</Text>
             )}
@@ -87,11 +84,7 @@ export const PhotoReviewControls: React.FC<PhotoReviewControlsProps> = ({
         accessibilityRole='button'
         accessibilityLabel='Request changes to the work'
       >
-        <Ionicons
-          name='create-outline'
-          size={20}
-          color={theme.colors.textSecondary}
-        />
+        <Ionicons name='create-outline' size={20} color={me.ink2} />
         <Text style={styles.requestChangesText}>Request Changes</Text>
       </TouchableOpacity>
 
@@ -103,14 +96,10 @@ export const PhotoReviewControls: React.FC<PhotoReviewControlsProps> = ({
         accessibilityLabel='Approve the completed work'
       >
         {submitting ? (
-          <ActivityIndicator size='small' color={theme.colors.textInverse} />
+          <ActivityIndicator size='small' color={me.onBrand} />
         ) : (
           <>
-            <Ionicons
-              name='checkmark-circle'
-              size={20}
-              color={theme.colors.textInverse}
-            />
+            <Ionicons name='checkmark-circle' size={20} color={me.onBrand} />
             <Text style={styles.approveButtonText}>Approve Work</Text>
           </>
         )}

@@ -7,12 +7,13 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { HomeownerPageWrapper } from '@/app/dashboard/components/HomeownerPageWrapper';
 import { LoadingSpinner } from '@/components/ui';
 import toast from 'react-hot-toast';
-import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ArrowLeft } from 'lucide-react';
 import { useCSRF } from '@/lib/hooks/useCSRF';
 import { MessagesConversationSidebar } from './components/MessagesConversationSidebar';
 import { MessagesChatArea } from './components/MessagesChatArea';
 import { MessagesEmptyState } from './components/MessagesEmptyState';
+import { MintEditorialMessagesSidebar } from './components/MintEditorialMessagesSidebar';
+import { MintEditorialMessagesChat } from './components/MintEditorialMessagesChat';
 import { useTypingIndicator } from '@/lib/hooks/useTypingIndicator';
 
 interface Conversation {
@@ -141,14 +142,18 @@ async function fetchThreadMessages(threadId: string): Promise<Message[]> {
 }
 
 export default function MessagesPage2025() {
+  // The route-level `messages/error.tsx` is the authoritative error
+  // surface — it renders inside the homeowner shell with a "Failed to
+  // load messages" message and a retry. The previous component-level
+  // `<ErrorBoundary>` here intercepted first and rendered a full-bleed
+  // "Something went wrong" page outside the shell, which is what
+  // homeowners screenshot-reported on the Vercel preview.
   return (
-    <ErrorBoundary componentName='MessagesPage'>
-      <Suspense
-        fallback={<LoadingSpinner fullScreen message='Loading messages...' />}
-      >
-        <MessagesPageContent />
-      </Suspense>
-    </ErrorBoundary>
+    <Suspense
+      fallback={<LoadingSpinner fullScreen message='Loading messages...' />}
+    >
+      <MessagesPageContent />
+    </Suspense>
   );
 }
 
@@ -292,15 +297,97 @@ function MessagesPageContent() {
     }
   }, [user, loadingUser, router]);
 
+  // Phase-2 chrome fit: when Mint Editorial is active, the sidebar
+  // already has a "Messages" entry, so the per-page "Back to Dashboard"
+  // button is redundant. SSR renders the legacy variant; after mount
+  // we re-render without the back button if the theme is on.
+  //
+  // CRITICAL: these hooks must live BEFORE the early returns below.
+  // The previous order (early-returns first, then useState+useEffect)
+  // violated the React rules-of-hooks — once `user` flipped from null
+  // to defined, the hook call chain grew and React threw an
+  // unrecoverable error, which the component-level ErrorBoundary
+  // caught as "Something went wrong".
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
+
   if (loadingUser) {
     return <LoadingSpinner fullScreen message='Loading messages...' />;
   }
 
   if (!user) return null;
 
+  // Mint Editorial branch — canonical port from
+  // design-system/project/redesign-v2/homeowner-screens.jsx lines 301-408.
+  // The legacy branch below stays for users on the default theme.
+  if (isMintEditorial) {
+    return (
+      <HomeownerPageWrapper>
+        <div className='between' style={{ marginBottom: 14 }}>
+          <div className='col' style={{ gap: 4 }}>
+            <h1 className='t-h1'>Messages</h1>
+            <p className='t-body'>
+              Conversations with your contractors — quotes, scheduling,
+              sign-off.
+            </p>
+          </div>
+        </div>
+        <div
+          style={{
+            display: 'flex',
+            height: 'calc(100vh - 220px)',
+            background: 'var(--me-surface)',
+            border: '1px solid var(--me-line)',
+            borderRadius: 14,
+            overflow: 'hidden',
+          }}
+        >
+          <MintEditorialMessagesSidebar
+            conversations={conversations}
+            selectedConversation={selectedConversation}
+            onSelectConversation={setSelectedConversation}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
+            loading={loadingConversations}
+          />
+          {selectedConversation ? (
+            <MintEditorialMessagesChat
+              conversation={selectedConversation}
+              messages={messages}
+              currentUserId={user.id}
+              loadingMessages={loadingMessages}
+              messageInput={messageInput}
+              onMessageInputChange={(val: string) => {
+                setMessageInput(val);
+                broadcastTyping();
+              }}
+              onSendMessage={handleSendMessage}
+              sending={sending}
+              isTyping={isOtherTyping}
+            />
+          ) : (
+            <div
+              style={{
+                flex: 1,
+                display: 'flex',
+                background: 'var(--me-bg-2)',
+              }}
+            >
+              <MessagesEmptyState />
+            </div>
+          )}
+        </div>
+      </HomeownerPageWrapper>
+    );
+  }
+
   return (
     <HomeownerPageWrapper>
-      {/* Back to Dashboard Button */}
       <button
         onClick={() => router.push('/dashboard')}
         className='flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors mb-4'

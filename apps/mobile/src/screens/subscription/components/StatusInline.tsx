@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 import { styles } from '../theme/styles';
 
 /**
@@ -13,7 +13,7 @@ import { styles } from '../theme/styles';
 export function InlineLoading() {
   return (
     <View style={styles.inlineCenter}>
-      <ActivityIndicator size='large' color={theme.colors.primary} />
+      <ActivityIndicator size='large' color={me.brand} />
       <Text style={styles.inlineText}>Loading subscription...</Text>
     </View>
   );
@@ -22,11 +22,7 @@ export function InlineLoading() {
 export function InlineError({ onRetry }: { onRetry: () => void }) {
   return (
     <View style={styles.inlineCenter}>
-      <Ionicons
-        name='alert-circle-outline'
-        size={32}
-        color={theme.colors.error}
-      />
+      <Ionicons name='alert-circle-outline' size={32} color={me.errFg} />
       <Text style={styles.inlineText}>Failed to load subscription</Text>
       <TouchableOpacity style={styles.retryBtn} onPress={onRetry}>
         <Text style={styles.retryBtnText}>Retry</Text>

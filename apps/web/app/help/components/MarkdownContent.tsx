@@ -23,11 +23,14 @@ export function MarkdownContent({ content }: MarkdownContentProps) {
       const text = currentParagraph.join(' ').trim();
       if (text) {
         elements.push(
-          <p key={`p-${elements.length}`} style={{
-            marginBottom: theme.spacing[4],
-            color: theme.colors.textPrimary,
-            lineHeight: 1.7,
-          }}>
+          <p
+            key={`p-${elements.length}`}
+            style={{
+              marginBottom: theme.spacing[4],
+              color: 'var(--me-ink-2)',
+              lineHeight: 1.7,
+            }}
+          >
             {renderInlineMarkdown(text)}
           </p>
         );
@@ -40,16 +43,22 @@ export function MarkdownContent({ content }: MarkdownContentProps) {
     if (listItems.length > 0) {
       const ListTag = listOrdered ? 'ol' : 'ul';
       elements.push(
-        <ListTag key={`list-${elements.length}`} style={{
-          marginBottom: theme.spacing[4],
-          paddingLeft: theme.spacing[6],
-          listStyleType: listOrdered ? 'decimal' : 'disc',
-        }}>
+        <ListTag
+          key={`list-${elements.length}`}
+          style={{
+            marginBottom: theme.spacing[4],
+            paddingLeft: theme.spacing[6],
+            listStyleType: listOrdered ? 'decimal' : 'disc',
+          }}
+        >
           {listItems.map((item, idx) => (
-            <li key={idx} style={{
-              marginBottom: theme.spacing[2],
-              color: theme.colors.textPrimary,
-            }}>
+            <li
+              key={idx}
+              style={{
+                marginBottom: theme.spacing[2],
+                color: 'var(--me-ink-2)',
+              }}
+            >
               {renderInlineMarkdown(item.replace(/^[-*]\s+|\d+\.\s+/, ''))}
             </li>
           ))}
@@ -79,10 +88,13 @@ export function MarkdownContent({ content }: MarkdownContentProps) {
       }
       // Add bold text
       parts.push(
-        <strong key={key++} style={{
-          fontWeight: theme.typography.fontWeight.semibold,
-          color: theme.colors.textPrimary,
-        }}>
+        <strong
+          key={key++}
+          style={{
+            fontWeight: theme.typography.fontWeight.semibold,
+            color: 'var(--me-ink)',
+          }}
+        >
           {match[1]}
         </strong>
       );
@@ -90,7 +102,11 @@ export function MarkdownContent({ content }: MarkdownContentProps) {
     }
     // Add remaining text
     if (lastIndex < remaining.length) {
-      parts.push(<React.Fragment key={key++}>{remaining.slice(lastIndex)}</React.Fragment>);
+      parts.push(
+        <React.Fragment key={key++}>
+          {remaining.slice(lastIndex)}
+        </React.Fragment>
+      );
     }
 
     return parts.length > 0 ? <>{parts}</> : text;
@@ -104,13 +120,18 @@ export function MarkdownContent({ content }: MarkdownContentProps) {
       flushParagraph();
       flushList();
       elements.push(
-        <h1 key={`h1-${index}`} style={{
-          fontSize: theme.typography.fontSize['2xl'],
-          fontWeight: theme.typography.fontWeight.bold,
-          marginTop: theme.spacing[6],
-          marginBottom: theme.spacing[4],
-          color: theme.colors.textPrimary,
-        }}>
+        <h1
+          key={`h1-${index}`}
+          style={{
+            fontSize: theme.typography.fontSize['2xl'],
+            fontFamily: 'var(--me-font-display)',
+            fontWeight: 500,
+            letterSpacing: '-0.02em',
+            marginTop: theme.spacing[6],
+            marginBottom: theme.spacing[4],
+            color: 'var(--me-ink)',
+          }}
+        >
           {trimmed.replace(/^#\s+/, '')}
         </h1>
       );
@@ -120,13 +141,18 @@ export function MarkdownContent({ content }: MarkdownContentProps) {
       flushParagraph();
       flushList();
       elements.push(
-        <h2 key={`h2-${index}`} style={{
-          fontSize: theme.typography.fontSize.xl,
-          fontWeight: theme.typography.fontWeight.semibold,
-          marginTop: theme.spacing[6],
-          marginBottom: theme.spacing[3],
-          color: theme.colors.textPrimary,
-        }}>
+        <h2
+          key={`h2-${index}`}
+          style={{
+            fontSize: theme.typography.fontSize.xl,
+            fontFamily: 'var(--me-font-display)',
+            fontWeight: 500,
+            letterSpacing: '-0.01em',
+            marginTop: theme.spacing[6],
+            marginBottom: theme.spacing[3],
+            color: 'var(--me-ink)',
+          }}
+        >
           {trimmed.replace(/^##\s+/, '')}
         </h2>
       );
@@ -136,13 +162,18 @@ export function MarkdownContent({ content }: MarkdownContentProps) {
       flushParagraph();
       flushList();
       elements.push(
-        <h3 key={`h3-${index}`} style={{
-          fontSize: theme.typography.fontSize.lg,
-          fontWeight: theme.typography.fontWeight.semibold,
-          marginTop: theme.spacing[4],
-          marginBottom: theme.spacing[2],
-          color: theme.colors.textPrimary,
-        }}>
+        <h3
+          key={`h3-${index}`}
+          style={{
+            fontSize: theme.typography.fontSize.lg,
+            fontFamily: 'var(--me-font-display)',
+            fontWeight: 500,
+            letterSpacing: '-0.01em',
+            marginTop: theme.spacing[4],
+            marginBottom: theme.spacing[2],
+            color: 'var(--me-ink)',
+          }}
+        >
           {trimmed.replace(/^###\s+/, '')}
         </h3>
       );
@@ -189,4 +220,3 @@ export function MarkdownContent({ content }: MarkdownContentProps) {
 
   return <div>{elements}</div>;
 }
-

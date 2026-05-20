@@ -10,7 +10,7 @@ import { ContractorService } from '../services/ContractorService';
 import { ContractorProfile } from '@mintenance/types';
 import { logger } from '../utils/logger';
 import { LoadingSpinner } from '../components/LoadingSpinner';
-import { theme } from '../theme';
+import { me } from '../design-system/mint-editorial';
 import { useUnsavedChanges } from '../hooks/useUnsavedChanges';
 import { styles } from './ContractorCardEditorScreen/styles';
 import { BusinessInfoSection } from './ContractorCardEditorScreen/BusinessInfoSection';
@@ -199,11 +199,7 @@ export const ContractorCardEditorScreen: React.FC<
           accessibilityRole='button'
           accessibilityLabel='Go back'
         >
-          <Ionicons
-            name='arrow-back'
-            size={24}
-            color={theme.colors.textPrimary}
-          />
+          <Ionicons name='arrow-back' size={24} color={me.ink} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Edit Discovery Card</Text>
         <TouchableOpacity
@@ -212,7 +208,7 @@ export const ContractorCardEditorScreen: React.FC<
           accessibilityRole='button'
           accessibilityLabel='Preview card'
         >
-          <Ionicons name='eye' size={22} color={theme.colors.textPrimary} />
+          <Ionicons name='eye' size={22} color={me.ink} />
         </TouchableOpacity>
       </View>
 

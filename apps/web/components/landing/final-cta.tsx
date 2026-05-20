@@ -2,32 +2,104 @@ import React from 'react';
 import Link from 'next/link';
 
 /**
- * Final call-to-action section at the bottom of the landing page
+ * Closing call-to-action — Direction A · Mint Editorial.
+ * Source of truth: redesign-v2/landing.html closer section —
+ * a dark brand panel with a serif headline.
  */
 export function FinalCTA() {
   return (
-    <section className='py-24 bg-gradient-to-b from-gray-50 to-white'>
-      <div className='max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center'>
-        <h2 className='text-5xl font-bold text-gray-900 mb-6'>
-          Ready to get the job moving?
+    <section
+      data-theme='mint-editorial'
+      style={{
+        background: 'var(--me-brand-2)',
+        color: 'var(--me-on-brand)',
+        fontFamily: 'var(--me-font-body)',
+        padding: '96px 32px',
+      }}
+    >
+      <div
+        style={{
+          maxWidth: 760,
+          margin: '0 auto',
+          textAlign: 'center',
+        }}
+      >
+        <h2
+          style={{
+            fontFamily: 'var(--me-font-display)',
+            fontWeight: 500,
+            fontSize: 'clamp(40px, 5vw, 60px)',
+            lineHeight: 1.05,
+            letterSpacing: '-0.02em',
+            margin: '0 0 18px',
+          }}
+        >
+          Stop chasing tradespeople.{' '}
+          <em
+            style={{
+              fontStyle: 'italic',
+              color:
+                'color-mix(in srgb, var(--me-on-brand) 80%, var(--me-brand))',
+            }}
+          >
+            Start fixing things.
+          </em>
         </h2>
-        <p className='text-xl text-gray-600 mb-12 max-w-2xl mx-auto'>
-          Post the work, compare verified tradespeople, and keep payment
-          protected until you approve the result.
+        <p
+          style={{
+            fontSize: 17,
+            lineHeight: 1.6,
+            color: 'rgba(255,255,255,0.82)',
+            maxWidth: 560,
+            margin: '0 auto 32px',
+          }}
+        >
+          Post a job in 30 seconds. Free for homeowners, with payment held
+          safely until you approve the work. Serving Greater London now, more of
+          the UK through 2026.
         </p>
-
-        <div className='flex flex-col sm:flex-row items-center justify-center gap-5'>
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: 12,
+            justifyContent: 'center',
+          }}
+        >
           <Link
             href='/jobs/create'
-            className='px-10 py-5 bg-slate-900 text-white text-lg font-bold rounded-2xl hover:bg-slate-800 hover:shadow-lg transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:ring-offset-2'
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '15px 26px',
+              borderRadius: 'var(--me-radius-btn)',
+              background: 'var(--me-surface)',
+              color: 'var(--me-ink)',
+              fontSize: 15,
+              fontWeight: 600,
+              textDecoration: 'none',
+            }}
           >
-            Post Your First Job
+            Post a job — free
           </Link>
           <Link
             href='/register?role=contractor'
-            className='px-10 py-5 bg-gray-100 text-gray-900 text-lg font-bold rounded-2xl hover:bg-gray-200 transition-all focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2'
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '15px 26px',
+              borderRadius: 'var(--me-radius-btn)',
+              background: 'transparent',
+              color: 'var(--me-on-brand)',
+              border: '1px solid rgba(255,255,255,0.30)',
+              fontSize: 15,
+              fontWeight: 600,
+              textDecoration: 'none',
+            }}
           >
-            Join as a Contractor
+            Join as a tradesperson
           </Link>
         </div>
       </div>

@@ -88,6 +88,17 @@ export default function PaymentsPage2025() {
     useState<Transaction | null>(null);
   const [refundReason, setRefundReason] = useState('');
 
+  // Hide the inline "Back to Dashboard" link when the Mint Editorial
+  // shell is active — the persistent sidebar already provides nav, so
+  // the legacy back link becomes redundant chrome.
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
+
   useEffect(() => {
     if (!user) return;
 
@@ -311,18 +322,26 @@ export default function PaymentsPage2025() {
 
   return (
     <HomeownerPageWrapper>
-      <div className='max-w-6xl mx-auto'>
-        {/* Back link */}
-        <button
-          onClick={() => router.push('/dashboard')}
-          className='inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors mb-6 group'
-        >
-          <ChevronLeft
-            size={16}
-            className='group-hover:-translate-x-0.5 transition-transform'
-          />
-          Back to Dashboard
-        </button>
+      {/* `me-legacy-fit` palette-maps this still-legacy page's Tailwind
+          classes onto the Mint Editorial tokens. The shim is self-gating
+          — its selectors require a `.me-root` ancestor, which only the
+          Mint Editorial shell provides — so opted-out users are
+          unaffected. */}
+      <div className='max-w-6xl mx-auto me-legacy-fit'>
+        {/* Back link — only shown in legacy chrome. Sidebar nav handles
+            this once the Mint Editorial shell is active. */}
+        {!isMintEditorial && (
+          <button
+            onClick={() => router.push('/dashboard')}
+            className='inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors mb-6 group'
+          >
+            <ChevronLeft
+              size={16}
+              className='group-hover:-translate-x-0.5 transition-transform'
+            />
+            Back to Dashboard
+          </button>
+        )}
 
         <PaymentsHeader onExport={handleExport} />
 

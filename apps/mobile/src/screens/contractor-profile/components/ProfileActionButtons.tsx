@@ -6,15 +6,9 @@
  */
 
 import React from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Platform,
-} from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 interface ProfileActionButtonsProps {
   onMessage: () => void;
@@ -94,11 +88,7 @@ export const ProfileActionButtons: React.FC<ProfileActionButtonsProps> = ({
           hasActiveBid ? 'message-contractor-button' : 'request-quote-button'
         }
       >
-        <Ionicons
-          name={primaryIcon}
-          size={18}
-          color={theme.colors.textInverse}
-        />
+        <Ionicons name={primaryIcon} size={18} color={me.onBrand} />
         <Text style={styles.primaryBtnText}>{primaryLabel}</Text>
       </TouchableOpacity>
 
@@ -113,11 +103,7 @@ export const ProfileActionButtons: React.FC<ProfileActionButtonsProps> = ({
             accessibilityRole='button'
             accessibilityLabel={action.label}
           >
-            <Ionicons
-              name={action.icon}
-              size={20}
-              color={theme.colors.textPrimary}
-            />
+            <Ionicons name={action.icon} size={20} color={me.ink} />
             <Text style={styles.secondaryLabel}>{action.label}</Text>
           </TouchableOpacity>
         ))}
@@ -136,23 +122,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
     borderRadius: 16,
     paddingVertical: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: theme.colors.primary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-      },
-      android: { elevation: 4 },
-    }),
+    ...me.shadow.pop,
   },
   primaryBtnText: {
     fontSize: 16,
     fontWeight: '700',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
   },
   secondaryRow: {
     flexDirection: 'row',
@@ -165,7 +143,7 @@ const styles = StyleSheet.create({
   },
   secondaryLabel: {
     fontSize: 11,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     fontWeight: '500',
   },
 });

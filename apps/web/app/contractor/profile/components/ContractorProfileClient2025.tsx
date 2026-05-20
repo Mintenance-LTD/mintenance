@@ -1,13 +1,14 @@
 'use client';
 
 import { ContractorPageWrapper } from '@/app/contractor/components/ContractorPageWrapper';
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import { useCSRF } from '@/lib/hooks/useCSRF';
 import { useRouter } from 'next/navigation';
 import { SkillsManagementModal } from './SkillsManagementModal';
 import { ProfileHeroSection } from './ProfileHeroSection';
 import { ProfileTabPanels } from './ProfileTabPanels';
+import { PhotoUploadDialog } from './PhotoUploadDialog';
 import { logger } from '@mintenance/shared';
 import {
   Briefcase,
@@ -48,6 +49,19 @@ export function ContractorProfileClient2025({
 }: ContractorProfileClient2025Props) {
   const router = useRouter();
   const { getCsrfHeaders } = useCSRF();
+
+  // 2026-05-13 polish pass: hydration-safe theme detection for the tabs
+  // nav. The hero is already editorial-aware (see ProfileHeroSection);
+  // the legacy teal-bg tab rail was the most obvious clash with the
+  // rest of the page under Mint Editorial.
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
+
   const [activeTab, setActiveTab] = useState<
     | 'overview'
     | 'company'
@@ -162,6 +176,46 @@ export function ContractorProfileClient2025({
     }
   };
 
+  const handleUploadPhotos = async (data: {
+    files: File[];
+    title: string;
+    category: string;
+  }) => {
+    try {
+      const formDataToSend = new FormData();
+      formDataToSend.append('title', data.title);
+      formDataToSend.append('category', data.category);
+      data.files.forEach((file) => {
+        formDataToSend.append('photos', file);
+      });
+
+      const response = await fetch('/api/contractor/upload-photos', {
+        method: 'POST',
+        headers: { ...getCsrfHeaders() },
+        credentials: 'include',
+        body: formDataToSend,
+      });
+
+      if (!response.ok) {
+        const errorData = await response
+          .json()
+          .catch(() => ({ error: 'Upload failed' }));
+        throw new Error(errorData.error || 'Failed to upload photos');
+      }
+
+      toast.success('Project added to portfolio');
+      router.refresh();
+    } catch (error) {
+      logger.error('Error uploading portfolio photos:', error, {
+        service: 'ui',
+      });
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to upload photos'
+      );
+      throw error;
+    }
+  };
+
   const handleSaveProfile = async () => {
     if (!formData.first_name || formData.first_name.trim().length === 0) {
       toast.error('First name is required');
@@ -264,24 +318,73 @@ export function ContractorProfileClient2025({
         />
 
         {/* Tabs Navigation */}
-        <div className='bg-white rounded-xl border border-gray-200 mb-6 overflow-hidden'>
-          <div className='flex overflow-x-auto'>
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex-1 min-w-fit px-6 py-4 font-medium text-sm transition-colors border-b-2 flex items-center justify-center gap-2 ${
-                  activeTab === tab.id
-                    ? 'border-teal-600 text-teal-700 bg-teal-50/50'
-                    : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                }`}
-              >
-                <tab.icon className='w-4 h-4' />
-                {tab.label}
-              </button>
-            ))}
+        {isMintEditorial ? (
+          <div
+            className='card'
+            style={{
+              padding: 6,
+              marginBottom: 24,
+              overflow: 'hidden',
+            }}
+          >
+            <div
+              className='row'
+              style={{ gap: 4, overflowX: 'auto', flexWrap: 'nowrap' }}
+            >
+              {tabs.map((tab) => {
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    style={{
+                      flex: 1,
+                      minWidth: 'fit-content',
+                      padding: '10px 16px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 8,
+                      borderRadius: 8,
+                      border: 'none',
+                      background: isActive
+                        ? 'var(--me-brand-soft)'
+                        : 'transparent',
+                      color: isActive ? 'var(--me-brand)' : 'var(--me-ink-2)',
+                      fontWeight: isActive ? 600 : 500,
+                      fontSize: 13,
+                      whiteSpace: 'nowrap',
+                      cursor: 'pointer',
+                      transition: 'background 0.15s, color 0.15s',
+                    }}
+                  >
+                    <tab.icon className='w-4 h-4' />
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className='bg-white rounded-xl border border-gray-200 mb-6 overflow-hidden'>
+            <div className='flex overflow-x-auto'>
+              {tabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex-1 min-w-fit px-6 py-4 font-medium text-sm transition-colors border-b-2 flex items-center justify-center gap-2 ${
+                    activeTab === tab.id
+                      ? 'border-teal-600 text-teal-700 bg-teal-50/50'
+                      : 'border-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+                  }`}
+                >
+                  <tab.icon className='w-4 h-4' />
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         <ProfileTabPanels
           activeTab={activeTab}
@@ -301,12 +404,12 @@ export function ContractorProfileClient2025({
           }}
           onAddSkillClick={() => setShowAddSkillModal(true)}
           onAddPortfolioClick={() => setShowAddPortfolioModal(true)}
-          showAddPortfolioModal={showAddPortfolioModal}
-          onClosePortfolioModal={() => setShowAddPortfolioModal(false)}
-          onAddPortfolioSubmit={() => {
-            toast.success('Project added to portfolio');
-            setShowAddPortfolioModal(false);
-          }}
+        />
+
+        <PhotoUploadDialog
+          open={showAddPortfolioModal}
+          onOpenChange={setShowAddPortfolioModal}
+          onUpload={handleUploadPhotos}
         />
 
         {showAddSkillModal && (

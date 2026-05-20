@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 import { styles } from '../jobDetailsStyles';
 
 /**
@@ -37,8 +37,8 @@ export function JobTitleSection({
         )}
         {isUrgent && (
           <View style={[styles.tag, styles.urgentTag]}>
-            <Ionicons name='flame' size={12} color={theme.colors.error} />
-            <Text style={[styles.tagText, { color: theme.colors.error }]}>
+            <Ionicons name='flame' size={12} color={me.errFg} />
+            <Text style={[styles.tagText, { color: me.errFg }]}>
               {urgency === 'emergency' ? 'Emergency' : 'Urgent'}
             </Text>
           </View>
@@ -47,11 +47,7 @@ export function JobTitleSection({
 
       {locationStr ? (
         <View style={styles.locationRow}>
-          <Ionicons
-            name='location-outline'
-            size={16}
-            color={theme.colors.textSecondary}
-          />
+          <Ionicons name='location-outline' size={16} color={me.ink2} />
           <Text style={styles.locationText}>{locationStr}</Text>
         </View>
       ) : null}

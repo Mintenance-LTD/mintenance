@@ -3,26 +3,43 @@
 import React, { useState, useEffect } from 'react';
 import { logger } from '@mintenance/shared';
 import { HomeownerPageWrapper } from '@/app/dashboard/components/HomeownerPageWrapper';
-import { fadeIn, staggerContainer, staggerItem } from '@/lib/animations/variants';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
-import { AreaChart, BarChart, DonutChart, LineChart } from '@tremor/react';
-import { MotionDiv } from '@/components/ui/MotionDiv';
 import { supabase } from '@/lib/supabase';
-import { PoundSterling, CheckCircle, Hammer, BarChart3, HardHat, Home } from 'lucide-react';
-
-interface Payment {
-  amount: number;
-  [key: string]: unknown;
-}
+import {
+  PoundSterling,
+  CheckCircle,
+  Hammer,
+  BarChart3,
+  HardHat,
+  Home,
+} from 'lucide-react';
+import { MintEditorialAnalytics } from './MintEditorialAnalytics';
+import { LegacyAnalyticsView } from './LegacyAnalyticsView';
 
 interface Job {
   id: string;
   created_at: string;
   status: string;
   category?: string;
-  payments?: Payment[];
   [key: string]: unknown;
 }
+
+// Escrow rows we count as "spent". Mirrors the same statuses
+// /financials and /dashboard fold into the totalSpent KPI. Only
+// `pending` (pre-charge) and `refunded` stay out.
+interface EscrowRow {
+  amount: number;
+  status: string;
+  job_id: string | null;
+  released_at: string | null;
+  created_at: string;
+}
+const SPENT_STATUSES = new Set([
+  'held',
+  'release_pending',
+  'released',
+  'completed',
+]);
 
 interface MetricIcon {
   label: string;
@@ -34,15 +51,29 @@ interface MetricIcon {
 
 export default function AnalyticsPage2025() {
   const { user } = useCurrentUser();
-  const [selectedPeriod, setSelectedPeriod] = useState<'week' | 'month' | 'quarter' | 'year'>('month');
+  const [selectedPeriod, setSelectedPeriod] = useState<
+    'week' | 'month' | 'quarter' | 'year'
+  >('month');
   const [loading, setLoading] = useState(true);
-  const [spendingData, setSpendingData] = useState<Array<{ month: string; spending: number; jobs: number }>>([]);
-  const [categoryData, setCategoryData] = useState<Array<{ category: string; spending: number }>>([]);
-  const [metrics, setMetrics] = useState<MetricIcon[]>([]);
 
-  const userDisplayName = user?.first_name && user?.last_name
-    ? `${user.first_name} ${user.last_name}`.trim()
-    : user?.email || '';
+  // Mint Editorial theme detection — swap the entire content area
+  // for the canonical-classes port (.t-h1 / .kpi / .chip / .card)
+  // when the cookie is on. Legacy Tailwind layout below stays for
+  // default-theme users.
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
+  const [spendingData, setSpendingData] = useState<
+    Array<{ month: string; spending: number; jobs: number }>
+  >([]);
+  const [categoryData, setCategoryData] = useState<
+    Array<{ category: string; spending: number }>
+  >([]);
+  const [metrics, setMetrics] = useState<MetricIcon[]>([]);
 
   useEffect(() => {
     async function fetchAnalytics() {
@@ -50,56 +81,83 @@ export default function AnalyticsPage2025() {
 
       setLoading(true);
       try {
-        // Fetch user's jobs with payments
-        const { data: jobs, error } = await supabase
-          .from('jobs')
-          .select(`
-            id,
-            title,
-            category,
-            status,
-            created_at,
-            payments (
-              amount,
-              created_at
-            )
-          `)
-          .eq('homeowner_id', user.id)
-          .is('deleted_at', null)
-          .order('created_at', { ascending: false });
+        // Bridge: legacy `payments` table has 0 rows in production —
+        // all real money flows live in `escrow_transactions`. Same
+        // fix /financials shipped in W4. Two parallel queries:
+        //   1. jobs[]  → category + status lookup (no embed)
+        //   2. escrow[] → amount + status (where payer_id = me)
+        // Joined in JS on job_id so we can bucket per-category and
+        // per-month from a real-data source.
+        const [jobsResult, escrowResult] = await Promise.all([
+          supabase
+            .from('jobs')
+            .select('id, title, category, status, created_at')
+            .eq('homeowner_id', user.id)
+            .is('deleted_at', null)
+            .order('created_at', { ascending: false }),
+          supabase
+            .from('escrow_transactions')
+            .select('amount, status, job_id, released_at, created_at')
+            .eq('payer_id', user.id),
+        ]);
 
-        if (error) throw error;
+        if (jobsResult.error) throw jobsResult.error;
+        if (escrowResult.error) throw escrowResult.error;
+
+        const jobs = (jobsResult.data || []) as Job[];
+        const escrowRows = (escrowResult.data || []) as EscrowRow[];
+
+        // Index jobs by id so the escrow loop can find category in O(1).
+        const jobsById = new Map<string, Job>();
+        jobs.forEach((j) => jobsById.set(j.id, j));
 
         // Calculate spending by month
-        const monthlySpending = new Map<string, { spending: number; jobs: number }>();
+        const monthlySpending = new Map<
+          string,
+          { spending: number; jobs: number }
+        >();
         const categorySpending = new Map<string, number>();
         let totalSpent = 0;
         let completedJobs = 0;
         let activeJobs = 0;
 
-        (jobs as Job[] | null)?.forEach((job) => {
-          const date = new Date(job.created_at);
-          const monthKey = date.toLocaleDateString('en-GB', { month: 'short' });
-
+        jobs.forEach((job) => {
           if (job.status === 'completed') completedJobs++;
-          if (job.status === 'in_progress' || job.status === 'posted') activeJobs++;
+          if (job.status === 'in_progress' || job.status === 'posted')
+            activeJobs++;
+        });
 
-          job.payments?.forEach((payment) => {
-            const amount = payment.amount || 0;
+        escrowRows
+          .filter((e) => SPENT_STATUSES.has(e.status))
+          .forEach((escrow) => {
+            const amount = Number(escrow.amount) || 0;
             totalSpent += amount;
 
-            // Update monthly data
-            const existing = monthlySpending.get(monthKey) || { spending: 0, jobs: 0 };
-            monthlySpending.set(monthKey, {
-              spending: existing.spending + amount,
-              jobs: existing.jobs + 1,
+            // Prefer release date when the funds actually moved;
+            // otherwise the escrow creation date.
+            const dateStr = escrow.released_at || escrow.created_at;
+            const date = new Date(dateStr);
+            const monthKey = date.toLocaleDateString('en-GB', {
+              month: 'short',
             });
 
-            // Update category data
-            const category = job.category || 'Other';
-            categorySpending.set(category, (categorySpending.get(category) || 0) + amount);
+            const existingMonth = monthlySpending.get(monthKey) || {
+              spending: 0,
+              jobs: 0,
+            };
+            monthlySpending.set(monthKey, {
+              spending: existingMonth.spending + amount,
+              jobs: existingMonth.jobs + 1,
+            });
+
+            // Resolve category from the linked job.
+            const job = escrow.job_id ? jobsById.get(escrow.job_id) : null;
+            const category = job?.category || 'Other';
+            categorySpending.set(
+              category,
+              (categorySpending.get(category) || 0) + amount
+            );
           });
-        });
 
         // Convert maps to arrays
         const spendingArray = Array.from(monthlySpending.entries())
@@ -125,7 +183,9 @@ export default function AnalyticsPage2025() {
           .is('deleted_at', null)
           .not('contractor_id', 'is', null);
 
-        const contractorCount = new Set(uniqueContractors?.map(j => j.contractor_id)).size;
+        const contractorCount = new Set(
+          uniqueContractors?.map((j) => j.contractor_id)
+        ).size;
 
         // Get properties count
         const { count: propertiesCount } = await supabase
@@ -133,13 +193,55 @@ export default function AnalyticsPage2025() {
           .select('*', { count: 'exact', head: true })
           .eq('homeowner_id', user.id);
 
+        // Period-over-period deltas are dropped until a real
+        // comparison query lands. Previous values (`+18%`, `+12%`,
+        // `+5%`, `+contractorCount`) were hardcoded placeholders that
+        // lied to the homeowner — violates the Phase-2 "no fake data"
+        // rule. Empty `change` + neutral changeType renders cleanly on
+        // both legacy and Mint Editorial views.
         setMetrics([
-          { label: 'Total Spent', value: `£${totalSpent.toLocaleString()}`, change: '+18%', changeType: 'positive', icon: <PoundSterling className="w-5 h-5" /> },
-          { label: 'Jobs Completed', value: completedJobs.toString(), change: '+12%', changeType: 'positive', icon: <CheckCircle className="w-5 h-5" /> },
-          { label: 'Active Projects', value: activeJobs.toString(), change: '0%', changeType: 'neutral', icon: <Hammer className="w-5 h-5" /> },
-          { label: 'Avg Job Cost', value: `£${Math.round(avgJobCost).toLocaleString()}`, change: '+5%', changeType: 'positive', icon: <BarChart3 className="w-5 h-5" /> },
-          { label: 'Contractors Hired', value: contractorCount.toString(), change: `+${contractorCount}`, changeType: 'positive', icon: <HardHat className="w-5 h-5" /> },
-          { label: 'Properties', value: (propertiesCount || 0).toString(), change: '0', changeType: 'neutral', icon: <Home className="w-5 h-5" /> },
+          {
+            label: 'Total Spent',
+            value: `£${totalSpent.toLocaleString()}`,
+            change: '',
+            changeType: 'neutral',
+            icon: <PoundSterling className='w-5 h-5' />,
+          },
+          {
+            label: 'Jobs Completed',
+            value: completedJobs.toString(),
+            change: '',
+            changeType: 'neutral',
+            icon: <CheckCircle className='w-5 h-5' />,
+          },
+          {
+            label: 'Active Projects',
+            value: activeJobs.toString(),
+            change: '',
+            changeType: 'neutral',
+            icon: <Hammer className='w-5 h-5' />,
+          },
+          {
+            label: 'Avg Job Cost',
+            value: `£${Math.round(avgJobCost).toLocaleString()}`,
+            change: '',
+            changeType: 'neutral',
+            icon: <BarChart3 className='w-5 h-5' />,
+          },
+          {
+            label: 'Contractors Hired',
+            value: contractorCount.toString(),
+            change: '',
+            changeType: 'neutral',
+            icon: <HardHat className='w-5 h-5' />,
+          },
+          {
+            label: 'Properties',
+            value: (propertiesCount || 0).toString(),
+            change: '',
+            changeType: 'neutral',
+            icon: <Home className='w-5 h-5' />,
+          },
         ]);
       } catch (error) {
         logger.error('Error fetching analytics:', error);
@@ -151,199 +253,29 @@ export default function AnalyticsPage2025() {
     fetchAnalytics();
   }, [user?.id, selectedPeriod]);
 
+  if (isMintEditorial) {
+    return (
+      <HomeownerPageWrapper>
+        <MintEditorialAnalytics
+          loading={loading}
+          selectedPeriod={selectedPeriod}
+          onPeriodChange={setSelectedPeriod}
+          metrics={metrics}
+          spendingData={spendingData}
+          categoryData={categoryData}
+        />
+      </HomeownerPageWrapper>
+    );
+  }
+
   return (
-    <HomeownerPageWrapper>
-      {/* Hero Header */}
-      <MotionDiv
-        className="bg-white border border-gray-200 rounded-xl p-4 sm:p-6 md:p-8 mb-6"
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 sm:gap-8">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 sm:w-16 sm:h-16 bg-teal-50 rounded-2xl flex items-center justify-center border border-teal-200">
-              <svg className="w-7 h-7 sm:w-9 sm:h-9 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-            </div>
-            <div>
-              <h1 className="text-2xl sm:text-4xl font-bold mb-1 text-gray-900">Analytics & Insights</h1>
-              <p className="text-gray-600 text-sm sm:text-lg">Track your spending and project trends</p>
-            </div>
-          </div>
-
-          {/* Period Selector */}
-          <div className="flex items-center gap-1 sm:gap-2 bg-gray-100 rounded-xl p-1 border border-gray-200 self-start overflow-x-auto">
-            {[
-              { label: 'Week', value: 'week' as const },
-              { label: 'Month', value: 'month' as const },
-              { label: 'Quarter', value: 'quarter' as const },
-              { label: 'Year', value: 'year' as const },
-            ].map((period) => (
-              <button
-                key={period.value}
-                onClick={() => setSelectedPeriod(period.value)}
-                className={`px-3 sm:px-4 py-2 rounded-lg text-sm sm:text-base font-medium transition-all whitespace-nowrap ${
-                  selectedPeriod === period.value
-                    ? 'bg-white text-teal-600 shadow-sm'
-                    : 'text-gray-600 hover:bg-gray-50'
-                }`}
-              >
-                {period.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </MotionDiv>
-
-      {/* Content */}
-      <div className="w-full space-y-6">
-          {loading ? (
-            <div className="flex items-center justify-center py-20">
-              <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-teal-600"></div>
-            </div>
-          ) : (
-            <>
-              {/* Metrics Grid */}
-              <MotionDiv
-                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6"
-                variants={staggerContainer}
-                initial="initial"
-                animate="animate"
-              >
-                {metrics.map((metric) => (
-              <MotionDiv
-                key={metric.label}
-                className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6"
-                variants={staggerItem}
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="w-12 h-12 bg-teal-100 rounded-xl flex items-center justify-center text-teal-600">
-                    {metric.icon}
-                  </div>
-                  <div className={`px-3 py-1 rounded-lg text-sm font-semibold ${
-                    metric.changeType === 'positive'
-                      ? 'bg-emerald-100 text-emerald-700'
-                      : metric.changeType === 'negative'
-                      ? 'bg-rose-100 text-rose-700'
-                      : 'bg-gray-100 text-gray-700'
-                  }`}>
-                    {metric.change}
-                  </div>
-                </div>
-                <div className="text-3xl font-bold text-gray-900 mb-1">{metric.value}</div>
-                <div className="text-sm text-gray-600">{metric.label}</div>
-              </MotionDiv>
-            ))}
-          </MotionDiv>
-
-          {/* Charts Row */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            {/* Spending Over Time */}
-            <MotionDiv
-              className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6"
-              variants={fadeIn}
-              initial="initial"
-              animate="animate"
-            >
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Spending Over Time</h2>
-              <AreaChart
-                data={spendingData}
-                index="month"
-                categories={['spending']}
-                colors={['teal']}
-                valueFormatter={(value) => `£${value.toLocaleString()}`}
-                showAnimation={true}
-                showLegend={false}
-                showGridLines={false}
-                className="h-64 sm:h-80"
-              />
-            </MotionDiv>
-
-            {/* Spending by Category */}
-            <MotionDiv
-              className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6"
-              variants={fadeIn}
-              initial="initial"
-              animate="animate"
-            >
-              <h2 className="text-xl font-bold text-gray-900 mb-4">Spending by Category</h2>
-              <DonutChart
-                data={categoryData}
-                category="spending"
-                index="category"
-                colors={['teal', 'emerald', 'cyan', 'sky', 'blue']}
-                valueFormatter={(value) => `£${value.toLocaleString()}`}
-                showAnimation={true}
-                className="h-64 sm:h-80"
-              />
-            </MotionDiv>
-          </div>
-
-          {/* Job Completion Trend */}
-          <MotionDiv
-            className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 mb-6"
-            variants={fadeIn}
-            initial="initial"
-            animate="animate"
-          >
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Job Completion Trend</h2>
-            <BarChart
-              data={spendingData}
-              index="month"
-              categories={['jobs']}
-              colors={['emerald']}
-              valueFormatter={(value) => `${value} jobs`}
-              showAnimation={true}
-              showLegend={false}
-              className="h-80"
-            />
-          </MotionDiv>
-
-          {/* Category Details Table */}
-          <MotionDiv
-            className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6"
-            variants={fadeIn}
-            initial="initial"
-            animate="animate"
-          >
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Category Breakdown</h2>
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-4 font-semibold text-gray-700">Category</th>
-                    <th className="text-right py-3 px-4 font-semibold text-gray-700">Total Spent</th>
-                    <th className="text-right py-3 px-4 font-semibold text-gray-700">% of Total</th>
-                    <th className="text-right py-3 px-4 font-semibold text-gray-700">Jobs</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {categoryData
-                    .sort((a, b) => b.spending - a.spending)
-                    .map((category, index) => {
-                      const totalSpending = categoryData.reduce((sum, c) => sum + c.spending, 0);
-                      const percentage = ((category.spending / totalSpending) * 100).toFixed(1);
-                      return (
-                        <tr key={category.category} className="border-b border-gray-100 hover:bg-gray-50">
-                          <td className="py-3 px-4 font-medium text-gray-900">{category.category}</td>
-                          <td className="py-3 px-4 text-right font-semibold text-emerald-600">
-                            £{category.spending.toLocaleString()}
-                          </td>
-                          <td className="py-3 px-4 text-right text-gray-700">{percentage}%</td>
-                          <td className="py-3 px-4 text-right text-gray-700">
-                            —
-                          </td>
-                        </tr>
-                      );
-                    })}
-                </tbody>
-              </table>
-            </div>
-          </MotionDiv>
-            </>
-          )}
-      </div>
-    </HomeownerPageWrapper>
+    <LegacyAnalyticsView
+      loading={loading}
+      selectedPeriod={selectedPeriod}
+      onPeriodChange={setSelectedPeriod}
+      metrics={metrics}
+      spendingData={spendingData}
+      categoryData={categoryData}
+    />
   );
 }

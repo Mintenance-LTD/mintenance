@@ -5,12 +5,14 @@
  * parent file under the 500-line pre-commit gate after Phase 1.2
  * (email-verification-pending) wiring added the onSignUpSuccess
  * callback. Pure presentational — no state, no navigation.
+ *
+ * Direction A · Mint Editorial — token-styled.
  */
 
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 // Phase 2 wizard — labels match the three steps the user actually
 // clicks through: Identity (email + password) → Name → Contact (phone).
@@ -41,9 +43,7 @@ export const FormProgress: React.FC<FormProgressProps> = ({ currentStep }) => {
                     styles.line,
                     {
                       backgroundColor:
-                        isCompleted || isActive
-                          ? theme.colors.primary
-                          : theme.colors.border,
+                        isCompleted || isActive ? me.brand : me.line,
                     },
                   ]}
                 />
@@ -53,23 +53,17 @@ export const FormProgress: React.FC<FormProgressProps> = ({ currentStep }) => {
                   style={[
                     styles.circle,
                     isCompleted || isActive
-                      ? { backgroundColor: theme.colors.primary }
-                      : { backgroundColor: theme.colors.backgroundSecondary },
+                      ? { backgroundColor: me.brand }
+                      : { backgroundColor: me.bg3 },
                   ]}
                 >
                   {isCompleted ? (
-                    <Ionicons
-                      name='checkmark'
-                      size={16}
-                      color={theme.colors.textInverse}
-                    />
+                    <Ionicons name='checkmark' size={16} color={me.onBrand} />
                   ) : (
                     <Text
                       style={[
                         styles.circleText,
-                        isActive
-                          ? { color: theme.colors.textInverse }
-                          : { color: theme.colors.textTertiary },
+                        isActive ? { color: me.onBrand } : { color: me.ink3 },
                       ]}
                     >
                       {step.number}
@@ -80,10 +74,10 @@ export const FormProgress: React.FC<FormProgressProps> = ({ currentStep }) => {
                   style={[
                     styles.label,
                     isActive
-                      ? { color: theme.colors.primary, fontWeight: '600' }
+                      ? { color: me.brand, fontWeight: '600' }
                       : isFuture
-                        ? { color: theme.colors.textTertiary }
-                        : { color: theme.colors.textSecondary },
+                        ? { color: me.ink3 }
+                        : { color: me.ink2 },
                   ]}
                 >
                   {step.label}

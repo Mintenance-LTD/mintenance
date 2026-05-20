@@ -13,11 +13,10 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 interface LearningCard {
   id: string;
@@ -76,11 +75,7 @@ export const LearningCardsScreen: React.FC = () => {
             }}
           >
             <View style={styles.thumb}>
-              <Ionicons
-                name='play-circle-outline'
-                size={56}
-                color={theme.colors.primary}
-              />
+              <Ionicons name='play-circle-outline' size={56} color={me.brand} />
             </View>
             <View style={styles.body}>
               <Text style={styles.meta}>
@@ -103,7 +98,7 @@ export const LearningCardsScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   header: {
     paddingHorizontal: 20,
@@ -113,34 +108,26 @@ const styles = StyleSheet.create({
   h1: {
     fontSize: 24,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   grid: {
     paddingHorizontal: 16,
     gap: 12,
   },
   card: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     overflow: 'hidden',
-    ...Platform.select({
-      ios: {
-        shadowColor: theme.colors.textPrimary,
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.04,
-        shadowRadius: 4,
-      },
-      android: { elevation: 1 },
-    }),
+    ...me.shadow.card,
   },
   thumb: {
     aspectRatio: 16 / 9,
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: me.brandSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -149,7 +136,7 @@ const styles = StyleSheet.create({
   },
   meta: {
     fontSize: 11,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     textTransform: 'uppercase',
     letterSpacing: 1,
     marginBottom: 4,
@@ -157,12 +144,12 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 4,
   },
   cardDesc: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     lineHeight: 18,
   },
   comingSoon: {
@@ -170,7 +157,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 1,
-    color: theme.colors.accent,
+    color: me.accent,
     textTransform: 'uppercase',
   },
 });

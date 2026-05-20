@@ -20,7 +20,7 @@ import { PhotoSection } from './EditProfileSections/PhotoSection';
 import { PersonalInfoSection } from './EditProfileSections/PersonalInfoSection';
 import { LocationSection } from './EditProfileSections/LocationSection';
 import { AccountSection } from './EditProfileSections/AccountSection';
-import { theme } from '../theme';
+import { me } from '../design-system/mint-editorial';
 import { logger } from '../utils/logger';
 import { useUnsavedChanges } from '../hooks/useUnsavedChanges';
 
@@ -355,10 +355,7 @@ const EditProfileScreen: React.FC = () => {
   };
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar
-        barStyle='dark-content'
-        backgroundColor={theme.colors.backgroundSecondary}
-      />
+      <StatusBar barStyle='dark-content' backgroundColor={me.bg2} />
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
@@ -366,11 +363,7 @@ const EditProfileScreen: React.FC = () => {
           accessibilityRole='button'
           accessibilityLabel='Go back'
         >
-          <Ionicons
-            name='arrow-back'
-            size={24}
-            color={theme.colors.textPrimary}
-          />
+          <Ionicons name='arrow-back' size={24} color={me.ink} />
         </TouchableOpacity>
         <Text style={styles.headerTitle} accessibilityRole='header'>
           Edit Profile
@@ -431,10 +424,10 @@ const EditProfileScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   header: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     paddingTop: 16,
     paddingBottom: 12,
     paddingHorizontal: 16,
@@ -442,20 +435,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     flex: 1,
     textAlign: 'center',
     marginHorizontal: 16,
@@ -463,13 +456,13 @@ const styles = StyleSheet.create({
   saveButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
     borderRadius: 20,
   },
   saveButtonText: {
     fontSize: 14,
     fontWeight: '700',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
   },
   content: {
     flex: 1,

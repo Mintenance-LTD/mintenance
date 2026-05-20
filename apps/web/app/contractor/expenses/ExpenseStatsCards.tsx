@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import type { Variants } from 'framer-motion';
 import {
   PoundSterling,
@@ -34,6 +35,71 @@ export function ExpenseStatsCards({
   staggerContainer,
   staggerItem,
 }: ExpenseStatsCardsProps) {
+  // Hydration-safe theme detection — switch to canonical .kpi tiles
+  // when Mint Editorial is active.
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
+
+  if (isMintEditorial) {
+    return (
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gap: 12,
+          marginBottom: 24,
+        }}
+      >
+        <div className='kpi'>
+          <div className='label'>Total expenses</div>
+          <div className='num'>£{fmt(stats.total)}</div>
+          {stats.change !== 0 ? (
+            <div
+              className={stats.change > 0 ? 'delta-down' : 'delta-up'}
+              style={{
+                fontSize: 12,
+                fontWeight: 600,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+                marginTop: 4,
+              }}
+            >
+              {stats.change > 0 ? (
+                <TrendingUp size={12} strokeWidth={1.75} />
+              ) : (
+                <TrendingDown size={12} strokeWidth={1.75} />
+              )}
+              {Math.abs(stats.change).toFixed(1)}% vs last month
+            </div>
+          ) : (
+            <div className='sub'>This month</div>
+          )}
+        </div>
+        <div className='kpi'>
+          <div className='label'>Billable expenses</div>
+          <div className='num'>£{fmt(stats.billable)}</div>
+          <div className='sub'>Recoverable from clients</div>
+        </div>
+        <div className='kpi'>
+          <div className='label'>Non-billable</div>
+          <div className='num'>£{fmt(stats.nonBillable)}</div>
+          <div className='sub'>Overheads + tools</div>
+        </div>
+        <div className='kpi'>
+          <div className='label'>Total items</div>
+          <div className='num'>{totalItems}</div>
+          <div className='sub'>Logged this month</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <MotionDiv
       variants={staggerContainer}

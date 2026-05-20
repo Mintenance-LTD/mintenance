@@ -7,7 +7,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 import {
   SortMode,
   FilterStatus,
@@ -57,11 +57,7 @@ export const JobsFilterTabs: React.FC<JobsFilterTabsProps> = ({
                   <Ionicons
                     name={tab.icon}
                     size={13}
-                    color={
-                      active
-                        ? theme.colors.textInverse
-                        : theme.colors.textSecondary
-                    }
+                    color={active ? me.onBrand : me.ink2}
                     style={{ marginRight: 3 }}
                   />
                   <Text
@@ -112,11 +108,7 @@ export const JobsFilterTabs: React.FC<JobsFilterTabsProps> = ({
                   <Ionicons
                     name={tab.icon}
                     size={13}
-                    color={
-                      active
-                        ? theme.colors.textInverse
-                        : theme.colors.textSecondary
-                    }
+                    color={active ? me.onBrand : me.ink2}
                     style={{ marginRight: 3 }}
                   />
                   <Text
@@ -152,11 +144,7 @@ export const JobsFilterTabs: React.FC<JobsFilterTabsProps> = ({
                 <Ionicons
                   name={tab.icon}
                   size={13}
-                  color={
-                    active
-                      ? theme.colors.textInverse
-                      : theme.colors.textSecondary
-                  }
+                  color={active ? me.onBrand : me.ink2}
                   style={{ marginRight: 3 }}
                 />
                 <Text
@@ -195,11 +183,11 @@ export const JobsFilterTabs: React.FC<JobsFilterTabsProps> = ({
 
 const styles = StyleSheet.create({
   tabContainer: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     paddingTop: 8,
     paddingBottom: 6,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   scrollRow: {
     flexDirection: 'row',
@@ -212,22 +200,22 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 16,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   sortTabActive: {
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
   },
   sortTabText: {
     fontSize: 13,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   sortTabTextActive: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
   },
   countBadge: {
     marginLeft: 5,
-    backgroundColor: theme.colors.border,
+    backgroundColor: me.line,
     borderRadius: 8,
     minWidth: 18,
     height: 18,
@@ -241,9 +229,9 @@ const styles = StyleSheet.create({
   countBadgeText: {
     fontSize: 11,
     fontWeight: '700',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   countBadgeTextActive: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
   },
 });

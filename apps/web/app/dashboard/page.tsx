@@ -17,6 +17,7 @@ import {
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { fetchNotificationFeed } from '@/lib/notifications/feed';
 import { resignJobStorageUrls } from '@/lib/api/job-storage';
+import { buildNeedsYouFeed } from './lib/needs-you-aggregator';
 
 export const metadata: Metadata = {
   title: 'Dashboard | Mintenance',
@@ -76,24 +77,76 @@ export default async function DashboardPage2025() {
       user.email
     : user.email;
 
-  // Calculate total spent from actual payments (escrow transactions), not job
-  // budgets. The previous fallback of "kpiData.jobsData.totalRevenue" when
-  // payments were empty lied to the user: the homeowner Financials page
-  // reads "Total Spent £0.00" for the same data, so the two numbers
-  // disagreed. Now we only count payments in a paid/held/released state.
-  // For a pure budget-sum view the user can look at /financials "Total
-  // Budget".
-  const totalSpent = payments
-    .filter(
-      (p: { status?: string }) =>
-        p.status === 'released' ||
-        p.status === 'held' ||
-        p.status === 'completed'
-    )
+  // Calculate total spent from actual payments (escrow transactions),
+  // not job budgets. The previous filter checked for status==='held' but
+  // the canonical payments-table enum uses 'in_escrow' — so even when
+  // money was actually held the KPI read £0. Fixed to use the real
+  // schema enum (`003_payment_system.sql`): in_escrow / released /
+  // completed cover "money the homeowner has paid in".
+  //
+  // For a pure budget-sum view the user can look at /financials
+  // "Total Budget".
+  const HELD_STATUSES = ['in_escrow'];
+  const SPENT_STATUSES = ['in_escrow', 'released', 'completed'];
+
+  let totalSpent = payments
+    .filter((p: { status?: string }) => SPENT_STATUSES.includes(p.status || ''))
     .reduce(
       (sum: number, p: { amount?: number }) => sum + (Number(p.amount) || 0),
       0
     );
+
+  // Build a per-job "currently held in escrow" map so the active-jobs
+  // cards can show a real escrow badge instead of using job.budget as
+  // a proxy (which lied when in_progress jobs had no funded payment).
+  const escrowByJob = new Map<string, number>();
+  let totalHeldInEscrow = 0;
+  for (const p of payments) {
+    const status = (p as { status?: string }).status;
+    const jobId = (p as { job_id?: string }).job_id;
+    const amount = Number((p as { amount?: number }).amount) || 0;
+    if (!jobId || !HELD_STATUSES.includes(status || '') || amount <= 0)
+      continue;
+    escrowByJob.set(jobId, (escrowByJob.get(jobId) || 0) + amount);
+    totalHeldInEscrow += amount;
+  }
+
+  // Bridge to `escrow_transactions` — same drift the /financials and
+  // /payments pages hit on 2026-04-21: the legacy `payments` table is
+  // empty in production, all real money flows live in
+  // `escrow_transactions` keyed by `payer_id`. Without this bridge the
+  // dashboard's "Held in escrow" KPI + the PaymentProtected card both
+  // render £0 and the card silently hides (it gates on `escrow > 0`).
+  const { data: escrowRows } = await serverSupabase
+    .from('escrow_transactions')
+    .select('id, amount, status, job_id')
+    .eq('payer_id', user.id);
+
+  // escrow_transactions status enum: pending / held / release_pending /
+  // released / completed / refunded. Anything once-held counts as
+  // "spent"; only `held` and `release_pending` are still actively
+  // protected ("Payment protected" card surface).
+  const ESCROW_SPENT = new Set([
+    'held',
+    'release_pending',
+    'released',
+    'completed',
+  ]);
+  const ESCROW_HELD = new Set(['held', 'release_pending']);
+
+  for (const row of escrowRows || []) {
+    const status = (row as { status?: string }).status || '';
+    const amount = Number((row as { amount?: number }).amount) || 0;
+    const jobId = (row as { job_id?: string }).job_id;
+    if (amount <= 0) continue;
+    if (ESCROW_SPENT.has(status)) totalSpent += amount;
+    if (ESCROW_HELD.has(status)) {
+      totalHeldInEscrow += amount;
+      if (jobId) {
+        escrowByJob.set(jobId, (escrowByJob.get(jobId) || 0) + amount);
+      }
+    }
+  }
 
   // PERFORMANCE FIX: Batch queries instead of N+1
   // Collect all job and contractor IDs
@@ -192,6 +245,7 @@ export default async function DashboardPage2025() {
           ? job.scheduled_start_date
           : undefined,
       photoUrl,
+      escrowAmount: escrowByJob.get(job.id) ?? 0,
     };
   });
 
@@ -296,6 +350,19 @@ export default async function DashboardPage2025() {
     .eq('homeowner_id', user.id)
     .eq('action', 'like');
 
+  // Aggregator extracted to ./lib/needs-you-aggregator.ts to keep
+  // page.tsx under the 500-line MDC cap. Same heuristics as before:
+  // pending bids, posted jobs with stale bid windows, unverified
+  // properties.
+  const needsYou = buildNeedsYouFeed({
+    pendingBids,
+    allBids,
+    postedJobs,
+    properties: properties as unknown as Parameters<
+      typeof buildNeedsYouFeed
+    >[0]['properties'],
+  });
+
   // Prepare dashboard data for professional component
   const professionalDashboardData = {
     homeowner: {
@@ -304,6 +371,11 @@ export default async function DashboardPage2025() {
       avatar: homeownerProfile?.profile_image_url,
       location: '',
       email: user.email || '',
+      role: user.role,
+      postcode:
+        typeof homeownerProfile?.postcode === 'string'
+          ? homeownerProfile.postcode
+          : undefined,
     },
     properties: properties.map((p) => ({
       id: String(p.id),
@@ -316,6 +388,7 @@ export default async function DashboardPage2025() {
     })),
     metrics: {
       totalSpent,
+      heldInEscrow: totalHeldInEscrow,
       activeJobs: activeJobs.length,
       completedJobs: completedJobs.length,
       savedContractors: savedContractorsCount ?? 0,
@@ -325,6 +398,7 @@ export default async function DashboardPage2025() {
     recentActivity,
     upcomingAppointments,
     recommendations,
+    needsYou,
   };
 
   return (

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -29,6 +29,31 @@ import { InvoiceCard } from './InvoiceManagement/InvoiceCard';
 import { InvoiceCardSkeleton } from './InvoiceManagement/InvoiceCardSkeleton';
 import { EmptyState } from './InvoiceManagement/EmptyState';
 
+// Editorial-only header — renders only when the Mint Editorial cookie
+// theme is active. Stays out of the legacy layout entirely so the
+// pre-Mint design is unaffected.
+function InvoicesHeader() {
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
+
+  if (!isMintEditorial) return null;
+
+  return (
+    <div className='col' style={{ gap: 4, marginBottom: 20 }}>
+      <h1 className='t-h1'>Invoices</h1>
+      <p className='t-body'>
+        Send invoices, track payments, and chase overdue balances. Mobile-app
+        invoice creation syncs here automatically.
+      </p>
+    </div>
+  );
+}
+
 // Main Component
 export function InvoiceManagementClient({
   invoices: initialInvoices,
@@ -40,6 +65,18 @@ export function InvoiceManagementClient({
     useState<(typeof FILTERS)[number]['id']>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  // 2026-05-13 polish pass: hydration-safe theme detection so the toolbar
+  // (search field + Create button) + filter-tab row swap to the canonical
+  // .card / .field / .chip pattern under Mint Editorial. Legacy users
+  // keep the bg-white/rounded-xl shells.
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
 
   const updateInvoiceStatus = useCallback(
     async (invoiceId: string, status: string) => {
@@ -229,6 +266,7 @@ export function InvoiceManagementClient({
 
   return (
     <div className='min-h-screen'>
+      <InvoicesHeader />
       {/* Stats Dashboard */}
       <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8'>
         <StatCard
@@ -254,7 +292,14 @@ export function InvoiceManagementClient({
       </div>
 
       {/* Toolbar */}
-      <div className='bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6'>
+      <div
+        className={
+          isMintEditorial
+            ? 'card card-pad'
+            : 'bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-6'
+        }
+        style={isMintEditorial ? { marginBottom: 20 } : undefined}
+      >
         <div className='flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between'>
           {/* Search */}
           <div className='flex-1 w-full lg:max-w-md'>
@@ -265,7 +310,12 @@ export function InvoiceManagementClient({
                 placeholder='Search by invoice #, client name, or email...'
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className='w-full pl-12 pr-4 py-3 rounded-lg border border-gray-300 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition-all outline-none text-sm'
+                className={
+                  isMintEditorial
+                    ? 'field'
+                    : 'w-full pl-12 pr-4 py-3 rounded-lg border border-gray-300 focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 transition-all outline-none text-sm'
+                }
+                style={isMintEditorial ? { paddingLeft: 40 } : undefined}
               />
             </div>
           </div>
@@ -282,7 +332,11 @@ export function InvoiceManagementClient({
               aria-label='Create invoice (mobile-only for now)'
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              className='px-6 py-3 bg-teal-600 text-white rounded-lg font-medium shadow-lg hover:shadow-xl hover:bg-teal-700 transition-all flex items-center gap-2 whitespace-nowrap'
+              className={
+                isMintEditorial
+                  ? 'btn-primary'
+                  : 'px-6 py-3 bg-teal-600 text-white rounded-lg font-medium shadow-lg hover:shadow-xl hover:bg-teal-700 transition-all flex items-center gap-2 whitespace-nowrap'
+              }
             >
               <Plus className='w-5 h-5' />
               Create Invoice
@@ -299,6 +353,33 @@ export function InvoiceManagementClient({
             filter.id === 'all'
               ? invoices.length
               : invoices.filter((inv) => inv.status === filter.id).length;
+
+          if (isMintEditorial) {
+            return (
+              <button
+                key={filter.id}
+                onClick={() => setSelectedFilter(filter.id)}
+                className={isActive ? 'chip on' : 'chip'}
+              >
+                {filter.label}
+                <span
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 600,
+                    padding: '1px 6px',
+                    borderRadius: 9999,
+                    background: isActive
+                      ? 'color-mix(in srgb, var(--me-on-brand) 22%, transparent)'
+                      : 'var(--me-bg-2)',
+                    color: isActive ? 'var(--me-on-brand)' : 'var(--me-ink-3)',
+                    marginLeft: 2,
+                  }}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          }
 
           return (
             <motion.button
@@ -365,25 +446,65 @@ export function InvoiceManagementClient({
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          className='mt-8 bg-white rounded-xl border border-gray-200 p-6'
+          className={
+            isMintEditorial
+              ? 'card card-pad'
+              : 'mt-8 bg-white rounded-xl border border-gray-200 p-6'
+          }
+          style={isMintEditorial ? { marginTop: 24 } : undefined}
         >
           <div className='flex flex-wrap items-center justify-between gap-4'>
             <div className='flex items-center gap-6'>
               <div>
-                <p className='text-sm font-medium text-gray-600 mb-1'>
+                <p
+                  className={
+                    isMintEditorial
+                      ? 't-meta'
+                      : 'text-sm font-medium text-gray-600 mb-1'
+                  }
+                >
                   Showing
                 </p>
-                <p className='text-lg font-semibold text-gray-900'>
+                <p
+                  className={
+                    isMintEditorial
+                      ? 't-h3'
+                      : 'text-lg font-semibold text-gray-900'
+                  }
+                >
                   {filteredInvoices.length}{' '}
                   {filteredInvoices.length === 1 ? 'invoice' : 'invoices'}
                 </p>
               </div>
-              <div className='h-12 w-px bg-gray-300' />
+              <div
+                className={isMintEditorial ? '' : 'h-12 w-px bg-gray-300'}
+                style={
+                  isMintEditorial
+                    ? {
+                        height: 36,
+                        width: 1,
+                        background: 'var(--me-line)',
+                      }
+                    : undefined
+                }
+              />
               <div>
-                <p className='text-sm font-medium text-gray-600 mb-1'>
+                <p
+                  className={
+                    isMintEditorial
+                      ? 't-meta'
+                      : 'text-sm font-medium text-gray-600 mb-1'
+                  }
+                >
                   Total Value
                 </p>
-                <p className='text-lg font-semibold text-gray-900'>
+                <p
+                  className={
+                    isMintEditorial
+                      ? 't-h3'
+                      : 'text-lg font-semibold text-gray-900'
+                  }
+                >
                   {formatCurrency(
                     filteredInvoices.reduce(
                       (sum, inv) => sum + inv.total_amount,
@@ -396,7 +517,11 @@ export function InvoiceManagementClient({
 
             <button
               onClick={handleExportCSV}
-              className='flex items-center gap-2 px-5 py-2.5 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 transition-all'
+              className={
+                isMintEditorial
+                  ? 'btn-secondary btn-sm'
+                  : 'flex items-center gap-2 px-5 py-2.5 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 transition-all'
+              }
             >
               <Download className='w-4 h-4' />
               Export to CSV

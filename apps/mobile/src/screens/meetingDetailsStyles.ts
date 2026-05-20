@@ -1,36 +1,36 @@
-import { StyleSheet, Platform } from 'react-native';
-import { theme } from '../theme';
+import { StyleSheet } from 'react-native';
+import { me } from '../design-system/mint-editorial';
 
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   loadingText: {
     marginTop: 12,
     fontSize: 15,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   header: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     paddingBottom: 12,
     paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -38,26 +38,18 @@ export const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   content: {
     flex: 1,
     padding: 16,
   },
   meetingInfo: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     padding: 20,
     marginBottom: 14,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   meetingHeader: {
     marginBottom: 14,
@@ -71,7 +63,7 @@ export const styles = StyleSheet.create({
   meetingTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   statusBadge: {
     paddingHorizontal: 10,
@@ -81,11 +73,11 @@ export const styles = StyleSheet.create({
   statusText: {
     fontSize: 11,
     fontWeight: '700',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
   },
   meetingTime: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   participantInfo: {
     marginBottom: 14,
@@ -98,26 +90,26 @@ export const styles = StyleSheet.create({
   participantName: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   participantRole: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   notesSection: {
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: theme.colors.border,
+    borderTopColor: me.line,
     paddingTop: 14,
   },
   notesTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 6,
   },
   notesText: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     lineHeight: 20,
   },
   mapSection: {
@@ -126,7 +118,7 @@ export const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 10,
@@ -141,7 +133,7 @@ export const styles = StyleSheet.create({
     flex: 1,
   },
   contractorMarker: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
     borderRadius: 15,
     width: 30,
     height: 30,
@@ -159,25 +151,17 @@ export const styles = StyleSheet.create({
     padding: 10,
     flexDirection: 'row',
     alignItems: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 6,
-      },
-      android: { elevation: 3 },
-    }),
+    ...me.shadow.card,
   },
   distanceText: {
     fontSize: 13,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginLeft: 4,
   },
   estimatedTime: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginLeft: 8,
   },
   actionsSection: {
@@ -189,41 +173,25 @@ export const styles = StyleSheet.create({
   },
   actionButton: {
     flex: 1,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     paddingVertical: 14,
     paddingHorizontal: 8,
     borderRadius: 16,
     alignItems: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   actionButtonText: {
     fontSize: 11,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginTop: 6,
   },
   travelTrackingSection: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     padding: 20,
     marginBottom: 14,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   travelButton: {
     flexDirection: 'row',
@@ -235,22 +203,22 @@ export const styles = StyleSheet.create({
     gap: 8,
   },
   startTravelButton: {
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
   },
   arrivedButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
     flex: 1,
     marginRight: 6,
   },
   stopTravelButton: {
-    backgroundColor: theme.colors.error,
+    backgroundColor: me.errFg,
     flex: 1,
     marginLeft: 6,
   },
   travelButtonText: {
     fontSize: 15,
     fontWeight: '700',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
   },
   trackingActiveContainer: {
     gap: 12,
@@ -259,7 +227,7 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     padding: 14,
     borderRadius: 12,
     gap: 8,
@@ -267,7 +235,7 @@ export const styles = StyleSheet.create({
   etaText: {
     fontSize: 15,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   trackingButtons: {
     flexDirection: 'row',
@@ -276,7 +244,7 @@ export const styles = StyleSheet.create({
   errorText: {
     marginTop: 8,
     fontSize: 13,
-    color: theme.colors.error,
+    color: me.errFg,
     textAlign: 'center',
   },
   updatesSection: {
@@ -284,25 +252,17 @@ export const styles = StyleSheet.create({
   },
   updateItem: {
     flexDirection: 'row',
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     padding: 14,
     borderRadius: 16,
     marginBottom: 8,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.04,
-        shadowRadius: 4,
-      },
-      android: { elevation: 1 },
-    }),
+    ...me.shadow.card,
   },
   updateIcon: {
     width: 32,
     height: 32,
     borderRadius: 10,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -312,11 +272,11 @@ export const styles = StyleSheet.create({
   },
   updateMessage: {
     fontSize: 14,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 4,
   },
   updateTime: {
     fontSize: 12,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
   },
 });

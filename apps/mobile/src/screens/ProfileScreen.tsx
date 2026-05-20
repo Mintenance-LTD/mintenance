@@ -24,7 +24,7 @@ import { ProfileCompleteness } from './profile/components/ProfileCompleteness';
 import { useProfileStats } from './profile/hooks/useProfileStats';
 import { useContractorVerification } from './profile/hooks/useContractorVerification';
 import { NotificationService } from '../services/NotificationService';
-import { theme } from '../theme';
+import { me } from '../design-system/mint-editorial';
 import { goToTab } from '../navigation/hooks';
 
 const ProfileScreen: React.FC = () => {
@@ -59,8 +59,8 @@ const ProfileScreen: React.FC = () => {
       {
         label: 'Notifications',
         icon: 'notifications-outline',
-        iconColor: theme.colors.accent,
-        iconBg: theme.colors.accentLight,
+        iconColor: me.accent,
+        iconBg: me.warnBg,
         badge: unreadNotifications,
         // `Notifications` lives in the Modal stack which is a sibling
         // of the tabs on RootStack. A plain `navigate('Notifications')`
@@ -87,8 +87,8 @@ const ProfileScreen: React.FC = () => {
       {
         label: 'Payment Methods',
         icon: 'card-outline',
-        iconColor: theme.colors.primary,
-        iconBg: theme.colors.primaryLight,
+        iconColor: me.brand,
+        iconBg: me.brandSoft,
         onPress: () => navigation.navigate('PaymentMethods'),
       },
       {
@@ -101,8 +101,8 @@ const ProfileScreen: React.FC = () => {
       {
         label: 'Reviews',
         icon: 'star-outline',
-        iconColor: theme.colors.accent,
-        iconBg: theme.colors.accentLight,
+        iconColor: me.accent,
+        iconBg: me.warnBg,
         onPress: () => navigation.navigate('Reviews'),
       },
     ],
@@ -121,8 +121,8 @@ const ProfileScreen: React.FC = () => {
       {
         label: 'Documents',
         icon: 'document-outline',
-        iconColor: theme.colors.textSecondary,
-        iconBg: theme.colors.backgroundSecondary,
+        iconColor: me.ink2,
+        iconBg: me.bg2,
         onPress: () => navigation.navigate('Documents'),
       },
       {
@@ -135,8 +135,8 @@ const ProfileScreen: React.FC = () => {
       {
         label: 'Financials',
         icon: 'wallet-outline',
-        iconColor: theme.colors.primary,
-        iconBg: theme.colors.primaryLight,
+        iconColor: me.brand,
+        iconBg: me.brandSoft,
         onPress: () => navigation.navigate('Financials'),
       },
       {
@@ -155,8 +155,8 @@ const ProfileScreen: React.FC = () => {
       {
         label: 'Finance Dashboard',
         icon: 'analytics-outline',
-        iconColor: theme.colors.primary,
-        iconBg: theme.colors.primaryLight,
+        iconColor: me.brand,
+        iconBg: me.brandSoft,
         onPress: () => navigation.navigate('FinanceDashboard'),
       },
       {
@@ -183,15 +183,15 @@ const ProfileScreen: React.FC = () => {
       {
         label: 'Payouts',
         icon: 'cash-outline',
-        iconColor: theme.colors.primary,
-        iconBg: theme.colors.primaryLight,
+        iconColor: me.brand,
+        iconBg: me.brandSoft,
         onPress: () => navigation.navigate('Payouts'),
       },
       {
         label: 'Expenses',
         icon: 'receipt-outline',
-        iconColor: theme.colors.error,
-        iconBg: '#FEE2E2',
+        iconColor: me.errFg,
+        iconBg: me.errBg,
         onPress: () => navigation.navigate('Expenses'),
       },
       {
@@ -217,15 +217,15 @@ const ProfileScreen: React.FC = () => {
       {
         label: 'Certifications',
         icon: 'ribbon-outline',
-        iconColor: theme.colors.primary,
-        iconBg: theme.colors.primaryLight,
+        iconColor: me.brand,
+        iconBg: me.brandSoft,
         onPress: () => navigation.navigate('Certifications'),
       },
       {
         label: 'Documents',
         icon: 'document-outline',
-        iconColor: theme.colors.textSecondary,
-        iconBg: theme.colors.backgroundSecondary,
+        iconColor: me.ink2,
+        iconBg: me.bg2,
         onPress: () => navigation.navigate('Documents'),
       },
       {
@@ -245,8 +245,8 @@ const ProfileScreen: React.FC = () => {
       {
         label: 'Edit Discovery Card',
         icon: 'card',
-        iconColor: theme.colors.accent,
-        iconBg: theme.colors.accentLight,
+        iconColor: me.accent,
+        iconBg: me.warnBg,
         onPress: () => navigation.navigate('ContractorCardEditor'),
       },
       // Portfolio Gallery: ARCHIVED - portfolio feature removed
@@ -259,8 +259,8 @@ const ProfileScreen: React.FC = () => {
       {
         label: 'Settings',
         icon: 'settings-outline',
-        iconColor: theme.colors.textSecondary,
-        iconBg: theme.colors.backgroundSecondary,
+        iconColor: me.ink2,
+        iconBg: me.bg2,
         onPress: () => navigation.navigate('SettingsHub'),
       },
       {
@@ -273,8 +273,8 @@ const ProfileScreen: React.FC = () => {
       {
         label: 'Contact Us',
         icon: 'mail-outline',
-        iconColor: theme.colors.primary,
-        iconBg: theme.colors.primaryLight,
+        iconColor: me.brand,
+        iconBg: me.brandSoft,
         onPress: () => {
           Linking.openURL(
             'mailto:support@mintenance.app?subject=Support%20Request'
@@ -289,8 +289,8 @@ const ProfileScreen: React.FC = () => {
       {
         label: 'Terms of Service',
         icon: 'document-outline',
-        iconColor: theme.colors.textSecondary,
-        iconBg: theme.colors.backgroundSecondary,
+        iconColor: me.ink2,
+        iconBg: me.bg2,
         onPress: () => {
           Linking.openURL(TERMS_URL).catch(() =>
             Alert.alert(
@@ -305,8 +305,8 @@ const ProfileScreen: React.FC = () => {
       {
         label: 'Privacy Policy',
         icon: 'shield-checkmark-outline',
-        iconColor: theme.colors.textSecondary,
-        iconBg: theme.colors.backgroundSecondary,
+        iconColor: me.ink2,
+        iconBg: me.bg2,
         onPress: () => {
           Linking.openURL(PRIVACY_URL).catch(() =>
             Alert.alert(
@@ -387,8 +387,8 @@ const ProfileScreen: React.FC = () => {
                   {
                     label: 'Business Tools',
                     icon: 'briefcase-outline',
-                    iconColor: theme.colors.primary,
-                    iconBg: theme.colors.primaryLight,
+                    iconColor: me.brand,
+                    iconBg: me.brandSoft,
                     onPress: () => {
                       // BusinessTab is a sibling root tab, not a screen
                       // in the Profile stack. The bare
@@ -423,8 +423,8 @@ const ProfileScreen: React.FC = () => {
                   {
                     label: 'Business Profile',
                     icon: 'briefcase-outline',
-                    iconColor: theme.colors.primary,
-                    iconBg: theme.colors.primaryLight,
+                    iconColor: me.brand,
+                    iconBg: me.brandSoft,
                     onPress: () =>
                       // BusinessProfile lives on the same ProfileStack;
                       // typed nav already accepts this without `as never`.
@@ -457,7 +457,7 @@ const ProfileScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   content: {
     flex: 1,

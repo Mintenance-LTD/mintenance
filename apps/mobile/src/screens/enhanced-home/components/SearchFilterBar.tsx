@@ -8,9 +8,9 @@
  */
 
 import React from 'react';
-import { View, TextInput, TouchableOpacity, StyleSheet, Platform } from 'react-native';
+import { View, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 interface SearchFilterBarProps {
   value: string;
@@ -28,13 +28,13 @@ export const SearchFilterBar: React.FC<SearchFilterBarProps> = ({
   return (
     <View style={styles.container}>
       <View style={styles.searchBar}>
-        <Ionicons name="search" size={20} color={theme.colors.textTertiary} />
+        <Ionicons name='search' size={20} color={me.ink3} />
         <TextInput
           style={styles.searchInput}
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor={theme.colors.textTertiary}
+          placeholderTextColor={me.ink3}
           accessibilityLabel='Search services'
           accessibilityRole='search'
         />
@@ -44,7 +44,7 @@ export const SearchFilterBar: React.FC<SearchFilterBarProps> = ({
             accessibilityRole='button'
             accessibilityLabel='Clear search'
           >
-            <Ionicons name="close-circle" size={20} color={theme.colors.textTertiary} />
+            <Ionicons name='close-circle' size={20} color={me.ink3} />
           </TouchableOpacity>
         )}
       </View>
@@ -56,7 +56,7 @@ export const SearchFilterBar: React.FC<SearchFilterBarProps> = ({
         accessibilityLabel='Open filters'
         accessibilityHint='Double tap to adjust search filters'
       >
-        <Ionicons name="options" size={24} color={theme.colors.textInverse} />
+        <Ionicons name='options' size={24} color={me.onBrand} />
       </TouchableOpacity>
     </View>
   );
@@ -73,26 +73,23 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 16,
     paddingHorizontal: 20,
     height: 50,
     gap: 8,
-    ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   searchInput: {
     flex: 1,
     fontSize: 18,
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   filterButton: {
     width: 50,
     height: 50,
     borderRadius: 16,
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
     justifyContent: 'center',
     alignItems: 'center',
   },

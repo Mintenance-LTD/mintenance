@@ -1,8 +1,8 @@
 import { StyleSheet, Platform } from 'react-native';
-import { theme } from '../theme';
+import { me } from '../design-system/mint-editorial';
 
 export const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
+  container: { flex: 1, backgroundColor: me.bg2 },
   flex: { flex: 1 },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: {
@@ -11,33 +11,33 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   backBtn: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   content: { padding: 16, paddingBottom: 32 },
   // Job card
   jobCard: {
     flexDirection: 'row',
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 20,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
   jobIconWrap: {
     width: 44,
@@ -52,12 +52,12 @@ export const styles = StyleSheet.create({
   jobTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 4,
   },
   jobDescription: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     lineHeight: 20,
     marginBottom: 6,
   },
@@ -67,24 +67,24 @@ export const styles = StyleSheet.create({
     gap: 4,
     marginBottom: 8,
   },
-  locationText: { fontSize: 13, color: theme.colors.textTertiary },
+  locationText: { fontSize: 13, color: me.ink3 },
   budgetBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: me.brandSoft,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 10,
   },
-  budgetText: { fontSize: 13, fontWeight: '700', color: theme.colors.primary },
+  budgetText: { fontSize: 13, fontWeight: '700', color: me.brand },
   // Mode toggle
   modeToggle: {
     flexDirection: 'row',
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     padding: 4,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
   modeBtn: {
     flex: 1,
@@ -92,26 +92,26 @@ export const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
   },
-  modeBtnActive: { backgroundColor: theme.colors.textPrimary },
+  modeBtnActive: { backgroundColor: me.ink },
   modeBtnText: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
-  modeBtnTextActive: { color: theme.colors.textInverse },
+  modeBtnTextActive: { color: me.onBrand },
   // Form card
   formCard: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 20,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
   sectionLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: theme.colors.primary,
+    color: me.brand,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 12,
@@ -121,18 +121,18 @@ export const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginBottom: 6,
   },
   input: {
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 14,
     fontSize: 15,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
   textArea: { minHeight: 120, paddingTop: 14 },
   row: { flexDirection: 'row' },
@@ -140,7 +140,7 @@ export const styles = StyleSheet.create({
   // Currency
   currencyRow: { flexDirection: 'row', alignItems: 'stretch' },
   currencyPrefix: {
-    backgroundColor: theme.colors.backgroundTertiary,
+    backgroundColor: me.bg3,
     borderTopLeftRadius: 12,
     borderBottomLeftRadius: 12,
     paddingHorizontal: 14,
@@ -149,56 +149,56 @@ export const styles = StyleSheet.create({
   currencySymbol: {
     fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   currencyInput: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderTopRightRadius: 12,
     borderBottomRightRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 14,
     fontSize: 18,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
     borderLeftWidth: 0,
   },
   // Earnings
   earningsCard: {
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 16,
     padding: 14,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
   earningsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 6,
   },
-  earningsLabel: { fontSize: 14, color: theme.colors.textSecondary },
+  earningsLabel: { fontSize: 14, color: me.ink2 },
   earningsValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   earningsDivider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: theme.colors.border,
+    backgroundColor: me.line,
     marginVertical: 8,
   },
   earningsTotalLabel: {
     fontSize: 15,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   earningsTotalValue: {
     fontSize: 15,
     fontWeight: '700',
-    color: theme.colors.primary,
+    color: me.brand,
   },
   // VAT toggle
   vatRow: {
@@ -211,7 +211,7 @@ export const styles = StyleSheet.create({
   vatLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   // Warning
   warningBanner: {
@@ -226,8 +226,8 @@ export const styles = StyleSheet.create({
   warningText: { flex: 1, fontSize: 13, color: '#DC2626', fontWeight: '500' },
   // Char count
   charCountRow: { alignItems: 'flex-end', marginTop: 4 },
-  charCount: { fontSize: 12, color: theme.colors.textTertiary },
-  charCountError: { color: theme.colors.error },
+  charCount: { fontSize: 12, color: me.ink3 },
+  charCountError: { color: me.errFg },
   // Error
   errorBanner: {
     flexDirection: 'row',
@@ -243,22 +243,22 @@ export const styles = StyleSheet.create({
   footer: {
     paddingHorizontal: 16,
     paddingTop: 12,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: theme.colors.border,
+    borderTopColor: me.line,
   },
   submitButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
     borderRadius: 28,
     paddingVertical: 16,
   },
   submitButtonDisabled: { opacity: 0.4 },
   submitButtonText: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontSize: 17,
     fontWeight: '600',
   },

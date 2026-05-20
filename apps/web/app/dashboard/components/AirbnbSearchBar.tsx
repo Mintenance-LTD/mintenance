@@ -19,17 +19,18 @@ import {
   Paintbrush,
   Sprout,
   Snowflake,
+  Check,
 } from 'lucide-react';
 
 const CATEGORY_ICON_MAP: Record<string, React.ReactNode> = {
-  droplets: <Droplets className="w-6 h-6" />,
-  zap: <Zap className="w-6 h-6" />,
-  hammer: <Hammer className="w-6 h-6" />,
-  paintbrush: <Paintbrush className="w-6 h-6" />,
-  home: <Home className="w-6 h-6" />,
-  sprout: <Sprout className="w-6 h-6" />,
-  snowflake: <Snowflake className="w-6 h-6" />,
-  wrench: <Wrench className="w-6 h-6" />,
+  droplets: <Droplets className='w-6 h-6' />,
+  zap: <Zap className='w-6 h-6' />,
+  hammer: <Hammer className='w-6 h-6' />,
+  paintbrush: <Paintbrush className='w-6 h-6' />,
+  home: <Home className='w-6 h-6' />,
+  sprout: <Sprout className='w-6 h-6' />,
+  snowflake: <Snowflake className='w-6 h-6' />,
+  wrench: <Wrench className='w-6 h-6' />,
 };
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -63,25 +64,39 @@ const jobCategories = [
 
 const urgencyOptions = [
   { value: 'today', label: 'Today', color: 'bg-red-100 text-red-700' },
-  { value: 'tomorrow', label: 'Tomorrow', color: 'bg-orange-100 text-orange-700' },
-  { value: 'this_week', label: 'This Week', color: 'bg-yellow-100 text-yellow-700' },
-  { value: 'flexible', label: 'Flexible', color: 'bg-green-100 text-green-700' },
+  {
+    value: 'tomorrow',
+    label: 'Tomorrow',
+    color: 'bg-orange-100 text-orange-700',
+  },
+  {
+    value: 'this_week',
+    label: 'This Week',
+    color: 'bg-yellow-100 text-yellow-700',
+  },
+  {
+    value: 'flexible',
+    label: 'Flexible',
+    color: 'bg-green-100 text-green-700',
+  },
 ];
 
 export function AirbnbSearchBar(props: AirbnbSearchBarProps) {
   // Defensive prop destructuring with defaults to prevent test crashes
-  const {
-    properties = [],
-    onQuickJobPost = () => {},
-  } = props || {};
+  const { properties = [], onQuickJobPost = () => {} } = props || {};
 
   const router = useRouter();
   const [activeMode, setActiveMode] = useState<SearchMode>(null);
   const [dateMode, setDateMode] = useState<DateMode>('dates');
 
   // Search state
-  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
-  const [selectedDates, setSelectedDates] = useState<{ start: Date | null; end: Date | null }>({ start: null, end: null });
+  const [selectedProperty, setSelectedProperty] = useState<Property | null>(
+    null
+  );
+  const [selectedDates, setSelectedDates] = useState<{
+    start: Date | null;
+    end: Date | null;
+  }>({ start: null, end: null });
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [selectedUrgency, setSelectedUrgency] = useState<string>('flexible');
 
@@ -94,7 +109,10 @@ export function AirbnbSearchBar(props: AirbnbSearchBarProps) {
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+      if (
+        searchRef.current &&
+        !searchRef.current.contains(event.target as Node)
+      ) {
         setActiveMode(null);
       }
     };
@@ -184,10 +202,10 @@ export function AirbnbSearchBar(props: AirbnbSearchBarProps) {
   };
 
   return (
-    <div ref={searchRef} className="relative w-full">
+    <div ref={searchRef} className='relative w-full'>
       {/* Main Search Bar */}
-      <div className="bg-white border border-gray-300 rounded-full shadow-sm hover:shadow-md transition-shadow">
-        <div className="flex items-center">
+      <div className='bg-white border border-gray-300 rounded-full shadow-sm hover:shadow-md transition-shadow'>
+        <div className='flex items-center'>
           {/* Where - Property Selection */}
           <button
             onClick={() => setActiveMode('where')}
@@ -195,13 +213,15 @@ export function AirbnbSearchBar(props: AirbnbSearchBarProps) {
               activeMode === 'where' ? 'bg-white shadow-xl' : 'hover:bg-gray-50'
             }`}
           >
-            <div className="text-xs font-semibold text-gray-900">Where</div>
-            <div className="text-sm text-gray-600 mt-0.5">
-              {selectedProperty ? selectedProperty.property_name || selectedProperty.address : 'Select property'}
+            <div className='text-xs font-semibold text-gray-900'>Where</div>
+            <div className='text-sm text-gray-600 mt-0.5'>
+              {selectedProperty
+                ? selectedProperty.property_name || selectedProperty.address
+                : 'Select property'}
             </div>
           </button>
 
-          <div className="w-px h-8 bg-gray-300" />
+          <div className='w-px h-8 bg-gray-300' />
 
           {/* When - Date Selection */}
           <button
@@ -210,22 +230,23 @@ export function AirbnbSearchBar(props: AirbnbSearchBarProps) {
               activeMode === 'when' ? 'bg-white shadow-xl' : 'hover:bg-gray-50'
             }`}
           >
-            <div className="text-xs font-semibold text-gray-900">When</div>
-            <div className="text-sm text-gray-600 mt-0.5">
-              {selectedDates.start ? (
-                selectedDates.end ?
-                  `${selectedDates.start.toLocaleDateString('en-GB')} - ${selectedDates.end.toLocaleDateString('en-GB')}` :
-                  selectedDates.start.toLocaleDateString('en-GB')
-              ) : (
-                selectedUrgency === 'today' ? 'Today' :
-                selectedUrgency === 'tomorrow' ? 'Tomorrow' :
-                selectedUrgency === 'this_week' ? 'This Week' :
-                'Add dates'
-              )}
+            <div className='text-xs font-semibold text-gray-900'>When</div>
+            <div className='text-sm text-gray-600 mt-0.5'>
+              {selectedDates.start
+                ? selectedDates.end
+                  ? `${selectedDates.start.toLocaleDateString('en-GB')} - ${selectedDates.end.toLocaleDateString('en-GB')}`
+                  : selectedDates.start.toLocaleDateString('en-GB')
+                : selectedUrgency === 'today'
+                  ? 'Today'
+                  : selectedUrgency === 'tomorrow'
+                    ? 'Tomorrow'
+                    : selectedUrgency === 'this_week'
+                      ? 'This Week'
+                      : 'Add dates'}
             </div>
           </button>
 
-          <div className="w-px h-8 bg-gray-300" />
+          <div className='w-px h-8 bg-gray-300' />
 
           {/* What - Job Type Selection */}
           <button
@@ -234,9 +255,11 @@ export function AirbnbSearchBar(props: AirbnbSearchBarProps) {
               activeMode === 'what' ? 'bg-white shadow-xl' : 'hover:bg-gray-50'
             }`}
           >
-            <div className="text-xs font-semibold text-gray-900">What</div>
-            <div className="text-sm text-gray-600 mt-0.5">
-              {selectedCategory ? jobCategories.find(c => c.id === selectedCategory)?.label : 'Add job type'}
+            <div className='text-xs font-semibold text-gray-900'>What</div>
+            <div className='text-sm text-gray-600 mt-0.5'>
+              {selectedCategory
+                ? jobCategories.find((c) => c.id === selectedCategory)?.label
+                : 'Add job type'}
             </div>
           </button>
 
@@ -250,21 +273,23 @@ export function AirbnbSearchBar(props: AirbnbSearchBarProps) {
                 : 'bg-gray-200 text-gray-400 cursor-not-allowed'
             }`}
           >
-            <Search className="w-5 h-5" />
+            <Search className='w-5 h-5' />
           </button>
         </div>
       </div>
 
       {/* Dropdown Panels */}
       {activeMode && (
-        <div className="absolute top-full mt-3 left-0 right-0 bg-white rounded-3xl shadow-2xl border border-gray-200 z-50 max-w-4xl mx-auto">
+        <div className='absolute top-full mt-3 left-0 right-0 bg-white rounded-3xl shadow-2xl border border-gray-200 z-50 max-w-4xl mx-auto'>
           {/* Where Panel - Property Selection */}
           {activeMode === 'where' && (
-            <div className="p-6">
-              <h3 className="text-lg font-semibold mb-4">Select your property</h3>
+            <div className='p-6'>
+              <h3 className='text-lg font-semibold mb-4'>
+                Select your property
+              </h3>
 
               {properties.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto">
+                <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-h-96 overflow-y-auto'>
                   {properties.map((property) => (
                     <button
                       key={property.id}
@@ -276,7 +301,10 @@ export function AirbnbSearchBar(props: AirbnbSearchBarProps) {
                           // Select the property and optionally move to date selection
                           setSelectedProperty(property);
                           // Only auto-advance to 'when' if no dates are selected yet and urgency is still default
-                          if (!selectedDates.start && selectedUrgency === 'flexible') {
+                          if (
+                            !selectedDates.start &&
+                            selectedUrgency === 'flexible'
+                          ) {
                             setActiveMode('when');
                           } else {
                             // Otherwise just close the dropdown
@@ -290,32 +318,39 @@ export function AirbnbSearchBar(props: AirbnbSearchBarProps) {
                           : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                       }`}
                     >
-                      <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0">
+                      <div className='w-16 h-16 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0'>
                         {property.photos?.[0] ? (
                           <Image
                             src={property.photos[0]}
                             alt={property.property_name || 'Property'}
                             width={64}
                             height={64}
-                            className="w-full h-full object-cover"
+                            className='w-full h-full object-cover'
                           />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <Home className="w-6 h-6 text-gray-400" />
+                          <div className='w-full h-full flex items-center justify-center'>
+                            <Home className='w-6 h-6 text-gray-400' />
                           </div>
                         )}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-semibold text-gray-900 truncate">
+                      <div className='flex-1 min-w-0'>
+                        <div className='font-semibold text-gray-900 truncate'>
                           {property.property_name || 'Unnamed Property'}
                         </div>
-                        <div className="text-sm text-gray-600 truncate">{property.address}</div>
-                        <div className="flex items-center gap-2 mt-1">
+                        <div className='text-sm text-gray-600 truncate'>
+                          {property.address}
+                        </div>
+                        <div className='flex items-center gap-2 mt-1'>
                           {property.property_type && (
-                            <div className="text-xs text-gray-500 capitalize">{property.property_type}</div>
+                            <div className='text-xs text-gray-500 capitalize'>
+                              {property.property_type}
+                            </div>
                           )}
                           {selectedProperty?.id === property.id && (
-                            <div className="text-xs text-teal-600 font-medium">✓ Selected</div>
+                            <div className='text-xs text-teal-600 font-medium inline-flex items-center gap-1'>
+                              <Check size={14} aria-hidden='true' />
+                              Selected
+                            </div>
                           )}
                         </div>
                       </div>
@@ -323,14 +358,14 @@ export function AirbnbSearchBar(props: AirbnbSearchBarProps) {
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-8">
-                  <Home className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                  <p className="text-gray-600 mb-4">No properties found</p>
+                <div className='text-center py-8'>
+                  <Home className='w-12 h-12 text-gray-300 mx-auto mb-3' />
+                  <p className='text-gray-600 mb-4'>No properties found</p>
                   <button
                     onClick={() => router.push('/properties/add')}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
+                    className='inline-flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors'
                   >
-                    <Plus className="w-4 h-4" />
+                    <Plus className='w-4 h-4' />
                     Add Property
                   </button>
                 </div>
@@ -340,9 +375,9 @@ export function AirbnbSearchBar(props: AirbnbSearchBarProps) {
 
           {/* When Panel - Calendar */}
           {activeMode === 'when' && (
-            <div className="p-6">
+            <div className='p-6'>
               {/* Date Mode Tabs */}
-              <div className="flex items-center justify-center gap-2 mb-6">
+              <div className='flex items-center justify-center gap-2 mb-6'>
                 <button
                   onClick={() => setDateMode('dates')}
                   className={`px-6 py-2 rounded-full transition-colors ${
@@ -378,34 +413,53 @@ export function AirbnbSearchBar(props: AirbnbSearchBarProps) {
               {dateMode === 'dates' && (
                 <>
                   {/* Calendar Grid */}
-                  <div className="grid grid-cols-2 gap-8">
+                  <div className='grid grid-cols-2 gap-8'>
                     {/* Current Month */}
                     <div>
-                      <div className="flex items-center justify-between mb-4">
+                      <div className='flex items-center justify-between mb-4'>
                         <button
-                          onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1))}
-                          className="p-2 hover:bg-gray-100 rounded-full"
+                          onClick={() =>
+                            setCurrentMonth(
+                              new Date(
+                                currentMonth.getFullYear(),
+                                currentMonth.getMonth() - 1
+                              )
+                            )
+                          }
+                          className='p-2 hover:bg-gray-100 rounded-full'
                         >
-                          <ChevronLeft className="w-5 h-5" />
+                          <ChevronLeft className='w-5 h-5' />
                         </button>
-                        <h4 className="font-semibold text-gray-900">{formatMonth(currentMonth)}</h4>
-                        <div className="w-9" />
+                        <h4 className='font-semibold text-gray-900'>
+                          {formatMonth(currentMonth)}
+                        </h4>
+                        <div className='w-9' />
                       </div>
-                      <div className="grid grid-cols-7 gap-0 mb-2">
-                        {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, index) => (
-                          <div key={`${day}-${index}`} className="text-center text-xs font-medium text-gray-500 py-2">
-                            {day}
-                          </div>
-                        ))}
+                      <div className='grid grid-cols-7 gap-0 mb-2'>
+                        {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(
+                          (day, index) => (
+                            <div
+                              key={`${day}-${index}`}
+                              className='text-center text-xs font-medium text-gray-500 py-2'
+                            >
+                              {day}
+                            </div>
+                          )
+                        )}
                       </div>
-                      <div className="grid grid-cols-7 gap-0">
+                      <div className='grid grid-cols-7 gap-0'>
                         {getDaysInMonth(currentMonth).map((date, index) => (
                           <button
                             key={index}
                             onClick={() => date && handleDateClick(date)}
                             onMouseEnter={() => date && setHoveredDate(date)}
                             onMouseLeave={() => setHoveredDate(null)}
-                            disabled={!date || (date && date < new Date(new Date().setHours(0, 0, 0, 0)))}
+                            disabled={
+                              !date ||
+                              (date &&
+                                date <
+                                  new Date(new Date().setHours(0, 0, 0, 0)))
+                            }
                             className={`
                               aspect-square flex items-center justify-center text-sm transition-colors
                               ${!date ? 'cursor-default' : ''}
@@ -425,33 +479,60 @@ export function AirbnbSearchBar(props: AirbnbSearchBarProps) {
 
                     {/* Next Month */}
                     <div>
-                      <div className="flex items-center justify-between mb-4">
-                        <div className="w-9" />
-                        <h4 className="font-semibold text-gray-900">
-                          {formatMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))}
+                      <div className='flex items-center justify-between mb-4'>
+                        <div className='w-9' />
+                        <h4 className='font-semibold text-gray-900'>
+                          {formatMonth(
+                            new Date(
+                              currentMonth.getFullYear(),
+                              currentMonth.getMonth() + 1
+                            )
+                          )}
                         </h4>
                         <button
-                          onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1))}
-                          className="p-2 hover:bg-gray-100 rounded-full"
+                          onClick={() =>
+                            setCurrentMonth(
+                              new Date(
+                                currentMonth.getFullYear(),
+                                currentMonth.getMonth() + 1
+                              )
+                            )
+                          }
+                          className='p-2 hover:bg-gray-100 rounded-full'
                         >
-                          <ChevronRight className="w-5 h-5" />
+                          <ChevronRight className='w-5 h-5' />
                         </button>
                       </div>
-                      <div className="grid grid-cols-7 gap-0 mb-2">
-                        {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((day, index) => (
-                          <div key={`${day}-${index}`} className="text-center text-xs font-medium text-gray-500 py-2">
-                            {day}
-                          </div>
-                        ))}
+                      <div className='grid grid-cols-7 gap-0 mb-2'>
+                        {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map(
+                          (day, index) => (
+                            <div
+                              key={`${day}-${index}`}
+                              className='text-center text-xs font-medium text-gray-500 py-2'
+                            >
+                              {day}
+                            </div>
+                          )
+                        )}
                       </div>
-                      <div className="grid grid-cols-7 gap-0">
-                        {getDaysInMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1)).map((date, index) => (
+                      <div className='grid grid-cols-7 gap-0'>
+                        {getDaysInMonth(
+                          new Date(
+                            currentMonth.getFullYear(),
+                            currentMonth.getMonth() + 1
+                          )
+                        ).map((date, index) => (
                           <button
                             key={index}
                             onClick={() => date && handleDateClick(date)}
                             onMouseEnter={() => date && setHoveredDate(date)}
                             onMouseLeave={() => setHoveredDate(null)}
-                            disabled={!date || (date && date < new Date(new Date().setHours(0, 0, 0, 0)))}
+                            disabled={
+                              !date ||
+                              (date &&
+                                date <
+                                  new Date(new Date().setHours(0, 0, 0, 0)))
+                            }
                             className={`
                               aspect-square flex items-center justify-center text-sm transition-colors
                               ${!date ? 'cursor-default' : ''}
@@ -473,9 +554,11 @@ export function AirbnbSearchBar(props: AirbnbSearchBarProps) {
               )}
 
               {dateMode === 'flexible' && (
-                <div className="space-y-4">
-                  <h4 className="font-semibold text-gray-900">How urgent is this job?</h4>
-                  <div className="grid grid-cols-2 gap-3">
+                <div className='space-y-4'>
+                  <h4 className='font-semibold text-gray-900'>
+                    How urgent is this job?
+                  </h4>
+                  <div className='grid grid-cols-2 gap-3'>
                     {urgencyOptions.map((option) => (
                       <button
                         key={option.value}
@@ -489,14 +572,19 @@ export function AirbnbSearchBar(props: AirbnbSearchBarProps) {
                             : 'border-gray-200 hover:border-gray-300'
                         }`}
                       >
-                        <div className={`inline-block px-2 py-1 rounded text-xs font-semibold mb-2 ${option.color}`}>
+                        <div
+                          className={`inline-block px-2 py-1 rounded text-xs font-semibold mb-2 ${option.color}`}
+                        >
                           {option.label}
                         </div>
-                        <div className="text-sm text-gray-600">
-                          {option.value === 'today' && 'Needs immediate attention'}
-                          {option.value === 'tomorrow' && 'Can wait until tomorrow'}
+                        <div className='text-sm text-gray-600'>
+                          {option.value === 'today' &&
+                            'Needs immediate attention'}
+                          {option.value === 'tomorrow' &&
+                            'Can wait until tomorrow'}
                           {option.value === 'this_week' && 'Sometime this week'}
-                          {option.value === 'flexible' && 'No rush, schedule when available'}
+                          {option.value === 'flexible' &&
+                            'No rush, schedule when available'}
                         </div>
                       </button>
                     ))}
@@ -505,19 +593,19 @@ export function AirbnbSearchBar(props: AirbnbSearchBarProps) {
               )}
 
               {/* Action Buttons */}
-              <div className="flex justify-between items-center mt-6 pt-6 border-t">
+              <div className='flex justify-between items-center mt-6 pt-6 border-t'>
                 <button
                   onClick={() => {
                     setSelectedDates({ start: null, end: null });
                     setSelectedUrgency('flexible');
                   }}
-                  className="text-sm text-gray-600 hover:text-gray-900 underline"
+                  className='text-sm text-gray-600 hover:text-gray-900 underline'
                 >
                   Clear dates
                 </button>
                 <button
                   onClick={() => setActiveMode('what')}
-                  className="px-6 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
+                  className='px-6 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors'
                 >
                   Next
                 </button>
@@ -527,10 +615,12 @@ export function AirbnbSearchBar(props: AirbnbSearchBarProps) {
 
           {/* What Panel - Job Type */}
           {activeMode === 'what' && (
-            <div className="p-6">
-              <h3 className="text-lg font-semibold mb-4">What type of job do you need?</h3>
+            <div className='p-6'>
+              <h3 className='text-lg font-semibold mb-4'>
+                What type of job do you need?
+              </h3>
 
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+              <div className='grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3'>
                 {jobCategories.map((category) => (
                   <button
                     key={category.id}
@@ -544,16 +634,20 @@ export function AirbnbSearchBar(props: AirbnbSearchBarProps) {
                         : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                     }`}
                   >
-                    <span className="text-teal-600">{CATEGORY_ICON_MAP[category.icon] || category.icon}</span>
-                    <span className="text-sm font-medium text-gray-900">{category.label}</span>
+                    <span className='text-teal-600'>
+                      {CATEGORY_ICON_MAP[category.icon] || category.icon}
+                    </span>
+                    <span className='text-sm font-medium text-gray-900'>
+                      {category.label}
+                    </span>
                   </button>
                 ))}
               </div>
 
-              <div className="flex justify-end items-center mt-6 pt-6 border-t">
+              <div className='flex justify-end items-center mt-6 pt-6 border-t'>
                 <button
                   onClick={() => setActiveMode(null)}
-                  className="px-6 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
+                  className='px-6 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors'
                 >
                   Done
                 </button>

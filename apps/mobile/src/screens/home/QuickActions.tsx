@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useHaptics } from '../../utils/haptics';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 interface QuickActionsProps {
   onBrowseJobsPress: () => void;
@@ -51,8 +51,8 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
     {
       label: 'Browse',
       icon: 'search',
-      iconColor: theme.colors.primary,
-      bgColor: theme.colors.primaryLight,
+      iconColor: me.brand,
+      bgColor: me.brandSoft,
       onPress: onBrowseJobsPress,
     },
     {
@@ -78,8 +78,8 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
           {
             label: 'Invoices',
             icon: 'receipt' as keyof typeof Ionicons.glyphMap,
-            iconColor: theme.colors.accent,
-            bgColor: theme.colors.accentLight,
+            iconColor: me.accent,
+            bgColor: me.warnBg,
             onPress: onInvoicesPress,
           },
         ]
@@ -89,8 +89,8 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
           {
             label: 'Expenses',
             icon: 'wallet' as keyof typeof Ionicons.glyphMap,
-            iconColor: theme.colors.error,
-            bgColor: '#FEE2E2',
+            iconColor: me.errFg,
+            bgColor: me.errBg,
             onPress: onExpensesPress,
           },
         ]
@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginBottom: 16,
     textTransform: 'uppercase',
     letterSpacing: 1.5,
@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
   actionLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     textAlign: 'center',
   },
 });

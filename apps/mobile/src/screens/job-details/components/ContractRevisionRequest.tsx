@@ -10,10 +10,9 @@ import {
   TouchableOpacity,
   TextInput,
   ActivityIndicator,
-  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 interface ContractRevisionRequestProps {
   canReject: boolean;
@@ -51,11 +50,7 @@ export const ContractRevisionRequest: React.FC<
           accessibilityRole='button'
           accessibilityLabel='Request contract revision'
         >
-          <Ionicons
-            name='create-outline'
-            size={18}
-            color={theme.colors.accent}
-          />
+          <Ionicons name='create-outline' size={18} color={me.accent} />
           <Text style={styles.requestChangesText}>
             Request Contract Revision
           </Text>
@@ -74,7 +69,7 @@ export const ContractRevisionRequest: React.FC<
       <TextInput
         style={styles.rejectInput}
         placeholder='Describe what needs to be changed (e.g., dates, amounts, terms)...'
-        placeholderTextColor={theme.colors.textTertiary}
+        placeholderTextColor={me.ink3}
         multiline
         numberOfLines={3}
         value={rejectReason}
@@ -97,7 +92,7 @@ export const ContractRevisionRequest: React.FC<
           disabled={rejecting}
         >
           {rejecting ? (
-            <ActivityIndicator color={theme.colors.textInverse} size='small' />
+            <ActivityIndicator color={me.onBrand} size='small' />
           ) : (
             <Text style={styles.rejectSubmitText}>Send Revision Request</Text>
           )}
@@ -118,7 +113,7 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingVertical: 14,
     borderRadius: 28,
-    backgroundColor: theme.colors.accentLight,
+    backgroundColor: me.warnBg,
   },
   requestChangesText: {
     fontSize: 15,
@@ -127,39 +122,31 @@ const styles = StyleSheet.create({
   },
   revisionInfoText: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     lineHeight: 18,
     marginTop: 8,
     textAlign: 'center',
     paddingHorizontal: 8,
   },
   rejectCard: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 20,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   rejectCardTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 10,
   },
   rejectInput: {
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 12,
     padding: 12,
     fontSize: 14,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     minHeight: 80,
     marginBottom: 12,
   },
@@ -176,19 +163,19 @@ const styles = StyleSheet.create({
   rejectCancelText: {
     fontSize: 14,
     fontWeight: '500',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   rejectSubmitButton: {
     paddingHorizontal: 18,
     paddingVertical: 10,
     borderRadius: 28,
-    backgroundColor: theme.colors.accent,
+    backgroundColor: me.accent,
     minWidth: 110,
     alignItems: 'center',
   },
   rejectSubmitText: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
   },
 });

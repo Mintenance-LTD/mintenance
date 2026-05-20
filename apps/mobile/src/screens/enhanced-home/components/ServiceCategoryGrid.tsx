@@ -11,7 +11,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import type { Service } from '../viewmodels/EnhancedHomeViewModel';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 interface ServiceCategoryGridProps {
   services: Service[];
@@ -24,7 +24,9 @@ export const ServiceCategoryGrid: React.FC<ServiceCategoryGridProps> = ({
 }) => {
   return (
     <View style={styles.container}>
-      <Text style={styles.sectionTitle} accessibilityRole='header'>Service Categories</Text>
+      <Text style={styles.sectionTitle} accessibilityRole='header'>
+        Service Categories
+      </Text>
       <View style={styles.grid}>
         {services.map((service) => (
           <TouchableOpacity
@@ -39,7 +41,7 @@ export const ServiceCategoryGrid: React.FC<ServiceCategoryGridProps> = ({
               <Ionicons
                 name={service.icon as keyof typeof Ionicons.glyphMap}
                 size={28}
-                color={theme.colors.textSecondary}
+                color={me.ink2}
               />
             </View>
             <Text style={styles.serviceName}>{service.name}</Text>
@@ -58,7 +60,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 20,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 16,
   },
   grid: {
@@ -74,14 +76,14 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 8,
   },
   serviceName: {
     fontSize: 12,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     textAlign: 'center',
   },
 });

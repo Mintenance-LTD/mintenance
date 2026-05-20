@@ -23,9 +23,7 @@ export function PricingModal({ transaction, onClose }: PricingModalProps) {
         className='bg-white rounded-xl shadow-2xl max-w-md w-full'
       >
         <div className='p-6'>
-          <h3 className='text-xl font-semibold text-gray-900 mb-6'>
-            Payment Breakdown
-          </h3>
+          <h3 className='t-h2 text-gray-900 mb-6'>Payment Breakdown</h3>
           <PricingBreakdown
             items={[
               {

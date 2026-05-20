@@ -1,7 +1,7 @@
 import React from 'react';
 import { ScrollView, TouchableOpacity, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../../theme';
+import { me } from '../../../../design-system/mint-editorial';
 import { styles } from '../../DocumentsStyles';
 import { FILTER_CONFIG, type DocFilter } from '../types';
 
@@ -38,9 +38,7 @@ export function FilterChips({
             <Ionicons
               name={f.icon}
               size={14}
-              color={
-                active ? theme.colors.textInverse : theme.colors.textSecondary
-              }
+              color={active ? me.onBrand : me.ink2}
             />
             <Text
               style={[

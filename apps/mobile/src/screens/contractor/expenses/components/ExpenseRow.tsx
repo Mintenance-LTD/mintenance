@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Badge } from '../../../../components/ui/Badge';
-import { theme } from '../../../../theme';
+import { me } from '../../../../design-system/mint-editorial';
 import { styles } from '../theme/styles';
 import { CATEGORY_COLORS, type Expense } from '../types';
 
@@ -23,8 +23,7 @@ export function ExpenseRow({
         style={[
           styles.categoryDot,
           {
-            backgroundColor:
-              CATEGORY_COLORS[expense.category] || theme.colors.textSecondary,
+            backgroundColor: CATEGORY_COLORS[expense.category] || me.ink2,
           },
         ]}
       />
@@ -51,11 +50,7 @@ export function ExpenseRow({
         accessibilityLabel={`Delete expense ${expense.description}`}
         hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
       >
-        <Ionicons
-          name='trash-outline'
-          size={16}
-          color={theme.colors.textTertiary}
-        />
+        <Ionicons name='trash-outline' size={16} color={me.ink3} />
       </TouchableOpacity>
     </View>
   );

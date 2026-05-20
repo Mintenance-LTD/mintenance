@@ -3,9 +3,11 @@
  */
 import { year, emailShell } from './shared';
 
-export function newsletterWelcomeTemplate(
-  email: string
-): { subject: string; html: string; text: string } {
+export function newsletterWelcomeTemplate(email: string): {
+  subject: string;
+  html: string;
+  text: string;
+} {
   const color = '#0d9488';
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.co.uk';
   const extra = `.feature-grid{margin:20px 0}
@@ -36,13 +38,13 @@ export function newsletterWelcomeTemplate(
      </div>
      <p>In the meantime, explore what Mintenance can do for you:</p>
      <p style="text-align:center"><a href="${baseUrl}/try-mint-ai" class="cta">Try AI Assessment</a></p>
-     <p style="margin-top:16px;text-align:center"><a href="${baseUrl}/discover" style="color:${color};font-weight:600;font-size:14px">Browse Contractors &rarr;</a></p>`,
+     <p style="margin-top:16px;text-align:center"><a href="${baseUrl}/find-contractors" style="color:${color};font-weight:600;font-size:14px">Browse Contractors &rarr;</a></p>`,
     `<p>&copy; ${year()} Mintenance ltd. All rights reserved.</p>
      <p><a href="${baseUrl}/api/email/unsubscribe?email=${encodeURIComponent(email)}">Unsubscribe</a></p>`
   );
-  const text = `Welcome to Mintenance!\n\nThanks for subscribing. You'll be the first to hear about new features, tips, and industry insights.\n\nTry our AI assessment: ${baseUrl}/try-mint-ai\nBrowse contractors: ${baseUrl}/discover\n\n© ${year()} Mintenance.`;
+  const text = `Welcome to Mintenance!\n\nThanks for subscribing. You'll be the first to hear about new features, tips, and industry insights.\n\nTry our AI assessment: ${baseUrl}/try-mint-ai\nBrowse contractors: ${baseUrl}/find-contractors\n\n© ${year()} Mintenance.`;
   return {
-    subject: 'Welcome to Mintenance - You\'re on the list!',
+    subject: "Welcome to Mintenance - You're on the list!",
     html,
     text,
   };

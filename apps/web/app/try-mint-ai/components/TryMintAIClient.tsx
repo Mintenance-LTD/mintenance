@@ -360,7 +360,14 @@ export function TryMintAIClient() {
   };
 
   return (
-    <div className='bg-gray-50'>
+    <div
+      data-theme='mint-editorial'
+      style={{
+        background: 'var(--me-bg)',
+        fontFamily: 'var(--me-font-body)',
+        color: 'var(--me-ink)',
+      }}
+    >
       <HeroSection />
 
       <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16'>

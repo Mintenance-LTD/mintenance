@@ -1,10 +1,7 @@
 /**
- * PaymentMethodsScreen Container
+ * PaymentMethodsScreen Container — Direction A · Mint Editorial.
  *
  * Manages payment methods with real Stripe card data from API.
- *
- * @filesize Target: <150 lines
- * @compliance MVVM - Thin container
  */
 
 import React from 'react';
@@ -17,7 +14,6 @@ import {
   Alert,
   ActivityIndicator,
   RefreshControl,
-  Platform,
   StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -25,9 +21,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { ScreenHeader } from '../../components/shared';
 import { usePaymentMethodsViewModel } from './viewmodels/PaymentMethodsViewModel';
 import { useAuth } from '../../contexts/AuthContext';
-// PaymentMethodOption removed - only Stripe cards are supported
 import type { NavigationProp } from '@react-navigation/native';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 interface PaymentMethodsScreenProps {
   navigation: NavigationProp<Record<string, undefined>>;
@@ -50,7 +45,7 @@ export const PaymentMethodsScreen: React.FC<PaymentMethodsScreenProps> = ({
   const purposeCopy =
     user?.role === 'contractor'
       ? 'Used for your Mintenance subscription, DBS checks, and any platform fees. Homeowner escrow payouts go through your Stripe Connect account (set up under Business → Payouts).'
-      : 'Used to pay into escrow when you accept a contractor\u2019s bid. Payment is held by Mintenance until you approve the finished work.';
+      : 'Used to pay into escrow when you accept a contractor’s bid. Payment is held by Mintenance until you approve the finished work.';
 
   const handleDeleteCard = (cardId: string, last4: string) => {
     Alert.alert('Remove Card', `Remove card ending in ${last4}?`, [
@@ -71,10 +66,7 @@ export const PaymentMethodsScreen: React.FC<PaymentMethodsScreenProps> = ({
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar
-        barStyle='dark-content'
-        backgroundColor={theme.colors.backgroundSecondary}
-      />
+      <StatusBar barStyle='dark-content' backgroundColor={me.bg} />
       <ScreenHeader
         title='Payment Method'
         onBackPress={() => navigation.goBack()}
@@ -87,8 +79,8 @@ export const PaymentMethodsScreen: React.FC<PaymentMethodsScreenProps> = ({
           <RefreshControl
             refreshing={vm.loading}
             onRefresh={vm.refresh}
-            tintColor={theme.colors.primary}
-            colors={[theme.colors.primary]}
+            tintColor={me.brand}
+            colors={[me.brand]}
           />
         }
       >
@@ -99,7 +91,7 @@ export const PaymentMethodsScreen: React.FC<PaymentMethodsScreenProps> = ({
             <Ionicons
               name='information-circle-outline'
               size={18}
-              color={theme.colors.primary}
+              color={me.brand}
             />
           </View>
           <Text style={styles.purposeText}>{purposeCopy}</Text>
@@ -110,7 +102,7 @@ export const PaymentMethodsScreen: React.FC<PaymentMethodsScreenProps> = ({
 
         {vm.loading && vm.savedCards.length === 0 ? (
           <View style={styles.loadingBox}>
-            <ActivityIndicator size='small' color={theme.colors.primary} />
+            <ActivityIndicator size='small' color={me.brand} />
             <Text style={styles.loadingText}>Loading payment methods...</Text>
           </View>
         ) : vm.savedCards.length > 0 ? (
@@ -135,7 +127,7 @@ export const PaymentMethodsScreen: React.FC<PaymentMethodsScreenProps> = ({
                         'card') as keyof typeof Ionicons.glyphMap
                     }
                     size={24}
-                    color={theme.colors.textSecondary}
+                    color={me.ink2}
                   />
                 </View>
                 <View>
@@ -166,19 +158,10 @@ export const PaymentMethodsScreen: React.FC<PaymentMethodsScreenProps> = ({
           ))
         ) : !vm.loading && !vm.error ? (
           // Only show the "No cards saved yet" empty state when we
-          // actually got an empty-but-successful response. Previously
-          // this rendered alongside `vm.error` as well, producing the
-          // confusing "No cards saved yet + An unexpected error
-          // occurred" combo the user screenshotted — the API call had
-          // actually failed, but the UI also claimed the user had
-          // zero cards. Show the error banner alone in that case.
+          // actually got an empty-but-successful response.
           <View style={styles.emptyBox}>
             <View style={styles.emptyIconWrap}>
-              <Ionicons
-                name='card-outline'
-                size={28}
-                color={theme.colors.primary}
-              />
+              <Ionicons name='card-outline' size={28} color={me.brand} />
             </View>
             <Text style={styles.emptyText}>No cards saved yet</Text>
           </View>
@@ -190,15 +173,10 @@ export const PaymentMethodsScreen: React.FC<PaymentMethodsScreenProps> = ({
           // 2026-04-30 audit P1: kept `as never` because the parent
           // NavigationProp<Record<string, undefined>> is intentionally
           // generic (this component is rendered under both the
-          // ProfileStack and the Modal stack). Re-typing requires
-          // splitting the screen — out of scope for the cast sweep.
+          // ProfileStack and the Modal stack).
           onPress={() => navigation.navigate('AddPaymentMethod' as never)}
         >
-          <Ionicons
-            name='add-circle-outline'
-            size={20}
-            color={theme.colors.primary}
-          />
+          <Ionicons name='add-circle-outline' size={20} color={me.brand} />
           <Text style={styles.addCardText}>Add New Card</Text>
         </TouchableOpacity>
 
@@ -209,13 +187,13 @@ export const PaymentMethodsScreen: React.FC<PaymentMethodsScreenProps> = ({
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
+  container: { flex: 1, backgroundColor: me.bg },
   content: { flex: 1, padding: 20 },
   purposeBanner: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 10,
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: me.brandSoft,
     borderRadius: 14,
     padding: 12,
     marginTop: 12,
@@ -224,7 +202,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 8,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -232,60 +210,49 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 12,
     lineHeight: 17,
-    color: theme.colors.textPrimary,
+    color: me.ink2,
   },
   sectionTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginTop: 20,
     marginBottom: 12,
   },
   loadingBox: {
-    borderRadius: 16,
-    backgroundColor: theme.colors.surface,
+    borderRadius: me.radius.card,
+    backgroundColor: me.surface,
     padding: 20,
     alignItems: 'center',
     gap: 8,
     marginBottom: 12,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    borderWidth: 1,
+    borderColor: me.line,
+    ...me.shadow.card,
   },
-  loadingText: { fontSize: 14, color: theme.colors.textSecondary },
+  loadingText: { fontSize: 14, color: me.ink2 },
   cardRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderRadius: 16,
-    backgroundColor: theme.colors.surface,
+    borderRadius: me.radius.card,
+    backgroundColor: me.surface,
     padding: 16,
     marginBottom: 10,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    borderWidth: 1,
+    borderColor: me.line,
+    ...me.shadow.card,
   },
   cardRowSelected: {
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.brandSoft,
+    borderColor: me.brand,
   },
   cardLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
   cardIconBox: {
     width: 48,
     height: 48,
     borderRadius: 12,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -293,81 +260,69 @@ const styles = StyleSheet.create({
   cardBrand: {
     fontSize: 15,
     fontWeight: '500',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
-  cardExpiry: { fontSize: 12, color: theme.colors.textTertiary, marginTop: 2 },
+  cardExpiry: { fontSize: 12, color: me.ink3, marginTop: 2 },
   cardRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   defaultBadge: {
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   defaultText: {
     fontSize: 12,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   radio: {
     width: 22,
     height: 22,
     borderRadius: 11,
     borderWidth: 2,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
   radioSelected: {
-    borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.primary,
+    borderColor: me.brand,
+    backgroundColor: me.brand,
   },
   emptyBox: {
-    borderRadius: 16,
-    backgroundColor: theme.colors.surface,
+    borderRadius: me.radius.card,
+    backgroundColor: me.surface,
     padding: 20,
     alignItems: 'center',
     gap: 8,
     marginBottom: 12,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    borderWidth: 1,
+    borderColor: me.line,
+    ...me.shadow.card,
   },
   emptyIconWrap: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: me.brandSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  emptyText: { fontSize: 14, color: theme.colors.textSecondary },
+  emptyText: { fontSize: 14, color: me.ink2 },
   addCardTrigger: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
     padding: 16,
-    borderRadius: 16,
-    backgroundColor: theme.colors.surface,
+    borderRadius: me.radius.card,
+    backgroundColor: me.surface,
     marginBottom: 8,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    borderWidth: 1,
+    borderColor: me.line,
+    ...me.shadow.card,
   },
-  addCardText: { fontSize: 15, fontWeight: '600', color: theme.colors.primary },
+  addCardText: { fontSize: 15, fontWeight: '600', color: me.brand },
   errorText: {
     fontSize: 14,
-    color: theme.colors.error,
+    color: me.errFg,
     textAlign: 'center',
     marginTop: 12,
   },

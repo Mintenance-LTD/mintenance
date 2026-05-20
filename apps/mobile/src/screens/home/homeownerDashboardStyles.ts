@@ -1,10 +1,15 @@
-import { Platform, StyleSheet } from 'react-native';
-import { theme } from '../../theme';
+import { StyleSheet } from 'react-native';
+import { me } from '../../design-system/mint-editorial';
+
+/**
+ * HomeownerDashboard styles — Direction A · Mint Editorial.
+ * Token-styled on the `me` palette (design-system/mint-editorial.ts).
+ */
 
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg,
   },
 
   // Full-bleed Hero
@@ -31,7 +36,7 @@ export const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.35)',
   },
   postJobButtonText: {
-    color: '#FFFFFF',
+    color: me.onBrand,
     fontSize: 15,
     fontWeight: '700',
     letterSpacing: 0.2,
@@ -84,10 +89,10 @@ export const styles = StyleSheet.create({
     borderRadius: 8,
   },
   brandText: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: theme.colors.textInverse,
-    letterSpacing: -0.3,
+    fontFamily: me.font.display,
+    fontSize: 21,
+    color: me.onBrand,
+    letterSpacing: me.displayTracking,
   },
   rightActions: {
     flexDirection: 'row',
@@ -108,7 +113,7 @@ export const styles = StyleSheet.create({
     minWidth: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: theme.colors.error,
+    backgroundColor: me.errFg,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 3,
@@ -116,7 +121,7 @@ export const styles = StyleSheet.create({
   notificationBadgeText: {
     fontSize: 9,
     fontWeight: '700',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
   },
   profileButton: {
     width: 44,
@@ -137,7 +142,7 @@ export const styles = StyleSheet.create({
   profileAvatarText: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
   },
 
   // Greeting inside hero
@@ -151,11 +156,11 @@ export const styles = StyleSheet.create({
     zIndex: 1,
   },
   heroGreeting: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: theme.colors.textInverse,
+    fontFamily: me.font.display,
+    fontSize: 34,
+    color: me.onBrand,
     lineHeight: 38,
-    letterSpacing: -0.8,
+    letterSpacing: me.displayTracking,
     zIndex: 1,
   },
   heroSubtitle: {
@@ -180,21 +185,13 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: theme.colors.surface,
-    borderRadius: 16,
+    backgroundColor: me.surface,
+    borderRadius: me.radius.card,
     padding: 14,
     minHeight: 76,
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.08,
-        shadowRadius: 12,
-      },
-      android: { elevation: 3 },
-    }),
+    borderColor: me.line,
+    ...me.shadow.pop,
   },
   statCardTop: {
     // legacy — kept so any external consumer doesn't crash; no longer used in HomeownerDashboard
@@ -208,7 +205,7 @@ export const styles = StyleSheet.create({
   },
   statCardLabel: {
     fontSize: 11,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     fontWeight: '600',
     marginTop: 2,
   },
@@ -221,11 +218,11 @@ export const styles = StyleSheet.create({
     flexShrink: 0,
   },
   statCardValue: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: theme.colors.textPrimary,
-    letterSpacing: -0.5,
-    lineHeight: 26,
+    fontFamily: me.font.display,
+    fontSize: 24,
+    color: me.ink,
+    letterSpacing: me.displayTracking,
+    lineHeight: 28,
   },
 
   mainContent: {
@@ -242,21 +239,13 @@ export const styles = StyleSheet.create({
     paddingRight: 16,
   },
   dropdownMenu: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 12,
     paddingVertical: 8,
     minWidth: 220,
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.15,
-        shadowRadius: 24,
-      },
-      android: { elevation: 8 },
-    }),
+    borderColor: me.line,
+    ...me.shadow.pop,
   },
   dropdownItem: {
     flexDirection: 'row',
@@ -269,7 +258,7 @@ export const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 10,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -277,11 +266,11 @@ export const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontWeight: '500',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   dropdownDivider: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: theme.colors.border,
+    backgroundColor: me.line,
     marginVertical: 4,
     marginHorizontal: 16,
   },
@@ -291,33 +280,33 @@ export const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg,
     padding: 40,
   },
   errorIconWrap: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: '#FEE2E2',
+    backgroundColor: me.errBg,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
   },
   errorText: {
     fontSize: 16,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     fontWeight: '600',
     marginBottom: 16,
     textAlign: 'center',
   },
   retryButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
     paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: 12,
+    borderRadius: me.radius.btn,
   },
   retryButtonText: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontSize: 15,
     fontWeight: '600',
   },
@@ -333,42 +322,34 @@ export const styles = StyleSheet.create({
     marginBottom: 14,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
-    letterSpacing: -0.3,
+    fontFamily: me.font.display,
+    fontSize: 22,
+    color: me.ink,
+    letterSpacing: me.displayTracking,
   },
   viewAllLink: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.primary,
+    color: me.brand,
   },
 
   // Appointments
   appointmentCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 12,
     padding: 14,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.04,
-        shadowRadius: 6,
-      },
-      android: { elevation: 1 },
-    }),
+    borderColor: me.line,
+    ...me.shadow.card,
   },
   appointmentDateBlock: {
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -376,13 +357,13 @@ export const styles = StyleSheet.create({
   appointmentDay: {
     fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     lineHeight: 22,
   },
   appointmentMonth: {
     fontSize: 10,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     textTransform: 'uppercase',
   },
   appointmentInfo: {
@@ -391,11 +372,11 @@ export const styles = StyleSheet.create({
   appointmentTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 2,
   },
   appointmentMeta: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
 });

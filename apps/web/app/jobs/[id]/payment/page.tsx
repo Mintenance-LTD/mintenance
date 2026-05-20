@@ -219,7 +219,12 @@ function JobPaymentPageContent() {
 
   return (
     <HomeownerPageWrapper>
-      <div className='max-w-6xl mx-auto'>
+      {/* `me-legacy-fit` palette-maps this still-legacy page's Tailwind
+          classes onto the Mint Editorial tokens. The shim is self-gating
+          — its selectors require a `.me-root` ancestor (only the Mint
+          Editorial shell provides one) — so opted-out users are
+          unaffected. */}
+      <div className='max-w-6xl mx-auto me-legacy-fit'>
         {/* Back button */}
         <button
           onClick={() => router.back()}

@@ -1,8 +1,8 @@
 import { StyleSheet } from 'react-native';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 export const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
+  container: { flex: 1, backgroundColor: me.bg2 },
 
   // Hero
   hero: {
@@ -47,7 +47,7 @@ export const styles = StyleSheet.create({
   heroLabel: {
     fontSize: 10,
     fontWeight: '700',
-    color: theme.colors.primaryLight,
+    color: me.brandSoft,
     textTransform: 'uppercase',
     letterSpacing: 2,
     marginBottom: 6,
@@ -100,7 +100,7 @@ export const styles = StyleSheet.create({
   loadingWrap: { alignItems: 'center', paddingVertical: 40 },
   loadingText: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginTop: 12,
   },
 
@@ -108,11 +108,11 @@ export const styles = StyleSheet.create({
   errorCard: {
     alignItems: 'center',
     padding: 32,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 24,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
   errorIconWrap: {
     width: 56,
@@ -126,11 +126,11 @@ export const styles = StyleSheet.create({
   errorText: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 12,
   },
   retryButton: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
     paddingHorizontal: 24,
     paddingVertical: 10,
     borderRadius: 14,
@@ -138,7 +138,7 @@ export const styles = StyleSheet.create({
   retryButtonText: {
     fontSize: 14,
     fontWeight: '700',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
   },
 
   // Filters — floating overlapping hero
@@ -150,11 +150,11 @@ export const styles = StyleSheet.create({
   filterRow: {
     flexDirection: 'row',
     gap: 6,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 24,
     padding: 4,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
   filterChip: {
     flex: 1,
@@ -163,16 +163,16 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
   },
   filterChipActive: {
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
   },
   filterChipText: {
     fontSize: 11,
     fontWeight: '700',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
-  filterChipTextActive: { color: theme.colors.textInverse },
+  filterChipTextActive: { color: me.onBrand },
 
   // KPI
   kpiGrid: {
@@ -184,12 +184,12 @@ export const styles = StyleSheet.create({
   kpiCard: {
     flex: 1,
     minWidth: '45%',
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 24,
     padding: 18,
     gap: 10,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
   kpiIconWrap: {
     width: 40,
@@ -201,12 +201,12 @@ export const styles = StyleSheet.create({
   kpiValue: {
     fontSize: 26,
     fontWeight: '800',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     letterSpacing: -0.5,
   },
   kpiLabel: {
     fontSize: 10,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.8,
@@ -217,16 +217,16 @@ export const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     letterSpacing: -0.3,
     marginBottom: 10,
   },
   sectionCard: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 24,
     padding: 20,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
 
   // Bar chart
@@ -241,7 +241,7 @@ export const styles = StyleSheet.create({
   bar: { borderRadius: 8 },
   barLabel: {
     fontSize: 10,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -249,12 +249,12 @@ export const styles = StyleSheet.create({
   barValue: {
     fontSize: 10,
     fontWeight: '800',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
 
   // Chart empty
   chartEmpty: { alignItems: 'center', paddingVertical: 28, gap: 8 },
-  chartEmptyText: { fontSize: 13, color: theme.colors.textTertiary },
+  chartEmptyText: { fontSize: 13, color: me.ink3 },
 
   // Gauge
   gaugeRow: {
@@ -269,17 +269,17 @@ export const styles = StyleSheet.create({
     height: 64,
     borderRadius: 32,
     borderWidth: 3,
-    borderColor: theme.colors.primary,
+    borderColor: me.brand,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  gaugeValue: { fontSize: 18, fontWeight: '700', color: theme.colors.primary },
+  gaugeValue: { fontSize: 18, fontWeight: '700', color: me.brand },
   gaugeLabel: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     fontWeight: '500',
   },
-  gaugeDivider: { width: 1, height: 40, backgroundColor: theme.colors.border },
+  gaugeDivider: { width: 1, height: 40, backgroundColor: me.line },
 
   // Category
   categoryRow: {
@@ -288,23 +288,23 @@ export const styles = StyleSheet.create({
     marginBottom: 10,
     gap: 8,
   },
-  categoryLabel: { width: 80, fontSize: 13, color: theme.colors.textSecondary },
+  categoryLabel: { width: 80, fontSize: 13, color: me.ink2 },
   categoryBar: {
     flex: 1,
     height: 8,
-    backgroundColor: theme.colors.border,
+    backgroundColor: me.line,
     borderRadius: 4,
   },
   categoryFill: {
     height: 8,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
     borderRadius: 4,
   },
   categoryCount: {
     width: 24,
     fontSize: 13,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     textAlign: 'right',
   },
 
@@ -319,30 +319,30 @@ export const styles = StyleSheet.create({
     width: 16,
     fontSize: 13,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   ratingBar: {
     flex: 1,
     height: 8,
-    backgroundColor: theme.colors.border,
+    backgroundColor: me.line,
     borderRadius: 4,
   },
   ratingFill: {
     height: 8,
-    backgroundColor: theme.colors.accent,
+    backgroundColor: me.accent,
     borderRadius: 4,
   },
   ratingCount: {
     width: 24,
     fontSize: 12,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     textAlign: 'right',
   },
 
   // Reviews
   reviewRow: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
     paddingBottom: 10,
     marginBottom: 10,
   },
@@ -355,12 +355,12 @@ export const styles = StyleSheet.create({
   reviewerName: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   starRow: { flexDirection: 'row', gap: 1 },
   reviewComment: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     lineHeight: 18,
   },
 

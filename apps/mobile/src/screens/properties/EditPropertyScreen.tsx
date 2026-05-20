@@ -27,7 +27,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import type { Property } from '@mintenance/types';
 import type { ProfileStackParamList } from '../../navigation/types';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 
 interface Props {
@@ -182,7 +182,7 @@ export const EditPropertyScreen: React.FC<Props> = ({ navigation, route }) => {
                 setHasEdits(true);
               }}
               placeholder='Property name'
-              placeholderTextColor={theme.colors.textTertiary}
+              placeholderTextColor={me.ink3}
             />
           </View>
 
@@ -198,7 +198,7 @@ export const EditPropertyScreen: React.FC<Props> = ({ navigation, route }) => {
                   setHasEdits(true);
                 }}
                 placeholder='e.g. 42 High Street'
-                placeholderTextColor={theme.colors.textTertiary}
+                placeholderTextColor={me.ink3}
               />
             </View>
             <View style={styles.row}>
@@ -212,7 +212,7 @@ export const EditPropertyScreen: React.FC<Props> = ({ navigation, route }) => {
                     setHasEdits(true);
                   }}
                   placeholder='London'
-                  placeholderTextColor={theme.colors.textTertiary}
+                  placeholderTextColor={me.ink3}
                 />
               </View>
               <View style={styles.rowSpacer} />
@@ -226,7 +226,7 @@ export const EditPropertyScreen: React.FC<Props> = ({ navigation, route }) => {
                     setHasEdits(true);
                   }}
                   placeholder='SW1A 1AA'
-                  placeholderTextColor={theme.colors.textTertiary}
+                  placeholderTextColor={me.ink3}
                   autoCapitalize='characters'
                 />
               </View>
@@ -251,11 +251,7 @@ export const EditPropertyScreen: React.FC<Props> = ({ navigation, route }) => {
                   <Ionicons
                     name={type.icon}
                     size={18}
-                    color={
-                      propertyType === type.value
-                        ? theme.colors.textInverse
-                        : theme.colors.textSecondary
-                    }
+                    color={propertyType === type.value ? me.onBrand : me.ink2}
                   />
                   <Text
                     style={[
@@ -289,7 +285,7 @@ export const EditPropertyScreen: React.FC<Props> = ({ navigation, route }) => {
                     setHasEdits(true);
                   }}
                   placeholder='0'
-                  placeholderTextColor={theme.colors.textTertiary}
+                  placeholderTextColor={me.ink3}
                   keyboardType='number-pad'
                   textAlign='center'
                 />
@@ -309,7 +305,7 @@ export const EditPropertyScreen: React.FC<Props> = ({ navigation, route }) => {
                     setHasEdits(true);
                   }}
                   placeholder='0'
-                  placeholderTextColor={theme.colors.textTertiary}
+                  placeholderTextColor={me.ink3}
                   keyboardType='number-pad'
                   textAlign='center'
                 />
@@ -329,7 +325,7 @@ export const EditPropertyScreen: React.FC<Props> = ({ navigation, route }) => {
                     setHasEdits(true);
                   }}
                   placeholder='2005'
-                  placeholderTextColor={theme.colors.textTertiary}
+                  placeholderTextColor={me.ink3}
                   keyboardType='number-pad'
                   textAlign='center'
                 />
@@ -349,7 +345,7 @@ export const EditPropertyScreen: React.FC<Props> = ({ navigation, route }) => {
                     setHasEdits(true);
                   }}
                   placeholder='1200'
-                  placeholderTextColor={theme.colors.textTertiary}
+                  placeholderTextColor={me.ink3}
                   keyboardType='number-pad'
                   textAlign='center'
                 />
@@ -367,7 +363,7 @@ export const EditPropertyScreen: React.FC<Props> = ({ navigation, route }) => {
                 setHasEdits(true);
               }}
               placeholder='Any additional notes...'
-              placeholderTextColor={theme.colors.textTertiary}
+              placeholderTextColor={me.ink3}
               multiline
               numberOfLines={4}
               textAlignVertical='top'
@@ -393,34 +389,34 @@ export const EditPropertyScreen: React.FC<Props> = ({ navigation, route }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
+  container: { flex: 1, backgroundColor: me.bg2 },
   flex: { flex: 1 },
   content: { padding: 16, paddingBottom: 32 },
   screenLabel: {
     paddingHorizontal: 16,
     paddingTop: 8,
     paddingBottom: 2,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   screenLabelText: {
     fontSize: 11,
     fontWeight: '700',
-    color: theme.colors.primary,
+    color: me.brand,
     textTransform: 'uppercase',
     letterSpacing: 1.2,
   },
   section: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 20,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
   sectionTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 12,
@@ -429,18 +425,18 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '500',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginBottom: 4,
   },
   input: {
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 16,
     paddingHorizontal: 16,
     paddingVertical: 16,
     fontSize: 15,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
   textArea: { minHeight: 100, paddingTop: 14 },
   row: { flexDirection: 'row' },
@@ -452,15 +448,15 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 14,
     borderRadius: 20,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
-  typeChipSelected: { backgroundColor: theme.colors.textPrimary },
+  typeChipSelected: { backgroundColor: me.ink },
   typeChipText: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginLeft: 6,
   },
-  typeChipTextSelected: { color: theme.colors.textInverse, fontWeight: '600' },
+  typeChipTextSelected: { color: me.onBrand, fontWeight: '600' },
   specGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -468,12 +464,12 @@ const styles = StyleSheet.create({
   },
   specCard: {
     width: '48%' as unknown as number,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 16,
     padding: 14,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
   specIconWrap: {
     width: 36,
@@ -486,23 +482,23 @@ const styles = StyleSheet.create({
   specLabel: {
     fontSize: 12,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginBottom: 6,
   },
   specInput: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     width: '100%',
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
   submitButton: {
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
     borderRadius: 28,
     paddingVertical: 16,
     alignItems: 'center',
@@ -510,7 +506,7 @@ const styles = StyleSheet.create({
   },
   submitButtonDisabled: { opacity: 0.5 },
   submitButtonText: {
-    color: '#FFFFFF',
+    color: me.onBrand,
     fontSize: 17,
     fontWeight: '700',
   },

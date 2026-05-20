@@ -10,8 +10,22 @@ export interface BidWithRelations {
   amount: number;
   status: string;
   created_at: string;
-  jobs?: Array<{ id: string; title: string; category?: string; location?: string }> | { id: string; title: string; category?: string; location?: string };
-  contractor?: { id: string; first_name: string; last_name: string; profile_image_url?: string } | Array<{ id: string; first_name: string; last_name: string; profile_image_url?: string }>;
+  jobs?:
+    | Array<{ id: string; title: string; category?: string; location?: string }>
+    | { id: string; title: string; category?: string; location?: string };
+  contractor?:
+    | {
+        id: string;
+        first_name: string;
+        last_name: string;
+        profile_image_url?: string;
+      }
+    | Array<{
+        id: string;
+        first_name: string;
+        last_name: string;
+        profile_image_url?: string;
+      }>;
   total_amount?: number;
 }
 
@@ -22,8 +36,22 @@ export interface QuoteWithRelations {
   total_amount: number;
   status: string;
   created_at: string;
-  job?: Array<{ id: string; title: string; category?: string }> | { id: string; title: string; category?: string };
-  contractor?: Array<{ id: string; first_name: string; last_name: string; profile_image_url?: string }> | { id: string; first_name: string; last_name: string; profile_image_url?: string };
+  job?:
+    | Array<{ id: string; title: string; category?: string }>
+    | { id: string; title: string; category?: string };
+  contractor?:
+    | Array<{
+        id: string;
+        first_name: string;
+        last_name: string;
+        profile_image_url?: string;
+      }>
+    | {
+        id: string;
+        first_name: string;
+        last_name: string;
+        profile_image_url?: string;
+      };
 }
 
 export interface JobWithContractor {
@@ -86,7 +114,6 @@ export interface KpiData {
   };
 }
 
-
 export interface Job {
   id: string;
   status: string;
@@ -118,6 +145,8 @@ export interface Payment {
   id: string;
   status: string;
   amount: number;
+  net_amount?: number;
+  job_id?: string;
   due_date?: string;
   created_at: string;
   [key: string]: unknown;

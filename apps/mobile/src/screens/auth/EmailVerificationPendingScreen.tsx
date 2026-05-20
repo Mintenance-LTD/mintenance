@@ -53,7 +53,7 @@ import { Button } from '../../components/ui/Button';
 import { Banner } from '../../components/ui/Banner';
 import { AuthService } from '../../services/AuthService';
 import { logger } from '../../utils/logger';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 import type { AuthStackParamList } from '../../navigation/types';
 
 type Props = NativeStackScreenProps<
@@ -175,15 +175,11 @@ export const EmailVerificationPendingScreen: React.FC<Props> = ({
           accessibilityLabel='Go back'
           hitSlop={{ top: 10, left: 10, right: 10, bottom: 10 }}
         >
-          <Ionicons
-            name='arrow-back'
-            size={24}
-            color={theme.colors.textPrimary}
-          />
+          <Ionicons name='arrow-back' size={24} color={me.ink} />
         </TouchableOpacity>
 
         <View style={styles.iconWrap}>
-          <Ionicons name='mail-unread' size={56} color={theme.colors.primary} />
+          <Ionicons name='mail-unread' size={56} color={me.brand} />
         </View>
 
         <Text style={styles.title} accessibilityRole='header'>
@@ -276,7 +272,7 @@ export default EmailVerificationPendingScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   content: {
     flexGrow: 1,
@@ -294,7 +290,7 @@ const styles = StyleSheet.create({
     width: 96,
     height: 96,
     borderRadius: 32,
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: me.brandSoft,
     alignItems: 'center',
     justifyContent: 'center',
     alignSelf: 'center',
@@ -304,26 +300,26 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 26,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     textAlign: 'center',
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 15,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     textAlign: 'center',
   },
   emailText: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.colors.primary,
+    color: me.brand,
     textAlign: 'center',
     marginTop: 4,
     marginBottom: 20,
   },
   instruction: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     textAlign: 'center',
     lineHeight: 20,
     marginBottom: 24,
@@ -349,15 +345,15 @@ const styles = StyleSheet.create({
   },
   resendHint: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   resendLink: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.primary,
+    color: me.brand,
   },
   resendLinkDisabled: {
-    color: theme.colors.textTertiary,
+    color: me.ink3,
   },
   footerLinkWrap: {
     marginTop: 12,
@@ -367,12 +363,12 @@ const styles = StyleSheet.create({
   footerLink: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     textDecorationLine: 'underline',
   },
   helpText: {
     fontSize: 12,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     textAlign: 'center',
     marginTop: 24,
   },

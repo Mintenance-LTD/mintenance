@@ -46,9 +46,12 @@ export const POST = withApiHandler(
     const sendPush = channels?.push ?? true;
     const sendInApp = channels?.inApp ?? true;
 
-    // Fetch the announcement
+    // Fetch the announcement. Canonical table is `admin_announcements`
+    // — the create / list / update / delete paths all use it via
+    // AdminCommunicationService. (The send route previously read a
+    // stale, empty `announcements` table, so every send 404'd.)
     const { data: announcement, error: annError } = await serverSupabase
-      .from('announcements')
+      .from('admin_announcements')
       .select('*')
       .eq('id', announcementId)
       .single();
@@ -221,7 +224,7 @@ export const POST = withApiHandler(
 
     // Mark announcement as sent
     await serverSupabase
-      .from('announcements')
+      .from('admin_announcements')
       .update({
         sent_at: new Date().toISOString(),
         sent_by: user.id,

@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text } from 'react-native';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 /**
  * Web-compatible fallbacks for `react-native-maps`.
@@ -29,7 +29,7 @@ export const MapView = React.forwardRef<
       ref={ref}
       style={{
         flex: 1,
-        backgroundColor: theme.colors.backgroundSecondary,
+        backgroundColor: me.bg2,
         justifyContent: 'center',
         alignItems: 'center',
       }}

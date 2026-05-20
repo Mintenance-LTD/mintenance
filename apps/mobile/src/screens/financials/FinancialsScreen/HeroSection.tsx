@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { theme, gradients } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 import { fmt } from './constants';
 import { styles } from './styles';
 
@@ -14,10 +14,16 @@ interface HeroSectionProps {
   onBack: () => void;
 }
 
-export const HeroSection: React.FC<HeroSectionProps> = ({ totalSpent, thisMonth, inEscrow, insetsTop, onBack }) => {
+export const HeroSection: React.FC<HeroSectionProps> = ({
+  totalSpent,
+  thisMonth,
+  inEscrow,
+  insetsTop,
+  onBack,
+}) => {
   return (
     <LinearGradient
-      colors={gradients.heroGreen}
+      colors={[me.brand2, me.brand]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={styles.hero}
@@ -29,8 +35,11 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ totalSpent, thisMonth,
       <View style={{ height: insetsTop + 12 }} />
 
       <View style={styles.heroNav}>
-        <TouchableOpacity onPress={onBack} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Ionicons name="arrow-back" size={24} color={theme.colors.textInverse} />
+        <TouchableOpacity
+          onPress={onBack}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons name='arrow-back' size={24} color={me.onBrand} />
         </TouchableOpacity>
         <Text style={styles.heroNavTitle}>My Finances</Text>
         <View style={{ width: 24 }} />

@@ -5,7 +5,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LoadingSpinner, ErrorView } from '../../components/shared';
 import type { ProfileStackParamList } from '../../navigation/types';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 import { useFinancialsData } from './FinancialsScreen/useFinancialsData';
 import { HeroSection } from './FinancialsScreen/HeroSection';
 import { StatCardsRow } from './FinancialsScreen/StatCardsRow';
@@ -54,8 +54,8 @@ export const FinancialsScreen: React.FC = () => {
           <RefreshControl
             refreshing={false}
             onRefresh={refetch}
-            tintColor='#FFFFFF'
-            colors={[theme.colors.primary]}
+            tintColor={me.onBrand}
+            colors={[me.brand]}
           />
         }
       >

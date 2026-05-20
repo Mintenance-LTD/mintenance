@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 interface Props {
   contractorName?: string;
@@ -15,11 +15,7 @@ export function ContractPartiesSection({
   return (
     <View style={styles.container}>
       <View style={styles.sectionHeader}>
-        <Ionicons
-          name='people-outline'
-          size={16}
-          color={theme.colors.primary}
-        />
+        <Ionicons name='people-outline' size={16} color={me.brand} />
         <Text style={styles.sectionLabel}>PARTIES</Text>
       </View>
       <View style={styles.partiesRow}>
@@ -43,7 +39,7 @@ export function ContractPartiesSection({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 12,
@@ -58,7 +54,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     letterSpacing: 0.8,
-    color: theme.colors.primary,
+    color: me.brand,
   },
   partiesRow: {
     flexDirection: 'row',
@@ -70,19 +66,19 @@ const styles = StyleSheet.create({
   divider: {
     width: 1,
     height: 36,
-    backgroundColor: theme.colors.border,
+    backgroundColor: me.line,
     marginHorizontal: 12,
   },
   partyRole: {
     fontSize: 10,
     fontWeight: '700',
     letterSpacing: 0.6,
-    color: theme.colors.primary,
+    color: me.brand,
     marginBottom: 4,
   },
   partyName: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
 });

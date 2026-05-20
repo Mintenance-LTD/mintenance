@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 interface Props {
   address: string;
@@ -33,7 +33,7 @@ export const JobLocationMap: React.FC<Props> = ({
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Ionicons name='location' size={18} color={theme.colors.primary} />
+        <Ionicons name='location' size={18} color={me.brand} />
         <Text style={styles.title}>Job Location</Text>
       </View>
       <Text style={styles.address}>{address}</Text>
@@ -61,11 +61,7 @@ export const JobLocationMap: React.FC<Props> = ({
         accessibilityRole='button'
         accessibilityLabel='Get directions to job location'
       >
-        <Ionicons
-          name='navigate-outline'
-          size={16}
-          color={theme.colors.primary}
-        />
+        <Ionicons name='navigate-outline' size={16} color={me.brand} />
         <Text style={styles.directionsText}>Get Directions</Text>
       </TouchableOpacity>
     </View>
@@ -74,11 +70,11 @@ export const JobLocationMap: React.FC<Props> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 20,
     padding: 16,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
   header: {
     flexDirection: 'row',
@@ -89,11 +85,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 15,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   address: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginBottom: 12,
     lineHeight: 20,
   },
@@ -113,11 +109,11 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 10,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: theme.colors.border,
+    borderTopColor: me.line,
   },
   directionsText: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.primary,
+    color: me.brand,
   },
 });

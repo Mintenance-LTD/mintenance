@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, Switch, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 import { SETTING_ICONS } from './notificationSettingsConfig';
 
 interface SettingRowProps {
@@ -23,8 +23,8 @@ const SettingRow: React.FC<SettingRowProps> = ({
 }) => {
   const iconConfig = SETTING_ICONS[icon] || {
     name: icon as keyof typeof Ionicons.glyphMap,
-    color: theme.colors.textSecondary,
-    bg: theme.colors.backgroundSecondary,
+    color: me.ink2,
+    bg: me.bg2,
   };
 
   return (
@@ -36,7 +36,7 @@ const SettingRow: React.FC<SettingRowProps> = ({
           <Ionicons
             name={iconConfig.name}
             size={18}
-            color={disabled ? theme.colors.textTertiary : iconConfig.color}
+            color={disabled ? me.ink3 : iconConfig.color}
           />
         </View>
         <View style={styles.settingInfo}>
@@ -53,10 +53,10 @@ const SettingRow: React.FC<SettingRowProps> = ({
         onValueChange={onToggle}
         disabled={disabled}
         trackColor={{
-          false: theme.colors.border,
-          true: disabled ? theme.colors.textTertiary : theme.colors.primary,
+          false: me.line,
+          true: disabled ? me.ink3 : me.brand,
         }}
-        thumbColor={theme.colors.surface}
+        thumbColor={me.surface}
       />
     </View>
   );
@@ -69,7 +69,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   disabledRow: {
     opacity: 0.5,
@@ -94,15 +94,15 @@ const styles = StyleSheet.create({
   settingTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 2,
   },
   disabledText: {
-    color: theme.colors.textTertiary,
+    color: me.ink3,
   },
   settingDescription: {
     fontSize: 13,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     lineHeight: 18,
   },
 });

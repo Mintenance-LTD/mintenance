@@ -1,5 +1,5 @@
 import React from 'react';
-import { PoundSterling } from 'lucide-react';
+import { PoundSterling, Heart, ShieldAlert, Repeat } from 'lucide-react';
 
 export function getNotificationIcon(type: string) {
   switch (type) {
@@ -22,12 +22,20 @@ export function getNotificationIcon(type: string) {
           />
         </svg>
       );
+    case 'job_invitation_from_repeat_client':
+      return <Repeat className='w-5 h-5' aria-hidden='true' />;
     case 'bid':
     case 'bid_received':
     case 'bid_accepted':
     case 'quote_viewed':
     case 'quote_accepted':
       return <PoundSterling className='w-5 h-5' aria-hidden='true' />;
+    case 'job_tip_received':
+      return <Heart className='w-5 h-5' aria-hidden='true' />;
+    case 'contractor_insurance_expiry':
+    case 'contractor_license_expiry':
+    case 'contractor_dbs_expiry':
+      return <ShieldAlert className='w-5 h-5' aria-hidden='true' />;
     case 'message':
       return (
         <svg
@@ -130,6 +138,14 @@ export function getNotificationColor(type: string) {
     case 'quote_viewed':
     case 'quote_accepted':
       return 'bg-emerald-500';
+    case 'job_invitation_from_repeat_client':
+      return 'bg-emerald-600';
+    case 'job_tip_received':
+      return 'bg-rose-500';
+    case 'contractor_insurance_expiry':
+    case 'contractor_license_expiry':
+    case 'contractor_dbs_expiry':
+      return 'bg-amber-600';
     case 'message':
       return 'bg-purple-500';
     case 'payment':

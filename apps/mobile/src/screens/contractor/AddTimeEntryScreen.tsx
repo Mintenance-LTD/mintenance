@@ -19,7 +19,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import { useAuth } from '../../contexts/AuthContext';
 import type { ProfileStackParamList } from '../../navigation/types';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 
 interface Props {
@@ -93,16 +93,13 @@ export const AddTimeEntryScreen: React.FC<Props> = ({ navigation }) => {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <StatusBar
-        barStyle='dark-content'
-        backgroundColor={theme.colors.surface}
-      />
+      <StatusBar barStyle='dark-content' backgroundColor={me.surface} />
       <View style={[styles.header, { paddingTop: insets.top }]}>
         <TouchableOpacity
           style={styles.headerButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons name='close' size={24} color={theme.colors.textPrimary} />
+          <Ionicons name='close' size={24} color={me.ink} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Add Time Entry</Text>
         <TouchableOpacity
@@ -133,11 +130,7 @@ export const AddTimeEntryScreen: React.FC<Props> = ({ navigation }) => {
             flow. */}
         <View style={styles.purposeBanner}>
           <View style={styles.purposeBannerIcon}>
-            <Ionicons
-              name='time-outline'
-              size={20}
-              color={theme.colors.primary}
-            />
+            <Ionicons name='time-outline' size={20} color={me.brand} />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.purposeBannerTitle}>
@@ -155,7 +148,7 @@ export const AddTimeEntryScreen: React.FC<Props> = ({ navigation }) => {
           <TextInput
             style={styles.input}
             placeholder='e.g. Plumbing inspection at Oak Lane'
-            placeholderTextColor={theme.colors.textTertiary}
+            placeholderTextColor={me.ink3}
             value={taskDescription}
             onChangeText={setTaskDescription}
             multiline
@@ -163,11 +156,7 @@ export const AddTimeEntryScreen: React.FC<Props> = ({ navigation }) => {
 
           <Text style={[styles.fieldLabel, { marginTop: 16 }]}>Date</Text>
           <View style={styles.readonlyRow}>
-            <Ionicons
-              name='calendar-outline'
-              size={18}
-              color={theme.colors.textTertiary}
-            />
+            <Ionicons name='calendar-outline' size={18} color={me.ink3} />
             <Text style={styles.readonlyValue}>
               {new Date(date).toLocaleDateString('en-GB', {
                 weekday: 'long',
@@ -183,7 +172,7 @@ export const AddTimeEntryScreen: React.FC<Props> = ({ navigation }) => {
             <TextInput
               style={[styles.input, styles.inputSmall]}
               placeholder='0.0'
-              placeholderTextColor={theme.colors.textTertiary}
+              placeholderTextColor={me.ink3}
               value={hours}
               onChangeText={setHours}
               keyboardType='decimal-pad'
@@ -199,7 +188,7 @@ export const AddTimeEntryScreen: React.FC<Props> = ({ navigation }) => {
             <TextInput
               style={[styles.input, styles.inputSmall]}
               placeholder='0.00'
-              placeholderTextColor={theme.colors.textTertiary}
+              placeholderTextColor={me.ink3}
               value={hourlyRate}
               onChangeText={setHourlyRate}
               keyboardType='decimal-pad'
@@ -231,10 +220,10 @@ export const AddTimeEntryScreen: React.FC<Props> = ({ navigation }) => {
               value={billable}
               onValueChange={setBillable}
               trackColor={{
-                false: theme.colors.border,
-                true: theme.colors.textPrimary,
+                false: me.line,
+                true: me.ink,
               }}
-              thumbColor={theme.colors.surface}
+              thumbColor={me.surface}
             />
           </View>
         </View>
@@ -244,50 +233,42 @@ export const AddTimeEntryScreen: React.FC<Props> = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
+  container: { flex: 1, backgroundColor: me.bg2 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   headerButton: { padding: 8, width: 60 },
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   saveButton: { alignItems: 'flex-end' },
   saveButtonText: {
     fontSize: 16,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   saveButtonDisabled: { opacity: 0.5 },
   content: { padding: 16 },
   card: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     padding: 20,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   purposeBanner: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 12,
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: me.brandSoft,
     borderRadius: 14,
     padding: 14,
     marginBottom: 14,
@@ -296,68 +277,68 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     alignItems: 'center',
     justifyContent: 'center',
   },
   purposeBannerTitle: {
     fontSize: 14,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 4,
   },
   purposeBannerText: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     lineHeight: 17,
   },
   fieldLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 6,
   },
   input: {
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 12,
     padding: 14,
     fontSize: 15,
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   inputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   inputSmall: { width: 120 },
   inputPrefix: {
     fontSize: 18,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
-  inputSuffix: { fontSize: 14, color: theme.colors.textSecondary },
+  inputSuffix: { fontSize: 14, color: me.ink2 },
   readonlyRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     paddingVertical: 10,
     paddingHorizontal: 14,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 12,
   },
-  readonlyValue: { fontSize: 15, color: theme.colors.textPrimary },
+  readonlyValue: { fontSize: 15, color: me.ink },
   totalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginTop: 14,
     padding: 14,
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: me.brandSoft,
     borderRadius: 12,
   },
-  totalLabel: { fontSize: 14, color: theme.colors.textSecondary },
+  totalLabel: { fontSize: 14, color: me.ink2 },
   totalValue: {
     fontSize: 17,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   switchRow: {
     flexDirection: 'row',
@@ -366,11 +347,11 @@ const styles = StyleSheet.create({
     marginTop: 20,
     paddingTop: 16,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: theme.colors.border,
+    borderTopColor: me.line,
   },
   switchSubtitle: {
     fontSize: 12,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     marginTop: 2,
   },
 });

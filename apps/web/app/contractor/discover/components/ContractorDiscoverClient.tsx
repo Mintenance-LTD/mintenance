@@ -67,6 +67,17 @@ export function ContractorDiscoverClient({
   const mapRef = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<google.maps.Marker[]>([]);
 
+  // Hydration-safe theme detection — same pattern used across the
+  // contractor Phase-4 ports. Lives near the other state hooks so
+  // it's well above any early return.
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
+
   // Load saved jobs on mount
   useEffect(() => {
     fetch('/api/contractor/saved-jobs')
@@ -260,6 +271,16 @@ export function ContractorDiscoverClient({
 
   return (
     <ContractorPageWrapper>
+      {isMintEditorial ? (
+        <div className='col' style={{ gap: 4, marginBottom: 16 }}>
+          <h1 className='t-h1'>Discover</h1>
+          <p className='t-body'>
+            Swipe-style discovery of fresh jobs that match your skills,
+            location, and budget — save or skip to refine your feed.
+          </p>
+        </div>
+      ) : null}
+
       <DiscoverQuickStats
         filteredJobCount={filteredJobs.length}
         savedJobCount={savedJobIds.size}
@@ -275,12 +296,20 @@ export function ContractorDiscoverClient({
       {/* Header: count + view toggle + filter chips */}
       <div className='mb-4'>
         <div className='flex items-center justify-between mb-2'>
-          <h3 className='text-base font-semibold text-gray-900'>
-            Available Jobs ({filteredJobs.length})
+          <h3
+            className={isMintEditorial ? 't-h3' : 'text-base font-semibold'}
+            style={isMintEditorial ? undefined : { color: 'var(--me-ink)' }}
+          >
+            Available jobs ({filteredJobs.length})
             {hasLocation && (
               <>
                 {' '}
-                <span className='text-sm text-gray-400 font-normal'>
+                <span
+                  className={isMintEditorial ? 't-meta' : 'text-sm font-normal'}
+                  style={
+                    isMintEditorial ? undefined : { color: 'var(--me-ink-3)' }
+                  }
+                >
                   within {selectedRadius}km
                 </span>
               </>
@@ -288,24 +317,37 @@ export function ContractorDiscoverClient({
           </h3>
 
           {/* View mode toggle */}
-          <div className='flex items-center gap-1 bg-gray-100 rounded-lg p-1'>
+          <div
+            className='flex items-center gap-1 rounded-lg p-1'
+            style={{ background: 'var(--me-bg-2)' }}
+          >
             <button
               onClick={() => setViewMode('split')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+              className='flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors'
+              style={
                 viewMode === 'split'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
+                  ? {
+                      background: 'var(--me-surface)',
+                      color: 'var(--me-ink)',
+                      boxShadow: 'var(--me-shadow-btn)',
+                    }
+                  : { color: 'var(--me-ink-3)' }
+              }
             >
               <Map className='w-3.5 h-3.5' /> Map
             </button>
             <button
               onClick={() => setViewMode('cards')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
+              className='flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors'
+              style={
                 viewMode === 'cards'
-                  ? 'bg-white text-gray-900 shadow-sm'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
+                  ? {
+                      background: 'var(--me-surface)',
+                      color: 'var(--me-ink)',
+                      boxShadow: 'var(--me-shadow-btn)',
+                    }
+                  : { color: 'var(--me-ink-3)' }
+              }
             >
               <LayoutGrid className='w-3.5 h-3.5' /> Cards
             </button>
@@ -342,7 +384,10 @@ export function ContractorDiscoverClient({
             ))}
           </div>
           {viewMode === 'split' && (
-            <div className='flex-1 h-64 bg-gray-100 rounded-xl animate-pulse' />
+            <div
+              className='flex-1 h-64 rounded-xl animate-pulse'
+              style={{ background: 'var(--me-bg-2)' }}
+            />
           )}
         </div>
       ) : filteredJobs.length === 0 ? (
@@ -364,24 +409,40 @@ export function ContractorDiscoverClient({
           </div>
 
           <div className='flex-1'>
-            <div className='bg-white rounded-xl border border-gray-200 px-5 py-3 mb-4 flex items-center gap-3'>
-              <MapPin className='w-4 h-4 text-teal-600 flex-shrink-0' />
-              <span className='text-sm text-gray-700'>
+            <div
+              className='rounded-xl px-5 py-3 mb-4 flex items-center gap-3'
+              style={{
+                background: 'var(--me-surface)',
+                border: '1px solid var(--me-line)',
+              }}
+            >
+              <MapPin
+                className='w-4 h-4 flex-shrink-0'
+                style={{ color: 'var(--me-brand)' }}
+              />
+              <span className='text-sm' style={{ color: 'var(--me-ink-2)' }}>
                 {filteredJobs.length} jobs near you
                 {hasLocation && (
-                  <span className='text-gray-400'>
+                  <span style={{ color: 'var(--me-ink-3)' }}>
                     {' '}
                     · within {selectedRadius}km
                   </span>
                 )}
               </span>
-              <span className='text-xs text-gray-400 ml-auto'>
+              <span
+                className='text-xs ml-auto'
+                style={{ color: 'var(--me-ink-3)' }}
+              >
                 Hover a card to focus the map
               </span>
             </div>
             <div
-              className='bg-white rounded-xl border border-gray-200 overflow-hidden'
-              style={{ height: '740px' }}
+              className='rounded-xl overflow-hidden'
+              style={{
+                background: 'var(--me-surface)',
+                border: '1px solid var(--me-line)',
+                height: '740px',
+              }}
             >
               <DynamicGoogleMap
                 center={{

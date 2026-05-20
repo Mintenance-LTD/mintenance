@@ -5,9 +5,9 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 import { FilterTab } from './notificationConfig';
 
 interface NotificationEmptyProps {
@@ -23,7 +23,7 @@ export const NotificationEmpty: React.FC<NotificationEmptyProps> = ({
         <Ionicons
           name='notifications-off-outline'
           size={32}
-          color={theme.colors.textSecondary}
+          color={me.ink2}
           accessible={false}
         />
       </View>
@@ -50,29 +50,21 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 8,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 4,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     textAlign: 'center',
     lineHeight: 20,
   },

@@ -22,7 +22,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { JobsStackParamList } from '../../navigation/types';
 import { JobCRUDService } from '../../services/JobCRUDService';
 import { logger } from '../../utils/logger';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
 
 type Props = NativeStackScreenProps<JobsStackParamList, 'JobEdit'>;
@@ -161,7 +161,7 @@ const JobEditScreen: React.FC<Props> = ({ navigation, route }) => {
     return (
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size='large' color={theme.colors.primary} />
+          <ActivityIndicator size='large' color={me.brand} />
           <Text style={styles.loadingText}>Loading job details...</Text>
         </View>
       </SafeAreaView>
@@ -179,11 +179,7 @@ const JobEditScreen: React.FC<Props> = ({ navigation, route }) => {
               accessibilityLabel='Go back'
               style={styles.headerBackBtn}
             >
-              <Ionicons
-                name='arrow-back'
-                size={24}
-                color={theme.colors.textPrimary}
-              />
+              <Ionicons name='arrow-back' size={24} color={me.ink} />
             </TouchableOpacity>
             <Text style={styles.headerBarTitle}>Edit Job</Text>
             <View style={styles.headerSpacer} />
@@ -217,7 +213,7 @@ const JobEditScreen: React.FC<Props> = ({ navigation, route }) => {
             accessibilityLabel='Cancel editing'
             style={styles.headerBackBtn}
           >
-            <Ionicons name='close' size={24} color={theme.colors.textPrimary} />
+            <Ionicons name='close' size={24} color={me.ink} />
           </TouchableOpacity>
           <Text style={styles.headerBarTitle}>Edit Job</Text>
           <View style={styles.headerSpacer} />
@@ -389,22 +385,22 @@ const JobEditScreen: React.FC<Props> = ({ navigation, route }) => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
   },
   container: {
     flex: 1,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
   },
   loadingText: {
     marginTop: 12,
     fontSize: 15,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   headerBar: {
     flexDirection: 'row',
@@ -412,8 +408,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
+    borderBottomColor: me.line,
+    backgroundColor: me.surface,
   },
   headerBackBtn: {
     padding: 8,
@@ -423,7 +419,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   headerSpacer: {
     width: 40,
@@ -443,7 +439,7 @@ const styles = StyleSheet.create({
   fieldLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginTop: 12,
     marginBottom: 8,
   },
@@ -458,16 +454,16 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
+    borderColor: me.line,
+    backgroundColor: me.surface,
   },
   chipSelected: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
+    backgroundColor: me.brand,
+    borderColor: me.brand,
   },
   chipText: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   chipTextSelected: {
     color: '#FFFFFF',
@@ -483,16 +479,16 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
     alignItems: 'center',
   },
   priorityChipSelected: {
-    backgroundColor: theme.colors.primary,
-    borderColor: theme.colors.primary,
+    backgroundColor: me.brand,
+    borderColor: me.brand,
   },
   priorityChipText: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     fontWeight: '500',
   },
   priorityChipTextSelected: {

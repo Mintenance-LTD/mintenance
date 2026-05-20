@@ -4,7 +4,6 @@ import React from 'react';
 import { ResourceHero } from './ResourceHero';
 import { ResourceCategories } from './ResourceCategories';
 import { FeaturedResources } from './FeaturedResources';
-import { SuccessMetrics } from './SuccessMetrics';
 import { QuickTipsSection } from './QuickTipsSection';
 import { ResourcesCTA } from './ResourcesCTA';
 
@@ -14,11 +13,17 @@ import { ResourcesCTA } from './ResourcesCTA';
  */
 export function ResourcesClient() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-teal-50 via-white to-emerald-50">
+    <div
+      data-theme='mint-editorial'
+      className='min-h-screen'
+      style={{
+        background: 'var(--me-bg)',
+        fontFamily: 'var(--me-font-body)',
+      }}
+    >
       <ResourceHero />
       <ResourceCategories />
       <FeaturedResources />
-      <SuccessMetrics />
       <QuickTipsSection />
       <ResourcesCTA />
     </div>

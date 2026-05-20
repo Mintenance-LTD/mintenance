@@ -1,10 +1,10 @@
-import { StyleSheet, Platform } from 'react-native';
-import { theme } from '../../../theme';
+import { StyleSheet } from 'react-native';
+import { me } from '../../../design-system/mint-editorial';
 
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   scrollView: {
     flex: 1,
@@ -57,7 +57,7 @@ export const styles = StyleSheet.create({
   heroNavTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     letterSpacing: -0.3,
   },
   heroLabel: {
@@ -72,7 +72,7 @@ export const styles = StyleSheet.create({
   heroAmount: {
     fontSize: 40,
     fontWeight: '700',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     letterSpacing: -1.5,
     marginBottom: 24,
     zIndex: 1,
@@ -88,7 +88,7 @@ export const styles = StyleSheet.create({
   heroStatValue: {
     fontSize: 22,
     fontWeight: '700',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     letterSpacing: -0.3,
   },
   heroStatLabel: {
@@ -114,25 +114,22 @@ export const styles = StyleSheet.create({
   },
   statCard: {
     flex: 1,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     padding: 14,
     alignItems: 'center',
-    ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12 },
-      android: { elevation: 4 },
-    }),
+    ...me.shadow.card,
   },
   statCardValue: {
     fontSize: 15,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     letterSpacing: -0.3,
     marginTop: 6,
   },
   statCardLabel: {
     fontSize: 11,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     fontWeight: '500',
     marginTop: 2,
   },
@@ -144,14 +141,11 @@ export const styles = StyleSheet.create({
 
   // Section Card
   sectionCard: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 20,
     padding: 20,
     marginBottom: 16,
-    ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 12 },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   sectionHeader: {
     flexDirection: 'row',
@@ -162,12 +156,12 @@ export const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     letterSpacing: -0.3,
   },
   viewAllText: {
     fontSize: 14,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     fontWeight: '600',
     textDecorationLine: 'underline',
   },
@@ -181,19 +175,19 @@ export const styles = StyleSheet.create({
   budgetItem: {},
   budgetLabel: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     fontWeight: '500',
     marginBottom: 4,
   },
   budgetValue: {
     fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     letterSpacing: -0.3,
   },
   budgetBarBg: {
     height: 8,
-    backgroundColor: theme.colors.backgroundTertiary,
+    backgroundColor: me.bg3,
     borderRadius: 4,
     overflow: 'hidden',
     marginBottom: 10,
@@ -201,11 +195,11 @@ export const styles = StyleSheet.create({
   budgetBarFill: {
     height: 8,
     borderRadius: 4,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
   },
   budgetHint: {
     fontSize: 13,
-    color: theme.colors.primary,
+    color: me.brand,
     fontWeight: '600',
   },
 
@@ -217,14 +211,14 @@ export const styles = StyleSheet.create({
     marginBottom: 20,
     paddingBottom: 20,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   donutOuter: {
     width: 120,
     height: 120,
     borderRadius: 60,
     borderWidth: 12,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
     backgroundColor: '#FAFAFA',
     alignItems: 'center',
     justifyContent: 'center',
@@ -235,12 +229,12 @@ export const styles = StyleSheet.create({
   donutTotal: {
     fontSize: 14,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     letterSpacing: -0.3,
   },
   donutLabel: {
     fontSize: 10,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     fontWeight: '500',
     marginTop: 1,
   },
@@ -261,13 +255,13 @@ export const styles = StyleSheet.create({
   },
   legendLabel: {
     fontSize: 13,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     fontWeight: '500',
     flex: 1,
   },
   legendPercent: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     fontWeight: '600',
   },
 
@@ -296,17 +290,17 @@ export const styles = StyleSheet.create({
   },
   categoryName: {
     fontSize: 14,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     fontWeight: '600',
   },
   categoryAmount: {
     fontSize: 14,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     fontWeight: '700',
   },
   progressBarBg: {
     height: 6,
-    backgroundColor: theme.colors.backgroundTertiary,
+    backgroundColor: me.bg3,
     borderRadius: 3,
     overflow: 'hidden',
   },
@@ -320,14 +314,11 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
-    ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 12 },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   subscriptionLeft: {
     flexDirection: 'row',
@@ -344,12 +335,12 @@ export const styles = StyleSheet.create({
   subscriptionTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     textTransform: 'capitalize',
   },
   subscriptionStatus: {
     fontSize: 12,
-    color: theme.colors.primary,
+    color: me.brand,
     fontWeight: '500',
     marginTop: 2,
     textTransform: 'capitalize',
@@ -361,7 +352,7 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.borderLight,
+    borderBottomColor: me.line2,
   },
   transactionRowLast: {
     borderBottomWidth: 0,
@@ -381,11 +372,11 @@ export const styles = StyleSheet.create({
   transactionTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   transactionDate: {
     fontSize: 12,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     marginTop: 2,
   },
   transactionRight: {
@@ -394,7 +385,7 @@ export const styles = StyleSheet.create({
   transactionAmount: {
     fontSize: 15,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   transactionStatusWrap: {
     flexDirection: 'row',
@@ -422,7 +413,7 @@ export const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
@@ -430,17 +421,17 @@ export const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 16,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 4,
   },
   emptyText: {
     fontSize: 14,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     textAlign: 'center',
   },
   emptySubtext: {
     fontSize: 13,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     textAlign: 'center',
   },
 

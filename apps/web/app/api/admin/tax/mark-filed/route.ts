@@ -50,11 +50,16 @@ export const POST = withApiHandler(
       year,
     });
 
+    // `tax_year_summaries` tracks 1099 filing via `form_1099_filed`
+    // (bool) + `form_1099_filed_at` (timestamp) — the same columns the
+    // /api/admin/tax/summaries GET reads back. The previous update wrote
+    // `filed_at` / `status`, neither of which exists on the table, so
+    // the UPDATE errored and "mark as filed" never persisted.
     const { error } = await serverSupabase
       .from('tax_year_summaries')
       .update({
-        filed_at: now,
-        status: 'filed',
+        form_1099_filed: true,
+        form_1099_filed_at: now,
         updated_at: now,
       })
       .eq('contractor_id', contractorId)

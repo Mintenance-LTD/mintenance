@@ -1,13 +1,7 @@
 import React from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Platform,
-} from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 interface QuickActionsSectionProps {
   onEnableAll: () => void;
@@ -25,39 +19,22 @@ const QuickActionsSection: React.FC<QuickActionsSectionProps> = ({
 
     <TouchableOpacity style={styles.actionButton} onPress={onEnableAll}>
       <View style={styles.actionLeft}>
-        <View
-          style={[
-            styles.iconContainer,
-            { backgroundColor: theme.colors.primaryLight },
-          ]}
-        >
-          <Ionicons
-            name='checkmark-circle'
-            size={18}
-            color={theme.colors.primary}
-          />
+        <View style={[styles.iconContainer, { backgroundColor: me.brandSoft }]}>
+          <Ionicons name='checkmark-circle' size={18} color={me.brand} />
         </View>
         <Text style={styles.actionText}>Enable All Notifications</Text>
       </View>
-      <Ionicons
-        name='chevron-forward'
-        size={16}
-        color={theme.colors.textTertiary}
-      />
+      <Ionicons name='chevron-forward' size={16} color={me.ink3} />
     </TouchableOpacity>
 
     <TouchableOpacity style={styles.actionButton} onPress={onDisableAll}>
       <View style={styles.actionLeft}>
-        <View style={[styles.iconContainer, { backgroundColor: '#FEE2E2' }]}>
-          <Ionicons name='close-circle' size={18} color={theme.colors.error} />
+        <View style={[styles.iconContainer, { backgroundColor: me.errBg }]}>
+          <Ionicons name='close-circle' size={18} color={me.errFg} />
         </View>
         <Text style={styles.actionText}>Disable All Notifications</Text>
       </View>
-      <Ionicons
-        name='chevron-forward'
-        size={16}
-        color={theme.colors.textTertiary}
-      />
+      <Ionicons name='chevron-forward' size={16} color={me.ink3} />
     </TouchableOpacity>
 
     <TouchableOpacity style={styles.actionButton} onPress={onResetToDefaults}>
@@ -67,37 +44,25 @@ const QuickActionsSection: React.FC<QuickActionsSectionProps> = ({
         </View>
         <Text style={styles.actionText}>Reset to Defaults</Text>
       </View>
-      <Ionicons
-        name='chevron-forward'
-        size={16}
-        color={theme.colors.textTertiary}
-      />
+      <Ionicons name='chevron-forward' size={16} color={me.ink3} />
     </TouchableOpacity>
   </View>
 );
 
 const styles = StyleSheet.create({
   section: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     marginHorizontal: 16,
     marginTop: 16,
     marginBottom: 0,
     borderRadius: 16,
     padding: 20,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   sectionTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 16,
@@ -108,7 +73,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   actionLeft: {
     flexDirection: 'row',
@@ -125,7 +90,7 @@ const styles = StyleSheet.create({
   actionText: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
 });
 

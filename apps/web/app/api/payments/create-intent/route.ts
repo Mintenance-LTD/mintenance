@@ -138,10 +138,12 @@ export const POST = withApiHandler(
         throw new BadRequestError('Job has no assigned contractor');
       }
 
-      // Verify contract is signed by both parties before allowing payment
+      // Verify contract is signed by both parties before allowing payment.
+      // 2026-05-13 audit: also pull the contract id so the escrow row can
+      // carry it in metadata for later reconciliation / dispute analysis.
       const { data: contract, error: contractError } = await serverSupabase
         .from('contracts')
-        .select('id, status')
+        .select('id, status, quote_id')
         .eq('job_id', jobId)
         .eq('status', 'accepted')
         .single();
@@ -168,7 +170,7 @@ export const POST = withApiHandler(
       // used to detect tampering (logged, warning, but not trusted).
       const { data: acceptedBid } = await serverSupabase
         .from('bids')
-        .select('amount, status')
+        .select('id, amount, status, quote_id')
         .eq('job_id', jobId)
         .eq('contractor_id', contractorId)
         .eq('status', 'accepted')
@@ -342,6 +344,13 @@ export const POST = withApiHandler(
                 homeownerId: job.homeowner_id,
                 payerId: user.id,
                 contractorId: job.contractor_id,
+                bidId: acceptedBid.id,
+                contractId: contract.id,
+                // The contractor_quotes row that produced the bid. Stays
+                // null on legacy bids without a quote; lets reconciliation
+                // tie a refunded escrow back to the original itemised
+                // breakdown without a join.
+                quoteId: contract.quote_id || acceptedBid.quote_id || '',
                 bidAmount: authoritativeAmount.toString(),
                 isRentalProperty: String(Boolean(job.is_rental_property)),
                 creditAppliedPence: String(creditAppliedPence),
@@ -376,6 +385,14 @@ export const POST = withApiHandler(
       if (!existingEscrow) {
         // Create escrow transaction record. Amount is the server-authoritative
         // bid amount — the source of truth for later release to contractor.
+        //
+        // 2026-05-13 traceability audit: the schema has no `bid_id` /
+        // `contract_id` FK columns on `escrow_transactions`, but does
+        // have a flexible `metadata` JSONB. Stash the references there
+        // so dispute analysis + reconciliation can walk back to the
+        // exact bid + contract + quote without re-deriving from
+        // `job_id` (which would be ambiguous if a job ever cycled
+        // through multiple acceptances after a rollback).
         const { data: newEscrow, error: insertError } = await serverSupabase
           .from('escrow_transactions')
           .insert({
@@ -385,6 +402,13 @@ export const POST = withApiHandler(
             amount: authoritativeAmount,
             status: 'pending',
             payment_intent_id: paymentIntent.id,
+            metadata: {
+              bid_id: acceptedBid.id,
+              contract_id: contract.id,
+              quote_id: contract.quote_id || acceptedBid.quote_id || null,
+              credit_applied_pence: creditAppliedPence,
+              source: 'create-intent',
+            },
             created_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           })

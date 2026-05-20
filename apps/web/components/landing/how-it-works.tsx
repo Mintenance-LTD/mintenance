@@ -1,64 +1,157 @@
 import React from 'react';
 import Link from 'next/link';
 
+/**
+ * "How it works" — Direction A · Mint Editorial.
+ * Source of truth: redesign-v2/landing.html #how.
+ */
+
 const STEPS = [
   {
     number: 1,
-    title: 'Post Your Job',
+    title: 'Post your job',
     description:
-      'Describe your project in detail, upload photos, and set your budget. It takes less than 5 minutes.',
-    gradient: 'from-slate-900 to-slate-800',
+      'Snap a photo of what needs doing, add a short description and a budget. It takes about 30 seconds.',
   },
   {
     number: 2,
-    title: 'Compare Bids',
+    title: 'Compare bids',
     description:
-      'Receive competitive quotes from verified contractors. Review profiles, ratings, and portfolios.',
-    gradient: 'from-teal-600 to-teal-500',
+      'Verified local tradespeople send honest quotes — usually by morning. Review profiles, ratings and past work.',
   },
   {
     number: 3,
-    title: 'Hire & Complete',
+    title: 'Hire & approve',
     description:
-      'Choose the best contractor, track progress, and release payment once you\'re satisfied with the work.',
-    gradient: 'from-amber-500 to-amber-600',
+      "Pick your tradesperson. Payment is held safely and only released once you're happy with the work.",
   },
 ];
 
-/**
- * How it works section - three step process
- */
 export function HowItWorks() {
   return (
-    <section id="how-it-works" className="py-24 bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-20">
-          <h2 className="text-5xl font-bold text-gray-900 mb-4">How it works</h2>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Get your home project done in three simple steps
+    <section
+      id='how-it-works'
+      data-theme='mint-editorial'
+      style={{
+        background: 'var(--me-surface)',
+        fontFamily: 'var(--me-font-body)',
+        color: 'var(--me-ink)',
+        padding: '88px 32px',
+      }}
+    >
+      <div style={{ maxWidth: 1280, margin: '0 auto' }}>
+        <div style={{ textAlign: 'center', marginBottom: 56 }}>
+          <div
+            style={{
+              fontSize: 12,
+              textTransform: 'uppercase',
+              letterSpacing: '.12em',
+              color: 'var(--me-brand)',
+              fontWeight: 600,
+              marginBottom: 16,
+            }}
+          >
+            How it works
+          </div>
+          <h2
+            style={{
+              fontFamily: 'var(--me-font-display)',
+              fontWeight: 500,
+              fontSize: 'clamp(36px, 4.5vw, 56px)',
+              lineHeight: 1.05,
+              letterSpacing: '-0.02em',
+              margin: '0 auto 18px',
+              maxWidth: 760,
+            }}
+          >
+            Three steps.{' '}
+            <em style={{ fontStyle: 'italic', color: 'var(--me-brand)' }}>
+              No phone tag.
+            </em>
+          </h2>
+          <p
+            style={{
+              fontSize: 17,
+              color: 'var(--me-ink-2)',
+              maxWidth: 600,
+              lineHeight: 1.55,
+              margin: '0 auto',
+            }}
+          >
+            Posting a job takes 30 seconds. Most homeowners hire by lunch.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 relative">
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+            gap: 32,
+          }}
+        >
           {STEPS.map((step) => (
-            <div key={step.number} className="text-center">
+            <div key={step.number} style={{ textAlign: 'center' }}>
               <div
-                className={`inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br ${step.gradient} text-white text-4xl font-bold mb-6 shadow-lg`}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 64,
+                  height: 64,
+                  borderRadius: 16,
+                  background: 'var(--me-brand-soft)',
+                  color: 'var(--me-brand)',
+                  fontFamily: 'var(--me-font-display)',
+                  fontSize: 32,
+                  marginBottom: 20,
+                }}
               >
                 {step.number}
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">{step.title}</h3>
-              <p className="text-gray-600 leading-relaxed">{step.description}</p>
+              <h3
+                style={{
+                  fontFamily: 'var(--me-font-display)',
+                  fontWeight: 500,
+                  fontSize: 22,
+                  letterSpacing: '-0.01em',
+                  margin: '0 0 10px',
+                }}
+              >
+                {step.title}
+              </h3>
+              <p
+                style={{
+                  fontSize: 14,
+                  color: 'var(--me-ink-2)',
+                  lineHeight: 1.6,
+                  margin: '0 auto',
+                  maxWidth: 320,
+                }}
+              >
+                {step.description}
+              </p>
             </div>
           ))}
         </div>
 
-        <div className="text-center mt-14">
+        <div style={{ textAlign: 'center', marginTop: 48 }}>
           <Link
-            href="/jobs/create"
-            className="inline-flex px-10 py-5 bg-amber-500 text-white text-lg font-bold rounded-2xl hover:bg-amber-600 hover:shadow-lg transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2"
+            href='/jobs/create'
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '14px 22px',
+              borderRadius: 'var(--me-radius-btn)',
+              background: 'var(--me-brand)',
+              color: 'var(--me-on-brand)',
+              fontSize: 15,
+              fontWeight: 600,
+              textDecoration: 'none',
+              boxShadow: 'var(--me-shadow-btn)',
+            }}
           >
-            Get Started Now
+            Post a job — free
           </Link>
         </div>
       </div>

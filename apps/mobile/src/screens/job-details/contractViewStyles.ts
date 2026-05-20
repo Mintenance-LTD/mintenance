@@ -1,28 +1,28 @@
-import { StyleSheet, Platform } from 'react-native';
-import { theme } from '../../theme';
+import { StyleSheet } from 'react-native';
+import { me } from '../../design-system/mint-editorial';
 
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   centered: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   loadingText: {
     marginTop: 12,
     fontSize: 15,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   emptyIconWrap: {
     width: 64,
     height: 64,
     borderRadius: 32,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 12,
@@ -30,12 +30,12 @@ export const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginTop: 12,
   },
   emptySubtitle: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     textAlign: 'center',
     marginTop: 8,
     lineHeight: 20,
@@ -44,11 +44,11 @@ export const styles = StyleSheet.create({
     marginTop: 20,
     paddingHorizontal: 24,
     paddingVertical: 14,
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
     borderRadius: 28,
   },
   retryButtonText: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontWeight: '600',
   },
   header: {
@@ -57,14 +57,14 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
+    borderBottomColor: me.line,
+    backgroundColor: me.surface,
   },
   backButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -72,7 +72,7 @@ export const styles = StyleSheet.create({
     flex: 1,
     fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginLeft: 8,
   },
   statusBadge: {
@@ -91,12 +91,12 @@ export const styles = StyleSheet.create({
     padding: 20,
   },
   scopeCard: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 20,
     padding: 16,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
   scopeHeader: {
     flexDirection: 'row',
@@ -107,7 +107,7 @@ export const styles = StyleSheet.create({
   scopeTitle: {
     fontSize: 13,
     fontWeight: '700',
-    color: theme.colors.primary,
+    color: me.brand,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
   },
@@ -118,19 +118,19 @@ export const styles = StyleSheet.create({
   },
   scopeItemBorder: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   scopeItemInfo: { flex: 1 },
   scopeItemDesc: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
-  scopeItemQty: { fontSize: 12, color: theme.colors.textTertiary },
+  scopeItemQty: { fontSize: 12, color: me.ink3 },
   scopeItemTotal: {
     fontSize: 14,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   amountRow: {
     flexDirection: 'row',
@@ -141,7 +141,7 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: me.brandSoft,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
@@ -149,38 +149,30 @@ export const styles = StyleSheet.create({
   escrowBadgeText: {
     fontSize: 11,
     fontWeight: '700',
-    color: theme.colors.primary,
+    color: me.brand,
   },
   amountCard: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     padding: 20,
     alignItems: 'center',
     marginBottom: 20,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   amountLabel: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     fontWeight: '500',
     marginBottom: 4,
   },
   amountValue: {
     fontSize: 36,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   draftBanner: {
     flexDirection: 'row',
-    backgroundColor: theme.colors.accentLight,
+    backgroundColor: me.warnBg,
     borderRadius: 16,
     padding: 14,
     gap: 10,
@@ -206,23 +198,15 @@ export const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     paddingHorizontal: 20,
     paddingTop: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: theme.colors.border,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: -2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 12,
-      },
-      android: { elevation: 8 },
-    }),
+    borderTopColor: me.line,
+    ...me.shadow.pop,
   },
   signButton: {
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
     borderRadius: 28,
     paddingVertical: 16,
     flexDirection: 'row',
@@ -235,7 +219,7 @@ export const styles = StyleSheet.create({
     opacity: 0.5,
   },
   signButtonText: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -245,7 +229,7 @@ export const styles = StyleSheet.create({
     borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     marginRight: 8,
   },
   downloadPdfButton: {
@@ -256,13 +240,13 @@ export const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 16,
     borderWidth: 1.5,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
+    borderColor: me.line,
+    backgroundColor: me.surface,
     marginBottom: 20,
   },
   downloadPdfText: {
     fontSize: 15,
     fontWeight: '500',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
 });

@@ -18,7 +18,7 @@ import {
   type SearchSuggestion,
 } from '../services/AISearchService';
 import { logger } from '../utils/logger';
-import { theme } from '../theme';
+import { me } from '../design-system/mint-editorial';
 
 import { styles } from './ai-search/theme/styles';
 import { SearchBar } from './ai-search/components/SearchBar';
@@ -129,7 +129,7 @@ export const AISearchScreen: React.FC = () => {
 
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size='large' color={theme.colors.primary} />
+          <ActivityIndicator size='large' color={me.brand} />
           <Text style={styles.loadingText}>Searching with AI...</Text>
         </View>
       ) : error ? (

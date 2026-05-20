@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
+import { cookies } from 'next/headers';
 import { theme } from '@/lib/theme';
 import { fetchContractorProfileData } from './utils/fetchProfileData';
 import { ContractorPageHeader } from './components/ContractorPageHeader';
@@ -36,11 +37,20 @@ export default async function ContractorPublicProfilePage(props: {
 
   const { contractor, reviews, completedJobs, posts, avgRating } = data;
 
+  // 2026-05-13: server-side theme detection — same pattern as other
+  // contractor server pages. Editorial swaps the page background from
+  // theme.colors.backgroundSecondary to the canonical var(--me-bg).
+  const cookieStore = await cookies();
+  const isMintEditorial =
+    cookieStore.get('mintenance-theme')?.value === 'mint-editorial';
+
   return (
     <main
       style={{
         minHeight: '100vh',
-        backgroundColor: theme.colors.backgroundSecondary,
+        backgroundColor: isMintEditorial
+          ? 'var(--me-bg)'
+          : theme.colors.backgroundSecondary,
       }}
     >
       <ContractorPageHeader />

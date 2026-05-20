@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { Check, X } from 'lucide-react';
 import { theme } from '@/lib/theme';
 import { Card } from '@/components/ui/Card.unified';
 import { Button } from '@/components/ui/Button';
@@ -36,6 +37,17 @@ export function EscrowStatusDashboardClient() {
   const [escrowStatus, setEscrowStatus] = useState<EscrowStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [statusLoading, setStatusLoading] = useState(false);
+
+  // 2026-05-13 polish pass: editorial header swap. The inner Card.unified
+  // components inherit colour mapping through the shell .me-legacy-fit
+  // boundary.
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
 
   const fetchEscrows = useCallback(async () => {
     setLoading(true);
@@ -79,16 +91,22 @@ export function EscrowStatusDashboardClient() {
   useEffect(() => {
     if (selectedEscrowId) {
       fetchEscrowStatus(selectedEscrowId);
-      const interval = setInterval(() => fetchEscrowStatus(selectedEscrowId), 30000);
+      const interval = setInterval(
+        () => fetchEscrowStatus(selectedEscrowId),
+        30000
+      );
       return () => clearInterval(interval);
     }
   }, [selectedEscrowId, fetchEscrowStatus]);
 
   const handleRequestAdminReview = async (escrowId: string) => {
     try {
-      const response = await fetch(`/api/escrow/${escrowId}/request-admin-review`, {
-        method: 'POST',
-      });
+      const response = await fetch(
+        `/api/escrow/${escrowId}/request-admin-review`,
+        {
+          method: 'POST',
+        }
+      );
       if (!response.ok) {
         throw new Error('Failed to request admin review');
       }
@@ -109,27 +127,73 @@ export function EscrowStatusDashboardClient() {
 
   return (
     <div style={{ padding: theme.spacing.xl }}>
-      <h1 style={{ fontSize: theme.typography.fontSize['2xl'], fontWeight: theme.typography.fontWeight.bold, marginBottom: theme.spacing.lg }}>
-        Escrow Status Dashboard
-      </h1>
+      {isMintEditorial ? (
+        <div className='col' style={{ gap: 4, marginBottom: 24 }}>
+          <h1 className='t-h1'>Escrow status</h1>
+          <p className='t-body'>
+            Live state of escrowed payments and the next action required to
+            release them.
+          </p>
+        </div>
+      ) : (
+        <h1
+          style={{
+            fontSize: theme.typography.fontSize['2xl'],
+            fontWeight: theme.typography.fontWeight.bold,
+            marginBottom: theme.spacing.lg,
+          }}
+        >
+          Escrow Status Dashboard
+        </h1>
+      )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: theme.spacing.lg }}>
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: theme.spacing.lg,
+        }}
+      >
         {/* Escrow List */}
         <Card style={{ padding: theme.spacing.lg }}>
-          <h2 style={{ fontSize: theme.typography.fontSize.xl, fontWeight: theme.typography.fontWeight.semibold, marginBottom: theme.spacing.md }}>
+          <h2
+            style={{
+              fontSize: theme.typography.fontSize.xl,
+              fontWeight: theme.typography.fontWeight.semibold,
+              marginBottom: theme.spacing.md,
+            }}
+          >
             Your Escrows ({escrows.length})
           </h2>
 
           {loading ? (
-            <div style={{ display: 'flex', justifyContent: 'center', padding: theme.spacing.xl }}>
-              <Spinner size="lg" />
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'center',
+                padding: theme.spacing.xl,
+              }}
+            >
+              <Spinner size='lg' />
             </div>
           ) : escrows.length === 0 ? (
-            <p style={{ textAlign: 'center', color: theme.colors.textSecondary, padding: theme.spacing.xl }}>
+            <p
+              style={{
+                textAlign: 'center',
+                color: theme.colors.textSecondary,
+                padding: theme.spacing.xl,
+              }}
+            >
               No escrows found.
             </p>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing.sm }}>
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: theme.spacing.sm,
+              }}
+            >
               {escrows.map((escrow) => (
                 <div
                   key={escrow.id}
@@ -139,11 +203,23 @@ export function EscrowStatusDashboardClient() {
                     border: `1px solid ${selectedEscrowId === escrow.id ? theme.colors.primary : theme.colors.border}`,
                     borderRadius: theme.borderRadius.md,
                     cursor: 'pointer',
-                    backgroundColor: selectedEscrowId === escrow.id ? theme.colors.primary + '10' : 'transparent',
+                    backgroundColor:
+                      selectedEscrowId === escrow.id
+                        ? theme.colors.primary + '10'
+                        : 'transparent',
                   }}
                 >
-                  <div style={{ fontWeight: theme.typography.fontWeight.semibold }}>{escrow.jobTitle}</div>
-                  <div style={{ fontSize: theme.typography.fontSize.sm, color: theme.colors.textSecondary }}>
+                  <div
+                    style={{ fontWeight: theme.typography.fontWeight.semibold }}
+                  >
+                    {escrow.jobTitle}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: theme.typography.fontSize.sm,
+                      color: theme.colors.textSecondary,
+                    }}
+                  >
                     {formatCurrency(escrow.amount)} • {escrow.status}
                   </div>
                 </div>
@@ -155,36 +231,82 @@ export function EscrowStatusDashboardClient() {
         {/* Status Details */}
         <Card style={{ padding: theme.spacing.lg }}>
           {!selectedEscrowId ? (
-            <p style={{ textAlign: 'center', color: theme.colors.textSecondary, padding: theme.spacing.xl }}>
+            <p
+              style={{
+                textAlign: 'center',
+                color: theme.colors.textSecondary,
+                padding: theme.spacing.xl,
+              }}
+            >
               Select an escrow to view status
             </p>
           ) : statusLoading ? (
-            <div style={{ display: 'flex', justifyContent: 'center', padding: theme.spacing.xl }}>
-              <Spinner size="lg" />
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'center',
+                padding: theme.spacing.xl,
+              }}
+            >
+              <Spinner size='lg' />
             </div>
           ) : escrowStatus ? (
             <>
-              <h2 style={{ fontSize: theme.typography.fontSize.xl, fontWeight: theme.typography.fontWeight.semibold, marginBottom: theme.spacing.md }}>
+              <h2
+                style={{
+                  fontSize: theme.typography.fontSize.xl,
+                  fontWeight: theme.typography.fontWeight.semibold,
+                  marginBottom: theme.spacing.md,
+                }}
+              >
                 Status Details
               </h2>
 
               <div style={{ marginBottom: theme.spacing.lg }}>
-                <div style={{ fontSize: theme.typography.fontSize.lg, fontWeight: theme.typography.fontWeight.bold, marginBottom: theme.spacing.sm }}>
+                <div
+                  style={{
+                    fontSize: theme.typography.fontSize.lg,
+                    fontWeight: theme.typography.fontWeight.bold,
+                    marginBottom: theme.spacing.sm,
+                  }}
+                >
                   Status: {escrowStatus.status}
                 </div>
-                <div style={{ color: escrowStatus.canRelease ? theme.colors.success : theme.colors.warning }}>
-                  {escrowStatus.canRelease ? 'Ready for release' : 'Release blocked'}
+                <div
+                  style={{
+                    color: escrowStatus.canRelease
+                      ? theme.colors.success
+                      : theme.colors.warning,
+                  }}
+                >
+                  {escrowStatus.canRelease
+                    ? 'Ready for release'
+                    : 'Release blocked'}
                 </div>
               </div>
 
               {escrowStatus.blockingReasons.length > 0 && (
                 <div style={{ marginBottom: theme.spacing.lg }}>
-                  <h3 style={{ fontSize: theme.typography.fontSize.md, fontWeight: theme.typography.fontWeight.semibold, marginBottom: theme.spacing.sm }}>
+                  <h3
+                    style={{
+                      fontSize: theme.typography.fontSize.md,
+                      fontWeight: theme.typography.fontWeight.semibold,
+                      marginBottom: theme.spacing.sm,
+                    }}
+                  >
                     Blocking Reasons:
                   </h3>
-                  <ul style={{ listStyle: 'disc', paddingLeft: theme.spacing.lg }}>
+                  <ul
+                    style={{ listStyle: 'disc', paddingLeft: theme.spacing.lg }}
+                  >
                     {escrowStatus.blockingReasons.map((reason, idx) => (
-                      <li key={idx} style={{ marginBottom: theme.spacing.xs, color: theme.colors.textSecondary }}>
+                      <li
+                        key={idx}
+                        style={{
+                          marginBottom: theme.spacing.xs,
+                          color: theme.colors.textSecondary,
+                        }}
+                      >
                         {reason}
                       </li>
                     ))}
@@ -194,53 +316,125 @@ export function EscrowStatusDashboardClient() {
 
               {escrowStatus.nextAction && (
                 <div style={{ marginBottom: theme.spacing.lg }}>
-                  <h3 style={{ fontSize: theme.typography.fontSize.md, fontWeight: theme.typography.fontWeight.semibold, marginBottom: theme.spacing.sm }}>
+                  <h3
+                    style={{
+                      fontSize: theme.typography.fontSize.md,
+                      fontWeight: theme.typography.fontWeight.semibold,
+                      marginBottom: theme.spacing.sm,
+                    }}
+                  >
                     Next Action:
                   </h3>
-                  <p style={{ color: theme.colors.textSecondary }}>{escrowStatus.nextAction}</p>
+                  <p style={{ color: theme.colors.textSecondary }}>
+                    {escrowStatus.nextAction}
+                  </p>
                 </div>
               )}
 
               {escrowStatus.estimatedReleaseDate && (
                 <div style={{ marginBottom: theme.spacing.lg }}>
-                  <h3 style={{ fontSize: theme.typography.fontSize.md, fontWeight: theme.typography.fontWeight.semibold, marginBottom: theme.spacing.sm }}>
+                  <h3
+                    style={{
+                      fontSize: theme.typography.fontSize.md,
+                      fontWeight: theme.typography.fontWeight.semibold,
+                      marginBottom: theme.spacing.sm,
+                    }}
+                  >
                     Estimated Release Date:
                   </h3>
                   <p style={{ color: theme.colors.textSecondary }}>
-                    {format(escrowStatus.estimatedReleaseDate, 'MMM d, yyyy HH:mm')} ({formatDistanceToNow(escrowStatus.estimatedReleaseDate)})
+                    {format(
+                      escrowStatus.estimatedReleaseDate,
+                      'MMM d, yyyy HH:mm'
+                    )}{' '}
+                    ({formatDistanceToNow(escrowStatus.estimatedReleaseDate)})
                   </p>
                 </div>
               )}
 
               <div style={{ marginBottom: theme.spacing.lg }}>
-                <h3 style={{ fontSize: theme.typography.fontSize.md, fontWeight: theme.typography.fontWeight.semibold, marginBottom: theme.spacing.sm }}>
+                <h3
+                  style={{
+                    fontSize: theme.typography.fontSize.md,
+                    fontWeight: theme.typography.fontWeight.semibold,
+                    marginBottom: theme.spacing.sm,
+                  }}
+                >
                   Verification Status:
                 </h3>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: theme.spacing.sm }}>
+                <div
+                  style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
+                    gap: theme.spacing.sm,
+                  }}
+                >
                   <div>Admin Hold: {escrowStatus.adminHoldStatus}</div>
-                  <div>Homeowner Approval: {escrowStatus.homeownerApproval ? '✓ Yes' : '✗ No'}</div>
-                  <div>Photo Verification: {escrowStatus.photoVerificationStatus || 'Pending'}</div>
+                  <div>
+                    Homeowner Approval:{' '}
+                    {escrowStatus.homeownerApproval ? (
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 4,
+                        }}
+                      >
+                        <Check size={14} aria-hidden='true' />
+                        Yes
+                      </span>
+                    ) : (
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 4,
+                        }}
+                      >
+                        <X size={14} aria-hidden='true' />
+                        No
+                      </span>
+                    )}
+                  </div>
+                  <div>
+                    Photo Verification:{' '}
+                    {escrowStatus.photoVerificationStatus || 'Pending'}
+                  </div>
                   {escrowStatus.coolingOffEndsAt && (
                     <div>
-                      Cooling-off: {formatDistanceToNow(escrowStatus.coolingOffEndsAt)} remaining
+                      Cooling-off:{' '}
+                      {formatDistanceToNow(escrowStatus.coolingOffEndsAt)}{' '}
+                      remaining
                     </div>
                   )}
-                  {escrowStatus.autoApprovalDate && !escrowStatus.homeownerApproval && (
-                    <div>
-                      Auto-approval: {formatDistanceToNow(escrowStatus.autoApprovalDate)}
-                    </div>
-                  )}
+                  {escrowStatus.autoApprovalDate &&
+                    !escrowStatus.homeownerApproval && (
+                      <div>
+                        Auto-approval:{' '}
+                        {formatDistanceToNow(escrowStatus.autoApprovalDate)}
+                      </div>
+                    )}
                 </div>
               </div>
 
-              {!escrowStatus.homeownerApproval && escrowStatus.autoApprovalDate && new Date(escrowStatus.autoApprovalDate) < new Date() && (
-                <Button onClick={() => handleRequestAdminReview(selectedEscrowId)}>
-                  Request Admin Review
-                </Button>
-              )}
+              {!escrowStatus.homeownerApproval &&
+                escrowStatus.autoApprovalDate &&
+                new Date(escrowStatus.autoApprovalDate) < new Date() && (
+                  <Button
+                    onClick={() => handleRequestAdminReview(selectedEscrowId)}
+                  >
+                    Request Admin Review
+                  </Button>
+                )}
             </>
           ) : (
-            <p style={{ textAlign: 'center', color: theme.colors.textSecondary, padding: theme.spacing.xl }}>
+            <p
+              style={{
+                textAlign: 'center',
+                color: theme.colors.textSecondary,
+                padding: theme.spacing.xl,
+              }}
+            >
               Failed to load status
             </p>
           )}
@@ -249,4 +443,3 @@ export function EscrowStatusDashboardClient() {
     </div>
   );
 }
-

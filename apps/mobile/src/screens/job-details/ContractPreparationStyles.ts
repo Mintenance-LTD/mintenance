@@ -1,20 +1,20 @@
-import { StyleSheet, Platform } from 'react-native';
-import { theme } from '../../theme';
+import { StyleSheet } from 'react-native';
+import { me } from '../../design-system/mint-editorial';
 
 export const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
+  container: { flex: 1, backgroundColor: me.bg2 },
   flex: { flex: 1 },
   centered: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   loadingText: {
     marginTop: 12,
     fontSize: 16,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   header: {
     flexDirection: 'row',
@@ -22,14 +22,14 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
+    borderBottomColor: me.line,
+    backgroundColor: me.surface,
   },
   backButton: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -37,13 +37,13 @@ export const styles = StyleSheet.create({
     flex: 1,
     fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     textAlign: 'center',
   },
   scrollContent: { padding: 20 },
   infoBanner: {
     flexDirection: 'row',
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: me.brandSoft,
     borderRadius: 16,
     padding: 14,
     gap: 10,
@@ -53,7 +53,7 @@ export const styles = StyleSheet.create({
   infoText: {
     flex: 1,
     fontSize: 14,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     lineHeight: 20,
   },
   // Status banner
@@ -71,7 +71,7 @@ export const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: theme.colors.primary,
+    color: me.brand,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginTop: 20,
@@ -80,33 +80,33 @@ export const styles = StyleSheet.create({
   fieldLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginBottom: 6,
   },
   // Inputs
   input: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 13,
     fontSize: 15,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 4,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
-  inputError: { borderColor: theme.colors.error },
+  inputError: { borderColor: me.errFg },
   textArea: { minHeight: 90, paddingTop: 12 },
   fieldError: {
     fontSize: 12,
-    color: theme.colors.error,
+    color: me.errFg,
     marginBottom: 10,
     marginTop: 2,
   },
   // Escrow note
   escrowNote: {
     fontSize: 13,
-    color: theme.colors.primary,
+    color: me.brand,
     fontWeight: '500',
     marginBottom: 12,
     marginTop: 4,
@@ -118,37 +118,37 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 13,
     marginBottom: 4,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
-  dateText: { fontSize: 14, color: theme.colors.textPrimary },
-  datePlaceholder: { fontSize: 14, color: theme.colors.textTertiary },
+  dateText: { fontSize: 14, color: me.ink },
+  datePlaceholder: { fontSize: 14, color: me.ink3 },
   // License type chips
   chipScroll: { marginBottom: 8, flexGrow: 0 },
   chip: {
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 16,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     marginRight: 6,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
   chipActive: {
-    backgroundColor: theme.colors.textPrimary,
-    borderColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
+    borderColor: me.ink,
   },
   chipText: {
     fontSize: 12,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
-  chipTextActive: { color: theme.colors.textInverse },
+  chipTextActive: { color: me.onBrand },
   // Agreed quote card
   agreedQuoteCard: {
     backgroundColor: '#F0FDF4',
@@ -193,7 +193,7 @@ export const styles = StyleSheet.create({
   agreedTotalValue: {
     fontSize: 15,
     fontWeight: '800',
-    color: theme.colors.primary,
+    color: me.brand,
   },
   // Insurance card
   insuranceCard: {
@@ -224,20 +224,12 @@ export const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     paddingHorizontal: 20,
     paddingTop: 16,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: theme.colors.border,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: -2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 12,
-      },
-      android: { elevation: 8 },
-    }),
+    borderTopColor: me.line,
+    ...me.shadow.pop,
   },
   bottomRow: { flexDirection: 'row', gap: 12 },
   cancelButton: {
@@ -245,18 +237,18 @@ export const styles = StyleSheet.create({
     borderRadius: 28,
     paddingVertical: 16,
     borderWidth: 1.5,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
     alignItems: 'center',
     justifyContent: 'center',
   },
   cancelText: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   submitButton: {
     flex: 0.65,
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
     borderRadius: 28,
     paddingVertical: 16,
     flexDirection: 'row',

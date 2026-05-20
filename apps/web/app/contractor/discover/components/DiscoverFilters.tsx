@@ -28,30 +28,39 @@ function Chip({
   active,
   onClick,
   children,
-  color = 'teal',
+  color = 'brand',
 }: {
   active: boolean;
   onClick: () => void;
   children: React.ReactNode;
-  color?: 'teal' | 'purple';
+  color?: 'brand' | 'ai';
 }) {
-  const activeClass =
-    color === 'purple'
-      ? 'bg-purple-600 text-white border-purple-600'
-      : 'bg-teal-600 text-white border-teal-600';
-  const hoverClass =
-    color === 'purple'
-      ? 'hover:border-purple-400 hover:text-purple-700'
-      : 'hover:border-teal-400 hover:text-teal-700';
+  const activeStyle =
+    color === 'ai'
+      ? {
+          background: 'var(--me-info-fg)',
+          color: 'var(--me-on-brand)',
+          borderColor: 'var(--me-info-fg)',
+        }
+      : {
+          background: 'var(--me-brand)',
+          color: 'var(--me-on-brand)',
+          borderColor: 'var(--me-brand)',
+        };
+  const inactiveStyle = {
+    background: 'var(--me-surface)',
+    color: 'var(--me-ink-2)',
+    borderColor: 'var(--me-line)',
+  };
 
   return (
     <button
       onClick={onClick}
-      className={`px-3 py-1 text-xs font-medium rounded-full border transition-all whitespace-nowrap ${
-        active
-          ? activeClass
-          : `bg-white text-gray-600 border-gray-300 ${hoverClass}`
-      }`}
+      className='px-3 py-1 text-xs font-medium rounded-full border transition-all whitespace-nowrap'
+      style={{
+        fontFamily: 'var(--me-font-body)',
+        ...(active ? activeStyle : inactiveStyle),
+      }}
     >
       {children}
     </button>
@@ -71,7 +80,10 @@ export function DiscoverFilters({
   hasLocation,
 }: DiscoverFiltersProps) {
   return (
-    <div className='flex flex-wrap gap-2 pb-1 items-center'>
+    <div
+      data-theme='mint-editorial'
+      className='flex flex-wrap gap-2 pb-1 items-center'
+    >
       {/* Category chips (up to 4) */}
       {categories.slice(0, 4).map((cat) => (
         <Chip
@@ -111,11 +123,21 @@ export function DiscoverFilters({
       {/* AI Assessed toggle */}
       <button
         onClick={onAiAssessedToggle}
-        className={`flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full border transition-all ${
-          aiAssessedOnly
-            ? 'bg-purple-600 text-white border-purple-600'
-            : 'bg-white text-gray-600 border-gray-300 hover:border-purple-400 hover:text-purple-700'
-        }`}
+        className='flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full border transition-all'
+        style={{
+          fontFamily: 'var(--me-font-body)',
+          ...(aiAssessedOnly
+            ? {
+                background: 'var(--me-info-fg)',
+                color: 'var(--me-on-brand)',
+                borderColor: 'var(--me-info-fg)',
+              }
+            : {
+                background: 'var(--me-surface)',
+                color: 'var(--me-ink-2)',
+                borderColor: 'var(--me-line)',
+              }),
+        }}
       >
         <Brain className='w-3 h-3' />
         AI Assessed

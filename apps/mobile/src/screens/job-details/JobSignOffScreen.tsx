@@ -21,7 +21,7 @@ import {
 import { Button } from '../../components/ui/Button';
 import { supabase } from '../../config/supabase';
 import { mobileApiClient } from '../../utils/mobileApiClient';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 type Props = NativeStackScreenProps<JobsStackParamList, 'JobSignOff'>;
 
@@ -137,10 +137,7 @@ export const JobSignOffScreen: React.FC<Props> = ({ route, navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar
-        barStyle='dark-content'
-        backgroundColor={theme.colors.backgroundSecondary}
-      />
+      <StatusBar barStyle='dark-content' backgroundColor={me.bg2} />
       <ScreenHeader
         title='Review Work'
         showBack
@@ -154,7 +151,7 @@ export const JobSignOffScreen: React.FC<Props> = ({ route, navigation }) => {
           <RefreshControl
             refreshing={false}
             onRefresh={refetch}
-            tintColor={theme.colors.textPrimary}
+            tintColor={me.ink}
           />
         }
       >
@@ -209,7 +206,7 @@ export const JobSignOffScreen: React.FC<Props> = ({ route, navigation }) => {
                   multiline
                   numberOfLines={5}
                   placeholder='Please describe what needs to be fixed or changed...'
-                  placeholderTextColor={theme.colors.textTertiary}
+                  placeholderTextColor={me.ink3}
                   value={changesText}
                   onChangeText={setChangesText}
                   textAlignVertical='top'
@@ -247,7 +244,7 @@ export const JobSignOffScreen: React.FC<Props> = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   scrollView: {
     flex: 1,
@@ -258,16 +255,16 @@ const styles = StyleSheet.create({
   jobTitle: {
     fontSize: 24,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 4,
   },
   contractorName: {
     fontSize: 15,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginBottom: 24,
   },
   confirmedBanner: {
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: me.brandSoft,
     borderRadius: 16,
     padding: 20,
     alignItems: 'center',
@@ -275,11 +272,11 @@ const styles = StyleSheet.create({
   confirmedText: {
     fontSize: 17,
     fontWeight: '600',
-    color: theme.colors.primaryDark,
+    color: me.brand2,
   },
   confirmedSubtext: {
     fontSize: 14,
-    color: theme.colors.primaryDark,
+    color: me.brand2,
     marginTop: 4,
   },
   section: {
@@ -288,12 +285,12 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 17,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 8,
   },
   sectionDescription: {
     fontSize: 15,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     lineHeight: 22,
   },
   actions: {
@@ -308,20 +305,20 @@ const styles = StyleSheet.create({
   changesLabel: {
     fontSize: 15,
     fontWeight: '500',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 8,
   },
   changesInput: {
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 12,
     padding: 12,
     fontSize: 15,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     minHeight: 120,
   },
   charCount: {
     fontSize: 12,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     textAlign: 'right',
     marginTop: 4,
     marginBottom: 16,

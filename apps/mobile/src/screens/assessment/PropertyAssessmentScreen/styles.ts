@@ -1,23 +1,23 @@
 import { StyleSheet } from 'react-native';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 
 const borderedCard = {
-  backgroundColor: theme.colors.surface,
+  backgroundColor: me.surface,
   borderRadius: 20,
   padding: 16,
   marginBottom: 16,
   borderWidth: 1,
-  borderColor: theme.colors.border,
+  borderColor: me.line,
 } as const;
 
 export const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
+  container: { flex: 1, backgroundColor: me.bg2 },
   content: { padding: 16 },
   stepsSection: { ...borderedCard },
   sectionTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 14,
@@ -28,38 +28,38 @@ export const styles = StyleSheet.create({
   fieldLabel: {
     fontSize: 13,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginBottom: 6,
     marginTop: 10,
   },
   input: {
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 12,
     padding: 12,
     fontSize: 14,
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
   chipSelected: {
-    backgroundColor: theme.colors.primaryLight,
-    borderColor: theme.colors.primary,
+    backgroundColor: me.brandSoft,
+    borderColor: me.brand,
   },
-  chipText: { fontSize: 13, color: theme.colors.textSecondary, fontWeight: '500' },
-  chipTextSelected: { color: theme.colors.primary, fontWeight: '700' },
+  chipText: { fontSize: 13, color: me.ink2, fontWeight: '500' },
+  chipTextSelected: { color: me.brand, fontWeight: '700' },
   saveFormButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
     borderRadius: 12,
     paddingVertical: 14,
     marginTop: 16,
@@ -68,7 +68,7 @@ export const styles = StyleSheet.create({
 
   // Video done
   videoDoneRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  videoDoneText: { fontSize: 14, color: theme.colors.textPrimary, fontWeight: '500' },
+  videoDoneText: { fontSize: 14, color: me.ink, fontWeight: '500' },
 
   // Photo grid
   photoHeader: {
@@ -93,11 +93,11 @@ export const styles = StyleSheet.create({
 
   // Notes
   notesInput: {
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 12,
     padding: 12,
     fontSize: 14,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     minHeight: 120,
   },
 
@@ -107,19 +107,19 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
-  reviewLabel: { fontSize: 14, color: theme.colors.textSecondary },
+  reviewLabel: { fontSize: 14, color: me.ink2 },
   reviewValue: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     maxWidth: '60%',
     textAlign: 'right',
   },
   submitButton: {
     flexDirection: 'row',
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
     borderRadius: 28,
     paddingVertical: 16,
     alignItems: 'center',
@@ -128,7 +128,7 @@ export const styles = StyleSheet.create({
     marginTop: 16,
   },
   submitButtonText: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontSize: 16,
     fontWeight: '700',
   },
@@ -139,7 +139,7 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
     borderRadius: 24,
     paddingVertical: 16,
     gap: 10,

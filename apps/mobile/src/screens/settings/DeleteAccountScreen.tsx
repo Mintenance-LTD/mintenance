@@ -15,7 +15,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   Alert,
-  Platform,
   TextInput,
   ActivityIndicator,
   StatusBar,
@@ -27,7 +26,7 @@ import { useMutation } from '@tanstack/react-query';
 import { ScreenHeader } from '../../components/shared';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import { useAuth } from '../../contexts/AuthContext';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 const CONSEQUENCES = [
   {
@@ -102,10 +101,7 @@ export const DeleteAccountScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar
-        barStyle='dark-content'
-        backgroundColor={theme.colors.backgroundSecondary}
-      />
+      <StatusBar barStyle='dark-content' backgroundColor={me.bg2} />
       <ScreenHeader
         title='Delete Account'
         showBack
@@ -118,11 +114,7 @@ export const DeleteAccountScreen: React.FC = () => {
         <View style={styles.warningCard}>
           <View style={styles.warningHeader}>
             <View style={styles.warningIcon}>
-              <Ionicons
-                name='warning-outline'
-                size={22}
-                color={theme.colors.error}
-              />
+              <Ionicons name='warning-outline' size={22} color={me.errFg} />
             </View>
             <Text style={styles.warningTitle}>Danger Zone</Text>
           </View>
@@ -145,7 +137,7 @@ export const DeleteAccountScreen: React.FC = () => {
               <Ionicons
                 name={item.icon as 'person-remove-outline'}
                 size={17}
-                color={theme.colors.error}
+                color={me.errFg}
               />
               <Text style={styles.consequenceText}>{item.text}</Text>
             </View>
@@ -164,7 +156,7 @@ export const DeleteAccountScreen: React.FC = () => {
               value={confirmText}
               onChangeText={setConfirmText}
               placeholder='Type DELETE'
-              placeholderTextColor={theme.colors.textTertiary}
+              placeholderTextColor={me.ink3}
               autoCapitalize='characters'
               autoCorrect={false}
               editable={!deleteMutation.isPending}
@@ -182,14 +174,10 @@ export const DeleteAccountScreen: React.FC = () => {
           activeOpacity={0.8}
         >
           {deleteMutation.isPending ? (
-            <ActivityIndicator size='small' color={theme.colors.textInverse} />
+            <ActivityIndicator size='small' color={me.onBrand} />
           ) : (
             <>
-              <Ionicons
-                name='trash-outline'
-                size={18}
-                color={theme.colors.textInverse}
-              />
+              <Ionicons name='trash-outline' size={18} color={me.onBrand} />
               <Text style={styles.deleteButtonText}>
                 Permanently Delete Account
               </Text>
@@ -207,16 +195,16 @@ export const DeleteAccountScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
+  container: { flex: 1, backgroundColor: me.bg2 },
   scrollView: { flex: 1 },
   content: { padding: 16, paddingBottom: 40 },
   warningCard: {
-    backgroundColor: '#FEF2F2',
+    backgroundColor: me.errBg,
     borderRadius: 16,
     padding: 16,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: '#FECACA',
+    borderColor: me.errFg,
   },
   warningHeader: {
     flexDirection: 'row',
@@ -228,35 +216,27 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#FEE2E2',
+    backgroundColor: me.errBg,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  warningTitle: { fontSize: 17, fontWeight: '700', color: theme.colors.error },
-  warningBody: { fontSize: 13, color: '#991B1B', lineHeight: 20 },
+  warningTitle: { fontSize: 17, fontWeight: '700', color: me.errFg },
+  warningBody: { fontSize: 13, color: me.errFg, lineHeight: 20 },
   sectionLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 8,
     paddingHorizontal: 4,
   },
   card: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     marginBottom: 20,
     overflow: 'hidden',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   consequenceRow: {
     flexDirection: 'row',
@@ -267,53 +247,53 @@ const styles = StyleSheet.create({
   },
   rowBorder: {
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   consequenceText: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     lineHeight: 19,
     flex: 1,
   },
   confirmSection: { padding: 14 },
   confirmPrompt: {
     fontSize: 14,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 10,
   },
-  confirmKeyword: { fontWeight: '700', color: theme.colors.error },
+  confirmKeyword: { fontWeight: '700', color: me.errFg },
   input: {
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 16,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     letterSpacing: 2,
     textAlign: 'center',
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
   },
   deleteButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: theme.colors.error,
+    backgroundColor: me.errFg,
     borderRadius: 12,
     paddingVertical: 15,
     marginBottom: 12,
   },
-  deleteButtonDisabled: { backgroundColor: '#D1D5DB' },
+  deleteButtonDisabled: { backgroundColor: me.bg3 },
   deleteButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
   },
   footnote: {
     fontSize: 12,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     lineHeight: 18,
     paddingHorizontal: 4,
     textAlign: 'center',

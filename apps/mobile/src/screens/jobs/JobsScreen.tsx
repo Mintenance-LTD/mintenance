@@ -18,10 +18,12 @@ import { useAuth } from '../../contexts/AuthContext';
 import { JobService } from '../../services/JobService';
 import { Job } from '@mintenance/types';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '../../lib/queryClient';
 import { ResponsiveContainer } from '../../components/responsive';
 import { ExploreMapScreen } from '../explore-map/ExploreMapScreen';
 import { ScreenErrorBoundary } from '../../components/ScreenErrorBoundary';
-import { theme, semanticBg } from '../../theme';
+import { semanticBg } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 import type { SortMode, FilterStatus, JobStats } from './types';
 import { JobCard } from './JobCard';
@@ -76,7 +78,15 @@ const JobsScreen: React.FC = () => {
     isFetching,
     refetch,
   } = useQuery<Job[]>({
-    queryKey: ['jobs', user?.id, user?.role],
+    // 2026-05-20 audit fix: align the read-side cache key with what
+    // useQueries' job-create mutations invalidate (queryKeys.jobs.all
+    // = ['jobs']). The old `['jobs', user?.id, user?.role]` key never
+    // matched the all-invalidation, so a newly posted job didn't
+    // appear in this list until a manual refetch.
+    queryKey:
+      user?.role === 'homeowner'
+        ? queryKeys.jobs.list(`homeowner:${user.id}`)
+        : queryKeys.jobs.list(`contractor:${user?.id ?? 'unknown'}`),
     queryFn: async () => {
       // 2026-04-30 audit P1: replace `user!.id` / `user!.role` with an
       // explicit guard. `enabled: !!user` already prevents this from
@@ -237,7 +247,7 @@ const JobsScreen: React.FC = () => {
   }, [allJobs, selectedFilter, debouncedQuery, sortMode, isContractor]);
 
   const onRefresh = () => {
-    queryClient.invalidateQueries({ queryKey: ['jobs', user?.id, user?.role] });
+    queryClient.invalidateQueries({ queryKey: queryKeys.jobs.all });
   };
 
   const handleAddJob = useCallback(() => {
@@ -341,7 +351,7 @@ const JobsScreen: React.FC = () => {
         <View
           style={[styles.errorBanner, { backgroundColor: semanticBg.error }]}
         >
-          <Ionicons name='alert-circle' size={18} color={theme.colors.error} />
+          <Ionicons name='alert-circle' size={18} color={me.errFg} />
           <Text style={styles.errorText}>
             {queryError instanceof Error
               ? queryError.message
@@ -403,8 +413,8 @@ const JobsScreen: React.FC = () => {
             <RefreshControl
               refreshing={isFetching}
               onRefresh={onRefresh}
-              tintColor={theme.colors.primary}
-              colors={[theme.colors.primary]}
+              tintColor={me.brand}
+              colors={[me.brand]}
               progressViewOffset={120}
             />
           }
@@ -416,7 +426,7 @@ const JobsScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  mainContainer: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
+  mainContainer: { flex: 1, backgroundColor: me.bg2 },
   container: { flex: 1 },
   listContainer: { paddingBottom: 24 },
   errorBanner: {
@@ -428,11 +438,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     gap: 8,
   },
-  errorText: { flex: 1, fontSize: 14, color: theme.colors.error },
+  errorText: { flex: 1, fontSize: 14, color: me.errFg },
   retryLinkText: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   resultsRow: {
     paddingHorizontal: 16,
@@ -441,7 +451,7 @@ const styles = StyleSheet.create({
   },
   resultsText: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     fontWeight: '500',
   },
 });

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { cookies } from 'next/headers';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { resignJobStorageUrls } from '@/lib/api/job-storage';
@@ -9,6 +10,7 @@ import { JobDetailsProfessional } from './components/JobDetailsProfessional';
 import { JobViewTracker } from './components/JobViewTracker';
 import { ContractManagement } from './components/ContractManagement';
 import { HomeownerPhotoReview } from './components/HomeownerPhotoReview';
+import { MintEditorialJobDetailView } from './components/mint-editorial/MintEditorialJobDetailView';
 
 export const metadata: Metadata = {
   title: 'Job Details | Mintenance',
@@ -63,13 +65,18 @@ export default async function JobDetailPage2025({
     redirect('/jobs');
   }
 
-  // Fetch related data
+  // Fetch related data. Include the access-info columns (migration
+  // 20260520000003) so the "Access shared with contractor" card on
+  // the right rail can render. Wrap in try/catch-style maybeSingle
+  // so installs without the migration applied gracefully degrade.
   const { data: property } = job.property_id
     ? await serverSupabase
         .from('properties')
-        .select('id, property_name, address')
+        .select(
+          'id, property_name, address, access_mode, key_safe_code, access_notes, stopcock_location, gas_isolator_location, consumer_unit_location'
+        )
         .eq('id', job.property_id)
-        .single()
+        .maybeSingle()
     : { data: null };
 
   const { data: contractor } = job.contractor_id
@@ -82,7 +89,12 @@ export default async function JobDetailPage2025({
         .single()
     : { data: null };
 
-  // Fetch bids with contractor info and quote line items
+  // Fetch bids with contractor info, quote breakdown, and the
+  // schedule + warranty fields the BidCard now surfaces so the
+  // homeowner can compare bids on more than just price. Quote embed
+  // pulls subtotal/tax/total/terms in addition to line_items —
+  // populated by `app/api/contractor/submit-bid/quote-processor.ts`
+  // for every bid, previously invisible on this page.
   const { data: bids, error: bidsError } = await serverSupabase
     .from('bids')
     .select(
@@ -94,6 +106,10 @@ export default async function JobDetailPage2025({
       created_at,
       contractor_id,
       quote_id,
+      estimated_duration_days,
+      proposed_start_date,
+      warranty_months,
+      materials_included,
       contractor:profiles!bids_contractor_id_fkey (
         id,
         first_name,
@@ -109,7 +125,13 @@ export default async function JobDetailPage2025({
       ),
       quote:contractor_quotes!quote_id (
         id,
-        line_items
+        subtotal,
+        tax_rate,
+        tax_amount,
+        total_amount,
+        line_items,
+        terms,
+        quote_number
       )
     `
     )
@@ -150,7 +172,7 @@ export default async function JobDetailPage2025({
   }
 
   // Fetch review counts per contractor in one round-trip so the bid
-  // card can show "4.5 ★ (12 reviews)" instead of just the rating
+  // card can show "4.5 stars (12 reviews)" instead of just the rating
   // number. Mirrors the mobile BidReviewCard which already renders
   // reviews_count; web was showing only avatar + name + amount.
   const reviewCountMap = new Map<string, number>();
@@ -197,6 +219,7 @@ export default async function JobDetailPage2025({
           reviews_count: reviewCountMap.get(contractor.id) || 0,
         },
         lineItems,
+        quote: quote ?? null,
       };
     })
     .filter((b): b is NonNullable<typeof b> => b !== null);
@@ -250,6 +273,13 @@ export default async function JobDetailPage2025({
     created_at: string;
     contractor_id: string;
     quote_id?: string;
+    // 2026-05-13 BidCard upgrade: comparison axes beyond price.
+    // Homeowners need schedule + warranty visibility to weigh bids
+    // properly; previously these were on the bid but never surfaced.
+    estimated_duration_days?: number | null;
+    proposed_start_date?: string | null;
+    warranty_months?: number | null;
+    materials_included?: boolean | null;
     lineItems?: Array<{
       id: string;
       description: string;
@@ -258,6 +288,15 @@ export default async function JobDetailPage2025({
       unitPrice: number;
       total: number;
     }>;
+    quote?: {
+      id?: string;
+      subtotal?: number | null;
+      tax_rate?: number | null;
+      tax_amount?: number | null;
+      total_amount?: number | null;
+      terms?: string | null;
+      quote_number?: string | null;
+    } | null;
     contractor?: {
       id: string;
       first_name?: string;
@@ -326,10 +365,24 @@ export default async function JobDetailPage2025({
       status: bid.status,
       created_at: bid.created_at,
       quote_id: bid.quote_id,
+      estimatedDurationDays: bid.estimated_duration_days ?? null,
+      proposedStartDate: bid.proposed_start_date ?? null,
+      warrantyMonths: bid.warranty_months ?? null,
+      materialsIncluded: bid.materials_included ?? null,
       lineItems: bid.lineItems?.map((li) => ({
         ...li,
         type: li.type || ('labor' as const),
       })),
+      quote: bid.quote
+        ? {
+            subtotal: bid.quote.subtotal ?? null,
+            taxRate: bid.quote.tax_rate ?? null,
+            taxAmount: bid.quote.tax_amount ?? null,
+            totalAmount: bid.quote.total_amount ?? null,
+            terms: bid.quote.terms ?? null,
+            quoteNumber: bid.quote.quote_number ?? null,
+          }
+        : null,
       contractor: {
         id: bid.contractor?.id || '',
         first_name: bid.contractor?.first_name,
@@ -355,6 +408,66 @@ export default async function JobDetailPage2025({
         profile_image_url: userProfile.profile_image_url,
       }
     : undefined;
+
+  // Phase-2 design rebrand: server-side cookie check picks the
+  // Mint Editorial detail surface instead of JobDetailsProfessional
+  // when the homeowner has opted in via Settings → Appearance.
+  // No data refetch — both branches consume the same data.
+  const cookieStore = await cookies();
+  const isMintEditorial =
+    cookieStore.get('mintenance-theme')?.value === 'mint-editorial';
+
+  // Pull the homeowner's preferred start date out of `requirements`
+  // (stashed there by job creation — the schema doesn't have a
+  // dedicated column yet). The shape is `requirements.preferred_start_date`
+  // set to an ISO date string.
+  const requirements =
+    job.requirements && typeof job.requirements === 'object'
+      ? (job.requirements as Record<string, unknown>)
+      : null;
+  const preferredStartDate =
+    requirements && typeof requirements.preferred_start_date === 'string'
+      ? requirements.preferred_start_date
+      : null;
+
+  if (isMintEditorial) {
+    return (
+      <MintEditorialJobDetailView
+        job={{
+          id: job.id,
+          title: job.title || 'Untitled Job',
+          description: job.description || '',
+          category: job.category || 'General',
+          status: job.status,
+          priority: job.priority,
+          budget: job.budget || 0,
+          location: job.location || 'Location not specified',
+          created_at: job.created_at,
+          completed_at: job.completed_at,
+          preferred_start_date: preferredStartDate,
+          contractor_id: job.contractor_id,
+          completion_confirmed_by_homeowner:
+            job.completion_confirmed_by_homeowner,
+        }}
+        property={property}
+        contractor={contractor}
+        bids={formattedBids as unknown as import('./components/BidCard').Bid[]}
+        bidCount={bidsWithContractors.length}
+        pendingBidCount={
+          bidsWithContractors.filter((b) => b.status === 'pending').length
+        }
+        photos={jobPhotoUrls}
+        beforePhotos={beforePhotos}
+        afterPhotos={afterPhotos}
+        contractStatus={contractStatus}
+        contractContractorSignedAt={contract?.contractor_signed_at ?? null}
+        contractHomeownerSignedAt={contract?.homeowner_signed_at ?? null}
+        escrowStatus={escrowStatus}
+        buildingAssessment={buildingAssessment}
+        userId={user.id}
+      />
+    );
+  }
 
   return (
     <>

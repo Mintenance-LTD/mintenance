@@ -6,7 +6,7 @@ interface ContractorPageWrapperProps {
 }
 
 /**
- * ContractorPageWrapper - Universal wrapper for ALL contractor pages
+ * ContractorPageWrapper - Universal wrapper for ALL contractor pages.
  *
  * IMPORTANT: ALL contractor page client components MUST use this wrapper
  * to prevent layout conflicts and white gap issues.
@@ -23,6 +23,11 @@ interface ContractorPageWrapperProps {
  * - Centered content (max-width: 1280px)
  * - Proper spacing and padding
  *
+ * Phase-4 (2026-05-12): the Mint Editorial colour mapping is applied
+ * one level up (on the content area of MintEditorialContractorShell)
+ * so EVERY contractor page picks it up — including the ones that
+ * don't use this wrapper. This file stays a simple pass-through.
+ *
  * @example
  * ```tsx
  * export function MyPageClient() {
@@ -37,10 +42,9 @@ interface ContractorPageWrapperProps {
  * }
  * ```
  */
-export function ContractorPageWrapper({ children, className = '' }: ContractorPageWrapperProps) {
-  return (
-    <div className={`w-full ${className}`}>
-      {children}
-    </div>
-  );
+export function ContractorPageWrapper({
+  children,
+  className = '',
+}: ContractorPageWrapperProps) {
+  return <div className={`w-full ${className}`}>{children}</div>;
 }

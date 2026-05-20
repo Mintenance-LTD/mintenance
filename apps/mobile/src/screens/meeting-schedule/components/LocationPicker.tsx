@@ -8,9 +8,15 @@
  */
 
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Platform } from 'react-native';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { theme } from '../../../theme';
+import { me } from '../../../design-system/mint-editorial';
 import type { LocationData } from '@mintenance/types';
 
 interface LocationPickerProps {
@@ -25,36 +31,51 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
   onRetry,
 }) => {
   return (
-    <View style={[styles.container, { backgroundColor: theme.colors.surface }]}>
-      <Text style={[styles.sectionTitle, { color: theme.colors.textTertiary }]}>LOCATION</Text>
+    <View style={[styles.container, { backgroundColor: me.surface }]}>
+      <Text style={[styles.sectionTitle, { color: me.ink3 }]}>LOCATION</Text>
 
       {locationStatus === 'loading' && (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color={theme.colors.textPrimary} />
-          <Text style={[styles.loadingText, { color: theme.colors.textSecondary }]}>Getting your location...</Text>
+          <ActivityIndicator size='small' color={me.ink} />
+          <Text style={[styles.loadingText, { color: me.ink2 }]}>
+            Getting your location...
+          </Text>
         </View>
       )}
 
       {locationStatus === 'error' && (
         <View style={styles.errorContainer}>
           <View style={styles.errorIconWrap}>
-            <Ionicons name="location-outline" size={24} color={theme.colors.error} />
+            <Ionicons name='location-outline' size={24} color={me.errFg} />
           </View>
-          <Text style={[styles.errorText, { color: theme.colors.error }]}>Failed to get location</Text>
-          <TouchableOpacity style={[styles.retryButton, { backgroundColor: theme.colors.textPrimary }]} onPress={onRetry}>
-            <Text style={[styles.retryButtonText, { color: theme.colors.textInverse }]}>Retry</Text>
+          <Text style={[styles.errorText, { color: me.errFg }]}>
+            Failed to get location
+          </Text>
+          <TouchableOpacity
+            style={[styles.retryButton, { backgroundColor: me.ink }]}
+            onPress={onRetry}
+          >
+            <Text style={[styles.retryButtonText, { color: me.onBrand }]}>
+              Retry
+            </Text>
           </TouchableOpacity>
         </View>
       )}
 
       {locationStatus === 'success' && location && (
-        <View style={[styles.locationContainer, { backgroundColor: theme.colors.backgroundSecondary }]}>
-          <View style={[styles.locationIcon, { backgroundColor: theme.colors.primaryLight }]}>
-            <Ionicons name="location" size={20} color={theme.colors.primary} />
+        <View style={[styles.locationContainer, { backgroundColor: me.bg2 }]}>
+          <View
+            style={[styles.locationIcon, { backgroundColor: me.brandSoft }]}
+          >
+            <Ionicons name='location' size={20} color={me.brand} />
           </View>
           <View style={styles.locationText}>
-            <Text style={[styles.locationLabel, { color: theme.colors.textSecondary }]}>Meeting Location</Text>
-            <Text style={[styles.locationAddress, { color: theme.colors.textPrimary }]}>{(location as LocationData & { address?: string }).address ?? ''}</Text>
+            <Text style={[styles.locationLabel, { color: me.ink2 }]}>
+              Meeting Location
+            </Text>
+            <Text style={[styles.locationAddress, { color: me.ink }]}>
+              {(location as LocationData & { address?: string }).address ?? ''}
+            </Text>
           </View>
         </View>
       )}
@@ -67,10 +88,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
-    ...Platform.select({
-      ios: { shadowColor: '#000000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 10 },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   sectionTitle: {
     fontSize: 12,
@@ -98,7 +116,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: '#FEE2E2',
+    backgroundColor: me.errBg,
     alignItems: 'center',
     justifyContent: 'center',
   },

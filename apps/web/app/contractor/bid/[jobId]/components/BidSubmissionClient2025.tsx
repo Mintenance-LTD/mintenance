@@ -4,7 +4,7 @@ import { ContractorPageWrapper } from '@/app/contractor/components/ContractorPag
 import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Check } from 'lucide-react';
 import { fadeIn } from '@/lib/animations/variants';
 import { useCurrentUser } from '@/hooks/useCurrentUser';
 import toast from 'react-hot-toast';
@@ -49,6 +49,22 @@ export function BidSubmissionClient2025(props: BidSubmissionClient2025Props) {
   const [pricingSuggestion, setPricingSuggestion] =
     useState<PricingSuggestion | null>(null);
   const [showPricingSuggestion, setShowPricingSuggestion] = useState(false);
+
+  // Hydration-safe Mint Editorial detection. Kept above all early
+  // returns so the hook count stays stable (rules-of-hooks).
+  // When the cookie is set we (1) replace the Tailwind hero with a
+  // canonical .t-h1 header and (2) pass `me-legacy-fit` to the
+  // ContractorPageWrapper so the existing Tailwind colour utilities
+  // inside the form body (bg-white, bg-gray-50, border-gray-200,
+  // teal-600, rose-600, emerald-600) get mapped to mint-palette
+  // tones by the override layer in mint-editorial.css.
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
 
   const homeownerName =
     job?.homeowner?.first_name && job?.homeowner?.last_name
@@ -345,47 +361,71 @@ export function BidSubmissionClient2025(props: BidSubmissionClient2025Props) {
   };
 
   return (
-    <ContractorPageWrapper>
-      {/* Hero Header */}
-      <MotionDiv
-        className='bg-white border border-gray-200 rounded-xl p-8 mb-6'
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-      >
-        <div className='flex items-start justify-between gap-8'>
-          <div className='flex items-center gap-4'>
-            <div className='w-16 h-16 bg-teal-50 rounded-2xl flex items-center justify-center'>
-              <svg
-                className='w-9 h-9 text-teal-600'
-                fill='none'
-                viewBox='0 0 24 24'
-                stroke='currentColor'
-              >
-                <path
-                  strokeLinecap='round'
-                  strokeLinejoin='round'
-                  strokeWidth={2}
-                  d='M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'
-                />
-              </svg>
-            </div>
-            <div>
-              <h1 className='text-4xl font-bold mb-1 text-gray-900'>
-                {existingBid ? 'Update Your Bid' : 'Submit a Bid'}
-              </h1>
-              <p className='text-gray-600 text-lg'>
-                Provide your quote and proposal details
-              </p>
-            </div>
+    <ContractorPageWrapper className={isMintEditorial ? 'me-legacy-fit' : ''}>
+      {/* Hero Header — Mint Editorial branch swaps in the canonical
+          .t-h1 treatment so the typography matches the rest of the
+          editorial chrome. The form body below it keeps its existing
+          Tailwind structure; me-legacy-fit on the wrapper maps the
+          colour utilities to the mint palette. */}
+      {isMintEditorial ? (
+        <div
+          className='between'
+          style={{ marginBottom: 22, gap: 16, alignItems: 'flex-start' }}
+        >
+          <div className='col' style={{ gap: 4 }}>
+            <h1 className='t-h1'>
+              {existingBid ? 'Update your bid' : 'Submit a bid'}
+            </h1>
+            <p className='t-body'>
+              Set your price, share your approach, and tell the homeowner when
+              you can start.
+            </p>
           </div>
-          <button
-            onClick={() => router.back()}
-            className='px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-all'
-          >
+          <button onClick={() => router.back()} className='btn btn-ghost'>
             Cancel
           </button>
         </div>
-      </MotionDiv>
+      ) : (
+        <MotionDiv
+          className='bg-white border border-gray-200 rounded-xl p-8 mb-6'
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <div className='flex items-start justify-between gap-8'>
+            <div className='flex items-center gap-4'>
+              <div className='w-16 h-16 bg-teal-50 rounded-2xl flex items-center justify-center'>
+                <svg
+                  className='w-9 h-9 text-teal-600'
+                  fill='none'
+                  viewBox='0 0 24 24'
+                  stroke='currentColor'
+                >
+                  <path
+                    strokeLinecap='round'
+                    strokeLinejoin='round'
+                    strokeWidth={2}
+                    d='M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'
+                  />
+                </svg>
+              </div>
+              <div>
+                <h1 className='text-4xl font-bold mb-1 text-gray-900'>
+                  {existingBid ? 'Update Your Bid' : 'Submit a Bid'}
+                </h1>
+                <p className='text-gray-600 text-lg'>
+                  Provide your quote and proposal details
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => router.back()}
+              className='px-6 py-3 bg-gray-100 text-gray-700 rounded-xl font-semibold hover:bg-gray-200 transition-all'
+            >
+              Cancel
+            </button>
+          </div>
+        </MotionDiv>
+      )}
 
       <div className='w-full space-y-6'>
         <div className='grid grid-cols-1 lg:grid-cols-3 gap-6'>
@@ -597,7 +637,17 @@ export function BidSubmissionClient2025(props: BidSubmissionClient2025Props) {
                   ) : (
                     <>
                       {description.trim().length} / 50 characters minimum
-                      {description.trim().length >= 50 && ' ✓'}
+                      {description.trim().length >= 50 && (
+                        <Check
+                          size={14}
+                          aria-hidden='true'
+                          style={{
+                            display: 'inline',
+                            marginLeft: 4,
+                            verticalAlign: 'text-bottom',
+                          }}
+                        />
+                      )}
                     </>
                   )}
                 </div>

@@ -1,6 +1,7 @@
 import type { Ionicons } from '@expo/vector-icons';
 import { Job } from '@mintenance/types';
-import { theme, getStatusBadge } from '../../theme';
+import { getStatusBadge } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 export type SortMode = 'for_you' | 'nearest' | 'highest_pay' | 'newest' | 'map';
 export type FilterStatus =
@@ -70,37 +71,37 @@ export const CATEGORY_COLORS: Record<
   { icon: string; bg: string; text: string }
 > = {
   plumbing: {
-    icon: theme.colors.primary,
-    bg: theme.colors.primaryLight,
-    text: theme.colors.primary,
+    icon: me.brand,
+    bg: me.brandSoft,
+    text: me.brand,
   },
   electrical: {
-    icon: theme.colors.accent,
-    bg: theme.colors.accentLight,
-    text: theme.colors.accent,
+    icon: me.accent,
+    bg: me.warnBg,
+    text: me.accent,
   },
   roofing: {
-    icon: theme.colors.primary,
-    bg: theme.colors.primaryLight,
-    text: theme.colors.primary,
+    icon: me.brand,
+    bg: me.brandSoft,
+    text: me.brand,
   },
   painting: { icon: '#3B82F6', bg: '#DBEAFE', text: '#3B82F6' },
   carpentry: {
-    icon: theme.colors.accent,
-    bg: theme.colors.accentLight,
-    text: theme.colors.accent,
+    icon: me.accent,
+    bg: me.warnBg,
+    text: me.accent,
   },
   cleaning: { icon: '#3B82F6', bg: '#DBEAFE', text: '#3B82F6' },
-  hvac: { icon: theme.colors.error, bg: '#FEE2E2', text: theme.colors.error },
+  hvac: { icon: me.errFg, bg: me.errBg, text: me.errFg },
   landscaping: {
-    icon: theme.colors.primary,
-    bg: theme.colors.primaryLight,
-    text: theme.colors.primary,
+    icon: me.brand,
+    bg: me.brandSoft,
+    text: me.brand,
   },
   general: {
-    icon: theme.colors.textSecondary,
-    bg: theme.colors.backgroundSecondary,
-    text: theme.colors.textSecondary,
+    icon: me.ink2,
+    bg: me.bg2,
+    text: me.ink2,
   },
 };
 

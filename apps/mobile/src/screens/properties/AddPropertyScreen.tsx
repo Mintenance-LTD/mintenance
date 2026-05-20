@@ -25,7 +25,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import type { ProfileStackParamList } from '../../navigation/types';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 interface Props {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'AddProperty'>;
@@ -237,16 +237,9 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
               accessibilityLabel='Use current location to fill address'
             >
               {locating ? (
-                <ActivityIndicator
-                  size='small'
-                  color={theme.colors.textInverse}
-                />
+                <ActivityIndicator size='small' color={me.onBrand} />
               ) : (
-                <Ionicons
-                  name='location'
-                  size={18}
-                  color={theme.colors.textInverse}
-                />
+                <Ionicons name='location' size={18} color={me.onBrand} />
               )}
               <Text style={styles.locationButtonText}>
                 {locating ? 'Locating...' : 'Use Current Location'}
@@ -260,7 +253,7 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
                 value={address1}
                 onChangeText={setAddress1}
                 placeholder='e.g. 42 High Street'
-                placeholderTextColor={theme.colors.textTertiary}
+                placeholderTextColor={me.ink3}
               />
             </View>
 
@@ -271,7 +264,7 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
                 value={address2}
                 onChangeText={setAddress2}
                 placeholder='e.g. Apartment 3B'
-                placeholderTextColor={theme.colors.textTertiary}
+                placeholderTextColor={me.ink3}
               />
             </View>
 
@@ -283,7 +276,7 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
                   value={city}
                   onChangeText={setCity}
                   placeholder='e.g. London'
-                  placeholderTextColor={theme.colors.textTertiary}
+                  placeholderTextColor={me.ink3}
                 />
               </View>
               <View style={styles.rowSpacer} />
@@ -294,7 +287,7 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
                   value={county}
                   onChangeText={setCounty}
                   placeholder='e.g. Greater London'
-                  placeholderTextColor={theme.colors.textTertiary}
+                  placeholderTextColor={me.ink3}
                 />
               </View>
             </View>
@@ -306,7 +299,7 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
                 value={postcode}
                 onChangeText={setPostcode}
                 placeholder='e.g. SW1A 1AA'
-                placeholderTextColor={theme.colors.textTertiary}
+                placeholderTextColor={me.ink3}
                 autoCapitalize='characters'
               />
             </View>
@@ -327,11 +320,7 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
                   <Ionicons
                     name={type.icon}
                     size={18}
-                    color={
-                      propertyType === type.value
-                        ? theme.colors.textInverse
-                        : theme.colors.textSecondary
-                    }
+                    color={propertyType === type.value ? me.onBrand : me.ink2}
                   />
                   <Text
                     style={[
@@ -357,7 +346,7 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
                   value={bedrooms}
                   onChangeText={setBedrooms}
                   placeholder='0'
-                  placeholderTextColor={theme.colors.textTertiary}
+                  placeholderTextColor={me.ink3}
                   keyboardType='number-pad'
                 />
               </View>
@@ -369,7 +358,7 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
                   value={bathrooms}
                   onChangeText={setBathrooms}
                   placeholder='0'
-                  placeholderTextColor={theme.colors.textTertiary}
+                  placeholderTextColor={me.ink3}
                   keyboardType='number-pad'
                 />
               </View>
@@ -389,7 +378,7 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
               value={notes}
               onChangeText={setNotes}
               placeholder='Any additional notes about the property...'
-              placeholderTextColor={theme.colors.textTertiary}
+              placeholderTextColor={me.ink3}
               multiline
               numberOfLines={4}
               textAlignVertical='top'
@@ -417,7 +406,7 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   flex: {
     flex: 1,
@@ -427,24 +416,16 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
   },
   section: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   sectionTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 12,
@@ -455,16 +436,16 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: '500',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginBottom: 4,
   },
   input: {
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 14,
     fontSize: 15,
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   postcodeInput: {
     width: 160,
@@ -490,37 +471,37 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 14,
     borderRadius: 20,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   typeChipSelected: {
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
   },
   typeChipText: {
     fontSize: 13,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginLeft: 6,
   },
   typeChipTextSelected: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontWeight: '600',
   },
   locationButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
     borderRadius: 28,
     paddingVertical: 12,
     gap: 8,
     marginBottom: 16,
   },
   locationButtonText: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontSize: 14,
     fontWeight: '600',
   },
   submitButton: {
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
     borderRadius: 28,
     paddingVertical: 16,
     alignItems: 'center',
@@ -530,7 +511,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   submitButtonText: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontSize: 17,
     fontWeight: '600',
   },

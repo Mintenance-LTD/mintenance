@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   Linking,
   Alert,
-  Platform,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,7 +20,7 @@ import type {
   RootTabParamList,
 } from '../../navigation/types';
 import { goToMessagingThread } from '../../navigation/hooks';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 interface ClientData {
   client_id: string;
@@ -42,10 +41,10 @@ interface ClientDetailScreenProps {
 }
 
 const STATUS_COLORS: Record<string, string> = {
-  active: theme.colors.primary,
+  active: me.brand,
   prospect: '#3B82F6',
-  inactive: theme.colors.textSecondary,
-  former: theme.colors.textTertiary,
+  inactive: me.ink2,
+  former: me.ink3,
 };
 
 export const ClientDetailScreen: React.FC<ClientDetailScreenProps> = ({
@@ -96,8 +95,7 @@ export const ClientDetailScreen: React.FC<ClientDetailScreenProps> = ({
   };
 
   const statusColor =
-    STATUS_COLORS[client.relationship_status as string] ??
-    theme.colors.textSecondary;
+    STATUS_COLORS[client.relationship_status as string] ?? me.ink2;
 
   return (
     <View style={styles.container}>
@@ -107,11 +105,7 @@ export const ClientDetailScreen: React.FC<ClientDetailScreenProps> = ({
           style={styles.headerButton}
           onPress={() => navigation.goBack()}
         >
-          <Ionicons
-            name='arrow-back'
-            size={24}
-            color={theme.colors.textPrimary}
-          />
+          <Ionicons name='arrow-back' size={24} color={me.ink} />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>
           {client.first_name} {client.last_name}
@@ -145,8 +139,8 @@ export const ClientDetailScreen: React.FC<ClientDetailScreenProps> = ({
               icon: 'call' as const,
               label: 'Call',
               onPress: handleCall,
-              bg: theme.colors.primaryLight,
-              color: theme.colors.primary,
+              bg: me.brandSoft,
+              color: me.brand,
             },
             {
               icon: 'mail' as const,
@@ -183,22 +177,14 @@ export const ClientDetailScreen: React.FC<ClientDetailScreenProps> = ({
           <Text style={styles.sectionTitle}>CONTACT</Text>
           <View style={styles.detailRow}>
             <View style={styles.detailIconWrap}>
-              <Ionicons
-                name='mail-outline'
-                size={14}
-                color={theme.colors.textSecondary}
-              />
+              <Ionicons name='mail-outline' size={14} color={me.ink2} />
             </View>
             <Text style={styles.detailText}>{client.email}</Text>
           </View>
           {client.phone ? (
             <View style={styles.detailRow}>
               <View style={styles.detailIconWrap}>
-                <Ionicons
-                  name='call-outline'
-                  size={14}
-                  color={theme.colors.textSecondary}
-                />
+                <Ionicons name='call-outline' size={14} color={me.ink2} />
               </View>
               <Text style={styles.detailText}>{client.phone}</Text>
             </View>
@@ -230,11 +216,7 @@ export const ClientDetailScreen: React.FC<ClientDetailScreenProps> = ({
           {client.last_job_date ? (
             <View style={[styles.detailRow, { marginTop: 12 }]}>
               <View style={styles.detailIconWrap}>
-                <Ionicons
-                  name='time-outline'
-                  size={14}
-                  color={theme.colors.textSecondary}
-                />
+                <Ionicons name='time-outline' size={14} color={me.ink2} />
               </View>
               <Text style={styles.detailText}>
                 Last job:{' '}
@@ -255,48 +237,40 @@ export const ClientDetailScreen: React.FC<ClientDetailScreenProps> = ({
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: theme.colors.backgroundSecondary },
+  container: { flex: 1, backgroundColor: me.bg2 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   headerButton: { padding: 8, width: 40 },
   headerTitle: {
     flex: 1,
     fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     textAlign: 'center',
   },
   scroll: { flex: 1 },
   profileCard: {
     alignItems: 'center',
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     marginHorizontal: 16,
     marginTop: 16,
     borderRadius: 16,
     padding: 24,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   avatar: {
     width: 72,
     height: 72,
     borderRadius: 36,
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
@@ -304,37 +278,29 @@ const styles = StyleSheet.create({
   avatarText: {
     fontSize: 24,
     fontWeight: '700',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
   },
   clientName: {
     fontSize: 20,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 8,
   },
   statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
   statusText: {
     fontSize: 11,
     fontWeight: '700',
-    color: theme.colors.textInverse,
+    color: me.onBrand,
   },
   actionsRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     marginHorizontal: 16,
     marginTop: 12,
     borderRadius: 16,
     padding: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   actionBtn: { alignItems: 'center', gap: 6 },
   actionIconWrap: {
@@ -346,29 +312,21 @@ const styles = StyleSheet.create({
   },
   actionBtnText: {
     fontSize: 12,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     fontWeight: '600',
   },
   section: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     marginHorizontal: 16,
     marginTop: 12,
     borderRadius: 16,
     padding: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   sectionTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     marginBottom: 12,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
@@ -383,17 +341,17 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 8,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  detailText: { fontSize: 14, color: theme.colors.textPrimary },
+  detailText: { fontSize: 14, color: me.ink },
   statsRow: { flexDirection: 'row', justifyContent: 'space-around' },
   stat: { alignItems: 'center' },
   statValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
-  statLabel: { fontSize: 12, color: theme.colors.textSecondary, marginTop: 2 },
+  statLabel: { fontSize: 12, color: me.ink2, marginTop: 2 },
 });

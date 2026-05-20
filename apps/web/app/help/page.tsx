@@ -49,6 +49,20 @@ const HELP_ICON_MAP: Record<string, React.ReactNode> = {
   hammer: <Hammer size={32} />,
 };
 
+const cardStyle: React.CSSProperties = {
+  background: 'var(--me-surface)',
+  borderRadius: 'var(--me-radius-card)',
+  border: '1px solid var(--me-line)',
+  boxShadow: 'var(--me-shadow-card)',
+};
+
+const sectionHeading: React.CSSProperties = {
+  fontFamily: 'var(--me-font-display)',
+  fontWeight: 500,
+  letterSpacing: '-0.02em',
+  color: 'var(--me-ink)',
+};
+
 export default function HelpCentrePage() {
   const categories: Category[] = [
     {
@@ -118,20 +132,34 @@ export default function HelpCentrePage() {
   ];
 
   return (
-    <div className='min-h-screen bg-gradient-to-br from-gray-50 via-teal-50/30 to-gray-50'>
+    <div
+      data-theme='mint-editorial'
+      className='min-h-screen'
+      style={{ background: 'var(--me-bg)', fontFamily: 'var(--me-font-body)' }}
+    >
       <LandingNavigation />
 
       <main id='main-content' tabIndex={-1}>
         {/* Hero Section */}
         <MotionDiv
-          className='bg-gradient-to-r from-teal-600 via-teal-500 to-emerald-500 text-white'
+          style={{
+            background:
+              'linear-gradient(170deg, var(--me-brand-2) 0%, var(--me-brand) 100%)',
+            color: 'var(--me-on-brand)',
+          }}
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
         >
           <div className='max-w-[1600px] mx-auto px-8 py-16 text-center'>
-            <div className='flex w-20 h-20 bg-white/20 backdrop-blur-sm rounded-2xl items-center justify-center border border-white/30 mx-auto mb-6'>
+            <div
+              className='flex w-20 h-20 rounded-2xl items-center justify-center mx-auto mb-6'
+              style={{
+                background: 'rgba(255,255,255,0.15)',
+                border: '1px solid rgba(255,255,255,0.3)',
+              }}
+            >
               <svg
-                className='w-12 h-12 text-white'
+                className='w-12 h-12'
                 fill='none'
                 viewBox='0 0 24 24'
                 stroke='currentColor'
@@ -145,13 +173,31 @@ export default function HelpCentrePage() {
                 />
               </svg>
             </div>
-            <h1 className='text-5xl font-bold mb-4'>How can we help you?</h1>
-            <p className='text-teal-100 text-xl mb-8'>
+            <h1
+              className='text-5xl mb-4'
+              style={{
+                fontFamily: 'var(--me-font-display)',
+                fontWeight: 500,
+                letterSpacing: '-0.02em',
+              }}
+            >
+              How can we help you?
+            </h1>
+            <p
+              className='text-xl mb-8'
+              style={{ color: 'rgba(255,255,255,0.85)' }}
+            >
               Search our knowledge base or browse categories below
             </p>
 
             {/* Search Bar */}
-            <div className='max-w-2xl mx-auto bg-white rounded-2xl shadow-xl p-2'>
+            <div
+              className='max-w-2xl mx-auto rounded-2xl p-2'
+              style={{
+                background: 'var(--me-surface)',
+                boxShadow: 'var(--me-shadow-pop)',
+              }}
+            >
               <div className='relative'>
                 <label htmlFor='help-search' className='sr-only'>
                   Search help articles
@@ -162,10 +208,16 @@ export default function HelpCentrePage() {
                   role='searchbox'
                   placeholder='Search for help...'
                   aria-label='Search help articles'
-                  className='w-full px-6 py-4 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-teal-500'
+                  className='w-full px-6 py-4 focus:outline-none'
+                  style={{
+                    borderRadius: 'var(--me-radius-input)',
+                    color: 'var(--me-ink)',
+                    background: 'var(--me-surface)',
+                  }}
                 />
                 <svg
-                  className='absolute right-4 top-1/2 -translate-y-1/2 w-6 h-6 text-gray-400'
+                  className='absolute right-4 top-1/2 -translate-y-1/2 w-6 h-6'
+                  style={{ color: 'var(--me-ink-3)' }}
                   fill='none'
                   viewBox='0 0 24 24'
                   stroke='currentColor'
@@ -187,7 +239,7 @@ export default function HelpCentrePage() {
         <div className='max-w-[1600px] mx-auto px-8 py-12'>
           {/* Categories Grid */}
           <div className='mb-16'>
-            <h2 className='text-3xl font-bold text-gray-900 mb-8 text-center'>
+            <h2 className='text-3xl mb-8 text-center' style={sectionHeading}>
               Browse by Category
             </h2>
             <MotionDiv
@@ -205,18 +257,32 @@ export default function HelpCentrePage() {
                 >
                   <Link
                     href={`/faq#${category.id}`}
-                    className='block bg-white rounded-2xl border border-gray-200 shadow-sm p-8 hover:shadow-lg transition-all group focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2'
+                    className='block p-8 transition-all group focus:outline-none'
+                    style={cardStyle}
                   >
-                    <div className='mb-4 text-teal-600' aria-hidden='true'>
+                    <div
+                      className='mb-4'
+                      style={{ color: 'var(--me-brand)' }}
+                      aria-hidden='true'
+                    >
                       {HELP_ICON_MAP[category.icon] || category.icon}
                     </div>
-                    <h3 className='text-xl font-bold text-gray-900 mb-2 group-hover:text-teal-600 transition-colors'>
+                    <h3
+                      className='text-xl mb-2 transition-colors'
+                      style={{ ...sectionHeading, fontSize: 22 }}
+                    >
                       {category.name}
                     </h3>
-                    <p className='text-gray-600 text-sm mb-4'>
+                    <p
+                      className='text-sm mb-4'
+                      style={{ color: 'var(--me-ink-2)' }}
+                    >
                       {category.articleCount} articles
                     </p>
-                    <span className='flex items-center text-teal-600 font-semibold text-sm group-hover:gap-2 transition-all'>
+                    <span
+                      className='flex items-center font-semibold text-sm group-hover:gap-2 transition-all'
+                      style={{ color: 'var(--me-brand)' }}
+                    >
                       Browse articles
                       <span className='sr-only'>in {category.name}</span>
                       <svg
@@ -242,7 +308,7 @@ export default function HelpCentrePage() {
 
           {/* Popular Articles */}
           <div className='mb-16'>
-            <h2 className='text-3xl font-bold text-gray-900 mb-8 text-center'>
+            <h2 className='text-3xl mb-8 text-center' style={sectionHeading}>
               Popular Articles
             </h2>
             <MotionDiv
@@ -255,13 +321,23 @@ export default function HelpCentrePage() {
                 <MotionDiv key={article.id} variants={staggerItem}>
                   <Link
                     href={`/faq#article-${article.id}`}
-                    className='block bg-white rounded-2xl border border-gray-200 shadow-sm p-6 hover:shadow-lg transition-all group focus:outline-none focus:ring-2 focus:ring-teal-500 focus:ring-offset-2'
+                    className='block p-6 transition-all group focus:outline-none'
+                    style={cardStyle}
                   >
                     <div className='flex items-start justify-between mb-3'>
-                      <span className='px-3 py-1 bg-teal-100 text-teal-700 rounded-lg text-xs font-semibold'>
+                      <span
+                        className='px-3 py-1 rounded-lg text-xs font-semibold'
+                        style={{
+                          background: 'var(--me-brand-soft)',
+                          color: 'var(--me-brand)',
+                        }}
+                      >
                         {article.category}
                       </span>
-                      <span className='text-xs text-gray-500 flex items-center gap-1'>
+                      <span
+                        className='text-xs flex items-center gap-1'
+                        style={{ color: 'var(--me-ink-3)' }}
+                      >
                         <svg
                           className='w-4 h-4'
                           fill='none'
@@ -285,10 +361,13 @@ export default function HelpCentrePage() {
                         {(article.views ?? 0).toLocaleString()} views
                       </span>
                     </div>
-                    <h3 className='text-lg font-bold text-gray-900 mb-2 group-hover:text-teal-600 transition-colors'>
+                    <h3
+                      className='text-lg mb-2 transition-colors'
+                      style={{ ...sectionHeading, fontSize: 19 }}
+                    >
                       {article.title}
                     </h3>
-                    <p className='text-gray-600 text-sm'>
+                    <p className='text-sm' style={{ color: 'var(--me-ink-2)' }}>
                       {article.description}
                     </p>
                   </Link>
@@ -299,27 +378,55 @@ export default function HelpCentrePage() {
 
           {/* Contact Support */}
           <MotionDiv
-            className='bg-gradient-to-r from-teal-600 to-emerald-600 rounded-3xl p-12 text-white text-center'
+            className='rounded-3xl p-12 text-center'
+            style={{
+              background:
+                'linear-gradient(170deg, var(--me-brand-2) 0%, var(--me-brand) 100%)',
+              color: 'var(--me-on-brand)',
+            }}
             variants={fadeIn}
             initial='initial'
             animate='animate'
           >
             <div className='max-w-2xl mx-auto'>
-              <h2 className='text-3xl font-bold mb-4'>Still need help?</h2>
-              <p className='text-teal-100 text-lg mb-8'>
+              <h2
+                className='text-3xl mb-4'
+                style={{
+                  fontFamily: 'var(--me-font-display)',
+                  fontWeight: 500,
+                  letterSpacing: '-0.02em',
+                }}
+              >
+                Still need help?
+              </h2>
+              <p
+                className='text-lg mb-8'
+                style={{ color: 'rgba(255,255,255,0.85)' }}
+              >
                 Our support team is available 24/7 to assist you with any
                 questions
               </p>
               <div className='flex items-center justify-center gap-4'>
                 <Link
                   href='/contact'
-                  className='px-8 py-4 bg-white text-teal-600 rounded-xl font-bold hover:shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-teal-600'
+                  className='px-8 py-4 font-bold transition-all focus:outline-none'
+                  style={{
+                    background: 'var(--me-surface)',
+                    color: 'var(--me-brand)',
+                    borderRadius: 'var(--me-radius-btn)',
+                  }}
                 >
                   Contact Support
                 </Link>
                 <Link
                   href='/contact'
-                  className='px-8 py-4 bg-white/20 backdrop-blur-sm text-white rounded-xl font-bold hover:bg-white/30 transition-all border border-white/30 focus:outline-none focus:ring-2 focus:ring-white focus:ring-offset-2 focus:ring-offset-teal-600'
+                  className='px-8 py-4 font-bold transition-all focus:outline-none'
+                  style={{
+                    background: 'rgba(255,255,255,0.15)',
+                    color: 'var(--me-on-brand)',
+                    borderRadius: 'var(--me-radius-btn)',
+                    border: '1px solid rgba(255,255,255,0.3)',
+                  }}
                 >
                   Live Chat
                 </Link>

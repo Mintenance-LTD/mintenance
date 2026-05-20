@@ -19,7 +19,6 @@ import {
   TextInput,
   TouchableOpacity,
   Alert,
-  Platform,
   ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -27,7 +26,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import { validateJobDraft } from '@mintenance/api-contracts';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 import { silverFontSize, SILVER_SCALE } from '../../theme/silverModeState';
 import { useSilverMode } from '../../hooks/useSilverMode';
 
@@ -140,7 +139,7 @@ export const PostJobWizardScreen: React.FC = () => {
               value={title}
               onChangeText={setTitle}
               placeholder='e.g. Fix a leaking kitchen tap'
-              placeholderTextColor={theme.colors.textSecondary}
+              placeholderTextColor={me.ink2}
               style={[
                 styles.input,
                 { minHeight: minTouch, fontSize: bodySize },
@@ -187,7 +186,7 @@ export const PostJobWizardScreen: React.FC = () => {
               value={description}
               onChangeText={setDescription}
               placeholder='Any details that help contractors quote accurately.'
-              placeholderTextColor={theme.colors.textSecondary}
+              placeholderTextColor={me.ink2}
               multiline
               numberOfLines={4}
               style={[
@@ -207,7 +206,7 @@ export const PostJobWizardScreen: React.FC = () => {
               value={location}
               onChangeText={setLocation}
               placeholder='Postcode or address'
-              placeholderTextColor={theme.colors.textSecondary}
+              placeholderTextColor={me.ink2}
               autoFocus
               style={[
                 styles.input,
@@ -230,7 +229,7 @@ export const PostJobWizardScreen: React.FC = () => {
               value={budget}
               onChangeText={setBudget}
               placeholder='e.g. 150'
-              placeholderTextColor={theme.colors.textSecondary}
+              placeholderTextColor={me.ink2}
               keyboardType='numeric'
               autoFocus
               style={[
@@ -252,7 +251,7 @@ export const PostJobWizardScreen: React.FC = () => {
                     : 'ellipse-outline'
                 }
                 size={silverMode ? 28 : 24}
-                color={theme.colors.primary}
+                color={me.brand}
               />
               <View style={{ flex: 1, marginLeft: 10 }}>
                 <Text style={[styles.optionTitle, { fontSize: bodySize }]}>
@@ -274,11 +273,7 @@ export const PostJobWizardScreen: React.FC = () => {
             style={[styles.navBtn, { minHeight: minTouch }]}
             onPress={() => setStep(step - 1)}
           >
-            <Ionicons
-              name='arrow-back'
-              size={18}
-              color={theme.colors.textPrimary}
-            />
+            <Ionicons name='arrow-back' size={18} color={me.ink} />
             <Text style={[styles.navBtnText, { fontSize: bodySize }]}>
               Back
             </Text>
@@ -300,11 +295,7 @@ export const PostJobWizardScreen: React.FC = () => {
             <Text style={[styles.primaryBtnText, { fontSize: bodySize }]}>
               Next
             </Text>
-            <Ionicons
-              name='arrow-forward'
-              size={18}
-              color={theme.colors.surface}
-            />
+            <Ionicons name='arrow-forward' size={18} color={me.surface} />
           </TouchableOpacity>
         ) : (
           <TouchableOpacity
@@ -317,17 +308,13 @@ export const PostJobWizardScreen: React.FC = () => {
             disabled={!canAdvance || submitting}
           >
             {submitting ? (
-              <ActivityIndicator color={theme.colors.surface} />
+              <ActivityIndicator color={me.surface} />
             ) : (
               <>
                 <Text style={[styles.primaryBtnText, { fontSize: bodySize }]}>
                   Post job
                 </Text>
-                <Ionicons
-                  name='checkmark'
-                  size={18}
-                  color={theme.colors.surface}
-                />
+                <Ionicons name='checkmark' size={18} color={me.surface} />
               </>
             )}
           </TouchableOpacity>
@@ -340,7 +327,7 @@ export const PostJobWizardScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   header: {
     paddingHorizontal: 20,
@@ -349,65 +336,57 @@ const styles = StyleSheet.create({
   },
   title: {
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 4,
   },
   stepLabel: {
     fontSize: 12,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     textTransform: 'uppercase',
     letterSpacing: 1,
   },
   card: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     marginHorizontal: 16,
     marginTop: 12,
     borderRadius: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: theme.colors.textPrimary,
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.04,
-        shadowRadius: 4,
-      },
-      android: { elevation: 1 },
-    }),
+    ...me.shadow.card,
   },
   fieldLabel: {
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   input: {
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 10,
-    color: theme.colors.textPrimary,
-    backgroundColor: theme.colors.surface,
+    color: me.ink,
+    backgroundColor: me.surface,
   },
   helpText: {
-    color: theme.colors.textSecondary,
+    color: me.ink2,
   },
   chip: {
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
+    borderColor: me.line,
+    backgroundColor: me.surface,
     justifyContent: 'center',
   },
   chipSelected: {
-    backgroundColor: theme.colors.primaryLight,
-    borderColor: theme.colors.primary,
+    backgroundColor: me.brandSoft,
+    borderColor: me.brand,
   },
   chipText: {
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     textTransform: 'capitalize',
   },
   chipTextSelected: {
-    color: theme.colors.primary,
+    color: me.brand,
     fontWeight: '700',
   },
   optionCard: {
@@ -416,20 +395,20 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: theme.colors.border,
-    backgroundColor: theme.colors.surface,
+    borderColor: me.line,
+    backgroundColor: me.surface,
   },
   optionCardSelected: {
-    backgroundColor: theme.colors.primaryLight,
-    borderColor: theme.colors.primary,
+    backgroundColor: me.brandSoft,
+    borderColor: me.brand,
   },
   optionTitle: {
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 4,
   },
   optionDesc: {
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     lineHeight: 18,
   },
   actions: {
@@ -448,7 +427,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   navBtnText: {
-    color: theme.colors.textPrimary,
+    color: me.ink,
     fontWeight: '600',
   },
   primaryBtn: {
@@ -459,14 +438,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 12,
     borderRadius: 12,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: me.brand,
     minWidth: 140,
   },
   primaryBtnDisabled: {
     opacity: 0.5,
   },
   primaryBtnText: {
-    color: theme.colors.surface,
+    color: me.surface,
     fontWeight: '700',
   },
 });

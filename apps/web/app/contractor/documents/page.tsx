@@ -25,6 +25,14 @@ export default function DocumentManagementPage() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  // Hydration-safe theme detection — Phase-4 contractor port pattern.
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showUploadModal, setShowUploadModal] = useState(false);
@@ -325,32 +333,62 @@ export default function DocumentManagementPage() {
   }
 
   return (
-    <div className='min-h-0 bg-gradient-to-br from-emerald-50 via-white to-red-50'>
-      {/* Header */}
-      <MotionDiv
-        initial='hidden'
-        animate='visible'
-        variants={fadeIn}
-        className='bg-gradient-to-r from-emerald-600 to-red-600 text-white'
-      >
-        <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12'>
-          <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'>
-            <div>
-              <h1 className='text-4xl font-bold mb-2'>Document Management</h1>
-              <p className='text-emerald-100'>
-                Store and manage all your business documents in one place
-              </p>
-            </div>
-            <button
-              onClick={() => setShowUploadModal(true)}
-              className='flex items-center gap-2 px-6 py-3 bg-white text-emerald-600 rounded-lg hover:bg-emerald-50 transition-colors font-medium'
-            >
-              <Upload className='w-5 h-5' />
-              Upload Document
-            </button>
+    <div
+      className={
+        isMintEditorial
+          ? 'min-h-0'
+          : 'min-h-0 bg-gradient-to-br from-emerald-50 via-white to-red-50'
+      }
+    >
+      {/* Header — canonical .t-h1 + .btn-primary when Mint Editorial,
+          legacy emerald gradient hero otherwise. */}
+      {isMintEditorial ? (
+        <div
+          className='between'
+          style={{ alignItems: 'flex-start', padding: '20px 0 24px' }}
+        >
+          <div className='col' style={{ gap: 4 }}>
+            <h1 className='t-h1'>Document management</h1>
+            <p className='t-body'>
+              Store contracts, invoices, certificates, and proof-of-work photos.
+              Star important files and share with homeowners securely.
+            </p>
           </div>
+          <button
+            type='button'
+            className='btn btn-primary btn-sm'
+            onClick={() => setShowUploadModal(true)}
+          >
+            <Upload size={14} strokeWidth={1.75} />
+            Upload document
+          </button>
         </div>
-      </MotionDiv>
+      ) : (
+        <MotionDiv
+          initial='hidden'
+          animate='visible'
+          variants={fadeIn}
+          className='bg-gradient-to-r from-emerald-600 to-red-600 text-white'
+        >
+          <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12'>
+            <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'>
+              <div>
+                <h1 className='text-4xl font-bold mb-2'>Document Management</h1>
+                <p className='text-emerald-100'>
+                  Store and manage all your business documents in one place
+                </p>
+              </div>
+              <button
+                onClick={() => setShowUploadModal(true)}
+                className='flex items-center gap-2 px-6 py-3 bg-white text-emerald-600 rounded-lg hover:bg-emerald-50 transition-colors font-medium'
+              >
+                <Upload className='w-5 h-5' />
+                Upload Document
+              </button>
+            </div>
+          </div>
+        </MotionDiv>
+      )}
 
       <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
         {/* Stats */}

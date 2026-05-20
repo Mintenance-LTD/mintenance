@@ -1,5 +1,6 @@
 'use client';
 
+import type React from 'react';
 import { Mail, Phone, MapPin, Clock } from 'lucide-react';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 
@@ -43,16 +44,23 @@ const contactInfo = [
   },
 ];
 
+const cardStyle: React.CSSProperties = {
+  background: 'var(--me-surface)',
+  borderRadius: 'var(--me-radius-card)',
+  border: '1px solid var(--me-line)',
+  boxShadow: 'var(--me-shadow-card)',
+};
+
 export default function ContactInfo() {
   return (
     <>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+      <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16'>
         <MotionDiv
           variants={staggerContainer}
-          initial="hidden"
-          whileInView="visible"
+          initial='hidden'
+          whileInView='visible'
           viewport={{ once: true }}
-          className="contents"
+          className='contents'
         >
           {contactInfo.map((info, index) => {
             const Icon = info.icon;
@@ -61,14 +69,33 @@ export default function ContactInfo() {
                 key={index}
                 variants={staggerItem}
                 whileHover={{ y: -4 }}
-                className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 hover:shadow-xl transition-all text-center"
+                className='p-6 transition-all text-center'
+                style={cardStyle}
               >
-                <div className="bg-teal-100 p-4 rounded-xl inline-block mb-4">
-                  <Icon className="w-8 h-8 text-teal-600" />
+                <div
+                  className='p-4 rounded-xl inline-block mb-4'
+                  style={{ background: 'var(--me-brand-soft)' }}
+                >
+                  <Icon
+                    className='w-8 h-8'
+                    style={{ color: 'var(--me-brand)' }}
+                  />
                 </div>
-                <h3 className="font-bold text-gray-900 mb-2">{info.title}</h3>
-                <p className="text-teal-600 font-medium mb-1">{info.details}</p>
-                <p className="text-sm text-gray-600">{info.description}</p>
+                <h3
+                  className='font-bold mb-2'
+                  style={{ color: 'var(--me-ink)' }}
+                >
+                  {info.title}
+                </h3>
+                <p
+                  className='font-medium mb-1'
+                  style={{ color: 'var(--me-brand)' }}
+                >
+                  {info.details}
+                </p>
+                <p className='text-sm' style={{ color: 'var(--me-ink-2)' }}>
+                  {info.description}
+                </p>
               </MotionDiv>
             );
           })}
@@ -80,16 +107,38 @@ export default function ContactInfo() {
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ delay: 0.6 }}
-        className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden"
+        className='overflow-hidden'
+        style={cardStyle}
       >
-        <div className="p-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Find Us</h2>
-          <div className="aspect-video bg-gradient-to-br from-teal-100 to-emerald-100 rounded-xl flex items-center justify-center">
-            <div className="text-center">
-              <MapPin className="w-16 h-16 text-teal-600 mx-auto mb-4" />
-              <p className="text-gray-900 font-medium text-lg mb-2">Mintenance HQ</p>
-              <p className="text-gray-600">123 Tech Street</p>
-              <p className="text-gray-600">London, SW1A 1AA</p>
+        <div className='p-8'>
+          <h2
+            className='text-2xl mb-6 text-center'
+            style={{
+              fontFamily: 'var(--me-font-display)',
+              fontWeight: 500,
+              letterSpacing: '-0.02em',
+              color: 'var(--me-ink)',
+            }}
+          >
+            Find Us
+          </h2>
+          <div
+            className='aspect-video rounded-xl flex items-center justify-center'
+            style={{ background: 'var(--me-brand-soft)' }}
+          >
+            <div className='text-center'>
+              <MapPin
+                className='w-16 h-16 mx-auto mb-4'
+                style={{ color: 'var(--me-brand)' }}
+              />
+              <p
+                className='font-medium text-lg mb-2'
+                style={{ color: 'var(--me-ink)' }}
+              >
+                Mintenance HQ
+              </p>
+              <p style={{ color: 'var(--me-ink-2)' }}>123 Tech Street</p>
+              <p style={{ color: 'var(--me-ink-2)' }}>London, SW1A 1AA</p>
             </div>
           </div>
         </div>

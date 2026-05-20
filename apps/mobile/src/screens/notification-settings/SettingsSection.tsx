@@ -1,6 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, Platform } from 'react-native';
-import { theme } from '../../theme';
+import { View, Text, StyleSheet } from 'react-native';
+import { me } from '../../design-system/mint-editorial';
 
 interface SettingsSectionProps {
   title: string;
@@ -19,26 +19,18 @@ const SettingsSection: React.FC<SettingsSectionProps> = ({
 
 const styles = StyleSheet.create({
   section: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     marginHorizontal: 16,
     marginTop: 16,
     marginBottom: 0,
     borderRadius: 16,
     padding: 20,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   sectionTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 16,

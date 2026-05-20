@@ -32,7 +32,7 @@ import {
 import { WherePanel } from './QuickJobSteps/WherePanel';
 import { WhenPanel } from './QuickJobSteps/WhenPanel';
 import { WhatPanel } from './QuickJobSteps/WhatPanel';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 
 export const QuickJobModal: React.FC<QuickJobModalProps> = ({
   visible,
@@ -149,11 +149,7 @@ export const QuickJobModal: React.FC<QuickJobModalProps> = ({
                     ]}
                   >
                     {isCompleted ? (
-                      <Ionicons
-                        name='checkmark'
-                        size={10}
-                        color={theme.colors.textInverse}
-                      />
+                      <Ionicons name='checkmark' size={10} color={me.onBrand} />
                     ) : (
                       <Text
                         style={[
@@ -256,11 +252,7 @@ export const QuickJobModal: React.FC<QuickJobModalProps> = ({
               <Ionicons
                 name='search'
                 size={20}
-                color={
-                  canSearch
-                    ? theme.colors.textInverse
-                    : theme.colors.textTertiary
-                }
+                color={canSearch ? me.onBrand : me.ink3}
               />
             </TouchableOpacity>
           </View>
@@ -302,11 +294,7 @@ export const QuickJobModal: React.FC<QuickJobModalProps> = ({
               onPress={handleSearch}
               disabled={!canSearch}
             >
-              <Ionicons
-                name='search'
-                size={18}
-                color={theme.colors.textInverse}
-              />
+              <Ionicons name='search' size={18} color={me.onBrand} />
               <Text style={styles.footerSearchText}>Search</Text>
             </TouchableOpacity>
           </View>
@@ -323,7 +311,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     maxHeight: '85%',
@@ -332,7 +320,7 @@ const styles = StyleSheet.create({
   handle: {
     width: 36,
     height: 4,
-    backgroundColor: theme.colors.border,
+    backgroundColor: me.line,
     borderRadius: 2,
     alignSelf: 'center',
     marginTop: 10,
@@ -341,7 +329,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     textAlign: 'center',
     marginBottom: 20,
     paddingHorizontal: 20,
@@ -357,34 +345,34 @@ const styles = StyleSheet.create({
     width: 22,
     height: 22,
     borderRadius: 11,
-    backgroundColor: theme.colors.border,
+    backgroundColor: me.line,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  stepDotCompleted: { backgroundColor: theme.colors.primary },
+  stepDotCompleted: { backgroundColor: me.brand },
   stepDotActive: {
     borderWidth: 2,
-    borderColor: theme.colors.primary,
-    backgroundColor: theme.colors.surface,
+    borderColor: me.brand,
+    backgroundColor: me.surface,
   },
   stepDotText: {
     fontSize: 10,
     fontWeight: '700',
-    color: theme.colors.textTertiary,
+    color: me.ink3,
   },
-  stepDotTextActive: { color: theme.colors.primary },
+  stepDotTextActive: { color: me.brand },
   stepLine: {
     flex: 1,
     height: 2,
-    backgroundColor: theme.colors.border,
+    backgroundColor: me.line,
     marginHorizontal: 4,
   },
-  stepLineCompleted: { backgroundColor: theme.colors.primary },
+  stepLineCompleted: { backgroundColor: me.brand },
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
     marginHorizontal: 20,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 16,
     paddingVertical: 10,
     paddingHorizontal: 12,
@@ -399,31 +387,31 @@ const styles = StyleSheet.create({
   segmentLabel: {
     fontSize: 10,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   segmentValue: {
     fontSize: 12,
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     marginTop: 1,
   },
-  segmentValueFilled: { color: theme.colors.textPrimary, fontWeight: '600' },
+  segmentValueFilled: { color: me.ink, fontWeight: '600' },
   segmentDivider: {
     width: 1,
     height: 28,
-    backgroundColor: theme.colors.border,
+    backgroundColor: me.line,
   },
   searchButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: theme.colors.border,
+    backgroundColor: me.line,
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: 8,
   },
-  searchButtonActive: { backgroundColor: theme.colors.primary },
+  searchButtonActive: { backgroundColor: me.brand },
   panelContainer: { maxHeight: 340, paddingHorizontal: 20 },
   footer: {
     flexDirection: 'row',
@@ -432,27 +420,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 16,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: theme.colors.border,
+    borderTopColor: me.line,
     marginTop: 12,
   },
   clearText: {
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     textDecorationLine: 'underline',
   },
   footerSearchButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: theme.colors.border,
+    backgroundColor: me.line,
     paddingHorizontal: 24,
     paddingVertical: 14,
     borderRadius: 28,
     gap: 8,
   },
-  footerSearchButtonActive: { backgroundColor: theme.colors.primary },
+  footerSearchButtonActive: { backgroundColor: me.brand },
   footerSearchText: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontSize: 15,
     fontWeight: '600',
   },

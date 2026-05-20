@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { PoundSterling, Clock, TrendingUp, Banknote } from 'lucide-react';
 
 interface KpiCardsProps {
@@ -21,6 +21,51 @@ export function KpiCards({
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     });
+
+  // Hydration-safe theme detection — switch to canonical .kpi tiles
+  // when the Mint Editorial theme is active. Same pattern used across
+  // other contractor surfaces (settings, jobs, quotes, messages).
+  const [isMintEditorial, setIsMintEditorial] = useState(false);
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    setIsMintEditorial(
+      document.documentElement.dataset.theme === 'mint-editorial'
+    );
+  }, []);
+
+  if (isMintEditorial) {
+    return (
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          gap: 12,
+          marginBottom: 24,
+        }}
+      >
+        <div className='kpi'>
+          <div className='label'>This month</div>
+          <div className='num'>£{fmt(thisMonthRevenue)}</div>
+          <div className='sub'>Net after platform + processing fees</div>
+        </div>
+        <div className='kpi'>
+          <div className='label'>Pending payout</div>
+          <div className='num'>£{fmt(pendingPayouts)}</div>
+          <div className='sub'>Held in escrow</div>
+        </div>
+        <div className='kpi'>
+          <div className='label'>All-time revenue</div>
+          <div className='num'>£{fmt(allTimeRevenue)}</div>
+          <div className='sub'>Lifetime earnings</div>
+        </div>
+        <div className='kpi'>
+          <div className='label'>Avg job value</div>
+          <div className='num'>£{fmt(avgJobValue)}</div>
+          <div className='sub'>Per completed job</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8'>

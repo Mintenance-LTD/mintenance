@@ -10,16 +10,21 @@ import { useCurrentUser } from '@/hooks/useCurrentUser';
 import { HomeownerPageWrapper } from '@/app/dashboard/components/HomeownerPageWrapper';
 import { useImageUpload } from './hooks/useImageUpload';
 import { useBuildingAssessment } from './hooks/useBuildingAssessment';
+import { HireAgainBanner } from './components/HireAgainBanner';
 import {
   validateJobForm,
   isFormValid,
   type JobFormData,
 } from './utils/validation';
 import { submitJob } from './utils/submitJob';
+import {
+  initialFormDataFromParams,
+  formDataPatchFromParams,
+} from './utils/url-prefill';
 import { useCSRF } from '@/lib/hooks/useCSRF';
 import toast from 'react-hot-toast';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
-import { ArrowLeft, Info } from 'lucide-react';
+import { Info } from 'lucide-react';
 import { STEPS } from './_components/types';
 import type { Property } from './_components/types';
 import { ProgressBar } from './_components/progress-bar';
@@ -87,20 +92,12 @@ export default function CreateJobPage2025() {
   const { csrfToken } = useCSRF();
   const [currentStep, setCurrentStep] = useState(1);
 
-  const [formData, setFormData] = useState<JobFormData>({
-    title: '',
-    description: '',
-    location: searchParams?.get('location') ?? '',
-    category: searchParams?.get('category') ?? '',
-    urgency: 'medium',
-    budget: '',
-    budget_min: '',
-    budget_max: '',
-    show_budget_to_contractors: false,
-    require_itemized_bids: false,
-    requiredSkills: [],
-    property_id: searchParams?.get('property_id') || '',
-  });
+  // Mint AI dock prefills via /api/ai/job-draft → query params. The
+  // initial seed + soft-navigation patch helpers live in
+  // utils/url-prefill.ts to keep this file under the MDC line cap.
+  const [formData, setFormData] = useState<JobFormData>(() =>
+    initialFormDataFromParams(searchParams)
+  );
 
   const [properties, setProperties] = useState<Property[]>([]);
   // Start loading=true so the first render shows "Loading…" instead of flashing
@@ -125,17 +122,12 @@ export default function CreateJobPage2025() {
     },
   });
 
-  // Prefill category and location from URL
+  // Prefill from URL on soft-navigations (Mint AI dock, deep-links).
+  // Initial state already captured the params on mount; this effect
+  // covers later URL changes that don't remount the page.
   useEffect(() => {
-    const qCategory = searchParams?.get('category');
-    const qLocation = searchParams?.get('location');
-    if (qCategory || qLocation) {
-      setFormData((prev) => ({
-        ...prev,
-        ...(qCategory && { category: qCategory }),
-        ...(qLocation && { location: qLocation }),
-      }));
-    }
+    const patch = formDataPatchFromParams(searchParams);
+    if (patch) setFormData((prev) => ({ ...prev, ...patch }));
   }, [searchParams]);
 
   useEffect(() => {
@@ -318,6 +310,16 @@ export default function CreateJobPage2025() {
         photoUrls: imageUrls,
         csrfToken: csrfToken || '',
         aiAssessment: buildingAssessment.assessment || undefined,
+        // 2026-05-12 fix: preferredDate was collected by BudgetStep
+        // but never persisted. Now flows into `requirements.preferred_start_date`
+        // (see submitJob.ts) so the value at least survives until a
+        // dedicated DB column ships.
+        preferredDate: preferredDate || undefined,
+        // 2026-05-13 (Hire-Again loop closure): pass through the
+        // `preferredContractor` query param so the server fires a
+        // direct invite notification to that contractor.
+        preferredContractorId:
+          searchParams?.get('preferredContractor') ?? undefined,
       });
 
       if (!result.success || !result.jobId) {
@@ -335,10 +337,23 @@ export default function CreateJobPage2025() {
         errorMessage.toLowerCase().includes('verify your phone')
       ) {
         toast.error('Phone verification required to post jobs');
-        toast.custom((t) => (
-          <div className='flex items-center gap-2 bg-white px-4 py-3 rounded-lg shadow-lg border border-gray-200'>
-            <Info className='w-5 h-5 text-blue-600' />
-            <span>Redirecting to settings for verification...</span>
+        toast.custom(() => (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '12px 16px',
+              borderRadius: 'var(--me-radius-card)',
+              background: 'var(--me-surface)',
+              border: '1px solid var(--me-line)',
+              boxShadow: 'var(--me-shadow-pop)',
+              color: 'var(--me-ink)',
+              fontSize: 14,
+            }}
+          >
+            <Info className='w-5 h-5' style={{ color: 'var(--me-brand)' }} />
+            <span>Redirecting to settings for verification…</span>
           </div>
         ));
         setTimeout(() => {
@@ -358,8 +373,26 @@ export default function CreateJobPage2025() {
 
   if (loadingUser) {
     return (
-      <div className='flex items-center justify-center min-h-screen'>
-        <div className='h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-gray-600' />
+      <div
+        data-theme='mint-editorial'
+        className='me-root'
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: '60vh',
+        }}
+      >
+        <div
+          className='animate-spin'
+          style={{
+            width: 40,
+            height: 40,
+            borderRadius: 9999,
+            border: '4px solid var(--me-brand-soft)',
+            borderTopColor: 'var(--me-brand)',
+          }}
+        />
       </div>
     );
   }
@@ -394,22 +427,30 @@ export default function CreateJobPage2025() {
   return (
     <ErrorBoundary componentName='CreateJobPage'>
       <HomeownerPageWrapper>
-        {/* Back to Jobs Button */}
-        <button
-          onClick={() => router.push('/jobs')}
-          className='flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors mb-4'
+        {/* Direction A · Mint Editorial — the content subtree carries
+            `data-theme` + `.me-root` so the `--me-*` tokens resolve
+            regardless of the user's global theme cookie. `me-legacy-fit`
+            palette-maps the still-legacy embedded components
+            (HireAgainBanner, SmartJobAnalysis, BudgetRangeSelector). */}
+        <div
+          data-theme='mint-editorial'
+          className='me-root me-legacy-fit'
+          style={{ padding: '28px 32px' }}
         >
-          <ArrowLeft className='w-5 h-5' />
-          <span className='font-medium'>Back to Jobs</span>
-        </button>
-
-        <div className='min-h-screen bg-gray-50 py-8'>
-          <div className='max-w-3xl mx-auto px-4'>
+          <div style={{ maxWidth: 768, margin: '0 auto' }}>
+            {/* Hire-again banner — surfaces when the homeowner came
+                in via the "Hire again" CTA on a completed job. */}
+            <HireAgainBanner
+              preferredContractorId={
+                searchParams?.get('preferredContractor') ?? null
+              }
+            />
             <ProgressBar currentStep={currentStep} steps={STEPS} />
 
             {/* Main Card */}
             <div
-              className='bg-white rounded-xl border border-gray-200 p-4 sm:p-6 md:p-8 mb-6'
+              className='card'
+              style={{ padding: 28, marginBottom: 24 }}
               data-testid='job-create-form'
             >
               {currentStep === 1 && (

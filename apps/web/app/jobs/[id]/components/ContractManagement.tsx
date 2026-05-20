@@ -7,6 +7,7 @@ import { getStatusConfig, TERMS_HIDDEN_KEYS } from './contract/contractHelpers';
 import { ContractHeader } from './contract/ContractHeader';
 import { ContractParties } from './contract/ContractParties';
 import { ContractScope } from './contract/ContractScope';
+import { ContractQuoteBreakdown } from './contract/ContractQuoteBreakdown';
 import { ContractSignatures } from './contract/ContractSignatures';
 import { ContractTimeline } from './contract/ContractTimeline';
 import { ContractActions } from './contract/ContractActions';
@@ -136,6 +137,7 @@ export function ContractManagement(props: ContractManagementProps) {
           insurancePolicyNumber={insurancePolicyNumber}
         />
         <ContractScope contract={contract} visibleTerms={visibleTerms} />
+        <ContractQuoteBreakdown quote={contract.quote} />
         <ContractSignatures
           contractorName={contractorName}
           homeownerName={homeownerName}

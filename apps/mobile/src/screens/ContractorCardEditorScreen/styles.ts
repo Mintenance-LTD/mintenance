@@ -1,10 +1,10 @@
-import { StyleSheet, Platform } from 'react-native';
-import { theme } from '../../theme';
+import { StyleSheet } from 'react-native';
+import { me } from '../../design-system/mint-editorial';
 
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   header: {
     flexDirection: 'row',
@@ -12,28 +12,28 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   backButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   previewButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -42,31 +42,23 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   section: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 16,
     padding: 20,
     marginTop: 16,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.06,
-        shadowRadius: 10,
-      },
-      android: { elevation: 2 },
-    }),
+    ...me.shadow.card,
   },
   sectionTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: theme.colors.textTertiary,
+    color: me.ink3,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 14,
   },
   sectionSubtitle: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     marginBottom: 16,
     marginTop: -6,
   },
@@ -76,7 +68,7 @@ export const styles = StyleSheet.create({
     height: 120,
     borderRadius: 16,
     borderWidth: 1.5,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
     borderStyle: 'dashed',
   },
   logoImage: {
@@ -97,7 +89,7 @@ export const styles = StyleSheet.create({
     marginBottom: 8,
   },
   logoPlaceholderText: {
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     fontSize: 14,
     fontWeight: '500',
   },
@@ -113,7 +105,7 @@ export const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 8,
   },
   useProfileBtn: {
@@ -123,19 +115,19 @@ export const styles = StyleSheet.create({
     paddingVertical: 2,
     paddingHorizontal: 8,
     borderRadius: 8,
-    backgroundColor: theme.colors.primaryLight || '#EFF6FF',
+    backgroundColor: me.brandSoft,
   },
   useProfileBtnText: {
     fontSize: 12,
     fontWeight: '500',
-    color: theme.colors.primary,
+    color: me.brand,
   },
   textInput: {
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     borderRadius: 12,
     padding: 14,
     fontSize: 15,
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   textArea: {
     height: 100,
@@ -154,18 +146,18 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 20,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   availabilityOptionActive: {
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
   },
   availabilityText: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     fontWeight: '500',
   },
   availabilityTextActive: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontWeight: '600',
   },
   addPortfolioButton: {
@@ -175,14 +167,14 @@ export const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 16,
     borderWidth: 1.5,
-    borderColor: theme.colors.border,
+    borderColor: me.line,
     borderStyle: 'dashed',
     marginBottom: 16,
     gap: 8,
   },
   addPortfolioText: {
     fontSize: 15,
-    color: theme.colors.textPrimary,
+    color: me.ink,
     fontWeight: '600',
   },
   portfolioGrid: {
@@ -215,19 +207,19 @@ export const styles = StyleSheet.create({
     paddingVertical: 24,
   },
   saveButton: {
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.ink,
     borderRadius: 28,
     paddingVertical: 16,
     alignItems: 'center',
   },
   saveButtonText: {
-    color: theme.colors.textInverse,
+    color: me.onBrand,
     fontSize: 16,
     fontWeight: '700',
   },
   previewContainer: {
     flex: 1,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
   },
   previewHeader: {
     flexDirection: 'row',
@@ -235,20 +227,20 @@ export const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 16,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   previewTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   previewCloseBtn: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: theme.colors.backgroundSecondary,
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -258,19 +250,11 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
   cardPreview: {
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 24,
     padding: 28,
     alignItems: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.1,
-        shadowRadius: 16,
-      },
-      android: { elevation: 6 },
-    }),
+    ...me.shadow.pop,
   },
   previewLogo: {
     width: 80,
@@ -281,18 +265,18 @@ export const styles = StyleSheet.create({
   previewCompanyName: {
     fontSize: 20,
     fontWeight: '700',
-    color: theme.colors.textPrimary,
+    color: me.ink,
     marginBottom: 8,
   },
   previewBio: {
     fontSize: 14,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     textAlign: 'center',
     marginBottom: 16,
     lineHeight: 20,
   },
   previewRateChip: {
-    backgroundColor: theme.colors.primaryLight,
+    backgroundColor: me.brandSoft,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 6,
@@ -300,6 +284,6 @@ export const styles = StyleSheet.create({
   previewRate: {
     fontSize: 18,
     fontWeight: '700',
-    color: theme.colors.primary,
+    color: me.brand,
   },
 });
