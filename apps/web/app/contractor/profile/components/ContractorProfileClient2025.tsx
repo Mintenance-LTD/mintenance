@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { SkillsManagementModal } from './SkillsManagementModal';
 import { ProfileHeroSection } from './ProfileHeroSection';
 import { ProfileTabPanels } from './ProfileTabPanels';
+import { PhotoUploadDialog } from './PhotoUploadDialog';
 import { logger } from '@mintenance/shared';
 import {
   Briefcase,
@@ -172,6 +173,46 @@ export function ContractorProfileClient2025({
       toast.error(
         error instanceof Error ? error.message : 'Failed to save skills'
       );
+    }
+  };
+
+  const handleUploadPhotos = async (data: {
+    files: File[];
+    title: string;
+    category: string;
+  }) => {
+    try {
+      const formDataToSend = new FormData();
+      formDataToSend.append('title', data.title);
+      formDataToSend.append('category', data.category);
+      data.files.forEach((file) => {
+        formDataToSend.append('photos', file);
+      });
+
+      const response = await fetch('/api/contractor/upload-photos', {
+        method: 'POST',
+        headers: { ...getCsrfHeaders() },
+        credentials: 'include',
+        body: formDataToSend,
+      });
+
+      if (!response.ok) {
+        const errorData = await response
+          .json()
+          .catch(() => ({ error: 'Upload failed' }));
+        throw new Error(errorData.error || 'Failed to upload photos');
+      }
+
+      toast.success('Project added to portfolio');
+      router.refresh();
+    } catch (error) {
+      logger.error('Error uploading portfolio photos:', error, {
+        service: 'ui',
+      });
+      toast.error(
+        error instanceof Error ? error.message : 'Failed to upload photos'
+      );
+      throw error;
     }
   };
 
@@ -363,12 +404,12 @@ export function ContractorProfileClient2025({
           }}
           onAddSkillClick={() => setShowAddSkillModal(true)}
           onAddPortfolioClick={() => setShowAddPortfolioModal(true)}
-          showAddPortfolioModal={showAddPortfolioModal}
-          onClosePortfolioModal={() => setShowAddPortfolioModal(false)}
-          onAddPortfolioSubmit={() => {
-            toast.success('Project added to portfolio');
-            setShowAddPortfolioModal(false);
-          }}
+        />
+
+        <PhotoUploadDialog
+          open={showAddPortfolioModal}
+          onOpenChange={setShowAddPortfolioModal}
+          onUpload={handleUploadPhotos}
         />
 
         {showAddSkillModal && (
