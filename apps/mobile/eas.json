@@ -59,7 +59,7 @@
         "SENTRY_ORG": "${SENTRY_ORG}",
         "SENTRY_PROJECT": "${SENTRY_PROJECT}",
         "SENTRY_AUTH_TOKEN": "${SENTRY_AUTH_TOKEN}",
-        "SENTRY_DISABLE_AUTO_UPLOAD": "false",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true",
         "GOOGLE_SERVICES_JSON": "${GOOGLE_SERVICES_JSON}",
         "GOOGLE_SERVICES_PLIST": "${GOOGLE_SERVICES_PLIST}"
       },
@@ -95,7 +95,7 @@
         "SENTRY_ORG": "${SENTRY_ORG}",
         "SENTRY_PROJECT": "${SENTRY_PROJECT}",
         "SENTRY_AUTH_TOKEN": "${SENTRY_AUTH_TOKEN}",
-        "SENTRY_DISABLE_AUTO_UPLOAD": "false"
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       },
       "channel": "staging"
     },
@@ -124,7 +124,7 @@
         "SENTRY_ORG": "${SENTRY_ORG}",
         "SENTRY_PROJECT": "${SENTRY_PROJECT}",
         "SENTRY_AUTH_TOKEN": "${SENTRY_AUTH_TOKEN}",
-        "SENTRY_DISABLE_AUTO_UPLOAD": "false"
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       },
       "channel": "preview"
     },
@@ -161,7 +161,7 @@
         "SENTRY_ORG": "${SENTRY_ORG}",
         "SENTRY_PROJECT": "${SENTRY_PROJECT}",
         "SENTRY_AUTH_TOKEN": "${SENTRY_AUTH_TOKEN}",
-        "SENTRY_DISABLE_AUTO_UPLOAD": "false"
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
       },
       "channel": "internal"
     },
@@ -195,7 +195,7 @@
         "SENTRY_ORG": "${SENTRY_ORG}",
         "SENTRY_PROJECT": "${SENTRY_PROJECT}",
         "SENTRY_AUTH_TOKEN": "${SENTRY_AUTH_TOKEN}",
-        "SENTRY_DISABLE_AUTO_UPLOAD": "false",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true",
         "GOOGLE_SERVICES_JSON": "${GOOGLE_SERVICES_JSON}",
         "GOOGLE_SERVICES_PLIST": "${GOOGLE_SERVICES_PLIST}"
       },
@@ -231,7 +231,7 @@
         "SENTRY_ORG": "${SENTRY_ORG}",
         "SENTRY_PROJECT": "${SENTRY_PROJECT}",
         "SENTRY_AUTH_TOKEN": "${SENTRY_AUTH_TOKEN}",
-        "SENTRY_DISABLE_AUTO_UPLOAD": "false",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true",
         "GOOGLE_SERVICES_JSON": "${GOOGLE_SERVICES_JSON}",
         "GOOGLE_SERVICES_PLIST": "${GOOGLE_SERVICES_PLIST}"
       },
