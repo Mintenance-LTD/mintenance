@@ -38,6 +38,42 @@ interface SearchResult {
   };
 }
 
+const PUBLIC_JOB_STATUSES = ['open', 'posted'] as const;
+const PUBLIC_JOB_SELECT =
+  'id, title, description, location, category, budget, budget_min, budget_max, status, published_at';
+const PUBLIC_CONTRACTOR_SELECT =
+  'id, first_name, last_name, bio, location, rating, availability, specialties, role, verified, admin_verified';
+
+function isPublicJobRecord(job: Record<string, unknown>): boolean {
+  return (
+    typeof job.id === 'string' &&
+    typeof job.title === 'string' &&
+    typeof job.description === 'string' &&
+    typeof job.status === 'string' &&
+    PUBLIC_JOB_STATUSES.includes(
+      job.status as (typeof PUBLIC_JOB_STATUSES)[number]
+    )
+  );
+}
+
+function isPublicContractorRecord(
+  contractor: Record<string, unknown>
+): boolean {
+  const isContractor =
+    contractor.role === undefined || contractor.role === 'contractor';
+  const isVerified =
+    contractor.verified === true || contractor.admin_verified === true;
+
+  return typeof contractor.id === 'string' && isContractor && isVerified;
+}
+
+function jobPrice(job: Record<string, unknown>): number | undefined {
+  if (typeof job.budget === 'number') return job.budget;
+  if (typeof job.budget_min === 'number') return job.budget_min;
+  if (typeof job.budget_max === 'number') return job.budget_max;
+  return undefined;
+}
+
 /**
  * AI-powered semantic search endpoint
  * OWASP Security: Rate limited to 10 requests per minute per IP
@@ -278,7 +314,8 @@ async function fullTextSearchJobs(
 
     let queryBuilder = serverSupabase
       .from('jobs')
-      .select('*')
+      .select(PUBLIC_JOB_SELECT)
+      .in('status', [...PUBLIC_JOB_STATUSES])
       .or(
         `title.ilike.%${sanitizedQuery}%,description.ilike.%${sanitizedQuery}%`
       )
@@ -316,10 +353,10 @@ async function fullTextSearchJobs(
       metadata: {
         location: typeof job.location === 'string' ? job.location : undefined,
         category: typeof job.category === 'string' ? job.category : undefined,
-        price: typeof job.budget === 'number' ? job.budget : undefined,
+        price: jobPrice(job),
         availability: typeof job.status === 'string' ? job.status : undefined,
       },
-    }));
+    })).filter((result) => Boolean(result.id && result.title));
   } catch (error) {
     logger.error('Failed to perform full-text job search', error, {
       service: 'ai_search',
@@ -346,8 +383,9 @@ async function fullTextSearchContractors(
 
     let queryBuilder = serverSupabase
       .from('profiles')
-      .select('*')
+      .select(PUBLIC_CONTRACTOR_SELECT)
       .eq('role', 'contractor')
+      .or('verified.eq.true,admin_verified.eq.true')
       .or(
         `first_name.ilike.%${sanitizedQuery}%,last_name.ilike.%${sanitizedQuery}%,bio.ilike.%${sanitizedQuery}%`
       )
@@ -372,32 +410,34 @@ async function fullTextSearchContractors(
       return [];
     }
 
-    return (data || []).map((contractor: Record<string, unknown>) => {
-      const firstName =
-        typeof contractor.first_name === 'string' ? contractor.first_name : '';
-      const lastName =
-        typeof contractor.last_name === 'string' ? contractor.last_name : '';
-      const bio = typeof contractor.bio === 'string' ? contractor.bio : '';
-      const location =
-        typeof contractor.location === 'string'
-          ? contractor.location
-          : undefined;
-      const rating =
-        typeof contractor.rating === 'number' ? contractor.rating : undefined;
-      const availability =
-        typeof contractor.availability === 'string'
-          ? contractor.availability
-          : undefined;
+    return (data || [])
+      .filter(isPublicContractorRecord)
+      .map((contractor: Record<string, unknown>) => {
+        const firstName =
+          typeof contractor.first_name === 'string' ? contractor.first_name : '';
+        const lastName =
+          typeof contractor.last_name === 'string' ? contractor.last_name : '';
+        const bio = typeof contractor.bio === 'string' ? contractor.bio : '';
+        const location =
+          typeof contractor.location === 'string'
+            ? contractor.location
+            : undefined;
+        const rating =
+          typeof contractor.rating === 'number' ? contractor.rating : undefined;
+        const availability =
+          typeof contractor.availability === 'string'
+            ? contractor.availability
+            : undefined;
 
-      return {
-        id: String(contractor.id || ''),
-        type: 'contractor' as const,
-        title: `${firstName} ${lastName}`.trim() || 'Unknown Contractor',
-        description: bio || '',
-        relevanceScore: calculateTextMatchScore(query, contractor),
-        metadata: { location, rating, availability },
-      };
-    });
+        return {
+          id: String(contractor.id || ''),
+          type: 'contractor' as const,
+          title: `${firstName} ${lastName}`.trim() || 'Verified Contractor',
+          description: bio || '',
+          relevanceScore: calculateTextMatchScore(query, contractor),
+          metadata: { location, rating, availability },
+        };
+      });
   } catch (error) {
     logger.error('Failed to perform full-text contractor search', error, {
       service: 'ai_search',
@@ -447,7 +487,7 @@ async function searchJobs(
       return [];
     }
 
-    return (data || []).map((job: Record<string, unknown>) => ({
+    return (data || []).filter(isPublicJobRecord).map((job: Record<string, unknown>) => ({
       id: String(job.id || ''),
       type: 'job' as const,
       title: String(job.title || ''),
@@ -457,7 +497,7 @@ async function searchJobs(
       metadata: {
         location: typeof job.location === 'string' ? job.location : undefined,
         category: typeof job.category === 'string' ? job.category : undefined,
-        price: typeof job.budget === 'number' ? job.budget : undefined,
+        price: jobPrice(job),
         availability: typeof job.status === 'string' ? job.status : undefined,
       },
     }));
@@ -492,7 +532,7 @@ async function searchContractors(
       return [];
     }
 
-    return (data || []).map((contractor: Record<string, unknown>) => {
+    return (data || []).filter(isPublicContractorRecord).map((contractor: Record<string, unknown>) => {
       const firstName =
         typeof contractor.first_name === 'string' ? contractor.first_name : '';
       const lastName =

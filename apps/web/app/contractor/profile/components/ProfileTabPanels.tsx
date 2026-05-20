@@ -2,7 +2,6 @@
 
 import React from 'react';
 import NextImage from 'next/image';
-import { AnimatePresence } from 'framer-motion';
 import { formatMoney } from '@/lib/utils/currency';
 import { MotionDiv, MotionButton } from '@/components/ui/MotionDiv';
 import {
@@ -50,9 +49,6 @@ interface ProfileTabPanelsProps {
   onRemoveSkill: (index: number) => void;
   onAddSkillClick: () => void;
   onAddPortfolioClick: () => void;
-  showAddPortfolioModal: boolean;
-  onClosePortfolioModal: () => void;
-  onAddPortfolioSubmit: () => void;
 }
 
 function renderStars(rating: number) {
@@ -82,9 +78,6 @@ export function ProfileTabPanels({
   onRemoveSkill,
   onAddSkillClick,
   onAddPortfolioClick,
-  showAddPortfolioModal,
-  onClosePortfolioModal,
-  onAddPortfolioSubmit,
 }: ProfileTabPanelsProps) {
   return (
     <>
@@ -612,95 +605,6 @@ export function ProfileTabPanels({
         )}
       </div>
 
-      {/* Add Portfolio Modal */}
-      <AnimatePresence>
-        {showAddPortfolioModal && (
-          <div className='fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center p-4 z-50'>
-            <MotionDiv
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className='bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto'
-            >
-              <div className='p-6'>
-                <div className='flex items-center justify-between mb-6'>
-                  <h3 className='text-xl font-semibold text-gray-900'>
-                    Add Portfolio Project
-                  </h3>
-                  <button
-                    onClick={onClosePortfolioModal}
-                    className='p-2 hover:bg-gray-100 rounded-lg transition-colors'
-                  >
-                    <X className='w-5 h-5 text-gray-600' />
-                  </button>
-                </div>
-                <div className='space-y-4'>
-                  <div>
-                    <label className='block text-sm font-medium text-gray-900 mb-2'>
-                      Project Title
-                    </label>
-                    <input
-                      type='text'
-                      placeholder='e.g., Modern Kitchen Renovation'
-                      className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent'
-                    />
-                  </div>
-                  <div>
-                    <label className='block text-sm font-medium text-gray-900 mb-2'>
-                      Category
-                    </label>
-                    <select className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent'>
-                      <option>Kitchen</option>
-                      <option>Bathroom</option>
-                      <option>Plumbing</option>
-                      <option>Electrical</option>
-                      <option>General</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className='block text-sm font-medium text-gray-900 mb-2'>
-                      Description
-                    </label>
-                    <textarea
-                      rows={4}
-                      placeholder='Describe the project, challenges, and results...'
-                      className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent'
-                    />
-                  </div>
-                  <div>
-                    <label className='block text-sm font-medium text-gray-900 mb-2'>
-                      Project Images
-                    </label>
-                    <div className='border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-teal-500 transition-colors cursor-pointer'>
-                      <Upload className='w-12 h-12 text-gray-400 mx-auto mb-4' />
-                      <p className='text-gray-600 mb-2'>
-                        Click to upload or drag and drop
-                      </p>
-                      <p className='text-sm text-gray-500'>
-                        PNG, JPG up to 10MB
-                      </p>
-                    </div>
-                  </div>
-                  <div className='flex gap-3 pt-4'>
-                    <button
-                      onClick={onAddPortfolioSubmit}
-                      className='flex-1 px-6 py-3 bg-teal-600 text-white rounded-lg font-medium hover:bg-teal-700 transition-colors'
-                    >
-                      Add Project
-                    </button>
-                    <button
-                      onClick={onClosePortfolioModal}
-                      className='px-6 py-3 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors'
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </MotionDiv>
-          </div>
-        )}
-      </AnimatePresence>
     </>
   );
 }
