@@ -12,6 +12,7 @@ import {
   TrendingUp,
   Plus,
   Trash2,
+  X,
   Upload,
   Edit3,
   Image as ImageIcon,
