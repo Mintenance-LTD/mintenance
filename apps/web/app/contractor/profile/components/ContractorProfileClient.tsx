@@ -221,16 +221,24 @@ export function ContractorProfileClient({
 
   const handleUploadPhotos = async (data: { files: File[], title: string, category: string }) => {
     try {
+      if (!csrfToken) {
+        throw new Error('Security token not available. Please refresh the page.');
+      }
+
       const formData = new FormData();
       formData.append('title', data.title);
       formData.append('category', data.category);
-      
-      data.files.forEach((file, index) => {
+
+      data.files.forEach((file) => {
         formData.append(`photos`, file);
       });
 
       const response = await fetch('/api/contractor/upload-photos', {
         method: 'POST',
+        headers: {
+          'x-csrf-token': csrfToken,
+        },
+        credentials: 'include',
         body: formData,
       });
 

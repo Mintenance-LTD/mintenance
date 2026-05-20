@@ -18,6 +18,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { JobService } from '../../services/JobService';
 import { Job } from '@mintenance/types';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '../../lib/queryClient';
 import { ResponsiveContainer } from '../../components/responsive';
 import { ExploreMapScreen } from '../explore-map/ExploreMapScreen';
 import { ScreenErrorBoundary } from '../../components/ScreenErrorBoundary';
@@ -77,7 +78,15 @@ const JobsScreen: React.FC = () => {
     isFetching,
     refetch,
   } = useQuery<Job[]>({
-    queryKey: ['jobs', user?.id, user?.role],
+    // 2026-05-20 audit fix: align the read-side cache key with what
+    // useQueries' job-create mutations invalidate (queryKeys.jobs.all
+    // = ['jobs']). The old `['jobs', user?.id, user?.role]` key never
+    // matched the all-invalidation, so a newly posted job didn't
+    // appear in this list until a manual refetch.
+    queryKey:
+      user?.role === 'homeowner'
+        ? queryKeys.jobs.list(`homeowner:${user.id}`)
+        : queryKeys.jobs.list(`contractor:${user?.id ?? 'unknown'}`),
     queryFn: async () => {
       // 2026-04-30 audit P1: replace `user!.id` / `user!.role` with an
       // explicit guard. `enabled: !!user` already prevents this from
@@ -238,7 +247,7 @@ const JobsScreen: React.FC = () => {
   }, [allJobs, selectedFilter, debouncedQuery, sortMode, isContractor]);
 
   const onRefresh = () => {
-    queryClient.invalidateQueries({ queryKey: ['jobs', user?.id, user?.role] });
+    queryClient.invalidateQueries({ queryKey: queryKeys.jobs.all });
   };
 
   const handleAddJob = useCallback(() => {
