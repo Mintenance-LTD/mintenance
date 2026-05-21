@@ -192,11 +192,15 @@ export const POST = withApiHandler(
             .update({ status: BID_STATUS.REJECTED })
             .eq('job_id', context.jobId)
             .neq('id', context.bidId);
+          // 2026-05-21 Mint Editorial voice — match the call-site copy
+          // in accept/_helpers.ts so both AI-agent and manual paths
+          // produce the same notification.
+          const fmtAmount = `£${Number(bid.amount ?? 0).toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
           await NotificationService.createNotification({
             userId: bid.contractor_id as string,
             type: 'bid_accepted',
-            title: 'Your bid was accepted!',
-            message: `Your bid for "${job.title}" has been accepted.`,
+            title: `${fmtAmount} bid accepted — ${job.title}`,
+            message: `Sign the contract, then the homeowner pays into escrow. You can start the moment the funds land.`,
             actionUrl: `/contractor/jobs/${context.jobId}`,
             metadata: { jobId: context.jobId, bidId: context.bidId },
           });

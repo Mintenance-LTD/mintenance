@@ -162,11 +162,12 @@ export const POST = withApiHandler(
         // Notify the existing user. Previous direct insert used a
         // `data` column that doesn't exist — PostgREST rejected the
         // INSERT, so tenants were never told their access was granted.
+        // 2026-05-21 Mint Editorial voice.
         await NotificationService.createNotification({
           userId: existingUser.id,
           type: 'tenant_linked',
-          title: 'Property Access Granted',
-          message: `You've been added as a tenant at ${property.address || property.name || 'a property'}. You can now submit maintenance requests.`,
+          title: `You're on the tenants list at ${property.address || property.name || 'a property'}`,
+          message: `Anything need fixing? Open the property and post a job — the landlord pays.`,
           actionUrl: `/properties/${propertyId}`,
           metadata: { property_id: propertyId },
         });

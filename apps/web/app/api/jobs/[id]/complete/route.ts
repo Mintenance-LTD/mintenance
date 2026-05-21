@@ -97,11 +97,13 @@ export const POST = withApiHandler(
     // user-preference + quiet-hours rules apply. The previous direct
     // `.from('notifications').insert(...)` silently dropped the push channel
     // and used a column (`data`) that no longer exists in production.
+    // 2026-05-21 Mint Editorial voice — matches the after-photos
+    // review nudge phrasing so push + in-app land consistently.
     await NotificationService.createNotification({
       userId: job.homeowner_id,
       type: 'job_update',
-      title: 'Job Completed',
-      message: `Your job "${job.title}" has been marked as completed. Please review and release payment.`,
+      title: 'How did your contractor do?',
+      message: `${job.title || 'Your job'} is done. Two taps to leave a review and release payment.`,
       actionUrl: `/jobs/${jobId}`,
       metadata: { jobId, event: 'job_completed' },
     });

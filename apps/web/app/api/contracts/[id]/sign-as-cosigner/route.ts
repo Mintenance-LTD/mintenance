@@ -144,19 +144,22 @@ export const POST = withApiHandler(
       } else {
         promoted = true;
         // Notify both legacy parties.
+        // 2026-05-21 Mint Editorial voice — match accept/route.ts so
+        // every "fully signed" path produces the same notification.
+        const jobLabel = contract.title || 'your job';
         await Promise.allSettled([
           NotificationService.createNotification({
             userId: contract.contractor_id,
             type: 'contract_signed',
-            title: 'Contract Accepted!',
-            message: `All parties have signed the contract for "${contract.title || 'your job'}".`,
+            title: `${jobLabel} — contract is live`,
+            message: `All sides signed. Homeowner funds escrow next; you'll get a notification when the money lands.`,
             actionUrl: `/contractor/jobs/${contract.job_id}`,
           }),
           NotificationService.createNotification({
             userId: contract.homeowner_id,
             type: 'contract_signed',
-            title: 'Contract Accepted!',
-            message: `All parties have signed the contract for "${contract.title || 'your job'}".`,
+            title: `${jobLabel} — contract is live`,
+            message: `All sides signed. Next step is to fund the escrow — payment stays held until you approve the finished work.`,
             actionUrl: `/jobs/${contract.job_id}`,
           }),
         ]);

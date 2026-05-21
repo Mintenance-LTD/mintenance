@@ -18,7 +18,10 @@ const createAppointmentSchema = z.object({
   appointmentDate: z.string().min(1),
   startTime: z.string().min(1),
   endTime: z.string().min(1),
-  locationType: z.enum(['onsite', 'remote', 'phone']).optional().or(emptyToUndefined),
+  locationType: z
+    .enum(['onsite', 'remote', 'phone'])
+    .optional()
+    .or(emptyToUndefined),
   locationAddress: z.string().max(500).optional().or(emptyToUndefined),
   jobId: z.string().uuid().optional().or(emptyToUndefined),
   notes: z.string().max(5000).optional().or(emptyToUndefined),
@@ -38,7 +41,8 @@ export const GET = withApiHandler(
     // Build query
     let query = serverSupabase
       .from('appointments')
-      .select(`
+      .select(
+        `
         *,
         client:profiles!client_id(
           id,
@@ -54,10 +58,16 @@ export const GET = withApiHandler(
           status,
           budget
         )
-      `)
+      `
+      )
       .eq('contractor_id', user.id)
       .gte('appointment_date', new Date().toISOString().split('T')[0])
-      .lte('appointment_date', new Date(Date.now() + daysAhead * 24 * 60 * 60 * 1000).toISOString().split('T')[0])
+      .lte(
+        'appointment_date',
+        new Date(Date.now() + daysAhead * 24 * 60 * 60 * 1000)
+          .toISOString()
+          .split('T')[0]
+      )
       .order('appointment_date', { ascending: true })
       .order('start_time', { ascending: true });
 
@@ -68,34 +78,38 @@ export const GET = withApiHandler(
     const { data: appointments, error } = await query;
 
     if (error) {
-      logger.error('Error fetching appointments', error, { service: 'appointments', userId: user.id });
+      logger.error('Error fetching appointments', error, {
+        service: 'appointments',
+        userId: user.id,
+      });
       throw error;
     }
 
     // Transform data to match client interface
-    const transformedAppointments = appointments?.map((apt) => ({
-      id: apt.id,
-      title: apt.title,
-      client: apt.client
-        ? `${apt.client.first_name} ${apt.client.last_name}`
-        : apt.client_name || 'Unknown Client',
-      clientEmail: apt.client?.email || apt.client_email,
-      clientPhone: apt.client?.phone || apt.client_phone,
-      date: apt.appointment_date,
-      time: apt.start_time,
-      endTime: apt.end_time,
-      duration: apt.duration_minutes ? `${apt.duration_minutes}m` : '60m',
-      location: apt.location_address,
-      type: apt.location_type,
-      status: apt.status,
-      jobTitle: apt.job?.title,
-      jobId: apt.job?.id,
-      notes: apt.notes,
-      createdAt: apt.created_at,
-    })) || [];
+    const transformedAppointments =
+      appointments?.map((apt) => ({
+        id: apt.id,
+        title: apt.title,
+        client: apt.client
+          ? `${apt.client.first_name} ${apt.client.last_name}`
+          : apt.client_name || 'Unknown Client',
+        clientEmail: apt.client?.email || apt.client_email,
+        clientPhone: apt.client?.phone || apt.client_phone,
+        date: apt.appointment_date,
+        time: apt.start_time,
+        endTime: apt.end_time,
+        duration: apt.duration_minutes ? `${apt.duration_minutes}m` : '60m',
+        location: apt.location_address,
+        type: apt.location_type,
+        status: apt.status,
+        jobTitle: apt.job?.title,
+        jobId: apt.job?.id,
+        notes: apt.notes,
+        createdAt: apt.created_at,
+      })) || [];
 
     return NextResponse.json({ appointments: transformedAppointments });
-  },
+  }
 );
 
 /**
@@ -129,7 +143,7 @@ export const POST = withApiHandler(
         appt_date: appointmentDate,
         appt_start_time: startTime,
         appt_end_time: endTime,
-      },
+      }
     );
 
     if (conflictCheck) {
@@ -158,7 +172,10 @@ export const POST = withApiHandler(
       .single();
 
     if (error) {
-      logger.error('Error creating appointment', error, { service: 'appointments', userId: user.id });
+      logger.error('Error creating appointment', error, {
+        service: 'appointments',
+        userId: user.id,
+      });
       throw error;
     }
 
@@ -182,28 +199,48 @@ export const POST = withApiHandler(
         .eq('id', user.id)
         .single();
       const contractorName = contractor
-        ? `${contractor.first_name} ${contractor.last_name}`.trim() || contractor.company_name || 'Your contractor'
+        ? `${contractor.first_name} ${contractor.last_name}`.trim() ||
+          contractor.company_name ||
+          'Your contractor'
         : 'Your contractor';
 
-      const dateStr = new Date(appointmentDate + 'T00:00:00').toLocaleDateString('en-GB', {
-        weekday: 'short', day: 'numeric', month: 'short',
+      const dateStr = new Date(
+        appointmentDate + 'T00:00:00'
+      ).toLocaleDateString('en-GB', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
       });
-      const typeLabel = locationType === 'remote' ? 'video call' : locationType === 'phone' ? 'phone call' : 'on-site visit';
+      const typeLabel =
+        locationType === 'remote'
+          ? 'video call'
+          : locationType === 'phone'
+            ? 'phone call'
+            : 'on-site visit';
 
       if (homeownerId) {
+        // 2026-05-21 Mint Editorial voice — lead with who + when, body
+        // names the type so the homeowner knows whether to expect a call
+        // or someone at the door.
         await NotificationService.createNotification({
           userId: homeownerId,
           type: 'appointment_scheduled',
-          title: 'Appointment Scheduled',
-          message: `${contractorName} scheduled a ${typeLabel}: "${title}" on ${dateStr} at ${startTime}`,
-          metadata: { appointmentId: newAppointment.id, jobId, contractorId: user.id },
+          title: `${contractorName} booked you in for ${dateStr} at ${startTime}`,
+          message: `${typeLabel.charAt(0).toUpperCase() + typeLabel.slice(1)} — ${title}.`,
+          metadata: {
+            appointmentId: newAppointment.id,
+            jobId,
+            contractorId: user.id,
+          },
         });
       }
     } catch (notifErr) {
       // Don't fail the appointment creation if notification fails
-      logger.error('Failed to send appointment notification', notifErr, { service: 'appointments' });
+      logger.error('Failed to send appointment notification', notifErr, {
+        service: 'appointments',
+      });
     }
 
     return NextResponse.json({ appointment: newAppointment }, { status: 201 });
-  },
+  }
 );

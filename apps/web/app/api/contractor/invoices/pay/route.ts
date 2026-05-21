@@ -247,11 +247,13 @@ export const POST = withApiHandler(
     // contractor without invoice context. Routing through
     // `NotificationService.createNotification` also adds push delivery
     // + per-user preference checks.
+    // 2026-05-21 Mint Editorial voice — amount-led, names the next step.
+    const fmtAmount = `£${Number(invoice.total_amount).toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
     await NotificationService.createNotification({
       userId: invoice.contractor_id,
       type: 'payment_initiated',
-      title: 'Payment Initiated',
-      message: `Payment has been initiated for invoice ${invoice.invoice_number}`,
+      title: `${fmtAmount} on the way for ${invoice.invoice_number}`,
+      message: `Payment is in flight — typically lands in 1–2 business days.`,
       metadata: {
         invoice_id: invoice.id,
         payment_id: payment?.id,

@@ -1,51 +1,35 @@
 /**
  * Newsletter welcome email template
+ *
+ * Mint Editorial voice (2026-05-21 port): direct, no decorative
+ * lightning bolts. Three plain bullets, one explicit invitation.
  */
-import { year, emailShell } from './shared';
+import { year, mintEmailShell } from './shared';
 
 export function newsletterWelcomeTemplate(email: string): {
   subject: string;
   html: string;
   text: string;
 } {
-  const color = '#0d9488';
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.co.uk';
-  const extra = `.feature-grid{margin:20px 0}
-    .feature-item{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid #f3f4f6}
-    .feature-item:last-child{border-bottom:none}
-    .feature-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
-    .feature-label{font-weight:600;color:#1f2937;font-size:14px}
-    .feature-desc{color:#6b7280;font-size:13px;margin-top:2px}`;
-  const html = emailShell(
-    color,
-    extra,
-    `<h1>Welcome to Mintenance</h1><p>You're on the list!</p>`,
+  const subject = `You're on the Mintenance list.`;
+  const preview = `Roughly fortnightly — what's new, tips for the right job at the right price.`;
+  const html = mintEmailShell(
+    subject,
+    preview,
     `<p>Hi there,</p>
-     <p>Thanks for subscribing to the Mintenance newsletter. You'll be the first to hear about:</p>
-     <div class="feature-grid">
-       <div class="feature-item">
-         <div class="feature-icon" style="background:#f0fdfa;color:#0d9488">&#9889;</div>
-         <div><div class="feature-label">New Platform Features</div><div class="feature-desc">Be the first to know about updates</div></div>
-       </div>
-       <div class="feature-item">
-         <div class="feature-icon" style="background:#fef3c7;color:#d97706">&#128161;</div>
-         <div><div class="feature-label">Tips &amp; Guides</div><div class="feature-desc">Expert advice for homeowners &amp; contractors</div></div>
-       </div>
-       <div class="feature-item">
-         <div class="feature-icon" style="background:#ede9fe;color:#7c3aed">&#128200;</div>
-         <div><div class="feature-label">Industry Insights</div><div class="feature-desc">Trends and data from the UK trades sector</div></div>
-       </div>
-     </div>
-     <p>In the meantime, explore what Mintenance can do for you:</p>
-     <p style="text-align:center"><a href="${baseUrl}/try-mint-ai" class="cta">Try AI Assessment</a></p>
-     <p style="margin-top:16px;text-align:center"><a href="${baseUrl}/find-contractors" style="color:${color};font-weight:600;font-size:14px">Browse Contractors &rarr;</a></p>`,
-    `<p>&copy; ${year()} Mintenance ltd. All rights reserved.</p>
+     <p>Thanks for joining the list. You'll hear from us roughly every two weeks — short, useful, and never marketing-y. Expect:</p>
+     <ul style="color:#333;padding-left:20px;line-height:1.9">
+       <li>What's actually new on the platform (no roadmap dumps)</li>
+       <li>Practical guides: how to brief a job, how to read a quote, when to dispute</li>
+       <li>UK trade-sector trends — boiler service prices by season, certificate windows, the rest</li>
+     </ul>
+     <p>While you're here:</p>
+     <a href="${baseUrl}/try-mint-ai" class="cta">Try the photo-guidance tool →</a>
+     <p style="margin-top:14px;font-size:13px"><a href="${baseUrl}/find-contractors" style="color:#0F4D3A;font-weight:600">Or browse local tradespeople</a></p>`,
+    `<p>&copy; ${year()} Mintenance Ltd.</p>
      <p><a href="${baseUrl}/api/email/unsubscribe?email=${encodeURIComponent(email)}">Unsubscribe</a></p>`
   );
-  const text = `Welcome to Mintenance!\n\nThanks for subscribing. You'll be the first to hear about new features, tips, and industry insights.\n\nTry our AI assessment: ${baseUrl}/try-mint-ai\nBrowse contractors: ${baseUrl}/find-contractors\n\n© ${year()} Mintenance.`;
-  return {
-    subject: "Welcome to Mintenance - You're on the list!",
-    html,
-    text,
-  };
+  const text = `You're on the Mintenance list.\n\nRoughly every two weeks: what's new, practical guides, UK trade-sector trends. Short, useful, never marketing-y.\n\nWhile you're here:\nTry the photo-guidance tool — ${baseUrl}/try-mint-ai\nBrowse contractors — ${baseUrl}/find-contractors\n\nUnsubscribe: ${baseUrl}/api/email/unsubscribe?email=${encodeURIComponent(email)}\n\n© ${year()} Mintenance Ltd.`;
+  return { subject, html, text };
 }

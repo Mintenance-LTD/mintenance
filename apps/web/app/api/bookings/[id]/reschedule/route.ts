@@ -105,8 +105,8 @@ export const PATCH = withApiHandler(
       try {
         await NotificationService.createNotification({
           userId: otherPartyId,
-          title: 'Booking Rescheduled',
-          message: `"${job.title}" has been rescheduled to ${formattedDate}`,
+          title: `${job.title} moved to ${formattedDate}`,
+          message: `The other side rescheduled. Tap to see the new slot.`,
           type: 'job_scheduled',
           actionUrl: `/jobs/${jobId}`,
         });

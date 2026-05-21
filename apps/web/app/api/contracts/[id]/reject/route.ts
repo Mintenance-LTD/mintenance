@@ -124,10 +124,14 @@ export const POST = withApiHandler(
           ? `${homeownerData.first_name} ${homeownerData.last_name}`
           : 'The homeowner';
 
+      // 2026-05-21 Mint Editorial voice — homeowner's reason is the
+      // body when it exists.
       await NotificationService.createNotification({
         userId: contract.contractor_id,
-        title: 'Contract Changes Requested',
-        message: `${homeownerName} has requested changes to the contract for "${contract.title || 'your job'}"${reason ? `: "${reason}"` : '. Please review and resubmit.'}`,
+        title: `${contract.title || 'A contract'} — ${homeownerName} asked for a tweak`,
+        message: reason
+          ? reason
+          : `Open the contract to see what's changed; revise and resubmit.`,
         type: 'contract_changes_requested',
         actionUrl: `/contractor/jobs/${contract.job_id}`,
       });

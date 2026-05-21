@@ -156,10 +156,12 @@ export const POST = withApiHandler(
     // Notify the reviewee — wrapped in try/catch so a notification failure
     // never causes a 500 after the review has already been successfully stored.
     try {
+      // 2026-05-21 Mint Editorial voice — show the star count visually.
+      const stars = '★'.repeat(rating);
       await NotificationService.createNotification({
         userId: revieweeId,
-        title: 'New Review',
-        message: `You received a ${rating}-star review for "${job.title}"`,
+        title: `${stars} review on ${job.title}`,
+        message: `Tap to read it and reply if you want to.`,
         type: 'review',
         actionUrl: isHomeowner ? `/contractor/reviews` : `/jobs/${jobId}`,
       });

@@ -1,68 +1,70 @@
 /**
  * Tenant email templates
+ *
+ * Mint Editorial voice (2026-05-21 port): tenants are the most
+ * unfamiliar audience — keep promises concrete (what they can do)
+ * and reassure that the landlord pays.
  */
-import { escapeHtml, year, emailShell } from './shared';
+import { escapeHtml, year, mintEmailShell } from './shared';
 import type { TenantInviteData } from './types';
 
-export function tenantInviteTemplate(
-  data: TenantInviteData
-): { subject: string; html: string; text: string } {
-  const color = '#0d9488';
-  const html = emailShell(
-    color,
-    '',
-    `<h1>You've Been Invited</h1><p>Join Mintenance to manage your home maintenance</p>`,
-    `<p>Hi ${escapeHtml(data.tenantName)},</p>
-     <p><strong>${escapeHtml(data.landlordName)}</strong> has added you as a tenant at:</p>
-     <div style="background:#f0fdfa;border-left:4px solid ${color};padding:16px 20px;border-radius:0 8px 8px 0;margin:16px 0">
-       <p style="margin:0;font-weight:700;color:#1f2937">${escapeHtml(data.propertyAddress)}</p>
-     </div>
-     <p>Create your free Mintenance account to:</p>
-     <ul style="color:#374151;padding-left:20px;line-height:2">
-       <li><strong>Submit maintenance requests</strong> directly to your landlord</li>
-       <li><strong>Track repairs</strong> from request to completion</li>
-       <li><strong>Get notified</strong> when work is scheduled</li>
-       <li><strong>Message contractors</strong> working on your property</li>
+export function tenantInviteTemplate(data: TenantInviteData): {
+  subject: string;
+  html: string;
+  text: string;
+} {
+  const e = escapeHtml;
+  const subject = `${data.landlordName} invited you to Mintenance.`;
+  const preview = `Report repairs at ${data.propertyAddress} in two taps — your landlord pays.`;
+  const html = mintEmailShell(
+    subject,
+    preview,
+    `<p>Hi ${e(data.tenantName)},</p>
+     <p><strong>${e(data.landlordName)}</strong> added you as a tenant at <strong>${e(data.propertyAddress)}</strong>. Mintenance gives you one place to:</p>
+     <ul style="color:#333;padding-left:20px;line-height:1.9">
+       <li>Report something broken in two taps</li>
+       <li>Watch the repair from booking to done</li>
+       <li>Message the contractor directly on the day</li>
      </ul>
-     <p style="text-align:center;margin-top:24px"><a href="${escapeHtml(data.inviteUrl)}" class="cta">Accept Invitation</a></p>
-     <p style="margin-top:16px;font-size:13px;color:#6b7280;text-align:center">This invitation link is unique to you. If you didn't expect this, you can safely ignore it.</p>`,
-    `<p>&copy; ${year()} Mintenance ltd. All rights reserved.</p>`
+     <div class="note">Your landlord pays — you don't see a price.</div>
+     <a href="${e(data.inviteUrl)}" class="cta">Accept invitation →</a>
+     <p style="font-size:12px;color:#888">This link is unique to you. If you weren't expecting it, just ignore it.</p>`,
+    `<p>&copy; ${year()} Mintenance Ltd.</p>`
   );
-  const text = `Hi ${data.tenantName},\n\n${data.landlordName} has added you as a tenant at ${data.propertyAddress}.\n\nCreate your free Mintenance account to submit maintenance requests, track repairs, and get notified when work is scheduled.\n\nAccept invitation: ${data.inviteUrl}\n\n© ${year()} Mintenance ltd.`;
-  return {
-    subject: `${data.landlordName} invited you to Mintenance`,
-    html,
-    text,
-  };
+  const text = `Hi ${data.tenantName},\n\n${data.landlordName} added you as a tenant at ${data.propertyAddress} on Mintenance.\n\nReport repairs in two taps, watch them from booking to done, message the contractor directly. Your landlord pays — you don't see a price.\n\nAccept: ${data.inviteUrl}\n\nIf you weren't expecting this, ignore it.\n\n© ${year()} Mintenance Ltd.`;
+  return { subject, html, text };
 }
 
-export function tenantJobNotificationTemplate(
-  data: { tenantName: string; propertyAddress: string; jobTitle: string; status: string; viewUrl: string }
-): { subject: string; html: string; text: string } {
-  const color = '#0d9488';
-  const statusLabels: Record<string, string> = {
-    assigned: 'A contractor has been assigned',
-    in_progress: 'Work has started',
-    completed: 'Work has been completed',
+export function tenantJobNotificationTemplate(data: {
+  tenantName: string;
+  propertyAddress: string;
+  jobTitle: string;
+  status: string;
+  viewUrl: string;
+}): { subject: string; html: string; text: string } {
+  const e = escapeHtml;
+  const statusLine: Record<string, string> = {
+    assigned: `Your landlord found someone for "${data.jobTitle}" — they'll be in touch about timing.`,
+    in_progress: `Work has started on "${data.jobTitle}". You'll get an update when it's done.`,
+    completed: `"${data.jobTitle}" is done. Anything not right? Reply on the job thread and we'll sort it.`,
   };
-  const statusMsg = statusLabels[data.status] || `Status updated to: ${data.status}`;
-  const html = emailShell(
-    color,
-    '',
-    `<h1>Maintenance Update</h1><p>${escapeHtml(data.propertyAddress)}</p>`,
-    `<p>Hi ${escapeHtml(data.tenantName)},</p>
-     <p>There's an update on a maintenance request at your property:</p>
-     <div style="background:#f0fdfa;border-left:4px solid ${color};padding:16px 20px;border-radius:0 8px 8px 0;margin:16px 0">
-       <p style="margin:0 0 4px;font-weight:700;color:#1f2937">${escapeHtml(data.jobTitle)}</p>
-       <p style="margin:0;color:#0d9488;font-weight:600">${statusMsg}</p>
-     </div>
-     <p style="text-align:center"><a href="${escapeHtml(data.viewUrl)}" class="cta">View Details</a></p>`,
-    `<p>&copy; ${year()} Mintenance ltd. All rights reserved.</p>`
+  const statusSubject: Record<string, string> = {
+    assigned: `Contractor assigned for ${data.jobTitle}`,
+    in_progress: `Work has started on ${data.jobTitle}`,
+    completed: `${data.jobTitle} is done`,
+  };
+  const subject = statusSubject[data.status] || `${data.jobTitle} — update`;
+  const message =
+    statusLine[data.status] ||
+    `Status updated to ${data.status} on "${data.jobTitle}".`;
+  const html = mintEmailShell(
+    subject,
+    `${data.propertyAddress}`,
+    `<p>Hi ${e(data.tenantName)},</p>
+     <p>${e(message)}</p>
+     <a href="${e(data.viewUrl)}" class="cta">Open the job →</a>`,
+    `<p>&copy; ${year()} Mintenance Ltd.</p>`
   );
-  const text = `Hi ${data.tenantName},\n\nUpdate on "${data.jobTitle}" at ${data.propertyAddress}: ${statusMsg}.\n\nView: ${data.viewUrl}\n\n© ${year()} Mintenance ltd.`;
-  return {
-    subject: `Maintenance Update - ${data.jobTitle}`,
-    html,
-    text,
-  };
+  const text = `Hi ${data.tenantName},\n\n${message}\n\nView: ${data.viewUrl}\n\n© ${year()} Mintenance Ltd.`;
+  return { subject, html, text };
 }

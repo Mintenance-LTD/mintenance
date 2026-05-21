@@ -149,11 +149,12 @@ export const POST = withApiHandler(
       // canonical name is `read`). Both typos together meant PostgREST
       // rejected every insert. Routing through NotificationService also
       // adds push and preference handling.
+      // 2026-05-21 Mint Editorial voice — signal of interest, not noise.
       await NotificationService.createNotification({
         userId: jobDetails.homeowner_id,
         type: 'job_saved',
-        title: 'Your job was saved',
-        message: `A contractor saved your job "${jobDetails.title}"`,
+        title: `Someone bookmarked ${jobDetails.title}`,
+        message: `A contractor saved your job — they may bid next.`,
         actionUrl: `/jobs/${jobId}`,
         metadata: { job_id: jobId, contractor_id: user.id, action: 'saved' },
       });

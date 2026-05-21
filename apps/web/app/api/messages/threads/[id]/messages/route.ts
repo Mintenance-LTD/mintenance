@@ -330,11 +330,13 @@ export const POST = withApiHandler(
         // the in-app row, and the user's preference/quiet-hours settings
         // are honoured. Direct `.from('notifications').insert(...)` here
         // silently skipped push for every message for months.
+        // 2026-05-21 Mint Editorial voice — sender as title, message
+        // preview as body (matches WhatsApp/iMessage feel).
         await NotificationService.createNotification({
           userId: receiverId,
           type: 'message_received',
-          title: 'New Message',
-          message: `${senderName}: ${messagePreview}${messageText.length > 80 ? '...' : ''}`,
+          title: senderName,
+          message: `${messagePreview}${messageText.length > 80 ? '…' : ''}`,
           actionUrl: `/messages?jobId=${jobId}`,
           metadata: { jobId, senderId: user.id },
         });

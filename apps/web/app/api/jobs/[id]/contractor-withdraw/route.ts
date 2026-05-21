@@ -310,10 +310,14 @@ export const POST = withApiHandler(
 
     // ─── Notify homeowner ─────────────────────────────────────────
     try {
+      // 2026-05-21 Mint Editorial voice — name the change, state where
+      // the money is, point at the next step.
       await NotificationService.createNotification({
         userId: homeownerId,
-        title: 'Contractor Withdrew From Job',
-        message: `Your contractor has withdrawn from "${job.title || 'a job'}". Reason: ${reason}. The job is now open for new bids${escrowRefunded ? ' and your payment has been refunded' : ''}.`,
+        title: `${job.title || 'A job'} — contractor stepped back`,
+        message: escrowRefunded
+          ? `${reason} — payment refunded. The job's reopened for new bids.`
+          : `${reason} — the job's reopened for new bids. Your escrow stays held until it's reassigned.`,
         type: 'job_terminated',
         actionUrl: `/jobs/${jobId}`,
         metadata: {

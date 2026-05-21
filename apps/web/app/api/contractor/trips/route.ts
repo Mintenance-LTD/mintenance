@@ -7,14 +7,18 @@ import { validateRequest } from '@/lib/validation/validator';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 
-const startTripSchema = z.object({
-  jobId: z.string().uuid().optional(),
-  appointmentId: z.string().uuid().optional(),
-  tripType: z.enum(['job_visit', 'appointment', 'inspection']).default('job_visit'),
-  notes: z.string().max(1000).optional(),
-}).refine(data => data.jobId || data.appointmentId, {
-  message: 'Either jobId or appointmentId is required',
-});
+const startTripSchema = z
+  .object({
+    jobId: z.string().uuid().optional(),
+    appointmentId: z.string().uuid().optional(),
+    tripType: z
+      .enum(['job_visit', 'appointment', 'inspection'])
+      .default('job_visit'),
+    notes: z.string().max(1000).optional(),
+  })
+  .refine((data) => data.jobId || data.appointmentId, {
+    message: 'Either jobId or appointmentId is required',
+  });
 
 /**
  * GET /api/contractor/trips
@@ -28,11 +32,13 @@ export const GET = withApiHandler(
 
     const { data: trips, error } = await serverSupabase
       .from('contractor_trips')
-      .select(`
+      .select(
+        `
         *,
         job:jobs!job_id(id, title, status, latitude, longitude, location),
         appointment:appointments!appointment_id(id, title, appointment_date, start_time, location_address)
-      `)
+      `
+      )
       .eq('contractor_id', user.id)
       .eq('status', status)
       .order('started_at', { ascending: false })
@@ -44,7 +50,7 @@ export const GET = withApiHandler(
     }
 
     return NextResponse.json({ trips: trips || [] });
-  },
+  }
 );
 
 /**
@@ -68,12 +74,15 @@ export const POST = withApiHandler(
     if (jobId) {
       const { data: job } = await serverSupabase
         .from('jobs')
-        .select('id, title, contractor_id, homeowner_id, latitude, longitude, location, status')
+        .select(
+          'id, title, contractor_id, homeowner_id, latitude, longitude, location, status'
+        )
         .eq('id', jobId)
         .single();
 
       if (!job) throw new BadRequestError('Job not found');
-      if (job.contractor_id !== user.id) throw new UnauthorizedError('Not assigned to this job');
+      if (job.contractor_id !== user.id)
+        throw new UnauthorizedError('Not assigned to this job');
       if (!['assigned', 'in_progress'].includes(job.status)) {
         throw new BadRequestError('Job is not in an active state');
       }
@@ -93,7 +102,8 @@ export const POST = withApiHandler(
         .single();
 
       if (!appt) throw new BadRequestError('Appointment not found');
-      if (appt.contractor_id !== user.id) throw new UnauthorizedError('Not your appointment');
+      if (appt.contractor_id !== user.id)
+        throw new UnauthorizedError('Not your appointment');
 
       destinationAddress = appt.location_address;
 
@@ -122,7 +132,9 @@ export const POST = withApiHandler(
       .maybeSingle();
 
     if (existingTrip) {
-      throw new BadRequestError('You already have an active trip. Complete or cancel it first.');
+      throw new BadRequestError(
+        'You already have an active trip. Complete or cancel it first.'
+      );
     }
 
     // Create the trip
@@ -148,16 +160,17 @@ export const POST = withApiHandler(
     }
 
     // Update contractor_locations context to 'traveling'
-    await serverSupabase
-      .from('contractor_locations')
-      .upsert({
+    await serverSupabase.from('contractor_locations').upsert(
+      {
         contractor_id: user.id,
         job_id: jobId || null,
         context: 'traveling',
         is_active: true,
         is_sharing_location: true,
         location_timestamp: new Date().toISOString(),
-      }, { onConflict: 'contractor_id' });
+      },
+      { onConflict: 'contractor_id' }
+    );
 
     // Get contractor name for notifications
     const { data: contractor } = await serverSupabase
@@ -166,16 +179,20 @@ export const POST = withApiHandler(
       .eq('id', user.id)
       .single();
     const contractorName = contractor
-      ? `${contractor.first_name} ${contractor.last_name}`.trim() || contractor.company_name || 'Your contractor'
+      ? `${contractor.first_name} ${contractor.last_name}`.trim() ||
+        contractor.company_name ||
+        'Your contractor'
       : 'Your contractor';
 
-    // Notify homeowner
+    // Notify homeowner — Mint Editorial voice (2026-05-21).
     if (homeownerId) {
       await NotificationService.createNotification({
         userId: homeownerId,
         type: 'contractor_en_route',
-        title: 'Contractor On The Way',
-        message: `${contractorName} is heading to your property${jobTitle ? ` for "${jobTitle}"` : ''}. You'll be able to track their location.`,
+        title: `${contractorName} is on the way`,
+        message: jobTitle
+          ? `Heading to ${jobTitle}. Tap to follow them in.`
+          : `Tap to follow them in.`,
         metadata: { tripId: trip.id, jobId, contractorId: user.id },
       });
     }
@@ -189,20 +206,29 @@ export const POST = withApiHandler(
         .is('deleted_at', null);
 
       if (admins && admins.length > 0) {
-        await Promise.all(admins.map(admin =>
-          NotificationService.createNotification({
-            userId: admin.id,
-            type: 'contractor_en_route',
-            title: 'Contractor En Route',
-            message: `${contractorName} is heading to ${jobTitle || 'an appointment'}${homeownerId ? '' : ' (no linked homeowner)'}`,
-            metadata: { tripId: trip.id, jobId, contractorId: user.id, homeownerId },
-          }),
-        ));
+        await Promise.all(
+          admins.map((admin) =>
+            NotificationService.createNotification({
+              userId: admin.id,
+              type: 'contractor_en_route',
+              title: `Trip started — ${contractorName}`,
+              message: `Heading to ${jobTitle || 'an appointment'}${homeownerId ? '' : ' (no linked homeowner)'}`,
+              metadata: {
+                tripId: trip.id,
+                jobId,
+                contractorId: user.id,
+                homeownerId,
+              },
+            })
+          )
+        );
       }
     } catch (adminErr) {
-      logger.error('Failed to notify admins of trip', adminErr, { service: 'trips' });
+      logger.error('Failed to notify admins of trip', adminErr, {
+        service: 'trips',
+      });
     }
 
     return NextResponse.json({ trip }, { status: 201 });
-  },
+  }
 );

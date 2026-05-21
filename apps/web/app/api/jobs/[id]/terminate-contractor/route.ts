@@ -277,10 +277,13 @@ export const POST = withApiHandler(
 
     // Send specific termination notification to contractor
     try {
+      // 2026-05-21 Mint Editorial voice — name what's happening
+      // plainly. Reason is the body since that's what they need to
+      // read.
       await NotificationService.createNotification({
         userId: contractorId,
-        title: 'Contractor Assignment Terminated',
-        message: `Your assignment for "${job.title || 'a job'}" has been terminated by the homeowner. Reason: ${reason}`,
+        title: `${job.title || 'A job'} — homeowner pulled the assignment`,
+        message: reason,
         type: 'job_terminated',
         actionUrl: `/contractor/jobs`,
       });
