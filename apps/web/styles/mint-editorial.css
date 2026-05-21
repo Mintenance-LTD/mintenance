@@ -26,6 +26,18 @@
   --me-accent: #e26b4f; /* sparingly */
   --me-warm: #c49a4d; /* ratings */
 
+  /* ---- category accents (documents, notifications) ----
+     Used sparingly to distinguish document/notification types in
+     coloured card borders + soft icon tiles. Always paired with
+     `rgba(<r>, <g>, <b>, 0.10)` for the soft fill (see DocumentCard
+     for the soft-rgba expression — keeping hex on the colour itself
+     so the rgba helper has a single source of truth). */
+  --me-violet: #7c5ce3;
+  --me-violet-soft: rgba(124, 92, 227, 0.1);
+  --me-rose: #d6648d;
+  --me-rose-soft: rgba(214, 100, 141, 0.1);
+  --me-accent-soft: rgba(226, 107, 79, 0.1);
+
   /* ---- status ---- */
   --me-ok-bg: #d9efe2;
   --me-ok-fg: #166b49;
