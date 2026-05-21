@@ -8,9 +8,17 @@
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, Text, FlatList, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  FlatList,
+  ActivityIndicator,
+  TouchableOpacity,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ScreenHeader, ErrorView } from '../components/shared';
+import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import { ErrorView } from '../components/shared';
 import {
   AISearchService,
   type SearchResult,
@@ -29,6 +37,7 @@ import { TrendingItem } from './ai-search/components/TrendingItem';
 import { NoResults } from './ai-search/components/NoResults';
 
 export const AISearchScreen: React.FC = () => {
+  const navigation = useNavigation();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
@@ -112,7 +121,25 @@ export const AISearchScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScreenHeader title='AI Search' />
+      <View style={styles.topNav}>
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={() => navigation.goBack()}
+          accessibilityRole='button'
+          accessibilityLabel='Go back'
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons name='arrow-back' size={20} color={me.ink} />
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.screenHeader}>
+        <Text style={styles.eyebrow}>Search</Text>
+        <Text style={styles.headline}>Find anything</Text>
+        <Text style={styles.sub}>
+          Contractors, jobs, services, properties — search across Mint.
+        </Text>
+      </View>
 
       <SearchBar
         query={query}
@@ -130,7 +157,7 @@ export const AISearchScreen: React.FC = () => {
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size='large' color={me.brand} />
-          <Text style={styles.loadingText}>Searching with AI...</Text>
+          <Text style={styles.loadingText}>Searching with AI…</Text>
         </View>
       ) : error ? (
         <ErrorView message={error} onRetry={() => performSearch(query)} />
@@ -159,7 +186,7 @@ export const AISearchScreen: React.FC = () => {
         />
       ) : query.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyTitle}>Trending Searches</Text>
+          <Text style={styles.emptyTitle}>Trending searches</Text>
           <FlatList
             data={trendingSearches}
             keyExtractor={(_item, index) => `trending-${index}`}

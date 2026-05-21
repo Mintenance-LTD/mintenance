@@ -356,50 +356,55 @@ export const styles = StyleSheet.create({
     color: me.brand,
   },
 
-  // Appointments
+  // Appointments — the homeowner's "Schedule" view inline on the
+  // dashboard. Date block is mint-tinted with a serif day number to
+  // match the Mint Editorial pattern used by Finance / Escrow heroes.
   appointmentCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: me.surface,
-    borderRadius: 12,
+    borderRadius: 14,
     padding: 14,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: me.line,
+    borderColor: me.line2,
     ...me.shadow.card,
   },
   appointmentDateBlock: {
-    width: 44,
-    height: 44,
+    width: 46,
+    height: 46,
     borderRadius: 12,
-    backgroundColor: me.bg2,
+    backgroundColor: me.brandSoft,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
   },
   appointmentDay: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: me.ink,
+    fontFamily: me.font.display,
+    fontSize: 20,
+    color: me.brand,
+    letterSpacing: me.displayTracking,
     lineHeight: 22,
   },
   appointmentMonth: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: me.ink2,
+    fontSize: 9,
+    fontWeight: '700',
+    color: me.brand,
     textTransform: 'uppercase',
+    letterSpacing: 1,
   },
   appointmentInfo: {
     flex: 1,
   },
   appointmentTitle: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '700',
     color: me.ink,
     marginBottom: 2,
   },
   appointmentMeta: {
-    fontSize: 13,
-    color: me.ink2,
+    fontSize: 12,
+    color: me.ink3,
+    fontWeight: '600',
   },
 });
