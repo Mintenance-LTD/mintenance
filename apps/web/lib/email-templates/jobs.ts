@@ -1,7 +1,20 @@
 /**
  * Job lifecycle email templates
+ *
+ * Mint Editorial voice (2026-05-21 port): the `jobCompletedTemplate`
+ * doubles as the review-nudge — when a contractor uploads after-photos
+ * the homeowner gets this email with five one-tap star buttons that
+ * land them on the review page with rating pre-selected. The 7-day
+ * auto-release SLA is called out explicitly so the homeowner knows
+ * inaction is fine.
  */
-import { escapeHtml, year, emailShell } from './shared';
+import {
+  escapeHtml,
+  year,
+  emailShell,
+  mintEmailShell,
+  MINT_BRAND_GREEN,
+} from './shared';
 import type {
   JobStartedData,
   JobCompletedData,
@@ -36,25 +49,41 @@ export function jobCompletedTemplate(
   unsubscribeFooter: string
 ): { subject: string; html: string; text: string } {
   const e = escapeHtml;
-  const color = '#7c3aed';
-  const extra = `.review-note{background:#f5f3ff;border-left:4px solid ${color};padding:12px 16px;border-radius:4px;margin-top:20px;font-size:13px;color:#5b21b6}`;
-  const html = emailShell(
-    color,
-    extra,
-    `<h1 style="margin:0">Job Completed - Review Required</h1><p style="margin:8px 0 0;opacity:0.9">Your contractor has finished the work</p>`,
-    `<p>Hi ${e(data.homeownerName)},</p>
-     <p><strong>${e(data.contractorName)}</strong> has completed work on "<strong>${e(data.jobTitle)}</strong>" and uploaded after photos for your review.</p>
-     <div class="review-note"><strong>Action required:</strong> Please review the before and after photos using the comparison slider. If you're satisfied, approve the work to release payment. If changes are needed, you can request rework.</div>
-     <p style="text-align:center"><a href="${e(data.viewUrl)}" class="cta">Review Work Now</a></p>
-     <p style="font-size:12px;color:#6b7280;margin-top:20px">If you don't respond within 7 days, payment will be automatically released to the contractor.</p>`,
+  const slaDays = data.autoReleaseDays ?? 7;
+  const fmtAmount =
+    typeof data.amount === 'number'
+      ? `£${data.amount.toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
+      : null;
+
+  // One-tap star picker. Each star is a separate anchor that lands the
+  // homeowner on the review page with `?stars=N` so the rating is
+  // pre-selected. Inline styles only — every mail client strips
+  // ::before/::after pseudo-elements.
+  const starBtn = (n: number) => `
+    <a href="${e(data.viewUrl)}?stars=${n}" style="display:inline-block;width:40px;height:40px;line-height:40px;text-align:center;background:${MINT_BRAND_GREEN};color:#fff;border-radius:8px;text-decoration:none;font-size:18px;margin:0 4px">★</a>`;
+  const starsRow = [1, 2, 3, 4, 5].map(starBtn).join('');
+
+  const subject = `How did ${data.contractorName} do?`;
+  const preview = fmtAmount
+    ? `One tap to release ${fmtAmount} to ${data.contractorName} →`
+    : `One tap to release payment to ${data.contractorName} →`;
+
+  const html = mintEmailShell(
+    subject,
+    preview,
+    `<p>Hi ${e(data.homeownerName)} — your <strong>${e(data.jobTitle)}</strong> is done. ${
+      fmtAmount
+        ? `<strong>${fmtAmount}</strong> is sitting in escrow waiting for you to release it.`
+        : `Payment is sitting in escrow waiting for you to release it.`
+    }</p>
+     <p>Two taps to leave a review and pay <strong>${e(data.contractorName)}</strong>:</p>
+     <div style="text-align:center;margin:18px 0">${starsRow}</div>
+     <a href="${e(data.viewUrl)}" class="cta">Open the review →</a>
+     <p style="font-size:12px;color:#888">If you don't act within ${slaDays} days, we release automatically — fair to ${e(data.contractorName)}, no chasing for you.</p>`,
     unsubscribeFooter
   );
-  const text = `Hi ${data.homeownerName},\n\n${data.contractorName} has completed "${data.jobTitle}". Please review the before/after photos and approve or request changes.\n\nReview: ${data.viewUrl}\n\nNote: Payment auto-releases after 7 days if no response.\n\n© ${year()} Mintenance.`;
-  return {
-    subject: `Review Required - ${data.jobTitle} Completed`,
-    html,
-    text,
-  };
+  const text = `Hi ${data.homeownerName} — your ${data.jobTitle} is done. ${fmtAmount ? `${fmtAmount} ` : ''}is sitting in escrow waiting for you to release it.\n\nLeave a review and release: ${data.viewUrl}\n\nIf you don't act within ${slaDays} days, we release automatically.\n\n© ${year()} Mintenance Ltd.`;
+  return { subject, html, text };
 }
 
 export function locationSharingTemplate(

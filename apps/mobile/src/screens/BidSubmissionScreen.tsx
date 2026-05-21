@@ -26,6 +26,9 @@ import type { LineItem } from './create-quote/viewmodels/CreateQuoteViewModel';
 import { me } from '../design-system/mint-editorial';
 import { styles } from './BidSubmissionStyles';
 import { useUnsavedChanges } from '../hooks/useUnsavedChanges';
+import { JobRoomScope } from './components/JobRoomScope';
+import { supabase } from '../config/supabase';
+import type { JobRoomScopeOption } from './create-quote/components/LineItemScopeToolbar';
 
 type Props = {
   route: RouteProp<JobsStackParamList, 'BidSubmission'>;
@@ -59,6 +62,32 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+
+  // Property Rooms Slice 2 — fetch the job's room scope so the
+  // line-item editor can offer "Bill by m²" + "Apply to room".
+  const [roomsInScope, setRoomsInScope] = useState<JobRoomScopeOption[]>([]);
+  useEffect(() => {
+    if (!jobId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data, error } = await supabase
+          .from('job_rooms')
+          .select('id, name, size_sqm_at_post')
+          .eq('job_id', jobId)
+          .order('created_at', { ascending: true });
+        if (error) return; // RLS may hide rows — quietly skip
+        if (!cancelled) {
+          setRoomsInScope((data ?? []) as JobRoomScopeOption[]);
+        }
+      } catch {
+        // Silent — slice 2 controls self-hide when array is empty
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [jobId]);
 
   // Discard-prompt protection — bail-out without saving loses the
   // entire bid draft, which is high-effort content. The prompt covers
@@ -146,6 +175,40 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
   const removeLineItem = (index: number) =>
     setLineItems((prev) => prev.filter((_, i) => i !== index));
 
+  // Property Rooms Slice 2 — apply a unit / room change to one line.
+  // When the contractor flips to "Per m²" + picks a room (or vice
+  // versa), default the quantity to that room's snapshotted size so
+  // they don't have to retype it. Existing non-default quantities
+  // are preserved.
+  const updateItemScope = (
+    index: number,
+    change: { unit?: 'item' | 'sqm'; room_id?: string | null }
+  ) => {
+    setLineItems((prev) =>
+      prev.map((item, i) => {
+        if (i !== index) return item;
+        const next: LineItem = { ...item };
+        if (change.unit !== undefined) {
+          next.unit = change.unit === 'sqm' ? 'sqm' : 'unit';
+        }
+        if (change.room_id !== undefined) {
+          next.room_id = change.room_id;
+        }
+        // Snap quantity if the line is now sqm + has a room, and qty
+        // is still default 0 or 1.
+        if (
+          next.unit === 'sqm' &&
+          next.room_id &&
+          (next.quantity === 0 || next.quantity === 1)
+        ) {
+          const room = roomsInScope.find((r) => r.id === next.room_id);
+          if (room?.size_sqm_at_post) next.quantity = room.size_sqm_at_post;
+        }
+        return next;
+      })
+    );
+  };
+
   const handleSubmit = async () => {
     setFormError(null);
     if (!user || user.role !== 'contractor') {
@@ -184,13 +247,29 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
         proposedStartDate: proposedStartDate.toISOString().split('T')[0],
       };
       if (mode === 'detailed') {
-        payload.lineItems = lineItems.map((i) => ({
-          description: i.item_name,
-          type: i.category === 'materials' ? 'material' : 'labor',
-          quantity: i.quantity,
-          unitPrice: i.unit_price,
-          total: i.quantity * i.unit_price,
-        }));
+        payload.lineItems = lineItems.map((i) => {
+          // Property Rooms Slice 2 — only attach `unit`/`room_id`
+          // when meaningful so legacy "Each" + no-room rows persist
+          // identically to the pre-Slice-2 shape.
+          const line: {
+            description: string;
+            type: string;
+            quantity: number;
+            unitPrice: number;
+            total: number;
+            unit?: 'sqm' | 'item';
+            room_id?: string | null;
+          } = {
+            description: i.item_name,
+            type: i.category === 'materials' ? 'material' : 'labor',
+            quantity: i.quantity,
+            unitPrice: i.unit_price,
+            total: i.quantity * i.unit_price,
+          };
+          if (i.unit === 'sqm') line.unit = 'sqm';
+          if (i.room_id) line.room_id = i.room_id;
+          return line;
+        });
         payload.subtotal = subtotal;
         payload.taxRate = taxRate;
         payload.taxAmount = taxAmount;
@@ -273,6 +352,12 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
               )}
             </View>
           </View>
+
+          {/* Property Rooms Slice 1 \u2014 rooms-in-scope panel.
+              Renders only when the job has a room snapshot; legacy
+              jobs (no snapshot) get nothing here, preserving the
+              original look. */}
+          <JobRoomScope jobId={jobId} />
 
           {/* Mode toggle */}
           <View style={styles.modeToggle}>
@@ -382,6 +467,8 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
                 onAddItem={addLineItem}
                 onEditItem={() => {}}
                 onRemoveItem={removeLineItem}
+                roomsInScope={roomsInScope}
+                onItemScopeChange={updateItemScope}
               />
               <View style={styles.formCard}>
                 <View style={styles.vatRow}>

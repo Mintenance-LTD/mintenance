@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -20,6 +20,7 @@ import { ImageCarousel } from '../../components/ui/ImageCarousel';
 import { HostCard } from '../../components/ui/HostCard';
 import { ContractorAssignment } from '../../components/ContractorAssignment';
 import { AIAnalysisCard, JobLifecycleStepper } from './components';
+import { JobRoomScope } from '../components/JobRoomScope';
 import { ContractorLocationSection } from './components/ContractorLocationSection';
 import { HomeownerLocationRequest } from './components/HomeownerLocationRequest';
 import { JobLocationMap } from './components/JobLocationMap';
@@ -77,7 +78,21 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   const insets = useSafeAreaInsets();
   const [showEscrowModal, setShowEscrowModal] = useState(false);
   const [withdrawingBid, setWithdrawingBid] = useState(false);
+  // 2026-05-21 audit: the spinner could sit forever when the API was
+  // slow/stuck with no feedback. After 15s of continuous loading we
+  // surface a retry — the underlying query will still resolve in the
+  // background if the request eventually returns.
+  const [loadingTimedOut, setLoadingTimedOut] = useState(false);
   const { data: bidsData, refetch: refetchBids } = useJobBids(jobId);
+
+  useEffect(() => {
+    if (!viewModel.jobLoading) {
+      setLoadingTimedOut(false);
+      return;
+    }
+    const handle = setTimeout(() => setLoadingTimedOut(true), 15_000);
+    return () => clearTimeout(handle);
+  }, [viewModel.jobLoading]);
 
   const job = viewModel.job;
   const isContractor = user?.role === 'contractor';
@@ -122,14 +137,21 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
     ]);
   }, [myPendingBid, user?.id, refetchBids, viewModel, jobId]);
 
-  if (viewModel.jobLoading) {
+  if (viewModel.jobLoading && !loadingTimedOut) {
     return <LoadingSpinner message='Loading job details...' />;
   }
-  if (viewModel.jobError) {
+  if (viewModel.jobError || (viewModel.jobLoading && loadingTimedOut)) {
     return (
       <ErrorView
-        message='Failed to load job details'
-        onRetry={viewModel.refetchJob}
+        message={
+          viewModel.jobError
+            ? 'Failed to load job details'
+            : 'Still loading — check your connection?'
+        }
+        onRetry={() => {
+          setLoadingTimedOut(false);
+          viewModel.refetchJob();
+        }}
       />
     );
   }
@@ -295,6 +317,15 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
             </View>
           </>
         )}
+
+        {/* Property Rooms Slice 3 — frozen room scope.
+            JobRoomScope self-renders nothing for jobs with no scope,
+            so the layout is unchanged for legacy jobs. */}
+        {job.id ? (
+          <View style={styles.sectionPadded}>
+            <JobRoomScope jobId={job.id} />
+          </View>
+        ) : null}
 
         {isOwner && job.status === 'posted' && (
           <>

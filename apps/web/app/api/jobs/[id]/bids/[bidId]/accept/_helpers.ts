@@ -156,10 +156,12 @@ export async function sendBidAcceptedNotificationsAndEmail(params: {
       bidAmount,
     });
 
+    // 2026-05-21 Mint Editorial voice: no emoji, factual subject.
+    const fmtAmount = `£${bidAmount.toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
     const notificationId = await NotificationService.createNotification({
       userId: contractorId,
-      title: 'Bid Accepted! 🎉',
-      message: `Congratulations! Your bid of £${bidAmount.toLocaleString()} for "${jobTitle || 'the job'}" has been accepted. You can now contact the homeowner and create a contract.`,
+      title: `${fmtAmount} bid accepted — ${jobTitle || 'the job'}`,
+      message: `Sign the contract, then the homeowner pays into escrow. You can start the moment the funds land.`,
       type: 'bid_accepted',
       actionUrl: `/contractor/jobs/${jobId}`,
     });

@@ -31,10 +31,17 @@ interface EscrowRecord {
   job_title: string;
 }
 
+// Pill colours match the bucket-grouping in the summary header: pending
+// + held share amber (money committed but not yet released), released +
+// completed share green (terminal paid state). The fallback in
+// `renderRecord` keeps any unexpected future status visible rather than
+// throwing.
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
+  pending: { bg: '#FEF3C7', text: '#D97706' },
   held: { bg: '#FEF3C7', text: '#D97706' },
   release_pending: { bg: '#DBEAFE', text: '#2563EB' },
   released: { bg: '#D1FAE5', text: '#059669' },
+  completed: { bg: '#D1FAE5', text: '#059669' },
 };
 
 function formatCurrency(amount: number): string {
@@ -104,15 +111,20 @@ const EscrowDashboardScreen: React.FC<Props> = ({ navigation }) => {
     fetchEscrowData();
   }, [fetchEscrowData]);
 
-  const totalHeld = records
-    .filter((r) => r.status === 'held')
-    .reduce((sum, r) => sum + r.amount, 0);
-  const totalPending = records
-    .filter((r) => r.status === 'release_pending')
-    .reduce((sum, r) => sum + r.amount, 0);
-  const totalReleased = records
-    .filter((r) => r.status === 'released')
-    .reduce((sum, r) => sum + r.amount, 0);
+  // 2026-05-21 audit: the summary buckets did exact-string matches on
+  // `held` / `release_pending` / `released`, but the canonical escrow
+  // lifecycle (CLAUDE.md) is `pending → held → release_pending →
+  // completed`. Rows with status `pending` (homeowner committed,
+  // Stripe charge in flight) and `completed` (terminal released state)
+  // were invisible to all three buckets — so the list could total
+  // £2.66 while the header summed to £1.20. Group statuses by intent.
+  const sumByStatus = (statuses: readonly string[]) =>
+    records
+      .filter((r) => statuses.includes(r.status))
+      .reduce((sum, r) => sum + r.amount, 0);
+  const totalHeld = sumByStatus(['pending', 'held']);
+  const totalPending = sumByStatus(['release_pending']);
+  const totalReleased = sumByStatus(['released', 'completed']);
 
   const SummaryCard: React.FC<{
     label: string;

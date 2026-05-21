@@ -2,6 +2,7 @@ import React from 'react';
 import { Calendar, Mail, MapPin, Phone, PoundSterling } from 'lucide-react';
 import { Card } from '@/components/ui/Card.unified';
 import { theme } from '@/lib/theme';
+import { RoomsScopeCard } from './RoomsScopeCard';
 
 interface Homeowner {
   first_name?: string | null;
@@ -11,6 +12,7 @@ interface Homeowner {
 }
 
 interface JobForSidebar {
+  id?: string;
   budget?: number | null;
   description?: string | null;
   scheduled_start_date?: string | null;
@@ -39,6 +41,9 @@ export function JobInfoSidebar({
         description={job.description}
         scheduledStartDate={job.scheduled_start_date}
       />
+      {/* Property Rooms Slice 3 — self-fetches /api/jobs/[id]/rooms
+          and renders nothing for legacy jobs with no room scope. */}
+      {job.id ? <RoomsScopeCard jobId={job.id} /> : null}
       {homeowner && <HomeownerCard homeowner={homeowner} />}
       {((job.latitude && job.longitude) || job.location) && (
         <JobLocationCard

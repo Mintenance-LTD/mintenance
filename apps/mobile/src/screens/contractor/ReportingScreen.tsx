@@ -54,11 +54,21 @@ export const ReportingScreen: React.FC = () => {
 
   const stats = data || EMPTY_STATS;
 
+  // 2026-05-21 audit: showing a 4.0 rating to a contractor with 0
+  // completed jobs (orphan review row or default seed) undermines the
+  // dashboard. Gate the rating reveal on at least one completed job
+  // *and* at least one review \u2014 both must exist for an average to be
+  // meaningful.
+  const hasRatingSignal =
+    stats.completedJobs > 0 &&
+    stats.totalReviews > 0 &&
+    stats.averageRating > 0;
+
   const kpiValues = [
     String(stats.completedJobs),
     `${Math.round(stats.winRate * 100)}%`,
     `\u00A3${stats.totalEarnings.toLocaleString()}`,
-    stats.averageRating > 0 ? stats.averageRating.toFixed(1) : 'New',
+    hasRatingSignal ? stats.averageRating.toFixed(1) : 'New',
   ];
 
   const maxBarCount = Math.max(
@@ -139,9 +149,7 @@ export const ReportingScreen: React.FC = () => {
               <Text style={styles.heroKpiLabel}>Rank</Text>
               <View>
                 <Text style={styles.heroKpiValue}>
-                  {stats.averageRating > 0
-                    ? stats.averageRating.toFixed(1)
-                    : '\u2014'}
+                  {hasRatingSignal ? stats.averageRating.toFixed(1) : '\u2014'}
                 </Text>
                 <Text style={styles.heroKpiSublabel}>Rating</Text>
               </View>
@@ -435,27 +443,35 @@ export const ReportingScreen: React.FC = () => {
                 </View>
               </View>
 
-              {/* Architect Tier Banner */}
-              <LinearGradient
-                colors={[me.brand2, me.brand]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.tierBanner}
-              >
-                <View style={styles.tierContent}>
-                  <View style={styles.tierHeader}>
-                    <Ionicons name='ribbon' size={24} color='#FFFFFF' />
-                    <Text style={styles.tierTitle}>Architect Tier</Text>
+              {/* Architect Tier Banner — gated. The copy claims "top 15%"
+                  which is currently hardcoded vanity (no real percentile
+                  signal wired up). Until the API ships percentile data,
+                  only show the banner once the contractor has cleared a
+                  meaningful body of work (>= 10 completed jobs). Below
+                  that threshold the banner reads as marketing fluff, not
+                  recognition. */}
+              {stats.completedJobs >= 10 && (
+                <LinearGradient
+                  colors={[me.brand2, me.brand]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.tierBanner}
+                >
+                  <View style={styles.tierContent}>
+                    <View style={styles.tierHeader}>
+                      <Ionicons name='ribbon' size={24} color={me.onBrand} />
+                      <Text style={styles.tierTitle}>Architect Tier</Text>
+                    </View>
+                    <Text style={styles.tierDescription}>
+                      You are in the top 15% of high-performing contractors this
+                      month. Maintain this momentum for exclusive rewards.
+                    </Text>
                   </View>
-                  <Text style={styles.tierDescription}>
-                    You are in the top 15% of high-performing contractors this
-                    month. Maintain this momentum for exclusive rewards.
-                  </Text>
-                </View>
-                <View style={styles.tierWatermark}>
-                  <Ionicons name='trophy' size={100} color='#FFFFFF' />
-                </View>
-              </LinearGradient>
+                  <View style={styles.tierWatermark}>
+                    <Ionicons name='trophy' size={100} color={me.onBrand} />
+                  </View>
+                </LinearGradient>
+              )}
 
               {/* Recent Reviews */}
               {stats.recentReviews.length > 0 && (

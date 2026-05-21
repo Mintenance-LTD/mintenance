@@ -11,12 +11,24 @@ import { Ionicons } from '@expo/vector-icons';
 import type { LineItem } from '../viewmodels/CreateQuoteViewModel';
 import { me } from '../../../design-system/mint-editorial';
 import { formatCurrency } from '../../../utils/formatCurrency';
+import {
+  LineItemScopeToolbar,
+  type JobRoomScopeOption,
+} from './LineItemScopeToolbar';
 
 interface QuoteItemsListProps {
   lineItems: LineItem[];
   onAddItem: () => void;
   onEditItem: (index: number) => void;
   onRemoveItem: (index: number) => void;
+  // Property Rooms Slice 2 — pass rooms-in-scope through from the
+  // bid composer. Empty array → per-line toolbar self-hides and the
+  // legacy UX is identical.
+  roomsInScope?: JobRoomScopeOption[];
+  onItemScopeChange?: (
+    index: number,
+    change: { unit?: 'item' | 'sqm'; room_id?: string | null }
+  ) => void;
 }
 
 const CATEGORY_ACCENT: Record<
@@ -57,6 +69,8 @@ export const QuoteItemsList: React.FC<QuoteItemsListProps> = ({
   onAddItem,
   onEditItem,
   onRemoveItem,
+  roomsInScope = [],
+  onItemScopeChange,
 }) => {
   return (
     <View style={styles.container}>
@@ -169,6 +183,22 @@ export const QuoteItemsList: React.FC<QuoteItemsListProps> = ({
                       </TouchableOpacity>
                     </View>
                   </View>
+
+                  {/* Property Rooms Slice 2 — per-line scope toolbar.
+                      Self-hides when roomsInScope is empty. */}
+                  {onItemScopeChange ? (
+                    <LineItemScopeToolbar
+                      unit={item.unit}
+                      roomId={item.room_id}
+                      rooms={roomsInScope}
+                      onUnitChange={(unit) =>
+                        onItemScopeChange(index, { unit })
+                      }
+                      onRoomChange={(room_id) =>
+                        onItemScopeChange(index, { room_id })
+                      }
+                    />
+                  ) : null}
                 </View>
               </View>
             );

@@ -29,7 +29,9 @@
         "SENTRY_ORG": "${SENTRY_ORG}",
         "SENTRY_PROJECT": "${SENTRY_PROJECT}",
         "SENTRY_AUTH_TOKEN": "${SENTRY_AUTH_TOKEN}",
-        "SENTRY_DISABLE_AUTO_UPLOAD": "true"
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true",
+        "GOOGLE_MAPS_API_KEY": "${GOOGLE_MAPS_API_KEY}",
+        "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "${GOOGLE_MAPS_API_KEY}"
       },
       "channel": "development"
     },
@@ -59,9 +61,11 @@
         "SENTRY_ORG": "${SENTRY_ORG}",
         "SENTRY_PROJECT": "${SENTRY_PROJECT}",
         "SENTRY_AUTH_TOKEN": "${SENTRY_AUTH_TOKEN}",
-        "SENTRY_DISABLE_AUTO_UPLOAD": "false",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true",
         "GOOGLE_SERVICES_JSON": "${GOOGLE_SERVICES_JSON}",
-        "GOOGLE_SERVICES_PLIST": "${GOOGLE_SERVICES_PLIST}"
+        "GOOGLE_SERVICES_PLIST": "${GOOGLE_SERVICES_PLIST}",
+        "GOOGLE_MAPS_API_KEY": "${GOOGLE_MAPS_API_KEY}",
+        "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "${GOOGLE_MAPS_API_KEY}"
       },
       "channel": "stable"
     },
@@ -95,7 +99,9 @@
         "SENTRY_ORG": "${SENTRY_ORG}",
         "SENTRY_PROJECT": "${SENTRY_PROJECT}",
         "SENTRY_AUTH_TOKEN": "${SENTRY_AUTH_TOKEN}",
-        "SENTRY_DISABLE_AUTO_UPLOAD": "false"
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true",
+        "GOOGLE_MAPS_API_KEY": "${GOOGLE_MAPS_API_KEY}",
+        "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "${GOOGLE_MAPS_API_KEY}"
       },
       "channel": "staging"
     },
@@ -124,7 +130,9 @@
         "SENTRY_ORG": "${SENTRY_ORG}",
         "SENTRY_PROJECT": "${SENTRY_PROJECT}",
         "SENTRY_AUTH_TOKEN": "${SENTRY_AUTH_TOKEN}",
-        "SENTRY_DISABLE_AUTO_UPLOAD": "false"
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true",
+        "GOOGLE_MAPS_API_KEY": "${GOOGLE_MAPS_API_KEY}",
+        "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "${GOOGLE_MAPS_API_KEY}"
       },
       "channel": "preview"
     },
@@ -161,7 +169,9 @@
         "SENTRY_ORG": "${SENTRY_ORG}",
         "SENTRY_PROJECT": "${SENTRY_PROJECT}",
         "SENTRY_AUTH_TOKEN": "${SENTRY_AUTH_TOKEN}",
-        "SENTRY_DISABLE_AUTO_UPLOAD": "false"
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true",
+        "GOOGLE_MAPS_API_KEY": "${GOOGLE_MAPS_API_KEY}",
+        "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "${GOOGLE_MAPS_API_KEY}"
       },
       "channel": "internal"
     },
@@ -195,9 +205,11 @@
         "SENTRY_ORG": "${SENTRY_ORG}",
         "SENTRY_PROJECT": "${SENTRY_PROJECT}",
         "SENTRY_AUTH_TOKEN": "${SENTRY_AUTH_TOKEN}",
-        "SENTRY_DISABLE_AUTO_UPLOAD": "false",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true",
         "GOOGLE_SERVICES_JSON": "${GOOGLE_SERVICES_JSON}",
-        "GOOGLE_SERVICES_PLIST": "${GOOGLE_SERVICES_PLIST}"
+        "GOOGLE_SERVICES_PLIST": "${GOOGLE_SERVICES_PLIST}",
+        "GOOGLE_MAPS_API_KEY": "${GOOGLE_MAPS_API_KEY}",
+        "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "${GOOGLE_MAPS_API_KEY}"
       },
       "channel": "production"
     },
@@ -231,9 +243,11 @@
         "SENTRY_ORG": "${SENTRY_ORG}",
         "SENTRY_PROJECT": "${SENTRY_PROJECT}",
         "SENTRY_AUTH_TOKEN": "${SENTRY_AUTH_TOKEN}",
-        "SENTRY_DISABLE_AUTO_UPLOAD": "false",
+        "SENTRY_DISABLE_AUTO_UPLOAD": "true",
         "GOOGLE_SERVICES_JSON": "${GOOGLE_SERVICES_JSON}",
-        "GOOGLE_SERVICES_PLIST": "${GOOGLE_SERVICES_PLIST}"
+        "GOOGLE_SERVICES_PLIST": "${GOOGLE_SERVICES_PLIST}",
+        "GOOGLE_MAPS_API_KEY": "${GOOGLE_MAPS_API_KEY}",
+        "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "${GOOGLE_MAPS_API_KEY}"
       },
       "channel": "production"
     }

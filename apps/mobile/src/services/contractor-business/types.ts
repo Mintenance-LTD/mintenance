@@ -28,6 +28,15 @@ export interface FinancialSummary {
   yearly_projection: number;
   outstanding_invoices: number;
   overdue_amount: number;
+  // 2026-05-21 audit: contractors were seeing £0 across the Finance
+  // Dashboard despite signed contracts because the platform's escrow
+  // flow doesn't create `invoices` rows — money moves entirely through
+  // `escrow_transactions`. These two fields surface that liquidity so
+  // the dashboard reflects real-world owed/earned amounts.
+  /** held + release_pending escrow rows where payee_id = contractor. */
+  escrow_in_flight?: number;
+  /** completed escrow rows where payee_id = contractor. */
+  escrow_revenue?: number;
   profit_trends: {
     month: string;
     revenue: number;

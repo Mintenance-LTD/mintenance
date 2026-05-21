@@ -29,6 +29,8 @@ export class JobService {
     // R6 #19 landlord / tenancy — optional forwarding
     is_rental_property?: boolean;
     tenancy_metadata?: Record<string, unknown>;
+    // Property Rooms Slice 1 (2026-05-21): room ids for snapshot
+    room_ids?: string[];
   }): Promise<Job> {
     return JobCRUDService.createJob(jobData);
   }

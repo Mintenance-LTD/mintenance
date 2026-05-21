@@ -7,6 +7,7 @@ import {
   Scale,
   Calendar,
   FileText,
+  Ruler,
 } from 'lucide-react';
 import {
   formatDate,
@@ -20,7 +21,61 @@ interface ContractScopeProps {
   visibleTerms: [string, unknown][];
 }
 
+/**
+ * Property Rooms Slice 3 — labels mirror PropertyRoomsSection so the
+ * homeowner and contractor see the same names everywhere.
+ */
+const CONTRACT_ROOM_TYPE_LABELS: Record<string, string> = {
+  kitchen: 'Kitchen',
+  bathroom: 'Bathroom',
+  bedroom: 'Bedroom',
+  living_room: 'Living room',
+  dining_room: 'Dining room',
+  garage: 'Garage',
+  garden: 'Garden',
+  exterior: 'Exterior',
+  roof: 'Roof',
+  hallway: 'Hallway',
+  office: 'Office',
+  utility: 'Utility',
+  other: 'Other',
+};
+
+interface ContractRoomSnapshot {
+  id?: string;
+  name: string;
+  room_type: string;
+  size_sqm_at_post: number | null;
+}
+
+/**
+ * Pull contract.terms.scope.rooms and narrow it to the shape we
+ * render. Tolerant: if the snapshot is missing or malformed, returns
+ * an empty array and the block self-hides — legacy contracts (no
+ * room scope) render exactly as before.
+ */
+function extractScopeRooms(contract: Contract): ContractRoomSnapshot[] {
+  const scope = contract.terms?.scope;
+  if (!scope || typeof scope !== 'object') return [];
+  const rooms = (scope as { rooms?: unknown }).rooms;
+  if (!Array.isArray(rooms)) return [];
+  return rooms.filter(
+    (r): r is ContractRoomSnapshot =>
+      !!r &&
+      typeof r === 'object' &&
+      typeof (r as { name?: unknown }).name === 'string' &&
+      typeof (r as { room_type?: unknown }).room_type === 'string'
+  );
+}
+
 export function ContractScope({ contract, visibleTerms }: ContractScopeProps) {
+  const scopeRooms = extractScopeRooms(contract);
+  const totalScopeSqm = scopeRooms.reduce<number>(
+    (sum, r) => sum + (r.size_sqm_at_post ?? 0),
+    0
+  );
+  const anyScopeSqm = scopeRooms.some((r) => r.size_sqm_at_post != null);
+
   return (
     <>
       {/* Scope of Work */}
@@ -44,6 +99,48 @@ export function ContractScope({ contract, visibleTerms }: ContractScopeProps) {
               </p>
             )}
           </div>
+        </div>
+      )}
+
+      {/* Property Rooms Slice 3 — frozen room scope.
+          Renders only when the contract was created from a job with
+          room scope; legacy contracts get nothing here. */}
+      {scopeRooms.length > 0 && (
+        <div>
+          <div className='flex items-center justify-between mb-3'>
+            <div className='flex items-center gap-2'>
+              <Ruler className='w-4 h-4 text-teal-600' />
+              <h4 className='text-xs font-semibold uppercase tracking-wider text-gray-400'>
+                Rooms in scope
+              </h4>
+            </div>
+            {anyScopeSqm && totalScopeSqm > 0 ? (
+              <span className='text-xs font-semibold text-gray-600'>
+                {totalScopeSqm.toFixed(1)} m² total
+              </span>
+            ) : null}
+          </div>
+          <ul className='border border-gray-100 rounded-xl p-2 space-y-1'>
+            {scopeRooms.map((r, idx) => (
+              <li
+                key={r.id ?? `${r.name}-${idx}`}
+                className='flex items-center justify-between gap-3 px-2 py-1.5'
+              >
+                <span className='min-w-0 flex-1 text-sm text-gray-900 truncate'>
+                  <span className='text-gray-400'>
+                    {CONTRACT_ROOM_TYPE_LABELS[r.room_type] ?? r.room_type}
+                    {' · '}
+                  </span>
+                  {r.name}
+                </span>
+                <span className='shrink-0 text-sm text-gray-600'>
+                  {r.size_sqm_at_post != null
+                    ? `${Number(r.size_sqm_at_post).toFixed(1)} m²`
+                    : '— m²'}
+                </span>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
 

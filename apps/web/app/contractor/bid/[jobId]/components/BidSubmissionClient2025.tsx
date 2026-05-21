@@ -18,6 +18,7 @@ import type {
   BidSubmissionClient2025Props,
   LineItem,
   PricingSuggestion,
+  BidJobRoomScope,
 } from './bidSubmissionTypes';
 
 export function BidSubmissionClient2025(props: BidSubmissionClient2025Props) {
@@ -65,6 +66,36 @@ export function BidSubmissionClient2025(props: BidSubmissionClient2025Props) {
       document.documentElement.dataset.theme === 'mint-editorial'
     );
   }, []);
+
+  // Property Rooms Slice 2 — fetch this job's room scope so the
+  // line-item composer can offer "Bill by m²" + "Apply to room".
+  // Empty array for legacy jobs → toolbar self-hides in
+  // BidFormAdvancedMode and the original UX is preserved.
+  const [roomsInScope, setRoomsInScope] = useState<BidJobRoomScope[]>([]);
+  useEffect(() => {
+    if (!job?.id) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/jobs/${job.id}/rooms`, {
+          credentials: 'include',
+        });
+        if (!res.ok) return; // 404 / 403 — quietly hide toolbar
+        const json = await res.json();
+        if (!cancelled) {
+          setRoomsInScope((json.rooms ?? []) as BidJobRoomScope[]);
+        }
+      } catch (e) {
+        logger.warn('BidSubmissionClient2025: load job_rooms failed', {
+          service: 'ui',
+          error: e instanceof Error ? e.message : String(e),
+        });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [job?.id]);
 
   const homeownerName =
     job?.homeowner?.first_name && job?.homeowner?.last_name
@@ -128,12 +159,12 @@ export function BidSubmissionClient2025(props: BidSubmissionClient2025Props) {
   const updateLineItem = (
     id: string,
     field: keyof LineItem,
-    value: string | number
+    value: string | number | null
   ) => {
     setLineItems(
       lineItems.map((item) => {
         if (item.id !== id) return item;
-        const updated = { ...item, [field]: value };
+        const updated = { ...item, [field]: value } as LineItem;
         if (field === 'quantity' || field === 'unitPrice')
           updated.total = updated.quantity * updated.unitPrice;
         return updated;
@@ -261,12 +292,28 @@ export function BidSubmissionClient2025(props: BidSubmissionClient2025Props) {
       const quoteData = {
         lineItems:
           lineItems.length > 0
-            ? lineItems.map(({ description, quantity, unitPrice, total }) => ({
-                description,
-                quantity,
-                unitPrice,
-                total,
-              }))
+            ? lineItems.map((li) => {
+                // Property Rooms Slice 2 — forward `unit` and
+                // `room_id` only when set, so the persisted payload
+                // for legacy "Each" + no-room rows is byte-identical
+                // to the pre-Slice-2 shape.
+                const base: {
+                  description: string;
+                  quantity: number;
+                  unitPrice: number;
+                  total: number;
+                  unit?: 'item' | 'sqm';
+                  room_id?: string | null;
+                } = {
+                  description: li.description,
+                  quantity: li.quantity,
+                  unitPrice: li.unitPrice,
+                  total: li.total,
+                };
+                if (li.unit && li.unit !== 'item') base.unit = li.unit;
+                if (li.room_id) base.room_id = li.room_id;
+                return base;
+              })
             : undefined,
         subtotal,
         taxRate,
@@ -605,6 +652,7 @@ export function BidSubmissionClient2025(props: BidSubmissionClient2025Props) {
                       youWillReceive={youWillReceive}
                       terms={terms}
                       jobBudget={job.budget}
+                      roomsInScope={roomsInScope}
                       onAddLineItem={addLineItem}
                       onUpdateLineItem={updateLineItem}
                       onRemoveLineItem={removeLineItem}

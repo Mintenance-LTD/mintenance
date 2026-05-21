@@ -29,9 +29,19 @@ export class ScreenErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    // 2026-05-21 audit (Quote Builder spurious error): the boundary was
+    // catching exceptions but logging them as a generic
+    // `Screen error in QuoteBuilder` line with no screen tag, so they
+    // were impossible to group in Sentry. Add `screen` + `errorName`
+    // as first-class tags so dashboard filters and grouping work.
     logger.error(`Screen error in ${this.props.screenName}:`, error, {
       componentStack: errorInfo.componentStack,
       errorBoundary: 'ScreenErrorBoundary',
+      screen: this.props.screenName,
+      errorName: error.name,
+      // Truncate to avoid PII / log bloat. The full message is on the
+      // logged Error itself (captureException receives it untouched).
+      errorMessage: error.message?.slice(0, 200),
     });
 
     this.setState({
