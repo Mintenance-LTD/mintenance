@@ -205,12 +205,15 @@ export const POST = withApiHandler(
     try {
       const amount = escrowTransaction.amount;
       const jobTitle = job.title || 'your job';
+      // 2026-05-21 Mint Editorial voice: amount-led titles, concrete
+      // next step in the body.
+      const fmtAmount = `£${Number(amount).toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
 
       const contractorNotifPromise = job.contractor_id
         ? NotificationService.createNotification({
             userId: job.contractor_id,
-            title: 'Payment Secured in Escrow',
-            message: `Payment of £${Number(amount).toLocaleString()} for "${jobTitle}" has been secured in escrow. You can now start work.`,
+            title: `${fmtAmount} funded — you're cleared to start`,
+            message: `Escrow is good on "${jobTitle}". Upload before-photos and tap Start Job when you're on site.`,
             type: 'payment',
             actionUrl: `/contractor/jobs/${jobId}`,
           })
@@ -218,8 +221,8 @@ export const POST = withApiHandler(
 
       const homeownerNotifPromise = NotificationService.createNotification({
         userId: user.id,
-        title: 'Payment Confirmed',
-        message: `Your payment of £${Number(amount).toLocaleString()} for "${jobTitle}" is now held securely in escrow until the job is completed.`,
+        title: `${fmtAmount} held in escrow`,
+        message: `Your payment for "${jobTitle}" is locked in. The contractor only gets it once you approve the finished work.`,
         type: 'payment',
         actionUrl: `/jobs/${jobId}`,
       });

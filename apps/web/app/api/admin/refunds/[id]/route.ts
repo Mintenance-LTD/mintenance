@@ -131,21 +131,27 @@ export const POST = withApiHandler(
           throw new BadRequestError('Failed to update escrow status');
         }
 
-        // Create Stripe transfer
+        // Create Stripe transfer. Idempotency key keyed on escrow+amount so
+        // duplicate admin-release clicks don't issue a second transfer.
         const amountCents = Math.round(escrow.amount * 100);
         try {
-          const transfer = await stripe.transfers.create({
-            amount: amountCents,
-            currency: 'gbp',
-            destination: contractor.stripe_connect_account_id,
-            description: `Admin release for job: ${job.title}`,
-            metadata: {
-              escrow_id: escrowId,
-              job_id: job.id,
-              admin_id: user.id,
-              reason,
+          const transfer = await stripe.transfers.create(
+            {
+              amount: amountCents,
+              currency: 'gbp',
+              destination: contractor.stripe_connect_account_id,
+              description: `Admin release for job: ${job.title}`,
+              metadata: {
+                escrow_id: escrowId,
+                job_id: job.id,
+                admin_id: user.id,
+                reason,
+              },
             },
-          });
+            {
+              idempotencyKey: `admin_release_${escrowId}_${amountCents}`,
+            }
+          );
 
           // Mark as released
           await serverSupabase

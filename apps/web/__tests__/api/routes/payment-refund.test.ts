@@ -98,25 +98,71 @@ vi.mock('@/lib/monitoring/payment-monitor', () => ({
 
 vi.mock('@/lib/errors/api-error', async () => {
   class APIError extends Error {
-    constructor(public code: string, public userMessage: string, public statusCode: number = 500, public details?: unknown) {
-      super(userMessage); this.name = 'APIError';
+    constructor(
+      public code: string,
+      public userMessage: string,
+      public statusCode: number = 500,
+      public details?: unknown
+    ) {
+      super(userMessage);
+      this.name = 'APIError';
     }
-    toResponse() { return { error: { code: this.code, message: this.userMessage }, timestamp: new Date().toISOString() }; }
+    toResponse() {
+      return {
+        error: { code: this.code, message: this.userMessage },
+        timestamp: new Date().toISOString(),
+      };
+    }
   }
-  class UnauthorizedError extends APIError { constructor(m = 'Unauthorized') { super('UNAUTHORIZED', m, 401); } }
-  class ForbiddenError extends APIError { constructor(m = 'Forbidden') { super('FORBIDDEN', m, 403); } }
-  class NotFoundError extends APIError { constructor(m = 'Resource not found') { super('NOT_FOUND', m, 404); } }
-  class BadRequestError extends APIError { constructor(m = 'Bad Request', d?: unknown) { super('BAD_REQUEST', m, 400, d); } }
-  class RateLimitError extends APIError { constructor(m = 'Rate limit exceeded') { super('RATE_LIMIT', m, 429); } }
+  class UnauthorizedError extends APIError {
+    constructor(m = 'Unauthorized') {
+      super('UNAUTHORIZED', m, 401);
+    }
+  }
+  class ForbiddenError extends APIError {
+    constructor(m = 'Forbidden') {
+      super('FORBIDDEN', m, 403);
+    }
+  }
+  class NotFoundError extends APIError {
+    constructor(m = 'Resource not found') {
+      super('NOT_FOUND', m, 404);
+    }
+  }
+  class BadRequestError extends APIError {
+    constructor(m = 'Bad Request', d?: unknown) {
+      super('BAD_REQUEST', m, 400, d);
+    }
+  }
+  class RateLimitError extends APIError {
+    constructor(m = 'Rate limit exceeded') {
+      super('RATE_LIMIT', m, 429);
+    }
+  }
   return {
-    APIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError, RateLimitError,
+    APIError,
+    UnauthorizedError,
+    ForbiddenError,
+    NotFoundError,
+    BadRequestError,
+    RateLimitError,
     handleAPIError: vi.fn((error: unknown) => {
       if (error instanceof APIError) {
         const { NextResponse } = require('next/server');
-        return NextResponse.json(error.toResponse(), { status: error.statusCode });
+        return NextResponse.json(error.toResponse(), {
+          status: error.statusCode,
+        });
       }
       const { NextResponse } = require('next/server');
-      return NextResponse.json({ error: { code: 'INTERNAL_SERVER_ERROR', message: 'An unexpected error occurred' } }, { status: 500 });
+      return NextResponse.json(
+        {
+          error: {
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'An unexpected error occurred',
+          },
+        },
+        { status: 500 }
+      );
     }),
   };
 });
@@ -126,7 +172,10 @@ vi.mock('@/lib/cors', () => ({ getCorsHeaders: vi.fn(() => ({})) }));
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-function createPostRequest(url: string, body?: Record<string, unknown>): NextRequest {
+function createPostRequest(
+  url: string,
+  body?: Record<string, unknown>
+): NextRequest {
   return new NextRequest(new URL(url, 'http://localhost:3000'), {
     method: 'POST',
     headers: {
@@ -164,9 +213,17 @@ function setupDefaultMocks() {
   mocks.requireCSRF.mockResolvedValue(undefined);
   // withApiHandler rate limit is disabled (rateLimit: false), route uses custom
   mocks.rateLimiterCheckRateLimit.mockResolvedValue({
-    allowed: true, remaining: 19, resetTime: Date.now() + 60000, retryAfter: 0,
+    allowed: true,
+    remaining: 19,
+    resetTime: Date.now() + 60000,
+    retryAfter: 0,
   });
-  mocks.checkApiRateLimit.mockResolvedValue({ allowed: true, remaining: 10, resetTime: Date.now() + 60000, retryAfter: 0 });
+  mocks.checkApiRateLimit.mockResolvedValue({
+    allowed: true,
+    remaining: 10,
+    resetTime: Date.now() + 60000,
+    retryAfter: 0,
+  });
   mocks.getIdempotencyKeyFromRequest.mockReturnValue('idem-key-123');
   mocks.checkIdempotency.mockResolvedValue({ isDuplicate: false });
   mocks.storeIdempotencyResult.mockResolvedValue(undefined);
@@ -177,16 +234,21 @@ function setupDefaultMocks() {
     amount: 25000,
   });
   mocks.requiresMFA.mockResolvedValue({ required: false });
-  mocks.detectAnomalies.mockResolvedValue({ riskScore: 10, blockedReasons: [] });
+  mocks.detectAnomalies.mockResolvedValue({
+    riskScore: 10,
+    blockedReasons: [],
+  });
 }
 
-function setupRefundMocks(overrides: {
-  jobData?: unknown;
-  jobError?: unknown;
-  escrowData?: unknown;
-  escrowError?: unknown;
-  escrowUpdateError?: unknown;
-} = {}) {
+function setupRefundMocks(
+  overrides: {
+    jobData?: unknown;
+    jobError?: unknown;
+    escrowData?: unknown;
+    escrowError?: unknown;
+    escrowUpdateError?: unknown;
+  } = {}
+) {
   const jobResult = {
     data: overrides.jobData ?? {
       id: 'job-1',
@@ -238,7 +300,9 @@ function setupRefundMocks(overrides: {
           eq: vi.fn().mockReturnValue({
             select: vi.fn().mockReturnValue({
               single: vi.fn().mockResolvedValue({
-                data: escrowUpdateError ? null : { ...escrowResult.data, status: 'refunded' },
+                data: escrowUpdateError
+                  ? null
+                  : { ...escrowResult.data, status: 'refunded' },
                 error: escrowUpdateError,
               }),
             }),
@@ -266,16 +330,27 @@ describe('POST /api/payments/refund', () => {
   it('should return 401 when user is not authenticated', async () => {
     mocks.getCurrentUserFromCookies.mockResolvedValue(null);
 
-    const req = createPostRequest('http://localhost:3000/api/payments/refund', validRefundData);
+    const req = createPostRequest(
+      'http://localhost:3000/api/payments/refund',
+      validRefundData
+    );
     const res = await POST(req, segmentData());
     expect(res.status).toBe(401);
   });
 
   // ---- Custom rate limiting ----
   it('should return 429 when custom rate limit is exceeded', async () => {
-    mocks.checkApiRateLimit.mockResolvedValue({ allowed: false, remaining: 0, resetTime: Date.now() + 60000, retryAfter: 30 });
+    mocks.checkApiRateLimit.mockResolvedValue({
+      allowed: false,
+      remaining: 0,
+      resetTime: Date.now() + 60000,
+      retryAfter: 30,
+    });
 
-    const req = createPostRequest('http://localhost:3000/api/payments/refund', validRefundData);
+    const req = createPostRequest(
+      'http://localhost:3000/api/payments/refund',
+      validRefundData
+    );
     const res = await POST(req, segmentData());
     expect(res.status).toBe(429);
   });
@@ -284,24 +359,41 @@ describe('POST /api/payments/refund', () => {
   it('should return 400 when request body fails validation', async () => {
     const { NextResponse } = await import('next/server');
     mocks.validateRequest.mockResolvedValue(
-      NextResponse.json({ error: 'Validation failed', errors: [{ field: 'jobId', message: 'Invalid job ID' }] }, { status: 400 })
+      NextResponse.json(
+        {
+          error: 'Validation failed',
+          errors: [{ field: 'jobId', message: 'Invalid job ID' }],
+        },
+        { status: 400 }
+      )
     );
 
-    const req = createPostRequest('http://localhost:3000/api/payments/refund', {});
+    const req = createPostRequest(
+      'http://localhost:3000/api/payments/refund',
+      {}
+    );
     const res = await POST(req, segmentData());
     expect(res.status).toBe(400);
   });
 
   // ---- Idempotency: duplicate request ----
   it('should return cached result for duplicate refund request', async () => {
-    const cachedResult = { success: true, refundId: 'refund-1', amount: 250, status: 'succeeded' };
+    const cachedResult = {
+      success: true,
+      refundId: 'refund-1',
+      amount: 250,
+      status: 'succeeded',
+    };
     mocks.checkIdempotency.mockResolvedValue({
       isDuplicate: true,
       cachedResult,
     });
     setupRefundMocks();
 
-    const req = createPostRequest('http://localhost:3000/api/payments/refund', validRefundData);
+    const req = createPostRequest(
+      'http://localhost:3000/api/payments/refund',
+      validRefundData
+    );
     const res = await POST(req, segmentData());
     expect(res.status).toBe(200);
 
@@ -315,7 +407,10 @@ describe('POST /api/payments/refund', () => {
     mocks.checkIdempotency.mockResolvedValue(null);
     setupRefundMocks();
 
-    const req = createPostRequest('http://localhost:3000/api/payments/refund', validRefundData);
+    const req = createPostRequest(
+      'http://localhost:3000/api/payments/refund',
+      validRefundData
+    );
     const res = await POST(req, segmentData());
     expect(res.status).toBe(409);
   });
@@ -324,7 +419,10 @@ describe('POST /api/payments/refund', () => {
   it('should return 404 when job does not exist', async () => {
     setupRefundMocks({ jobData: null, jobError: { message: 'not found' } });
 
-    const req = createPostRequest('http://localhost:3000/api/payments/refund', validRefundData);
+    const req = createPostRequest(
+      'http://localhost:3000/api/payments/refund',
+      validRefundData
+    );
     const res = await POST(req, segmentData());
     expect(res.status).toBe(404);
   });
@@ -340,7 +438,10 @@ describe('POST /api/payments/refund', () => {
     });
     setupRefundMocks();
 
-    const req = createPostRequest('http://localhost:3000/api/payments/refund', validRefundData);
+    const req = createPostRequest(
+      'http://localhost:3000/api/payments/refund',
+      validRefundData
+    );
     const res = await POST(req, segmentData());
     expect(res.status).toBe(403);
   });
@@ -363,7 +464,10 @@ describe('POST /api/payments/refund', () => {
       },
     });
 
-    const req = createPostRequest('http://localhost:3000/api/payments/refund', validRefundData);
+    const req = createPostRequest(
+      'http://localhost:3000/api/payments/refund',
+      validRefundData
+    );
     const res = await POST(req, segmentData());
     // Contractor is on the job (passes first ownership check) but not homeowner -> 403
     expect(res.status).toBe(403);
@@ -380,7 +484,10 @@ describe('POST /api/payments/refund', () => {
       },
     });
 
-    const req = createPostRequest('http://localhost:3000/api/payments/refund', validRefundData);
+    const req = createPostRequest(
+      'http://localhost:3000/api/payments/refund',
+      validRefundData
+    );
     const res = await POST(req, segmentData());
     expect(res.status).toBe(400);
 
@@ -390,9 +497,15 @@ describe('POST /api/payments/refund', () => {
 
   // ---- Escrow not found ----
   it('should return 404 when escrow transaction does not exist', async () => {
-    setupRefundMocks({ escrowData: null, escrowError: { message: 'not found' } });
+    setupRefundMocks({
+      escrowData: null,
+      escrowError: { message: 'not found' },
+    });
 
-    const req = createPostRequest('http://localhost:3000/api/payments/refund', validRefundData);
+    const req = createPostRequest(
+      'http://localhost:3000/api/payments/refund',
+      validRefundData
+    );
     const res = await POST(req, segmentData());
     expect(res.status).toBe(404);
   });
@@ -409,7 +522,10 @@ describe('POST /api/payments/refund', () => {
       },
     });
 
-    const req = createPostRequest('http://localhost:3000/api/payments/refund', validRefundData);
+    const req = createPostRequest(
+      'http://localhost:3000/api/payments/refund',
+      validRefundData
+    );
     const res = await POST(req, segmentData());
     expect(res.status).toBe(400);
 
@@ -430,7 +546,10 @@ describe('POST /api/payments/refund', () => {
       },
     });
 
-    const req = createPostRequest('http://localhost:3000/api/payments/refund', validRefundData);
+    const req = createPostRequest(
+      'http://localhost:3000/api/payments/refund',
+      validRefundData
+    );
     const res = await POST(req, segmentData());
     expect(res.status).toBe(400);
 
@@ -447,7 +566,10 @@ describe('POST /api/payments/refund', () => {
     });
     setupRefundMocks();
 
-    const req = createPostRequest('http://localhost:3000/api/payments/refund', validRefundData);
+    const req = createPostRequest(
+      'http://localhost:3000/api/payments/refund',
+      validRefundData
+    );
     const res = await POST(req, segmentData());
     expect(res.status).toBe(403);
 
@@ -463,7 +585,10 @@ describe('POST /api/payments/refund', () => {
     });
     setupRefundMocks();
 
-    const req = createPostRequest('http://localhost:3000/api/payments/refund', validRefundData);
+    const req = createPostRequest(
+      'http://localhost:3000/api/payments/refund',
+      validRefundData
+    );
     const res = await POST(req, segmentData());
     expect(res.status).toBe(403);
 
@@ -476,7 +601,10 @@ describe('POST /api/payments/refund', () => {
   it('should process refund successfully and return refund details', async () => {
     setupRefundMocks();
 
-    const req = createPostRequest('http://localhost:3000/api/payments/refund', validRefundData);
+    const req = createPostRequest(
+      'http://localhost:3000/api/payments/refund',
+      validRefundData
+    );
     const res = await POST(req, segmentData());
     expect(res.status).toBe(200);
 
@@ -491,7 +619,10 @@ describe('POST /api/payments/refund', () => {
   it('should call Stripe with correct refund parameters', async () => {
     setupRefundMocks();
 
-    const req = createPostRequest('http://localhost:3000/api/payments/refund', validRefundData);
+    const req = createPostRequest(
+      'http://localhost:3000/api/payments/refund',
+      validRefundData
+    );
     await POST(req, segmentData());
 
     expect(mocks.stripeRefundsCreate).toHaveBeenCalledWith(
@@ -503,6 +634,9 @@ describe('POST /api/payments/refund', () => {
           requestedBy: 'homeowner-1',
         }),
       }),
+      expect.objectContaining({
+        idempotencyKey: expect.stringMatching(/^refund_escrow-1_pi_test_123_/),
+      })
     );
   });
 
@@ -510,7 +644,10 @@ describe('POST /api/payments/refund', () => {
   it('should store idempotency result after successful refund', async () => {
     setupRefundMocks();
 
-    const req = createPostRequest('http://localhost:3000/api/payments/refund', validRefundData);
+    const req = createPostRequest(
+      'http://localhost:3000/api/payments/refund',
+      validRefundData
+    );
     await POST(req, segmentData());
 
     expect(mocks.storeIdempotencyResult).toHaveBeenCalledWith(
@@ -518,7 +655,10 @@ describe('POST /api/payments/refund', () => {
       'refund_payment',
       expect.objectContaining({ success: true, refundId: 'refund-1' }),
       'homeowner-1',
-      expect.objectContaining({ jobId: 'job-1', escrowTransactionId: 'escrow-1' }),
+      expect.objectContaining({
+        jobId: 'job-1',
+        escrowTransactionId: 'escrow-1',
+      })
     );
   });
 });

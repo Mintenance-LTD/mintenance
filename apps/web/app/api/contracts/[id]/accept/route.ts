@@ -236,8 +236,8 @@ export const POST = withApiHandler(
       try {
         otherPartyNotifId = await NotificationService.createNotification({
           userId: otherPartyId,
-          title: 'Contract Pending Your Signature',
-          message: `${signerName} has signed the contract for "${updatedContract.title || 'your job'}". Your signature is required to proceed.`,
+          title: `${signerName} signed — your turn`,
+          message: `Two-minute read on ${updatedContract.title || 'the contract'}. No money moves at signing.`,
           type: 'contract_pending_signature',
           actionUrl:
             otherPartyRole === 'contractor'
@@ -317,18 +317,22 @@ export const POST = withApiHandler(
       let contractorAcceptedNotifId: string | null = null;
       let homeownerAcceptedNotifId: string | null = null;
       try {
+        // 2026-05-21 Mint Editorial voice: both sides signed, name the
+        // next step (escrow funding for homeowner; awaiting escrow for
+        // contractor) rather than a generic "Accepted!".
+        const jobLabel = updatedContract.title || 'your job';
         const [cId, hId] = await Promise.all([
           NotificationService.createNotification({
             userId: contract.contractor_id,
-            title: 'Contract Accepted!',
-            message: `The contract for job "${updatedContract.title || 'your job'}" has been accepted by both parties.`,
+            title: `${jobLabel} — contract is live`,
+            message: `Both sides signed. The homeowner is funding escrow next; you'll get a notification when the money lands.`,
             type: 'contract_signed',
             actionUrl: `/contractor/jobs/${contract.job_id}`,
           }),
           NotificationService.createNotification({
             userId: contract.homeowner_id,
-            title: 'Contract Accepted!',
-            message: `The contract for "${updatedContract.title || 'your job'}" has been accepted by both parties.`,
+            title: `${jobLabel} — contract is live`,
+            message: `Both sides signed. Next step is to fund the escrow — payment stays held until you approve the finished work.`,
             type: 'contract_signed',
             actionUrl: `/jobs/${contract.job_id}`,
           }),
