@@ -178,12 +178,18 @@ export default function App(): React.JSX.Element {
           );
         });
 
-        // Load Inter font to match web app branding (falls back to System if unavailable)
+        // Load Inter font to match web app branding (falls back to System if
+        // unavailable). 2026-05-21: bundled ExtraBold + Black to back the Mint
+        // Editorial display token — `me.font.display` resolves to Inter-Black
+        // so headlines render at the same heavy weight as the web `.t-h1`
+        // (--me-display-weight: 900).
         await Font.loadAsync({
           'Inter-Regular': require('./assets/fonts/Inter-Regular.ttf'),
           'Inter-Medium': require('./assets/fonts/Inter-Medium.ttf'),
           'Inter-SemiBold': require('./assets/fonts/Inter-SemiBold.ttf'),
           'Inter-Bold': require('./assets/fonts/Inter-Bold.ttf'),
+          'Inter-ExtraBold': require('./assets/fonts/Inter-ExtraBold.ttf'),
+          'Inter-Black': require('./assets/fonts/Inter-Black.ttf'),
         }).catch(() => {
           logger.warn('Custom fonts not available, using system fonts', {
             service: 'app',

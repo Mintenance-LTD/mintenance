@@ -10,13 +10,11 @@
 // Keep the values in this file in lock-step with `mint-editorial.css`. The
 // web file is the source of truth; if a token changes there, mirror it here.
 //
-// FONTS: the web display face is Instrument Serif and the body face is Geist.
-// Neither is bundled in the mobile app yet, so `font.display` falls back to a
-// cross-platform serif and `font.body` to the system sans. Registering the
-// real faces via `expo-font` and swapping the two values below is the only
-// step needed to complete the type treatment.
-
-import { Platform } from 'react-native';
+// FONTS: 2026-05-21 — Mint Editorial typography unified on Inter across web +
+// mobile. Display headlines render at Inter-Black (weight 900) to match the
+// web `.t-h1` rule; body text uses Inter-Regular. The six Inter weights
+// (Regular, Medium, SemiBold, Bold, ExtraBold, Black) are bundled in
+// `apps/mobile/assets/fonts/` and registered at boot in `App.tsx`.
 
 // Warm near-black used as the cast colour for the paper shadows below.
 // Held as a module const (not an inline `shadowColor` literal) so the
@@ -64,19 +62,14 @@ export const me = {
   },
 
   // ---- type ----
+  // Inter is the canonical Mint Editorial face on both web and mobile.
+  // Display uses the Black weight (900) for the heavy editorial look on
+  // headlines; body uses Regular (400). Both family names are registered
+  // by `Font.loadAsync` in App.tsx; if loading fails we fall back to the
+  // platform system font silently.
   font: {
-    // Cross-platform serif standing in for Instrument Serif until the
-    // real face is bundled (see file header).
-    display: Platform.select({
-      ios: 'Georgia',
-      android: 'serif',
-      default: 'serif',
-    }) as string,
-    body: Platform.select({
-      ios: 'System',
-      android: 'sans-serif',
-      default: 'System',
-    }) as string,
+    display: 'Inter-Black',
+    body: 'Inter-Regular',
   },
   displayTracking: -0.3, // ~ -0.012em at 26px
 
