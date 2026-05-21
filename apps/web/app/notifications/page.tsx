@@ -22,11 +22,15 @@ import {
 } from './notification-icons';
 import { safeActionUrl } from '@/lib/notifications/safe-action-url';
 import {
-  MintEditorialNotifications,
-  type FilterType as MeFilterType,
   type NotificationItem,
+  type FilterType as MeFilterType,
 } from './MintEditorialNotifications';
 import { LegacyNotificationsView } from './LegacyNotificationsView';
+import {
+  NotificationsInboxView,
+  type InboxFilter,
+  type InboxNotification,
+} from '@/components/notifications/NotificationsInboxView';
 
 interface Notification {
   id: string;
@@ -40,6 +44,41 @@ interface Notification {
 }
 
 type FilterType = 'all' | 'unread' | 'jobs' | 'messages' | 'payments';
+
+/**
+ * Map the new canonical InboxFilter (used by NotificationsInboxView)
+ * onto the legacy FilterType still threaded through the page state +
+ * Mint Editorial / Legacy fallback views. "money" maps to "payments"
+ * (server-side type stayed the same; only the tab label is new).
+ */
+function inboxToLegacy(filter: InboxFilter): FilterType {
+  switch (filter) {
+    case 'jobs':
+      return 'jobs';
+    case 'messages':
+      return 'messages';
+    case 'money':
+      return 'payments';
+    case 'all':
+    default:
+      return 'all';
+  }
+}
+
+function legacyToInbox(filter: FilterType): InboxFilter {
+  switch (filter) {
+    case 'jobs':
+      return 'jobs';
+    case 'messages':
+      return 'messages';
+    case 'payments':
+      return 'money';
+    case 'unread':
+    case 'all':
+    default:
+      return 'all';
+  }
+}
 
 export default function NotificationsPage2025() {
   const router = useRouter();
@@ -321,29 +360,23 @@ export default function NotificationsPage2025() {
     return date.toLocaleDateString('en-GB', { month: 'short', day: 'numeric' });
   };
 
-  // Mint Editorial branch — shares the same fetched data, realtime
-  // subscription, and mutation handlers as the legacy view; only the
-  // visual layer differs.
+  // Mint Editorial branch — uses the canonical role-agnostic
+  // NotificationsInboxView so the homeowner + contractor inboxes can't
+  // drift again. The same fetch, realtime subscription, and mutation
+  // handlers feed it; only the visual layer changes.
   if (isMintEditorial) {
     return (
       <HomeownerPageWrapper>
-        <MintEditorialNotifications
-          notifications={notifications as NotificationItem[]}
+        <NotificationsInboxView
+          notifications={notifications as InboxNotification[]}
           loading={loadingNotifications}
-          filter={filter as MeFilterType}
-          onFilterChange={(f) => setFilter(f as FilterType)}
-          counts={{
-            all: notifications.length,
-            unread: unreadCount,
-            jobs: jobsCount,
-            messages: messagesCount,
-            payments: paymentsCount,
-          }}
-          onClickNotification={(n) =>
+          filter={legacyToInbox(filter)}
+          onFilterChange={(f) => setFilter(inboxToLegacy(f))}
+          preferencesHref='/settings/notifications'
+          onMarkAllRead={handleMarkAllAsRead}
+          onNotificationClick={(n) =>
             handleNotificationClick(n as Notification)
           }
-          onMarkAllRead={handleMarkAllAsRead}
-          onClearAll={handleClearAll}
           onDelete={handleDeleteNotification}
         />
       </HomeownerPageWrapper>
