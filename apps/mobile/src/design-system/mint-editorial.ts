@@ -118,6 +118,25 @@ export const me = {
     defaultBg: '#DCEAE5',
     defaultFg: '#2F6F5F',
   },
+
+  // ---- document-type swatches (mirrors --me-doc-* in mint-editorial.css)
+  // Spec-locked palette from redesign-v2/documents-web.html, picked so
+  // each document type reads at a glance:
+  //   contract → deep purple,  bid → magenta,   payment → teal,
+  //   cert     → forest green, receipt → amber.
+  // Keep these values in sync with apps/web/styles/mint-editorial.css.
+  doc: {
+    contractFg: '#5B3B96',
+    contractBg: '#EDE6F7',
+    bidFg: '#A8225F',
+    bidBg: '#FBE0EE',
+    paymentFg: '#0E5779',
+    paymentBg: '#D6EDF1',
+    certFg: '#206B45',
+    certBg: '#DCEFE3',
+    receiptFg: '#7A5A0F',
+    receiptBg: '#FBE9CB',
+  },
 } as const;
 
 export type MintEditorialTokens = typeof me;
