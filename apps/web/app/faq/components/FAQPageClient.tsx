@@ -104,14 +104,14 @@ export default function FAQPageClient() {
       id: '2',
       question: 'What information do I need to provide as a contractor?',
       answer:
-        'Contractors need to provide: business name, address, phone number, certifications (Gas Safe, NICEIC, etc.), proof of insurance (public liability and professional indemnity), portfolio of past work, and professional references. This helps us maintain quality and trust on our platform.',
+        'During onboarding we collect: business name, phone number, years of experience, a short bio, the trades you cover, any licence/registration numbers (e.g. Gas Safe, NICEIC), your insurance provider, the area you cover, and payout details (via Stripe Connect). After approval you can add certifications, insurance documents, and portfolio photos from your contractor profile to strengthen the trust signal homeowners see.',
       category: 'getting-started',
     },
     {
       id: '3',
-      question: 'How long does contractor verification take?',
+      question: 'How long does contractor approval take?',
       answer:
-        "Contractor verification typically takes 2-3 business days. We thoroughly check all certifications, insurance documents, and references to ensure quality. You'll receive an email notification once your profile is approved and you can start bidding on jobs.",
+        "Our admin team aims to review new contractor submissions within 2–3 business days. The review covers the business details, declared credentials, and insurance information collected at signup. You'll receive an email once the review is complete and you can start bidding on jobs.",
       category: 'getting-started',
     },
 
@@ -192,9 +192,9 @@ export default function FAQPageClient() {
     // Safety
     {
       id: '14',
-      question: 'Are all contractors verified and insured?',
+      question: 'How are contractors checked before they can bid?',
       answer:
-        'Yes, absolutely. We verify all contractor certifications, check insurance coverage (public liability minimum £5M, professional indemnity £2M), run background checks, and verify business registration. Only fully verified contractors can bid on jobs.',
+        'Contractors share their credentials (e.g. Gas Safe, NICEIC), insurance details, and business info during onboarding. Our admin team reviews each submission manually before a contractor can bid — automated lookups against the official registers and a background-check provider are on our roadmap, not live today. Past job history, ratings, and dispute records are visible on every contractor profile so you can judge fit for yourself.',
       category: 'safety',
     },
     {

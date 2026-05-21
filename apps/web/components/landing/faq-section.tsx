@@ -16,8 +16,8 @@ const FAQ_ITEMS = [
     a: "When you accept a contractor's bid, your payment is held securely by Mintenance. The contractor completes the work, you approve it, and then funds are released. If there's any issue, our mediation team steps in to resolve it fairly — protecting both homeowners and contractors.",
   },
   {
-    q: 'Are all contractors verified and insured?',
-    a: 'Yes. We verify contractor certifications (Gas Safe, NICEIC, and more), check insurance coverage, run background checks, and verify business registration. Only fully verified contractors can bid on jobs.',
+    q: 'How are contractors checked before they can bid?',
+    a: 'Contractors share their credentials (e.g. Gas Safe, NICEIC), insurance, and business details during onboarding. Our admin team reviews each submission manually before a contractor can bid — direct lookups against the official registers are on our roadmap, not live today. Past jobs, ratings, and dispute history are visible on every contractor profile so you can judge fit for yourself.',
   },
   {
     q: 'What fees does Mintenance charge?',
