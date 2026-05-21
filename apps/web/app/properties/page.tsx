@@ -128,6 +128,13 @@ export default async function PropertiesPage2025() {
       is_primary: property.is_primary,
       is_favorited: favoritedPropertyIds.has(property.id),
       created_at: property.created_at,
+      // 2026-05-21 fix: bug report — property cards showed the
+      // generic Building2 icon instead of the uploaded photo. Root
+      // cause was this mapping dropping the `photos` field even
+      // though `properties.*` was selected. MintEditorialProperties +
+      // PropertiesClient2025 both read `p.photos?.[0]` for the
+      // thumbnail; without it nothing ever rendered.
+      photos: property.photos ?? null,
       activeJobs,
       completedJobs,
       totalSpent,
