@@ -140,6 +140,7 @@ const VARIANT_STYLES: Record<
 
 export const Button: React.FC<ButtonProps> = ({
   title,
+  children,
   onPress,
   variant = 'primary',
   disabled = false,
@@ -156,6 +157,15 @@ export const Button: React.FC<ButtonProps> = ({
   testID,
   mint = false,
 }) => {
+  // 2026-05-21 audit: the type defined both `title` and `children` but
+  // the render only used `title`, so the children API silently rendered
+  // a label-less pill. The Subscription screen's Free-plan card hit
+  // this — `<Button>Switch Plan</Button>` came out empty. Prefer
+  // children when explicitly passed, fall back to title otherwise.
+  const label =
+    children !== undefined && children !== null && children !== ''
+      ? children
+      : title;
   const variantStyles = mint
     ? MINT_VARIANT_STYLES[variant]
     : VARIANT_STYLES[variant];
@@ -179,7 +189,9 @@ export const Button: React.FC<ButtonProps> = ({
       onPress={handlePress}
       disabled={disabled || loading}
       accessibilityRole='button'
-      accessibilityLabel={accessibilityLabel || title}
+      accessibilityLabel={
+        accessibilityLabel || (typeof label === 'string' ? label : title)
+      }
       accessibilityState={
         accessibilityState || { disabled: disabled || loading, busy: loading }
       }
@@ -221,7 +233,7 @@ export const Button: React.FC<ButtonProps> = ({
               textStyle,
             ]}
           >
-            {title}
+            {label}
           </Text>
           {icon && iconPosition === 'right' ? (
             <View style={styles.iconRight}>{icon}</View>

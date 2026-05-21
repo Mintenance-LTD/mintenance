@@ -13,7 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useI18n } from '../hooks/useI18n';
 import { useHaptics } from '../utils/haptics';
 import { useAccessibleText } from '../hooks/useAccessibleText';
-import { theme } from '../theme';
+import { me } from '../design-system/mint-editorial';
 
 interface SearchBarProps {
   placeholder?: string;
@@ -135,14 +135,19 @@ const SearchBar: React.FC<SearchBarProps> = ({
     haptics.buttonPress();
   };
 
+  // 2026-05-21 audit: was reading from dynamic theme tokens, so on a
+  // device honouring system dark mode the bar went near-black even
+  // though every consumer screen (CRMDashboard, MessagesList) renders
+  // on the Mint Editorial light paper background. Pin to mint tokens
+  // — these are the only two callers and both are mint-editorial.
   const borderColor = focusAnimation.interpolate({
     inputRange: [0, 1],
-    outputRange: [theme.colors.border, theme.colors.textPrimary],
+    outputRange: [me.line, me.brand],
   });
 
   const backgroundColor = focusAnimation.interpolate({
     inputRange: [0, 1],
-    outputRange: [theme.colors.backgroundSecondary, theme.colors.surface],
+    outputRange: [me.surface, me.bg],
   });
 
   return (
@@ -161,7 +166,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
         <Ionicons
           name='search'
           size={20}
-          color={isFocused ? theme.colors.textPrimary : theme.colors.textTertiary}
+          color={isFocused ? me.ink : me.ink3}
           style={styles.searchIcon}
         />
 
@@ -175,15 +180,19 @@ const SearchBar: React.FC<SearchBarProps> = ({
           onBlur={handleBlur}
           onSubmitEditing={handleSearch}
           placeholder={placeholder || String(t('common.search'))}
-          placeholderTextColor={theme.colors.textTertiary}
+          placeholderTextColor={me.ink3}
           autoFocus={autoFocus}
           editable={!disabled}
           returnKeyType='search'
           clearButtonMode={Platform.OS === 'ios' ? 'while-editing' : 'never'}
           accessibilityRole='search'
-          accessibilityLabel={String(t('search.searchInput', { defaultValue: 'Search input' }))}
+          accessibilityLabel={String(
+            t('search.searchInput', { defaultValue: 'Search input' })
+          )}
           accessibilityHint={String(
-            t('search.searchHint', { defaultValue: 'Enter search terms and tap search' })
+            t('search.searchHint', {
+              defaultValue: 'Enter search terms and tap search',
+            })
           )}
         />
 
@@ -191,7 +200,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
         {loading && (
           <ActivityIndicator
             size='small'
-            color={theme.colors.textPrimary}
+            color={me.brand}
             style={styles.loadingIndicator}
             testID='activity-indicator'
           />
@@ -208,11 +217,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
               t('search.clearHint', { defaultValue: 'Clear search text' })
             )}
           >
-            <Ionicons
-              name='close-circle'
-              size={20}
-              color={theme.colors.textTertiary}
-            />
+            <Ionicons name='close-circle' size={20} color={me.ink3} />
           </TouchableOpacity>
         )}
 
@@ -231,9 +236,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
             <Ionicons
               name='options'
               size={20}
-              color={
-                isFocused ? theme.colors.textPrimary : theme.colors.textSecondary
-              }
+              color={isFocused ? me.ink : me.ink2}
             />
           </TouchableOpacity>
         )}
@@ -253,7 +256,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
               <Ionicons
                 name='search'
                 size={16}
-                color={theme.colors.textTertiary}
+                color={me.ink3}
                 style={styles.suggestionIcon}
               />
               <Text style={[styles.suggestionText, searchText.textStyle]}>
@@ -297,7 +300,7 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     paddingVertical: 12,
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
   loadingIndicator: {
     marginHorizontal: 8,
@@ -316,7 +319,7 @@ const styles = StyleSheet.create({
     top: '100%',
     left: 0,
     right: 0,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.surface,
     borderRadius: 12,
     marginTop: 4,
     ...Platform.select({
@@ -338,14 +341,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: me.line,
   },
   suggestionIcon: {
     marginRight: 12,
   },
   suggestionText: {
     flex: 1,
-    color: theme.colors.textPrimary,
+    color: me.ink,
   },
 });
 

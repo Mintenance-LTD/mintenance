@@ -98,6 +98,40 @@ async function fetchOutstandingInvoices(
   >[];
 }
 
+// 2026-05-21 audit: escrow release doesn't insert into `invoices`, so
+// the dashboard read £0 across every KPI. Read escrow_transactions
+// scoped by payee_id; split into in-flight and earned.
+type EscrowAmountRow = {
+  amount: number | string | null;
+  status: string | null;
+};
+async function fetchContractorEscrow(
+  contractorId: string
+): Promise<{ inFlight: number; earned: number }> {
+  const { data, error } = await supabase
+    .from('escrow_transactions')
+    .select('amount, status')
+    .eq('payee_id', contractorId);
+  if (error) {
+    logger.error('Error fetching contractor escrow', error.message);
+    return { inFlight: 0, earned: 0 };
+  }
+  const rows = (data ?? []) as EscrowAmountRow[];
+  const toNumber = (raw: EscrowAmountRow['amount']): number => {
+    if (raw === null || raw === undefined) return 0;
+    const n = typeof raw === 'number' ? raw : Number(raw);
+    return Number.isFinite(n) ? n : 0;
+  };
+  const sumByStatus = (statuses: readonly string[]) =>
+    rows
+      .filter((r) => r.status !== null && statuses.includes(r.status))
+      .reduce((sum, r) => sum + toNumber(r.amount), 0);
+  return {
+    inFlight: sumByStatus(['pending', 'held', 'release_pending']),
+    earned: sumByStatus(['released', 'completed']),
+  };
+}
+
 export async function calculateFinancialTotals(
   contractorId: string,
   periodStart: string,
@@ -162,6 +196,12 @@ async function getMonthlyRevenue(
   contractorId: string,
   months: number
 ): Promise<number[]> {
+  // 2026-05-21 audit: per-month revenue used to read only from paid
+  // invoices. Contractors using the escrow flow never accrued invoice
+  // rows so the monthly chart was uniformly £0. Augment with released
+  // escrow transactions, bucketed by released-month.
+  const escrowByMonth = await fetchReleasedEscrowByMonth(contractorId, months);
+
   const results: number[] = [];
   for (let i = months - 1; i >= 0; i--) {
     const startDate = new Date();
@@ -176,11 +216,54 @@ async function getMonthlyRevenue(
       startDate.toISOString(),
       endDate.toISOString()
     );
-    results.push(
-      invoices.reduce((sum, inv) => sum + (inv.total_amount || 0), 0)
+    const invoiceSum = invoices.reduce(
+      (sum, inv) => sum + (inv.total_amount || 0),
+      0
     );
+    const monthKey = `${startDate.getFullYear()}-${startDate.getMonth()}`;
+    const escrowSum = escrowByMonth.get(monthKey) ?? 0;
+    results.push(invoiceSum + escrowSum);
   }
   return results;
+}
+
+// Sum released escrow rows by `${year}-${month}` of created_at.
+// Schema has no released_at column; created_at is close enough for
+// month-bucketing (release lag is hours, not month-boundary).
+async function fetchReleasedEscrowByMonth(
+  contractorId: string,
+  months: number
+): Promise<Map<string, number>> {
+  const horizon = new Date();
+  horizon.setMonth(horizon.getMonth() - (months - 1));
+  horizon.setDate(1);
+  horizon.setHours(0, 0, 0, 0);
+
+  const { data, error } = await supabase
+    .from('escrow_transactions')
+    .select('amount, created_at, status')
+    .eq('payee_id', contractorId)
+    .in('status', ['released', 'completed'])
+    .gte('created_at', horizon.toISOString());
+
+  if (error) {
+    logger.error('Error fetching released escrow by month', error.message);
+    return new Map();
+  }
+
+  const buckets = new Map<string, number>();
+  for (const row of (data ?? []) as EscrowAmountRow[] &
+    { created_at: string }[]) {
+    if (!row.created_at) continue;
+    const d = new Date(row.created_at);
+    const key = `${d.getFullYear()}-${d.getMonth()}`;
+    const amount =
+      typeof row.amount === 'number'
+        ? row.amount
+        : Number(row.amount ?? 0) || 0;
+    buckets.set(key, (buckets.get(key) ?? 0) + amount);
+  }
+  return buckets;
 }
 
 function calculateQuarterlyGrowth(monthlyRevenue: number[]): number {
@@ -361,12 +444,14 @@ export async function getFinancialSummary(
       profitTrends,
       taxObligations,
       cashFlowForecast,
+      escrowTotals,
     ] = await Promise.all([
       getMonthlyRevenue(contractorId, 12),
       getInvoicesSummary(contractorId),
       getProfitTrends(contractorId, 6),
       calculateTaxObligations(contractorId),
       generateCashFlowForecast(contractorId, 8),
+      fetchContractorEscrow(contractorId),
     ]);
 
     const quarterlyGrowth = calculateQuarterlyGrowth(monthlyRevenue);
@@ -377,7 +462,12 @@ export async function getFinancialSummary(
       monthly_revenue: monthlyRevenue,
       quarterly_growth: quarterlyGrowth,
       yearly_projection: yearlyProjection,
-      outstanding_invoices: outstandingInvoices,
+      // Roll escrow in-flight into the contractor's outstanding bucket
+      // so the dashboard's headline total reflects real money owed.
+      // Invoices may be £0 entirely (escrow flow doesn't create them)
+      // — escrow_in_flight is the actual source of truth for contractors
+      // working through the platform.
+      outstanding_invoices: outstandingInvoices + escrowTotals.inFlight,
       overdue_amount: overdueAmount,
       profit_trends: profitTrends,
       tax_obligations: taxObligations,
@@ -387,6 +477,8 @@ export async function getFinancialSummary(
         projected_expenses: f.projectedExpenses,
         net_flow: f.netFlow,
       })),
+      escrow_in_flight: escrowTotals.inFlight,
+      escrow_revenue: escrowTotals.earned,
     };
   }, context);
 

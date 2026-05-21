@@ -248,7 +248,18 @@ export const InvoiceManagementScreen: React.FC<{ navigation: Nav }> = ({
     [navigation, toast, markPaid, deleteInv]
   );
 
-  if (isLoading) return <LoadingSpinner message='Loading invoices...' />;
+  if (isLoading) {
+    // 2026-05-21 audit: returning <LoadingSpinner /> bare leaves the
+    // container background transparent, so on devices honouring system
+    // dark mode the whole screen rendered black-on-black. Anchor the
+    // loading state on the Mint Editorial paper background like every
+    // other invoice/finance screen.
+    return (
+      <View style={[s.loadingScreen, { paddingTop: insets.top }]}>
+        <LoadingSpinner message='Loading invoices...' />
+      </View>
+    );
+  }
 
   return (
     <View style={[s.root, { paddingTop: insets.top }]}>
@@ -355,6 +366,12 @@ const shadow = (_o: number, _r: number, _e: number) => me.shadow.card;
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: me.bg2 },
+  loadingScreen: {
+    flex: 1,
+    backgroundColor: me.bg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

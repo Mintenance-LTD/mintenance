@@ -52,6 +52,46 @@ describe('api-contracts schemas', () => {
       const result = createJobRequestSchema.safeParse(invalidJob);
       expect(result.success).toBe(false);
     });
+
+    // 2026-05-21 audit: `goggkgkgkfkllkgfkgkfl` made it past validation
+    // in production. Title length alone is not enough — keyboard mash
+    // needs a content check too. Multi-word titles always pass; single
+    // words need ≥2 vowels.
+    it('rejects single-word keyboard mash titles', () => {
+      const result = createJobRequestSchema.safeParse({
+        title: 'goggkgkgkfkllkgfkgkfl',
+        description: 'A'.repeat(50),
+        category: 'plumbing',
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it('accepts single-word titles with reasonable vowel distribution', () => {
+      const result = createJobRequestSchema.safeParse({
+        title: 'Painting',
+        description: 'A'.repeat(50),
+        category: 'painting',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('always accepts multi-word titles even with acronyms', () => {
+      const result = createJobRequestSchema.safeParse({
+        title: 'EICR cert',
+        description: 'A'.repeat(50),
+        category: 'electrical',
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it('rejects pure-digit titles', () => {
+      const result = createJobRequestSchema.safeParse({
+        title: '12345',
+        description: 'A'.repeat(50),
+        category: 'plumbing',
+      });
+      expect(result.success).toBe(false);
+    });
   });
 
   describe('auth', () => {
