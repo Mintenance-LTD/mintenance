@@ -18,6 +18,8 @@ import {
   type DocumentItem,
 } from './components/DocumentRow';
 import { MintEditorialDocumentsBody } from './components/MintEditorialDocumentsBody';
+import { DocumentsHero } from './components/DocumentsHero';
+import { DocumentsAttentionAlert } from './components/DocumentsAttentionAlert';
 
 interface ApiResponse {
   documents: DocumentItem[];
@@ -165,16 +167,22 @@ export default function HomeownerDocumentsPage() {
       (d.type === 'bid' && d.status === 'pending')
   ).length;
 
+  // Filter the inbox to "needs attention" — used by the "Review now"
+  // banner button so the user lands on exactly the rows they have to
+  // act on. Bids tab is the closest existing filter that contains the
+  // pending items; "contracts" tab captures the pending_homeowner ones.
+  // Switching to "all" keeps both in view; the cards' awaiting badge
+  // makes them visually distinct.
+  const handleReviewNow = useCallback(() => {
+    setActiveTab('all');
+    setSortBy('newest');
+  }, []);
+
   return (
     <div className='max-w-6xl mx-auto'>
       {/* ─── Page Header ─────────────────────────────────── */}
       {isMintEditorial ? (
-        <div className='col' style={{ gap: 4, marginBottom: 22 }}>
-          <h1 className='t-h1'>Documents</h1>
-          <p className='t-body'>
-            All your contracts, bids, and payment records in one place.
-          </p>
-        </div>
+        <DocumentsHero counts={counts} needsAttention={needsAttention} />
       ) : (
         <div className='mb-8'>
           <div className='flex items-center gap-3 mb-2'>
@@ -191,56 +199,18 @@ export default function HomeownerDocumentsPage() {
         </div>
       )}
 
-      {/* ─── Stat Cards ──────────────────────────────────── */}
+      {/* ─── Attention alert ──────────────────────────────
+          Only renders for Mint Editorial when one or more documents
+          are awaiting the homeowner. Self-hides otherwise. */}
       {isMintEditorial ? (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))',
-            gap: 14,
-            marginBottom: 22,
-          }}
-        >
-          <div className='kpi'>
-            <div className='label'>Total documents</div>
-            <div className='num'>{counts.total}</div>
-            <div className='sub'>
-              <span>contracts, bids & payments</span>
-            </div>
-          </div>
-          <div className='kpi'>
-            <div className='label'>Contracts</div>
-            <div className='num'>{counts.contracts}</div>
-            <div className='sub'>
-              <span>signed & in flight</span>
-            </div>
-          </div>
-          <div className='kpi'>
-            <div className='label'>Bids received</div>
-            <div className='num'>{counts.bids}</div>
-            <div className='sub'>
-              <span>from contractors</span>
-            </div>
-          </div>
-          {needsAttention > 0 ? (
-            <div className='kpi'>
-              <div className='label'>Needs attention</div>
-              <div className='num'>{needsAttention}</div>
-              <div className='sub'>
-                <span>awaiting your response</span>
-              </div>
-            </div>
-          ) : (
-            <div className='kpi'>
-              <div className='label'>Payments</div>
-              <div className='num'>{counts.payments}</div>
-              <div className='sub'>
-                <span>transactions on file</span>
-              </div>
-            </div>
-          )}
-        </div>
-      ) : (
+        <DocumentsAttentionAlert
+          documents={documents}
+          onReviewNow={handleReviewNow}
+        />
+      ) : null}
+
+      {/* ─── Legacy stat tile row (default theme only) ──── */}
+      {!isMintEditorial ? (
         <div className='grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8'>
           <StatCard
             label='Total Documents'
@@ -277,7 +247,7 @@ export default function HomeownerDocumentsPage() {
             />
           )}
         </div>
-      )}
+      ) : null}
 
       {/* ─── Tabs + Search ───────────────────────────────── */}
       {isMintEditorial ? (

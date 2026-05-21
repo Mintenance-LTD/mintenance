@@ -17,7 +17,8 @@ import {
   AlertCircle,
   FolderOpen,
 } from 'lucide-react';
-import { DocumentRow, type DocumentItem } from './DocumentRow';
+import { type DocumentItem } from './DocumentRow';
+import { DocumentCard } from './DocumentCard';
 import { MintEditorialEmptyState } from '@/components/mint-editorial/MintEditorialEmptyState';
 import { MintEditorialListSkeleton } from '@/components/mint-editorial/MintEditorialSkeleton';
 
@@ -71,37 +72,16 @@ export function MintEditorialDocumentsBody({
   onRetry,
 }: Props) {
   return (
-    <div className='card' style={{ overflow: 'visible' }}>
-      {/* Tab row — canonical `.chip / .chip.on` */}
-      <div
-        className='row'
-        style={{
-          gap: 6,
-          padding: '12px 16px',
-          borderBottom: '1px solid var(--me-line-2)',
-          flexWrap: 'wrap',
-        }}
-      >
-        {tabs.map((tab) => (
-          <button
-            key={tab.key}
-            type='button'
-            className={'chip ' + (activeTab === tab.key ? 'on' : '')}
-            onClick={() => onTabChange(tab.key)}
-          >
-            {tab.label}
-            {tab.count > 0 ? <> · {tab.count}</> : null}
-          </button>
-        ))}
-      </div>
-
-      {/* Search + sort */}
+    <div style={{ overflow: 'visible' }}>
+      {/* Search + tabs + sort — all sit above the card grid now,
+          matching the mockup. */}
       <div
         className='row'
         style={{
           gap: 12,
-          padding: '12px 16px',
-          borderBottom: '1px solid var(--me-line-2)',
+          marginBottom: 14,
+          flexWrap: 'wrap',
+          alignItems: 'center',
         }}
       >
         <div
@@ -224,11 +204,78 @@ export function MintEditorialDocumentsBody({
         </div>
       </div>
 
-      {/* List body */}
-      {loading ? (
-        <div style={{ padding: 16 }}>
-          <MintEditorialListSkeleton rowCount={5} />
+      {/* Tab chips row — sits between search and grid. Canonical
+          `.chip / .chip.on` keeps the visual language consistent with
+          the rest of Mint Editorial. */}
+      <div
+        className='row'
+        style={{
+          gap: 8,
+          marginBottom: 14,
+          flexWrap: 'wrap',
+          paddingBottom: 8,
+          borderBottom: '1px solid var(--me-line)',
+        }}
+      >
+        {tabs.map((tab) => (
+          <button
+            key={tab.key}
+            type='button'
+            className={'chip ' + (activeTab === tab.key ? 'on' : '')}
+            onClick={() => onTabChange(tab.key)}
+          >
+            {tab.label}
+            {tab.count > 0 ? <> · {tab.count}</> : null}
+          </button>
+        ))}
+      </div>
+
+      {/* Grid header — count + drag hint, matches the mockup
+          "8 documents · Click any card to open the full record". */}
+      {!loading && !error && filteredDocs.length > 0 ? (
+        <div
+          className='between'
+          style={{ alignItems: 'baseline', marginBottom: 12 }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'baseline',
+              gap: 8,
+            }}
+          >
+            <span
+              className='t-h2'
+              style={{
+                fontFamily:
+                  'var(--me-font-display, "Instrument Serif", Georgia, serif)',
+                fontSize: 24,
+                color: 'var(--me-ink)',
+              }}
+            >
+              {filteredDocs.length}
+            </span>
+            <span
+              className='t-h2'
+              style={{
+                fontFamily:
+                  'var(--me-font-display, "Instrument Serif", Georgia, serif)',
+                fontSize: 24,
+                color: 'var(--me-ink)',
+              }}
+            >
+              {filteredDocs.length === 1 ? 'document' : 'documents'}
+            </span>
+            <span className='t-meta' style={{ color: 'var(--me-ink-3)' }}>
+              · Click any card to open the full record
+            </span>
+          </div>
         </div>
+      ) : null}
+
+      {/* Body — 2-column card grid */}
+      {loading ? (
+        <MintEditorialListSkeleton rowCount={5} />
       ) : error ? (
         <div
           className='col'
@@ -266,25 +313,29 @@ export function MintEditorialDocumentsBody({
           }
         />
       ) : (
-        <div>
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(360px, 1fr))',
+            gap: 14,
+          }}
+        >
           {filteredDocs.map((doc) => (
-            <DocumentRow key={doc.id} doc={doc} />
+            <DocumentCard key={doc.id} doc={doc} />
           ))}
         </div>
       )}
 
-      {/* Footer count */}
-      {!loading && filteredDocs.length > 0 ? (
-        <div
+      {/* Sub-tally — surfaces the "X of Y" only when filtering. */}
+      {!loading &&
+      filteredDocs.length > 0 &&
+      filteredDocs.length < totalCount ? (
+        <p
           className='t-meta'
-          style={{
-            padding: '12px 16px',
-            borderTop: '1px solid var(--me-line-2)',
-            background: 'var(--me-bg-2)',
-          }}
+          style={{ marginTop: 14, color: 'var(--me-ink-3)' }}
         >
           Showing {filteredDocs.length} of {totalCount} documents
-        </div>
+        </p>
       ) : null}
     </div>
   );
