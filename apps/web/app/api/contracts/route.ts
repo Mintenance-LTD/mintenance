@@ -95,7 +95,67 @@ export const GET = withApiHandler(
       );
     }
 
-    return NextResponse.json({ contracts: contracts || [] });
+    // 2026-05-21 quote-id drift fallback: pre-2026-05-13 the
+    // bid-accept flow created contracts without propagating
+    // `quote_id` (and stamped a boilerplate description). Those rows
+    // still know the source bid via `terms.bid_id`, so we can recover
+    // the quote at read time by traversing to the bid. The DB has
+    // already been backfilled, but this guard prevents the same UX
+    // (empty Scope of Work + no quote breakdown) from regressing if
+    // a stale code path produces another drifted row.
+    const rows = (contracts || []) as Array<{
+      id: string;
+      description: string | null;
+      quote_id: string | null;
+      quote: unknown;
+      terms: Record<string, unknown> | null;
+    }>;
+    const needsFallback = rows.filter(
+      (r) => !r.quote_id && r.terms && typeof r.terms.bid_id === 'string'
+    );
+    if (needsFallback.length > 0) {
+      const bidIds = needsFallback
+        .map((r) => r.terms?.bid_id as string)
+        .filter(Boolean);
+      const { data: bids } = await serverSupabase
+        .from('bids')
+        .select(
+          'id, quote_id, message, description, estimated_duration_days, warranty_months, materials_included, quote:contractor_quotes!quote_id(id, subtotal, tax_rate, tax_amount, total_amount, line_items, terms, quote_number, valid_until)'
+        )
+        .in('id', bidIds);
+      const bidById = new Map(
+        (bids || []).map((b: Record<string, unknown>) => [b.id as string, b])
+      );
+      for (const row of needsFallback) {
+        const bid = bidById.get(row.terms!.bid_id as string);
+        if (!bid) continue;
+        // Surface the linked quote so ContractQuoteBreakdown renders.
+        if (!row.quote_id && bid.quote_id) {
+          row.quote_id = bid.quote_id as string;
+        }
+        if (!row.quote && bid.quote) {
+          row.quote = bid.quote;
+        }
+        // Surface the contractor's bid message as the scope-of-work
+        // description when the contract still carries the boilerplate.
+        const proposalText = (
+          (bid.message as string | null) ??
+          (bid.description as string | null) ??
+          ''
+        )
+          .toString()
+          .trim();
+        const looksLikeBoilerplate =
+          !row.description ||
+          row.description.length === 0 ||
+          row.description.startsWith('Contract created from accepted bid');
+        if (looksLikeBoilerplate && proposalText) {
+          row.description = proposalText;
+        }
+      }
+    }
+
+    return NextResponse.json({ contracts: rows });
   }
 );
 
