@@ -1,9 +1,9 @@
 'use client';
 
 import React from 'react';
-import { Lightbulb } from 'lucide-react';
+import { Lightbulb, Ruler } from 'lucide-react';
 import { PricingBreakdown } from '@/components/ui/PricingBreakdown';
-import type { LineItem } from './bidSubmissionTypes';
+import type { LineItem, BidJobRoomScope } from './bidSubmissionTypes';
 
 interface BidFormAdvancedModeProps {
   lineItems: LineItem[];
@@ -19,93 +19,320 @@ interface BidFormAdvancedModeProps {
   youWillReceive: number;
   terms: string;
   jobBudget?: string;
+  // Property Rooms Slice 2: empty when the job has no room scope —
+  // toolbar self-hides in that case so the original UX is unchanged
+  // for legacy jobs.
+  roomsInScope?: BidJobRoomScope[];
   onAddLineItem: () => void;
-  onUpdateLineItem: (id: string, field: keyof LineItem, value: string | number) => void;
+  onUpdateLineItem: (
+    id: string,
+    field: keyof LineItem,
+    value: string | number | null
+  ) => void;
   onRemoveLineItem: (id: string) => void;
   onTaxRateChange: (rate: number) => void;
   onTermsChange: (terms: string) => void;
 }
 
 export function BidFormAdvancedMode({
-  lineItems, taxRate, taxAmount, subtotal, totalAmount,
-  laborTotal, materialTotal, equipmentTotal,
-  platformFeeRate, platformFee, youWillReceive, terms, jobBudget,
-  onAddLineItem, onUpdateLineItem, onRemoveLineItem, onTaxRateChange, onTermsChange,
+  lineItems,
+  taxRate,
+  taxAmount,
+  subtotal,
+  totalAmount,
+  laborTotal,
+  materialTotal,
+  equipmentTotal,
+  platformFeeRate,
+  platformFee,
+  youWillReceive,
+  terms,
+  jobBudget,
+  roomsInScope,
+  onAddLineItem,
+  onUpdateLineItem,
+  onRemoveLineItem,
+  onTaxRateChange,
+  onTermsChange,
 }: BidFormAdvancedModeProps) {
   const jobBudgetNum = jobBudget ? parseFloat(jobBudget) : NaN;
   const exceedsBudget = !isNaN(jobBudgetNum) && totalAmount > jobBudgetNum;
   const excess = exceedsBudget ? totalAmount - jobBudgetNum : 0;
 
+  // Property Rooms Slice 2 — only render the per-row room toolbar when
+  // the job has a non-empty room scope. Legacy jobs (no rooms) get the
+  // exact same UX as before.
+  const hasRoomScope = !!(roomsInScope && roomsInScope.length > 0);
+
+  // When the contractor switches a line item to "Per m²" + picks a
+  // room, default its quantity to the room's snapshotted size so they
+  // don't have to retype it. We don't overwrite a non-zero quantity
+  // that's already there (preserves manual adjustments).
+  const handleUnitChange = (itemId: string, unit: 'item' | 'sqm') => {
+    onUpdateLineItem(itemId, 'unit', unit);
+    if (unit === 'sqm') {
+      const item = lineItems.find((i) => i.id === itemId);
+      if (
+        item &&
+        (item.quantity === 0 || item.quantity === 1) &&
+        item.room_id
+      ) {
+        const room = roomsInScope?.find((r) => r.id === item.room_id);
+        if (room?.size_sqm_at_post) {
+          onUpdateLineItem(itemId, 'quantity', room.size_sqm_at_post);
+        }
+      }
+    }
+  };
+
+  const handleRoomChange = (itemId: string, roomId: string) => {
+    const nextRoomId = roomId || null;
+    onUpdateLineItem(itemId, 'room_id', nextRoomId);
+    // If the line is already billed per m² and qty is still the
+    // default 1, snap quantity to the picked room's size.
+    if (nextRoomId) {
+      const item = lineItems.find((i) => i.id === itemId);
+      if (
+        item &&
+        item.unit === 'sqm' &&
+        (item.quantity === 0 || item.quantity === 1)
+      ) {
+        const room = roomsInScope?.find((r) => r.id === nextRoomId);
+        if (room?.size_sqm_at_post) {
+          onUpdateLineItem(itemId, 'quantity', room.size_sqm_at_post);
+        }
+      }
+    }
+  };
+
   return (
-    <div className="space-y-6">
+    <div className='space-y-6'>
       {/* Line Items */}
       <div>
-        <div className="flex items-center justify-between mb-3">
-          <label className="text-sm font-medium text-gray-700">Line Items</label>
-          <button onClick={onAddLineItem} className="text-teal-600 hover:text-teal-700 font-medium text-sm flex items-center gap-1">
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+        <div className='flex items-center justify-between mb-3'>
+          <label className='text-sm font-medium text-gray-700'>
+            Line Items
+          </label>
+          <button
+            onClick={onAddLineItem}
+            className='text-teal-600 hover:text-teal-700 font-medium text-sm flex items-center gap-1'
+          >
+            <svg
+              className='w-4 h-4'
+              fill='none'
+              viewBox='0 0 24 24'
+              stroke='currentColor'
+            >
+              <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                strokeWidth={2}
+                d='M12 4v16m8-8H4'
+              />
             </svg>
             Add Item
           </button>
         </div>
 
-        <div className="space-y-3">
-          {lineItems.map((item) => (
-            <div key={item.id} className="grid grid-cols-12 gap-2 p-3 bg-gray-50 rounded-lg">
-              <select
-                value={item.type}
-                onChange={(e) => onUpdateLineItem(item.id, 'type', e.target.value as 'labor' | 'material' | 'equipment')}
-                className="col-span-2 px-2 py-2 border border-gray-300 rounded-lg text-sm font-medium"
-              >
-                <option value="labor">Labor</option>
-                <option value="material">Material</option>
-                <option value="equipment">Equipment</option>
-              </select>
-              <input type="text" value={item.description} onChange={(e) => onUpdateLineItem(item.id, 'description', e.target.value)} placeholder="Description" className="col-span-4 px-3 py-2 border border-gray-300 rounded-lg text-sm" />
-              <input type="number" value={item.quantity} onChange={(e) => onUpdateLineItem(item.id, 'quantity', parseFloat(e.target.value) || 0)} placeholder="Qty" className="col-span-2 px-3 py-2 border border-gray-300 rounded-lg text-sm" min="0" />
-              <input type="number" value={item.unitPrice} onChange={(e) => onUpdateLineItem(item.id, 'unitPrice', parseFloat(e.target.value) || 0)} placeholder="£ Price" className="col-span-2 px-3 py-2 border border-gray-300 rounded-lg text-sm" step="0.01" min="0" />
-              <div className="col-span-1 px-2 py-2 bg-white rounded-lg text-sm font-medium flex items-center justify-end">£{item.total.toFixed(2)}</div>
-              <button onClick={() => onRemoveLineItem(item.id)} className="col-span-1 flex items-center justify-center text-rose-600 hover:text-rose-700">
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-              </button>
-            </div>
-          ))}
+        <div className='space-y-3'>
+          {lineItems.map((item) => {
+            const billPerSqm = item.unit === 'sqm';
+            return (
+              <div key={item.id} className='p-3 bg-gray-50 rounded-lg'>
+                <div className='grid grid-cols-12 gap-2'>
+                  <select
+                    value={item.type}
+                    onChange={(e) =>
+                      onUpdateLineItem(
+                        item.id,
+                        'type',
+                        e.target.value as 'labor' | 'material' | 'equipment'
+                      )
+                    }
+                    className='col-span-2 px-2 py-2 border border-gray-300 rounded-lg text-sm font-medium'
+                  >
+                    <option value='labor'>Labor</option>
+                    <option value='material'>Material</option>
+                    <option value='equipment'>Equipment</option>
+                  </select>
+                  <input
+                    type='text'
+                    value={item.description}
+                    onChange={(e) =>
+                      onUpdateLineItem(item.id, 'description', e.target.value)
+                    }
+                    placeholder='Description'
+                    className='col-span-4 px-3 py-2 border border-gray-300 rounded-lg text-sm'
+                  />
+                  <input
+                    type='number'
+                    value={item.quantity}
+                    onChange={(e) =>
+                      onUpdateLineItem(
+                        item.id,
+                        'quantity',
+                        parseFloat(e.target.value) || 0
+                      )
+                    }
+                    placeholder={billPerSqm ? 'm²' : 'Qty'}
+                    aria-label={
+                      billPerSqm ? 'Quantity in square metres' : 'Quantity'
+                    }
+                    className='col-span-2 px-3 py-2 border border-gray-300 rounded-lg text-sm'
+                    min='0'
+                    step={billPerSqm ? '0.1' : '1'}
+                  />
+                  <input
+                    type='number'
+                    value={item.unitPrice}
+                    onChange={(e) =>
+                      onUpdateLineItem(
+                        item.id,
+                        'unitPrice',
+                        parseFloat(e.target.value) || 0
+                      )
+                    }
+                    placeholder={billPerSqm ? '£/m²' : '£ Price'}
+                    aria-label={
+                      billPerSqm ? 'Price per square metre' : 'Unit price'
+                    }
+                    className='col-span-2 px-3 py-2 border border-gray-300 rounded-lg text-sm'
+                    step='0.01'
+                    min='0'
+                  />
+                  <div className='col-span-1 px-2 py-2 bg-white rounded-lg text-sm font-medium flex items-center justify-end'>
+                    £{item.total.toFixed(2)}
+                  </div>
+                  <button
+                    onClick={() => onRemoveLineItem(item.id)}
+                    className='col-span-1 flex items-center justify-center text-rose-600 hover:text-rose-700'
+                    aria-label='Remove item'
+                  >
+                    <svg
+                      className='w-5 h-5'
+                      fill='none'
+                      viewBox='0 0 24 24'
+                      stroke='currentColor'
+                    >
+                      <path
+                        strokeLinecap='round'
+                        strokeLinejoin='round'
+                        strokeWidth={2}
+                        d='M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16'
+                      />
+                    </svg>
+                  </button>
+                </div>
+                {/* Property Rooms Slice 2 — per-line "Bill by m²" + "Apply to room" toolbar.
+                    Self-hides when the job has no room scope to preserve legacy UX. */}
+                {hasRoomScope ? (
+                  <div className='mt-2 flex items-center gap-3 flex-wrap text-xs'>
+                    <div className='inline-flex items-center gap-1 bg-white rounded-lg border border-gray-200 p-0.5'>
+                      <button
+                        type='button'
+                        onClick={() => handleUnitChange(item.id, 'item')}
+                        className={`px-2.5 py-1 rounded-md font-medium transition-colors ${!billPerSqm ? 'bg-teal-50 text-teal-700' : 'text-gray-600 hover:text-gray-900'}`}
+                        aria-pressed={!billPerSqm}
+                      >
+                        Each
+                      </button>
+                      <button
+                        type='button'
+                        onClick={() => handleUnitChange(item.id, 'sqm')}
+                        className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md font-medium transition-colors ${billPerSqm ? 'bg-teal-50 text-teal-700' : 'text-gray-600 hover:text-gray-900'}`}
+                        aria-pressed={billPerSqm}
+                      >
+                        <Ruler className='w-3 h-3' /> Per m²
+                      </button>
+                    </div>
+                    <label className='inline-flex items-center gap-1.5 text-gray-600'>
+                      <span>Room:</span>
+                      <select
+                        value={item.room_id ?? ''}
+                        onChange={(e) =>
+                          handleRoomChange(item.id, e.target.value)
+                        }
+                        className='px-2 py-1 border border-gray-200 rounded-md text-xs bg-white'
+                        aria-label='Apply line item to a specific room'
+                      >
+                        <option value=''>—</option>
+                        {roomsInScope!.map((r) => (
+                          <option key={r.id} value={r.id}>
+                            {r.name}
+                            {r.size_sqm_at_post != null
+                              ? ` (${Number(r.size_sqm_at_post).toFixed(1)} m²)`
+                              : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  </div>
+                ) : null}
+              </div>
+            );
+          })}
         </div>
 
         {/* Cost Breakdown */}
         {lineItems.length > 0 && (
-          <div className="bg-gradient-to-br from-teal-50 to-blue-50 border-2 border-teal-200 rounded-xl p-5 mt-4">
-            <h4 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-              <svg className="w-4 h-4 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+          <div className='bg-gradient-to-br from-teal-50 to-blue-50 border-2 border-teal-200 rounded-xl p-5 mt-4'>
+            <h4 className='text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2'>
+              <svg
+                className='w-4 h-4 text-teal-600'
+                fill='none'
+                viewBox='0 0 24 24'
+                stroke='currentColor'
+              >
+                <path
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
+                  strokeWidth={2}
+                  d='M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z'
+                />
               </svg>
               Cost Breakdown
             </h4>
-            <div className="space-y-2">
+            <div className='space-y-2'>
               {laborTotal > 0 && (
-                <div className="flex justify-between items-center p-2 bg-white rounded-lg">
-                  <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-blue-500" /><span className="text-sm text-gray-700">Labor</span></div>
-                  <span className="text-sm font-semibold text-gray-900">£{laborTotal.toFixed(2)}</span>
+                <div className='flex justify-between items-center p-2 bg-white rounded-lg'>
+                  <div className='flex items-center gap-2'>
+                    <div className='w-2 h-2 rounded-full bg-blue-500' />
+                    <span className='text-sm text-gray-700'>Labor</span>
+                  </div>
+                  <span className='text-sm font-semibold text-gray-900'>
+                    £{laborTotal.toFixed(2)}
+                  </span>
                 </div>
               )}
               {materialTotal > 0 && (
-                <div className="flex justify-between items-center p-2 bg-white rounded-lg">
-                  <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-amber-500" /><span className="text-sm text-gray-700">Materials</span></div>
-                  <span className="text-sm font-semibold text-gray-900">£{materialTotal.toFixed(2)}</span>
+                <div className='flex justify-between items-center p-2 bg-white rounded-lg'>
+                  <div className='flex items-center gap-2'>
+                    <div className='w-2 h-2 rounded-full bg-amber-500' />
+                    <span className='text-sm text-gray-700'>Materials</span>
+                  </div>
+                  <span className='text-sm font-semibold text-gray-900'>
+                    £{materialTotal.toFixed(2)}
+                  </span>
                 </div>
               )}
               {equipmentTotal > 0 && (
-                <div className="flex justify-between items-center p-2 bg-white rounded-lg">
-                  <div className="flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-emerald-500" /><span className="text-sm text-gray-700">Equipment</span></div>
-                  <span className="text-sm font-semibold text-gray-900">£{equipmentTotal.toFixed(2)}</span>
+                <div className='flex justify-between items-center p-2 bg-white rounded-lg'>
+                  <div className='flex items-center gap-2'>
+                    <div className='w-2 h-2 rounded-full bg-emerald-500' />
+                    <span className='text-sm text-gray-700'>Equipment</span>
+                  </div>
+                  <span className='text-sm font-semibold text-gray-900'>
+                    £{equipmentTotal.toFixed(2)}
+                  </span>
                 </div>
               )}
-              <div className="flex justify-between items-center pt-2 border-t-2 border-teal-200">
-                <span className="text-sm font-semibold text-gray-900">Subtotal</span>
-                <span className="text-base font-bold text-teal-600">£{subtotal.toFixed(2)}</span>
+              <div className='flex justify-between items-center pt-2 border-t-2 border-teal-200'>
+                <span className='text-sm font-semibold text-gray-900'>
+                  Subtotal
+                </span>
+                <span className='text-base font-bold text-teal-600'>
+                  £{subtotal.toFixed(2)}
+                </span>
               </div>
             </div>
           </div>
@@ -113,33 +340,68 @@ export function BidFormAdvancedMode({
       </div>
 
       {/* Tax Rate */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className='grid grid-cols-2 gap-4'>
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Tax Rate (%)</label>
-          <input type="number" value={taxRate} onChange={(e) => onTaxRateChange(parseFloat(e.target.value) || 0)} className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500" step="0.1" min="0" />
+          <label className='block text-sm font-medium text-gray-700 mb-2'>
+            Tax Rate (%)
+          </label>
+          <input
+            type='number'
+            value={taxRate}
+            onChange={(e) => onTaxRateChange(parseFloat(e.target.value) || 0)}
+            className='w-full px-4 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500'
+            step='0.1'
+            min='0'
+          />
         </div>
       </div>
 
       {/* Budget Warning */}
       {exceedsBudget && (
-        <div className="bg-rose-50 border-2 border-rose-300 rounded-xl p-4 mb-4">
-          <div className="flex items-start gap-3">
-            <svg className="w-6 h-6 text-rose-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        <div className='bg-rose-50 border-2 border-rose-300 rounded-xl p-4 mb-4'>
+          <div className='flex items-start gap-3'>
+            <svg
+              className='w-6 h-6 text-rose-600 flex-shrink-0 mt-0.5'
+              fill='none'
+              viewBox='0 0 24 24'
+              stroke='currentColor'
+            >
+              <path
+                strokeLinecap='round'
+                strokeLinejoin='round'
+                strokeWidth={2}
+                d='M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z'
+              />
             </svg>
-            <div className="flex-1">
-              <h4 className="text-sm font-semibold text-rose-900 mb-1">Budget Exceeded</h4>
-              <p className="text-sm text-rose-800 mb-2">
-                Your total bid (£{totalAmount.toFixed(2)}) exceeds the job budget (£{jobBudgetNum.toFixed(2)}) by £{excess.toFixed(2)}.
-                {taxAmount > 0 ? ' This includes ' + taxRate + '% tax (£' + taxAmount.toFixed(2) + ').' : ''}
-                {lineItems.length > 0 ? ' This includes ' + lineItems.length + ' line item(s).' : ''}
+            <div className='flex-1'>
+              <h4 className='text-sm font-semibold text-rose-900 mb-1'>
+                Budget Exceeded
+              </h4>
+              <p className='text-sm text-rose-800 mb-2'>
+                Your total bid (£{totalAmount.toFixed(2)}) exceeds the job
+                budget (£{jobBudgetNum.toFixed(2)}) by £{excess.toFixed(2)}.
+                {taxAmount > 0
+                  ? ' This includes ' +
+                    taxRate +
+                    '% tax (£' +
+                    taxAmount.toFixed(2) +
+                    ').'
+                  : ''}
+                {lineItems.length > 0
+                  ? ' This includes ' + lineItems.length + ' line item(s).'
+                  : ''}
               </p>
               {taxAmount > 0 && (
-                <p className="text-xs text-rose-700 mb-2 font-medium">
-                  <Lightbulb className="w-4 h-4 inline-block mr-1" /> Maximum base amount (before tax): £{(jobBudgetNum / (1 + taxRate / 100)).toFixed(2)}
+                <p className='text-xs text-rose-700 mb-2 font-medium'>
+                  <Lightbulb className='w-4 h-4 inline-block mr-1' /> Maximum
+                  base amount (before tax): £
+                  {(jobBudgetNum / (1 + taxRate / 100)).toFixed(2)}
                 </p>
               )}
-              <p className="text-xs text-rose-700">Please adjust your bid amount to stay within the budget before submitting.</p>
+              <p className='text-xs text-rose-700'>
+                Please adjust your bid amount to stay within the budget before
+                submitting.
+              </p>
             </div>
           </div>
         </div>
@@ -148,33 +410,49 @@ export function BidFormAdvancedMode({
       {/* Pricing Summary */}
       <PricingBreakdown
         items={[
-          ...lineItems.map((item) => ({ id: item.id, label: item.description || 'Line item', amount: item.total })),
+          ...lineItems.map((item) => ({
+            id: item.id,
+            label: item.description || 'Line item',
+            amount: item.total,
+          })),
           { id: 'tax', label: 'VAT (' + taxRate + '%)', amount: taxAmount },
         ]}
         subtotal={subtotal}
         total={totalAmount}
-        currency="£"
-        className="border border-gray-200"
+        currency='£'
+        className='border border-gray-200'
         showSubtotal={true}
       />
 
       {/* Platform Fee Breakdown */}
       {lineItems.length > 0 && totalAmount > 0 && (
-        <div className="bg-teal-50 border border-teal-200 rounded-xl p-6">
-          <h4 className="text-sm font-medium text-teal-900 mb-4">Your Earnings</h4>
-          <div className="space-y-3">
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-teal-700">Total bid amount</span>
-              <span className="text-sm font-medium text-teal-900">£{totalAmount.toFixed(2)}</span>
+        <div className='bg-teal-50 border border-teal-200 rounded-xl p-6'>
+          <h4 className='text-sm font-medium text-teal-900 mb-4'>
+            Your Earnings
+          </h4>
+          <div className='space-y-3'>
+            <div className='flex justify-between items-center'>
+              <span className='text-sm text-teal-700'>Total bid amount</span>
+              <span className='text-sm font-medium text-teal-900'>
+                £{totalAmount.toFixed(2)}
+              </span>
             </div>
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-teal-700">Platform fee ({platformFeeRate}%)</span>
-              <span className="text-sm font-medium text-rose-600">-£{platformFee.toFixed(2)}</span>
+            <div className='flex justify-between items-center'>
+              <span className='text-sm text-teal-700'>
+                Platform fee ({platformFeeRate}%)
+              </span>
+              <span className='text-sm font-medium text-rose-600'>
+                -£{platformFee.toFixed(2)}
+              </span>
             </div>
-            <div className="pt-3 border-t border-teal-300">
-              <div className="flex justify-between items-center">
-                <span className="text-base font-semibold text-teal-900">You&apos;ll receive</span>
-                <span className="text-lg font-bold text-emerald-600">£{youWillReceive.toFixed(2)}</span>
+            <div className='pt-3 border-t border-teal-300'>
+              <div className='flex justify-between items-center'>
+                <span className='text-base font-semibold text-teal-900'>
+                  You&apos;ll receive
+                </span>
+                <span className='text-lg font-bold text-emerald-600'>
+                  £{youWillReceive.toFixed(2)}
+                </span>
               </div>
             </div>
           </div>
@@ -183,13 +461,15 @@ export function BidFormAdvancedMode({
 
       {/* Terms */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">Terms & Conditions (Optional)</label>
+        <label className='block text-sm font-medium text-gray-700 mb-2'>
+          Terms & Conditions (Optional)
+        </label>
         <textarea
           value={terms}
           onChange={(e) => onTermsChange(e.target.value)}
-          placeholder="Payment terms, warranty, or special conditions..."
+          placeholder='Payment terms, warranty, or special conditions...'
           rows={3}
-          className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+          className='w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500'
           maxLength={2000}
         />
       </div>
