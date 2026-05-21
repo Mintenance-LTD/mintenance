@@ -179,13 +179,19 @@ export async function checkIdempotency<T>(
  * Mark a claim 'completed' and persist the result. Safe to call multiple
  * times — only the first call (against a 'pending' row) updates.
  *
- * Retries up to 3x on RPC error with linear backoff. The protected
+ * Retries up to 5x with exponential backoff (250 / 500 / 1000 / 2000 ms
+ * = ~3.75s spent between attempts before the final one). The protected
  * operation has already completed by the time this is called, so failing
  * here leaves the claim 'pending' and the next retry-after-stale-takeover
  * may re-execute the work. For Stripe-bound routes that risk is mitigated
  * by upstream Stripe `idempotencyKey` headers (Stripe dedupes server-side);
  * for notification/DB-only side-effects the duplication risk remains and
  * needs deterministic per-call dedup keys at the caller layer.
+ *
+ * After retry exhaustion, the claim is RELEASED (DELETE) so the next
+ * request can retry immediately instead of waiting STALE_CLAIM_SECONDS
+ * for stale-takeover. Tighter blast radius than the previous "leave
+ * pending and wait" behaviour, same upstream dedup guarantees.
  *
  * We deliberately don't throw on persistent failure: throwing here would
  * cause the API to return 500 even though the protected work succeeded,
@@ -199,7 +205,7 @@ export async function storeIdempotencyResult<T>(
   userId?: string,
   metadata?: Record<string, unknown>
 ): Promise<void> {
-  const MAX_ATTEMPTS = 3;
+  const MAX_ATTEMPTS = 5;
   let lastError: unknown = null;
 
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
@@ -227,23 +233,38 @@ export async function storeIdempotencyResult<T>(
 
     lastError = error;
     if (attempt < MAX_ATTEMPTS) {
-      // Linear backoff: 250ms, 500ms. Most failures are transient
-      // (network blip / pgbouncer reconnect).
-      await new Promise((r) => setTimeout(r, 250 * attempt));
+      // Exponential backoff capped at 4s per step: 250, 500, 1000, 2000.
+      // Most failures are transient (network blip / pgbouncer reconnect).
+      await new Promise((r) =>
+        setTimeout(r, Math.min(250 * 2 ** (attempt - 1), 4000))
+      );
     }
   }
 
-  // All retries exhausted. Log at ERROR — this is operational visibility
-  // for an inconsistent claim state. The pending row will be taken over
-  // after STALE_CLAIM_SECONDS by a subsequent request.
+  // Release the pending claim so retries don't wait STALE_CLAIM_SECONDS.
+  // Release failures are intentionally swallowed — the stale-takeover
+  // backstop still kicks in.
+  try {
+    await serverSupabase.rpc('release_idempotency_claim', {
+      p_idempotency_key: idempotencyKey,
+      p_operation: operation,
+    });
+  } catch {
+    /* intentional */
+  }
+
+  // Log at ERROR with severity='critical' so alerting can fire on a
+  // persistent stream — the idempotency cache is broken and downstream
+  // side-effect duplication becomes possible.
   logger.error(
-    'Idempotency completion RPC failed after retries — claim left pending',
+    'Idempotency completion RPC failed after retries — claim released for retry',
     lastError,
     {
       service: 'idempotency',
       idempotencyKey,
       operation,
       attempts: MAX_ATTEMPTS,
+      severity: 'critical',
     }
   );
 }
