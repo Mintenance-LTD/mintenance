@@ -90,12 +90,17 @@ export async function checkIdempotency<T>(
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _useLocking: boolean = true
 ): Promise<IdempotencyResult<T> | null> {
+  // Pass the TTL to the RPC so expired-completed rows are swept atomically
+  // inside the same transaction as the claim attempt. Avoids the previous
+  // recursion path (release_idempotency_claim only deleted status='pending'
+  // rows so an expired-completed row would loop forever).
   const { data, error } = await serverSupabase.rpc(
     'try_claim_idempotency_key',
     {
       p_idempotency_key: idempotencyKey,
       p_operation: operation,
       p_stale_after_seconds: STALE_CLAIM_SECONDS,
+      p_ttl_seconds: IDEMPOTENCY_TTL_HOURS * 3600,
     }
   );
 
@@ -137,27 +142,10 @@ export async function checkIdempotency<T>(
   }
 
   if (row.is_duplicate) {
-    // Completed previously. Honour 24h TTL: expired entries are treated as
-    // a new request (caller proceeds, but we have NOT re-claimed). To keep
-    // this safe, return null only if a fresh claim can be made.
-    if (row.cached_created_at) {
-      const ageMinutes =
-        (Date.now() - new Date(row.cached_created_at).getTime()) / 60000;
-      if (ageMinutes > IDEMPOTENCY_TTL_HOURS * 60) {
-        logger.warn('Idempotency key expired — treating as new request', {
-          service: 'idempotency',
-          idempotencyKey,
-          operation,
-          ageMinutes,
-        });
-        // Drop the stale row so the next claim can succeed atomically.
-        await serverSupabase.rpc('release_idempotency_claim', {
-          p_idempotency_key: idempotencyKey,
-          p_operation: operation,
-        });
-        return checkIdempotency<T>(idempotencyKey, operation);
-      }
-    }
+    // Completed previously and still within the 24h TTL. The RPC sweeps
+    // expired-completed rows before returning, so we never see is_duplicate
+    // for a row that's past the TTL — it would have been deleted and
+    // either re-claimed (row.claimed=true above) or pending.
     return {
       isDuplicate: true,
       cachedResult: row.cached_result as T,
@@ -191,10 +179,18 @@ export async function checkIdempotency<T>(
  * Mark a claim 'completed' and persist the result. Safe to call multiple
  * times — only the first call (against a 'pending' row) updates.
  *
- * If the underlying row doesn't exist (e.g., expired and cleaned up between
- * claim and store), the missing-row case is treated as success since the
- * intent — make this operation result visible to retries — cannot be met
- * without the row anyway. Caller has already done the work; logging only.
+ * Retries up to 3x on RPC error with linear backoff. The protected
+ * operation has already completed by the time this is called, so failing
+ * here leaves the claim 'pending' and the next retry-after-stale-takeover
+ * may re-execute the work. For Stripe-bound routes that risk is mitigated
+ * by upstream Stripe `idempotencyKey` headers (Stripe dedupes server-side);
+ * for notification/DB-only side-effects the duplication risk remains and
+ * needs deterministic per-call dedup keys at the caller layer.
+ *
+ * We deliberately don't throw on persistent failure: throwing here would
+ * cause the API to return 500 even though the protected work succeeded,
+ * triggering client retries that loop through the same 503 (claim pending)
+ * → 60s-stale-takeover → re-execute path.
  */
 export async function storeIdempotencyResult<T>(
   idempotencyKey: string,
@@ -203,33 +199,53 @@ export async function storeIdempotencyResult<T>(
   userId?: string,
   metadata?: Record<string, unknown>
 ): Promise<void> {
-  const { data, error } = await serverSupabase.rpc(
-    'complete_idempotency_claim',
+  const MAX_ATTEMPTS = 3;
+  let lastError: unknown = null;
+
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    const { data, error } = await serverSupabase.rpc(
+      'complete_idempotency_claim',
+      {
+        p_idempotency_key: idempotencyKey,
+        p_operation: operation,
+        p_result: result as unknown,
+        p_user_id: userId ?? null,
+        p_metadata: metadata ?? null,
+      }
+    );
+
+    if (!error) {
+      if (data === false) {
+        logger.warn('Idempotency completion updated zero rows', {
+          service: 'idempotency',
+          idempotencyKey,
+          operation,
+        });
+      }
+      return;
+    }
+
+    lastError = error;
+    if (attempt < MAX_ATTEMPTS) {
+      // Linear backoff: 250ms, 500ms. Most failures are transient
+      // (network blip / pgbouncer reconnect).
+      await new Promise((r) => setTimeout(r, 250 * attempt));
+    }
+  }
+
+  // All retries exhausted. Log at ERROR — this is operational visibility
+  // for an inconsistent claim state. The pending row will be taken over
+  // after STALE_CLAIM_SECONDS by a subsequent request.
+  logger.error(
+    'Idempotency completion RPC failed after retries — claim left pending',
+    lastError,
     {
-      p_idempotency_key: idempotencyKey,
-      p_operation: operation,
-      p_result: result as unknown,
-      p_user_id: userId ?? null,
-      p_metadata: metadata ?? null,
+      service: 'idempotency',
+      idempotencyKey,
+      operation,
+      attempts: MAX_ATTEMPTS,
     }
   );
-
-  if (error) {
-    logger.error('Idempotency completion RPC failed', error, {
-      service: 'idempotency',
-      idempotencyKey,
-      operation,
-    });
-    return;
-  }
-
-  if (data === false) {
-    logger.warn('Idempotency completion updated zero rows', {
-      service: 'idempotency',
-      idempotencyKey,
-      operation,
-    });
-  }
 }
 
 /**
