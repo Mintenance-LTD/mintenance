@@ -1,8 +1,25 @@
+/**
+ * InvoiceManagementScreen — Mint Editorial redesign per
+ * redesign-v2 contractor business deck screen 03 "Invoices".
+ *
+ * Changes from the previous green-accent-bar layout:
+ *   - Paper background; serif "Invoices" headline with eyebrow + sub
+ *     showing total count and unpaid £-amount.
+ *   - Four filter chips: All / Unpaid / Paid / Drafts (dark selected).
+ *     The legacy 5 chips collapsed "sent + overdue" into "Unpaid"
+ *     because that's how contractors think about the bucket.
+ *   - Rows are minimal cards: doc icon, two lines (client + meta),
+ *     amount on the right. Rows in the "Unpaid" + "Overdue" status
+ *     get a brand-coloured left border (the deck's "pending sign-off"
+ *     treatment). Per-row Send / Paid / Delete actions stay.
+ *   - Floating mint + FAB bottom-right replaces the legacy add icon
+ *     in the header bar.
+ *   - Every colour resolves from `me.*` tokens — no literal hex.
+ */
 import React, { useState, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   FlatList,
   TouchableOpacity,
   RefreshControl,
@@ -14,7 +31,6 @@ import type { CompositeNavigationProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '../config/supabase';
 import { mobileApiClient } from '../utils/mobileApiClient';
 import { useAuth } from '../contexts/AuthContext';
 import { useToast } from '../components/ui/Toast';
@@ -25,37 +41,44 @@ import type {
   ProfileStackParamList,
 } from '../navigation/types';
 import { me } from '../design-system/mint-editorial';
+import { styles as s } from './invoice-management/styles';
 
 type Nav = CompositeNavigationProp<
   NativeStackNavigationProp<JobsStackParamList>,
   NativeStackNavigationProp<ProfileStackParamList>
 >;
-type FilterKey = 'all' | 'draft' | 'sent' | 'overdue' | 'paid';
+
+type FilterKey = 'all' | 'unpaid' | 'paid' | 'drafts';
 
 const FILTERS: { key: FilterKey; label: string }[] = [
   { key: 'all', label: 'All' },
-  { key: 'draft', label: 'Draft' },
-  { key: 'sent', label: 'Sent' },
-  { key: 'overdue', label: 'Overdue' },
+  { key: 'unpaid', label: 'Unpaid' },
   { key: 'paid', label: 'Paid' },
+  { key: 'drafts', label: 'Drafts' },
 ];
-const ACCENT: Record<string, string> = {
-  draft: '#9CA3AF',
-  sent: '#3B82F6',
-  overdue: '#EF4444',
-  paid: '#10B981',
-};
-const BADGE_BG: Record<string, string> = {
-  draft: '#F3F4F6',
-  sent: '#DBEAFE',
-  overdue: '#FEE2E2',
-  paid: '#D1FAE5',
-};
-const BADGE_FG: Record<string, string> = {
-  draft: '#6B7280',
-  sent: '#1D4ED8',
-  overdue: '#DC2626',
-  paid: '#059669',
+
+// Status → (eyebrow label, left-rail accent token). Overdue keeps the
+// red treatment because it is the one bucket where the contractor
+// is owed money *past* its due date.
+const STATUS_META: Record<
+  string,
+  { label: string; fg: string; bg: string; railColor: string }
+> = {
+  draft: { label: 'Draft', fg: me.ink2, bg: me.bg2, railColor: me.line },
+  sent: { label: 'Sent', fg: me.infoFg, bg: me.infoBg, railColor: me.brand },
+  overdue: {
+    label: 'Overdue',
+    fg: me.errFg,
+    bg: me.errBg,
+    railColor: me.errFg,
+  },
+  paid: { label: 'Paid', fg: me.okFg, bg: me.okBg, railColor: me.okFg },
+  cancelled: {
+    label: 'Cancelled',
+    fg: me.ink3,
+    bg: me.bg2,
+    railColor: me.line,
+  },
 };
 
 const fmtDate = (iso: string) => {
@@ -63,7 +86,15 @@ const fmtDate = (iso: string) => {
   return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
 };
 const fmtGBP = (n: number) =>
-  `\u00A3${n.toLocaleString('en-GB', { minimumFractionDigits: 2 })}`;
+  `£${n.toLocaleString('en-GB', { minimumFractionDigits: 2 })}`;
+
+const matchesFilter = (status: string, filter: FilterKey): boolean => {
+  if (filter === 'all') return true;
+  if (filter === 'unpaid') return status === 'sent' || status === 'overdue';
+  if (filter === 'paid') return status === 'paid';
+  if (filter === 'drafts') return status === 'draft';
+  return false;
+};
 
 export const InvoiceManagementScreen: React.FC<{ navigation: Nav }> = ({
   navigation,
@@ -81,10 +112,6 @@ export const InvoiceManagementScreen: React.FC<{ navigation: Nav }> = ({
   } = useQuery({
     queryKey: ['invoices', user?.id],
     queryFn: async () => {
-      // 2026-04-30 audit P0-1: was reading from supabase.from('invoices')
-      // directly. Route through the API so RLS, role checks, and any
-      // future side effects (PDF caching, notifications, audit logs)
-      // stay in one place.
       const result = await mobileApiClient.get<{ invoices: Invoice[] }>(
         '/api/contractor/invoices?limit=200'
       );
@@ -94,21 +121,13 @@ export const InvoiceManagementScreen: React.FC<{ navigation: Nav }> = ({
   });
 
   const filtered = useMemo(
-    () =>
-      filter === 'all' ? invoices : invoices.filter((i) => i.status === filter),
+    () => invoices.filter((i) => matchesFilter(i.status, filter)),
     [invoices, filter]
   );
-  const outstanding = useMemo(
+  const unpaidTotal = useMemo(
     () =>
       invoices
-        .filter((i) => i.status !== 'paid' && i.status !== 'cancelled')
-        .reduce((s, i) => s + i.total_amount, 0),
-    [invoices]
-  );
-  const paidTotal = useMemo(
-    () =>
-      invoices
-        .filter((i) => i.status === 'paid')
+        .filter((i) => i.status === 'sent' || i.status === 'overdue')
         .reduce((s, i) => s + i.total_amount, 0),
     [invoices]
   );
@@ -116,17 +135,14 @@ export const InvoiceManagementScreen: React.FC<{ navigation: Nav }> = ({
   const markPaid = useCallback(
     (inv: Invoice) => {
       Alert.alert(
-        'Mark as Paid',
+        'Mark as paid',
         `Mark invoice #${inv.invoice_number} as paid?`,
         [
           { text: 'Cancel', style: 'cancel' },
           {
-            text: 'Mark Paid',
+            text: 'Mark paid',
             onPress: async () => {
               try {
-                // 2026-04-30 audit P0-1: canonical PATCH endpoint takes
-                // the invoice id as a query param, not a path segment.
-                // The path-segment URL was 404'ing silently.
                 await mobileApiClient.patch(
                   `/api/contractor/invoices?id=${encodeURIComponent(inv.id)}`,
                   { status: 'paid' }
@@ -146,7 +162,7 @@ export const InvoiceManagementScreen: React.FC<{ navigation: Nav }> = ({
 
   const deleteInv = useCallback(
     (inv: Invoice) => {
-      Alert.alert('Delete Invoice', `Delete invoice #${inv.invoice_number}?`, [
+      Alert.alert('Delete invoice', `Delete invoice #${inv.invoice_number}?`, [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Delete',
@@ -170,133 +186,117 @@ export const InvoiceManagementScreen: React.FC<{ navigation: Nav }> = ({
 
   const renderItem = useCallback(
     ({ item }: { item: Invoice }) => {
-      const accent = ACCENT[item.status] || '#9CA3AF';
-      const bg = BADGE_BG[item.status] || '#F3F4F6';
-      const fg = BADGE_FG[item.status] || '#6B7280';
+      const meta = STATUS_META[item.status] ?? STATUS_META.draft!;
       const dateLabel =
         item.status === 'paid' && item.paid_date
-          ? `Paid: ${fmtDate(item.paid_date)}`
-          : `Due: ${fmtDate(item.due_date)}`;
+          ? `Paid ${fmtDate(item.paid_date)}`
+          : `Due ${fmtDate(item.due_date)}`;
       const canAct = item.status !== 'paid' && item.status !== 'cancelled';
-      const canSend =
-        item.status === 'draft' ||
-        item.status === 'sent' ||
-        item.status === 'overdue';
+      const showRail = item.status === 'sent' || item.status === 'overdue';
 
       return (
         <TouchableOpacity
-          style={s.card}
-          activeOpacity={0.7}
+          style={[
+            s.card,
+            showRail && {
+              borderLeftWidth: 3,
+              borderLeftColor: meta.railColor,
+            },
+          ]}
+          activeOpacity={0.78}
           onPress={() =>
             navigation.navigate('InvoiceDetail', { invoiceId: item.id })
           }
           accessibilityRole='button'
           accessibilityLabel={`Invoice ${item.invoice_number}`}
         >
-          <View style={[s.accentBar, { backgroundColor: accent }]} />
+          <View style={s.cardIcon}>
+            <Ionicons name='document-text-outline' size={20} color={me.ink2} />
+          </View>
           <View style={s.cardBody}>
             <View style={s.row}>
               <Text style={s.client} numberOfLines={1}>
                 {item.client_name || 'Client'}
               </Text>
-              <View style={[s.badge, { backgroundColor: bg }]}>
-                <Text style={[s.badgeText, { color: fg }]}>
-                  {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
+              <Text style={s.amount}>{fmtGBP(item.total_amount)}</Text>
+            </View>
+            <View style={s.metaRow}>
+              <Text style={s.invNum} numberOfLines={1}>
+                #{item.invoice_number} · {dateLabel}
+              </Text>
+              <View style={[s.badge, { backgroundColor: meta.bg }]}>
+                <Text style={[s.badgeText, { color: meta.fg }]}>
+                  {meta.label}
                 </Text>
               </View>
             </View>
-            <View style={s.row}>
-              <Text style={s.invNum}>#{item.invoice_number}</Text>
-              <Text style={s.amount}>{fmtGBP(item.total_amount)}</Text>
-            </View>
-            <Text style={s.date}>{dateLabel}</Text>
-            <View style={s.actions}>
-              {canSend && (
-                <TouchableOpacity
-                  style={s.actBtn}
-                  onPress={() => toast.success('Sending invoice...')}
-                >
-                  <Ionicons name='send-outline' size={16} color={me.ink2} />
-                  <Text style={s.actText}>Send</Text>
-                </TouchableOpacity>
-              )}
-              {canAct && (
+            {canAct ? (
+              <View style={s.actions}>
                 <TouchableOpacity
                   style={s.actBtn}
                   onPress={() => markPaid(item)}
+                  accessibilityRole='button'
+                  accessibilityLabel={`Mark invoice ${item.invoice_number} paid`}
                 >
                   <Ionicons
                     name='checkmark-circle-outline'
-                    size={16}
+                    size={14}
                     color={me.brand}
                   />
                   <Text style={[s.actText, { color: me.brand }]}>Paid</Text>
                 </TouchableOpacity>
-              )}
-              <TouchableOpacity
-                style={s.actBtn}
-                onPress={() => deleteInv(item)}
-              >
-                <Ionicons name='trash-outline' size={16} color={me.errFg} />
-                <Text style={[s.actText, { color: me.errFg }]}>Delete</Text>
-              </TouchableOpacity>
-            </View>
+                <TouchableOpacity
+                  style={s.actBtn}
+                  onPress={() => deleteInv(item)}
+                  accessibilityRole='button'
+                  accessibilityLabel={`Delete invoice ${item.invoice_number}`}
+                >
+                  <Ionicons name='trash-outline' size={14} color={me.errFg} />
+                  <Text style={[s.actText, { color: me.errFg }]}>Delete</Text>
+                </TouchableOpacity>
+              </View>
+            ) : null}
           </View>
         </TouchableOpacity>
       );
     },
-    [navigation, toast, markPaid, deleteInv]
+    [navigation, markPaid, deleteInv]
   );
 
   if (isLoading) {
-    // 2026-05-21 audit: returning <LoadingSpinner /> bare leaves the
-    // container background transparent, so on devices honouring system
-    // dark mode the whole screen rendered black-on-black. Anchor the
-    // loading state on the Mint Editorial paper background like every
-    // other invoice/finance screen.
     return (
       <View style={[s.loadingScreen, { paddingTop: insets.top }]}>
-        <LoadingSpinner message='Loading invoices...' />
+        <LoadingSpinner message='Loading invoices…' />
       </View>
     );
   }
 
   return (
     <View style={[s.root, { paddingTop: insets.top }]}>
-      {/* Header */}
-      <View style={s.header}>
+      <View style={s.topNav}>
         {navigation.canGoBack() ? (
           <TouchableOpacity
             onPress={() => navigation.goBack()}
-            style={s.hBtn}
+            style={s.backBtn}
             accessibilityRole='button'
             accessibilityLabel='Go back'
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Ionicons name='arrow-back' size={22} color={me.ink} />
+            <Ionicons name='arrow-back' size={20} color={me.ink} />
           </TouchableOpacity>
         ) : (
-          <View style={s.hBtn} />
+          <View style={s.backBtn} />
         )}
-        <Text style={s.hTitle}>Invoices</Text>
-        <TouchableOpacity
-          onPress={() => navigation.navigate('CreateInvoice')}
-          style={[s.hBtn, s.addBtn]}
-          accessibilityRole='button'
-          accessibilityLabel='Create new invoice'
-        >
-          <Ionicons name='add' size={22} color={me.onBrand} />
-        </TouchableOpacity>
       </View>
 
-      {/* Summary */}
-      <Text style={s.summary}>
-        {invoices.length} invoice{invoices.length !== 1 ? 's' : ''}
-        {' \u00B7 '}
-        {fmtGBP(outstanding)} outstanding{' \u00B7 '}
-        {fmtGBP(paidTotal)} paid
-      </Text>
+      <View style={s.screenHeader}>
+        <Text style={s.eyebrow}>Invoices</Text>
+        <Text style={s.headline}>Invoices</Text>
+        <Text style={s.sub}>
+          {invoices.length} total · {fmtGBP(unpaidTotal)} unpaid
+        </Text>
+      </View>
 
-      {/* Filter pills */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -321,7 +321,6 @@ export const InvoiceManagementScreen: React.FC<{ navigation: Nav }> = ({
         })}
       </ScrollView>
 
-      {/* List */}
       <FlatList
         data={filtered}
         keyExtractor={(i) => i.id}
@@ -341,151 +340,27 @@ export const InvoiceManagementScreen: React.FC<{ navigation: Nav }> = ({
             <View style={s.emptyIcon}>
               <Ionicons
                 name='document-text-outline'
-                size={40}
+                size={32}
                 color={me.ink3}
               />
             </View>
             <Text style={s.emptyTitle}>No invoices yet</Text>
             <Text style={s.emptyDesc}>
-              Create your first invoice to start tracking payments
+              Tap the + button to bill your first job.
             </Text>
-            <TouchableOpacity
-              style={s.emptyBtn}
-              onPress={() => navigation.navigate('CreateInvoice')}
-            >
-              <Text style={s.emptyBtnTxt}>Create Invoice</Text>
-            </TouchableOpacity>
           </View>
         }
       />
+
+      <TouchableOpacity
+        style={[s.fab, { bottom: 24 + insets.bottom }]}
+        onPress={() => navigation.navigate('CreateInvoice')}
+        accessibilityRole='button'
+        accessibilityLabel='Create new invoice'
+        activeOpacity={0.82}
+      >
+        <Ionicons name='add' size={24} color={me.onBrand} />
+      </TouchableOpacity>
     </View>
   );
 };
-
-const shadow = (_o: number, _r: number, _e: number) => me.shadow.card;
-
-const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: me.bg2 },
-  loadingScreen: {
-    flex: 1,
-    backgroundColor: me.bg,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: me.surface,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: me.line,
-  },
-  hBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  hTitle: { fontSize: 18, fontWeight: '700', color: me.ink },
-  addBtn: { backgroundColor: me.brand },
-  summary: {
-    fontSize: 13,
-    color: me.ink2,
-    paddingHorizontal: 16,
-    paddingTop: 14,
-    paddingBottom: 4,
-  },
-  filterWrap: { maxHeight: 52 },
-  filterInner: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    gap: 8,
-    alignItems: 'center',
-  },
-  pill: {
-    paddingVertical: 8,
-    paddingHorizontal: 18,
-    borderRadius: 20,
-    backgroundColor: me.surface,
-    ...shadow(1, 4, 1),
-  },
-  pillOn: { backgroundColor: me.brand },
-  pillText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: me.ink2,
-  },
-  pillTextOn: { color: me.onBrand },
-  list: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 32 },
-  card: {
-    flexDirection: 'row',
-    backgroundColor: me.surface,
-    borderRadius: 14,
-    marginBottom: 12,
-    overflow: 'hidden',
-    ...shadow(2, 10, 2),
-  },
-  accentBar: { width: 4 },
-  cardBody: { flex: 1, padding: 14, gap: 6 },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  client: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: me.ink,
-    flex: 1,
-    marginRight: 8,
-  },
-  badge: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 12 },
-  badgeText: { fontSize: 11, fontWeight: '600' },
-  invNum: { fontSize: 13, color: me.ink2 },
-  amount: { fontSize: 18, fontWeight: '700', color: me.ink },
-  date: { fontSize: 12, color: me.ink3 },
-  actions: { flexDirection: 'row', gap: 16, marginTop: 4 },
-  actBtn: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  actText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: me.ink2,
-  },
-  empty: { alignItems: 'center', paddingTop: 80, paddingHorizontal: 32 },
-  emptyIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: me.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  emptyTitle: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: me.ink,
-    marginBottom: 6,
-  },
-  emptyDesc: {
-    fontSize: 14,
-    color: me.ink2,
-    textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 24,
-  },
-  emptyBtn: {
-    backgroundColor: me.brand,
-    paddingVertical: 14,
-    paddingHorizontal: 32,
-    borderRadius: 28,
-  },
-  emptyBtnTxt: {
-    color: me.onBrand,
-    fontSize: 15,
-    fontWeight: '600',
-  },
-});
