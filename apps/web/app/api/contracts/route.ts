@@ -249,8 +249,8 @@ export const POST = withApiHandler(
       await NotificationService.createNotification({
         userId: job.homeowner_id,
         type: 'contract_created',
-        title: 'New Contract Created',
-        message: `Contractor has created a contract for "${job.title || 'your job'}". Please review and sign.`,
+        title: `Contract sent for ${job.title || 'your job'}`,
+        message: `Two-minute read, one tap to sign. No money moves at signing — that happens at the escrow step.`,
         actionUrl: `/jobs/${job_id}`,
         metadata: { jobId: job_id, contractorId: user.id },
       });

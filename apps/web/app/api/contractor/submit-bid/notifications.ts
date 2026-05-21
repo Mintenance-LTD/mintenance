@@ -100,11 +100,14 @@ async function createBidNotification(
       `${contractor.first_name || ''} ${contractor.last_name || ''}`.trim() ||
       contractor.email;
 
-    // Use NotificationService which handles DB insert + push notification + delivery logic
+    // 2026-05-21 Mint Editorial voice: contractor + amount + job in the
+    // title; body is the contractor's note (canonical bid-received
+    // copy from the design bundle).
+    const fmtAmount = `£${validatedData.bidAmount.toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
     await NotificationService.createNotification({
       userId: homeowner.id,
-      title: 'New Bid Received',
-      message: `${contractorName} has submitted a bid of £${validatedData.bidAmount.toFixed(2)} for your job "${job.title}"`,
+      title: `${contractorName} bid ${fmtAmount} on ${job.title}`,
+      message: `Tap to compare bids and read their note.`,
       type: 'bid_received',
       actionUrl: `/jobs/${validatedData.jobId}`,
     });
