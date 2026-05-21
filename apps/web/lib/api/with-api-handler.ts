@@ -193,6 +193,11 @@ export function withApiHandler(
     request: NextRequest,
     segmentData: { params: Promise<Record<string, string>> }
   ): Promise<NextResponse> => {
+    // Hoisted so the catch can include them on the error log. Without
+    // this, "API Error … Property not found" lines have no method /
+    // pathname / userId / params and are impossible to diagnose.
+    let resolvedUserId: string | null = null;
+    let resolvedParams: Record<string, string> = {};
     try {
       // 1. Rate limiting
       if (rateLimitCfg !== false) {
@@ -243,6 +248,7 @@ export function withApiHandler(
 
       // 4. Resolve route params
       const params = segmentData?.params ? await segmentData.params : {};
+      resolvedParams = params;
 
       // 5. Authentication (cookie-first, then Bearer token fallback for mobile)
       if (auth) {
@@ -255,6 +261,7 @@ export function withApiHandler(
         if (!user) {
           throw new UnauthorizedError('Authentication required');
         }
+        resolvedUserId = user.id;
 
         // 6. Role check
         if (roles && roles.length > 0 && !roles.includes(user.role)) {
@@ -355,7 +362,28 @@ export function withApiHandler(
       // Public handler (no auth)
       return await (handler as PublicHandler)(request, { params });
     } catch (error) {
-      return handleAPIError(error);
+      // Pass request + context so the error log includes method,
+      // pathname, userId, and route params. Without this the
+      // "API Error" warn line is unactionable — multiple routes
+      // throw the same NotFoundError('Property not found') message
+      // and there's no way to tell which fired.
+      let pathname: string | undefined;
+      try {
+        pathname = new URL(request.url).pathname;
+      } catch {
+        // Bad URL — leave undefined
+      }
+      return handleAPIError(
+        error,
+        undefined,
+        {
+          method: request.method,
+          pathname,
+          userId: resolvedUserId,
+          params: resolvedParams,
+        },
+        request
+      );
     }
   };
 }
