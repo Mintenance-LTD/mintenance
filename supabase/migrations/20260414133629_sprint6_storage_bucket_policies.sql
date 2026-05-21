@@ -1,3 +1,5 @@
+-- 2026-05-21 drift-cleanup: recovered from supabase_migrations.schema_migrations.
+
 -- Sprint 6.1 / XC-P1 storage bucket policy hardening (audit 2026-04-13)
 --
 -- Closes the `public_bucket_allows_listing` advisor warnings for buckets
@@ -12,13 +14,12 @@
 --   - contractor-portfolio
 --   - profile-images
 -- These are the user's public-facing profile pictures / work showcase.
--- The advisor will still flag them; that is by design. Track in
--- docs/SUPABASE_DASHBOARD_CHECKLIST.md as "intentional public buckets".
+-- The advisor will still flag them; that is by design.
 --
 -- Not touched by this migration (complex path conventions — follow-up):
 --   - Job-storage (legacy bucket with mixed `job-photos/...` vs
 --     `job-photos/{job_id}/...` paths; needs a per-row owner check or a
---     backfill of the bucket path to normalize).
+--     backfill of the bucket path to normalize. Tracked in Sprint 6 doc.)
 
 -- ============================================================
 -- 1. contractor-documents — restrict to owner + admin
