@@ -87,6 +87,10 @@ export interface JobCompletedData {
   contractorName: string;
   jobTitle: string;
   viewUrl: string;
+  /** Amount sitting in escrow waiting for sign-off. Optional so legacy callers don't break. */
+  amount?: number;
+  /** Days until automatic release if homeowner doesn't act. Defaults to 7. */
+  autoReleaseDays?: number;
 }
 
 export interface LocationSharingData {
@@ -151,4 +155,21 @@ export interface InvoiceNotificationData {
   totalAmount: number;
   dueDate: string;
   viewUrl: string;
+}
+
+/**
+ * Review nudge — sent to the homeowner after the contractor marks the
+ * job complete. One-tap star buttons go straight to `${reviewUrl}?stars=N`
+ * so the user lands on the review page with their rating pre-selected.
+ *
+ * `autoReleaseDays` is the SLA after which Mint releases escrow
+ * automatically if the homeowner doesn't act (currently 7).
+ */
+export interface ReviewNudgeData {
+  homeownerName: string;
+  contractorName: string;
+  jobTitle: string;
+  amount: number;
+  reviewUrl: string;
+  autoReleaseDays: number;
 }
