@@ -15,6 +15,7 @@ import {
   getIdempotencyKeyFromRequest,
   checkIdempotency,
   storeIdempotencyResult,
+  releaseOnError,
 } from '@/lib/idempotency';
 
 // 2026-05-01 audit follow-up (check-api-contracts): Zod-validated body
@@ -71,113 +72,115 @@ export const POST = withApiHandler(
       return NextResponse.json(idem.cachedResult);
     }
 
-    // Fetch contract with ownership check
-    const { data: contract, error: contractError } = await serverSupabase
-      .from('contracts')
-      .select('id, job_id, contractor_id, homeowner_id, status, title')
-      .eq('id', contractId)
-      .eq('homeowner_id', user.id)
-      .single();
-
-    if (contractError || !contract) {
-      throw new NotFoundError('Contract not found or access denied');
-    }
-
-    // Only allow rejecting contracts pending homeowner signature
-    if (contract.status !== CONTRACT_STATUS.PENDING_HOMEOWNER) {
-      throw new BadRequestError(
-        'Contract can only be sent back when it is awaiting your signature'
-      );
-    }
-
-    // Revert to draft so contractor can edit and resubmit
-    const { data: updatedContract, error: updateError } = await serverSupabase
-      .from('contracts')
-      .update({
-        status: CONTRACT_STATUS.DRAFT,
-        homeowner_signed_at: null,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', contractId)
-      .select('id, job_id, status, title, updated_at')
-      .single();
-
-    if (updateError) {
-      logger.error('Failed to reject contract', updateError, {
-        service: 'contracts',
-        contractId,
-        userId: user.id,
-      });
-      throw new InternalServerError('Failed to request changes');
-    }
-
-    // Notify contractor
-    try {
-      const { data: homeownerData } = await serverSupabase
-        .from('profiles')
-        .select('first_name, last_name')
-        .eq('id', user.id)
+    return await releaseOnError(idempotencyKey, 'contract_reject', async () => {
+      // Fetch contract with ownership check
+      const { data: contract, error: contractError } = await serverSupabase
+        .from('contracts')
+        .select('id, job_id, contractor_id, homeowner_id, status, title')
+        .eq('id', contractId)
+        .eq('homeowner_id', user.id)
         .single();
 
-      const homeownerName =
-        homeownerData?.first_name && homeownerData?.last_name
-          ? `${homeownerData.first_name} ${homeownerData.last_name}`
-          : 'The homeowner';
-
-      // 2026-05-21 Mint Editorial voice — homeowner's reason is the
-      // body when it exists.
-      await NotificationService.createNotification({
-        userId: contract.contractor_id,
-        title: `${contract.title || 'A contract'} — ${homeownerName} asked for a tweak`,
-        message: reason
-          ? reason
-          : `Open the contract to see what's changed; revise and resubmit.`,
-        type: 'contract_changes_requested',
-        actionUrl: `/contractor/jobs/${contract.job_id}`,
-      });
-
-      // Also send a message in the thread
-      const { data: threadData } = await serverSupabase
-        .from('message_threads')
-        .select('id')
-        .eq('job_id', contract.job_id)
-        .single();
-
-      if (threadData) {
-        await serverSupabase.from('messages').insert({
-          job_id: contract.job_id,
-          sender_id: user.id,
-          receiver_id: contract.contractor_id,
-          content: `📋 Contract changes requested${reason ? `:\n\n"${reason}"` : '. Please review and update the contract.'}`,
-          message_type: 'system',
-          read: false,
-        });
+      if (contractError || !contract) {
+        throw new NotFoundError('Contract not found or access denied');
       }
-    } catch (notificationError) {
-      logger.error(
-        'Failed to create rejection notification',
-        notificationError,
-        {
+
+      // Only allow rejecting contracts pending homeowner signature
+      if (contract.status !== CONTRACT_STATUS.PENDING_HOMEOWNER) {
+        throw new BadRequestError(
+          'Contract can only be sent back when it is awaiting your signature'
+        );
+      }
+
+      // Revert to draft so contractor can edit and resubmit
+      const { data: updatedContract, error: updateError } = await serverSupabase
+        .from('contracts')
+        .update({
+          status: CONTRACT_STATUS.DRAFT,
+          homeowner_signed_at: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', contractId)
+        .select('id, job_id, status, title, updated_at')
+        .single();
+
+      if (updateError) {
+        logger.error('Failed to reject contract', updateError, {
           service: 'contracts',
           contractId,
+          userId: user.id,
+        });
+        throw new InternalServerError('Failed to request changes');
+      }
+
+      // Notify contractor
+      try {
+        const { data: homeownerData } = await serverSupabase
+          .from('profiles')
+          .select('first_name, last_name')
+          .eq('id', user.id)
+          .single();
+
+        const homeownerName =
+          homeownerData?.first_name && homeownerData?.last_name
+            ? `${homeownerData.first_name} ${homeownerData.last_name}`
+            : 'The homeowner';
+
+        // 2026-05-21 Mint Editorial voice — homeowner's reason is the
+        // body when it exists.
+        await NotificationService.createNotification({
+          userId: contract.contractor_id,
+          title: `${contract.title || 'A contract'} — ${homeownerName} asked for a tweak`,
+          message: reason
+            ? reason
+            : `Open the contract to see what's changed; revise and resubmit.`,
+          type: 'contract_changes_requested',
+          actionUrl: `/contractor/jobs/${contract.job_id}`,
+        });
+
+        // Also send a message in the thread
+        const { data: threadData } = await serverSupabase
+          .from('message_threads')
+          .select('id')
+          .eq('job_id', contract.job_id)
+          .single();
+
+        if (threadData) {
+          await serverSupabase.from('messages').insert({
+            job_id: contract.job_id,
+            sender_id: user.id,
+            receiver_id: contract.contractor_id,
+            content: `📋 Contract changes requested${reason ? `:\n\n"${reason}"` : '. Please review and update the contract.'}`,
+            message_type: 'system',
+            read: false,
+          });
         }
+      } catch (notificationError) {
+        logger.error(
+          'Failed to create rejection notification',
+          notificationError,
+          {
+            service: 'contracts',
+            contractId,
+          }
+        );
+      }
+
+      const responseData = {
+        success: true,
+        contract: updatedContract,
+        message: 'Contract sent back to contractor for changes.',
+      };
+
+      await storeIdempotencyResult(
+        idempotencyKey,
+        'contract_reject',
+        responseData,
+        user.id,
+        { contractId, jobId: contract.job_id }
       );
-    }
 
-    const responseData = {
-      success: true,
-      contract: updatedContract,
-      message: 'Contract sent back to contractor for changes.',
-    };
-
-    await storeIdempotencyResult(
-      idempotencyKey,
-      'contract_reject',
-      responseData,
-      user.id,
-      { contractId, jobId: contract.job_id }
-    );
-
-    return NextResponse.json(responseData);
+      return NextResponse.json(responseData);
+    });
   }
 );

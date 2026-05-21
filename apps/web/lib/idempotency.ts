@@ -258,6 +258,41 @@ export async function releaseIdempotencyClaim(
   }
 }
 
+/**
+ * Wrap the post-claim block of a route so the idempotency claim is
+ * released when the operation throws. Lets the user retry immediately
+ * instead of waiting for the 60s stale-takeover window.
+ *
+ * Usage:
+ *   const idempotencyCheck = await checkIdempotency(key, 'op');
+ *   if (idempotencyCheck?.isDuplicate) return cached;
+ *   return await releaseOnError(key, 'op', async () => {
+ *     // ... do the protected work ...
+ *     await storeIdempotencyResult(key, 'op', result);
+ *     return NextResponse.json(result);
+ *   });
+ *
+ * The release failure is swallowed so it can't mask the original error.
+ * Re-throws the original error so the route's existing error handling
+ * (withApiHandler / handleAPIError) still runs.
+ */
+export async function releaseOnError<T>(
+  idempotencyKey: string,
+  operation: string,
+  fn: () => Promise<T>
+): Promise<T> {
+  try {
+    return await fn();
+  } catch (err) {
+    try {
+      await releaseIdempotencyClaim(idempotencyKey, operation);
+    } catch {
+      // intentional: don't let release failure mask the original error
+    }
+    throw err;
+  }
+}
+
 function generateIdempotencyKey(
   operation: string,
   userId: string,
