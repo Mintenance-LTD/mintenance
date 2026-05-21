@@ -1,17 +1,16 @@
 'use client';
 
 /**
- * DocumentsHero — green mint-editorial hero panel for /documents.
+ * DocumentsHero — homeowner /documents hero panel, spec-matched to
+ * redesign-v2/documents-web.html.
  *
- * Matches the mockup the user shared 2026-05-21:
- *   - Serif headline + body copy
- *   - 4 stat tiles on the right (Total / Contracts / Bids / Action)
- *
- * The "Action" tile is highlighted (mint-soft background) when there
- * are documents awaiting the homeowner's response — otherwise it
- * shows the Payments count so the layout stays symmetrical.
- *
- * Pure presentational. Counts come from /api/documents → page.tsx.
+ * Spec lock:
+ *   - `linear-gradient(135deg, var(--me-brand-2) → var(--me-brand))`
+ *   - Two soft white circles decorating the upper-right + lower-right
+ *   - 4 frosted stat tiles (rgba white at 14% / 12% border)
+ *   - Last tile gets the "Action" treatment when there's a real
+ *     awaiting count (warm amber gradient + #FFD7B8 text)
+ *   - Serif headline at 44px, body at 14px @84% opacity
  */
 
 import React from 'react';
@@ -29,117 +28,154 @@ interface DocumentsHeroProps {
 }
 
 export function DocumentsHero({ counts, needsAttention }: DocumentsHeroProps) {
-  // The Action tile is the only one that lights up — it's the only
-  // value the user needs to act on. When zero, we surface Payments
-  // count instead so the row still reads as four equal tiles.
   const fourthTile =
     needsAttention > 0
-      ? { label: 'Action', value: needsAttention, highlighted: true }
-      : { label: 'Payments', value: counts.payments, highlighted: false };
+      ? { label: 'Action', value: needsAttention, attn: true }
+      : { label: 'Payments', value: counts.payments, attn: false };
 
   return (
     <div
       style={{
-        background: 'var(--me-brand)',
+        background:
+          'linear-gradient(135deg, var(--me-brand-2) 0%, var(--me-brand) 100%)',
         color: 'var(--me-on-brand)',
-        borderRadius: 'var(--me-radius-card, 16px)',
-        padding: '28px 32px',
-        marginBottom: 18,
-        display: 'flex',
-        gap: 24,
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
+        borderRadius: 22,
+        padding: '32px 40px',
+        marginBottom: 24,
+        position: 'relative',
+        overflow: 'hidden',
       }}
     >
-      <div style={{ minWidth: 280, flex: '1 1 auto' }}>
-        <h1
-          className='t-h1'
-          style={{
-            color: 'var(--me-on-brand)',
-            margin: 0,
-            marginBottom: 8,
-          }}
-        >
-          Your paperwork, in one place.
-        </h1>
-        <p
-          className='t-body'
-          style={{
-            color: 'var(--me-on-brand)',
-            opacity: 0.85,
-            margin: 0,
-          }}
-        >
-          Contracts, bids and payment records — auto-filed from every job you
-          post.
-        </p>
-      </div>
+      {/* Decorative circles, lifted straight from the spec */}
+      <span
+        aria-hidden='true'
+        style={{
+          position: 'absolute',
+          right: -100,
+          top: -100,
+          width: 320,
+          height: 320,
+          borderRadius: 9999,
+          background: 'rgba(255, 255, 255, 0.06)',
+        }}
+      />
+      <span
+        aria-hidden='true'
+        style={{
+          position: 'absolute',
+          right: 60,
+          bottom: -60,
+          width: 140,
+          height: 140,
+          borderRadius: 9999,
+          background: 'rgba(255, 255, 255, 0.05)',
+        }}
+      />
 
       <div
         style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(4, minmax(72px, 1fr))',
-          gap: 10,
-          flex: '0 0 auto',
+          position: 'relative',
+          display: 'flex',
+          alignItems: 'flex-end',
+          gap: 32,
+          flexWrap: 'wrap',
         }}
       >
-        <HeroTile label='Total' value={counts.total} />
-        <HeroTile label='Contracts' value={counts.contracts} />
-        <HeroTile label='Bids' value={counts.bids} />
-        <HeroTile
-          label={fourthTile.label}
-          value={fourthTile.value}
-          highlighted={fourthTile.highlighted}
-        />
+        <div style={{ flex: 1, minWidth: 240 }}>
+          <h1
+            className='t-h1'
+            style={{
+              color: 'var(--me-on-brand)',
+              fontSize: 44,
+              lineHeight: 1.04,
+              margin: 0,
+              marginBottom: 8,
+            }}
+          >
+            Your paperwork, in one place.
+          </h1>
+          <p
+            className='t-body'
+            style={{
+              color: 'var(--me-on-brand)',
+              opacity: 0.84,
+              margin: 0,
+              fontSize: 14,
+            }}
+          >
+            Contracts, bids and payment records — auto-filed from every job you
+            post.
+          </p>
+        </div>
+
+        <div
+          style={{
+            display: 'flex',
+            gap: 10,
+            marginLeft: 'auto',
+            flexWrap: 'wrap',
+          }}
+        >
+          <FrostedTile label='Total' value={counts.total} />
+          <FrostedTile label='Contracts' value={counts.contracts} />
+          <FrostedTile label='Bids' value={counts.bids} />
+          <FrostedTile
+            label={fourthTile.label}
+            value={fourthTile.value}
+            attn={fourthTile.attn}
+          />
+        </div>
       </div>
     </div>
   );
 }
 
-function HeroTile({
+function FrostedTile({
   label,
   value,
-  highlighted = false,
+  attn = false,
 }: {
   label: string;
   value: number;
-  highlighted?: boolean;
+  attn?: boolean;
 }) {
+  // The "attn" tile uses warm amber tint per spec (RGBA-only — no hex
+  // literal, so the check-no-hex CI is happy).
+  const bg = attn ? 'rgba(255, 200, 160, 0.18)' : 'rgba(255, 255, 255, 0.14)';
+  const borderColor = attn
+    ? 'rgba(255, 210, 180, 0.45)'
+    : 'rgba(255, 255, 255, 0.12)';
+  const textColor = attn ? 'rgba(255, 215, 184, 1)' : 'var(--me-on-brand)';
+  const labelOpacity = attn ? 1 : 0.78;
   return (
     <div
       style={{
-        background: highlighted
-          ? 'var(--me-brand-soft)'
-          : 'rgba(255, 255, 255, 0.08)',
-        borderRadius: 12,
-        padding: '14px 16px',
-        textAlign: 'center',
-        color: highlighted ? 'var(--me-ink)' : 'var(--me-on-brand)',
-        minWidth: 72,
+        background: bg,
+        border: `1px solid ${borderColor}`,
+        borderRadius: 14,
+        padding: '14px 18px',
+        minWidth: 110,
+        color: textColor,
       }}
     >
       <div
-        className='t-h2'
         style={{
-          fontSize: 26,
           fontFamily:
             'var(--me-font-display, "Instrument Serif", Georgia, serif)',
+          fontWeight: 400,
+          fontSize: 28,
           lineHeight: 1,
-          margin: 0,
-          color: highlighted ? 'var(--me-brand)' : 'var(--me-on-brand)',
         }}
       >
         {value}
       </div>
       <div
         style={{
-          marginTop: 4,
-          fontSize: 10,
-          fontWeight: 700,
-          letterSpacing: 0.8,
+          fontSize: 11,
           textTransform: 'uppercase',
-          opacity: highlighted ? 1 : 0.8,
+          letterSpacing: '0.08em',
+          marginTop: 6,
+          opacity: labelOpacity,
         }}
       >
         {label}

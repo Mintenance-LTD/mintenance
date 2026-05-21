@@ -1,20 +1,13 @@
 'use client';
 
 /**
- * ContractorLibraryHero — green mint-editorial hero for the
- * /contractor/documents library, matching the mockup the user shared
- * 2026-05-21.
- *
- * Stats are derived from the real document list — no fabricated
- * placeholder values:
- *   - FILES: documents.length
- *   - CATEGORIES: distinct categories present
- *   - STORED: total size_bytes rolled up to MB / GB
- *   - EXPIRING: count of items with a future expiry within 90 days.
- *     Today no `expiry_date` lives on the contractor `documents`
- *     surface, so this stays at 0 unless the parent passes one in.
- *     The renewal banner below the hero self-hides when the count
- *     is zero (see ContractorLibraryRenewalAlert).
+ * ContractorLibraryHero — gradient mint hero for /contractor/documents.
+ * Spec-matched to redesign-v2/documents-web.html:
+ *   - `linear-gradient(135deg, brand-2 → brand)` background
+ *   - Two soft-white decorative circles
+ *   - 4 frosted stat tiles (rgba white at 14% / 12% border)
+ *   - 4th tile gets the amber `.attn` treatment when there are
+ *     documents within the renewal window
  */
 
 import React from 'react';
@@ -22,28 +15,16 @@ import React from 'react';
 interface ContractorLibraryHeroProps {
   fileCount: number;
   categoryCount: number;
-  /** Total size of all documents in bytes. */
   totalBytes: number;
-  /** How many docs are within the renewal window — pass 0 to hide
-   *  that tile from looking active. */
   expiringCount: number;
 }
 
-function formatBytes(bytes: number): { value: string; unit: string } {
-  if (bytes === 0) return { value: '0', unit: 'KB' };
-  if (bytes < 1024 * 1024) {
-    return { value: Math.round(bytes / 1024).toString(), unit: 'KB' };
-  }
-  if (bytes < 1024 * 1024 * 1024) {
-    return {
-      value: Math.round(bytes / (1024 * 1024)).toString(),
-      unit: 'MB',
-    };
-  }
-  return {
-    value: (bytes / (1024 * 1024 * 1024)).toFixed(1),
-    unit: 'GB',
-  };
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return '0KB';
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)}KB`;
+  if (bytes < 1024 * 1024 * 1024)
+    return `${Math.round(bytes / (1024 * 1024))}MB`;
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)}GB`;
 }
 
 export function ContractorLibraryHero({
@@ -52,107 +33,143 @@ export function ContractorLibraryHero({
   totalBytes,
   expiringCount,
 }: ContractorLibraryHeroProps) {
-  const size = formatBytes(totalBytes);
   return (
     <div
       style={{
-        background: 'var(--me-brand)',
+        background:
+          'linear-gradient(135deg, var(--me-brand-2) 0%, var(--me-brand) 100%)',
         color: 'var(--me-on-brand)',
-        borderRadius: 'var(--me-radius-card, 16px)',
-        padding: '28px 32px',
-        marginBottom: 18,
-        display: 'flex',
-        gap: 24,
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
+        borderRadius: 22,
+        padding: '32px 40px',
+        marginBottom: 24,
+        position: 'relative',
+        overflow: 'hidden',
       }}
     >
-      <div style={{ minWidth: 280, flex: '1 1 auto' }}>
-        <h1
-          className='t-h1'
-          style={{
-            color: 'var(--me-on-brand)',
-            margin: 0,
-            marginBottom: 8,
-          }}
-        >
-          Your library, certified.
-        </h1>
-        <p
-          className='t-body'
-          style={{
-            color: 'var(--me-on-brand)',
-            opacity: 0.85,
-            margin: 0,
-          }}
-        >
-          Contracts, photos, certs, insurance and templates — searchable,
-          sortable, always to hand.
-        </p>
-      </div>
+      <span
+        aria-hidden='true'
+        style={{
+          position: 'absolute',
+          right: -100,
+          top: -100,
+          width: 320,
+          height: 320,
+          borderRadius: 9999,
+          background: 'rgba(255, 255, 255, 0.06)',
+        }}
+      />
+      <span
+        aria-hidden='true'
+        style={{
+          position: 'absolute',
+          right: 60,
+          bottom: -60,
+          width: 140,
+          height: 140,
+          borderRadius: 9999,
+          background: 'rgba(255, 255, 255, 0.05)',
+        }}
+      />
       <div
         style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(4, minmax(72px, 1fr))',
-          gap: 10,
-          flex: '0 0 auto',
+          position: 'relative',
+          display: 'flex',
+          alignItems: 'flex-end',
+          gap: 32,
+          flexWrap: 'wrap',
         }}
       >
-        <Tile value={fileCount.toString()} label='Files' />
-        <Tile value={categoryCount.toString()} label='Categories' />
-        <Tile value={`${size.value}${size.unit}`} label='Stored' />
-        <Tile
-          value={expiringCount.toString()}
-          label='Expiring'
-          highlighted={expiringCount > 0}
-        />
+        <div style={{ flex: 1, minWidth: 240 }}>
+          <h1
+            className='t-h1'
+            style={{
+              color: 'var(--me-on-brand)',
+              fontSize: 44,
+              lineHeight: 1.04,
+              margin: 0,
+              marginBottom: 8,
+            }}
+          >
+            Your library, certified.
+          </h1>
+          <p
+            className='t-body'
+            style={{
+              color: 'var(--me-on-brand)',
+              opacity: 0.84,
+              margin: 0,
+              fontSize: 14,
+            }}
+          >
+            Contracts, photos, certs, insurance and templates — searchable,
+            sortable, always to hand.
+          </p>
+        </div>
+        <div
+          style={{
+            display: 'flex',
+            gap: 10,
+            marginLeft: 'auto',
+            flexWrap: 'wrap',
+          }}
+        >
+          <FrostedTile label='Files' value={fileCount.toString()} />
+          <FrostedTile label='Categories' value={categoryCount.toString()} />
+          <FrostedTile label='Stored' value={formatBytes(totalBytes)} />
+          <FrostedTile
+            label='Expiring'
+            value={expiringCount.toString()}
+            attn={expiringCount > 0}
+          />
+        </div>
       </div>
     </div>
   );
 }
 
-function Tile({
-  value,
+function FrostedTile({
   label,
-  highlighted = false,
+  value,
+  attn = false,
 }: {
-  value: string;
   label: string;
-  highlighted?: boolean;
+  value: string;
+  attn?: boolean;
 }) {
+  const bg = attn ? 'rgba(255, 200, 160, 0.18)' : 'rgba(255, 255, 255, 0.14)';
+  const borderColor = attn
+    ? 'rgba(255, 210, 180, 0.45)'
+    : 'rgba(255, 255, 255, 0.12)';
+  const textColor = attn ? 'rgba(255, 215, 184, 1)' : 'var(--me-on-brand)';
   return (
     <div
       style={{
-        background: highlighted
-          ? 'var(--me-brand-soft)'
-          : 'rgba(255, 255, 255, 0.08)',
-        borderRadius: 12,
-        padding: '14px 16px',
-        textAlign: 'center',
-        color: highlighted ? 'var(--me-ink)' : 'var(--me-on-brand)',
-        minWidth: 72,
+        background: bg,
+        border: `1px solid ${borderColor}`,
+        borderRadius: 14,
+        padding: '14px 18px',
+        minWidth: 110,
+        color: textColor,
       }}
     >
       <div
         style={{
-          fontSize: 22,
           fontFamily:
             'var(--me-font-display, "Instrument Serif", Georgia, serif)',
+          fontWeight: 400,
+          fontSize: 28,
           lineHeight: 1,
-          color: highlighted ? 'var(--me-brand)' : 'var(--me-on-brand)',
         }}
       >
         {value}
       </div>
       <div
         style={{
-          marginTop: 4,
-          fontSize: 10,
-          fontWeight: 700,
-          letterSpacing: 0.8,
+          fontSize: 11,
           textTransform: 'uppercase',
-          opacity: highlighted ? 1 : 0.8,
+          letterSpacing: '0.08em',
+          marginTop: 6,
+          opacity: attn ? 1 : 0.78,
         }}
       >
         {label}

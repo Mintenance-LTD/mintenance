@@ -18,8 +18,19 @@
  */
 
 import React from 'react';
-import { Search, XCircle, Star, Upload } from 'lucide-react';
+import {
+  Search,
+  XCircle,
+  Star,
+  Upload,
+  FileText,
+  Camera,
+  Shield,
+  Lock,
+  Wallet,
+} from 'lucide-react';
 import type { Document, CategoryWithCount } from './types';
+import { DocIcon } from '@/components/documents/DocIcon';
 
 interface ContractorLibraryViewProps {
   documents: Document[];
@@ -43,42 +54,43 @@ interface CategoryStyle {
 }
 
 function styleForCategory(value: string): CategoryStyle {
+  // Spec-locked palette from redesign-v2/documents-web.html.
   switch (value) {
     case 'contracts':
       return {
-        borderColor: 'var(--me-violet)',
-        iconBg: 'rgba(124, 92, 227, 0.10)',
-        iconText: 'var(--me-violet)',
+        borderColor: 'var(--me-doc-contract-fg)',
+        iconBg: 'var(--me-doc-contract-bg)',
+        iconText: 'var(--me-doc-contract-fg)',
       };
     case 'photos':
       return {
-        borderColor: 'var(--me-brand)',
-        iconBg: 'var(--me-brand-soft)',
-        iconText: 'var(--me-brand)',
+        borderColor: 'var(--me-doc-payment-fg)',
+        iconBg: 'var(--me-doc-payment-bg)',
+        iconText: 'var(--me-doc-payment-fg)',
       };
     case 'certifications':
       return {
-        borderColor: 'var(--me-brand)',
-        iconBg: 'var(--me-brand-soft)',
-        iconText: 'var(--me-brand)',
+        borderColor: 'var(--me-doc-cert-fg)',
+        iconBg: 'var(--me-doc-cert-bg)',
+        iconText: 'var(--me-doc-cert-fg)',
       };
     case 'insurance':
       return {
-        borderColor: 'var(--me-ink-3)',
-        iconBg: 'var(--me-bg-2)',
-        iconText: 'var(--me-ink-2)',
+        borderColor: 'var(--me-doc-payment-fg)',
+        iconBg: 'var(--me-doc-payment-bg)',
+        iconText: 'var(--me-doc-payment-fg)',
       };
     case 'receipts':
       return {
-        borderColor: 'var(--me-accent)',
-        iconBg: 'rgba(200, 149, 22, 0.10)',
-        iconText: 'var(--me-accent)',
+        borderColor: 'var(--me-doc-receipt-fg)',
+        iconBg: 'var(--me-doc-receipt-bg)',
+        iconText: 'var(--me-doc-receipt-fg)',
       };
     case 'templates':
       return {
-        borderColor: 'var(--me-rose)',
-        iconBg: 'rgba(214, 100, 141, 0.10)',
-        iconText: 'var(--me-rose)',
+        borderColor: 'var(--me-doc-bid-fg)',
+        iconBg: 'var(--me-doc-bid-bg)',
+        iconText: 'var(--me-doc-bid-fg)',
       };
     default:
       return {
@@ -86,6 +98,21 @@ function styleForCategory(value: string): CategoryStyle {
         iconBg: 'var(--me-bg-2)',
         iconText: 'var(--me-ink-2)',
       };
+  }
+}
+
+function iconForCategory(value: string): typeof FileText {
+  switch (value) {
+    case 'photos':
+      return Camera;
+    case 'certifications':
+      return Shield;
+    case 'insurance':
+      return Lock;
+    case 'receipts':
+      return Wallet;
+    default:
+      return FileText;
   }
 }
 
@@ -281,6 +308,7 @@ export function ContractorLibraryView({
             const s = styleForCategory(doc.category);
             const cat = categories.find((c) => c.value === doc.category);
             const label = fileLabel(doc.file_type);
+            const CategoryIcon = iconForCategory(doc.category);
             return (
               <article
                 key={doc.id}
@@ -296,34 +324,22 @@ export function ContractorLibraryView({
                 style={{
                   position: 'relative',
                   background: 'var(--me-surface)',
-                  borderRadius: 'var(--me-radius-card, 14px)',
-                  border: '1px solid var(--me-line-2)',
+                  borderRadius: 14,
+                  border: '1px solid var(--me-line)',
                   borderLeft: `4px solid ${s.borderColor}`,
-                  padding: 16,
+                  padding: 18,
                   cursor: 'pointer',
                   display: 'grid',
-                  gridTemplateColumns: '54px 1fr auto',
-                  gap: 14,
+                  gridTemplateColumns: '60px 1fr auto',
+                  gap: 16,
                   alignItems: 'flex-start',
                 }}
               >
-                <div
-                  style={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 10,
-                    background: s.iconBg,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: s.iconText,
-                    fontSize: 11,
-                    fontWeight: 800,
-                    letterSpacing: 0.6,
-                  }}
-                >
-                  {label}
-                </div>
+                {/* 54×68 paper-shape tile with extension chip — spec
+                    redesign-v2/documents-web. */}
+                <DocIcon color={s.iconText} bg={s.iconBg} ext={label}>
+                  <CategoryIcon size={22} strokeWidth={1.75} />
+                </DocIcon>
                 <div style={{ minWidth: 0 }}>
                   <h3
                     className='t-h4'
