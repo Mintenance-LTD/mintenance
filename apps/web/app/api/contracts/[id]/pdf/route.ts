@@ -78,6 +78,43 @@ export const GET = withApiHandler(
     }
 
     const c = contract as Record<string, unknown>;
+
+    // 2026-05-21 drift fallback (mirrors /api/contracts GET): if this
+    // contract was created before the bid-accept flow propagated
+    // `quote_id`, hydrate it from the linked bid so the PDF's Quote
+    // Breakdown section can still render. Also recover the bid's
+    // message into description when the row still carries boilerplate.
+    const termsForFallback =
+      (c.terms as Record<string, unknown> | null) ?? null;
+    const fallbackBidId = termsForFallback?.bid_id as string | undefined;
+    if (!c.quote_id && fallbackBidId) {
+      const { data: bid } = await serverSupabase
+        .from('bids')
+        .select(
+          'quote_id, message, description, quote:contractor_quotes!quote_id(id, subtotal, tax_rate, tax_amount, total_amount, line_items, terms, quote_number)'
+        )
+        .eq('id', fallbackBidId)
+        .maybeSingle();
+      if (bid) {
+        if (bid.quote_id && !c.quote_id) c.quote_id = bid.quote_id;
+        if (bid.quote && !c.quote) c.quote = bid.quote;
+        const proposalText = (
+          (bid.message as string | null) ??
+          (bid.description as string | null) ??
+          ''
+        )
+          .toString()
+          .trim();
+        const desc = c.description as string | null | undefined;
+        const looksLikeBoilerplate =
+          !desc ||
+          desc.length === 0 ||
+          (desc as string).startsWith('Contract created from accepted bid');
+        if (looksLikeBoilerplate && proposalText) {
+          c.description = proposalText;
+        }
+      }
+    }
     const contractor = c.contractor as Record<string, string | null> | null;
     const homeowner = c.homeowner as Record<string, string | null> | null;
 

@@ -21,6 +21,7 @@ import {
   getNotificationColor,
 } from './notification-icons';
 import { safeActionUrl } from '@/lib/notifications/safe-action-url';
+import { normalizeNotificationType } from '@/lib/notifications/normalize-type';
 import {
   type NotificationItem,
   type FilterType as MeFilterType,
@@ -325,24 +326,29 @@ export default function NotificationsPage2025() {
       ? `${user.first_name} ${user.last_name}`.trim()
       : user.email;
 
-  // Filter notifications
+  // Filter notifications. DB stores full event names (`message_received`,
+  // `bid_accepted`, `contract_created`, …) so we normalise to the
+  // canonical 5-bucket union before comparing — otherwise every category
+  // tab counts 0.
   const filteredNotifications = notifications.filter((n) => {
     if (filter === 'unread') return !n.is_read;
-    if (filter === 'jobs') return n.type === 'job' || n.type === 'bid';
-    if (filter === 'messages') return n.type === 'message';
-    if (filter === 'payments') return n.type === 'payment';
+    const bucket = normalizeNotificationType(n.type);
+    if (filter === 'jobs') return bucket === 'job' || bucket === 'bid';
+    if (filter === 'messages') return bucket === 'message';
+    if (filter === 'payments') return bucket === 'payment';
     return true;
   });
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
-  const jobsCount = notifications.filter(
-    (n) => n.type === 'job' || n.type === 'bid'
-  ).length;
+  const jobsCount = notifications.filter((n) => {
+    const bucket = normalizeNotificationType(n.type);
+    return bucket === 'job' || bucket === 'bid';
+  }).length;
   const messagesCount = notifications.filter(
-    (n) => n.type === 'message'
+    (n) => normalizeNotificationType(n.type) === 'message'
   ).length;
   const paymentsCount = notifications.filter(
-    (n) => n.type === 'payment'
+    (n) => normalizeNotificationType(n.type) === 'payment'
   ).length;
 
   const formatTimeAgo = (dateString: string) => {

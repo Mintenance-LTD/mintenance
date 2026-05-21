@@ -15,6 +15,8 @@ import {
   MessageCircle,
   Loader2,
   AlertCircle,
+  Send,
+  Sparkles,
 } from 'lucide-react';
 
 // AUDIT_PUNCH_LIST P2 #64 (A2-P2-6) — see /contractor/expenses for
@@ -172,38 +174,27 @@ export default function MarketingToolsPage() {
     }
   };
 
+  // Mint AI nudge — "you need N more reviews to unlock the Top-rated
+  // badge". Threshold mirrors the design copy (5 reviews to qualify).
+  // Hidden once the contractor is already top-rated.
+  const reviewsToTopRated = Math.max(0, 5 - (data?.stats.totalReviews ?? 0));
+
   return (
     <div className='min-h-0 bg-gray-50'>
       {/* Header — canonical .t-h1 + .t-body with brand-soft icon
           tile when Mint Editorial is on, legacy framer-motion banner
-          otherwise. */}
+          otherwise. Mint Editorial uses the larger marketing-hero
+          variant from the redesign-v2/marketing.html spec. */}
       {isMintEditorial ? (
-        <div
-          className='row'
-          style={{ gap: 12, alignItems: 'center', marginBottom: 20 }}
-        >
-          <span
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: 10,
-              background: 'var(--me-brand-soft)',
-              color: 'var(--me-brand)',
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            <Megaphone size={22} strokeWidth={1.5} />
+        <div className='me-marketing-hero'>
+          <span className='meg'>
+            <Megaphone size={26} strokeWidth={1.5} />
           </span>
-          <div className='col' style={{ gap: 4 }}>
-            <h1 className='t-h1' style={{ margin: 0 }}>
-              Marketing{' '}
-              <em style={{ color: 'var(--me-brand)', fontStyle: 'italic' }}>
-                & performance
-              </em>
+          <div>
+            <h1>
+              Marketing <em>&amp; performance</em>
             </h1>
-            <p className='t-body'>
+            <p>
               Track your profile views, bid acceptance, and review velocity —
               share your profile link to bring in new homeowners.
             </p>
@@ -352,6 +343,30 @@ export default function MarketingToolsPage() {
             ) : (
               <EmptyState message='No reviews yet. Complete jobs to start collecting reviews!' />
             )}
+
+            {/* Mint AI nudge — surfaces the "Top rated" badge incentive
+                whenever the contractor is short of the 5-review
+                threshold. Hidden once they've already cleared it. The
+                copy mirrors redesign-v2/marketing.html. */}
+            {isMintEditorial && reviewsToTopRated > 0 && (
+              <div className='me-ai-hint' role='note'>
+                <Sparkles
+                  size={14}
+                  strokeWidth={2}
+                  style={{
+                    display: 'inline',
+                    verticalAlign: '-2px',
+                    marginRight: 6,
+                    color: 'var(--me-brand)',
+                  }}
+                />
+                <b>Mint AI · </b>
+                You need {reviewsToTopRated} more review
+                {reviewsToTopRated === 1 ? '' : 's'} to unlock the &ldquo;Top
+                rated&rdquo; badge in your area — boosts your bid visibility by
+                ~38%.
+              </div>
+            )}
           </MotionDiv>
 
           {/* Recent Reviews */}
@@ -397,57 +412,114 @@ export default function MarketingToolsPage() {
           </MotionDiv>
         </div>
 
-        {/* Profile Sharing */}
-        <MotionDiv
-          variants={fadeIn}
-          initial='hidden'
-          animate='visible'
-          className='bg-white rounded-xl shadow-sm border border-gray-200 p-6'
-        >
-          <h3 className='text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2'>
-            <Share2 className='w-5 h-5 text-teal-600' />
-            Share Your Profile
-          </h3>
-
-          <div className='flex items-center gap-4'>
-            <input
-              type='text'
-              value={profileUrl}
-              readOnly
-              className='flex-1 px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-700 text-sm'
-            />
-            <button
-              onClick={handleCopyProfileLink}
-              className='flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors'
-            >
-              <Copy className='w-4 h-4' />
-              Copy Link
-            </button>
+        {/* Profile Sharing — Mint Editorial uses the redesigned
+            share-card callout from redesign-v2/marketing.html
+            (brand icon tile + monospace URL + Copy/Share button
+            pair). Legacy theme keeps the input + Copy layout. */}
+        {isMintEditorial ? (
+          <div className='me-share-card'>
+            <div className='icon'>
+              <Send size={22} strokeWidth={1.75} />
+            </div>
+            <div className='body'>
+              <h2 className='title'>Share your contractor profile</h2>
+              <div className='url'>
+                Public link ·{' '}
+                <code>
+                  {profileUrl.replace(/^https?:\/\//, '').replace(/\/$/, '')}
+                </code>
+              </div>
+            </div>
+            <div className='btn-row'>
+              <button
+                type='button'
+                className='btn-dark'
+                onClick={handleCopyProfileLink}
+              >
+                Copy link
+              </button>
+              <button
+                type='button'
+                className='btn-brand'
+                onClick={async () => {
+                  if (
+                    typeof navigator !== 'undefined' &&
+                    typeof navigator.share === 'function'
+                  ) {
+                    try {
+                      await navigator.share({
+                        title: 'My Mintenance profile',
+                        url: profileUrl,
+                      });
+                      return;
+                    } catch {
+                      /* user cancelled — fall through to copy */
+                    }
+                  }
+                  handleCopyProfileLink();
+                }}
+              >
+                Share →
+              </button>
+            </div>
           </div>
-          <p className='text-xs text-gray-500 mt-2'>
-            Share this link on social media, email, or business cards to attract
-            new customers.
-          </p>
-        </MotionDiv>
+        ) : (
+          <MotionDiv
+            variants={fadeIn}
+            initial='hidden'
+            animate='visible'
+            className='bg-white rounded-xl shadow-sm border border-gray-200 p-6'
+          >
+            <h3 className='text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2'>
+              <Share2 className='w-5 h-5 text-teal-600' />
+              Share Your Profile
+            </h3>
 
-        {/* Quick Engagement Stats */}
-        <MotionDiv
-          variants={fadeIn}
-          initial='hidden'
-          animate='visible'
-          className='bg-white rounded-xl shadow-sm border border-gray-200 p-6'
-        >
-          <h3 className='text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2'>
-            <TrendingUp className='w-5 h-5 text-teal-600' />
-            Engagement Summary
-          </h3>
-          <div className='grid grid-cols-2 sm:grid-cols-4 gap-4'>
-            <MiniStat label='Total Bids' value={stats.totalBids} />
-            <MiniStat label='Bids Won' value={stats.acceptedBids} />
-            <MiniStat label='Messages' value={stats.totalMessages} />
-            <MiniStat label='Posts' value={stats.totalPosts} />
-          </div>
-        </MotionDiv>
+            <div className='flex items-center gap-4'>
+              <input
+                type='text'
+                value={profileUrl}
+                readOnly
+                className='flex-1 px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-700 text-sm'
+              />
+              <button
+                onClick={handleCopyProfileLink}
+                className='flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors'
+              >
+                <Copy className='w-4 h-4' />
+                Copy Link
+              </button>
+            </div>
+            <p className='text-xs text-gray-500 mt-2'>
+              Share this link on social media, email, or business cards to
+              attract new customers.
+            </p>
+          </MotionDiv>
+        )}
+
+        {/* Engagement Summary — kept on the legacy theme; the
+            Mint Editorial redesign (redesign-v2/marketing.html)
+            intentionally drops this block, the four headline KPIs
+            above already carry the same signal. */}
+        {!isMintEditorial && (
+          <MotionDiv
+            variants={fadeIn}
+            initial='hidden'
+            animate='visible'
+            className='bg-white rounded-xl shadow-sm border border-gray-200 p-6'
+          >
+            <h3 className='text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2'>
+              <TrendingUp className='w-5 h-5 text-teal-600' />
+              Engagement Summary
+            </h3>
+            <div className='grid grid-cols-2 sm:grid-cols-4 gap-4'>
+              <MiniStat label='Total Bids' value={stats.totalBids} />
+              <MiniStat label='Bids Won' value={stats.acceptedBids} />
+              <MiniStat label='Messages' value={stats.totalMessages} />
+              <MiniStat label='Posts' value={stats.totalPosts} />
+            </div>
+          </MotionDiv>
+        )}
       </div>
     </div>
   );
@@ -480,10 +552,32 @@ function StatCard({
   }, []);
 
   if (isMintEditorial) {
+    // Split off trailing units like "/5" or "%" so the design's
+    // smaller-grey `.unit` style can render them next to the big
+    // 56px display number. Examples handled:
+    //   "4.0 / 5"  ->  num="4.0"  unit="/5"
+    //   "90%"      ->  num="90"   unit="%"
+    //   "£0"       ->  num="£0"   unit=undefined (no split)
+    let numPart: string | number = value;
+    let unitPart: string | undefined;
+    if (typeof value === 'string') {
+      const slashMatch = value.match(/^(.+?)\s*\/\s*(\d+)\s*$/);
+      const pctMatch = value.match(/^(.+?)(%)\s*$/);
+      if (slashMatch) {
+        numPart = slashMatch[1].trim();
+        unitPart = `/${slashMatch[2]}`;
+      } else if (pctMatch) {
+        numPart = pctMatch[1].trim();
+        unitPart = pctMatch[2];
+      }
+    }
     return (
-      <div className='kpi'>
+      <div className='kpi kpi-lg'>
         <div className='label'>{label}</div>
-        <div className='num'>{value}</div>
+        <div className='num'>
+          {numPart}
+          {unitPart ? <span className='unit'>{unitPart}</span> : null}
+        </div>
         {sub ? <div className='sub'>{sub}</div> : null}
       </div>
     );
