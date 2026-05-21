@@ -1,27 +1,35 @@
+/**
+ * JobPhotoUploadScreen — Mint Editorial styles.
+ * Paper background, serif inline header, brand-fill upload CTA.
+ */
 import { StyleSheet } from 'react-native';
 import { me } from '../../design-system/mint-editorial';
 
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: me.bg2,
+    backgroundColor: me.bg,
   },
+  topNav: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    paddingTop: 4,
+    paddingBottom: 4,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: me.bg2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  // Legacy header keys retained for backwards compat with any reader.
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: me.line,
-    backgroundColor: me.surface,
-  },
-  backButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: me.bg2,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   headerText: {
     flex: 1,
@@ -37,11 +45,36 @@ export const styles = StyleSheet.create({
     color: me.ink2,
     marginTop: 2,
   },
+  screenHeader: {
+    paddingHorizontal: 20,
+    marginTop: 6,
+    marginBottom: 18,
+  },
+  eyebrow: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: me.brand,
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
+    marginBottom: 6,
+  },
+  headline: {
+    fontFamily: me.font.display,
+    fontSize: 30,
+    color: me.ink,
+    letterSpacing: me.displayTracking,
+  },
+  sub: {
+    fontSize: 14,
+    color: me.ink3,
+    marginTop: 6,
+    lineHeight: 19,
+  },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    padding: 20,
+    paddingHorizontal: 20,
     paddingBottom: 120,
   },
   infoCard: {
@@ -52,13 +85,15 @@ export const styles = StyleSheet.create({
     gap: 12,
     marginBottom: 20,
     alignItems: 'flex-start',
+    borderWidth: 1,
+    borderColor: me.line2,
     ...me.shadow.card,
   },
   infoText: {
     flex: 1,
     fontSize: 13,
-    color: me.ink,
-    lineHeight: 20,
+    color: me.ink2,
+    lineHeight: 19,
   },
   photoGrid: {
     flexDirection: 'row',
@@ -68,9 +103,10 @@ export const styles = StyleSheet.create({
   photoItem: {
     width: '47%',
     aspectRatio: 1,
-    borderRadius: 16,
+    borderRadius: 14,
     overflow: 'hidden',
     position: 'relative',
+    backgroundColor: me.bg2,
   },
   photoImage: {
     width: '100%',
@@ -80,20 +116,20 @@ export const styles = StyleSheet.create({
     position: 'absolute',
     top: 6,
     right: 6,
-    backgroundColor: 'rgba(255,255,255,0.8)',
+    backgroundColor: 'rgba(255,255,255,0.85)',
     borderRadius: 14,
   },
   uploadedBadge: {
     position: 'absolute',
     top: 6,
     left: 6,
-    backgroundColor: 'rgba(255,255,255,0.8)',
+    backgroundColor: 'rgba(255,255,255,0.85)',
     borderRadius: 14,
   },
   addPhotoButton: {
     width: '47%',
     aspectRatio: 1,
-    borderRadius: 16,
+    borderRadius: 14,
     borderWidth: 2,
     borderStyle: 'dashed',
     borderColor: me.line,
@@ -103,15 +139,18 @@ export const styles = StyleSheet.create({
     backgroundColor: me.surface,
   },
   addPhotoText: {
-    fontSize: 13,
-    fontWeight: '500',
+    fontSize: 12,
+    fontWeight: '700',
     color: me.ink2,
+    textTransform: 'uppercase',
+    letterSpacing: 1.1,
   },
   photoCount: {
     marginTop: 16,
-    fontSize: 13,
-    color: me.ink2,
+    fontSize: 12,
+    color: me.ink3,
     textAlign: 'center',
+    fontWeight: '600',
   },
   bottomBar: {
     position: 'absolute',
@@ -120,28 +159,28 @@ export const styles = StyleSheet.create({
     right: 0,
     backgroundColor: me.surface,
     paddingHorizontal: 20,
-    paddingTop: 16,
+    paddingTop: 12,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: me.line,
     ...me.shadow.pop,
   },
   uploadButton: {
-    backgroundColor: me.ink,
-    borderRadius: 28,
+    backgroundColor: me.brand,
+    borderRadius: 14,
     paddingVertical: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    minHeight: 56,
+    minHeight: 54,
   },
   uploadButtonDisabled: {
-    opacity: 0.5,
+    opacity: 0.55,
   },
   uploadButtonText: {
     color: me.onBrand,
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   uploadProgressContainer: {
     flex: 1,
@@ -151,13 +190,13 @@ export const styles = StyleSheet.create({
   progressBarTrack: {
     width: '80%',
     height: 4,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: 'rgba(255,255,255,0.25)',
     borderRadius: 2,
     overflow: 'hidden',
   },
   progressBarFill: {
     height: 4,
-    backgroundColor: me.surface,
+    backgroundColor: me.onBrand,
     borderRadius: 2,
   },
 });
