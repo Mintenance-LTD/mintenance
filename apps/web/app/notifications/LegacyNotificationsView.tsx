@@ -21,6 +21,7 @@ import {
   getNotificationColor,
   getNotificationIcon,
 } from './notification-icons';
+import { normalizeNotificationType } from '@/lib/notifications/normalize-type';
 import type {
   FilterType,
   NotificationItem,
@@ -74,11 +75,18 @@ function filteredList(
 ): NotificationItem[] {
   if (filter === 'unread') return notifications.filter((n) => !n.is_read);
   if (filter === 'jobs')
-    return notifications.filter((n) => n.type === 'job' || n.type === 'bid');
+    return notifications.filter((n) => {
+      const bucket = normalizeNotificationType(n.type);
+      return bucket === 'job' || bucket === 'bid';
+    });
   if (filter === 'messages')
-    return notifications.filter((n) => n.type === 'message');
+    return notifications.filter(
+      (n) => normalizeNotificationType(n.type) === 'message'
+    );
   if (filter === 'payments')
-    return notifications.filter((n) => n.type === 'payment');
+    return notifications.filter(
+      (n) => normalizeNotificationType(n.type) === 'payment'
+    );
   return notifications;
 }
 
