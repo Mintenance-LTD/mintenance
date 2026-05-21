@@ -107,3 +107,19 @@ export function getFileTypeIcon(
   if (['xls', 'xlsx'].includes(ext)) return 'grid';
   return 'document-outline';
 }
+
+/**
+ * Short 2-3-letter extension label rendered on the DocIcon chip. The
+ * web spec uses "PDF" / "JPG" / "DOC" / "XLS"; we normalise long extensions
+ * (jpeg → JPG, docx → DOC, xlsx → XLS) and fall back to "FILE" for
+ * extensions we don't recognise.
+ */
+export function getFileExtLabel(filename: string): string {
+  const ext = filename.split('.').pop()?.toLowerCase() || '';
+  if (!ext || ext === filename.toLowerCase()) return 'FILE';
+  if (['jpg', 'jpeg'].includes(ext)) return 'JPG';
+  if (['doc', 'docx'].includes(ext)) return 'DOC';
+  if (['xls', 'xlsx'].includes(ext)) return 'XLS';
+  if (['ppt', 'pptx'].includes(ext)) return 'PPT';
+  return ext.slice(0, 4).toUpperCase();
+}
