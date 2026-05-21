@@ -167,8 +167,31 @@ export const styles = StyleSheet.create({
     fontSize: 16,
     color: 'rgba(255,255,255,0.7)',
     marginTop: 6,
+    marginBottom: 14,
+    zIndex: 1,
+  },
+  // Compact emergency CTA pill in the hero — see HomeownerDashboard
+  // comment block for why this is a *separate* entry from the bottom
+  // tab "Post Job" path.
+  heroEmergencyPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 999,
+    backgroundColor: 'rgba(255,255,255,0.16)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.32)',
     marginBottom: 24,
     zIndex: 1,
+  },
+  heroEmergencyPillText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: me.onBrand,
+    letterSpacing: 0.2,
   },
 
   // Stats cards below hero — bento grid

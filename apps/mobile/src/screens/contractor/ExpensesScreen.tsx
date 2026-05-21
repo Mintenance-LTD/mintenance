@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   FlatList,
@@ -18,12 +18,9 @@ import {
 } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import type { ProfileStackParamList } from '../../navigation/types';
-import {
-  ScreenHeader,
-  LoadingSpinner,
-  ErrorView,
-} from '../../components/shared';
+import { LoadingSpinner, ErrorView } from '../../components/shared';
 import { useAuth } from '../../contexts/AuthContext';
+import { useI18n } from '../../hooks/useI18n';
 import { me } from '../../design-system/mint-editorial';
 
 import { styles } from './expenses/theme/styles';
@@ -32,11 +29,15 @@ import {
   useCreateExpense,
   useDeleteExpense,
 } from './expenses/queries';
-import { computeExpenseStats } from './expenses/aggregations';
+import {
+  computeExpenseStats,
+  computeCategoryTotalsThisMonth,
+  countExpensesThisMonth,
+} from './expenses/aggregations';
 import { useUndoableDelete } from './expenses/useUndoableDelete';
 import type { CategoryFilter } from './expenses/types';
-import { StatsRow } from './expenses/components/StatsRow';
-import { FilterChips } from './expenses/components/FilterChips';
+import { MonthHero } from './expenses/components/MonthHero';
+import { CategoryTiles } from './expenses/components/CategoryTiles';
 import {
   AddExpenseForm,
   type ExpenseFormData,
@@ -46,12 +47,22 @@ import { EmptyState } from './expenses/components/EmptyState';
 import { UndoSnackbar } from './expenses/components/UndoSnackbar';
 
 /**
- * Contractor expenses screen — list + add + delete-with-undo.
- * Was an 823-line monolith. Split 2026-05-09 (AUDIT_PUNCH_LIST P2 #44a)
- * into typed queries (`expenses/queries.ts`), pure aggregations
- * (`expenses/aggregations.ts`), an undo-delete hook
- * (`expenses/useUndoableDelete.ts`) and 6 leaf components under
- * `expenses/components/`. Public behaviour preserved.
+ * Contractor Expenses screen — Mint Editorial redesign per
+ * redesign-v2 contractor business deck screen 05.
+ *
+ * Layout (top-to-bottom):
+ *   1. Lightweight back nav + serif "Expenses" header with eyebrow +
+ *      "<Month> · Snap receipts to capture instantly" sub.
+ *   2. `MonthHero` — amber-tinted "THIS MONTH" card with serif total
+ *      and receipt count.
+ *   3. `CategoryTiles` — 4-up grid (Materials / Fuel & van / Tools /
+ *      Subs+fees) that doubles as a filter (tap to scope the list).
+ *   4. "RECENT · N" eyebrow then the expense list.
+ *   5. Mint camera FAB bottom-right (per the deck — snap-to-capture).
+ *
+ * Pre-existing 3-stat row + horizontal filter-chip scroller retired
+ * — the tiles cover the same scoping with less visual chrome, and
+ * "billable total" is surfaced elsewhere (Finance dashboard bento).
  */
 export const ExpensesScreen: React.FC = () => {
   const navigation = useNavigation();
@@ -59,12 +70,10 @@ export const ExpensesScreen: React.FC = () => {
   const jobIdParam = route.params?.jobId;
   const jobTitleParam = route.params?.jobTitle;
   const { user } = useAuth();
+  const { formatters } = useI18n();
+  const fmt = (n: number) => formatters.currency(n);
 
   const [filter, setFilter] = useState<CategoryFilter>('all');
-  // Auto-open the form when entering with a jobId so the contractor
-  // lands directly in expense capture (the job-detail CTA reads
-  // "Log Expense for this Job"). Default `billable` to true on this
-  // path — almost every job-scoped expense is intended to be invoiced.
   const [showForm, setShowForm] = useState(!!jobIdParam);
   const [formData, setFormData] = useState<ExpenseFormData>({
     description: '',
@@ -105,13 +114,25 @@ export const ExpensesScreen: React.FC = () => {
   const visibleExpenses = pendingDelete
     ? expenses.filter((e) => e.id !== pendingDelete.id)
     : expenses;
-  const filtered =
-    filter === 'all'
-      ? visibleExpenses
-      : visibleExpenses.filter((e) => e.category === filter);
+  const filtered = useMemo(() => {
+    if (filter === 'all') return visibleExpenses;
+    return visibleExpenses.filter((e) => e.category === filter);
+  }, [filter, visibleExpenses]);
 
-  const { totalExpenses, thisMonth, billableTotal } =
-    computeExpenseStats(expenses);
+  // Recent list is the most recent N (5 per the deck) of the filtered set.
+  const recent = useMemo(() => filtered.slice(0, 5), [filtered]);
+
+  const { thisMonth } = computeExpenseStats(expenses);
+  const categoryTotals = useMemo(
+    () => computeCategoryTotalsThisMonth(expenses),
+    [expenses]
+  );
+  const receiptCount = useMemo(
+    () => countExpensesThisMonth(expenses),
+    [expenses]
+  );
+
+  const monthLabel = new Date().toLocaleDateString('en-GB', { month: 'long' });
 
   if (isLoading) return <LoadingSpinner />;
   if (error)
@@ -119,59 +140,81 @@ export const ExpensesScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle='dark-content' backgroundColor={me.bg2} />
+      <StatusBar barStyle='dark-content' backgroundColor={me.bg} />
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
-        <View style={styles.headerSection}>
-          <Text style={styles.headerOverline}>FINANCIAL OVERVIEW</Text>
-          <ScreenHeader
-            title='Expenses'
-            showBack
-            onBack={() => navigation.goBack()}
-          />
+        <View style={styles.topNav}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={styles.backBtn}
+            accessibilityRole='button'
+            accessibilityLabel='Go back'
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name='arrow-back' size={20} color={me.ink} />
+          </TouchableOpacity>
         </View>
 
-        <StatsRow
-          totalExpenses={totalExpenses}
-          thisMonth={thisMonth}
-          billableTotal={billableTotal}
-        />
-
-        <FilterChips filter={filter} onChange={setFilter} />
-
-        {showForm && (
-          <AddExpenseForm
-            formData={formData}
-            setFormData={setFormData}
-            onCancel={() => setShowForm(false)}
-            onSubmit={() =>
-              createMutation.mutate({
-                description: formData.description,
-                category: formData.category,
-                amount: parseFloat(formData.amount) || 0,
-                billable: formData.billable,
-              })
-            }
-            submitting={createMutation.isPending}
-            jobIdParam={jobIdParam}
-            jobTitleParam={jobTitleParam}
-          />
-        )}
+        <View style={styles.screenHeader}>
+          <Text style={styles.eyebrow}>Expenses</Text>
+          <Text style={styles.headline}>Expenses</Text>
+          <Text style={styles.sub}>
+            {monthLabel} · Snap receipts to capture instantly
+          </Text>
+        </View>
 
         <FlatList
-          data={filtered}
+          data={recent}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
           refreshControl={
             <RefreshControl
               refreshing={false}
               onRefresh={refetch}
-              tintColor={me.ink}
-              colors={[me.ink]}
+              tintColor={me.brand}
+              colors={[me.brand]}
             />
+          }
+          ListHeaderComponent={
+            <View>
+              <MonthHero
+                thisMonth={thisMonth}
+                receiptCount={receiptCount}
+                formatCurrency={fmt}
+              />
+              <CategoryTiles
+                totals={categoryTotals}
+                formatCurrency={fmt}
+                selected={filter}
+                onSelect={setFilter}
+              />
+              {showForm && (
+                <AddExpenseForm
+                  formData={formData}
+                  setFormData={setFormData}
+                  onCancel={() => setShowForm(false)}
+                  onSubmit={() =>
+                    createMutation.mutate({
+                      description: formData.description,
+                      category: formData.category,
+                      amount: parseFloat(formData.amount) || 0,
+                      billable: formData.billable,
+                    })
+                  }
+                  submitting={createMutation.isPending}
+                  jobIdParam={jobIdParam}
+                  jobTitleParam={jobTitleParam}
+                />
+              )}
+              {recent.length > 0 ? (
+                <Text style={styles.recentEyebrow}>
+                  Recent · {recent.length}
+                </Text>
+              ) : null}
+            </View>
           }
           ListEmptyComponent={
             <EmptyState onAddPress={() => setShowForm(true)} />
@@ -189,16 +232,15 @@ export const ExpensesScreen: React.FC = () => {
           />
         )}
 
-        {/* FAB hidden on empty state — the "Log First Expense" CTA
-            already owns that space. */}
-        {!showForm && filtered.length > 0 && (
+        {/* Camera FAB hidden while the inline form is open. */}
+        {!showForm && (
           <TouchableOpacity
             style={styles.fab}
             onPress={() => setShowForm(true)}
             accessibilityRole='button'
-            accessibilityLabel='Add expense'
+            accessibilityLabel='Snap a receipt'
           >
-            <Ionicons name='add' size={28} color={me.onBrand} />
+            <Ionicons name='camera' size={26} color={me.onBrand} />
           </TouchableOpacity>
         )}
       </KeyboardAvoidingView>

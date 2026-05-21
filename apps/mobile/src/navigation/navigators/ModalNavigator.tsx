@@ -17,6 +17,8 @@ import { AISearchScreen } from '../../screens/AISearchScreen';
 import { QuickJobPostScreen } from '../../screens/job-posting/QuickJobPostScreen';
 // Tier 1 step 7 — live-capture selfie modal.
 import { SelfieCaptureScreen } from '../../screens/onboarding/SelfieCaptureScreen';
+// Homeowner deck screen 09 — fast-path emergency posting flow.
+import { EmergencyJobScreen } from '../../screens/emergency-job/EmergencyJobScreen';
 
 // Import error boundary wrapper
 import { withScreenErrorBoundary } from '../../components/ErrorBoundaryProvider';
@@ -88,6 +90,12 @@ const SafeAISearchScreen = withScreenErrorBoundary(
 const SafeQuickJobPostScreen = withScreenErrorBoundary(
   QuickJobPostScreen,
   'Quick Job Post',
+  { fallbackRoute: 'Main' }
+);
+
+const SafeEmergencyJobScreen = withScreenErrorBoundary(
+  EmergencyJobScreen,
+  'Emergency Job',
   { fallbackRoute: 'Main' }
 );
 
@@ -214,6 +222,18 @@ const ModalNavigator: React.FC = () => {
         options={{
           title: 'Post a Quick Job',
           gestureEnabled: true,
+        }}
+      />
+
+      <ModalStack.Screen
+        name='EmergencyJob'
+        component={SafeEmergencyJobScreen}
+        options={{
+          title: 'Emergency',
+          gestureEnabled: true,
+          // Emergency feels less dismissable than a routine modal — keep
+          // swipe-down enabled (per RN convention) but no animation
+          // bounce.
         }}
       />
     </ModalStack.Navigator>

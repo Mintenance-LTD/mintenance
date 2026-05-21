@@ -1,8 +1,20 @@
 /**
- * CalendarScreen — Contractor scheduling with weekly calendar strip
+ * CalendarScreen — Mint Editorial redesign per redesign-v2
+ * contractor business deck screen 07 "Calendar".
  *
- * Full-bleed green gradient hero, green-selected day cells,
- * color-coded event dots, daily stat pills, timeline schedule cards.
+ * Layout:
+ *   1. Lightweight back nav + serif "Calendar" header with
+ *      "Wk N · <Month YYYY>" sub.
+ *   2. Week strip: Mon–Sun with day initials above, dates below, a
+ *      dot-density indicator underneath (1 dot for 1–2 events, 2 for
+ *      3–4, 3 for 5+). Selected day is a dark filled chip.
+ *   3. Day eyebrow ("WED 15 MAY · 3 JOBS").
+ *   4. Timeline-style agenda: left vertical rail with coloured nodes,
+ *      time + duration eyebrow, bordered job card per event.
+ *
+ * The previous green-gradient hero + multi-color event-dot row +
+ * stats pill row are retired — too visually loud for the editorial
+ * direction, and the dot density alone reads more cleanly.
  */
 import React, { useState, useMemo } from 'react';
 import {
@@ -11,11 +23,9 @@ import {
   FlatList,
   TouchableOpacity,
   RefreshControl,
-  ScrollView,
   StatusBar,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { ProfileStackParamList } from '../navigation/types';
@@ -30,67 +40,25 @@ interface ScheduleItem {
   id: string;
   job_id: string;
   job_title: string;
-  date: string;
-  time_start: string;
+  date: string; // YYYY-MM-DD
+  time_start: string; // HH:MM
   time_end?: string;
-  type: 'job' | 'meeting' | 'deadline';
+  duration_minutes?: number;
   status: string;
   address?: string;
-}
-
-interface AppointmentsResponse {
-  appointments: Array<{
-    id: string;
-    jobId?: string;
-    jobTitle?: string;
-    title: string;
-    date: string;
-    time: string;
-    endTime?: string;
-    type?: 'job' | 'meeting' | 'deadline' | string;
-    status: string;
-    location?: string;
-  }>;
 }
 
 interface Props {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'Calendar'>;
 }
 
-const TYPE_STYLES: Record<
-  string,
-  {
-    color: string;
-    bg: string;
-    icon: keyof typeof Ionicons.glyphMap;
-    label: string;
-  }
-> = {
-  job: {
-    color: me.brand,
-    bg: me.brandSoft,
-    icon: 'hammer-outline',
-    label: 'Job',
-  },
-  meeting: {
-    color: '#3B82F6',
-    bg: '#DBEAFE',
-    icon: 'people-outline',
-    label: 'Meeting',
-  },
-  deadline: {
-    color: me.errFg,
-    bg: me.errBg,
-    icon: 'alarm-outline',
-    label: 'Deadline',
-  },
-};
-
-const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const WEEKDAY_INITIALS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 function getWeekDays(baseDate: Date): Date[] {
   const start = new Date(baseDate);
-  start.setDate(start.getDate() - start.getDay() + 1); // Monday
+  const dow = start.getDay(); // 0 = Sun
+  const offsetToMonday = (dow + 6) % 7;
+  start.setDate(start.getDate() - offsetToMonday);
   return Array.from({ length: 7 }, (_, i) => {
     const d = new Date(start);
     d.setDate(start.getDate() + i);
@@ -111,72 +79,37 @@ function isToday(d: Date): boolean {
   );
 }
 
-// ─── Schedule Card ──────────────────────────────────────────────
-const ScheduleCard: React.FC<{
-  item: ScheduleItem;
-  onPress: () => void;
-}> = ({ item, onPress }) => {
-  const typeStyle = TYPE_STYLES[item.type] || {
-    color: me.ink2,
-    bg: me.bg3,
-    icon: 'calendar-outline' as const,
-    label: 'Event',
-  };
-
-  return (
-    <TouchableOpacity
-      style={styles.scheduleCard}
-      onPress={onPress}
-      accessibilityRole='button'
-      accessibilityLabel={`${typeStyle.label}: ${item.job_title} at ${item.time_start}`}
-      activeOpacity={0.7}
-    >
-      {/* Color accent bar */}
-      <View style={[styles.accentBar, { backgroundColor: typeStyle.color }]} />
-
-      <View style={styles.cardInner}>
-        <View style={styles.cardTopRow}>
-          <View style={styles.cardTitleArea}>
-            <View style={[styles.typeChip, { backgroundColor: typeStyle.bg }]}>
-              <Ionicons
-                name={typeStyle.icon}
-                size={12}
-                color={typeStyle.color}
-              />
-              <Text style={[styles.typeLabel, { color: typeStyle.color }]}>
-                {typeStyle.label}
-              </Text>
-            </View>
-            <Text style={styles.scheduleTitle} numberOfLines={1}>
-              {item.job_title}
-            </Text>
-          </View>
-          <View style={styles.timeColumn}>
-            <Text style={styles.timeStart}>{item.time_start}</Text>
-            {item.time_end && (
-              <Text style={styles.timeEnd}>{item.time_end}</Text>
-            )}
-          </View>
-        </View>
-
-        {item.address && (
-          <View style={styles.addressRow}>
-            <Ionicons name='location-outline' size={13} color={me.ink3} />
-            <Text style={styles.addressText} numberOfLines={1}>
-              {item.address}
-            </Text>
-          </View>
-        )}
-      </View>
-
-      <View style={styles.cardChevron}>
-        <Ionicons name='chevron-forward' size={16} color={me.ink3} />
-      </View>
-    </TouchableOpacity>
+function isoWeek(date: Date): number {
+  const d = new Date(
+    Date.UTC(date.getFullYear(), date.getMonth(), date.getDate())
   );
-};
+  const dayNum = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+}
 
-// ─── Main Screen ────────────────────────────────────────────────
+function durationLabel(start: string, end?: string): string {
+  if (!end) return '';
+  const [sh, sm] = start.split(':').map(Number);
+  const [eh, em] = end.split(':').map(Number);
+  if ([sh, sm, eh, em].some((n) => Number.isNaN(n))) return '';
+  const minutes = ((eh ?? 0) - (sh ?? 0)) * 60 + ((em ?? 0) - (sm ?? 0));
+  if (minutes <= 0) return '';
+  if (minutes < 60) return `${minutes}m`;
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return m === 0 ? `${h}h` : `${h}h ${m}m`;
+}
+
+// Density of events on a day → number of dots under the day cell.
+function dotsFor(count: number): number {
+  if (count <= 0) return 0;
+  if (count <= 2) return 1;
+  if (count <= 4) return 2;
+  return 3;
+}
+
 export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
@@ -198,13 +131,6 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
     queryKey: ['contractor-schedule', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
-      // 2026-05-01 audit P0-1: routed through
-      // `GET /api/contractor/appointments` instead of querying the
-      // `appointments` table directly via Supabase. The route applies
-      // the same `contractor_id = user.id` filter server-side and
-      // joins jobs() for the title. We pull a wider window
-      // (`daysAhead=180`) so historical events still render in the
-      // weekly strip.
       const res = await mobileApiClient.get<{
         appointments: Array<{
           id: string;
@@ -214,7 +140,6 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
           date: string;
           time: string;
           endTime?: string;
-          type?: string;
           status?: string;
           location?: string;
         }>;
@@ -228,10 +153,6 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
           date: a.date,
           time_start: a.time || '09:00',
           time_end: a.endTime,
-          // The route's `type` field is the location type
-          // (onsite/remote/phone). All three render as 'meeting' on
-          // the timeline.
-          type: 'meeting',
           status: a.status || 'scheduled',
           address: a.location,
         })
@@ -251,24 +172,13 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
       .sort((a, b) => a.time_start.localeCompare(b.time_start));
   }, [schedule, selectedDateKey]);
 
-  // Count events per day (by type for multi-dot)
   const eventsByDate = useMemo(() => {
-    const map: Record<string, Set<string>> = {};
+    const map: Record<string, number> = {};
     schedule?.forEach((item) => {
-      if (!map[item.date]) map[item.date] = new Set();
-      map[item.date]!.add(item.type);
+      map[item.date] = (map[item.date] || 0) + 1;
     });
     return map;
   }, [schedule]);
-
-  // Daily stat counts
-  const dailyStats = useMemo(() => {
-    const stats = { job: 0, meeting: 0, deadline: 0 };
-    filteredSchedule.forEach((item) => {
-      stats[item.type] = (stats[item.type] || 0) + 1;
-    });
-    return stats;
-  }, [filteredSchedule]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -276,261 +186,185 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
     setRefreshing(false);
   };
 
-  const navigateWeek = (dir: -1 | 1) => {
-    setSelectedDate((prev) => {
-      const d = new Date(prev);
-      d.setDate(d.getDate() + dir * 7);
-      return d;
-    });
-  };
-
-  const monthLabel = selectedDate.toLocaleDateString('en-GB', {
+  const monthYear = selectedDate.toLocaleDateString('en-GB', {
     month: 'long',
     year: 'numeric',
   });
-  const dayLabel = selectedDate.toLocaleDateString('en-GB', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-  });
-  const totalEvents = filteredSchedule.length;
+  const headerSub = `Wk ${isoWeek(selectedDate)} · ${monthYear}`;
+  const dayEyebrow = `${selectedDate.toLocaleDateString('en-GB', { weekday: 'short' }).toUpperCase()} ${selectedDate.getDate()} ${selectedDate.toLocaleDateString('en-GB', { month: 'short' }).toUpperCase()} · ${filteredSchedule.length} ${filteredSchedule.length === 1 ? 'JOB' : 'JOBS'}`;
 
   return (
     <View style={styles.container}>
       <StatusBar
         translucent
         backgroundColor='transparent'
-        barStyle='light-content'
+        barStyle='dark-content'
       />
 
-      {/* ── Green Gradient Hero ── */}
-      <LinearGradient colors={[me.brand2, me.brand]} style={styles.hero}>
-        {/* Decorative circles */}
-        <View style={[styles.decorCircle, styles.decorCircle1]} />
-        <View style={[styles.decorCircle, styles.decorCircle2]} />
-
-        <View style={{ height: insets.top + 12 }} />
-
-        {/* Top bar */}
-        <View style={styles.heroTopBar}>
-          <TouchableOpacity
-            style={styles.frostedCircle}
-            onPress={() => navigation.goBack()}
-          >
-            <Ionicons name='arrow-back' size={20} color={me.onBrand} />
-          </TouchableOpacity>
-          <Text style={styles.heroTitle}>Calendar</Text>
-          <TouchableOpacity
-            style={styles.todayPill}
-            onPress={() => setSelectedDate(new Date())}
-            accessibilityLabel='Go to today'
-          >
-            <Ionicons name='today-outline' size={14} color={me.brand} />
-            <Text style={styles.todayPillText}>Today</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Month navigator */}
-        <View style={styles.monthNav}>
-          <TouchableOpacity
-            style={styles.navArrow}
-            onPress={() => navigateWeek(-1)}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons
-              name='chevron-back'
-              size={18}
-              color='rgba(255,255,255,0.8)'
-            />
-          </TouchableOpacity>
-          <Text style={styles.monthLabel}>{monthLabel}</Text>
-          <TouchableOpacity
-            style={styles.navArrow}
-            onPress={() => navigateWeek(1)}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Ionicons
-              name='chevron-forward'
-              size={18}
-              color='rgba(255,255,255,0.8)'
-            />
-          </TouchableOpacity>
-        </View>
-
-        {/* Week strip */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.weekStrip}
+      <View style={[styles.topNav, { paddingTop: insets.top + 8 }]}>
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={() => navigation.goBack()}
+          accessibilityRole='button'
+          accessibilityLabel='Go back'
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          {weekDays.map((day) => {
-            const key = toDateKey(day);
-            const isSel = key === selectedDateKey;
-            const isTod = isToday(day);
-            const eventTypes = eventsByDate[key];
+          <Ionicons name='arrow-back' size={20} color={me.ink} />
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.todayPill}
+          onPress={() => setSelectedDate(new Date())}
+          accessibilityRole='button'
+          accessibilityLabel='Jump to today'
+        >
+          <Text style={styles.todayPillText}>Today</Text>
+        </TouchableOpacity>
+      </View>
 
-            return (
-              <TouchableOpacity
-                key={key}
+      <View style={styles.screenHeader}>
+        <Text style={styles.eyebrow}>Calendar</Text>
+        <Text style={styles.headline}>Calendar</Text>
+        <Text style={styles.sub}>{headerSub}</Text>
+      </View>
+
+      <View style={styles.weekRow}>
+        {weekDays.map((day, idx) => {
+          const key = toDateKey(day);
+          const isSel = key === selectedDateKey;
+          const isTod = isToday(day);
+          const count = eventsByDate[key] ?? 0;
+          const nDots = dotsFor(count);
+
+          return (
+            <TouchableOpacity
+              key={key}
+              style={styles.dayCol}
+              onPress={() => setSelectedDate(day)}
+              accessibilityRole='button'
+              accessibilityState={{ selected: isSel }}
+              accessibilityLabel={`${WEEKDAY_INITIALS[idx]} ${day.getDate()}, ${count} ${count === 1 ? 'event' : 'events'}`}
+            >
+              <Text style={[styles.dayName, isSel && styles.dayNameSelected]}>
+                {WEEKDAY_INITIALS[idx]}
+              </Text>
+              <View
                 style={[
-                  styles.dayCell,
-                  isSel && styles.dayCellSelected,
-                  isTod && !isSel && styles.dayCellToday,
+                  styles.dayNumberChip,
+                  isSel && styles.dayNumberChipSelected,
+                  isTod && !isSel && styles.dayNumberChipToday,
                 ]}
-                onPress={() => setSelectedDate(day)}
-                accessibilityRole='button'
-                accessibilityState={{ selected: isSel }}
-                accessibilityLabel={`${WEEKDAYS[day.getDay()]} ${day.getDate()}`}
               >
-                <Text style={[styles.dayName, isSel && styles.dayTextSelected]}>
-                  {WEEKDAYS[day.getDay()]}
-                </Text>
                 <Text
-                  style={[
-                    styles.dayNumber,
-                    isSel && styles.dayTextSelected,
-                    isTod && !isSel && styles.dayNumberToday,
-                  ]}
+                  style={[styles.dayNumber, isSel && styles.dayNumberSelected]}
                 >
                   {day.getDate()}
                 </Text>
-                {/* Multi-color event dots */}
-                {eventTypes && (
-                  <View style={styles.dotsRow}>
-                    {eventTypes.has('job') && (
-                      <View
-                        style={[
-                          styles.eventDot,
-                          isSel
-                            ? styles.eventDotWhite
-                            : { backgroundColor: me.brand },
-                        ]}
-                      />
-                    )}
-                    {eventTypes.has('meeting') && (
-                      <View
-                        style={[
-                          styles.eventDot,
-                          isSel
-                            ? styles.eventDotWhite
-                            : { backgroundColor: '#3B82F6' },
-                        ]}
-                      />
-                    )}
-                    {eventTypes.has('deadline') && (
-                      <View
-                        style={[
-                          styles.eventDot,
-                          isSel
-                            ? styles.eventDotWhite
-                            : { backgroundColor: me.errFg },
-                        ]}
-                      />
-                    )}
-                  </View>
-                )}
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      </LinearGradient>
-
-      {/* ── Daily Stats Pills ── */}
-      <View style={styles.statsBar}>
-        <View style={styles.statPill}>
-          <View style={[styles.statDot, { backgroundColor: me.brand }]} />
-          <Text style={styles.statText}>
-            {dailyStats.job} {dailyStats.job === 1 ? 'Job' : 'Jobs'}
-          </Text>
-        </View>
-        <View style={styles.statPill}>
-          <View style={[styles.statDot, { backgroundColor: '#3B82F6' }]} />
-          <Text style={styles.statText}>
-            {dailyStats.meeting}{' '}
-            {dailyStats.meeting === 1 ? 'Meeting' : 'Meetings'}
-          </Text>
-        </View>
-        <View style={styles.statPill}>
-          <View style={[styles.statDot, { backgroundColor: me.errFg }]} />
-          <Text style={styles.statText}>
-            {dailyStats.deadline}{' '}
-            {dailyStats.deadline === 1 ? 'Deadline' : 'Deadlines'}
-          </Text>
-        </View>
+              </View>
+              <View style={styles.dotsRow}>
+                {Array.from({ length: nDots }).map((_, i) => (
+                  <View
+                    key={i}
+                    style={[
+                      styles.dot,
+                      isSel ? styles.dotSelected : styles.dotIdle,
+                    ]}
+                  />
+                ))}
+              </View>
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
-      {/* ── Day label ── */}
-      <View style={styles.dayLabelRow}>
-        <Text style={styles.dayLabelText}>{dayLabel}</Text>
-        <Text style={styles.dayLabelCount}>
-          {totalEvents} {totalEvents === 1 ? 'event' : 'events'}
-        </Text>
-      </View>
+      <Text style={styles.dayEyebrow}>{dayEyebrow}</Text>
 
-      {/* ── Loading / Error / Content ── */}
       {isLoading ? (
         <View style={styles.centeredState}>
-          <View style={styles.loadingWrap}>
-            <Ionicons name='calendar' size={28} color={me.brand} />
-          </View>
-          <Text style={styles.stateTitle}>Loading schedule...</Text>
+          <Ionicons name='calendar-outline' size={28} color={me.brand} />
+          <Text style={styles.stateTitle}>Loading schedule…</Text>
         </View>
       ) : error ? (
         <View style={styles.centeredState}>
-          <View style={[styles.stateIconWrap, { backgroundColor: '#FEE2E2' }]}>
-            <Ionicons name='warning-outline' size={28} color={me.errFg} />
-          </View>
+          <Ionicons name='warning-outline' size={28} color={me.errFg} />
           <Text style={styles.stateTitle}>Failed to load schedule</Text>
           <TouchableOpacity
             style={styles.retryButton}
             onPress={() => refetch()}
           >
-            <Ionicons name='refresh' size={16} color={me.onBrand} />
             <Text style={styles.retryButtonText}>Retry</Text>
           </TouchableOpacity>
         </View>
       ) : filteredSchedule.length === 0 ? (
         <View style={styles.centeredState}>
-          <View style={styles.stateIconWrap}>
-            <Ionicons name='calendar-outline' size={32} color={me.brand} />
-          </View>
+          <Ionicons name='calendar-clear-outline' size={28} color={me.brand} />
           <Text style={styles.stateTitle}>No events</Text>
           <Text style={styles.stateSubtitle}>
-            Your agenda is beautifully clear.{'\n'}Time to find your next
-            project.
+            Your day is clear. Time to line up the next job.
           </Text>
           <TouchableOpacity
             style={styles.browseButton}
             onPress={() =>
-              // 2026-05-01 audit P1: typed cross-stack helper replaces
-              // `navigation as never as { navigate }` cast. JobsList lives
-              // on JobsStack inside JobsTab — goToTab encapsulates the
-              // canonical nested-navigate shape.
               goToTab(navigation, 'JobsTab', { screen: 'JobsList' })
             }
           >
-            <Ionicons name='briefcase-outline' size={16} color={me.onBrand} />
-            <Text style={styles.browseButtonText}>Browse Jobs</Text>
+            <Text style={styles.browseButtonText}>Browse jobs →</Text>
           </TouchableOpacity>
         </View>
       ) : (
         <FlatList
           data={filteredSchedule}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <ScheduleCard
-              item={item}
-              onPress={() =>
-                // 2026-05-01 audit P1: typed cross-stack helper replaces
-                // nested `as never as` cast. Mirrors the JobsList CTA
-                // above for consistency.
-                goToTab(navigation, 'JobsTab', {
-                  screen: 'JobDetails',
-                  params: { jobId: item.job_id },
-                })
-              }
-            />
-          )}
+          renderItem={({ item, index }) => {
+            const dur = durationLabel(item.time_start, item.time_end);
+            // Cycle node colours so the timeline doesn't look monotonous.
+            const palette = [me.brand, me.warnFg, me.infoFg];
+            const nodeColor = palette[index % palette.length] ?? me.brand;
+            return (
+              <View style={styles.row}>
+                <View style={styles.railCol}>
+                  <View
+                    style={[styles.railNode, { backgroundColor: nodeColor }]}
+                  />
+                  {index < filteredSchedule.length - 1 && (
+                    <View style={styles.railLine} />
+                  )}
+                </View>
+                <View style={styles.rowBody}>
+                  <Text style={styles.rowEyebrow}>
+                    {item.time_start}
+                    {dur ? ` · ${dur}` : ''}
+                  </Text>
+                  <TouchableOpacity
+                    style={[styles.eventCard, { borderLeftColor: nodeColor }]}
+                    onPress={() =>
+                      goToTab(navigation, 'JobsTab', {
+                        screen: 'JobDetails',
+                        params: { jobId: item.job_id },
+                      })
+                    }
+                    accessibilityRole='button'
+                    accessibilityLabel={`${item.job_title} at ${item.time_start}`}
+                  >
+                    <Text style={styles.eventTitle} numberOfLines={1}>
+                      {item.job_title}
+                    </Text>
+                    {item.address ? (
+                      <View style={styles.eventMetaRow}>
+                        <Ionicons
+                          name='location-outline'
+                          size={11}
+                          color={me.ink3}
+                        />
+                        <Text style={styles.eventMeta} numberOfLines={1}>
+                          {item.address}
+                        </Text>
+                      </View>
+                    ) : null}
+                  </TouchableOpacity>
+                </View>
+              </View>
+            );
+          }}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}

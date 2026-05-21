@@ -6,7 +6,10 @@ import { me } from '../../../../design-system/mint-editorial';
  * Extracted 2026-05-09 (AUDIT_PUNCH_LIST P2 #44a).
  */
 export const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: me.bg2 },
+  container: { flex: 1, backgroundColor: me.bg },
+  // Legacy headerSection / headerOverline kept for backwards-compat
+  // with any leaf component that imported them; the new layout uses
+  // the topNav + screenHeader pair below instead.
   headerSection: {
     backgroundColor: me.surface,
     borderBottomWidth: StyleSheet.hairlineWidth,
@@ -19,6 +22,54 @@ export const styles = StyleSheet.create({
     letterSpacing: 1.2,
     textAlign: 'center',
     paddingTop: 8,
+  },
+  topNav: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 4,
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: me.bg2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  screenHeader: {
+    paddingHorizontal: 20,
+    marginTop: 6,
+    marginBottom: 20,
+  },
+  eyebrow: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: me.brand,
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
+    marginBottom: 6,
+  },
+  headline: {
+    fontFamily: me.font.display,
+    fontSize: 32,
+    color: me.ink,
+    letterSpacing: me.displayTracking,
+  },
+  sub: {
+    fontSize: 14,
+    color: me.ink3,
+    marginTop: 4,
+  },
+  recentEyebrow: {
+    paddingHorizontal: 4,
+    marginTop: 10,
+    marginBottom: 10,
+    fontSize: 11,
+    fontWeight: '700',
+    color: me.ink3,
+    textTransform: 'uppercase',
+    letterSpacing: 1.4,
   },
   statsRow: {
     flexDirection: 'row',
@@ -239,7 +290,7 @@ export const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: me.ink,
+    backgroundColor: me.brand,
     justifyContent: 'center',
     alignItems: 'center',
     ...me.shadow.pop,
