@@ -1,21 +1,37 @@
 import React from 'react';
 
 /**
- * Trust / certification band — Direction A · Mint Editorial.
- * Source of truth: redesign-v2/landing.html `.logos` band.
+ * Safeguards strip — landing page band between the hero and How It
+ * Works. Direction A · Mint Editorial layout (small uppercase label
+ * + horizontal items spaced out), but the content is factual
+ * platform behaviour, not third-party endorsements.
  *
- * Replaced the old four-badge "Trusted & Secure" grid with the
- * spec's certification logo row. Static server component — the
- * spec band has no animation.
+ * 2026-05-21: replaced the prior "Trusted & certified by" band that
+ * listed Gas Safe / NICEIC / TrustMark / FCA Reg. / CHAS /
+ * Trustpilot ★★★★★. Mintenance the platform isn't accredited by
+ * any of those bodies — claiming so is misleading at best, and the
+ * "FCA Reg." line in particular is a financial-promotions risk
+ * under FSMA 2000 s.21 if untrue. Stripe Connect (used for
+ * payouts) is FCA-authorised in its own right, but that's Stripe's
+ * status, not Mintenance's, so we don't claim it here either.
+ *
+ * Every claim below is verifiable in code: escrow flows through
+ * `escrow_transactions` + `EscrowAutoReleaseService`; photo gates
+ * are enforced by `PhotoVerificationService`; approval is the
+ * `completion_confirmed_by_homeowner` gate in
+ * `/api/jobs/[id]/confirm-completion`; payouts use Stripe Connect
+ * (`setup-contractor-payout` edge fn); currency is GBP-only per
+ * the `check-edge-fn-currency` pre-commit guard; disputes route
+ * through `DisputeWorkflowService` + `/api/disputes`.
  */
 
-const CERTIFICATIONS = [
-  'Gas Safe',
-  'NICEIC',
-  'TrustMark',
-  'FCA Reg.',
-  'CHAS',
-  'Trustpilot ★★★★★',
+const SAFEGUARDS = [
+  'Escrow-protected payments',
+  'Photo proof before & after',
+  'You approve before payment releases',
+  'Stripe-powered payouts',
+  'GBP only · UK-based',
+  'Dispute support if work isn’t right',
 ];
 
 export function TrustIndicators() {
@@ -50,7 +66,7 @@ export function TrustIndicators() {
             fontWeight: 600,
           }}
         >
-          Trusted &amp; certified by
+          Every job includes
         </div>
         <div
           style={{
@@ -61,9 +77,9 @@ export function TrustIndicators() {
             gap: '16px 28px',
           }}
         >
-          {CERTIFICATIONS.map((name) => (
+          {SAFEGUARDS.map((line) => (
             <span
-              key={name}
+              key={line}
               style={{
                 fontSize: 14,
                 fontWeight: 600,
@@ -71,7 +87,7 @@ export function TrustIndicators() {
                 whiteSpace: 'nowrap',
               }}
             >
-              {name}
+              {line}
             </span>
           ))}
         </div>
