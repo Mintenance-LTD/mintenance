@@ -1,7 +1,11 @@
 /**
  * Quote & Bid email templates
+ *
+ * Mint Editorial voice (2026-05-21 port): specific over fluffy, real
+ * contractor name + rating + job count + earliest-available framing,
+ * no emoji, calm paper-and-mint palette via `mintEmailShell`.
  */
-import { escapeHtml, year, emailShell } from './shared';
+import { escapeHtml, year, emailShell, mintEmailShell } from './shared';
 import type {
   QuoteEmailData,
   BidEmailData,
@@ -43,27 +47,23 @@ export function bidNotificationTemplate(data: BidEmailData): {
   text: string;
 } {
   const e = escapeHtml;
-  const color = '#10b981';
-  const extra = `.button{display:inline-block;background-color:${color};color:white;padding:12px 24px;text-decoration:none;border-radius:6px;margin-top:20px}`;
-  const html = emailShell(
-    color,
-    extra,
-    `<h1>New Bid on Your Job</h1>`,
+  const fmtAmount = `£${data.bidAmount.toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+  const subject = `${data.contractorName} bid ${fmtAmount} on your ${data.jobTitle}.`;
+  const preview = `${data.contractorName} just bid ${fmtAmount}. View the bid to compare.`;
+  const html = mintEmailShell(
+    subject,
+    preview,
     `<p>Hi ${e(data.homeownerName)},</p>
-     <p><strong>${e(data.contractorName)}</strong> has submitted a bid for your job: <strong>${e(data.jobTitle)}</strong></p>
-     <p><strong>Bid Amount:</strong> £${data.bidAmount.toFixed(2)}</p>
-     <p><strong>Proposal Preview:</strong></p>
-     <p style="background:white;padding:15px;border-left:4px solid ${color};margin:15px 0">${e(data.proposalExcerpt)}...</p>
-     <a href="${e(data.viewUrl)}" class="button">View Full Bid</a>
-     <p style="margin-top:30px">Review the contractor's full proposal, ratings, and past work to make an informed decision.</p>`,
-    `<p>&copy; ${year()} Mintenance ltd. All rights reserved.</p>`
+     <p>Good news — <strong>${e(data.contractorName)}</strong> just bid <strong>${fmtAmount}</strong> on your <strong>${e(data.jobTitle)}</strong>.</p>
+     <div class="note"><strong>Their note:</strong> "${e(data.proposalExcerpt)}"</div>
+     <a href="${e(data.viewUrl)}" class="cta">View bid &amp; book →</a>
+     <p style="font-size:12px;color:#888">We'll only ping you again when another bid stands out — no chasing.</p>`,
+    `<p>Mintenance · Home, taken care of.</p>
+     <p><a href="https://mintenance.co.uk/settings/notifications">Notification preferences</a></p>
+     <p>&copy; ${year()} Mintenance Ltd.</p>`
   );
-  const text = `Hi ${data.homeownerName},\n\n${data.contractorName} has submitted a bid for your job: ${data.jobTitle}\n\nBid Amount: £${data.bidAmount.toFixed(2)}\n\nProposal Preview:\n${data.proposalExcerpt}...\n\nView the full bid here: ${data.viewUrl}\n\nReview the contractor's full proposal, ratings, and past work.\n\n© ${year()} Mintenance.`;
-  return {
-    subject: `New Bid from ${data.contractorName} - ${data.jobTitle}`,
-    html,
-    text,
-  };
+  const text = `Hi ${data.homeownerName},\n\n${data.contractorName} just bid ${fmtAmount} on your ${data.jobTitle}.\n\nTheir note: "${data.proposalExcerpt}"\n\nView the bid: ${data.viewUrl}\n\nWe'll only ping you again when another bid stands out.\n\n© ${year()} Mintenance Ltd.`;
+  return { subject, html, text };
 }
 
 export function connectionRequestTemplate(data: ConnectionRequestEmailData): {
@@ -116,25 +116,18 @@ export function bidAcceptedTemplate(
   unsubscribeFooter: string
 ): { subject: string; html: string; text: string } {
   const e = escapeHtml;
-  const color = '#059669';
-  const fmtAmount = `£${data.bidAmount.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  const extra = `.amount-box{background:white;border:2px solid ${color};border-radius:12px;padding:20px;text-align:center;margin:20px 0}
-    .amount{font-size:28px;font-weight:bold;color:${color}}
-    .next-steps{background:#f0fdf4;border-left:4px solid ${color};padding:12px 16px;border-radius:4px;margin-top:20px;font-size:13px;color:#166534}`;
-  const html = emailShell(
-    color,
-    extra,
-    `<h1 style="margin:0">Your Bid Was Accepted!</h1><p style="margin:8px 0 0;opacity:0.9">Congratulations - you've won the job</p>`,
+  const fmtAmount = `£${data.bidAmount.toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+  const subject = `${data.homeownerName} accepted your ${fmtAmount} bid.`;
+  const preview = `${data.jobTitle} is yours — sign the contract to start.`;
+  const html = mintEmailShell(
+    subject,
+    preview,
     `<p>Hi ${e(data.contractorName)},</p>
-     <p>Great news! <strong>${e(data.homeownerName)}</strong> has accepted your bid for "<strong>${e(data.jobTitle)}</strong>".</p>
-     <div class="amount-box">
-       <div style="font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#6b7280;margin-bottom:4px">Accepted Bid</div>
-       <div class="amount">${fmtAmount}</div>
-     </div>
-     <div class="next-steps"><strong>Next steps:</strong> Review and sign the contract, then coordinate with the homeowner to schedule the work. A message thread has been created for you to communicate directly.</div>
-     <p style="text-align:center"><a href="${e(data.viewUrl)}" class="cta">View Job Details</a></p>`,
+     <p><strong>${e(data.homeownerName)}</strong> accepted your bid for <strong>${e(data.jobTitle)}</strong> — <strong>${fmtAmount}</strong> sitting against the job.</p>
+     <div class="note"><strong>Next:</strong> Sign the contract, then the homeowner pays into escrow. You can start work the moment the funds land.</div>
+     <a href="${e(data.viewUrl)}" class="cta">Open the job →</a>`,
     unsubscribeFooter
   );
-  const text = `Hi ${data.contractorName},\n\n${data.homeownerName} has accepted your bid of ${fmtAmount} for "${data.jobTitle}".\n\nNext: Review and sign the contract.\n\nView details: ${data.viewUrl}\n\n© ${year()} Mintenance.`;
-  return { subject: `Bid Accepted - ${data.jobTitle}`, html, text };
+  const text = `Hi ${data.contractorName},\n\n${data.homeownerName} accepted your ${fmtAmount} bid for ${data.jobTitle}.\n\nNext: sign the contract, then escrow funds, then you start.\n\nOpen the job: ${data.viewUrl}\n\n© ${year()} Mintenance Ltd.`;
+  return { subject, html, text };
 }

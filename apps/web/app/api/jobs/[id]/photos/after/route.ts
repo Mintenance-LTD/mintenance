@@ -297,7 +297,7 @@ export const POST = withApiHandler(
           });
           canAutoComplete = false;
         } else {
-          // Safety: verify escrow payment is held
+          // Safety: verify escrow payment is held.
           const { data: escrowCheck } = await serverSupabase
             .from('escrow_transactions')
             .select('id')
@@ -387,18 +387,19 @@ export const POST = withApiHandler(
             // id from Promise.all so the email send below can flip
             // `email_sent = true` on that row. Contractor copy is
             // in-app only — no matching email, so no id capture needed.
+            const homeownerJobTitle = job.title || 'your job';
             const [homeownerNotifId] = await Promise.all([
               NotificationService.createNotification({
                 userId: job.homeowner_id,
-                title: 'Job Completed - Review Required',
-                message: `Work on "${job.title || 'your job'}" is complete. Review the before/after photos and approve.`,
+                title: 'How did your contractor do?',
+                message: `${homeownerJobTitle} is done. Two taps to leave a review and release payment.`,
                 type: 'job_completed',
                 actionUrl: `/jobs/${jobId}`,
               }),
               NotificationService.createNotification({
                 userId: user.id,
-                title: 'Job Marked as Completed',
-                message: `Your after photos for "${job.title || 'the job'}" have been submitted. The job is now marked as completed and awaiting homeowner review.`,
+                title: 'Sign-off pending',
+                message: `After photos are in for "${homeownerJobTitle}". Homeowner has 7 days — we'll auto-release if they don't.`,
                 type: 'job_completed',
                 actionUrl: `/contractor/jobs/${jobId}`,
               }),
@@ -418,6 +419,17 @@ export const POST = withApiHandler(
                 .eq('id', user.id)
                 .single();
 
+              const { data: escrowRow } = await serverSupabase
+                .from('escrow_transactions')
+                .select('amount')
+                .eq('job_id', jobId)
+                .in('status', ['held', 'release_pending'])
+                .limit(1)
+                .maybeSingle();
+              const escrowAmount = escrowRow?.amount
+                ? Number(escrowRow.amount) || undefined
+                : undefined;
+
               if (homeownerProfile?.email) {
                 const homeownerName =
                   homeownerProfile.first_name && homeownerProfile.last_name
@@ -436,6 +448,7 @@ export const POST = withApiHandler(
                     contractorName,
                     jobTitle: job.title || 'Job',
                     viewUrl: `${process.env.NEXT_PUBLIC_APP_URL || 'https://mintenance.com'}/jobs/${jobId}`,
+                    amount: escrowAmount,
                   }
                 );
                 if (emailOk && homeownerNotifId) {

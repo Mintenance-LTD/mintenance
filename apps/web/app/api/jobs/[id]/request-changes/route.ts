@@ -167,10 +167,13 @@ export const POST = withApiHandler(
     // Audit P2 (2026-05-10): capture the notification id so we can flip
     // `email_sent = true` after the email provider accepts the message.
     // Same pattern as /api/payments/confirm-intent and /api/jobs/[id]/start.
+    // 2026-05-21 Mint Editorial voice: name the homeowner's ask, not a
+    // bureaucratic "Changes Requested". The actual comment is the
+    // message — it's the only thing the contractor needs to read.
     const contractorNotifId = await NotificationService.createNotification({
       userId: job.contractor_id,
-      title: 'Changes Requested',
-      message: `The homeowner has requested changes on "${job.title}": ${comments}`,
+      title: `${job.title} — homeowner asked for a tweak`,
+      message: comments,
       type: 'changes_requested',
       actionUrl: `/contractor/jobs/${jobId}`,
     });

@@ -79,11 +79,38 @@ export type JobStatus = (typeof JOB_STATUSES)[number];
 
 // ── Request schemas ────────────────────────────────────────────────
 
+// 2026-05-21 audit: production accepted a title of
+// `goggkgkgkfkllkgfkgkfl` (21 chars, keyboard mash). Length alone is
+// not enough — we also need a content heuristic. Real titles either
+// contain a space ("Boiler service", "Replace tap") or have a
+// reasonable vowel distribution. A 20-char string with one vowel and
+// no whitespace is overwhelmingly keyboard mash, not English.
+const VOWEL_RE = /[aeiouy]/gi;
+const isPlausibleTitle = (raw: string): boolean => {
+  const t = raw.trim();
+  if (t.length < 5) return false;
+  // Must contain at least one ASCII letter — pure-symbol/digit titles
+  // (e.g. "12345", "!!!!!") aren't job titles.
+  if (!/[A-Za-z]/.test(t)) return false;
+  // Multi-word titles are always fine: contractors post acronyms like
+  // "EICR cert" or "PAT testing kit" and we don't want to reject them.
+  if (/\s/.test(t)) return true;
+  // Single-word title: require at least two vowels (counts duplicates,
+  // so "boiler" passes on o+e; "Painting" passes on a+i; keyboard mash
+  // like "goggkgkgkfkllkgfkgkfl" fails on its single 'o').
+  const vowels = t.match(VOWEL_RE) ?? [];
+  return vowels.length >= 2;
+};
+
 const baseJobSchema = z.object({
   title: z
     .string()
     .min(5, 'Title must be at least 5 characters')
-    .max(200, 'Title must be 200 characters or fewer'),
+    .max(200, 'Title must be 200 characters or fewer')
+    .refine(isPlausibleTitle, {
+      message:
+        'Title doesn’t look like a real description — add a couple of words about the job',
+    }),
   description: z
     .string()
     .min(20, 'Description must be at least 20 characters')
