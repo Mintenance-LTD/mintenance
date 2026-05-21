@@ -91,9 +91,10 @@ export function LoginBrandPanel() {
         </span>
         <span
           style={{
-            fontFamily: "'Instrument Serif', Georgia, serif",
+            fontFamily: 'var(--me-font-display)',
+            fontWeight: 800,
             fontSize: 22,
-            letterSpacing: '-0.01em',
+            letterSpacing: '-0.015em',
           }}
         >
           Mintenance
@@ -104,11 +105,11 @@ export function LoginBrandPanel() {
       <div style={{ position: 'relative' }}>
         <h1
           style={{
-            fontFamily: "'Instrument Serif', Georgia, serif",
-            fontWeight: 400,
+            fontFamily: 'var(--me-font-display)',
+            fontWeight: 'var(--me-display-weight)' as unknown as number,
             fontSize: 48,
-            lineHeight: 1.05,
-            letterSpacing: '-0.012em',
+            lineHeight: 1.04,
+            letterSpacing: 'var(--me-display-tracking)',
             margin: '0 0 14px',
           }}
         >
