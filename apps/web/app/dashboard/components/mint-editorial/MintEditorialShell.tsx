@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { Search } from 'lucide-react';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { MintEditorialSidebar } from './MintEditorialSidebar';
-import { MintEditorialDock } from './MintEditorialDock';
 import { MintEditorialTopNav } from './MintEditorialTopNav';
 
 interface MintEditorialShellProps {
@@ -87,8 +86,6 @@ export function MintEditorialShell({
         </div>
 
         <div style={{ padding: contentPadding, flex: 1 }}>{children}</div>
-
-        <MintEditorialDock />
       </div>
     </div>
   );

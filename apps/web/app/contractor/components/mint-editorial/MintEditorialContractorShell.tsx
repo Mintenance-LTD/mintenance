@@ -6,7 +6,6 @@ import { Search } from 'lucide-react';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { MintEditorialContractorSidebar } from './MintEditorialContractorSidebar';
 import { MintEditorialContractorTopNav } from './MintEditorialContractorTopNav';
-import { MintEditorialDock } from '@/app/dashboard/components/mint-editorial/MintEditorialDock';
 
 interface MintEditorialContractorShellProps {
   /** Display name shown in the sidebar user card. */
@@ -83,8 +82,6 @@ export function MintEditorialContractorShell({
         >
           {children}
         </div>
-
-        <MintEditorialDock />
       </div>
     </div>
   );

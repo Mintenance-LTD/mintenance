@@ -29,7 +29,7 @@ export const DashboardAppointmentsSection: React.FC<
     return (
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Upcoming</Text>
+          <Text style={styles.sectionTitle}>Schedule</Text>
         </View>
         {[1, 2].map((key) => (
           <View key={key} style={styles.appointmentCard}>
@@ -65,7 +65,7 @@ export const DashboardAppointmentsSection: React.FC<
             accessibilityRole='button'
             accessibilityLabel='View all appointments'
           >
-            <Text style={styles.viewAllLink}>View All</Text>
+            <Text style={styles.viewAllLink}>View all →</Text>
           </TouchableOpacity>
         )}
       </View>

@@ -92,9 +92,17 @@ export default function CreateJobPage2025() {
   const { csrfToken } = useCSRF();
   const [currentStep, setCurrentStep] = useState(1);
 
-  // Mint AI dock prefills via /api/ai/job-draft → query params. The
-  // initial seed + soft-navigation patch helpers live in
-  // utils/url-prefill.ts to keep this file under the MDC line cap.
+  // URL query params can seed title / category / urgency / budget when
+  // the user navigates in from a deep-link (e.g. a property's "Request
+  // service" CTA or a notification). The initial seed + soft-navigation
+  // patch helpers live in utils/url-prefill.ts to keep this file under
+  // the MDC line cap.
+  //
+  // The /api/ai/job-draft round-trip that previously powered the Mint
+  // AI compose dock (removed 2026-05-21 — user explicitly didn't want
+  // an AI chat surface) is still wired server-side in case a future
+  // natural-language entry point wants to reuse it, but no UI posts
+  // to it today.
   const [formData, setFormData] = useState<JobFormData>(() =>
     initialFormDataFromParams(searchParams)
   );
