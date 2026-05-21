@@ -169,6 +169,8 @@ export type ProfileStackParamList = {
   QuickQuote: { jobId?: string; clientName?: string; clientPhone?: string };
   ContractorCardEditor: undefined;
   ContractorVerification: undefined;
+  VerificationStatus: undefined;
+  MyPublicProfile: undefined;
   BusinessProfile: undefined;
   Properties: undefined;
   PropertyDetail: { propertyId: string };

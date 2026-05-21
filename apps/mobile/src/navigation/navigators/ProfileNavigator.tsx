@@ -54,6 +54,8 @@ import {
   SafeQuoteBuilderScreen,
   SafeCreateQuoteScreen,
   SafeQuickQuoteScreen,
+  SafeVerificationStatusScreen,
+  SafeMyPublicProfileScreen,
   SafeQuoteDetailScreen,
   SafeQuoteTemplatesScreen,
   SafeContractorCardEditorScreen,
@@ -174,6 +176,16 @@ const ProfileNavigator = () => {
         name='QuickQuote'
         component={SafeQuickQuoteScreen}
         options={{ presentation: 'modal' }}
+      />
+      <ProfileStack.Screen
+        name='VerificationStatus'
+        component={SafeVerificationStatusScreen}
+        options={{ headerShown: false }}
+      />
+      <ProfileStack.Screen
+        name='MyPublicProfile'
+        component={SafeMyPublicProfileScreen}
+        options={{ headerShown: false }}
       />
       <ProfileStack.Screen
         name='QuoteDetail'
