@@ -302,7 +302,26 @@ export const HomeownerDashboard: React.FC = () => {
               double-CTA that briefly existed when the tab was added
               (04-17 session added the button because there was no
               entry point; the tab later replaced that need).
+
+              Emergency pill below is a *different* entry — it's the
+              opt-in fast path for leaks / no heat / power loss /
+              gas smell. Posting from here flags `urgency='emergency'`
+              and uses fixed tiles instead of free-form input.
             */}
+            <TouchableOpacity
+              style={styles.heroEmergencyPill}
+              onPress={() =>
+                navigation.navigate('Modal', { screen: 'EmergencyJob' })
+              }
+              accessibilityRole='button'
+              accessibilityLabel='Post an emergency job'
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            >
+              <Ionicons name='warning' size={14} color={me.onBrand} />
+              <Text style={styles.heroEmergencyPillText}>
+                Emergency? Tap for the fast path
+              </Text>
+            </TouchableOpacity>
           </FadeIn>
         </LinearGradient>
 

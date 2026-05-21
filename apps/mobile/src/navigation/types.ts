@@ -247,6 +247,7 @@ export type ModalStackParamList = {
   ServiceRequest:
     | { propertyId?: string; priority?: 'low' | 'medium' | 'high' }
     | undefined;
+  EmergencyJob: { propertyId?: string } | undefined;
   // Tier 1 step 7 (2026-04-19 onboarding audit) — live-capture
   // selfie screen for new contractors. Front camera only, no
   // library picker. Takes no params.
