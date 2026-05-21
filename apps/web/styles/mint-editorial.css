@@ -38,6 +38,21 @@
   --me-rose-soft: rgba(214, 100, 141, 0.1);
   --me-accent-soft: rgba(226, 107, 79, 0.1);
 
+  /* ---- document-type tokens (redesign-v2/documents-web spec) ----
+     Six distinct hue families used across the Documents pages
+     (homeowner inbox + contractor library + upload). Spec-locked,
+     not interchangeable with the brand/accent palette above. */
+  --me-doc-contract-fg: #5b3b96;
+  --me-doc-contract-bg: #ede6f7;
+  --me-doc-bid-fg: #a8225f;
+  --me-doc-bid-bg: #fbe0ee;
+  --me-doc-payment-fg: #0e5779;
+  --me-doc-payment-bg: #d6edf1;
+  --me-doc-cert-fg: #206b45;
+  --me-doc-cert-bg: #dcefe3;
+  --me-doc-receipt-fg: #7a5a0f;
+  --me-doc-receipt-bg: #fbe9cb;
+
   /* ---- status ---- */
   --me-ok-bg: #d9efe2;
   --me-ok-fg: #166b49;

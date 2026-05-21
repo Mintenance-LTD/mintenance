@@ -22,8 +22,9 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, FileText, Wrench, Wallet } from 'lucide-react';
 import type { DocumentItem } from './DocumentRow';
+import { DocIcon } from '@/components/documents/DocIcon';
 
 interface DocumentCardProps {
   doc: DocumentItem;
@@ -39,26 +40,32 @@ interface TypeStyle {
 }
 
 function styleForType(type: DocumentItem['type']): TypeStyle {
+  // Pulls the spec-locked document palette from the design tokens
+  // added in apps/web/styles/mint-editorial.css. The chat transcript
+  // for redesign-v2 picked these specific hues:
+  //   - Contract → deep purple
+  //   - Bid      → magenta
+  //   - Payment  → teal
   switch (type) {
     case 'contract':
       return {
-        borderColor: 'var(--me-violet)',
-        iconBg: 'rgba(124, 92, 227, 0.10)',
-        iconText: 'var(--me-violet)',
+        borderColor: 'var(--me-doc-contract-fg)',
+        iconBg: 'var(--me-doc-contract-bg)',
+        iconText: 'var(--me-doc-contract-fg)',
         fileLabel: 'PDF',
       };
     case 'bid':
       return {
-        borderColor: 'var(--me-rose)',
-        iconBg: 'rgba(214, 100, 141, 0.10)',
-        iconText: 'var(--me-rose)',
+        borderColor: 'var(--me-doc-bid-fg)',
+        iconBg: 'var(--me-doc-bid-bg)',
+        iconText: 'var(--me-doc-bid-fg)',
         fileLabel: 'BID',
       };
     case 'payment':
       return {
-        borderColor: 'var(--me-accent)',
-        iconBg: 'rgba(200, 149, 22, 0.10)',
-        iconText: 'var(--me-accent)',
+        borderColor: 'var(--me-doc-payment-fg)',
+        iconBg: 'var(--me-doc-payment-bg)',
+        iconText: 'var(--me-doc-payment-fg)',
         fileLabel: 'PDF',
       };
   }
@@ -82,22 +89,22 @@ function statusBadge(
     if (status === 'accepted' || (contractorSigned && homeownerSigned)) {
       return {
         label: 'Fully signed',
-        bg: 'rgba(63, 140, 122, 0.12)',
-        fg: 'var(--me-brand)',
+        bg: 'var(--me-doc-cert-bg)',
+        fg: 'var(--me-doc-cert-fg)',
       };
     }
     if (status === 'pending_homeowner') {
       return {
         label: 'Awaiting you',
-        bg: 'rgba(124, 92, 227, 0.12)',
-        fg: 'var(--me-violet)',
+        bg: 'var(--me-doc-payment-bg)',
+        fg: 'var(--me-doc-payment-fg)',
       };
     }
     if (status === 'pending_contractor') {
       return {
         label: 'Awaiting contractor',
-        bg: 'rgba(200, 149, 22, 0.14)',
-        fg: 'var(--me-accent)',
+        bg: 'var(--me-doc-receipt-bg)',
+        fg: 'var(--me-doc-receipt-fg)',
       };
     }
     if (status === 'rejected' || status === 'cancelled') {
@@ -113,15 +120,15 @@ function statusBadge(
     if (status === 'accepted') {
       return {
         label: 'Accepted',
-        bg: 'rgba(63, 140, 122, 0.12)',
-        fg: 'var(--me-brand)',
+        bg: 'var(--me-doc-cert-bg)',
+        fg: 'var(--me-doc-cert-fg)',
       };
     }
     if (status === 'pending') {
       return {
         label: 'Pending review',
-        bg: 'rgba(214, 100, 141, 0.12)',
-        fg: 'var(--me-rose)',
+        bg: 'var(--me-doc-bid-bg)',
+        fg: 'var(--me-doc-bid-fg)',
       };
     }
     if (status === 'rejected' || status === 'declined') {
@@ -137,15 +144,15 @@ function statusBadge(
   if (status === 'released' || status === 'completed') {
     return {
       label: 'Released',
-      bg: 'rgba(63, 140, 122, 0.12)',
-      fg: 'var(--me-brand)',
+      bg: 'var(--me-doc-cert-bg)',
+      fg: 'var(--me-doc-cert-fg)',
     };
   }
   if (status === 'held' || status === 'in_escrow') {
     return {
       label: 'In escrow',
-      bg: 'rgba(200, 149, 22, 0.14)',
-      fg: 'var(--me-accent)',
+      bg: 'var(--me-doc-receipt-bg)',
+      fg: 'var(--me-doc-receipt-fg)',
     };
   }
   return { label: status, bg: 'var(--me-bg-2)', fg: 'var(--me-ink-2)' };
@@ -196,6 +203,15 @@ export function DocumentCard({ doc }: DocumentCardProps) {
   const awaiting = isAwaiting(doc);
   const primaryLabel = awaitingPrimaryLabel(doc.type);
 
+  // Awaiting cards get the spec's `.attn` treatment — the entire
+  // border switches to the brand colour + a soft brand shadow — so
+  // they pop visibly from the rest of the grid. Non-awaiting cards
+  // keep the type-coloured left border.
+  const CenterIcon = (() => {
+    if (doc.type === 'contract') return FileText;
+    if (doc.type === 'bid') return Wrench;
+    return Wallet;
+  })();
   return (
     <Link
       href={doc.href}
@@ -203,9 +219,12 @@ export function DocumentCard({ doc }: DocumentCardProps) {
         display: 'block',
         position: 'relative',
         background: 'var(--me-surface)',
-        borderRadius: 'var(--me-radius-card, 14px)',
-        border: '1px solid var(--me-line-2)',
-        borderLeft: `4px solid ${t.borderColor}`,
+        borderRadius: 14,
+        border: awaiting
+          ? '1px solid var(--me-brand)'
+          : '1px solid var(--me-line)',
+        borderLeft: `4px solid ${awaiting ? 'var(--me-brand)' : t.borderColor}`,
+        boxShadow: awaiting ? '0 2px 12px var(--me-brand-soft)' : undefined,
         padding: 18,
         textDecoration: 'none',
         color: 'inherit',
@@ -214,36 +233,16 @@ export function DocumentCard({ doc }: DocumentCardProps) {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: '52px 1fr auto',
-          gap: 14,
-          alignItems: 'start',
+          gridTemplateColumns: '60px 1fr auto',
+          gap: 16,
+          alignItems: 'flex-start',
         }}
       >
-        {/* Icon tile */}
-        <div
-          style={{
-            width: 44,
-            minHeight: 44,
-            borderRadius: 10,
-            background: t.iconBg,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: t.iconText,
-            padding: '6px 0',
-          }}
-        >
-          <span
-            style={{
-              fontSize: 10,
-              fontWeight: 800,
-              letterSpacing: 0.6,
-            }}
-          >
-            {t.fileLabel}
-          </span>
-        </div>
+        {/* Paper-shape icon tile per redesign-v2/documents-web spec
+            (54×68 with extension chip in the bottom-right corner). */}
+        <DocIcon color={t.iconText} bg={t.iconBg} ext={t.fileLabel}>
+          <CenterIcon size={22} strokeWidth={1.75} />
+        </DocIcon>
 
         {/* Body */}
         <div style={{ minWidth: 0 }}>

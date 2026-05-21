@@ -372,7 +372,7 @@ export default function DocumentManagementPage() {
             searchQuery={searchQuery}
             onSelectCategory={setSelectedCategory}
             onSearchChange={setSearchQuery}
-            onUploadClick={() => setShowUploadModal(true)}
+            onUploadClick={() => router.push('/contractor/documents/upload')}
             onToggleStar={handleToggleStar}
             onView={handleView}
           />
