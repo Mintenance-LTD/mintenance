@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { logger } from '@mintenance/shared';
 
 // GET /api/properties/[id]/compliance - List compliance certs for a property
 export const GET = withApiHandler(
@@ -16,25 +17,34 @@ export const GET = withApiHandler(
       .single();
 
     if (propError || !property) {
-      return NextResponse.json({ error: 'Property not found' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Property not found' },
+        { status: 404 }
+      );
     }
 
     if (property.owner_id !== user.id && user.role !== 'admin') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
+    // Property Rooms Slice 4 (2026-05-21): include the optional
+    // room link + its snapshot name/type so the cert list can show
+    // "EICR — Kitchen sub-circuit" without a second query.
     const { data: certs, error } = await serverSupabase
       .from('compliance_certificates')
-      .select('*')
+      .select('*, property_room:property_rooms(id, name, room_type)')
       .eq('property_id', propertyId)
       .order('expiry_date', { ascending: true });
 
     if (error) {
-      return NextResponse.json({ error: 'Failed to fetch certificates' }, { status: 500 });
+      return NextResponse.json(
+        { error: 'Failed to fetch certificates' },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({ certificates: certs || [] });
-  },
+  }
 );
 
 // POST /api/properties/[id]/compliance - Create or update a compliance cert
@@ -52,7 +62,10 @@ export const POST = withApiHandler(
       .single();
 
     if (!property || (property.owner_id !== user.id && user.role !== 'admin')) {
-      return NextResponse.json({ error: 'Property not found or forbidden' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Property not found or forbidden' },
+        { status: 404 }
+      );
     }
 
     const {
@@ -64,48 +77,120 @@ export const POST = withApiHandler(
       issuer_registration,
       document_url,
       notes,
+      // Property Rooms Slice 4 — optional link to a property_rooms
+      // row. When present, the cert covers just that room.
+      property_room_id: rawPropertyRoomId,
     } = body;
 
     if (!cert_type) {
-      return NextResponse.json({ error: 'cert_type is required' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'cert_type is required' },
+        { status: 400 }
+      );
+    }
+
+    // Validate property_room_id (when set) belongs to THIS property.
+    // We silently drop ids that don't match — the request stays
+    // successful so the form doesn't surface a confusing error if
+    // a room was just deleted; the cert is saved with no room link
+    // instead.
+    let propertyRoomId: string | null = null;
+    if (typeof rawPropertyRoomId === 'string' && rawPropertyRoomId) {
+      const { data: room } = await serverSupabase
+        .from('property_rooms')
+        .select('id')
+        .eq('id', rawPropertyRoomId)
+        .eq('property_id', propertyId)
+        .maybeSingle();
+      if (room?.id) {
+        propertyRoomId = room.id;
+      } else {
+        logger.warn('compliance: ignoring unknown property_room_id', {
+          service: 'compliance',
+          userId: user.id,
+          propertyId,
+          rawPropertyRoomId,
+        });
+      }
     }
 
     // Calculate status based on expiry
     let status = 'valid';
     if (expiry_date) {
       const daysLeft = Math.ceil(
-        (new Date(expiry_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24),
+        (new Date(expiry_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24)
       );
       if (daysLeft <= 0) status = 'expired';
       else if (daysLeft <= 90) status = 'expiring';
     }
 
-    // Upsert (unique on property_id + cert_type)
-    const { data: cert, error } = await serverSupabase
+    // 2026-05-21 (Slice 4): the previous `.upsert(..., { onConflict:
+    // 'property_id,cert_type' })` relied on a UNIQUE constraint that
+    // we just dropped (rooms now widen the dedup key). Explicit
+    // lookup-then-insert-or-update handles both branches:
+    //   - Whole-property cert (property_room_id IS NULL) → unique
+    //     on (property_id, cert_type) WHERE property_room_id IS NULL.
+    //   - Per-room cert (property_room_id IS NOT NULL) → unique on
+    //     (property_id, cert_type, property_room_id) WHERE
+    //     property_room_id IS NOT NULL.
+    const lookup = serverSupabase
       .from('compliance_certificates')
-      .upsert(
-        {
-          property_id: propertyId,
-          owner_id: user.id,
-          cert_type,
-          certificate_number: certificate_number || null,
-          issued_date: issued_date || null,
-          expiry_date: expiry_date || null,
-          issuer_name: issuer_name || null,
-          issuer_registration: issuer_registration || null,
-          document_url: document_url || null,
-          notes: notes || null,
-          status,
-        },
-        { onConflict: 'property_id,cert_type' },
-      )
-      .select()
-      .single();
+      .select('id')
+      .eq('property_id', propertyId)
+      .eq('cert_type', cert_type);
+    const { data: existing } = await (propertyRoomId === null
+      ? lookup.is('property_room_id', null).maybeSingle()
+      : lookup.eq('property_room_id', propertyRoomId).maybeSingle());
 
-    if (error) {
-      return NextResponse.json({ error: 'Failed to save certificate' }, { status: 500 });
+    const certPayload = {
+      property_id: propertyId,
+      owner_id: user.id,
+      property_room_id: propertyRoomId,
+      cert_type,
+      certificate_number: certificate_number || null,
+      issued_date: issued_date || null,
+      expiry_date: expiry_date || null,
+      issuer_name: issuer_name || null,
+      issuer_registration: issuer_registration || null,
+      document_url: document_url || null,
+      notes: notes || null,
+      status,
+    };
+
+    let cert;
+    let err;
+    if (existing?.id) {
+      const update = await serverSupabase
+        .from('compliance_certificates')
+        .update(certPayload)
+        .eq('id', existing.id)
+        .select('*, property_room:property_rooms(id, name, room_type)')
+        .single();
+      cert = update.data;
+      err = update.error;
+    } else {
+      const insert = await serverSupabase
+        .from('compliance_certificates')
+        .insert(certPayload)
+        .select('*, property_room:property_rooms(id, name, room_type)')
+        .single();
+      cert = insert.data;
+      err = insert.error;
+    }
+
+    if (err) {
+      logger.error('compliance: save failed', {
+        service: 'compliance',
+        userId: user.id,
+        propertyId,
+        error: err.message,
+      });
+      return NextResponse.json(
+        { error: 'Failed to save certificate' },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({ certificate: cert }, { status: 201 });
-  },
+  }
 );

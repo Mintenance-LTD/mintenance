@@ -16,6 +16,15 @@ interface Certificate {
   expiry_date?: string;
   issuer_name?: string;
   status: 'valid' | 'expiring' | 'expired' | 'missing';
+  // Property Rooms Slice 4 (2026-05-21): optional link to a room.
+  // The compliance API returns the joined room row when present so
+  // the chip can read `Kitchen` directly without a second query.
+  property_room_id?: string | null;
+  property_room?: {
+    id: string;
+    name: string;
+    room_type: string;
+  } | null;
 }
 
 interface Props {
@@ -113,6 +122,15 @@ export const ComplianceCertificates: React.FC<Props> = ({ propertyId }) => {
             <View style={styles.certInfo}>
               <Text style={styles.certType}>
                 {CERT_LABELS[cert.cert_type] || cert.cert_type}
+                {/* Property Rooms Slice 4 — surface the linked room
+                    inline so the row reads "EICR · Kitchen" when
+                    scoped. Missing-scope certs render unchanged. */}
+                {cert.property_room ? (
+                  <Text style={styles.certRoom}>
+                    {'  ·  '}
+                    {cert.property_room.name}
+                  </Text>
+                ) : null}
               </Text>
               {cert.expiry_date ? (
                 <Text style={styles.certDate}>
@@ -194,6 +212,11 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: me.ink,
+  },
+  certRoom: {
+    fontSize: 12,
+    fontWeight: '400',
+    color: me.ink3,
   },
   certDate: { fontSize: 12, color: me.ink3, marginTop: 2 },
   certMissing: {
