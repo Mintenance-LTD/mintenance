@@ -8,6 +8,7 @@ import { ContractorProfileScreen } from '../../screens/contractor-profile';
 import { EnhancedHomeScreen } from '../../screens/enhanced-home';
 import { PaymentMethodsScreen as PaymentMethodsScreenRefactored } from '../../screens/payment-methods';
 import { CreateQuoteScreen } from '../../screens/create-quote';
+import { QuickQuoteScreen } from '../../screens/quick-quote/QuickQuoteScreen';
 import { MeetingScheduleScreen } from '../../screens/meeting-schedule';
 import MeetingDetailsScreen from '../../screens/MeetingDetailsScreen';
 import { NotificationScreen } from '../../screens/NotificationScreen';
@@ -33,6 +34,12 @@ const SafeServiceRequestScreen = withScreenErrorBoundary(
 const SafeCreateQuoteScreen = withScreenErrorBoundary(
   CreateQuoteScreen,
   'Create Quote',
+  { fallbackRoute: 'Main' }
+);
+
+const SafeQuickQuoteScreen = withScreenErrorBoundary(
+  QuickQuoteScreen,
+  'QuickQuote',
   { fallbackRoute: 'Main' }
 );
 
@@ -118,6 +125,15 @@ const ModalNavigator: React.FC = () => {
           title: route.params?.jobId ? 'Quote for Job' : 'Create Quote',
           gestureEnabled: true,
         })}
+      />
+
+      <ModalStack.Screen
+        name='QuickQuote'
+        component={SafeQuickQuoteScreen}
+        options={{
+          title: 'Quick quote',
+          gestureEnabled: true,
+        }}
       />
 
       <ModalStack.Screen

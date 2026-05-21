@@ -53,6 +53,7 @@ import {
   SafeServiceAreasScreen,
   SafeQuoteBuilderScreen,
   SafeCreateQuoteScreen,
+  SafeQuickQuoteScreen,
   SafeQuoteDetailScreen,
   SafeQuoteTemplatesScreen,
   SafeContractorCardEditorScreen,
@@ -167,6 +168,11 @@ const ProfileNavigator = () => {
       <ProfileStack.Screen
         name='CreateQuote'
         component={SafeCreateQuoteScreen}
+        options={{ presentation: 'modal' }}
+      />
+      <ProfileStack.Screen
+        name='QuickQuote'
+        component={SafeQuickQuoteScreen}
         options={{ presentation: 'modal' }}
       />
       <ProfileStack.Screen

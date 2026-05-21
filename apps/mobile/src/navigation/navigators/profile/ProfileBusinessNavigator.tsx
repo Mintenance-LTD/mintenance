@@ -10,6 +10,7 @@ import FinanceDashboardScreen from '../../../screens/FinanceDashboardScreen';
 import { ServiceAreasScreen } from '../../../screens/ServiceAreasScreen';
 import { QuoteBuilderScreen } from '../../../screens/QuoteBuilderScreen';
 import { CreateQuoteScreen } from '../../../screens/create-quote';
+import { QuickQuoteScreen } from '../../../screens/quick-quote/QuickQuoteScreen';
 import { QuoteDetailScreen } from '../../../screens/quote-detail/QuoteDetailScreen';
 import { QuoteTemplatesScreen } from '../../../screens/quote-templates/QuoteTemplatesScreen';
 import { ContractorCardEditorScreen } from '../../../screens/ContractorCardEditorScreen';
@@ -77,6 +78,11 @@ export const SafeQuoteBuilderScreen = withScreenErrorBoundary(
 export const SafeCreateQuoteScreen = withScreenErrorBoundary(
   CreateQuoteScreen,
   'Create Quote',
+  { fallbackRoute: 'QuoteBuilder' }
+);
+export const SafeQuickQuoteScreen = withScreenErrorBoundary(
+  QuickQuoteScreen,
+  'QuickQuote',
   { fallbackRoute: 'QuoteBuilder' }
 );
 export const SafeQuoteDetailScreen = withScreenErrorBoundary(
