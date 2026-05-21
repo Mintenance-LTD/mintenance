@@ -7,6 +7,7 @@ import toast from 'react-hot-toast';
 import Image from 'next/image';
 import { logger } from '@mintenance/shared';
 import { getCsrfToken } from '@/lib/csrf-client';
+import { PropertyRoomsSection } from '../../components/PropertyRoomsSection';
 
 interface PropertyData {
   id: string;
@@ -406,6 +407,12 @@ export default function PropertyEditClient({ property }: PropertyEditClientProps
             </button>
           </div>
         </form>
+
+        {/* Rooms — managed independently of the main form so adding a
+            room doesn't wait for a Save Changes click. */}
+        <div className="mt-6">
+          <PropertyRoomsSection propertyId={property.id} editable />
+        </div>
       </div>
     </div>
   );
