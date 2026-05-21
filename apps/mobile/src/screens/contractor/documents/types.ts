@@ -16,6 +16,14 @@ export interface Document {
   public_url?: string;
   is_contract?: boolean;
   job_id?: string;
+  /**
+   * ISO-8601 expiry timestamp for time-bound documents (currently only
+   * contractor certifications + insurance). Populated by
+   * `useDocumentsQuery` from `contractor_certifications.expiry_date`.
+   * Drives the expiring-soon banner on the Documents screen — see
+   * `ExpiringBanner` for the windowing logic.
+   */
+  expires_at?: string;
 }
 
 export type DocFilter =

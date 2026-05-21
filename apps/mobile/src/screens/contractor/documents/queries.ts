@@ -93,6 +93,10 @@ export function useDocumentsQuery(args: {
             uploaded_at: (c.issue_date as string) || '',
             starred: false,
             public_url: c.document_url as string | undefined,
+            // Surface the expiry so the screen can flag lapsing certs
+            // (UK landlord/contractor compliance window — Gas Safe and
+            // EICR are time-bound).
+            expires_at: (c.expiry_date as string | null) ?? undefined,
           });
         });
       }
