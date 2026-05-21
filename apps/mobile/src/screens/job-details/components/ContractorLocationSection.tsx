@@ -1,8 +1,22 @@
 /**
- * ContractorLocationSection - Toggle location tracking for active jobs
+ * ContractorLocationSection — toggle location tracking for active jobs.
  *
- * Shows start/stop tracking button and current ETA when tracking.
- * Uses existing useJobTravelTracking hook.
+ * Mint Editorial polish per redesign-v2 homeowner-deck "Schedule &
+ * live tracking" surface. Visual upgrades only — `useJobTravelTracking`
+ * behaviour, autoStartIfPermitted, ETA calculation, and the
+ * mark-arrived flow are unchanged.
+ *
+ * Layout:
+ *   - Section eyebrow ("Location tracking").
+ *   - Active state: brand-soft card with a live-dot row, large serif
+ *     ETA, and primary "Arrived" + secondary "Stop" buttons.
+ *   - Idle state: brand-fill "Share my location" button (was `me.ink`
+ *     before — the editorial direction puts primary actions in mint).
+ *
+ * P0 reminder: `contractor_locations = 0` in prod is a shipping gap
+ * (EAS release pending), not a code gap — the `autoStartIfPermitted`
+ * default added in the 2026-05-09 audit removed the manual-tap
+ * dependency that left the table empty.
  */
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
@@ -17,6 +31,14 @@ interface Props {
     longitude: number;
   };
 }
+
+const formatEta = (minutes: number): string => {
+  if (minutes < 1) return 'Arriving now';
+  if (minutes < 60) return `${Math.round(minutes)} min`;
+  const hours = Math.floor(minutes / 60);
+  const mins = Math.round(minutes % 60);
+  return `${hours}h ${mins}m`;
+};
 
 export const ContractorLocationSection: React.FC<Props> = ({
   jobId,
@@ -34,24 +56,12 @@ export const ContractorLocationSection: React.FC<Props> = ({
         latitude: Number.NaN,
         longitude: Number.NaN,
       },
-      // Auto-start tracking on mount when location permission is
-      // already granted (no OS prompt). Removes the manual-tap gap
-      // that left `contractor_locations = 0` in prod despite the
-      // section rendering for every assigned contractor.
       autoStartIfPermitted: true,
     });
 
-  const formatEta = (minutes: number) => {
-    if (minutes < 1) return 'Arriving now';
-    if (minutes < 60) return `${Math.round(minutes)} min`;
-    const hours = Math.floor(minutes / 60);
-    const mins = Math.round(minutes % 60);
-    return `${hours}h ${mins}m`;
-  };
-
   return (
     <View>
-      <Text style={styles.sectionLabel}>Location Tracking</Text>
+      <Text style={styles.sectionEyebrow}>Location tracking</Text>
 
       {error && <Text style={styles.errorText}>{error}</Text>}
 
@@ -65,7 +75,10 @@ export const ContractorLocationSection: React.FC<Props> = ({
           </View>
 
           {eta != null && eta > 0 && (
-            <Text style={styles.etaText}>ETA: {formatEta(eta)}</Text>
+            <View style={styles.etaBlock}>
+              <Text style={styles.etaLabel}>ETA</Text>
+              <Text style={styles.etaValue}>{formatEta(eta)}</Text>
+            </View>
           )}
 
           <View style={styles.trackingActions}>
@@ -100,7 +113,7 @@ export const ContractorLocationSection: React.FC<Props> = ({
         >
           <Ionicons name='navigate' size={18} color={me.onBrand} />
           <Text style={styles.startButtonText}>
-            {hasDestination ? 'Share My Location' : 'Job location unavailable'}
+            {hasDestination ? 'Share my location' : 'Job location unavailable'}
           </Text>
         </TouchableOpacity>
       )}
@@ -109,12 +122,12 @@ export const ContractorLocationSection: React.FC<Props> = ({
 };
 
 const styles = StyleSheet.create({
-  sectionLabel: {
-    fontSize: 12,
+  sectionEyebrow: {
+    fontSize: 11,
     fontWeight: '700',
     color: me.ink3,
     textTransform: 'uppercase',
-    letterSpacing: 0.8,
+    letterSpacing: 1.4,
     marginBottom: 12,
   },
   errorText: {
@@ -122,16 +135,22 @@ const styles = StyleSheet.create({
     color: me.errFg,
     marginBottom: 8,
   },
+  // Active state — brand-soft mint card, visually anchors "you are
+  // live right now". Mirrors the deck's tracking card.
   trackingCard: {
-    backgroundColor: me.surface,
+    backgroundColor: me.brandSoft,
     borderRadius: 16,
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderWidth: 1,
+    borderColor: me.brand,
+    ...me.shadow.card,
   },
   trackingStatus: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 8,
+    marginBottom: 10,
   },
   liveDot: {
     width: 8,
@@ -140,14 +159,28 @@ const styles = StyleSheet.create({
     backgroundColor: me.brand,
   },
   trackingText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: me.ink,
-  },
-  etaText: {
     fontSize: 13,
-    color: me.ink2,
-    marginBottom: 12,
+    fontWeight: '700',
+    color: me.brand,
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+  },
+  etaBlock: {
+    marginBottom: 14,
+  },
+  etaLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: me.brand,
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+    marginBottom: 2,
+  },
+  etaValue: {
+    fontFamily: me.font.display,
+    fontSize: 26,
+    color: me.ink,
+    letterSpacing: me.displayTracking,
   },
   trackingActions: {
     flexDirection: 'row',
@@ -160,36 +193,39 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
     backgroundColor: me.brand,
-    borderRadius: 28,
-    paddingVertical: 10,
+    borderRadius: 12,
+    paddingVertical: 11,
   },
   arrivedButtonText: {
     color: me.onBrand,
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
   },
   stopButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
-    backgroundColor: me.errBg,
-    borderRadius: 28,
-    paddingVertical: 10,
+    backgroundColor: me.surface,
+    borderRadius: 12,
+    paddingVertical: 11,
     paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: me.line,
   },
   stopButtonText: {
     color: me.errFg,
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
   },
+  // Idle state — primary mint CTA (was me.ink dark before).
   startButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: me.ink,
-    borderRadius: 28,
+    backgroundColor: me.brand,
+    borderRadius: 14,
     paddingVertical: 14,
   },
   disabledButton: {
@@ -198,6 +234,6 @@ const styles = StyleSheet.create({
   startButtonText: {
     color: me.onBrand,
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '700',
   },
 });

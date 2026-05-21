@@ -237,20 +237,22 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      {/* Header */}
-      <View style={styles.header}>
+      <View style={styles.topNav}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
           accessibilityRole='button'
           accessibilityLabel='Go back'
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Ionicons name='arrow-back' size={22} color={me.ink} />
+          <Ionicons name='arrow-back' size={20} color={me.ink} />
         </TouchableOpacity>
-        <View style={styles.headerText}>
-          <Text style={styles.headerTitle}>{title}</Text>
-          <Text style={styles.headerSubtitle}>{subtitle}</Text>
-        </View>
+      </View>
+
+      <View style={styles.screenHeader}>
+        <Text style={styles.eyebrow}>{isBefore ? 'Before' : 'After'}</Text>
+        <Text style={styles.headline}>{title}</Text>
+        <Text style={styles.sub}>{subtitle}</Text>
       </View>
 
       <ScrollView

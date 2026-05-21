@@ -1,9 +1,13 @@
 /**
- * PaymentHistoryScreen — View payment receipts and transaction history.
- * Direction A · Mint Editorial — token-styled.
+ * PaymentHistoryScreen — view payment receipts and transaction history.
+ *
+ * Mint Editorial polish per redesign-v2 homeowner-deck "Payments &
+ * escrow" detail. Replaces the legacy ScreenHeader chrome with an
+ * inline serif "Payment history" header and standardises filter
+ * chips to the dark-ink active state used by Invoices and Reports.
  *
  * The per-row card + status helpers live in
- * `components/PaymentHistoryCard.tsx` (500-line cap).
+ * `components/PaymentHistoryCard.tsx` (untouched).
  */
 import React, { useState, useCallback } from 'react';
 import {
@@ -19,11 +23,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { ProfileStackParamList } from '../../navigation/types';
-import {
-  ScreenHeader,
-  LoadingSpinner,
-  ErrorView,
-} from '../../components/shared';
+import { LoadingSpinner, ErrorView } from '../../components/shared';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { useResponsive } from '../../hooks/useResponsive';
 import { useInfiniteQuery } from '@tanstack/react-query';
@@ -45,6 +45,17 @@ interface Props {
 const PAGE_SIZE = 20;
 
 type FilterType = 'all' | 'completed' | 'pending' | 'refunded';
+
+const COMPLETED_STATUSES = [
+  'completed',
+  'succeeded',
+  'released',
+  'release_pending',
+];
+const PENDING_STATUSES = ['pending', 'processing', 'held'];
+
+const fmtGBP = (n: number): string =>
+  `£${n.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 export const PaymentHistoryScreen: React.FC<Props> = ({ navigation }) => {
   const [refreshing, setRefreshing] = useState(false);
@@ -106,27 +117,17 @@ export const PaymentHistoryScreen: React.FC<Props> = ({ navigation }) => {
       ? allPayments
       : allPayments.filter((p) => {
           if (filter === 'completed')
-            return [
-              'completed',
-              'succeeded',
-              'released',
-              'release_pending',
-            ].includes(p.status);
-          if (filter === 'pending')
-            return ['pending', 'processing', 'held'].includes(p.status);
+            return COMPLETED_STATUSES.includes(p.status);
+          if (filter === 'pending') return PENDING_STATUSES.includes(p.status);
           if (filter === 'refunded') return p.status === 'refunded';
           return true;
         });
 
   const totalPaid = allPayments
-    .filter((p) =>
-      ['completed', 'succeeded', 'released', 'release_pending'].includes(
-        p.status
-      )
-    )
+    .filter((p) => COMPLETED_STATUSES.includes(p.status))
     .reduce((sum, p) => sum + Number(p.amount), 0);
   const totalPending = allPayments
-    .filter((p) => ['pending', 'processing', 'held'].includes(p.status))
+    .filter((p) => PENDING_STATUSES.includes(p.status))
     .reduce((sum, p) => sum + Number(p.amount), 0);
   const totalRefunded = allPayments
     .filter((p) => p.status === 'refunded')
@@ -138,7 +139,7 @@ export const PaymentHistoryScreen: React.FC<Props> = ({ navigation }) => {
     setRefreshing(false);
   }, [refetch]);
 
-  if (isLoading) return <LoadingSpinner message='Loading payment history...' />;
+  if (isLoading) return <LoadingSpinner message='Loading payment history…' />;
   if (error)
     return (
       <ErrorView message='Failed to load payment history' onRetry={refetch} />
@@ -147,32 +148,46 @@ export const PaymentHistoryScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle='dark-content' backgroundColor={me.bg} />
-      <ScreenHeader
-        title='Payment History'
-        showBack
-        onBack={() => navigation.goBack()}
-      />
 
-      {/* Stats Row */}
+      <View style={styles.topNav}>
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={() => navigation.goBack()}
+          accessibilityRole='button'
+          accessibilityLabel='Go back'
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons name='arrow-back' size={20} color={me.ink} />
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.screenHeader}>
+        <Text style={styles.eyebrow}>Payments</Text>
+        <Text style={styles.headline}>Payment history</Text>
+        <Text style={styles.sub}>
+          {allPayments.length} {allPayments.length === 1 ? 'record' : 'records'}
+        </Text>
+      </View>
+
       {allPayments.length > 0 && (
         <View style={styles.statsRow}>
           {[
             {
-              label: 'PAID',
+              label: 'Paid',
               value: totalPaid,
               iconBg: me.brandSoft,
               iconColor: me.brand,
               icon: 'checkmark-circle-outline' as const,
             },
             {
-              label: 'PENDING',
+              label: 'Pending',
               value: totalPending,
               iconBg: me.warnBg,
-              iconColor: me.accent,
+              iconColor: me.warnFg,
               icon: 'time-outline' as const,
             },
             {
-              label: 'REFUNDED',
+              label: 'Refunded',
               value: totalRefunded,
               iconBg: me.errBg,
               iconColor: me.errFg,
@@ -185,14 +200,13 @@ export const PaymentHistoryScreen: React.FC<Props> = ({ navigation }) => {
               >
                 <Ionicons name={stat.icon} size={14} color={stat.iconColor} />
               </View>
-              <Text style={styles.statValue}>£{stat.value.toFixed(2)}</Text>
-              <Text style={styles.statLabel}>{stat.label}</Text>
+              <Text style={styles.statValue}>{fmtGBP(stat.value)}</Text>
+              <Text style={styles.statLabel}>{stat.label.toUpperCase()}</Text>
             </View>
           ))}
         </View>
       )}
 
-      {/* Filter Chips */}
       <View style={styles.filterRow}>
         {(['all', 'completed', 'pending', 'refunded'] as FilterType[]).map(
           (f) => (
@@ -222,9 +236,9 @@ export const PaymentHistoryScreen: React.FC<Props> = ({ navigation }) => {
       {payments.length === 0 ? (
         <EmptyState
           icon='receipt-outline'
-          title='No Payments Yet'
+          title='No payments yet'
           subtitle='Your payment transactions will appear here.'
-          ctaLabel='Go Back'
+          ctaLabel='Go back'
           onCtaPress={() => navigation.goBack()}
         />
       ) : (
@@ -268,6 +282,44 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: me.bg,
   },
+  topNav: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    paddingTop: 4,
+    paddingBottom: 4,
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: me.bg2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  screenHeader: {
+    paddingHorizontal: 20,
+    marginTop: 6,
+    marginBottom: 14,
+  },
+  eyebrow: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: me.brand,
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
+    marginBottom: 6,
+  },
+  headline: {
+    fontFamily: me.font.display,
+    fontSize: 32,
+    color: me.ink,
+    letterSpacing: me.displayTracking,
+  },
+  sub: {
+    fontSize: 14,
+    color: me.ink3,
+    marginTop: 4,
+  },
   listContainer: {
     padding: 16,
   },
@@ -279,7 +331,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 8,
     paddingHorizontal: 16,
-    paddingTop: 12,
+    paddingTop: 8,
     paddingBottom: 4,
   },
   statCard: {
@@ -289,7 +341,7 @@ const styles = StyleSheet.create({
     padding: 12,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: me.line,
+    borderColor: me.line2,
     ...me.shadow.card,
   },
   statIconWrap: {
@@ -305,7 +357,7 @@ const styles = StyleSheet.create({
     color: me.ink3,
     fontWeight: '700',
     textTransform: 'uppercase',
-    letterSpacing: 0.3,
+    letterSpacing: 0.8,
     marginTop: 2,
   },
   statValue: {
@@ -323,14 +375,14 @@ const styles = StyleSheet.create({
   filterChip: {
     paddingHorizontal: 14,
     paddingVertical: 8,
-    borderRadius: 20,
+    borderRadius: 999,
     backgroundColor: me.surface,
     borderWidth: 1,
-    borderColor: me.line,
+    borderColor: me.line2,
   },
   filterChipActive: {
-    backgroundColor: me.brand,
-    borderColor: me.brand,
+    backgroundColor: me.ink,
+    borderColor: me.ink,
   },
   filterChipText: {
     fontSize: 13,
