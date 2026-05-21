@@ -301,18 +301,24 @@ export const POST = withApiHandler(
       );
     }
 
-    // Create Stripe refund
-    const refund = await stripe.refunds.create({
-      payment_intent: paymentIntentId,
-      amount: refundAmount,
-      reason: reason ? 'requested_by_customer' : undefined,
-      metadata: {
-        jobId,
-        escrowTransactionId,
-        requestedBy: user.id,
-        reason: reason || 'No reason provided',
+    // Create Stripe refund. Idempotency key keyed on escrow+amount+intent so
+    // retries against the same protected operation don't issue a second refund.
+    const refund = await stripe.refunds.create(
+      {
+        payment_intent: paymentIntentId,
+        amount: refundAmount,
+        reason: reason ? 'requested_by_customer' : undefined,
+        metadata: {
+          jobId,
+          escrowTransactionId,
+          requestedBy: user.id,
+          reason: reason || 'No reason provided',
+        },
       },
-    });
+      {
+        idempotencyKey: `refund_${escrowTransactionId}_${paymentIntentId}_${refundAmount}`,
+      }
+    );
 
     // Update escrow transaction with retry logic
     // CRITICAL: Stripe refund already succeeded, so DB must reflect this

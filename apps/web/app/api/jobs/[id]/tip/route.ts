@@ -99,24 +99,31 @@ export const POST = withApiHandler(
 
     const amountPence = Math.round(amount * 100);
 
-    // 3. Create the Stripe PaymentIntent (Direct Charge model)
+    // 3. Create the Stripe PaymentIntent (Direct Charge model).
+    // Idempotency key keyed on tipper+job+amount: retries return the same
+    // PaymentIntent instead of charging a second tip.
     let paymentIntent;
     try {
-      paymentIntent = await stripe.paymentIntents.create({
-        amount: amountPence,
-        currency: 'gbp',
-        capture_method: 'automatic',
-        transfer_data: {
-          destination: contractor.stripe_connect_account_id,
+      paymentIntent = await stripe.paymentIntents.create(
+        {
+          amount: amountPence,
+          currency: 'gbp',
+          capture_method: 'automatic',
+          transfer_data: {
+            destination: contractor.stripe_connect_account_id,
+          },
+          // No application_fee_amount — full tip goes to contractor.
+          metadata: {
+            type: 'job_tip',
+            job_id: jobId,
+            payer_id: user.id,
+            payee_id: contractor.id,
+          },
         },
-        // No application_fee_amount — full tip goes to contractor.
-        metadata: {
-          type: 'job_tip',
-          job_id: jobId,
-          payer_id: user.id,
-          payee_id: contractor.id,
-        },
-      });
+        {
+          idempotencyKey: `tip_${jobId}_${user.id}_${amountPence}`,
+        }
+      );
     } catch (err) {
       logger.error('Failed to create tip PaymentIntent', err, {
         service: 'job-tips',

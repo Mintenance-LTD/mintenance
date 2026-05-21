@@ -1,8 +1,25 @@
 /**
  * Idempotency Utility
  *
- * Provides idempotency key management for critical operations to prevent
- * duplicate processing of requests (e.g., payments, escrow releases, bid submissions).
+ * Claim-then-complete pattern (2026-05-21 redesign).
+ *
+ * Previous design called pg_try_advisory_lock and pg_advisory_unlock as two
+ * separate PostgREST requests; in Supabase's transaction-pool mode the unlock
+ * can hit a different backend than the lock, so locks leaked. The window
+ * between checkIdempotency and storeIdempotencyResult was effectively
+ * unprotected — two concurrent requests with the same key could both pass
+ * the cache check and both execute the protected operation.
+ *
+ * New design uses three SQL RPCs:
+ *   try_claim_idempotency_key  — atomic INSERT … ON CONFLICT DO NOTHING.
+ *                                Caller owns the operation iff it inserted.
+ *   complete_idempotency_claim — UPDATE the row to status='completed' with
+ *                                the result.
+ *   release_idempotency_claim  — DELETE a pending claim (use on failure so
+ *                                future retries can succeed).
+ *
+ * The public surface of this module (checkIdempotency / storeIdempotencyResult)
+ * is preserved; callers do not need to change.
  */
 
 import { serverSupabase } from '@/lib/api/supabaseServer';
@@ -16,14 +33,12 @@ interface IdempotencyResult<T> {
 }
 
 /**
- * Thrown when the idempotency store itself is unavailable (Postgres advisory
- * lock failure, DB error, etc.). Extends ServiceUnavailableError so the
- * existing handleAPIError pipeline returns the right 503 with a clean body.
+ * Thrown when the idempotency store itself is unavailable (RPC failure,
+ * pending-claim conflict, etc.). Extends ServiceUnavailableError so the
+ * existing handleAPIError pipeline returns the right 503.
  *
- * Sprint 5.1 (2026-04-13 remediation plan): previously checkIdempotency
- * returned null on any exception, which the payment route interpreted as
- * "no cached result, proceed" — fail-OPEN. Now any caller of checkIdempotency
- * that hits a store error sees a 503 instead of double-processing.
+ * The fail-CLOSED guarantee: a caller that hits a store error or pending-claim
+ * conflict sees a 503 instead of falling through and double-processing.
  */
 export class IdempotencyStoreUnavailableError extends ServiceUnavailableError {
   constructor(
@@ -38,208 +53,54 @@ export class IdempotencyStoreUnavailableError extends ServiceUnavailableError {
   }
 }
 
-/**
- * Distributed lock result
- */
-interface LockResult {
-  acquired: boolean;
-  lockId?: string;
+interface ClaimRow {
+  claimed: boolean;
+  is_duplicate: boolean;
+  is_pending: boolean;
+  cached_result: unknown;
+  cached_created_at: string | null;
 }
 
-/**
- * Lock timeout in milliseconds (default: 30 seconds)
- */
-const LOCK_TIMEOUT_MS = 30000;
-
-/**
- * Acquire a distributed lock using PostgreSQL advisory locks
- * Uses pg_try_advisory_lock for non-blocking lock acquisition
- *
- * @param key - Unique key to lock (will be hashed to integer)
- * @param ttl - Time to live in milliseconds (default: 30 seconds)
- * @returns Lock result with acquisition status and lock ID
- */
-async function acquireDistributedLock(
-  key: string,
-  ttl: number = LOCK_TIMEOUT_MS
-): Promise<LockResult> {
-  try {
-    // Hash the key to a 32-bit integer for PostgreSQL advisory lock
-    // Using simple hash function for demonstration
-    const lockId = hashStringToInt32(key);
-
-    // Try to acquire the lock (non-blocking)
-    const { data, error } = await serverSupabase.rpc('pg_try_advisory_lock', {
-      lock_key: lockId,
-    });
-
-    if (error) {
-      logger.error('Error acquiring distributed lock', error, {
-        service: 'idempotency',
-        key,
-        lockId,
-      });
-      return { acquired: false };
-    }
-
-    // data will be true if lock was acquired, false otherwise
-    if (data) {
-      // Set a timeout to auto-release the lock
-      setTimeout(() => {
-        releaseDistributedLock(key, lockId).catch((err) => {
-          logger.error('Error auto-releasing lock after timeout', err, {
-            service: 'idempotency',
-            key,
-            lockId,
-          });
-        });
-      }, ttl);
-
-      logger.info('Distributed lock acquired', {
-        service: 'idempotency',
-        key,
-        lockId,
-        ttl,
-      });
-
-      return { acquired: true, lockId: lockId.toString() };
-    }
-
-    logger.warn('Failed to acquire distributed lock - already held', {
-      service: 'idempotency',
-      key,
-      lockId,
-    });
-
-    return { acquired: false };
-  } catch (error) {
-    logger.error('Exception acquiring distributed lock', error, {
-      service: 'idempotency',
-      key,
-    });
-    return { acquired: false };
-  }
-}
-
-/**
- * Release a distributed lock
- *
- * @param key - The key that was locked
- * @param lockId - Optional lock ID (will be computed from key if not provided)
- */
-async function releaseDistributedLock(
-  key: string,
-  lockId?: number
-): Promise<void> {
-  try {
-    const computedLockId = lockId ?? hashStringToInt32(key);
-
-    const { error } = await serverSupabase.rpc('pg_advisory_unlock', {
-      lock_key: computedLockId,
-    });
-
-    if (error) {
-      logger.error('Error releasing distributed lock', error, {
-        service: 'idempotency',
-        key,
-        lockId: computedLockId,
-      });
-      return;
-    }
-
-    logger.info('Distributed lock released', {
-      service: 'idempotency',
-      key,
-      lockId: computedLockId,
-    });
-  } catch (error) {
-    logger.error('Exception releasing distributed lock', error, {
-      service: 'idempotency',
-      key,
-    });
-  }
-}
-
-/**
- * Hash a string to a 32-bit integer for PostgreSQL advisory locks
- * Uses a simple hash function (djb2 variant)
- */
-function hashStringToInt32(str: string): number {
-  let hash = 5381;
-  for (let i = 0; i < str.length; i++) {
-    hash = (hash * 33) ^ str.charCodeAt(i);
-  }
-  // Ensure positive 32-bit integer
-  return Math.abs(hash | 0);
-}
+const IDEMPOTENCY_TTL_HOURS = 24;
+const STALE_CLAIM_SECONDS = 60;
 
 /**
  * Check if an idempotency key has been used before.
  *
  * Returns:
- *   - { isDuplicate: true, cachedResult } when the key has already been processed
- *   - null when the key has NOT been seen (caller should proceed with the operation)
+ *   - { isDuplicate: true, cachedResult } when the key has already been
+ *     processed (completed). Caller should return this result directly
+ *     instead of executing the operation again.
+ *   - null when the key has NOT been seen (caller now owns the claim and
+ *     should proceed with the operation, then call storeIdempotencyResult).
  *
- * Throws `IdempotencyStoreUnavailableError` when the store itself is down
- * (Postgres exception, advisory lock contention that exceeds retry, etc.).
- * Sprint 5.1 made this fail-CLOSED: previously this function returned null on
- * any exception, which the payment route interpreted as "no cached result,
- * proceed" — creating a duplicate payment risk during transient DB issues.
+ * Throws `IdempotencyStoreUnavailableError` when:
+ *   - the RPC errored,
+ *   - another request is currently processing this key (pending claim
+ *     within the stale-claim TTL).
  *
- * Callers in payment / escrow paths MUST catch the error and return 503 to the
- * client instead of falling through to the side-effect operation.
+ * The boolean useLocking parameter is retained for backwards compatibility
+ * with existing callers but no longer needed — atomicity is enforced by
+ * INSERT … ON CONFLICT DO NOTHING inside the RPC, so locking happens
+ * transparently. Passing false disables nothing; the parameter is ignored.
  */
 export async function checkIdempotency<T>(
   idempotencyKey: string,
   operation: string,
-  useLocking: boolean = true
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  _useLocking: boolean = true
 ): Promise<IdempotencyResult<T> | null> {
-  let lockId: number | undefined;
-
-  try {
-    // Acquire distributed lock to prevent concurrent processing
-    if (useLocking) {
-      const lockResult = await acquireDistributedLock(
-        `idempotency:${operation}:${idempotencyKey}`,
-        LOCK_TIMEOUT_MS
-      );
-
-      if (!lockResult.acquired) {
-        // Lock not acquired - another request is processing this key.
-        // Wait briefly and try to read the cached result it may have written.
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-
-        const cachedCheck = await getCachedIdempotencyResult<T>(
-          idempotencyKey,
-          operation
-        );
-        if (cachedCheck) {
-          return cachedCheck;
-        }
-
-        // Lock contention with no cached result is a fail-closed condition:
-        // we cannot prove this is a new request OR a duplicate. Throwing
-        // forces the caller to return 503 instead of double-processing.
-        logger.warn(
-          'Idempotency lock contention with no cached result — failing closed',
-          { service: 'idempotency', idempotencyKey, operation }
-        );
-        throw new IdempotencyStoreUnavailableError(
-          'Idempotency store is busy; another request holds the lock for this key',
-          idempotencyKey,
-          operation
-        );
-      }
-
-      lockId = lockResult.lockId ? parseInt(lockResult.lockId) : undefined;
+  const { data, error } = await serverSupabase.rpc(
+    'try_claim_idempotency_key',
+    {
+      p_idempotency_key: idempotencyKey,
+      p_operation: operation,
+      p_stale_after_seconds: STALE_CLAIM_SECONDS,
     }
+  );
 
-    return await getCachedIdempotencyResult<T>(idempotencyKey, operation);
-  } catch (error) {
-    if (error instanceof IdempotencyStoreUnavailableError) {
-      throw error;
-    }
-    logger.error('Exception checking idempotency — failing closed', error, {
+  if (error) {
+    logger.error('Idempotency claim RPC failed — failing closed', error, {
       service: 'idempotency',
       idempotencyKey,
       operation,
@@ -250,81 +111,90 @@ export async function checkIdempotency<T>(
       operation,
       error
     );
-  } finally {
-    if (useLocking && lockId !== undefined) {
-      await releaseDistributedLock(
-        `idempotency:${operation}:${idempotencyKey}`,
-        lockId
-      );
-    }
   }
-}
 
-/**
- * Internal function to get cached idempotency result.
- *
- * Returns null when the key is not found (new request).
- * Throws IdempotencyStoreUnavailableError on any other DB error so the
- * caller fails closed instead of treating a transient error as "new request".
- */
-async function getCachedIdempotencyResult<T>(
-  idempotencyKey: string,
-  operation: string
-): Promise<IdempotencyResult<T> | null> {
-  const { data, error } = await serverSupabase
-    .from('idempotency_keys')
-    .select('result, created_at')
-    .eq('idempotency_key', idempotencyKey)
-    .eq('operation', operation)
-    .single();
+  const row = (Array.isArray(data) ? data[0] : data) as ClaimRow | undefined;
+  if (!row) {
+    logger.error(
+      'Idempotency claim RPC returned no row — failing closed',
+      null,
+      {
+        service: 'idempotency',
+        idempotencyKey,
+        operation,
+      }
+    );
+    throw new IdempotencyStoreUnavailableError(
+      'Idempotency store returned no row',
+      idempotencyKey,
+      operation
+    );
+  }
 
-  if (error) {
-    if (error.code === 'PGRST116') {
-      // Key doesn't exist - this is a new request
-      return null;
+  if (row.claimed) {
+    // We own the operation. Caller proceeds.
+    return null;
+  }
+
+  if (row.is_duplicate) {
+    // Completed previously. Honour 24h TTL: expired entries are treated as
+    // a new request (caller proceeds, but we have NOT re-claimed). To keep
+    // this safe, return null only if a fresh claim can be made.
+    if (row.cached_created_at) {
+      const ageMinutes =
+        (Date.now() - new Date(row.cached_created_at).getTime()) / 60000;
+      if (ageMinutes > IDEMPOTENCY_TTL_HOURS * 60) {
+        logger.warn('Idempotency key expired — treating as new request', {
+          service: 'idempotency',
+          idempotencyKey,
+          operation,
+          ageMinutes,
+        });
+        // Drop the stale row so the next claim can succeed atomically.
+        await serverSupabase.rpc('release_idempotency_claim', {
+          p_idempotency_key: idempotencyKey,
+          p_operation: operation,
+        });
+        return checkIdempotency<T>(idempotencyKey, operation);
+      }
     }
-    logger.error('Error reading idempotency_keys — failing closed', error, {
+    return {
+      isDuplicate: true,
+      cachedResult: row.cached_result as T,
+      idempotencyKey,
+    };
+  }
+
+  if (row.is_pending) {
+    // Another request is in flight (within stale-claim TTL).
+    logger.warn('Idempotency key is held by an in-flight request', {
       service: 'idempotency',
       idempotencyKey,
       operation,
     });
     throw new IdempotencyStoreUnavailableError(
-      `Failed to read idempotency_keys: ${error.message}`,
+      'Another request is currently processing this idempotency key',
       idempotencyKey,
-      operation,
-      error
+      operation
     );
   }
 
-  if (data) {
-    // Key exists - this is a duplicate request
-    const cachedResult = data.result as T;
-    const createdAt = new Date(data.created_at);
-    const ageMinutes = (Date.now() - createdAt.getTime()) / (1000 * 60);
-
-    // Idempotency keys expire after 24 hours
-    if (ageMinutes > 24 * 60) {
-      logger.warn('Idempotency key expired, treating as new request', {
-        service: 'idempotency',
-        idempotencyKey,
-        operation,
-        ageMinutes,
-      });
-      return null;
-    }
-
-    return {
-      isDuplicate: true,
-      cachedResult,
-      idempotencyKey,
-    };
-  }
-
-  return null;
+  // Defensive: unreachable.
+  throw new IdempotencyStoreUnavailableError(
+    'Idempotency store returned an unexpected state',
+    idempotencyKey,
+    operation
+  );
 }
 
 /**
- * Store idempotency key with result
+ * Mark a claim 'completed' and persist the result. Safe to call multiple
+ * times — only the first call (against a 'pending' row) updates.
+ *
+ * If the underlying row doesn't exist (e.g., expired and cleaned up between
+ * claim and store), the missing-row case is treated as success since the
+ * intent — make this operation result visible to retries — cannot be met
+ * without the row anyway. Caller has already done the work; logging only.
  */
 export async function storeIdempotencyResult<T>(
   idempotencyKey: string,
@@ -333,35 +203,28 @@ export async function storeIdempotencyResult<T>(
   userId?: string,
   metadata?: Record<string, unknown>
 ): Promise<void> {
-  try {
-    const { error } = await serverSupabase.from('idempotency_keys').insert({
-      idempotency_key: idempotencyKey,
-      operation,
-      result,
-      user_id: userId || null,
-      metadata: metadata || null,
-      created_at: new Date().toISOString(),
-    });
-
-    if (error) {
-      // If it's a unique constraint violation, that's okay - means another request already stored it
-      if (error.code === '23505') {
-        logger.warn('Idempotency key already exists (race condition)', {
-          service: 'idempotency',
-          idempotencyKey,
-          operation,
-        });
-        return;
-      }
-
-      logger.error('Error storing idempotency result', error, {
-        service: 'idempotency',
-        idempotencyKey,
-        operation,
-      });
+  const { data, error } = await serverSupabase.rpc(
+    'complete_idempotency_claim',
+    {
+      p_idempotency_key: idempotencyKey,
+      p_operation: operation,
+      p_result: result as unknown,
+      p_user_id: userId ?? null,
+      p_metadata: metadata ?? null,
     }
-  } catch (error) {
-    logger.error('Exception storing idempotency result', error, {
+  );
+
+  if (error) {
+    logger.error('Idempotency completion RPC failed', error, {
+      service: 'idempotency',
+      idempotencyKey,
+      operation,
+    });
+    return;
+  }
+
+  if (data === false) {
+    logger.warn('Idempotency completion updated zero rows', {
       service: 'idempotency',
       idempotencyKey,
       operation,
@@ -370,8 +233,31 @@ export async function storeIdempotencyResult<T>(
 }
 
 /**
- * Generate an idempotency key for an operation
+ * Drop a pending claim so future retries can succeed. Call this when the
+ * protected operation FAILED and you want the next request with the same
+ * key to be allowed to retry from scratch instead of inheriting a stale
+ * 'pending' row.
+ *
+ * Note: callers that don't call this on failure are still protected — the
+ * row will be auto-recovered after STALE_CLAIM_SECONDS by the next claim.
  */
+export async function releaseIdempotencyClaim(
+  idempotencyKey: string,
+  operation: string
+): Promise<void> {
+  const { error } = await serverSupabase.rpc('release_idempotency_claim', {
+    p_idempotency_key: idempotencyKey,
+    p_operation: operation,
+  });
+  if (error) {
+    logger.error('Idempotency release RPC failed', error, {
+      service: 'idempotency',
+      idempotencyKey,
+      operation,
+    });
+  }
+}
+
 function generateIdempotencyKey(
   operation: string,
   userId: string,
@@ -389,11 +275,11 @@ function generateIdempotencyKey(
     .filter(Boolean)
     .join('_');
 
-  return `${parts}`.substring(0, 255); // Ensure it fits in database
+  return `${parts}`.substring(0, 255);
 }
 
 /**
- * Extract idempotency key from request headers or generate new one
+ * Extract idempotency key from request headers or generate new one.
  */
 export function getIdempotencyKeyFromRequest(
   request: Request,
@@ -401,12 +287,9 @@ export function getIdempotencyKeyFromRequest(
   userId: string,
   resourceId?: string
 ): string {
-  // Check for idempotency key in header (client can provide one)
   const headerKey = request.headers.get('idempotency-key');
   if (headerKey && headerKey.length > 0 && headerKey.length <= 255) {
     return headerKey;
   }
-
-  // Generate one based on request content
   return generateIdempotencyKey(operation, userId, resourceId);
 }
