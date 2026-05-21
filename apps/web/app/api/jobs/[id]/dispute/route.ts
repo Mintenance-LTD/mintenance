@@ -143,10 +143,13 @@ export const POST = withApiHandler(
 
     // Specific notification to contractor about the dispute
     try {
+      // 2026-05-21 Mint Editorial voice — dispute is a heavy moment;
+      // calm, factual, action-led. Funds-held line reassures the
+      // contractor that payment isn't gone, just paused.
       await NotificationService.createNotification({
         userId: contractorId,
-        title: 'Job Disputed',
-        message: `The homeowner has disputed the work on "${job.title || 'your job'}". Category: ${category}. Please review and respond.`,
+        title: `${job.title || 'A job'} — dispute opened`,
+        message: `Funds stay held while we mediate (48-hour SLA). Open the job to read the issue and respond.`,
         type: 'job_disputed',
         actionUrl: `/contractor/jobs/${jobId}`,
       });

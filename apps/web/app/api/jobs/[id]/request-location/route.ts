@@ -42,11 +42,13 @@ export const POST = withApiHandler(
     // 2026-05-01 audit follow-up: route through NotificationService so the
     // contractor actually gets the push (this was previously dropping push
     // + ignoring the user's notification preferences).
+    // 2026-05-21 Mint Editorial voice — frame as an ask, not a demand;
+    // optional language preserves contractor agency.
     await NotificationService.createNotification({
       userId: job.contractor_id,
       type: 'location_sharing_request',
-      title: 'Location Sharing Request',
-      message: `Homeowner has requested to track your location for "${job.title || 'the job'}". Enable location sharing to allow tracking.`,
+      title: `Homeowner asked if they can follow you in`,
+      message: `Optional — turn on location sharing for ${job.title || 'the job'} and they'll see when you're close.`,
       actionUrl: `/contractor/jobs/${jobId}`,
       metadata: { jobId, event: 'location_request' },
     });

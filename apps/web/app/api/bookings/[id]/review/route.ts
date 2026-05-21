@@ -103,10 +103,12 @@ export const POST = withApiHandler(
     }
 
     try {
+      // 2026-05-21 Mint Editorial voice — reviews are warm moments.
+      const stars = '★'.repeat(rating);
       await NotificationService.createNotification({
         userId: revieweeId,
-        title: 'New Review',
-        message: `You received a ${rating}-star review for "${job.title}"`,
+        title: `${stars} review on ${job.title}`,
+        message: `Tap to read it and reply if you want to.`,
         type: 'review',
         actionUrl: isHomeowner ? `/contractor/reviews` : `/jobs/${jobId}`,
       });

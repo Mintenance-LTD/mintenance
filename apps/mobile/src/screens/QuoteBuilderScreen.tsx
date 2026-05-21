@@ -190,11 +190,14 @@ export const QuoteBuilderScreen: React.FC<QuoteBuilderScreenProps> = ({
         (navigation.navigate as (...args: unknown[]) => void)('QuoteTemplates'),
     },
     {
-      icon: 'analytics' as const,
-      label: 'Analytics',
-      iconColor: '#8B5CF6',
-      iconBg: '#EDE9FE',
-      onPress: () => setShowAnalytics((prev) => !prev),
+      // 2026-05-21 (Mint Editorial · Quick quote): on-site walk-up
+      // estimate. Slimmer than CreateQuote — gloves-on use case.
+      icon: 'flash' as const,
+      label: 'Quick quote',
+      iconColor: me.accent,
+      iconBg: '#FBE9CB',
+      onPress: () =>
+        (navigation.navigate as (...args: unknown[]) => void)('QuickQuote'),
     },
     {
       icon: 'add-circle' as const,

@@ -8,13 +8,7 @@
  * auto-release SLA is called out explicitly so the homeowner knows
  * inaction is fine.
  */
-import {
-  escapeHtml,
-  year,
-  emailShell,
-  mintEmailShell,
-  MINT_BRAND_GREEN,
-} from './shared';
+import { escapeHtml, year, mintEmailShell, MINT_BRAND_GREEN } from './shared';
 import type {
   JobStartedData,
   JobCompletedData,

@@ -166,6 +166,7 @@ export type ProfileStackParamList = {
   ServiceAreas: undefined;
   QuoteBuilder: undefined;
   CreateQuote: { jobId?: string };
+  QuickQuote: { jobId?: string; clientName?: string; clientPhone?: string };
   ContractorCardEditor: undefined;
   ContractorVerification: undefined;
   BusinessProfile: undefined;
@@ -249,6 +250,7 @@ export type ModalStackParamList = {
   // library picker. Takes no params.
   SelfieCapture: undefined;
   CreateQuote: { jobId?: string };
+  QuickQuote: { jobId?: string; clientName?: string; clientPhone?: string };
   MeetingSchedule: {
     contractorId: string;
     contractorName?: string;

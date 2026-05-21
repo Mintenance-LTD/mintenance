@@ -129,11 +129,17 @@ export const POST = withApiHandler(
     // column — the insert silently failed in prod, and owners were never
     // informed that tenants had submitted reports. Routing through the
     // service also respects the owner's push / quiet-hours preferences.
+    // 2026-05-21 Mint Editorial voice — name the issue category in the
+    // title so the owner knows whether to act immediately.
+    const categoryLabel = safeCategory.replace(/_/g, ' ');
     await NotificationService.createNotification({
       userId: tokenRecord.owner_id,
       type: 'tenant_report',
-      title: 'New Tenant Report',
-      message: `A maintenance issue has been reported at your property: ${safeCategory.replace(/_/g, ' ')}`,
+      title: `Tenant flagged ${categoryLabel} at your property`,
+      message:
+        safeUrgency === 'emergency' || safeUrgency === 'high'
+          ? `Urgent — tap to review and post a job.`
+          : `Tap to review and post a job.`,
       actionUrl: `/property-manager/reports/${report.id}`,
       metadata: {
         report_id: report.id,

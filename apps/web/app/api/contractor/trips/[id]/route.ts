@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
-import { BadRequestError, NotFoundError, ForbiddenError } from '@/lib/errors/api-error';
+import {
+  BadRequestError,
+  NotFoundError,
+  ForbiddenError,
+} from '@/lib/errors/api-error';
 import { logger } from '@mintenance/shared';
 import { z } from 'zod';
 import { validateRequest } from '@/lib/validation/validator';
@@ -41,13 +45,16 @@ export const PATCH = withApiHandler(
     };
 
     if (!validTransitions[trip.status]?.includes(status)) {
-      throw new BadRequestError(`Cannot transition from '${trip.status}' to '${status}'`);
+      throw new BadRequestError(
+        `Cannot transition from '${trip.status}' to '${status}'`
+      );
     }
 
     // Update trip
     const updateData: Record<string, unknown> = { status };
     if (status === 'arrived') updateData.arrived_at = new Date().toISOString();
-    if (status === 'completed') updateData.completed_at = new Date().toISOString();
+    if (status === 'completed')
+      updateData.completed_at = new Date().toISOString();
 
     const { data: updatedTrip, error: updateError } = await serverSupabase
       .from('contractor_trips')
@@ -85,20 +92,26 @@ export const PATCH = withApiHandler(
       .eq('id', user.id)
       .single();
     const contractorName = contractor
-      ? `${contractor.first_name} ${contractor.last_name}`.trim() || contractor.company_name || 'Your contractor'
+      ? `${contractor.first_name} ${contractor.last_name}`.trim() ||
+        contractor.company_name ||
+        'Your contractor'
       : 'Your contractor';
 
     const homeownerId = trip.job?.homeowner_id;
     const jobTitle = trip.job?.title;
 
-    // Notify homeowner on arrival
+    // Notify homeowner on arrival — Mint Editorial voice (2026-05-21).
     if (status === 'arrived' && homeownerId) {
       await NotificationService.createNotification({
         userId: homeownerId,
         type: 'contractor_arrived',
-        title: 'Contractor Has Arrived',
-        message: `${contractorName} has arrived${jobTitle ? ` for "${jobTitle}"` : ''}.`,
-        metadata: { tripId: updatedTrip.id, jobId: trip.job_id, contractorId: user.id },
+        title: `${contractorName} is here`,
+        message: jobTitle ? `On site for ${jobTitle}.` : `On site.`,
+        metadata: {
+          tripId: updatedTrip.id,
+          jobId: trip.job_id,
+          contractorId: user.id,
+        },
       });
     }
 
@@ -112,23 +125,31 @@ export const PATCH = withApiHandler(
           .is('deleted_at', null);
 
         if (admins && admins.length > 0) {
-          await Promise.all(admins.map(admin =>
-            NotificationService.createNotification({
-              userId: admin.id,
-              type: 'contractor_arrived',
-              title: 'Contractor Arrived',
-              message: `${contractorName} arrived at ${jobTitle || 'appointment location'}`,
-              metadata: { tripId: updatedTrip.id, jobId: trip.job_id, contractorId: user.id },
-            }),
-          ));
+          await Promise.all(
+            admins.map((admin) =>
+              NotificationService.createNotification({
+                userId: admin.id,
+                type: 'contractor_arrived',
+                title: `${contractorName} arrived`,
+                message: `On site at ${jobTitle || 'appointment location'}`,
+                metadata: {
+                  tripId: updatedTrip.id,
+                  jobId: trip.job_id,
+                  contractorId: user.id,
+                },
+              })
+            )
+          );
         }
       } catch (adminErr) {
-        logger.error('Failed to notify admins of arrival', adminErr, { service: 'trips' });
+        logger.error('Failed to notify admins of arrival', adminErr, {
+          service: 'trips',
+        });
       }
     }
 
     return NextResponse.json({ trip: updatedTrip });
-  },
+  }
 );
 
 /**
@@ -142,7 +163,9 @@ export const GET = withApiHandler(
 
     const { data: trip, error } = await serverSupabase
       .from('contractor_trips')
-      .select('*, job:jobs!job_id(id, title, homeowner_id, latitude, longitude)')
+      .select(
+        '*, job:jobs!job_id(id, title, homeowner_id, latitude, longitude)'
+      )
       .eq('id', resolvedParams.id)
       .single();
 
@@ -158,5 +181,5 @@ export const GET = withApiHandler(
     }
 
     return NextResponse.json({ trip });
-  },
+  }
 );

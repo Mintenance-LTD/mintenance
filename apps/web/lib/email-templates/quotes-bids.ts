@@ -5,7 +5,7 @@
  * contractor name + rating + job count + earliest-available framing,
  * no emoji, calm paper-and-mint palette via `mintEmailShell`.
  */
-import { escapeHtml, year, emailShell, mintEmailShell } from './shared';
+import { escapeHtml, year, mintEmailShell } from './shared';
 import type {
   QuoteEmailData,
   BidEmailData,
@@ -19,26 +19,19 @@ export function quoteNotificationTemplate(data: QuoteEmailData): {
   text: string;
 } {
   const e = escapeHtml;
-  const color = '#2563eb';
-  const extra = `.button{display:inline-block;background-color:${color};color:white;padding:12px 24px;text-decoration:none;border-radius:6px;margin-top:20px}`;
-  const html = emailShell(
-    color,
-    extra,
-    `<h1>New Quote Received</h1>`,
+  const fmtAmount = `£${data.totalAmount.toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+  const subject = `${data.contractorName} sent you a ${fmtAmount} quote.`;
+  const preview = `Quote ${data.quoteNumber} — line items + total inside.`;
+  const html = mintEmailShell(
+    subject,
+    preview,
     `<p>Hi ${e(data.recipientName)},</p>
-     <p><strong>${e(data.contractorName)}</strong> has sent you a new quote.</p>
-     <p><strong>Quote Number:</strong> ${e(data.quoteNumber)}</p>
-     <p><strong>Total Amount:</strong> £${data.totalAmount.toFixed(2)}</p>
-     <a href="${e(data.viewUrl)}" class="button">View Quote</a>
-     <p style="margin-top:30px">Log in to your Mintenance account to review the full details and accept or decline the quote.</p>`,
-    `<p>&copy; ${year()} Mintenance ltd. All rights reserved.</p>`
+     <p><strong>${e(data.contractorName)}</strong> has sent you a quote — <strong>${fmtAmount}</strong> against <strong>${e(data.quoteNumber)}</strong>. Open it to see the line items and accept or decline.</p>
+     <a href="${e(data.viewUrl)}" class="cta">View the quote →</a>`,
+    `<p>&copy; ${year()} Mintenance Ltd.</p>`
   );
-  const text = `Hi ${data.recipientName},\n\n${data.contractorName} has sent you a new quote.\n\nQuote Number: ${data.quoteNumber}\nTotal Amount: £${data.totalAmount.toFixed(2)}\n\nView your quote here: ${data.viewUrl}\n\nLog in to review the full details and accept or decline the quote.\n\n© ${year()} Mintenance.`;
-  return {
-    subject: `New Quote from ${data.contractorName} - ${data.quoteNumber}`,
-    html,
-    text,
-  };
+  const text = `Hi ${data.recipientName},\n\n${data.contractorName} sent you a quote — ${fmtAmount} (${data.quoteNumber}).\n\nView and decide: ${data.viewUrl}\n\n© ${year()} Mintenance Ltd.`;
+  return { subject, html, text };
 }
 
 export function bidNotificationTemplate(data: BidEmailData): {
@@ -72,24 +65,18 @@ export function connectionRequestTemplate(data: ConnectionRequestEmailData): {
   text: string;
 } {
   const e = escapeHtml;
-  const color = '#8b5cf6';
-  const extra = `.button{display:inline-block;background-color:${color};color:white;padding:12px 24px;text-decoration:none;border-radius:6px;margin-top:20px}`;
-  const html = emailShell(
-    color,
-    extra,
-    `<h1>New Connection Request</h1>`,
+  const subject = `${data.requesterName} (${data.requesterRole}) wants to connect.`;
+  const preview = `Future jobs will route to them first — tap to accept or decline.`;
+  const html = mintEmailShell(
+    subject,
+    preview,
     `<p>Hi ${e(data.recipientName)},</p>
-     <p><strong>${e(data.requesterName)}</strong> (${e(data.requesterRole)}) wants to connect with you on Mintenance.</p>
-     <a href="${e(data.acceptUrl)}" class="button">View Request</a>
-     <p style="margin-top:30px">Building connections helps you grow your network and find more opportunities.</p>`,
-    `<p>&copy; ${year()} Mintenance ltd. All rights reserved.</p>`
+     <p><strong>${e(data.requesterName)}</strong> — ${e(data.requesterRole)} — wants to connect with you on Mintenance. Once you accept, future jobs from them will route to you first.</p>
+     <a href="${e(data.acceptUrl)}" class="cta">View the request →</a>`,
+    `<p>&copy; ${year()} Mintenance Ltd.</p>`
   );
-  const text = `Hi ${data.recipientName},\n\n${data.requesterName} (${data.requesterRole}) wants to connect with you on Mintenance.\n\nView the request here: ${data.acceptUrl}\n\nBuilding connections helps you grow your network.\n\n© ${year()} Mintenance.`;
-  return {
-    subject: `${data.requesterName} wants to connect with you`,
-    html,
-    text,
-  };
+  const text = `Hi ${data.recipientName},\n\n${data.requesterName} (${data.requesterRole}) wants to connect with you on Mintenance. Once you accept, future jobs from them will route to you first.\n\nView: ${data.acceptUrl}\n\n© ${year()} Mintenance Ltd.`;
+  return { subject, html, text };
 }
 
 export function quoteAcceptedTemplate(
@@ -98,17 +85,17 @@ export function quoteAcceptedTemplate(
   amount: number
 ): { subject: string; html: string } {
   const e = escapeHtml;
-  const color = '#10b981';
-  const html = emailShell(
-    color,
-    '',
-    `<h1>🎉 Quote Accepted!</h1>`,
-    `<p>Great news!</p>
-     <p><strong>${e(homeownerName)}</strong> has accepted your quote <strong>${e(quoteNumber)}</strong> for <strong>£${amount.toFixed(2)}</strong>.</p>
-     <p>Log in to your Mintenance account to coordinate the next steps with your client.</p>`,
-    `<p>&copy; ${year()} Mintenance ltd. All rights reserved.</p>`
+  const fmtAmount = `£${amount.toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+  const subject = `${homeownerName} accepted ${quoteNumber} — ${fmtAmount}.`;
+  const preview = `Confirm the start date and you're on.`;
+  const html = mintEmailShell(
+    subject,
+    preview,
+    `<p><strong>${e(homeownerName)}</strong> accepted your quote <strong>${e(quoteNumber)}</strong> for <strong>${fmtAmount}</strong>.</p>
+     <p>Open your dashboard to confirm the start date and coordinate the next steps.</p>`,
+    `<p>&copy; ${year()} Mintenance Ltd.</p>`
   );
-  return { subject: `Quote Accepted - ${quoteNumber}`, html };
+  return { subject, html };
 }
 
 export function bidAcceptedTemplate(

@@ -78,11 +78,12 @@ export const POST = withApiHandler({ csrf: false }, async (req, { user }) => {
   // nonexistent `data` column — the entire INSERT was rejected, so
   // owners never got the "tenant accepted" notification.
   if (property?.owner_id) {
+    // 2026-05-21 Mint Editorial voice.
     await NotificationService.createNotification({
       userId: property.owner_id,
       type: 'tenant_accepted',
-      title: 'Tenant Accepted Invitation',
-      message: `${tenant.name} has accepted your invitation and joined ${property.address || property.name || 'your property'} on Mintenance.`,
+      title: `${tenant.name} joined ${property.address || property.name || 'your property'}`,
+      message: `They can now report issues directly — you'll be in the loop on every job.`,
       actionUrl: `/properties/${tenant.property_id}`,
       metadata: { property_id: tenant.property_id, tenant_id: tenant.id },
     });

@@ -21,6 +21,7 @@ import {
   SafeServiceAreasScreen,
   SafeQuoteBuilderScreen,
   SafeCreateQuoteScreen,
+  SafeQuickQuoteScreen,
   SafeQuoteDetailScreen,
   SafeQuoteTemplatesScreen,
   SafeContractorCardEditorScreen,
@@ -426,6 +427,11 @@ const BusinessNavigator = () => {
       <BusinessStack.Screen
         name='CreateQuote'
         component={SafeCreateQuoteScreen}
+        options={{ presentation: 'modal' }}
+      />
+      <BusinessStack.Screen
+        name='QuickQuote'
+        component={SafeQuickQuoteScreen}
         options={{ presentation: 'modal' }}
       />
       <BusinessStack.Screen

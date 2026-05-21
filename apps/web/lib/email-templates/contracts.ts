@@ -5,7 +5,7 @@
  * loaded moment — homeowner is asked to sign a real payment commitment.
  * Tone is calm, names the protection up-front, no marketing language.
  */
-import { escapeHtml, year, emailShell, mintEmailShell } from './shared';
+import { escapeHtml, year, mintEmailShell } from './shared';
 import type { ContractNotificationData, ContractSignedData } from './types';
 
 export function contractNotificationTemplate(data: ContractNotificationData): {

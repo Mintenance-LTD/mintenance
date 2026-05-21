@@ -165,11 +165,14 @@ export const GET = withApiHandler(
           (n) => n.id === `quote-viewed-${quote.id}`
         );
         if (!existingNotif) {
+          // 2026-05-21 Mint Editorial voice — name the client first.
+          const clientLabel = quote.client_name || 'A client';
+          const quoteLabel = quote.title || quote.quote_number || 'your quote';
           realTimeNotifications.push({
             id: `quote-viewed-${quote.id}`,
             type: 'quote_viewed',
-            title: 'Quote Viewed',
-            message: `${quote.client_name || 'A client'} viewed your quote "${quote.title || quote.quote_number || 'Untitled'}"`,
+            title: `${clientLabel} opened ${quoteLabel}`,
+            message: `Now's a good time to nudge them.`,
             read: false,
             created_at: quote.viewed_at || new Date().toISOString(),
             action_url: `/contractor/quotes/${quote.id}`,
@@ -197,11 +200,15 @@ export const GET = withApiHandler(
           (n) => n.id === `quote-accepted-${quote.id}`
         );
         if (!existingNotif) {
+          // 2026-05-21 Mint Editorial voice — no emoji, amount in title.
+          const clientLabel = quote.client_name || 'A client';
+          const quoteLabel = quote.title || quote.quote_number || 'your quote';
+          const fmtAmount = `£${parseFloat(String(quote.total_amount || 0)).toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
           realTimeNotifications.push({
             id: `quote-accepted-${quote.id}`,
             type: 'quote_accepted',
-            title: 'Quote Accepted! 🎉',
-            message: `${quote.client_name || 'A client'} accepted your quote "${quote.title || quote.quote_number || 'Untitled'}" for £${parseFloat(String(quote.total_amount || 0)).toFixed(2)}`,
+            title: `${clientLabel} accepted ${quoteLabel} — ${fmtAmount}`,
+            message: `Confirm the start date and you're on.`,
             read: false,
             created_at: quote.accepted_at || new Date().toISOString(),
             action_url: `/contractor/quotes/${quote.id}`,
@@ -291,11 +298,13 @@ export const GET = withApiHandler(
             ? `/messages/${jobId}?userId=${msg.sender_id}&userName=${encodeURIComponent(senderName)}&jobTitle=Job`
             : '/messages';
 
+          // 2026-05-21 Mint Editorial voice — sender as title, body is
+          // the message preview itself (matches WhatsApp/iMessage feel).
           realTimeNotifications.push({
             id: `msg-${msg.id}`,
             type: 'message_received',
-            title: 'New Message',
-            message: `${senderName}: ${messageContent.substring(0, 80)}${messageContent.length > 80 ? '...' : ''}`,
+            title: senderName,
+            message: `${messageContent.substring(0, 100)}${messageContent.length > 100 ? '…' : ''}`,
             read: false,
             created_at: msg.created_at || new Date().toISOString(),
             action_url: actionUrl,
@@ -337,11 +346,16 @@ export const GET = withApiHandler(
             (startDate.getTime() - now.getTime()) / (1000 * 60 * 60)
           );
 
+          // 2026-05-21 Mint Editorial voice — when in the title, advice in body.
+          const startsIn =
+            hoursUntil === 0
+              ? 'today'
+              : `in ${hoursUntil} hour${hoursUntil !== 1 ? 's' : ''}`;
           realTimeNotifications.push({
             id: `project-reminder-${job.id}`,
             type: 'project_reminder',
-            title: 'Project Reminder',
-            message: `"${job.title || 'Untitled Project'}" starts ${hoursUntil === 0 ? 'today' : `in ${hoursUntil} hour${hoursUntil !== 1 ? 's' : ''}`}`,
+            title: `${job.title || 'Project'} starts ${startsIn}`,
+            message: `Time to load the van — check parking + access on the job thread.`,
             read: false,
             created_at: job.scheduled_start_date || new Date().toISOString(),
             action_url: `/jobs/${job.id}`,

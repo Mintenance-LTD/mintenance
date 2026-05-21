@@ -295,11 +295,13 @@ export const POST = withApiHandler(
             // doesn't exist on notifications — PostgREST rejects the
             // whole INSERT, so invoice-received notifications never
             // reached homeowners.
+            // 2026-05-21 Mint Editorial voice — amount-led title.
+            const fmtAmount = `£${Number(totalAmount).toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
             await NotificationService.createNotification({
               userId: job.homeowner_id,
               type: 'invoice_received',
-              title: 'New Invoice Received',
-              message: `You have received an invoice (${invoiceNumber}) for ${validatedData.title}`,
+              title: `${fmtAmount} invoice — ${validatedData.title}`,
+              message: `Open ${invoiceNumber} to review the line items and pay.`,
               actionUrl: `/jobs/${validatedData.jobId}`,
               metadata: {
                 invoice_id: invoice.id,
