@@ -4,14 +4,14 @@ import { me } from '../../design-system/mint-editorial';
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: me.bg2,
+    backgroundColor: me.bg,
   },
   centered: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
-    backgroundColor: me.bg2,
+    backgroundColor: me.bg,
   },
   loadingText: {
     marginTop: 12,
@@ -51,23 +51,49 @@ export const styles = StyleSheet.create({
     color: me.onBrand,
     fontWeight: '600',
   },
+  // Top nav strip — minimal back + PDF + status pill.
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: me.line,
-    backgroundColor: me.surface,
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    paddingBottom: 4,
+    backgroundColor: me.bg,
   },
   backButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  // Spacer between back button and the right-aligned actions.
+  headerSpacer: { flex: 1 },
+  // Mint Editorial inline header (eyebrow + serif title), rendered
+  // *inside* the scroll body so it feels like part of the document
+  // rather than a chrome bar.
+  screenHeader: {
+    paddingHorizontal: 4,
+    marginTop: 6,
+    marginBottom: 20,
+  },
+  eyebrow: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: me.brand,
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
+    marginBottom: 6,
+  },
+  headline: {
+    fontFamily: me.font.display,
+    fontSize: 32,
+    color: me.ink,
+    letterSpacing: me.displayTracking,
+  },
+  // Retained for backwards compat with downstream readers — no longer
+  // referenced by the new layout.
   headerTitle: {
     flex: 1,
     fontSize: 18,
@@ -153,22 +179,29 @@ export const styles = StyleSheet.create({
   },
   amountCard: {
     backgroundColor: me.surface,
-    borderRadius: 16,
-    padding: 20,
-    alignItems: 'center',
+    borderRadius: 18,
+    paddingVertical: 22,
+    paddingHorizontal: 20,
     marginBottom: 20,
+    borderWidth: 1,
+    borderColor: me.line2,
     ...me.shadow.card,
   },
   amountLabel: {
-    fontSize: 13,
-    color: me.ink2,
-    fontWeight: '500',
-    marginBottom: 4,
-  },
-  amountValue: {
-    fontSize: 36,
+    fontSize: 11,
+    color: me.ink3,
     fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 1.4,
+    marginBottom: 6,
+  },
+  // Serif treatment — matches the editorial direction set by the
+  // Finance / Escrow / Payouts hero cards.
+  amountValue: {
+    fontFamily: me.font.display,
+    fontSize: 36,
     color: me.ink,
+    letterSpacing: me.displayTracking,
   },
   draftBanner: {
     flexDirection: 'row',
@@ -184,13 +217,13 @@ export const styles = StyleSheet.create({
   },
   draftBannerTitle: {
     fontSize: 14,
-    fontWeight: '600',
-    color: '#92400E',
+    fontWeight: '700',
+    color: me.warnFg,
     marginBottom: 4,
   },
   draftBannerText: {
     fontSize: 13,
-    color: '#92400E',
+    color: me.warnFg,
     lineHeight: 18,
   },
   bottomBar: {

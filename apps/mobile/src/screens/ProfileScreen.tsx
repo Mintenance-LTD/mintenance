@@ -52,8 +52,8 @@ const ProfileScreen: React.FC = () => {
       {
         label: 'Edit Profile',
         icon: 'person-outline',
-        iconColor: '#3B82F6',
-        iconBg: '#DBEAFE',
+        iconColor: me.infoFg,
+        iconBg: me.infoBg,
         onPress: () => navigation.navigate('EditProfile'),
       },
       {
@@ -94,8 +94,8 @@ const ProfileScreen: React.FC = () => {
       {
         label: 'Calendar',
         icon: 'calendar-outline',
-        iconColor: '#06B6D4',
-        iconBg: '#CFFAFE',
+        iconColor: me.cat.plumbingFg,
+        iconBg: me.cat.plumbingBg,
         onPress: () => navigation.navigate('Calendar'),
       },
       {
@@ -114,8 +114,8 @@ const ProfileScreen: React.FC = () => {
       {
         label: 'My Properties',
         icon: 'home-outline',
-        iconColor: '#8B5CF6',
-        iconBg: '#EDE9FE',
+        iconColor: me.cat.electricalFg,
+        iconBg: me.cat.electricalBg,
         onPress: () => navigation.navigate('Properties'),
       },
       {
@@ -128,8 +128,8 @@ const ProfileScreen: React.FC = () => {
       {
         label: 'Subscription',
         icon: 'ribbon-outline',
-        iconColor: '#EC4899',
-        iconBg: '#FCE7F3',
+        iconColor: me.cat.paintingFg,
+        iconBg: me.cat.paintingBg,
         onPress: () => navigation.navigate('Subscription'),
       },
       {
@@ -142,8 +142,8 @@ const ProfileScreen: React.FC = () => {
       {
         label: 'Escrow Dashboard',
         icon: 'lock-closed-outline',
-        iconColor: '#D97706',
-        iconBg: '#FEF3C7',
+        iconColor: me.warnFg,
+        iconBg: me.warnBg,
         onPress: () => navigation.navigate('EscrowDashboard'),
       },
     ],
@@ -162,22 +162,22 @@ const ProfileScreen: React.FC = () => {
       {
         label: 'Invoice Management',
         icon: 'receipt-outline',
-        iconColor: '#8B5CF6',
-        iconBg: '#EDE9FE',
+        iconColor: me.cat.electricalFg,
+        iconBg: me.cat.electricalBg,
         onPress: () => navigation.navigate('InvoiceManagement'),
       },
       {
         label: 'Client Management',
         icon: 'people-outline',
-        iconColor: '#3B82F6',
-        iconBg: '#DBEAFE',
+        iconColor: me.infoFg,
+        iconBg: me.infoBg,
         onPress: () => navigation.navigate('CRMDashboard'),
       },
       {
         label: 'Quote Builder',
         icon: 'document-text-outline',
-        iconColor: '#EC4899',
-        iconBg: '#FCE7F3',
+        iconColor: me.cat.paintingFg,
+        iconBg: me.cat.paintingBg,
         onPress: () => navigation.navigate('QuoteBuilder'),
       },
       {
@@ -197,8 +197,8 @@ const ProfileScreen: React.FC = () => {
       {
         label: 'Escrow Dashboard',
         icon: 'lock-closed-outline',
-        iconColor: '#D97706',
-        iconBg: '#FEF3C7',
+        iconColor: me.warnFg,
+        iconBg: me.warnBg,
         onPress: () => navigation.navigate('EscrowDashboard'),
       },
     ],
@@ -210,8 +210,8 @@ const ProfileScreen: React.FC = () => {
       {
         label: 'Service Areas',
         icon: 'map-outline',
-        iconColor: '#06B6D4',
-        iconBg: '#CFFAFE',
+        iconColor: me.cat.plumbingFg,
+        iconBg: me.cat.plumbingBg,
         onPress: () => navigation.navigate('ServiceAreas'),
       },
       {
@@ -231,15 +231,15 @@ const ProfileScreen: React.FC = () => {
       {
         label: 'Time Tracking',
         icon: 'time-outline',
-        iconColor: '#3B82F6',
-        iconBg: '#DBEAFE',
+        iconColor: me.infoFg,
+        iconBg: me.infoBg,
         onPress: () => navigation.navigate('TimeTracking'),
       },
       {
         label: 'Reports & Analytics',
         icon: 'bar-chart-outline',
-        iconColor: '#8B5CF6',
-        iconBg: '#EDE9FE',
+        iconColor: me.cat.electricalFg,
+        iconBg: me.cat.electricalBg,
         onPress: () => navigation.navigate('Reporting'),
       },
       {
@@ -266,8 +266,8 @@ const ProfileScreen: React.FC = () => {
       {
         label: 'Help Center',
         icon: 'help-circle-outline',
-        iconColor: '#3B82F6',
-        iconBg: '#DBEAFE',
+        iconColor: me.infoFg,
+        iconBg: me.infoBg,
         onPress: () => navigation.navigate('HelpCenter'),
       },
       {
@@ -415,8 +415,8 @@ const ProfileScreen: React.FC = () => {
                   {
                     label: 'Verification',
                     icon: 'shield-checkmark-outline',
-                    iconColor: '#3B82F6',
-                    iconBg: '#DBEAFE',
+                    iconColor: me.infoFg,
+                    iconBg: me.infoBg,
                     // 2026-05-21: route to the new status dashboard;
                     // the legacy submission form is still reachable from
                     // the dashboard's "+ Add credentials" CTAs.
@@ -468,7 +468,7 @@ const ProfileScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: me.bg2,
+    backgroundColor: me.bg,
   },
   content: {
     flex: 1,

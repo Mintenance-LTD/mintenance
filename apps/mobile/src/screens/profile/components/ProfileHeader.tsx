@@ -198,12 +198,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   displayName: {
-    fontSize: 22,
-    fontWeight: '700',
+    fontFamily: me.font.display,
+    fontSize: 26,
     color: me.onBrand,
     textAlign: 'center',
     marginBottom: 4,
-    letterSpacing: -0.3,
+    letterSpacing: me.displayTracking,
   },
   subtitleRow: {
     flexDirection: 'row',
