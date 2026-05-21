@@ -560,6 +560,159 @@
   font-weight: 600;
 }
 
+/* ---- KPI large variant (marketing.html design — 2026-05-21) ----
+   Marketing & performance uses the canonical KPI primitive but with
+   the editorial display number scaled up to 56px. Same class hooks
+   (.label / .num / .sub), so existing data wiring keeps working —
+   only sizing changes. Use `<div className="kpi kpi-lg">`. */
+.me-root .kpi.kpi-lg {
+  padding: 22px 24px;
+  border-radius: 18px;
+  min-height: 152px;
+}
+.me-root .kpi.kpi-lg .num {
+  font-size: 56px;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  margin: 12px 0 auto;
+}
+.me-root .kpi.kpi-lg .num .unit {
+  font-family: var(--me-font-display);
+  font-size: 28px;
+  color: var(--me-ink-3);
+  margin-left: 2px;
+}
+.me-root .kpi.kpi-lg .label {
+  font-size: 13px;
+}
+.me-root .kpi.kpi-lg .sub {
+  margin-top: 12px;
+}
+
+/* ---- Mint AI hint pill (marketing.html design — 2026-05-21) ----
+   Soft brand-tinted callout used to surface AI-generated nudges
+   ("✦ Mint AI · You need N more reviews to unlock the Top-rated
+   badge…"). Sits inside a card; the ✦ prefix is part of the copy. */
+.me-root .me-ai-hint {
+  margin-top: 16px;
+  padding: 14px 16px;
+  background: var(--me-brand-soft);
+  border: 1px solid rgba(63, 140, 122, 0.2);
+  border-radius: 12px;
+  font-size: 13px;
+  color: var(--me-ink);
+  line-height: 1.55;
+}
+.me-root .me-ai-hint b {
+  color: var(--me-brand);
+}
+
+/* ---- Share-profile callout (marketing.html design — 2026-05-21) ---- */
+.me-root .me-share-card {
+  margin-top: 22px;
+  padding: 24px 26px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  background: var(--me-surface);
+  border: 1px solid var(--me-line);
+  border-radius: 18px;
+}
+.me-root .me-share-card .icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: var(--me-brand);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.me-root .me-share-card .body {
+  flex: 1;
+  min-width: 0;
+}
+.me-root .me-share-card .title {
+  font-family: var(--me-font-display);
+  font-weight: var(--me-display-weight);
+  font-size: 22px;
+  letter-spacing: var(--me-display-tracking);
+  color: var(--me-ink);
+  margin: 0 0 4px;
+}
+.me-root .me-share-card .url {
+  font-size: 13px;
+  color: var(--me-ink-2);
+}
+.me-root .me-share-card .url code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--me-brand);
+}
+.me-root .me-share-card .btn-row {
+  display: flex;
+  gap: 10px;
+  flex-shrink: 0;
+}
+.me-root .me-share-card .btn-row button {
+  padding: 12px 22px;
+  border-radius: 12px;
+  border: 0;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+.me-root .me-share-card .btn-row .btn-dark {
+  background: var(--me-ink);
+  color: #fff;
+}
+.me-root .me-share-card .btn-row .btn-brand {
+  background: var(--me-brand);
+  color: #fff;
+}
+.me-root .me-share-card .btn-row button:hover {
+  filter: brightness(0.95);
+}
+
+/* ---- Marketing hero (large megaphone tile + display heading) ---- */
+.me-root .me-marketing-hero {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+.me-root .me-marketing-hero .meg {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: var(--me-brand-soft);
+  color: var(--me-brand);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.me-root .me-marketing-hero h1 {
+  font-family: var(--me-font-display);
+  font-weight: var(--me-display-weight);
+  font-size: 48px;
+  line-height: 1.04;
+  letter-spacing: -0.012em;
+  margin: 0 0 8px;
+  color: var(--me-ink);
+}
+.me-root .me-marketing-hero h1 em {
+  font-style: italic;
+  color: var(--me-brand);
+  font-weight: 400;
+}
+.me-root .me-marketing-hero p {
+  font-size: 14px;
+  color: var(--me-ink-2);
+  margin: 0;
+  max-width: 720px;
+  line-height: 1.55;
+}
+
 /* ---- Skeleton shimmer (canonical from states-and-edges.html) ---- */
 @keyframes me-skel {
   0% {
