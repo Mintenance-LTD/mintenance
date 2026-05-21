@@ -6,6 +6,7 @@ import {
   getIdempotencyKeyFromRequest,
   checkIdempotency,
   storeIdempotencyResult,
+  releaseIdempotencyClaim,
 } from '@/lib/idempotency';
 import {
   ForbiddenError,
@@ -78,344 +79,350 @@ export const POST = withApiHandler(
       return NextResponse.json(idempotencyCheck.cachedResult);
     }
 
-    // Check if lock contention occurred
-    if (idempotencyCheck === null) {
-      logger.warn('Lock contention detected for refund', {
-        service: 'payments',
-        userId: user.id,
-        escrowTransactionId,
-      });
-      return NextResponse.json(
-        { error: 'Request is being processed. Please wait and try again.' },
-        { status: 409 }
-      );
-    }
-
-    // Verify job ownership
-    const { data: job, error: jobError } = await serverSupabase
-      .from('jobs')
-      .select('id, homeowner_id, contractor_id, status')
-      .eq('id', jobId)
-      .single();
-
-    if (jobError || !job) {
-      throw new NotFoundError('Job not found');
-    }
-
-    // SECURITY: Enhanced refund authorization logic
-    const isHomeowner = job.homeowner_id === user.id;
-    const isContractor = job.contractor_id === user.id;
-
-    if (!isHomeowner && !isContractor) {
-      throw new ForbiddenError('Unauthorized');
-    }
-
-    // Get escrow transaction (query both column names for payment intent ID)
-    const { data: escrow, error: escrowError } = await serverSupabase
-      .from('escrow_transactions')
-      .select(
-        'id, job_id, amount, status, payment_intent_id, stripe_payment_intent_id, created_at, released_at, refunded_at'
-      )
-      .eq('id', escrowTransactionId)
-      .eq('job_id', jobId)
-      .single();
-
-    if (escrowError || !escrow) {
-      throw new NotFoundError('Escrow transaction not found');
-    }
-
-    // SECURITY: Only allow refunds in specific scenarios
-    if (!isHomeowner) {
-      logger.warn('Non-homeowner attempted refund', {
-        service: 'payments',
-        userId: user.id,
-        role: user.role,
-        jobId,
-      });
-      return NextResponse.json(
-        { error: 'Only the homeowner who paid can request a refund' },
-        { status: 403 }
-      );
-    }
-
-    // Only allow refunds for jobs that are cancelled, disputed, or pending
-    const refundableStatuses = ['cancelled', 'disputed', 'pending', 'posted'];
-    if (!refundableStatuses.includes(job.status)) {
-      return NextResponse.json(
-        { error: `Cannot refund payment for job with status: ${job.status}` },
-        { status: 400 }
-      );
-    }
-
-    // Can only refund held payments (not released to contractor)
-    if (escrow.status !== 'held') {
-      return NextResponse.json(
-        {
-          error: `Cannot refund payment with status: ${escrow.status}. Only held payments can be refunded.`,
-        },
-        { status: 400 }
-      );
-    }
-
-    // Use whichever column has the payment intent ID
-    const paymentIntentId =
-      escrow.payment_intent_id || escrow.stripe_payment_intent_id;
-    if (!paymentIntentId) {
-      return NextResponse.json(
-        { error: 'No payment intent ID found' },
-        { status: 400 }
-      );
-    }
-
-    // Calculate refund amount (full or partial).
-    // Guard against negative / zero / NaN client input — fall back to full
-    // refund. Cap at escrow.amount so client can never inflate the refund.
-    const escrowAmountCents = Math.round(
-      Number((escrow.amount * 100).toFixed(0))
-    );
-    let refundAmount: number;
-    if (typeof amount === 'number' && Number.isFinite(amount) && amount > 0) {
-      const requestedCents = Math.round(Number((amount * 100).toFixed(0)));
-      refundAmount = Math.min(requestedCents, escrowAmountCents);
-    } else {
-      // No amount supplied, non-positive, or NaN → default to full refund
-      refundAmount = escrowAmountCents;
-    }
-
-    if (refundAmount <= 0) {
-      logger.error('Refund amount computed as non-positive — data integrity', {
-        service: 'payments',
-        userId: user.id,
-        escrowTransactionId,
-        escrowAmount: escrow.amount,
-        requestedAmount: amount,
-      });
-      return NextResponse.json(
-        { error: 'Invalid refund amount' },
-        { status: 400 }
-      );
-    }
-
-    const refundAmountDollars = refundAmount / 100;
-
-    // MFA requirement check for high-risk refunds
-    const { requiresMFA, HighRiskOperation } =
-      await import('@/lib/payments/high-risk-checks');
-    const mfaCheck = await requiresMFA(
-      HighRiskOperation.REFUND,
-      refundAmountDollars,
-      user.id
-    );
-
-    if (mfaCheck.required) {
-      if (!mfaToken) {
-        logger.warn('MFA required for refund but no token provided', {
-          service: 'payments',
-          userId: user.id,
-          escrowTransactionId,
-          amount: refundAmountDollars,
-          riskScore: mfaCheck.riskScore,
-        });
-
-        return NextResponse.json(
-          {
-            error: 'MFA verification required',
-            reason: mfaCheck.reason,
-            riskScore: mfaCheck.riskScore,
-            mfaRequired: true,
-          },
-          { status: 403 }
-        );
-      }
-
-      const { validateMFAForPayment } =
-        await import('@/lib/payments/high-risk-checks');
-      const mfaValidation = await validateMFAForPayment(
-        user.id,
-        mfaToken,
-        HighRiskOperation.REFUND
-      );
-
-      if (!mfaValidation.valid) {
-        logger.warn('Invalid MFA token for refund', {
-          service: 'payments',
-          userId: user.id,
-          escrowTransactionId,
-          amount: refundAmountDollars,
-        });
-
-        return NextResponse.json(
-          {
-            error: 'MFA verification failed',
-            reason: mfaValidation.reason,
-            mfaRequired: true,
-          },
-          { status: 403 }
-        );
-      }
-
-      logger.info('MFA validated successfully for refund', {
-        service: 'payments',
-        userId: user.id,
-        escrowTransactionId,
-        amount: refundAmountDollars,
-      });
-    }
-
-    // Monitor refund for anomalies
-    const { PaymentMonitoringService } =
-      await import('@/lib/monitoring/payment-monitor');
-    const anomalyCheck = await PaymentMonitoringService.detectAnomalies(
-      user.id,
-      {
-        userId: user.id,
-        amount: refundAmountDollars,
-        currency: 'gbp',
-        type: 'refund',
-        metadata: {
-          jobId,
-          escrowTransactionId,
-          ip: getClientIp(request),
-        },
-      }
-    );
-
-    // Block if high risk
-    if (anomalyCheck.blockedReasons.length > 0) {
-      logger.warn('Refund blocked due to security concerns', {
-        service: 'payments',
-        userId: user.id,
-        escrowTransactionId,
-        amount: refundAmountDollars,
-        riskScore: anomalyCheck.riskScore,
-        blockedReasons: anomalyCheck.blockedReasons,
-      });
-
-      return NextResponse.json(
-        {
-          error: 'Refund blocked for security reasons',
-          reasons: anomalyCheck.blockedReasons,
-          riskScore: anomalyCheck.riskScore,
-        },
-        { status: 403 }
-      );
-    }
-
-    // Create Stripe refund. Idempotency key keyed on escrow+amount+intent so
-    // retries against the same protected operation don't issue a second refund.
-    const refund = await stripe.refunds.create(
-      {
-        payment_intent: paymentIntentId,
-        amount: refundAmount,
-        reason: reason ? 'requested_by_customer' : undefined,
-        metadata: {
-          jobId,
-          escrowTransactionId,
-          requestedBy: user.id,
-          reason: reason || 'No reason provided',
-        },
-      },
-      {
-        idempotencyKey: `refund_${escrowTransactionId}_${paymentIntentId}_${refundAmount}`,
-      }
-    );
-
-    // Update escrow transaction with retry logic
-    // CRITICAL: Stripe refund already succeeded, so DB must reflect this
-    let updatedEscrow: Record<string, unknown> | null = null;
-    let updateError: Error | null = null;
-
-    for (let attempt = 1; attempt <= 3; attempt++) {
-      const result = await serverSupabase
-        .from('escrow_transactions')
-        .update({
-          status: 'refunded',
-          refunded_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', escrowTransactionId)
-        .select()
+    // Past the duplicate path. We own the claim — release it on failure
+    // so the user can retry immediately rather than wait 60s for stale
+    // takeover. (Note: checkIdempotency now THROWS on real contention, so
+    // a `null` return from it would only mean "new request, proceed".)
+    try {
+      // Verify job ownership
+      const { data: job, error: jobError } = await serverSupabase
+        .from('jobs')
+        .select('id, homeowner_id, contractor_id, status')
+        .eq('id', jobId)
         .single();
 
-      if (!result.error) {
-        updatedEscrow = result.data;
-        updateError = null;
-        break;
+      if (jobError || !job) {
+        throw new NotFoundError('Job not found');
       }
 
-      updateError = result.error;
-      logger.error(
-        `Escrow DB update failed (attempt ${attempt}/3)`,
-        result.error,
-        {
-          service: 'payments',
-          userId: user.id,
-          jobId,
-          escrowTransactionId,
-          refundId: refund.id,
-        }
-      );
+      // SECURITY: Enhanced refund authorization logic
+      const isHomeowner = job.homeowner_id === user.id;
+      const isContractor = job.contractor_id === user.id;
 
-      if (attempt < 3) {
-        await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
+      if (!isHomeowner && !isContractor) {
+        throw new ForbiddenError('Unauthorized');
       }
-    }
 
-    if (updateError) {
-      logger.error(
-        'CRITICAL: Stripe refund succeeded but escrow DB update failed after 3 retries',
-        updateError,
-        {
-          service: 'payments',
-          userId: user.id,
-          jobId,
-          escrowTransactionId,
-          refundId: refund.id,
-          stripeRefundStatus: refund.status,
-        }
-      );
-
-      // Attempt to create a reconciliation record
-      await serverSupabase
+      // Get escrow transaction (query both column names for payment intent ID)
+      const { data: escrow, error: escrowError } = await serverSupabase
         .from('escrow_transactions')
-        .update({
-          admin_hold_status: 'needs_reconciliation',
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', escrowTransactionId);
+        .select(
+          'id, job_id, amount, status, payment_intent_id, stripe_payment_intent_id, created_at, released_at, refunded_at'
+        )
+        .eq('id', escrowTransactionId)
+        .eq('job_id', jobId)
+        .single();
+
+      if (escrowError || !escrow) {
+        throw new NotFoundError('Escrow transaction not found');
+      }
+
+      // SECURITY: Only allow refunds in specific scenarios
+      if (!isHomeowner) {
+        logger.warn('Non-homeowner attempted refund', {
+          service: 'payments',
+          userId: user.id,
+          role: user.role,
+          jobId,
+        });
+        return NextResponse.json(
+          { error: 'Only the homeowner who paid can request a refund' },
+          { status: 403 }
+        );
+      }
+
+      // Only allow refunds for jobs that are cancelled, disputed, or pending
+      const refundableStatuses = ['cancelled', 'disputed', 'pending', 'posted'];
+      if (!refundableStatuses.includes(job.status)) {
+        return NextResponse.json(
+          { error: `Cannot refund payment for job with status: ${job.status}` },
+          { status: 400 }
+        );
+      }
+
+      // Can only refund held payments (not released to contractor)
+      if (escrow.status !== 'held') {
+        return NextResponse.json(
+          {
+            error: `Cannot refund payment with status: ${escrow.status}. Only held payments can be refunded.`,
+          },
+          { status: 400 }
+        );
+      }
+
+      // Use whichever column has the payment intent ID
+      const paymentIntentId =
+        escrow.payment_intent_id || escrow.stripe_payment_intent_id;
+      if (!paymentIntentId) {
+        return NextResponse.json(
+          { error: 'No payment intent ID found' },
+          { status: 400 }
+        );
+      }
+
+      // Calculate refund amount (full or partial).
+      // Guard against negative / zero / NaN client input — fall back to full
+      // refund. Cap at escrow.amount so client can never inflate the refund.
+      const escrowAmountCents = Math.round(
+        Number((escrow.amount * 100).toFixed(0))
+      );
+      let refundAmount: number;
+      if (typeof amount === 'number' && Number.isFinite(amount) && amount > 0) {
+        const requestedCents = Math.round(Number((amount * 100).toFixed(0)));
+        refundAmount = Math.min(requestedCents, escrowAmountCents);
+      } else {
+        // No amount supplied, non-positive, or NaN → default to full refund
+        refundAmount = escrowAmountCents;
+      }
+
+      if (refundAmount <= 0) {
+        logger.error(
+          'Refund amount computed as non-positive — data integrity',
+          {
+            service: 'payments',
+            userId: user.id,
+            escrowTransactionId,
+            escrowAmount: escrow.amount,
+            requestedAmount: amount,
+          }
+        );
+        return NextResponse.json(
+          { error: 'Invalid refund amount' },
+          { status: 400 }
+        );
+      }
+
+      const refundAmountDollars = refundAmount / 100;
+
+      // MFA requirement check for high-risk refunds
+      const { requiresMFA, HighRiskOperation } =
+        await import('@/lib/payments/high-risk-checks');
+      const mfaCheck = await requiresMFA(
+        HighRiskOperation.REFUND,
+        refundAmountDollars,
+        user.id
+      );
+
+      if (mfaCheck.required) {
+        if (!mfaToken) {
+          logger.warn('MFA required for refund but no token provided', {
+            service: 'payments',
+            userId: user.id,
+            escrowTransactionId,
+            amount: refundAmountDollars,
+            riskScore: mfaCheck.riskScore,
+          });
+
+          return NextResponse.json(
+            {
+              error: 'MFA verification required',
+              reason: mfaCheck.reason,
+              riskScore: mfaCheck.riskScore,
+              mfaRequired: true,
+            },
+            { status: 403 }
+          );
+        }
+
+        const { validateMFAForPayment } =
+          await import('@/lib/payments/high-risk-checks');
+        const mfaValidation = await validateMFAForPayment(
+          user.id,
+          mfaToken,
+          HighRiskOperation.REFUND
+        );
+
+        if (!mfaValidation.valid) {
+          logger.warn('Invalid MFA token for refund', {
+            service: 'payments',
+            userId: user.id,
+            escrowTransactionId,
+            amount: refundAmountDollars,
+          });
+
+          return NextResponse.json(
+            {
+              error: 'MFA verification failed',
+              reason: mfaValidation.reason,
+              mfaRequired: true,
+            },
+            { status: 403 }
+          );
+        }
+
+        logger.info('MFA validated successfully for refund', {
+          service: 'payments',
+          userId: user.id,
+          escrowTransactionId,
+          amount: refundAmountDollars,
+        });
+      }
+
+      // Monitor refund for anomalies
+      const { PaymentMonitoringService } =
+        await import('@/lib/monitoring/payment-monitor');
+      const anomalyCheck = await PaymentMonitoringService.detectAnomalies(
+        user.id,
+        {
+          userId: user.id,
+          amount: refundAmountDollars,
+          currency: 'gbp',
+          type: 'refund',
+          metadata: {
+            jobId,
+            escrowTransactionId,
+            ip: getClientIp(request),
+          },
+        }
+      );
+
+      // Block if high risk
+      if (anomalyCheck.blockedReasons.length > 0) {
+        logger.warn('Refund blocked due to security concerns', {
+          service: 'payments',
+          userId: user.id,
+          escrowTransactionId,
+          amount: refundAmountDollars,
+          riskScore: anomalyCheck.riskScore,
+          blockedReasons: anomalyCheck.blockedReasons,
+        });
+
+        return NextResponse.json(
+          {
+            error: 'Refund blocked for security reasons',
+            reasons: anomalyCheck.blockedReasons,
+            riskScore: anomalyCheck.riskScore,
+          },
+          { status: 403 }
+        );
+      }
+
+      // Create Stripe refund. Idempotency key keyed on escrow+amount+intent so
+      // retries against the same protected operation don't issue a second refund.
+      const refund = await stripe.refunds.create(
+        {
+          payment_intent: paymentIntentId,
+          amount: refundAmount,
+          reason: reason ? 'requested_by_customer' : undefined,
+          metadata: {
+            jobId,
+            escrowTransactionId,
+            requestedBy: user.id,
+            reason: reason || 'No reason provided',
+          },
+        },
+        {
+          idempotencyKey: `refund_${escrowTransactionId}_${paymentIntentId}_${refundAmount}`,
+        }
+      );
+
+      // Update escrow transaction with retry logic
+      // CRITICAL: Stripe refund already succeeded, so DB must reflect this
+      let updatedEscrow: Record<string, unknown> | null = null;
+      let updateError: Error | null = null;
+
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        const result = await serverSupabase
+          .from('escrow_transactions')
+          .update({
+            status: 'refunded',
+            refunded_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', escrowTransactionId)
+          .select()
+          .single();
+
+        if (!result.error) {
+          updatedEscrow = result.data;
+          updateError = null;
+          break;
+        }
+
+        updateError = result.error;
+        logger.error(
+          `Escrow DB update failed (attempt ${attempt}/3)`,
+          result.error,
+          {
+            service: 'payments',
+            userId: user.id,
+            jobId,
+            escrowTransactionId,
+            refundId: refund.id,
+          }
+        );
+
+        if (attempt < 3) {
+          await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
+        }
+      }
+
+      if (updateError) {
+        logger.error(
+          'CRITICAL: Stripe refund succeeded but escrow DB update failed after 3 retries',
+          updateError,
+          {
+            service: 'payments',
+            userId: user.id,
+            jobId,
+            escrowTransactionId,
+            refundId: refund.id,
+            stripeRefundStatus: refund.status,
+          }
+        );
+
+        // Attempt to create a reconciliation record
+        await serverSupabase
+          .from('escrow_transactions')
+          .update({
+            admin_hold_status: 'needs_reconciliation',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', escrowTransactionId);
+      }
+
+      // Update job status if needed
+      await serverSupabase
+        .from('jobs')
+        .update({ status: 'cancelled' })
+        .eq('id', jobId);
+
+      logger.info('Refund processed successfully', {
+        service: 'payments',
+        userId: user.id,
+        jobId,
+        refundId: refund.id,
+        amount: refundAmount / 100,
+      });
+
+      const responseData = {
+        success: true,
+        refundId: refund.id,
+        amount: refundAmount / 100,
+        status: refund.status,
+        escrowTransactionId: updatedEscrow?.id || escrowTransactionId,
+      };
+
+      // Store idempotency result
+      await storeIdempotencyResult(
+        idempotencyKey,
+        'refund_payment',
+        responseData,
+        user.id,
+        { jobId, escrowTransactionId, refundId: refund.id }
+      );
+
+      return NextResponse.json(responseData);
+    } catch (err) {
+      // Release the claim so the user can retry now instead of waiting
+      // 60s for the stale-claim takeover. Swallow release failures — the
+      // 60s backstop will still kick in.
+      try {
+        await releaseIdempotencyClaim(idempotencyKey, 'refund_payment');
+      } catch {
+        // intentional: don't let release failure mask the original error
+      }
+      throw err;
     }
-
-    // Update job status if needed
-    await serverSupabase
-      .from('jobs')
-      .update({ status: 'cancelled' })
-      .eq('id', jobId);
-
-    logger.info('Refund processed successfully', {
-      service: 'payments',
-      userId: user.id,
-      jobId,
-      refundId: refund.id,
-      amount: refundAmount / 100,
-    });
-
-    const responseData = {
-      success: true,
-      refundId: refund.id,
-      amount: refundAmount / 100,
-      status: refund.status,
-      escrowTransactionId: updatedEscrow?.id || escrowTransactionId,
-    };
-
-    // Store idempotency result
-    await storeIdempotencyResult(
-      idempotencyKey,
-      'refund_payment',
-      responseData,
-      user.id,
-      { jobId, escrowTransactionId, refundId: refund.id }
-    );
-
-    return NextResponse.json(responseData);
   }
 );

@@ -65,6 +65,7 @@ vi.mock('@/lib/idempotency', () => ({
   getIdempotencyKeyFromRequest: mocks.getIdempotencyKeyFromRequest,
   checkIdempotency: mocks.checkIdempotency,
   storeIdempotencyResult: mocks.storeIdempotencyResult,
+  releaseIdempotencyClaim: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock('@/lib/validation/validator', () => ({
@@ -402,18 +403,13 @@ describe('POST /api/payments/refund', () => {
     expect(body.refundId).toBe('refund-1');
   });
 
-  // ---- Lock contention ----
-  it('should return 409 when idempotency lock contention occurs', async () => {
-    mocks.checkIdempotency.mockResolvedValue(null);
-    setupRefundMocks();
-
-    const req = createPostRequest(
-      'http://localhost:3000/api/payments/refund',
-      validRefundData
-    );
-    const res = await POST(req, segmentData());
-    expect(res.status).toBe(409);
-  });
+  // 2026-05-21: removed "should return 409 when idempotency lock contention
+  // occurs". With the claim-then-complete redesign, checkIdempotency THROWS
+  // IdempotencyStoreUnavailableError (extends ServiceUnavailableError → 503)
+  // on real contention; it never returns null for that case. The previous
+  // null-return code path is dead. The 503 mapping is now structurally
+  // enforced via the class hierarchy + handleAPIError and is covered by
+  // unit tests on lib/idempotency.ts directly.
 
   // ---- Job not found ----
   it('should return 404 when job does not exist', async () => {
