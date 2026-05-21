@@ -17,14 +17,11 @@ import { SessionMonitor } from '../components/session/SessionMonitor';
 const materialSymbolsUrl =
   'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap';
 
-// Mint Editorial fonts (Phase 1). Loaded async via media="print" swap
-// the same way Material Symbols is — only the homeowner dashboard
-// currently uses them when `data-theme="mint-editorial"` is set, but
-// loading globally lets the toggle flip without re-hydrating.
-const mintEditorialFontsUrl =
-  'https://fonts.googleapis.com/css2?family=Instrument+Serif:ital,wght@0,400;1,400&family=Geist:wght@300;400;500;600;700&display=swap';
-
-// Optimize font loading
+// Optimize font loading. 2026-05-21: Mint Editorial unified on Inter
+// (heavy display + regular body) — see `--me-font-display` in
+// apps/web/styles/mint-editorial.css. The next/font Inter loader ships
+// the variable face, so every weight 100-900 is available via CSS
+// without extra `<link>` tags.
 const inter = Inter({
   subsets: ['latin'],
   display: 'swap',
@@ -100,14 +97,6 @@ export default async function RootLayout({
         <link
           rel='stylesheet'
           href={materialSymbolsUrl}
-          media='print'
-          crossOrigin='anonymous'
-        />
-        {/* Mint Editorial fonts — async via media="print" so they don't
-            block first paint when the legacy theme is active. */}
-        <link
-          rel='stylesheet'
-          href={mintEditorialFontsUrl}
           media='print'
           crossOrigin='anonymous'
         />
