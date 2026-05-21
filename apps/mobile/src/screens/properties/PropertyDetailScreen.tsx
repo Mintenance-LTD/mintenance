@@ -32,6 +32,7 @@ import { RecurringMaintenance } from './components/RecurringMaintenance';
 import { TenantContacts } from './components/TenantContacts';
 import { TeamAccess } from './components/TeamAccess';
 import { ComplianceCertificates } from './components/ComplianceCertificates';
+import { PropertyRoomsSection } from './components/PropertyRoomsSection';
 
 type Tab = 'overview' | 'maintenance' | 'manage';
 interface Props {
@@ -239,6 +240,11 @@ export const PropertyDetailScreen: React.FC<Props> = ({
           <Text style={styles.notesText}>{property.notes}</Text>
         </View>
       )}
+
+      <PropertyRoomsSection
+        propertyId={propertyId}
+        editable={property.owner_id === user?.id}
+      />
 
       <View style={styles.section}>
         <View style={styles.jobHistoryHeader}>
