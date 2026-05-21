@@ -174,6 +174,7 @@ export async function submitJob({
     is_rental_property?: boolean;
     tenancy_metadata?: Record<string, unknown>;
     preferred_contractor_id?: string;
+    room_ids?: string[];
   } = {
     title: formData.title.trim(),
     description: formData.description?.trim() || '',
@@ -227,6 +228,14 @@ export async function submitJob({
   // Hire-Again loop signal — UUID only, server validates as z.uuid()
   if (preferredContractorId) {
     requestBody.preferred_contractor_id = preferredContractorId;
+  }
+
+  // Property Rooms Slice 1: forward the homeowner-selected room ids so
+  // the server can snapshot them into job_rooms. Server validates each
+  // as a UUID and silently drops any room id that doesn't belong to
+  // the selected property.
+  if (formData.room_ids && formData.room_ids.length > 0) {
+    requestBody.room_ids = formData.room_ids;
   }
 
   // AI assessment + preferred date are stashed inside `requirements`

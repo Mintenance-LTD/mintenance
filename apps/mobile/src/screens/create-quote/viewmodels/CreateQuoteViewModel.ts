@@ -27,6 +27,10 @@ export interface LineItem {
   category: string;
   is_taxable: boolean;
   sort_order: number;
+  // Property Rooms Slice 2 (2026-05-21): optional link to a
+  // job_rooms row when this line targets a specific room.
+  // Stored on persisted bids.line_items as `room_id`.
+  room_id?: string | null;
 }
 
 interface CreateQuoteState {

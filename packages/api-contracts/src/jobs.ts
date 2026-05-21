@@ -162,6 +162,12 @@ const baseJobSchema = z.object({
   // that contractor on top of the normal nearby-contractor broadcast.
   // Not persisted on the jobs row — purely a one-shot routing signal.
   preferred_contractor_id: z.string().uuid().optional(),
+  // 2026-05-21 (Property Rooms Slice 1): optional list of
+  // property_rooms.id values the job targets. Snapshotted into the
+  // job_rooms table at post time so historical scope is stable across
+  // later room edits. Empty/undefined means "no specific room scope"
+  // (legacy behaviour preserved).
+  room_ids: z.array(z.string().uuid()).max(20).optional(),
 });
 
 export const createJobRequestSchema = baseJobSchema.strict();

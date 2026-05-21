@@ -39,6 +39,7 @@ import { IssueDescription } from './quick-job-post/components/IssueDescription';
 import { BudgetGrid } from './quick-job-post/components/BudgetGrid';
 import { UrgencyGrid } from './quick-job-post/components/UrgencyGrid';
 import { SubmitFooter } from './quick-job-post/components/SubmitFooter';
+import { RoomScopePicker } from './components/RoomScopePicker';
 
 export const QuickJobPostScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
@@ -67,6 +68,8 @@ export const QuickJobPostScreen: React.FC = () => {
     matchingTemplate?.id || null
   );
   const [submitting, setSubmitting] = useState(false);
+  // Property Rooms Slice 1 — optional room scope.
+  const [roomIds, setRoomIds] = useState<string[]>([]);
 
   const allowExit = useUnsavedChanges(!!(title || description));
 
@@ -93,6 +96,7 @@ export const QuickJobPostScreen: React.FC = () => {
       propertyId: params?.propertyId,
       propertyAddress: params?.propertyAddress,
       homeownerId: user.id,
+      roomIds: roomIds.length > 0 ? roomIds : undefined,
     });
     setSubmitting(false);
 
@@ -136,6 +140,12 @@ export const QuickJobPostScreen: React.FC = () => {
         <PropertyBanner
           propertyName={params?.propertyName}
           propertyAddress={params?.propertyAddress}
+        />
+
+        <RoomScopePicker
+          propertyId={params?.propertyId}
+          selectedIds={roomIds}
+          onChange={setRoomIds}
         />
 
         <RepairTemplateGrid

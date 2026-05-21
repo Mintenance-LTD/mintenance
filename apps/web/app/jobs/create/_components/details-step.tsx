@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import Image from 'next/image';
 import {
   Droplets,
@@ -20,6 +20,7 @@ import { SmartJobAnalysis } from '../components/SmartJobAnalysis';
 import { SERVICE_CATEGORIES } from './types';
 import type { Property, JobFormData } from './types';
 import { TenancyFields } from './tenancy-fields';
+import { RoomPickerSection } from './room-picker-section';
 
 /**
  * Job-creation details step — Direction A · Mint Editorial.
@@ -68,6 +69,24 @@ export function DetailsStep({
   onNavigateToAddProperty,
 }: DetailsStepProps) {
   const descriptionOk = formData.description.length >= 20;
+
+  // Property Rooms Slice 1 — clear any stale room selection if the
+  // property is deselected. The actual fetch + UI lives inside
+  // <RoomPickerSection /> below.
+  useEffect(() => {
+    if (
+      !formData.property_id &&
+      formData.room_ids &&
+      formData.room_ids.length > 0
+    ) {
+      setFormData((prev) => ({ ...prev, room_ids: [] }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formData.property_id]);
+
+  const handleRoomChange = (next: string[]) => {
+    setFormData((prev) => ({ ...prev, room_ids: next }));
+  };
 
   return (
     <div
@@ -220,6 +239,14 @@ export function DetailsStep({
           )}
         </div>
       </div>
+
+      {/* Property Rooms Slice 1 — optional room scope picker */}
+      <RoomPickerSection
+        propertyId={formData.property_id}
+        selectedIds={formData.room_ids ?? []}
+        onChange={handleRoomChange}
+        sectionLabelStyle={sectionLabelStyle}
+      />
 
       {/* Service Category */}
       <div>

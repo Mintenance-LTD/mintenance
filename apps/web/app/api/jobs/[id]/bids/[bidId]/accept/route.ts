@@ -408,7 +408,7 @@ export const POST = withApiHandler(
         // the rest of the accept-flow side-effects. Failures here are
         // non-fatal — we degrade to the previous bare-bones contract
         // rather than block acceptance.
-        const [profileRes, insuranceRes] = await Promise.all([
+        const [profileRes, insuranceRes, jobRoomsRes] = await Promise.all([
           serverSupabase
             .from('profiles')
             .select('company_name, license_number, license_type')
@@ -422,10 +422,22 @@ export const POST = withApiHandler(
             .order('created_at', { ascending: false })
             .limit(1)
             .maybeSingle(),
+          // Property Rooms Slice 3 (2026-05-21): snapshot the job's
+          // room scope at contract creation time so the agreed scope
+          // is frozen on the contract record itself. If subsequent
+          // job_rooms edits happen (rare — homeowner can't really
+          // edit after accept), the contract still shows what was
+          // signed against.
+          serverSupabase
+            .from('job_rooms')
+            .select('id, property_room_id, name, room_type, size_sqm_at_post')
+            .eq('job_id', jobId)
+            .order('created_at', { ascending: true }),
         ]);
 
         const contractorProfile = profileRes.data;
         const insurance = insuranceRes.data;
+        const jobRooms = jobRoomsRes.data ?? [];
         const bidAmount = bid.amount || 0;
 
         // Prefer `message` (the canonical proposal column on bids) but
@@ -479,6 +491,30 @@ export const POST = withApiHandler(
         // additional-terms list, which is confusing UX.
         if (bid.materials_included === true) {
           termsPayload.materials_included = true;
+        }
+
+        // Property Rooms Slice 3 — freeze the room scope onto the
+        // contract terms. Only include when the homeowner actually
+        // flagged specific rooms; legacy "no scope" contracts stay
+        // identical to pre-Slice-3 shape.
+        if (jobRooms.length > 0) {
+          termsPayload.scope = {
+            rooms: jobRooms.map(
+              (r: {
+                id: string;
+                property_room_id: string | null;
+                name: string;
+                room_type: string;
+                size_sqm_at_post: number | null;
+              }) => ({
+                id: r.id,
+                property_room_id: r.property_room_id,
+                name: r.name,
+                room_type: r.room_type,
+                size_sqm_at_post: r.size_sqm_at_post,
+              })
+            ),
+          };
         }
 
         const contractPayload: Record<string, unknown> = {

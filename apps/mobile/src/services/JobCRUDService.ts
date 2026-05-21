@@ -77,6 +77,10 @@ export class JobCRUDService {
     // payer_user_id from tenancy_metadata.payer_email.
     is_rental_property?: boolean;
     tenancy_metadata?: Record<string, unknown>;
+    // Property Rooms Slice 1 (2026-05-21): list of property_rooms.id
+    // values to snapshot into job_rooms after the job is created.
+    // Validated server-side against the selected property.
+    room_ids?: string[];
   }): Promise<Job> {
     const context = {
       service: 'JobCRUDService',
@@ -133,6 +137,12 @@ export class JobCRUDService {
           ...(jobData.is_rental_property ? { is_rental_property: true } : {}),
           ...(jobData.tenancy_metadata
             ? { tenancy_metadata: jobData.tenancy_metadata }
+            : {}),
+          // Property Rooms Slice 1 — forward only when at least one
+          // room is picked; the server validates each id is a UUID
+          // and silently drops any that don't belong to the property.
+          ...(jobData.room_ids && jobData.room_ids.length > 0
+            ? { room_ids: jobData.room_ids }
             : {}),
         }
       );

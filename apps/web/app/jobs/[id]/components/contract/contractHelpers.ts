@@ -118,4 +118,8 @@ export const TERMS_HIDDEN_KEYS = [
   'source',
   'bid_id',
   'created_from',
+  // Property Rooms Slice 3 — `scope.rooms` has its own dedicated
+  // "Rooms in scope" block in ContractScope, so keep it out of the
+  // generic key/value "Additional Terms" list.
+  'scope',
 ];
