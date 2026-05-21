@@ -98,9 +98,21 @@ export const PUT = withApiHandler(
     if (type !== undefined) updateData.property_type = type;
     if (bedrooms !== undefined) updateData.bedrooms = bedrooms ?? null;
     if (bathrooms !== undefined) updateData.bathrooms = bathrooms ?? null;
-    if (squareFeet !== undefined)
-      updateData.square_footage = squareFeet ?? null;
-    if (yearBuilt !== undefined) updateData.year_built = yearBuilt ?? null;
+    // 2026-05-21 bug fix: the DB CHECK constraint
+    // `properties_square_footage_check` rejects `square_footage = 0`
+    // (must be > 0 OR null), and `properties_year_built_check`
+    // requires year >= 1800. The form initialises both fields with
+    // `parseInt(value) || 0`, so a user who clears the input sends
+    // `0` → DB returns 23514 → "Database operation failed" 500.
+    // Coerce 0 → null here so the value parks as "unknown" instead.
+    if (squareFeet !== undefined) {
+      updateData.square_footage =
+        squareFeet === null || squareFeet === 0 ? null : squareFeet;
+    }
+    if (yearBuilt !== undefined) {
+      updateData.year_built =
+        yearBuilt === null || yearBuilt === 0 ? null : yearBuilt;
+    }
     if (photos !== undefined) updateData.photos = photos || [];
     if (latitude !== undefined) updateData.latitude = latitude;
     if (longitude !== undefined) updateData.longitude = longitude;
