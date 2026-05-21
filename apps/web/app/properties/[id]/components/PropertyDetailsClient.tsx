@@ -276,10 +276,11 @@ export default function PropertyDetailsClient({
 
   const handleDelete = async () => {
     // Fetch retention preview so the confirmation dialog can warn the
-    // homeowner about records that will be preserved (compliance
+    // homeowner about records that will be PRESERVED (compliance
     // certs, tenants, contacts, anonymous reports, recurring schedules
-    // — see migration 20260520000002_landlord_fk_retention.sql) vs the
-    // records that will be cascade-deleted (jobs, photos).
+    // + historical jobs — all `ON DELETE SET NULL` per the FK retention
+    // migrations) vs the records that will be CASCADE-DELETED (room
+    // photos).
     let confirmMessage = 'Are you sure you want to delete this property?';
     try {
       const previewRes = await fetch(
@@ -294,8 +295,16 @@ export default function PropertyDetailsClient({
             property_contacts: number;
             anonymous_reports: number;
             recurring_schedules: number;
+            // 2026-05-21: jobs.property_id is `SET NULL` live, so
+            // historical jobs survive a property delete and now
+            // surface under "preserved" rather than the previous
+            // (incorrect) "cascaded".
+            jobs: number;
           };
-          cascaded: { jobs: number; property_photos: number };
+          // Real cascading photo table is property_room_photos —
+          // earlier shape referenced a non-existent `property_photos`
+          // and silently always reported 0.
+          cascaded: { property_room_photos: number };
           preservedTotal: number;
           cascadedTotal: number;
         };
@@ -333,18 +342,18 @@ export default function PropertyDetailsClient({
               `  • ${preview.preserved.recurring_schedules} recurring schedule${preview.preserved.recurring_schedules === 1 ? '' : 's'}`
             );
           }
+          if (preview.preserved.jobs > 0) {
+            lines.push(
+              `  • ${preview.preserved.jobs} historical job${preview.preserved.jobs === 1 ? '' : 's'}`
+            );
+          }
           lines.push('');
         }
         if (preview.cascadedTotal > 0) {
           lines.push('The following will be PERMANENTLY DELETED:');
-          if (preview.cascaded.jobs > 0) {
+          if (preview.cascaded.property_room_photos > 0) {
             lines.push(
-              `  • ${preview.cascaded.jobs} job${preview.cascaded.jobs === 1 ? '' : 's'}`
-            );
-          }
-          if (preview.cascaded.property_photos > 0) {
-            lines.push(
-              `  • ${preview.cascaded.property_photos} property photo${preview.cascaded.property_photos === 1 ? '' : 's'}`
+              `  • ${preview.cascaded.property_room_photos} room photo${preview.cascaded.property_room_photos === 1 ? '' : 's'}`
             );
           }
           lines.push('');
