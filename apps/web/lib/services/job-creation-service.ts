@@ -39,6 +39,12 @@ interface JobCreationPayload {
   // fires an extra "invited bid" notification to this contractor on
   // top of the standard nearby broadcast. Not persisted on the job.
   preferred_contractor_id?: string;
+  // 2026-05-21 (Property Rooms Slice 1): list of property_rooms.id
+  // values the job targets. Snapshotted into the job_rooms table at
+  // post time. Validated against the property's actual rooms — any id
+  // the property doesn't own is silently dropped (not an error: keeps
+  // the create flow resilient if a room got deleted mid-post).
+  room_ids?: string[];
 }
 
 type JobRow = {
@@ -132,6 +138,7 @@ export class JobCreationService {
 
     await this.updateSeriousBuyerScore(user.id, jobRow.id, payload);
     await this.saveAttachments(user.id, jobRow.id, payload.photoUrls);
+    await this.snapshotRoomScope(user.id, jobRow.id, payload);
 
     await this.notificationService.notifyNearbyContractors(
       {
@@ -544,6 +551,92 @@ export class JobCreationService {
         userId,
         jobId,
         error: attachErr,
+      });
+    }
+  }
+
+  /**
+   * Snapshot the homeowner-selected rooms into job_rooms. We deliberately
+   * snapshot the room's `name`, `room_type` and `size_sqm` at post time
+   * so future edits to the underlying property_rooms row don't
+   * retroactively rewrite a job's historical scope (bids/contracts may
+   * already be quoted against the original values).
+   *
+   * Property ownership is re-verified server-side: we only snapshot
+   * rooms whose property_id matches the job's property_id (i.e. rooms
+   * actually owned by this homeowner). Any other id in `room_ids` is
+   * silently dropped — keeps the path resilient if the user e.g.
+   * deletes a room mid-post.
+   *
+   * Non-fatal: a job will still post if the snapshot insert fails.
+   * Worst case is a job with no room scope, which is identical to the
+   * legacy "no rooms picked" path.
+   */
+  private async snapshotRoomScope(
+    userId: string,
+    jobId: string,
+    payload: JobCreationPayload
+  ): Promise<void> {
+    if (!payload.room_ids || payload.room_ids.length === 0) return;
+    if (!payload.property_id) return; // No property → no rooms to snapshot
+
+    try {
+      // Re-fetch with ownership scope: rooms must belong to the
+      // job's property. `property_rooms` RLS already enforces owner
+      // = auth.uid() on read, but the serverSupabase client uses the
+      // service role so we enforce it ourselves here.
+      const { data: rooms, error: roomsError } = await serverSupabase
+        .from('property_rooms')
+        .select('id, name, room_type, size_sqm, property_id')
+        .eq('property_id', payload.property_id)
+        .in('id', payload.room_ids);
+
+      if (roomsError || !rooms || rooms.length === 0) {
+        if (roomsError) {
+          logger.warn('Failed to load rooms for snapshot', {
+            service: 'job-creation',
+            userId,
+            jobId,
+            error: roomsError.message,
+          });
+        }
+        return;
+      }
+
+      const inserts = rooms.map(
+        (r: {
+          id: string;
+          name: string;
+          room_type: string;
+          size_sqm: number | null;
+        }) => ({
+          job_id: jobId,
+          property_room_id: r.id,
+          name: r.name,
+          room_type: r.room_type,
+          size_sqm_at_post: r.size_sqm,
+        })
+      );
+
+      const { error: insertError } = await serverSupabase
+        .from('job_rooms')
+        .insert(inserts);
+
+      if (insertError) {
+        logger.warn('Failed to snapshot job_rooms', {
+          service: 'job-creation',
+          userId,
+          jobId,
+          count: inserts.length,
+          error: insertError.message,
+        });
+      }
+    } catch (e) {
+      logger.warn('Unexpected error snapshotting job_rooms', {
+        service: 'job-creation',
+        userId,
+        jobId,
+        error: e instanceof Error ? e.message : String(e),
       });
     }
   }

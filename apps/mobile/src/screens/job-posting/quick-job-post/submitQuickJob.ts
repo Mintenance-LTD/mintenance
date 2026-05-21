@@ -29,6 +29,8 @@ export interface SubmitQuickJobInput {
   propertyId?: string;
   propertyAddress?: string;
   homeownerId: string;
+  // Property Rooms Slice 1 — optional room scope, snapshotted server-side.
+  roomIds?: string[];
 }
 
 export async function submitQuickJob(
@@ -43,6 +45,7 @@ export async function submitQuickJob(
     propertyId,
     propertyAddress,
     homeownerId,
+    roomIds,
   } = input;
 
   let fullDescription = description || title;
@@ -88,6 +91,7 @@ export async function submitQuickJob(
       category: normalizeJobCategory(category),
       urgency: urgencyToCanonical(urgency),
       property_id: propertyId,
+      ...(roomIds && roomIds.length > 0 ? { room_ids: roomIds } : {}),
     });
     return { ok: true };
   } catch (error) {

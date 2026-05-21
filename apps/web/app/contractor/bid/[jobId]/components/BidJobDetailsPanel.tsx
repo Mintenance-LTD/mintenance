@@ -1,12 +1,14 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { MotionDiv } from '@/components/ui/MotionDiv';
 import { fadeIn } from '@/lib/animations/variants';
+import { logger } from '@mintenance/shared';
 
 interface BidJobDetailsPanelProps {
   job: {
+    id?: string;
     title: string;
     description?: string;
     budget?: string;
@@ -24,10 +26,76 @@ interface BidJobDetailsPanelProps {
   homeownerName: string;
 }
 
+/**
+ * Property Rooms Slice 1 — labels mirror the homeowner-side picker
+ * so contractors see the same names.
+ */
+const BID_ROOM_TYPE_LABELS: Record<string, string> = {
+  kitchen: 'Kitchen',
+  bathroom: 'Bathroom',
+  bedroom: 'Bedroom',
+  living_room: 'Living room',
+  dining_room: 'Dining room',
+  garage: 'Garage',
+  garden: 'Garden',
+  exterior: 'Exterior',
+  roof: 'Roof',
+  hallway: 'Hallway',
+  office: 'Office',
+  utility: 'Utility',
+  other: 'Other',
+};
+
+interface JobRoomScope {
+  id: string;
+  property_room_id: string | null;
+  name: string;
+  room_type: string;
+  size_sqm_at_post: number | null;
+}
+
 export function BidJobDetailsPanel({
   job,
   homeownerName,
 }: BidJobDetailsPanelProps) {
+  // Property Rooms Slice 1 — fetch the job's room scope (if any).
+  // RLS on job_rooms gates visibility to job participants + anyone
+  // who can read a 'posted'/'published' job, so the contractor sees
+  // exactly what the homeowner picked at post time.
+  const [rooms, setRooms] = useState<JobRoomScope[]>([]);
+  const jobId = job?.id;
+
+  useEffect(() => {
+    if (!jobId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/jobs/${jobId}/rooms`, {
+          credentials: 'include',
+        });
+        if (!res.ok) return; // 404 / 403 — quietly hide block
+        const json = await res.json();
+        if (!cancelled) {
+          setRooms((json.rooms ?? []) as JobRoomScope[]);
+        }
+      } catch (e) {
+        logger.warn('Bid panel: load job_rooms failed', {
+          service: 'app',
+          error: e instanceof Error ? e.message : String(e),
+        });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [jobId]);
+
+  const totalSqm = rooms.reduce<number>(
+    (sum, r) => sum + (r.size_sqm_at_post ?? 0),
+    0
+  );
+  const anySized = rooms.some((r) => r.size_sqm_at_post != null);
+
   return (
     <MotionDiv
       className='bg-white rounded-2xl border border-gray-200 shadow-sm p-6 sticky top-6'
@@ -62,6 +130,45 @@ export function BidJobDetailsPanel({
 
       <h3 className='font-bold text-gray-900 mb-2'>{job?.title}</h3>
       <p className='text-sm text-gray-600 mb-4'>{job?.description}</p>
+
+      {/* Property Rooms Slice 1 — rooms-in-scope block. Renders only
+          when the homeowner picked specific rooms; the panel falls
+          back to its legacy layout for jobs without room scope. */}
+      {rooms.length > 0 ? (
+        <div className='mb-4 p-3 rounded-xl border border-gray-200 bg-gray-50'>
+          <div className='flex items-center justify-between mb-2'>
+            <span className='text-xs font-semibold uppercase tracking-wide text-gray-600'>
+              Rooms in scope
+            </span>
+            {anySized && totalSqm > 0 ? (
+              <span className='text-xs font-semibold text-gray-700'>
+                {totalSqm.toFixed(1)} m² total
+              </span>
+            ) : null}
+          </div>
+          <ul className='space-y-1'>
+            {rooms.map((r) => (
+              <li
+                key={r.id}
+                className='flex items-center justify-between text-sm'
+              >
+                <span className='min-w-0 flex-1 truncate text-gray-900'>
+                  <span className='text-gray-500'>
+                    {BID_ROOM_TYPE_LABELS[r.room_type] ?? r.room_type}
+                    {' · '}
+                  </span>
+                  {r.name}
+                </span>
+                <span className='ml-3 shrink-0 text-gray-600'>
+                  {r.size_sqm_at_post != null
+                    ? `${Number(r.size_sqm_at_post).toFixed(1)} m²`
+                    : '— m²'}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       <div className='space-y-3 mb-6'>
         <div className='flex items-center gap-2 text-sm text-gray-600'>

@@ -31,6 +31,10 @@ export interface JobFormData {
   is_rental_property?: boolean; // Is this a rental? drives tenant-comms UI
   who_pays?: 'me' | 'someone_else'; // UI radio — if "someone_else", need email
   payer_email?: string; // Email of the distinct payer if who_pays==='someone_else'
+  // Property Rooms Slice 1 (2026-05-21): rooms this job targets,
+  // snapshotted into job_rooms server-side at post time. Optional —
+  // legacy "no specific room scope" behaviour preserved when empty.
+  room_ids?: string[];
 }
 
 interface ValidationErrors {

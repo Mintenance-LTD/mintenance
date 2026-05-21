@@ -26,6 +26,7 @@ import type { LineItem } from './create-quote/viewmodels/CreateQuoteViewModel';
 import { me } from '../design-system/mint-editorial';
 import { styles } from './BidSubmissionStyles';
 import { useUnsavedChanges } from '../hooks/useUnsavedChanges';
+import { JobRoomScope } from './components/JobRoomScope';
 
 type Props = {
   route: RouteProp<JobsStackParamList, 'BidSubmission'>;
@@ -273,6 +274,12 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
               )}
             </View>
           </View>
+
+          {/* Property Rooms Slice 1 \u2014 rooms-in-scope panel.
+              Renders only when the job has a room snapshot; legacy
+              jobs (no snapshot) get nothing here, preserving the
+              original look. */}
+          <JobRoomScope jobId={jobId} />
 
           {/* Mode toggle */}
           <View style={styles.modeToggle}>
