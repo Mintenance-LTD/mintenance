@@ -35,6 +35,8 @@ import { StatsSection } from './StatsSection';
 import { ScheduleSection } from './ScheduleSection';
 import { FinishSetupCard } from './components/FinishSetupCard';
 import { ContractorBadgesCard } from './components/ContractorBadgesCard';
+import { NextUpCard } from './components/NextUpCard';
+import { HotLeadsRail } from './components/HotLeadsRail';
 import { styles } from './contractorDashboardStyles';
 import { NotificationService } from '../../services/NotificationService';
 import { me } from '../../design-system/mint-editorial';
@@ -287,6 +289,42 @@ export const ContractorDashboard: React.FC = () => {
 
         {/* Content below hero */}
         <View style={styles.content}>
+          {/* 2026-05-21 — Mint Editorial "Next up" dark card above
+              everything else, plus a warm-bids rail. Both self-hide
+              when there's no data (no next appointment / no pending
+              bids) so the dashboard stays calm. */}
+          <FadeIn duration={400}>
+            <NextUpCard
+              next={
+                contractorStats?.nextAppointment
+                  ? {
+                      jobId: contractorStats.nextAppointment.jobId,
+                      type: contractorStats.nextAppointment.type,
+                      client: contractorStats.nextAppointment.client,
+                      location: contractorStats.nextAppointment.location,
+                      time: contractorStats.nextAppointment.time,
+                    }
+                  : null
+              }
+              onOpenJob={openJobDetails}
+              onMessage={(jobId) =>
+                navigation.navigate('MessagingTab', {
+                  screen: 'MessageThread',
+                  params: { jobId },
+                })
+              }
+            />
+          </FadeIn>
+
+          <FadeIn duration={400} delay={120}>
+            <HotLeadsRail
+              onOpenJob={openJobDetails}
+              onSeeAll={() =>
+                navigation.navigate('JobsTab', { screen: 'JobsList' })
+              }
+            />
+          </FadeIn>
+
           <FadeIn duration={400}>
             <QuickActions
               onBrowseJobsPress={openJobsList}

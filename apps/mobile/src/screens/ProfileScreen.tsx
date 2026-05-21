@@ -417,14 +417,25 @@ const ProfileScreen: React.FC = () => {
                     icon: 'shield-checkmark-outline',
                     iconColor: '#3B82F6',
                     iconBg: '#DBEAFE',
-                    onPress: () =>
-                      navigation.navigate('ContractorVerification'),
+                    // 2026-05-21: route to the new status dashboard;
+                    // the legacy submission form is still reachable from
+                    // the dashboard's "+ Add credentials" CTAs.
+                    onPress: () => navigation.navigate('VerificationStatus'),
+                  },
+                  {
+                    label: 'Preview public profile',
+                    icon: 'eye-outline',
+                    iconColor: me.brand,
+                    iconBg: me.brandSoft,
+                    // Read-only preview of how homeowners see you.
+                    // BusinessProfile (below) is the edit surface.
+                    onPress: () => navigation.navigate('MyPublicProfile'),
                   },
                   {
                     label: 'Business Profile',
                     icon: 'briefcase-outline',
-                    iconColor: me.brand,
-                    iconBg: me.brandSoft,
+                    iconColor: me.ink2,
+                    iconBg: me.bg2,
                     onPress: () =>
                       // BusinessProfile lives on the same ProfileStack;
                       // typed nav already accepts this without `as never`.

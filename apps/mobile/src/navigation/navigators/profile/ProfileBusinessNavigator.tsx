@@ -11,6 +11,8 @@ import { ServiceAreasScreen } from '../../../screens/ServiceAreasScreen';
 import { QuoteBuilderScreen } from '../../../screens/QuoteBuilderScreen';
 import { CreateQuoteScreen } from '../../../screens/create-quote';
 import { QuickQuoteScreen } from '../../../screens/quick-quote/QuickQuoteScreen';
+import { VerificationStatusScreen } from '../../../screens/verification-status/VerificationStatusScreen';
+import { MyPublicProfileScreen } from '../../../screens/my-public-profile/MyPublicProfileScreen';
 import { QuoteDetailScreen } from '../../../screens/quote-detail/QuoteDetailScreen';
 import { QuoteTemplatesScreen } from '../../../screens/quote-templates/QuoteTemplatesScreen';
 import { ContractorCardEditorScreen } from '../../../screens/ContractorCardEditorScreen';
@@ -84,6 +86,16 @@ export const SafeQuickQuoteScreen = withScreenErrorBoundary(
   QuickQuoteScreen,
   'QuickQuote',
   { fallbackRoute: 'QuoteBuilder' }
+);
+export const SafeVerificationStatusScreen = withScreenErrorBoundary(
+  VerificationStatusScreen,
+  'VerificationStatus',
+  { fallbackRoute: 'ProfileMain' }
+);
+export const SafeMyPublicProfileScreen = withScreenErrorBoundary(
+  MyPublicProfileScreen,
+  'MyPublicProfile',
+  { fallbackRoute: 'ProfileMain' }
 );
 export const SafeQuoteDetailScreen = withScreenErrorBoundary(
   QuoteDetailScreen,

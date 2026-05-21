@@ -65,8 +65,13 @@ BEGIN
     WHERE schemaname = 'public' AND tablename = 'idempotency_keys'
       AND policyname = 'idempotency_keys_service_role'
   ) THEN
+    -- IMPORTANT: explicit TO service_role. Without it the policy applies
+    -- to PUBLIC (every role) and overrides the narrower user policies via
+    -- PERMISSIVE OR-merge. The live policy was created from an earlier
+    -- (now-archived) migration that did scope it correctly; this guard
+    -- keeps the fresh-reset behaviour matching live.
     CREATE POLICY idempotency_keys_service_role ON public.idempotency_keys
-      FOR ALL USING (true) WITH CHECK (true);
+      FOR ALL TO service_role USING (true) WITH CHECK (true);
   END IF;
 END $$;
 
