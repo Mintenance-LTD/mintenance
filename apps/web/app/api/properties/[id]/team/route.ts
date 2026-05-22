@@ -1,6 +1,32 @@
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { getEffectiveHomeownerTier } from '@/lib/subscription/early-access';
+import { hasFeatureAccess } from '@/lib/feature-access-config';
+
+/**
+ * 2026-05-22 Sprint 4: tier gate. Team access (invites + role-based) is
+ * Agency-only on the new pricing model. Landlord tier does not include it.
+ * Admins bypass. Early-access (-> agency) automatically unlocks.
+ * Returns 402 with feature flag so clients can render the upgrade CTA.
+ */
+async function requireAgencyTier(userId: string, role: string) {
+  if (role === 'admin') return null;
+  const tier = await getEffectiveHomeownerTier(userId);
+  if (!hasFeatureAccess('HOMEOWNER_TEAM_ACCESS', 'homeowner', tier)) {
+    return NextResponse.json(
+      {
+        error: 'Subscription required',
+        message:
+          'Team member invites require an Agency subscription. The Landlord plan does not include team access.',
+        requiresSubscription: true,
+        feature: 'HOMEOWNER_TEAM_ACCESS',
+      },
+      { status: 402 }
+    );
+  }
+  return null;
+}
 
 // GET /api/properties/[id]/team
 // csrf:false — this is an idempotent read. withApiHandler's default enables
@@ -47,6 +73,9 @@ export const POST = withApiHandler(
   async (req, { user, params }) => {
     const propertyId = params.id;
     const body = await req.json();
+
+    const tierBlock = await requireAgencyTier(user.id, user.role);
+    if (tierBlock) return tierBlock;
 
     const { data: property } = await serverSupabase
       .from('properties')
