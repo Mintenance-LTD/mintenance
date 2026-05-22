@@ -12,72 +12,116 @@ export const styles = StyleSheet.create({
     backgroundColor: me.bg,
   },
 
-  // Full-bleed Hero
-  hero: {
-    paddingHorizontal: 20,
-    paddingBottom: 28,
-    overflow: 'hidden',
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
-  },
-
-  // Primary Post-a-Job CTA inside the hero (homeowner-specific)
-  postJobButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    marginTop: 20,
-    paddingVertical: 14,
-    paddingHorizontal: 18,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.18)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.35)',
-  },
-  postJobButtonText: {
-    color: me.onBrand,
-    fontSize: 15,
-    fontWeight: '700',
-    letterSpacing: 0.2,
-  },
-  heroDecorCircle: {
-    position: 'absolute',
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    top: -60,
-    right: -50,
-  },
-  heroDecorSmall: {
-    position: 'absolute',
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    bottom: 20,
-    left: -20,
-  },
-  heroDecorDiamond: {
-    position: 'absolute',
-    width: 50,
-    height: 50,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    top: 100,
-    right: 70,
-    transform: [{ rotate: '45deg' }],
-    borderRadius: 6,
-  },
-
-  // Nav inside hero
-  heroNav: {
+  // ─────────────────────────────────────────────────────────────
+  // Mint Editorial v2 (2026-05-22, from
+  // .design-bundle/.../redesign-v2/mobile-screens.jsx HomeHO):
+  // slim top bar + caption-greeting + serif headline. Replaces
+  // the gradient hero + bento stat cards. Legacy hero/stat
+  // styles below are kept for two reasons: (1) the parallel
+  // ContractorDashboard still imports a couple of them and
+  // (2) the diff stays small. They'll be pruned in a follow-up.
+  // ─────────────────────────────────────────────────────────────
+  topBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 24,
-    zIndex: 1,
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+    backgroundColor: me.bg,
   },
+  greetingBlock: {
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
+  greetingCaption: {
+    fontSize: 13,
+    color: me.ink3,
+    marginBottom: 4,
+  },
+  greetingTitle: {
+    fontFamily: me.font.display,
+    fontSize: 30,
+    lineHeight: 34,
+    color: me.ink,
+    letterSpacing: me.displayTracking,
+    marginBottom: 8,
+  },
+  greetingSubtitle: {
+    fontSize: 14,
+    color: me.ink2,
+    lineHeight: 20,
+    marginBottom: 14,
+  },
+  // Emergency pill — outlined, paper-feeling. Reuses --err-fg for
+  // the warning icon so the affordance is unmistakeable without
+  // turning into a red shouty button.
+  emergencyPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 9999,
+    backgroundColor: me.errBg,
+    borderWidth: 1,
+    borderColor: me.errBg,
+  },
+  emergencyPillText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: me.errFg,
+    letterSpacing: 0.2,
+  },
+  // Quick Post 2×2 trade grid — flat surfaces with brand-soft
+  // icon tiles. Each tile preselects a category on tap.
+  quickPostSection: {
+    paddingHorizontal: 20,
+    paddingTop: 4,
+    paddingBottom: 16,
+  },
+  sectionEyebrow: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: me.ink3,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: 10,
+  },
+  quickPostGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  quickPostTile: {
+    flexBasis: '48%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: me.surface,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: me.line,
+    paddingVertical: 14,
+    paddingHorizontal: 14,
+  },
+  quickPostIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: me.brandSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickPostLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: me.ink,
+  },
+
+  // Brand mark inside the top bar (kept — used by the editorial v2
+  // top bar). Legacy gradient hero / decor / overlay / heroNav styles
+  // were removed 2026-05-22 alongside the redesign.
   brandButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -91,7 +135,9 @@ export const styles = StyleSheet.create({
   brandText: {
     fontFamily: me.font.display,
     fontSize: 21,
-    color: me.onBrand,
+    // Editorial v2: the top bar is now on a light bg (no gradient),
+    // so the wordmark inks in the ink colour rather than white.
+    color: me.ink,
     letterSpacing: me.displayTracking,
   },
   rightActions: {
@@ -133,9 +179,10 @@ export const styles = StyleSheet.create({
     width: 34,
     height: 34,
     borderRadius: 17,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderWidth: 2,
-    borderColor: 'rgba(255,255,255,0.4)',
+    // Editorial v2: the avatar sits on a light top bar now, so use
+    // the brand fill instead of a translucent-on-gradient look.
+    backgroundColor: me.brand,
+    borderWidth: 0,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -145,108 +192,14 @@ export const styles = StyleSheet.create({
     color: me.onBrand,
   },
 
-  // Greeting inside hero
-  heroOverline: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: 'rgba(255,255,255,0.6)',
-    textTransform: 'uppercase',
-    letterSpacing: 2,
-    marginBottom: 4,
-    zIndex: 1,
-  },
-  heroGreeting: {
-    fontFamily: me.font.display,
-    fontSize: 34,
-    color: me.onBrand,
-    lineHeight: 38,
-    letterSpacing: me.displayTracking,
-    zIndex: 1,
-  },
-  heroSubtitle: {
-    fontSize: 16,
-    color: 'rgba(255,255,255,0.7)',
-    marginTop: 6,
-    marginBottom: 14,
-    zIndex: 1,
-  },
-  // Compact emergency CTA pill in the hero — see HomeownerDashboard
-  // comment block for why this is a *separate* entry from the bottom
-  // tab "Post Job" path.
-  heroEmergencyPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.16)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.32)',
-    marginBottom: 24,
-    zIndex: 1,
-  },
-  heroEmergencyPillText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: me.onBrand,
-    letterSpacing: 0.2,
-  },
-
-  // Stats cards below hero — bento grid
-  statsCardsRow: {
-    flexDirection: 'row',
-    gap: 10,
-    paddingHorizontal: 20,
-    marginTop: -24,
-    marginBottom: 8,
-    zIndex: 2,
-  },
-  statCard: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: me.surface,
-    borderRadius: me.radius.card,
-    padding: 14,
-    minHeight: 76,
-    borderWidth: 1,
-    borderColor: me.line,
-    ...me.shadow.pop,
-  },
-  statCardTop: {
-    // legacy — kept so any external consumer doesn't crash; no longer used in HomeownerDashboard
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-  },
-  statCardTextCol: {
-    flex: 1,
-    minWidth: 0,
-  },
-  statCardLabel: {
-    fontSize: 11,
-    color: me.ink2,
-    fontWeight: '600',
-    marginTop: 2,
-  },
-  statCardIconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  statCardValue: {
-    fontFamily: me.font.display,
-    fontSize: 24,
-    color: me.ink,
-    letterSpacing: me.displayTracking,
-    lineHeight: 28,
-  },
+  // Legacy gradient-hero greeting + bento stat-card styles
+  // (heroOverline / heroGreeting / heroSubtitle / heroEmergencyPill /
+  // heroEmergencyPillText / statsCardsRow / statCard / statCardTop /
+  // statCardTextCol / statCardLabel / statCardIconWrap /
+  // statCardValue) were removed 2026-05-22 — the redesign uses the
+  // editorial greetingBlock / greetingCaption / greetingTitle /
+  // greetingSubtitle / emergencyPill / quickPostGrid styles above
+  // instead. Listed here for the next person grep-hunting them.
 
   mainContent: {
     paddingHorizontal: 20,

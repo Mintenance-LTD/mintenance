@@ -1,26 +1,26 @@
 /**
- * ContractorDashboard Component
+ * ContractorDashboard — Mint Editorial v2 (2026-05-22, from
+ * `.design-bundle/.../redesign-v2/mobile-screens.jsx` HomeC).
  *
- * Airbnb-inspired contractor dashboard with full-bleed
- * green gradient hero, integrated header, stats, timeline,
- * and horizontal quick actions.
+ * Drops the full-bleed brand-gradient hero in favour of a quiet
+ * paper-feeling header: slim top bar + caption (date) + serif
+ * greeting. The Today / Hot leads / Quick actions / Schedule
+ * sub-component stack stays intact since each one carries real
+ * data wiring.
  */
 
 import React, { useState } from 'react';
 import {
   View,
   Text,
-  StyleSheet,
   TouchableOpacity,
   ScrollView,
   RefreshControl,
-  Platform,
   Image,
   Modal,
   StatusBar,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { FadeIn, SlideIn } from '../../components/animations/primitives';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { useAuth } from '../../contexts/AuthContext';
@@ -49,6 +49,16 @@ function getTimeGreeting(): string {
   if (hour < 12) return 'Good morning';
   if (hour < 17) return 'Good afternoon';
   return 'Good evening';
+}
+
+// Mint Editorial v2: caption shows the date in the spec's format
+// (e.g. "Tuesday, 14 May"). Locale-aware via toLocaleDateString.
+function getCaptionDate(): string {
+  return new Date().toLocaleDateString('en-GB', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  });
 }
 
 export const ContractorDashboard: React.FC = () => {
@@ -208,11 +218,12 @@ export const ContractorDashboard: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      {/* Force translucent status bar so gradient fills behind it */}
+      {/* Editorial v2: light status-bar content now that the hero is
+          no longer a dark gradient. */}
       <StatusBar
         translucent
         backgroundColor='transparent'
-        barStyle='light-content'
+        barStyle='dark-content'
       />
       <ScrollView
         testID='home-scroll-view'
@@ -226,64 +237,58 @@ export const ContractorDashboard: React.FC = () => {
           />
         }
       >
-        {/* Full-bleed green gradient hero — extends behind status bar */}
-        <LinearGradient colors={[me.brand2, me.brand]} style={styles.hero}>
-          {/* Decorative circles */}
-          <View style={styles.decorCircle1} />
-          <View style={styles.decorCircle2} />
-          <View style={styles.decorDiamond} />
-
-          {/* Header bar: logo + bell + avatar — safe area padding applied here */}
-          <View style={[styles.headerBar, { marginTop: insets.top + 8 }]}>
-            <View style={styles.logoWrap}>
-              <Image source={appIcon} style={styles.logoIcon} />
-            </View>
-            <View style={styles.headerRight}>
-              <TouchableOpacity
-                style={styles.headerIconBtn}
-                onPress={() =>
-                  navigation
-                    .getParent?.()
-                    ?.navigate('Modal', { screen: 'Notifications' })
-                }
-                accessibilityRole='button'
-                accessibilityLabel='Notifications'
-              >
-                <Ionicons
-                  name='notifications-outline'
-                  size={22}
-                  color={me.onBrand}
-                />
-                {unreadCount > 0 && (
-                  <View style={styles.notifBadge}>
-                    <Text style={styles.notifBadgeText}>
-                      {unreadCount > 99 ? '99+' : unreadCount}
-                    </Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-              {userInitials && (
-                <TouchableOpacity
-                  style={styles.avatarButton}
-                  onPress={() => setDropdownOpen(true)}
-                  accessibilityRole='button'
-                  accessibilityLabel='Open profile menu'
-                >
-                  <Text style={styles.avatarText}>{userInitials}</Text>
-                </TouchableOpacity>
-              )}
-            </View>
+        {/* Slim top bar — no gradient, paper background. */}
+        <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
+          <View style={styles.brandRow}>
+            <Image source={appIcon} style={styles.brandIcon} />
+            <Text style={styles.brandText}>Mintenance</Text>
           </View>
+          <View style={styles.headerRight}>
+            <TouchableOpacity
+              style={styles.headerIconBtn}
+              onPress={() =>
+                navigation
+                  .getParent?.()
+                  ?.navigate('Modal', { screen: 'Notifications' })
+              }
+              accessibilityRole='button'
+              accessibilityLabel='Notifications'
+            >
+              <Ionicons name='notifications-outline' size={22} color={me.ink} />
+              {unreadCount > 0 && (
+                <View style={styles.notifBadge}>
+                  <Text style={styles.notifBadgeText}>
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+            {userInitials && (
+              <TouchableOpacity
+                style={styles.avatarButton}
+                onPress={() => setDropdownOpen(true)}
+                accessibilityRole='button'
+                accessibilityLabel='Open profile menu'
+              >
+                <Text style={styles.avatarText}>{userInitials}</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
 
-          {/* Greeting + stats */}
-          <Text style={styles.greeting}>{getTimeGreeting()}</Text>
-          <Text style={styles.heroName} numberOfLines={1}>
-            {businessName}
-          </Text>
-        </LinearGradient>
+        {/* Editorial greeting — caption (date) + serif headline */}
+        <FadeIn duration={400}>
+          <View style={styles.greetingBlock}>
+            <Text style={styles.greetingCaption}>{getCaptionDate()}</Text>
+            <Text style={styles.greetingTitle} numberOfLines={1}>
+              {getTimeGreeting()}, {businessName}
+            </Text>
+          </View>
+        </FadeIn>
 
-        {/* Stat cards overlapping hero bottom edge */}
-        <View style={styles.overlappingStats}>
+        {/* Stat cards — keep on a regular surface row now that there's
+            no hero to overlap. */}
+        <View style={styles.statsRow}>
           <StatsSection stats={contractorStats} />
         </View>
 

@@ -1,8 +1,13 @@
 /**
- * HomeownerDashboard Component
+ * HomeownerDashboard — Mint Editorial v2 (2026-05-22, from
+ * `.design-bundle/.../redesign-v2/mobile-screens.jsx` HomeHO).
  *
- * Full-bleed gradient hero dashboard with nav, greeting, stats,
- * CTA, bids section, appointments, and listing-style recent jobs.
+ * Quiet editorial layout — caption greeting, serif headline,
+ * Quick Post trade grid, then the established sub-component stack
+ * (BidsReceived, FinishSetup, Appointments, LandlordPayer, HomeHealth,
+ * Referral, RecentJobs). Replaces the heavy gradient hero + bento
+ * stat cards with a slim flat header so the dashboard reads as
+ * "home, taken care of" rather than "look at my numbers".
  */
 
 import React, { useState } from 'react';
@@ -16,7 +21,6 @@ import {
   StatusBar,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { FadeIn, SlideIn } from '../../components/animations/primitives';
 import { useNavigation, NavigationProp } from '@react-navigation/native';
 import { useAuth } from '../../contexts/AuthContext';
@@ -32,7 +36,6 @@ import { goToTab } from '../../navigation/hooks';
 import { RecentJobs } from './RecentJobs';
 import { BidsReceived } from './BidsReceived';
 import { me } from '../../design-system/mint-editorial';
-import { STATUS_COLORS } from '@mintenance/design-tokens';
 import { styles } from './homeownerDashboardStyles';
 import { DashboardProfileMenu } from './components/DashboardProfileMenu';
 import { DashboardAppointmentsSection } from './components/DashboardAppointmentsSection';
@@ -184,15 +187,7 @@ export const HomeownerDashboard: React.FC = () => {
   const greeting =
     hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
 
-  const activeCount = homeownerJobs.filter(
-    (j) => j?.status === 'in_progress' || j?.status === 'assigned'
-  ).length;
-  const completedCount = homeownerJobs.filter(
-    (j) => j?.status === 'completed'
-  ).length;
-  const postedCount = homeownerJobs.filter(
-    (j) => j?.status === 'posted'
-  ).length;
+  const activeJobsCount = activeJobIds.length;
 
   return (
     <View style={styles.container}>
@@ -221,95 +216,81 @@ export const HomeownerDashboard: React.FC = () => {
           />
         }
       >
-        {/* Full-Bleed Gradient Hero */}
-        <LinearGradient
-          colors={[me.brand2, me.brand]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.hero}
-        >
-          <View style={styles.heroDecorCircle} />
-          <View style={styles.heroDecorSmall} />
-          <View style={styles.heroDecorDiamond} />
+        {/* Slim top bar — no gradient. The Mint Editorial v2 spec
+            (mobile-screens.jsx HomeHO) drops the heavy brand
+            gradient in favour of a quiet, paper-feeling header so
+            the editorial greeting carries the screen. */}
+        <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
+          <TouchableOpacity
+            style={styles.brandButton}
+            onPress={() => goToTab(navigation, 'HomeTab')}
+            accessibilityRole='button'
+            accessibilityLabel='Mintenance home'
+          >
+            <Image source={appIcon} style={styles.brandIcon} />
+            <Text style={styles.brandText}>Mintenance</Text>
+          </TouchableOpacity>
 
-          {/* Nav bar — with safe area top padding */}
-          <View style={[styles.heroNav, { marginTop: insets.top + 8 }]}>
+          <View style={styles.rightActions}>
             <TouchableOpacity
-              style={styles.brandButton}
-              onPress={() => goToTab(navigation, 'HomeTab')}
+              style={styles.notificationButton}
+              onPress={() =>
+                navigation.navigate('Modal', {
+                  screen: 'Notifications',
+                })
+              }
               accessibilityRole='button'
-              accessibilityLabel='Mintenance home'
+              accessibilityLabel='Notifications'
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
             >
-              <Image source={appIcon} style={styles.brandIcon} />
-              <Text style={styles.brandText}>Mintenance</Text>
-            </TouchableOpacity>
-
-            <View style={styles.rightActions}>
-              <TouchableOpacity
-                style={styles.notificationButton}
-                onPress={() =>
-                  navigation.navigate('Modal', {
-                    screen: 'Notifications',
-                  })
-                }
-                accessibilityRole='button'
-                accessibilityLabel='Notifications'
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <Ionicons
-                  name='notifications-outline'
-                  size={22}
-                  color={me.onBrand}
-                />
-                {unreadCount > 0 && (
-                  <View style={styles.notificationBadge}>
-                    <Text style={styles.notificationBadgeText}>
-                      {unreadCount > 99 ? '99+' : unreadCount}
-                    </Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.profileButton}
-                onPress={() => setShowProfileMenu(true)}
-                accessibilityRole='button'
-                accessibilityLabel='Open quick menu'
-              >
-                <View style={styles.profileAvatar}>
-                  <Text style={styles.profileAvatarText}>{userInitial}</Text>
+              <Ionicons name='notifications-outline' size={22} color={me.ink} />
+              {unreadCount > 0 && (
+                <View style={styles.notificationBadge}>
+                  <Text style={styles.notificationBadgeText}>
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </Text>
                 </View>
-              </TouchableOpacity>
-            </View>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.profileButton}
+              onPress={() => setShowProfileMenu(true)}
+              accessibilityRole='button'
+              accessibilityLabel='Open quick menu'
+            >
+              <View style={styles.profileAvatar}>
+                <Text style={styles.profileAvatarText}>{userInitial}</Text>
+              </View>
+            </TouchableOpacity>
           </View>
+        </View>
 
-          {/* Greeting */}
-          <FadeIn duration={400}>
-            <Text style={styles.heroOverline}>Overview</Text>
-            <Text style={styles.heroGreeting}>
+        {/* Editorial greeting — caption + serif headline + subtitle */}
+        <FadeIn duration={400}>
+          <View style={styles.greetingBlock}>
+            <Text style={styles.greetingCaption}>
               {greeting}, {userName}
             </Text>
-            <Text style={styles.heroSubtitle}>
+            <Text style={styles.greetingTitle} accessibilityRole='header'>
+              Home, taken care of.
+            </Text>
+            <Text style={styles.greetingSubtitle}>
               {jobsLoading
-                ? 'Loading your projects...'
-                : homeownerJobs.length > 0
-                  ? `You have ${activeJobIds.length} active project${activeJobIds.length !== 1 ? 's' : ''}`
+                ? 'Loading your projects…'
+                : activeJobsCount > 0
+                  ? `You have ${activeJobsCount} active project${
+                      activeJobsCount !== 1 ? 's' : ''
+                    }.`
                   : 'Ready to get something fixed?'}
             </Text>
-            {/*
-              The hero "Post a New Job" button was removed after user
-              flagged it as redundant with the bottom-tab "Post Job"
-              entry. Keeping one canonical entry point avoids the
-              double-CTA that briefly existed when the tab was added
-              (04-17 session added the button because there was no
-              entry point; the tab later replaced that need).
 
-              Emergency pill below is a *different* entry — it's the
-              opt-in fast path for leaks / no heat / power loss /
-              gas smell. Posting from here flags `urgency='emergency'`
-              and uses fixed tiles instead of free-form input.
-            */}
+            {/* Emergency pill — fast-path entry for leaks / no heat /
+                power loss / gas smell. POSTs jobs with
+                urgency='emergency' via the modal. Kept as a separate
+                entry from the bottom-tab "Post Job" so the headline
+                CTA stays uncluttered. */}
             <TouchableOpacity
-              style={styles.heroEmergencyPill}
+              style={styles.emergencyPill}
               onPress={() =>
                 navigation.navigate('Modal', { screen: 'EmergencyJob' })
               }
@@ -317,72 +298,59 @@ export const HomeownerDashboard: React.FC = () => {
               accessibilityLabel='Post an emergency job'
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Ionicons name='warning' size={14} color={me.onBrand} />
-              <Text style={styles.heroEmergencyPillText}>
+              <Ionicons name='warning' size={14} color={me.errFg} />
+              <Text style={styles.emergencyPillText}>
                 Emergency? Tap for the fast path
               </Text>
             </TouchableOpacity>
-          </FadeIn>
-        </LinearGradient>
+          </View>
+        </FadeIn>
 
-        {/* Bento stat cards below hero */}
-        <SlideIn direction='up' distance={20} duration={400} delay={100}>
-          <View style={styles.statsCardsRow}>
-            <View style={styles.statCard}>
-              <View
-                style={[
-                  styles.statCardIconWrap,
-                  { backgroundColor: me.brandSoft },
-                ]}
-              >
-                <Ionicons name='briefcase' size={20} color={me.brand} />
-              </View>
-              <View style={styles.statCardTextCol}>
-                <Text style={styles.statCardValue}>
-                  {jobsLoading ? '–' : activeCount}
-                </Text>
-                <Text style={styles.statCardLabel}>Active</Text>
-              </View>
-            </View>
-            <View style={styles.statCard}>
-              <View
-                style={[
-                  styles.statCardIconWrap,
-                  { backgroundColor: STATUS_COLORS.completed.bg },
-                ]}
-              >
-                <Ionicons
-                  name='checkmark-circle'
-                  size={20}
-                  color={STATUS_COLORS.completed.text}
-                />
-              </View>
-              <View style={styles.statCardTextCol}>
-                <Text style={styles.statCardValue}>
-                  {jobsLoading ? '–' : completedCount}
-                </Text>
-                <Text style={styles.statCardLabel}>Done</Text>
-              </View>
-            </View>
-            <View style={styles.statCard}>
-              <View
-                style={[
-                  styles.statCardIconWrap,
-                  { backgroundColor: STATUS_COLORS.assigned.bg },
-                ]}
-              >
-                <Ionicons
-                  name='document-text'
-                  size={20}
-                  color={STATUS_COLORS.assigned.text}
-                />
-              </View>
-              <View style={styles.statCardTextCol}>
-                <Text style={styles.statCardValue}>
-                  {jobsLoading ? '–' : postedCount}
-                </Text>
-                <Text style={styles.statCardLabel}>Posted</Text>
-              </View>
+        {/* Quick Post — 2×2 trade grid (spec: HomeHO). Each tile
+            opens the Post Job flow with the category preselected. */}
+        <SlideIn direction='up' distance={16} duration={400} delay={100}>
+          <View style={styles.quickPostSection}>
+            <Text style={styles.sectionEyebrow}>Quick post</Text>
+            <View style={styles.quickPostGrid}>
+              {(
+                [
+                  { id: 'plumbing', icon: 'water-outline', label: 'Plumbing' },
+                  {
+                    id: 'electrical',
+                    icon: 'flash-outline',
+                    label: 'Electrical',
+                  },
+                  {
+                    id: 'painting',
+                    icon: 'color-palette-outline',
+                    label: 'Painting',
+                  },
+                  { id: 'garden', icon: 'leaf-outline', label: 'Garden' },
+                ] as Array<{
+                  id: string;
+                  icon: keyof typeof Ionicons.glyphMap;
+                  label: string;
+                }>
+              ).map((trade) => (
+                <TouchableOpacity
+                  key={trade.id}
+                  style={styles.quickPostTile}
+                  onPress={() =>
+                    navigation.navigate('JobsTab', {
+                      screen: 'JobPosting',
+                      params: { presetCategory: trade.id },
+                    })
+                  }
+                  accessibilityRole='button'
+                  accessibilityLabel={`Post a ${trade.label.toLowerCase()} job`}
+                  activeOpacity={0.85}
+                >
+                  <View style={styles.quickPostIconWrap}>
+                    <Ionicons name={trade.icon} size={20} color={me.brand} />
+                  </View>
+                  <Text style={styles.quickPostLabel}>{trade.label}</Text>
+                </TouchableOpacity>
+              ))}
             </View>
           </View>
         </SlideIn>
