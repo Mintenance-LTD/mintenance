@@ -310,6 +310,11 @@ export function useNavSections(
           { label: 'Users', href: '/admin/users', icon: Users },
           { label: 'Revenue', href: '/admin/revenue', icon: PoundSterling },
           {
+            label: 'Pricing Metrics',
+            href: '/admin/pricing-metrics',
+            icon: BarChart3,
+          },
+          {
             label: 'Communications',
             href: '/admin/communications',
             icon: Megaphone,
