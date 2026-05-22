@@ -125,23 +125,23 @@ const BUSINESS_TOOLS = [
   },
   {
     icon: Award,
-    title: 'Verification & DBS',
-    desc: 'Get verified and earn trust badges on your profile',
+    title: 'Credentials & optional DBS',
+    desc: 'Add your licences and insurance. Initiate an optional DBS check from your profile to show homeowners extra reassurance.',
   },
 ];
 
 const WHY_MINTENANCE: MarketingTrustPoint[] = [
   {
     icon: Shield,
-    title: 'Guaranteed Payment',
+    title: 'Escrow-protected payment',
     description:
-      'Homeowner funds are held in escrow before you start work. Complete the job, upload photos \u2014 money goes straight to your bank. No invoicing, no chasing.',
+      'Homeowner funds are held in escrow before you start work. Complete the job, upload photos, and on homeowner approval the money goes straight to your Stripe Connect payout account. No invoicing, no chasing.',
   },
   {
     icon: Award,
     title: 'Build Your Reputation',
     description:
-      'Earn ratings, verification badges, and DBS-checked status. The more you build your profile, the more homeowners trust you with higher-value work.',
+      'Collect homeowner ratings on completed jobs, list your licences and insurance, and add an optional DBS check to strengthen your profile. The more you build, the more homeowners can confidently hire you for higher-value work.',
   },
   {
     icon: Sparkles,

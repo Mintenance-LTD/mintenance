@@ -167,7 +167,7 @@ export function HeroVisual() {
               Selected bid: £195
             </p>
             <p className='text-[11px] text-white/50 mt-0.5'>
-              &#9733; 4.9 &middot; DBS verified
+              Local plumber &middot; Bid accepted
             </p>
           </div>
         </div>
