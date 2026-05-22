@@ -46,18 +46,32 @@ type JobRow = {
   homeowner_id: string;
   contractor_id?: string | null;
   category?: string | null;
-  budget?: number | null;
-  budget_min?: number | null;
-  budget_max?: number | null;
+  // Postgres NUMERIC columns. supabase-js serialises NUMERIC as strings
+  // to preserve precision, so the row may carry either type — `toNum`
+  // below normalises before we leak it to API consumers (mobile
+  // JobsScreen sums these for the "AVG VALUE" KPI; a string would
+  // produce NaN via the `+=` operator).
+  budget?: number | string | null;
+  budget_min?: number | string | null;
+  budget_max?: number | string | null;
   location?: string | null;
-  latitude?: number | null;
-  longitude?: number | null;
+  latitude?: number | string | null;
+  longitude?: number | string | null;
   created_at: string;
   updated_at: string;
   homeowner?: UserData;
   contractor?: UserData | null;
   bids?: Array<{ count: number }>;
   building_assessments?: AIAssessmentData[] | null;
+};
+
+// Coerce a Postgres-NUMERIC-as-string into a real JS number, or null
+// if it doesn't parse cleanly. Keeps the `typeof === 'number'` checks
+// downstream honest.
+const toNum = (v: unknown): number | undefined => {
+  if (v == null) return undefined;
+  const n = typeof v === 'number' ? v : Number(v);
+  return Number.isFinite(n) ? n : undefined;
 };
 
 const jobSelectFields = `
@@ -117,9 +131,9 @@ const mapRowToJobSummary = (
     ? `${row.contractor.first_name} ${row.contractor.last_name}`
     : undefined,
   category: row.category ?? undefined,
-  budget: row.budget ?? undefined,
-  budget_min: row.budget_min ?? undefined,
-  budget_max: row.budget_max ?? undefined,
+  budget: toNum(row.budget),
+  budget_min: toNum(row.budget_min),
+  budget_max: toNum(row.budget_max),
   location: row.location ?? undefined,
   bidCount: row.bids?.[0]?.count ?? 0,
 });

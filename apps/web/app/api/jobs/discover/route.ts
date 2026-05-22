@@ -178,6 +178,24 @@ export const GET = withApiHandler(
 
     let rows = (data ?? []) as JobRow[];
 
+    // Postgres NUMERIC columns are serialised by supabase-js as strings
+    // to preserve arbitrary precision. The mobile map and the haversine
+    // filter below both need real JS numbers, so coerce here. Returning
+    // `null` for anything that doesn't parse keeps downstream
+    // `typeof === 'number'` checks honest.
+    //
+    // 2026-05-22 Find-Jobs-crash audit: before this coercion, the route
+    // returned lat/lng as strings, which made the haversine filter
+    // below reject every row (`typeof "51.9" !== 'number'`) so the
+    // contractor map showed zero pins; and any pin that did render
+    // passed strings to native `react-native-maps` Markers, which
+    // crashed the Find Jobs tab on Android.
+    const toNum = (v: unknown): number | null => {
+      if (v == null) return null;
+      const n = typeof v === 'number' ? v : Number(v);
+      return Number.isFinite(n) ? n : null;
+    };
+
     // Apply Haversine radius filter when both coords are supplied.
     // Done in JS because the live DB doesn't have PostGIS in
     // public schema yet (the `extension_in_public` advisor blocked
@@ -190,18 +208,10 @@ export const GET = withApiHandler(
       typeof longitude === 'number'
     ) {
       rows = rows.filter((row) => {
-        if (
-          typeof row.latitude !== 'number' ||
-          typeof row.longitude !== 'number'
-        ) {
-          return false;
-        }
-        const distance = haversineKm(
-          latitude,
-          longitude,
-          row.latitude,
-          row.longitude
-        );
+        const rowLat = toNum(row.latitude);
+        const rowLng = toNum(row.longitude);
+        if (rowLat === null || rowLng === null) return false;
+        const distance = haversineKm(latitude, longitude, rowLat, rowLng);
         return distance <= radiusKm;
       });
       // Re-apply the caller's `limit` on the post-filter set.
@@ -217,11 +227,11 @@ export const GET = withApiHandler(
         title: row.title ?? '',
         category: row.category ?? 'general',
         urgency: row.urgency ?? 'medium',
-        budget: row.budget != null ? Number(row.budget) : null,
-        budget_min: row.budget_min,
-        budget_max: row.budget_max,
-        latitude: row.latitude,
-        longitude: row.longitude,
+        budget: toNum(row.budget),
+        budget_min: toNum(row.budget_min),
+        budget_max: toNum(row.budget_max),
+        latitude: toNum(row.latitude),
+        longitude: toNum(row.longitude),
         created_at: row.created_at,
         homeowner_first_name: firstName,
       };

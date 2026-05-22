@@ -99,7 +99,13 @@ const HelpCenterScreen: React.FC = () => {
     {
       id: 'call',
       title: 'Call Us',
-      description: '1-800-MINT-HELP',
+      // 2026-05-22 audit F4: removed US placeholder "1-800-MINT-HELP"
+      // / tel:+18006468435 — Mintenance is a UK-only product
+      // (mintenance.co.uk) and shipping a US vanity number was false
+      // contact data. Phone support isn't live yet; route this tile
+      // to the same "coming soon" pattern as Live Chat so users
+      // aren't misled into trying a dead number.
+      description: 'Phone support coming soon',
       icon: 'call',
       action: () => handlePhoneCall(),
     },
@@ -132,7 +138,15 @@ const HelpCenterScreen: React.FC = () => {
   };
 
   const handlePhoneCall = () => {
-    Linking.openURL('tel:+18006468435');
+    // Audit F4: previous `tel:+18006468435` (US 1-800 number) was a
+    // placeholder on a UK-only product. Until a real UK support
+    // number is wired in, surface the same coming-soon UX as Live
+    // Chat so the tap doesn't deep-link the user into dialling a
+    // dead number.
+    Alert.alert(
+      'Call Us',
+      'Phone support is coming soon. Please use email support in the meantime.'
+    );
   };
 
   const handleEmailSupport = () => {

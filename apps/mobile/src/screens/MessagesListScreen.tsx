@@ -108,10 +108,9 @@ const MessagesListScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle} accessibilityRole='header'>
-            Messages
-          </Text>
+        {/* Editorial v2: eyebrow + serif headline pattern. */}
+        <View style={styles.topBar}>
+          <View style={{ flex: 1 }} />
           <TouchableOpacity
             style={styles.searchButton}
             accessibilityRole='button'
@@ -120,13 +119,20 @@ const MessagesListScreen: React.FC = () => {
               setIsSearching((prev) => !prev);
               setSearchQuery('');
             }}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
             <Ionicons
               name={isSearching ? 'close-outline' : 'search-outline'}
-              size={22}
+              size={20}
               color={me.ink}
             />
           </TouchableOpacity>
+        </View>
+        <View style={styles.screenHeader}>
+          <Text style={styles.eyebrow}>Conversations</Text>
+          <Text style={styles.headline} accessibilityRole='header'>
+            Messages
+          </Text>
         </View>
         {isSearching && (
           <View style={styles.searchContainer}>
@@ -307,22 +313,30 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: me.bg2,
   },
-  header: {
-    backgroundColor: me.surface,
-    paddingTop: 12,
-    paddingBottom: 12,
-    paddingHorizontal: 20,
+  // Editorial v2 top bar + serif headline (2026-05-22).
+  topBar: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: me.line,
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: 4,
   },
-  headerTitle: {
-    fontSize: 20,
+  screenHeader: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 14 },
+  eyebrow: {
+    fontSize: 11,
     fontWeight: '700',
+    color: me.brand,
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+    marginBottom: 6,
+  },
+  headline: {
+    fontFamily: me.font.display,
+    fontSize: 28,
+    lineHeight: 32,
     color: me.ink,
-    letterSpacing: -0.3,
+    letterSpacing: me.displayTracking,
   },
   searchButton: {
     width: 40,

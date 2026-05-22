@@ -337,6 +337,19 @@ export class JobCRUDService {
     data: DatabaseJobRow | Record<string, unknown>
   ): Job {
     const raw = data as Record<string, unknown>;
+
+    // Coerce Postgres NUMERIC (budget*, latitude, longitude) — they
+    // arrive from supabase-js as strings to preserve precision, but
+    // downstream consumers (JobLocationMap → react-native-maps,
+    // arithmetic on budget) require real numbers. Returning
+    // `undefined` for unparseable values keeps optional-typed fields
+    // honest.
+    const toNum = (v: unknown): number | undefined => {
+      if (v == null) return undefined;
+      const n = typeof v === 'number' ? v : Number(v);
+      return Number.isFinite(n) ? n : undefined;
+    };
+
     const job: Job = {
       id: raw.id as string,
       title: (raw.title as string) ?? '',
@@ -344,7 +357,7 @@ export class JobCRUDService {
       location: (raw.location as string) ?? '',
       homeowner_id: (raw.homeowner_id as string) ?? '',
       status: (raw.status as DatabaseJobRow['status']) ?? 'posted',
-      budget: (raw.budget as number) ?? 0,
+      budget: toNum(raw.budget) ?? 0,
       category: (raw.category as string) ?? '',
       subcategory: (raw.subcategory as string) ?? '',
       // API returns 'urgency', DB returns 'priority'
@@ -358,6 +371,17 @@ export class JobCRUDService {
         ((raw.updated_at ?? raw.updatedAt) as string) ??
         new Date().toISOString(),
     };
+
+    // Optional numeric fields — propagate when present, coerced to
+    // real numbers so JobLocationMap and budget math don't crash.
+    const budgetMin = toNum(raw.budget_min);
+    if (budgetMin !== undefined) job.budget_min = budgetMin;
+    const budgetMax = toNum(raw.budget_max);
+    if (budgetMax !== undefined) job.budget_max = budgetMax;
+    const latitude = toNum(raw.latitude);
+    if (latitude !== undefined) job.latitude = latitude;
+    const longitude = toNum(raw.longitude);
+    if (longitude !== undefined) job.longitude = longitude;
 
     if (raw.contractor_id !== undefined) {
       job.contractor_id = raw.contractor_id as string;

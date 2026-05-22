@@ -32,7 +32,7 @@ export async function handleGet(
   const { data, error } = await userDb
     .from('jobs')
     .select(
-      'id, title, description, status, homeowner_id, contractor_id, category, budget, budget_min, budget_max, urgency, location, city, postcode, latitude, longitude, start_date, end_date, flexible_timeline, access_info, requirements, created_at, updated_at'
+      'id, title, description, status, homeowner_id, contractor_id, category, budget, budget_min, budget_max, urgency, location, city, postcode, latitude, longitude, start_date, end_date, flexible_timeline, access_info, requirements, property_id, created_at, updated_at'
     )
     .eq('id', id)
     .single();
@@ -119,6 +119,50 @@ export async function handleGet(
   ].filter(Boolean);
   const signedPhotos = await resignJobStorageUrls(rawPhotos);
 
+  // Coerce Postgres NUMERIC columns (serialised as strings by
+  // supabase-js to preserve precision) into real JS numbers. The
+  // mobile JobLocationMap passes `latitude` / `longitude` straight
+  // into `react-native-maps` <MapView initialRegion> + <Marker
+  // coordinate> props which crash the native Android module on a
+  // string. Budgets need to be real numbers so any consumer doing
+  // arithmetic (avg, sum, comparison) doesn't NaN-out via string
+  // concatenation. Returning `null` for invalid values keeps
+  // downstream `typeof === 'number'` guards honest.
+  const toNum = (v: unknown): number | null => {
+    if (v == null) return null;
+    const n = typeof v === 'number' ? v : Number(v);
+    return Number.isFinite(n) ? n : null;
+  };
+
+  // No `property_type` column on `jobs`. The previous hardcoded
+  // `propertyType: 'house'` was lying to every detail-screen viewer;
+  // if a job has a `property_id`, the real property_type lives on
+  // the linked properties row. Query best-effort + don't break the
+  // detail page if the join fails.
+  let propertyType: string | null = null;
+  let propertyBedrooms: number | null = null;
+  let propertyBathrooms: number | null = null;
+  if (row.property_id) {
+    const { data: propertyRow } = await userDb
+      .from('properties')
+      .select('property_type, bedrooms, bathrooms')
+      .eq('id', row.property_id as string)
+      .maybeSingle();
+    if (propertyRow) {
+      propertyType =
+        (propertyRow as { property_type?: string | null }).property_type ??
+        null;
+      propertyBedrooms =
+        (propertyRow as { bedrooms?: number | null }).bedrooms ?? null;
+      propertyBathrooms =
+        (propertyRow as { bathrooms?: number | null }).bathrooms ?? null;
+    }
+  }
+
+  const budget = toNum(row.budget);
+  const budgetMin = toNum(row.budget_min);
+  const budgetMax = toNum(row.budget_max);
+
   // Format comprehensive job data for frontend
   const formattedJob = {
     id: row.id,
@@ -126,35 +170,27 @@ export async function handleGet(
     description: row.description,
     category: row.category,
     status: row.status,
-    // `priority` retained as a fallback only for legacy rows where
-    // a write may have hit the wrong column before the urgency
-    // alignment commit landed. Going forward `row.urgency` is the
-    // canonical source.
-    urgency: row.urgency ?? row.priority ?? 'medium',
-    budget: row.budget || 0,
-    budget_min: row.budget_min || row.budget || 0,
-    budget_max: row.budget_max || row.budget || 0,
+    urgency: row.urgency ?? 'medium',
+    budget: budget ?? 0,
+    budget_min: budgetMin ?? budget ?? 0,
+    budget_max: budgetMax ?? budget ?? 0,
     start_date: row.start_date,
     end_date: row.end_date,
     flexible_timeline: row.flexible_timeline || false,
     location: row.location || '',
     city: row.city || '',
     postcode: row.postcode || '',
-    propertyType: 'house',
+    propertyType,
+    propertyBedrooms,
+    propertyBathrooms,
     accessInfo: row.access_info || '',
-    // `images` is the legacy field name (web). `photos` is the field
-    // mobile's JobDetailsScreen / ImageCarousel actually reads. Keep
-    // both populated with the same signed URLs so neither caller breaks.
     images: signedPhotos,
     photos: signedPhotos,
-    requirements: row.requirements || [],
-    latitude: row.latitude,
-    longitude: row.longitude,
+    requirements: row.requirements ?? null,
+    latitude: toNum(row.latitude),
+    longitude: toNum(row.longitude),
     homeowner_id: row.homeowner_id,
     contractor_id: row.contractor_id,
-    homeowner: null,
-    contractor: null,
-    bidCount: 0,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   } as Record<string, unknown>;

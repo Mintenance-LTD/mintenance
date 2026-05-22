@@ -1,3 +1,16 @@
+/**
+ * RegisterScreen — Mint Editorial v2 redesign (2026-05-22).
+ *
+ * Implements the mobile create-account frame from
+ * `.design-bundle/.../redesign-v2/auth.html` (MSignUp-style, condensed
+ * for the 3-step wizard).
+ *
+ *   - Back chevron + thin progress bar with "n / N" counter.
+ *   - Instrument-style display headline per step.
+ *   - Step body delegated to the existing WizardStep* components.
+ *   - Bottom primary mint CTA + "Already have one? Sign in →" link.
+ */
+
 import React from 'react';
 import {
   View,
@@ -7,7 +20,6 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Image,
 } from 'react-native';
 import { FadeIn, SlideIn } from '../components/animations/primitives';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -20,7 +32,6 @@ import { AuthStackParamList } from '../navigation/types';
 import { Button } from '../components/ui/Button';
 import { Banner } from '../components/ui/Banner';
 import { TermsModal } from './register/components/TermsSection';
-import { FormProgress } from './register/components/FormProgress';
 import { WizardStep1Identity } from './register/components/WizardStep1Identity';
 import { WizardStep2Name } from './register/components/WizardStep2Name';
 import { WizardStep3Contact } from './register/components/WizardStep3Contact';
@@ -37,16 +48,26 @@ interface Props {
   navigation?: RegisterScreenNavigationProp;
 }
 
+const STEP_COPY = [
+  {
+    title: 'Create your account',
+    sub: 'Takes about 90 seconds. You can change role later.',
+  },
+  {
+    title: 'Who are we addressing?',
+    sub: 'Homeowners and tradespeople see this on your profile.',
+  },
+  {
+    title: 'How should we reach you?',
+    sub: 'Used for job alerts and bid notifications. Never shared.',
+  },
+] as const;
+
 const RegisterScreen: React.FC<Props> = () => {
-  // SECURITY: prevent screenshots / screen recording of the password
-  // field during registration.
   useScreenCaptureGuard();
 
   const navigation = useNavigation<RegisterScreenNavigationProp>();
   const route = useRoute<RouteProp<AuthStackParamList, 'Register'>>();
-  // Phase 2 — WelcomeScreen hands off a role when the user taps a
-  // tile. Direct deep-links to Register don't pass one; the hook
-  // falls back to its default ('homeowner').
   const initialRole = route.params?.role;
   const {
     form,
@@ -69,9 +90,6 @@ const RegisterScreen: React.FC<Props> = () => {
     handleRegister,
   } = useRegistrationForm({
     initialRole,
-    // Phase 1.2 — on successful signUp, go to the email-confirmation
-    // pending screen so the user has a clear next step. Email-confirm
-    // is ON in prod; they can't sign in until they click the link.
     onSignUpSuccess: (email) => {
       navigation.replace('EmailVerificationPending', { email });
     },
@@ -82,7 +100,7 @@ const RegisterScreen: React.FC<Props> = () => {
 
   const primaryLabel = isLastStep
     ? loading
-      ? 'Creating Account...'
+      ? 'Creating Account…'
       : 'Create Account'
     : 'Continue';
 
@@ -94,23 +112,42 @@ const RegisterScreen: React.FC<Props> = () => {
     }
   };
 
+  const handleBack = () => {
+    if (!isFirstStep) {
+      goToPreviousStep();
+      return;
+    }
+    if (navigation.canGoBack()) navigation.goBack();
+  };
+
+  const stepIdx = Math.min(currentStep, STEP_COPY.length) - 1;
+  const stepCopy = STEP_COPY[stepIdx] ?? STEP_COPY[0];
+  const progress = (currentStep / totalSteps) * 100;
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <View style={styles.container}>
-        <FadeIn duration={500}>
-          <View style={styles.header}>
-            <View style={styles.headerContent}>
-              <Image
-                source={require('../../assets/icon.png')}
-                style={styles.headerLogo}
-                resizeMode='contain'
-                accessible={false}
-              />
-              <Text style={styles.headerTitle} accessibilityRole='header'>
-                Mintenance
-              </Text>
+        <FadeIn duration={400}>
+          <View style={styles.headerRow}>
+            <TouchableOpacity
+              onPress={handleBack}
+              style={styles.backButton}
+              accessibilityRole='button'
+              accessibilityLabel={
+                isFirstStep ? 'Close registration' : 'Previous step'
+              }
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
+              <Ionicons name='chevron-back' size={22} color={me.ink2} />
+            </TouchableOpacity>
+
+            <View style={styles.progressTrack}>
+              <View style={[styles.progressFill, { width: `${progress}%` }]} />
             </View>
-            <Text style={styles.headerSubtitle}>Create your free account</Text>
+
+            <Text style={styles.progressCounter}>
+              {currentStep} / {totalSteps}
+            </Text>
           </View>
         </FadeIn>
 
@@ -123,22 +160,14 @@ const RegisterScreen: React.FC<Props> = () => {
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps='handled'
           >
-            <SlideIn direction='up' distance={20} duration={400} delay={200}>
+            <SlideIn direction='up' distance={16} duration={400} delay={100}>
               <View style={styles.formHeading}>
-                <Text style={styles.formTitle}>
-                  Step {currentStep} of {totalSteps}
+                <Text style={styles.formTitle} accessibilityRole='header'>
+                  {stepCopy.title}
                 </Text>
-                <Text style={styles.formSubtitle}>
-                  {currentStep === 1
-                    ? 'Choose the email and password for your account.'
-                    : currentStep === 2
-                      ? 'Tell us who we should address you as.'
-                      : 'How contractors / homeowners reach you.'}
-                </Text>
+                <Text style={styles.formSubtitle}>{stepCopy.sub}</Text>
               </View>
             </SlideIn>
-
-            <FormProgress currentStep={currentStep} />
 
             <View style={styles.formContainer}>
               {submissionSuccess ? (
@@ -214,60 +243,38 @@ const RegisterScreen: React.FC<Props> = () => {
                 />
               )}
 
-              <View style={styles.navRow}>
-                {!isFirstStep && (
-                  <TouchableOpacity
-                    onPress={goToPreviousStep}
-                    style={styles.backButton}
-                    accessibilityRole='button'
-                    accessibilityLabel='Go to previous step'
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  >
-                    <Ionicons name='chevron-back' size={20} color={me.ink} />
-                    <Text style={styles.backButtonText}>Back</Text>
-                  </TouchableOpacity>
-                )}
-                <View style={styles.primaryWrap}>
-                  <Button
-                    mint
-                    testID={
-                      loading && isLastStep
-                        ? 'loading-spinner'
-                        : 'register-button'
-                    }
-                    variant='primary'
-                    title={primaryLabel}
-                    onPress={handlePrimary}
-                    disabled={loading}
-                    loading={loading && isLastStep}
-                    accessibilityLabel={
-                      isLastStep
-                        ? loading
-                          ? 'Creating account'
-                          : 'Create account'
-                        : 'Continue to next step'
-                    }
-                    fullWidth
-                  />
-                </View>
-              </View>
+              <Button
+                mint
+                testID={
+                  loading && isLastStep ? 'loading-spinner' : 'register-button'
+                }
+                variant='primary'
+                title={primaryLabel}
+                onPress={handlePrimary}
+                disabled={loading}
+                loading={loading && isLastStep}
+                accessibilityLabel={
+                  isLastStep
+                    ? loading
+                      ? 'Creating account'
+                      : 'Create account'
+                    : 'Continue to next step'
+                }
+                fullWidth
+                style={{ marginTop: 24 }}
+              />
+            </View>
 
-              <View style={styles.loginSection}>
-                <View style={styles.loginDivider} />
-                <View style={styles.loginLinkContainer}>
-                  <Text style={styles.loginPromptText}>
-                    Already have an account?
-                  </Text>
-                  <TouchableOpacity
-                    onPress={() => navigation.navigate('Login')}
-                    accessibilityRole='link'
-                    accessibilityLabel='Already have an account? Sign in'
-                    accessibilityHint='Double tap to go to the login screen'
-                  >
-                    <Text style={styles.loginLinkText}> Sign In</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
+            <View style={styles.loginSection}>
+              <Text style={styles.loginPromptText}>Already have one?</Text>
+              <TouchableOpacity
+                onPress={() => navigation?.navigate('Login')}
+                accessibilityRole='link'
+                accessibilityLabel='Already have an account? Sign in'
+                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+              >
+                <Text style={styles.loginLinkText}>Sign in →</Text>
+              </TouchableOpacity>
             </View>
           </ScrollView>
         </KeyboardAvoidingView>
@@ -298,34 +305,38 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: me.bg,
   },
-  header: {
-    backgroundColor: me.bg,
-    paddingTop: 20,
-    paddingBottom: 12,
-    paddingHorizontal: 24,
-    alignItems: 'center',
-  },
-  headerContent: {
+  headerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    paddingHorizontal: 16,
+    paddingTop: 4,
+    paddingBottom: 12,
+    gap: 12,
   },
-  headerLogo: {
+  backButton: {
     width: 36,
     height: 36,
-    marginRight: 10,
-    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  headerTitle: {
-    fontFamily: me.font.display,
-    fontSize: 28,
-    color: me.ink,
-    letterSpacing: me.displayTracking,
+  progressTrack: {
+    flex: 1,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: me.bg2,
+    overflow: 'hidden',
   },
-  headerSubtitle: {
-    fontSize: 15,
-    color: me.ink2,
-    textAlign: 'center',
+  progressFill: {
+    height: '100%',
+    backgroundColor: me.brand,
+    borderRadius: 2,
+  },
+  progressCounter: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: me.ink3,
+    minWidth: 32,
+    textAlign: 'right',
   },
   keyboardContainer: {
     flex: 1,
@@ -333,70 +344,46 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
     backgroundColor: me.bg,
-    paddingTop: 20,
+    paddingHorizontal: 22,
+    paddingTop: 12,
     paddingBottom: 32,
   },
   formHeading: {
-    paddingHorizontal: 24,
     marginBottom: 20,
   },
   formTitle: {
     fontFamily: me.font.display,
-    fontSize: 26,
+    fontSize: 30,
+    lineHeight: 34,
     color: me.ink,
     marginBottom: 4,
     letterSpacing: me.displayTracking,
   },
   formSubtitle: {
-    fontSize: 15,
+    fontSize: 14,
     color: me.ink2,
+    lineHeight: 20,
   },
   formContainer: {
-    paddingHorizontal: 24,
-  },
-  navRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    marginTop: 20,
-    marginBottom: 16,
-  },
-  backButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    gap: 4,
-  },
-  backButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: me.ink,
-  },
-  primaryWrap: {
-    flex: 1,
+    backgroundColor: 'transparent',
   },
   loginSection: {
-    marginTop: 8,
-  },
-  loginDivider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: me.line,
-    marginBottom: 16,
-  },
-  loginLinkContainer: {
+    marginTop: 18,
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    paddingBottom: 8,
+    gap: 6,
+    paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: me.line,
   },
   loginPromptText: {
     color: me.ink2,
-    fontSize: 15,
+    fontSize: 13,
   },
   loginLinkText: {
     color: me.brand,
-    fontSize: 15,
+    fontSize: 13,
     fontWeight: '600',
   },
 });

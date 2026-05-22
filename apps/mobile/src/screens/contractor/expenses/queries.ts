@@ -19,12 +19,24 @@ export function useExpensesQuery(userId: string | undefined) {
         .eq('contractor_id', userId)
         .order('date', { ascending: false });
       if (error) throw new Error(error.message);
+      // 2026-05-22 audit C4: contractor_expenses.amount is Postgres
+      // NUMERIC, serialised as a string by supabase-js. The previous
+      // `(e.amount as number) || 0` was a type lie — `expense.amount`
+      // looked numeric to TS but was a string at runtime, which made
+      // the `reduce((s,e) => s + e.amount, 0)` below concatenate
+      // instead of sum. Coerce in the mapper so every Expense the
+      // hook returns has a real JS number.
+      const toNum = (v: unknown): number => {
+        if (v == null) return 0;
+        const n = typeof v === 'number' ? v : Number(v);
+        return Number.isFinite(n) ? n : 0;
+      };
       const expenses: Expense[] = (data || []).map(
         (e: Record<string, unknown>) => ({
           id: e.id as string,
           description: (e.description as string) || '',
           category: (e.category as string) || 'other',
-          amount: (e.amount as number) || 0,
+          amount: toNum(e.amount),
           date: (e.date as string) || (e.created_at as string),
           billable: (e.billable ?? e.is_billable ?? false) as boolean,
           job_id: e.job_id as string | undefined,

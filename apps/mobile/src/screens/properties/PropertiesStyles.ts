@@ -4,23 +4,48 @@ import { me } from '../../design-system/mint-editorial';
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: me.bg2,
+    backgroundColor: me.bg,
   },
   listContainer: {
     padding: 16,
   },
-  screenLabel: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 2,
-    backgroundColor: me.bg2,
+  // 2026-05-22 Mint Editorial v2: inline top bar replaces the
+  // shared ScreenHeader + separate `screenLabel` eyebrow combo.
+  // Eyebrow + serif headline on the left, mint-fill add button on
+  // the right. Same pattern as HomeownerDashboard / BusinessHub.
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 14,
   },
-  screenLabelText: {
+  headerBlock: {
+    flex: 1,
+  },
+  eyebrow: {
     fontSize: 11,
     fontWeight: '700',
     color: me.brand,
     textTransform: 'uppercase',
     letterSpacing: 1.2,
+    marginBottom: 6,
+  },
+  headline: {
+    fontFamily: me.font.display,
+    fontSize: 28,
+    lineHeight: 32,
+    color: me.ink,
+    letterSpacing: me.displayTracking,
+  },
+  addButtonTop: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: me.brand,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   propertyCard: {
     backgroundColor: me.surface,

@@ -81,6 +81,17 @@ import { BookingDetailsScreen } from '../screens/booking/BookingDetailsScreen';
 
 const SafeHomeScreen = withScreenErrorBoundary(HomeScreen, 'Home');
 
+// 2026-05-22 Find-Jobs-crash audit fix: wrap the contractor map in a
+// screen-level error boundary. Any thrown error inside the native
+// `react-native-maps` MapView (e.g. an unconfigured Google Maps API
+// key on Android, or a malformed Marker coordinate after a server
+// regression) used to crash the whole app — now it renders the
+// boundary fallback so the contractor can still navigate elsewhere.
+const SafeExploreMapScreen = withScreenErrorBoundary(
+  ExploreMapScreen,
+  'FindJobs'
+);
+
 // ============================================================================
 // NAVIGATION STACKS
 // ============================================================================
@@ -111,7 +122,7 @@ const AddActionScreen: React.FC = () => {
   // Contractor: AddTab IS the destination — render the Find Jobs map inline so
   // the tab indicator correctly highlights "Find Jobs".
   if (user?.role === 'contractor') {
-    return <ExploreMapScreen />;
+    return <SafeExploreMapScreen />;
   }
 
   return null;

@@ -1,6 +1,17 @@
 /**
- * OnboardingSwiper Component (React Native)
- * Swipeable intro screens for first-time mobile users
+ * OnboardingSwiper — Mint Editorial v2 redesign (2026-05-22).
+ *
+ * Implements the swipeable intro deck from
+ * `.design-bundle/.../redesign-v2/auth.html` (MOnboardTrades aesthetic):
+ *   - Mint Editorial paper background, serif display title.
+ *   - Brand-soft icon tile (no full-bleed emoji wall).
+ *   - Slim progress bar at top with "Skip" pinned right.
+ *   - Editorial pagination dots in brand colour.
+ *   - Primary mint pill CTA with rounded radius.
+ *
+ * Backward compatible: existing callers pass either an emoji or an
+ * Ionicons name in `slide.icon`; the renderer detects ionicon keys and
+ * renders the matching glyph, else falls back to text (legacy emoji).
  */
 
 import React, { useRef, useState } from 'react';
@@ -15,27 +26,25 @@ import {
   ImageSourcePropType,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import Swiper from 'react-native-swiper';
-import { theme } from '../../theme';
+import { me } from '../../design-system/mint-editorial';
 import { JobsNearYouPreview } from './JobsNearYouPreview';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 interface OnboardingSlide {
   id: string;
   title: string;
   description: string;
   image?: ImageSourcePropType;
-  icon?: string; // Emoji or icon name
-  backgroundColor?: string;
   /**
-   * Optional custom body renderer — replaces the default icon +
-   * title + description layout. Used by the contractor onboarding's
-   * final "jobs near you" preview slide (Phase 1 closeout of the
-   * 2026-04-19 audit) so the swiper can show sample-data job cards
-   * instead of a single emoji. Title + description still render
-   * above the custom content.
+   * Either an emoji string (legacy) or an Ionicons name (preferred —
+   * matches the no-emoji brand rule in CLAUDE.md content fundamentals).
+   * The renderer picks the right component based on shape.
    */
+  icon?: string;
+  backgroundColor?: string;
   renderBody?: () => React.ReactNode;
 }
 
@@ -46,11 +55,38 @@ interface OnboardingSwiperProps {
   userType?: 'homeowner' | 'contractor';
 }
 
+const IONICONS_NAMES = new Set<string>([
+  'home-outline',
+  'home',
+  'construct-outline',
+  'construct',
+  'document-text-outline',
+  'document-text',
+  'analytics-outline',
+  'analytics',
+  'card-outline',
+  'card',
+  'wallet-outline',
+  'wallet',
+  'camera-outline',
+  'camera',
+  'shield-checkmark-outline',
+  'shield-checkmark',
+  'search-outline',
+  'search',
+  'briefcase-outline',
+  'briefcase',
+  'leaf',
+  'leaf-outline',
+]);
+
+const isIonicon = (icon?: string): icon is keyof typeof Ionicons.glyphMap =>
+  Boolean(icon && IONICONS_NAMES.has(icon));
+
 export function OnboardingSwiper({
   slides,
   onComplete,
   onSkip,
-  userType = 'homeowner',
 }: OnboardingSwiperProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const swiperRef = useRef<Swiper>(null);
@@ -60,11 +96,9 @@ export function OnboardingSwiper({
 
   const handleIndexChanged = (index: number) => {
     setCurrentIndex(index);
-
-    // Animate progress
     Animated.spring(progressAnim, {
       toValue: index,
-      useNativeDriver: true,
+      useNativeDriver: false,
       tension: 50,
       friction: 7,
     }).start();
@@ -79,25 +113,32 @@ export function OnboardingSwiper({
   };
 
   const handleSkip = () => {
-    if (onSkip) {
-      onSkip();
-    } else {
-      onComplete();
-    }
+    if (onSkip) onSkip();
+    else onComplete();
   };
+
+  const progress =
+    slides.length <= 1 ? 100 : ((currentIndex + 1) / slides.length) * 100;
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        {/* Skip button */}
+        <View style={styles.progressTrack}>
+          <View style={[styles.progressFill, { width: `${progress}%` }]} />
+        </View>
         {!isLastSlide && (
-          <TouchableOpacity onPress={handleSkip} style={styles.skipButton}>
+          <TouchableOpacity
+            onPress={handleSkip}
+            style={styles.skipButton}
+            accessibilityRole='button'
+            accessibilityLabel='Skip onboarding'
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
             <Text style={styles.skipText}>Skip</Text>
           </TouchableOpacity>
         )}
       </View>
 
-      {/* Swiper */}
       <Swiper
         ref={swiperRef}
         loop={false}
@@ -105,16 +146,7 @@ export function OnboardingSwiper({
         onIndexChanged={handleIndexChanged}
       >
         {slides.map((slide) => (
-          <View
-            key={slide.id}
-            style={[
-              styles.slide,
-              {
-                backgroundColor:
-                  slide.backgroundColor || theme.colors.backgroundSecondary,
-              },
-            ]}
-          >
+          <View key={slide.id} style={styles.slide}>
             {slide.renderBody ? (
               <>
                 <View style={styles.content}>
@@ -125,12 +157,16 @@ export function OnboardingSwiper({
               </>
             ) : (
               <>
-                {/* Icon or Image */}
-                <View style={styles.imageContainer}>
-                  {slide.icon && <Text style={styles.icon}>{slide.icon}</Text>}
+                <View style={styles.iconTile}>
+                  {isIonicon(slide.icon) ? (
+                    <Ionicons name={slide.icon} size={44} color={me.brand} />
+                  ) : slide.icon ? (
+                    <Text style={styles.iconText}>{slide.icon}</Text>
+                  ) : (
+                    <Ionicons name='leaf' size={44} color={me.brand} />
+                  )}
                 </View>
 
-                {/* Content */}
                 <View style={styles.content}>
                   <Text style={styles.title}>{slide.title}</Text>
                   <Text style={styles.description}>{slide.description}</Text>
@@ -141,9 +177,7 @@ export function OnboardingSwiper({
         ))}
       </Swiper>
 
-      {/* Footer with pagination and button */}
       <View style={styles.footer}>
-        {/* Pagination dots */}
         <View style={styles.pagination}>
           {slides.map((_, index) => (
             <View
@@ -156,15 +190,19 @@ export function OnboardingSwiper({
           ))}
         </View>
 
-        {/* Next/Get Started button */}
         <TouchableOpacity
           onPress={handleNext}
           style={styles.button}
-          activeOpacity={0.8}
+          activeOpacity={0.9}
+          accessibilityRole='button'
+          accessibilityLabel={isLastSlide ? 'Get started' : 'Next slide'}
         >
           <Text style={styles.buttonText}>
             {isLastSlide ? 'Get Started' : 'Next'}
           </Text>
+          {!isLastSlide && (
+            <Ionicons name='arrow-forward' size={16} color={me.onBrand} />
+          )}
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -174,180 +212,188 @@ export function OnboardingSwiper({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: theme.colors.surface,
+    backgroundColor: me.bg,
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
-    paddingHorizontal: 20,
+    alignItems: 'center',
+    paddingHorizontal: 22,
     paddingTop: 8,
-    height: 50,
+    paddingBottom: 12,
+    gap: 14,
+    height: 56,
+  },
+  progressTrack: {
+    flex: 1,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: me.bg2,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: me.brand,
+    borderRadius: 2,
   },
   skipButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: 4,
+    paddingVertical: 4,
   },
   skipText: {
-    fontSize: 15,
-    color: theme.colors.textSecondary,
-    fontWeight: '500',
+    fontSize: 13,
+    color: me.ink2,
+    fontWeight: '600',
   },
   slide: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 40,
+    paddingHorizontal: 32,
+    backgroundColor: me.bg,
   },
   customBody: {
     width: '100%',
     maxWidth: width * 0.9,
-    marginTop: 24,
+    marginTop: 20,
     alignItems: 'stretch',
   },
-  imageContainer: {
-    width: width * 0.6,
-    height: width * 0.6,
-    justifyContent: 'center',
+  iconTile: {
+    width: 96,
+    height: 96,
+    borderRadius: 22,
+    backgroundColor: me.brandSoft,
     alignItems: 'center',
-    marginBottom: 40,
+    justifyContent: 'center',
+    marginBottom: 32,
   },
-  icon: {
-    fontSize: 120,
+  iconText: {
+    fontSize: 48,
   },
   content: {
     alignItems: 'center',
-    maxWidth: width * 0.8,
+    maxWidth: width * 0.85,
   },
   title: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: theme.colors.textPrimary,
+    fontFamily: me.font.display,
+    fontSize: 32,
+    lineHeight: 36,
+    color: me.ink,
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: 14,
+    letterSpacing: me.displayTracking,
   },
   description: {
     fontSize: 15,
-    color: theme.colors.textSecondary,
+    color: me.ink2,
     textAlign: 'center',
-    lineHeight: 24,
+    lineHeight: 22,
   },
   footer: {
-    paddingHorizontal: 40,
-    paddingBottom: Platform.OS === 'ios' ? 40 : 30,
+    paddingHorizontal: 22,
+    paddingBottom: Platform.OS === 'ios' ? 32 : 24,
+    paddingTop: 8,
   },
   pagination: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 30,
+    marginBottom: 24,
   },
   dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 6,
-    marginHorizontal: 6,
+    height: 6,
+    borderRadius: 3,
+    marginHorizontal: 4,
   },
   activeDot: {
-    backgroundColor: theme.colors.textPrimary,
-    width: 20,
+    backgroundColor: me.brand,
+    width: 22,
   },
   inactiveDot: {
-    backgroundColor: theme.colors.border,
+    backgroundColor: me.bg3,
+    width: 6,
   },
   button: {
-    backgroundColor: theme.colors.textPrimary,
+    backgroundColor: me.brand,
     paddingVertical: 16,
-    borderRadius: 28,
+    borderRadius: me.radius.btn,
     alignItems: 'center',
     justifyContent: 'center',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.12,
-        shadowRadius: 12,
-      },
-      android: {
-        elevation: 4,
-      },
-    }),
+    flexDirection: 'row',
+    gap: 8,
+    ...me.shadow.btn,
   },
   buttonText: {
-    color: theme.colors.textInverse,
-    fontSize: 18,
+    color: me.onBrand,
+    fontSize: 16,
     fontWeight: '600',
+    letterSpacing: 0.1,
   },
 });
 
-// Default slides for homeowners
+// Default slides for homeowners — Mint Editorial copy & Ionicons.
+// Keeps the same shape as the original module so OnboardingModal and
+// the screen-test fixtures continue to work; only the visual tokens
+// change.
 export const homeownerSlides: OnboardingSlide[] = [
   {
     id: 'welcome',
     title: 'Welcome to Mintenance',
     description:
-      'Find trusted contractors, manage projects, and ensure quality work—all in one place.',
-    icon: '🏠',
-    backgroundColor: '#EFF6FF',
+      'Find trusted contractors, manage projects, and ensure quality work — all in one place.',
+    icon: 'home-outline',
   },
   {
     id: 'post-jobs',
     title: 'Post Jobs Easily',
     description:
-      'Describe your project, add photos, and our AI will match you with qualified contractors.',
-    icon: '📝',
-    backgroundColor: 'rgba(34, 34, 34, 0.04)',
+      'Describe your project, add photos, and Mint matches you with qualified contractors.',
+    icon: 'document-text-outline',
   },
   {
     id: 'compare-bids',
     title: 'Compare Bids',
     description:
-      'Review multiple quotes side-by-side. Check ratings, reviews, and portfolios.',
-    icon: '📊',
-    backgroundColor: theme.colors.accentLight,
+      'Review multiple quotes side-by-side. Check ratings, reviews and portfolios.',
+    icon: 'analytics-outline',
   },
   {
     id: 'secure-payment',
     title: 'Protected Payment',
     description:
       'Your money is held securely until you approve the work. Release payments milestone by milestone.',
-    icon: '💳',
-    backgroundColor: '#F3E8FF',
+    icon: 'card-outline',
   },
 ];
 
-// Default slides for contractors
+// Default slides for contractors — Mint Editorial copy & Ionicons.
 export const contractorSlides: OnboardingSlide[] = [
   {
     id: 'welcome',
-    title: 'Grow Your Business',
+    title: 'Grow your business',
     description:
       'Find quality leads, showcase your work, and build your reputation.',
-    icon: '⚒️',
-    backgroundColor: '#EFF6FF',
+    icon: 'construct-outline',
   },
   {
     id: 'discover',
-    title: 'Discover Matched Jobs',
+    title: 'Discover matched jobs',
     description:
       'Swipe through jobs matched to your skills and location. No more wasted time.',
-    icon: '🔍',
-    backgroundColor: 'rgba(34, 34, 34, 0.04)',
+    icon: 'search-outline',
   },
   {
     id: 'showcase',
-    title: 'Showcase Your Work',
+    title: 'Showcase your work',
     description:
-      'Build a stunning portfolio with before/after photos. Stand out from the competition.',
-    icon: '📸',
-    backgroundColor: theme.colors.accentLight,
+      'Build a polished portfolio with before/after photos. Stand out from the competition.',
+    icon: 'camera-outline',
   },
   {
     id: 'get-paid',
-    title: 'Get Paid Faster',
+    title: 'Get paid faster',
     description:
       'Homeowner payment is secured before you arrive. Complete the work, upload after-photos — money releases to your Stripe account.',
-    icon: '💰',
-    backgroundColor: '#F3E8FF',
+    icon: 'wallet-outline',
   },
   {
     // R2 of docs/RETENTION_ROADMAP_2026.md — the "Protected Payment
@@ -357,20 +403,15 @@ export const contractorSlides: OnboardingSlide[] = [
     title: 'Protected Payment works for you too',
     description:
       'Funds are held before you arrive and released on homeowner approval (or automatically after the 7-day review window). No chasing invoices.',
-    icon: '🛡️',
-    backgroundColor: theme.colors.primaryLight,
+    icon: 'shield-checkmark-outline',
   },
   {
     // Phase 1 closeout of 2026-04-19 mobile-onboarding-audit PDF
     // (§5.3 Tier 1 step 4 — "First value moment. No bid button yet.").
-    // The contractor sees demand BEFORE investing in verification,
-    // which is the biggest retention lever the audit identified for
-    // the contractor side.
     id: 'jobs-near-you-preview',
     title: 'Jobs waiting for you',
     description:
       'A preview of the kind of work homeowners are posting in your area right now. Finish verification to start bidding.',
     renderBody: () => <JobsNearYouPreview />,
-    backgroundColor: theme.colors.backgroundSecondary,
   },
 ];

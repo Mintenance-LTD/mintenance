@@ -186,15 +186,20 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({
     const job = viewModel.jobs[index];
     if (job && job.id !== viewModel.selectedJob?.id) {
       viewModel.handleJobSelect(job);
-      mapRef.current?.animateToRegion(
-        {
-          latitude: job.latitude,
-          longitude: job.longitude,
-          latitudeDelta: 0.02,
-          longitudeDelta: 0.02,
-        },
-        300
-      );
+      // Finiteness guard: lat/lng arrive from a NUMERIC column and have
+      // historically come back as strings — passing one of those to
+      // animateToRegion crashes the native MapView module on Android.
+      if (Number.isFinite(job.latitude) && Number.isFinite(job.longitude)) {
+        mapRef.current?.animateToRegion(
+          {
+            latitude: job.latitude,
+            longitude: job.longitude,
+            latitudeDelta: 0.02,
+            longitudeDelta: 0.02,
+          },
+          300
+        );
+      }
     }
   };
 
@@ -472,15 +477,20 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({
                     return;
                   }
                   viewModel.handleJobSelect(item);
-                  mapRef.current?.animateToRegion(
-                    {
-                      latitude: item.latitude,
-                      longitude: item.longitude,
-                      latitudeDelta: 0.02,
-                      longitudeDelta: 0.02,
-                    },
-                    300
-                  );
+                  if (
+                    Number.isFinite(item.latitude) &&
+                    Number.isFinite(item.longitude)
+                  ) {
+                    mapRef.current?.animateToRegion(
+                      {
+                        latitude: item.latitude,
+                        longitude: item.longitude,
+                        latitudeDelta: 0.02,
+                        longitudeDelta: 0.02,
+                      },
+                      300
+                    );
+                  }
                 }}
                 onBid={() => handleBidNow(item.id)}
                 onDetails={() => handleViewDetails(item.id)}

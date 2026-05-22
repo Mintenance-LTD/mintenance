@@ -11,6 +11,64 @@ import { me } from '../../design-system/mint-editorial';
 
 export const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: me.bg },
+
+  // ─────────────────────────────────────────────────────────────
+  // Mint Editorial v2 (2026-05-22, from
+  // .design-bundle/.../redesign-v2/mobile-screens.jsx HomeC):
+  // slim top bar + caption (date) + serif greeting. Replaces
+  // the brand-gradient hero + overlapping stat treatment. The
+  // legacy hero / decor / greeting / overlappingStats styles
+  // below are kept un-pruned to keep the diff focused; they're
+  // no longer referenced by ContractorDashboard but other
+  // contractor surfaces may copy from them.
+  // ─────────────────────────────────────────────────────────────
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+    backgroundColor: me.bg,
+  },
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  brandText: {
+    fontFamily: me.font.display,
+    fontSize: 21,
+    color: me.ink,
+    letterSpacing: me.displayTracking,
+  },
+  brandIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+  },
+  greetingBlock: {
+    paddingHorizontal: 20,
+    paddingBottom: 18,
+  },
+  greetingCaption: {
+    fontSize: 13,
+    color: me.ink3,
+    marginBottom: 4,
+  },
+  greetingTitle: {
+    fontFamily: me.font.display,
+    fontSize: 28,
+    lineHeight: 32,
+    color: me.ink,
+    letterSpacing: me.displayTracking,
+  },
+  // Stats row replaces the previous overlapping-on-gradient
+  // treatment. Now sits on the paper background with regular
+  // padding.
+  statsRow: {
+    paddingHorizontal: 20,
+    paddingBottom: 4,
+  },
   hero: {
     paddingBottom: 56,
     paddingHorizontal: 20,
@@ -78,27 +136,31 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 4,
+    // Editorial v2: badge ring now matches the paper background
+    // instead of the brand gradient that used to sit behind it.
     borderWidth: 2,
-    borderColor: me.brand,
+    borderColor: me.bg,
   },
   notifBadgeText: {
     color: me.onBrand,
     fontSize: 10,
     fontWeight: '700',
   },
+  // Editorial v2: icon button is now a transparent affordance on
+  // the paper top bar — no fill, just hitbox + ink-coloured icon.
   headerIconBtn: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
   },
+  // Editorial v2: solid brand fill on the avatar pill so the
+  // identity is unmissable against the light top bar.
   avatarButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.25)',
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: me.brand,
     justifyContent: 'center',
     alignItems: 'center',
   },

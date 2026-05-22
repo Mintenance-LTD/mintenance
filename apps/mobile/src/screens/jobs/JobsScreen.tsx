@@ -112,12 +112,23 @@ const JobsScreen: React.FC = () => {
     let completedCount = 0;
     let postedCount = 0;
 
+    // Defensive coercion: Postgres NUMERIC arrives as a string from
+    // supabase-js, and the +=  operator would silently produce NaN /
+    // string concatenation for the "AVG VALUE" KPI tile. The route
+    // layer was fixed 2026-05-22 to coerce server-side; this guard
+    // means a future server regression can't break the KPI.
+    const toNum = (v: unknown): number | null => {
+      if (v == null) return null;
+      const n = typeof v === 'number' ? v : Number(v);
+      return Number.isFinite(n) ? n : null;
+    };
+
     allJobs.forEach((j) => {
       const age =
         (now - new Date(j.created_at || j.createdAt || now).getTime()) /
         (1000 * 3600 * 24);
       if (age < 1) newToday++;
-      const b = j.budget || j.budget_min || 0;
+      const b = toNum(j.budget) ?? toNum(j.budget_min) ?? 0;
       if (b > 0) {
         totalBudget += b;
         budgetCount++;
@@ -203,10 +214,18 @@ const JobsScreen: React.FC = () => {
     if (isContractor) {
       switch (sortMode) {
         case 'highest_pay':
-          data.sort(
-            (a, b) =>
-              (b.budget || b.budget_min || 0) - (a.budget || a.budget_min || 0)
-          );
+          // 2026-05-22 audit C1: Postgres NUMERIC arrives as a string
+          // from supabase-js; subtracting strings silently produces
+          // NaN and the sort order goes random. Reuse the `toNum`
+          // pattern from the stats memo above.
+          {
+            const toBudget = (j: Job): number => {
+              const raw = j.budget ?? j.budget_min ?? 0;
+              const n = typeof raw === 'number' ? raw : Number(raw);
+              return Number.isFinite(n) ? n : 0;
+            };
+            data.sort((a, b) => toBudget(b) - toBudget(a));
+          }
           break;
         case 'newest':
           data.sort(

@@ -113,13 +113,31 @@ const useJobsMapViewModel = (): JobsMapViewModel => {
         // the screen no longer reads the profiles table directly.
         try {
           if (user?.id) {
-            const profile = await mobileApiClient.get<{
-              latitude?: number | null;
-              longitude?: number | null;
+            // /api/users/profile returns `{ profile: { latitude, longitude, ... } }`.
+            // Previous read used `profile?.latitude` directly — the shape
+            // mismatch silently broke the saved-coords path, so the
+            // screen ALWAYS fell through to GPS even when the user had a
+            // saved home address. Fixed 2026-05-22.
+            //
+            // lat/lng come back from Supabase as strings (Postgres
+            // NUMERIC), so coerce defensively before use.
+            const response = await mobileApiClient.get<{
+              profile?: {
+                latitude?: number | string | null;
+                longitude?: number | string | null;
+              };
             }>('/api/users/profile');
-            const lat = profile?.latitude;
-            const lng = profile?.longitude;
-            if (lat && lng && isMounted.current) {
+            const rawLat = response?.profile?.latitude;
+            const rawLng = response?.profile?.longitude;
+            const lat = rawLat == null ? null : Number(rawLat);
+            const lng = rawLng == null ? null : Number(rawLng);
+            if (
+              lat !== null &&
+              lng !== null &&
+              Number.isFinite(lat) &&
+              Number.isFinite(lng) &&
+              isMounted.current
+            ) {
               const coords = { latitude: lat, longitude: lng };
               setUserLocation(coords);
               setRegion((prev) => ({ ...prev, latitude: lat, longitude: lng }));
@@ -202,16 +220,19 @@ const useJobsMapViewModel = (): JobsMapViewModel => {
         params.set('radiusKm', '25');
       }
 
+      // Numeric columns may arrive as strings if the server forgets to
+      // coerce — accept both so a server regression can't crash the
+      // native Marker render.
       interface DiscoverRow {
         id: string;
         title: string;
         category: string;
         urgency: string;
-        budget: number | null;
-        budget_min: number | null;
-        budget_max: number | null;
-        latitude: number | null;
-        longitude: number | null;
+        budget: number | string | null;
+        budget_min: number | string | null;
+        budget_max: number | string | null;
+        latitude: number | string | null;
+        longitude: number | string | null;
         created_at: string | null;
         homeowner_first_name: string | null;
       }
@@ -231,28 +252,37 @@ const useJobsMapViewModel = (): JobsMapViewModel => {
       const refLng = userLocation?.longitude ?? regionRef.current.longitude;
 
       // Server already excludes jobs the contractor bid on, dropped
-      // missing-coords rows, and applied the category filter — so the
-      // client just maps the rows.
+      // missing-coords rows, and applied the category filter — but
+      // we still coerce-and-validate every numeric field client-side
+      // because Postgres NUMERIC columns are JSON-serialised as strings
+      // by supabase-js, and passing a string to `react-native-maps`
+      // <Marker coordinate={{...}}> crashes the native module on Android.
+      const toNum = (v: unknown): number | null => {
+        if (v == null) return null;
+        const n = typeof v === 'number' ? v : Number(v);
+        return Number.isFinite(n) ? n : null;
+      };
       const mapped: JobMapItem[] = data
-        .filter((row) => row.latitude != null && row.longitude != null)
         .map((row) => {
-          const lat = row.latitude as number;
-          const lng = row.longitude as number;
+          const lat = toNum(row.latitude);
+          const lng = toNum(row.longitude);
+          if (lat === null || lng === null) return null;
           return {
             id: row.id,
             title: row.title,
             category: row.category || 'general',
             urgency: row.urgency || 'medium',
-            budget: row.budget != null ? Number(row.budget) : null,
-            budget_min: row.budget_min,
-            budget_max: row.budget_max,
+            budget: toNum(row.budget),
+            budget_min: toNum(row.budget_min),
+            budget_max: toNum(row.budget_max),
             latitude: lat,
             longitude: lng,
             distance: calculateDistance(refLat, refLng, lat, lng),
             homeowner_name: row.homeowner_first_name || 'Homeowner',
             created_at: row.created_at ?? '',
           };
-        });
+        })
+        .filter((j): j is JobMapItem => j !== null);
 
       mapped.sort((a, b) => a.distance - b.distance);
 

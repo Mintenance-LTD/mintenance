@@ -16,8 +16,54 @@ export const CATEGORY_ICONS: Record<
 };
 
 export const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: me.bg2 },
+  container: { flex: 1, backgroundColor: me.bg },
   content: { padding: 16 },
+  // 2026-05-22 Mint Editorial v2 inline header. Slim top bar
+  // carries the back affordance + favourite/edit pair; the
+  // editorial heading (eyebrow + serif title + address
+  // subtitle) sits beneath. Replaces the shared ScreenHeader.
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: 4,
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: me.bg2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  screenHeader: {
+    paddingHorizontal: 20,
+    paddingTop: 4,
+    paddingBottom: 14,
+  },
+  eyebrow: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: me.brand,
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+    marginBottom: 6,
+  },
+  headline: {
+    fontFamily: me.font.display,
+    fontSize: 28,
+    lineHeight: 32,
+    color: me.ink,
+    letterSpacing: me.displayTracking,
+  },
+  headerSub: {
+    fontSize: 13,
+    color: me.ink3,
+    marginTop: 6,
+    lineHeight: 18,
+  },
   headerActions: { flexDirection: 'row', gap: 12 },
   headerBtn: { padding: 2 },
   // Tabs
