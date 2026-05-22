@@ -2,7 +2,11 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { ProfileStackParamList } from '../../navigation/types';
 import { me } from '../../design-system/mint-editorial';
+
+type AccountNavProp = NativeStackNavigationProp<ProfileStackParamList>;
 
 // AUDIT_PUNCH_LIST P2 #45 (B3-P2-1) — renamed 2026-05-09 from
 // `AvailabilitySection` to `AccountSection`. The original name was
@@ -20,7 +24,7 @@ export const AccountSection: React.FC<AccountSectionProps> = ({
   onChangePassword,
   onDeleteAccount,
 }) => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<AccountNavProp>();
 
   return (
     <>
@@ -32,9 +36,7 @@ export const AccountSection: React.FC<AccountSectionProps> = ({
           // `NotificationSettings` is the legacy SMS/category-matrix
           // screen; `NotificationPreferences` is the user_notification_
           // preferences-backed canonical surface.
-          onPress={() =>
-            (navigation as any).navigate('NotificationPreferences')
-          }
+          onPress={() => navigation.navigate('NotificationPreferences')}
           accessibilityRole='button'
           accessibilityLabel='Manage notification settings'
         >
