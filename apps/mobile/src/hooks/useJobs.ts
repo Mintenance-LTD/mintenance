@@ -73,7 +73,10 @@ export const useCreateJob = () => {
       title: string;
       description: string;
       location: string;
-      budget: number;
+      // 2026-05-22: budget is now optional. Contractors set their own
+      // price on each bid. Kept here for legacy callers (e.g. seeded
+      // demo data) but the homeowner forms no longer collect it.
+      budget?: number;
       homeownerId: string;
       category?: string;
       subcategory?: string;
@@ -100,13 +103,15 @@ export const useCreateJob = () => {
         title: jobData.title,
         description: jobData.description,
         location: jobData.location,
-        budget: jobData.budget,
         category: jobData.category as JobDraft['category'],
         urgency: jobData.urgency,
         photoUrls: jobData.photos,
         isRentalProperty: jobData.is_rental_property,
         tenancyMetadata: jobData.tenancy_metadata,
       };
+      if (jobData.budget !== undefined) {
+        draft.budget = jobData.budget;
+      }
 
       const validation = validateJobDraft(draft);
       if (!validation.ok) {

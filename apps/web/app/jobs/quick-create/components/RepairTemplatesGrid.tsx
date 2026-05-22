@@ -40,7 +40,7 @@ export function RepairTemplatesGrid({ selectedTemplateId, onSelect }: Props) {
                 {template.title}
               </h3>
               <p className='text-xs text-gray-500 mt-1'>
-                {template.budgetRange}
+                {template.description}
               </p>
             </button>
           );

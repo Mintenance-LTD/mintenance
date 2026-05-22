@@ -4,11 +4,12 @@ import { me } from '../../../../design-system/mint-editorial';
 /**
  * Static catalogues backing the QuickJobPostScreen UI:
  *   - REPAIR_TEMPLATES drives the 6-card "Common Repairs" grid
- *   - BUDGET_RANGES + URGENCY_OPTIONS drive the chip rows
+ *   - URGENCY_OPTIONS drives the timeline chip row
  *   - VALID_JOB_CATEGORIES + normalizeJobCategory ensure we only post
  *     categories the server's enum will accept.
  *
- * Extracted 2026-05-09 (AUDIT_PUNCH_LIST P2 #44b).
+ * Extracted 2026-05-09 (AUDIT_PUNCH_LIST P2 #44b). Budget removed
+ * 2026-05-22 (contractors set their own price on each bid).
  */
 
 export interface RepairTemplate {
@@ -17,8 +18,6 @@ export interface RepairTemplate {
   title: string;
   category: string;
   description: string;
-  budgetRange: string;
-  budget: string;
   iconColor: string;
   iconBg: string;
 }
@@ -30,8 +29,6 @@ export const REPAIR_TEMPLATES: RepairTemplate[] = [
     title: 'Leaky Tap/Pipe',
     category: 'plumbing',
     description: 'Fix dripping tap, leaking pipe, or water issue',
-    budgetRange: '£50-150',
-    budget: '100',
     iconColor: me.brand,
     iconBg: me.brandSoft,
   },
@@ -41,8 +38,6 @@ export const REPAIR_TEMPLATES: RepairTemplate[] = [
     title: 'Electrical Issue',
     category: 'electrical',
     description: 'Fix power outlet, switch, or minor electrical problem',
-    budgetRange: '£75-200',
-    budget: '150',
     iconColor: '#92400E',
     iconBg: me.warnBg,
   },
@@ -52,8 +47,6 @@ export const REPAIR_TEMPLATES: RepairTemplate[] = [
     title: 'Painting/Touch-up',
     category: 'painting',
     description: 'Paint room, touch-up walls, or refresh surfaces',
-    budgetRange: '£100-300',
-    budget: '200',
     iconColor: '#3B82F6',
     iconBg: '#DBEAFE',
   },
@@ -63,8 +56,6 @@ export const REPAIR_TEMPLATES: RepairTemplate[] = [
     title: 'General Repair',
     category: 'handyman',
     description: 'Fix door, window, furniture, or general maintenance',
-    budgetRange: '£50-200',
-    budget: '100',
     iconColor: me.ink2,
     iconBg: me.bg2,
   },
@@ -74,8 +65,6 @@ export const REPAIR_TEMPLATES: RepairTemplate[] = [
     title: 'Blocked Drain',
     category: 'plumbing',
     description: 'Unblock sink, toilet, or drainage issue',
-    budgetRange: '£75-150',
-    budget: '100',
     iconColor: '#1E40AF',
     iconBg: '#DBEAFE',
   },
@@ -85,23 +74,9 @@ export const REPAIR_TEMPLATES: RepairTemplate[] = [
     title: 'Emergency Repair',
     category: 'emergency',
     description: 'Urgent fix needed ASAP',
-    budgetRange: '£150+',
-    budget: '300',
     iconColor: '#991B1B',
     iconBg: '#FEE2E2',
   },
-];
-
-export interface BudgetRange {
-  label: string;
-  value: string;
-}
-
-export const BUDGET_RANGES: BudgetRange[] = [
-  { label: 'Under £100', value: '75' },
-  { label: '£100-200', value: '150' },
-  { label: '£200-350', value: '275' },
-  { label: '£350-500', value: '425' },
 ];
 
 export interface UrgencyOption {

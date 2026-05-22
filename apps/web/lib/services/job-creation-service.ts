@@ -1,6 +1,6 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { validateURLs } from '@/lib/security/url-validation';
-import { logger, BUSINESS_RULES } from '@mintenance/shared';
+import { logger } from '@mintenance/shared';
 import {
   BadRequestError,
   ForbiddenError,
@@ -103,7 +103,7 @@ export class JobCreationService {
     user: Pick<User, 'id' | 'role'>,
     payload: JobCreationPayload
   ): Promise<JobDetail> {
-    this.enforceBudgetPhotoRule(user.id, payload);
+    this.enforcePhotoRequirement(user.id, payload);
     await this.validatePhotoUrls(user.id, payload);
     await this.validatePropertyOwnership(user.id, payload);
     await this.resolvePayerFromEmail(payload);
@@ -150,10 +150,6 @@ export class JobCreationService {
       },
       {
         required_skills: insertPayload.required_skills,
-        show_budget_to_contractors: insertPayload.show_budget_to_contractors,
-        budget: insertPayload.budget,
-        budget_min: insertPayload.budget_min,
-        budget_max: insertPayload.budget_max,
       }
     );
 
@@ -183,28 +179,34 @@ export class JobCreationService {
     return mapRowToJobDetail(jobRow);
   }
 
-  private enforceBudgetPhotoRule(
+  /**
+   * 2026-05-22: photos are required on every job (replaces the old
+   * "only required if budget > £500" rule that came with the
+   * homeowner-set budget field). The silver-mode/landlord-flow
+   * `requirements.contractor_before_photos` opt-in lets the
+   * contractor take before-photos on arrival instead, so accept
+   * that as a valid substitute.
+   */
+  private enforcePhotoRequirement(
     userId: string,
     payload: JobCreationPayload
   ): void {
-    const budgetThreshold = BUSINESS_RULES.BUDGET_REQUIRES_PHOTOS_THRESHOLD;
-    if (payload.budget && payload.budget > budgetThreshold) {
-      const hasImages = payload.photoUrls && payload.photoUrls.length > 0;
-      if (!hasImages) {
-        logger.warn(
-          `Job creation rejected: Budget >£${budgetThreshold} requires images`,
-          {
-            service: 'jobs',
-            userId,
-            budget: payload.budget,
-            photoCount: 0,
-          }
-        );
-        throw new BadRequestError(
-          `Jobs with a budget over £${budgetThreshold} must include at least one photo`
-        );
-      }
-    }
+    const hasImages = payload.photoUrls && payload.photoUrls.length > 0;
+    if (hasImages) return;
+
+    const contractorBeforePhotos =
+      payload.requirements &&
+      typeof payload.requirements === 'object' &&
+      payload.requirements.contractor_before_photos === true;
+    if (contractorBeforePhotos) return;
+
+    logger.warn('Job creation rejected: at least one photo required', {
+      service: 'jobs',
+      userId,
+    });
+    throw new BadRequestError(
+      'Please add at least one photo so contractors can quote accurately'
+    );
   }
 
   private async validatePhotoUrls(
@@ -318,7 +320,6 @@ export class JobCreationService {
     tenancy_metadata?: Record<string, unknown>;
     requirements?: Record<string, unknown>;
   } {
-    const budgetThreshold = BUSINESS_RULES.BUDGET_REQUIRES_PHOTOS_THRESHOLD;
     const insertPayload: {
       title: string;
       homeowner_id: string;
@@ -366,8 +367,6 @@ export class JobCreationService {
     }
     if (payload.require_itemized_bids !== undefined) {
       insertPayload.require_itemized_bids = payload.require_itemized_bids;
-    } else if (payload.budget && payload.budget > budgetThreshold) {
-      insertPayload.require_itemized_bids = true;
     }
     if (payload.location !== undefined) {
       insertPayload.location = payload.location?.trim() ?? null;

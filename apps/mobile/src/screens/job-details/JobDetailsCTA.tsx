@@ -90,7 +90,9 @@ export function getPriorityCTA({
 
     return (
       <StickyBottomCTA
-        price={budget > 0 ? budget : undefined}
+        // 2026-05-22: homeowner-set budget no longer surfaced on the
+        // Submit Bid CTA — contractors price each bid themselves.
+        price={undefined}
         priceLabel='Estimated budget'
         buttonText='Submit Bid'
         onPress={() => navigation.navigate('BidSubmission', { jobId: job.id })}

@@ -127,40 +127,8 @@ export function EnhancedJobFormFields({
         />
       </FormField>
 
-      {/* Budget */}
-      <FormField
-        label='Budget (GBP)'
-        required
-        error={touchedFields.budget ? errors.budget : undefined}
-        success={isFieldValid('budget')}
-        helperText={
-          touchedFields.budget && !errors.budget && formData.budget
-            ? 'Budget set successfully'
-            : 'Enter your budget (£50 - £50,000)'
-        }
-        htmlFor='job-budget'
-      >
-        <div className='relative'>
-          <span className='absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 font-medium pointer-events-none'>
-            £
-          </span>
-          <ValidatedInput
-            id='job-budget'
-            name='budget'
-            type='number'
-            placeholder='0'
-            value={formData.budget}
-            onChange={(e) => onFieldChange('budget', e.target.value)}
-            onBlur={() => onFieldBlur('budget')}
-            error={Boolean(touchedFields.budget && errors.budget)}
-            success={isFieldValid('budget')}
-            min='50'
-            max='50000'
-            step='50'
-            className='pl-10'
-          />
-        </div>
-      </FormField>
+      {/* Budget field removed 2026-05-22 — contractors set their own
+          price on each bid. */}
     </>
   );
 }

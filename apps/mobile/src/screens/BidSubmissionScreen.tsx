@@ -127,7 +127,9 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
   const platformFee = totalAmount * (PLATFORM_FEE_PERCENT / 100);
   const yourEarnings = totalAmount - platformFee;
   const bidAmount = mode === 'detailed' ? totalAmount : parseFloat(amount) || 0;
-  const isOverBudget = job?.budget != null && bidAmount > job.budget;
+  // 2026-05-22: homeowner-set budget no longer anchors contractor bids.
+  void bidAmount;
+  const isOverBudget = false;
   const descShort =
     description.trim().length > 0 && description.trim().length < MIN_DESC;
 
@@ -342,14 +344,8 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
               <Text style={styles.jobDescription} numberOfLines={2}>
                 {job.description}
               </Text>
-              {job.budget != null && (
-                <View style={styles.budgetBadge}>
-                  <Text style={styles.budgetText}>
-                    Budget: {'\u00A3'}
-                    {job.budget.toLocaleString()}
-                  </Text>
-                </View>
-              )}
+              {/* 2026-05-22: homeowner-set budget badge removed \u2014 price
+                  this bid yourself based on the work involved. */}
             </View>
           </View>
 

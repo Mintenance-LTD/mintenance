@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Lightbulb, Ruler } from 'lucide-react';
+import { Ruler } from 'lucide-react';
 import { PricingBreakdown } from '@/components/ui/PricingBreakdown';
 import type { LineItem, BidJobRoomScope } from './bidSubmissionTypes';
 
@@ -55,9 +55,10 @@ export function BidFormAdvancedMode({
   onTaxRateChange,
   onTermsChange,
 }: BidFormAdvancedModeProps) {
-  const jobBudgetNum = jobBudget ? parseFloat(jobBudget) : NaN;
-  const exceedsBudget = !isNaN(jobBudgetNum) && totalAmount > jobBudgetNum;
-  const excess = exceedsBudget ? totalAmount - jobBudgetNum : 0;
+  // 2026-05-22: homeowner-set budget removed — contractors now price the
+  // job themselves with a required justification, and the homeowner picks
+  // the bid that suits them. No "exceeds budget" check.
+  void jobBudget;
 
   // Property Rooms Slice 2 — only render the per-row room toolbar when
   // the job has a non-empty room scope. Legacy jobs (no rooms) get the
@@ -355,57 +356,6 @@ export function BidFormAdvancedMode({
           />
         </div>
       </div>
-
-      {/* Budget Warning */}
-      {exceedsBudget && (
-        <div className='bg-rose-50 border-2 border-rose-300 rounded-xl p-4 mb-4'>
-          <div className='flex items-start gap-3'>
-            <svg
-              className='w-6 h-6 text-rose-600 flex-shrink-0 mt-0.5'
-              fill='none'
-              viewBox='0 0 24 24'
-              stroke='currentColor'
-            >
-              <path
-                strokeLinecap='round'
-                strokeLinejoin='round'
-                strokeWidth={2}
-                d='M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z'
-              />
-            </svg>
-            <div className='flex-1'>
-              <h4 className='text-sm font-semibold text-rose-900 mb-1'>
-                Budget Exceeded
-              </h4>
-              <p className='text-sm text-rose-800 mb-2'>
-                Your total bid (£{totalAmount.toFixed(2)}) exceeds the job
-                budget (£{jobBudgetNum.toFixed(2)}) by £{excess.toFixed(2)}.
-                {taxAmount > 0
-                  ? ' This includes ' +
-                    taxRate +
-                    '% tax (£' +
-                    taxAmount.toFixed(2) +
-                    ').'
-                  : ''}
-                {lineItems.length > 0
-                  ? ' This includes ' + lineItems.length + ' line item(s).'
-                  : ''}
-              </p>
-              {taxAmount > 0 && (
-                <p className='text-xs text-rose-700 mb-2 font-medium'>
-                  <Lightbulb className='w-4 h-4 inline-block mr-1' /> Maximum
-                  base amount (before tax): £
-                  {(jobBudgetNum / (1 + taxRate / 100)).toFixed(2)}
-                </p>
-              )}
-              <p className='text-xs text-rose-700'>
-                Please adjust your bid amount to stay within the budget before
-                submitting.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Pricing Summary */}
       <PricingBreakdown

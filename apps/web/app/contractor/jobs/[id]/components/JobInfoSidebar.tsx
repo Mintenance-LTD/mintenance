@@ -36,7 +36,8 @@ export function JobInfoSidebar({
         gap: theme.spacing[6],
       }}
     >
-      <BudgetCard budget={job.budget ?? 0} />
+      {/* BudgetCard removed 2026-05-22 — contractors set their own price
+          on each bid; the homeowner picks from the bids. */}
       <JobDetailsCard
         description={job.description}
         scheduledStartDate={job.scheduled_start_date}

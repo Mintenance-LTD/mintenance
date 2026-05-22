@@ -32,7 +32,6 @@ export type SubmitQuickJobResult =
         | 'VALIDATION'
         | 'NO_PROPERTY'
         | 'NO_CSRF'
-        | 'INVALID_BUDGET'
         | 'NO_JOB_ID'
         | 'PHONE_VERIFICATION_REQUIRED'
         | 'API_ERROR';
@@ -90,15 +89,6 @@ export async function submitQuickJob(args: {
 
   const canonicalUrgency = URGENCY_BY_TOKEN[formData.urgency] ?? 'medium';
 
-  const budgetValue = parseFloat(formData.budget);
-  if (isNaN(budgetValue) || budgetValue <= 0) {
-    return {
-      ok: false,
-      code: 'INVALID_BUDGET',
-      message: 'Please select a valid budget',
-    };
-  }
-
   // Full location string for accurate geocoding.
   const locationParts = [
     primaryProperty.address || primaryProperty.street_address,
@@ -113,7 +103,6 @@ export async function submitQuickJob(args: {
     description: baseDescription,
     location: locationString,
     category: formData.category,
-    budget: budgetValue,
     urgency: canonicalUrgency,
     requiredSkills: [],
     property_id: formData.property_id || primaryProperty.id || undefined,

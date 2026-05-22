@@ -1,18 +1,14 @@
 /**
  * Validation utilities for job creation form.
  *
- * 2026-05-01 audit P1 close-out (per-screen validateJobDraft adoption):
- * the form-wide submit-time check now runs through `validateJobDraft`
- * from `@mintenance/api-contracts` so the baseline length / range /
- * required errors match the server schema exactly. Per-field
- * `validateField` calls are kept for blur-time inline UX (the route
- * doesn't tell the user inline) but the submit gate (`validateJobForm`)
- * now layers schema errors + UX layer errors so the user can never
- * submit a payload the server would reject.
+ * 2026-05-22: budget field removed from homeowner-facing collection.
+ * Contractors now bid their own price with a required justification.
+ * Photos are required on every job (not just >£500) — `validateJobForm`
+ * enforces ≥1 photo across the whole form.
  */
 
-import { VALIDATION } from '../constants';
 import { validateJobDraft, type JobCategory } from '@mintenance/api-contracts';
+import { VALIDATION } from '../constants';
 
 export interface JobFormData {
   title: string;
@@ -20,11 +16,6 @@ export interface JobFormData {
   location: string;
   category: string;
   urgency?: 'low' | 'medium' | 'high' | 'emergency'; // Optional — forwarded to /api/jobs via submitJob
-  budget: string | number; // Can be either string or number
-  budget_min?: string | number; // Minimum budget shown to contractors (range)
-  budget_max?: string | number; // Maximum budget shown to contractors (range)
-  show_budget_to_contractors?: boolean; // Whether to show exact budget (default: false)
-  require_itemized_bids?: boolean; // Whether to require cost breakdown (default: true for >£500)
   requiredSkills: string[];
   property_id?: string;
   // R6 #19 landlord / tenancy step
@@ -85,24 +76,24 @@ export function validateField(
       if (value.trim().length === 0) return 'Please select a category';
       return undefined;
 
-    case 'budget':
-      if (!value || typeof value !== 'string') return 'Budget is required';
-      const budgetNum = parseFloat(value);
-      if (isNaN(budgetNum) || budgetNum <= 0)
-        return 'Please enter a valid budget amount';
-      if (budgetNum < 50) return 'Minimum budget is £50';
-      if (budgetNum > VALIDATION.MAX_BUDGET)
-        return `Budget cannot exceed £${VALIDATION.MAX_BUDGET.toLocaleString()}`;
-      // Check both uploaded images and selected images (previews)
-      const totalImages = uploadedImages.length + selectedImages;
-      if (budgetNum > VALIDATION.BUDGET_PHOTO_THRESHOLD && totalImages === 0) {
-        return `Photos required for jobs over £${VALIDATION.BUDGET_PHOTO_THRESHOLD}`;
-      }
-      return undefined;
-
     default:
       return undefined;
   }
+}
+
+/**
+ * Photos are required on every job (2026-05-22). Pulled out of the
+ * per-field switch so the submit-time gate can call it independently
+ * of any single text input's blur event.
+ */
+export function validatePhotos(
+  uploadedImages: string[],
+  selectedImages: number
+): string | undefined {
+  if (uploadedImages.length + selectedImages < 1) {
+    return 'Please add at least one photo so contractors can quote accurately';
+  }
+  return undefined;
 }
 
 /**
@@ -152,14 +143,8 @@ export function validateJobForm(
   );
   if (categoryError) errors.category = categoryError;
 
-  const budgetError = validateField(
-    'budget',
-    String(formData.budget),
-    formData,
-    uploadedImages,
-    selectedImages
-  );
-  if (budgetError) errors.budget = budgetError;
+  const photoError = validatePhotos(uploadedImages, selectedImages);
+  if (photoError) errors.photos = photoError;
 
   // Skills validation
   if (formData.requiredSkills.length > 10) {
@@ -177,10 +162,6 @@ export function validateJobForm(
     title: formData.title,
     description: formData.description,
     location: formData.location,
-    budget:
-      typeof formData.budget === 'number'
-        ? formData.budget
-        : parseFloat(String(formData.budget)) || undefined,
     category: (formData.category || undefined) as JobCategory | undefined,
     urgency: formData.urgency,
     propertyId: formData.property_id,

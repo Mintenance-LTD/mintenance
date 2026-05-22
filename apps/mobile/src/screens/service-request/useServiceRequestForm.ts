@@ -26,7 +26,6 @@ export function useServiceRequestForm(onSuccess: () => void) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
-  const [budget, setBudget] = useState('');
   const [priority, setPriority] = useState<'low' | 'medium' | 'high'>(
     initialPriority ?? 'medium'
   );
@@ -173,8 +172,6 @@ export function useServiceRequestForm(onSuccess: () => void) {
       Alert.alert('Error', 'You must be logged in to request a service');
       return;
     }
-    const budgetNumber = parseFloat(budget);
-
     // 2026-05-01 audit P1 close-out (per-screen validateJobDraft adoption):
     // run the canonical schema before submitting so the user sees the same
     // error message the route would have rejected with. Replaces the ad-hoc
@@ -184,7 +181,6 @@ export function useServiceRequestForm(onSuccess: () => void) {
       title,
       description,
       location,
-      budget: budgetNumber,
       category: selectedCategory.id as
         | import('@mintenance/api-contracts').JobCategory
         | undefined,
@@ -226,7 +222,6 @@ export function useServiceRequestForm(onSuccess: () => void) {
         title: sanitize.text(title, 200),
         description: sanitize.jobDescription(description),
         location: sanitize.address(location),
-        budget: budgetNumber,
         homeownerId: user.id,
         category: selectedCategory.id,
         subcategory: selectedSubcategory
@@ -264,8 +259,6 @@ export function useServiceRequestForm(onSuccess: () => void) {
     setDescription,
     location,
     setLocation,
-    budget,
-    setBudget,
     priority,
     setPriority,
     photos,

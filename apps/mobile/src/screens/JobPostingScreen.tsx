@@ -47,7 +47,6 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
   const [location, setLocation] = useState('');
   const [category, setCategory] = useState('handyman');
   const [urgency, setUrgency] = useState<'low' | 'medium' | 'high'>('medium');
-  const [budget, setBudget] = useState('');
   const [aiPricingAnalysis, setAIPricingAnalysis] =
     useState<PricingAnalysis | null>(null);
   const [validationErrors, setValidationErrors] = useState<
@@ -76,7 +75,6 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
     title ||
     description ||
     location ||
-    budget ||
     photos.length > 0 ||
     buildingAssessment ||
     aiPricingAnalysis ||
@@ -101,9 +99,6 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
 
   const handlePricingUpdate = (analysis: PricingAnalysis) => {
     setAIPricingAnalysis(analysis);
-    if (!budget && analysis.suggestedPrice.optimal) {
-      setBudget(analysis.suggestedPrice.optimal.toString());
-    }
   };
 
   const handleAddPhoto = async () => {
@@ -153,21 +148,14 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   /**
-   * 2026-05-01 audit P1 close-out (per-screen validateJobDraft adoption):
-   * the shared `validateJobDraft` adapter from `@mintenance/api-contracts`
-   * runs the SAME server schema, so the baseline length / range / required
-   * checks match the wire-level Zod errors exactly. We keep two
-   * screen-specific UX constraints on top (budget min £10 / max £50,000)
-   * because the canonical schema's bounds are wider than the marketplace
-   * product wants — those layered constraints are intentional, not drift.
+   * 2026-05-22: budget input removed from this screen. The shared
+   * `validateJobDraft` adapter from `@mintenance/api-contracts` runs the
+   * SAME server schema, so client-side errors here mirror the wire-level
+   * Zod errors exactly.
    */
   const validateField = (fieldName: string, value: string): string => {
-    // Single-field check: build a partial draft and ask the canonical
-    // adapter what (if anything) is wrong with it. Server-aligned by
-    // construction.
     const draft: Parameters<typeof validateJobDraft>[0] = {
-      [fieldName === 'budget' ? 'budget' : fieldName]:
-        fieldName === 'budget' ? value : value,
+      [fieldName]: value,
       // Mark the OTHER required fields as syntactically valid so the
       // adapter only complains about THIS field. Trim to non-empty
       // safe defaults for the schema's minimum lengths.
@@ -176,21 +164,11 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
         description: description || 'Placeholder description text 20+',
       }),
       ...(fieldName !== 'location' && { location: location || 'placeholder' }),
-      ...(fieldName !== 'budget' && { budget: parseFloat(budget) || 100 }),
     };
     const result = validateJobDraft(draft);
     if (!result.ok) {
       const fieldError = result.errors.find((e) => e.field === fieldName);
       if (fieldError) return fieldError.message;
-    }
-
-    // Layered UX constraints on top of the canonical schema.
-    if (fieldName === 'budget' && value.trim()) {
-      const n = parseFloat(value);
-      if (Number.isFinite(n)) {
-        if (n > 50000) return 'Budget cannot exceed £50,000';
-        if (n < 10) return 'Minimum budget is £10';
-      }
     }
     return '';
   };
@@ -205,9 +183,6 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
         break;
       case 'location':
         setLocation(value);
-        break;
-      case 'budget':
-        setBudget(value);
         break;
     }
     const error = validateField(fieldName, value);
@@ -243,9 +218,18 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
       title: validateField('title', title),
       description: validateField('description', description),
       location: validateField('location', location),
-      budget: validateField('budget', budget),
     };
     setValidationErrors(errors);
+
+    // 2026-05-22: photos required on every job (replaces the old
+    // budget>£500 gate). Surface inline before falling through.
+    if (photos.length < 1) {
+      Alert.alert(
+        'Photos required',
+        'Please add at least one photo so contractors can quote accurately.'
+      );
+      return;
+    }
 
     if (Object.values(errors).some((e) => e !== '') || allErrors.length > 0) {
       if (allErrors.length > 0) {
@@ -264,33 +248,12 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
       return;
     }
 
-    const budgetNumber = parseFloat(budget);
-
-    if (
-      aiPricingAnalysis &&
-      Math.abs(budgetNumber - aiPricingAnalysis.suggestedPrice.optimal) >
-        aiPricingAnalysis.suggestedPrice.optimal * 0.3
-    ) {
-      const proceed = await new Promise<boolean>((resolve) => {
-        Alert.alert(
-          'Budget Notice',
-          `Your budget (£${budgetNumber}) differs from our AI recommendation (£${aiPricingAnalysis.suggestedPrice.optimal}). Continue anyway?`,
-          [
-            { text: 'Cancel', onPress: () => resolve(false) },
-            { text: 'Continue', onPress: () => resolve(true) },
-          ]
-        );
-      });
-      if (!proceed) return;
-    }
-
     setIsSubmitting(true);
     try {
       logger.info('Submitting job posting', {
         title,
         category,
         urgency,
-        budget: budgetNumber,
       });
       // R6 #19 tenancy metadata — only attached when the user opted in.
       const tenancyMetadata =
@@ -313,7 +276,6 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
         title: title.trim(),
         description: description.trim(),
         location: location.trim(),
-        budget: budgetNumber,
         homeownerId: user.id,
         category,
         urgency,
@@ -366,7 +328,8 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
           Post a Job
         </Text>
         <Text style={styles.sub}>
-          Describe the work, add photos, set a budget — bids land within hours.
+          Describe the work and add photos — contractors will quote and you
+          choose the bid that suits you best.
         </Text>
       </View>
 
@@ -377,7 +340,6 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
           location={location}
           category={category}
           urgency={urgency}
-          budget={budget}
           photos={photos}
           buildingAssessment={buildingAssessment}
           aiPricingAnalysis={aiPricingAnalysis}
@@ -391,9 +353,6 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
           onRemovePhoto={handleRemovePhoto}
           onAssessmentComplete={(assessment) => {
             setBuildingAssessment(assessment);
-            if (!budget && assessment.estimatedCost.likely) {
-              setBudget(Math.round(assessment.estimatedCost.likely).toString());
-            }
           }}
           onAssessmentCorrection={(assessmentId, corrections) => {
             logger.info('Training data corrections submitted', {

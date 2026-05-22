@@ -25,7 +25,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { mobileApiClient } from '../../utils/mobileApiClient';
-import { validateJobDraft } from '@mintenance/api-contracts';
+import { validateJobDraft, type Urgency } from '@mintenance/api-contracts';
 import { me } from '../../design-system/mint-editorial';
 import { silverFontSize, SILVER_SCALE } from '../../theme/silverModeState';
 import { useSilverMode } from '../../hooks/useSilverMode';
@@ -56,7 +56,7 @@ export const PostJobWizardScreen: React.FC = () => {
   const [category, setCategory] = useState('handyman');
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
-  const [budget, setBudget] = useState('');
+  const [urgency, setUrgency] = useState<Urgency>('medium');
   const [contractorBeforePhotos, setContractorBeforePhotos] = useState(false);
 
   const bodySize = silverFontSize(15);
@@ -66,22 +66,19 @@ export const PostJobWizardScreen: React.FC = () => {
   const canAdvance =
     (step === 0 && title.trim().length >= 5) ||
     (step === 1 && location.trim().length >= 3) ||
-    (step === 2 && /^\d+(\.\d+)?$/.test(budget));
+    step === 2;
 
   const submit = async () => {
     setSubmitting(true);
     try {
       // 2026-05-01 audit P1 close-out (per-screen validateJobDraft adoption):
-      // run the canonical schema before posting. The previous flow trusted
-      // `canAdvance`'s ad-hoc 5/3-character checks, but the server min for
-      // description is 20 — a silver-mode user with a short description
-      // would hit a confusing 400. Validating here surfaces the same error
-      // pre-flight.
+      // run the canonical schema before posting so silver-mode users see
+      // the same error message the route would have rejected with.
       const draftValidation = validateJobDraft({
         title,
         description,
         location,
-        budget: Number(budget),
+        urgency,
         category: category as
           | import('@mintenance/api-contracts').JobCategory
           | undefined,
@@ -223,20 +220,45 @@ export const PostJobWizardScreen: React.FC = () => {
         {step === 2 && (
           <View style={{ gap: 14 }}>
             <Text style={[styles.fieldLabel, { fontSize: bodySize }]}>
-              Budget (£)
+              When do you need this done?
             </Text>
-            <TextInput
-              value={budget}
-              onChangeText={setBudget}
-              placeholder='e.g. 150'
-              placeholderTextColor={me.ink2}
-              keyboardType='numeric'
-              autoFocus
-              style={[
-                styles.input,
-                { minHeight: minTouch, fontSize: bodySize },
-              ]}
-            />
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+              {(
+                [
+                  { value: 'low', label: 'Flexible' },
+                  { value: 'medium', label: 'Soon' },
+                  { value: 'high', label: 'Urgent' },
+                  { value: 'emergency', label: 'Emergency' },
+                ] as const
+              ).map((opt) => {
+                const active = urgency === opt.value;
+                return (
+                  <TouchableOpacity
+                    key={opt.value}
+                    onPress={() => setUrgency(opt.value)}
+                    style={[
+                      styles.chip,
+                      active && styles.chipSelected,
+                      { minHeight: minTouch },
+                    ]}
+                  >
+                    <Text
+                      style={[
+                        styles.chipText,
+                        active && styles.chipTextSelected,
+                        { fontSize: bodySize },
+                      ]}
+                    >
+                      {opt.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            <Text style={[styles.helpText, { fontSize: bodySize - 2 }]}>
+              Contractors will quote their own price — you choose the bid that
+              suits you best.
+            </Text>
             <TouchableOpacity
               onPress={() => setContractorBeforePhotos(!contractorBeforePhotos)}
               style={[

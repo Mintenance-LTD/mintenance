@@ -227,9 +227,7 @@ export function MintEditorialJobsList({ jobs }: Props) {
                     className='col'
                     style={{ alignItems: 'flex-end', gap: 2 }}
                   >
-                    <div className='me-list-amount'>
-                      {j.budget > 0 ? formatGBP(j.budget) : '—'}
-                    </div>
+                    {/* 2026-05-22: budget amount hidden — contractors price each bid themselves. */}
                     <ArrowRight
                       size={14}
                       strokeWidth={1.75}
@@ -268,9 +266,7 @@ export function MintEditorialJobsList({ jobs }: Props) {
                     className='col'
                     style={{ alignItems: 'flex-end', gap: 2 }}
                   >
-                    <div className='me-list-amount'>
-                      {j.budget > 0 ? formatGBP(j.budget) : '—'}
-                    </div>
+                    {/* 2026-05-22: budget amount hidden — contractors price each bid themselves. */}
                     <ArrowRight
                       size={14}
                       strokeWidth={1.75}

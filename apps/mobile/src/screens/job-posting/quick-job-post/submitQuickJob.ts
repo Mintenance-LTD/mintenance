@@ -23,7 +23,6 @@ export type SubmitQuickJobResult =
 export interface SubmitQuickJobInput {
   title: string;
   description: string;
-  budget: string;
   urgency: string;
   category: string;
   propertyId?: string;
@@ -39,7 +38,6 @@ export async function submitQuickJob(
   const {
     title,
     description,
-    budget,
     urgency,
     category,
     propertyId,
@@ -67,7 +65,6 @@ export async function submitQuickJob(
     title,
     description: fullDescription,
     location: propertyAddress || undefined,
-    budget: parseFloat(budget) || 150,
     category: normalizeJobCategory(category) as JobCategory | undefined,
     urgency: urgencyToCanonical(urgency),
     propertyId,
@@ -86,7 +83,6 @@ export async function submitQuickJob(
       title: sanitize.text(title, 200),
       description: sanitize.jobDescription(fullDescription),
       location: propertyAddress || '',
-      budget: parseFloat(budget) || 150,
       homeownerId,
       category: normalizeJobCategory(category),
       urgency: urgencyToCanonical(urgency),

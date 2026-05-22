@@ -61,7 +61,9 @@ export class JobCRUDService {
     title: string;
     description: string;
     location: string;
-    budget: number;
+    // 2026-05-22: budget is now optional — contractors price each bid
+    // themselves and the homeowner picks from the bids.
+    budget?: number;
     homeownerId?: string;
     homeowner_id?: string;
     category?: string;
@@ -106,11 +108,6 @@ export class JobCRUDService {
         context
       );
       ServiceErrorHandler.validateRequired(safeLocation, 'Location', context);
-      ServiceErrorHandler.validatePositiveNumber(
-        jobData.budget,
-        'Budget',
-        context
-      );
 
       const homeowner_id = jobData.homeowner_id ?? jobData.homeownerId;
       ServiceErrorHandler.validateRequired(
@@ -126,7 +123,7 @@ export class JobCRUDService {
           title: safeTitle,
           description: safeDescription,
           location: safeLocation,
-          budget: jobData.budget,
+          ...(jobData.budget !== undefined ? { budget: jobData.budget } : {}),
           category: jobData.category,
           urgency: jobData.urgency,
           photoUrls: jobData.photos,

@@ -1,13 +1,16 @@
 import React from 'react';
-import {
-  BudgetRangeSelector,
-  type BudgetData,
-} from '../components/BudgetRangeSelector';
 import { URGENCY_OPTIONS } from './types';
 import type { JobFormData } from './types';
 
 /**
- * Job-creation budget + timeline step — Direction A · Mint Editorial.
+ * Job-creation timeline step — Direction A · Mint Editorial.
+ *
+ * Budget input was removed 2026-05-22: anchoring contractors to a
+ * homeowner-set ceiling pushed bids toward the cap and capped market
+ * discovery. Contractors now bid their own price with a required
+ * justification (see /api/contractor/submit-bid). The AI estimate, when
+ * available, is shown read-only as a sanity check for the homeowner —
+ * it is not sent to contractors.
  */
 
 interface BudgetStepProps {
@@ -30,7 +33,6 @@ const sectionLabelStyle: React.CSSProperties = {
 export function BudgetStep({
   formData,
   setFormData,
-  hasImages,
   preferredDate,
   setPreferredDate,
   aiSuggestedBudget,
@@ -38,18 +40,20 @@ export function BudgetStep({
   return (
     <div
       style={{ display: 'flex', flexDirection: 'column', gap: 28 }}
-      data-testid='step-3-budget'
+      data-testid='step-3-timeline'
     >
       <div>
         <h2 className='t-h2' style={{ marginBottom: 4 }}>
-          Set your budget and timeline
+          Set your timeline
         </h2>
         <p className='t-body' style={{ margin: 0 }}>
-          This helps contractors provide accurate quotes
+          Contractors will bid their own price — you choose the bid that suits
+          you best
         </p>
       </div>
 
-      {/* AI Budget Suggestion */}
+      {/* AI cost hint — homeowner-only sanity check. Not shown to
+          contractors. Helps frame incoming bids without anchoring them. */}
       {aiSuggestedBudget && (
         <div
           style={{
@@ -98,36 +102,12 @@ export function BudgetStep({
                 color: 'var(--me-ink-2)',
               }}
             >
-              Based on damage assessment ({aiSuggestedBudget.confidence}%
-              confidence). You can adjust below.
+              For your reference only ({aiSuggestedBudget.confidence}%
+              confidence). Contractors will price the job themselves.
             </p>
           </div>
         </div>
       )}
-
-      {/* Budget Range Selector (legacy component, palette-mapped via
-          the page's .me-legacy-fit wrapper). */}
-      <BudgetRangeSelector
-        value={{
-          budget: String(formData.budget),
-          budget_min: String(formData.budget_min || ''),
-          budget_max: String(formData.budget_max || ''),
-          show_budget_to_contractors:
-            formData.show_budget_to_contractors || false,
-          require_itemized_bids: formData.require_itemized_bids || false,
-        }}
-        onChange={(budgetData: BudgetData) => {
-          setFormData((prev) => ({
-            ...prev,
-            budget: budgetData.budget,
-            budget_min: budgetData.budget_min,
-            budget_max: budgetData.budget_max,
-            show_budget_to_contractors: budgetData.show_budget_to_contractors,
-            require_itemized_bids: budgetData.require_itemized_bids,
-          }));
-        }}
-        hasImages={hasImages}
-      />
 
       {/* Urgency */}
       <div>

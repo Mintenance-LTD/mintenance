@@ -18,23 +18,23 @@ vi.mock('@/lib/theme', () => ({
       textPrimary: '#111827',
       textSecondary: '#6b7280',
       backgroundSecondary: '#f9fafb',
-      backgroundTertiary: '#f3f4f6'
+      backgroundTertiary: '#f3f4f6',
     },
     spacing: { 1: '4px', 2: '8px', 3: '12px', 4: '16px', 6: '24px' },
     borderRadius: { md: '8px', lg: '12px' },
     typography: {
       fontSize: { xs: '12px', sm: '14px', base: '16px' },
-      fontWeight: { semibold: 600, bold: 700 }
-    }
+      fontWeight: { semibold: 600, bold: 700 },
+    },
   },
 }));
 
 vi.mock('@/lib/utils/currency', () => ({
-  formatMoney: vi.fn((amount) => `£${amount.toLocaleString()}`)
+  formatMoney: vi.fn((amount) => `£${amount.toLocaleString()}`),
 }));
 
 vi.mock('@/components/ui/Icon', () => ({
-  Icon: ({ name }: any) => <span data-testid={`icon-${name}`} />
+  Icon: ({ name }: any) => <span data-testid={`icon-${name}`} />,
 }));
 
 const mockGetCsrfToken = vi.hoisted(() => vi.fn());
@@ -60,6 +60,8 @@ describe('SmartJobAnalysis', () => {
     location: 'London',
     imageUrls: [],
     onCategorySelect: vi.fn(),
+    // onBudgetSelect kept as optional no-op so the component renders;
+    // budget Apply button was removed 2026-05-22.
     onBudgetSelect: vi.fn(),
     onUrgencySelect: vi.fn(),
   };
@@ -82,7 +84,7 @@ describe('SmartJobAnalysis', () => {
     });
 
     it('should not trigger analysis with insufficient text', async () => {
-      render(<SmartJobAnalysis {...defaultProps} title="Hi" description="" />);
+      render(<SmartJobAnalysis {...defaultProps} title='Hi' description='' />);
       await vi.advanceTimersByTimeAsync(1500);
       expect(global.fetch).not.toHaveBeenCalled();
     });
@@ -102,7 +104,10 @@ describe('SmartJobAnalysis', () => {
       await waitFor(() => {
         expect(global.fetch).toHaveBeenCalledWith('/api/jobs/analyze', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': 'mock-csrf-token' },
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': 'mock-csrf-token',
+          },
           body: JSON.stringify({
             title: 'Kitchen Repair',
             description: 'Need to fix leaking kitchen sink',
@@ -149,19 +154,11 @@ describe('SmartJobAnalysis', () => {
 
       expect(screen.getByText('85% confidence')).toBeInTheDocument();
       expect(screen.getByText('Plumbing')).toBeInTheDocument();
-      expect(screen.getByText('£300')).toBeInTheDocument();
     });
 
-    it('should display budget range correctly', async () => {
-      render(<SmartJobAnalysis {...defaultProps} />);
-      await vi.advanceTimersByTimeAsync(1000);
-
-      await waitFor(() => {
-        expect(screen.getByText(/Range:/)).toBeInTheDocument();
-      });
-
-      expect(screen.getByText(/£200.*£400/)).toBeInTheDocument();
-    });
+    // Budget range assertion removed 2026-05-22 — Suggested Budget chip
+    // no longer renders. The AI cost estimate is shown read-only on the
+    // Timeline step, not here.
 
     it('should display timeline with urgency badge', async () => {
       render(<SmartJobAnalysis {...defaultProps} />);
@@ -210,19 +207,7 @@ describe('SmartJobAnalysis', () => {
       expect(defaultProps.onCategorySelect).toHaveBeenCalledWith('plumbing');
     });
 
-    it('should call onBudgetSelect when Apply button clicked for budget', async () => {
-      render(<SmartJobAnalysis {...defaultProps} />);
-      await vi.advanceTimersByTimeAsync(1000);
-
-      await waitFor(() => {
-        expect(screen.getByText('£300')).toBeInTheDocument();
-      });
-
-      const applyButtons = screen.getAllByText('Apply');
-      fireEvent.click(applyButtons[1]); // Second Apply button is for budget
-
-      expect(defaultProps.onBudgetSelect).toHaveBeenCalledWith(300);
-    });
+    // Budget Apply button removed 2026-05-22 — see Suggestions Display.
 
     it('should call onUrgencySelect when Apply button clicked for timeline', async () => {
       render(<SmartJobAnalysis {...defaultProps} />);
@@ -233,7 +218,8 @@ describe('SmartJobAnalysis', () => {
       });
 
       const applyButtons = screen.getAllByText('Apply');
-      fireEvent.click(applyButtons[2]); // Third Apply button is for urgency
+      // 2026-05-22: budget chip removed — timeline is now the 2nd Apply.
+      fireEvent.click(applyButtons[1]);
 
       expect(defaultProps.onUrgencySelect).toHaveBeenCalledWith('medium');
     });
@@ -296,10 +282,14 @@ describe('SmartJobAnalysis', () => {
       await vi.advanceTimersByTimeAsync(500);
 
       await waitFor(() => {
-        expect(screen.getByText('Image Analysis Detected:')).toBeInTheDocument();
+        expect(
+          screen.getByText('Image Analysis Detected:')
+        ).toBeInTheDocument();
       });
 
-      expect(screen.getByText(/water damage, pipe leak, cabinet damage/)).toBeInTheDocument();
+      expect(
+        screen.getByText(/water damage, pipe leak, cabinet damage/)
+      ).toBeInTheDocument();
       expect(screen.getByText(/Property condition:/)).toBeInTheDocument();
       expect(screen.getByText('moderate')).toBeInTheDocument();
     });
@@ -319,7 +309,11 @@ describe('SmartJobAnalysis', () => {
       await vi.advanceTimersByTimeAsync(500);
 
       await waitFor(() => {
-        expect(screen.getByText(/AI suggestions based on your description and images/)).toBeInTheDocument();
+        expect(
+          screen.getByText(
+            /AI suggestions based on your description and images/
+          )
+        ).toBeInTheDocument();
       });
     });
   });
