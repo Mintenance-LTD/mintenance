@@ -141,8 +141,33 @@ export default function CreateJobPage2025() {
   useEffect(() => {
     if (user && user.role === 'homeowner') {
       setLoadingProperties(true);
-      fetch('/api/properties')
-        .then((res) => res.json())
+      fetch('/api/properties', { credentials: 'include' })
+        .then(async (res) => {
+          if (!res.ok) {
+            // 2026-05-23: surface 4xx / 5xx instead of silently
+            // swallowing — "No properties found" was masking real
+            // failures (auth, rate limit, RLS).
+            const body = await res.text().catch(() => '');
+            const err = new Error(
+              `Properties fetch failed: ${res.status} ${res.statusText}${
+                body ? ` — ${body.slice(0, 200)}` : ''
+              }`
+            );
+            logger.error('Failed to load properties for job creation', err, {
+              service: 'app',
+              status: res.status,
+            });
+            toast.error(
+              res.status === 429
+                ? 'Too many requests — wait a moment then refresh.'
+                : res.status === 401 || res.status === 403
+                  ? 'Session expired — please sign in again.'
+                  : 'Could not load your properties. Please refresh.'
+            );
+            throw err;
+          }
+          return res.json();
+        })
         .then((data) => {
           if (data.properties) {
             setProperties(data.properties);
@@ -161,7 +186,9 @@ export default function CreateJobPage2025() {
             }
           }
         })
-        .catch(() => {})
+        .catch((err) => {
+          logger.error('Properties fetch threw', err, { service: 'app' });
+        })
         .finally(() => setLoadingProperties(false));
     }
   }, [user, searchParams]);
