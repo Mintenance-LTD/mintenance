@@ -85,6 +85,9 @@ export const useCreateJob = () => {
       // R6 #19 landlord / tenancy — optional forwarding to the server
       is_rental_property?: boolean;
       tenancy_metadata?: Record<string, unknown>;
+      // 2026-05-22: per-job toggles persisted to jobs.requirements jsonb
+      // (e.g. contractor_before_photos for no-upload flows).
+      requirements?: Record<string, unknown>;
     }) => {
       // 2026-05-01 audit P1 close-out: replaced ad-hoc inline validation
       // (every length / range / required check that drifted from the

@@ -82,6 +82,11 @@ interface SubmitJobOptions {
    *  /api/jobs which fires a direct "invited bid" notification on
    *  top of the normal nearby-broadcast. */
   preferredContractorId?: string;
+  /** 2026-05-22: extra keys merged into the `requirements` jsonb. Used
+   *  by no-photo flows (quick-create) to set
+   *  `contractor_before_photos: true` so the server's photo gate
+   *  accepts the post. */
+  extraRequirements?: Record<string, unknown>;
 }
 
 interface SubmitJobResult {
@@ -100,6 +105,7 @@ export async function submitJob({
   aiAssessment,
   preferredDate,
   preferredContractorId,
+  extraRequirements,
 }: SubmitJobOptions): Promise<SubmitJobResult> {
   // CRITICAL FIX: Fetch a fresh CSRF token right before submission to ensure cookie and header match
   // This ensures consistency with the image upload which also fetches a fresh token
@@ -205,7 +211,7 @@ export async function submitJob({
   // ran the AI assessment failed with a generic 400. Bug confirmed
   // 2026-05-12 user report (the "selectors don't work" / "post job"
   // appears stuck symptom).
-  const reqs: Record<string, unknown> = {};
+  const reqs: Record<string, unknown> = { ...(extraRequirements ?? {}) };
   if (aiAssessment) reqs.ai_assessment_metadata = aiAssessment;
   if (preferredDate) reqs.preferred_start_date = preferredDate;
   if (Object.keys(reqs).length > 0) {

@@ -53,7 +53,12 @@ export default function PostJobWizardPage() {
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
   const [urgency, setUrgency] = useState<Urgency>('medium');
-  const [contractorBeforePhotos, setContractorBeforePhotos] = useState(false);
+  // 2026-05-22: default ON because this silver-mode wizard has no
+  // photo-upload step. If the user unchecks it, the server (which
+  // requires ≥1 photo OR this flag) will reject the post. The
+  // checkbox is kept visible only so the user understands the
+  // contract: "the contractor will take photos on arrival".
+  const [contractorBeforePhotos, setContractorBeforePhotos] = useState(true);
 
   const body = silverFontSize(16, silverMode);
   const h1 = silverFontSize(26, silverMode);

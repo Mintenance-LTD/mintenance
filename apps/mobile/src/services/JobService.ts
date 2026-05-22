@@ -33,6 +33,9 @@ export class JobService {
     tenancy_metadata?: Record<string, unknown>;
     // Property Rooms Slice 1 (2026-05-21): room ids for snapshot
     room_ids?: string[];
+    // 2026-05-22: per-job toggles persisted to jobs.requirements jsonb
+    // (e.g. contractor_before_photos for no-upload flows).
+    requirements?: Record<string, unknown>;
   }): Promise<Job> {
     return JobCRUDService.createJob(jobData);
   }

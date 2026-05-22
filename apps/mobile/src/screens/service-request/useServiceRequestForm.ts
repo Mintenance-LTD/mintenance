@@ -232,6 +232,14 @@ export function useServiceRequestForm(onSuccess: () => void) {
         property_id: selectedProperty?.id,
         latitude,
         longitude,
+        // 2026-05-22: the server requires >=1 photo OR the silver-mode
+        // contractor_before_photos opt-in. When the homeowner posts a
+        // service request without uploading photos, auto-flip the
+        // flag so the contractor takes them on arrival — preserves
+        // the pre-budget-removal "post without photos" UX.
+        ...(uploadedPhotoUrls.length === 0
+          ? { requirements: { contractor_before_photos: true } }
+          : {}),
       });
 
       Alert.alert(

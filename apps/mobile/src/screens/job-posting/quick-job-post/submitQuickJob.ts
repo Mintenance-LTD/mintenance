@@ -87,6 +87,10 @@ export async function submitQuickJob(
       category: normalizeJobCategory(category),
       urgency: urgencyToCanonical(urgency),
       property_id: propertyId,
+      // 2026-05-22: quick-job-post has no photo UI. Set the silver-mode
+      // opt-in so the server's photo gate accepts the post; the
+      // contractor will take before-photos on arrival.
+      requirements: { contractor_before_photos: true },
       ...(roomIds && roomIds.length > 0 ? { room_ids: roomIds } : {}),
     });
     return { ok: true };
