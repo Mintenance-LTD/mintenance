@@ -73,7 +73,7 @@ export default function AboutPageClient() {
       icon: Shield,
       title: 'Trust & Safety',
       description:
-        'Every contractor is thoroughly vetted and verified. We maintain strict quality standards to protect our community.',
+        'Every contractor submission is reviewed by our team before they can bid. We hold every payment in escrow until you approve the work.',
     },
     {
       icon: Zap,
@@ -363,10 +363,11 @@ export default function AboutPageClient() {
                 that went nowhere. Both sides deserved better.
               </p>
               <p>
-                So we built a platform where every contractor is verified, every
-                payment is held with Protected Payment until the work is done,
-                and AI helps match the right professional to the right job. No
-                surprises, no disputes — just quality work, paid fairly.
+                So we built a platform where every contractor submission is
+                reviewed by our team, every payment is held in escrow until the
+                work is done, and AI helps match the right professional to the
+                right job. No surprises, no disputes — just quality work, paid
+                fairly.
               </p>
               <p className='font-medium' style={{ color: 'var(--me-ink)' }}>
                 We are a small, focused team based in Greater Manchester, and we

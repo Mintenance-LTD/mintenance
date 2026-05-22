@@ -28,7 +28,7 @@ export function getHomeownerPlans(isAnnual: boolean): PricingPlan[] {
         'Post unlimited jobs',
         'Manage 1 property',
         'AI-powered pro matching',
-        'View verified pro profiles',
+        'View contractor profiles',
         'Standard messaging',
         'Payment protection',
         'Review system',

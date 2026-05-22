@@ -17,7 +17,7 @@ const STEPS = [
     number: 2,
     title: 'Compare bids',
     description:
-      'Verified local tradespeople send honest quotes — usually by morning. Review profiles, ratings and past work.',
+      'Local tradespeople on the platform send honest quotes — typically within 24–48 hours. Review profiles, ratings and past work.',
   },
   {
     number: 3,

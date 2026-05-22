@@ -215,7 +215,7 @@ export default function FAQPageClient() {
       id: '17',
       question: 'How do reviews and ratings work?',
       answer:
-        "After job completion, both homeowners and contractors can leave reviews. Ratings are based on quality, communication, timeliness, and professionalism (1-5 stars). Reviews are verified and can't be deleted, ensuring authentic feedback for future users.",
+        "After job completion, both homeowners and contractors can leave reviews on each other. Ratings cover quality, communication, timeliness, and professionalism (1-5 stars). Reviews are tied to a real completed job on the platform and can't be deleted by the other party, so feedback stays authentic.",
       category: 'safety',
     },
 

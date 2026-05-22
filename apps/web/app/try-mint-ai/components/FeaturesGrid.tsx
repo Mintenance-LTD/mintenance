@@ -42,7 +42,7 @@ export function FeaturesGrid() {
       icon: ShieldCheck,
       title: 'Expert Validation',
       description:
-        'AI trained on thousands of real building surveys conducted by qualified professionals.',
+        'AI-powered assessment using image recognition and UK property data. Final quotes still come from real tradespeople on the platform.',
     },
     {
       icon: Layers,
@@ -310,7 +310,7 @@ export function FeaturesGrid() {
                     className='text-sm'
                     style={{ color: 'var(--me-brand-soft)' }}
                   >
-                    Continuously trained on verified assessments
+                    Backed by image-recognition models and UK property data
                   </p>
                 </div>
               </div>

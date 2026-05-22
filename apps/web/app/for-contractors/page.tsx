@@ -24,13 +24,13 @@ import { CompetitorComparisonTable } from '@/components/marketing/CompetitorComp
 export const metadata: Metadata = {
   title: 'For Contractors - Grow Your Trade Business | Mintenance',
   description:
-    'Join thousands of verified tradespeople across the UK. Get matched with homeowners, manage jobs, track finances, and get paid securely through Mintenance.',
+    'Join the Mintenance tradesperson network. Get matched with homeowners, manage jobs, track finances, and get paid securely through escrow.',
   keywords:
-    'contractor platform, tradesperson jobs, find work UK, verified contractor, secure payments, escrow, property maintenance jobs',
+    'contractor platform, tradesperson jobs, find work UK, secure payments, escrow, property maintenance jobs',
   openGraph: {
     title: 'For Contractors - Grow Your Trade Business | Mintenance',
     description:
-      'Join thousands of verified tradespeople. Get matched with homeowners, manage jobs, and get paid securely.',
+      'Join the Mintenance tradesperson network. Get matched with homeowners, manage jobs, and get paid securely through escrow.',
     type: 'website',
   },
 };
@@ -125,23 +125,23 @@ const BUSINESS_TOOLS = [
   },
   {
     icon: Award,
-    title: 'Verification & DBS',
-    desc: 'Get verified and earn trust badges on your profile',
+    title: 'Credentials & optional DBS',
+    desc: 'Add your licences and insurance. Initiate an optional DBS check from your profile to show homeowners extra reassurance.',
   },
 ];
 
 const WHY_MINTENANCE: MarketingTrustPoint[] = [
   {
     icon: Shield,
-    title: 'Guaranteed Payment',
+    title: 'Escrow-protected payment',
     description:
-      'Homeowner funds are held in escrow before you start work. Complete the job, upload photos \u2014 money goes straight to your bank. No invoicing, no chasing.',
+      'Homeowner funds are held in escrow before you start work. Complete the job, upload photos, and on homeowner approval the money goes straight to your Stripe Connect payout account. No invoicing, no chasing.',
   },
   {
     icon: Award,
     title: 'Build Your Reputation',
     description:
-      'Earn ratings, verification badges, and DBS-checked status. The more you build your profile, the more homeowners trust you with higher-value work.',
+      'Collect homeowner ratings on completed jobs, list your licences and insurance, and add an optional DBS check to strengthen your profile. The more you build, the more homeowners can confidently hire you for higher-value work.',
   },
   {
     icon: Sparkles,
@@ -177,7 +177,7 @@ function BusinessToolsGrid() {
           </h2>
           <p className='max-w-xl mx-auto' style={{ color: 'var(--me-ink-2)' }}>
             Stop juggling apps. Finance, invoicing, CRM, scheduling, expenses,
-            and verification &mdash; all built in.
+            and credentials &mdash; all built in.
           </p>
         </div>
         <div className='grid sm:grid-cols-2 lg:grid-cols-3 gap-6'>
@@ -267,13 +267,14 @@ export default function ForContractorsPage() {
       }
       trust={{
         title: 'Why Contractors Choose Mintenance',
-        description: 'Real platform guarantees \u2014 not promises.',
+        description:
+          'Real platform safeguards \u2014 escrow, photo proof, dispute support.',
         points: WHY_MINTENANCE,
       }}
       finalCTA={{
         title: 'Ready to Grow Your Business?',
         description:
-          'Join verified tradespeople across the UK. Set up your profile, start bidding, and get paid securely \u2014 all free to start.',
+          'Join the Mintenance tradesperson network. Set up your profile, start bidding, and get paid securely through escrow \u2014 all free to start.',
         primary: {
           label: 'Get Started Free',
           href: '/register?role=contractor',

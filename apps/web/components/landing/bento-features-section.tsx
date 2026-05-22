@@ -33,9 +33,9 @@ const itemVariants = {
 
 const FEATURES = [
   {
-    title: 'Verified tradespeople',
+    title: 'Honest tradesperson profiles',
     description:
-      'Profiles show insurance, credentials, ratings, and previous work before you choose who to hire.',
+      'Each profile shows the business details, licences and insurance the tradesperson has provided, plus past job photos and homeowner ratings as they accumulate.',
     icon: BadgeCheck,
   },
   {
@@ -65,7 +65,7 @@ const FEATURES = [
   {
     title: 'Mint AI guidance',
     description:
-      'Photo assistance helps describe a problem and estimate a fair price. Final quotes still come from verified tradespeople.',
+      'Photo assistance helps describe a problem and estimate a fair price. Final quotes still come from real tradespeople on the platform.',
     icon: Sparkles,
   },
 ];

@@ -182,7 +182,7 @@ export function MintEditorialJobsList({ jobs }: Props) {
         >
           <p className='t-body' style={{ marginBottom: 12 }}>
             {activeTab === 'all'
-              ? 'No jobs yet. Post your first one and verified tradespeople will respond.'
+              ? 'No jobs yet. Post your first one and local tradespeople will respond.'
               : 'No jobs match this filter.'}
           </p>
           {activeTab === 'all' ? (

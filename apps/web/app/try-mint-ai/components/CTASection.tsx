@@ -55,7 +55,8 @@ export function CTASection() {
             className='text-xl sm:text-2xl mb-12 max-w-3xl mx-auto'
             style={{ color: 'var(--me-brand-soft)' }}
           >
-            Get detailed quotes from verified contractors in your area
+            Get detailed quotes from local contractors on the Mintenance
+            platform
           </p>
 
           <div className='flex flex-col sm:flex-row gap-4 justify-center items-center'>
@@ -133,10 +134,11 @@ export function CTASection() {
                 className='text-3xl font-bold mb-2'
                 style={{ color: 'var(--me-on-brand)' }}
               >
-                Verified
+                Reviewed
               </div>
               <div style={{ color: 'var(--me-brand-soft)' }}>
-                Every tradesperson is ID &amp; insurance checked
+                Tradespeople share business and insurance details that our team
+                reviews before they can bid
               </div>
             </div>
             <div

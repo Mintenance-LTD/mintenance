@@ -3,14 +3,14 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = {
   title: 'Coming Soon | Mintenance',
   description:
-    "Mintenance is launching soon — join the waitlist to be first in line for the UK's smartest home maintenance platform, with AI damage assessment, escrow-protected payments, and verified tradespeople.",
+    'Mintenance is launching soon — join the waitlist for a modern UK home maintenance platform with AI-assisted damage assessment, escrow-protected payments, and a curated tradesperson network.',
   openGraph: {
     type: 'website',
     locale: 'en_GB',
     siteName: 'Mintenance',
     title: 'Mintenance — Coming Soon',
     description:
-      "Join the waitlist for the UK's smartest home maintenance platform. AI damage assessment, escrow payments, verified contractors.",
+      'Join the waitlist for a modern UK home maintenance platform. AI-assisted assessment, escrow payments, curated tradespeople.',
   },
   twitter: {
     card: 'summary_large_image',

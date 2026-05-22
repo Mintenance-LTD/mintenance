@@ -96,7 +96,7 @@ export default function TermsOfServicePage() {
           <h2 style={h2Style}>2. Platform Description</h2>
           <p style={pStyle}>
             Mintenance is a marketplace platform that connects homeowners with
-            verified tradespeople for home maintenance, repairs, and improvement
+            tradespeople for home maintenance, repairs, and improvement
             projects. We provide:
           </p>
           <ul className='list-disc pl-6 mb-4 space-y-2' style={listStyle}>
