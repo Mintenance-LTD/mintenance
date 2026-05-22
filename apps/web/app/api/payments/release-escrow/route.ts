@@ -15,10 +15,7 @@ import {
   storeIdempotencyResult,
   releaseIdempotencyClaim,
 } from '@/lib/idempotency';
-import {
-  FeeCalculationService,
-  type PaymentType,
-} from '@/lib/services/payment/FeeCalculationService';
+import type { PaymentType } from '@/lib/services/payment/FeeCalculationService';
 import { requireAdminFromDatabase } from '@/lib/admin-verification';
 import {
   ForbiddenError,
@@ -37,6 +34,7 @@ import {
   createFeeTransferRecord,
   notifyAndEmailContractor,
   writeEscrowAuditLog,
+  calculateReleaseFeeBreakdown,
 } from './_helpers';
 
 export const POST = withApiHandler(
@@ -87,7 +85,6 @@ export const POST = withApiHandler(
     // the user can retry without waiting for the 60s stale takeover.
     // (checkIdempotency now throws on real contention; null = new request.)
     try {
-      // Get escrow transaction with job details
       const { data: escrowTransaction, error: escrowError } =
         await serverSupabase
           .from('escrow_transactions')
@@ -285,9 +282,11 @@ export const POST = withApiHandler(
 
       const paymentType =
         (escrowTransaction.payment_type as PaymentType) || 'final';
-      const feeBreakdown = FeeCalculationService.calculateFees(
+      // 2026-05-22: tier-aware fees (12/8/5%); honours early-access.
+      const feeBreakdown = await calculateReleaseFeeBreakdown(
         escrowTransaction.amount,
-        { paymentType }
+        paymentType,
+        job.contractor_id
       );
       const contractorAmountCents = Math.round(
         feeBreakdown.contractorAmount * 100

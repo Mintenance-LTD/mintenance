@@ -4,7 +4,10 @@ import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { env, getAppUrl } from '@/lib/env';
-import { FeeCalculationService, type PaymentType } from '@/lib/services/payment/FeeCalculationService';
+import {
+  FeeCalculationService,
+  type PaymentType,
+} from '@/lib/services/payment/FeeCalculationService';
 import { validateRequest } from '@/lib/validation/validator';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 
@@ -15,7 +18,10 @@ const bodySchema = z.object({
   jobId: z.string().uuid().optional(),
   contractorId: z.string().uuid().optional(),
   quantity: z.number().int().positive().optional().default(1),
-  paymentType: z.enum(['deposit', 'final', 'milestone']).optional().default('final'),
+  paymentType: z
+    .enum(['deposit', 'final', 'milestone'])
+    .optional()
+    .default('final'),
 });
 
 /**
@@ -31,7 +37,8 @@ export const POST = withApiHandler(
       return validation;
     }
 
-    const { priceId, jobId, contractorId, quantity, paymentType } = validation.data;
+    const { priceId, jobId, contractorId, quantity, paymentType } =
+      validation.data;
 
     // Get price details to calculate amount
     let paymentAmount: number | null = null;
@@ -46,10 +53,7 @@ export const POST = withApiHandler(
         service: 'payments',
         priceId,
       });
-      return NextResponse.json(
-        { error: 'Invalid price ID' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Invalid price ID' }, { status: 400 });
     }
 
     // If jobId is provided, validate job ownership and set up marketplace payment
@@ -87,11 +91,12 @@ export const POST = withApiHandler(
 
       // Get contractor's Stripe Connect account for marketplace payment
       if (jobData.contractor_id) {
-        const { data: contractor, error: contractorError } = await serverSupabase
-          .from('profiles')
-          .select('stripe_connect_account_id')
-          .eq('id', jobData.contractor_id)
-          .single();
+        const { data: contractor, error: contractorError } =
+          await serverSupabase
+            .from('profiles')
+            .select('stripe_connect_account_id')
+            .eq('id', jobData.contractor_id)
+            .single();
 
         if (contractorError || !contractor?.stripe_connect_account_id) {
           logger.warn('Contractor missing Stripe Connect account', {
@@ -107,10 +112,17 @@ export const POST = withApiHandler(
 
         contractorStripeAccountId = contractor.stripe_connect_account_id;
 
-        // Calculate platform fee for marketplace payment
+        // Calculate platform fee for marketplace payment. 2026-05-22 Sprint 2:
+        // fee is now tier-aware — Basic 12%, Pro 8%, Business 5%. Early-access
+        // contractors are mapped to Business via resolveContractorTier().
+        const contractorTier =
+          await FeeCalculationService.resolveContractorTier(
+            jobData.contractor_id
+          );
         const totalAmount = paymentAmount * (quantity ?? 1);
         const feeBreakdown = FeeCalculationService.calculateFees(totalAmount, {
           paymentType: paymentType as PaymentType,
+          contractorTier,
         });
 
         // Application fee amount in cents (platform fee)
@@ -138,13 +150,16 @@ export const POST = withApiHandler(
     }
 
     // Build payment intent data for marketplace payments
-    const paymentIntentData: Stripe.Checkout.SessionCreateParams.PaymentIntentData = {};
+    const paymentIntentData: Stripe.Checkout.SessionCreateParams.PaymentIntentData =
+      {};
 
     // Store contractor account ID in metadata for later escrow release
     if (contractorStripeAccountId) {
       metadata.isMarketplacePayment = 'true';
       metadata.contractorStripeAccountId = contractorStripeAccountId;
-      metadata.platformFeeAmount = applicationFeeAmount ? (applicationFeeAmount / 100).toString() : '0';
+      metadata.platformFeeAmount = applicationFeeAmount
+        ? (applicationFeeAmount / 100).toString()
+        : '0';
 
       const totalAmount = paymentAmount * (quantity ?? 1);
       metadata.totalAmount = totalAmount.toString();
@@ -193,20 +208,28 @@ export const POST = withApiHandler(
         });
 
       if (escrowError) {
-        logger.error('Failed to create escrow transaction for checkout session — aborting checkout', escrowError, {
-          service: 'payments',
-          sessionId: session.id,
-          jobId,
-        });
+        logger.error(
+          'Failed to create escrow transaction for checkout session — aborting checkout',
+          escrowError,
+          {
+            service: 'payments',
+            sessionId: session.id,
+            jobId,
+          }
+        );
         // SECURITY: Fail loudly — a checkout without an escrow record creates an unrecoverable
         // inconsistency where payment is charged but no escrow exists.
         try {
           await stripe.checkout.sessions.expire(session.id);
         } catch (expireError) {
-          logger.error('Failed to expire checkout session after escrow failure', expireError, {
-            service: 'payments',
-            sessionId: session.id,
-          });
+          logger.error(
+            'Failed to expire checkout session after escrow failure',
+            expireError,
+            {
+              service: 'payments',
+              sessionId: session.id,
+            }
+          );
         }
         return NextResponse.json(
           { error: 'Payment setup failed. Please try again.' },
@@ -221,7 +244,9 @@ export const POST = withApiHandler(
       userId: user.id,
       jobId: jobId || undefined,
       isMarketplacePayment: !!contractorStripeAccountId,
-      platformFeeAmount: applicationFeeAmount ? applicationFeeAmount / 100 : undefined,
+      platformFeeAmount: applicationFeeAmount
+        ? applicationFeeAmount / 100
+        : undefined,
     });
 
     return NextResponse.json({
