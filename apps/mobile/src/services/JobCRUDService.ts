@@ -83,6 +83,9 @@ export class JobCRUDService {
     // values to snapshot into job_rooms after the job is created.
     // Validated server-side against the selected property.
     room_ids?: string[];
+    // 2026-05-22: per-job toggles persisted to jobs.requirements jsonb
+    // (e.g. contractor_before_photos for no-upload flows).
+    requirements?: Record<string, unknown>;
   }): Promise<Job> {
     const context = {
       service: 'JobCRUDService',
@@ -140,6 +143,11 @@ export class JobCRUDService {
           // and silently drops any that don't belong to the property.
           ...(jobData.room_ids && jobData.room_ids.length > 0
             ? { room_ids: jobData.room_ids }
+            : {}),
+          // 2026-05-22: per-job requirements jsonb (e.g.
+          // contractor_before_photos for no-upload flows).
+          ...(jobData.requirements
+            ? { requirements: jobData.requirements }
             : {}),
         }
       );

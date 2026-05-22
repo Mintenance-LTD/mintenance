@@ -113,6 +113,11 @@ export async function submitQuickJob(args: {
       formData: jobData,
       photoUrls: [],
       csrfToken: csrfToken || '',
+      // 2026-05-22: quick-create has no photo UI — homeowners use this
+      // flow when they want the contractor to handle photos on arrival.
+      // Set the silver-mode opt-in so the server's photo gate accepts
+      // the post without uploaded images.
+      extraRequirements: { contractor_before_photos: true },
     });
 
     if (!result.success) {

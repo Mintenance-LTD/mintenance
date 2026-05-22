@@ -57,7 +57,10 @@ export const PostJobWizardScreen: React.FC = () => {
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
   const [urgency, setUrgency] = useState<Urgency>('medium');
-  const [contractorBeforePhotos, setContractorBeforePhotos] = useState(false);
+  // 2026-05-22: default ON because this silver-mode wizard has no
+  // photo-upload step. The server requires ≥1 photo OR this flag, so
+  // toggling it off here would always 400.
+  const [contractorBeforePhotos, setContractorBeforePhotos] = useState(true);
 
   const bodySize = silverFontSize(15);
   const titleSize = silverFontSize(22);
