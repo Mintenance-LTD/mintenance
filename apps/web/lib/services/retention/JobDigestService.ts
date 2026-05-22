@@ -156,25 +156,53 @@ export class JobDigestService {
       Date.now() - DIGEST_COOLDOWN_DAYS * 24 * 60 * 60 * 1000
     ).toISOString();
 
-    // Step 1: Active contractors
-    const { data: contractors, error: contractorError } = await serverSupabase
-      .from('profiles')
-      .select('id, email, first_name')
-      .eq('role', 'contractor')
-      .is('deleted_at', null)
-      .eq('onboarding_completed', true)
-      .not('email', 'is', null)
-      .limit(BATCH_LIMIT);
+    // Step 1: Active contractors. 2026-05-22 Sprint 3: gate by tier.
+    // "Lead recommendations" is a Pro+ feature, so we restrict the digest
+    // to Pro/Business subscribers + early-access founding members. Basic/
+    // Free contractors continue to browse jobs manually — the digest is
+    // the explicit upgrade incentive.
+    const { data: allContractors, error: contractorError } =
+      await serverSupabase
+        .from('profiles')
+        .select('id, email, first_name')
+        .eq('role', 'contractor')
+        .is('deleted_at', null)
+        .eq('onboarding_completed', true)
+        .not('email', 'is', null)
+        .limit(BATCH_LIMIT * 4); // pull wider; we'll filter below
 
-    if (contractorError || !contractors || contractors.length === 0) {
+    if (contractorError || !allContractors || allContractors.length === 0) {
       logger.error(
         'Failed to fetch contractors for job digest',
         contractorError,
-        {
-          service: 'job-digest',
-        }
+        { service: 'job-digest' }
       );
       return { sent: 0, failed: 0, skipped: 0 };
+    }
+
+    // Resolve each contractor's effective tier (honours early-access).
+    const { FeeCalculationService } =
+      await import('@/lib/services/payment/FeeCalculationService');
+    const tierResults = await Promise.all(
+      allContractors.map(async (c) => ({
+        contractor: c,
+        tier: await FeeCalculationService.resolveContractorTier(c.id).catch(
+          () => 'basic' as const
+        ),
+      }))
+    );
+
+    const contractors = tierResults
+      .filter(({ tier }) => tier === 'professional' || tier === 'enterprise')
+      .map(({ contractor }) => contractor)
+      .slice(0, BATCH_LIMIT);
+
+    if (contractors.length === 0) {
+      logger.info(
+        'No Pro+ contractors eligible for lead-recommendations digest',
+        { service: 'job-digest' }
+      );
+      return { sent: 0, failed: 0, skipped: allContractors.length };
     }
 
     const contractorIds = contractors.map((c) => c.id);

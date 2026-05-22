@@ -92,19 +92,36 @@ export const MOBILE_FEATURES: Record<string, FeatureDefinition> = {
   },
 
   // Contractor Features
+  // 2026-05-22 aligned bid limits with web (feature-access-contractor.ts):
+  // trial/basic = 10/mo, professional/enterprise = unlimited.
   CONTRACTOR_BID_LIMIT: {
     id: 'CONTRACTOR_BID_LIMIT',
     name: 'Monthly Bids',
     description: 'Number of bids per month',
     category: 'Bidding',
     limits: {
-      trial: 5,
-      basic: 20,
-      professional: 100,
+      trial: 10,
+      basic: 10,
+      professional: 'unlimited',
       enterprise: 'unlimited',
     },
     upgradeMessage:
       "You've reached your monthly bid limit. Upgrade to submit more bids.",
+  },
+  // 2026-05-22 NEW: concurrent active-jobs cap on Free/Basic. Pro+ removes.
+  CONTRACTOR_ACTIVE_JOBS_LIMIT: {
+    id: 'CONTRACTOR_ACTIVE_JOBS_LIMIT',
+    name: 'Active Jobs',
+    description: 'Jobs you can work on at the same time',
+    category: 'Bidding',
+    limits: {
+      trial: 3,
+      basic: 3,
+      professional: 'unlimited',
+      enterprise: 'unlimited',
+    },
+    upgradeMessage:
+      "You've reached your concurrent active-jobs limit. Finish a current job or upgrade to Professional.",
   },
   CONTRACTOR_DISCOVERY_CARD: {
     id: 'CONTRACTOR_DISCOVERY_CARD',
@@ -119,19 +136,8 @@ export const MOBILE_FEATURES: Record<string, FeatureDefinition> = {
     },
     upgradeMessage: 'Upgrade to appear in the homeowner discovery feed.',
   },
-  CONTRACTOR_SOCIAL_FEED: {
-    id: 'CONTRACTOR_SOCIAL_FEED',
-    name: 'Social Feed',
-    description: 'Access to contractor community',
-    category: 'Social',
-    limits: {
-      trial: false,
-      basic: false,
-      professional: true,
-      enterprise: true,
-    },
-    upgradeMessage: 'Upgrade to Professional to join the contractor community.',
-  },
+  // 2026-05-22 dropped CONTRACTOR_SOCIAL_FEED — see web feature-access-contractor.ts
+  // for full rationale. Marketplace social feeds don't drive value.
   CONTRACTOR_PORTFOLIO_PHOTOS: {
     id: 'CONTRACTOR_PORTFOLIO_PHOTOS',
     name: 'Portfolio Photos',

@@ -14,8 +14,29 @@ import {
   type FeeTransferOptions,
   type FeeTransferResult,
 } from '@/lib/services/payment/FeeTransferService';
+import {
+  FeeCalculationService,
+  type PaymentType,
+} from '@/lib/services/payment/FeeCalculationService';
 import { InternalServerError } from '@/lib/errors/api-error';
 import { EmailService } from '@/lib/email-service';
+
+/**
+ * Tier-aware fee breakdown for an escrow release. 2026-05-22 Sprint 2.
+ * Honours early-access via resolveContractorTier.
+ */
+export async function calculateReleaseFeeBreakdown(
+  amount: number,
+  paymentType: PaymentType,
+  contractorId: string
+) {
+  const contractorTier =
+    await FeeCalculationService.resolveContractorTier(contractorId);
+  return FeeCalculationService.calculateFees(amount, {
+    paymentType,
+    contractorTier,
+  });
+}
 
 // ---------------------------------------------------------------------------
 // Types

@@ -182,6 +182,53 @@ export const POST = withApiHandler(
         );
       }
 
+      // 2026-05-22 Sprint 2: Active-jobs cap on Free/Basic contractors. A
+      // free contractor can bid on 10 jobs/month but only WORK ON 3 at a
+      // time. The cap creates upgrade pressure — once they're consistently
+      // winning, Pro removes it. Skipped for Pro/Business (and early-access
+      // founding members, who resolve to enterprise).
+      //
+      // Counted at acceptance time, not bid-submit time, so a Free
+      // contractor can still queue up bids during slow weeks and pick
+      // selectively — homeowner just hits the limit when accepting a 4th
+      // simultaneous one.
+      const { FeeCalculationService } =
+        await import('@/lib/services/payment/FeeCalculationService');
+      const acceptingContractorTier =
+        await FeeCalculationService.resolveContractorTier(bid.contractor_id);
+      if (
+        acceptingContractorTier === 'free' ||
+        acceptingContractorTier === 'basic'
+      ) {
+        const { count: activeJobsCount } = await serverSupabase
+          .from('jobs')
+          .select('id', { count: 'exact', head: true })
+          .eq('contractor_id', bid.contractor_id)
+          .in('status', [JOB_STATUS.ASSIGNED, JOB_STATUS.IN_PROGRESS]);
+
+        const ACTIVE_JOBS_CAP_FREE_BASIC = 3;
+        if (
+          activeJobsCount !== null &&
+          activeJobsCount >= ACTIVE_JOBS_CAP_FREE_BASIC
+        ) {
+          logger.info(
+            'Bid acceptance blocked — contractor at active-jobs cap',
+            {
+              service: 'jobs',
+              contractorId: bid.contractor_id,
+              tier: acceptingContractorTier,
+              activeJobsCount,
+              cap: ACTIVE_JOBS_CAP_FREE_BASIC,
+              bidId,
+              jobId,
+            }
+          );
+          throw new ConflictError(
+            `This contractor is currently at their ${ACTIVE_JOBS_CAP_FREE_BASIC}-job concurrent work limit (Basic plan). They need to complete a current job — or upgrade to Professional for unlimited active jobs — before they can take on this one.`
+          );
+        }
+      }
+
       // Validate bid status transition (must be pending -> accepted)
       validateBidTransition(
         bid.status as BidStatusValue,
