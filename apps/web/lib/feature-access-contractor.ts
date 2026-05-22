@@ -10,8 +10,38 @@ export const CONTRACTOR_FEATURES: Record<string, FeatureDefinition> = {
     name: 'Monthly Bid Limit',
     description: 'Number of bids you can submit per month',
     category: 'Bidding',
-    limits: { free: 10, basic: 10, professional: 50, enterprise: 'unlimited' },
-    upgradeMessage: "You've reached your monthly bid limit. Upgrade to submit more bids.",
+    // Free/Basic = 10/mo (acquisition tier). Pro/Business = unlimited (the
+    // promise that justifies the subscription). Aligned with landing page
+    // 2026-05-22 — was previously professional: 50 which broke the "unlimited
+    // bids on Pro" claim. See plan in feat/tiered-pricing branch.
+    limits: {
+      free: 10,
+      basic: 10,
+      professional: 'unlimited',
+      enterprise: 'unlimited',
+    },
+    upgradeMessage:
+      "You've reached your monthly bid limit. Upgrade to submit more bids.",
+    learnMoreUrl: '/contractor/subscription',
+  },
+  // Active concurrent jobs cap — the upgrade pressure on Free contractors.
+  // A free contractor can BID on 10/mo but only WORK ON 3 at a time. Enforced
+  // at bid-accept time (POST /api/jobs/[id]/bids/[bidId]/accept). Pro+ removes
+  // the cap. 2026-05-22 plan.
+  CONTRACTOR_ACTIVE_JOBS_LIMIT: {
+    id: 'CONTRACTOR_ACTIVE_JOBS_LIMIT',
+    name: 'Active Jobs Limit',
+    description:
+      'Maximum number of jobs you can work on at the same time (status: assigned or in_progress)',
+    category: 'Bidding',
+    limits: {
+      free: 3,
+      basic: 3,
+      professional: 'unlimited',
+      enterprise: 'unlimited',
+    },
+    upgradeMessage:
+      "You've reached your concurrent active-jobs limit. Finish a current job or upgrade to Professional for unlimited active jobs.",
     learnMoreUrl: '/contractor/subscription',
   },
   CONTRACTOR_DISCOVERY_CARD: {
@@ -20,7 +50,8 @@ export const CONTRACTOR_FEATURES: Record<string, FeatureDefinition> = {
     description: 'Appear in homeowner discovery feed',
     category: 'Discovery',
     limits: { free: true, basic: true, professional: true, enterprise: true },
-    upgradeMessage: 'Upgrade to appear in the homeowner discovery feed and get more visibility.',
+    upgradeMessage:
+      'Upgrade to appear in the homeowner discovery feed and get more visibility.',
   },
   CONTRACTOR_FEATURED_LISTING: {
     id: 'CONTRACTOR_FEATURED_LISTING',
@@ -28,34 +59,27 @@ export const CONTRACTOR_FEATURES: Record<string, FeatureDefinition> = {
     description: 'Get featured placement in search results',
     category: 'Discovery',
     limits: { free: false, basic: false, professional: true, enterprise: true },
-    upgradeMessage: 'Upgrade to Professional to get featured placement in search results.',
+    upgradeMessage:
+      'Upgrade to Professional to get featured placement in search results.',
   },
   CONTRACTOR_PRIORITY_PLACEMENT: {
     id: 'CONTRACTOR_PRIORITY_PLACEMENT',
     name: 'Priority Placement',
     description: 'Appear at the top of contractor listings',
     category: 'Discovery',
-    limits: { free: false, basic: false, professional: false, enterprise: true },
-    upgradeMessage: 'Upgrade to Enterprise for priority placement in all contractor listings.',
+    limits: {
+      free: false,
+      basic: false,
+      professional: false,
+      enterprise: true,
+    },
+    upgradeMessage:
+      'Upgrade to Enterprise for priority placement in all contractor listings.',
   },
 
-  // Social & Community
-  CONTRACTOR_SOCIAL_FEED: {
-    id: 'CONTRACTOR_SOCIAL_FEED',
-    name: 'Social Feed',
-    description: 'Access to contractor social feed and community',
-    category: 'Social',
-    limits: { free: false, basic: false, professional: true, enterprise: true },
-    upgradeMessage: 'Upgrade to Professional to join the contractor community and social feed.',
-  },
-  CONTRACTOR_POST_LIMIT: {
-    id: 'CONTRACTOR_POST_LIMIT',
-    name: 'Social Posts Per Month',
-    description: 'Number of social posts you can create per month',
-    category: 'Social',
-    limits: { free: 0, basic: 0, professional: 20, enterprise: 'unlimited' },
-    upgradeMessage: 'Upgrade to create posts and engage with the contractor community.',
-  },
+  // 2026-05-22 dropped: CONTRACTOR_SOCIAL_FEED, CONTRACTOR_POST_LIMIT.
+  // Marketplace social feeds don't drive value; killed before someone built
+  // it. Replaced by lead-recommendations digest (see below).
 
   // Portfolio & Branding
   CONTRACTOR_PORTFOLIO_PHOTOS: {
@@ -64,16 +88,11 @@ export const CONTRACTOR_FEATURES: Record<string, FeatureDefinition> = {
     description: 'Number of portfolio photos you can upload',
     category: 'Portfolio',
     limits: { free: 3, basic: 20, professional: 100, enterprise: 'unlimited' },
-    upgradeMessage: 'Upgrade to showcase more of your work with additional portfolio photos.',
+    upgradeMessage:
+      'Upgrade to showcase more of your work with additional portfolio photos.',
   },
-  CONTRACTOR_CUSTOM_BRANDING: {
-    id: 'CONTRACTOR_CUSTOM_BRANDING',
-    name: 'Custom Branding',
-    description: 'Custom colors, logo, and branding on your profile',
-    category: 'Branding',
-    limits: { free: false, basic: false, professional: true, enterprise: true },
-    upgradeMessage: 'Upgrade to Professional for custom branding on your profile.',
-  },
+  // 2026-05-22 dropped CONTRACTOR_CUSTOM_BRANDING — no real demand signal,
+  // builds tech debt. Removed from landing page in same commit.
   CONTRACTOR_VERIFIED_BADGE: {
     id: 'CONTRACTOR_VERIFIED_BADGE',
     name: 'Verified Badge',
@@ -97,15 +116,22 @@ export const CONTRACTOR_FEATURES: Record<string, FeatureDefinition> = {
     description: 'Detailed analytics and insights',
     category: 'Analytics',
     limits: { free: false, basic: false, professional: true, enterprise: true },
-    upgradeMessage: 'Upgrade to Professional for advanced analytics and insights.',
+    upgradeMessage:
+      'Upgrade to Professional for advanced analytics and insights.',
   },
   CONTRACTOR_CUSTOM_REPORTS: {
     id: 'CONTRACTOR_CUSTOM_REPORTS',
     name: 'Custom Reports',
     description: 'Create and export custom reports',
     category: 'Analytics',
-    limits: { free: false, basic: false, professional: false, enterprise: true },
-    upgradeMessage: 'Upgrade to Enterprise for custom reports and data exports.',
+    limits: {
+      free: false,
+      basic: false,
+      professional: false,
+      enterprise: true,
+    },
+    upgradeMessage:
+      'Upgrade to Enterprise for custom reports and data exports.',
   },
 
   // Business Tools
@@ -130,15 +156,22 @@ export const CONTRACTOR_FEATURES: Record<string, FeatureDefinition> = {
     description: 'CRM tools to manage customer relationships',
     category: 'Business Tools',
     limits: { free: false, basic: false, professional: true, enterprise: true },
-    upgradeMessage: 'Upgrade to Professional for CRM tools to manage your customers.',
+    upgradeMessage:
+      'Upgrade to Professional for CRM tools to manage your customers.',
   },
   CONTRACTOR_API_ACCESS: {
     id: 'CONTRACTOR_API_ACCESS',
     name: 'API Access',
     description: 'Access to developer API for integrations',
     category: 'Business Tools',
-    limits: { free: false, basic: false, professional: false, enterprise: true },
-    upgradeMessage: 'Upgrade to Enterprise for API access and custom integrations.',
+    limits: {
+      free: false,
+      basic: false,
+      professional: false,
+      enterprise: true,
+    },
+    upgradeMessage:
+      'Upgrade to Enterprise for API access and custom integrations.',
   },
 
   // Support & Training
@@ -162,42 +195,31 @@ export const CONTRACTOR_FEATURES: Record<string, FeatureDefinition> = {
     name: 'Phone Support',
     description: 'Direct phone support line',
     category: 'Support',
-    limits: { free: false, basic: false, professional: false, enterprise: true },
+    limits: {
+      free: false,
+      basic: false,
+      professional: false,
+      enterprise: true,
+    },
     upgradeMessage: 'Upgrade to Enterprise for direct phone support.',
   },
-  CONTRACTOR_DEDICATED_ACCOUNT_MANAGER: {
-    id: 'CONTRACTOR_DEDICATED_ACCOUNT_MANAGER',
-    name: 'Dedicated Account Manager',
-    description: 'Personal account manager for your business',
-    category: 'Support',
-    limits: { free: false, basic: false, professional: false, enterprise: true },
-    upgradeMessage: 'Upgrade to Enterprise for a dedicated account manager.',
-  },
+  // 2026-05-22 dropped CONTRACTOR_DEDICATED_ACCOUNT_MANAGER — no CSM staffing
+  // function exists. False promise risk. Build only when we actually staff it.
 
-  // Marketing & Growth
-  CONTRACTOR_MARKETING_TOOLS: {
-    id: 'CONTRACTOR_MARKETING_TOOLS',
-    name: 'Marketing Tools',
-    description: 'Marketing materials and campaign tools',
+  // 2026-05-22 consolidated three flags (CONTRACTOR_MARKETING_TOOLS,
+  // CONTRACTOR_MARKET_INSIGHTS, CONTRACTOR_LEAD_GENERATION) into a single
+  // CONTRACTOR_LEAD_RECOMMENDATIONS feature with a real implementation
+  // (daily digest of matching jobs via cron). The old flags had no code
+  // consumers.
+  CONTRACTOR_LEAD_RECOMMENDATIONS: {
+    id: 'CONTRACTOR_LEAD_RECOMMENDATIONS',
+    name: 'Lead Recommendations',
+    description:
+      'Daily push + email digest of jobs in your area matching your skills',
     category: 'Marketing',
     limits: { free: false, basic: false, professional: true, enterprise: true },
-    upgradeMessage: 'Upgrade to Professional for marketing tools and resources.',
-  },
-  CONTRACTOR_MARKET_INSIGHTS: {
-    id: 'CONTRACTOR_MARKET_INSIGHTS',
-    name: 'Market Insights',
-    description: 'Local market data and competitor insights',
-    category: 'Marketing',
-    limits: { free: false, basic: false, professional: true, enterprise: true },
-    upgradeMessage: 'Upgrade to Professional for market insights and competitive analysis.',
-  },
-  CONTRACTOR_LEAD_GENERATION: {
-    id: 'CONTRACTOR_LEAD_GENERATION',
-    name: 'Lead Generation',
-    description: 'Advanced lead generation tools',
-    category: 'Marketing',
-    limits: { free: false, basic: false, professional: false, enterprise: true },
-    upgradeMessage: 'Upgrade to Enterprise for advanced lead generation.',
+    upgradeMessage:
+      'Upgrade to Professional to get daily lead recommendations.',
   },
 
   // Communication
@@ -215,14 +237,8 @@ export const CONTRACTOR_FEATURES: Record<string, FeatureDefinition> = {
     category: 'Communication',
     limits: { free: true, basic: true, professional: true, enterprise: true },
   },
-  CONTRACTOR_VIDEO_CALL_RECORDING: {
-    id: 'CONTRACTOR_VIDEO_CALL_RECORDING',
-    name: 'Video Call Recording',
-    description: 'Record video calls for reference',
-    category: 'Communication',
-    limits: { free: false, basic: false, professional: true, enterprise: true },
-    upgradeMessage: 'Upgrade to Professional to record video calls.',
-  },
+  // 2026-05-22 dropped CONTRACTOR_VIDEO_CALL_RECORDING — no WebRTC vendor
+  // integration exists. Defer to v2 if call recording becomes strategic.
 
   // Resources & Content
   CONTRACTOR_RESOURCES_LIBRARY: {
@@ -238,6 +254,7 @@ export const CONTRACTOR_FEATURES: Record<string, FeatureDefinition> = {
     description: 'Training videos and certification courses',
     category: 'Resources',
     limits: { free: false, basic: false, professional: true, enterprise: true },
-    upgradeMessage: 'Upgrade to Professional for training materials and courses.',
+    upgradeMessage:
+      'Upgrade to Professional for training materials and courses.',
   },
 };
