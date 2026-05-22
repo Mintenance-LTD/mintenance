@@ -1,6 +1,31 @@
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { getEffectiveHomeownerTier } from '@/lib/subscription/early-access';
+import { hasFeatureAccess } from '@/lib/feature-access-config';
+
+/**
+ * 2026-05-22 Sprint 4: tier gate. Recurring maintenance is a Landlord+
+ * feature on the new pricing model. Free homeowners get a 402 with the
+ * upgrade message. Admins bypass. Honours early-access (-> agency).
+ */
+async function requireLandlordTier(userId: string, role: string) {
+  if (role === 'admin') return null;
+  const tier = await getEffectiveHomeownerTier(userId);
+  if (!hasFeatureAccess('HOMEOWNER_RECURRING_MAINTENANCE', 'homeowner', tier)) {
+    return NextResponse.json(
+      {
+        error: 'Subscription required',
+        message:
+          'Recurring maintenance scheduling requires a Landlord or Agency subscription.',
+        requiresSubscription: true,
+        feature: 'HOMEOWNER_RECURRING_MAINTENANCE',
+      },
+      { status: 402 }
+    );
+  }
+  return null;
+}
 
 // GET /api/properties/[id]/recurring-maintenance
 export const GET = withApiHandler(
@@ -44,6 +69,9 @@ export const POST = withApiHandler(
   async (req, { user, params }) => {
     const propertyId = params.id;
     const body = await req.json();
+
+    const tierBlock = await requireLandlordTier(user.id, user.role);
+    if (tierBlock) return tierBlock;
 
     const { data: property } = await serverSupabase
       .from('properties')
