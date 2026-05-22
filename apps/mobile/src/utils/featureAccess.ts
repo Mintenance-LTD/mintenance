@@ -245,21 +245,28 @@ export class FeatureAccessManager {
         '/api/subscriptions/feature-access'
       );
 
-      // Map server tier vocabulary (free/pro/business/enterprise/...)
-      // onto the mobile-side SubscriptionTier (trial/basic/professional/
-      // enterprise). Server `free` reads as `trial` since pre-paid mobile
-      // contractors land on the same gating UX.
+      // Map server tier vocabulary onto the mobile-side SubscriptionTier
+      // (trial/basic/professional/enterprise). Server vocabulary is
+      // `free|basic|professional|enterprise` for contractors (and
+      // `landlord|agency` for homeowners, but homeowner role short-circuits
+      // out of this method earlier). Server `free` reads as `trial` since
+      // pre-paid mobile contractors land on the same gating UX.
+      //
+      // 2026-05-22 Sprint 2.1 fix: `professional` previously fell through
+      // to the default `'basic'` branch because the chain only handled
+      // legacy/speculative aliases (`business`, `pro`). The mapping is
+      // now an explicit allowlist.
       const serverTier = data.tier;
       const mappedTier: SubscriptionTier =
         serverTier === 'enterprise'
           ? 'enterprise'
-          : serverTier === 'business'
+          : serverTier === 'professional' ||
+              serverTier === 'pro' ||
+              serverTier === 'business'
             ? 'professional'
-            : serverTier === 'pro'
-              ? 'professional'
-              : serverTier === 'free'
-                ? 'trial'
-                : 'basic';
+            : serverTier === 'free'
+              ? 'trial'
+              : 'basic';
 
       this.subscription = {
         tier: mappedTier,

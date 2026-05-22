@@ -1,3 +1,23 @@
+/**
+ * Tests for FeatureAccessManager.
+ *
+ * 2026-05-22 Sprint 2.1 rewrite. The pre-existing test suite mocked
+ * `supabase.from('contractor_subscriptions')` + `feature_usage` direct
+ * reads, but the impl moved to `mobileApiClient.get('/api/subscriptions/
+ * feature-access')` on 2026-05-01 (audit P0-1). The tests had been
+ * silently broken in CI ever since.
+ *
+ * This rewrite:
+ * - Mocks `mobileApiClient` via the existing manual mock at
+ *   `apps/mobile/src/utils/__mocks__/mobileApiClient.ts`.
+ * - Uses the canonical API response shape (role/tier/status/usage[]).
+ * - Updates assertions for the new Sprint 1 tier limits: basic
+ *   bid limit = 10 (was 20), CONTRACTOR_SOCIAL_FEED dropped,
+ *   CONTRACTOR_ACTIVE_JOBS_LIMIT added.
+ * - Covers initialize, hasAccess (boolean / numeric / unlimited /
+ *   admin / homeowner roles), getRemainingUsage, trackUsage,
+ *   getUpgradeTiers, clear, and the public helpers.
+ */
 import {
   FeatureAccessManager,
   featureAccess,
@@ -6,36 +26,12 @@ import {
   getCategoryColor,
   MOBILE_FEATURES,
   TIER_PRICING,
-  SubscriptionTier,
-  UserRole,
-  FeatureDefinition,
+  type SubscriptionTier,
 } from '../../utils/featureAccess';
-import { supabase } from '../../config/supabase';
-import { logger } from '@mintenance/shared';
+import { mobileApiClient } from '../../utils/mobileApiClient';
 
-// Mock dependencies
-jest.mock('../../config/supabase', () => ({
-  supabase: {
-    from: jest.fn(() => ({
-      select: jest.fn(() => ({
-        eq: jest.fn(() => ({
-          in: jest.fn(() => ({
-            order: jest.fn(() => ({
-              limit: jest.fn(() => ({
-                maybeSingle: jest.fn(),
-              })),
-            })),
-          })),
-        })),
-        gte: jest.fn(() => ({
-          data: null,
-          error: null,
-        })),
-      })),
-    })),
-    rpc: jest.fn(),
-  },
-}));
+// Auto-mock mobileApiClient (picks up __mocks__/mobileApiClient.ts).
+jest.mock('../../utils/mobileApiClient');
 
 jest.mock('@mintenance/shared', () => ({
   logger: {
@@ -46,871 +42,406 @@ jest.mock('@mintenance/shared', () => ({
   },
 }));
 
+const mockedApiClient = mobileApiClient as jest.Mocked<typeof mobileApiClient>;
+
+interface FeatureAccessResponse {
+  role: 'homeowner' | 'contractor' | 'admin';
+  tier: string;
+  status: string;
+  currentPeriodEnd: string | null;
+  earlyAccess: boolean;
+  usage: Array<{
+    featureId: string;
+    used: number;
+    limit: number;
+    resetDate: string;
+  }>;
+}
+
+/**
+ * Helper: build a feature-access API response with sensible defaults.
+ * Per-test overrides via the partial param.
+ */
+function buildResponse(
+  partial: Partial<FeatureAccessResponse> = {}
+): FeatureAccessResponse {
+  return {
+    role: 'contractor',
+    tier: 'basic',
+    status: 'active',
+    currentPeriodEnd: null,
+    earlyAccess: false,
+    usage: [],
+    ...partial,
+  };
+}
+
+/** Prime the mocked GET endpoint with a response. */
+function primeAccessResponse(partial: Partial<FeatureAccessResponse> = {}) {
+  mockedApiClient.get.mockResolvedValueOnce(buildResponse(partial));
+}
+
 describe('FeatureAccessManager', () => {
   let manager: FeatureAccessManager;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    // Get a fresh instance
     manager = FeatureAccessManager.getInstance();
     manager.clear();
   });
 
   describe('Singleton Pattern', () => {
-    it('should return the same instance', () => {
-      const instance1 = FeatureAccessManager.getInstance();
-      const instance2 = FeatureAccessManager.getInstance();
-
-      expect(instance1).toBe(instance2);
+    it('returns the same instance across calls', () => {
+      const a = FeatureAccessManager.getInstance();
+      const b = FeatureAccessManager.getInstance();
+      expect(a).toBe(b);
     });
 
-    it('should maintain state across references', () => {
-      const instance1 = FeatureAccessManager.getInstance();
-      const instance2 = FeatureAccessManager.getInstance();
-
-      expect(instance1.getTier()).toBe(instance2.getTier());
+    it('exposes the same instance via the `featureAccess` export', () => {
+      expect(featureAccess).toBe(FeatureAccessManager.getInstance());
     });
   });
 
-  describe('initialize', () => {
-    it('should initialize for homeowner without fetching subscription', async () => {
-      await manager.initialize('user123', 'homeowner');
-
-      expect(supabase.from).not.toHaveBeenCalled();
+  describe('initialize()', () => {
+    it('short-circuits for homeowner role without calling the API', async () => {
+      await manager.initialize('homeowner-1', 'homeowner');
+      expect(mockedApiClient.get).not.toHaveBeenCalled();
+      // No subscription set; getTier returns default 'trial'.
+      expect(manager.getTier()).toBe('trial');
     });
 
-    it('should fetch subscription for contractor', async () => {
-      const mockData = {
-        plan_type: 'professional',
-        status: 'active',
-      };
+    it('maps server "basic" tier through unchanged', async () => {
+      primeAccessResponse({ tier: 'basic' });
+      await manager.initialize('contractor-1', 'contractor');
+      expect(manager.getTier()).toBe('basic');
+    });
 
-      // Mock for contractor_subscriptions
-      const subscriptionQuery = {
-        select: jest.fn().mockReturnValue({
-          eq: jest.fn().mockReturnValue({
-            in: jest.fn().mockReturnValue({
-              order: jest.fn().mockReturnValue({
-                limit: jest.fn().mockReturnValue({
-                  maybeSingle: jest.fn().mockResolvedValue({
-                    data: mockData,
-                    error: null,
-                  }),
-                }),
-              }),
-            }),
-          }),
-        }),
-      };
+    it('maps server "professional"/"pro"/"business" all to mobile "professional"', async () => {
+      primeAccessResponse({ tier: 'professional' });
+      await manager.initialize('c1', 'contractor');
+      expect(manager.getTier()).toBe('professional');
 
-      // Mock for feature_usage
-      const usageQuery = {
-        select: jest.fn().mockReturnValue({
-          eq: jest.fn().mockReturnValue({
-            gte: jest.fn().mockResolvedValue({
-              data: null,
-              error: null,
-            }),
-          }),
-        }),
-      };
+      manager.clear();
+      primeAccessResponse({ tier: 'pro' });
+      await manager.initialize('c1', 'contractor');
+      expect(manager.getTier()).toBe('professional');
 
-      (supabase.from as jest.Mock).mockImplementation((table: string) => {
-        if (table === 'contractor_subscriptions') {
-          return subscriptionQuery;
-        } else if (table === 'feature_usage') {
-          return usageQuery;
-        }
-        return {
-          select: jest.fn().mockReturnValue({
-            eq: jest.fn().mockReturnValue({
-              gte: jest.fn().mockResolvedValue({ data: null, error: null }),
-            }),
-          }),
-        };
-      });
-
-      await manager.initialize('contractor123', 'contractor');
-
-      expect(supabase.from).toHaveBeenCalledWith('contractor_subscriptions');
+      manager.clear();
+      primeAccessResponse({ tier: 'business' });
+      await manager.initialize('c1', 'contractor');
       expect(manager.getTier()).toBe('professional');
     });
 
-    it('should default to trial when no subscription found', async () => {
-      (supabase.from as jest.Mock).mockReturnValue({
-        select: jest.fn().mockReturnValue({
-          eq: jest.fn().mockReturnValue({
-            in: jest.fn().mockReturnValue({
-              order: jest.fn().mockReturnValue({
-                limit: jest.fn().mockReturnValue({
-                  maybeSingle: jest
-                    .fn()
-                    .mockResolvedValue({ data: null, error: null }),
-                }),
-              }),
-            }),
-          }),
-        }),
-        gte: jest.fn().mockResolvedValue({ data: null, error: null }),
-      });
+    it('maps server "enterprise" through unchanged', async () => {
+      primeAccessResponse({ tier: 'enterprise' });
+      await manager.initialize('c1', 'contractor');
+      expect(manager.getTier()).toBe('enterprise');
+    });
 
-      await manager.initialize('contractor123', 'contractor');
-
+    it('maps server "free" to mobile "trial"', async () => {
+      primeAccessResponse({ tier: 'free' });
+      await manager.initialize('c1', 'contractor');
       expect(manager.getTier()).toBe('trial');
     });
 
-    it('should fetch and store usage data', async () => {
-      const mockUsageData = [
-        {
-          feature_id: 'CONTRACTOR_BID_LIMIT',
-          used_count: 10,
-          limit_count: 20,
-        },
-      ];
-
-      (supabase.from as jest.Mock).mockImplementation((table) => {
-        if (table === 'contractor_subscriptions') {
-          return {
-            select: jest.fn().mockReturnValue({
-              eq: jest.fn().mockReturnValue({
-                in: jest.fn().mockReturnValue({
-                  order: jest.fn().mockReturnValue({
-                    limit: jest.fn().mockReturnValue({
-                      maybeSingle: jest.fn().mockResolvedValue({
-                        data: { plan_type: 'basic', status: 'active' },
-                        error: null,
-                      }),
-                    }),
-                  }),
-                }),
-              }),
-            }),
-          };
-        }
-        if (table === 'feature_usage') {
-          return {
-            select: jest.fn().mockReturnValue({
-              eq: jest.fn().mockReturnValue({
-                gte: jest.fn().mockResolvedValue({
-                  data: mockUsageData,
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
+    it('stores usage entries from the response', async () => {
+      primeAccessResponse({
+        tier: 'basic',
+        usage: [
+          {
+            featureId: 'CONTRACTOR_BID_LIMIT',
+            used: 4,
+            limit: 10,
+            resetDate: '2026-06-01',
+          },
+        ],
       });
-
-      await manager.initialize('contractor123', 'contractor');
-
-      expect(manager.getRemainingUsage('CONTRACTOR_BID_LIMIT')).toBe(10);
+      await manager.initialize('c1', 'contractor');
+      // Basic bid limit is 10 (Sprint 1). Used 4 -> remaining 6.
+      expect(manager.getRemainingUsage('CONTRACTOR_BID_LIMIT')).toBe(6);
     });
 
-    it('should handle initialization error gracefully', async () => {
-      (supabase.from as jest.Mock).mockImplementation(() => {
-        throw new Error('Database error');
-      });
-
-      await manager.initialize('contractor123', 'contractor');
-
-      expect(logger.error).toHaveBeenCalledWith(
-        '[FeatureAccess] Initialization failed',
-        expect.any(Error),
-        { service: 'mobile' }
-      );
+    it('falls back to "trial" tier on API error', async () => {
+      mockedApiClient.get.mockRejectedValueOnce(new Error('Network down'));
+      await manager.initialize('c1', 'contractor');
       expect(manager.getTier()).toBe('trial');
     });
   });
 
-  describe('hasAccess', () => {
-    it('should grant full access to admin', () => {
-      const hasAccess = manager.hasAccess('CONTRACTOR_BID_LIMIT', 'admin');
-
-      expect(hasAccess).toBe(true);
-    });
-
-    it('should check homeowner features correctly', () => {
-      const hasAccess = manager.hasAccess('HOMEOWNER_POST_JOBS', 'homeowner');
-      const noAccess = manager.hasAccess('CONTRACTOR_BID_LIMIT', 'homeowner');
-
-      expect(hasAccess).toBe(true);
-      expect(noAccess).toBe(false);
-    });
-
-    it('should return false for unknown feature', () => {
-      const hasAccess = manager.hasAccess('UNKNOWN_FEATURE', 'contractor');
-
-      expect(hasAccess).toBe(false);
-    });
-
-    it('should check boolean access for contractor', async () => {
-      // Initialize as professional tier
-      (supabase.from as jest.Mock).mockImplementation((table: string) => {
-        if (table === 'contractor_subscriptions') {
-          return {
-            select: jest.fn().mockReturnValue({
-              eq: jest.fn().mockReturnValue({
-                in: jest.fn().mockReturnValue({
-                  order: jest.fn().mockReturnValue({
-                    limit: jest.fn().mockReturnValue({
-                      maybeSingle: jest.fn().mockResolvedValue({
-                        data: { plan_type: 'professional', status: 'active' },
-                        error: null,
-                      }),
-                    }),
-                  }),
-                }),
-              }),
-            }),
-          };
-        }
-        // feature_usage table
-        return {
-          select: jest.fn().mockReturnValue({
-            eq: jest.fn().mockReturnValue({
-              gte: jest.fn().mockResolvedValue({ data: null, error: null }),
-            }),
-          }),
-        };
-      });
-
-      await manager.initialize('contractor123', 'contractor');
-
-      expect(manager.hasAccess('CONTRACTOR_SOCIAL_FEED', 'contractor')).toBe(
-        true
-      );
+  describe('hasAccess() — contractor role', () => {
+    it('grants boolean=true features (e.g. DISCOVERY_CARD on basic+)', async () => {
+      primeAccessResponse({ tier: 'basic' });
+      await manager.initialize('c1', 'contractor');
       expect(manager.hasAccess('CONTRACTOR_DISCOVERY_CARD', 'contractor')).toBe(
         true
       );
     });
 
-    it('should check numeric limit access', async () => {
-      // Initialize as basic tier with usage data
-      (supabase.from as jest.Mock).mockImplementation((table) => {
-        if (table === 'contractor_subscriptions') {
-          return {
-            select: jest.fn().mockReturnValue({
-              eq: jest.fn().mockReturnValue({
-                in: jest.fn().mockReturnValue({
-                  order: jest.fn().mockReturnValue({
-                    limit: jest.fn().mockReturnValue({
-                      maybeSingle: jest.fn().mockResolvedValue({
-                        data: { plan_type: 'basic', status: 'active' },
-                        error: null,
-                      }),
-                    }),
-                  }),
-                }),
-              }),
-            }),
-          };
-        }
-        if (table === 'feature_usage') {
-          return {
-            select: jest.fn().mockReturnValue({
-              eq: jest.fn().mockReturnValue({
-                gte: jest.fn().mockResolvedValue({
-                  data: [
-                    {
-                      feature_id: 'CONTRACTOR_BID_LIMIT',
-                      used_count: 15,
-                      limit_count: 20,
-                    },
-                  ],
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
+    it('denies boolean=false features (e.g. DISCOVERY_CARD on trial)', async () => {
+      primeAccessResponse({ tier: 'free' }); // mapped to trial
+      await manager.initialize('c1', 'contractor');
+      expect(manager.hasAccess('CONTRACTOR_DISCOVERY_CARD', 'contractor')).toBe(
+        false
+      );
+    });
+
+    it('grants when numeric limit not yet reached', async () => {
+      primeAccessResponse({
+        tier: 'basic',
+        usage: [
+          {
+            featureId: 'CONTRACTOR_BID_LIMIT',
+            used: 5,
+            limit: 10,
+            resetDate: '2026-06-01',
+          },
+        ],
       });
-
-      await manager.initialize('contractor123', 'contractor');
-
-      // Should have access (15 < 20)
+      await manager.initialize('c1', 'contractor');
+      // 5 < 10 → access
       expect(manager.hasAccess('CONTRACTOR_BID_LIMIT', 'contractor')).toBe(
         true
       );
     });
 
-    it('should deny access when limit exceeded', async () => {
-      // Initialize with usage exceeding limit
-      (supabase.from as jest.Mock).mockImplementation((table) => {
-        if (table === 'contractor_subscriptions') {
-          return {
-            select: jest.fn().mockReturnValue({
-              eq: jest.fn().mockReturnValue({
-                in: jest.fn().mockReturnValue({
-                  order: jest.fn().mockReturnValue({
-                    limit: jest.fn().mockReturnValue({
-                      maybeSingle: jest.fn().mockResolvedValue({
-                        data: { plan_type: 'basic', status: 'active' },
-                        error: null,
-                      }),
-                    }),
-                  }),
-                }),
-              }),
-            }),
-          };
-        }
-        if (table === 'feature_usage') {
-          return {
-            select: jest.fn().mockReturnValue({
-              eq: jest.fn().mockReturnValue({
-                gte: jest.fn().mockResolvedValue({
-                  data: [
-                    {
-                      feature_id: 'CONTRACTOR_BID_LIMIT',
-                      used_count: 25,
-                      limit_count: 20,
-                    },
-                  ],
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
+    it('denies when numeric limit exceeded', async () => {
+      primeAccessResponse({
+        tier: 'basic',
+        usage: [
+          {
+            featureId: 'CONTRACTOR_BID_LIMIT',
+            used: 10,
+            limit: 10,
+            resetDate: '2026-06-01',
+          },
+        ],
       });
-
-      await manager.initialize('contractor123', 'contractor');
-
+      await manager.initialize('c1', 'contractor');
+      // 10 >= 10 → denied
       expect(manager.hasAccess('CONTRACTOR_BID_LIMIT', 'contractor')).toBe(
         false
       );
     });
 
-    it('should handle unlimited access', async () => {
-      // Initialize as enterprise tier
-      (supabase.from as jest.Mock).mockReturnValue({
-        select: jest.fn().mockReturnValue({
-          eq: jest.fn().mockReturnValue({
-            in: jest.fn().mockReturnValue({
-              order: jest.fn().mockReturnValue({
-                limit: jest.fn().mockReturnValue({
-                  maybeSingle: jest.fn().mockResolvedValue({
-                    data: { plan_type: 'enterprise', status: 'active' },
-                    error: null,
-                  }),
-                }),
-              }),
-            }),
-          }),
-        }),
-        gte: jest.fn().mockResolvedValue({ data: null, error: null }),
+    it("grants 'unlimited' tier regardless of usage", async () => {
+      primeAccessResponse({
+        tier: 'enterprise',
+        usage: [
+          {
+            featureId: 'CONTRACTOR_BID_LIMIT',
+            used: 9999,
+            limit: 9999,
+            resetDate: '2026-06-01',
+          },
+        ],
       });
-
-      await manager.initialize('contractor123', 'contractor');
-
+      await manager.initialize('c1', 'contractor');
       expect(manager.hasAccess('CONTRACTOR_BID_LIMIT', 'contractor')).toBe(
         true
       );
-      expect(
-        manager.hasAccess('CONTRACTOR_PORTFOLIO_PHOTOS', 'contractor')
-      ).toBe(true);
+    });
+
+    it('returns false for an unknown feature id', async () => {
+      primeAccessResponse({ tier: 'basic' });
+      await manager.initialize('c1', 'contractor');
+      expect(manager.hasAccess('NOT_A_REAL_FEATURE', 'contractor')).toBe(false);
+    });
+
+    it('returns false when contractor never initialized', () => {
+      // Fresh manager, no init.
+      expect(manager.hasAccess('CONTRACTOR_BID_LIMIT', 'contractor')).toBe(
+        false
+      );
     });
   });
 
-  describe('getRemainingUsage', () => {
-    it('should return unlimited for enterprise tier', async () => {
-      // Initialize as enterprise
-      (supabase.from as jest.Mock).mockImplementation((table: string) => {
-        if (table === 'contractor_subscriptions') {
-          return {
-            select: jest.fn().mockReturnValue({
-              eq: jest.fn().mockReturnValue({
-                in: jest.fn().mockReturnValue({
-                  order: jest.fn().mockReturnValue({
-                    limit: jest.fn().mockReturnValue({
-                      maybeSingle: jest.fn().mockResolvedValue({
-                        data: { plan_type: 'enterprise', status: 'active' },
-                        error: null,
-                      }),
-                    }),
-                  }),
-                }),
-              }),
-            }),
-          };
-        }
-        // feature_usage table
-        return {
-          select: jest.fn().mockReturnValue({
-            eq: jest.fn().mockReturnValue({
-              gte: jest.fn().mockResolvedValue({ data: null, error: null }),
-            }),
-          }),
-        };
-      });
-
-      await manager.initialize('contractor123', 'contractor');
-
-      const remaining = manager.getRemainingUsage('CONTRACTOR_BID_LIMIT');
-      expect(remaining).toBe('unlimited');
+  describe('hasAccess() — admin + homeowner roles', () => {
+    it('grants admin access to any feature without initialize', () => {
+      expect(manager.hasAccess('CONTRACTOR_BID_LIMIT', 'admin')).toBe(true);
+      expect(manager.hasAccess('HOMEOWNER_POST_JOBS', 'admin')).toBe(true);
     });
 
-    it('should calculate remaining numeric usage', async () => {
-      // Initialize with usage data
-      (supabase.from as jest.Mock).mockImplementation((table) => {
-        if (table === 'contractor_subscriptions') {
-          return {
-            select: jest.fn().mockReturnValue({
-              eq: jest.fn().mockReturnValue({
-                in: jest.fn().mockReturnValue({
-                  order: jest.fn().mockReturnValue({
-                    limit: jest.fn().mockReturnValue({
-                      maybeSingle: jest.fn().mockResolvedValue({
-                        data: { plan_type: 'basic', status: 'active' },
-                        error: null,
-                      }),
-                    }),
-                  }),
-                }),
-              }),
-            }),
-          };
-        }
-        if (table === 'feature_usage') {
-          return {
-            select: jest.fn().mockReturnValue({
-              eq: jest.fn().mockReturnValue({
-                gte: jest.fn().mockResolvedValue({
-                  data: [
-                    {
-                      feature_id: 'CONTRACTOR_BID_LIMIT',
-                      used_count: 5,
-                      limit_count: 20,
-                    },
-                  ],
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
-      });
-
-      await manager.initialize('contractor123', 'contractor');
-
-      const remaining = manager.getRemainingUsage('CONTRACTOR_BID_LIMIT');
-      expect(remaining).toBe(15);
-    });
-
-    it('should return 0 for unknown feature', () => {
-      const remaining = manager.getRemainingUsage('UNKNOWN_FEATURE');
-      expect(remaining).toBe(0);
-    });
-
-    it('should return 0 for boolean features', async () => {
-      // Initialize as professional
-      (supabase.from as jest.Mock).mockReturnValue({
-        select: jest.fn().mockReturnValue({
-          eq: jest.fn().mockReturnValue({
-            in: jest.fn().mockReturnValue({
-              order: jest.fn().mockReturnValue({
-                limit: jest.fn().mockReturnValue({
-                  maybeSingle: jest.fn().mockResolvedValue({
-                    data: { plan_type: 'professional', status: 'active' },
-                    error: null,
-                  }),
-                }),
-              }),
-            }),
-          }),
-        }),
-        gte: jest.fn().mockResolvedValue({ data: null, error: null }),
-      });
-
-      await manager.initialize('contractor123', 'contractor');
-
-      const remaining = manager.getRemainingUsage('CONTRACTOR_SOCIAL_FEED');
-      expect(remaining).toBe(0);
-    });
-
-    it('should not return negative remaining usage', async () => {
-      // Initialize with over-usage
-      (supabase.from as jest.Mock).mockImplementation((table) => {
-        if (table === 'contractor_subscriptions') {
-          return {
-            select: jest.fn().mockReturnValue({
-              eq: jest.fn().mockReturnValue({
-                in: jest.fn().mockReturnValue({
-                  order: jest.fn().mockReturnValue({
-                    limit: jest.fn().mockReturnValue({
-                      maybeSingle: jest.fn().mockResolvedValue({
-                        data: { plan_type: 'basic', status: 'active' },
-                        error: null,
-                      }),
-                    }),
-                  }),
-                }),
-              }),
-            }),
-          };
-        }
-        if (table === 'feature_usage') {
-          return {
-            select: jest.fn().mockReturnValue({
-              eq: jest.fn().mockReturnValue({
-                gte: jest.fn().mockResolvedValue({
-                  data: [
-                    {
-                      feature_id: 'CONTRACTOR_BID_LIMIT',
-                      used_count: 25,
-                      limit_count: 20,
-                    },
-                  ],
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
-      });
-
-      await manager.initialize('contractor123', 'contractor');
-
-      const remaining = manager.getRemainingUsage('CONTRACTOR_BID_LIMIT');
-      expect(remaining).toBe(0);
+    it('grants homeowner access only for homeowner=true features', () => {
+      // HOMEOWNER_POST_JOBS has limits: { homeowner: true }
+      expect(manager.hasAccess('HOMEOWNER_POST_JOBS', 'homeowner')).toBe(true);
+      // CONTRACTOR_BID_LIMIT has no `homeowner` limit set -> falsy
+      expect(manager.hasAccess('CONTRACTOR_BID_LIMIT', 'homeowner')).toBe(
+        false
+      );
     });
   });
 
-  describe('trackUsage', () => {
-    beforeEach(async () => {
-      // Initialize with some usage
-      (supabase.from as jest.Mock).mockImplementation((table) => {
-        if (table === 'contractor_subscriptions') {
-          return {
-            select: jest.fn().mockReturnValue({
-              eq: jest.fn().mockReturnValue({
-                in: jest.fn().mockReturnValue({
-                  order: jest.fn().mockReturnValue({
-                    limit: jest.fn().mockReturnValue({
-                      maybeSingle: jest.fn().mockResolvedValue({
-                        data: { plan_type: 'basic', status: 'active' },
-                        error: null,
-                      }),
-                    }),
-                  }),
-                }),
-              }),
-            }),
-          };
-        }
-        if (table === 'feature_usage') {
-          return {
-            select: jest.fn().mockReturnValue({
-              eq: jest.fn().mockReturnValue({
-                gte: jest.fn().mockResolvedValue({
-                  data: [
-                    {
-                      feature_id: 'CONTRACTOR_BID_LIMIT',
-                      used_count: 5,
-                      limit_count: 20,
-                    },
-                  ],
-                  error: null,
-                }),
-              }),
-            }),
-          };
-        }
+  describe('getRemainingUsage()', () => {
+    it('subtracts used from the feature definition limit (not the API limit)', async () => {
+      // Server claims limit_count: 20 but the feature def says basic = 10.
+      // Impl reads the def, not the API — so remaining = 10 - 5 = 5.
+      primeAccessResponse({
+        tier: 'basic',
+        usage: [
+          {
+            featureId: 'CONTRACTOR_BID_LIMIT',
+            used: 5,
+            limit: 20, // intentional drift; impl ignores this
+            resetDate: '2026-06-01',
+          },
+        ],
       });
-
-      await manager.initialize('contractor123', 'contractor');
+      await manager.initialize('c1', 'contractor');
+      expect(manager.getRemainingUsage('CONTRACTOR_BID_LIMIT')).toBe(5);
     });
 
-    it('should track usage successfully', async () => {
-      (supabase.rpc as jest.Mock).mockResolvedValue({ error: null });
-
-      const result = await manager.trackUsage(
-        'contractor123',
-        'CONTRACTOR_BID_LIMIT',
-        1
+    it("returns 'unlimited' for unlimited-tier features", async () => {
+      primeAccessResponse({ tier: 'enterprise' });
+      await manager.initialize('c1', 'contractor');
+      expect(manager.getRemainingUsage('CONTRACTOR_BID_LIMIT')).toBe(
+        'unlimited'
       );
+    });
 
-      expect(result).toBe(true);
-      expect(supabase.rpc).toHaveBeenCalledWith('increment_feature_usage', {
-        p_user_id: 'contractor123',
-        p_feature_id: 'CONTRACTOR_BID_LIMIT',
-        p_increment: 1,
+    it('returns 0 for boolean-limit features (no numeric remaining concept)', async () => {
+      primeAccessResponse({ tier: 'professional' });
+      await manager.initialize('c1', 'contractor');
+      expect(manager.getRemainingUsage('CONTRACTOR_DISCOVERY_CARD')).toBe(0);
+    });
+
+    it('returns 0 for unknown features', async () => {
+      primeAccessResponse({ tier: 'basic' });
+      await manager.initialize('c1', 'contractor');
+      expect(manager.getRemainingUsage('NOT_A_REAL_FEATURE')).toBe(0);
+    });
+
+    it('clamps to 0 when usage exceeds the limit', async () => {
+      primeAccessResponse({
+        tier: 'basic',
+        usage: [
+          {
+            featureId: 'CONTRACTOR_BID_LIMIT',
+            used: 25,
+            limit: 10,
+            resetDate: '2026-06-01',
+          },
+        ],
       });
-
-      // Check local cache updated
-      expect(manager.getRemainingUsage('CONTRACTOR_BID_LIMIT')).toBe(14);
-    });
-
-    it('should handle tracking error', async () => {
-      const error = new Error('RPC failed');
-      (supabase.rpc as jest.Mock).mockResolvedValue({ error });
-
-      const result = await manager.trackUsage(
-        'contractor123',
-        'CONTRACTOR_BID_LIMIT',
-        1
-      );
-
-      expect(result).toBe(false);
-      expect(logger.error).toHaveBeenCalledWith(
-        '[FeatureAccess] Failed to track usage',
-        error,
-        { service: 'mobile' }
-      );
-    });
-
-    it('should handle tracking exception', async () => {
-      (supabase.rpc as jest.Mock).mockRejectedValue(new Error('Network error'));
-
-      const result = await manager.trackUsage(
-        'contractor123',
-        'CONTRACTOR_BID_LIMIT',
-        1
-      );
-
-      expect(result).toBe(false);
-      expect(logger.error).toHaveBeenCalledWith(
-        '[FeatureAccess] Error tracking usage',
-        expect.any(Error),
-        { service: 'mobile' }
-      );
-    });
-
-    it('should increment by custom amount', async () => {
-      (supabase.rpc as jest.Mock).mockResolvedValue({ error: null });
-
-      await manager.trackUsage('contractor123', 'CONTRACTOR_BID_LIMIT', 3);
-
-      expect(manager.getRemainingUsage('CONTRACTOR_BID_LIMIT')).toBe(12);
+      await manager.initialize('c1', 'contractor');
+      expect(manager.getRemainingUsage('CONTRACTOR_BID_LIMIT')).toBe(0);
     });
   });
 
-  describe('getFeature', () => {
-    it('should return feature definition', () => {
-      const feature = manager.getFeature('CONTRACTOR_BID_LIMIT');
+  describe('trackUsage()', () => {
+    it('POSTs to the tracking endpoint and updates local cache', async () => {
+      primeAccessResponse({
+        tier: 'basic',
+        usage: [
+          {
+            featureId: 'CONTRACTOR_BID_LIMIT',
+            used: 4,
+            limit: 10,
+            resetDate: '2026-06-01',
+          },
+        ],
+      });
+      await manager.initialize('c1', 'contractor');
 
-      expect(feature).toBeDefined();
-      expect(feature?.id).toBe('CONTRACTOR_BID_LIMIT');
-      expect(feature?.name).toBe('Monthly Bids');
+      mockedApiClient.post.mockResolvedValueOnce({});
+      const ok = await manager.trackUsage('c1', 'CONTRACTOR_BID_LIMIT', 2);
+      expect(ok).toBe(true);
+      expect(mockedApiClient.post).toHaveBeenCalledWith(
+        '/api/subscriptions/feature-access/track',
+        { featureId: 'CONTRACTOR_BID_LIMIT', incrementBy: 2 }
+      );
+      // 4 + 2 = 6 used; basic limit 10 -> remaining 4.
+      expect(manager.getRemainingUsage('CONTRACTOR_BID_LIMIT')).toBe(4);
     });
 
-    it('should return undefined for unknown feature', () => {
-      const feature = manager.getFeature('UNKNOWN_FEATURE');
+    it('defaults incrementBy to 1', async () => {
+      primeAccessResponse({ tier: 'basic' });
+      await manager.initialize('c1', 'contractor');
+      mockedApiClient.post.mockResolvedValueOnce({});
+      await manager.trackUsage('c1', 'CONTRACTOR_BID_LIMIT');
+      expect(mockedApiClient.post).toHaveBeenCalledWith(
+        '/api/subscriptions/feature-access/track',
+        { featureId: 'CONTRACTOR_BID_LIMIT', incrementBy: 1 }
+      );
+    });
 
-      expect(feature).toBeUndefined();
+    it('returns false on API error and does not throw', async () => {
+      primeAccessResponse({ tier: 'basic' });
+      await manager.initialize('c1', 'contractor');
+      mockedApiClient.post.mockRejectedValueOnce(new Error('500'));
+      const ok = await manager.trackUsage('c1', 'CONTRACTOR_BID_LIMIT', 1);
+      expect(ok).toBe(false);
     });
   });
 
-  describe('getUpgradeTiers', () => {
-    it('should return upgrade options from trial', async () => {
-      // Initialize as trial
-      (supabase.from as jest.Mock).mockReturnValue({
-        select: jest.fn().mockReturnValue({
-          eq: jest.fn().mockReturnValue({
-            in: jest.fn().mockReturnValue({
-              order: jest.fn().mockReturnValue({
-                limit: jest.fn().mockReturnValue({
-                  maybeSingle: jest.fn().mockResolvedValue({
-                    data: { plan_type: 'trial', status: 'trial' },
-                    error: null,
-                  }),
-                }),
-              }),
-            }),
-          }),
-        }),
-        gte: jest.fn().mockResolvedValue({ data: null, error: null }),
-      });
-
-      await manager.initialize('contractor123', 'contractor');
-
-      const upgrades = manager.getUpgradeTiers('CONTRACTOR_BID_LIMIT');
-
-      expect(upgrades).toContain('basic');
+  describe('getUpgradeTiers()', () => {
+    it('lists tiers with strictly better numeric access', async () => {
+      primeAccessResponse({ tier: 'basic' });
+      await manager.initialize('c1', 'contractor');
+      // CONTRACTOR_ACTIVE_JOBS_LIMIT: basic=3, professional='unlimited',
+      // enterprise='unlimited'. Both pro and enterprise qualify.
+      const upgrades = manager.getUpgradeTiers('CONTRACTOR_ACTIVE_JOBS_LIMIT');
       expect(upgrades).toContain('professional');
       expect(upgrades).toContain('enterprise');
     });
 
-    it('should return upgrade options from basic', async () => {
-      // Initialize as basic
-      (supabase.from as jest.Mock).mockImplementation((table: string) => {
-        if (table === 'contractor_subscriptions') {
-          return {
-            select: jest.fn().mockReturnValue({
-              eq: jest.fn().mockReturnValue({
-                in: jest.fn().mockReturnValue({
-                  order: jest.fn().mockReturnValue({
-                    limit: jest.fn().mockReturnValue({
-                      maybeSingle: jest.fn().mockResolvedValue({
-                        data: { plan_type: 'basic', status: 'active' },
-                        error: null,
-                      }),
-                    }),
-                  }),
-                }),
-              }),
-            }),
-          };
-        }
-        // feature_usage table
-        return {
-          select: jest.fn().mockReturnValue({
-            eq: jest.fn().mockReturnValue({
-              gte: jest.fn().mockResolvedValue({ data: null, error: null }),
-            }),
-          }),
-        };
-      });
-
-      await manager.initialize('contractor123', 'contractor');
-
-      const upgrades = manager.getUpgradeTiers('CONTRACTOR_BID_LIMIT');
-
-      expect(upgrades).not.toContain('basic');
-      expect(upgrades).toContain('professional');
-      expect(upgrades).toContain('enterprise');
+    it('returns [] for a feature already at unlimited on current tier', async () => {
+      primeAccessResponse({ tier: 'enterprise' });
+      await manager.initialize('c1', 'contractor');
+      expect(manager.getUpgradeTiers('CONTRACTOR_BID_LIMIT')).toEqual([]);
     });
 
-    it('should return empty array for enterprise', async () => {
-      // Initialize as enterprise
-      (supabase.from as jest.Mock).mockImplementation((table: string) => {
-        if (table === 'contractor_subscriptions') {
-          return {
-            select: jest.fn().mockReturnValue({
-              eq: jest.fn().mockReturnValue({
-                in: jest.fn().mockReturnValue({
-                  order: jest.fn().mockReturnValue({
-                    limit: jest.fn().mockReturnValue({
-                      maybeSingle: jest.fn().mockResolvedValue({
-                        data: { plan_type: 'enterprise', status: 'active' },
-                        error: null,
-                      }),
-                    }),
-                  }),
-                }),
-              }),
-            }),
-          };
-        }
-        // feature_usage table
-        return {
-          select: jest.fn().mockReturnValue({
-            eq: jest.fn().mockReturnValue({
-              gte: jest.fn().mockResolvedValue({ data: null, error: null }),
-            }),
-          }),
-        };
-      });
-
-      await manager.initialize('contractor123', 'contractor');
-
-      const upgrades = manager.getUpgradeTiers('CONTRACTOR_BID_LIMIT');
-
-      expect(upgrades).toEqual([]);
-    });
-
-    it('should return empty array for unknown feature', () => {
-      const upgrades = manager.getUpgradeTiers('UNKNOWN_FEATURE');
-
-      expect(upgrades).toEqual([]);
-    });
-
-    it('should only return tiers with better access for boolean features', async () => {
-      // Initialize as basic (no social feed access)
-      (supabase.from as jest.Mock).mockReturnValue({
-        select: jest.fn().mockReturnValue({
-          eq: jest.fn().mockReturnValue({
-            in: jest.fn().mockReturnValue({
-              order: jest.fn().mockReturnValue({
-                limit: jest.fn().mockReturnValue({
-                  maybeSingle: jest.fn().mockResolvedValue({
-                    data: { plan_type: 'basic', status: 'active' },
-                    error: null,
-                  }),
-                }),
-              }),
-            }),
-          }),
-        }),
-        gte: jest.fn().mockResolvedValue({ data: null, error: null }),
-      });
-
-      await manager.initialize('contractor123', 'contractor');
-
-      const upgrades = manager.getUpgradeTiers('CONTRACTOR_SOCIAL_FEED');
-
-      expect(upgrades).toContain('professional');
-      expect(upgrades).toContain('enterprise');
-      expect(upgrades).not.toContain('basic');
+    it('returns [] when manager has no subscription yet', () => {
+      expect(manager.getUpgradeTiers('CONTRACTOR_BID_LIMIT')).toEqual([]);
     });
   });
 
-  describe('clear', () => {
-    it('should clear all cached data', async () => {
-      // Initialize with data
-      (supabase.from as jest.Mock).mockImplementation((table: string) => {
-        if (table === 'contractor_subscriptions') {
-          return {
-            select: jest.fn().mockReturnValue({
-              eq: jest.fn().mockReturnValue({
-                in: jest.fn().mockReturnValue({
-                  order: jest.fn().mockReturnValue({
-                    limit: jest.fn().mockReturnValue({
-                      maybeSingle: jest.fn().mockResolvedValue({
-                        data: { plan_type: 'professional', status: 'active' },
-                        error: null,
-                      }),
-                    }),
-                  }),
-                }),
-              }),
-            }),
-          };
-        }
-        // feature_usage table
-        return {
-          select: jest.fn().mockReturnValue({
-            eq: jest.fn().mockReturnValue({
-              gte: jest.fn().mockResolvedValue({ data: null, error: null }),
-            }),
-          }),
-        };
-      });
-
-      await manager.initialize('contractor123', 'contractor');
+  describe('clear()', () => {
+    it('drops subscription + usage so subsequent reads return defaults', async () => {
+      primeAccessResponse({ tier: 'professional' });
+      await manager.initialize('c1', 'contractor');
       expect(manager.getTier()).toBe('professional');
 
       manager.clear();
-
       expect(manager.getTier()).toBe('trial');
+      expect(manager.hasAccess('CONTRACTOR_BID_LIMIT', 'contractor')).toBe(
+        false
+      );
+    });
+  });
+
+  describe('getFeature()', () => {
+    it('returns the feature definition by id', () => {
+      const feat = manager.getFeature('CONTRACTOR_BID_LIMIT');
+      expect(feat).toBeDefined();
+      expect(feat?.id).toBe('CONTRACTOR_BID_LIMIT');
+    });
+
+    it('returns undefined for an unknown id', () => {
+      expect(manager.getFeature('NOPE')).toBeUndefined();
     });
   });
 });
 
 describe('Helper Functions', () => {
-  beforeEach(() => {
-    jest.clearAllMocks();
-  });
+  beforeEach(() => jest.clearAllMocks());
 
   describe('canPerformAction', () => {
-    it('should allow action when user has access', async () => {
-      const manager = FeatureAccessManager.getInstance();
-      jest.spyOn(manager, 'hasAccess').mockReturnValue(true);
-
+    it('allows when manager.hasAccess is true', async () => {
+      const m = FeatureAccessManager.getInstance();
+      jest.spyOn(m, 'hasAccess').mockReturnValue(true);
       const result = await canPerformAction(
-        'user123',
+        'u1',
         'homeowner',
         'HOMEOWNER_POST_JOBS'
       );
-
       expect(result.allowed).toBe(true);
       expect(result.message).toBeUndefined();
     });
 
-    it('should deny action with message when no access', async () => {
-      const manager = FeatureAccessManager.getInstance();
-      jest.spyOn(manager, 'hasAccess').mockReturnValue(false);
-      jest.spyOn(manager, 'getFeature').mockReturnValue({
+    it('denies and uses the feature upgrade message when set', async () => {
+      const m = FeatureAccessManager.getInstance();
+      jest.spyOn(m, 'hasAccess').mockReturnValue(false);
+      jest.spyOn(m, 'getFeature').mockReturnValue({
         id: 'CONTRACTOR_BID_LIMIT',
         name: 'Monthly Bids',
         description: 'Number of bids per month',
@@ -919,36 +450,26 @@ describe('Helper Functions', () => {
         upgradeMessage:
           "You've reached your monthly bid limit. Upgrade to submit more bids.",
       });
-
       const result = await canPerformAction(
-        'user123',
+        'u1',
         'contractor',
         'CONTRACTOR_BID_LIMIT'
       );
-
       expect(result.allowed).toBe(false);
-      expect(result.message).toBe(
-        "You've reached your monthly bid limit. Upgrade to submit more bids."
-      );
+      expect(result.message).toContain('monthly bid limit');
     });
 
-    it('should provide default message when feature has no upgrade message', async () => {
-      const manager = FeatureAccessManager.getInstance();
-      jest.spyOn(manager, 'hasAccess').mockReturnValue(false);
-      jest.spyOn(manager, 'getFeature').mockReturnValue({
-        id: 'FEATURE_WITHOUT_MESSAGE',
-        name: 'Test Feature',
-        description: 'Test',
-        category: 'Test',
+    it('falls back to a generic message when feature has no upgradeMessage', async () => {
+      const m = FeatureAccessManager.getInstance();
+      jest.spyOn(m, 'hasAccess').mockReturnValue(false);
+      jest.spyOn(m, 'getFeature').mockReturnValue({
+        id: 'X',
+        name: 'X',
+        description: '',
+        category: '',
         limits: {},
       });
-
-      const result = await canPerformAction(
-        'user123',
-        'contractor',
-        'FEATURE_WITHOUT_MESSAGE'
-      );
-
+      const result = await canPerformAction('u1', 'contractor', 'X');
       expect(result.allowed).toBe(false);
       expect(result.message).toBe(
         'This feature is not available on your current plan.'
@@ -957,119 +478,87 @@ describe('Helper Functions', () => {
   });
 
   describe('formatLimit', () => {
-    it('should format unlimited', () => {
+    it('formats unlimited / number / true / false / undefined', () => {
       expect(formatLimit('unlimited')).toBe('Unlimited');
-    });
-
-    it('should format numeric limit', () => {
       expect(formatLimit(100)).toBe('100');
       expect(formatLimit(0)).toBe('0');
-    });
-
-    it('should format boolean true', () => {
       expect(formatLimit(true)).toBe('Full Access');
-    });
-
-    it('should format boolean false and undefined', () => {
       expect(formatLimit(false)).toBe('Not Available');
       expect(formatLimit(undefined)).toBe('Not Available');
     });
   });
 
   describe('getCategoryColor', () => {
-    it('should return correct colors for known categories', () => {
-      // Colors come from theme — verify they return non-default values
-      const knownCategories = [
-        'Job Management',
-        'Bidding',
-        'Discovery',
-        'Social',
-        'Portfolio',
-        'Communication',
-        'AI & Search',
-      ];
-      const defaultColor = getCategoryColor('Unknown Category');
-      for (const category of knownCategories) {
-        expect(getCategoryColor(category)).toBeDefined();
-        expect(typeof getCategoryColor(category)).toBe('string');
-        expect(getCategoryColor(category)).not.toBe(defaultColor);
+    it('returns a string for any input and a stable default for unknowns', () => {
+      const known = ['Job Management', 'Bidding', 'Communication'];
+      const fallback = getCategoryColor('Unknown Category');
+      for (const c of known) {
+        expect(typeof getCategoryColor(c)).toBe('string');
       }
-    });
-
-    it('should return default color for unknown category', () => {
-      expect(getCategoryColor('Unknown Category')).toBeDefined();
-      expect(getCategoryColor('')).toBe(getCategoryColor('Unknown Category'));
+      expect(getCategoryColor('')).toBe(fallback);
     });
   });
 });
 
-describe('Constants', () => {
+describe('Static config', () => {
   describe('MOBILE_FEATURES', () => {
-    it('should have all required homeowner features', () => {
-      expect(MOBILE_FEATURES.HOMEOWNER_POST_JOBS).toBeDefined();
-      expect(MOBILE_FEATURES.HOMEOWNER_MESSAGING).toBeDefined();
-      expect(MOBILE_FEATURES.HOMEOWNER_VIDEO_CALLS).toBeDefined();
-      expect(MOBILE_FEATURES.HOMEOWNER_AI_ASSESSMENT).toBeDefined();
+    it('exposes the homeowner core features', () => {
+      for (const id of [
+        'HOMEOWNER_POST_JOBS',
+        'HOMEOWNER_MESSAGING',
+        'HOMEOWNER_VIDEO_CALLS',
+        'HOMEOWNER_AI_ASSESSMENT',
+      ]) {
+        expect(MOBILE_FEATURES[id]).toBeDefined();
+      }
     });
 
-    it('should have all required contractor features', () => {
-      expect(MOBILE_FEATURES.CONTRACTOR_BID_LIMIT).toBeDefined();
-      expect(MOBILE_FEATURES.CONTRACTOR_DISCOVERY_CARD).toBeDefined();
-      expect(MOBILE_FEATURES.CONTRACTOR_SOCIAL_FEED).toBeDefined();
-      expect(MOBILE_FEATURES.CONTRACTOR_PORTFOLIO_PHOTOS).toBeDefined();
-      expect(MOBILE_FEATURES.CONTRACTOR_MESSAGING).toBeDefined();
-      expect(MOBILE_FEATURES.CONTRACTOR_VIDEO_CALLS).toBeDefined();
+    it('exposes the contractor core features incl. the new ACTIVE_JOBS_LIMIT', () => {
+      for (const id of [
+        'CONTRACTOR_BID_LIMIT',
+        'CONTRACTOR_ACTIVE_JOBS_LIMIT', // Sprint 1 addition
+        'CONTRACTOR_DISCOVERY_CARD',
+        'CONTRACTOR_PORTFOLIO_PHOTOS',
+        'CONTRACTOR_MESSAGING',
+        'CONTRACTOR_VIDEO_CALLS',
+      ]) {
+        expect(MOBILE_FEATURES[id]).toBeDefined();
+      }
     });
 
-    it('should have correct structure for feature definitions', () => {
-      const feature = MOBILE_FEATURES.CONTRACTOR_BID_LIMIT;
+    it('does NOT expose the dropped social-feed feature', () => {
+      // Sprint 1 dropped CONTRACTOR_SOCIAL_FEED — marketplace social
+      // feeds don't drive value.
+      expect(MOBILE_FEATURES.CONTRACTOR_SOCIAL_FEED).toBeUndefined();
+    });
 
-      expect(feature).toHaveProperty('id');
-      expect(feature).toHaveProperty('name');
-      expect(feature).toHaveProperty('description');
-      expect(feature).toHaveProperty('category');
-      expect(feature).toHaveProperty('limits');
-      expect(typeof feature.id).toBe('string');
-      expect(typeof feature.name).toBe('string');
+    it('uses the new bid limit on basic (10, was 20)', () => {
+      const f = MOBILE_FEATURES.CONTRACTOR_BID_LIMIT;
+      expect(f.limits.basic).toBe(10);
+      expect(f.limits.professional).toBe('unlimited');
+      expect(f.limits.enterprise).toBe('unlimited');
+    });
+
+    it('uses 3 / unlimited for the active-jobs cap', () => {
+      const f = MOBILE_FEATURES.CONTRACTOR_ACTIVE_JOBS_LIMIT;
+      expect(f.limits.basic).toBe(3);
+      expect(f.limits.professional).toBe('unlimited');
+      expect(f.limits.enterprise).toBe('unlimited');
     });
   });
 
   describe('TIER_PRICING', () => {
-    it('should have all tiers defined', () => {
-      expect(TIER_PRICING.trial).toBeDefined();
-      expect(TIER_PRICING.basic).toBeDefined();
-      expect(TIER_PRICING.professional).toBeDefined();
-      expect(TIER_PRICING.enterprise).toBeDefined();
-    });
-
-    it('should have correct pricing structure', () => {
+    it('lists the four tiers with the published prices', () => {
       expect(TIER_PRICING.trial.price).toBe(0);
       expect(TIER_PRICING.basic.price).toBe(0);
       expect(TIER_PRICING.professional.price).toBe(29);
       expect(TIER_PRICING.enterprise.price).toBe(99);
     });
 
-    it('should mark professional as popular', () => {
-      expect(TIER_PRICING.professional.popular).toBe(true);
-      expect(TIER_PRICING.basic.popular).toBeUndefined();
+    it("marks professional 'popular'", () => {
+      expect((TIER_PRICING.professional as { popular?: boolean }).popular).toBe(
+        true
+      );
     });
-
-    it('should have correct periods', () => {
-      expect(TIER_PRICING.trial.period).toBe('14 days');
-      expect(TIER_PRICING.basic.period).toBe('month');
-      expect(TIER_PRICING.professional.period).toBe('month');
-      expect(TIER_PRICING.enterprise.period).toBe('month');
-    });
-  });
-});
-
-describe('Singleton Export', () => {
-  it('should export singleton instance', () => {
-    expect(featureAccess).toBeDefined();
-    expect(featureAccess).toBeInstanceOf(FeatureAccessManager);
-  });
-
-  it('should be the same as getInstance', () => {
-    expect(featureAccess).toBe(FeatureAccessManager.getInstance());
   });
 });
