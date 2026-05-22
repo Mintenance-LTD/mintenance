@@ -87,7 +87,7 @@ export function HeroSection() {
                 background: 'var(--me-brand)',
               }}
             />
-            Now serving Greater London
+            Serving the UK
           </motion.div>
 
           <motion.h1
@@ -118,8 +118,8 @@ export function HeroSection() {
               margin: '0 0 32px',
             }}
           >
-            Snap a photo of what&apos;s broken. Get three honest quotes from
-            verified, local tradespeople by morning. Pay only when the
+            Snap a photo of what&apos;s broken. Post a job once and get honest
+            quotes from local tradespeople on the platform. Pay only when the
             job&apos;s done — properly.
           </motion.p>
 
@@ -179,7 +179,7 @@ export function HeroSection() {
           >
             <span>
               <b style={{ color: 'var(--me-ink-2)', fontWeight: 600 }}>
-                Verified
+                Reviewed
               </b>{' '}
               tradespeople
             </span>

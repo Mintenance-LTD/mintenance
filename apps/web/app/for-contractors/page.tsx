@@ -24,13 +24,13 @@ import { CompetitorComparisonTable } from '@/components/marketing/CompetitorComp
 export const metadata: Metadata = {
   title: 'For Contractors - Grow Your Trade Business | Mintenance',
   description:
-    'Join thousands of verified tradespeople across the UK. Get matched with homeowners, manage jobs, track finances, and get paid securely through Mintenance.',
+    'Join the Mintenance tradesperson network. Get matched with homeowners, manage jobs, track finances, and get paid securely through escrow.',
   keywords:
-    'contractor platform, tradesperson jobs, find work UK, verified contractor, secure payments, escrow, property maintenance jobs',
+    'contractor platform, tradesperson jobs, find work UK, secure payments, escrow, property maintenance jobs',
   openGraph: {
     title: 'For Contractors - Grow Your Trade Business | Mintenance',
     description:
-      'Join thousands of verified tradespeople. Get matched with homeowners, manage jobs, and get paid securely.',
+      'Join the Mintenance tradesperson network. Get matched with homeowners, manage jobs, and get paid securely through escrow.',
     type: 'website',
   },
 };
@@ -267,13 +267,14 @@ export default function ForContractorsPage() {
       }
       trust={{
         title: 'Why Contractors Choose Mintenance',
-        description: 'Real platform guarantees \u2014 not promises.',
+        description:
+          'Real platform safeguards \u2014 escrow, photo proof, dispute support.',
         points: WHY_MINTENANCE,
       }}
       finalCTA={{
         title: 'Ready to Grow Your Business?',
         description:
-          'Join verified tradespeople across the UK. Set up your profile, start bidding, and get paid securely \u2014 all free to start.',
+          'Join the Mintenance tradesperson network. Set up your profile, start bidding, and get paid securely through escrow \u2014 all free to start.',
         primary: {
           label: 'Get Started Free',
           href: '/register?role=contractor',

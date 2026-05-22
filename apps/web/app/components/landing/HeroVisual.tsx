@@ -68,13 +68,13 @@ export function HeroVisual() {
           <div className='relative aspect-[4/3] rounded-xl overflow-hidden border border-teal-400/20'>
             <img
               src={CONTRACTOR_IMAGE}
-              alt='Verified contractor profile'
+              alt='Contractor profile preview'
               className='absolute inset-0 w-full h-full object-cover'
               loading='eager'
             />
             <div className='absolute inset-0 bg-gradient-to-t from-teal-900/40 via-transparent to-transparent' />
             <span className='absolute top-2 left-2 px-2 py-0.5 rounded-md bg-teal-600/80 text-[10px] font-medium text-white backdrop-blur-sm'>
-              VERIFIED PRO
+              LOCAL PRO
             </span>
           </div>
         </div>
@@ -118,9 +118,7 @@ export function HeroVisual() {
               <div className='w-6 h-6 rounded-full bg-gradient-to-br from-teal-400 to-emerald-500 border border-slate-900' />
             </div>
             <p className='text-[13px] text-white/70'>
-              <span className='text-white font-semibold'>
-                Verified local pros
-              </span>{' '}
+              <span className='text-white font-semibold'>Local pros</span>{' '}
               responding
             </p>
           </div>
