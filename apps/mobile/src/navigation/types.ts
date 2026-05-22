@@ -38,12 +38,24 @@ export type RootTabParamList = {
 // ============================================================================
 
 export type AuthStackParamList = {
+  // Phase 3 (2026-05-22) — brand-gradient splash, the new
+  // initialRouteName of AuthNavigator (from mobile-auth.html
+  // screen 01). Three CTAs: "Create account" → Welcome,
+  // "Sign in" → Login, "Continue as guest" → coming-soon alert.
+  Splash: undefined;
   // Phase 2 Screen 0 (2026-04-20) — pre-signup welcome/role-tile
-  // landing. Replaces Login as the AuthStack initialRouteName.
-  // Users who only want to sign in tap the "Sign in" link at the
-  // bottom of this screen; users who select a role tile go to
-  // Register with that role pre-chosen.
+  // landing. Reached from Splash → "Create account". Users who
+  // only want to sign in tap the "Sign in" link at the bottom
+  // of this screen; users who select a role tile go to Register
+  // with that role pre-chosen.
   Welcome: undefined;
+  // Phase 3 (2026-05-22) — HomeownerSetup (screen 08) and
+  // WelcomeFirstJob (screen 10) are NOT registered as auth-stack
+  // routes. They live inside Main as fullscreen modals dispatched
+  // by `OnboardingGateStack` once AuthContext flips the user to
+  // signed-in. See `useHomeownerSetupGate` /
+  // `useWelcomeFirstJobGate` + the matching `*Modal.tsx` wrappers
+  // in `components/onboarding/`.
   // `email` is set when arriving from EmailVerificationPending after a
   // successful signUp, so the user doesn't re-type their address on the
   // sign-in step. We never forward the password: email-confirm is ON,

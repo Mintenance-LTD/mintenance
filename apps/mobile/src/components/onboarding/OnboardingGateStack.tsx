@@ -43,6 +43,12 @@ import { useBackgroundCheckGate } from '../../hooks/useBackgroundCheckGate';
 import { useSelfieCaptureGate } from '../../hooks/useSelfieCaptureGate';
 import { useStripeConnectPromptGate } from '../../hooks/useStripeConnectPromptGate';
 import { useAlwaysLocationSoftAskGate } from '../../hooks/useAlwaysLocationSoftAskGate';
+// Phase 3 (2026-05-22) — two new fullscreen onboarding modals from
+// `.design-bundle/.../redesign-v2/mobile-auth.html` screens 08 + 10.
+// HomeownerSetup captures property type + concern tags; WelcomeFirstJob
+// is the celebratory finale that closes the onboarding chain.
+import { useHomeownerSetupGate } from '../../hooks/useHomeownerSetupGate';
+import { useWelcomeFirstJobGate } from '../../hooks/useWelcomeFirstJobGate';
 import { OnboardingModal } from './OnboardingModal';
 import { PushSoftAskModal } from './PushSoftAskModal';
 import { FirstPropertyPromptModal } from './FirstPropertyPromptModal';
@@ -53,6 +59,8 @@ import { BackgroundCheckPromptModal } from './BackgroundCheckPromptModal';
 import { SelfieCapturePromptModal } from './SelfieCapturePromptModal';
 import { StripeConnectPromptModal } from './StripeConnectPromptModal';
 import { AlwaysLocationSoftAskModal } from './AlwaysLocationSoftAskModal';
+import { HomeownerSetupModal } from './HomeownerSetupModal';
+import { WelcomeFirstJobModal } from './WelcomeFirstJobModal';
 
 export const OnboardingGateStack: React.FC = () => {
   const { user } = useAuth();
@@ -66,6 +74,8 @@ export const OnboardingGateStack: React.FC = () => {
   const pushSoftAsk = usePushSoftAskGate();
   const stripeConnect = useStripeConnectPromptGate();
   const alwaysLocation = useAlwaysLocationSoftAskGate();
+  const homeownerSetup = useHomeownerSetupGate();
+  const welcomeFirstJob = useWelcomeFirstJobGate();
 
   // Pre-compute the stacking conditions so the JSX below stays
   // readable. Each lower tier checks its own condition AND that
@@ -144,6 +154,38 @@ export const OnboardingGateStack: React.FC = () => {
     !showPushSoftAsk &&
     !showStripeConnect &&
     alwaysLocation.shouldShow;
+  // Phase 3 (2026-05-22) — homeowner preference setup. Slots in just
+  // above the last-tier welcome screen so it fires after FirstProperty
+  // (which captures the address) but before WelcomeFirstJob (which
+  // celebrates). Role-gated to homeowners only inside the hook.
+  const showHomeownerSetup =
+    !showOnboarding &&
+    !showFirstProperty &&
+    !showLocationSoftAsk &&
+    !showServiceArea &&
+    !showIdentitySetup &&
+    !showBackgroundCheck &&
+    !showSelfieCapture &&
+    !showPushSoftAsk &&
+    !showStripeConnect &&
+    !showAlwaysLocation &&
+    homeownerSetup.shouldShow;
+  // Phase 3 (2026-05-22) — the celebratory finale. Bottom of the
+  // priority chain: only renders after every other onboarding gate
+  // has been cleared, and only once per device.
+  const showWelcomeFirstJob =
+    !showOnboarding &&
+    !showFirstProperty &&
+    !showLocationSoftAsk &&
+    !showServiceArea &&
+    !showIdentitySetup &&
+    !showBackgroundCheck &&
+    !showSelfieCapture &&
+    !showPushSoftAsk &&
+    !showStripeConnect &&
+    !showAlwaysLocation &&
+    !showHomeownerSetup &&
+    welcomeFirstJob.shouldShow;
 
   return (
     <>
@@ -202,6 +244,14 @@ export const OnboardingGateStack: React.FC = () => {
         onAllow={alwaysLocation.allowAlways}
         onDismiss={alwaysLocation.dismiss}
         onOpenSettings={alwaysLocation.openSystemSettings}
+      />
+      <HomeownerSetupModal
+        visible={showHomeownerSetup}
+        onDismiss={homeownerSetup.dismiss}
+      />
+      <WelcomeFirstJobModal
+        visible={showWelcomeFirstJob}
+        onDismiss={welcomeFirstJob.dismiss}
       />
     </>
   );

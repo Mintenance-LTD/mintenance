@@ -10,8 +10,13 @@ import ResetPasswordScreen from '../../screens/auth/ResetPasswordScreen';
 import MFAVerificationScreen from '../../screens/auth/MFAVerificationScreen';
 // Phase 1.2 (Branch B) — shown after signUp until email-confirmation lands.
 import EmailVerificationPendingScreen from '../../screens/auth/EmailVerificationPendingScreen';
-// Phase 2 Screen 0 — role-tile pre-signup landing (new initialRouteName).
+// Phase 2 Screen 0 — role-tile pre-signup landing.
 import { WelcomeScreen } from '../../screens/auth/WelcomeScreen';
+// Phase 3 (2026-05-22) — splash is the new auth entry point (screen 01).
+// Screens 08 (HomeownerSetup) and 10 (WelcomeFirstJob) run as
+// fullscreen modals inside Main via OnboardingGateStack — they're
+// not auth screens, so they don't live here.
+import { SplashScreen } from '../../screens/auth/SplashScreen';
 
 // Import error boundary wrapper
 import { withScreenErrorBoundary } from '../../components/ErrorBoundaryProvider';
@@ -56,6 +61,13 @@ const SafeWelcomeScreen = withScreenErrorBoundary(WelcomeScreen, 'Welcome', {
   fallbackRoute: 'Login',
 });
 
+// Phase 3 (2026-05-22) — wrap Splash in the standard screen error
+// boundary so a crash here drops the user back to Login instead of
+// taking down the whole auth flow.
+const SafeSplashScreen = withScreenErrorBoundary(SplashScreen, 'Splash', {
+  fallbackRoute: 'Login',
+});
+
 // ============================================================================
 // AUTH NAVIGATOR
 // ============================================================================
@@ -70,14 +82,20 @@ const AuthNavigator: React.FC = () => {
         gestureEnabled: true,
         animation: 'slide_from_right',
       }}
-      // Phase 2 (2026-04-20) — pre-signup Welcome/role-tile landing is
-      // the new entry point. Sign-in is one tap away from Welcome.
-      initialRouteName='Welcome'
+      // Phase 3 (2026-05-22) — mobile-auth.html splash is the new
+      // first impression. Splash → Welcome (role pick) → Register;
+      // returning users tap "Sign in" on Splash → Login.
+      initialRouteName='Splash'
     >
+      <AuthStack.Screen
+        name='Splash'
+        component={SafeSplashScreen}
+        options={{ title: 'Welcome' }}
+      />
       <AuthStack.Screen
         name='Welcome'
         component={SafeWelcomeScreen}
-        options={{ title: 'Welcome' }}
+        options={{ title: 'Choose role' }}
       />
       <AuthStack.Screen
         name='Login'
