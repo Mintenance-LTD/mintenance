@@ -177,7 +177,7 @@ function BusinessToolsGrid() {
           </h2>
           <p className='max-w-xl mx-auto' style={{ color: 'var(--me-ink-2)' }}>
             Stop juggling apps. Finance, invoicing, CRM, scheduling, expenses,
-            and verification &mdash; all built in.
+            and credentials &mdash; all built in.
           </p>
         </div>
         <div className='grid sm:grid-cols-2 lg:grid-cols-3 gap-6'>
