@@ -11,15 +11,15 @@ export const styles = StyleSheet.create({
   // user-reported screenshot. Keeping this screen light until the
   // whole app is dark-mode-aware.
   root: { flex: 1, backgroundColor: me.bg },
-  hdr: {
+  // Editorial v2 (2026-05-22): slim top bar (back arrow only) +
+  // separate screenHeader block. Replaces the older centered
+  // phone-app navbar + sumBar pattern. Legacy `hdr` / `hdrTitle`
+  // / `sumBar` / `sumTxt` styles removed alongside.
+  topBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    backgroundColor: me.surface,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: me.line,
+    paddingHorizontal: 12,
+    paddingBottom: 8,
   },
   back: {
     width: 40,
@@ -28,23 +28,30 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  hdrTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: me.ink,
-  },
-  sumBar: {
+  screenHeader: {
     paddingHorizontal: 20,
-    paddingVertical: 12,
-    backgroundColor: me.surface,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: me.line,
+    paddingBottom: 14,
   },
-  sumTxt: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: me.ink2,
-    textAlign: 'center',
+  eyebrow: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: me.brand,
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+    marginBottom: 6,
+  },
+  headline: {
+    fontFamily: me.font.display,
+    fontSize: 30,
+    lineHeight: 34,
+    color: me.ink,
+    letterSpacing: me.displayTracking,
+  },
+  headerSub: {
+    fontSize: 13,
+    color: me.ink3,
+    marginTop: 6,
+    lineHeight: 18,
   },
   searchRow: {
     flexDirection: 'row',

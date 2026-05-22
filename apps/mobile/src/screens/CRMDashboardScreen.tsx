@@ -212,8 +212,13 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
 
   return (
     <View style={s.root}>
-      {/* Header */}
-      <View style={[s.hdr, { paddingTop: insets.top + 8 }]}>
+      {/* Editorial header \u2014 2026-05-22 Mint Editorial v2:
+          replaces the previous centered phone-app navbar
+          ("My Clients" middle, back-arrow left, dummy spacer
+          right) with the spec's eyebrow + serif headline pattern
+          used across BusinessHub / Finance / Invoices / Calendar
+          / ServiceAreas. */}
+      <View style={[s.topBar, { paddingTop: insets.top + 8 }]}>
         <TouchableOpacity
           style={s.back}
           onPress={() => navigation.goBack()}
@@ -222,21 +227,24 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
         >
           <Ionicons name='arrow-back' size={22} color={me.ink} />
         </TouchableOpacity>
-        <Text style={s.hdrTitle}>My Clients</Text>
-        <View style={{ width: 40 }} />
       </View>
-
-      {total > 0 && (
-        <View style={s.sumBar}>
-          <Text style={s.sumTxt}>
-            {total} Client{total !== 1 ? 's' : ''}
-            {'  \u00B7  '}
-            {active} Active{'  \u00B7  '}
-            {'\u00A3'}
+      <View style={s.screenHeader}>
+        <Text style={s.eyebrow}>Clients</Text>
+        <Text style={s.headline} accessibilityRole='header'>
+          My Clients
+        </Text>
+        {total > 0 ? (
+          <Text style={s.headerSub}>
+            {total} client{total !== 1 ? 's' : ''} \u00B7 {active} active \u00B7
+            \u00A3
             {avgVal.toLocaleString()} avg value
           </Text>
-        </View>
-      )}
+        ) : (
+          <Text style={s.headerSub}>
+            Build relationships with the homeowners you've worked with.
+          </Text>
+        )}
+      </View>
 
       <View style={s.searchRow}>
         <View style={{ flex: 1 }}>
