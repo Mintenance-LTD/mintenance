@@ -296,17 +296,25 @@ export const BidReviewScreen: React.FC = () => {
   if (allReviewed || bids.length === 0) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
+        {/* Mirrors the editorial header on the main view so the
+            empty state doesn't snap back to the legacy centred
+            navbar. */}
+        <View style={styles.topBar}>
           <TouchableOpacity
             style={styles.backBtn}
             onPress={() => navigation.goBack()}
             accessibilityRole='button'
             accessibilityLabel='Go back'
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Ionicons name='arrow-back' size={24} color={me.ink} />
+            <Ionicons name='arrow-back' size={20} color={me.ink} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Review Bids</Text>
-          <View style={{ width: 40 }} />
+        </View>
+        <View style={styles.screenHeader}>
+          <Text style={styles.eyebrow}>Decision time</Text>
+          <Text style={styles.headline} accessibilityRole='header'>
+            Review Bids
+          </Text>
         </View>
         <View style={styles.centered}>
           <View style={styles.emptyIconWrap}>
@@ -330,27 +338,35 @@ export const BidReviewScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
+      {/* 2026-05-22 Mint Editorial v2: top bar (back + bid count
+          chip) on the paper background, with the eyebrow + serif
+          headline + subtitle pattern beneath. Replaces the
+          centered phone-app navbar where the title was sandwiched
+          between back-arrow and chip. */}
+      <View style={styles.topBar}>
         <TouchableOpacity
           style={styles.backBtn}
           onPress={() => navigation.goBack()}
           accessibilityRole='button'
           accessibilityLabel='Go back'
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Ionicons name='arrow-back' size={24} color={me.ink} />
+          <Ionicons name='arrow-back' size={20} color={me.ink} />
         </TouchableOpacity>
-        <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Review Bids</Text>
-          {jobTitle ? (
-            <Text style={styles.headerSubtitle} numberOfLines={1}>
-              {jobTitle}
-            </Text>
-          ) : null}
-        </View>
         <View style={styles.bidCountChip}>
           <Text style={styles.bidCountText}>{bids.length} bids</Text>
         </View>
+      </View>
+      <View style={styles.screenHeader}>
+        <Text style={styles.eyebrow}>Decision time</Text>
+        <Text style={styles.headline} accessibilityRole='header'>
+          Review Bids
+        </Text>
+        {jobTitle ? (
+          <Text style={styles.headerSub} numberOfLines={1}>
+            {jobTitle}
+          </Text>
+        ) : null}
       </View>
 
       {/* Comparison Summary */}

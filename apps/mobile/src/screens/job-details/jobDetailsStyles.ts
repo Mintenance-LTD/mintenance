@@ -196,12 +196,19 @@ export const styles = StyleSheet.create({
     lineHeight: 24,
   },
 
-  // -- Bids Section (inline styles kept minimal) --
+  // -- Bids Section --
+  // Editorial v2 (2026-05-22): bid card promoted from a flat
+  // bg2 rectangle to a surface card with a hairline border,
+  // matching the design spec where each bid feels like its own
+  // editorial item. Price uses the Inter-Black display face so
+  // numerals carry the visual weight of a serif quote.
   bidCard: {
-    backgroundColor: me.bg2,
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 8,
+    backgroundColor: me.surface,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: me.line,
+    padding: 14,
+    marginBottom: 10,
   },
   bidRow: {
     flexDirection: 'row',
@@ -218,9 +225,10 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
   },
   bidAmount: {
-    fontSize: 17,
-    fontWeight: '700',
-    color: me.brand,
+    fontFamily: me.font.display,
+    fontSize: 20,
+    color: me.ink,
+    letterSpacing: me.displayTracking,
   },
   bidStatusBadge: {
     marginLeft: 8,

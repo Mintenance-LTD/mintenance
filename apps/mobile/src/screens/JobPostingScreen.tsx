@@ -344,17 +344,30 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: insets.top }]}>
+      {/* 2026-05-22 Mint Editorial v2: top bar (back arrow only) +
+          separate paper-feel screenHeader block. Replaces the
+          centred phone-app navbar (back ← "Post a Job" → spacer)
+          to match HomeownerDashboard / BusinessHub / Finance and
+          the rest of the editorial surfaces. */}
+      <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
           accessibilityRole='button'
           accessibilityLabel='Go back'
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Ionicons name='arrow-back' size={24} color={me.ink} />
+          <Ionicons name='arrow-back' size={20} color={me.ink} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Post a Job</Text>
-        <View style={{ width: 40 }} />
+      </View>
+      <View style={styles.screenHeader}>
+        <Text style={styles.eyebrow}>New job</Text>
+        <Text style={styles.headline} accessibilityRole='header'>
+          Post a Job
+        </Text>
+        <Text style={styles.sub}>
+          Describe the work, add photos, set a budget — bids land within hours.
+        </Text>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -443,17 +456,16 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: me.bg2,
+    backgroundColor: me.bg,
   },
-  header: {
+  // Editorial v2 top bar + screenHeader pair. Legacy `header` /
+  // `headerTitle` styles (centred phone-app navbar) removed
+  // alongside the JSX refactor.
+  topBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    backgroundColor: me.surface,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: me.line,
+    paddingHorizontal: 12,
+    paddingBottom: 8,
   },
   backButton: {
     width: 40,
@@ -463,10 +475,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerTitle: {
-    fontSize: 18,
+  screenHeader: {
+    paddingHorizontal: 20,
+    paddingTop: 4,
+    paddingBottom: 14,
+  },
+  eyebrow: {
+    fontSize: 11,
     fontWeight: '700',
+    color: me.brand,
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+    marginBottom: 6,
+  },
+  headline: {
+    fontFamily: me.font.display,
+    fontSize: 28,
+    lineHeight: 32,
     color: me.ink,
+    letterSpacing: me.displayTracking,
+  },
+  sub: {
+    fontSize: 13,
+    color: me.ink3,
+    marginTop: 6,
+    lineHeight: 18,
   },
   content: {
     flex: 1,

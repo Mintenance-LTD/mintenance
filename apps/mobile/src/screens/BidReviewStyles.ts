@@ -14,15 +14,17 @@ export const styles = StyleSheet.create({
     fontSize: 16,
     color: me.ink2,
   },
-  header: {
+  // 2026-05-22 Mint Editorial v2: slim top bar (back + bid count
+  // chip) + separate paper-feel screenHeader block beneath.
+  // Replaces the centred phone-app navbar (`header` + `headerCenter`
+  // + `headerTitle` + `headerSubtitle`).
+  topBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: me.surface,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: me.line,
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: 4,
   },
   backBtn: {
     width: 40,
@@ -32,16 +34,31 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerCenter: { flex: 1, alignItems: 'center', marginHorizontal: 12 },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: me.ink,
+  screenHeader: {
+    paddingHorizontal: 20,
+    paddingTop: 4,
+    paddingBottom: 14,
   },
-  headerSubtitle: {
+  eyebrow: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: me.brand,
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+    marginBottom: 6,
+  },
+  headline: {
+    fontFamily: me.font.display,
+    fontSize: 28,
+    lineHeight: 32,
+    color: me.ink,
+    letterSpacing: me.displayTracking,
+  },
+  headerSub: {
     fontSize: 13,
-    color: me.ink2,
-    marginTop: 2,
+    color: me.ink3,
+    marginTop: 6,
+    lineHeight: 18,
   },
   bidCountChip: {
     backgroundColor: me.bg2,
