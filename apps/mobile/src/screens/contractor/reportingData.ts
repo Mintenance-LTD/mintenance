@@ -122,12 +122,23 @@ export async function fetchReportingData(
   const acceptedBids = bids.filter((b) => b.status === 'accepted').length;
   const totalBids = bids.length;
   const winRate = totalBids > 0 ? acceptedBids / totalBids : 0;
-  const totalEarnings = escrow.reduce((sum, e) => sum + (e.amount || 0), 0);
+
+  // 2026-05-22 audit C2: escrow_transactions.amount and reviews.rating
+  // are Postgres NUMERIC columns. supabase-js returns NUMERIC as a
+  // string to preserve precision; summing strings via `+=` silently
+  // produces NaN / concatenation and the "Total Earnings" KPI showed
+  // garbage. Coerce defensively before any arithmetic.
+  const toNum = (v: unknown): number => {
+    if (v == null) return 0;
+    const n = typeof v === 'number' ? v : Number(v);
+    return Number.isFinite(n) ? n : 0;
+  };
+  const totalEarnings = escrow.reduce((sum, e) => sum + toNum(e.amount), 0);
 
   const totalReviews = reviews.length;
   const averageRating =
     totalReviews > 0
-      ? reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / totalReviews
+      ? reviews.reduce((sum, r) => sum + toNum(r.rating), 0) / totalReviews
       : 0;
 
   const ratingDistribution: Record<string, number> = {

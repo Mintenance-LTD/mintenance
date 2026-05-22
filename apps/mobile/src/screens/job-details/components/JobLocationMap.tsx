@@ -22,13 +22,36 @@ export const JobLocationMap: React.FC<Props> = ({
   latitude,
   longitude,
 }) => {
+  // Defensive numeric guard: Postgres NUMERIC columns are serialised
+  // by supabase-js as strings, and prior versions of this file passed
+  // them straight through to react-native-maps which crashed the
+  // native Android module. Even after the route was fixed to coerce,
+  // keep this guard so a future regression renders a graceful
+  // "location unavailable" instead of crashing the JobDetails screen.
+  const lat = typeof latitude === 'number' ? latitude : Number(latitude);
+  const lng = typeof longitude === 'number' ? longitude : Number(longitude);
+  const hasValidCoords = Number.isFinite(lat) && Number.isFinite(lng);
+
   const handleGetDirections = () => {
+    if (!hasValidCoords) return;
     const url = Platform.select({
-      ios: `maps:0,0?q=${latitude},${longitude}`,
-      android: `geo:${latitude},${longitude}?q=${latitude},${longitude}(${encodeURIComponent(address)})`,
+      ios: `maps:0,0?q=${lat},${lng}`,
+      android: `geo:${lat},${lng}?q=${lat},${lng}(${encodeURIComponent(address)})`,
     });
     if (url) Linking.openURL(url);
   };
+
+  if (!hasValidCoords) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.header}>
+          <Ionicons name='location' size={18} color={me.brand} />
+          <Text style={styles.title}>Job Location</Text>
+        </View>
+        <Text style={styles.address}>{address}</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -41,8 +64,8 @@ export const JobLocationMap: React.FC<Props> = ({
         <MapView
           style={styles.map}
           initialRegion={{
-            latitude,
-            longitude,
+            latitude: lat,
+            longitude: lng,
             latitudeDelta: 0.008,
             longitudeDelta: 0.008,
           }}
@@ -51,7 +74,7 @@ export const JobLocationMap: React.FC<Props> = ({
           pitchEnabled={false}
           rotateEnabled={false}
         >
-          <Marker coordinate={{ latitude, longitude }} />
+          <Marker coordinate={{ latitude: lat, longitude: lng }} />
         </MapView>
       </View>
       <TouchableOpacity

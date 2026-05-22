@@ -5,7 +5,6 @@ import type { ModalStackParamList } from '../types';
 // Import existing screens
 import ServiceRequestScreen from '../../screens/ServiceRequestScreen';
 import { ContractorProfileScreen } from '../../screens/contractor-profile';
-import { EnhancedHomeScreen } from '../../screens/enhanced-home';
 import { PaymentMethodsScreen as PaymentMethodsScreenRefactored } from '../../screens/payment-methods';
 import { CreateQuoteScreen } from '../../screens/create-quote';
 import { QuickQuoteScreen } from '../../screens/quick-quote/QuickQuoteScreen';
@@ -60,12 +59,6 @@ const SafeMeetingDetailsScreen = withScreenErrorBoundary(
 const SafeContractorProfileScreen = withScreenErrorBoundary(
   ContractorProfileScreen,
   'Contractor Profile',
-  { fallbackRoute: 'Main' }
-);
-
-const SafeEnhancedHomeScreen = withScreenErrorBoundary(
-  EnhancedHomeScreen,
-  'Enhanced Home',
   { fallbackRoute: 'Main' }
 );
 
@@ -171,14 +164,14 @@ const ModalNavigator: React.FC = () => {
         })}
       />
 
-      <ModalStack.Screen
-        name='EnhancedHome'
-        component={SafeEnhancedHomeScreen}
-        options={{
-          title: 'Home',
-          gestureEnabled: true,
-        }}
-      />
+      {/* 2026-05-22 audit F2: removed `EnhancedHome` modal registration.
+          The screen was an orphan — its EnhancedHomeViewModel returns
+          100% hardcoded `specialOffers` / `services` / `topContractors`
+          arrays and a mock `"New York, USA"` location, and no code path
+          calls `navigation.navigate('EnhancedHome')` anywhere. Keeping
+          it registered as a reachable modal route created risk that a
+          deep link or future caller would surface the fake data to a
+          real user. Re-add when the screen is wired to real APIs. */}
 
       <ModalStack.Screen
         name='Notifications'

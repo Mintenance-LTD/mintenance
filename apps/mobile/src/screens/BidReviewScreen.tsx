@@ -382,7 +382,20 @@ export const BidReviewScreen: React.FC = () => {
             },
             {
               label: 'Top Rating',
-              value: `${Math.max(...bids.map((b) => b.contractor?.rating ?? 0)).toFixed(1)}★`,
+              // 2026-05-22 audit M4: contractor rating may arrive from
+              // the API as a string (Postgres NUMERIC). `Math.max(...,
+              // <string>)` coerces to NaN, then `.toFixed(1)` returns
+              // "NaN★". Coerce per-row before the max.
+              value: (() => {
+                const ratings = bids.map((b) => {
+                  const r = b.contractor?.rating;
+                  if (r == null) return 0;
+                  const n = typeof r === 'number' ? r : Number(r);
+                  return Number.isFinite(n) ? n : 0;
+                });
+                const top = ratings.length > 0 ? Math.max(...ratings) : 0;
+                return `${top.toFixed(1)}★`;
+              })(),
               iconColor: me.accent,
               iconBg: me.warnBg,
               icon: 'star-outline' as const,

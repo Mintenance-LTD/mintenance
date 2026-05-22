@@ -275,7 +275,9 @@ export type ModalStackParamList = {
     /** Required when `source === 'bidReview'`. */
     bidId?: string;
   };
-  EnhancedHome: undefined;
+  // EnhancedHome removed 2026-05-22 (audit F2) — orphan stub screen
+  // with 100% hardcoded data. Re-add when the underlying view model
+  // is wired to real APIs.
   Notifications: undefined;
   AIAssessment: undefined;
   AISearch: undefined;

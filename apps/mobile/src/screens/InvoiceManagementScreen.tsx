@@ -124,13 +124,20 @@ export const InvoiceManagementScreen: React.FC<{ navigation: Nav }> = ({
     () => invoices.filter((i) => matchesFilter(i.status, filter)),
     [invoices, filter]
   );
-  const unpaidTotal = useMemo(
-    () =>
-      invoices
-        .filter((i) => i.status === 'sent' || i.status === 'overdue')
-        .reduce((s, i) => s + i.total_amount, 0),
-    [invoices]
-  );
+  const unpaidTotal = useMemo(() => {
+    // 2026-05-22 audit C3: invoices.total_amount is Postgres NUMERIC,
+    // serialised as a string by supabase-js. `s + i.total_amount`
+    // with a string operand silently concatenates instead of summing,
+    // producing a wrong "£0.00 unpaid" KPI. Coerce per-row.
+    const toNum = (v: unknown): number => {
+      if (v == null) return 0;
+      const n = typeof v === 'number' ? v : Number(v);
+      return Number.isFinite(n) ? n : 0;
+    };
+    return invoices
+      .filter((i) => i.status === 'sent' || i.status === 'overdue')
+      .reduce((s, i) => s + toNum(i.total_amount), 0);
+  }, [invoices]);
 
   const markPaid = useCallback(
     (inv: Invoice) => {

@@ -1,9 +1,22 @@
+/**
+ * LoginScreen — Mint Editorial v2 redesign (2026-05-22).
+ *
+ * Implements the mobile sign-in frame from
+ * `.design-bundle/.../redesign-v2/auth.html` (MSignIn).
+ *
+ *   - Back chevron, no chunky gradient header.
+ *   - "Welcome back" in the Mint Editorial display face.
+ *   - Email + password inputs, Forgot? link aligned right on the
+ *     password row.
+ *   - Remember email opt-in (P1 from the 2026-04-30 audit, preserved).
+ *   - Primary mint Sign in button + footer "New here? Sign up →".
+ */
+
 import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
-  Image,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
@@ -12,9 +25,8 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { FadeIn, SlideIn } from '../components/animations/primitives';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import type {
   NativeStackNavigationProp,
   NativeStackScreenProps,
@@ -45,9 +57,6 @@ type LoginScreenNavigationProp = NativeStackNavigationProp<
   'Login'
 >;
 
-// Phase 1.2 — EmailVerificationPendingScreen may hand off a `{ email }`
-// param so the user doesn't re-type their address. All other entries
-// (deep links, tab resets, etc.) pass no params.
 type LoginScreenProps = NativeStackScreenProps<AuthStackParamList, 'Login'>;
 
 interface Props {
@@ -55,21 +64,9 @@ interface Props {
   route?: LoginScreenProps['route'];
 }
 
-const TRUST_ITEMS = [
-  { icon: 'shield-checkmark-outline' as const, label: 'Secure' },
-  { icon: 'checkmark-circle-outline' as const, label: 'Verified' },
-  { icon: 'people-outline' as const, label: 'Trusted' },
-];
-
 const LoginScreen: React.FC<Props> = ({ navigation, route }) => {
-  // SECURITY: prevent screenshots / screen recording while the password
-  // field is on-screen. See apps/mobile/src/hooks/useScreenCaptureGuard.ts.
   useScreenCaptureGuard();
 
-  const insets = useSafeAreaInsets();
-  // Pre-fill email when redirected from EmailVerificationPendingScreen.
-  // Falls back to '' for every other entry; the "Remember email" effect
-  // below may then fill it from AsyncStorage if the user opted in.
   const [email, setEmail] = useState(route?.params?.email ?? '');
   const [password, setPassword] = useState('');
   const [passwordVisible, setPasswordVisible] = useState(false);
@@ -77,8 +74,6 @@ const LoginScreen: React.FC<Props> = ({ navigation, route }) => {
   const [rememberEmail, setRememberEmail] = useState(false);
   const { signIn, loading } = useAuth();
 
-  // Load the remembered email + opt-in flag on mount. Best-effort —
-  // if AsyncStorage throws we just leave the form empty.
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -106,12 +101,11 @@ const LoginScreen: React.FC<Props> = ({ navigation, route }) => {
 
   const isDev = __DEV__ || process.env.NODE_ENV === 'development';
 
-  const headerTitleText = useAccessibleText(28);
-  const buttonText = useAccessibleText(18);
+  const buttonText = useAccessibleText(15);
   const linkText = useAccessibleText(14);
 
   const haptics = useHaptics();
-  const { t, auth, common, getErrorMessage } = useI18n();
+  const { t, auth, getErrorMessage } = useI18n();
 
   const handleLogin = async () => {
     haptics.buttonPress();
@@ -131,8 +125,6 @@ const LoginScreen: React.FC<Props> = ({ navigation, route }) => {
       haptics.formSubmit();
       await signIn(email, password);
       haptics.loginSuccess();
-      // Persist (or clear) the remembered email AFTER a confirmed
-      // successful sign-in so a typo or wrong account never gets saved.
       try {
         if (rememberEmail) {
           await AsyncStorage.multiSet([
@@ -161,53 +153,14 @@ const LoginScreen: React.FC<Props> = ({ navigation, route }) => {
     }
   };
 
+  const handleBack = () => {
+    if (navigation.canGoBack()) navigation.goBack();
+  };
+
   return (
-    <View style={styles.safeArea}>
-      <StatusBar style='light' />
+    <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <StatusBar style='dark' />
       <View style={styles.container} testID='login-screen'>
-        <FadeIn duration={500}>
-          <LinearGradient
-            colors={[me.brand2, me.brand]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={[styles.header, { paddingTop: insets.top + 24 }]}
-          >
-            {/* Decorative circles */}
-            <View style={styles.decorCircle1} />
-            <View style={styles.decorCircle2} />
-            <View style={styles.headerContent}>
-              <Image
-                source={require('../../assets/icon.png')}
-                style={styles.headerLogo}
-                resizeMode='contain'
-                accessible={false}
-              />
-              <Text
-                style={[styles.headerTitle, headerTitleText.textStyle]}
-                accessibilityRole='header'
-              >
-                Mintenance
-              </Text>
-            </View>
-            <Text style={styles.headerSubtitle} accessibilityRole='text'>
-              {String(t('auth.tagline'))}
-            </Text>
-
-            <View style={styles.trustRow}>
-              {TRUST_ITEMS.map((item) => (
-                <View key={item.label} style={styles.trustPill}>
-                  <Ionicons
-                    name={item.icon}
-                    size={13}
-                    color='rgba(255,255,255,0.9)'
-                  />
-                  <Text style={styles.trustText}>{item.label}</Text>
-                </View>
-              ))}
-            </View>
-          </LinearGradient>
-        </FadeIn>
-
         <KeyboardAvoidingView
           style={styles.keyboardContainer}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -217,25 +170,44 @@ const LoginScreen: React.FC<Props> = ({ navigation, route }) => {
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps='handled'
           >
-            <SlideIn direction='up' distance={20} duration={400} delay={200}>
+            <FadeIn duration={400}>
+              <View style={styles.headerRow}>
+                <TouchableOpacity
+                  onPress={handleBack}
+                  style={styles.backButton}
+                  accessibilityRole='button'
+                  accessibilityLabel='Go back'
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                >
+                  <Ionicons name='chevron-back' size={20} color={me.ink2} />
+                  <Text style={styles.backLabel}>Back</Text>
+                </TouchableOpacity>
+                <View style={styles.brandMark}>
+                  <Ionicons name='leaf' size={16} color={me.onBrand} />
+                </View>
+              </View>
+            </FadeIn>
+
+            <SlideIn direction='up' distance={20} duration={400} delay={120}>
               <View style={styles.formHeading}>
-                <Text style={styles.formSectionLabel}>ACCOUNT ACCESS</Text>
-                <Text style={styles.formTitle}>
-                  {String(t('auth.signInTitle'))}
+                <Text style={styles.formTitle} accessibilityRole='header'>
+                  Welcome back
                 </Text>
                 <Text style={styles.formSubtitle}>
-                  {String(t('auth.signInSubtitle'))}
+                  Sign in to manage jobs, bids and properties.
                 </Text>
               </View>
             </SlideIn>
 
             {errorMessage ? (
-              <Banner
-                mint
-                message={errorMessage}
-                variant='error'
-                testID='login-error-banner'
-              />
+              <View style={styles.bannerWrap}>
+                <Banner
+                  mint
+                  message={errorMessage}
+                  variant='error'
+                  testID='login-error-banner'
+                />
+              </View>
             ) : null}
 
             <View style={styles.formContainer}>
@@ -243,7 +215,7 @@ const LoginScreen: React.FC<Props> = ({ navigation, route }) => {
                 mint
                 testID='email-input'
                 label={String(auth.email())}
-                placeholder={String(auth.email())}
+                placeholder='you@home.uk'
                 value={email}
                 onChangeText={(value) => {
                   setEmail(value);
@@ -264,14 +236,31 @@ const LoginScreen: React.FC<Props> = ({ navigation, route }) => {
                 size='lg'
                 fullWidth
                 required
-                containerStyle={{ marginBottom: 16 }}
+                containerStyle={{ marginBottom: 12 }}
               />
+
+              <View style={styles.passwordLabelRow}>
+                <Text style={styles.fieldLabel}>{String(auth.password())}</Text>
+                <TouchableOpacity
+                  style={styles.forgotPasswordLink}
+                  onPress={() => {
+                    haptics.buttonPress();
+                    navigation.navigate('ForgotPassword');
+                  }}
+                  accessibilityRole='button'
+                  accessibilityLabel={String(auth.forgotPassword())}
+                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                >
+                  <Text style={[styles.forgotPasswordText, linkText.textStyle]}>
+                    Forgot?
+                  </Text>
+                </TouchableOpacity>
+              </View>
 
               <Input
                 mint
                 testID='password-input'
-                label={String(auth.password())}
-                placeholder={String(auth.password())}
+                placeholder='••••••••'
                 value={password}
                 onChangeText={(value) => {
                   setPassword(value);
@@ -294,55 +283,30 @@ const LoginScreen: React.FC<Props> = ({ navigation, route }) => {
                 required
               />
 
-              {/* Remember email row + Forgot password link.
-                  2026-04-30 audit P1: explicit opt-in toggle. Saves only
-                  the email (never the password). Toggling off + signing
-                  in clears any previously saved value. */}
-              <View style={styles.rememberRow}>
-                <TouchableOpacity
-                  style={styles.rememberToggle}
-                  onPress={() => {
-                    haptics.selection();
-                    setRememberEmail((prev) => !prev);
-                  }}
-                  accessibilityRole='checkbox'
-                  accessibilityState={{ checked: rememberEmail }}
-                  accessibilityLabel='Remember email'
-                  accessibilityHint='When enabled, your email address is saved for next time. Your password is never saved.'
-                  testID='remember-email-toggle'
+              <TouchableOpacity
+                style={styles.rememberToggle}
+                onPress={() => {
+                  haptics.selection();
+                  setRememberEmail((prev) => !prev);
+                }}
+                accessibilityRole='checkbox'
+                accessibilityState={{ checked: rememberEmail }}
+                accessibilityLabel='Remember email'
+                accessibilityHint='When enabled, your email address is saved for next time. Your password is never saved.'
+                testID='remember-email-toggle'
+              >
+                <View
+                  style={[
+                    styles.rememberCheckbox,
+                    rememberEmail && styles.rememberCheckboxChecked,
+                  ]}
                 >
-                  <View
-                    style={[
-                      styles.rememberCheckbox,
-                      rememberEmail && styles.rememberCheckboxChecked,
-                    ]}
-                  >
-                    {rememberEmail ? (
-                      <Ionicons name='checkmark' size={14} color={me.onBrand} />
-                    ) : null}
-                  </View>
-                  <Text style={styles.rememberLabel}>Remember email</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.forgotPasswordLink}
-                  onPress={() => {
-                    haptics.buttonPress();
-                    navigation.navigate('ForgotPassword');
-                  }}
-                  accessibilityRole='button'
-                  accessibilityLabel={String(auth.forgotPassword())}
-                  accessibilityHint={String(
-                    t('auth.forgotPasswordHint', {
-                      defaultValue: 'Double tap to reset your password',
-                    })
-                  )}
-                >
-                  <Text style={[styles.forgotPasswordText, linkText.textStyle]}>
-                    {String(auth.forgotPassword())}
-                  </Text>
-                </TouchableOpacity>
-              </View>
+                  {rememberEmail ? (
+                    <Ionicons name='checkmark' size={14} color={me.onBrand} />
+                  ) : null}
+                </View>
+                <Text style={styles.rememberLabel}>Keep me signed in</Text>
+              </TouchableOpacity>
 
               <Button
                 mint
@@ -357,42 +321,26 @@ const LoginScreen: React.FC<Props> = ({ navigation, route }) => {
                   loading ? String(t('auth.loggingIn')) : String(auth.login())
                 }
                 fullWidth
-                style={{ marginTop: 8 }}
+                style={{ marginTop: 16 }}
                 textStyle={
                   buttonText.textStyle as import('react-native').TextStyle
                 }
               />
             </View>
 
-            <View style={styles.dividerSection}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>
-                {String(t('auth.newToMintenance'))}
-              </Text>
-              <View style={styles.dividerLine} />
-            </View>
-
-            <View style={{ paddingHorizontal: 24 }}>
-              <Button
-                mint
-                variant='secondary'
-                title={String(t('auth.createAccount'))}
+            <View style={styles.footerRow}>
+              <Text style={styles.footerLabel}>New here?</Text>
+              <TouchableOpacity
                 onPress={() => {
                   haptics.buttonPress();
                   navigation.navigate('Register');
                 }}
-                accessibilityLabel={String(
-                  t('auth.signUpForAccount', {
-                    defaultValue: 'Sign up for new account',
-                  })
-                )}
-                accessibilityHint={String(
-                  t('auth.signUpHint', {
-                    defaultValue: 'Double tap to create a new account',
-                  })
-                )}
-                fullWidth
-              />
+                accessibilityRole='button'
+                accessibilityLabel={String(t('auth.createAccount'))}
+                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+              >
+                <Text style={styles.footerLink}>Sign up →</Text>
+              </TouchableOpacity>
             </View>
 
             {isDev && (
@@ -407,143 +355,106 @@ const LoginScreen: React.FC<Props> = ({ navigation, route }) => {
           </ScrollView>
         </KeyboardAvoidingView>
       </View>
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: me.brand2,
+    backgroundColor: me.bg,
   },
   container: {
     flex: 1,
     backgroundColor: me.bg,
-  },
-  header: {
-    paddingBottom: 32,
-    paddingHorizontal: 24,
-    alignItems: 'center',
-    borderBottomLeftRadius: 28,
-    borderBottomRightRadius: 28,
-    overflow: 'hidden',
-  },
-  decorCircle1: {
-    position: 'absolute',
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    top: -60,
-    right: -40,
-  },
-  decorCircle2: {
-    position: 'absolute',
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    bottom: -30,
-    left: -30,
-  },
-  headerContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  headerLogo: {
-    width: 40,
-    height: 40,
-    marginRight: 12,
-    borderRadius: 12,
-  },
-  headerTitle: {
-    fontFamily: me.font.display,
-    color: me.onBrand,
-    letterSpacing: me.displayTracking,
-  },
-  headerSubtitle: {
-    fontSize: 15,
-    color: 'rgba(255,255,255,0.85)',
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  trustRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  trustPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    gap: 4,
-  },
-  trustText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: 'rgba(255,255,255,0.9)',
   },
   keyboardContainer: {
     flex: 1,
   },
   scrollContainer: {
     flexGrow: 1,
-    backgroundColor: me.bg,
-    paddingTop: 20,
-    paddingBottom: 24,
+    paddingHorizontal: 22,
+    paddingTop: 8,
+    paddingBottom: 32,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 8,
+    marginBottom: 16,
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    paddingVertical: 6,
+    paddingRight: 8,
+  },
+  backLabel: {
+    fontSize: 14,
+    color: me.ink2,
+    fontWeight: '500',
+  },
+  brandMark: {
+    width: 32,
+    height: 32,
+    borderRadius: 9,
+    backgroundColor: me.brand,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   formHeading: {
-    paddingHorizontal: 24,
-    marginBottom: 20,
-  },
-  formSectionLabel: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: me.brand,
-    textTransform: 'uppercase',
-    letterSpacing: 1.2,
-    marginBottom: 6,
+    marginBottom: 22,
   },
   formTitle: {
     fontFamily: me.font.display,
-    fontSize: 30,
+    fontSize: 36,
+    lineHeight: 40,
     color: me.ink,
     marginBottom: 4,
     letterSpacing: me.displayTracking,
   },
   formSubtitle: {
-    fontSize: 15,
+    fontSize: 14,
     color: me.ink2,
+    lineHeight: 20,
+  },
+  bannerWrap: {
+    marginBottom: 12,
   },
   formContainer: {
-    paddingHorizontal: 24,
-    backgroundColor: me.surface,
-    borderRadius: me.radius.card,
-    marginHorizontal: 16,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: me.line,
+    backgroundColor: 'transparent',
   },
-  rememberRow: {
+  passwordLabelRow: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 8,
-    marginBottom: 8,
-    flexWrap: 'wrap',
-    gap: 8,
+    alignItems: 'center',
+    marginBottom: 6,
+    marginTop: 4,
+  },
+  fieldLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: me.ink2,
+  },
+  forgotPasswordLink: {
+    paddingVertical: 2,
+  },
+  forgotPasswordText: {
+    color: me.brand,
+    fontWeight: '600',
+    fontSize: 12,
   },
   rememberToggle: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: 12,
+    marginTop: 4,
   },
   rememberCheckbox: {
-    width: 22,
-    height: 22,
+    width: 20,
+    height: 20,
     borderRadius: 6,
     borderWidth: 1.5,
     borderColor: me.line,
@@ -557,38 +468,28 @@ const styles = StyleSheet.create({
     borderColor: me.brand,
   },
   rememberLabel: {
-    fontSize: 14,
+    fontSize: 13,
     color: me.ink2,
     fontWeight: '500',
   },
-  forgotPasswordLink: {
-    paddingVertical: 8,
-  },
-  forgotPasswordText: {
-    color: me.brand,
-    fontWeight: '600',
-  },
-  dividerSection: {
+  footerRow: {
     flexDirection: 'row',
+    justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    marginTop: 16,
-    marginBottom: 12,
+    gap: 6,
+    marginTop: 22,
   },
-  dividerLine: {
-    flex: 1,
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: me.line,
-  },
-  dividerText: {
-    marginHorizontal: 12,
+  footerLabel: {
     fontSize: 13,
-    color: me.ink3,
-    fontWeight: '500',
+    color: me.ink2,
+  },
+  footerLink: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: me.brand,
   },
   devSection: {
-    marginTop: 16,
-    marginHorizontal: 24,
+    marginTop: 24,
     padding: 12,
     backgroundColor: me.bg2,
     borderRadius: me.radius.card,

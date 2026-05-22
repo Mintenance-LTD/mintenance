@@ -102,7 +102,15 @@ export const PropertyDetailScreen: React.FC<Props> = ({
   const activeJobs = propertyJobs.filter(
     (j) => j.status === 'in_progress' || j.status === 'assigned'
   );
-  const totalSpent = completedJobs.reduce((sum, j) => sum + (j.budget || 0), 0);
+  // 2026-05-22 audit C5: jobs.budget is Postgres NUMERIC, serialised
+  // as a string by supabase-js. `sum + (j.budget || 0)` with a string
+  // budget silently concatenates and the "Total Spent" tile renders
+  // garbage like "0100.00150.00". Coerce defensively.
+  const totalSpent = completedJobs.reduce((sum, j) => {
+    const raw = j.budget ?? 0;
+    const n = typeof raw === 'number' ? raw : Number(raw);
+    return sum + (Number.isFinite(n) ? n : 0);
+  }, 0);
 
   const deleteMutation = useMutation({
     mutationFn: async () => {
