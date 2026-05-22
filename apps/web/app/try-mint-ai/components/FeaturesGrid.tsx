@@ -310,7 +310,7 @@ export function FeaturesGrid() {
                     className='text-sm'
                     style={{ color: 'var(--me-brand-soft)' }}
                   >
-                    Continuously trained on verified assessments
+                    Backed by image-recognition models and UK property data
                   </p>
                 </div>
               </div>

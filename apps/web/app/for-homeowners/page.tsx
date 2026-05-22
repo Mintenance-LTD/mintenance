@@ -18,13 +18,13 @@ import {
 export const metadata: Metadata = {
   title: 'For Homeowners - Your Property, Protected | Mintenance',
   description:
-    'Post a job in 60 seconds. Get AI-powered damage assessments, compare verified contractor bids, and pay securely with Protected Payment. Your money is held until you approve the work.',
+    'Post a job in 60 seconds. Get AI-assisted damage assessments, compare bids from local contractors, and pay securely with Protected Payment. Your money is held in escrow until you approve the work.',
   keywords:
-    'homeowner maintenance, property repair, find contractor UK, protected payment, AI building assessment, verified tradespeople',
+    'homeowner maintenance, property repair, find contractor UK, protected payment, AI building assessment, local tradespeople',
   openGraph: {
     title: 'For Homeowners - Your Property, Protected | Mintenance',
     description:
-      'AI damage assessments, verified contractors, Protected Payment. Post a job in 60 seconds.',
+      'AI damage assessments, local contractors, Protected Payment. Post a job in 60 seconds.',
     type: 'website',
   },
 };
@@ -34,7 +34,7 @@ const FEATURES: MarketingFeature[] = [
     icon: Search,
     title: 'Post a Job in Seconds',
     description:
-      'Describe what needs fixing, pick your property, set your budget. Verified contractors in your area get notified instantly.',
+      'Describe what needs fixing, pick your property, set your budget. Local contractors in your area get notified instantly.',
     screenshot: '/screenshots/homeowner/dashboard.png',
     screenshotAlt: 'Homeowner dashboard with job posting search bar',
     mobileScreenshot: '/screenshots/mobile/homeowner-dashboard.png',
@@ -55,7 +55,7 @@ const FEATURES: MarketingFeature[] = [
     icon: CheckCircle,
     title: 'Compare & Choose',
     description:
-      "Review bids from verified contractors. See their ratings, completed jobs, company details, and portfolio. Accept the best offer \u2014 your money stays protected until you're happy.",
+      "Review bids from local contractors. See their ratings, completed jobs, company details, and portfolio. Accept the best offer \u2014 your money stays protected in escrow until you're happy.",
     screenshot: '/screenshots/homeowner/bids-received.png',
     screenshotAlt:
       'Job detail page showing bids received with contractor profiles',
@@ -101,9 +101,9 @@ const TRUST_POINTS: MarketingTrustPoint[] = [
   },
   {
     icon: CheckCircle,
-    title: 'Verified Contractors Only',
+    title: 'Reviewed Before They Bid',
     description:
-      'Every contractor goes through identity verification, DBS checks, and insurance validation before appearing on the platform.',
+      'Contractors share their business details, declared licences and insurance during onboarding. Our admin team reviews each submission manually before they can bid on jobs, and an optional DBS check is available on each profile.',
   },
 ];
 
@@ -118,7 +118,7 @@ const HOW_IT_WORKS_STEPS = [
     step: '2',
     icon: Search,
     title: 'Get Matched',
-    desc: 'Verified contractors in your area bid on your job.',
+    desc: 'Local contractors in your area bid on your job.',
   },
   {
     step: '3',
@@ -174,7 +174,7 @@ export default function ForHomeownersPage() {
         title: 'Your Property.',
         highlightedWord: 'Protected.',
         description:
-          'Post a maintenance job, get AI-powered damage assessments, compare verified contractor bids, and pay securely with Protected Payment. You stay in control from first quote to final sign-off.',
+          'Post a maintenance job, get AI-assisted damage assessments, compare bids from local contractors, and pay securely with Protected Payment. You stay in control from first quote to final sign-off.',
         primaryCTA: { label: 'Get Started Free', href: '/register' },
         secondaryCTA: { label: 'How It Works', href: '/how-it-works' },
         desktopScreenshot: {

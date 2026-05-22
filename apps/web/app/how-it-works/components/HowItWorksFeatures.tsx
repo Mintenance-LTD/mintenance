@@ -20,8 +20,9 @@ const features = [
     icon: Shield,
   },
   {
-    title: 'Verified Contractors',
-    description: 'All professionals are background-checked and certified',
+    title: 'Reviewed at onboarding',
+    description:
+      'Each contractor’s business details, licences and insurance are reviewed by our team before they can bid',
     icon: CheckCircle,
   },
   {

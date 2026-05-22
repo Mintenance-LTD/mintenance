@@ -30,9 +30,9 @@ const inter = Inter({
 // import { PerformanceDashboard } from '../components/PerformanceDashboard' // Temporarily disabled for testing
 
 export const metadata = {
-  title: 'Mintenance - Find Verified Tradespeople For Home Projects',
+  title: 'Mintenance — Hire Local Tradespeople For Home Projects',
   description:
-    'Connect with verified tradespeople, compare quotes, and manage home maintenance projects with protected payments.',
+    'Connect with local tradespeople, compare quotes, and manage home maintenance projects with escrow-protected payments.',
   icons: {
     icon: '/assets/favicon.png',
     apple: '/assets/icon.png',

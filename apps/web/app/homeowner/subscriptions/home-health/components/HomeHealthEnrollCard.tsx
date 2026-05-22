@@ -39,7 +39,7 @@ const HOME_HEALTH_BENEFITS = [
   'Annual boiler service (Gas Safe)',
   'Smoke-alarm check (twice a year)',
   'Gutter clean & roof inspection (twice a year)',
-  'Verified contractors only',
+  'Local contractors reviewed by our team',
   'Cancel any time',
 ];
 

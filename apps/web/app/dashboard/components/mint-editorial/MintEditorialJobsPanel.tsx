@@ -139,8 +139,8 @@ export function MintEditorialJobsPanel({
           }}
         >
           <p className='t-body' style={{ marginBottom: 12 }}>
-            Nothing posted yet. Start with a job and verified tradespeople will
-            respond within 24-48h.
+            Nothing posted yet. Start with a job and local tradespeople will
+            typically respond within 24–48h.
           </p>
           <Link href='/jobs/create' className='btn btn-primary'>
             <Plus size={14} strokeWidth={2} /> Post your first job

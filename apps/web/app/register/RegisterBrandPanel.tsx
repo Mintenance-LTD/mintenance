@@ -140,7 +140,7 @@ export function RegisterBrandPanel() {
         }}
       >
         {[
-          'Post jobs and hire verified tradespeople',
+          'Post jobs and hire local tradespeople on the platform',
           'List your own services and bid for work',
           'Switch between hiring and trading any time',
         ].map((line) => (

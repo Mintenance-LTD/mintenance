@@ -486,6 +486,11 @@ const KNOWN_LARGE_FILES = new Set([
   'apps/web/app/jobs/create/components/SmartJobAnalysis.tsx', // 663
   'apps/web/app/jobs/components/JobCard2025.tsx', // 649
   'apps/web/app/dashboard/components/AirbnbSearchBar.tsx', // 570
+  // Pre-existing >500-LOC file touched only by the false-marketing-claims
+  // scrub (2026-05-21). The file rendered the /contractors directory hero
+  // with fabricated stat badges (100% Verified Professionals etc.) which
+  // were replaced with verifiable platform behaviours; the split is a P2.
+  'apps/web/app/contractors/components/ContractorsBrowseProfessional.tsx', // 606 (was 601)
 ]);
 
 function countLines(filePath) {
