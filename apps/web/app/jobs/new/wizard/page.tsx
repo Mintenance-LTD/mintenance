@@ -10,7 +10,10 @@
  * Steps:
  *  1. What — title + category
  *  2. Where — location (postcode/address)
- *  3. When — budget + "contractor takes before-photos on arrival" opt-in
+ *  3. When — urgency + "contractor takes before-photos on arrival" opt-in
+ *
+ * 2026-05-22: budget input removed from Step 3. Contractors set their
+ * own price with a required justification on each bid.
  *
  * Submits to the existing POST /api/jobs. No new server code.
  */
@@ -20,7 +23,11 @@ import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { ArrowRight, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { useSilverMode, silverFontSize } from '@/lib/hooks/useSilverMode';
-import { validateJobDraft, type JobCategory } from '@mintenance/api-contracts';
+import {
+  validateJobDraft,
+  type JobCategory,
+  type Urgency,
+} from '@mintenance/api-contracts';
 
 const CATEGORIES = [
   { value: 'handyman', label: 'Handyman' },
@@ -45,7 +52,7 @@ export default function PostJobWizardPage() {
   const [category, setCategory] = useState('handyman');
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
-  const [budget, setBudget] = useState('');
+  const [urgency, setUrgency] = useState<Urgency>('medium');
   const [contractorBeforePhotos, setContractorBeforePhotos] = useState(false);
 
   const body = silverFontSize(16, silverMode);
@@ -54,23 +61,19 @@ export default function PostJobWizardPage() {
   const canNext =
     (step === 0 && title.trim().length >= 5) ||
     (step === 1 && location.trim().length >= 3) ||
-    (step === 2 && /^\d+(\.\d+)?$/.test(budget));
+    step === 2;
 
   const submit = async () => {
     setSubmitting(true);
     try {
       // 2026-05-01 audit P1 close-out (per-screen validateJobDraft adoption):
       // run the canonical schema before posting so the user sees the same
-      // error message the route would have rejected with. The wizard's
-      // `canNext` check only enforces title >= 5 / location >= 3 / budget
-      // is a number — but description has no inline UI so the silver-mode
-      // user might submit with description undefined and hit a confusing
-      // 400. Validating here surfaces the issue pre-flight.
+      // error message the route would have rejected with.
       const draftResult = validateJobDraft({
         title,
         description,
         location,
-        budget: Number(budget),
+        urgency,
         category: category as JobCategory | undefined,
         requirements: {
           contractor_before_photos: contractorBeforePhotos,
@@ -183,22 +186,51 @@ export default function PostJobWizardPage() {
 
         {step === 2 && (
           <div className='space-y-5'>
-            <label className='block'>
-              <span className='font-semibold text-gray-900'>Budget (£)</span>
-              <input
-                type='number'
-                autoFocus
-                inputMode='decimal'
-                value={budget}
-                onChange={(e) => setBudget(e.target.value)}
-                placeholder='e.g. 150'
-                className='mt-2 w-full border border-gray-300 rounded-lg px-4 py-3'
-                style={{ minHeight: silverMode ? 56 : 44 }}
-              />
-              <p className='text-xs text-gray-500 mt-2'>
-                Contractors can bid higher or lower. You choose which to accept.
+            <div>
+              <span className='font-semibold text-gray-900 block'>
+                When do you need this done?
+              </span>
+              <div className='mt-3 grid grid-cols-2 gap-2'>
+                {(
+                  [
+                    { value: 'low', label: 'Flexible', sub: '2-4 weeks' },
+                    { value: 'medium', label: 'Soon', sub: '1-2 weeks' },
+                    { value: 'high', label: 'Urgent', sub: '3-5 days' },
+                    {
+                      value: 'emergency',
+                      label: 'Emergency',
+                      sub: '24 hours',
+                    },
+                  ] as const
+                ).map((opt) => {
+                  const active = urgency === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      type='button'
+                      onClick={() => setUrgency(opt.value)}
+                      className={`p-3 rounded-xl border text-left ${
+                        active
+                          ? 'border-teal-600 bg-teal-50'
+                          : 'border-gray-300 bg-white'
+                      }`}
+                      style={{ minHeight: silverMode ? 60 : 48 }}
+                    >
+                      <div className='font-semibold text-gray-900'>
+                        {opt.label}
+                      </div>
+                      <div className='text-xs text-gray-500 mt-0.5'>
+                        {opt.sub}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+              <p className='text-xs text-gray-500 mt-3'>
+                Contractors will bid their own price — you choose which bid
+                suits you best.
               </p>
-            </label>
+            </div>
             <label className='flex items-start gap-3 p-4 rounded-xl bg-teal-50 border border-teal-200 cursor-pointer'>
               <input
                 type='checkbox'

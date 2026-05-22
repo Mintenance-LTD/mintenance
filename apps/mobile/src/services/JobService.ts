@@ -16,7 +16,9 @@ export class JobService {
     title: string;
     description: string;
     location: string;
-    budget: number;
+    // 2026-05-22: budget is now optional. Contractors price each bid
+    // themselves and the homeowner picks from the bids.
+    budget?: number;
     homeownerId?: string;
     homeowner_id?: string;
     category?: string;

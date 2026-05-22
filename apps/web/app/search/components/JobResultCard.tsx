@@ -71,15 +71,7 @@ export function JobResultCard({ job, onClick }: JobResultCardProps) {
             {view.location || 'Not specified'} &bull; {view.category}
           </p>
         </div>
-        <div
-          style={{
-            fontSize: theme.typography.fontSize.xl,
-            fontWeight: theme.typography.fontWeight.bold,
-            color: theme.colors.success,
-          }}
-        >
-          &pound;{view.budget?.toLocaleString()}
-        </div>
+        {/* 2026-05-22: budget hidden — contractors set their own price on each bid. */}
       </div>
 
       <p

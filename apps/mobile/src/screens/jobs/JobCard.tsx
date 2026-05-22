@@ -43,8 +43,6 @@ export const JobCard: React.FC<JobCardProps> = ({
   const locationStr =
     item.city || rawLocation.split(',').slice(-2, -1)[0]?.trim() || rawLocation;
 
-  const budget = item.budget || item.budget_min || 0;
-  const budgetMax = item.budget_max || 0;
   const urgency = item.urgency || item.priority || 'medium';
   const isUrgent = urgency === 'high' || urgency === 'emergency';
   const catKey = item.category?.toLowerCase() || 'general';
@@ -57,19 +55,13 @@ export const JobCard: React.FC<JobCardProps> = ({
   const contractorName = (item as unknown as Record<string, unknown>)
     .contractor_name as string | undefined;
 
-  const formatBudget = (amt: number) => {
-    if (amt >= 1000)
-      return `\u00A3${(amt / 1000).toFixed(amt % 1000 === 0 ? 0 : 1)}k`;
-    return `\u00A3${amt.toLocaleString()}`;
-  };
-
   return (
     <TouchableOpacity
       style={styles.jobCard}
       onPress={onPress}
       activeOpacity={0.9}
       accessibilityRole='button'
-      accessibilityLabel={`${item.title}, ${budget > 0 ? `\u00A3${budget.toLocaleString()}` : 'Budget TBD'}, ${locationStr}`}
+      accessibilityLabel={`${item.title}, ${locationStr}`}
       accessibilityHint='Double tap to view job details'
     >
       {/* Photo hero or category placeholder */}
@@ -147,17 +139,8 @@ export const JobCard: React.FC<JobCardProps> = ({
         </View>
       )}
 
-      {/* Card content -- BUDGET FIRST */}
+      {/* Card content -- TITLE FIRST (budget removed 2026-05-22) */}
       <View style={styles.cardContent}>
-        {/* Budget -- large and prominent */}
-        <Text style={styles.budgetText}>
-          {budget > 0
-            ? budgetMax > 0 && budgetMax !== budget
-              ? `${formatBudget(budget)} \u2013 ${formatBudget(budgetMax)}`
-              : `\u00A3${budget.toLocaleString()}`
-            : 'Budget TBD'}
-        </Text>
-
         {/* Title */}
         <Text style={styles.jobTitle} numberOfLines={1}>
           {item.title}
@@ -279,11 +262,6 @@ export const JobCard: React.FC<JobCardProps> = ({
           >
             <Ionicons name='flash' size={16} color={me.onBrand} />
             <Text style={styles.quickBidText}>Quick Bid</Text>
-            {budget > 0 && (
-              <Text
-                style={styles.quickBidAmount}
-              >{`\u00B7 \u00A3${budget.toLocaleString()}`}</Text>
-            )}
           </TouchableOpacity>
         )}
         {/* Contractor: Bid Sent indicator */}

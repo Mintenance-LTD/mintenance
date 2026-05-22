@@ -53,7 +53,6 @@ export default function QuickJobPage() {
     title: matchingTemplate?.title || '',
     description: matchingTemplate?.description || '',
     category: paramCategory || 'handyman',
-    budget: matchingTemplate?.budget || '100',
     urgency: paramUrgency || 'this_week',
     property_id: paramPropertyId || '',
   });
@@ -130,7 +129,6 @@ export default function QuickJobPage() {
       title: template.title,
       description: template.description,
       category: template.category,
-      budget: template.budget,
     }));
   };
 

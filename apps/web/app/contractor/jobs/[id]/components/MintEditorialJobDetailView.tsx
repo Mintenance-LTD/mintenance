@@ -619,17 +619,12 @@ export function MintEditorialJobDetailView({
             </div>
           ) : null}
 
-          {/* Job info */}
+          {/* Job info — Budget meta removed 2026-05-22; contractors set
+              their own price on each bid. */}
           <div className='card card-pad'>
             <div className='col' style={{ gap: 12 }}>
               <h3 className='t-h3'>Job details</h3>
               <div className='col' style={{ gap: 10 }}>
-                <div className='between'>
-                  <span className='t-meta'>Budget</span>
-                  <span style={{ fontSize: 14, fontWeight: 600 }}>
-                    {formatGbp(budgetNum)}
-                  </span>
-                </div>
                 {job.location ? (
                   <div
                     className='between'

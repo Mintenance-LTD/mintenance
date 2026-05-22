@@ -6,7 +6,8 @@ import { REPAIR_TEMPLATES, type RepairTemplate } from '../theme/templates';
 
 /**
  * Six-card grid of pre-canned repair templates. Selecting a template
- * fills the title/description/budget/category fields.
+ * fills the title/description/category fields. Budget was removed
+ * 2026-05-22 — contractors price each bid themselves.
  * Extracted 2026-05-09 (AUDIT_PUNCH_LIST P2 #44b).
  */
 export function RepairTemplateGrid({
@@ -49,7 +50,7 @@ export function RepairTemplateGrid({
             >
               {template.title}
             </Text>
-            <Text style={styles.templateBudget}>{template.budgetRange}</Text>
+            <Text style={styles.templateBudget}>{template.description}</Text>
           </TouchableOpacity>
         ))}
       </View>

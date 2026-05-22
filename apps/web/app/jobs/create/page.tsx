@@ -236,12 +236,9 @@ export default function CreateJobPage2025() {
         updates.urgency = suggestedUrgency;
       }
 
-      if (assessment.estimatedCost && (!prev.budget || prev.budget === '')) {
-        const { min, max } = assessment.estimatedCost;
-        updates.budget = String(Math.round((min + max) / 2));
-        updates.budget_min = String(Math.round(min));
-        updates.budget_max = String(Math.round(max));
-      }
+      // 2026-05-22: AI cost estimate is shown read-only in BudgetStep
+      // as a homeowner hint — it is no longer written back to the form
+      // state since budget input was removed.
 
       if (Object.keys(updates).length === 0) return prev;
       return { ...prev, ...updates };
@@ -249,11 +246,6 @@ export default function CreateJobPage2025() {
 
     if (suggestedCategory) suggestions.push(suggestedCategory);
     if (suggestedUrgency) suggestions.push(suggestedUrgency);
-    if (assessment.estimatedCost) {
-      suggestions.push(
-        `£${Math.round(assessment.estimatedCost.min)}-£${Math.round(assessment.estimatedCost.max)}`
-      );
-    }
 
     if (suggestions.length > 0) {
       toast.success(`Mint AI suggested: ${suggestions.join(' · ')}`, {
@@ -420,12 +412,9 @@ export default function CreateJobPage2025() {
     formData.description &&
     formData.description.length >= 50
   );
-  const canProceedStep2 = true;
-  const canProceedStep3 = !!(
-    formData.urgency &&
-    formData.budget &&
-    (parseFloat(String(formData.budget)) <= 500 || hasImages)
-  );
+  // Photos are required on every job (2026-05-22).
+  const canProceedStep2 = hasImages;
+  const canProceedStep3 = !!formData.urgency;
 
   const canProceedNext =
     (currentStep === 1 && canProceedStep1) ||

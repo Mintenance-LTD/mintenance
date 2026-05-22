@@ -341,13 +341,8 @@ export const JobCard2025 = React.memo(
                 </div>
               </div>
 
-              {/* Budget */}
-              <div className='text-right flex-shrink-0 pl-2'>
-                <div className='text-lg font-bold text-gray-900 whitespace-nowrap'>
-                  £{Number(job.budget).toLocaleString()}
-                </div>
-                <div className='text-xs text-gray-500'>Budget</div>
-              </div>
+              {/* Budget block removed 2026-05-22 — contractors set
+                  their own price on each bid. */}
             </div>
 
             {/* Description - only show when there's no photo (to keep cards balanced) */}

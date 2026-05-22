@@ -225,23 +225,23 @@ function SmartJobFilters2025({
               role='tablist'
               aria-label='Filter categories'
             >
-              {(['status', 'category', 'budget', 'urgency'] as const).map(
-                (tab) => (
-                  <button
-                    key={tab}
-                    role='tab'
-                    aria-selected={activeTab === tab}
-                    onClick={() => setActiveTab(tab)}
-                    className={`px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 ${
-                      activeTab === tab
-                        ? 'bg-teal-600 text-white shadow-sm'
-                        : 'bg-white text-gray-700 hover:bg-gray-100'
-                    }`}
-                  >
-                    {tab.charAt(0).toUpperCase() + tab.slice(1)}
-                  </button>
-                )
-              )}
+              {/* 2026-05-22: 'budget' tab removed — homeowners no longer
+                  set budgets, so the range filter is moot. */}
+              {(['status', 'category', 'urgency'] as const).map((tab) => (
+                <button
+                  key={tab}
+                  role='tab'
+                  aria-selected={activeTab === tab}
+                  onClick={() => setActiveTab(tab)}
+                  className={`px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-500 ${
+                    activeTab === tab
+                      ? 'bg-teal-600 text-white shadow-sm'
+                      : 'bg-white text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                </button>
+              ))}
             </div>
 
             {/* Filter Content */}
@@ -331,77 +331,7 @@ function SmartJobFilters2025({
                     </div>
                   )}
 
-                  {/* Budget Filter */}
-                  {activeTab === 'budget' && (
-                    <div className='space-y-4'>
-                      <div className='grid grid-cols-2 gap-4'>
-                        <div>
-                          <label className='block text-sm font-medium text-gray-700 mb-2'>
-                            Min Budget
-                          </label>
-                          <div className='relative'>
-                            <span className='absolute left-3 top-1/2 -translate-y-1/2 text-gray-500'>
-                              $
-                            </span>
-                            <input
-                              type='number'
-                              placeholder='0'
-                              value={filters.budgetRange?.min || ''}
-                              onChange={(e) => {
-                                const min = parseInt(e.target.value) || 0;
-                                updateFilters({
-                                  budgetRange: {
-                                    min,
-                                    max: filters.budgetRange?.max || 10000,
-                                  },
-                                });
-                              }}
-                              className='w-full pl-8 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500'
-                            />
-                          </div>
-                        </div>
-                        <div>
-                          <label className='block text-sm font-medium text-gray-700 mb-2'>
-                            Max Budget
-                          </label>
-                          <div className='relative'>
-                            <span className='absolute left-3 top-1/2 -translate-y-1/2 text-gray-500'>
-                              $
-                            </span>
-                            <input
-                              type='number'
-                              placeholder='10000'
-                              value={filters.budgetRange?.max || ''}
-                              onChange={(e) => {
-                                const max = parseInt(e.target.value) || 10000;
-                                updateFilters({
-                                  budgetRange: {
-                                    min: filters.budgetRange?.min || 0,
-                                    max,
-                                  },
-                                });
-                              }}
-                              className='w-full pl-8 pr-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-teal-500 focus:border-teal-500'
-                            />
-                          </div>
-                        </div>
-                      </div>
-                      <div className='flex items-center gap-2 text-sm text-gray-600'>
-                        <svg
-                          className='w-4 h-4'
-                          fill='currentColor'
-                          viewBox='0 0 20 20'
-                        >
-                          <path
-                            fillRule='evenodd'
-                            d='M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z'
-                            clipRule='evenodd'
-                          />
-                        </svg>
-                        Set your preferred budget range
-                      </div>
-                    </div>
-                  )}
+                  {/* Budget filter removed 2026-05-22. */}
 
                   {/* Urgency Filter */}
                   {activeTab === 'urgency' && (

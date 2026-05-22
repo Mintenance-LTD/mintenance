@@ -30,7 +30,6 @@ interface JobPostingFormFieldsProps {
   location: string;
   category: string;
   urgency: 'low' | 'medium' | 'high';
-  budget: string;
   photos: string[];
   buildingAssessment: BuildingAssessment | null;
   aiPricingAnalysis: PricingAnalysis | null;
@@ -55,7 +54,6 @@ export const JobPostingFormFields: React.FC<JobPostingFormFieldsProps> = ({
   location,
   category,
   urgency,
-  budget,
   photos,
   aiPricingAnalysis,
   validationErrors,
@@ -180,36 +178,13 @@ export const JobPostingFormFields: React.FC<JobPostingFormFieldsProps> = ({
           category,
           location: location.trim(),
           urgency,
-          homeownerBudget: budget ? parseFloat(budget) : undefined,
         }}
         onPricingUpdate={onPricingUpdate}
         autoAnalyze={true}
       />
     )}
 
-    <Text style={styles.label}>Your Budget *</Text>
-    <View
-      style={[
-        styles.budgetInputContainer,
-        validationErrors.budget && styles.inputError,
-      ]}
-    >
-      <Text style={styles.currencySymbol}>£</Text>
-      <TextInput
-        testID='job-budget-input'
-        style={styles.budgetInput}
-        placeholder='Enter amount'
-        value={budget}
-        onChangeText={(value) => onFieldChange('budget', value)}
-        keyboardType='numeric'
-        placeholderTextColor={me.ink3}
-      />
-    </View>
-    {validationErrors.budget && (
-      <Text style={styles.errorText}>{validationErrors.budget}</Text>
-    )}
-
-    <Text style={styles.label}>Photos (Optional)</Text>
+    <Text style={styles.label}>Photos *</Text>
     <TouchableOpacity
       testID='add-photo-button'
       style={styles.addPhotoButton}
@@ -249,17 +224,15 @@ export const JobPostingFormFields: React.FC<JobPostingFormFieldsProps> = ({
     {aiPricingAnalysis && (
       <View style={styles.budgetComparisonContainer}>
         <Text style={styles.budgetComparisonText}>
-          Estimated range: £{aiPricingAnalysis.suggestedPrice.min} - £
+          AI estimate: £{aiPricingAnalysis.suggestedPrice.min} - £
           {aiPricingAnalysis.suggestedPrice.max}
+        </Text>
+        <Text style={styles.hintText}>
+          For your reference only. Contractors will quote based on the job — you
+          choose the bid that suits you best.
         </Text>
       </View>
     )}
-
-    <View style={styles.budgetHint}>
-      <Text style={styles.hintText}>
-        See the pricing estimate above for typical budgets in this category
-      </Text>
-    </View>
   </View>
 );
 

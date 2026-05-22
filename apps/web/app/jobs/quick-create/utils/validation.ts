@@ -16,7 +16,6 @@ interface QuickJobFormData {
   title: string;
   description?: string;
   category: string;
-  budget: string | number; // Accept both string (from form) and number (for API)
   urgency: string;
   property_id: string;
 }
@@ -46,10 +45,6 @@ export function validateQuickJob(formData: QuickJobFormData): ValidationErrors {
     description: formData.description || 'Quick job — see title for details.',
     location: 'Quick create — server resolves from property_id',
     category: (formData.category || undefined) as JobCategory | undefined,
-    budget:
-      typeof formData.budget === 'number'
-        ? formData.budget
-        : parseFloat(String(formData.budget)) || undefined,
     urgency: isValidUrgency(formData.urgency) ? formData.urgency : undefined,
     propertyId: formData.property_id || undefined,
   };
@@ -75,9 +70,6 @@ export function validateQuickJob(formData: QuickJobFormData): ValidationErrors {
   }
   if (!formData.category) {
     errors.category = 'Please select a category';
-  }
-  if (!formData.budget || formData.budget === '' || formData.budget === '0') {
-    errors.budget = 'Please select a budget range';
   }
   if (!formData.property_id) {
     errors.property_id = 'Please select a property';

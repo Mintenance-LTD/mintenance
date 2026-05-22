@@ -480,83 +480,16 @@ export const JobCard: React.FC<JobCardProps> = ({
           </div>
         )}
 
-        {/* Budget & Location Grid */}
+        {/* Location (budget removed 2026-05-22 — contractors price the
+            job themselves and the homeowner picks from the bids). */}
         <div
           style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 1fr',
-            gap: theme.spacing[4],
             padding: theme.spacing[4],
             backgroundColor: 'var(--me-bg-2)',
             borderRadius: theme.borderRadius.lg,
             border: '1px solid var(--me-line)',
           }}
         >
-          <div>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: theme.spacing[1],
-                marginBottom: theme.spacing[2],
-              }}
-            >
-              <Icon name='currencyPound' size={16} color='var(--me-ink-2)' />
-              <div
-                style={{
-                  fontSize: theme.typography.fontSize.sm,
-                  color: 'var(--me-ink-3)',
-                  fontWeight: theme.typography.fontWeight.medium,
-                }}
-              >
-                Budget
-              </div>
-            </div>
-            <div
-              style={{
-                fontSize: theme.typography.fontSize['2xl'],
-                fontWeight: theme.typography.fontWeight.bold,
-                color: 'var(--me-brand)',
-              }}
-            >
-              {/* Show budget range if exact budget is hidden, otherwise show exact amount */}
-              {!job.show_budget_to_contractors &&
-              job.budget_min &&
-              job.budget_max ? (
-                <span>
-                  {formatMoney(job.budget_min)}-{formatMoney(job.budget_max)}
-                </span>
-              ) : job.budget ? (
-                formatMoney(job.budget)
-              ) : (
-                <span
-                  style={{
-                    color: 'var(--me-ink-2)',
-                    fontSize: theme.typography.fontSize.base,
-                  }}
-                >
-                  Negotiable
-                </span>
-              )}
-            </div>
-            {/* Itemization required indicator */}
-            {job.require_itemized_bids && (
-              <div
-                style={{
-                  fontSize: theme.typography.fontSize.xs,
-                  color: 'var(--me-ink-2)',
-                  marginTop: theme.spacing[1],
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: theme.spacing[1],
-                }}
-              >
-                <Icon name='list' size={12} color='var(--me-ink-2)' />
-                <span>Itemization required</span>
-              </div>
-            )}
-          </div>
-
           <div>
             <div
               style={{

@@ -214,13 +214,17 @@ export function MintEditorialJobDetail({
       Icon: Wrench,
       text: job.category || 'General',
     },
-    {
-      Icon: Shield,
-      text:
-        escrowHeld > 0
-          ? `${formatGBP(escrowHeld)} escrow held`
-          : `Budget ${job.budget > 0 ? formatGBP(job.budget) : '—'}`,
-    },
+    // 2026-05-22: homeowner-set budget no longer surfaced. When escrow
+    // is held we still show the locked amount (it's the agreed price,
+    // not the homeowner's ceiling).
+    ...(escrowHeld > 0
+      ? [
+          {
+            Icon: Shield,
+            text: `${formatGBP(escrowHeld)} escrow held`,
+          },
+        ]
+      : []),
     ...(preferredStartLabel
       ? [{ Icon: Calendar, text: `Prefers ${preferredStartLabel}` }]
       : []),

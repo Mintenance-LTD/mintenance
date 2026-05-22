@@ -12,7 +12,6 @@ import type { Property } from '@mintenance/types';
 import { styles } from './styles';
 import { type ServiceCategory, priorityLevels } from './types';
 import { DatePicker } from '../../components/ui/DatePicker';
-import { BudgetRangeSlider } from '../../components/ui/BudgetRangeSlider';
 import { me } from '../../design-system/mint-editorial';
 
 interface ServiceFormProps {
@@ -21,9 +20,6 @@ interface ServiceFormProps {
   title: string;
   description: string;
   location: string;
-  budget: string;
-  budgetMin?: string;
-  budgetMax?: string;
   priority: 'low' | 'medium' | 'high';
   photos: string[];
   loading: boolean;
@@ -37,9 +33,6 @@ interface ServiceFormProps {
   onTitleChange: (v: string) => void;
   onDescriptionChange: (v: string) => void;
   onLocationChange: (v: string) => void;
-  onBudgetChange: (v: string) => void;
-  onBudgetMinChange?: (v: string) => void;
-  onBudgetMaxChange?: (v: string) => void;
   preferredDate?: Date | null;
   onPreferredDateChange?: (date: Date) => void;
   onPriorityChange: (v: 'low' | 'medium' | 'high') => void;
@@ -54,7 +47,6 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({
   title,
   description,
   location,
-  budget,
   priority,
   photos,
   loading,
@@ -68,11 +60,6 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({
   onTitleChange,
   onDescriptionChange,
   onLocationChange,
-  onBudgetChange,
-  budgetMin,
-  budgetMax,
-  onBudgetMinChange,
-  onBudgetMaxChange,
   preferredDate,
   onPreferredDateChange,
   onPriorityChange,
@@ -231,27 +218,6 @@ export const ServiceForm: React.FC<ServiceFormProps> = ({
           placeholder='Your address or area'
           placeholderTextColor={me.ink3}
         />
-        {onBudgetMinChange && onBudgetMaxChange ? (
-          <BudgetRangeSlider
-            label='Budget Range *'
-            minValue={budgetMin ?? ''}
-            maxValue={budgetMax ?? ''}
-            onMinChange={onBudgetMinChange}
-            onMaxChange={onBudgetMaxChange}
-          />
-        ) : (
-          <>
-            <Text style={styles.label}>Budget *</Text>
-            <TextInput
-              style={styles.input}
-              value={budget}
-              onChangeText={onBudgetChange}
-              placeholder='Enter your budget in pounds'
-              placeholderTextColor={me.ink3}
-              keyboardType='numeric'
-            />
-          </>
-        )}
         {onPreferredDateChange && (
           <DatePicker
             label='Preferred Date'

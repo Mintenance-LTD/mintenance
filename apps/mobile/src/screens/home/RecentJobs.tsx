@@ -123,7 +123,6 @@ export const RecentJobs: React.FC<RecentJobsProps> = ({
           const statusBadge = getStatusBadge(job.status || 'posted');
           const photos = normalizePhotoUrls(job.photos || job.images);
           const hasPhoto = photos.length > 0;
-          const budget = job.budget || job.budget_min || 0;
           const categoryIcon =
             CATEGORY_ICONS[job.category?.toLowerCase() ?? ''] ??
             'construct-outline';
@@ -251,12 +250,6 @@ export const RecentJobs: React.FC<RecentJobsProps> = ({
                       {job.title}
                     </Text>
                   </View>
-                  {budget > 0 && (
-                    <Text style={styles.budgetText}>
-                      {'\u00A3'}
-                      {budget.toLocaleString()}
-                    </Text>
-                  )}
                 </View>
 
                 {/* Contractor info row (assigned/in_progress jobs) */}

@@ -264,7 +264,11 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           </View>
         )}
 
-        {budget > 0 && (
+        {/* 2026-05-22: JobPricingCard hidden — contractors set their own
+            price on each bid and the homeowner picks from the bids.
+            Kept the import so the component file stays referenced for
+            historical reuse; the gate is what changed. */}
+        {false && budget > 0 && (
           <JobPricingCard
             budget={budget}
             onEscrowInfo={() => setShowEscrowModal(true)}
