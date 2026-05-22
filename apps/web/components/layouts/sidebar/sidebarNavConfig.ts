@@ -118,6 +118,11 @@ export function useNavSections(
             href: '/landlord/recurring',
             icon: RefreshCw,
           },
+          {
+            label: 'Year-over-Year',
+            href: '/landlord/analytics/year-over-year',
+            icon: TrendingUp,
+          },
         ],
       },
       {
