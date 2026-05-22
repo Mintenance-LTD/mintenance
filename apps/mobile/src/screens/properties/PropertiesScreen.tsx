@@ -13,11 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { ProfileStackParamList } from '../../navigation/types';
-import {
-  ScreenHeader,
-  LoadingSpinner,
-  ErrorView,
-} from '../../components/shared';
+import { LoadingSpinner, ErrorView } from '../../components/shared';
 import { useAuth } from '../../contexts/AuthContext';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { mobileApiClient } from '../../utils/mobileApiClient';
@@ -252,20 +248,28 @@ export const PropertiesScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.screenLabel}>
-        <Text style={styles.screenLabelText}>PROPERTY MANAGEMENT</Text>
+      {/* 2026-05-22 Mint Editorial v2: replace the shared ScreenHeader
+          (still on legacy theme.colors.*) with the inline editorial
+          pattern used by HomeownerDashboard / BusinessHub / Finance /
+          Invoices / CRMDashboard. Eyebrow + serif headline + add
+          button in the top bar. */}
+      <View style={styles.topBar}>
+        <View style={styles.headerBlock}>
+          <Text style={styles.eyebrow}>Property management</Text>
+          <Text style={styles.headline} accessibilityRole='header'>
+            My Properties
+          </Text>
+        </View>
+        <TouchableOpacity
+          style={styles.addButtonTop}
+          onPress={() => navigation.navigate('AddProperty')}
+          accessibilityRole='button'
+          accessibilityLabel='Add property'
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons name='add' size={22} color={me.onBrand} />
+        </TouchableOpacity>
       </View>
-      <ScreenHeader
-        title='My Properties'
-        rightComponent={
-          <TouchableOpacity
-            onPress={() => navigation.navigate('AddProperty')}
-            accessibilityLabel='Add property'
-          >
-            <Ionicons name='add-circle-outline' size={24} color={me.brand} />
-          </TouchableOpacity>
-        }
-      />
 
       {/* Sort & filter options */}
       {properties && properties.length > 1 && (

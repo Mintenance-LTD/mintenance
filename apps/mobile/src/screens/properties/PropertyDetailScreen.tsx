@@ -12,11 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
-import {
-  ScreenHeader,
-  LoadingSpinner,
-  ErrorView,
-} from '../../components/shared';
+import { LoadingSpinner, ErrorView } from '../../components/shared';
 import { useAuth } from '../../contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '../../config/supabase';
@@ -406,38 +402,57 @@ export const PropertyDetailScreen: React.FC<Props> = ({
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle='dark-content' backgroundColor={me.bg2} />
-      <ScreenHeader
-        title='Property Details'
-        showBack
-        onBack={() => navigation.goBack()}
-        rightComponent={
-          <View style={styles.headerActions}>
-            <TouchableOpacity
-              onPress={() => favoriteMutation.mutate()}
-              accessibilityLabel={
-                isFavorite ? 'Remove from favorites' : 'Add to favorites'
-              }
-              style={styles.headerBtn}
-            >
-              <Ionicons
-                name={isFavorite ? 'heart' : 'heart-outline'}
-                size={22}
-                color={isFavorite ? me.accent : me.ink2}
-              />
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={() =>
-                navigation.navigate('EditProperty', { propertyId })
-              }
-              accessibilityLabel='Edit property'
-              style={styles.headerBtn}
-            >
-              <Ionicons name='create-outline' size={22} color={me.brand} />
-            </TouchableOpacity>
-          </View>
-        }
-      />
+      <StatusBar barStyle='dark-content' backgroundColor={me.bg} />
+      {/* 2026-05-22 Mint Editorial v2: inline editorial header
+          (slim back row with right-aligned favourite + edit icons,
+          then eyebrow + serif "Property Details" headline +
+          property address subtitle). Replaces the shared
+          ScreenHeader so the screen reads as editorial paper
+          rather than a phone-app navbar. */}
+      <View style={styles.topBar}>
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={() => navigation.goBack()}
+          accessibilityRole='button'
+          accessibilityLabel='Go back'
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons name='arrow-back' size={20} color={me.ink} />
+        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            onPress={() => favoriteMutation.mutate()}
+            accessibilityLabel={
+              isFavorite ? 'Remove from favorites' : 'Add to favorites'
+            }
+            style={styles.headerBtn}
+          >
+            <Ionicons
+              name={isFavorite ? 'heart' : 'heart-outline'}
+              size={22}
+              color={isFavorite ? me.accent : me.ink2}
+            />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => navigation.navigate('EditProperty', { propertyId })}
+            accessibilityLabel='Edit property'
+            style={styles.headerBtn}
+          >
+            <Ionicons name='create-outline' size={22} color={me.brand} />
+          </TouchableOpacity>
+        </View>
+      </View>
+      <View style={styles.screenHeader}>
+        <Text style={styles.eyebrow}>Property</Text>
+        <Text style={styles.headline} accessibilityRole='header'>
+          Property Details
+        </Text>
+        {property?.address ? (
+          <Text style={styles.headerSub} numberOfLines={1}>
+            {property.address}
+          </Text>
+        ) : null}
+      </View>
 
       <View style={styles.tabRow}>
         {TABS.map((tab) => (
