@@ -64,13 +64,37 @@ interface TabDef {
   count?: number;
 }
 
+// 2026-05-23 audit: read initial tab from ?tab= so deep-links from
+// the job-detail Right-Rail "Edit access" CTA actually land on the
+// Access tab instead of dropping the user on Overview. Validates
+// the value against the Tab union so an unknown / stale tab key
+// silently falls back to 'overview' rather than rendering an empty
+// pane. Lives in a static lookup outside the component so successive
+// renders don't recompute the set.
+const VALID_TABS = new Set<Tab>([
+  'overview',
+  'maintenance',
+  'documents',
+  'timeline',
+  'access',
+  'assessments',
+  'manage',
+]);
+
+function initialTabFromUrl(): Tab {
+  if (typeof window === 'undefined') return 'overview';
+  const raw = new URL(window.location.href).searchParams.get('tab');
+  if (raw && (VALID_TABS as Set<string>).has(raw)) return raw as Tab;
+  return 'overview';
+}
+
 export function MintEditorialPropertyDetail({
   property,
   jobs,
   stats,
   schedules = [],
 }: Props) {
-  const [activeTab, setActiveTab] = useState<Tab>('overview');
+  const [activeTab, setActiveTab] = useState<Tab>(initialTabFromUrl);
 
   const activeScheduleCount = schedules.filter((s) => s.is_active).length;
   const tabs: TabDef[] = [
