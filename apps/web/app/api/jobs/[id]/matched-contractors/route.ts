@@ -19,7 +19,9 @@ export const GET = withApiHandler(
     // Fetch job details
     const { data: job, error: jobError } = await serverSupabase
       .from('jobs')
-      .select('id, title, description, category, location, budget, homeowner_id, status, priority')
+      .select(
+        'id, title, description, category, location, budget, homeowner_id, status, priority'
+      )
       .eq('id', jobId)
       .single();
 
@@ -63,8 +65,25 @@ export const GET = withApiHandler(
     // Extract skills from description (simple keyword matching)
     const descriptionLower = (job.description || '').toLowerCase();
     const skillKeywords: Record<string, string[]> = {
-      plumbing: ['plumber', 'plumbing', 'pipe', 'leak', 'water', 'drain', 'toilet', 'sink'],
-      electrical: ['electrician', 'electrical', 'wiring', 'circuit', 'outlet', 'light', 'power'],
+      plumbing: [
+        'plumber',
+        'plumbing',
+        'pipe',
+        'leak',
+        'water',
+        'drain',
+        'toilet',
+        'sink',
+      ],
+      electrical: [
+        'electrician',
+        'electrical',
+        'wiring',
+        'circuit',
+        'outlet',
+        'light',
+        'power',
+      ],
       hvac: ['hvac', 'heating', 'cooling', 'air conditioning', 'furnace', 'ac'],
       roofing: ['roof', 'roofing', 'gutter', 'shingle', 'tile'],
       painting: ['paint', 'painting', 'wall', 'ceiling'],
@@ -74,7 +93,7 @@ export const GET = withApiHandler(
 
     // Add skills based on description keywords
     Object.entries(skillKeywords).forEach(([skill, keywords]) => {
-      if (keywords.some(keyword => descriptionLower.includes(keyword))) {
+      if (keywords.some((keyword) => descriptionLower.includes(keyword))) {
         if (!requiredSkills.includes(skill)) {
           requiredSkills.push(skill);
         }
@@ -87,15 +106,31 @@ export const GET = withApiHandler(
     }
 
     // Determine urgency from priority
-    const urgencyMap: Record<string, 'emergency' | 'urgent' | 'normal' | 'flexible'> = {
+    const urgencyMap: Record<
+      string,
+      'emergency' | 'urgent' | 'normal' | 'flexible'
+    > = {
       high: 'urgent',
       medium: 'normal',
       low: 'flexible',
     };
     const urgency = urgencyMap[job.priority || 'normal'] || 'normal';
 
-    // Determine complexity from budget (simple heuristic)
-    const complexity = job.budget > 5000 ? 'complex' : job.budget > 2000 ? 'medium' : 'simple';
+    // 2026-05-23 audit P2: jobs.budget is now nullable (homeowner budget
+    // collection was removed 2026-05-22). The previous heuristic coerced
+    // a null budget to 0, so every new job was tagged 'simple' complexity
+    // with a budget filter of `min=0, max=0` — which excluded every
+    // contractor. When budget is unknown, drop the budget filter (wide
+    // open range) and default complexity to 'medium' so the rest of the
+    // matching signal (skills, distance, urgency) still works.
+    const hasBudget = typeof job.budget === 'number' && job.budget > 0;
+    const complexity = hasBudget
+      ? job.budget! > 5000
+        ? 'complex'
+        : job.budget! > 2000
+          ? 'medium'
+          : 'simple'
+      : 'medium';
 
     // Look up homeowner subscription tier for priority matching (early access included)
     const homeownerTier = await getEffectiveHomeownerTier(user.id);
@@ -108,14 +143,25 @@ export const GET = withApiHandler(
         longitude: jobCoords.longitude,
         maxDistance: 50, // 50 miles radius
       },
-      budget: {
-        min: Math.max(0, job.budget * 0.7), // 70% of budget
-        max: job.budget * 1.5, // 150% of budget
-      },
+      budget: hasBudget
+        ? {
+            min: Math.max(0, job.budget! * 0.7), // 70% of budget
+            max: job.budget! * 1.5, // 150% of budget
+          }
+        : {
+            // No budget collected — accept any contractor pricing.
+            // Number.MAX_SAFE_INTEGER instead of Infinity because the
+            // matcher's range checks use numeric comparisons.
+            min: 0,
+            max: Number.MAX_SAFE_INTEGER,
+          },
       urgency,
       requiredSkills,
       projectComplexity: complexity,
-      timeframe: urgency === 'urgent' || urgency === 'emergency' ? 'immediate' : 'this_week',
+      timeframe:
+        urgency === 'urgent' || urgency === 'emergency'
+          ? 'immediate'
+          : 'this_week',
       homeownerTier,
     };
 
@@ -126,7 +172,7 @@ export const GET = withApiHandler(
     const topMatches = matches.slice(0, 10);
 
     return NextResponse.json({
-      matches: topMatches.map(match => ({
+      matches: topMatches.map((match) => ({
         contractor: {
           id: match.contractor.id,
           firstName: match.contractor.first_name,
@@ -134,14 +180,20 @@ export const GET = withApiHandler(
           email: match.contractor.email,
           phone: match.contractor.phone,
           profileImageUrl: match.contractor.profile_image_url,
-          location: match.contractor.location || match.contractor.businessAddress || '',
+          location:
+            match.contractor.location || match.contractor.businessAddress || '',
           companyName: match.contractor.companyName,
           yearsExperience: match.contractor.yearsExperience,
           hourlyRate: match.contractor.hourlyRate,
-          skills: match.contractor.skills?.map(s => s.skillName) || [],
-          rating: match.contractor.reviews?.length > 0
-            ? match.contractor.reviews.reduce((sum: number, r: { rating: number }) => sum + (typeof r.rating === 'number' ? r.rating : 0), 0) / match.contractor.reviews.length
-            : null,
+          skills: match.contractor.skills?.map((s) => s.skillName) || [],
+          rating:
+            match.contractor.reviews?.length > 0
+              ? match.contractor.reviews.reduce(
+                  (sum: number, r: { rating: number }) =>
+                    sum + (typeof r.rating === 'number' ? r.rating : 0),
+                  0
+                ) / match.contractor.reviews.length
+              : null,
           reviewCount: match.contractor.reviews?.length || 0,
         },
         matchScore: match.matchScore,

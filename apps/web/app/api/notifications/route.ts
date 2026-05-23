@@ -218,46 +218,33 @@ export const GET = withApiHandler(
     }
 
     // 3. Unread Messages - Messages received in the last 30 days
-    const { data: userThreads } = await userDb
-      .from('message_threads')
-      .select('id, job_id')
-      .contains('participant_ids', [userId]);
-
-    const threadToJobId = new Map<string, string>();
-    const userThreadIds: string[] = [];
-    for (const t of userThreads ?? []) {
-      threadToJobId.set(t.id, t.job_id);
-      userThreadIds.push(t.id);
-    }
-
+    //
+    // 2026-05-23 audit P1: the live messages schema is
+    //   (id, job_id, sender_id, receiver_id, content, read, ...)
+    // — there is no `thread_id` and no `read_by` array. The previous
+    // implementation joined via message_threads.id IN (...).thread_id
+    // which never matched anything, so unread-message notifications
+    // were silently empty for every user. Filter directly on
+    // `receiver_id = userId AND read = false` and use messages.job_id
+    // (which the table carries) for the action URL.
     interface MessageRecord {
       id: string;
       sender_id: string;
-      thread_id?: string;
       content?: string;
       created_at: string;
       job_id?: string;
     }
 
-    let unreadMessages: MessageRecord[] | null = null;
-    if (userThreadIds.length > 0) {
-      const { data } = await userDb
-        .from('messages')
-        .select('id, created_at, content, sender_id, thread_id, read_by')
-        .in('thread_id', userThreadIds)
-        .neq('sender_id', userId)
-        .gte('created_at', oneMonthAgo.toISOString())
-        .order('created_at', { ascending: false })
-        .limit(30);
-      unreadMessages = (
-        (data ?? []) as unknown as (MessageRecord & { read_by?: string[] })[]
-      )
-        .filter((m) => {
-          const readBy = Array.isArray(m.read_by) ? m.read_by : [];
-          return !readBy.includes(userId);
-        })
-        .slice(0, 10);
-    }
+    const { data: unreadRaw } = await userDb
+      .from('messages')
+      .select('id, created_at, content, sender_id, job_id')
+      .eq('receiver_id', userId)
+      .eq('read', false)
+      .gte('created_at', oneMonthAgo.toISOString())
+      .order('created_at', { ascending: false })
+      .limit(10);
+    const unreadMessages: MessageRecord[] | null =
+      (unreadRaw as MessageRecord[] | null) ?? null;
 
     interface SenderRecord {
       id: string;
@@ -290,9 +277,10 @@ export const GET = withApiHandler(
             : 'Someone';
 
           const messageContent = msg.content || '';
-          const jobId = msg.thread_id
-            ? threadToJobId.get(msg.thread_id)
-            : undefined;
+          // 2026-05-23: read job_id directly off the message row
+          // (messages.job_id is the live schema's link, not the
+          // removed thread_id indirection).
+          const jobId = msg.job_id;
 
           const actionUrl = jobId
             ? `/messages/${jobId}?userId=${msg.sender_id}&userName=${encodeURIComponent(senderName)}&jobTitle=Job`
