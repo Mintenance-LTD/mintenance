@@ -116,6 +116,25 @@ export const GET = withApiHandler(
           .eq('id', id)
           .single();
 
+        // 2026-05-23 audit: surface insurance for the "insured" trust
+        // pill on contractor public profiles. The mobile
+        // MyPublicProfileScreen reads `contractor.insurance.coverage_amount`
+        // to decide whether to render the badge — without this
+        // side-fetch it was always null, so contractors with current
+        // policies couldn't preview their own insured-badge.
+        // Picks the most-recently-updated active row that hasn't
+        // expired; null when the contractor has no live cover.
+        const todayIso = new Date().toISOString().slice(0, 10);
+        const { data: activeInsurance } = await serverSupabase
+          .from('contractor_insurance')
+          .select('coverage_amount, expiry_date')
+          .eq('contractor_id', id)
+          .eq('status', 'active')
+          .gte('expiry_date', todayIso)
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
         const skills = skillsData?.map((s) => s.skill_name) || [];
 
         // Fetch review count from reviews table
@@ -376,6 +395,13 @@ export const GET = withApiHandler(
             unresolved_count: number;
             avg_resolution_hours: number | null;
           };
+          // 2026-05-23 audit: surfaced to mobile MyPublicProfileScreen
+          // so the "Insured up to £X" trust pill renders for contractors
+          // with a current, active policy. Null when no live cover.
+          insurance?: {
+            coverage_amount: number;
+            expires_at: string | null;
+          } | null;
         } = {
           id: contractor.id,
           name:
@@ -422,6 +448,13 @@ export const GET = withApiHandler(
             unresolved_count: unresolvedCount,
             avg_resolution_hours: avgResolutionHours,
           },
+          insurance:
+            activeInsurance && Number(activeInsurance.coverage_amount) > 0
+              ? {
+                  coverage_amount: Number(activeInsurance.coverage_amount),
+                  expires_at: activeInsurance.expiry_date ?? null,
+                }
+              : null,
         };
 
         logger.info('Contractor retrieved successfully', {

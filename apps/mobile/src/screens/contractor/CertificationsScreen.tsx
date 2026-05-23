@@ -61,6 +61,13 @@ export const CertificationsScreen: React.FC = () => {
         .eq('contractor_id', user.id)
         .order('issue_date', { ascending: false });
       if (err) throw new Error(err.message);
+      // 2026-05-23 audit: live column is `is_verified`, not `verified`.
+      // The query was succeeding but the verified field always
+      // resolved to `false`, so the green verification checkmark never
+      // rendered for any contractor — including those whose
+      // certifications had been admin-verified. Web API
+      // /api/contractor/certifications already does the
+      // is_verified → verified rename; this screen bypasses the API.
       return (rows || []).map(
         (c: Record<string, unknown>): Certification => ({
           id: c.id as string,
@@ -70,7 +77,7 @@ export const CertificationsScreen: React.FC = () => {
           expiry_date: c.expiry_date as string,
           credential_id: c.credential_id as string | undefined,
           category: (c.category as string) || 'general',
-          verified: (c.verified as boolean) ?? false,
+          verified: (c.is_verified as boolean) ?? false,
         })
       );
     },

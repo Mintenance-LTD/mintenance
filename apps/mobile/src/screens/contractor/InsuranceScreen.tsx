@@ -27,11 +27,16 @@ interface InsurancePolicy {
   type: string;
   provider: string;
   policy_number: string;
+  // 2026-05-23 audit: dropped `public_liability` + `professional_indemnity`
+  // fields — those columns don't exist on live `contractor_insurance`.
+  // The query was succeeding, but the missing fields mapped to 0 so the
+  // card rendered "£0" coverage for every active policy. Live schema
+  // carries a single `coverage_amount` (and a `type` column to
+  // disambiguate "general_liability" vs "professional_indemnity" vs
+  // "public_liability" via the policy type itself).
   coverage_amount: number;
   expiry_date: string;
   status: 'active' | 'expired' | 'pending';
-  public_liability: number;
-  professional_indemnity: number;
   document_url?: string;
 }
 
@@ -73,11 +78,9 @@ export const InsuranceScreen: React.FC = () => {
           type: (p.type as string) || '',
           provider: (p.provider as string) || '',
           policy_number: (p.policy_number as string) || '',
-          coverage_amount: (p.coverage_amount as number) || 0,
+          coverage_amount: Number(p.coverage_amount ?? 0),
           expiry_date: p.expiry_date as string,
           status: (p.status as InsurancePolicy['status']) || 'pending',
-          public_liability: (p.public_liability as number) || 0,
-          professional_indemnity: (p.professional_indemnity as number) || 0,
           document_url: p.document_url as string | undefined,
         })
       );
@@ -138,19 +141,18 @@ export const InsuranceScreen: React.FC = () => {
                 </View>
               </View>
 
+              {/* 2026-05-23 audit: one coverage figure per policy on live —
+                  the `type` column disambiguates which kind of cover this
+                  is (general_liability / professional_indemnity / etc.)
+                  rather than splitting across two parallel columns the
+                  table doesn't have. */}
               <View style={styles.coverageRow}>
                 <View style={styles.coverageItem}>
-                  <Text style={styles.coverageLabel}>Public Liability</Text>
+                  <Text style={styles.coverageLabel}>Coverage</Text>
                   <Text style={styles.coverageValue}>
-                    {formatCurrency(item.public_liability)}
-                  </Text>
-                </View>
-                <View style={styles.coverageItem}>
-                  <Text style={styles.coverageLabel}>
-                    Professional Indemnity
-                  </Text>
-                  <Text style={styles.coverageValue}>
-                    {formatCurrency(item.professional_indemnity)}
+                    {item.coverage_amount > 0
+                      ? formatCurrency(item.coverage_amount)
+                      : '—'}
                   </Text>
                 </View>
               </View>
