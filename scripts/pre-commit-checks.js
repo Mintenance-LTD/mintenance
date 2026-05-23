@@ -503,6 +503,17 @@ const KNOWN_LARGE_FILES = new Set([
   // "analytics silently read £0" finding.
   'apps/web/lib/services/AdvancedSearchService.ts', // 536 (was 528)
   'apps/web/lib/services/RecommendationsService.ts', // 675 (was 609)
+  // Added 2026-05-23 (audit-7 reconciliation redirect): the
+  // release-escrow route was sitting at 499 LOC (1 LOC under the
+  // gate). The audit found the recovery-trail insert was writing to
+  // a nonexistent `escrow_reconciliation` table; redirecting to the
+  // existing `escrow_audit_log` requires more fields (actor_id,
+  // actor_role, job_id, contractor_payout, release_reason,
+  // is_admin_action, and a metadata payload preserving the original
+  // reconciliation_id + issue_type) — +18 LOC. Splitting the
+  // Stripe-transfer-with-fee-pulling escrow release flow is a
+  // dedicated P2; not a blocker on closing the lost-recovery-trail bug.
+  'apps/web/app/api/payments/release-escrow/route.ts', // 517 (was 499)
 ]);
 
 function countLines(filePath) {

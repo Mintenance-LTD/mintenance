@@ -18,7 +18,7 @@ import {
   ErrorView,
 } from '../../components/shared';
 import { EmptyState } from '../../components/ui/EmptyState';
-import { supabase } from '../../config/supabase';
+import { mobileApiClient } from '../../utils/mobileApiClient';
 import { useAuth } from '../../contexts/AuthContext';
 import { me } from '../../design-system/mint-editorial';
 
@@ -42,26 +42,20 @@ export const MarketInsightsScreen: React.FC = () => {
   const navigation = useNavigation();
   const { user } = useAuth();
 
+  // 2026-05-23 audit: the screen used to read from a `market_insights`
+  // table that doesn't exist on live. The canonical source is the
+  // /api/contractor/market-insights endpoint which derives the same
+  // shape from real jobs + contractor_profiles.specializations — the
+  // server already returns the exact { categories: DemandCategory[] }
+  // payload this screen needs, so the swap is a 1:1 replacement.
   const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['contractor-market-insights', user?.id],
     queryFn: async () => {
-      if (!user?.id) return [];
-      const { data: rows, error: err } = await supabase
-        .from('market_insights')
-        .select('*')
-        .order('job_count', { ascending: false });
-      if (err) throw new Error(err.message);
-      return (rows || []).map(
-        (c: Record<string, unknown>): DemandCategory => ({
-          id: c.id as string,
-          category: (c.category as string) || '',
-          demand_level:
-            (c.demand_level as DemandCategory['demand_level']) || 'low',
-          avg_price: (c.avg_price as number) || 0,
-          job_count: (c.job_count as number) || 0,
-          competition_count: (c.competition_count as number) || 0,
-        })
-      );
+      if (!user?.id) return [] as DemandCategory[];
+      const response = (await mobileApiClient.get(
+        '/api/contractor/market-insights'
+      )) as { categories?: DemandCategory[] } | null;
+      return response?.categories ?? [];
     },
     enabled: !!user?.id,
   });

@@ -33,9 +33,18 @@ interface SubscriptionRow {
 export const GET = withApiHandler(
   { rateLimit: { maxRequests: 60 } },
   async (_request, { user }) => {
+    // 2026-05-23 audit: the embed alias `job:job_id(title)` is the
+    // PostgREST shortcut form that infers the FK relationship from
+    // the column name. Switched to the explicit constraint form
+    // `jobs!escrow_transactions_job_id_fkey(...)` to match the same
+    // pattern used by the working `/api/payments/history` route and
+    // the homeowner /financials page — avoids any ambiguity when the
+    // shortcut can't resolve.
     const { data: rows, error } = await serverSupabase
       .from('escrow_transactions')
-      .select('id, amount, status, created_at, description, job:job_id(title)')
+      .select(
+        'id, amount, status, created_at, description, job:jobs!escrow_transactions_job_id_fkey(title)'
+      )
       .eq('payer_id', user.id)
       .order('created_at', { ascending: false })
       .limit(50);

@@ -261,14 +261,15 @@ export const POST = withApiHandler(
       },
     });
 
-    await serverSupabase.from('agent_analytics').insert({
-      agent_name: agentName,
-      decision_count: 1,
-      success_count: decision ? 1 : 0,
-      avg_confidence: (decisionRecord?.confidence as number) || 0,
-      avg_processing_time: Date.now() - performance.now(),
-      date: new Date().toISOString().split('T')[0],
-    });
+    // 2026-05-23 audit: the supplemental `agent_analytics` insert
+    // used to land in a table that doesn't exist on live (the error
+    // was swallowed because there's no .then/.catch here — every
+    // decision was silently losing analytics). The data is already
+    // captured per-row in `agent_decisions` (via AgentLogger.logDecision
+    // above): each row has confidence, outcome_success, agent_name,
+    // and created_at, so the same daily aggregates can be computed
+    // with a single GROUP BY query. Dropping the dead insert rather
+    // than backfilling a duplicate table.
 
     return NextResponse.json(
       {

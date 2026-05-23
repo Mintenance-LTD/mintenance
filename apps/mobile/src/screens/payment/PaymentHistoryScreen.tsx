@@ -77,10 +77,14 @@ export const PaymentHistoryScreen: React.FC<Props> = ({ navigation }) => {
     queryFn: async ({ pageParam }: { pageParam: number | undefined }) => {
       if (!user?.id) return { payments: [], nextCursor: undefined };
       const offset = pageParam || 0;
+      // 2026-05-23 audit: use the explicit FK form
+      // `jobs!escrow_transactions_job_id_fkey(...)` instead of the
+      // `job:job_id(...)` shortcut so the embed resolves the same
+      // way it does in the canonical /api/payments/history route.
       const { data: rows, error: err } = await supabase
         .from('escrow_transactions')
         .select(
-          'id, job_id, payer_id, payee_id, amount, status, created_at, updated_at, job:job_id(title, description)'
+          'id, job_id, payer_id, payee_id, amount, status, created_at, updated_at, job:jobs!escrow_transactions_job_id_fkey(title, description)'
         )
         .or(`payer_id.eq.${user.id},payee_id.eq.${user.id}`)
         .order('created_at', { ascending: false })
