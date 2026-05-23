@@ -60,28 +60,27 @@ interface Slot {
   optional?: boolean;
 }
 
-// The six checklist slots the design surfaces, in the same order.
-// Keep this in sync with the `register` enum values the verification
-// submit-credential route accepts.
+// 2026-05-24 audit-25 P1: SLOTS used to include photo_id /
+// public_liability_insurance / reference / dbs_check, but the DB
+// CHECK on credential_verifications.register only allows
+// gas_safe / niceic / trustmark / other (verified via pg_constraint).
+// Those four slots could never reach "verified" through this route —
+// each has its own dedicated screen (InsuranceScreen, DBS screen,
+// profile photo upload). Keep this checklist to the registers the
+// API can actually verify; the other identity proofs live on their
+// own surfaces and feed the badges via separate paths.
 const SLOTS: readonly Slot[] = [
-  { key: 'photo_id', title: 'Photo ID', icon: 'card-outline' },
   { key: 'gas_safe', title: 'Gas Safe', icon: 'flame-outline' },
   { key: 'niceic', title: 'NICEIC', icon: 'flash-outline' },
   {
-    key: 'public_liability_insurance',
-    title: 'Public liability insurance',
+    key: 'trustmark',
+    title: 'TrustMark',
     icon: 'shield-checkmark-outline',
   },
   {
-    key: 'reference',
-    title: 'Reference from past job',
-    icon: 'create-outline',
-    optional: true,
-  },
-  {
-    key: 'dbs_check',
-    title: 'DBS check',
-    icon: 'person-outline',
+    key: 'other',
+    title: 'Other trade license',
+    icon: 'document-text-outline',
     optional: true,
   },
 ];
