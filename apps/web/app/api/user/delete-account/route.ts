@@ -5,6 +5,7 @@ import { logger } from '@mintenance/shared';
 import { checkDeleteAccountRateLimit } from '@/lib/rate-limiting/admin-gdpr';
 import { tokenBlacklist } from '@/lib/auth/token-blacklist';
 import { validateRequest } from '@/lib/validation/validator';
+import { InternalServerError } from '@/lib/errors/api-error';
 import { z } from 'zod';
 
 const deleteAccountSchema = z.object({
@@ -42,50 +43,54 @@ export const POST = withApiHandler(
       performed_by: user.id,
     });
 
-    // Delete user data using the GDPR function (if available)
+    // Delete user data using the role-aware GDPR function (live since
+    // 20260523000003 — handles contractor jobs by unassigning rather
+    // than deleting, and clears RESTRICT/NO ACTION FK dependants
+    // before the jobs DELETE in the homeowner branch). The previous
+    // version of this route ran a non-transactional manual fallback
+    // when the RPC errored — that hid partial failures (jobs left
+    // behind, profile not deleted) under a misleading "success"
+    // response. The fallback is gone; if the RPC errors we surface
+    // it as a 500 so the user (and our logs) see the real problem
+    // rather than a half-deleted account.
     const { error: deleteError } = await serverSupabase.rpc(
       'delete_user_data',
-      {
-        p_user_id: user.id,
-      }
+      { p_user_id: user.id }
     );
 
     if (deleteError) {
-      // Fallback: Manual deletion if function doesn't exist
-      logger.warn('GDPR delete function not available, using manual deletion', {
+      logger.error('delete_user_data RPC failed', deleteError, {
         service: 'user',
-        error: deleteError.message,
+        userId: user.id,
         code: deleteError.code,
         details: deleteError.details,
       });
-
-      // Delete in order respecting foreign key constraints
-      await serverSupabase
-        .from('messages')
-        .delete()
-        .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`);
-      await serverSupabase.from('bids').delete().eq('contractor_id', user.id);
-      await serverSupabase
-        .from('jobs')
-        .delete()
-        .or(`homeowner_id.eq.${user.id},contractor_id.eq.${user.id}`);
-      await serverSupabase.from('properties').delete().eq('owner_id', user.id);
-      await serverSupabase.from('profiles').delete().eq('id', user.id);
+      throw new InternalServerError(
+        `Account deletion failed inside the database (${deleteError.message}). Your data has not been removed — please contact support so we can clear any FK constraint blocking the deletion.`
+      );
     }
 
-    // 2026-05-23: previously this endpoint deleted public.profiles + related
-    // tables but left the auth.users row intact, so the user could sign back
-    // in with their original credentials immediately. Drop the auth row
-    // too so the credential stops working. Uses the service-role client's
-    // admin API (serverSupabase is constructed with SUPABASE_SERVICE_ROLE_KEY
-    // — see lib/api/supabaseServer.ts).
+    // 2026-05-23 (v2): drop the auth.users row so the credential stops
+    // working. public.profiles does NOT have an ON DELETE CASCADE FK to
+    // auth.users (verified via information_schema query 2026-05-23) so
+    // these two deletions are independent — both must succeed for the
+    // account to actually be gone.
+    //
+    // Previous version logged the failure but returned success anyway.
+    // That left the user able to log back in after a "successful"
+    // deletion (only public data was gone). Now this is a hard failure
+    // — if auth.users deletion errors, we return 500 with an explicit
+    // message so the caller (modal / settings UI) can show the user
+    // what happened. The data is already gone at this point; an
+    // operator follow-up is needed to remove the orphan auth row.
+    let authDeleteFailed = false;
+    let authDeleteErrMsg: string | undefined;
     try {
       const { error: authDeleteError } =
         await serverSupabase.auth.admin.deleteUser(user.id);
       if (authDeleteError) {
-        // Don't fail the request — the profile + data are already gone,
-        // and the token blacklist below will still revoke active sessions.
-        // The orphaned auth row can be cleaned up by an admin.
+        authDeleteFailed = true;
+        authDeleteErrMsg = authDeleteError.message;
         logger.error(
           'Failed to delete auth.users row after data deletion',
           authDeleteError,
@@ -95,10 +100,15 @@ export const POST = withApiHandler(
         logger.info('Auth user deleted', { userId: user.id });
       }
     } catch (error) {
+      authDeleteFailed = true;
+      authDeleteErrMsg = error instanceof Error ? error.message : String(error);
       logger.error('auth.admin.deleteUser threw', error, { userId: user.id });
     }
 
-    // SECURITY: Blacklist all tokens for this user
+    // SECURITY: Blacklist all tokens for this user. Runs even when
+    // auth.users deletion failed so any in-flight sessions are
+    // invalidated immediately — that at least keeps the orphan
+    // credential from being usable until an operator cleans up.
     try {
       await tokenBlacklist.blacklistUserTokens(user.id);
       logger.info('User tokens blacklisted after account deletion', {
@@ -108,6 +118,18 @@ export const POST = withApiHandler(
       logger.error('Failed to blacklist user tokens after deletion', error, {
         userId: user.id,
       });
+    }
+
+    if (authDeleteFailed) {
+      // 2026-05-23: data is gone but the credential survives. The user
+      // would otherwise see "Account deleted successfully" and still be
+      // able to sign in. Surface the failure so they know — and so we
+      // see it in monitoring instead of silently leaving orphan rows.
+      throw new InternalServerError(
+        `Account data was deleted but the login credential could not be removed${
+          authDeleteErrMsg ? ` (${authDeleteErrMsg})` : ''
+        }. Please contact support — your data is gone but you may still be able to sign in until an operator clears the credential.`
+      );
     }
 
     logger.info('User account deleted', { userId: user.id });
