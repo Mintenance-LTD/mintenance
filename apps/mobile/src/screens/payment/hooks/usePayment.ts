@@ -36,7 +36,9 @@ export function usePayment({
   onSuccess,
 }: UsePaymentOptions) {
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
-  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(null);
+  const [selectedMethod, setSelectedMethod] = useState<PaymentMethod | null>(
+    null
+  );
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -64,7 +66,9 @@ export function usePayment({
 
       setPaymentMethods(result.methods);
 
-      const defaultMethod = result.methods.find((m: PaymentMethod) => m.isDefault);
+      const defaultMethod = result.methods.find(
+        (m: PaymentMethod) => m.isDefault
+      );
       if (defaultMethod) {
         setSelectedMethod(defaultMethod);
       }
@@ -88,10 +92,20 @@ export function usePayment({
     try {
       if (useEscrow) {
         // Step 1: Create payment intent via API
-        const intentResult = await PaymentService.createPaymentIntent(jobId, amount, selectedMethod.id);
+        // 2026-05-23 audit-19 P1: paymentIntentSchema requires contractorId.
+        // contractorId is already in the hook's options scope; thread it
+        // through so the server can validate the request body.
+        const intentResult = await PaymentService.createPaymentIntent(
+          jobId,
+          amount,
+          selectedMethod.id,
+          contractorId
+        );
 
         if (intentResult.error || !intentResult.clientSecret) {
-          throw new Error(intentResult.error || 'Failed to create payment intent');
+          throw new Error(
+            intentResult.error || 'Failed to create payment intent'
+          );
         }
 
         // Step 2: Confirm with Stripe SDK

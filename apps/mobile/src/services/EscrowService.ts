@@ -64,8 +64,17 @@ export class EscrowService {
         status: row.status as string,
         amount: row.amount as number,
         jobId: row.job_id as string,
-        blockingReasons: (row.blocking_reasons as string[]) ?? [],
-        estimatedReleaseDate: (row.estimated_release_date as string) ?? null,
+        // 2026-05-23 audit-19 P2: live escrow_transactions has neither
+        // `blocking_reasons` (plural) nor `estimated_release_date`. The real
+        // columns are `release_blocked_reason` (singular text) and
+        // `auto_release_date`. Reading the wrong names silently returned
+        // undefined → empty array / null, so the UI hid real blockers and
+        // never showed the release timeline even when the server had it.
+        // Wrap the singular string into an array for shape compatibility.
+        blockingReasons: row.release_blocked_reason
+          ? [row.release_blocked_reason as string]
+          : [],
+        estimatedReleaseDate: (row.auto_release_date as string) ?? null,
         homeownerApproval: (row.homeowner_approval as boolean) ?? false,
         homeownerApprovalAt: (row.homeowner_approval_at as string) ?? null,
         autoApprovalDate: (row.auto_approval_date as string) ?? null,
@@ -106,7 +115,12 @@ export class EscrowService {
 
       const row = data as Record<string, unknown>;
       const status = row.status as string;
-      const blockingReasons = (row.blocking_reasons as string[]) ?? [];
+      // 2026-05-23 audit-19 P2: same blocker-column drift as in
+      // getEscrowStatus above. The real column is the singular
+      // `release_blocked_reason` text field.
+      const blockingReasons = row.release_blocked_reason
+        ? [row.release_blocked_reason as string]
+        : [];
 
       // Build timeline steps from escrow state
       const steps: EscrowTimeline['steps'] = [
@@ -150,7 +164,8 @@ export class EscrowService {
         escrowId,
         currentStatus: status,
         blockingReasons,
-        estimatedReleaseDate: (row.estimated_release_date as string) ?? null,
+        // Same audit-19 P2 fix — real column is auto_release_date.
+        estimatedReleaseDate: (row.auto_release_date as string) ?? null,
         steps,
       };
     } catch (error) {
@@ -214,8 +229,17 @@ export class EscrowService {
         status: row.status as string,
         amount: row.amount as number,
         jobId: row.job_id as string,
-        blockingReasons: (row.blocking_reasons as string[]) ?? [],
-        estimatedReleaseDate: (row.estimated_release_date as string) ?? null,
+        // 2026-05-23 audit-19 P2: live escrow_transactions has neither
+        // `blocking_reasons` (plural) nor `estimated_release_date`. The real
+        // columns are `release_blocked_reason` (singular text) and
+        // `auto_release_date`. Reading the wrong names silently returned
+        // undefined → empty array / null, so the UI hid real blockers and
+        // never showed the release timeline even when the server had it.
+        // Wrap the singular string into an array for shape compatibility.
+        blockingReasons: row.release_blocked_reason
+          ? [row.release_blocked_reason as string]
+          : [],
+        estimatedReleaseDate: (row.auto_release_date as string) ?? null,
         homeownerApproval: (row.homeowner_approval as boolean) ?? false,
         homeownerApprovalAt: (row.homeowner_approval_at as string) ?? null,
         autoApprovalDate: (row.auto_approval_date as string) ?? null,

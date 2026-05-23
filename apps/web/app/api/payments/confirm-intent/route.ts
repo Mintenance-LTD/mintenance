@@ -93,7 +93,15 @@ export const POST = withApiHandler(
     const { data: currentEscrow, error: fetchError } = await serverSupabase
       .from('escrow_transactions')
       .select(
-        'id, job_id, amount, status, stripe_payment_intent_id, payment_intent_id, version, created_at, updated_at'
+        // 2026-05-23 audit-19 P1: live escrow_transactions has neither
+        // `stripe_payment_intent_id` nor a `version` column — `payment_intent_id`
+        // (no stripe_ prefix) is the only payment-intent ref, and there's
+        // no optimistic-locking version column on this table. The previous
+        // SELECT 400'd PostgREST and the route 404'd back to the homeowner,
+        // leaving the escrow stuck in `pending` for any payment that
+        // happened to arrive before the Stripe webhook (the supposed
+        // fallback path). Verified via information_schema 2026-05-23.
+        'id, job_id, amount, status, payment_intent_id, created_at, updated_at'
       )
       .eq('payment_intent_id', paymentIntentId)
       .eq('job_id', jobId)
@@ -150,7 +158,8 @@ export const POST = withApiHandler(
         const { data: refetched } = await serverSupabase
           .from('escrow_transactions')
           .select(
-            'id, job_id, amount, status, stripe_payment_intent_id, payment_intent_id, version, created_at, updated_at'
+            // Same audit-19 P1 column fix as above — payment_intent_id only.
+            'id, job_id, amount, status, payment_intent_id, created_at, updated_at'
           )
           .eq('payment_intent_id', paymentIntentId)
           .eq('job_id', jobId)
