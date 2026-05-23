@@ -31,7 +31,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { FullScreenLoading } from '../../components/LoadingSpinner';
 import type { HeaderMenuItem } from '../../components/navigation/NavigationHeader';
 import { QuickActions } from './QuickActions';
-import { StatsSection } from './StatsSection';
+import { TodayRow } from './components/TodayRow';
 import { ScheduleSection } from './ScheduleSection';
 import { FinishSetupCard } from './components/FinishSetupCard';
 import { ContractorBadgesCard } from './components/ContractorBadgesCard';
@@ -286,11 +286,14 @@ export const ContractorDashboard: React.FC = () => {
           </View>
         </FadeIn>
 
-        {/* Stat cards — keep on a regular surface row now that there's
-            no hero to overlap. */}
-        <View style={styles.statsRow}>
-          <StatsSection stats={contractorStats} />
-        </View>
+        {/* Today snapshot — slim two-number row (jobs in pipeline +
+            expected cash). Replaces the legacy `<StatsSection>` heavy
+            "ACTIVE PORTFOLIO" hero + 4-up bento that was still mounting
+            after the 2026-05-22 editorial redesign. The full
+            performance bento (Earnings/Completed/Rating/Success Rate)
+            now lives on the Profile screen — the dashboard is for
+            action, the profile is for retrospective metrics. */}
+        <TodayRow stats={contractorStats} />
 
         {/* Content below hero */}
         <View style={styles.content}>

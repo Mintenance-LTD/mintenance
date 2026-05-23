@@ -202,13 +202,22 @@ const JobsScreen: React.FC = () => {
 
     if (debouncedQuery.trim()) {
       const q = debouncedQuery.toLowerCase();
-      data = data.filter(
-        (j) =>
-          j.title.toLowerCase().includes(q) ||
-          j.description.toLowerCase().includes(q) ||
-          (typeof j.location === 'string' &&
-            j.location.toLowerCase().includes(q))
-      );
+      // 2026-05-23 audit: live `jobs.description` is NOT NULL, but the
+      // mobile cache layer + offline transforms can produce partial
+      // records (e.g. an outbox draft, or a row dehydrated by an older
+      // offline-store schema). Without null-guards, a single such record
+      // crashes the whole search filter and the list goes blank. Every
+      // text comparison is now guarded.
+      data = data.filter((j) => {
+        const title = typeof j.title === 'string' ? j.title.toLowerCase() : '';
+        const description =
+          typeof j.description === 'string' ? j.description.toLowerCase() : '';
+        const location =
+          typeof j.location === 'string' ? j.location.toLowerCase() : '';
+        return (
+          title.includes(q) || description.includes(q) || location.includes(q)
+        );
+      });
     }
 
     if (isContractor) {

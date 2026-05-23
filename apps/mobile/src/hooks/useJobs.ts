@@ -48,11 +48,22 @@ export const useJob = (jobId: string) => {
   });
 };
 
-export const useJobBids = (jobId: string) => {
+/**
+ * 2026-05-23 audit: `enabled` is now caller-controlled. The bids
+ * endpoint /api/jobs/:id/bids returns 403 for non-owners, but the
+ * JobDetailsScreen used to fire this hook for everyone — every
+ * contractor opening a job triggered a forbidden response + retry
+ * storm. Callers (homeowner-side) pass enabled: isOwner so the
+ * query only runs when the auth context allows it.
+ */
+export const useJobBids = (
+  jobId: string,
+  { enabled = true }: { enabled?: boolean } = {}
+) => {
   return useOfflineQuery({
     queryKey: queryKeys.jobs.bids(jobId),
     queryFn: () => JobService.getBidsByJob(jobId),
-    enabled: !!jobId,
+    enabled: !!jobId && enabled,
     staleTime: 30 * 1000, // 30 seconds for bids
   });
 };
