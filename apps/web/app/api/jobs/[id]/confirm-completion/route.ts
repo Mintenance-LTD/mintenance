@@ -101,6 +101,35 @@ export const POST = withApiHandler(
           throw new BadRequestError('No contractor assigned to this job');
         }
 
+        // 2026-05-23 audit-17 P1: gate after-photos BEFORE the mutating
+        // write. Previously this check ran ~120 lines below the
+        // `completion_confirmed_by_homeowner = true` update and the
+        // sendWorkApprovedEmail call, so a job with no after-photos
+        // would:
+        //   1. Get marked confirmed in `jobs`.
+        //   2. Trigger the contractor's approval email (claiming payment
+        //      release is in flight).
+        //   3. THEN 400 back to the homeowner with "Cannot confirm
+        //      completion without after-photos".
+        // The homeowner couldn't retry — the next call hit the
+        // "already confirmed" guard at line 93 — and escrow approval
+        // fields never got set, so the auto-release cron never picked
+        // the row up either. Funds parked indefinitely.
+        // The check stays a second time at the escrow-release site below
+        // as a belt-and-braces guard in case the flow gets refactored
+        // again, but this is the authoritative pre-write gate.
+        const { count: preCheckPhotoCount } = await serverSupabase
+          .from('job_photos_metadata')
+          .select('id', { count: 'exact', head: true })
+          .eq('job_id', jobId)
+          .eq('photo_type', 'after');
+
+        if (!preCheckPhotoCount || preCheckPhotoCount === 0) {
+          throw new BadRequestError(
+            'Cannot confirm completion without after-photos. The contractor must upload completion photos first.'
+          );
+        }
+
         // Update job to mark completion as confirmed
         const { error: updateError } = await serverSupabase
           .from('jobs')
