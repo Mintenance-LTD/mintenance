@@ -16,6 +16,7 @@ import {
   SafePaymentMethodsScreen,
   SafeAddPaymentMethodScreen,
   SafeHelpCenterScreen,
+  SafeLearningCardsScreen,
   SafePropertiesScreen,
   SafePropertyDetailScreen,
   SafeEditPropertyScreen,
@@ -120,6 +121,14 @@ const ProfileNavigator = () => {
       <ProfileStack.Screen
         name='HelpCenter'
         component={SafeHelpCenterScreen}
+        options={{ headerShown: false }}
+      />
+      {/* R3 #20 — in-app 60-second how-to library. Wired in 2026-05-23
+          (audit flagged the screen as orphaned). HelpCenter "Video
+          Tutorials" now routes here instead of opening an external URL. */}
+      <ProfileStack.Screen
+        name='LearningCards'
+        component={SafeLearningCardsScreen}
         options={{ headerShown: false }}
       />
       <ProfileStack.Screen

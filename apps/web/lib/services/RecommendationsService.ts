@@ -23,7 +23,15 @@ interface UserJobHistory {
   status: string;
   created_at: string;
   updated_at?: string;
-  budget?: number;
+  budget?: number | null;
+  /**
+   * 2026-05-23: realised escrow amount for the job (paid out, status
+   * `released` or `completed`). Used by the cost-saving bundle /
+   * preventive recommendations as the authoritative spend figure.
+   * `budget` is now usually NULL under the open-bidding model so the
+   * old "sum job.budget" approach silently returned £0.
+   */
+  realised_amount?: number | null;
 }
 
 interface PropertyData {
@@ -52,59 +60,133 @@ export class RecommendationsService {
   /**
    * Get personalized recommendations for a homeowner
    */
-  static async getRecommendations(userId: string): Promise<MaintenanceRecommendation[]> {
+  static async getRecommendations(
+    userId: string
+  ): Promise<MaintenanceRecommendation[]> {
     return unstable_cache(
       async () => {
         try {
           // Fetch all data in parallel for better performance
-          const [jobsResult, subscriptionsResult, propertiesResult] = await Promise.all([
-            serverSupabase
-              .from('jobs')
-              .select('id, title, category, status, created_at, updated_at, budget')
-              .eq('homeowner_id', userId)
-              .order('created_at', { ascending: false })
-              .limit(50),
-            serverSupabase
-              .from('subscriptions')
-              .select('id, name, category, next_billing_date, frequency')
-              .eq('user_id', userId)
-              .eq('status', 'active')
-              .limit(20),
-            // Properties query - handle error gracefully since table might not exist
-            (async () => {
-              try {
-                return await serverSupabase
-                  .from('properties')
-                  .select('id, property_type, built_year')
-                  .eq('user_id', userId)
-                  .limit(10);
-              } catch {
-                return { data: null, error: null };
-              }
-            })(),
-          ]);
+          // 2026-05-23: join released escrow so the cost-saving
+          // bundle / preventive recommendations have real spend
+          // figures to work from. Previously the SUM used
+          // `job.budget || 0` which is now NULL for every job posted
+          // under the open-bidding model — bundle savings always
+          // computed to £0 and the recommendation never surfaced.
+          const [jobsResult, subscriptionsResult, propertiesResult] =
+            await Promise.all([
+              serverSupabase
+                .from('jobs')
+                .select(
+                  `id, title, category, status, created_at, updated_at, budget,
+                 escrow_transactions(amount, status)`
+                )
+                .eq('homeowner_id', userId)
+                .order('created_at', { ascending: false })
+                .limit(50),
+              serverSupabase
+                .from('subscriptions')
+                .select('id, name, category, next_billing_date, frequency')
+                .eq('user_id', userId)
+                .eq('status', 'active')
+                .limit(20),
+              // Properties query - handle error gracefully since table might not exist
+              (async () => {
+                try {
+                  return await serverSupabase
+                    .from('properties')
+                    .select('id, property_type, built_year')
+                    .eq('user_id', userId)
+                    .limit(10);
+                } catch {
+                  return { data: null, error: null };
+                }
+              })(),
+            ]);
 
-          const jobs = jobsResult.data || [];
+          // Flatten the nested escrow rows into `realised_amount` so
+          // the rest of this service stays unaware of the join. Falls
+          // back to NULL when nothing has been released yet.
+          const jobs: UserJobHistory[] = (jobsResult.data || []).map((raw) => {
+            const escrowRows = Array.isArray(
+              (raw as { escrow_transactions?: unknown }).escrow_transactions
+            )
+              ? ((raw as { escrow_transactions: unknown[] })
+                  .escrow_transactions as Array<{
+                  amount?: number | string | null;
+                  status?: string | null;
+                }>)
+              : (
+                    raw as {
+                      escrow_transactions?: {
+                        amount?: number | string | null;
+                        status?: string | null;
+                      } | null;
+                    }
+                  ).escrow_transactions
+                ? [
+                    (
+                      raw as {
+                        escrow_transactions: {
+                          amount?: number | string | null;
+                          status?: string | null;
+                        };
+                      }
+                    ).escrow_transactions,
+                  ]
+                : [];
+            const realised = escrowRows
+              .filter(
+                (t) => t?.status === 'released' || t?.status === 'completed'
+              )
+              .reduce<number>((acc, t) => acc + Number(t.amount ?? 0), 0);
+            return {
+              id: raw.id,
+              title: raw.title,
+              category: raw.category,
+              status: raw.status,
+              created_at: raw.created_at,
+              updated_at: raw.updated_at,
+              budget: raw.budget,
+              realised_amount: realised > 0 ? realised : null,
+            };
+          });
           const subscriptions = subscriptionsResult.data || [];
           const properties = propertiesResult.data || [];
 
           const recommendations: MaintenanceRecommendation[] = [];
 
           // Generate recommendations based on data
-          recommendations.push(...this.generateMaintenanceScheduleRecommendations(jobs, subscriptions));
-          recommendations.push(...this.generateSeasonalRecommendations(properties, jobs));
+          recommendations.push(
+            ...this.generateMaintenanceScheduleRecommendations(
+              jobs,
+              subscriptions
+            )
+          );
+          recommendations.push(
+            ...this.generateSeasonalRecommendations(properties, jobs)
+          );
           recommendations.push(...this.generateCostSavingRecommendations(jobs));
-          recommendations.push(...this.generatePreventiveRecommendations(jobs, properties));
+          recommendations.push(
+            ...this.generatePreventiveRecommendations(jobs, properties)
+          );
 
           // Pre-compute category matching for scoring optimization
           const categoryJobCount = new Map<string, number>();
           jobs.forEach((job: UserJobHistory) => {
             if (job.category) {
-              categoryJobCount.set(job.category, (categoryJobCount.get(job.category) || 0) + 1);
+              categoryJobCount.set(
+                job.category,
+                (categoryJobCount.get(job.category) || 0) + 1
+              );
             }
           });
 
-          const subscriptionCategories = new Set(subscriptions.map((sub: UserSubscription) => sub.category).filter(Boolean));
+          const subscriptionCategories = new Set(
+            subscriptions
+              .map((sub: UserSubscription) => sub.category)
+              .filter(Boolean)
+          );
 
           // Score recommendations using ML prediction (engagement prediction) - optimized
           const priorityScore = { high: 30, medium: 20, low: 10 };
@@ -137,12 +219,18 @@ export class RecommendationsService {
 
           // Sort by ML-predicted engagement score (highest first) and limit to top 5
           return scoredRecommendations
-            .sort((a, b) => (b as { engagementScore: number }).engagementScore - (a as { engagementScore: number }).engagementScore)
+            .sort(
+              (a, b) =>
+                (b as { engagementScore: number }).engagementScore -
+                (a as { engagementScore: number }).engagementScore
+            )
             .slice(0, 5)
             .map(({ engagementScore, ...rec }) => rec); // Remove engagementScore from final output
-
         } catch (error) {
-          logger.error('Failed to generate recommendations', error, { service: 'recommendations', userId });
+          logger.error('Failed to generate recommendations', error, {
+            service: 'recommendations',
+            userId,
+          });
           return [];
         }
       },
@@ -165,18 +253,23 @@ export class RecommendationsService {
     const now = new Date();
 
     // Analyze job categories and frequencies
-    const categoryFrequency = new Map<string, { count: number; lastDate: Date }>();
-    
-    jobs.forEach(job => {
+    const categoryFrequency = new Map<
+      string,
+      { count: number; lastDate: Date }
+    >();
+
+    jobs.forEach((job) => {
       if (job.category && job.status === 'completed') {
         // Use updated_at if available, otherwise created_at
-        const lastDate = job.updated_at ? new Date(job.updated_at) : new Date(job.created_at);
+        const lastDate = job.updated_at
+          ? new Date(job.updated_at)
+          : new Date(job.created_at);
         const existing = categoryFrequency.get(job.category);
-        
+
         if (!existing || lastDate > existing.lastDate) {
           categoryFrequency.set(job.category, {
             count: (existing?.count || 0) + 1,
-            lastDate
+            lastDate,
           });
         }
       }
@@ -184,22 +277,25 @@ export class RecommendationsService {
 
     // Generate maintenance schedules based on category patterns
     categoryFrequency.forEach((data, category) => {
-      const monthsSinceLastService = this.getMonthsDifference(data.lastDate, now);
-      
+      const monthsSinceLastService = this.getMonthsDifference(
+        data.lastDate,
+        now
+      );
+
       // Common maintenance intervals (in months)
       const maintenanceIntervals: Record<string, number> = {
-        'plumbing': 12,
-        'electrical': 24,
-        'hvac': 6,
-        'roofing': 24,
-        'heating': 12,
-        'cooling': 12,
-        'appliance': 12,
-        'general': 12,
+        plumbing: 12,
+        electrical: 24,
+        hvac: 6,
+        roofing: 24,
+        heating: 12,
+        cooling: 12,
+        appliance: 12,
+        general: 12,
       };
 
       const interval = maintenanceIntervals[category.toLowerCase()] || 12;
-      
+
       if (monthsSinceLastService >= interval - 1) {
         const suggestedDate = new Date(data.lastDate);
         suggestedDate.setMonth(suggestedDate.getMonth() + interval);
@@ -218,11 +314,13 @@ export class RecommendationsService {
     });
 
     // Check subscription renewal dates
-    subscriptions.forEach(sub => {
+    subscriptions.forEach((sub) => {
       if (sub.next_billing_date) {
         const nextDate = new Date(sub.next_billing_date);
-        const daysUntil = Math.ceil((nextDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-        
+        const daysUntil = Math.ceil(
+          (nextDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+        );
+
         if (daysUntil <= 30 && daysUntil > 0) {
           recommendations.push({
             id: `subscription-${sub.id}`,
@@ -244,15 +342,20 @@ export class RecommendationsService {
   /**
    * Generate seasonal recommendations based on current time, property data, and job history
    */
-  private static generateSeasonalRecommendations(properties: PropertyData[], jobs: UserJobHistory[]): MaintenanceRecommendation[] {
+  private static generateSeasonalRecommendations(
+    properties: PropertyData[],
+    jobs: UserJobHistory[]
+  ): MaintenanceRecommendation[] {
     const recommendations: MaintenanceRecommendation[] = [];
     const now = new Date();
     const month = now.getMonth(); // 0-11
 
     // Analyze user's job history to see what categories they've used
-    const userCategories = new Set(jobs.map(job => job.category?.toLowerCase()).filter(Boolean));
-    const hasCompletedJobs = jobs.some(job => job.status === 'completed');
-    
+    const userCategories = new Set(
+      jobs.map((job) => job.category?.toLowerCase()).filter(Boolean)
+    );
+    const hasCompletedJobs = jobs.some((job) => job.status === 'completed');
+
     // Only show seasonal recommendations if user has actual job history OR properties
     // This makes recommendations more personalized
     if (!hasCompletedJobs && properties.length === 0) {
@@ -265,19 +368,25 @@ export class RecommendationsService {
         id: 'seasonal-spring-gutter',
         type: 'seasonal',
         title: 'Spring Gutter Cleaning',
-        description: 'Clear winter debris from gutters to prevent water damage. Spring is the perfect time for outdoor maintenance.',
+        description:
+          'Clear winter debris from gutters to prevent water damage. Spring is the perfect time for outdoor maintenance.',
         priority: 'medium',
         category: 'roofing',
         actionUrl: '/jobs/create?category=roofing',
       });
 
       // Only suggest AC check if user has HVAC/cooling jobs or properties
-      if (userCategories.has('hvac') || userCategories.has('cooling') || properties.length > 0) {
+      if (
+        userCategories.has('hvac') ||
+        userCategories.has('cooling') ||
+        properties.length > 0
+      ) {
         recommendations.push({
           id: 'seasonal-spring-hvac',
           type: 'seasonal',
           title: 'AC System Check',
-          description: 'Schedule an AC inspection before summer heat arrives. Early maintenance can prevent costly breakdowns.',
+          description:
+            'Schedule an AC inspection before summer heat arrives. Early maintenance can prevent costly breakdowns.',
           priority: 'high',
           category: 'hvac',
           actionUrl: '/jobs/create?category=hvac',
@@ -288,7 +397,8 @@ export class RecommendationsService {
         id: 'seasonal-spring-outdoor',
         type: 'seasonal',
         title: 'Outdoor Maintenance',
-        description: 'Spring is ideal for outdoor projects like painting, deck repairs, and garden work.',
+        description:
+          'Spring is ideal for outdoor projects like painting, deck repairs, and garden work.',
         priority: 'low',
         category: 'general',
         actionUrl: '/jobs/create',
@@ -301,7 +411,8 @@ export class RecommendationsService {
         id: 'seasonal-summer-cooling',
         type: 'seasonal',
         title: 'Cooling System Maintenance',
-        description: 'Ensure your cooling systems are running efficiently during peak summer months.',
+        description:
+          'Ensure your cooling systems are running efficiently during peak summer months.',
         priority: 'high',
         category: 'hvac',
         actionUrl: '/jobs/create?category=hvac',
@@ -311,7 +422,8 @@ export class RecommendationsService {
         id: 'seasonal-summer-outdoor',
         type: 'seasonal',
         title: 'Outdoor Space Preparation',
-        description: 'Perfect weather for patio, deck, and outdoor space improvements.',
+        description:
+          'Perfect weather for patio, deck, and outdoor space improvements.',
         priority: 'low',
         category: 'general',
         actionUrl: '/jobs/create',
@@ -322,28 +434,36 @@ export class RecommendationsService {
     if (month >= 8 && month <= 10) {
       // Only suggest heating check if user has heating jobs, HVAC jobs, or properties
       // This makes it personalized to their actual needs
-      if (userCategories.has('heating') || userCategories.has('hvac') || properties.length > 0) {
+      if (
+        userCategories.has('heating') ||
+        userCategories.has('hvac') ||
+        properties.length > 0
+      ) {
         // Check if they've had heating work done recently (within last 12 months)
-        const recentHeatingJobs = jobs.filter(job => 
-          (job.category?.toLowerCase().includes('heating') || job.category?.toLowerCase().includes('hvac')) &&
-          job.status === 'completed'
+        const recentHeatingJobs = jobs.filter(
+          (job) =>
+            (job.category?.toLowerCase().includes('heating') ||
+              job.category?.toLowerCase().includes('hvac')) &&
+            job.status === 'completed'
         );
-        
+
         const lastHeatingJob = recentHeatingJobs
-          .map(job => job.updated_at ? new Date(job.updated_at) : new Date(job.created_at))
+          .map((job) =>
+            job.updated_at ? new Date(job.updated_at) : new Date(job.created_at)
+          )
           .sort((a, b) => b.getTime() - a.getTime())[0];
-        
-        const monthsSinceLastHeating = lastHeatingJob 
+
+        const monthsSinceLastHeating = lastHeatingJob
           ? this.getMonthsDifference(lastHeatingJob, now)
           : 999;
-        
+
         // Only suggest if it's been 6+ months since last heating work
         if (monthsSinceLastHeating >= 6 || !lastHeatingJob) {
           recommendations.push({
             id: 'seasonal-autumn-heating',
             type: 'seasonal',
             title: 'Heating System Check',
-            description: lastHeatingJob 
+            description: lastHeatingJob
               ? `Prepare for winter by having your heating system serviced. Last service was ${this.formatDate(lastHeatingJob)}.`
               : 'Prepare for winter by having your heating system serviced before cold weather arrives.',
             priority: 'high',
@@ -357,7 +477,8 @@ export class RecommendationsService {
         id: 'seasonal-autumn-insulation',
         type: 'seasonal',
         title: 'Winter Preparation',
-        description: 'Check insulation, seal drafts, and prepare your home for winter. Can save on heating costs.',
+        description:
+          'Check insulation, seal drafts, and prepare your home for winter. Can save on heating costs.',
         priority: 'medium',
         category: 'general',
         actionUrl: '/jobs/create',
@@ -367,7 +488,8 @@ export class RecommendationsService {
         id: 'seasonal-autumn-gutter',
         type: 'seasonal',
         title: 'Pre-Winter Gutter Clean',
-        description: 'Clear gutters before winter to prevent ice dams and water damage.',
+        description:
+          'Clear gutters before winter to prevent ice dams and water damage.',
         priority: 'medium',
         category: 'roofing',
         actionUrl: '/jobs/create?category=roofing',
@@ -380,7 +502,8 @@ export class RecommendationsService {
         id: 'seasonal-winter-indoor',
         type: 'seasonal',
         title: 'Indoor Projects',
-        description: 'Winter is ideal for indoor renovations, painting, and improvements.',
+        description:
+          'Winter is ideal for indoor renovations, painting, and improvements.',
         priority: 'low',
         category: 'general',
         actionUrl: '/jobs/create',
@@ -390,7 +513,8 @@ export class RecommendationsService {
         id: 'seasonal-winter-emergency',
         type: 'seasonal',
         title: 'Emergency Preparedness',
-        description: 'Ensure heating systems, pipes, and emergency equipment are in working order.',
+        description:
+          'Ensure heating systems, pipes, and emergency equipment are in working order.',
         priority: 'high',
         category: 'heating',
         actionUrl: '/jobs/create?category=heating',
@@ -398,10 +522,10 @@ export class RecommendationsService {
     }
 
     // Property age-based recommendations
-    properties.forEach(property => {
+    properties.forEach((property) => {
       if (property.built_year) {
         const age = now.getFullYear() - property.built_year;
-        
+
         if (age >= 20 && month >= 8 && month <= 10) {
           recommendations.push({
             id: `property-age-${property.id}`,
@@ -422,12 +546,14 @@ export class RecommendationsService {
   /**
    * Generate cost-saving recommendations
    */
-  private static generateCostSavingRecommendations(jobs: UserJobHistory[]): MaintenanceRecommendation[] {
+  private static generateCostSavingRecommendations(
+    jobs: UserJobHistory[]
+  ): MaintenanceRecommendation[] {
     const recommendations: MaintenanceRecommendation[] = [];
-    
+
     // Analyze job patterns for bundling opportunities
     const recentJobs = jobs
-      .filter(job => {
+      .filter((job) => {
         const jobDate = new Date(job.created_at);
         const sixMonthsAgo = new Date();
         sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
@@ -437,7 +563,7 @@ export class RecommendationsService {
 
     // Group jobs by category
     const categoryGroups = new Map<string, UserJobHistory[]>();
-    recentJobs.forEach(job => {
+    recentJobs.forEach((job) => {
       if (job.category) {
         const existing = categoryGroups.get(job.category) || [];
         existing.push(job);
@@ -445,10 +571,18 @@ export class RecommendationsService {
       }
     });
 
-    // Suggest bundling if multiple jobs in same category
+    // Suggest bundling if multiple jobs in same category.
+    // 2026-05-23: prefer realised escrow (paid out) over the (now
+    // usually NULL) `budget`. Categories with no realised spend
+    // simply don't trigger the bundle recommendation, which is
+    // correct — there's no demonstrated savings to project.
     categoryGroups.forEach((categoryJobs, category) => {
       if (categoryJobs.length >= 2) {
-        const totalCost = categoryJobs.reduce((sum, job) => sum + (job.budget || 0), 0);
+        const totalCost = categoryJobs.reduce(
+          (sum, job) => sum + (job.realised_amount ?? job.budget ?? 0),
+          0
+        );
+        if (totalCost <= 0) return;
         const potentialSavings = Math.round(totalCost * 0.15); // Estimate 15% savings
 
         recommendations.push({
@@ -465,36 +599,45 @@ export class RecommendationsService {
     });
 
     // Suggest preventive maintenance if user has many emergency repairs
-    const emergencyJobs = jobs.filter(job => 
-      job.status === 'completed' && 
-      (job.title.toLowerCase().includes('emergency') || 
-       job.title.toLowerCase().includes('urgent') ||
-       job.title.toLowerCase().includes('leak') ||
-       job.title.toLowerCase().includes('broken'))
+    const emergencyJobs = jobs.filter(
+      (job) =>
+        job.status === 'completed' &&
+        (job.title.toLowerCase().includes('emergency') ||
+          job.title.toLowerCase().includes('urgent') ||
+          job.title.toLowerCase().includes('leak') ||
+          job.title.toLowerCase().includes('broken'))
     );
 
     if (emergencyJobs.length >= 3) {
-      const emergencyCost = emergencyJobs.reduce((sum, job) => sum + (job.budget || 0), 0);
-      const estimatedPreventiveCost = Math.round(emergencyCost * 0.6); // Preventive is typically 60% of emergency cost
-      const potentialSavings = emergencyCost - estimatedPreventiveCost;
+      const emergencyCost = emergencyJobs.reduce(
+        (sum, job) => sum + (job.realised_amount ?? job.budget ?? 0),
+        0
+      );
+      // Skip the recommendation when nothing actually paid out —
+      // saving "approximately £0" was the original silent failure.
+      if (emergencyCost > 0) {
+        const estimatedPreventiveCost = Math.round(emergencyCost * 0.6); // Preventive is typically 60% of emergency cost
+        const potentialSavings = emergencyCost - estimatedPreventiveCost;
 
-      recommendations.push({
-        id: 'cost-saving-preventive',
-        type: 'cost_saving',
-        title: 'Preventive Maintenance Can Save Money',
-        description: `You've had ${emergencyJobs.length} emergency repairs. Regular preventive maintenance could save you approximately ${this.formatMoney(potentialSavings)} annually.`,
-        priority: 'high',
-        potentialSavings,
-        actionUrl: '/jobs/create',
-      });
+        recommendations.push({
+          id: 'cost-saving-preventive',
+          type: 'cost_saving',
+          title: 'Preventive Maintenance Can Save Money',
+          description: `You've had ${emergencyJobs.length} emergency repairs. Regular preventive maintenance could save you approximately ${this.formatMoney(potentialSavings)} annually.`,
+          priority: 'high',
+          potentialSavings,
+          actionUrl: '/jobs/create',
+        });
+      }
     }
 
     // Suggest energy-efficient upgrades if user has high heating/cooling costs
-    const hvacJobs = jobs.filter(job => 
-      job.category && 
-      (job.category.toLowerCase().includes('hvac') || 
-       job.category.toLowerCase().includes('heating') ||
-       job.category.toLowerCase().includes('cooling'))
+    const hvacJobs = jobs.filter(
+      (job) =>
+        job.category &&
+        (job.category.toLowerCase().includes('hvac') ||
+          job.category.toLowerCase().includes('heating') ||
+          job.category.toLowerCase().includes('cooling'))
     );
 
     if (hvacJobs.length >= 2) {
@@ -502,7 +645,8 @@ export class RecommendationsService {
         id: 'cost-saving-energy',
         type: 'cost_saving',
         title: 'Energy Efficiency Upgrade',
-        description: 'Consider upgrading to energy-efficient systems. Can reduce monthly utility bills by 20-30%.',
+        description:
+          'Consider upgrading to energy-efficient systems. Can reduce monthly utility bills by 20-30%.',
         priority: 'medium',
         estimatedCost: 2000,
         potentialSavings: 600, // Annual savings estimate
@@ -525,10 +669,11 @@ export class RecommendationsService {
     const now = new Date();
 
     // Check if user has had any preventive maintenance
-    const hasPreventiveMaintenance = jobs.some(job =>
-      job.title.toLowerCase().includes('inspection') ||
-      job.title.toLowerCase().includes('service') ||
-      job.title.toLowerCase().includes('maintenance')
+    const hasPreventiveMaintenance = jobs.some(
+      (job) =>
+        job.title.toLowerCase().includes('inspection') ||
+        job.title.toLowerCase().includes('service') ||
+        job.title.toLowerCase().includes('maintenance')
     );
 
     if (!hasPreventiveMaintenance && jobs.length >= 2) {
@@ -536,17 +681,18 @@ export class RecommendationsService {
         id: 'preventive-first',
         type: 'preventive',
         title: 'Start Preventive Maintenance',
-        description: 'Regular preventive maintenance can extend the life of your home systems and prevent costly emergency repairs.',
+        description:
+          'Regular preventive maintenance can extend the life of your home systems and prevent costly emergency repairs.',
         priority: 'high',
         actionUrl: '/jobs/create',
       });
     }
 
     // Property age-based preventive recommendations
-    properties.forEach(property => {
+    properties.forEach((property) => {
       if (property.built_year) {
         const age = now.getFullYear() - property.built_year;
-        
+
         if (age >= 15 && age < 20) {
           recommendations.push({
             id: `preventive-age-${property.id}`,
@@ -579,7 +725,7 @@ export class RecommendationsService {
   private static formatCategory(category: string): string {
     return category
       .split('_')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
   }
 
@@ -587,10 +733,10 @@ export class RecommendationsService {
    * Helper: Format date
    */
   private static formatDate(date: Date): string {
-    return date.toLocaleDateString('en-GB', { 
-      month: 'long', 
-      day: 'numeric', 
-      year: 'numeric' 
+    return date.toLocaleDateString('en-GB', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
     });
   }
 
@@ -606,4 +752,3 @@ export class RecommendationsService {
     }).format(amount);
   }
 }
-

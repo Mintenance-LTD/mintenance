@@ -5,32 +5,46 @@ interface SeriousBuyerIndicators {
   phoneVerified: boolean;
   emailVerified: boolean;
   hasPreviousJobs: boolean;
-  budgetHigh: boolean;
   detailedDescription: boolean;
   photosProvided: boolean;
 }
 
 /**
- * Service for calculating serious buyer score
+ * Service for calculating serious buyer score.
+ *
+ * 2026-05-23: the `budgetHigh > £1,000` indicator (and its 20 weight
+ * points) was removed. Homeowners no longer set a budget under the
+ * open-bidding model (2026-05-22 rollout), so the signal was
+ * permanently false for every new job — distorting the score and
+ * hiding genuinely serious buyers behind the (now-unreachable) £1k
+ * threshold. The 20 points were redistributed across the verification
+ * + content-quality indicators which carry real commitment signal.
  */
 export class SeriousBuyerService {
   private static readonly SCORE_WEIGHTS = {
-    phoneVerified: 20,
-    emailVerified: 10,
+    phoneVerified: 25,
+    emailVerified: 15,
     hasPreviousJobs: 30,
-    budgetHigh: 20,
-    detailedDescription: 10,
-    photosProvided: 10,
+    detailedDescription: 15,
+    photosProvided: 15,
   };
 
   /**
    * Calculate serious buyer score for a job
    */
-  static async calculateScore(jobId: string, homeownerId: string, jobData: {
-    description?: string | null;
-    budget?: number | null;
-    photoUrls?: string[] | null;
-  }): Promise<number> {
+  static async calculateScore(
+    jobId: string,
+    homeownerId: string,
+    jobData: {
+      description?: string | null;
+      // 2026-05-23: `budget` kept in the signature for back-compat with
+      // existing call sites (which still pass jobData.budget along from
+      // job-creation forms), but no longer feeds the score — see class
+      // header for the rationale.
+      budget?: number | null;
+      photoUrls?: string[] | null;
+    }
+  ): Promise<number> {
     try {
       // Get homeowner data
       const { data: homeowner, error: homeownerError } = await serverSupabase
@@ -61,7 +75,6 @@ export class SeriousBuyerService {
         phoneVerified: homeowner.phone_verified || false,
         emailVerified: homeowner.verified || false,
         hasPreviousJobs: (previousJobsCount || 0) > 0,
-        budgetHigh: (jobData.budget || 0) > 1000,
         detailedDescription: (jobData.description || '').length > 100,
         photosProvided: (jobData.photoUrls || []).length > 0,
       };
@@ -70,9 +83,10 @@ export class SeriousBuyerService {
       let score = 0;
       if (indicators.phoneVerified) score += this.SCORE_WEIGHTS.phoneVerified;
       if (indicators.emailVerified) score += this.SCORE_WEIGHTS.emailVerified;
-      if (indicators.hasPreviousJobs) score += this.SCORE_WEIGHTS.hasPreviousJobs;
-      if (indicators.budgetHigh) score += this.SCORE_WEIGHTS.budgetHigh;
-      if (indicators.detailedDescription) score += this.SCORE_WEIGHTS.detailedDescription;
+      if (indicators.hasPreviousJobs)
+        score += this.SCORE_WEIGHTS.hasPreviousJobs;
+      if (indicators.detailedDescription)
+        score += this.SCORE_WEIGHTS.detailedDescription;
       if (indicators.photosProvided) score += this.SCORE_WEIGHTS.photosProvided;
 
       // Ensure score is between 0 and 100
@@ -90,11 +104,15 @@ export class SeriousBuyerService {
   /**
    * Update serious buyer score for a job
    */
-  static async updateScore(jobId: string, homeownerId: string, jobData: {
-    description?: string | null;
-    budget?: number | null;
-    photoUrls?: string[] | null;
-  }): Promise<number> {
+  static async updateScore(
+    jobId: string,
+    homeownerId: string,
+    jobData: {
+      description?: string | null;
+      budget?: number | null;
+      photoUrls?: string[] | null;
+    }
+  ): Promise<number> {
     try {
       const score = await this.calculateScore(jobId, homeownerId, jobData);
 
@@ -164,7 +182,6 @@ export class SeriousBuyerService {
         phoneVerified: homeowner.phone_verified || false,
         emailVerified: homeowner.verified || false,
         hasPreviousJobs: (previousJobsCount || 0) > 0,
-        budgetHigh: (job.budget || 0) > 1000,
         detailedDescription: (job.description || '').length > 100,
         photosProvided: false, // Would need to check photoUrls from another source
       };
@@ -184,11 +201,6 @@ export class SeriousBuyerService {
           indicator: 'Has Previous Jobs',
           points: this.SCORE_WEIGHTS.hasPreviousJobs,
           achieved: indicators.hasPreviousJobs,
-        },
-        {
-          indicator: 'Budget > £1,000',
-          points: this.SCORE_WEIGHTS.budgetHigh,
-          achieved: indicators.budgetHigh,
         },
         {
           indicator: 'Detailed Description',
@@ -216,4 +228,3 @@ export class SeriousBuyerService {
     }
   }
 }
-

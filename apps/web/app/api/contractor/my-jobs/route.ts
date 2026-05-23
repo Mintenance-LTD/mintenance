@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { BadRequestError } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { resignJobStorageUrls } from '@/lib/api/job-storage';
+import { getJobAmount } from '@/lib/services/jobs/job-amount';
 
 const statusSchema = z.enum(['active', 'bid', 'completed', 'all']).optional();
 
@@ -16,9 +17,9 @@ interface JobApiResponse {
   category?: string;
   priority?: string;
   urgency?: string;
-  budget?: number;
-  budget_min?: number;
-  budget_max?: number;
+  budget?: number | null;
+  budget_min?: number | null;
+  budget_max?: number | null;
   status: string;
   photos?: string[];
   created_at: string;
@@ -37,6 +38,16 @@ interface JobApiResponse {
         profile_image_url?: string;
       }>;
   job_attachments?: Array<{ file_url: string }>;
+  // 2026-05-23: included so the consumer can show "what this job is
+  // worth" without fabricating a number from the (now-NULL) budget.
+  escrow_transactions?:
+    | Array<{ amount?: number | string | null; status?: string | null }>
+    | { amount?: number | string | null; status?: string | null }
+    | null;
+  bids?:
+    | Array<{ amount?: number | string | null; status?: string | null }>
+    | { amount?: number | string | null; status?: string | null }
+    | null;
 }
 
 function getJobPhotos(job: JobApiResponse): string[] {
@@ -48,6 +59,31 @@ function getJobPhotos(job: JobApiResponse): string[] {
 }
 
 function transformJob(job: JobApiResponse) {
+  // 2026-05-23: derive a single `total_amount` from the most-committed
+  // figure available. Used by the stats card on /contractor/jobs so
+  // totals no longer read as £0 for jobs posted under the open-bidding
+  // model (where jobs.budget is NULL).
+  const escrowRows = Array.isArray(job.escrow_transactions)
+    ? job.escrow_transactions
+    : job.escrow_transactions
+      ? [job.escrow_transactions]
+      : [];
+  const latestEscrow = escrowRows[0];
+  const acceptedBidRows = Array.isArray(job.bids)
+    ? job.bids.filter((b) => b?.status === 'accepted')
+    : job.bids && job.bids.status === 'accepted'
+      ? [job.bids]
+      : [];
+  const totalAmount = getJobAmount({
+    budget: job.budget ?? job.budget_max ?? job.budget_min ?? null,
+    escrow_amount: latestEscrow ? Number(latestEscrow.amount ?? 0) : null,
+    escrow_status: latestEscrow?.status ?? null,
+    accepted_bid_amount:
+      acceptedBidRows.length > 0
+        ? Number(acceptedBidRows[0]?.amount ?? 0)
+        : null,
+  });
+
   return {
     id: job.id,
     title: job.title,
@@ -55,7 +91,10 @@ function transformJob(job: JobApiResponse) {
     location: job.location,
     category: job.category,
     priority: job.priority || job.urgency || 'medium',
+    // Legacy `budget` field preserved for back-compat with any caller
+    // still reading it; new callers should prefer `total_amount`.
     budget: job.budget || job.budget_max || job.budget_min || 0,
+    total_amount: totalAmount,
     status: job.status,
     photos: getJobPhotos(job),
     created_at: job.created_at,
@@ -105,6 +144,14 @@ const JOB_SELECT_FIELDS = `
   ),
   job_attachments (
     file_url
+  ),
+  escrow_transactions (
+    amount,
+    status
+  ),
+  bids (
+    amount,
+    status
   )
 `;
 

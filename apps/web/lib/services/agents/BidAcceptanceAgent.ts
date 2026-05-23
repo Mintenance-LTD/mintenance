@@ -78,7 +78,10 @@ export class BidAcceptanceAgent {
       }
 
       // Only auto-accept for verified contractors
-      if (!contractor.verified || contractor.background_check_status !== 'passed') {
+      if (
+        !contractor.verified ||
+        contractor.background_check_status !== 'passed'
+      ) {
         return null;
       }
 
@@ -90,13 +93,18 @@ export class BidAcceptanceAgent {
 
       const averageRating =
         reviews && reviews.length > 0
-          ? reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length
+          ? reviews.reduce((sum, r) => sum + (r.rating || 0), 0) /
+            reviews.length
           : 0;
 
-      // Check if bid meets criteria
+      // Check if bid meets criteria.
+      // 2026-05-23: jobBudget passed as null when the homeowner didn't
+      // set one — evaluateBidCriteria already skips the budget gate in
+      // that case (guard is `jobBudget > 0`). Used to pass `|| 0` here
+      // which technically worked but obscured the intent.
       const meetsCriteria = this.evaluateBidCriteria({
         bidAmount: bid.amount || 0,
-        jobBudget: job.budget || 0,
+        jobBudget: job.budget ?? null,
         contractorRating: averageRating,
         reviewCount: reviews?.length || 0,
       });
@@ -108,17 +116,17 @@ export class BidAcceptanceAgent {
       // Calculate match score (simplified approach - using contractor rating and review count)
       // Full implementation would use AIMatchingService with proper MatchingCriteria
       let matchScore = 0;
-      
+
       // Base score from rating
       matchScore += averageRating * 10; // 0-50 points from rating
-      
+
       // Bonus from review count
       if (reviews && reviews.length >= 10) {
         matchScore += 20;
       } else if (reviews && reviews.length >= 5) {
         matchScore += 10;
       }
-      
+
       // Check if bid is within budget
       if (job.budget && bid.amount && bid.amount <= job.budget) {
         matchScore += 20;
@@ -220,12 +228,18 @@ export class BidAcceptanceAgent {
    */
   private static evaluateBidCriteria(criteria: {
     bidAmount: number;
-    jobBudget: number;
+    /** Null when the homeowner didn't set a budget — the budget gate
+     * is skipped in that case (open-bidding model). */
+    jobBudget: number | null;
     contractorRating: number;
     reviewCount: number;
   }): boolean {
-    // Bid must be within budget
-    if (criteria.jobBudget > 0 && criteria.bidAmount > criteria.jobBudget * 1.1) {
+    // Bid must be within budget (only when one is set)
+    if (
+      criteria.jobBudget != null &&
+      criteria.jobBudget > 0 &&
+      criteria.bidAmount > criteria.jobBudget * 1.1
+    ) {
       // Allow 10% over budget
       return false;
     }
@@ -242,6 +256,4 @@ export class BidAcceptanceAgent {
 
     return true;
   }
-
 }
-

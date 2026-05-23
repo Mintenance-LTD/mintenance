@@ -37,7 +37,16 @@ export async function fetchJobStats(): Promise<JobStats> {
     (j) => j.status === 'pending' || j.status === 'posted'
   ).length;
   const completed = allJobs.filter((j) => j.status === 'completed').length;
-  const totalValue = allJobs.reduce((sum, j) => sum + (j.budget || 0), 0);
+  // 2026-05-23: prefer `total_amount` (released escrow → accepted bid
+  // → budget). Falls back to legacy `budget` field for older response
+  // shapes. Jobs with no committed amount yet (posted, no bids) are
+  // counted as £0 in the stat — same as before, but at least the
+  // assigned/in-progress/completed jobs now contribute their real
+  // value instead of the (now usually NULL) budget.
+  const totalValue = allJobs.reduce(
+    (sum, j) => sum + (j.total_amount ?? j.budget ?? 0),
+    0
+  );
 
   return { active, pending, completed, totalValue };
 }
@@ -87,6 +96,7 @@ export async function fetchJobsByFilter(
     category: job.category || 'General',
     priority: job.priority || 'medium',
     budget: job.budget,
+    total_amount: job.total_amount ?? null,
     status: job.status,
     photos: job.photos || [],
     created_at: job.created_at,

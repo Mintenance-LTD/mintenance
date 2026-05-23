@@ -5,12 +5,14 @@
  *
  * Background
  * ----------
- * The platform has 7 job-creation entry points:
- *   - Web: `/jobs/create`, `/jobs/quick-create`, `/jobs/new/wizard`
- *   - Mobile: `JobPosting`, `PostJobWizard`, `QuickJobPost`,
- *     `ServiceRequest`
+ * Originally 7 job-creation entry points; consolidated 2026-05-23
+ * to 5 by retiring the silver-mode wizards (web `/jobs/new/wizard`
+ * now redirects to `/jobs/create`, mobile `PostJobWizard` deleted —
+ * silver-mode users get in-place font scaling instead):
+ *   - Web: `/jobs/create`, `/jobs/quick-create`
+ *   - Mobile: `JobPosting`, `QuickJobPost`, `ServiceRequest`
  *
- * All seven submit to `POST /api/jobs`, which validates against
+ * All five submit to `POST /api/jobs`, which validates against
  * `createJobRequestSchema`. The audit complaint was that each form
  * still owned its own field-collection + pre-validation logic that
  * could drift from the canonical schema. The fix is one shared draft

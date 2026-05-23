@@ -491,6 +491,18 @@ const KNOWN_LARGE_FILES = new Set([
   // with fabricated stat badges (100% Verified Professionals etc.) which
   // were replaced with verifiable platform behaviours; the split is a P2.
   'apps/web/app/contractors/components/ContractorsBrowseProfessional.tsx', // 606 (was 601)
+  // Added 2026-05-23 (audit-5 budget→escrow refactor): both files
+  // were already over the 500-LOC gate before the audit (528 + 609
+  // lines on HEAD). The audit edits add the escrow-flatten + null
+  // bucket-skip + new analytics joining — net ~8 lines for
+  // AdvancedSearchService, ~66 lines for RecommendationsService.
+  // Neither change relocates business logic; both call sites already
+  // bundle large state machines (search facets, multi-category
+  // recommendation engine) that warrant their own split sprint.
+  // Splits tracked as a dedicated P2 — orthogonal to closing the
+  // "analytics silently read £0" finding.
+  'apps/web/lib/services/AdvancedSearchService.ts', // 536 (was 528)
+  'apps/web/lib/services/RecommendationsService.ts', // 675 (was 609)
 ]);
 
 function countLines(filePath) {

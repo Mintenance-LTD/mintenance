@@ -7,6 +7,7 @@ import { PaymentMethodsScreen } from '../../../screens/payment-methods';
 import AddPaymentMethodScreen from '../../../screens/payment-methods/AddPaymentMethodScreen';
 import ContractorPayoutsScreen from '../../../screens/contractor/ContractorPayoutsScreen';
 import HelpCenterScreen from '../../../screens/HelpCenterScreen';
+import { LearningCardsScreen } from '../../../screens/learning/LearningCardsScreen';
 import { PropertiesScreen } from '../../../screens/properties/PropertiesScreen';
 import { PropertyDetailScreen } from '../../../screens/properties/PropertyDetailScreen';
 import { EditPropertyScreen } from '../../../screens/properties/EditPropertyScreen';
@@ -72,6 +73,11 @@ export const SafeHelpCenterScreen = withScreenErrorBoundary(
   HelpCenterScreen,
   'Help Center',
   { fallbackRoute: 'ProfileMain' }
+);
+export const SafeLearningCardsScreen = withScreenErrorBoundary(
+  LearningCardsScreen,
+  'Learning Cards',
+  { fallbackRoute: 'HelpCenter' }
 );
 export const SafePropertiesScreen = withScreenErrorBoundary(
   PropertiesScreen,

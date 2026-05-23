@@ -45,7 +45,9 @@ export class PricingAgent {
       // Get job details
       const { data: job, error: jobError } = await serverSupabase
         .from('jobs')
-        .select('id, title, description, category, budget, location, homeowner_id')
+        .select(
+          'id, title, description, category, budget, location, homeowner_id'
+        )
         .eq('id', jobId)
         .single();
 
@@ -59,15 +61,33 @@ export class PricingAgent {
       }
 
       // Get market analysis
-      const marketAnalysis = await this.analyzeMarket(job.category || '', job.location || '');
+      const marketAnalysis = await this.analyzeMarket(
+        job.category || '',
+        job.location || ''
+      );
 
       if (!marketAnalysis || marketAnalysis.sampleSize < 3) {
-        // Not enough data - use budget-based fallback
-        return generateBudgetBasedRecommendation(job.budget || 0, job.category || '');
+        // 2026-05-23: previously fell back to a budget-based
+        // recommendation. With `jobs.budget` typically NULL under the
+        // open-bidding model, that produced a recommendation of £0
+        // across the board. Now we only emit a budget-based fallback
+        // when there's an actual budget to scale from; otherwise we
+        // return null (the contractor UI handles this by showing
+        // "Set your own price — no market data yet").
+        if (typeof job.budget === 'number' && job.budget > 0) {
+          return generateBudgetBasedRecommendation(
+            job.budget,
+            job.category || ''
+          );
+        }
+        return null;
       }
 
       // Calculate material costs from JobAnalysisService
-      const materialCosts = await this.calculateMaterialCosts(jobId, job.description || '');
+      const materialCosts = await this.calculateMaterialCosts(
+        jobId,
+        job.description || ''
+      );
 
       // Calculate factors
       const complexityFactor = await this.calculateComplexityFactor(
@@ -75,33 +95,59 @@ export class PricingAgent {
         job.description || '',
         materialCosts.estimatedMaterialCost
       );
-      const locationFactor = await this.calculateLocationFactor(job.location || '');
+      const locationFactor = await this.calculateLocationFactor(
+        job.location || ''
+      );
       const contractorTierFactor = contractorId
         ? await this.calculateContractorTierFactor(contractorId)
         : 1.0;
-      const marketDemandFactor = await this.calculateMarketDemandFactor(job.category || '', job.location || '');
+      const marketDemandFactor = await this.calculateMarketDemandFactor(
+        job.category || '',
+        job.location || ''
+      );
 
       // Calculate recommended prices
       const basePrice = marketAnalysis.medianAcceptedPrice;
       const recommendedOptimalPrice = Math.round(
-        basePrice * complexityFactor * locationFactor * contractorTierFactor * marketDemandFactor
+        basePrice *
+          complexityFactor *
+          locationFactor *
+          contractorTierFactor *
+          marketDemandFactor
       );
-      const priceRange = marketAnalysis.maxAcceptedPrice - marketAnalysis.minAcceptedPrice;
-      const recommendedMinPrice = Math.max(0, Math.round(recommendedOptimalPrice - priceRange * 0.2));
-      const recommendedMaxPrice = Math.round(recommendedOptimalPrice + priceRange * 0.2);
+      const priceRange =
+        marketAnalysis.maxAcceptedPrice - marketAnalysis.minAcceptedPrice;
+      const recommendedMinPrice = Math.max(
+        0,
+        Math.round(recommendedOptimalPrice - priceRange * 0.2)
+      );
+      const recommendedMaxPrice = Math.round(
+        recommendedOptimalPrice + priceRange * 0.2
+      );
 
       // Calculate competitiveness if proposed price provided
       let competitivenessScore = 0;
-      let competitivenessLevel: 'too_low' | 'competitive' | 'premium' | 'too_high' = 'competitive';
+      let competitivenessLevel:
+        | 'too_low'
+        | 'competitive'
+        | 'premium'
+        | 'too_high' = 'competitive';
 
       if (proposedPrice !== undefined) {
-        const score = calculateCompetitivenessScore(proposedPrice, marketAnalysis, recommendedOptimalPrice);
+        const score = calculateCompetitivenessScore(
+          proposedPrice,
+          marketAnalysis,
+          recommendedOptimalPrice
+        );
         competitivenessScore = score.score;
         competitivenessLevel = score.level;
       }
 
       // Calculate confidence
-      const confidenceScore = calculateConfidence(marketAnalysis, job.category || '');
+      const confidenceScore = calculateConfidence(
+        marketAnalysis,
+        job.category || ''
+      );
 
       // Generate reasoning
       const reasoning = generateReasoning(
@@ -159,20 +205,21 @@ export class PricingAgent {
       }
 
       // Calculate cost breakdown
-      const costBreakdown = materialCosts.estimatedMaterialCost > 0
-        ? {
-            materials: materialCosts.estimatedMaterialCost,
-            labor: materialCosts.estimatedLaborCost,
-            overhead: Math.round(recommendedOptimalPrice * 0.15),
-            profit: Math.round(
-              recommendedOptimalPrice -
-                materialCosts.estimatedMaterialCost -
-                materialCosts.estimatedLaborCost -
-                recommendedOptimalPrice * 0.15
-            ),
-            total: recommendedOptimalPrice,
-          }
-        : undefined;
+      const costBreakdown =
+        materialCosts.estimatedMaterialCost > 0
+          ? {
+              materials: materialCosts.estimatedMaterialCost,
+              labor: materialCosts.estimatedLaborCost,
+              overhead: Math.round(recommendedOptimalPrice * 0.15),
+              profit: Math.round(
+                recommendedOptimalPrice -
+                  materialCosts.estimatedMaterialCost -
+                  materialCosts.estimatedLaborCost -
+                  recommendedOptimalPrice * 0.15
+              ),
+              total: recommendedOptimalPrice,
+            }
+          : undefined;
 
       const result: PricingRecommendation = {
         recommendedMinPrice,
@@ -252,10 +299,14 @@ export class PricingAgent {
           return null;
         }
 
-        return calculateMarketStatistics(categoryBids.map((b: BidWithAmount) => b.amount));
+        return calculateMarketStatistics(
+          categoryBids.map((b: BidWithAmount) => b.amount)
+        );
       }
 
-      const amounts = acceptedBids.map((b: BidWithAmount) => b.amount).filter((a: number) => a && a > 0);
+      const amounts = acceptedBids
+        .map((b: BidWithAmount) => b.amount)
+        .filter((a: number) => a && a > 0);
 
       if (amounts.length < 3) {
         return null;
@@ -275,20 +326,27 @@ export class PricingAgent {
   /**
    * Calculate estimated material costs for a job from JobAnalysisService data.
    */
-  private static async calculateMaterialCosts(jobId: string, jobDescription: string): Promise<{
+  private static async calculateMaterialCosts(
+    jobId: string,
+    jobDescription: string
+  ): Promise<{
     estimatedMaterialCost: number;
     estimatedLaborCost: number;
     materialCostFactor: number;
   }> {
     try {
       const { JobAnalysisService } = await import('../JobAnalysisService');
-      const analysis = await JobAnalysisService.analyzeJobDescription('', jobDescription);
+      const analysis = await JobAnalysisService.analyzeJobDescription(
+        '',
+        jobDescription
+      );
 
       const estimatedMaterialCost = analysis.estimatedMaterialCost || 0;
       const totalBudget = analysis.suggestedBudget.recommended;
-      const estimatedLaborCost = estimatedMaterialCost > 0
-        ? totalBudget - estimatedMaterialCost - (totalBudget * 0.15)
-        : totalBudget * 0.5;
+      const estimatedLaborCost =
+        estimatedMaterialCost > 0
+          ? totalBudget - estimatedMaterialCost - totalBudget * 0.15
+          : totalBudget * 0.5;
 
       let materialCostFactor = 1.0;
       if (estimatedMaterialCost > 2000) {
@@ -310,7 +368,11 @@ export class PricingAgent {
         jobId,
         error: error instanceof Error ? error.message : 'Unknown error',
       });
-      return { estimatedMaterialCost: 0, estimatedLaborCost: 0, materialCostFactor: 1.0 };
+      return {
+        estimatedMaterialCost: 0,
+        estimatedLaborCost: 0,
+        materialCostFactor: 1.0,
+      };
     }
   }
 
@@ -326,8 +388,15 @@ export class PricingAgent {
     const wordCount = description.split(/\s+/).length;
 
     const complexKeywords = [
-      'complex', 'multiple', 'extensive', 'renovation', 'remodel',
-      'installation', 'system', 'electrical', 'plumbing',
+      'complex',
+      'multiple',
+      'extensive',
+      'renovation',
+      'remodel',
+      'installation',
+      'system',
+      'electrical',
+      'plumbing',
     ];
     const keywordCount = complexKeywords.filter((kw) =>
       description.toLowerCase().includes(kw)
@@ -365,10 +434,14 @@ export class PricingAgent {
   /**
    * Calculate location factor using LocationPricingService.
    */
-  private static async calculateLocationFactor(location: string): Promise<number> {
+  private static async calculateLocationFactor(
+    location: string
+  ): Promise<number> {
     try {
-      const { LocationPricingService } = await import('../location/LocationPricingService');
-      const locationFactor = await LocationPricingService.getLocationFactor(location);
+      const { LocationPricingService } =
+        await import('../location/LocationPricingService');
+      const locationFactor =
+        await LocationPricingService.getLocationFactor(location);
 
       if (locationFactor < 0.8 || locationFactor > 1.5) {
         logger.warn('Location factor out of expected range, using default', {
@@ -392,11 +465,18 @@ export class PricingAgent {
   /**
    * Calculate contractor tier factor using PayoutTierService.
    */
-  private static async calculateContractorTierFactor(contractorId: string): Promise<number> {
+  private static async calculateContractorTierFactor(
+    contractorId: string
+  ): Promise<number> {
     try {
-      const { PayoutTierService } = await import('@/lib/services/payment/PayoutTierService');
+      const { PayoutTierService } =
+        await import('@/lib/services/payment/PayoutTierService');
       const tier = await PayoutTierService.calculateTier(contractorId);
-      const tierFactors: Record<string, number> = { elite: 1.2, trusted: 1.1, standard: 1.0 };
+      const tierFactors: Record<string, number> = {
+        elite: 1.2,
+        trusted: 1.1,
+        standard: 1.0,
+      };
       return tierFactors[tier] || 1.0;
     } catch (error) {
       logger.error('Error calculating contractor tier factor', error, {
@@ -410,20 +490,29 @@ export class PricingAgent {
   /**
    * Calculate market demand factor based on recent job/bid ratio.
    */
-  private static async calculateMarketDemandFactor(category: string, _location: string): Promise<number> {
+  private static async calculateMarketDemandFactor(
+    category: string,
+    _location: string
+  ): Promise<number> {
     try {
       const { count: recentJobs } = await serverSupabase
         .from('jobs')
         .select('id', { count: 'exact', head: true })
         .eq('category', category)
-        .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
+        .gte(
+          'created_at',
+          new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+        )
         .eq('status', 'posted');
 
       const { count: acceptedBids } = await serverSupabase
         .from('bids')
         .select('id', { count: 'exact', head: true })
         .eq('status', 'accepted')
-        .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString());
+        .gte(
+          'created_at',
+          new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+        );
 
       const demandRatio = (recentJobs || 0) / Math.max(1, acceptedBids || 1);
 
@@ -445,12 +534,17 @@ export class PricingAgent {
   // ============================================================================
 
   /** @see PricingLearningService.learnFromBidOutcome */
-  static async learnFromBidOutcome(bidId: string, wasAccepted: boolean): Promise<AgentResult> {
+  static async learnFromBidOutcome(
+    bidId: string,
+    wasAccepted: boolean
+  ): Promise<AgentResult> {
     return _learnFromBidOutcome(bidId, wasAccepted);
   }
 
   /** @see PricingLearningService.getContractorPricingPattern */
-  static async getContractorPricingPattern(contractorId: string): Promise<ContractorPricingPattern | null> {
+  static async getContractorPricingPattern(
+    contractorId: string
+  ): Promise<ContractorPricingPattern | null> {
     return _getContractorPricingPattern(contractorId);
   }
 }

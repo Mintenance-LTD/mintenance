@@ -66,7 +66,13 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
   });
 
   const createJobMutation = useCreateJob();
-  const { silverMode, loading: silverLoading } = useSilverMode();
+  // 2026-05-23: silver-mode users used to be auto-routed to a
+  // separate 3-step PostJobWizardScreen. That screen duplicated this
+  // one's validation + submit pipeline and was already starting to
+  // drift (audit P2). Retired in favour of plumbing `silverMode`
+  // through to JobPostingFormFields so the full screen scales fonts
+  // + raises touch targets for the silver-mode audience.
+  const { silverMode } = useSilverMode();
 
   // Discard-prompt — fields all start empty, so any user-typed
   // content (incl. selecting a non-default category, urgency, or
@@ -87,15 +93,7 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
     if (user && user.role !== 'homeowner') {
       goToTab(navigation, 'HomeTab');
     }
-    // R3 deferred #7 — Silver-mode users go to the simplified 3-step
-    // wizard. PostJobWizard is registered on the JobsStack and this
-    // screen IS already typed against JobsStackParamList, so the
-    // typed prop accepts the call directly. 2026-05-01 audit P1: cast
-    // dropped now that the typed prop matches the registered route.
-    if (!silverLoading && silverMode) {
-      navigation.navigate('PostJobWizard');
-    }
-  }, [user, navigation, silverMode, silverLoading]);
+  }, [user, navigation]);
 
   const handlePricingUpdate = (analysis: PricingAnalysis) => {
     setAIPricingAnalysis(analysis);
@@ -345,6 +343,7 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
           aiPricingAnalysis={aiPricingAnalysis}
           validationErrors={validationErrors}
           jobCategories={JOB_CATEGORIES}
+          silverMode={silverMode}
           onFieldChange={handleFieldChange}
           onCategoryChange={setCategory}
           onUrgencyChange={setUrgency}
