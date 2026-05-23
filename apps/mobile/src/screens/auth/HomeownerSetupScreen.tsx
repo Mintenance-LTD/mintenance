@@ -107,17 +107,18 @@ export const HomeownerSetupScreen: React.FC<HomeownerSetupScreenProps> = ({
   const handleFinish = useCallback(async () => {
     setSubmitting(true);
     try {
-      // Best-effort PATCH — unknown keys are dropped by the route's
-      // Zod schema today, but we still send them so once the
-      // schema is widened (follow-up ticket) the data lands without
-      // a second migration. A failure here doesn't block the user
-      // from reaching the dashboard — we still dismiss the modal.
-      await mobileApiClient.patch('/api/users/profile', {
+      // 2026-05-23 audit: previously PATCHed /api/users/profile —
+      // that route only exports GET + PUT, so every submission
+      // 405'd silently and the user's setup answers were dropped.
+      // The PUT schema was also widened to accept propertyType +
+      // concernTags (server-side merge into profiles.settings JSONB)
+      // — see apps/web/app/api/users/profile/route.ts.
+      await mobileApiClient.put('/api/users/profile', {
         propertyType: propertyType ?? undefined,
         concernTags: Array.from(concerns),
       });
     } catch (err) {
-      logger.warn('HomeownerSetup PATCH failed; continuing', { error: err });
+      logger.warn('HomeownerSetup PUT failed; continuing', { error: err });
     } finally {
       setSubmitting(false);
       onComplete();
