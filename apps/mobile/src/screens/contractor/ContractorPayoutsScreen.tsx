@@ -94,11 +94,18 @@ const ContractorPayoutsScreen: React.FC = () => {
     setBusy(true);
     setError(null);
     try {
+      // 2026-05-23 audit-23 P1: signal that we're calling from mobile
+      // so the API generates a return URL with `?client=mobile`. The
+      // /onboarding-complete page reads that flag and fires a
+      // `mintenance://payouts/return` deep link, which closes the
+      // WebBrowser auth session and re-runs loadStatus below. Without
+      // this hint, Stripe redirected to the web page and the mobile
+      // session never resolved.
       const res = await mobileApiClient.post<{
         success: boolean;
         url?: string;
         message?: string;
-      }>('/api/payments/stripe-connect/onboard', {});
+      }>('/api/payments/stripe-connect/onboard', { client: 'mobile' });
 
       if (!res.success || !res.url) {
         throw new Error(res.message ?? 'Failed to start onboarding');

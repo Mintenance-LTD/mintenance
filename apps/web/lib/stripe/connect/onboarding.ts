@@ -5,10 +5,7 @@
  */
 import { stripe } from '@/lib/stripe';
 import { getAppUrl } from '@/lib/env';
-import {
-  getOnboardingReturnUrl,
-  getOnboardingRefreshUrl,
-} from './config';
+import { getOnboardingReturnUrl, getOnboardingRefreshUrl } from './config';
 import type { OnboardingLinkResponse } from './types';
 
 /**
@@ -18,15 +15,21 @@ import type { OnboardingLinkResponse } from './types';
  */
 export async function createOnboardingLink(
   stripeAccountId: string,
-  options: { type?: 'account_onboarding' | 'account_update' } = {},
+  options: {
+    type?: 'account_onboarding' | 'account_update';
+    // 2026-05-23 audit-23 P1: mobile callers pass 'mobile' so the
+    // generated return_url tags the page that fires the
+    // `mintenance://payouts/return` deep link.
+    client?: 'mobile' | 'web';
+  } = {}
 ): Promise<OnboardingLinkResponse> {
   const appUrl = getAppUrl();
 
   const link = await stripe.accountLinks.create({
     account: stripeAccountId,
     type: options.type ?? 'account_onboarding',
-    return_url: getOnboardingReturnUrl(appUrl),
-    refresh_url: getOnboardingRefreshUrl(appUrl),
+    return_url: getOnboardingReturnUrl(appUrl, options.client),
+    refresh_url: getOnboardingRefreshUrl(appUrl, options.client),
     collect: 'currently_due',
   });
 
@@ -41,7 +44,7 @@ export async function createOnboardingLink(
  * their tax documents, update bank details, etc. after onboarding.
  */
 export async function createDashboardLoginLink(
-  stripeAccountId: string,
+  stripeAccountId: string
 ): Promise<{ url: string }> {
   const link = await stripe.accounts.createLoginLink(stripeAccountId);
   return { url: link.url };
