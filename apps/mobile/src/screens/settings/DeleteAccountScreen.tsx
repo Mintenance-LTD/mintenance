@@ -57,7 +57,7 @@ const HOMEOWNER_CONSEQUENCES = [
   },
   {
     icon: 'time-outline',
-    text: 'This action is irreversible and cannot be undone',
+    text: 'This action takes effect immediately and cannot be undone',
   },
 ] as const;
 
@@ -80,7 +80,7 @@ const CONTRACTOR_CONSEQUENCES = [
   },
   {
     icon: 'time-outline',
-    text: 'This action is irreversible and cannot be undone',
+    text: 'This action takes effect immediately and cannot be undone',
   },
 ] as const;
 
@@ -103,19 +103,42 @@ export const DeleteAccountScreen: React.FC = () => {
         confirmation: 'DELETE',
       }),
     onSuccess: () => {
+      // 2026-05-23: previously this said "scheduled for deletion" but
+      // the API hard-deletes immediately (data + auth.users in a single
+      // transaction). Aligned the copy to match reality.
       Alert.alert(
         'Account Deleted',
-        'Your account has been scheduled for deletion. You will be signed out.',
+        'Your account and all associated data have been permanently deleted. You will be signed out.',
         [{ text: 'OK', onPress: () => signOut?.() }]
       );
     },
-    onError: (err: unknown) =>
-      Alert.alert(
-        'Error',
+    onError: (err: unknown) => {
+      // 2026-05-23: the API now returns 409 with `{ blockers: [...] }`
+      // when held escrow / active jobs prevent deletion. Surface the
+      // first blocker message rather than the generic
+      // "Failed to delete account" — gives the user actionable info.
+      const fallback =
         err instanceof Error
           ? err.message
-          : 'Failed to delete account. Please contact support.'
-      ),
+          : 'Failed to delete account. Please contact support.';
+      type Blocker = { code: string; message: string };
+      type ApiErr = {
+        response?: { data?: { blockers?: Blocker[]; error?: string } };
+        blockers?: Blocker[];
+      };
+      const apiErr = err as ApiErr;
+      const blockers =
+        apiErr.response?.data?.blockers ?? apiErr.blockers ?? null;
+      if (Array.isArray(blockers) && blockers.length > 0) {
+        Alert.alert(
+          'Resolve these first',
+          blockers.map((b) => `• ${b.message}`).join('\n\n'),
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+      Alert.alert('Error', fallback);
+    },
   });
 
   const isConfirmed = confirmText.trim().toUpperCase() === 'DELETE';

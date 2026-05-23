@@ -34,6 +34,72 @@ export const POST = withApiHandler(
     const validation = await validateRequest(request, deleteAccountSchema);
     if (validation instanceof NextResponse) return validation;
 
+    // 2026-05-23 audit P1: refuse deletion while the user has active
+    // marketplace state. Previously the route hard-deleted unconditionally
+    // — held escrow rows would vanish (money in limbo), in-progress jobs
+    // would lose their contractor mid-work, signed contracts had no
+    // resolution path. Force the user to settle these first.
+    const [
+      { count: heldEscrowCount },
+      { count: activeAsHomeownerCount },
+      { count: activeAsContractorCount },
+    ] = await Promise.all([
+      serverSupabase
+        .from('escrow_transactions')
+        .select('id', { count: 'exact', head: true })
+        .or(`payer_id.eq.${user.id},payee_id.eq.${user.id}`)
+        .eq('status', 'held'),
+      serverSupabase
+        .from('jobs')
+        .select('id', { count: 'exact', head: true })
+        .eq('homeowner_id', user.id)
+        .in('status', ['assigned', 'in_progress']),
+      serverSupabase
+        .from('jobs')
+        .select('id', { count: 'exact', head: true })
+        .eq('contractor_id', user.id)
+        .in('status', ['assigned', 'in_progress']),
+    ]);
+
+    const blockers: { code: string; message: string; count: number }[] = [];
+    if ((heldEscrowCount ?? 0) > 0) {
+      blockers.push({
+        code: 'HELD_ESCROW',
+        count: heldEscrowCount ?? 0,
+        message: `${heldEscrowCount} escrow payment(s) still held. Release or refund them before deleting your account.`,
+      });
+    }
+    if ((activeAsHomeownerCount ?? 0) > 0) {
+      blockers.push({
+        code: 'ACTIVE_JOBS_HOMEOWNER',
+        count: activeAsHomeownerCount ?? 0,
+        message: `${activeAsHomeownerCount} of your jobs are assigned or in progress. Cancel or complete them before deleting your account.`,
+      });
+    }
+    if ((activeAsContractorCount ?? 0) > 0) {
+      blockers.push({
+        code: 'ACTIVE_JOBS_CONTRACTOR',
+        count: activeAsContractorCount ?? 0,
+        message: `You are the assigned contractor on ${activeAsContractorCount} active job(s). Withdraw from them (with the homeowner's agreement) before deleting your account.`,
+      });
+    }
+
+    if (blockers.length > 0) {
+      logger.warn('Account deletion blocked by active marketplace state', {
+        service: 'user',
+        userId: user.id,
+        blockers: blockers.map((b) => b.code),
+      });
+      return NextResponse.json(
+        {
+          error: 'Account deletion is blocked by active marketplace state.',
+          blockers,
+          help: 'Resolve each blocker listed and try again. If you need help, contact support.',
+        },
+        { status: 409 }
+      );
+    }
+
     // Log the deletion request for GDPR compliance
     await serverSupabase.from('gdpr_audit_log').insert({
       user_id: user.id,
