@@ -160,7 +160,17 @@ export async function handleGet(
     consumer_unit_location: string | null;
   } | null = null;
   if (row.property_id) {
-    const { data: propertyRow } = await userDb
+    // 2026-05-23 audit-14: properties RLS only grants SELECT to owner /
+    // admin / org_member — the assigned contractor isn't on the policy.
+    // Reading via `userDb` returned `null` for every contractor caller
+    // and `propertyAccess` was silently undefined on mobile JobAccessCard.
+    // The user identity + role check above (homeowner / admin / assigned
+    // contractor / contractor-viewing-open-job) is the authoritative
+    // gate, and the `showFullAccess` branch below re-filters to homeowner
+    // /admin/assigned-contractor before exposing access fields. Using
+    // serverSupabase here is the same pattern audit-12 #62 adopted for
+    // the property access PATCH (managers also aren't on the policy).
+    const { data: propertyRow } = await serverSupabase
       .from('properties')
       .select(
         'property_type, bedrooms, bathrooms, access_mode, key_safe_code, access_notes, stopcock_location, gas_isolator_location, consumer_unit_location'

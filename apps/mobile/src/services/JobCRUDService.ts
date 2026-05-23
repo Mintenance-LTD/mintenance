@@ -400,6 +400,36 @@ export class JobCRUDService {
       job.updatedAt = job.updated_at;
     }
 
+    // 2026-05-23 audit-14: propagate enriched fields the web detail API
+    // returns. The canonical `Job` type doesn't declare them (`propertyType`,
+    // `propertyAccess`, `scheduledStartDate`, `requirements`, etc.), so
+    // they ride on the returned object as runtime extras read by mobile
+    // screens via a typed cast. Without this propagation the JobAccessCard
+    // never renders for the assigned contractor (no `propertyAccess`),
+    // and downstream gates that depend on `scheduledStartDate` /
+    // `requirements` silently no-op. We only copy fields that are
+    // actually present in `raw` so legacy callers (direct DB rows) don't
+    // pollute the object with `undefined` keys.
+    const extraKeys = [
+      'propertyType',
+      'propertyBedrooms',
+      'propertyBathrooms',
+      'accessInfo',
+      'propertyAccess',
+      'scheduledStartDate',
+      'requirements',
+      'start_date',
+      'end_date',
+      'flexible_timeline',
+      'property_id',
+    ] as const;
+    const jobAny = job as unknown as Record<string, unknown>;
+    for (const key of extraKeys) {
+      if (raw[key] !== undefined) {
+        jobAny[key] = raw[key];
+      }
+    }
+
     return job;
   }
 }

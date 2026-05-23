@@ -289,7 +289,14 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({
                 icon: 'construct' as const,
                 bg: '#6B7280',
               };
-            const isUrgent = job.urgency === 'urgent';
+            // 2026-05-23 audit-14: live DB stores 'emergency' as the
+            // top-tier urgency (per the `jobs.urgency` CHECK constraint
+            // — same set used by the tenant-report fix in audit-13).
+            // The legacy 'urgent' string is gone from the data model.
+            // Accepting either keeps any in-flight legacy rows working
+            // while ensuring real emergency jobs get the pulse ring.
+            const isUrgent =
+              job.urgency === 'emergency' || job.urgency === 'urgent';
 
             return (
               <Marker
