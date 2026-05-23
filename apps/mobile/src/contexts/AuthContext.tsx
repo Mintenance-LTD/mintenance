@@ -120,6 +120,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         firstName: string;
         lastName: string;
         role: 'homeowner' | 'contractor';
+        phone?: string;
       }
     ) => performSignUp(email, password, userData, dispatch, biometricAuth),
     [dispatch, biometricAuth]

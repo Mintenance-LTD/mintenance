@@ -28,26 +28,55 @@ import { mobileApiClient } from '../../utils/mobileApiClient';
 import { useAuth } from '../../contexts/AuthContext';
 import { me } from '../../design-system/mint-editorial';
 
-const CONSEQUENCES = [
+// 2026-05-23: copy made honest against the actual server behaviour
+// after the role-aware delete_user_data migration.
+//   * Homeowner role → jobs they posted are deleted (with the bids
+//     placed on them); their properties are dropped.
+//   * Contractor role → jobs they were assigned to are unassigned and
+//     reverted to 'posted' so the homeowner can re-source. Bids the
+//     contractor authored are dropped.
+// The previous copy promised "contractors notified" — there is no
+// notification fan-out in the server path today; rewritten to not
+// over-promise.
+const HOMEOWNER_CONSEQUENCES = [
   {
     icon: 'person-remove-outline',
     text: 'Your profile and all personal data will be permanently removed',
   },
   {
     icon: 'briefcase-outline',
-    text: 'All active jobs will be cancelled and contractors notified',
+    text: 'Jobs you posted will be deleted, along with the bids on them',
+  },
+  {
+    icon: 'home-outline',
+    text: 'Properties you own on Mintenance will be removed',
   },
   {
     icon: 'chatbubble-outline',
     text: 'Message history will be deleted from your account',
   },
   {
-    icon: 'card-outline',
-    text: 'Payment methods and invoice records will be cleared',
+    icon: 'time-outline',
+    text: 'This action is irreversible and cannot be undone',
+  },
+] as const;
+
+const CONTRACTOR_CONSEQUENCES = [
+  {
+    icon: 'person-remove-outline',
+    text: 'Your profile and all personal data will be permanently removed',
   },
   {
-    icon: 'star-outline',
-    text: 'Reviews you have written and received will be anonymised',
+    icon: 'document-text-outline',
+    text: 'Bids you placed will be removed from every job',
+  },
+  {
+    icon: 'briefcase-outline',
+    text: 'Active jobs you were assigned to revert to "open" so the homeowner can find another contractor',
+  },
+  {
+    icon: 'chatbubble-outline',
+    text: 'Message history will be deleted from your account',
   },
   {
     icon: 'time-outline',
@@ -59,6 +88,14 @@ export const DeleteAccountScreen: React.FC = () => {
   const navigation = useNavigation();
   const { user, signOut } = useAuth();
   const [confirmText, setConfirmText] = useState('');
+  // 2026-05-23: role-aware copy — see HOMEOWNER_CONSEQUENCES /
+  // CONTRACTOR_CONSEQUENCES above. Fall back to homeowner copy when
+  // the role isn't loaded yet (rare, but safe — the API path will
+  // refuse if profile is missing).
+  const CONSEQUENCES =
+    user?.role === 'contractor'
+      ? CONTRACTOR_CONSEQUENCES
+      : HOMEOWNER_CONSEQUENCES;
 
   const deleteMutation = useMutation({
     mutationFn: () =>
