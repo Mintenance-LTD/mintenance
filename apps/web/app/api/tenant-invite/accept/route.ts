@@ -45,6 +45,38 @@ export const POST = withApiHandler({ csrf: false }, async (req, { user }) => {
     );
   }
 
+  // 2026-05-23 audit-15 P1: previously this route accepted any token
+  // from any authenticated user and wrote that user's id onto the
+  // property_tenants row. A forwarded / leaked invite URL (the token
+  // is the only secret) could be claimed by a different signed-in
+  // account — they'd inherit the tenant's reporting access to the
+  // property. Lock acceptance to the email the homeowner addressed
+  // the invite to. Comparison is case-insensitive + trimmed because
+  // emails are stored canonical-cased but Supabase auth.email
+  // sometimes carries the original casing on signup.
+  const tenantEmail = (tenant.email ?? '').trim().toLowerCase();
+  const callerEmail = (user.email ?? '').trim().toLowerCase();
+  if (!tenantEmail || !callerEmail || tenantEmail !== callerEmail) {
+    logger.warn('Tenant invite accept email mismatch', {
+      service: 'tenant-invite',
+      tenantId: tenant.id,
+      callerUserId: user.id,
+      // Don't log raw emails — log only the first three chars + length
+      // for forensic correlation.
+      tenantEmailHint:
+        tenantEmail.slice(0, 3) + '***@' + tenantEmail.split('@')[1],
+      callerEmailHint:
+        callerEmail.slice(0, 3) + '***@' + callerEmail.split('@')[1],
+    });
+    return NextResponse.json(
+      {
+        error:
+          'This invitation was sent to a different email address. Sign in with the invited email to accept it.',
+      },
+      { status: 403 }
+    );
+  }
+
   // Link the user to the property
   const { error: updateError } = await serverSupabase
     .from('property_tenants')

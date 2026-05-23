@@ -13,8 +13,17 @@ import { PropertyTeamService } from '@/lib/services/property-team/PropertyTeamSe
 export const GET = withApiHandler(
   { rateLimit: { maxRequests: 30 } },
   async (request, { user, params }) => {
-    // Use RLS-enforced client for user-scoped reads; fall back to service role
-    const userDb = createRequestScopedClient(request) ?? serverSupabase;
+    // 2026-05-23 audit-15 P1: previously this route ran the
+    // PropertyTeamService.authorize() gate and THEN read through
+    // `createRequestScopedClient` (RLS-bound to the caller). Live
+    // properties RLS only grants SELECT to owner / admin / org_member —
+    // property_team_members are not on the policy. Accepted team
+    // members would pass the in-code authorize() check then get
+    // `data: null` from the RLS read and see a confusing 404. The
+    // authorize() call IS the security boundary here (the same
+    // pattern audit-12 #62 adopted for the access PATCH and audit-14
+    // #78 adopted for the contractor property-access read), so using
+    // serverSupabase after a verified authorize() is consistent.
 
     // Allow property owner OR team members with any role to view
     const { authorized } = await PropertyTeamService.authorize(
@@ -27,7 +36,7 @@ export const GET = withApiHandler(
       throw new NotFoundError('Property not found');
     }
 
-    const { data, error } = await userDb
+    const { data, error } = await serverSupabase
       .from('properties')
       .select('*')
       .eq('id', params.id)
@@ -44,8 +53,13 @@ export const GET = withApiHandler(
 export const PUT = withApiHandler(
   { rateLimit: { maxRequests: 30 } },
   async (request, { user, params }) => {
-    // Use RLS-enforced client for user-scoped operations; fall back to service role
-    const userDb = createRequestScopedClient(request) ?? serverSupabase;
+    // 2026-05-23 audit-15 P1: same fix as GET above — managers (a
+    // property_team_members role) pass the in-code edit() gate but
+    // RLS UPDATE on properties only grants owner. The userDb update
+    // returned `data: null` for every manager edit and the route 404'd
+    // even though the authorize check succeeded. Service-role write
+    // after a verified authorize() restores parity between the security
+    // check and the storage layer.
 
     // Require manager+ role for edits
     const { authorized } = await PropertyTeamService.authorize(
@@ -117,7 +131,7 @@ export const PUT = withApiHandler(
     if (latitude !== undefined) updateData.latitude = latitude;
     if (longitude !== undefined) updateData.longitude = longitude;
 
-    const { data, error } = await userDb
+    const { data, error } = await serverSupabase
       .from('properties')
       .update(updateData)
       .eq('id', params.id)
