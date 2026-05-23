@@ -43,6 +43,8 @@ export const POST = withApiHandler(
       { count: heldEscrowCount },
       { count: activeAsHomeownerCount },
       { count: activeAsContractorCount },
+      { count: openDisputesCount },
+      { count: signedUnfundedContractsCount },
     ] = await Promise.all([
       serverSupabase
         .from('escrow_transactions')
@@ -59,6 +61,26 @@ export const POST = withApiHandler(
         .select('id', { count: 'exact', head: true })
         .eq('contractor_id', user.id)
         .in('status', ['assigned', 'in_progress']),
+      // 2026-05-23 audit P1 follow-up: open disputes are a hard blocker
+      // — the counter-party hasn't had their day yet, deleting the
+      // disputant would close the case in their favour by default.
+      serverSupabase
+        .from('disputes')
+        .select('id', { count: 'exact', head: true })
+        .or(`raised_by.eq.${user.id},against.eq.${user.id}`)
+        .not('status', 'in', '("resolved","closed")'),
+      // Signed contracts with no escrow held yet — the contract is
+      // committed but the funding step hasn't happened. Deleting either
+      // party here leaves a dangling commitment.
+      serverSupabase
+        .from('contracts')
+        .select(
+          'id, job_id, jobs!inner(id, status, escrow_transactions(status))',
+          { count: 'exact', head: true }
+        )
+        .or(`homeowner_id.eq.${user.id},contractor_id.eq.${user.id}`)
+        .eq('status', 'accepted')
+        .is('jobs.escrow_transactions.status', null),
     ]);
 
     const blockers: { code: string; message: string; count: number }[] = [];
@@ -81,6 +103,20 @@ export const POST = withApiHandler(
         code: 'ACTIVE_JOBS_CONTRACTOR',
         count: activeAsContractorCount ?? 0,
         message: `You are the assigned contractor on ${activeAsContractorCount} active job(s). Withdraw from them (with the homeowner's agreement) before deleting your account.`,
+      });
+    }
+    if ((openDisputesCount ?? 0) > 0) {
+      blockers.push({
+        code: 'OPEN_DISPUTES',
+        count: openDisputesCount ?? 0,
+        message: `${openDisputesCount} open dispute(s) involve your account. Wait for resolution (or withdraw the dispute) before deleting.`,
+      });
+    }
+    if ((signedUnfundedContractsCount ?? 0) > 0) {
+      blockers.push({
+        code: 'SIGNED_UNFUNDED_CONTRACTS',
+        count: signedUnfundedContractsCount ?? 0,
+        message: `${signedUnfundedContractsCount} signed contract(s) have no escrow yet. Fund or void them before deleting your account.`,
       });
     }
 
