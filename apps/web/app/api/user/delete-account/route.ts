@@ -39,8 +39,25 @@ export const POST = withApiHandler(
     // — held escrow rows would vanish (money in limbo), in-progress jobs
     // would lose their contractor mid-work, signed contracts had no
     // resolution path. Force the user to settle these first.
+    // 2026-05-23 audit-15 P1: previously this only blocked status='held'
+    // — but the live CHECK constraint (escrow_transactions_status_check,
+    // verified 2026-05-23 via pg_constraint) allows 'pending',
+    // 'release_pending', 'awaiting_homeowner_approval', and
+    // 'pending_review' as additional in-flight states. A user in any
+    // of those buckets has money mid-flight and the counter-party still
+    // has expectations; account deletion would leave the payment
+    // orphaned. Block on the full non-terminal set. Terminal/safe
+    // statuses (released, refunded, failed, cancelled, completed) stay
+    // unblocked.
+    const ESCROW_ACTIVE_STATUSES = [
+      'pending',
+      'held',
+      'release_pending',
+      'awaiting_homeowner_approval',
+      'pending_review',
+    ];
     const [
-      { count: heldEscrowCount },
+      { count: activeEscrowCount },
       { count: activeAsHomeownerCount },
       { count: activeAsContractorCount },
       { count: openDisputesCount },
@@ -50,7 +67,7 @@ export const POST = withApiHandler(
         .from('escrow_transactions')
         .select('id', { count: 'exact', head: true })
         .or(`payer_id.eq.${user.id},payee_id.eq.${user.id}`)
-        .eq('status', 'held'),
+        .in('status', ESCROW_ACTIVE_STATUSES),
       serverSupabase
         .from('jobs')
         .select('id', { count: 'exact', head: true })
@@ -84,11 +101,11 @@ export const POST = withApiHandler(
     ]);
 
     const blockers: { code: string; message: string; count: number }[] = [];
-    if ((heldEscrowCount ?? 0) > 0) {
+    if ((activeEscrowCount ?? 0) > 0) {
       blockers.push({
-        code: 'HELD_ESCROW',
-        count: heldEscrowCount ?? 0,
-        message: `${heldEscrowCount} escrow payment(s) still held. Release or refund them before deleting your account.`,
+        code: 'ACTIVE_ESCROW',
+        count: activeEscrowCount ?? 0,
+        message: `${activeEscrowCount} escrow payment(s) are still in flight (held, pending, awaiting approval, release pending, or under review). Settle them — release, refund, cancel, or resolve the review — before deleting your account.`,
       });
     }
     if ((activeAsHomeownerCount ?? 0) > 0) {

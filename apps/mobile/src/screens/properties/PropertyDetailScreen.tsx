@@ -192,7 +192,72 @@ export const PropertyDetailScreen: React.FC<Props> = ({
       queryClient.invalidateQueries({ queryKey: ['properties'] });
       navigation.goBack();
     },
+    onError: () => {
+      Alert.alert(
+        'Delete Failed',
+        'We could not delete this property. Please try again or contact support.'
+      );
+    },
   });
+
+  // 2026-05-23 audit-15 P2: previously this screen ran a generic
+  // "are you sure" alert then immediately called DELETE — homeowners
+  // had no idea what would be preserved (compliance certs, tenancy
+  // records, jobs history) vs cascade-deleted (room photos). The
+  // server already exposes `/api/properties/[id]/delete-preview`
+  // (the web flow uses it) — wire mobile to the same endpoint so the
+  // confirmation alert lists real counts.
+  type DeletePreview = {
+    preserved: Record<string, number>;
+    cascaded: Record<string, number>;
+    preservedTotal: number;
+    cascadedTotal: number;
+    retentionNotes?: {
+      gas_safety_certificate_years?: number;
+      eicr_years?: number;
+      tenancy_records_years?: number;
+    };
+  };
+  const PRESERVED_LABELS: Record<string, string> = {
+    compliance_certificates: 'compliance certificate',
+    property_tenants: 'tenant record',
+    property_contacts: 'contact',
+    anonymous_reports: 'tenant report',
+    recurring_schedules: 'recurring schedule',
+    jobs: 'job',
+  };
+  const CASCADED_LABELS: Record<string, string> = {
+    property_room_photos: 'room photo',
+  };
+  const pluralize = (n: number, singular: string) =>
+    `${n} ${singular}${n === 1 ? '' : 's'}`;
+
+  const formatDeletePreview = (preview: DeletePreview): string => {
+    const preservedLines = Object.entries(preview.preserved)
+      .filter(([, n]) => (n ?? 0) > 0)
+      .map(([k, n]) => `• ${pluralize(n, PRESERVED_LABELS[k] ?? k)} retained`);
+    const cascadedLines = Object.entries(preview.cascaded)
+      .filter(([, n]) => (n ?? 0) > 0)
+      .map(
+        ([k, n]) =>
+          `• ${pluralize(n, CASCADED_LABELS[k] ?? k)} permanently deleted`
+      );
+
+    const lines: string[] = [];
+    if (preservedLines.length > 0) {
+      lines.push('What we keep (for legal / audit reasons):');
+      lines.push(...preservedLines);
+    }
+    if (cascadedLines.length > 0) {
+      if (lines.length > 0) lines.push('');
+      lines.push('What goes away:');
+      lines.push(...cascadedLines);
+    }
+    if (lines.length === 0) {
+      lines.push('No linked records — safe to delete.');
+    }
+    return lines.join('\n');
+  };
 
   const favoriteMutation = useMutation({
     mutationFn: async () => {
@@ -218,10 +283,26 @@ export const PropertyDetailScreen: React.FC<Props> = ({
     setRefreshing(false);
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
+    let previewBody: string;
+    try {
+      // Fetch the server's authoritative preview rather than guessing
+      // counts client-side. Web uses the same endpoint. If preview
+      // fails (network blip), fall back to the generic prompt rather
+      // than blocking the user from deleting at all — the server still
+      // enforces the auth gate on the DELETE call.
+      const preview = await mobileApiClient.get<DeletePreview>(
+        `/api/properties/${propertyId}/delete-preview`
+      );
+      previewBody = formatDeletePreview(preview);
+    } catch {
+      previewBody =
+        'We could not load the impact summary. Continuing will permanently delete this property.';
+    }
+
     Alert.alert(
-      'Delete Property',
-      'Are you sure you want to remove this property? This cannot be undone.',
+      'Delete this property?',
+      `${previewBody}\n\nThis cannot be undone.`,
       [
         { text: 'Cancel', style: 'cancel' },
         {

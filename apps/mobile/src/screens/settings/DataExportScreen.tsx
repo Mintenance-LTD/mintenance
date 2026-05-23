@@ -17,20 +17,44 @@ import {
   Alert,
   ActivityIndicator,
   StatusBar,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+// 2026-05-23 audit-15 P2: expo-file-system v19 moved the classic
+// directory + encoding helpers under the `/legacy` subpath. Same
+// pattern the ContractViewScreen uses for its PDF download fallback.
+import {
+  documentDirectory,
+  EncodingType,
+  writeAsStringAsync,
+} from 'expo-file-system/legacy';
 import { ScreenHeader } from '../../components/shared';
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import { supabase } from '../../config/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { me } from '../../design-system/mint-editorial';
+import { logger } from '../../utils/logger';
 
+// 2026-05-23 audit-15 P2: status union now reflects what the live
+// `dsr_requests` table actually stores — `pending`, `in_progress`,
+// `completed`, `rejected` — plus a synthetic `processing` alias for
+// `in_progress` to keep the existing label copy working. Previously
+// the API wrote `completed` rows the mobile screen had no case for,
+// so they fell through to a default icon and the download UI never
+// fired even after the export ran successfully.
 interface ExportStatus {
   id: string;
-  status: 'pending' | 'processing' | 'ready' | 'expired';
+  status:
+    | 'pending'
+    | 'processing'
+    | 'in_progress'
+    | 'ready'
+    | 'completed'
+    | 'expired'
+    | 'rejected';
   requestedAt: string;
   completedAt: string | null;
   downloadUrl: string | null;
@@ -75,26 +99,34 @@ const DATA_CATEGORIES = [
   },
 ] as const;
 
+// 2026-05-23 audit-15 P2: `completed` = "Delivered" (file is delivered
+// inline in the synchronous POST response, so by the time a row shows
+// `completed` the user already has the saved file — surface it as
+// Delivered rather than Ready-to-Download to avoid promising a
+// re-download we can't honour).
 const STATUS_CONFIG: Record<
   string,
   { label: string; color: string; icon: string }
 > = {
-  pending: {
-    label: 'Queued',
-    color: me.accent,
-    icon: 'time-outline',
-  },
+  pending: { label: 'Queued', color: me.accent, icon: 'time-outline' },
   processing: { label: 'Processing', color: '#3B82F6', icon: 'sync-outline' },
+  in_progress: { label: 'Processing', color: me.brand, icon: 'sync-outline' },
   ready: {
     label: 'Ready to Download',
     color: me.brand,
     icon: 'checkmark-circle-outline',
   },
-  expired: {
-    label: 'Expired',
-    color: me.ink2,
-    icon: 'alert-circle-outline',
+  completed: {
+    label: 'Delivered',
+    color: me.brand,
+    icon: 'checkmark-circle-outline',
   },
+  rejected: {
+    label: 'Rejected',
+    color: me.errFg,
+    icon: 'close-circle-outline',
+  },
+  expired: { label: 'Expired', color: me.ink2, icon: 'alert-circle-outline' },
 };
 
 export const DataExportScreen: React.FC = () => {
@@ -132,23 +164,84 @@ export const DataExportScreen: React.FC = () => {
   });
 
   const requestMutation = useMutation({
-    mutationFn: () => {
+    mutationFn: async (): Promise<{ savedPath: string | null }> => {
       if (!user?.email) {
-        return Promise.reject(new Error('Missing account email'));
+        throw new Error('Missing account email');
       }
       // Server validates that {email} matches the authenticated
       // user's account email — guards against the case where a
       // user proxies a request for someone else's data.
-      return mobileApiClient.post('/api/gdpr/export-data', {
-        email: user.email,
-      });
+      //
+      // 2026-05-23 audit-15 P2: /api/gdpr/export-data is a SYNCHRONOUS
+      // export — it runs export_user_data RPC, marks the DSR row
+      // `completed`, and returns the full data payload inline. There's
+      // no later download step, so the only way to deliver the export
+      // to the user is to consume `data` from this response and save
+      // it locally on the device.
+      const response = await mobileApiClient.post<{
+        message?: string;
+        request_id?: string;
+        data?: Record<string, unknown>;
+      }>('/api/gdpr/export-data', { email: user.email });
+
+      let savedPath: string | null = null;
+      if (response?.data) {
+        try {
+          // documentDirectory survives app restarts (cacheDirectory may
+          // be cleared by the OS). The file name carries the date so
+          // multiple exports don't collide.
+          const dateStamp = new Date().toISOString().split('T')[0];
+          const fileName = `mintenance-data-export-${dateStamp}.json`;
+          const base = documentDirectory ?? '';
+          if (base) {
+            const target = base + fileName;
+            await writeAsStringAsync(
+              target,
+              JSON.stringify(response.data, null, 2),
+              { encoding: EncodingType.UTF8 }
+            );
+            savedPath = target;
+          }
+        } catch (err) {
+          // File-write failure shouldn't lose the export — fall through
+          // to the in-memory alert below so the user at least knows
+          // their export ran. Log for diagnostic correlation.
+          logger.warn('Failed to write data export to disk', {
+            error: err instanceof Error ? err.message : String(err),
+          });
+        }
+      }
+      return { savedPath };
     },
-    onSuccess: () => {
+    onSuccess: ({ savedPath }) => {
       queryClient.invalidateQueries({ queryKey: ['data-exports'] });
-      Alert.alert(
-        'Request Submitted',
-        'Your data export is being prepared. You will be notified when it is ready.'
-      );
+      if (savedPath) {
+        Alert.alert(
+          'Export Saved',
+          `Your data export has been saved to your device. Tap "Open" to view it now, or find it later in the Files app.`,
+          [
+            { text: 'Done', style: 'default' },
+            {
+              text: 'Open',
+              onPress: () => {
+                Linking.openURL(savedPath).catch(() => {
+                  Alert.alert(
+                    'File saved',
+                    `Saved to: ${savedPath}\n\nUse the Files app to open it.`
+                  );
+                });
+              },
+            },
+          ]
+        );
+      } else {
+        // The server returned no payload (shouldn't happen for the
+        // happy path — log + tell the user). They can re-request.
+        Alert.alert(
+          'Export Generated',
+          'Your data export was generated, but the file could not be saved on this device. Please try again or use the web app to download it.'
+        );
+      }
     },
     onError: () =>
       Alert.alert('Error', 'Failed to request data export. Please try again.'),
@@ -165,8 +258,15 @@ export const DataExportScreen: React.FC = () => {
     );
   };
 
+  // 2026-05-23 audit-15 P2: live DSR rows use `in_progress` (not the
+  // legacy `processing` alias). Block re-requests while either label
+  // is in flight, but DO let the user re-request after a `completed`
+  // run (delivered inline) or a `rejected` run.
   const hasPendingExport = exports?.some(
-    (e) => e.status === 'pending' || e.status === 'processing'
+    (e) =>
+      e.status === 'pending' ||
+      e.status === 'processing' ||
+      e.status === 'in_progress'
   );
 
   return (
@@ -294,8 +394,7 @@ export const DataExportScreen: React.FC = () => {
         </TouchableOpacity>
 
         <Text style={styles.footnote}>
-          Exports are delivered as a ZIP file containing JSON data. Download
-          links expire after 7 days.
+          Exports are generated as a JSON file and saved to your device.
         </Text>
       </ScrollView>
     </SafeAreaView>
