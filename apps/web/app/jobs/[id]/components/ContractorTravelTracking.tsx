@@ -54,13 +54,22 @@ export function ContractorTravelTracking({
     onUpdate: (payload) => {
       if (payload.new) {
         const newData = payload.new as Record<string, unknown>;
+        // 2026-05-23 audit: live `contractor_locations` has
+        // `location_timestamp`, NOT `timestamp`. Reading the wrong
+        // column made `lastUpdate` resolve to `new Date(undefined)`
+        // → Invalid Date → "NaN minutes ago" on the live status pill.
+        // Falls back to `updated_at` as a secondary anchor, then the
+        // current moment so the pill stays meaningful.
         const locationData: ContractorLocationData = {
           latitude: newData.latitude as number,
           longitude: newData.longitude as number,
           eta: (newData.eta_minutes as number) || 0,
           heading: newData.heading as number | undefined,
           speed: newData.speed as number | undefined,
-          timestamp: newData.timestamp as string,
+          timestamp:
+            (newData.location_timestamp as string) ||
+            (newData.updated_at as string) ||
+            new Date().toISOString(),
           context: (newData.context as string) || 'traveling',
         };
 

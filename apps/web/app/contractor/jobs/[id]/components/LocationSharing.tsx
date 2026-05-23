@@ -74,6 +74,14 @@ export function LocationSharing({ jobId, contractorId }: LocationSharingProps) {
                 heading: position.coords.heading || undefined,
                 speed: position.coords.speed || undefined,
                 job_id: jobId,
+                // 2026-05-23 audit: send a default context so the
+                // homeowner travel-tracking pill shows "On the way"
+                // instead of falling back to the client default.
+                // The homeowner can derive ETA from coordinates if
+                // we don't supply one — leaving eta_minutes unset
+                // until we wire a per-ping Google Directions call
+                // (mobile parity follow-up).
+                context: 'traveling',
               }),
             }
           );
@@ -143,9 +151,16 @@ export function LocationSharing({ jobId, contractorId }: LocationSharingProps) {
     if (isSharing) {
       await stopLocationSharing();
     } else {
-      // First enable sharing on server, then start watching
+      // First enable sharing on server, then start watching.
+      // 2026-05-23 audit: this branch used plain `fetch` while the
+      // sibling stop-sharing + per-ping calls in this same file
+      // already use fetchWithCsrf. /api/jobs/:id/enable-location-sharing
+      // is mutating — without the CSRF header it returns 403 and
+      // the geolocation watch never starts, so the contractor sees
+      // "Enable location sharing" stuck on the button with no
+      // explanation.
       try {
-        const response = await fetch(
+        const response = await fetchWithCsrf(
           `/api/jobs/${jobId}/enable-location-sharing`,
           {
             method: 'POST',

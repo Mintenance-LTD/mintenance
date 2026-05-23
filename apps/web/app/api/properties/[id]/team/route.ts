@@ -132,6 +132,16 @@ export const POST = withApiHandler(
       );
     }
 
+    // 2026-05-23 audit: full team-invite activation flow isn't built
+    // yet — there's no email send, no acceptance token, no accept
+    // page, and PropertyTeamService.getRole only matches members
+    // with status='accepted' AND user_id set. We still record the
+    // invite intent here (capturing email + role for the owner's
+    // dashboard + the future activation flow), but the API response
+    // now tells the truth so the UI can show "pending activation"
+    // instead of a misleading "Invitation sent". status set
+    // explicitly to 'pending' rather than relying on the DB default
+    // so the value is unambiguous in the row.
     const { data: member, error } = await serverSupabase
       .from('property_team_members')
       .insert({
@@ -139,6 +149,7 @@ export const POST = withApiHandler(
         invited_by: user.id,
         email,
         role,
+        status: 'pending',
       })
       .select()
       .single();
@@ -150,7 +161,18 @@ export const POST = withApiHandler(
       );
     }
 
-    return NextResponse.json({ member }, { status: 201 });
+    return NextResponse.json(
+      {
+        member,
+        invitation: {
+          status: 'recorded',
+          activated: false,
+          message:
+            'Invitation recorded. Activation flow (email + accept page) is not yet built — the invitee cannot access this property until it ships. Tracked as a follow-up.',
+        },
+      },
+      { status: 201 }
+    );
   }
 );
 

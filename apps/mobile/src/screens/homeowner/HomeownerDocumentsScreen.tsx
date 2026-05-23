@@ -10,7 +10,6 @@ import {
   TextInput,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
@@ -289,71 +288,48 @@ export const HomeownerDocumentsScreen: React.FC = () => {
         }
         ListHeaderComponent={
           <View>
-            {/* Hero */}
-            <LinearGradient
-              colors={[me.brand2, me.brand] as const}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={[styles.hero, { paddingTop: insets.top + 12 }]}
+            {/* Editorial header — paper bg, mint eyebrow, serif title.
+                Replaces the prior mint-gradient hero with 2 decorative
+                circles + 4-up white-on-brand stat pills. Counts are
+                surfaced inline by the filter chips row below. */}
+            <View
+              style={[
+                localStyles.editorialHero,
+                { paddingTop: insets.top + 12 },
+              ]}
             >
-              <View style={styles.decor1} />
-              <View style={styles.decor2} />
-
-              <View style={styles.heroNav}>
+              <View style={localStyles.editorialNavRow}>
                 <TouchableOpacity
-                  style={styles.navBtn}
+                  style={localStyles.editorialNavBtn}
                   onPress={() => navigation.goBack()}
                   accessibilityRole='button'
                   accessibilityLabel='Go back'
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
-                  <Ionicons name='arrow-back' size={20} color={me.onBrand} />
+                  <Ionicons name='arrow-back' size={20} color={me.ink} />
                 </TouchableOpacity>
-                <View style={{ flex: 1, marginLeft: 12 }}>
-                  <Text style={styles.heroTitle}>Documents</Text>
-                  <Text style={styles.heroSubtitle}>
-                    Contracts, bids, and payment records
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.statRow}>
-                <View style={styles.statPill}>
-                  <Text style={styles.statValue}>{counts.total}</Text>
-                  <Text style={styles.statLabel}>Total</Text>
-                </View>
-                <View style={styles.statPill}>
-                  <Text style={styles.statValue}>{counts.contracts}</Text>
-                  <Text style={styles.statLabel}>Contracts</Text>
-                </View>
-                <View style={styles.statPill}>
-                  <Text style={styles.statValue}>{counts.bids}</Text>
-                  <Text style={styles.statLabel}>Bids</Text>
-                </View>
                 {needsAttention > 0 ? (
-                  <View
-                    style={[
-                      styles.statPill,
-                      {
-                        backgroundColor: me.warnBg,
-                        borderColor: me.accent,
-                      },
-                    ]}
-                  >
-                    <Text style={[styles.statValue, { color: me.accent }]}>
-                      {needsAttention}
-                    </Text>
-                    <Text style={[styles.statLabel, { color: me.accent }]}>
-                      Action
+                  <View style={localStyles.attentionPill}>
+                    <Ionicons
+                      name='alert-circle-outline'
+                      size={13}
+                      color={me.errFg}
+                    />
+                    <Text style={localStyles.attentionText}>
+                      {needsAttention} need attention
                     </Text>
                   </View>
-                ) : (
-                  <View style={styles.statPill}>
-                    <Text style={styles.statValue}>{counts.payments}</Text>
-                    <Text style={styles.statLabel}>Payments</Text>
-                  </View>
-                )}
+                ) : null}
               </View>
-            </LinearGradient>
+              <Text style={localStyles.editorialEyebrow}>Library</Text>
+              <Text style={localStyles.editorialTitle}>Documents</Text>
+              <Text style={localStyles.editorialSubtitle}>
+                {counts.total} {counts.total === 1 ? 'file' : 'files'} ·{' '}
+                {counts.contracts}{' '}
+                {counts.contracts === 1 ? 'contract' : 'contracts'} ·{' '}
+                {counts.bids} {counts.bids === 1 ? 'bid' : 'bids'}
+              </Text>
+            </View>
 
             {/* Search */}
             <View style={localStyles.searchWrap}>
@@ -574,6 +550,62 @@ export const HomeownerDocumentsScreen: React.FC = () => {
 };
 
 const localStyles = {
+  // 2026-05-23 editorial header (replaces the mint-gradient hero +
+  // 4-up stat pill row in this file). Matches the redesign-v2
+  // Documents mockup — paper bg, mint eyebrow, serif title.
+  editorialHero: {
+    paddingHorizontal: 20,
+    paddingBottom: 14,
+    backgroundColor: me.bg,
+  },
+  editorialNavRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+    marginBottom: 12,
+  },
+  editorialNavBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: me.bg2,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+  },
+  attentionPill: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: me.errBg,
+    borderRadius: 16,
+  },
+  attentionText: {
+    fontSize: 11,
+    fontWeight: '700' as const,
+    color: me.errFg,
+  },
+  editorialEyebrow: {
+    fontSize: 11,
+    fontWeight: '700' as const,
+    color: me.brand,
+    textTransform: 'uppercase' as const,
+    letterSpacing: 1.2,
+    marginBottom: 6,
+  },
+  editorialTitle: {
+    fontFamily: me.font.display,
+    fontSize: 28,
+    lineHeight: 32,
+    color: me.ink,
+    letterSpacing: me.displayTracking,
+    marginBottom: 4,
+  },
+  editorialSubtitle: {
+    fontSize: 13,
+    color: me.ink3,
+  },
   searchWrap: {
     paddingHorizontal: 16,
     paddingTop: 12,

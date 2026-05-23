@@ -68,13 +68,21 @@ export const PropertyDetailScreen: React.FC<Props> = ({
   } = useQuery({
     queryKey: ['property', propertyId],
     queryFn: async () => {
-      const { data, error: queryError } = await supabase
-        .from('properties')
-        .select('*')
-        .eq('id', propertyId)
-        .single();
-      if (queryError) throw new Error(queryError.message);
-      return data as Property;
+      // 2026-05-23 audit: previously read properties directly via
+      // supabase. The properties RLS policy only grants
+      // owner/admin/org_member SELECT — team members invited via the
+      // /properties/[id]/team flow were getting an empty result here,
+      // so shared property viewing didn't work even when the team
+      // membership row existed. /api/properties/[id] is service-role
+      // backed and checks owner/admin/org/team membership server-side,
+      // which is the auth contract this screen actually needs.
+      const res = await mobileApiClient.get<{ property: Property } | Property>(
+        `/api/properties/${propertyId}`
+      );
+      const raw =
+        (res as { property?: Property })?.property ?? (res as Property);
+      if (!raw) throw new Error('Property not found');
+      return raw as Property;
     },
     enabled: !!user && !!propertyId,
   });

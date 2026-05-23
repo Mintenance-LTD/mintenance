@@ -62,12 +62,76 @@ export const TeamAccess: React.FC<Props> = ({ propertyId }) => {
       });
       setEmail('');
       setShowForm(false);
+      // 2026-05-23 audit: the API now responds with
+      // { invitation: { activated: false, message } } because the
+      // accept/email flow isn't built yet. Tell the homeowner the
+      // truth instead of letting them think the invitee can log in
+      // and see the property — they can't, until the activation
+      // pathway ships.
+      Alert.alert(
+        'Invite recorded',
+        "We've saved the invite. Activation (email + accept page) is still being built, so the invitee can't see the property yet. We'll notify you when it's ready.",
+        [{ text: 'OK' }]
+      );
     },
-    onError: (err: unknown) =>
+    onError: (err: unknown) => {
+      // 2026-05-23 audit: the API returns 402 with
+      // { requiresSubscription, feature, message } when a non-Agency
+      // homeowner tries to invite team members. Previously we showed
+      // a generic "Failed to invite team member" alert that hid the
+      // upgrade path. Detect the subscription gate and surface a
+      // clear CTA pointing at the subscription screen.
+      type ApiErr = {
+        status?: number;
+        response?: {
+          status?: number;
+          data?: {
+            requiresSubscription?: boolean;
+            message?: string;
+            feature?: string;
+            error?: string;
+          };
+        };
+        data?: {
+          requiresSubscription?: boolean;
+          message?: string;
+        };
+      };
+      const apiErr = err as ApiErr;
+      const status = apiErr.response?.status ?? apiErr.status;
+      const data = apiErr.response?.data ?? apiErr.data;
+      if (status === 402 || data?.requiresSubscription) {
+        Alert.alert(
+          'Agency plan required',
+          data?.message ||
+            'Team member invites require an Agency subscription. Upgrade to unlock shared property access.',
+          [
+            { text: 'Not now', style: 'cancel' },
+            {
+              text: 'View plans',
+              onPress: () => {
+                // Mobile NavigationContainer is global — the
+                // subscription tile lives on the Profile stack.
+                // Soft-fail if for any reason the route can't be
+                // resolved (older app build / web embed).
+                try {
+                  type LinkingMod = { openURL: (url: string) => void };
+                  const Linking = require('react-native').Linking as LinkingMod;
+                  Linking.openURL('mintenance://profile/subscription');
+                } catch {
+                  // no-op — user can navigate manually
+                }
+              },
+            },
+          ]
+        );
+        return;
+      }
       Alert.alert(
         'Error',
         err instanceof Error ? err.message : 'Failed to invite team member.'
-      ),
+      );
+    },
   });
 
   const removeMutation = useMutation({

@@ -1,13 +1,16 @@
 /**
- * NotificationHeader Component
+ * NotificationHeader — Mint Editorial v2 (2026-05-23 redesign).
  *
- * Hero gradient header with title, subtitle, unread count, and mark-all button.
+ * Replaces the mint-gradient hero (with 2 decorative circles + bold
+ * white sans heading + glassy "Mark All" pill) with the calm editorial
+ * pattern: paper surface, mint eyebrow, serif "Notifications" title,
+ * unread-count subtitle in muted ink. The "Mark all" CTA stays as a
+ * mint-soft outlined pill in the top-right.
  */
 
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { me } from '../../design-system/mint-editorial';
 
 interface NotificationHeaderProps {
@@ -22,18 +25,14 @@ export const NotificationHeader: React.FC<NotificationHeaderProps> = ({
   onMarkAllAsRead,
 }) => {
   return (
-    <LinearGradient
-      colors={[me.brand2, me.brand]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={[styles.heroHeader, { paddingTop: paddingTop + 12 }]}
-    >
-      <View style={styles.heroDecor1} />
-      <View style={styles.heroDecor2} />
-      <View style={styles.headerBar}>
-        <View>
-          <Text style={styles.headerTitle}>Notifications</Text>
-          <Text style={styles.headerSubtitle}>
+    <View style={[styles.header, { paddingTop: paddingTop + 12 }]}>
+      <View style={styles.row}>
+        <View style={styles.titleBlock}>
+          <Text style={styles.eyebrow}>Inbox</Text>
+          <Text style={styles.title} numberOfLines={1}>
+            Notifications
+          </Text>
+          <Text style={styles.subtitle}>
             {unreadCount > 0 ? `${unreadCount} unread` : 'All caught up'}
           </Text>
         </View>
@@ -43,72 +42,71 @@ export const NotificationHeader: React.FC<NotificationHeaderProps> = ({
             onPress={onMarkAllAsRead}
             accessibilityRole='button'
             accessibilityLabel='Mark all as read'
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             <Ionicons
               name='checkmark-done-outline'
-              size={18}
+              size={16}
               color={me.brand}
             />
-            <Text style={styles.markAllText}>Mark All</Text>
+            <Text style={styles.markAllText}>Mark all</Text>
           </TouchableOpacity>
         )}
       </View>
-    </LinearGradient>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  heroHeader: {
+  header: {
     paddingHorizontal: 20,
-    paddingBottom: 20,
-    overflow: 'hidden',
+    paddingBottom: 16,
+    backgroundColor: me.bg,
   },
-  heroDecor1: {
-    position: 'absolute',
-    top: -30,
-    right: -30,
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-  },
-  heroDecor2: {
-    position: 'absolute',
-    bottom: -20,
-    left: -20,
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-  },
-  headerBar: {
+  row: {
     flexDirection: 'row',
+    alignItems: 'flex-end',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    gap: 12,
   },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: me.onBrand,
-    letterSpacing: -0.5,
+  titleBlock: {
+    flex: 1,
   },
-  headerSubtitle: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.7)',
-    marginTop: 2,
+  eyebrow: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: me.brand,
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+    marginBottom: 6,
+  },
+  title: {
+    fontFamily: me.font.display,
+    fontSize: 28,
+    lineHeight: 32,
+    color: me.ink,
+    letterSpacing: me.displayTracking,
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 13,
+    color: me.ink3,
   },
   markAllButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    backgroundColor: me.surface,
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    backgroundColor: me.brandSoft,
     borderRadius: 20,
+    borderWidth: 1,
+    borderColor: me.brandSoft,
+    marginBottom: 4,
   },
   markAllText: {
-    fontSize: 13,
+    fontSize: 12,
     color: me.brand,
-    fontWeight: '600',
+    fontWeight: '700',
   },
 });

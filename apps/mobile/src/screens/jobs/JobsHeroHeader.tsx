@@ -1,3 +1,22 @@
+/**
+ * JobsHeroHeader — Mint Editorial v2 (2026-05-23 redesign).
+ *
+ * Replaces the prior heavy header (36pt mixed-weight title + gradient
+ * stat card + 3-up bento row of "LOCAL LISTINGS / £AVG / FRESH MATCHES"
+ * for contractors, "ACTIVE / TOTAL BIDS / COMPLETED" for homeowners).
+ *
+ * The mockup (redesign-v2 contractor "Discover" + homeowner "Jobs")
+ * shows a single calm editorial header: caption eyebrow + serif title
+ * + one-line subtitle that surfaces the only number that matters
+ * ("Discover N opportunities", "N jobs · M active"). Stat bento is
+ * cut entirely — the active/completed/bids counts are surfaced by
+ * the filter chips below (which the consumer screen already shows
+ * in the row of `All Jobs / Active / Completed` pills).
+ *
+ * Homeowner-side "+ Add" mint pill stays in the top-right; the search
+ * bar stays on a homeowner-only branch since contractors find work via
+ * the Discover/Map view, not text search.
+ */
 import React from 'react';
 import {
   View,
@@ -6,7 +25,6 @@ import {
   TouchableOpacity,
   TextInput,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { me } from '../../design-system/mint-editorial';
 import type { JobStats } from './types';
@@ -28,160 +46,74 @@ export const JobsHeroHeader: React.FC<JobsHeroHeaderProps> = ({
   onSearchChange,
   onAddJob,
 }) => {
+  const eyebrow = isContractor ? 'Discover' : 'Your projects';
+  const title = isContractor ? 'Jobs near you' : 'Jobs';
+
+  // Subtitle: surface the single most actionable number per role.
+  const subtitle = isContractor
+    ? stats.total > 0
+      ? `${stats.total} ${stats.total === 1 ? 'opportunity' : 'opportunities'} tailored to your skills`
+      : 'Pull to refresh — new jobs land throughout the day'
+    : stats.total > 0
+      ? `${stats.total} ${stats.total === 1 ? 'job' : 'jobs'} · ${stats.activeCount} active`
+      : 'Post your first job to start receiving bids';
+
   return (
-    <View style={[styles.container, { paddingTop: insetTop + 12 }]}>
-      {/* Editorial header */}
-      <View style={styles.headerSection}>
-        <View style={styles.headerTop}>
-          <View style={styles.headerText}>
-            <Text style={styles.headerLabel}>
-              {isContractor ? 'Curated Marketplace' : 'Your Projects'}
-            </Text>
-            <Text style={styles.headerTitle}>
-              {isContractor ? 'Job ' : 'My '}
-              <Text style={styles.headerTitleBold}>
-                {isContractor ? 'Marketplace' : 'Jobs'}
-              </Text>
-            </Text>
-            <View style={styles.headerSubtitleRow}>
-              <View style={styles.headerAccent} />
-              <Text style={styles.headerSubtitle}>
-                {isContractor
-                  ? `Discover ${stats.total} ${stats.total === 1 ? 'opportunity' : 'opportunities'} tailored to your expertise.`
-                  : `${stats.total} ${stats.total === 1 ? 'job' : 'jobs'} \u00B7 ${stats.activeCount} active`}
-              </Text>
-            </View>
-          </View>
-          {!isContractor && (
+    <View style={[styles.container, { paddingTop: insetTop + 8 }]}>
+      <View style={styles.row}>
+        <View style={styles.titleBlock}>
+          <Text style={styles.eyebrow}>{eyebrow}</Text>
+          <Text style={styles.title} numberOfLines={1}>
+            {title}
+          </Text>
+          <Text style={styles.subtitle} numberOfLines={2}>
+            {subtitle}
+          </Text>
+        </View>
+        {!isContractor && (
+          <TouchableOpacity
+            style={styles.addBtn}
+            onPress={onAddJob}
+            accessibilityRole='button'
+            accessibilityLabel='Post a new job'
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name='add' size={22} color={me.onBrand} />
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* Search — homeowner only. Contractors discover via map / filter
+          chips, not text search, per the mockup. */}
+      {!isContractor && (
+        <View style={styles.searchBar}>
+          <Ionicons
+            name='search'
+            size={18}
+            color={me.ink3}
+            style={styles.searchIcon}
+          />
+          <TextInput
+            style={styles.searchInput}
+            placeholder='Search your jobs'
+            placeholderTextColor={me.ink3}
+            value={searchQuery}
+            onChangeText={onSearchChange}
+            accessibilityLabel='Search jobs'
+            returnKeyType='search'
+          />
+          {searchQuery.length > 0 && (
             <TouchableOpacity
-              style={styles.addBtn}
-              onPress={onAddJob}
+              onPress={() => onSearchChange('')}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               accessibilityRole='button'
-              accessibilityLabel='Post a new job'
+              accessibilityLabel='Clear search'
             >
-              <Ionicons name='add' size={22} color={me.onBrand} />
+              <Ionicons name='close-circle' size={18} color={me.ink3} />
             </TouchableOpacity>
           )}
         </View>
-
-        {/* Search bar — homeowner only */}
-        {!isContractor && (
-          <View style={styles.searchBar}>
-            <Ionicons
-              name='search'
-              size={18}
-              color={me.brand}
-              style={styles.searchIcon}
-            />
-            <TextInput
-              style={styles.searchInput}
-              placeholder='Search your jobs...'
-              placeholderTextColor={me.ink3}
-              value={searchQuery}
-              onChangeText={onSearchChange}
-              accessibilityLabel='Search jobs'
-              returnKeyType='search'
-            />
-            {searchQuery.length > 0 && (
-              <TouchableOpacity
-                onPress={() => onSearchChange('')}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              >
-                <Ionicons name='close-circle' size={18} color={me.ink3} />
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
-      </View>
-
-      {/* Summary stat cards */}
-      <View style={styles.statRow}>
-        {isContractor ? (
-          <>
-            <View style={styles.statCard}>
-              <Ionicons
-                name='navigate'
-                size={18}
-                color={me.brand}
-                style={styles.statIcon}
-              />
-              <Text style={styles.statValue}>{stats.total}</Text>
-              <Text style={styles.statLabel}>Local Listings</Text>
-            </View>
-            <LinearGradient
-              colors={[me.brand2, me.brand] as const}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.statCardPrimary}
-            >
-              <Ionicons
-                name='cash'
-                size={18}
-                color='rgba(255,255,255,0.5)'
-                style={styles.statIcon}
-              />
-              <Text style={styles.statValueWhite}>
-                {stats.avgBudget > 0
-                  ? `\u00A3${stats.avgBudget >= 1000 ? `${(stats.avgBudget / 1000).toFixed(1)}k` : stats.avgBudget}`
-                  : '\u2014'}
-              </Text>
-              <Text style={styles.statLabelWhite}>Avg Value</Text>
-            </LinearGradient>
-            <View style={styles.statCard}>
-              <Ionicons
-                name='sparkles'
-                size={18}
-                color={me.accent}
-                style={styles.statIcon}
-              />
-              <Text style={styles.statValue}>
-                {stats.newToday > 0 ? stats.newToday : 'Fresh'}
-              </Text>
-              <Text style={styles.statLabel}>
-                {stats.newToday > 0 ? 'New Today' : 'Matches'}
-              </Text>
-            </View>
-          </>
-        ) : (
-          <>
-            <View style={styles.statCard}>
-              <Ionicons
-                name='flash'
-                size={18}
-                color={me.brand}
-                style={styles.statIcon}
-              />
-              <Text style={styles.statValue}>{stats.activeCount}</Text>
-              <Text style={styles.statLabel}>Active</Text>
-            </View>
-            <LinearGradient
-              colors={[me.brand2, me.brand] as const}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.statCardPrimary}
-            >
-              <Ionicons
-                name='people'
-                size={18}
-                color='rgba(255,255,255,0.5)'
-                style={styles.statIcon}
-              />
-              <Text style={styles.statValueWhite}>{stats.totalBids}</Text>
-              <Text style={styles.statLabelWhite}>Total Bids</Text>
-            </LinearGradient>
-            <View style={styles.statCard}>
-              <Ionicons
-                name='checkmark-circle'
-                size={18}
-                color={me.brand}
-                style={styles.statIcon}
-              />
-              <Text style={styles.statValue}>{stats.completedCount}</Text>
-              <Text style={styles.statLabel}>Completed</Text>
-            </View>
-          </>
-        )}
-      </View>
+      )}
     </View>
   );
 };
@@ -189,151 +121,65 @@ export const JobsHeroHeader: React.FC<JobsHeroHeaderProps> = ({
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 20,
-    paddingBottom: 20,
+    paddingBottom: 14,
     backgroundColor: me.bg,
   },
-  // Header
-  headerSection: {
-    marginBottom: 20,
-  },
-  headerTop: {
+  row: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 20,
+    justifyContent: 'space-between',
+    gap: 12,
+    marginBottom: 14,
   },
-  headerText: {
+  titleBlock: {
     flex: 1,
   },
-  headerLabel: {
-    fontSize: 10,
-    fontWeight: '800',
+  eyebrow: {
+    fontSize: 11,
+    fontWeight: '700',
     color: me.brand,
     textTransform: 'uppercase',
-    letterSpacing: 2.5,
+    letterSpacing: 1.2,
     marginBottom: 6,
   },
-  headerTitle: {
-    fontSize: 36,
-    fontWeight: '300',
+  title: {
+    fontFamily: me.font.display,
+    fontSize: 28,
+    lineHeight: 32,
     color: me.ink,
-    letterSpacing: -0.5,
+    letterSpacing: me.displayTracking,
+    marginBottom: 6,
   },
-  headerTitleBold: {
-    fontWeight: '800',
-  },
-  headerSubtitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 12,
-  },
-  headerAccent: {
-    width: 2,
-    height: 28,
-    backgroundColor: me.brand,
-    borderRadius: 1,
-    marginRight: 12,
-  },
-  headerSubtitle: {
+  subtitle: {
     fontSize: 13,
-    color: me.ink2,
-    fontWeight: '500',
-    flex: 1,
+    color: me.ink3,
     lineHeight: 18,
   },
   addBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: me.brand,
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 12,
   },
-  // Search
   searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: me.surface,
-    borderRadius: 24,
-    paddingLeft: 18,
-    paddingRight: 6,
-    height: 52,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    height: 44,
     borderWidth: 1,
     borderColor: me.line,
   },
   searchIcon: {
-    marginRight: 10,
+    marginRight: 8,
   },
   searchInput: {
     flex: 1,
     fontSize: 14,
     color: me.ink,
-  },
-  searchButton: {
-    backgroundColor: me.brand,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-  },
-  searchButtonText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: me.onBrand,
-    textTransform: 'uppercase',
-    letterSpacing: 1,
-  },
-  // Stat cards
-  statRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: me.bg2,
-    borderRadius: 24,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: me.line,
-    justifyContent: 'space-between',
-    minHeight: 110,
-  },
-  statCardPrimary: {
-    flex: 1,
-    borderRadius: 24,
-    padding: 16,
-    justifyContent: 'space-between',
-    minHeight: 110,
-  },
-  statIcon: {
-    marginBottom: 12,
-  },
-  statValue: {
-    fontSize: 26,
-    fontWeight: '800',
-    color: me.ink,
-    letterSpacing: -0.5,
-  },
-  statValueWhite: {
-    fontSize: 26,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    letterSpacing: -0.5,
-  },
-  statLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: me.ink2,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginTop: 2,
-  },
-  statLabelWhite: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: 'rgba(255,255,255,0.7)',
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginTop: 2,
+    paddingVertical: 0,
   },
 });

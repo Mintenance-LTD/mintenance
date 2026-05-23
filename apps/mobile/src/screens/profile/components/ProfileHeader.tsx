@@ -1,7 +1,24 @@
+/**
+ * ProfileHeader — Mint Editorial v2 (2026-05-23 redesign).
+ *
+ * Replaces the prior heavy mint-gradient hero (245 lines, three
+ * decorative circles, white-on-brand text, brand-tinted pills) with
+ * the calm editorial card from redesign-v2 contractor-deck screen 17
+ * "Tomas Reilly" profile and the matching homeowner deck:
+ *   - Paper surface, dark ink text, mint accents only on the avatar
+ *     ring + the verified checkmark.
+ *   - Avatar centred, serif name underneath, role caption +
+ *     "since {joinDate}" rendered as two slim chips inline.
+ *   - Email shown small + muted.
+ *
+ * Everything else on the screen (Profile completeness, Performance,
+ * Verification status, etc.) flows underneath unchanged — only the
+ * header is redrawn. This lifts the entire profile screen out of the
+ * "old UI with new skeleton" zone the user flagged on the APK.
+ */
 import React from 'react';
 import { View, Text, Image, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { me } from '../../../design-system/mint-editorial';
 
 interface ProfileHeaderUser {
@@ -44,19 +61,15 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
 
   const avatarUri = user?.profile_image_url || user?.avatar_url;
   const isContractor = user?.role === 'contractor';
-  const gradientColors = [me.brand2, me.brand] as const;
+
+  const subtitleText = isContractor
+    ? user?.skills?.[0]
+      ? user.skills[0].charAt(0).toUpperCase() + user.skills[0].slice(1)
+      : 'Professional Contractor'
+    : 'Homeowner';
 
   return (
-    <LinearGradient
-      colors={gradientColors}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={[styles.hero, { paddingTop: topInset + 20 }]}
-    >
-      <View style={styles.decor1} />
-      <View style={styles.decor2} />
-      <View style={styles.decor3} />
-
+    <View style={[styles.hero, { paddingTop: topInset + 24 }]}>
       <View style={styles.avatarRing}>
         {avatarUri ? (
           <Image
@@ -65,13 +78,13 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
             accessibilityLabel={`Profile photo of ${displayName}`}
           />
         ) : (
-          <View style={styles.avatar}>
+          <View style={styles.avatarFill}>
             <Text style={styles.avatarText}>{initials}</Text>
           </View>
         )}
         {user?.verified && (
           <View style={styles.verifiedDot}>
-            <Ionicons name='checkmark-circle' size={18} color={me.brand} />
+            <Ionicons name='checkmark-circle' size={20} color={me.brand} />
           </View>
         )}
       </View>
@@ -80,16 +93,9 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         {displayName}
       </Text>
 
-      {isContractor && (
-        <View style={styles.subtitleRow}>
-          <Ionicons name='hammer' size={12} color='rgba(255,255,255,0.75)' />
-          <Text style={styles.subtitleText}>
-            {user?.skills?.[0]
-              ? user.skills[0].charAt(0).toUpperCase() + user.skills[0].slice(1)
-              : 'Professional Contractor'}
-          </Text>
-        </View>
-      )}
+      <Text style={styles.subtitle} numberOfLines={1}>
+        {subtitleText}
+      </Text>
 
       {user?.email ? (
         <Text style={styles.emailText} numberOfLines={1}>
@@ -97,92 +103,63 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         </Text>
       ) : null}
 
-      <View style={styles.badgeRow}>
-        <View style={styles.pill}>
+      <View style={styles.chipRow}>
+        <View style={styles.chip}>
           <Ionicons
-            name={isContractor ? 'construct' : 'home'}
+            name={isContractor ? 'construct-outline' : 'home-outline'}
             size={11}
-            color='rgba(255,255,255,0.9)'
+            color={me.brand}
           />
-          <Text style={styles.pillText}>
+          <Text style={styles.chipText}>
             {isContractor ? 'Professional' : 'Homeowner'}
           </Text>
         </View>
         {joinDate ? (
-          <View style={styles.pill}>
-            <Ionicons
-              name='calendar-outline'
-              size={11}
-              color='rgba(255,255,255,0.9)'
-            />
-            <Text style={styles.pillText}>Since {joinDate}</Text>
+          <View style={styles.chip}>
+            <Ionicons name='calendar-outline' size={11} color={me.ink3} />
+            <Text style={[styles.chipText, { color: me.ink3 }]}>
+              Since {joinDate}
+            </Text>
           </View>
         ) : null}
       </View>
-    </LinearGradient>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   hero: {
-    paddingBottom: 28,
+    paddingBottom: 24,
     paddingHorizontal: 24,
     alignItems: 'center',
-    overflow: 'hidden',
-  },
-  decor1: {
-    position: 'absolute',
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    top: -60,
-    right: -50,
-  },
-  decor2: {
-    position: 'absolute',
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-    bottom: -40,
-    left: -30,
-  },
-  decor3: {
-    position: 'absolute',
-    width: 50,
-    height: 50,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    top: 100,
-    right: 70,
-    transform: [{ rotate: '45deg' }],
-    borderRadius: 6,
+    backgroundColor: me.bg,
   },
   avatarRing: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    borderWidth: 3,
-    borderColor: 'rgba(255,255,255,0.9)',
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    borderWidth: 2,
+    borderColor: me.brandSoft,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 14,
+    backgroundColor: me.surface,
   },
-  avatar: {
-    width: 94,
-    height: 94,
-    borderRadius: 47,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+  avatarFill: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: me.brand,
     justifyContent: 'center',
     alignItems: 'center',
   },
   avatarImage: {
-    width: 94,
-    height: 94,
-    borderRadius: 47,
+    width: 88,
+    height: 88,
+    borderRadius: 44,
   },
   avatarText: {
-    fontSize: 34,
+    fontSize: 30,
     fontWeight: '700',
     color: me.onBrand,
   },
@@ -200,45 +177,43 @@ const styles = StyleSheet.create({
   displayName: {
     fontFamily: me.font.display,
     fontSize: 26,
-    color: me.onBrand,
+    lineHeight: 30,
+    color: me.ink,
     textAlign: 'center',
     marginBottom: 4,
     letterSpacing: me.displayTracking,
   },
-  subtitleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    marginBottom: 6,
-  },
-  subtitleText: {
+  subtitle: {
     fontSize: 13,
-    color: 'rgba(255,255,255,0.75)',
+    color: me.ink2,
     fontWeight: '500',
+    marginBottom: 4,
   },
   emailText: {
-    fontSize: 13,
-    color: 'rgba(255,255,255,0.7)',
-    marginBottom: 14,
+    fontSize: 12,
+    color: me.ink3,
+    marginBottom: 12,
   },
-  badgeRow: {
+  chipRow: {
     flexDirection: 'row',
     gap: 8,
     flexWrap: 'wrap',
     justifyContent: 'center',
   },
-  pill: {
+  chip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: 'rgba(255,255,255,0.18)',
+    backgroundColor: me.surface,
+    borderWidth: 1,
+    borderColor: me.line,
     borderRadius: 20,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 5,
   },
-  pillText: {
+  chipText: {
     fontSize: 12,
-    color: 'rgba(255,255,255,0.92)',
+    color: me.brand,
     fontWeight: '600',
   },
 });
