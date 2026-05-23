@@ -204,20 +204,62 @@ export const POST = withApiHandler(
     }
 
     if (data.step === 'serviceArea') {
-      const { error } = await userDb
-        .from('profiles')
-        .update({
-          service_postcode: data.service_postcode.trim() || null,
-          service_radius_miles: data.service_radius_miles,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', user.id);
-      if (error) {
-        logger.error('Failed to save service area', error, {
-          service: 'contractor-onboarding',
-          userId: user.id,
+      // 2026-05-23 audit P0: previously this wrote `service_postcode`
+      // and `service_radius_miles` to public.profiles. Neither column
+      // exists on the live table (only service_areas.service_radius
+      // does), so every contractor's onboarding step-3 save 500'd.
+      //
+      // Canonical home for service-area data is the service_areas
+      // table — one row per area, keyed by contractor_id. Onboarding
+      // sets up the contractor's *primary* area; later they can add
+      // more from /contractor/service-areas. Upsert by (contractor_id,
+      // is_primary_area) so re-saving the step doesn't create dupes.
+      const postcode = data.service_postcode.trim();
+      const radiusKm = Math.round(data.service_radius_miles * 1.60934);
+
+      // Find existing primary area; update it, else insert.
+      const { data: existing } = await userDb
+        .from('service_areas')
+        .select('id')
+        .eq('contractor_id', user.id)
+        .eq('is_primary_area', true)
+        .maybeSingle();
+
+      if (existing?.id) {
+        const { error } = await userDb
+          .from('service_areas')
+          .update({
+            postal_codes: postcode ? [postcode] : [],
+            service_radius: radiusKm,
+            radius_km: radiusKm,
+            is_active: true,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', existing.id);
+        if (error) {
+          logger.error('Failed to update primary service area', error, {
+            service: 'contractor-onboarding',
+            userId: user.id,
+          });
+          throw new InternalServerError('Failed to save service area');
+        }
+      } else {
+        const { error } = await userDb.from('service_areas').insert({
+          contractor_id: user.id,
+          area_name: postcode || 'Primary service area',
+          postal_codes: postcode ? [postcode] : [],
+          service_radius: radiusKm,
+          radius_km: radiusKm,
+          is_primary_area: true,
+          is_active: true,
         });
-        throw new InternalServerError('Failed to save service area');
+        if (error) {
+          logger.error('Failed to insert primary service area', error, {
+            service: 'contractor-onboarding',
+            userId: user.id,
+          });
+          throw new InternalServerError('Failed to save service area');
+        }
       }
       return NextResponse.json({ success: true });
     }
