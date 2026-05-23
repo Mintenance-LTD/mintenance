@@ -58,6 +58,10 @@ export const useServiceAreas = () => {
     input: CreateServiceAreaInput
   ): Promise<void> => {
     if (!user?.id) return;
+    // 2026-05-23 audit-21 P2: the modal lets contractors tick "Set as
+    // primary area" and the API supports it, but this hook used to
+    // omit is_primary_area from the POST body — the checkbox always
+    // saved as non-primary. Forward the field through.
     await mobileApiClient.post('/api/contractor/service-areas', {
       area_name: input.area_name,
       area_type: 'radius',
@@ -65,6 +69,7 @@ export const useServiceAreas = () => {
       center_longitude: input.center_longitude || 0,
       radius_km: input.radius_km,
       is_active: true,
+      is_primary_area: !!input.is_primary_area,
     });
     await loadServiceAreas();
   };

@@ -12,6 +12,7 @@ import { logger } from '../utils/logger';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { me } from '../design-system/mint-editorial';
 import { useUnsavedChanges } from '../hooks/useUnsavedChanges';
+import { mobileApiClient } from '../utils/mobileApiClient';
 import { styles } from './ContractorCardEditorScreen/styles';
 import { BusinessInfoSection } from './ContractorCardEditorScreen/BusinessInfoSection';
 import {
@@ -21,6 +22,15 @@ import {
   ServiceAreaSection,
 } from './ContractorCardEditorScreen/PortfolioSection';
 import { PreviewModal } from './ContractorCardEditorScreen/PreviewModal';
+
+// 2026-05-23 audit-21 P1: any uri that doesn't already point at our
+// CDN / a public storage bucket is treated as a fresh device file
+// that needs uploading on save. Covers expo-image-picker (file://,
+// content://, ph://) and any other not-yet-uploaded local URI.
+function isLocalPortfolioUri(uri: string): boolean {
+  if (!uri) return false;
+  return !/^https?:\/\//i.test(uri);
+}
 
 interface ContractorCardEditorScreenProps {
   navigation: NativeStackNavigationProp<
@@ -159,15 +169,62 @@ export const ContractorCardEditorScreen: React.FC<
 
     try {
       setSaving(true);
-      // /api/contractor/update-profile requires firstName, lastName,
-      // and isAvailable. Pull them from auth context so the API call
-      // doesn't 400 — the screen edits company info, not name fields,
-      // so we just echo the existing user values back.
+
+      // 2026-05-23 audit-21 P1: previously this screen claimed to save
+      // companyLogo / availability (string enum) / serviceRadius /
+      // portfolioImages, but the API route only accepts profile
+      // basics + isAvailable boolean. Local URIs picked via
+      // ImagePicker never reached storage. Now:
+      //   - Local portfolio URIs are uploaded via
+      //     /api/contractor/upload-photos (which appends to
+      //     profiles.portfolio_images server-side).
+      //   - The availability enum maps to is_available boolean
+      //     ('busy' -> false, else true) so the live column reflects
+      //     intent even though the four-bucket string isn't stored.
+      //   - companyLogo and serviceRadius remain local-only — there's
+      //     no column on profiles for them, and service radius lives
+      //     on contractor_service_areas managed elsewhere. The
+      //     sections still render so users can see what's coming, but
+      //     we no longer pretend to persist them on save.
+      const existing = profile.portfolioImages ?? [];
+      const localUris = existing.filter((u) => isLocalPortfolioUri(u));
+      if (localUris.length > 0) {
+        for (const uri of localUris) {
+          try {
+            const fileName = `${Date.now()}_${Math.random().toString(36).slice(2)}.jpg`;
+            const formData = new FormData();
+            formData.append('photos', {
+              uri,
+              name: fileName,
+              type: 'image/jpeg',
+            } as unknown as Blob);
+            formData.append('title', 'Portfolio update');
+            formData.append('category', 'general');
+            await mobileApiClient.postFormData(
+              '/api/contractor/upload-photos',
+              formData
+            );
+          } catch (uploadErr) {
+            // Don't block the rest of the save — one image failing
+            // shouldn't take down the basic-info update. Log so the
+            // user can retry that image.
+            logger.warn('Portfolio image upload failed', {
+              uri,
+              error:
+                uploadErr instanceof Error
+                  ? uploadErr.message
+                  : String(uploadErr),
+            });
+          }
+        }
+      }
+
+      const availabilityIsAvailable = profile.availability !== 'busy';
       await ContractorService.updateContractorProfile(user.id, {
         ...profile,
         firstName: user.first_name ?? user.firstName ?? '',
         lastName: user.last_name ?? user.lastName ?? '',
-        isAvailable: true,
+        isAvailable: availabilityIsAvailable,
       });
       setHasEdits(false);
       Alert.alert('Success', 'Your discovery card has been updated!');

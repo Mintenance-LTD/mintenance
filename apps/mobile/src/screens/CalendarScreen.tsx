@@ -131,30 +131,41 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
     queryKey: ['contractor-schedule', user?.id],
     queryFn: async () => {
       if (!user?.id) return [];
+      // 2026-05-23 audit-21 P1: was hitting /api/contractor/appointments
+      // which is contractor-role-gated; homeowners 403'd. The
+      // role-agnostic /api/appointments (now with daysAhead + limit
+      // params per the matching route change) handles both sides and
+      // filters on contractor_id for contractors, client_id for
+      // homeowners. We pass a generous limit so the 180-day calendar
+      // still shows the full set instead of the 10-row default the
+      // dashboard widget uses.
       const res = await mobileApiClient.get<{
         appointments: Array<{
           id: string;
-          jobId?: string;
-          jobTitle?: string;
           title: string;
           date: string;
           time: string;
           endTime?: string;
           status?: string;
+          locationAddress?: string;
+          job?: { id: string; title?: string } | null;
+          // Older contractor-route shape, kept for backward compatibility
+          jobId?: string;
+          jobTitle?: string;
           location?: string;
         }>;
-      }>('/api/contractor/appointments?daysAhead=180');
+      }>('/api/appointments?daysAhead=180&limit=500');
 
       return (res.appointments || []).map(
         (a): ScheduleItem => ({
           id: a.id,
-          job_id: a.jobId || a.id,
-          job_title: a.jobTitle || a.title || 'Untitled',
+          job_id: a.job?.id || a.jobId || a.id,
+          job_title: a.job?.title || a.jobTitle || a.title || 'Untitled',
           date: a.date,
           time_start: a.time || '09:00',
           time_end: a.endTime,
           status: a.status || 'scheduled',
-          address: a.location,
+          address: a.locationAddress || a.location,
         })
       );
     },
