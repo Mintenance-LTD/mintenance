@@ -9,6 +9,20 @@ import {
 } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 
+// 2026-05-23 audit: added eta_minutes + context so the web ping
+// shape matches mobile JobContextLocationService. The homeowner
+// travel tracker (ContractorTravelTracking.tsx) reads both fields
+// to render the "on the way" / "arrived" pill + the live ETA.
+// Without them every web-side ping landed without the context the
+// UI expected, so homeowners watching a web-only contractor saw a
+// dot but never the travel status.
+const LOCATION_CONTEXT_VALUES = [
+  'idle',
+  'traveling',
+  'arrived',
+  'on_site',
+] as const;
+
 const updateLocationSchema = z.object({
   latitude: z.number().min(-90).max(90),
   longitude: z.number().min(-180).max(180),
@@ -17,6 +31,11 @@ const updateLocationSchema = z.object({
   heading: z.number().min(0).max(360).optional(),
   speed: z.number().nonnegative().optional(),
   job_id: z.string().uuid().optional(),
+  /** Minutes-until-arrival hint surfaced to the homeowner. Caller
+   * can omit when not in transit. */
+  eta_minutes: z.number().int().nonnegative().max(10080).optional(),
+  /** Travel state for the homeowner-facing pill. */
+  context: z.enum(LOCATION_CONTEXT_VALUES).optional(),
 });
 
 /**
@@ -52,8 +71,17 @@ export const POST = withApiHandler(
       );
     }
 
-    const { latitude, longitude, accuracy, altitude, heading, speed, job_id } =
-      parsed.data;
+    const {
+      latitude,
+      longitude,
+      accuracy,
+      altitude,
+      heading,
+      speed,
+      job_id,
+      eta_minutes,
+      context,
+    } = parsed.data;
 
     // Verify the contractor is assigned to this job before accepting a
     // job-scoped location ping. The first ping creates the sharing row, so
@@ -83,6 +111,11 @@ export const POST = withApiHandler(
       altitude: altitude || null,
       heading: heading || null,
       speed: speed || null,
+      // 2026-05-23 audit: persist the mobile-parity fields so the
+      // homeowner travel-tracking UI lights up regardless of whether
+      // the contractor is sharing from web or mobile.
+      eta_minutes: typeof eta_minutes === 'number' ? eta_minutes : null,
+      context: context ?? (job_id ? 'traveling' : 'idle'),
       is_active: true,
       is_sharing_location: true,
       location_timestamp: new Date().toISOString(),
