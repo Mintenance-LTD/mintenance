@@ -283,8 +283,10 @@ describe('BidService', () => {
 
   describe('acceptBid', () => {
     it('should accept a bid and update job status via API', async () => {
+      // 2026-05-23: server returns { success, message } not the bid row.
       mockedApiClient.post.mockResolvedValue({
-        bid: { ...mockBid, status: 'accepted' },
+        success: true,
+        message: 'Bid accepted successfully',
       });
 
       const result = await BidService.acceptBid('bid-789', 'job-123');
@@ -292,7 +294,7 @@ describe('BidService', () => {
       expect(mockedApiClient.post).toHaveBeenCalledWith(
         '/api/jobs/job-123/bids/bid-789/accept'
       );
-      expect(result.status).toBe('accepted');
+      expect(result.success).toBe(true);
     });
 
     it('should throw when jobId is missing', async () => {
@@ -312,12 +314,10 @@ describe('BidService', () => {
 
   describe('rejectBid', () => {
     it('should reject a bid with a reason', async () => {
+      // 2026-05-23: server returns { success, message } not the bid row.
       mockedApiClient.post.mockResolvedValue({
-        bid: {
-          ...mockBid,
-          status: 'rejected',
-          rejection_reason: 'Too expensive',
-        },
+        success: true,
+        message: 'Bid rejected successfully',
       });
 
       const result = await BidService.rejectBid(
@@ -330,13 +330,13 @@ describe('BidService', () => {
         '/api/jobs/job-123/bids/bid-789/reject',
         { reason: 'Too expensive' }
       );
-      expect(result.status).toBe('rejected');
-      expect(result.rejection_reason).toBe('Too expensive');
+      expect(result.success).toBe(true);
     });
 
     it('should reject a bid without a reason', async () => {
       mockedApiClient.post.mockResolvedValue({
-        bid: { ...mockBid, status: 'rejected' },
+        success: true,
+        message: 'Bid rejected successfully',
       });
 
       const result = await BidService.rejectBid('bid-789', 'job-123');
@@ -345,7 +345,7 @@ describe('BidService', () => {
         '/api/jobs/job-123/bids/bid-789/reject',
         { reason: undefined }
       );
-      expect(result.status).toBe('rejected');
+      expect(result.success).toBe(true);
     });
 
     it('should throw when jobId is missing', async () => {
@@ -428,23 +428,26 @@ describe('BidService', () => {
   // alongside the implementation.
 
   describe('Bid State Transitions', () => {
-    it('should transition from pending to accepted', async () => {
+    // 2026-05-23: server returns { success, message }, not the updated
+    // bid row. To verify the transitioned status, callers must refetch
+    // (getBidsByJob / getBidById). These tests now check the wire
+    // contract; status-transition behaviour lives on the server side
+    // and is covered by the API-level tests.
+    it('should resolve successfully when accepting a pending bid', async () => {
       mockedApiClient.post.mockResolvedValue({
-        bid: { ...mockBid, status: 'accepted' },
+        success: true,
+        message: 'Bid accepted successfully',
       });
 
       const result = await BidService.acceptBid('bid-789', 'job-123');
 
-      expect(result.status).toBe('accepted');
+      expect(result.success).toBe(true);
     });
 
-    it('should transition from pending to rejected', async () => {
+    it('should resolve successfully when rejecting a pending bid', async () => {
       mockedApiClient.post.mockResolvedValue({
-        bid: {
-          ...mockBid,
-          status: 'rejected',
-          rejection_reason: 'Budget exceeded',
-        },
+        success: true,
+        message: 'Bid rejected successfully',
       });
 
       const result = await BidService.rejectBid(
@@ -453,8 +456,7 @@ describe('BidService', () => {
         'Budget exceeded'
       );
 
-      expect(result.status).toBe('rejected');
-      expect(result.rejection_reason).toBe('Budget exceeded');
+      expect(result.success).toBe(true);
     });
   });
 

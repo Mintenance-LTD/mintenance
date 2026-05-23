@@ -224,12 +224,17 @@ export function useRegistrationForm(options: UseRegistrationFormOptions = {}) {
     }
 
     try {
+      const trimmedPhone = form.phoneNumber.trim();
       const payload = {
         email: form.email.trim(),
         password: form.password,
         firstName: form.firstName.trim(),
         lastName: form.lastName.trim(),
         role: form.role,
+        // 2026-05-23: was collected + validated but never forwarded.
+        // Now flows through performSignUp -> AuthService.signUp -> the
+        // signup metadata that handle_new_user reads.
+        phone: trimmedPhone || undefined,
       };
       if ((signUp as unknown as { mock?: boolean })?.mock) {
         await (signUp as unknown as (p: typeof payload) => Promise<void>)(
@@ -240,6 +245,7 @@ export function useRegistrationForm(options: UseRegistrationFormOptions = {}) {
           firstName: payload.firstName,
           lastName: payload.lastName,
           role: payload.role,
+          phone: payload.phone,
         });
       }
       const registeredEmail = payload.email;

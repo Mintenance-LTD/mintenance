@@ -150,25 +150,36 @@ export class BidService {
    * supabase import are gone.
    */
 
-  static async acceptBid(bidId: string, jobId: string): Promise<Bid> {
+  /**
+   * 2026-05-23: server routes return { success, message } — they don't
+   * echo the updated bid row. The previous type contract claimed
+   * `Promise<Bid>` and `return response.bid` resolved to `undefined`
+   * at runtime, so any caller that depended on the return got
+   * undefined. Now matches the wire contract exactly. Current callers
+   * (BidReviewScreen, ContractorAssignment) ignore the return value;
+   * any future caller that needs the fresh bid row should refetch via
+   * getBidsByJob / getBidById.
+   */
+  static async acceptBid(
+    bidId: string,
+    jobId: string
+  ): Promise<{ success: boolean; message: string }> {
     if (!jobId) throw new Error('jobId is required to accept a bid');
-    const response = await mobileApiClient.post<{ bid: Bid }>(
+    return mobileApiClient.post<{ success: boolean; message: string }>(
       `/api/jobs/${jobId}/bids/${bidId}/accept`
     );
-    return response.bid;
   }
 
   static async rejectBid(
     bidId: string,
     jobId: string,
     reason?: string
-  ): Promise<Bid> {
+  ): Promise<{ success: boolean; message: string }> {
     if (!jobId) throw new Error('jobId is required to reject a bid');
-    const response = await mobileApiClient.post<{ bid: Bid }>(
+    return mobileApiClient.post<{ success: boolean; message: string }>(
       `/api/jobs/${jobId}/bids/${bidId}/reject`,
       { reason }
     );
-    return response.bid;
   }
 
   /**
