@@ -79,7 +79,8 @@ export class PaymentIntentService {
   static async createPaymentIntent(
     jobId: string,
     amount: number,
-    paymentMethodId?: string
+    paymentMethodId?: string,
+    contractorId?: string
   ): Promise<CreatePaymentIntentResponse> {
     try {
       const { data: contract, error: contractError } = await supabase
@@ -95,9 +96,22 @@ export class PaymentIntentService {
         );
       }
 
+      // 2026-05-23 audit-19 P1: paymentIntentSchema marks contractorId
+      // as required. The previous body (jobId/amount/paymentMethodId only)
+      // hit the validator 400 before any Stripe call, so the escrow funding
+      // step silently failed at the API boundary. The caller already has
+      // contractorId in scope (usePayment options) — thread it through so
+      // the server can resolve payee_id without re-querying jobs.
+      if (!contractorId) {
+        throw new Error('Contractor ID is required to fund this job');
+      }
+
       const data = await apiRequest<{ clientSecret: string }>(
         '/api/payments/create-intent',
-        { method: 'POST', body: { jobId, amount, paymentMethodId } }
+        {
+          method: 'POST',
+          body: { jobId, amount, paymentMethodId, contractorId },
+        }
       );
 
       return { clientSecret: data.clientSecret };

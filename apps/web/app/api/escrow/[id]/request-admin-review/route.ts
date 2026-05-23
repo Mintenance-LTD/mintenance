@@ -2,7 +2,11 @@ import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { AdminEscrowHoldService } from '@/lib/services/admin/AdminEscrowHoldService';
 import { withApiHandler } from '@/lib/api/with-api-handler';
-import { ForbiddenError, NotFoundError, BadRequestError } from '@/lib/errors/api-error';
+import {
+  ForbiddenError,
+  NotFoundError,
+  BadRequestError,
+} from '@/lib/errors/api-error';
 
 /** Type for escrow with job relation (Supabase !inner join returns jobs as array) */
 interface EscrowContractorJob {
@@ -29,7 +33,8 @@ export const POST = withApiHandler(
     // Verify user is contractor for this escrow
     const { data: escrow, error: escrowError } = await serverSupabase
       .from('escrow_transactions')
-      .select(`
+      .select(
+        `
         id,
         auto_approval_date,
         homeowner_approval,
@@ -37,7 +42,8 @@ export const POST = withApiHandler(
           id,
           contractor_id
         )
-      `)
+      `
+      )
       .eq('id', escrowId)
       .single();
 
@@ -46,22 +52,37 @@ export const POST = withApiHandler(
     }
 
     const typedEscrow = escrow as unknown as EscrowWithContractorJob;
-    const job = Array.isArray(typedEscrow.jobs) ? typedEscrow.jobs[0] : typedEscrow.jobs;
+    const job = Array.isArray(typedEscrow.jobs)
+      ? typedEscrow.jobs[0]
+      : typedEscrow.jobs;
     if (job.contractor_id !== user.id && user.role !== 'admin') {
       throw new ForbiddenError('Unauthorized');
     }
 
-    // Check if 7 days have passed since auto-approval date
-    const autoApprovalDate = escrow.auto_approval_date ? new Date(escrow.auto_approval_date) : null;
+    // 2026-05-23 audit-19 P2: auto_approval_date IS the deadline by
+    // which the homeowner must respond — HomeownerApprovalService
+    // already stamps it at now + 7 days. Requiring another 7 days
+    // AFTER that date double-counted the window and contractors waited
+    // ~14 days, contradicting the "7 days" copy throughout the UI and
+    // notification emails. The right gate is simply "deadline has
+    // passed AND homeowner still hasn't approved" — same threshold the
+    // homeowner sees when they get the reminder.
+    const autoApprovalDate = escrow.auto_approval_date
+      ? new Date(escrow.auto_approval_date)
+      : null;
     if (!autoApprovalDate) {
       throw new BadRequestError('Auto-approval date not set');
     }
 
-    const daysSinceAutoApproval = (Date.now() - autoApprovalDate.getTime()) / (1000 * 60 * 60 * 24);
-    if (daysSinceAutoApproval < 7) {
-      return NextResponse.json({
-        error: `Cannot request admin review yet. ${Math.ceil(7 - daysSinceAutoApproval)} days remaining.`,
-      }, { status: 400 });
+    const msUntilDeadline = autoApprovalDate.getTime() - Date.now();
+    if (msUntilDeadline > 0) {
+      const daysRemaining = Math.ceil(msUntilDeadline / (1000 * 60 * 60 * 24));
+      return NextResponse.json(
+        {
+          error: `Cannot request admin review yet. Homeowner still has ${daysRemaining} day${daysRemaining === 1 ? '' : 's'} to respond.`,
+        },
+        { status: 400 }
+      );
     }
 
     // Check if homeowner has not approved

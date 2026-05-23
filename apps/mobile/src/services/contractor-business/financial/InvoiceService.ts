@@ -30,7 +30,14 @@ interface InvoiceLineItemInput {
  */
 interface CreateInvoiceInput {
   contractor_id: string;
-  client_id: string;
+  // 2026-05-23 audit-17 P1: client_id is now optional. The API path
+  // accepts a clientName-only invoice (no contractor_clients FK) — when
+  // the contractor types a free-text client and saves, we should NOT
+  // synthesize a fake clientId; that previously fell back to the
+  // contractor's own profile UUID and the API rejected with "Client
+  // not found or not yours". Only forward client_id when it actually
+  // points at a contractor_clients row.
+  client_id?: string;
   client_name?: string;
   client_email?: string;
   client_phone?: string;
@@ -78,11 +85,15 @@ export async function createInvoice(
       'Contractor ID',
       context
     );
-    ServiceErrorHandler.validateRequired(
-      invoiceData.client_id,
-      'Client ID',
-      context
-    );
+    // 2026-05-23 audit-17 P1: client_id is no longer required — the
+    // server accepts a clientName-only invoice. Requiring it here
+    // forced the screen to fall back to the contractor's profile UUID
+    // and the server rejected the resulting body. Validate clientName
+    // instead so we still surface a useful error when the caller has
+    // neither.
+    if (!invoiceData.client_id && !invoiceData.client_name?.trim()) {
+      throw new Error('Either client_id or client_name is required');
+    }
     ServiceErrorHandler.validatePositiveNumber(
       invoiceData.total_amount,
       'Total amount',
@@ -110,7 +121,13 @@ export async function createInvoice(
 
     const body: Record<string, unknown> = {
       jobId: invoiceData.job_id || undefined,
-      clientId: invoiceData.client_id,
+      // 2026-05-23 audit-17 P1: only forward clientId when it points at
+      // a real contractor_clients row. The server schema marks it
+      // .optional() and the handler resolves contact details from the
+      // row when present; sending an empty string or a fake fallback
+      // (previously contractor's own profile UUID) triggers "Client not
+      // found or not yours".
+      clientId: invoiceData.client_id || undefined,
       clientName: invoiceData.client_name,
       clientEmail: invoiceData.client_email,
       clientPhone: invoiceData.client_phone,

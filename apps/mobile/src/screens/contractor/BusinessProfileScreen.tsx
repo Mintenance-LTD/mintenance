@@ -122,17 +122,22 @@ export const BusinessProfileScreen: React.FC = () => {
       // one place, with the same NOT NULL date defaults the client used
       // to maintain.
       const normalizedLicenseType = toProfileLicenseType(licenseType);
+      // 2026-05-23 audit-18 P2: previously this only included
+      // insuranceProvider/insurancePolicyNumber in the payload when
+      // they were non-empty, so clearing the fields and saving silently
+      // omitted them. The API only upserts on non-empty input AND GET
+      // reloads from the latest active contractor_insurance row, so the
+      // UI snapped back to the old values after refresh — the user had
+      // no way to actually remove stale credentials. Same shape for
+      // license. Always send the fields so the server can detect the
+      // clear-intent (empty string = deactivate the active row).
       await mobileApiClient.patch('/api/contractor/business-profile', {
         companyName: companyName.trim(),
         businessAddress: businessAddress.trim(),
         licenseNumber: licenseNumber.trim(),
         licenseType: normalizedLicenseType ?? '',
-        ...(insuranceProvider.trim()
-          ? {
-              insuranceProvider: insuranceProvider.trim(),
-              insurancePolicyNumber: policyNumber.trim(),
-            }
-          : {}),
+        insuranceProvider: insuranceProvider.trim(),
+        insurancePolicyNumber: policyNumber.trim(),
       });
     },
     onSuccess: async () => {

@@ -366,25 +366,15 @@ export const POST = withApiHandler(
             jobId,
           });
         }
-        // Send push notification to the receiver's device
-        try {
-          const { NotificationService: PushService } =
-            await import('@/lib/services/notifications/NotificationService');
-          await PushService.createNotification({
-            userId: receiverId,
-            title: `${senderName}`,
-            message: messagePreview + (messageText.length > 80 ? '...' : ''),
-            type: 'message_received',
-            actionUrl: `/messages?jobId=${jobId}`,
-          });
-        } catch (pushError) {
-          logger.error('Message POST push notification error', pushError, {
-            service: 'messages',
-            receiverId,
-            jobId,
-          });
-          // Push failure should not block message send
-        }
+        // 2026-05-23 audit-16 P2: a second NotificationService import +
+        // createNotification call lived here. The earlier call above
+        // (with metadata: { jobId, senderId }) already does the in-app
+        // insert AND the push via NotificationService.createNotification
+        // — the wrapper fans out to both channels. This block produced
+        // an exact duplicate row + a duplicate push, AND dropped the
+        // jobId/senderId metadata so the second push couldn't deep-link.
+        // Removed; the upstream call already covers in-app + push +
+        // honours quiet-hours / preferences.
       } catch (notificationError) {
         logger.error(
           'Message POST notification creation error',

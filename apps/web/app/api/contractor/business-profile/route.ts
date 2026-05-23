@@ -191,6 +191,39 @@ export const PATCH = withApiHandler(
       }
     }
 
+    // 2026-05-23 audit-18 P2: when the caller explicitly sends an empty
+    // insurance provider AND there's an active row, mark that row
+    // inactive. Hard-delete would lose the legal retention trail, but
+    // leaving status='active' meant the next GET reloaded the stale
+    // credentials and the user couldn't actually clear them from the UI.
+    if (d.insuranceProvider !== undefined && d.insuranceProvider.length === 0) {
+      const { data: existing } = await serverSupabase
+        .from('contractor_insurance')
+        .select('id, status')
+        .eq('contractor_id', user.id)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (existing?.id) {
+        const { error: deactivateError } = await serverSupabase
+          .from('contractor_insurance')
+          .update({
+            status: 'inactive',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', existing.id);
+        if (deactivateError) {
+          logger.error(
+            'business-profile insurance deactivate failed',
+            deactivateError,
+            { service: 'contractor.business-profile', userId: user.id }
+          );
+          throw new InternalServerError('Failed to clear insurance');
+        }
+      }
+    }
+
     // Insurance upsert — only when caller actually sent a non-empty value.
     if (d.insuranceProvider !== undefined && d.insuranceProvider.length > 0) {
       const { data: existing } = await serverSupabase
@@ -238,6 +271,39 @@ export const PATCH = withApiHandler(
           userId: user.id,
         });
         throw new InternalServerError('Failed to update insurance');
+      }
+    }
+
+    // 2026-05-23 audit-18 P2: license clear path — mirrors insurance
+    // above. profiles.license_number / license_type already null-clear
+    // via the profileUpdate block above; we also deactivate the active
+    // contractor_licenses row so GET's "latest active license" lookup
+    // doesn't keep returning stale credentials.
+    if (d.licenseType !== undefined && d.licenseType.length === 0) {
+      const { data: existing } = await serverSupabase
+        .from('contractor_licenses')
+        .select('id, status')
+        .eq('contractor_id', user.id)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (existing?.id) {
+        const { error: deactivateError } = await serverSupabase
+          .from('contractor_licenses')
+          .update({
+            status: 'inactive',
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', existing.id);
+        if (deactivateError) {
+          logger.error(
+            'business-profile license deactivate failed',
+            deactivateError,
+            { service: 'contractor.business-profile', userId: user.id }
+          );
+          throw new InternalServerError('Failed to clear license');
+        }
       }
     }
 

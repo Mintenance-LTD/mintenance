@@ -158,12 +158,18 @@ export const POST = withApiHandler(
     try {
       // 2026-05-21 Mint Editorial voice — show the star count visually.
       const stars = '★'.repeat(rating);
+      // 2026-05-23 audit-16 P2: include jobId in metadata so the mobile
+      // routing table can deep-link to JobDetails. Without this the
+      // 'review' notification fell back to the inbox on mobile (only
+      // 'review_requested' was routed) and the contractor's "Tap to
+      // read it and reply" CTA went nowhere useful.
       await NotificationService.createNotification({
         userId: revieweeId,
         title: `${stars} review on ${job.title}`,
         message: `Tap to read it and reply if you want to.`,
         type: 'review',
         actionUrl: isHomeowner ? `/contractor/reviews` : `/jobs/${jobId}`,
+        metadata: { jobId, reviewId: review.id, rating },
       });
 
       // Check for 5-star review milestones (contractors only)

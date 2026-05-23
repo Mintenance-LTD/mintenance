@@ -33,6 +33,14 @@ export interface SubscriptionStatus {
     daysRemaining: number;
   } | null;
   requiresSubscription?: boolean;
+  // 2026-05-23 audit-18 P1: web /api/subscriptions/status returns an
+  // earlyAccess block (eligible + cohortLimit). Mobile was hardcoding
+  // requiresSubscription:false and skipping this entirely, so early-
+  // access cohort messaging never reached mobile.
+  earlyAccess?: {
+    eligible: boolean;
+    cohortLimit: number | null;
+  };
 }
 
 export const getFeatureStrings = (

@@ -127,8 +127,17 @@ export function routeForNotification(
     case 'bid_accepted':
       return p.jobId ? jobDetailsRoute(p.jobId) : NOTIFICATIONS_FALLBACK;
 
-    case 'message_received':
-      if (p.conversationId) {
+    case 'message_received': {
+      // 2026-05-23 audit-16 P1: web POST /api/messages/threads/:id/messages
+      // ships metadata `{ jobId, senderId }` (snake_cased as `job_id` /
+      // `sender_id` over the FCM/Expo wire). It does NOT include a
+      // separate conversationId — by the app's convention conversationId
+      // IS the jobId (MessagingScreen destructures `conversationId: jobId`
+      // and the thread endpoint resolves directly off jobs). Fall back to
+      // jobId so notification taps land on the actual chat instead of the
+      // generic inbox.
+      const threadId = p.conversationId ?? p.jobId;
+      if (threadId) {
         return {
           screen: 'Main',
           params: {
@@ -136,7 +145,7 @@ export function routeForNotification(
             params: {
               screen: 'Messaging',
               params: {
-                conversationId: p.conversationId,
+                conversationId: threadId,
                 jobTitle: p.jobTitle ?? '',
                 recipientId: p.senderId ?? '',
                 recipientName: p.senderName ?? '',
@@ -146,6 +155,7 @@ export function routeForNotification(
         };
       }
       return NOTIFICATIONS_FALLBACK;
+    }
 
     case 'meeting_scheduled':
       if (p.meetingId) {
@@ -175,6 +185,35 @@ export function routeForNotification(
 
     case 'quote_sent':
       return p.jobId ? jobDetailsRoute(p.jobId) : NOTIFICATIONS_FALLBACK;
+
+    // 2026-05-23 audit-16 P2: the job-review API sends `review` to the
+    // reviewee + `review_milestone` for 5-star milestone counts (10/25/
+    // 50/100). Previously neither was routed — only the older
+    // `review_requested` type was — so contractors' "Tap to read it
+    // and reply" CTA fell back to the generic inbox. Route reviews
+    // to JobDetails when jobId metadata is present (works for both
+    // sides because the job page shows received reviews); fall back
+    // to the contractor Reviews list. Milestones always land on the
+    // Reviews list since there's no per-job milestone payload.
+    case 'review':
+      return p.jobId
+        ? jobDetailsRoute(p.jobId)
+        : {
+            screen: 'Main',
+            params: {
+              screen: 'ProfileTab',
+              params: { screen: 'Reviews' },
+            },
+          };
+
+    case 'review_milestone':
+      return {
+        screen: 'Main',
+        params: {
+          screen: 'ProfileTab',
+          params: { screen: 'Reviews' },
+        },
+      };
 
     case 'system':
       return HOME_FALLBACK;

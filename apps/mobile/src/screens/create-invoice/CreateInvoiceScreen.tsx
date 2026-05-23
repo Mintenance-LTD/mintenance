@@ -154,11 +154,36 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({
         amount: (parseFloat(i.quantity) || 1) * parseFloat(i.rate),
       }));
 
+      // 2026-05-23 audit-17 P1: previously sent `client_id: clientId || user.id`.
+      // The form has no client picker — clientId state is never set — so the
+      // fallback shipped the contractor's own profile UUID. The API treats
+      // clientId as a contractor_clients.id and 400'd every "type a client
+      // name and save" attempt. Server already accepts the clientName-only
+      // path; only send clientId when an actual contractor_clients row is
+      // selected.
+      // 2026-05-23 audit-17 P2: the "Job reference" input is free-text
+      // (e.g. "Kitchen repaint", "JOB-1024") but was being forwarded as
+      // job_id which the API enforces as UUID — so any human reference
+      // rejected the whole invoice. Free-text references now ride along
+      // in notes so the contractor still records them; the field is only
+      // forwarded as job_id when it parses as a UUID (real linkage path
+      // for time-tracking → invoice flows that pass an actual jobId).
+      const UUID_RE =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const jobRefTrimmed = jobRef.trim();
+      const jobRefIsUuid =
+        jobRefTrimmed.length > 0 && UUID_RE.test(jobRefTrimmed);
+      const noteParts: string[] = [];
+      if (notes.trim()) noteParts.push(notes.trim());
+      if (jobRefTrimmed && !jobRefIsUuid) {
+        noteParts.push(`Job reference: ${jobRefTrimmed}`);
+      }
+
       await FinancialManagementService.createInvoice({
         contractor_id: user.id,
-        client_id: clientId || user.id,
+        client_id: clientId || undefined,
         client_name: clientName.trim(),
-        job_id: jobRef.trim() || undefined,
+        job_id: jobRefIsUuid ? jobRefTrimmed : undefined,
         invoice_number: generateInvoiceNumber(),
         status: 'draft',
         subtotal,
@@ -166,7 +191,7 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({
         total_amount: total,
         due_date: dueDate.toISOString(),
         issue_date: new Date().toISOString(),
-        notes: notes.trim() || undefined,
+        notes: noteParts.length > 0 ? noteParts.join('\n\n') : undefined,
         line_items: parsedItems,
       });
 

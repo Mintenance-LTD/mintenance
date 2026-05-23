@@ -198,7 +198,16 @@ export const BidReviewScreen: React.FC = () => {
               ).navigate('MessagingTab', {
                 screen: 'Messaging',
                 params: {
-                  conversationId: `${jobId}_${bid.contractor_id}`,
+                  // 2026-05-23 audit-16 P1: conversationId IS the jobId
+                  // across the app. MessagingScreen destructures
+                  // `conversationId: jobId` and hits
+                  // /api/messages/threads/<jobId>/messages — that
+                  // endpoint resolves a thread directly off `jobs`.
+                  // The previous `${jobId}_${contractorId}` shape was
+                  // a thread-id fiction that 404'd the API and
+                  // dropped the homeowner into a "thread not found"
+                  // chat right after accepting a bid.
+                  conversationId: jobId,
                   jobTitle: jobTitle || 'Job',
                   recipientId: bid.contractor_id,
                   recipientName: bid.contractor

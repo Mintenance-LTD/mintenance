@@ -46,7 +46,7 @@ export const SubscriptionScreen: React.FC = () => {
     isLoading,
     error: statusError,
     refetch: refetchStatus,
-  } = useSubscriptionStatusQuery(userRole);
+  } = useSubscriptionStatusQuery(userRole, user?.id);
 
   const subscribeMutation = useSubscribeMutation();
   const cancelMutation = useCancelSubscriptionMutation();

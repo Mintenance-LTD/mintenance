@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { SubscriptionService } from '@/lib/services/subscription/SubscriptionService';
-import { HomeownerSubscriptionService, type HomeownerPlanType } from '@/lib/services/subscription/HomeownerSubscriptionService';
+import {
+  HomeownerSubscriptionService,
+  type HomeownerPlanType,
+} from '@/lib/services/subscription/HomeownerSubscriptionService';
 import { TrialService } from '@/lib/services/subscription/TrialService';
 import { logger } from '@mintenance/shared';
 import { BadRequestError } from '@/lib/errors/api-error';
@@ -10,11 +13,57 @@ import { createSubscriptionSchema } from '@/lib/validation/schemas';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { stripe } from '@/lib/stripe';
 
+// 2026-05-23 audit-18 P1: build the Stripe PaymentSheet bundle the
+// mobile SDK needs (clientSecret + ephemeralKeySecret + customerId).
+// Web Elements only need the clientSecret because the customer is
+// resolved from the intent metadata, but the native PaymentSheet on
+// iOS/Android refuses to render without all three. Extracted into a
+// helper so the homeowner / contractor / upgrade paths can each
+// surface the bundle when there's actually a payment to confirm.
+// Failures here are NON-fatal — we still return the clientSecret so
+// web continues to work; mobile just falls back to its current
+// "Payment required" alert if the bundle is missing.
+async function buildPaymentSheet(
+  clientSecret: string | null | undefined,
+  customerId: string | null | undefined
+): Promise<{
+  clientSecret: string;
+  ephemeralKeySecret: string;
+  customerId: string;
+} | null> {
+  if (!clientSecret || !customerId) return null;
+  try {
+    const ephemeralKey = await stripe.ephemeralKeys.create(
+      { customer: customerId },
+      // Matches the Stripe-mobile-SDK-supported version that the
+      // 0.57 line of @stripe/stripe-react-native expects. Same value
+      // the home-health payment-sheet route uses.
+      { apiVersion: '2024-04-10' }
+    );
+    if (!ephemeralKey.secret) return null;
+    return {
+      clientSecret,
+      ephemeralKeySecret: ephemeralKey.secret,
+      customerId,
+    };
+  } catch (error) {
+    logger.warn('subscriptions/create: ephemeralKey creation failed', {
+      service: 'subscriptions',
+      customerId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return null;
+  }
+}
+
 export const POST = withApiHandler(
   { roles: ['contractor', 'homeowner'], rateLimit: { maxRequests: 30 } },
   async (request, { user }) => {
     // Validate and sanitize input using Zod schema
-    const validationResult = await validateRequest(request as never, createSubscriptionSchema);
+    const validationResult = await validateRequest(
+      request as never,
+      createSubscriptionSchema
+    );
     if (validationResult instanceof NextResponse) return validationResult;
     const { data: validatedData } = validationResult;
 
@@ -23,10 +72,13 @@ export const POST = withApiHandler(
     // Homeowner subscription flow (landlord / agency tiers)
     if (user.role === 'homeowner') {
       if (planType !== 'landlord' && planType !== 'agency') {
-        throw new BadRequestError('Homeowners can subscribe to the landlord or agency plan');
+        throw new BadRequestError(
+          'Homeowners can subscribe to the landlord or agency plan'
+        );
       }
 
-      const existing = await HomeownerSubscriptionService.getCurrentSubscription(user.id);
+      const existing =
+        await HomeownerSubscriptionService.getCurrentSubscription(user.id);
       if (existing?.status === 'active' && existing.plan_type === planType) {
         return NextResponse.json({
           success: true,
@@ -36,10 +88,11 @@ export const POST = withApiHandler(
         });
       }
 
-      const customerId = await HomeownerSubscriptionService.getOrCreateStripeCustomer(
-        user.id,
-        user.email
-      );
+      const customerId =
+        await HomeownerSubscriptionService.getOrCreateStripeCustomer(
+          user.id,
+          user.email
+        );
 
       const created = await HomeownerSubscriptionService.createSubscription(
         user.id,
@@ -63,6 +116,10 @@ export const POST = withApiHandler(
         stripeSubscriptionId: created.stripeSubscriptionId,
       });
 
+      const homeownerPaymentSheet = await buildPaymentSheet(
+        created.clientSecret,
+        customerId
+      );
       return NextResponse.json({
         success: true,
         subscriptionId: created.dbSubscriptionId,
@@ -70,6 +127,7 @@ export const POST = withApiHandler(
         clientSecret: created.clientSecret,
         requiresPayment: !!created.clientSecret,
         checkoutPath: '/homeowner/subscription/checkout',
+        paymentSheet: homeownerPaymentSheet,
       });
     }
 
@@ -79,11 +137,15 @@ export const POST = withApiHandler(
     }
 
     // Check if user already has a subscription
-    const existingSubscription = await SubscriptionService.getContractorSubscription(user.id);
+    const existingSubscription =
+      await SubscriptionService.getContractorSubscription(user.id);
 
     // Handle free tier separately - no Stripe needed
     if (planType === 'free') {
-      if (existingSubscription?.planType === 'free' && existingSubscription.status === 'free') {
+      if (
+        existingSubscription?.planType === 'free' &&
+        existingSubscription.status === 'free'
+      ) {
         return NextResponse.json({
           success: true,
           message: 'You are already on the free tier',
@@ -94,12 +156,17 @@ export const POST = withApiHandler(
       // Cancel any existing paid subscriptions
       if (existingSubscription && existingSubscription.stripeSubscriptionId) {
         try {
-          await stripe.subscriptions.cancel(existingSubscription.stripeSubscriptionId);
+          await stripe.subscriptions.cancel(
+            existingSubscription.stripeSubscriptionId
+          );
         } catch (cancelError) {
           logger.warn('Could not cancel Stripe subscription', {
             service: 'subscriptions',
             subscriptionId: existingSubscription.stripeSubscriptionId,
-            error: cancelError instanceof Error ? cancelError.message : String(cancelError),
+            error:
+              cancelError instanceof Error
+                ? cancelError.message
+                : String(cancelError),
           });
         }
 
@@ -115,7 +182,8 @@ export const POST = withApiHandler(
       }
 
       // Create free tier subscription
-      const subscriptionDbId = await SubscriptionService.createFreeTierSubscription(user.id);
+      const subscriptionDbId =
+        await SubscriptionService.createFreeTierSubscription(user.id);
 
       logger.info('Free tier subscription created', {
         service: 'subscriptions',
@@ -135,39 +203,65 @@ export const POST = withApiHandler(
       // Check the actual Stripe subscription status (more reliable than database status)
       let stripeSubscriptionStatus: string | null = null;
       try {
-        const stripeSub = await stripe.subscriptions.retrieve(existingSubscription.stripeSubscriptionId);
+        const stripeSub = await stripe.subscriptions.retrieve(
+          existingSubscription.stripeSubscriptionId
+        );
         stripeSubscriptionStatus = stripeSub.status;
       } catch (stripeError) {
-        logger.warn('Could not retrieve Stripe subscription status, using database status', {
-          service: 'subscriptions',
-          subscriptionId: existingSubscription.stripeSubscriptionId,
-          error: stripeError instanceof Error ? stripeError.message : String(stripeError),
-        });
+        logger.warn(
+          'Could not retrieve Stripe subscription status, using database status',
+          {
+            service: 'subscriptions',
+            subscriptionId: existingSubscription.stripeSubscriptionId,
+            error:
+              stripeError instanceof Error
+                ? stripeError.message
+                : String(stripeError),
+          }
+        );
       }
 
-      const effectiveStatus = stripeSubscriptionStatus || existingSubscription.status;
+      const effectiveStatus =
+        stripeSubscriptionStatus || existingSubscription.status;
 
       // If user is trying to subscribe to the same plan and it's active, return error
-      if (existingSubscription.planType === planType && effectiveStatus === 'active') {
-        throw new BadRequestError(`You are already subscribed to the ${planType} plan`);
+      if (
+        existingSubscription.planType === planType &&
+        effectiveStatus === 'active'
+      ) {
+        throw new BadRequestError(
+          `You are already subscribed to the ${planType} plan`
+        );
       }
 
       // Check if subscription is incomplete/unpaid/trial/expired - cancel it and create new one
-      const incompleteStatuses = ['incomplete', 'incomplete_expired', 'trial', 'unpaid', 'expired', 'past_due'];
+      const incompleteStatuses = [
+        'incomplete',
+        'incomplete_expired',
+        'trial',
+        'unpaid',
+        'expired',
+        'past_due',
+      ];
       if (incompleteStatuses.includes(effectiveStatus)) {
-        logger.info('Canceling incomplete/expired subscription to create new one', {
-          service: 'subscriptions',
-          contractorId: user.id,
-          oldSubscriptionId: existingSubscription.stripeSubscriptionId,
-          databaseStatus: existingSubscription.status,
-          stripeStatus: stripeSubscriptionStatus,
-          effectiveStatus,
-        });
+        logger.info(
+          'Canceling incomplete/expired subscription to create new one',
+          {
+            service: 'subscriptions',
+            contractorId: user.id,
+            oldSubscriptionId: existingSubscription.stripeSubscriptionId,
+            databaseStatus: existingSubscription.status,
+            stripeStatus: stripeSubscriptionStatus,
+            effectiveStatus,
+          }
+        );
 
         try {
           if (existingSubscription.stripeSubscriptionId) {
             try {
-              await stripe.subscriptions.cancel(existingSubscription.stripeSubscriptionId);
+              await stripe.subscriptions.cancel(
+                existingSubscription.stripeSubscriptionId
+              );
             } catch (cancelError) {
               logger.warn('Subscription may already be canceled in Stripe', {
                 service: 'subscriptions',
@@ -199,14 +293,23 @@ export const POST = withApiHandler(
             });
           }
         } catch (cancelError) {
-          logger.warn('Failed to cancel incomplete subscription, continuing anyway', {
-            service: 'subscriptions',
-            error: cancelError instanceof Error ? cancelError.message : String(cancelError),
-          });
+          logger.warn(
+            'Failed to cancel incomplete subscription, continuing anyway',
+            {
+              service: 'subscriptions',
+              error:
+                cancelError instanceof Error
+                  ? cancelError.message
+                  : String(cancelError),
+            }
+          );
         }
 
         // Fall through to create new subscription
-      } else if (existingSubscription.status === 'active' && existingSubscription.stripeSubscriptionId) {
+      } else if (
+        existingSubscription.status === 'active' &&
+        existingSubscription.stripeSubscriptionId
+      ) {
         // Subscription is active and different plan - try to update it
         try {
           const { subscriptionId, clientSecret, requiresPayment } =
@@ -225,6 +328,24 @@ export const POST = withApiHandler(
             requiresPayment,
           });
 
+          // 2026-05-23 audit-18 P1: include the PaymentSheet bundle when
+          // an upgrade requires confirming a new PaymentIntent. The
+          // customer id is already on profiles.stripe_customer_id —
+          // fetch it cheaply here.
+          let upgradeCustomerId: string | null = null;
+          if (requiresPayment && clientSecret) {
+            const { data: upgradeProfile } = await serverSupabase
+              .from('profiles')
+              .select('stripe_customer_id')
+              .eq('id', user.id)
+              .maybeSingle();
+            upgradeCustomerId =
+              (upgradeProfile?.stripe_customer_id as string | null) ?? null;
+          }
+          const upgradePaymentSheet = await buildPaymentSheet(
+            clientSecret,
+            upgradeCustomerId
+          );
           return NextResponse.json({
             success: true,
             subscriptionId: existingSubscription.id,
@@ -232,9 +353,11 @@ export const POST = withApiHandler(
             clientSecret,
             requiresPayment,
             isUpgrade: true,
+            paymentSheet: upgradePaymentSheet,
           });
         } catch (err) {
-          const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+          const errorMessage =
+            err instanceof Error ? err.message : 'Unknown error';
           logger.error('Error updating subscription plan', {
             service: 'subscriptions',
             contractorId: user.id,
@@ -249,11 +372,14 @@ export const POST = withApiHandler(
             {
               error: 'Failed to update subscription plan',
               details: errorMessage,
-              debug: process.env.NODE_ENV === 'development' ? {
-                oldPlan: existingSubscription.planType,
-                newPlan: planType,
-                subscriptionId: existingSubscription.stripeSubscriptionId,
-              } : undefined,
+              debug:
+                process.env.NODE_ENV === 'development'
+                  ? {
+                      oldPlan: existingSubscription.planType,
+                      newPlan: planType,
+                      subscriptionId: existingSubscription.stripeSubscriptionId,
+                    }
+                  : undefined,
             },
             { status: 500 }
           );
@@ -293,15 +419,17 @@ export const POST = withApiHandler(
     const trialEnd = trialStatus?.trialEndsAt || null;
 
     // Create Stripe subscription
-    const { subscriptionId, clientSecret } = await SubscriptionService.createStripeSubscription(
-      user.id,
-      planType,
-      stripeCustomerId
-    );
+    const { subscriptionId, clientSecret } =
+      await SubscriptionService.createStripeSubscription(
+        user.id,
+        planType,
+        stripeCustomerId
+      );
 
     // Get Stripe price ID (only for paid plans)
     let priceId = 'free-tier';
-    const stripeSubscription = await stripe.subscriptions.retrieve(subscriptionId);
+    const stripeSubscription =
+      await stripe.subscriptions.retrieve(subscriptionId);
     priceId = stripeSubscription.items.data[0]?.price.id || '';
 
     // Save subscription to database
@@ -321,12 +449,17 @@ export const POST = withApiHandler(
       subscriptionId,
     });
 
+    const contractorPaymentSheet = await buildPaymentSheet(
+      clientSecret,
+      stripeCustomerId
+    );
     return NextResponse.json({
       success: true,
       subscriptionId: subscriptionDbId,
       stripeSubscriptionId: subscriptionId,
       clientSecret,
       requiresPayment: !!clientSecret,
+      paymentSheet: contractorPaymentSheet,
     });
   }
 );
