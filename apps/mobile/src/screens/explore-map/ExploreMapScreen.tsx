@@ -28,6 +28,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { JobsStackParamList } from '../../navigation/types';
+import { goToTab } from '../../navigation/hooks';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 
 // Force Google Maps only on Android (iOS uses Apple Maps, no key needed).
@@ -203,14 +204,29 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({
     }
   };
 
+  // 2026-05-23 audit: ExploreMapScreen is mounted in two places —
+  // (a) as a JobsStack screen reached from the Jobs tab, and
+  // (b) inline inside the contractor AddTab via AddActionScreen.
+  // The previous `navigation.navigate('JobDetails'/'BidSubmission')`
+  // calls only resolved in case (a). From the AddTab context they
+  // were no-ops (the route names don't exist on the tab navigator),
+  // so contractors using "Find Jobs" couldn't open Details or
+  // Quick Bid. goToTab() traverses parents to find JobsTab, then
+  // pushes the nested screen — works from both mount sites.
   const handleViewDetails = (jobId: string) => {
     viewModel.handleJobSelect(null);
-    navigation.navigate('JobDetails', { jobId });
+    goToTab(navigation, 'JobsTab', {
+      screen: 'JobDetails',
+      params: { jobId },
+    });
   };
 
   const handleBidNow = (jobId: string) => {
     viewModel.handleJobSelect(null);
-    navigation.navigate('BidSubmission', { jobId });
+    goToTab(navigation, 'JobsTab', {
+      screen: 'BidSubmission',
+      params: { jobId },
+    });
   };
 
   const categorySubtitle = viewModel.selectedCategory

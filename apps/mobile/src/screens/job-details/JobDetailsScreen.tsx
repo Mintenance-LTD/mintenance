@@ -83,7 +83,19 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   // surface a retry — the underlying query will still resolve in the
   // background if the request eventually returns.
   const [loadingTimedOut, setLoadingTimedOut] = useState(false);
-  const { data: bidsData, refetch: refetchBids } = useJobBids(jobId);
+  // 2026-05-23 audit: /api/jobs/:id/bids is homeowner-only (returns 403
+  // for non-owners). Gate the bids fetch on ownership so contractors
+  // viewing public job details don't spam 403s + retries on this
+  // endpoint. Until the job loads we can't be sure of ownership, so
+  // the hook stays disabled — once viewModel.job arrives we re-enable
+  // for owners only.
+  const isJobOwner =
+    !!viewModel.job?.homeowner_id &&
+    !!user?.id &&
+    viewModel.job.homeowner_id === user.id;
+  const { data: bidsData, refetch: refetchBids } = useJobBids(jobId, {
+    enabled: isJobOwner,
+  });
 
   useEffect(() => {
     if (!viewModel.jobLoading) {

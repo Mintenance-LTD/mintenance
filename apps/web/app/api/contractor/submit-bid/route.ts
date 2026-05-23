@@ -268,70 +268,22 @@ export const POST = withApiHandler(
         );
       }
 
-      // Validate bid amount doesn't exceed job budget
-      // Use pre-tax subtotal for comparison (bidAmount may include VAT from client)
-      if (job.budget) {
-        const preTaxAmount = validatedData.subtotal ?? validatedData.bidAmount;
-        const preTaxCents = Math.round(preTaxAmount * 100);
-        const budgetCents = Math.round(job.budget * 100);
-
-        if (preTaxCents > budgetCents) {
-          logger.warn('Bid amount exceeds job budget', {
-            service: 'contractor',
-            jobId: validatedData.jobId,
-            bidAmount: validatedData.bidAmount,
-            subtotal: validatedData.subtotal,
-            preTaxAmount,
-            jobBudget: job.budget,
-            contractorId: user.id,
-          });
-          return NextResponse.json(
-            {
-              error: `Bid amount (£${preTaxAmount.toFixed(2)}) cannot exceed job budget (£${job.budget.toFixed(2)})`,
-            },
-            { status: 400 }
-          );
-        }
-
-        // Check if budget might have been reduced after bids were submitted
-        const { count: existingBidCount } = await userDb
-          .from('bids')
-          .select('id', { count: 'exact', head: true })
-          .eq('job_id', validatedData.jobId)
-          .neq('status', 'withdrawn');
-
-        if (existingBidCount && existingBidCount > 0) {
-          const { data: existingBids } = await userDb
-            .from('bids')
-            .select('amount, contractor_id, status')
-            .eq('job_id', validatedData.jobId)
-            .neq('status', 'withdrawn');
-
-          const budgetReduced = existingBids?.some(
-            (bid: {
-              amount: number | null;
-              contractor_id: string;
-              status: string;
-            }) => {
-              const bidAmount = bid.amount || 0;
-              const bidAmountCents = Math.round(bidAmount * 100);
-              return bidAmountCents > budgetCents;
-            }
-          );
-
-          if (budgetReduced) {
-            logger.warn(
-              'Budget appears to have been reduced after bids were submitted',
-              {
-                service: 'contractor',
-                jobId: validatedData.jobId,
-                currentBudget: job.budget,
-                existingBidCount,
-              }
-            );
-          }
-        }
-      }
+      // 2026-05-23 audit: the budget cap was the last enforcement point
+      // that contradicted the 2026-05-22 open-bidding rollout. The homeowner
+      // no longer sets a budget; contractors set their own price with a
+      // required justification. Keeping the server cap meant:
+      //   * Mobile UI says "homeowners no longer set the budget" while the
+      //     server still rejects bids above any legacy budget value.
+      //   * `job.budget.toFixed(2)` (line 290 pre-fix) threw a TypeError
+      //     when supabase-js returned NUMERIC as a string — turning a
+      //     soft 400 into a 500 for any legacy job with a populated budget.
+      //   * The "budget appears to have been reduced" warning was dead
+      //     observability — it only fired when the cap fired.
+      //
+      // Cap removed. Bid amount validation now sits with the homeowner
+      // (they pick the bid that fits) + the AI pricing recommendation
+      // (which already informs contractors when their price is too low
+      // or too high).
 
       // Get pricing recommendation (async, don't block)
       const pricingRecommendation = await PricingAgent.generateRecommendation(

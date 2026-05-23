@@ -32,6 +32,18 @@ export const JobLocationMap: React.FC<Props> = ({
   const lng = typeof longitude === 'number' ? longitude : Number(longitude);
   const hasValidCoords = Number.isFinite(lat) && Number.isFinite(lng);
 
+  // 2026-05-23 audit: matches the guard already in ExploreMapScreen.
+  // On Android without a Google Maps key the native MapView module
+  // crashes on mount — and this component was rendering native maps
+  // unconditionally, so opening any job with coordinates from an
+  // un-keyed Android build crashed the JobDetails screen entirely.
+  // Fall back to the address-only card in that case.
+  const googleMapsApiKey =
+    process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ||
+    process.env.GOOGLE_MAPS_API_KEY;
+  const shouldRenderNativeMap =
+    Platform.OS !== 'android' || Boolean(googleMapsApiKey);
+
   const handleGetDirections = () => {
     if (!hasValidCoords) return;
     const url = Platform.select({
@@ -41,7 +53,8 @@ export const JobLocationMap: React.FC<Props> = ({
     if (url) Linking.openURL(url);
   };
 
-  if (!hasValidCoords) {
+  // Address-only fallback: no coords OR Android-without-key.
+  if (!hasValidCoords || !shouldRenderNativeMap) {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
@@ -49,6 +62,18 @@ export const JobLocationMap: React.FC<Props> = ({
           <Text style={styles.title}>Job Location</Text>
         </View>
         <Text style={styles.address}>{address}</Text>
+        {hasValidCoords && (
+          <TouchableOpacity
+            style={styles.directionsBtn}
+            onPress={handleGetDirections}
+            activeOpacity={0.7}
+            accessibilityRole='button'
+            accessibilityLabel='Get directions to job location'
+          >
+            <Ionicons name='navigate-outline' size={16} color={me.brand} />
+            <Text style={styles.directionsText}>Get Directions</Text>
+          </TouchableOpacity>
+        )}
       </View>
     );
   }
