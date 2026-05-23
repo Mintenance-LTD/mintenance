@@ -28,14 +28,8 @@ const profileUpdateSchema = z.object({
     .min(1, 'Last name is required')
     .max(50, 'Last name must be less than 50 characters')
     .optional(),
-  bio: z
-    .string()
-    .max(1000, 'Bio must be less than 1000 characters')
-    .optional(),
-  city: z
-    .string()
-    .max(100, 'City must be less than 100 characters')
-    .optional(),
+  bio: z.string().max(1000, 'Bio must be less than 1000 characters').optional(),
+  city: z.string().max(100, 'City must be less than 100 characters').optional(),
   country: z
     .string()
     .max(100, 'Country must be less than 100 characters')
@@ -62,132 +56,180 @@ const profileUpdateSchema = z.object({
     .nullable(),
   latitude: z.number().min(-90).max(90).optional().nullable(),
   longitude: z.number().min(-180).max(180).optional().nullable(),
+  // 2026-05-23 audit: mobile HomeownerSetupScreen used to PATCH this
+  // route with `{propertyType, concernTags}`. The route only exports
+  // GET + PUT (no PATCH) and the schema didn't accept these fields,
+  // so every "Set up your home" submission was silently dropping the
+  // homeowner's answers. Persisted under profiles.settings (JSONB)
+  // so future fields can be added without further schema changes
+  // and so the data stays grouped with related preferences.
+  propertyType: z
+    .enum(['house', 'flat', 'bungalow', 'maisonette', 'other'])
+    .optional()
+    .nullable(),
+  concernTags: z.array(z.string().max(60)).max(20).optional().nullable(),
 });
 
 /**
  * GET /api/users/profile
  * Returns the authenticated user's profile data.
  */
-export const GET = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (request, { user }) => {
-  // Fetch user profile from database
-  const { data: profile, error } = await serverSupabase
-    .from('profiles')
-    .select(
-      'id, first_name, last_name, email, bio, city, country, phone, location, profile_image_url, role, created_at, updated_at, address, postcode, latitude, longitude, verified, phone_verified, company_name, skills'
-    )
-    .eq('id', user.id)
-    .single();
+export const GET = withApiHandler(
+  { rateLimit: { maxRequests: 30 } },
+  async (request, { user }) => {
+    // Fetch user profile from database
+    const { data: profile, error } = await serverSupabase
+      .from('profiles')
+      .select(
+        'id, first_name, last_name, email, bio, city, country, phone, location, profile_image_url, role, created_at, updated_at, address, postcode, latitude, longitude, verified, phone_verified, company_name, skills'
+      )
+      .eq('id', user.id)
+      .single();
 
-  if (error) {
-    logger.error('Failed to fetch user profile', error, {
-      service: 'users',
-      userId: user.id,
-    });
-    throw error;
+    if (error) {
+      logger.error('Failed to fetch user profile', error, {
+        service: 'users',
+        userId: user.id,
+      });
+      throw error;
+    }
+
+    return NextResponse.json({ profile });
   }
-
-  return NextResponse.json({ profile });
-});
+);
 
 /**
  * PUT /api/users/profile
  * Updates the authenticated user's profile.
  * Requires CSRF token for cross-site forgery protection.
  */
-export const PUT = withApiHandler({ rateLimit: { maxRequests: 30 } }, async (request, { user }) => {
-  // Validate and sanitize input using Zod schema
-  const validation = await validateRequest(request, profileUpdateSchema);
-  if ('headers' in validation) {
-    logger.warn('Profile update validation failed', {
+export const PUT = withApiHandler(
+  { rateLimit: { maxRequests: 30 } },
+  async (request, { user }) => {
+    // Validate and sanitize input using Zod schema
+    const validation = await validateRequest(request, profileUpdateSchema);
+    if ('headers' in validation) {
+      logger.warn('Profile update validation failed', {
+        service: 'users',
+        userId: user.id,
+      });
+      return validation;
+    }
+
+    const validatedData = validation.data;
+
+    // Build update payload with sanitized values.
+    // `unknown` accommodates the JSONB `settings` merge below.
+    const updateData: Record<string, unknown> = {};
+
+    if (validatedData.first_name !== undefined) {
+      updateData.first_name = sanitizeText(validatedData.first_name, 50);
+    }
+    if (validatedData.last_name !== undefined) {
+      updateData.last_name = sanitizeText(validatedData.last_name, 50);
+    }
+    if (validatedData.bio !== undefined) {
+      updateData.bio = sanitizeText(validatedData.bio, 1000);
+    }
+    if (validatedData.city !== undefined) {
+      updateData.city = sanitizeText(validatedData.city, 100);
+    }
+    if (validatedData.country !== undefined) {
+      updateData.country = sanitizeText(validatedData.country, 100);
+    }
+    if (validatedData.phone !== undefined) {
+      updateData.phone = validatedData.phone
+        ? sanitizeText(validatedData.phone, 20)
+        : null;
+    }
+    if (validatedData.location !== undefined) {
+      updateData.location = validatedData.location
+        ? sanitizeText(validatedData.location, 256)
+        : null;
+    }
+    if (validatedData.address !== undefined) {
+      updateData.address = validatedData.address
+        ? sanitizeText(validatedData.address, 256)
+        : null;
+    }
+    if (validatedData.postcode !== undefined) {
+      updateData.postcode = validatedData.postcode
+        ? sanitizeText(validatedData.postcode, 10).toUpperCase()
+        : null;
+    }
+    if (validatedData.latitude !== undefined) {
+      updateData.latitude = validatedData.latitude ?? null;
+    }
+    if (validatedData.longitude !== undefined) {
+      updateData.longitude = validatedData.longitude ?? null;
+    }
+
+    // 2026-05-23: merge homeowner-setup answers into profiles.settings
+    // (JSONB). We read the existing settings + spread the new keys so
+    // unrelated keys (notifications, theme, etc.) aren't clobbered.
+    if (
+      validatedData.propertyType !== undefined ||
+      validatedData.concernTags !== undefined
+    ) {
+      const { data: existing } = await serverSupabase
+        .from('profiles')
+        .select('settings')
+        .eq('id', user.id)
+        .single();
+
+      const currentSettings =
+        (existing?.settings as Record<string, unknown> | null | undefined) ??
+        {};
+      const setupPatch: Record<string, unknown> = {};
+      if (validatedData.propertyType !== undefined) {
+        setupPatch.property_type = validatedData.propertyType;
+      }
+      if (validatedData.concernTags !== undefined) {
+        setupPatch.concern_tags = validatedData.concernTags ?? [];
+      }
+      (updateData as Record<string, unknown>).settings = {
+        ...currentSettings,
+        ...setupPatch,
+      };
+    }
+
+    // Nothing to update
+    if (Object.keys(updateData).length === 0) {
+      return NextResponse.json({
+        success: true,
+        message: 'No changes to update',
+      });
+    }
+
+    // Set updated_at timestamp
+    updateData.updated_at = new Date().toISOString();
+
+    // Update profile -- scoped to authenticated user's own row
+    const { data: updatedProfile, error } = await serverSupabase
+      .from('profiles')
+      .update(updateData)
+      .eq('id', user.id)
+      .select()
+      .single();
+
+    if (error) {
+      logger.error('Failed to update user profile', error, {
+        service: 'users',
+        userId: user.id,
+        updateFields: Object.keys(updateData),
+      });
+      throw error;
+    }
+
+    logger.info('User profile updated successfully', {
       service: 'users',
       userId: user.id,
+      updatedFields: Object.keys(updateData),
     });
-    return validation;
-  }
 
-  const validatedData = validation.data;
-
-  // Build update payload with sanitized values
-  const updateData: Record<string, string | number | null> = {};
-
-  if (validatedData.first_name !== undefined) {
-    updateData.first_name = sanitizeText(validatedData.first_name, 50);
-  }
-  if (validatedData.last_name !== undefined) {
-    updateData.last_name = sanitizeText(validatedData.last_name, 50);
-  }
-  if (validatedData.bio !== undefined) {
-    updateData.bio = sanitizeText(validatedData.bio, 1000);
-  }
-  if (validatedData.city !== undefined) {
-    updateData.city = sanitizeText(validatedData.city, 100);
-  }
-  if (validatedData.country !== undefined) {
-    updateData.country = sanitizeText(validatedData.country, 100);
-  }
-  if (validatedData.phone !== undefined) {
-    updateData.phone = validatedData.phone
-      ? sanitizeText(validatedData.phone, 20)
-      : null;
-  }
-  if (validatedData.location !== undefined) {
-    updateData.location = validatedData.location
-      ? sanitizeText(validatedData.location, 256)
-      : null;
-  }
-  if (validatedData.address !== undefined) {
-    updateData.address = validatedData.address
-      ? sanitizeText(validatedData.address, 256)
-      : null;
-  }
-  if (validatedData.postcode !== undefined) {
-    updateData.postcode = validatedData.postcode
-      ? sanitizeText(validatedData.postcode, 10).toUpperCase()
-      : null;
-  }
-  if (validatedData.latitude !== undefined) {
-    updateData.latitude = validatedData.latitude ?? null;
-  }
-  if (validatedData.longitude !== undefined) {
-    updateData.longitude = validatedData.longitude ?? null;
-  }
-
-  // Nothing to update
-  if (Object.keys(updateData).length === 0) {
     return NextResponse.json({
       success: true,
-      message: 'No changes to update',
+      profile: updatedProfile,
     });
   }
-
-  // Set updated_at timestamp
-  updateData.updated_at = new Date().toISOString();
-
-  // Update profile -- scoped to authenticated user's own row
-  const { data: updatedProfile, error } = await serverSupabase
-    .from('profiles')
-    .update(updateData)
-    .eq('id', user.id)
-    .select()
-    .single();
-
-  if (error) {
-    logger.error('Failed to update user profile', error, {
-      service: 'users',
-      userId: user.id,
-      updateFields: Object.keys(updateData),
-    });
-    throw error;
-  }
-
-  logger.info('User profile updated successfully', {
-    service: 'users',
-    userId: user.id,
-    updatedFields: Object.keys(updateData),
-  });
-
-  return NextResponse.json({
-    success: true,
-    profile: updatedProfile,
-  });
-});
+);

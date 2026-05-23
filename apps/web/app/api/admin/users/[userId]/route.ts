@@ -10,16 +10,51 @@ export const GET = withApiHandler(
   async (request: NextRequest, { params }) => {
     const { userId } = params;
 
-    // Fetch user data with explicit columns
+    // Fetch user data with explicit columns.
+    // 2026-05-23 audit: `insurance_provider` and `insurance_policy_number`
+    // do not exist on live `profiles` (those details live on
+    // `contractor_insurance`). Dropping them from the SELECT;
+    // sourcing provider + policy_number from contractor_insurance
+    // below so verificationData still surfaces them.
     const { data: userData, error: userError } = await serverSupabase
       .from('profiles')
-      .select('id, email, first_name, last_name, role, phone, profile_image_url, company_name, license_number, business_address, latitude, longitude, insurance_provider, insurance_policy_number, insurance_expiry_date, years_experience, admin_verified, created_at, updated_at')
+      .select(
+        'id, email, first_name, last_name, role, phone, profile_image_url, company_name, license_number, business_address, latitude, longitude, insurance_expiry_date, years_experience, admin_verified, created_at, updated_at'
+      )
       .eq('id', userId)
       .single();
 
     if (userError || !userData) {
-      logger.error('Error fetching user details', { userId, error: userError?.message });
+      logger.error('Error fetching user details', {
+        userId,
+        error: userError?.message,
+      });
       throw new NotFoundError('User not found');
+    }
+
+    // 2026-05-23 audit: source insurance provider + policy number
+    // from the canonical `contractor_insurance` table (the prior
+    // implementation read these from non-existent profile columns).
+    // Picks the most recently-updated active row; null when the
+    // contractor hasn't registered an insurance record yet.
+    let insuranceFromTable: {
+      provider: string | null;
+      policy_number: string | null;
+    } = { provider: null, policy_number: null };
+    if (userData.role === 'contractor') {
+      const { data: insuranceRow } = await serverSupabase
+        .from('contractor_insurance')
+        .select('provider, policy_number, status')
+        .eq('contractor_id', userId)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (insuranceRow) {
+        insuranceFromTable = {
+          provider: insuranceRow.provider ?? null,
+          policy_number: insuranceRow.policy_number ?? null,
+        };
+      }
     }
 
     // If contractor, fetch verification details and run automated checks
@@ -28,31 +63,55 @@ export const GET = withApiHandler(
       try {
         // Add timeout protection for verification checks
         const verificationPromise = Promise.all([
-          VerificationService.automatedVerificationCheck(userId).catch(err => {
-            logger.error('Error in automated verification check', { userId, error: err });
-            // Return default verification data if check fails
-            return {
-              passed: false,
-              checks: [],
-              requiresManualReview: true,
-              verificationScore: 0,
-            };
-          }),
-          VerificationService.getVerificationHistory(userId).catch(err => {
-            logger.error('Error fetching verification history', { userId, error: err });
+          VerificationService.automatedVerificationCheck(userId).catch(
+            (err) => {
+              logger.error('Error in automated verification check', {
+                userId,
+                error: err,
+              });
+              // Return default verification data if check fails
+              return {
+                passed: false,
+                checks: [],
+                requiresManualReview: true,
+                verificationScore: 0,
+              };
+            }
+          ),
+          VerificationService.getVerificationHistory(userId).catch((err) => {
+            logger.error('Error fetching verification history', {
+              userId,
+              error: err,
+            });
             return [];
           }),
         ]);
 
         // Set a 10 second timeout for verification checks
         const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Verification check timeout')), 10000)
+          setTimeout(
+            () => reject(new Error('Verification check timeout')),
+            10000
+          )
         );
 
-        const [automatedCheck, verificationHistory] = await Promise.race([
+        const [automatedCheck, verificationHistory] = (await Promise.race([
           verificationPromise,
           timeoutPromise,
-        ]) as [{ passed: boolean; checks: unknown[]; requiresManualReview: boolean; verificationScore: number }, { id: string; action: string; reason: string | null; created_at: string }[]];
+        ])) as [
+          {
+            passed: boolean;
+            checks: unknown[];
+            requiresManualReview: boolean;
+            verificationScore: number;
+          },
+          {
+            id: string;
+            action: string;
+            reason: string | null;
+            created_at: string;
+          }[],
+        ];
 
         verificationData = {
           ...automatedCheck,
@@ -62,14 +121,17 @@ export const GET = withApiHandler(
           businessAddress: userData.business_address,
           latitude: userData.latitude,
           longitude: userData.longitude,
-          insuranceProvider: userData.insurance_provider,
-          insurancePolicyNumber: userData.insurance_policy_number,
+          insuranceProvider: insuranceFromTable.provider,
+          insurancePolicyNumber: insuranceFromTable.policy_number,
           insuranceExpiryDate: userData.insurance_expiry_date,
           yearsExperience: userData.years_experience,
           adminVerified: userData.admin_verified,
         };
       } catch (verificationError) {
-        logger.error('Error fetching verification data', { userId, error: verificationError });
+        logger.error('Error fetching verification data', {
+          userId,
+          error: verificationError,
+        });
         // Return basic verification data even if checks fail
         verificationData = {
           passed: false,
@@ -82,8 +144,8 @@ export const GET = withApiHandler(
           businessAddress: userData.business_address,
           latitude: userData.latitude,
           longitude: userData.longitude,
-          insuranceProvider: userData.insurance_provider,
-          insurancePolicyNumber: userData.insurance_policy_number,
+          insuranceProvider: insuranceFromTable.provider,
+          insurancePolicyNumber: insuranceFromTable.policy_number,
           insuranceExpiryDate: userData.insurance_expiry_date,
           yearsExperience: userData.years_experience,
           adminVerified: userData.admin_verified,
