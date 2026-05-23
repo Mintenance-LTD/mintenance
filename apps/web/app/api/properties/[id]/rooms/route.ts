@@ -74,7 +74,20 @@ export const GET = withApiHandler(
       throw new NotFoundError('Property not found');
     }
 
-    const userDb = createRequestScopedClient(request) ?? serverSupabase;
+    // 2026-05-23 audit-20 P2: previously this route ran the
+    // PropertyTeamService.authorize() gate and THEN read through
+    // `createRequestScopedClient` (RLS-bound to the caller). Live
+    // property_rooms RLS only grants SELECT to owner OR
+    // contractor-of-active-job — team members (manager / viewer) pass
+    // the in-code authorize check then get `data: []` back. Same
+    // pattern audit-14 #78 and audit-15 #84 adopted for property
+    // access reads + properties detail GET: PropertyTeamService is
+    // the authoritative gate, so service-role read is consistent.
+    // Contractor RLS still covers the "contractor opens a job's
+    // property" path via the dedicated contractor_read policy when
+    // the request goes through the request-scoped client; we keep
+    // userDb for that branch.
+    void createRequestScopedClient;
 
     // Owner / team-view check first — contractor RLS handles its own path
     // and will surface rooms via the RLS contractor_read policy.
@@ -92,7 +105,14 @@ export const GET = withApiHandler(
       throw new NotFoundError('Property not found');
     }
 
-    const { data, error } = await userDb
+    // Owner / admin / team-view all use service-role; contractor falls
+    // back to RLS so the contractor_read policy gates by job status.
+    const roomsClient =
+      isContractor && !authorized
+        ? (createRequestScopedClient(request) ?? serverSupabase)
+        : serverSupabase;
+
+    const { data, error } = await roomsClient
       .from('property_rooms')
       .select('id, name, room_type, size_sqm, notes, created_at, updated_at')
       .eq('property_id', params.id)
@@ -139,9 +159,11 @@ export const POST = withApiHandler(
 
     const { name, room_type, size_sqm, notes } = validation.data;
 
-    const userDb = createRequestScopedClient(request) ?? serverSupabase;
-
-    const { data, error } = await userDb
+    // 2026-05-23 audit-20 P2: same RLS-detour rationale as the GET
+    // branch — managers (team_edit) need to insert rooms but the
+    // property_rooms RLS write policy only grants the owner.
+    // PropertyTeamService.authorize('edit') above is the boundary.
+    const { data, error } = await serverSupabase
       .from('property_rooms')
       .insert({
         property_id: params.id,

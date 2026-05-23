@@ -3,9 +3,15 @@
  *
  * Mobile parity for the web /properties/[id] rooms section.
  * Lists rooms for a property, lets the owner add/edit/delete via a
- * modal, and persists straight through the supabase client — RLS on
- * `property_rooms` enforces ownership (see
- * supabase/migrations/20260520020000_property_rooms.sql).
+ * modal.
+ *
+ * 2026-05-23 audit-20 P2: persistence used to go straight through
+ * supabase, but live property_rooms RLS only grants owner +
+ * contractor-of-active-job. Invited team_view / team_edit members
+ * (managers + viewers) saw an empty list and couldn't add rooms even
+ * though the web API supports them via PropertyTeamService.authorize.
+ * Switched to the canonical /api/properties/[id]/rooms endpoints so
+ * mobile honours the same access contract.
  *
  * Real-data-only: empty list shows an empty state; size_sqm shows
  * "—" when not provided rather than fabricating a value.
@@ -22,7 +28,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { me } from '../../../design-system/mint-editorial';
-import { supabase } from '../../../config/supabase';
+import { mobileApiClient } from '../../../utils/mobileApiClient';
 import { logger } from '../../../utils/logger';
 import { RoomFormModal, type RoomFormValues } from './RoomFormModal';
 
@@ -88,15 +94,14 @@ export const PropertyRoomsSection: React.FC<PropertyRoomsSectionProps> = ({
     try {
       setLoading(true);
       setError(null);
-      const { data, error: fetchError } = await supabase
-        .from('property_rooms')
-        .select(
-          'id, property_id, name, room_type, size_sqm, notes, created_at, updated_at'
-        )
-        .eq('property_id', propertyId)
-        .order('created_at', { ascending: true });
-      if (fetchError) throw new Error(fetchError.message);
-      setRooms((data ?? []) as PropertyRoom[]);
+      // /api/properties/[id]/rooms returns { rooms: PropertyRoom[] }.
+      // Team-view members + admins are honoured here in addition to
+      // owners; direct supabase read previously left team members
+      // empty-handed because RLS doesn't include them.
+      const res = await mobileApiClient.get<{ rooms: PropertyRoom[] }>(
+        `/api/properties/${propertyId}/rooms`
+      );
+      setRooms(res?.rooms ?? []);
     } catch (e) {
       logger.error('PropertyRoomsSection: load failed', e);
       setError(e instanceof Error ? e.message : 'Failed to load rooms');
@@ -123,17 +128,15 @@ export const PropertyRoomsSection: React.FC<PropertyRoomsSectionProps> = ({
         notes: values.notes.trim() ? values.notes.trim() : null,
       };
       if (editingRoom) {
-        const { error: updateError } = await supabase
-          .from('property_rooms')
-          .update(payload)
-          .eq('id', editingRoom.id)
-          .eq('property_id', propertyId);
-        if (updateError) throw new Error(updateError.message);
+        await mobileApiClient.patch(
+          `/api/properties/${propertyId}/rooms/${editingRoom.id}`,
+          payload
+        );
       } else {
-        const { error: insertError } = await supabase
-          .from('property_rooms')
-          .insert({ ...payload, property_id: propertyId });
-        if (insertError) throw new Error(insertError.message);
+        await mobileApiClient.post(
+          `/api/properties/${propertyId}/rooms`,
+          payload
+        );
       }
       setModalVisible(false);
       setEditingRoom(null);
@@ -160,12 +163,9 @@ export const PropertyRoomsSection: React.FC<PropertyRoomsSectionProps> = ({
           style: 'destructive',
           onPress: async () => {
             try {
-              const { error: deleteError } = await supabase
-                .from('property_rooms')
-                .delete()
-                .eq('id', room.id)
-                .eq('property_id', propertyId);
-              if (deleteError) throw new Error(deleteError.message);
+              await mobileApiClient.delete(
+                `/api/properties/${propertyId}/rooms/${room.id}`
+              );
               await fetchRooms();
             } catch (e) {
               logger.error('PropertyRoomsSection: delete failed', e);
@@ -239,11 +239,7 @@ export const PropertyRoomsSection: React.FC<PropertyRoomsSectionProps> = ({
                   {room.name}
                 </Text>
                 <View style={styles.rowMeta}>
-                  <Ionicons
-                    name='resize-outline'
-                    size={12}
-                    color={me.ink3}
-                  />
+                  <Ionicons name='resize-outline' size={12} color={me.ink3} />
                   <Text style={styles.rowMetaText}>
                     {room.size_sqm != null
                       ? `${Number(room.size_sqm).toFixed(1)} m²`
@@ -266,22 +262,14 @@ export const PropertyRoomsSection: React.FC<PropertyRoomsSectionProps> = ({
                     accessibilityLabel={`Edit ${room.name}`}
                     style={styles.iconBtn}
                   >
-                    <Ionicons
-                      name='create-outline'
-                      size={18}
-                      color={me.ink3}
-                    />
+                    <Ionicons name='create-outline' size={18} color={me.ink3} />
                   </TouchableOpacity>
                   <TouchableOpacity
                     onPress={() => handleDelete(room)}
                     accessibilityLabel={`Delete ${room.name}`}
                     style={styles.iconBtn}
                   >
-                    <Ionicons
-                      name='trash-outline'
-                      size={18}
-                      color={me.errFg}
-                    />
+                    <Ionicons name='trash-outline' size={18} color={me.errFg} />
                   </TouchableOpacity>
                 </View>
               ) : null}

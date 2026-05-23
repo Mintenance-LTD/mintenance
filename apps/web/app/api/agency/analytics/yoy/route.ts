@@ -128,8 +128,12 @@ async function buildYearMetrics(
       .lt('created_at', end),
 
     // 5. Recurring schedules active at end of year.
+    // 2026-05-23 audit-20 P1: switched from `recurring_maintenance_schedules`
+    // to the canonical `recurring_schedules` table now that the property
+    // recurring-maintenance route writes there. Keeps the analytics in
+    // sync with the live cron source (RecurringJobCreatorService).
     serverSupabase
-      .from('recurring_maintenance_schedules')
+      .from('recurring_schedules')
       .select('id', { count: 'exact', head: true })
       .in('property_id', propertyIds)
       .eq('is_active', true)

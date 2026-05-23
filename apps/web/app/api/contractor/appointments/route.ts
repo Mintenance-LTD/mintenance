@@ -135,6 +135,47 @@ export const POST = withApiHandler(
       notes,
     } = validation.data;
 
+    // 2026-05-23 audit-20 P1: validate jobId belongs to this contractor
+    // before linking the appointment. Previously the route accepted any
+    // jobId and notified that job's homeowner, so a malicious contractor
+    // could attach a calendar entry to someone else's job and spam the
+    // unrelated homeowner with appointment notifications. Resolve the
+    // homeowner_id here too so we can set the FK `client_id` — the
+    // homeowner's appointments list (GET /api/appointments) filters on
+    // client_id and was previously missing every contractor-created
+    // appointment because that column was never populated.
+    let resolvedClientId: string | null = null;
+    let resolvedHomeownerId: string | null = null;
+    let resolvedJobTitle: string | null = null;
+    if (jobId) {
+      const { data: job, error: jobLookupErr } = await serverSupabase
+        .from('jobs')
+        .select('id, homeowner_id, contractor_id, title')
+        .eq('id', jobId)
+        .maybeSingle();
+      if (jobLookupErr || !job) {
+        return NextResponse.json({ error: 'Job not found' }, { status: 404 });
+      }
+      if (job.contractor_id !== user.id && user.role !== 'admin') {
+        logger.warn('Contractor appointment attached to foreign job', {
+          service: 'appointments',
+          userId: user.id,
+          jobId,
+          jobContractorId: job.contractor_id,
+        });
+        return NextResponse.json(
+          {
+            error:
+              'You can only schedule appointments for jobs assigned to you',
+          },
+          { status: 403 }
+        );
+      }
+      resolvedClientId = (job.homeowner_id as string | null) ?? null;
+      resolvedHomeownerId = resolvedClientId;
+      resolvedJobTitle = (job.title as string | null) ?? null;
+    }
+
     // Check for conflicts
     const { data: conflictCheck } = await serverSupabase.rpc(
       'check_appointment_conflict',
@@ -156,6 +197,7 @@ export const POST = withApiHandler(
       .insert({
         contractor_id: user.id,
         title,
+        client_id: resolvedClientId,
         client_name: clientName,
         client_email: clientEmail,
         client_phone: clientPhone,
@@ -179,18 +221,12 @@ export const POST = withApiHandler(
       throw error;
     }
 
-    // Notify homeowner if this appointment is linked to a job
+    // Notify homeowner if this appointment is linked to a job. Both
+    // homeownerId and jobTitle were resolved during the ownership check
+    // above — no need to re-query jobs.
     try {
-      let homeownerId: string | null = null;
-
-      if (jobId) {
-        const { data: job } = await serverSupabase
-          .from('jobs')
-          .select('homeowner_id, title')
-          .eq('id', jobId)
-          .single();
-        homeownerId = job?.homeowner_id || null;
-      }
+      const homeownerId = resolvedHomeownerId;
+      void resolvedJobTitle;
 
       // Get contractor name for the notification
       const { data: contractor } = await serverSupabase
