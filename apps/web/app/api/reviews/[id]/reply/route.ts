@@ -48,17 +48,24 @@ export const POST = withApiHandler(
       );
     }
 
+    // 2026-05-23 audit-16 P1: live reviews schema (verified via
+    // information_schema 2026-05-23) uses `reviewee_id`, not
+    // `contractor_id`. The previous select threw a PGRST column-missing
+    // error and the route 403'd every legitimate reply. Switched to
+    // `reviewee_id` — the column the rest of the reviews surface
+    // (RLS policy reviews_public_read_published_replies + the job-
+    // review POST) already uses.
     const { data: review, error: fetchErr } = await serverSupabase
       .from('reviews')
       .select(
-        'id, contractor_id, response, response_at, response_blocked_by_admin'
+        'id, reviewee_id, response, response_at, response_blocked_by_admin'
       )
       .eq('id', reviewId)
       .maybeSingle();
     if (fetchErr) throw fetchErr;
     if (!review) throw new NotFoundError('Review not found');
 
-    if (review.contractor_id !== user.id) {
+    if (review.reviewee_id !== user.id) {
       throw new ForbiddenError('Only the reviewed contractor can reply');
     }
     if (review.response_blocked_by_admin) {
