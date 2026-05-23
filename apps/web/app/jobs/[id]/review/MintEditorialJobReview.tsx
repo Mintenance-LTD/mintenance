@@ -48,7 +48,11 @@ interface JobData {
   title: string;
   status: string;
   completed_at: string | null;
-  budget: number;
+  // 2026-05-23: nullable for open-bidding jobs (homeowner no longer
+  // sets a budget). Downstream `Number(job.budget) || 0` already
+  // tolerates null; long-term the quoted-amount should source from
+  // escrow_transactions.amount.
+  budget: number | null;
   contractor_id: string | null;
   contractor?: ContractorShape;
   /** Set when the homeowner has already clicked Approve from the

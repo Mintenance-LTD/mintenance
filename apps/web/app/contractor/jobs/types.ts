@@ -10,7 +10,13 @@ export interface Job {
   location: string;
   category: string;
   priority: string;
+  /** Legacy field (may be 0 for jobs posted under the open-bidding
+   * model from 2026-05-22+). Prefer `total_amount` for "what is this
+   * job worth?". */
   budget: number;
+  /** Best-known committed amount — released escrow → accepted bid →
+   * budget → null. Null when nothing is committed yet. */
+  total_amount?: number | null;
   status: string;
   photos: string[];
   created_at: string;
@@ -31,6 +37,7 @@ export interface JobApiResponse {
   category?: string;
   priority?: string;
   budget: number;
+  total_amount?: number | null;
   status: string;
   photos?: string[];
   created_at: string;

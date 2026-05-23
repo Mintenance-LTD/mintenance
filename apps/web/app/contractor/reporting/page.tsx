@@ -122,11 +122,19 @@ export default async function ContractorReportingPage2025() {
     })
   );
 
-  // Get unique client count and top clients
+  // Get unique client count and top clients.
+  // 2026-05-23: per-client revenue used to sum `jobs.budget`, which
+  // is NULL for every job posted under the open-bidding model. That
+  // made every client's revenue read as £0 on the chart. Switched to
+  // joining the released escrow records and summing the actual paid
+  // amount the contractor received. Matches the same source-of-truth
+  // used by the monthly chart above (which reads from `payments`).
   const clientJobsResult = await serverSupabase
     .from('jobs')
     .select(
-      'homeowner_id, budget, status, homeowner:profiles!homeowner_id(first_name, last_name)'
+      `id, homeowner_id, status,
+       homeowner:profiles!homeowner_id(first_name, last_name),
+       escrow_transactions(amount, status)`
     )
     .eq('contractor_id', user.id)
     .eq('status', 'completed');
@@ -135,7 +143,7 @@ export default async function ContractorReportingPage2025() {
     (clientJobsResult.data || []).map((j) => j.homeowner_id)
   ).size;
 
-  // Calculate top clients by revenue
+  // Calculate top clients by revenue using released escrow amounts.
   const clientRevenueMap = new Map<
     string,
     { name: string; revenue: number; jobs: number }
@@ -144,20 +152,35 @@ export default async function ContractorReportingPage2025() {
     const homeowner = Array.isArray(job.homeowner)
       ? job.homeowner[0]
       : job.homeowner;
-    if (job.homeowner_id && homeowner) {
-      const clientName =
-        `${homeowner.first_name || ''} ${homeowner.last_name || ''}`.trim();
-      const existing = clientRevenueMap.get(job.homeowner_id) || {
-        name: clientName,
-        revenue: 0,
-        jobs: 0,
-      };
-      clientRevenueMap.set(job.homeowner_id, {
-        name: clientName,
-        revenue: existing.revenue + (job.budget || 0),
-        jobs: existing.jobs + 1,
-      });
-    }
+    if (!job.homeowner_id || !homeowner) return;
+
+    // Sum across any escrow rows the job has — protects against
+    // split disbursements (rare; one job, two partial releases).
+    const escrowRows = Array.isArray(job.escrow_transactions)
+      ? job.escrow_transactions
+      : job.escrow_transactions
+        ? [job.escrow_transactions]
+        : [];
+    const realised = escrowRows.reduce<number>((acc, tx) => {
+      const t = tx as { amount?: number | string | null; status?: string };
+      if (t?.status === 'released' || t?.status === 'completed') {
+        return acc + Number(t.amount ?? 0);
+      }
+      return acc;
+    }, 0);
+
+    const clientName =
+      `${homeowner.first_name || ''} ${homeowner.last_name || ''}`.trim();
+    const existing = clientRevenueMap.get(job.homeowner_id) || {
+      name: clientName,
+      revenue: 0,
+      jobs: 0,
+    };
+    clientRevenueMap.set(job.homeowner_id, {
+      name: clientName,
+      revenue: existing.revenue + realised,
+      jobs: existing.jobs + 1,
+    });
   });
 
   const topClients = Array.from(clientRevenueMap.values())

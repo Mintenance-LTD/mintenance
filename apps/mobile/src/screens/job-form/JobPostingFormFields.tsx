@@ -18,6 +18,7 @@ import { BuildingAssessmentCard } from '../../components/ai/BuildingAssessmentCa
 import type { PricingAnalysis } from '../../services/AIPricingEngine';
 import type { BuildingAssessment } from '@mintenance/ai-core';
 import { me } from '../../design-system/mint-editorial';
+import { SILVER_SCALE } from '../../theme/silverModeState';
 
 interface JobCategory {
   label: string;
@@ -35,6 +36,15 @@ interface JobPostingFormFieldsProps {
   aiPricingAnalysis: PricingAnalysis | null;
   validationErrors: Record<string, string>;
   jobCategories: JobCategory[];
+  /**
+   * 2026-05-23: silver-mode users were previously kicked out to a
+   * separate PostJobWizardScreen. That screen has been retired in
+   * favour of in-place scaling. When `silverMode` is true, labels,
+   * inputs, and the urgency / photo CTAs scale up by SILVER_SCALE
+   * (1.35×) and touch targets are raised to ≥56pt to meet the
+   * 65+ accessibility target (R3 #5a of RETENTION_ROADMAP_2026).
+   */
+  silverMode?: boolean;
   onFieldChange: (name: string, value: string) => void;
   onCategoryChange: (value: string) => void;
   onUrgencyChange: (level: 'low' | 'medium' | 'high') => void;
@@ -58,6 +68,7 @@ export const JobPostingFormFields: React.FC<JobPostingFormFieldsProps> = ({
   aiPricingAnalysis,
   validationErrors,
   jobCategories,
+  silverMode = false,
   onFieldChange,
   onCategoryChange,
   onUrgencyChange,
@@ -66,175 +77,198 @@ export const JobPostingFormFields: React.FC<JobPostingFormFieldsProps> = ({
   onRemovePhoto,
   onAssessmentComplete,
   onAssessmentCorrection,
-}) => (
-  <View style={styles.form}>
-    <Input
-      testID='job-title-input'
-      label='Job Title'
-      placeholder='e.g., Kitchen Sink Repair'
-      value={title}
-      onChangeText={(value) => onFieldChange('title', value)}
-      maxLength={100}
-      state={validationErrors.title ? 'error' : 'default'}
-      errorText={validationErrors.title}
-      leftIcon='hammer-outline'
-      variant='outline'
-      size='lg'
-      fullWidth
-      required
-    />
+}) => {
+  // 2026-05-23: in-place silver scaling. Multiplier matches
+  // theme/silverModeState.ts (1.35×). Touch targets bumped to ≥56pt
+  // when silverMode is on so the urgency chips + add-photo CTA meet
+  // the 65+ tap-target heuristic — same dimensions the retired
+  // PostJobWizardScreen used.
+  const scale = silverMode ? SILVER_SCALE : 1;
+  const labelStyle = silverMode
+    ? [styles.label, { fontSize: Math.round(14 * scale) }]
+    : styles.label;
+  const inputStyle = silverMode
+    ? [styles.input, { height: 56, fontSize: Math.round(15 * scale) }]
+    : styles.input;
+  const textAreaStyle = silverMode
+    ? [styles.input, styles.textArea, { fontSize: Math.round(15 * scale) }]
+    : [styles.input, styles.textArea];
+  const urgencyBtnHeight = silverMode ? 56 : 40;
+  return (
+    <View style={styles.form}>
+      <Input
+        testID='job-title-input'
+        label='Job Title'
+        placeholder='e.g., Kitchen Sink Repair'
+        value={title}
+        onChangeText={(value) => onFieldChange('title', value)}
+        maxLength={100}
+        state={validationErrors.title ? 'error' : 'default'}
+        errorText={validationErrors.title}
+        leftIcon='hammer-outline'
+        variant='outline'
+        size='lg'
+        fullWidth
+        required
+      />
 
-    <Text style={styles.label}>Category *</Text>
-    <View style={styles.pickerContainer}>
-      <Picker
-        testID='job-category-select'
-        selectedValue={category}
-        onValueChange={onCategoryChange}
-        style={styles.picker}
-      >
-        {jobCategories.map((cat) => (
-          <Picker.Item key={cat.value} label={cat.label} value={cat.value} />
-        ))}
-      </Picker>
-    </View>
-
-    {/* Hidden test-accessible category options */}
-    {jobCategories.map((cat) => (
-      <TouchableOpacity
-        key={`test-${cat.value}`}
-        style={{ opacity: 0, position: 'absolute', left: -9999 }}
-        onPress={() => onCategoryChange(cat.value)}
-      >
-        <Text testID={`category-option-${cat.value}`}>{cat.label}</Text>
-      </TouchableOpacity>
-    ))}
-
-    <Text style={styles.label}>Description *</Text>
-    <TextInput
-      testID='job-description-input'
-      style={[
-        styles.input,
-        styles.textArea,
-        validationErrors.description && styles.inputError,
-      ]}
-      placeholder='Describe the job in detail...'
-      value={description}
-      onChangeText={(value) => onFieldChange('description', value)}
-      multiline
-      numberOfLines={4}
-      textAlignVertical='top'
-      maxLength={500}
-      placeholderTextColor={me.ink3}
-    />
-    <Text style={styles.characterCount}>
-      {description.length}/500 characters
-    </Text>
-    {validationErrors.description && (
-      <Text style={styles.errorText}>{validationErrors.description}</Text>
-    )}
-
-    <Text style={styles.label}>Location *</Text>
-    <TextInput
-      testID='job-location-input'
-      style={[styles.input, validationErrors.location && styles.inputError]}
-      placeholder='e.g., Central London, Manchester City Centre'
-      value={location}
-      onChangeText={(value) => onFieldChange('location', value)}
-      maxLength={100}
-      placeholderTextColor={me.ink3}
-    />
-    {validationErrors.location && (
-      <Text style={styles.errorText}>{validationErrors.location}</Text>
-    )}
-
-    <Text style={styles.label}>Urgency</Text>
-    <View testID='job-priority-select' style={styles.urgencyContainer}>
-      {(['low', 'medium', 'high'] as const).map((level) => (
-        <TouchableOpacity
-          key={level}
-          style={[
-            styles.urgencyButton,
-            urgency === level && styles.urgencyButtonActive,
-          ]}
-          onPress={() => onUrgencyChange(level)}
+      <Text style={labelStyle}>Category *</Text>
+      <View style={styles.pickerContainer}>
+        <Picker
+          testID='job-category-select'
+          selectedValue={category}
+          onValueChange={onCategoryChange}
+          style={styles.picker}
         >
-          <Text
-            style={[
-              styles.urgencyButtonText,
-              urgency === level && styles.urgencyButtonTextActive,
-            ]}
-          >
-            {level.charAt(0).toUpperCase() + level.slice(1)}
-          </Text>
+          {jobCategories.map((cat) => (
+            <Picker.Item key={cat.value} label={cat.label} value={cat.value} />
+          ))}
+        </Picker>
+      </View>
+
+      {/* Hidden test-accessible category options */}
+      {jobCategories.map((cat) => (
+        <TouchableOpacity
+          key={`test-${cat.value}`}
+          style={{ opacity: 0, position: 'absolute', left: -9999 }}
+          onPress={() => onCategoryChange(cat.value)}
+        >
+          <Text testID={`category-option-${cat.value}`}>{cat.label}</Text>
         </TouchableOpacity>
       ))}
-    </View>
 
-    {title.trim() && description.trim() && location.trim() && (
-      <AIPricingWidget
-        jobInput={{
-          title: title.trim(),
-          description: description.trim(),
-          category,
-          location: location.trim(),
-          urgency,
-        }}
-        onPricingUpdate={onPricingUpdate}
-        autoAnalyze={true}
+      <Text style={labelStyle}>Description *</Text>
+      <TextInput
+        testID='job-description-input'
+        style={[
+          textAreaStyle,
+          validationErrors.description && styles.inputError,
+        ]}
+        placeholder='Describe the job in detail...'
+        value={description}
+        onChangeText={(value) => onFieldChange('description', value)}
+        multiline
+        numberOfLines={4}
+        textAlignVertical='top'
+        maxLength={500}
+        placeholderTextColor={me.ink3}
       />
-    )}
+      <Text style={styles.characterCount}>
+        {description.length}/500 characters
+      </Text>
+      {validationErrors.description && (
+        <Text style={styles.errorText}>{validationErrors.description}</Text>
+      )}
 
-    <Text style={styles.label}>Photos *</Text>
-    <TouchableOpacity
-      testID='add-photo-button'
-      style={styles.addPhotoButton}
-      onPress={onAddPhoto}
-    >
-      <Text style={styles.addPhotoButtonText}>+ Add Photos</Text>
-    </TouchableOpacity>
+      <Text style={labelStyle}>Location *</Text>
+      <TextInput
+        testID='job-location-input'
+        style={[inputStyle, validationErrors.location && styles.inputError]}
+        placeholder='e.g., Central London, Manchester City Centre'
+        value={location}
+        onChangeText={(value) => onFieldChange('location', value)}
+        maxLength={100}
+        placeholderTextColor={me.ink3}
+      />
+      {validationErrors.location && (
+        <Text style={styles.errorText}>{validationErrors.location}</Text>
+      )}
 
-    {photos.length > 0 && (
-      <View style={styles.photosContainer}>
-        {photos.map((photo, index) => (
-          <View key={photo} testID={`photo-${index}`} style={styles.photoItem}>
-            <View style={styles.photoPlaceholder}>
-              <Text style={styles.photoText}>Photo {index + 1}</Text>
-            </View>
-            <TouchableOpacity
-              testID={`delete-photo-${index}`}
-              style={styles.deletePhotoButton}
-              onPress={() => onRemovePhoto(index)}
+      <Text style={labelStyle}>Urgency</Text>
+      <View testID='job-priority-select' style={styles.urgencyContainer}>
+        {(['low', 'medium', 'high'] as const).map((level) => (
+          <TouchableOpacity
+            key={level}
+            style={[
+              styles.urgencyButton,
+              { minHeight: urgencyBtnHeight },
+              urgency === level && styles.urgencyButtonActive,
+            ]}
+            onPress={() => onUrgencyChange(level)}
+          >
+            <Text
+              style={[
+                styles.urgencyButtonText,
+                silverMode && { fontSize: Math.round(14 * scale) },
+                urgency === level && styles.urgencyButtonTextActive,
+              ]}
             >
-              <Text style={styles.deletePhotoText}>×</Text>
-            </TouchableOpacity>
-          </View>
+              {level.charAt(0).toUpperCase() + level.slice(1)}
+            </Text>
+          </TouchableOpacity>
         ))}
       </View>
-    )}
 
-    {photos.length > 0 && (
-      <BuildingAssessmentCard
-        images={photos}
-        jobDetails={{ title, description, category, location }}
-        onAssessmentComplete={onAssessmentComplete}
-        onCorrection={onAssessmentCorrection}
-      />
-    )}
+      {title.trim() && description.trim() && location.trim() && (
+        <AIPricingWidget
+          jobInput={{
+            title: title.trim(),
+            description: description.trim(),
+            category,
+            location: location.trim(),
+            urgency,
+          }}
+          onPricingUpdate={onPricingUpdate}
+          autoAnalyze={true}
+        />
+      )}
 
-    {aiPricingAnalysis && (
-      <View style={styles.budgetComparisonContainer}>
-        <Text style={styles.budgetComparisonText}>
-          AI estimate: £{aiPricingAnalysis.suggestedPrice.min} - £
-          {aiPricingAnalysis.suggestedPrice.max}
-        </Text>
-        <Text style={styles.hintText}>
-          For your reference only. Contractors will quote based on the job — you
-          choose the bid that suits you best.
-        </Text>
-      </View>
-    )}
-  </View>
-);
+      <Text style={styles.label}>Photos *</Text>
+      <TouchableOpacity
+        testID='add-photo-button'
+        style={styles.addPhotoButton}
+        onPress={onAddPhoto}
+      >
+        <Text style={styles.addPhotoButtonText}>+ Add Photos</Text>
+      </TouchableOpacity>
+
+      {photos.length > 0 && (
+        <View style={styles.photosContainer}>
+          {photos.map((photo, index) => (
+            <View
+              key={photo}
+              testID={`photo-${index}`}
+              style={styles.photoItem}
+            >
+              <View style={styles.photoPlaceholder}>
+                <Text style={styles.photoText}>Photo {index + 1}</Text>
+              </View>
+              <TouchableOpacity
+                testID={`delete-photo-${index}`}
+                style={styles.deletePhotoButton}
+                onPress={() => onRemovePhoto(index)}
+              >
+                <Text style={styles.deletePhotoText}>×</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {photos.length > 0 && (
+        <BuildingAssessmentCard
+          images={photos}
+          jobDetails={{ title, description, category, location }}
+          onAssessmentComplete={onAssessmentComplete}
+          onCorrection={onAssessmentCorrection}
+        />
+      )}
+
+      {aiPricingAnalysis && (
+        <View style={styles.budgetComparisonContainer}>
+          <Text style={styles.budgetComparisonText}>
+            AI estimate: £{aiPricingAnalysis.suggestedPrice.min} - £
+            {aiPricingAnalysis.suggestedPrice.max}
+          </Text>
+          <Text style={styles.hintText}>
+            For your reference only. Contractors will quote based on the job —
+            you choose the bid that suits you best.
+          </Text>
+        </View>
+      )}
+    </View>
+  );
+};
 
 const styles = StyleSheet.create({
   form: {

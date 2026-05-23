@@ -210,13 +210,18 @@ export async function learnFromBidOutcome(
       job.category || ''
     );
 
-    // Update market analytics
+    // Update market analytics.
+    // 2026-05-23: budget passed as null when the homeowner didn't set
+    // one — the analytics row's `budget` column is nullable so we
+    // store NULL instead of fabricating a 0 that would skew any
+    // budget-vs-accepted analysis later (most jobs would suddenly
+    // look like "accepted 100% over budget").
     if (wasAccepted) {
       await updateMarketAnalytics(
         job.category || '',
         job.location || '',
         bid.amount,
-        job.budget || 0
+        job.budget ?? null
       );
     }
 
@@ -352,13 +357,13 @@ async function updateMarketAnalytics(
   category: string,
   location: string,
   acceptedPrice: number,
-  budget: number
+  budget: number | null
 ): Promise<void> {
   try {
     await serverSupabase.from('pricing_analytics').insert({
       category,
       location,
-      budget,
+      budget: budget && budget > 0 ? budget : null,
       accepted_bid_amount: acceptedPrice,
       analyzed_at: new Date().toISOString(),
     });

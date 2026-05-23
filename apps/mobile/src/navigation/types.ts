@@ -86,10 +86,11 @@ export type JobsStackParamList = {
   JobsList: undefined;
   JobDetails: { jobId: string };
   JobPosting: undefined;
-  // R3 deferred #7 — Silver-mode-friendly assisted wizard (3 steps,
-  // larger touch targets, fewer fields). Auto-routed when
-  // useSilverMode().silverMode is true.
-  PostJobWizard: undefined;
+  // 2026-05-23: PostJobWizard route retired. Silver-mode users no
+  // longer need a separate screen — JobPostingScreen now plumbs
+  // `silverMode` down to JobPostingFormFields (1.35× scale +
+  // ≥56pt touch targets). The 3-step wizard had drifted from the
+  // canonical validation + submit pipeline and was deleted.
   ExploreMap: undefined;
   BidSubmission: { jobId: string; existingBidId?: string };
   JobPayment: {
@@ -147,6 +148,11 @@ export type ProfileStackParamList = {
   // was the only thing that needed the V2 disambiguator.
   // ContractorPayouts: removed — Payouts in BusinessNavigator handles this
   HelpCenter: undefined;
+  // R3 #20 of RETENTION_ROADMAP_2026.md — 60-second how-to catalogue.
+  // The screen had been built but was orphaned (no navigator entry)
+  // until 2026-05-23. Reachable from HelpCenter "Video Tutorials"
+  // and any deep link wanting the in-app library.
+  LearningCards: undefined;
   InvoiceManagement: undefined;
   // CreateInvoice can be opened blank, in edit mode (`invoiceId`), or
   // pre-filled from time-tracking (`initialLineItems`). The two pre-fill
