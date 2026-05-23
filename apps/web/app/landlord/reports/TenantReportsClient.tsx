@@ -346,13 +346,50 @@ export function TenantReportsClient({
                 {selectedReport.properties &&
                 selectedReport.status !== 'converted' &&
                 selectedReport.status !== 'dismissed' ? (
-                  <a
-                    href={`/jobs/create?property_id=${selectedReport.properties.id}&category=${selectedReport.category}&description=${encodeURIComponent(selectedReport.description)}`}
-                    className='flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white rounded-lg py-2 px-3 text-sm font-medium hover:bg-blue-700 transition-colors'
+                  // 2026-05-23 audit: previously a plain <a> link to
+                  // /jobs/create. The report stayed in 'new' bucket
+                  // forever even after the landlord created the job —
+                  // the "Job Created" filter never lit up and the same
+                  // report sat in the inbox indefinitely.
+                  //
+                  // Now we optimistically PATCH the report to
+                  // 'converted' on click, then push the user into the
+                  // create flow. The destination URL includes
+                  // ?report_id so the create page can later attach
+                  // job_id via the same PATCH endpoint (follow-up:
+                  // wire that callback inside /jobs/create's submit
+                  // handler so the report row links to the actual
+                  // created job, not just "acted on"). Optimistic
+                  // mark is the right tradeoff: a landlord who
+                  // abandons mid-flow can manually reopen the report;
+                  // the failure mode is "report still says converted"
+                  // rather than the previous "report still says new
+                  // forever."
+                  <button
+                    type='button'
+                    onClick={async () => {
+                      if (updating) return;
+                      const reportToConvert = selectedReport;
+                      const propertyId = reportToConvert.properties!.id;
+                      await updateStatus(
+                        reportToConvert,
+                        'converted',
+                        /* closeAfter */ false
+                      );
+                      const params = new URLSearchParams({
+                        property_id: propertyId,
+                        category: reportToConvert.category,
+                        description: reportToConvert.description,
+                        report_id: reportToConvert.id,
+                      });
+                      window.location.href = `/jobs/create?${params.toString()}`;
+                    }}
+                    disabled={updating}
+                    className='flex-1 flex items-center justify-center gap-2 bg-blue-600 text-white rounded-lg py-2 px-3 text-sm font-medium hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
                   >
                     <FileText className='w-4 h-4' />
                     Create Job
-                  </a>
+                  </button>
                 ) : null}
                 <button
                   type='button'

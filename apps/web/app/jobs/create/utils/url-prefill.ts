@@ -63,9 +63,21 @@ export function formDataPatchFromParams(
   const category = params?.get('category') ?? undefined;
   const location = params?.get('location') ?? undefined;
   const urgencyRaw = params?.get('urgency') ?? undefined;
+  // 2026-05-23 audit: property_id was being read on initial mount
+  // (initialFormDataFromParams above) but NOT on the soft-navigation
+  // patch path. A tenant-report "Create Job" tap pushes new params
+  // into an already-mounted /jobs/create screen — the patch would
+  // apply title/description/category but drop property_id, and the
+  // homeowner submitted a job unlinked from the source property.
+  const propertyId = params?.get('property_id') ?? undefined;
 
   const anySet =
-    !!title || !!description || !!category || !!location || !!urgencyRaw;
+    !!title ||
+    !!description ||
+    !!category ||
+    !!location ||
+    !!urgencyRaw ||
+    !!propertyId;
   if (!anySet) return null;
 
   const patch: Partial<JobFormData> = {};
@@ -76,5 +88,6 @@ export function formDataPatchFromParams(
   if (urgencyRaw && (ALLOWED_URGENCY as string[]).includes(urgencyRaw)) {
     patch.urgency = urgencyRaw as JobFormData['urgency'];
   }
+  if (propertyId) patch.property_id = propertyId;
   return patch;
 }
