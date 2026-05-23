@@ -373,13 +373,25 @@ export const POST = withApiHandler(
           });
         }
 
+        // 2026-05-23 audit: messages live schema requires job_id +
+        // receiver_id at the top level and has no thread_id / read_by
+        // columns (those were dropped in the messages-table redesign
+        // that landed in 20260417000616 and the read-flag tightening
+        // in 20260523000007). The previous insert with thread_id +
+        // read_by silently failed — the message_threads row was
+        // created and updated, but the actual welcome message never
+        // landed, so the contractor opened an empty chat after their
+        // bid was accepted. `message_threads` itself is still around
+        // as the conversation-metadata parent, so we keep wiring the
+        // thread + last_message_at update.
         const { error: messageError } = threadId
           ? await serverSupabase.from('messages').insert({
-              thread_id: threadId,
+              job_id: jobId,
               sender_id: user.id,
+              receiver_id: bid.contractor_id,
               content: welcomeMessage,
               message_type: 'text',
-              read_by: [user.id],
+              read: false,
             })
           : { error: { message: 'No thread ID' } };
 

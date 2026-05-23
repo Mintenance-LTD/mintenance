@@ -102,31 +102,47 @@ export const DataExportScreen: React.FC = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
+  // 2026-05-23 audit: the screen used to read from `data_export_requests`
+  // (doesn't exist on live) and POST `{}` to /api/gdpr/export-data
+  // (which validates gdprEmailSchema and rejects empty body). The
+  // canonical live table is `dsr_requests`, and the GDPR portability
+  // request type is filtered with request_type='portability'. The
+  // download URL lives in `data_export_path`. Fixed both ends so
+  // the screen actually lists prior requests + submits valid ones.
   const { data: exports, isLoading } = useQuery<ExportStatus[]>({
     queryKey: ['data-exports', user?.id],
     queryFn: async () => {
       if (!user) throw new Error('Not signed in');
       const { data, error } = await supabase
-        .from('data_export_requests')
-        .select(
-          'id, status, requested_at:created_at, completed_at, download_url'
-        )
+        .from('dsr_requests')
+        .select('id, status, requested_at, completed_at, data_export_path')
         .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+        .eq('request_type', 'portability')
+        .order('requested_at', { ascending: false });
       if (error) return [];
       return (data || []).map((d: Record<string, unknown>) => ({
         id: d.id as string,
-        status: d.status as ExportStatus['status'],
+        status: ((d.status as string) || 'pending') as ExportStatus['status'],
         requestedAt: d.requested_at as string,
         completedAt: d.completed_at as string | null,
-        downloadUrl: d.download_url as string | null,
+        downloadUrl: d.data_export_path as string | null,
       }));
     },
     enabled: !!user?.id,
   });
 
   const requestMutation = useMutation({
-    mutationFn: () => mobileApiClient.post('/api/gdpr/export-data', {}),
+    mutationFn: () => {
+      if (!user?.email) {
+        return Promise.reject(new Error('Missing account email'));
+      }
+      // Server validates that {email} matches the authenticated
+      // user's account email — guards against the case where a
+      // user proxies a request for someone else's data.
+      return mobileApiClient.post('/api/gdpr/export-data', {
+        email: user.email,
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['data-exports'] });
       Alert.alert(

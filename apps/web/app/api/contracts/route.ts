@@ -425,17 +425,23 @@ export const POST = withApiHandler(
         .update({ last_message_at: new Date().toISOString() })
         .eq('id', threadData.id);
 
+      // 2026-05-23 audit: messages live schema requires job_id +
+      // receiver_id at the top level and has no thread_id / read_by /
+      // metadata columns. The previous payload silently failed every
+      // contract creation's accompanying chat notification — the
+      // contract was committed but the homeowner never saw the
+      // "📋 New contract submitted" system message in their inbox.
+      // contract_id used to ride along in `metadata` for client-side
+      // lookup; it's now dropped (the chat client can find the
+      // contract via job_id + message timing — both are 1:1 with the
+      // contract here).
       const messagePayload = {
-        thread_id: threadData.id,
+        job_id,
         sender_id: user.id,
+        receiver_id: job.homeowner_id,
         content: contractMessageText,
         message_type: 'system',
-        read_by: [] as string[],
-        metadata: {
-          job_id,
-          contract_id: contract?.id,
-          receiver_id: job.homeowner_id,
-        },
+        read: false,
       };
 
       let messageInserted = false;

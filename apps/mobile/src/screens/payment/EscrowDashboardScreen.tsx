@@ -128,10 +128,13 @@ const EscrowDashboardScreen: React.FC<Props> = ({ navigation }) => {
   const fetchEscrowData = useCallback(async () => {
     if (!user?.id) return;
     try {
+      // 2026-05-23 audit: use explicit FK form for the job embed —
+      // matches PaymentHistoryScreen + the homeowner /financials API
+      // route. The payer embed was already explicit (profiles!payer_id).
       const { data, error } = await supabase
         .from('escrow_transactions')
         .select(
-          'id, amount, status, created_at, job:job_id(title), payer:profiles!payer_id(first_name, last_name)'
+          'id, amount, status, created_at, job:jobs!escrow_transactions_job_id_fkey(title), payer:profiles!payer_id(first_name, last_name)'
         )
         .or(`payer_id.eq.${user.id},payee_id.eq.${user.id}`)
         .order('created_at', { ascending: false });

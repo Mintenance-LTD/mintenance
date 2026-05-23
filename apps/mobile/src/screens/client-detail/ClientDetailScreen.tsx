@@ -59,7 +59,12 @@ interface PastJobRow {
   title: string | null;
   status: string;
   budget: number | null;
-  final_price: number | null;
+  // 2026-05-23 audit: `final_price` does not exist on live jobs (only
+  // budget / budget_min / budget_max). Selecting it errored the whole
+  // query and silently returned [] via the catch — past-work tile
+  // would disappear from every client profile. Field dropped; the
+  // "Past work together" list now reads `budget` only. A long-term
+  // fix would JOIN escrow_transactions for the realised amount.
   location: string | null;
   description: string | null;
   category: string | null;
@@ -109,7 +114,7 @@ export const ClientDetailScreen: React.FC<ClientDetailScreenProps> = ({
       const { data, error } = await supabase
         .from('jobs')
         .select(
-          'id, title, status, budget, final_price, location, description, category, created_at, completed_at'
+          'id, title, status, budget, location, description, category, created_at, completed_at'
         )
         .eq('contractor_id', user.id)
         .eq('homeowner_id', client.client_id)
@@ -137,17 +142,14 @@ export const ClientDetailScreen: React.FC<ClientDetailScreenProps> = ({
     return Math.round((completedJobs / eligible) * 100);
   }, [jobs, completedJobs]);
   const avgJob = useMemo(() => {
-    const priced = jobs.filter((j) => (j.final_price ?? j.budget ?? 0) > 0);
+    const priced = jobs.filter((j) => (j.budget ?? 0) > 0);
     if (priced.length === 0) {
       if (client.total_revenue && client.total_jobs > 0) {
         return Math.round(client.total_revenue / client.total_jobs);
       }
       return null;
     }
-    const sum = priced.reduce(
-      (s, j) => s + (j.final_price ?? j.budget ?? 0),
-      0
-    );
+    const sum = priced.reduce((s, j) => s + (j.budget ?? 0), 0);
     return Math.round(sum / priced.length);
   }, [jobs, client.total_revenue, client.total_jobs]);
 
@@ -368,7 +370,7 @@ export const ClientDetailScreen: React.FC<ClientDetailScreenProps> = ({
           </Text>
         ) : (
           jobs.slice(0, 6).map((job, idx) => {
-            const price = job.final_price ?? job.budget ?? null;
+            const price = job.budget ?? null;
             const when = job.completed_at ?? job.created_at;
             const monthYear = new Date(when).toLocaleDateString('en-GB', {
               month: 'short',

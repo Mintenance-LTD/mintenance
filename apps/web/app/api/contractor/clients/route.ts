@@ -4,6 +4,7 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { BadRequestError, InternalServerError } from '@/lib/errors/api-error';
 import { logger } from '@mintenance/shared';
+import { getRealisedAmount } from '@/lib/services/jobs/job-amount';
 
 // 2026-05-01 audit follow-up: closes the ClientRepository direct-
 // Supabase insert path. Mobile `AddClientScreen` previously instantiated
@@ -43,11 +44,19 @@ const createContractorClientSchema = z
 export const GET = withApiHandler(
   { roles: ['contractor'], rateLimit: { maxRequests: 30 } },
   async (_request, { user }) => {
-    // Get all jobs where contractor is assigned
+    // 2026-05-23 audit: `jobs.final_price` does not exist on live —
+    // only budget / budget_min / budget_max. Selecting it returned
+    // an error and the whole GET response was empty, so mobile
+    // CRMDashboardScreen showed "no clients" even when the contractor
+    // had completed work. Switched to joining escrow_transactions so
+    // total_revenue still reflects money that actually changed hands
+    // (matches the source-of-truth used by /api/contractors/[id]/
+    // metrics earnings).
     const { data: jobs } = await serverSupabase
       .from('jobs')
       .select(
-        'id, homeowner_id, status, title, created_at, completed_at, budget, final_price'
+        `id, homeowner_id, status, title, created_at, completed_at, budget,
+         escrow_transactions(amount, status)`
       )
       .eq('contractor_id', user.id)
       .order('created_at', { ascending: false });
@@ -74,7 +83,8 @@ export const GET = withApiHandler(
       const { data: extraJobs } = await serverSupabase
         .from('jobs')
         .select(
-          'id, homeowner_id, status, title, created_at, completed_at, budget, final_price'
+          `id, homeowner_id, status, title, created_at, completed_at, budget,
+           escrow_transactions(amount, status)`
         )
         .in('id', bidJobIds);
       for (const j of extraJobs || []) {
@@ -128,11 +138,35 @@ export const GET = withApiHandler(
         const done = cj.filter(
           (j) => j.status === 'completed' || j.status === 'in_progress'
         );
-        const rev = cj.reduce(
-          (s, j) =>
-            s + ((j.final_price as number) || (j.budget as number) || 0),
-          0
-        );
+        // 2026-05-23: revenue derived from released escrow per job
+        // (was `final_price || budget || 0`; final_price doesn't
+        // exist on live and budget is NULL under open-bidding, so
+        // every client read £0).
+        const rev = cj.reduce((s, j) => {
+          const escrowRows = Array.isArray(j.escrow_transactions)
+            ? (j.escrow_transactions as Array<{
+                amount?: number | string | null;
+                status?: string | null;
+              }>)
+            : j.escrow_transactions
+              ? [
+                  j.escrow_transactions as {
+                    amount?: number | string | null;
+                    status?: string | null;
+                  },
+                ]
+              : [];
+          const realised = escrowRows.reduce<number>((acc, t) => {
+            const r = getRealisedAmount({
+              escrow_amount: Number(t.amount ?? 0),
+              escrow_status: t.status ?? null,
+            });
+            return acc + (r ?? 0);
+          }, 0);
+          // Fall back to the (rarely-set) homeowner budget only when
+          // nothing has been released yet — better than £0 on the UI.
+          return s + (realised > 0 ? realised : (j.budget as number) || 0);
+        }, 0);
         const sorted = [...cj].sort(
           (a, b) =>
             new Date(b.created_at as string).getTime() -
@@ -201,13 +235,22 @@ export const POST = withApiHandler(
     }
     const data = parsed.data;
 
+    // 2026-05-23 audit: live `contractor_clients` schema requires
+    // `relationship_status` (NOT NULL) — the row used to be inserted
+    // with `status: 'prospect'` which silently dropped to default
+    // (or errored, depending on policy). Also added `client_type`
+    // (NOT NULL on live; existing rows are all 'residential') and
+    // defaulted first/last name to empty strings since the columns
+    // are NOT NULL — matches the pattern already in the live data
+    // (some rows have empty-string names for orgs).
     const { data: client, error } = await serverSupabase
       .from('contractor_clients')
       .insert({
         contractor_id: user.id,
         type: data.type,
-        first_name: data.firstName ?? null,
-        last_name: data.lastName ?? null,
+        client_type: 'residential',
+        first_name: data.firstName ?? '',
+        last_name: data.lastName ?? '',
         email: data.email,
         phone: data.phone ?? null,
         company_name: data.companyName ?? null,
@@ -215,7 +258,7 @@ export const POST = withApiHandler(
         source: data.source,
         notes: data.notes ?? null,
         tags: data.tags ?? [],
-        status: 'prospect',
+        relationship_status: 'prospect',
         priority: 'medium',
       })
       .select()

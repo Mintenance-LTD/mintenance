@@ -382,16 +382,33 @@ export const POST = withApiHandler(
             reconciliationId,
           }
         );
+        // 2026-05-23 audit: the recovery record used to land in
+        // `escrow_reconciliation` which doesn't exist on live —
+        // every transfer-succeeded-but-DB-failed event was silently
+        // dropping the recovery trail. Re-targeted at the canonical
+        // `escrow_audit_log` (the existing audit table for this
+        // surface) with action='reconciliation_needed' so operators
+        // can grep for stuck reconciliations and the recovery info
+        // (transfer_id + reconciliation_id) is preserved in metadata.
         try {
-          await serverSupabase.from('escrow_reconciliation').insert({
+          await serverSupabase.from('escrow_audit_log').insert({
             escrow_transaction_id: escrowTransactionId,
+            action: 'reconciliation_needed',
+            actor_id: user.id,
+            actor_role: user.role,
+            job_id: job.id,
+            amount: contractorAmountCents / 100,
+            contractor_payout: contractorAmountCents / 100,
             transfer_id: transfer.id,
-            reconciliation_id: reconciliationId,
-            status: 'pending_review',
-            issue_type: 'transfer_succeeded_final_update_failed',
-            amount: contractorAmountCents,
-            contractor_id: job.contractor_id,
-            created_at: new Date().toISOString(),
+            release_reason: 'transfer_succeeded_final_update_failed',
+            is_admin_action: user.role === 'admin',
+            metadata: {
+              reconciliation_id: reconciliationId,
+              issue_type: 'transfer_succeeded_final_update_failed',
+              status: 'pending_review',
+              contractor_id: job.contractor_id,
+              update_error_message: updateError?.message,
+            },
           });
         } catch (reconciliationErr: unknown) {
           logger.error(

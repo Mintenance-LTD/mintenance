@@ -196,10 +196,19 @@ export const GET = withApiHandler(
           featured: boolean;
         }> = [];
         try {
+          // 2026-05-23 audit: `jobs.final_price` doesn't exist on
+          // live. Selecting it errored the SELECT and the catch below
+          // silently emptied the portfolio tile list — the public
+          // contractor profile would only show manual portfolio
+          // images, never the completed-jobs tiles. Source `cost`
+          // from realised escrow per job (matches the source-of-truth
+          // used by /api/contractors/[id]/metrics + the CRM client
+          // list).
           const { data: completedJobs } = await serverSupabase
             .from('jobs')
             .select(
-              'id, title, category, description, final_price, budget, completed_at'
+              `id, title, category, description, budget, completed_at,
+               escrow_transactions(amount, status)`
             )
             .eq('contractor_id', id)
             .eq('status', 'completed')
@@ -210,9 +219,15 @@ export const GET = withApiHandler(
             title?: string | null;
             category?: string | null;
             description?: string | null;
-            final_price?: number | null;
             budget?: number | null;
             completed_at?: string | null;
+            escrow_transactions?:
+              | Array<{
+                  amount?: number | string | null;
+                  status?: string | null;
+                }>
+              | { amount?: number | string | null; status?: string | null }
+              | null;
           }>;
           const completedJobIds = completedJobsArr.map((j) => j.id);
           if (completedJobIds.length > 0) {
@@ -247,6 +262,19 @@ export const GET = withApiHandler(
               const signedList = rawList
                 .map((u) => signedByRaw.get(u))
                 .filter((u): u is string => Boolean(u));
+              // Pick realised escrow as the authoritative cost
+              // figure, with budget as a legacy fallback. Undefined
+              // when neither — the UI hides the cost line.
+              const escrowRows = Array.isArray(job.escrow_transactions)
+                ? job.escrow_transactions
+                : job.escrow_transactions
+                  ? [job.escrow_transactions]
+                  : [];
+              const realised = escrowRows
+                .filter(
+                  (t) => t?.status === 'released' || t?.status === 'completed'
+                )
+                .reduce<number>((acc, t) => acc + Number(t.amount ?? 0), 0);
               portfolioJobs.push({
                 id: job.id,
                 title: job.title || 'Completed job',
@@ -254,7 +282,7 @@ export const GET = withApiHandler(
                 images: signedList,
                 description: job.description || '',
                 completionDate: job.completed_at || '',
-                cost: job.final_price ?? job.budget ?? undefined,
+                cost: realised > 0 ? realised : (job.budget ?? undefined),
                 featured: false,
               });
             }

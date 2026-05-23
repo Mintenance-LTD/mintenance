@@ -44,6 +44,8 @@
     "postinstall": "cd ../.. && npm run build:packages --if-present"
   },
   "dependencies": {
+    "@expo-google-fonts/geist": "^0.4.2",
+    "@expo-google-fonts/instrument-serif": "^0.4.1",
     "@expo/vector-icons": "^15.0.3",
     "@mintenance/ai-core": "file:../../packages/ai-core",
     "@mintenance/api-client": "file:../../packages/api-client",
