@@ -25,10 +25,15 @@ export const POST = withApiHandler(
   async (req, { params }) => {
     const tokenValue = params.token;
 
-    // Validate token exists and is active
+    // Validate token exists and is active.
+    // 2026-05-23 audit: also pull total_reports so we can do an honest
+    // increment below (the previous UPDATE only wrote last_report_at
+    // even though the comment promised a counter bump, leaving the
+    // reporting-links dashboard's "Total reports" tile permanently
+    // stuck at 0).
     const { data: tokenRecord, error: tokenError } = await serverSupabase
       .from('anonymous_report_tokens')
-      .select('id, property_id, is_active, owner_id')
+      .select('id, property_id, is_active, owner_id, total_reports')
       .eq('token', tokenValue)
       .single();
 
@@ -84,9 +89,18 @@ export const POST = withApiHandler(
     const safeCategory = VALID_CATEGORIES.includes(category)
       ? category
       : 'general';
-    const safeUrgency = ['low', 'medium', 'high', 'urgent'].includes(urgency)
+    // 2026-05-23 audit: live anonymous_reports.urgency CHECK is
+    // (low | medium | high | emergency). The previous allowlist
+    // accepted 'urgent' — which then passed through to the insert
+    // and silently 500'd. Both client + server are now aligned to
+    // 'emergency'; we still coerce a stray 'urgent' (older mobile
+    // clients) into 'emergency' rather than dropping the report.
+    const VALID_URGENCY = new Set(['low', 'medium', 'high', 'emergency']);
+    const safeUrgency = VALID_URGENCY.has(urgency)
       ? urgency
-      : 'medium';
+      : urgency === 'urgent'
+        ? 'emergency'
+        : 'medium';
 
     // Create the anonymous report
     const { data: report, error: insertError } = await serverSupabase
@@ -114,11 +128,24 @@ export const POST = withApiHandler(
       );
     }
 
-    // Increment total_reports counter on token (non-critical)
+    // 2026-05-23 audit: actually bump total_reports. Previously
+    // wrote only last_report_at — the reporting-links page reads
+    // total_reports and it was stuck at 0 forever. Read-modify-write
+    // (race-acceptable for a display counter; under concurrent
+    // tenant submissions one of the increments may be lost, but the
+    // landlord doesn't make hiring decisions off the absolute total).
+    // Atomic SQL increment would need an RPC; skipped for surface size.
+    const nextTotal =
+      typeof tokenRecord.total_reports === 'number'
+        ? tokenRecord.total_reports + 1
+        : 1;
     await Promise.resolve(
       serverSupabase
         .from('anonymous_report_tokens')
-        .update({ last_report_at: new Date().toISOString() })
+        .update({
+          last_report_at: new Date().toISOString(),
+          total_reports: nextTotal,
+        })
         .eq('id', tokenRecord.id)
     ).catch(() => {
       /* non-critical */
@@ -140,7 +167,13 @@ export const POST = withApiHandler(
         safeUrgency === 'emergency' || safeUrgency === 'high'
           ? `Urgent — tap to review and post a job.`
           : `Tap to review and post a job.`,
-      actionUrl: `/property-manager/reports/${report.id}`,
+      // 2026-05-23 audit: /property-manager/reports/... was a dead
+      // route — the real landlord-side path is /landlord/reports.
+      // Passing ?reportId so the client can scroll the row into
+      // view + open the detail modal (TenantReportsClient inspects
+      // searchParams). Owners tapping the notification now land
+      // on the right surface.
+      actionUrl: `/landlord/reports?reportId=${report.id}`,
       metadata: {
         report_id: report.id,
         category: safeCategory,

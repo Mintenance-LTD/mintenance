@@ -15,7 +15,9 @@ import { RouteProp } from '@react-navigation/native';
 import { LoadingSpinner, ErrorView } from '../../components/shared';
 import { useAuth } from '../../contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '../../config/supabase';
+// 2026-05-23 audit: direct `supabase` access removed — both the
+// property fetch (audit-11) and the property-jobs fetch (audit-13)
+// now route through the server API for the proper access contract.
 import { mobileApiClient } from '../../utils/mobileApiClient';
 import type { Property } from '@mintenance/types';
 import type { ProfileStackParamList } from '../../navigation/types';
@@ -35,6 +37,21 @@ import { PropertyAccessSection } from './components/PropertyAccessSection';
 // access-editing surface at all; the homeowner had to switch to web
 // to set the lock-box code / access notes / utility locations.
 type Tab = 'overview' | 'access' | 'maintenance' | 'manage';
+
+// 2026-05-23 audit: shape the API response into the narrower shape
+// PropertyHealthScore + SpendingAnalytics expect (both define their
+// own `Job` interface with `budget: number` required). The shared
+// `@mintenance/types` Job has `budget?: number` (optional), which
+// won't satisfy those downstream consumers — so we keep a local
+// shape here that matches the consumer contract exactly.
+interface PropertyJobRow {
+  id: string;
+  status: string;
+  budget: number;
+  created_at: string;
+  category?: string;
+  title?: string;
+}
 interface Props {
   navigation: NativeStackNavigationProp<
     ProfileStackParamList,
@@ -95,13 +112,59 @@ export const PropertyDetailScreen: React.FC<Props> = ({
   const { data: jobsData } = useQuery({
     queryKey: ['property-jobs', propertyId],
     queryFn: async () => {
-      const { data, error: queryError } = await supabase
-        .from('jobs')
-        .select('id, title, status, budget, created_at, category')
-        .eq('property_id', propertyId)
-        .order('created_at', { ascending: false });
-      if (queryError) return [];
-      return data ?? [];
+      // 2026-05-23 audit: previously direct-queried supabase. Live
+      // jobs RLS is broad (non-draft visibility) — any authenticated
+      // user guessing a property_id could pull its full job history,
+      // and team/tenant access wouldn't match the property surface.
+      // /api/properties/[id]/jobs is service-role backed and gates on
+      // the same owner/admin check the property route uses, so the
+      // job history honours the same access contract as the property
+      // detail itself.
+      try {
+        type ApiJobRow = {
+          id: string;
+          title: string;
+          status: string;
+          budget: number | string | null;
+          category: string | null;
+          created_at: string;
+          completed_at: string | null;
+        };
+        const res = await mobileApiClient.get<
+          { jobs?: ApiJobRow[] } | ApiJobRow[]
+        >(`/api/properties/${propertyId}/jobs`);
+        const rows = Array.isArray(res)
+          ? res
+          : ((res as { jobs?: ApiJobRow[] }).jobs ?? []);
+        // Coerce into the shared Job shape so downstream consumers
+        // (PropertyHealthScore, SpendingAnalytics) typecheck. budget
+        // is NUMERIC from Postgres — arrives as a string via
+        // supabase-js — coerce to number so sum/avg math works.
+        return rows.map<PropertyJobRow>((r) => {
+          const rawBudget = r.budget;
+          // budget is NUMERIC from Postgres — string at the
+          // supabase-js boundary. PropertyHealthScore /
+          // SpendingAnalytics want `budget: number` required, so
+          // default missing to 0 (downstream reducers already
+          // tolerate 0 — see SpendingAnalytics `j.budget || 0`).
+          const numericBudget =
+            typeof rawBudget === 'number'
+              ? rawBudget
+              : rawBudget != null && Number.isFinite(Number(rawBudget))
+                ? Number(rawBudget)
+                : 0;
+          return {
+            id: r.id,
+            title: r.title,
+            status: r.status,
+            budget: numericBudget,
+            category: r.category ?? undefined,
+            created_at: r.created_at,
+          };
+        });
+      } catch {
+        return [] as PropertyJobRow[];
+      }
     },
     enabled: !!user && !!propertyId,
   });

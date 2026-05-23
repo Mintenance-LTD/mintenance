@@ -81,6 +81,25 @@ export function ReportingLinksClient({
         }
       );
 
+      // 2026-05-23 audit: the API returns 402 with
+      // { requiresSubscription, message, feature } for non-Landlord/
+      // non-Agency homeowners. Previously the client just threw
+      // 'Failed' and toasted "Failed to create link" — users had no
+      // clue why or what they needed to do. Surface the upgrade copy
+      // straight from the server response, with a fallback to the
+      // generic message for unparseable bodies.
+      if (res.status === 402) {
+        let upgradeMessage =
+          'Tenant reporting links require a Landlord or Agency subscription.';
+        try {
+          const body = (await res.json()) as { message?: string };
+          if (body?.message) upgradeMessage = body.message;
+        } catch {
+          /* fallback used above */
+        }
+        toast.error(upgradeMessage, { duration: 6000 });
+        return;
+      }
       if (!res.ok) throw new Error('Failed');
 
       const { token } = await res.json();
