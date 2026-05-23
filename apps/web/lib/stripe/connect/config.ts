@@ -55,14 +55,32 @@ export const EXPRESS_ACCOUNT_DEFAULTS = {
   tos_acceptance: undefined, // Stripe-hosted onboarding collects this
 } as const;
 
-/** URL where contractors land after completing Connect onboarding */
-export function getOnboardingReturnUrl(appUrl: string): string {
-  return `${appUrl}/contractor/payouts/onboarding-complete`;
+/**
+ * URL where contractors land after completing Connect onboarding.
+ *
+ * 2026-05-23 audit-23 P1: mobile uses WebBrowser.openAuthSessionAsync
+ * with `mintenance://payouts/return` as the expected return URL, but
+ * Stripe accepts only https:// return_url values. So we always send
+ * Stripe to this web page, then the page itself fires a
+ * `mintenance://payouts/return` deep link when ?client=mobile is set.
+ * That closes the WebBrowser session and re-runs loadStatus on the
+ * mobile payouts screen, stranding nobody on the web flow.
+ */
+export function getOnboardingReturnUrl(
+  appUrl: string,
+  client?: 'mobile' | 'web'
+): string {
+  const base = `${appUrl}/contractor/payouts/onboarding-complete`;
+  return client === 'mobile' ? `${base}?client=mobile` : base;
 }
 
 /** URL where contractors land if onboarding link expires mid-flow */
-export function getOnboardingRefreshUrl(appUrl: string): string {
-  return `${appUrl}/contractor/payouts/onboarding?refresh=true`;
+export function getOnboardingRefreshUrl(
+  appUrl: string,
+  client?: 'mobile' | 'web'
+): string {
+  const base = `${appUrl}/contractor/payouts/onboarding?refresh=true`;
+  return client === 'mobile' ? `${base}&client=mobile` : base;
 }
 
 /** Return URL after a SetupIntent completes (Elements flow) */

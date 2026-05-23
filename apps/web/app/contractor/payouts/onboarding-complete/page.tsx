@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { StandardCard } from '@/components/ui/StandardCard';
 import { Button } from '@/components/ui/Button';
 import { Loader2, CheckCircle2, Clock } from 'lucide-react';
@@ -19,6 +19,8 @@ import type { ConnectAccountStatus } from '@/lib/stripe/connect/types';
  */
 export default function OnboardingCompletePage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isMobile = searchParams?.get('client') === 'mobile';
   const [status, setStatus] = useState<ConnectAccountStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -27,13 +29,26 @@ export default function OnboardingCompletePage() {
     (async () => {
       try {
         const res = await fetch(
-          '/api/payments/stripe-connect/status?refresh=true',
+          '/api/payments/stripe-connect/status?refresh=true'
         );
         const data = await res.json();
         if (!res.ok) throw new Error(data.message ?? 'Could not fetch status');
         setStatus(data.status ?? null);
 
-        // Auto-redirect when fully onboarded
+        // 2026-05-23 audit-23 P1: mobile callers tagged the return URL
+        // with ?client=mobile. Fire a deep link back to the app so the
+        // WebBrowser.openAuthSessionAsync session resolves and the
+        // mobile payouts screen re-fetches status. The setTimeout
+        // gives the user a beat to see the success / under-review
+        // copy before the redirect fires.
+        if (isMobile) {
+          setTimeout(() => {
+            window.location.href = 'mintenance://payouts/return';
+          }, 1500);
+          return;
+        }
+
+        // Auto-redirect when fully onboarded (web only)
         if (data.status?.canReceivePayouts) {
           setTimeout(() => {
             router.push('/contractor/payouts/onboarding');
@@ -45,15 +60,15 @@ export default function OnboardingCompletePage() {
         setLoading(false);
       }
     })();
-  }, [router]);
+  }, [router, isMobile]);
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-md p-6">
+      <div className='mx-auto max-w-md p-6'>
         <StandardCard>
-          <div className="flex flex-col items-center gap-3 py-12">
-            <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
-            <div className="text-sm text-gray-600">
+          <div className='flex flex-col items-center gap-3 py-12'>
+            <Loader2 className='h-6 w-6 animate-spin text-gray-500' />
+            <div className='text-sm text-gray-600'>
               Confirming your account with Stripe…
             </div>
           </div>
@@ -64,13 +79,13 @@ export default function OnboardingCompletePage() {
 
   if (error) {
     return (
-      <div className="mx-auto max-w-md p-6">
+      <div className='mx-auto max-w-md p-6'>
         <StandardCard>
-          <div className="space-y-3 py-8 text-center">
-            <div className="text-lg font-semibold text-red-900">
+          <div className='space-y-3 py-8 text-center'>
+            <div className='text-lg font-semibold text-red-900'>
               Couldn&apos;t fetch your status
             </div>
-            <p className="text-sm text-gray-600">{error}</p>
+            <p className='text-sm text-gray-600'>{error}</p>
             <Button
               onClick={() => router.push('/contractor/payouts/onboarding')}
             >
@@ -86,53 +101,53 @@ export default function OnboardingCompletePage() {
   const submitted = status?.detailsSubmitted;
 
   return (
-    <div className="mx-auto max-w-md p-6">
+    <div className='mx-auto max-w-md p-6'>
       <StandardCard>
-        <div className="flex flex-col items-center gap-4 py-8 text-center">
+        <div className='flex flex-col items-center gap-4 py-8 text-center'>
           {canReceive ? (
             <>
-              <CheckCircle2 className="h-12 w-12 text-green-600" />
-              <h1 className="text-xl font-semibold text-gray-900">
+              <CheckCircle2 className='h-12 w-12 text-green-600' />
+              <h1 className='text-xl font-semibold text-gray-900'>
                 You&apos;re all set!
               </h1>
-              <p className="text-sm text-gray-600">
+              <p className='text-sm text-gray-600'>
                 Your account is fully verified and ready to receive payouts.
               </p>
-              <p className="text-xs text-gray-500">
+              <p className='text-xs text-gray-500'>
                 Redirecting to payouts overview…
               </p>
             </>
           ) : submitted ? (
             <>
-              <Clock className="h-12 w-12 text-amber-600" />
-              <h1 className="text-xl font-semibold text-gray-900">
+              <Clock className='h-12 w-12 text-amber-600' />
+              <h1 className='text-xl font-semibold text-gray-900'>
                 Under review
               </h1>
-              <p className="text-sm text-gray-600">
+              <p className='text-sm text-gray-600'>
                 Stripe is verifying your details. We&apos;ll email you when
                 it&apos;s done — usually within a few hours, sometimes up to 2
                 business days.
               </p>
               <Button
                 onClick={() => router.push('/contractor/payouts/onboarding')}
-                className="mt-2"
+                className='mt-2'
               >
                 View status
               </Button>
             </>
           ) : (
             <>
-              <Clock className="h-12 w-12 text-gray-400" />
-              <h1 className="text-xl font-semibold text-gray-900">
+              <Clock className='h-12 w-12 text-gray-400' />
+              <h1 className='text-xl font-semibold text-gray-900'>
                 Setup incomplete
               </h1>
-              <p className="text-sm text-gray-600">
+              <p className='text-sm text-gray-600'>
                 It looks like you didn&apos;t finish the onboarding steps. You
                 can resume at any time.
               </p>
               <Button
                 onClick={() => router.push('/contractor/payouts/onboarding')}
-                className="mt-2"
+                className='mt-2'
               >
                 Resume setup
               </Button>
