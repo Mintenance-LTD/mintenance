@@ -1,9 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import {
-  serverSupabase,
-  createRequestScopedClient,
-} from '@/lib/api/supabaseServer';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { NotFoundError, ForbiddenError } from '@/lib/errors/api-error';
 import { validateRequest } from '@/lib/validation/validator';
@@ -73,8 +70,6 @@ const accessSchema = z.object({
 export const PATCH = withApiHandler(
   { rateLimit: { maxRequests: 30 } },
   async (request, { user, params }) => {
-    const userDb = createRequestScopedClient(request) ?? serverSupabase;
-
     // Require manager+ role on the property team (or admin) to edit
     // access info — same gate as PUT on the parent property route.
     const { authorized } = await PropertyTeamService.authorize(
@@ -140,7 +135,15 @@ export const PATCH = withApiHandler(
           : null;
     }
 
-    const { data, error } = await userDb
+    // 2026-05-23 audit: write via service-role. The PropertyTeamService
+    // gate above is the authoritative app-side check; the live properties
+    // RLS UPDATE policy only allows `owner_id = auth.uid()`, so the
+    // previous request-scoped client silently no-op'd for accepted
+    // managers — they passed the app check, then their PATCH did nothing.
+    // A future migration that extends RLS to property_team_members would
+    // let us drop back to userDb, but until then the team-edit promise
+    // requires service-role.
+    const { data, error } = await serverSupabase
       .from('properties')
       .update(updateData)
       .eq('id', params.id)

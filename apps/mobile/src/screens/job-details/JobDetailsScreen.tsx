@@ -24,6 +24,7 @@ import { JobRoomScope } from '../components/JobRoomScope';
 import { ContractorLocationSection } from './components/ContractorLocationSection';
 import { HomeownerLocationRequest } from './components/HomeownerLocationRequest';
 import { JobLocationMap } from './components/JobLocationMap';
+import { JobAccessCard, type PropertyAccess } from './components/JobAccessCard';
 import { JobPricingCard } from './components/JobPricingCard';
 import { JobTitleSection } from './components/JobTitleSection';
 import { JobDetailsList } from './components/JobDetailsList';
@@ -310,6 +311,28 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
                 address={locationStr}
                 latitude={job.latitude}
                 longitude={job.longitude}
+              />
+            </View>
+          </>
+        ) : null}
+
+        {/* 2026-05-23 audit: surface property access details to the
+            assigned contractor (key_safe_code is server-gated by the
+            1h-before-scheduled-start window — we just render
+            whatever the API returns). Homeowners don't need this on
+            the job detail (their property page owns the edit). */}
+        {isContractor &&
+        user?.id === job.contractor_id &&
+        (job as unknown as { propertyAccess?: PropertyAccess | null })
+          .propertyAccess ? (
+          <>
+            <View style={styles.divider} />
+            <View style={styles.sectionPadded}>
+              <JobAccessCard
+                access={
+                  (job as unknown as { propertyAccess?: PropertyAccess | null })
+                    .propertyAccess ?? null
+                }
               />
             </View>
           </>

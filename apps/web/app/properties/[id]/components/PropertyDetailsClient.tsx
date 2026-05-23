@@ -63,6 +63,20 @@ interface Property {
   squareFeet: number;
   yearBuilt: number;
   images: string[];
+  // 2026-05-23 audit: read-only surface for the access fields so
+  // legacy-theme users at least see what's set (edit goes through
+  // the editorial flow / mobile / future legacy form).
+  access_mode?: 'key_safe' | 'smart_lock' | 'in_person' | null;
+  access_notes?: string | null;
+  stopcock_location?: string | null;
+  gas_isolator_location?: string | null;
+  consumer_unit_location?: string | null;
+  // key_safe_code intentionally NOT surfaced here — the legacy theme
+  // doesn't have the editorial Access view's authorisation context
+  // (manager vs owner vs admin), so we don't render the most
+  // sensitive field at all in the legacy fallback. Homeowners on
+  // legacy theme can switch to the editorial cookie + see / edit it
+  // there.
 }
 
 interface PropertyDetailsClientProps {
@@ -670,6 +684,89 @@ export default function PropertyDetailsClient({
                 <YearOverYearComparison jobs={jobs} />
               </FeatureGateCard>
             </div>
+
+            {/* 2026-05-23 audit: read-only Access & contacts panel.
+                Edit lives in the editorial theme — legacy users at
+                least see what's configured. key_safe_code is
+                deliberately not rendered here (no access-mode-aware
+                authorisation context on legacy theme; the editorial
+                Access view owns the sensitive reveal). */}
+            {(property.access_mode ||
+              property.access_notes ||
+              property.stopcock_location ||
+              property.gas_isolator_location ||
+              property.consumer_unit_location) && (
+              <div className='bg-white rounded-xl border border-gray-200 p-6 mt-6'>
+                <div className='flex items-center justify-between mb-4'>
+                  <h2 className='text-lg font-semibold text-gray-900'>
+                    Access & contacts
+                  </h2>
+                  <a
+                    href='?tab=access'
+                    className='text-sm text-teal-600 hover:underline'
+                    title='Edit access details in the new theme'
+                  >
+                    Edit →
+                  </a>
+                </div>
+                <dl className='grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm'>
+                  {property.access_mode && (
+                    <div>
+                      <dt className='text-gray-500 text-xs uppercase tracking-wide mb-1'>
+                        Mode
+                      </dt>
+                      <dd className='text-gray-900'>
+                        {property.access_mode === 'key_safe'
+                          ? 'Key safe'
+                          : property.access_mode === 'smart_lock'
+                            ? 'Smart lock (instructions only)'
+                            : "You'll be home"}
+                      </dd>
+                    </div>
+                  )}
+                  {property.access_notes && (
+                    <div className='sm:col-span-2'>
+                      <dt className='text-gray-500 text-xs uppercase tracking-wide mb-1'>
+                        Notes
+                      </dt>
+                      <dd className='text-gray-900 whitespace-pre-line'>
+                        {property.access_notes}
+                      </dd>
+                    </div>
+                  )}
+                  {property.stopcock_location && (
+                    <div>
+                      <dt className='text-gray-500 text-xs uppercase tracking-wide mb-1'>
+                        Stopcock
+                      </dt>
+                      <dd className='text-gray-900'>
+                        {property.stopcock_location}
+                      </dd>
+                    </div>
+                  )}
+                  {property.gas_isolator_location && (
+                    <div>
+                      <dt className='text-gray-500 text-xs uppercase tracking-wide mb-1'>
+                        Gas isolator
+                      </dt>
+                      <dd className='text-gray-900'>
+                        {property.gas_isolator_location}
+                      </dd>
+                    </div>
+                  )}
+                  {property.consumer_unit_location && (
+                    <div>
+                      <dt className='text-gray-500 text-xs uppercase tracking-wide mb-1'>
+                        Consumer unit
+                      </dt>
+                      <dd className='text-gray-900'>
+                        {property.consumer_unit_location}
+                      </dd>
+                    </div>
+                  )}
+                </dl>
+              </div>
+            )}
           </div>
         )}
 

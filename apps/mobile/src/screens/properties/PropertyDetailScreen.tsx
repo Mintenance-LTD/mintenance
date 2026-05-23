@@ -29,8 +29,12 @@ import { TenantContacts } from './components/TenantContacts';
 import { TeamAccess } from './components/TeamAccess';
 import { ComplianceCertificates } from './components/ComplianceCertificates';
 import { PropertyRoomsSection } from './components/PropertyRoomsSection';
+import { PropertyAccessSection } from './components/PropertyAccessSection';
 
-type Tab = 'overview' | 'maintenance' | 'manage';
+// 2026-05-23 audit: added 'access' tab. Mobile previously had no
+// access-editing surface at all; the homeowner had to switch to web
+// to set the lock-box code / access notes / utility locations.
+type Tab = 'overview' | 'access' | 'maintenance' | 'manage';
 interface Props {
   navigation: NativeStackNavigationProp<
     ProfileStackParamList,
@@ -45,6 +49,7 @@ const TABS: {
   icon: keyof typeof Ionicons.glyphMap;
 }[] = [
   { key: 'overview', label: 'Overview', icon: 'home-outline' },
+  { key: 'access', label: 'Access', icon: 'key-outline' },
   { key: 'maintenance', label: 'Maintenance', icon: 'construct-outline' },
   { key: 'manage', label: 'Manage', icon: 'settings-outline' },
 ];
@@ -356,6 +361,37 @@ export const PropertyDetailScreen: React.FC<Props> = ({
     </>
   );
 
+  // 2026-05-23 audit: surface the homeowner-side Access editor.
+  // Reads existing access fields off the property record (which
+  // /api/properties/[id] now returns since the audit-11 fix routed
+  // PropertyDetail through the API).
+  const renderAccessTab = () => {
+    const p = property as unknown as Record<string, unknown> | null;
+    return (
+      <PropertyAccessSection
+        propertyId={propertyId}
+        initial={{
+          access_mode:
+            (p?.access_mode as
+              | 'key_safe'
+              | 'smart_lock'
+              | 'in_person'
+              | null
+              | undefined) ?? null,
+          key_safe_code:
+            (p?.key_safe_code as string | null | undefined) ?? null,
+          access_notes: (p?.access_notes as string | null | undefined) ?? null,
+          stopcock_location:
+            (p?.stopcock_location as string | null | undefined) ?? null,
+          gas_isolator_location:
+            (p?.gas_isolator_location as string | null | undefined) ?? null,
+          consumer_unit_location:
+            (p?.consumer_unit_location as string | null | undefined) ?? null,
+        }}
+      />
+    );
+  };
+
   const renderMaintenanceTab = () => (
     <>
       <RecurringMaintenance propertyId={propertyId} />
@@ -507,6 +543,7 @@ export const PropertyDetailScreen: React.FC<Props> = ({
         </View>
 
         {activeTab === 'overview' && renderOverviewTab()}
+        {activeTab === 'access' && renderAccessTab()}
         {activeTab === 'maintenance' && renderMaintenanceTab()}
         {activeTab === 'manage' && renderManageTab()}
       </ScrollView>

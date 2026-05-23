@@ -46,13 +46,26 @@ export const GET = withApiHandler(
       );
     }
 
-    const { data: tenants, error } = await serverSupabase
+    // 2026-05-23 audit: linked tenants used to see every tenant's
+    // email/phone/lease/notes for the property. In a multi-tenant let
+    // (shared houses, HMOs) that's a privacy leak — tenant A could
+    // pull tenant B's contact details + lease dates. The owner branch
+    // still returns the full list (they manage the property); linked
+    // tenants now get only their own row back.
+    let tenantQuery = serverSupabase
       .from('property_tenants')
       .select(
         'id, name, email, phone, lease_start, lease_end, notes, is_active, invitation_sent_at, invitation_accepted_at, user_id, created_at'
       )
-      .eq('property_id', propertyId)
-      .order('created_at', { ascending: false });
+      .eq('property_id', propertyId);
+
+    if (!isOwner) {
+      tenantQuery = tenantQuery.eq('user_id', user.id);
+    }
+
+    const { data: tenants, error } = await tenantQuery.order('created_at', {
+      ascending: false,
+    });
 
     if (error) {
       return NextResponse.json(

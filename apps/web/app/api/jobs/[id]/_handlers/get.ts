@@ -6,6 +6,7 @@ import {
 import { logger } from '@mintenance/shared';
 import { ForbiddenError, NotFoundError } from '@/lib/errors/api-error';
 import { resignJobStorageUrls } from '@/lib/api/job-storage';
+import { canRevealKeySafeCode } from '@/lib/services/jobs/key-safe-reveal';
 
 export async function handleGet(
   request: NextRequest,
@@ -32,7 +33,7 @@ export async function handleGet(
   const { data, error } = await userDb
     .from('jobs')
     .select(
-      'id, title, description, status, homeowner_id, contractor_id, category, budget, budget_min, budget_max, urgency, location, city, postcode, latitude, longitude, start_date, end_date, flexible_timeline, access_info, requirements, property_id, created_at, updated_at'
+      'id, title, description, status, homeowner_id, contractor_id, category, budget, budget_min, budget_max, urgency, location, city, postcode, latitude, longitude, start_date, end_date, scheduled_start_date, flexible_timeline, access_info, requirements, property_id, created_at, updated_at'
     )
     .eq('id', id)
     .single();
@@ -142,20 +143,68 @@ export async function handleGet(
   let propertyType: string | null = null;
   let propertyBedrooms: number | null = null;
   let propertyBathrooms: number | null = null;
+  // 2026-05-23 audit: extended to also include the access columns so
+  // mobile contractors get the same data the web contractor page sees.
+  // Previously only `access_info` (the free-text field on `jobs`) was
+  // surfaced; the structured property access fields (key_safe_code,
+  // access_notes, stopcock/gas/consumer locations, access_mode) lived
+  // only on the linked `properties` row and never reached mobile.
+  // key_safe_code is gated by canRevealKeySafeCode() — same 1h-before-
+  // start window the web contractor page uses (key-safe-reveal.ts).
+  let propertyAccess: {
+    access_mode: string | null;
+    key_safe_code: string | null;
+    access_notes: string | null;
+    stopcock_location: string | null;
+    gas_isolator_location: string | null;
+    consumer_unit_location: string | null;
+  } | null = null;
   if (row.property_id) {
     const { data: propertyRow } = await userDb
       .from('properties')
-      .select('property_type, bedrooms, bathrooms')
+      .select(
+        'property_type, bedrooms, bathrooms, access_mode, key_safe_code, access_notes, stopcock_location, gas_isolator_location, consumer_unit_location'
+      )
       .eq('id', row.property_id as string)
       .maybeSingle();
     if (propertyRow) {
-      propertyType =
-        (propertyRow as { property_type?: string | null }).property_type ??
-        null;
-      propertyBedrooms =
-        (propertyRow as { bedrooms?: number | null }).bedrooms ?? null;
-      propertyBathrooms =
-        (propertyRow as { bathrooms?: number | null }).bathrooms ?? null;
+      const p = propertyRow as Record<string, unknown>;
+      propertyType = (p.property_type as string | null) ?? null;
+      propertyBedrooms = (p.bedrooms as number | null) ?? null;
+      propertyBathrooms = (p.bathrooms as number | null) ?? null;
+
+      // Reveal logic — homeowners always see everything; the assigned
+      // contractor sees structured fields but the key_safe_code is
+      // gated by the 1h-before-scheduled-start window.
+      const isAssignedContractor =
+        user.id === (row.contractor_id as string | null);
+      const showFullAccess =
+        isHomeowner || user.role === 'admin' || isAssignedContractor;
+
+      if (showFullAccess) {
+        const canSeeCode =
+          isHomeowner ||
+          user.role === 'admin' ||
+          canRevealKeySafeCode({
+            status: row.status as string | null,
+            scheduled_start_date: row.scheduled_start_date as
+              | string
+              | null
+              | undefined,
+          });
+        propertyAccess = {
+          access_mode: (p.access_mode as string | null) ?? null,
+          key_safe_code: canSeeCode
+            ? ((p.key_safe_code as string | null) ?? null)
+            : null,
+          access_notes: (p.access_notes as string | null) ?? null,
+          stopcock_location: (p.stopcock_location as string | null) ?? null,
+          gas_isolator_location:
+            (p.gas_isolator_location as string | null) ?? null,
+          consumer_unit_location:
+            (p.consumer_unit_location as string | null) ?? null,
+        };
+      }
     }
   }
 
@@ -184,6 +233,13 @@ export async function handleGet(
     propertyBedrooms,
     propertyBathrooms,
     accessInfo: row.access_info || '',
+    // Structured property access fields. Null when the job has no
+    // property_id, when the caller isn't homeowner/admin/assigned-
+    // contractor, or when the lookup fails. key_safe_code is null
+    // unless the caller is the homeowner / admin OR the assigned
+    // contractor inside the 1h pre-visit reveal window.
+    propertyAccess,
+    scheduledStartDate: row.scheduled_start_date,
     images: signedPhotos,
     photos: signedPhotos,
     requirements: row.requirements ?? null,

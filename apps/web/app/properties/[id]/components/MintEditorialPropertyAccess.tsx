@@ -62,7 +62,15 @@ const MODES: AccessModeOption[] = [
     key: 'smart_lock',
     icon: <Lock size={16} strokeWidth={1.75} />,
     label: 'Smart lock',
-    sub: 'One-time code per contractor',
+    // 2026-05-23 audit: per-contractor one-time-code generation isn't
+    // implemented — no `smart_lock_codes` table, no provisioning
+    // service, no per-contractor reveal flow. The previous copy
+    // ("One-time code per contractor") promised a feature that
+    // doesn't exist. Relabelled to the honest fallback: contractor
+    // sees the instructions written in `access_notes`. Tracked as
+    // a dedicated rollout (needs lock vendor selection +
+    // OAuth/API integration + schema + reveal flow).
+    sub: 'Instructions only — full integration coming soon',
   },
   {
     key: 'in_person',
