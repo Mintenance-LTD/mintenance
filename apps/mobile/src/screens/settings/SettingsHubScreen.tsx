@@ -12,7 +12,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as WebBrowser from 'expo-web-browser';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../contexts/AuthContext';
 import { mobileApiClient } from '../../utils/mobileApiClient';
@@ -270,15 +269,12 @@ export const SettingsHubScreen: React.FC = () => {
       <StatusBar
         translucent
         backgroundColor='transparent'
-        barStyle='light-content'
+        barStyle='dark-content'
       />
-      {/* Green gradient hero */}
-      <LinearGradient colors={[me.brand2, me.brand]} style={styles.hero}>
-        <View style={styles.decorCircle1} />
-        <View style={styles.decorCircle2} />
-
-        <View style={{ height: insets.top + 12 }} />
-
+      {/* Editorial header — paper bg, mint eyebrow, serif title.
+          Replaces the prior mint-gradient hero with 2 decorative
+          circles + glassy back button + bold white sans heading. */}
+      <View style={[styles.hero, { paddingTop: insets.top + 12 }]}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() =>
@@ -288,12 +284,14 @@ export const SettingsHubScreen: React.FC = () => {
           accessibilityLabel='Go back'
           hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Ionicons name='chevron-back' size={22} color={me.onBrand} />
+          <Ionicons name='arrow-back' size={20} color={me.ink} />
         </TouchableOpacity>
-
+        <Text style={styles.heroEyebrow}>Account</Text>
         <Text style={styles.heroTitle}>Settings</Text>
-        <Text style={styles.heroSubtitle}>Account, security & preferences</Text>
-      </LinearGradient>
+        <Text style={styles.heroSubtitle}>
+          Account, security &amp; preferences
+        </Text>
+      </View>
 
       <ScrollView
         style={styles.scrollView}
@@ -309,48 +307,42 @@ export const SettingsHubScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: me.bg2 },
+  container: { flex: 1, backgroundColor: me.bg },
+  // 2026-05-23 editorial header — was a mint-gradient hero with 2
+  // decorative circles + glassy back button + bold white sans
+  // heading. Now paper bg, mint eyebrow, serif title in ink.
   hero: {
-    paddingBottom: 24,
+    paddingBottom: 18,
     paddingHorizontal: 20,
-    overflow: 'hidden',
-  },
-  decorCircle1: {
-    position: 'absolute',
-    top: -30,
-    right: -30,
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-  },
-  decorCircle2: {
-    position: 'absolute',
-    bottom: -20,
-    left: -20,
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: me.bg,
   },
   backButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 14,
   },
-  heroTitle: {
-    fontSize: 26,
+  heroEyebrow: {
+    fontSize: 11,
     fontWeight: '700',
-    color: me.onBrand,
-    letterSpacing: -0.5,
+    color: me.brand,
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+    marginBottom: 6,
+  },
+  heroTitle: {
+    fontFamily: me.font.display,
+    fontSize: 28,
+    lineHeight: 32,
+    color: me.ink,
+    letterSpacing: me.displayTracking,
   },
   heroSubtitle: {
     fontSize: 14,
-    color: 'rgba(255,255,255,0.7)',
+    color: me.ink3,
     marginTop: 4,
   },
   scrollView: { flex: 1 },
