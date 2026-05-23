@@ -1,13 +1,18 @@
 /**
- * ProfileHeader — Full-bleed cover hero with overlapping avatar
+ * Public contractor profile header — Mint Editorial v2 (2026-05-23
+ * redesign). The OTHER ProfileHeader (apps/mobile/src/screens/profile/
+ * components/ProfileHeader.tsx) is the contractor's OWN profile tab
+ * and got the same treatment in Sprint 7.3.
  *
- * Green gradient hero extending to status bar, floating nav,
- * overlapping avatar with verified badge, name, trade, location.
+ * Replaces the prior full-bleed mint-gradient hero (with 2 decorative
+ * circles, glassy nav pills, overlapping avatar with white border)
+ * with the calm editorial pattern used by the public-facing Tomas
+ * Reilly mockup: paper background, brand-soft avatar ring, serif
+ * name in ink, slim chips for trust signals + skills.
  */
 
 import React from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { me } from '../../../design-system/mint-editorial';
 import { TrustLines } from './TrustLines';
@@ -24,7 +29,6 @@ interface ProfileHeaderProps {
   onShare?: () => void;
   onEditPress?: () => void;
   showEditButton?: boolean;
-  // R7 #9 + #11 trust signals
   postcodePrefix?: string | null;
   postcodeProofCount?: number | null;
   disputeHistory?: {
@@ -54,81 +58,70 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
     : 'Contractor';
 
   return (
-    <View>
-      {/* Full-bleed gradient hero */}
-      <LinearGradient
-        colors={[me.brand2, me.brand]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={[styles.hero, { paddingTop: topInset + 12 }]}
-      >
-        {/* Decorative elements */}
-        <View style={styles.decor1} />
-        <View style={styles.decor2} />
+    <View style={[styles.wrap, { paddingTop: topInset + 12 }]}>
+      {/* Nav row */}
+      <View style={styles.navRow}>
+        {onBack ? (
+          <TouchableOpacity
+            style={styles.navBtn}
+            onPress={onBack}
+            accessibilityRole='button'
+            accessibilityLabel='Go back'
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name='arrow-back' size={20} color={me.ink} />
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.navBtn} />
+        )}
+        <View style={{ flex: 1 }} />
+        {onShare ? (
+          <TouchableOpacity
+            style={styles.navBtn}
+            onPress={onShare}
+            accessibilityRole='button'
+            accessibilityLabel='Share profile'
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name='share-outline' size={20} color={me.ink} />
+          </TouchableOpacity>
+        ) : null}
+      </View>
 
-        {/* Floating nav row */}
-        <View style={styles.navRow}>
-          {onBack && (
-            <TouchableOpacity
-              style={styles.navBtn}
-              onPress={onBack}
-              accessibilityRole='button'
-              accessibilityLabel='Go back'
-            >
-              <Ionicons name='arrow-back' size={20} color={me.onBrand} />
-            </TouchableOpacity>
-          )}
-          <View style={{ flex: 1 }} />
-          {onShare && (
-            <TouchableOpacity
-              style={styles.navBtn}
-              onPress={onShare}
-              accessibilityRole='button'
-              accessibilityLabel='Share profile'
-            >
-              <Ionicons name='share-outline' size={20} color={me.onBrand} />
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {/* Spacer for avatar overlap */}
-        <View style={{ height: 50 }} />
-      </LinearGradient>
-
-      {/* Avatar — overlaps hero bottom */}
-      <View style={styles.avatarSection}>
-        <View style={styles.avatarWrapper}>
+      {/* Avatar + verified */}
+      <View style={styles.avatarBlock}>
+        <View style={styles.avatarRing}>
           {profileImageUrl ? (
             <Image
               source={{ uri: profileImageUrl }}
-              style={styles.avatar}
+              style={styles.avatarImage}
               resizeMode='cover'
               accessibilityIgnoresInvertColors
             />
           ) : (
-            <View style={styles.avatar}>
-              <Ionicons name='person' size={40} color={me.ink3} />
+            <View style={styles.avatarFill}>
+              <Ionicons name='person' size={36} color={me.ink3} />
             </View>
           )}
-          {verified && (
-            <View style={styles.verifiedBadge}>
-              <Ionicons name='checkmark' size={14} color={me.onBrand} />
+          {verified ? (
+            <View style={styles.verifiedDot}>
+              <Ionicons name='checkmark-circle' size={20} color={me.brand} />
             </View>
-          )}
+          ) : null}
         </View>
 
-        {/* Name + trade + location */}
-        <Text style={styles.name}>{name}</Text>
-        <Text style={styles.tradeText}>{tradeLabel}</Text>
+        <Text style={styles.name} numberOfLines={1}>
+          {name}
+        </Text>
+        <Text style={styles.trade}>{tradeLabel}</Text>
 
         {location ? (
           <View style={styles.locationRow}>
-            <Ionicons name='location-outline' size={14} color={me.ink2} />
+            <Ionicons name='location-outline' size={13} color={me.ink3} />
             <Text style={styles.locationText}>{location}</Text>
           </View>
         ) : null}
 
-        {/* Bio */}
         {bio ? (
           <Text style={styles.bio} numberOfLines={3}>
             {bio}
@@ -143,26 +136,26 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
         />
 
         {/* Trust signals */}
-        <View style={styles.trustRow}>
-          {verified && (
-            <View style={styles.trustPill}>
-              <Ionicons name='shield-checkmark' size={14} color={me.brand} />
-              <Text style={styles.trustText}>Verified</Text>
+        <View style={styles.chipRow}>
+          {verified ? (
+            <View style={styles.chip}>
+              <Ionicons name='shield-checkmark' size={12} color={me.brand} />
+              <Text style={styles.chipText}>Verified</Text>
             </View>
-          )}
-          <View style={styles.trustPill}>
-            <Ionicons name='flash' size={14} color={me.accent} />
-            <Text style={styles.trustText}>{'< 1hr Response'}</Text>
+          ) : null}
+          <View style={styles.chip}>
+            <Ionicons name='flash' size={12} color={me.accent} />
+            <Text style={styles.chipText}>&lt; 1hr response</Text>
           </View>
-          <View style={styles.trustPill}>
-            <Ionicons name='ribbon' size={14} color='#3B82F6' />
-            <Text style={styles.trustText}>Insured</Text>
+          <View style={styles.chip}>
+            <Ionicons name='ribbon' size={12} color={me.brand} />
+            <Text style={styles.chipText}>Insured</Text>
           </View>
         </View>
 
         {/* Service pills */}
-        {skills && skills.length > 0 && (
-          <View style={styles.skillsRow}>
+        {skills && skills.length > 0 ? (
+          <View style={styles.skillRow}>
             {skills.slice(0, 6).map((skill) => (
               <View key={skill} style={styles.skillPill}>
                 <Text style={styles.skillText}>
@@ -171,34 +164,17 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({
               </View>
             ))}
           </View>
-        )}
+        ) : null}
       </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  hero: {
+  wrap: {
     paddingHorizontal: 20,
-    overflow: 'hidden',
-  },
-  decor1: {
-    position: 'absolute',
-    top: -30,
-    right: -30,
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-  },
-  decor2: {
-    position: 'absolute',
-    bottom: -20,
-    left: -20,
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    paddingBottom: 16,
+    backgroundColor: me.bg,
   },
   navRow: {
     flexDirection: 'row',
@@ -209,115 +185,121 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarSection: {
+  avatarBlock: {
     alignItems: 'center',
-    marginTop: -48,
-    paddingHorizontal: 24,
-    paddingBottom: 20,
-    backgroundColor: me.bg2,
+    paddingTop: 8,
   },
-  avatarWrapper: {
-    position: 'relative',
-    marginBottom: 12,
-  },
-  avatar: {
+  avatarRing: {
     width: 96,
     height: 96,
     borderRadius: 48,
-    backgroundColor: me.line,
-    borderWidth: 4,
-    borderColor: me.surface,
+    borderWidth: 2,
+    borderColor: me.brandSoft,
+    backgroundColor: me.surface,
     alignItems: 'center',
     justifyContent: 'center',
-    ...me.shadow.card,
+    marginBottom: 14,
   },
-  verifiedBadge: {
-    position: 'absolute',
-    bottom: 2,
-    right: 2,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: me.brand,
+  avatarFill: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 3,
-    borderColor: me.surface,
+  },
+  avatarImage: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+  },
+  verifiedDot: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: me.surface,
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   name: {
-    fontSize: 24,
-    fontWeight: '800',
+    fontFamily: me.font.display,
+    fontSize: 26,
+    lineHeight: 30,
     color: me.ink,
-    letterSpacing: -0.5,
+    letterSpacing: me.displayTracking,
     textAlign: 'center',
+    marginBottom: 4,
   },
-  tradeText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: me.brand,
-    marginTop: 2,
-    textAlign: 'center',
+  trade: {
+    fontSize: 13,
+    color: me.ink2,
+    fontWeight: '500',
+    marginBottom: 4,
   },
   locationRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    marginTop: 6,
+    marginBottom: 10,
   },
   locationText: {
-    fontSize: 14,
-    color: me.ink2,
+    fontSize: 12,
+    color: me.ink3,
   },
   bio: {
-    fontSize: 14,
+    fontSize: 13,
     color: me.ink2,
-    lineHeight: 20,
+    lineHeight: 18,
     textAlign: 'center',
-    marginTop: 10,
-    maxWidth: 320,
+    marginBottom: 12,
+    paddingHorizontal: 12,
   },
-  trustRow: {
+  chipRow: {
     flexDirection: 'row',
-    gap: 8,
-    marginTop: 16,
     flexWrap: 'wrap',
     justifyContent: 'center',
+    gap: 6,
+    marginTop: 10,
+    marginBottom: 8,
   },
-  trustPill: {
+  chip: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: 4,
     backgroundColor: me.surface,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
     borderWidth: 1,
     borderColor: me.line,
+    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
   },
-  trustText: {
-    fontSize: 12,
+  chipText: {
+    fontSize: 11,
     fontWeight: '600',
     color: me.ink,
   },
-  skillsRow: {
+  skillRow: {
     flexDirection: 'row',
-    gap: 8,
-    marginTop: 12,
     flexWrap: 'wrap',
     justifyContent: 'center',
+    gap: 6,
+    marginTop: 6,
   },
   skillPill: {
     backgroundColor: me.brandSoft,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 10,
+    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
   },
   skillText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
     color: me.brand,
   },
