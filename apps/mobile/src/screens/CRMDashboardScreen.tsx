@@ -102,10 +102,24 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
     else Alert.alert('Error', 'Cannot make phone call');
   };
   const handleMessage = (c: DerivedClient) => {
-    // 2026-04-30 audit P1: typed cross-stack helper replaces `as never`.
+    // 2026-05-23 audit-22 P1: conversationId is the jobId across the
+    // app (MessagingScreen destructures conversationId AS jobId). The
+    // previous code passed the homeowner UUID — same shape mismatch
+    // the bid-accept fix (audit-16 #88) caught. For job-derived
+    // clients we now use the most recent job between contractor +
+    // homeowner. For manual-only clients (no jobs yet), tell the
+    // contractor a thread will open after their first job.
+    const jobId = c.recent_job_id;
+    if (!jobId) {
+      Alert.alert(
+        'No thread yet',
+        'Messaging opens after your first job with this client. Use email or phone for now.'
+      );
+      return;
+    }
     goToMessagingThread(tabNav, {
-      conversationId: c.id,
-      recipientId: c.id,
+      conversationId: jobId,
+      recipientId: c.homeowner_id ?? c.id,
       recipientName: `${c.first_name} ${c.last_name}`.trim(),
     });
   };

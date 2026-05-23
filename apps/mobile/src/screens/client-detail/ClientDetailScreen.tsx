@@ -42,6 +42,13 @@ import { styles } from './styles';
 
 interface ClientData {
   client_id: string;
+  // 2026-05-23 audit-22 P1: API now ships `homeowner_id` (null for
+  // manually-added contractor_clients rows that don't have a
+  // platform account) and `recent_job_id` (most recent jobId between
+  // contractor + homeowner). The detail screen reads homeowner_id
+  // for past-jobs lookups and recent_job_id for the message CTA.
+  homeowner_id?: string | null;
+  recent_job_id?: string | null;
   first_name: string;
   last_name: string;
   email: string;
@@ -107,17 +114,24 @@ export const ClientDetailScreen: React.FC<ClientDetailScreenProps> = ({
   // Fetch every job between this contractor and this client to power
   // the "Past work together" list, the property card, and the
   // sign-off-rate stat.
+  //
+  // 2026-05-23 audit-22 P1: read jobs against `client.homeowner_id`
+  // (the profile UUID), not `client.client_id`. Manually-added
+  // contractor_clients rows have no homeowner — those clients
+  // legitimately have no past jobs, so we skip the query rather than
+  // running it against a contractor_clients UUID and getting noise.
+  const homeownerIdForJobs = client.homeowner_id ?? null;
   const { data: jobs = [], isLoading: jobsLoading } = useQuery({
-    queryKey: ['client-jobs', user?.id, client.client_id],
+    queryKey: ['client-jobs', user?.id, homeownerIdForJobs],
     queryFn: async (): Promise<PastJobRow[]> => {
-      if (!user?.id || !client.client_id) return [];
+      if (!user?.id || !homeownerIdForJobs) return [];
       const { data, error } = await supabase
         .from('jobs')
         .select(
           'id, title, status, budget, location, description, category, created_at, completed_at'
         )
         .eq('contractor_id', user.id)
-        .eq('homeowner_id', client.client_id)
+        .eq('homeowner_id', homeownerIdForJobs)
         .order('created_at', { ascending: false });
       if (error) {
         // The screen still renders fine without this — fall back gracefully.
@@ -125,7 +139,7 @@ export const ClientDetailScreen: React.FC<ClientDetailScreenProps> = ({
       }
       return (data ?? []) as PastJobRow[];
     },
-    enabled: !!user?.id && !!client.client_id,
+    enabled: !!user?.id && !!homeownerIdForJobs,
   });
 
   // Derived stats — keep these honest, only render when we actually
@@ -216,9 +230,22 @@ export const ClientDetailScreen: React.FC<ClientDetailScreenProps> = ({
   };
 
   const handleMessage = () => {
+    // 2026-05-23 audit-22 P1: conversationId is the jobId across the
+    // app (MessagingScreen reads conversationId AS jobId; the threads
+    // API resolves directly off jobs). Use recent_job_id when set;
+    // tell the contractor a thread will open after the first job for
+    // manual-only clients with no jobs yet.
+    const jobId = client.recent_job_id;
+    if (!jobId) {
+      Alert.alert(
+        'No thread yet',
+        'Messaging opens after your first job with this client. Use email or phone for now.'
+      );
+      return;
+    }
     goToMessagingThread(tabNavigation, {
-      conversationId: client.client_id,
-      recipientId: client.client_id,
+      conversationId: jobId,
+      recipientId: client.homeowner_id ?? client.client_id,
       recipientName: fullName,
     });
   };

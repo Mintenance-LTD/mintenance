@@ -200,13 +200,89 @@ export const GET = withApiHandler(
       }
     );
 
-    clients.sort((a, b) =>
+    // 2026-05-23 audit-22 P1: also surface manually-added
+    // contractor_clients rows. Mobile AddClientScreen / POST below
+    // writes there, but this GET used to read only from jobs/bids —
+    // contractors added a client, saw success, and the row never
+    // appeared in CRM. Merge by email when there's already a derived
+    // entry (avoid duplicating the same human), otherwise add as a
+    // standalone manual entry with relationship_status='prospect'.
+    // 2026-05-23 audit-22 P1 (#115): every returned client now carries
+    // both `client_id` (the canonical identifier the detail screen
+    // uses) and `homeowner_id` (the profile.id, null for manual rows
+    // with no platform account) plus `recent_job_id` for messaging.
+    const { data: manualClients } = await serverSupabase
+      .from('contractor_clients')
+      .select(
+        'id, first_name, last_name, email, phone, company_name, relationship_status, created_at'
+      )
+      .eq('contractor_id', user.id);
+
+    const clientsByEmail = new Map<string, (typeof clients)[number]>();
+    for (const c of clients) {
+      if (c.email) clientsByEmail.set(c.email.toLowerCase(), c);
+    }
+
+    // recent_job_id lookup — for each homeowner, the most recent job
+    // (any status). Used by the CRM message buttons so navigation
+    // lands on a real thread instead of passing a homeowner UUID as
+    // the conversation key.
+    const recentJobIdByHomeowner = new Map<string, string>();
+    for (const job of jobMap.values()) {
+      const hid = job.homeowner_id as string;
+      if (!hid) continue;
+      if (!recentJobIdByHomeowner.has(hid)) {
+        recentJobIdByHomeowner.set(hid, job.id as string);
+      }
+    }
+
+    type EnrichedClient = (typeof clients)[number] & {
+      client_id: string;
+      homeowner_id: string | null;
+      recent_job_id: string | null;
+    };
+
+    const enrichedDerived: EnrichedClient[] = clients.map((c) => ({
+      ...c,
+      client_id: c.id,
+      homeowner_id: c.id,
+      recent_job_id: recentJobIdByHomeowner.get(c.id) ?? null,
+    }));
+
+    const manualOnly: EnrichedClient[] = [];
+    for (const m of manualClients ?? []) {
+      const emailKey = (m.email as string | null)?.toLowerCase() ?? '';
+      if (emailKey && clientsByEmail.has(emailKey)) {
+        // Already covered by a job-derived row — skip the duplicate.
+        continue;
+      }
+      manualOnly.push({
+        id: m.id as string,
+        client_id: m.id as string,
+        homeowner_id: null,
+        recent_job_id: null,
+        first_name: (m.first_name as string) || 'Unnamed',
+        last_name: (m.last_name as string) || '',
+        email: (m.email as string) || '',
+        phone: (m.phone as string) || undefined,
+        profile_image_url: undefined,
+        total_jobs: 0,
+        total_revenue: 0,
+        last_job_date: '',
+        last_job_title: 'Manually added',
+        relationship_status: ((m.relationship_status as string) ||
+          'prospect') as 'prospect' | 'active' | 'inactive',
+      });
+    }
+
+    const merged = [...enrichedDerived, ...manualOnly];
+    merged.sort((a, b) =>
       `${a.first_name} ${a.last_name}`.localeCompare(
         `${b.first_name} ${b.last_name}`
       )
     );
 
-    return NextResponse.json({ clients });
+    return NextResponse.json({ clients: merged });
   }
 );
 
