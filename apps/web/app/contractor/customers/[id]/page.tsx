@@ -18,6 +18,23 @@ export const metadata = {
   title: 'Customer Details | Mintenance',
 };
 
+// 2026-05-23: local helper for the budget→escrow refactor — sums
+// released escrow rows attached to a job. Used by both the
+// totalRevenue aggregate and the per-row price render so the
+// flatten logic lives once.
+function realisedFromEscrow(
+  escrow:
+    | Array<{ amount?: number | string | null; status?: string | null }>
+    | { amount?: number | string | null; status?: string | null }
+    | null
+    | undefined
+): number {
+  const rows = Array.isArray(escrow) ? escrow : escrow ? [escrow] : [];
+  return rows
+    .filter((t) => t?.status === 'released' || t?.status === 'completed')
+    .reduce<number>((acc, t) => acc + Number(t.amount ?? 0), 0);
+}
+
 export default async function CustomerDetailPage({
   params,
 }: {
@@ -43,11 +60,14 @@ export default async function CustomerDetailPage({
     redirect('/contractor/customers');
   }
 
-  // Fetch jobs with this customer — from direct assignment OR accepted bids
+  // Fetch jobs with this customer — from direct assignment OR accepted bids.
+  // 2026-05-23 audit: dropped `final_price` (not a live column) in
+  // favour of joining released escrow for the realised revenue figure.
   const { data: directJobs } = await serverSupabase
     .from('jobs')
     .select(
-      'id, title, description, status, category, budget, final_price, created_at, completed_at'
+      `id, title, description, status, category, budget, created_at, completed_at,
+       escrow_transactions(amount, status)`
     )
     .eq('contractor_id', user.id)
     .eq('homeowner_id', customerId)
@@ -57,7 +77,8 @@ export default async function CustomerDetailPage({
   const { data: bidJobs } = await serverSupabase
     .from('bids')
     .select(
-      'job:jobs!inner(id, title, description, status, category, budget, final_price, created_at, completed_at)'
+      `job:jobs!inner(id, title, description, status, category, budget, created_at, completed_at,
+       escrow_transactions(amount, status))`
     )
     .eq('contractor_id', user.id)
     .eq('jobs.homeowner_id', customerId);
@@ -103,10 +124,14 @@ export default async function CustomerDetailPage({
   const totalJobs = jobs?.length || 0;
   const completedJobs =
     jobs?.filter((j) => j.status === 'completed').length || 0;
-  const totalRevenue = (jobs || []).reduce(
-    (sum, j) => sum + ((j.final_price as number) || (j.budget as number) || 0),
-    0
-  );
+  // Realised revenue: sum released escrow per job, fall back to
+  // legacy budget if no escrow has been released yet.
+  const totalRevenue = (jobs || []).reduce((sum, j) => {
+    const realised = realisedFromEscrow(
+      j.escrow_transactions as Parameters<typeof realisedFromEscrow>[0]
+    );
+    return sum + (realised > 0 ? realised : (j.budget as number) || 0);
+  }, 0);
   const avgRating = reviews?.length
     ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(
         1
@@ -341,8 +366,14 @@ export default async function CustomerDetailPage({
                 const cat = (job.category as string) || 'general';
                 const status = (job.status as string) || 'posted';
                 const date = job.created_at as string;
+                // Same realised-escrow → budget fallback as totalRevenue.
+                const realised = realisedFromEscrow(
+                  job.escrow_transactions as Parameters<
+                    typeof realisedFromEscrow
+                  >[0]
+                );
                 const price =
-                  (job.final_price as number) || (job.budget as number) || 0;
+                  realised > 0 ? realised : (job.budget as number) || 0;
                 return (
                   <Link
                     key={id}
