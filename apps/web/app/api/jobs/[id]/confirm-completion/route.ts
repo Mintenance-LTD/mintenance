@@ -130,12 +130,62 @@ export const POST = withApiHandler(
           );
         }
 
-        // Update job to mark completion as confirmed
+        // 2026-05-24 audit-33 P1: pre-flight the escrow state BEFORE
+        // setting completion_confirmed_by_homeowner. Previously the
+        // route flipped the confirmation flag, fired the "Payment is
+        // being processed" email + push, and only THEN looked up the
+        // escrow row — succeeding even when there was no held escrow
+        // (the cron only processes status='held', so rows in pending,
+        // release_pending, or missing entirely never moved). The
+        // homeowner had already been told payment was processing and
+        // had no path to retry. Fail early so the UI can recover.
+        const { data: preEscrow, error: preEscrowErr } = await serverSupabase
+          .from('escrow_transactions')
+          .select('id, status, amount')
+          .eq('job_id', jobId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (preEscrowErr) {
+          logger.error('Failed to pre-flight escrow row', preEscrowErr, {
+            service: 'jobs',
+            jobId,
+          });
+          throw new Error('Failed to verify payment status');
+        }
+        if (!preEscrow) {
+          throw new BadRequestError(
+            'No payment record found for this job. Payment must be secured in ' +
+              'escrow before completion can be confirmed — contact support if ' +
+              'you believe this is in error.'
+          );
+        }
+        if (
+          preEscrow.status !== ESCROW_STATUS.HELD &&
+          preEscrow.status !== ESCROW_STATUS.RELEASE_PENDING
+        ) {
+          throw new BadRequestError(
+            `Payment is in "${preEscrow.status}" state. Only held or ` +
+              `release_pending escrow can be released — contact support if ` +
+              `you need help resolving the payment.`
+          );
+        }
+
+        // Update job to mark completion as confirmed.
+        //
+        // 2026-05-24 audit-33 P2: previously also wrote `completed_at =
+        // now()`, overwriting the contractor-set declaration timestamp.
+        // The two events are semantically distinct (contractor declared
+        // vs homeowner approved) and analytics / duration / SLA logic
+        // needs both. Now writes the new `completion_confirmed_at`
+        // column (migration 20260524130000) and leaves `completed_at`
+        // intact.
         const { error: updateError } = await serverSupabase
           .from('jobs')
           .update({
             completion_confirmed_by_homeowner: true,
-            completed_at: new Date().toISOString(),
+            completion_confirmed_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
           })
           .eq('id', jobId);
@@ -277,31 +327,22 @@ export const POST = withApiHandler(
         // request-changes resets these fields symmetrically so a homeowner
         // who approves then changes their mind doesn't accidentally trip
         // the cron during the rework cycle.
-        try {
-          // Check if there's an active escrow transaction for this job
-          const { data: escrowTransaction, error: escrowError } =
-            await serverSupabase
-              .from('escrow_transactions')
-              .select('id, status, amount')
-              .eq('job_id', jobId)
-              .eq('status', ESCROW_STATUS.HELD)
-              .single();
-
-          if (escrowError && escrowError.code !== 'PGRST116') {
-            // PGRST116 is "no rows returned", which is acceptable
-            logger.error('Failed to fetch escrow transaction', escrowError, {
-              service: 'jobs',
-              jobId,
-            });
-          }
-
-          if (escrowTransaction) {
-            // Sanity-check the transition is still valid; we don't actually
-            // flip status (the cron will), but the assertion guards against
-            // race conditions where the escrow is already released or
-            // disputed by the time we get here.
+        // 2026-05-24 audit-33 P1: reuse the pre-flight escrow result
+        // rather than re-querying with a strict status='held' filter.
+        // Pre-flight already established the row is in held OR
+        // release_pending. For held rows, stamp the homeowner-approval
+        // + auto-release fields so the cron picks it up next pass. For
+        // release_pending rows, those fields were already set by an
+        // earlier confirm-completion attempt — nothing more to do, the
+        // cron is processing them.
+        if (preEscrow.status === ESCROW_STATUS.HELD) {
+          try {
+            // Sanity-check the transition is still valid; we don't
+            // actually flip status (the cron will), but the assertion
+            // guards against race conditions where the escrow is
+            // already released or disputed by the time we get here.
             validateEscrowTransition(
-              escrowTransaction.status as EscrowStatusValue,
+              preEscrow.status as EscrowStatusValue,
               ESCROW_STATUS.RELEASE_PENDING as EscrowStatusValue
             );
 
@@ -318,7 +359,7 @@ export const POST = withApiHandler(
                 release_reason: 'homeowner_approved',
                 updated_at: nowIso,
               })
-              .eq('id', escrowTransaction.id);
+              .eq('id', preEscrow.id);
 
             if (releaseError) {
               logger.error(
@@ -327,36 +368,36 @@ export const POST = withApiHandler(
                 {
                   service: 'jobs',
                   jobId,
-                  escrowId: escrowTransaction.id,
+                  escrowId: preEscrow.id,
                 }
               );
-              // Don't fail the request, but log the issue. Next cron pass
-              // would have picked it up via the existing auto_release_date
+              // Don't fail the request, but log the issue. Next cron
+              // pass picks it up via the existing auto_release_date
               // field if it was previously set by the complete-job hook.
             } else {
               logger.info('Escrow marked for next auto-release cron run', {
                 service: 'jobs',
                 jobId,
-                escrowId: escrowTransaction.id,
-                amount: escrowTransaction.amount,
+                escrowId: preEscrow.id,
+                amount: preEscrow.amount,
               });
             }
-          } else {
-            logger.warn('No active escrow transaction found for job', {
-              service: 'jobs',
-              jobId,
-            });
+          } catch (escrowError) {
+            logger.error(
+              'Unexpected error handling escrow release',
+              escrowError,
+              {
+                service: 'jobs',
+                jobId,
+              }
+            );
+            // Don't fail the request
           }
-        } catch (escrowError) {
-          logger.error(
-            'Unexpected error handling escrow release',
-            escrowError,
-            {
-              service: 'jobs',
-              jobId,
-            }
+        } else {
+          logger.info(
+            'Escrow already release_pending — skipping homeowner-approval stamp',
+            { service: 'jobs', jobId, escrowId: preEscrow.id }
           );
-          // Don't fail the request
         }
 
         logger.info('Job completion confirmed successfully', {

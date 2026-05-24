@@ -29,8 +29,14 @@ export const GET = withApiHandler(
   async (request, { user }) => {
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status') || 'en_route';
+    // 2026-05-24 audit-32 P1: jobId filter lets mobile's arrival flow
+    // resolve the contractor's active trip without pulling the full
+    // list. Without this the mobile "Arrived" path had no way to find
+    // the trip id to PATCH and the en_route row stayed open forever —
+    // blocking any future trip start.
+    const jobIdFilter = searchParams.get('jobId');
 
-    const { data: trips, error } = await serverSupabase
+    let query = serverSupabase
       .from('contractor_trips')
       .select(
         `
@@ -40,7 +46,13 @@ export const GET = withApiHandler(
       `
       )
       .eq('contractor_id', user.id)
-      .eq('status', status)
+      .eq('status', status);
+
+    if (jobIdFilter) {
+      query = query.eq('job_id', jobIdFilter);
+    }
+
+    const { data: trips, error } = await query
       .order('started_at', { ascending: false })
       .limit(10);
 
@@ -159,18 +171,44 @@ export const POST = withApiHandler(
       throw error;
     }
 
-    // Update contractor_locations context to 'traveling'
-    await serverSupabase.from('contractor_locations').upsert(
-      {
-        contractor_id: user.id,
-        job_id: jobId || null,
-        context: 'traveling',
-        is_active: true,
-        is_sharing_location: true,
-        location_timestamp: new Date().toISOString(),
-      },
-      { onConflict: 'contractor_id' }
-    );
+    // 2026-05-24 audit-32 P1: previously upserted into contractor_locations
+    // with no latitude/longitude (both NOT NULL on the live table —
+    // verified via information_schema) AND onConflict: 'contractor_id'
+    // (there is no unique constraint on contractor_id alone; only a
+    // partial unique index on (contractor_id, job_id) WHERE is_active=
+    // true). The upsert therefore silently failed for every trip, the
+    // route returned 201 and notified the homeowner, but the location
+    // row never landed — so homeowner tracking had no live ETA.
+    //
+    // The canonical writer for contractor_locations is
+    // JobContextLocationService on mobile (it captures real lat/lng
+    // before persisting). Here we only want to mark any pre-existing
+    // active row as context='traveling'; if none exists, the next GPS
+    // tick from the mobile service will create it with valid coords.
+    if (jobId) {
+      const { error: locUpdateErr } = await serverSupabase
+        .from('contractor_locations')
+        .update({
+          context: 'traveling',
+          is_active: true,
+          is_sharing_location: true,
+          location_timestamp: new Date().toISOString(),
+        })
+        .eq('contractor_id', user.id)
+        .eq('job_id', jobId)
+        .eq('is_active', true);
+      if (locUpdateErr) {
+        logger.warn(
+          'Could not flip existing contractor_locations row to traveling',
+          {
+            service: 'trips',
+            contractorId: user.id,
+            jobId,
+            error: locUpdateErr.message,
+          }
+        );
+      }
+    }
 
     // Get contractor name for notifications
     const { data: contractor } = await serverSupabase

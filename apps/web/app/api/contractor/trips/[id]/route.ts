@@ -75,7 +75,17 @@ export const PATCH = withApiHandler(
       cancelled: 'available',
     };
 
-    await serverSupabase
+    // 2026-05-24 audit-32 P2: previously scoped the update to
+    // contractor_id only, so a contractor with multiple historic rows
+    // (legacy off-duty, parallel meeting, completed-but-still-active
+    // mis-state) had all of them flipped — old rows could end up
+    // labelled on_job when no real visit was happening, and stale rows
+    // got mass-deactivated. Now target the row tied to *this* trip's
+    // job_id (or appointment), and only if it's currently active.
+    // Falls back to nothing if no matching row exists — the next GPS
+    // tick from JobContextLocationService will create one with proper
+    // coords + context.
+    let locUpdate = serverSupabase
       .from('contractor_locations')
       .update({
         context: contextMap[status],
@@ -83,7 +93,21 @@ export const PATCH = withApiHandler(
         is_sharing_location: status === 'arrived',
         location_timestamp: new Date().toISOString(),
       })
-      .eq('contractor_id', user.id);
+      .eq('contractor_id', user.id)
+      .eq('is_active', true);
+    if (trip.job_id) {
+      locUpdate = locUpdate.eq('job_id', trip.job_id);
+    }
+    const { error: locUpdateErr } = await locUpdate;
+    if (locUpdateErr) {
+      logger.warn('Failed to update contractor_locations for trip status', {
+        service: 'trips',
+        tripId: resolvedParams.id,
+        jobId: trip.job_id,
+        status,
+        error: locUpdateErr.message,
+      });
+    }
 
     // Get contractor name
     const { data: contractor } = await serverSupabase

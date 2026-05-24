@@ -24,6 +24,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { me } from '../../../design-system/mint-editorial';
 import { mobileApiClient } from '../../../utils/mobileApiClient';
 import { logger } from '../../../utils/logger';
+import { useAuth } from '../../../contexts/AuthContext';
+import { JobContextLocationService } from '../../../services/JobContextLocationService';
 import { styles } from './NextUpCard.styles';
 
 interface NextAppointment {
@@ -52,18 +54,62 @@ const formatBudget = (n?: number): string | null => {
 
 export const NextUpCard: React.FC<Props> = ({ next, onOpenJob, onMessage }) => {
   const qc = useQueryClient();
+  const { user } = useAuth();
   const [tripStarted, setTripStarted] = useState(false);
 
   const tripMutation = useMutation({
     mutationFn: async (jobId: string) => {
-      await mobileApiClient.post('/api/contractor/trips', {
+      // 2026-05-24 audit-32 P2: previously this only POSTed the trip
+      // and notified the homeowner — no GPS tracking actually started.
+      // A contractor without pre-granted location permission could tell
+      // the app they were on the way and the homeowner would get the
+      // "on the way" push, but no live location was ever shared.
+      // Now: capture the trip response (it carries destination_lat/lng
+      // which we need for ETA) and immediately kick off
+      // JobContextLocationService.startJobTracking. The service
+      // requests foreground permission if not already granted, takes
+      // the first GPS fix, and starts the watchPositionAsync stream
+      // that writes contractor_locations rows with valid coords.
+      const resp = await mobileApiClient.post<{
+        trip?: {
+          id: string;
+          destination_lat: number | null;
+          destination_lng: number | null;
+        };
+      }>('/api/contractor/trips', {
         jobId,
         tripType: 'job_visit',
       });
+      return { jobId, trip: resp.trip };
     },
-    onSuccess: () => {
+    onSuccess: async ({ jobId, trip }) => {
       setTripStarted(true);
       qc.invalidateQueries({ queryKey: ['contractorStats'] });
+
+      // Start GPS tracking — but only if we have destination coords
+      // and a contractor user id. Tracking degrades to "no live ETA"
+      // when coords are missing; the homeowner notification still
+      // fires either way.
+      const destLat = trip?.destination_lat;
+      const destLng = trip?.destination_lng;
+      if (
+        user?.id &&
+        typeof destLat === 'number' &&
+        typeof destLng === 'number'
+      ) {
+        try {
+          const service = new JobContextLocationService();
+          await service.startJobTracking(user.id, jobId, null, {
+            latitude: destLat,
+            longitude: destLng,
+          });
+        } catch (err) {
+          // Permission denial or initial-fix failure shouldn't roll
+          // back the trip — the contractor has already told the
+          // homeowner they're on the way. Just log it.
+          logger.warn('Could not start GPS tracking after trip start', { err });
+        }
+      }
     },
     onError: (err) => {
       const msg = err instanceof Error ? err.message : 'Trip start failed.';

@@ -16,6 +16,7 @@ import { supabase } from '../config/supabase';
 import { logger } from '../utils/logger';
 import { encodeGeohash } from '../utils/geohash';
 import { BackgroundLocationTask } from './BackgroundLocationTask';
+import { mobileApiClient } from '../utils/mobileApiClient';
 
 export enum ContractorLocationContext {
   AVAILABLE = 'available', // Contractor is available (opt-in)
@@ -136,6 +137,15 @@ export class JobContextLocationService {
 
   /**
    * Mark contractor as arrived at job site
+   *
+   * 2026-05-24 audit-32 P1: previously only updated contractor_locations
+   * and stopped GPS — never closed the contractor_trips row that
+   * /api/contractor/trips POST had opened with status='en_route'. The
+   * trip then stayed open forever and the next "I'm on my way" tap
+   * 400'd with "You already have an active trip". Now: look up the
+   * en_route trip for this job and PATCH it to arrived, mirroring the
+   * web flow. Tolerates absence — not every arrival path is preceded
+   * by a trip-start (legacy entries, manual contractor flow).
    */
   async markArrived(jobId: string, meetingId: string | null): Promise<void> {
     if (!this.lastLocation) {
@@ -146,6 +156,28 @@ export class JobContextLocationService {
 
     // Update database with arrival status
     await this.updateContractorLocation(jobId, meetingId, this.lastLocation, 0);
+
+    // Close the contractor_trips en_route row if one exists.
+    try {
+      const resp = await mobileApiClient.get<{
+        trips?: { id: string; status: string; job_id: string | null }[];
+      }>(`/api/contractor/trips?status=en_route&jobId=${jobId}`);
+      const activeTrip = (resp.trips ?? [])[0];
+      if (activeTrip?.id) {
+        await mobileApiClient.patch(`/api/contractor/trips/${activeTrip.id}`, {
+          status: 'arrived',
+        });
+        logger.info('Closed en_route trip on arrival', {
+          tripId: activeTrip.id,
+          jobId,
+        });
+      }
+    } catch (err) {
+      logger.warn(
+        'Could not close en_route trip on arrival — continuing anyway',
+        { jobId, err }
+      );
+    }
 
     // Stop tracking (or reduce frequency)
     await this.stopJobTracking();

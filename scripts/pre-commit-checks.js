@@ -42,6 +42,13 @@ const KNOWN_LARGE_FILES = new Set([
   // into ./types, ./stripe-client, ./plan-pricing, ./queries,
   // ./stripe-operations, ./persistence. Facade is now 81 lines.
   'apps/web/app/api/contracts/route.ts',
+  // 2026-05-24 audit-33: pre-existing at 506 lines, audit fix added the
+  // auto-release scheduling hook (12 net lines after extracting the
+  // helper to ./_schedule-auto-release.ts). Whole route warrants a
+  // split into upload + verify + completion-side-effects but the
+  // 2026-05-22 audit only touched the completion-side-effects block
+  // and a wholesale split is out of scope for the audit pass.
+  'apps/web/app/api/jobs/[id]/photos/after/route.ts',
   'apps/web/lib/rate-limiter-enhanced.ts',
   'apps/mobile/src/components/JobStatusTracker.tsx',
   'apps/mobile/src/screens/home/RecentJobs.tsx',

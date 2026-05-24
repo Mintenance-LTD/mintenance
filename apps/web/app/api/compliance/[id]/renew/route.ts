@@ -2,7 +2,11 @@ import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { JobCreationService } from '@/lib/services/job-creation-service';
-import { NotFoundError, ForbiddenError, BadRequestError } from '@/lib/errors/api-error';
+import {
+  NotFoundError,
+  ForbiddenError,
+  BadRequestError,
+} from '@/lib/errors/api-error';
 
 const CERT_TYPE_LABELS: Record<string, string> = {
   gas_safety: 'Gas Safety (CP12)',
@@ -45,7 +49,9 @@ export const POST = withApiHandler(
 
     // Only renew expired or expiring certs
     if (cert.status !== 'expired' && cert.status !== 'expiring') {
-      throw new BadRequestError('Certificate is still valid and does not need renewal');
+      throw new BadRequestError(
+        'Certificate is still valid and does not need renewal'
+      );
     }
 
     // Prevent duplicate renewal jobs
@@ -57,9 +63,20 @@ export const POST = withApiHandler(
       });
     }
 
-    const certLabel = CERT_TYPE_LABELS[cert.cert_type] || cert.cert_type.replace(/_/g, ' ');
+    const certLabel =
+      CERT_TYPE_LABELS[cert.cert_type] || cert.cert_type.replace(/_/g, ' ');
 
     // Create the job
+    //
+    // 2026-05-24 audit-31 P1: JobCreationService.enforcePhotoRequirement
+    // rejects photoless jobs unless requirements.contractor_before_photos
+    // is true. A compliance-certificate renewal — gas-safety inspection,
+    // EICR, EPC, smoke-alarm check — is by nature inspection work; the
+    // homeowner has no meaningful "before" photo to upload and the
+    // contractor captures evidence on arrival. Without this flag, the
+    // one-click renew CTA always 400'd before reaching the DB, even
+    // though this is exactly the landlord/compliance flow that
+    // shouldn't require homeowner photos.
     const job = await JobCreationService.getInstance().createJob(
       { id: user.id, role: 'homeowner' },
       {
@@ -71,7 +88,11 @@ export const POST = withApiHandler(
         }`,
         category: cert.cert_type,
         property_id: cert.property_id,
-      },
+        requirements: {
+          contractor_before_photos: true,
+          compliance_renewal_cert_id: certId,
+        },
+      }
     );
 
     // Link the renewal job back to the certificate
@@ -80,10 +101,13 @@ export const POST = withApiHandler(
       .update({ renewal_job_id: job.id })
       .eq('id', certId);
 
-    return NextResponse.json({
-      jobId: job.id,
-      message: 'Renewal job created successfully',
-      alreadyExists: false,
-    }, { status: 201 });
-  },
+    return NextResponse.json(
+      {
+        jobId: job.id,
+        message: 'Renewal job created successfully',
+        alreadyExists: false,
+      },
+      { status: 201 }
+    );
+  }
 );

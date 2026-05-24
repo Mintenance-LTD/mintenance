@@ -332,6 +332,20 @@ export const POST = withApiHandler(
             if (!completeError) {
               jobCompleted = true;
 
+              // 2026-05-24 audit-33 P1: schedule the 7-day auto-release
+              // fallback. Without this, photo-driven completions
+              // without homeowner approval never set auto_release_date
+              // and the cron never picked them up. See helper for
+              // detailed rationale.
+              if (job.contractor_id) {
+                const { scheduleAutoReleaseForCompletion } =
+                  await import('./_schedule-auto-release');
+                await scheduleAutoReleaseForCompletion(
+                  jobId,
+                  job.contractor_id
+                );
+              }
+
               // R7 #8 neighbour referral: if the homeowner redeemed a
               // referral and this is their first completed job, credit
               // £20 to both parties. Non-fatal if it fails.
