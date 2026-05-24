@@ -155,6 +155,16 @@ export function routeForNotification(
     case 'contractor_en_route':
     case 'contractor_arrived':
     case 'job_terminated':
+    // 2026-05-24 audit-39 P1: /api/jobs/[id]/request-location ships
+    // type='location_sharing_request' so the homeowner can ask the
+    // assigned contractor to start live location sharing. The push
+    // metadata carries jobId; deep-linking to JobDetails lands the
+    // contractor on the screen where ContractorLocationSection
+    // exposes the "Share location" toggle. Previously fell through
+    // to NOTIFICATIONS_FALLBACK.
+    case 'location_sharing_request':
+    case 'location_sharing_started':
+    case 'location_sharing_stopped':
       return p.jobId ? jobDetailsRoute(p.jobId) : NOTIFICATIONS_FALLBACK;
 
     case 'bid_received':

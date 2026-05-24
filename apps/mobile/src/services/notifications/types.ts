@@ -47,6 +47,13 @@ export interface NotificationData {
     | 'job_completed'
     | 'job_started'
     | 'review_requested'
+    // 2026-05-24 audit-39 P1: location sharing events the homeowner
+    // request flow + the contractor accept/decline path produce. Was
+    // previously falling through to the inbox because the discriminated
+    // union didn't list them and the router default kicked in.
+    | 'location_sharing_request'
+    | 'location_sharing_started'
+    | 'location_sharing_stopped'
     | 'system';
   priority: 'low' | 'normal' | 'high';
   userId: string;

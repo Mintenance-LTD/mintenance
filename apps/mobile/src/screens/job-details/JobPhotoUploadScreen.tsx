@@ -20,8 +20,10 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import NetInfo from '@react-native-community/netinfo';
 import { useTranslation } from 'react-i18next';
+import { useQueryClient } from '@tanstack/react-query';
 import { PhotoUploadService } from '../../services/PhotoUploadService';
 import { JobService } from '../../services/JobService';
+import { queryKeys } from '../../lib/queryClient';
 import { JobsStackParamList } from '../../navigation/types';
 import { me } from '../../design-system/mint-editorial';
 import { styles } from './jobPhotoUploadStyles';
@@ -50,6 +52,7 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({
   const { jobId, photoType } = route.params;
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
+  const qc = useQueryClient();
   const [photos, setPhotos] = useState<SelectedPhoto[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -140,7 +143,7 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({
         ? PhotoUploadService.uploadBeforePhotos
         : PhotoUploadService.uploadAfterPhotos;
 
-      const results: Array<{ success: boolean }> = [];
+      const results: Array<{ success: boolean; jobCompleted?: boolean }> = [];
       for (let i = 0; i < assets.length; i++) {
         setUploadProgress((i / assets.length) * 100);
         try {
@@ -197,6 +200,16 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({
                 onPress: async () => {
                   try {
                     await JobService.startJob(jobId);
+                    // 2026-05-24 audit-39 P2: previously goBack()'d
+                    // without invalidating any job query, so the
+                    // detail screen showed the assigned-state CTA
+                    // until the next manual refetch. Invalidate the
+                    // job detail + list keys so the upstream screen
+                    // re-renders with status='in_progress' immediately.
+                    qc.invalidateQueries({
+                      queryKey: queryKeys.jobs.details(jobId),
+                    });
+                    qc.invalidateQueries({ queryKey: queryKeys.jobs.lists() });
                     Alert.alert(
                       'Job Started',
                       'The homeowner has been notified that work has begun.',
@@ -216,11 +229,25 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({
             ]
           );
         } else {
-          // Job completion is auto-triggered by the backend on after-photo upload (Phase 8 spec).
-          // No manual completeJob() call here — avoids race condition with the webhook.
+          // 2026-05-24 audit-39 P1: the /api/jobs/[id]/photos/after
+          // route conditionally auto-completes the job (gated on
+          // contractor assignment + held escrow). If those checks
+          // fail the photos still upload but the job stays
+          // in_progress — previously we showed "Job Completed"
+          // unconditionally, lying to the contractor and skipping the
+          // homeowner's review trigger. Use the server's jobCompleted
+          // flag (now plumbed through PhotoUploadService) to pick the
+          // right message.
+          const completed = results.some((r) => r.jobCompleted === true);
+          // Invalidate the job detail so the next view reflects the
+          // new state regardless of which branch ran.
+          qc.invalidateQueries({ queryKey: queryKeys.jobs.details(jobId) });
+          qc.invalidateQueries({ queryKey: queryKeys.jobs.lists() });
           Alert.alert(
-            'Job Completed',
-            `${successCount} after photo(s) uploaded. The homeowner has been notified to review your work.`,
+            completed ? 'Job Completed' : 'Photos Uploaded',
+            completed
+              ? `${successCount} after photo(s) uploaded. The homeowner has been notified to review your work.`
+              : `${successCount} after photo(s) uploaded. The job hasn't been auto-completed yet — usually because escrow isn't held. Contact support if this persists.`,
             [{ text: 'OK', onPress: () => navigation.goBack() }]
           );
         }
@@ -233,7 +260,7 @@ export const JobPhotoUploadScreen: React.FC<Props> = ({
     } finally {
       setUploading(false);
     }
-  }, [photos, jobId, isBefore, navigation]);
+  }, [photos, jobId, isBefore, navigation, qc]);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
