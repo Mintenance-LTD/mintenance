@@ -40,19 +40,23 @@ async function requireLandlordTier(userId: string, role: string) {
  * default. /api/landlord/recurring continues to use the same table for
  * the dashboard list view, so the two surfaces stay consistent.
  *
- * Frequency translation: mobile sends weekly/monthly/quarterly/yearly.
- * `recurring_schedules` accepts the same plus biannual/annual. We
- * pass values through directly because RecurringJobCreatorService's
- * advanceDate handles all five (yearly + annual are equivalent).
+ * 2026-05-24 audit-31 P1: the live recurring_schedules_frequency_check
+ * CHECK constraint allows only {monthly, quarterly, biannual, annual}
+ * (verified via pg_constraint). The previous accept-list included
+ * 'weekly' and 'yearly' from a stale comment that claimed advanceDate
+ * handled them — the DB still 23514s before advanceDate is reached.
+ * The accept list now mirrors the constraint exactly. 'yearly' is
+ * still coerced to 'annual' on input so any older client cache
+ * doesn't break (same end-state, just the canonical column value).
  */
-const VALID_FREQUENCIES = [
-  'weekly',
-  'monthly',
-  'quarterly',
-  'biannual',
-  'annual',
-  'yearly',
-];
+const VALID_FREQUENCIES = ['monthly', 'quarterly', 'biannual', 'annual'];
+
+function normalizeFrequency(raw: unknown): string | null {
+  if (typeof raw !== 'string') return null;
+  const v = raw.trim().toLowerCase();
+  if (v === 'yearly') return 'annual';
+  return VALID_FREQUENCIES.includes(v) ? v : null;
+}
 
 // GET /api/properties/[id]/recurring-maintenance
 export const GET = withApiHandler(
@@ -122,8 +126,14 @@ export const POST = withApiHandler(
       );
     }
 
-    if (!VALID_FREQUENCIES.includes(frequency)) {
-      return NextResponse.json({ error: 'Invalid frequency' }, { status: 400 });
+    const normalizedFrequency = normalizeFrequency(frequency);
+    if (!normalizedFrequency) {
+      return NextResponse.json(
+        {
+          error: `Invalid frequency. Allowed: ${VALID_FREQUENCIES.join(', ')}`,
+        },
+        { status: 400 }
+      );
     }
 
     const { data: schedule, error } = await serverSupabase
@@ -140,7 +150,7 @@ export const POST = withApiHandler(
         description: title,
         task_type: 'general',
         category: category || 'general',
-        frequency,
+        frequency: normalizedFrequency,
         next_due_date,
         // Mobile / property flow assumes auto-creation: the whole UI
         // promises "next visit on …" and the homeowner expects the job

@@ -133,6 +133,16 @@ export class RecurringJobCreatorService {
 
         // Create the job, tagging it with the schedule_id for next-run
         // idempotency lookups.
+        //
+        // 2026-05-24 audit-31 P1: JobCreationService.enforcePhotoRequirement
+        // rejects any job without photoUrls unless requirements.
+        // contractor_before_photos === true. Cron-created recurring jobs
+        // have no homeowner-supplied photos by design — the schedule was
+        // configured on the property page with no upload step — so set
+        // the contractor-before-photos flag so the photo gate is
+        // satisfied by the on-arrival capture instead. Without this,
+        // every due schedule's job creation throws BadRequestError and
+        // the cron never posts the job.
         const job = await JobCreationService.getInstance().createJob(
           { id: schedule.owner_id, role: 'homeowner' },
           {
@@ -145,6 +155,7 @@ export class RecurringJobCreatorService {
             requirements: {
               from_schedule_id: schedule.id,
               schedule_cycle_due: schedule.next_due_date,
+              contractor_before_photos: true,
             },
           }
         );
