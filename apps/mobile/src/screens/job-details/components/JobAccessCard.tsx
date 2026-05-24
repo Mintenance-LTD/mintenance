@@ -23,7 +23,13 @@
  */
 
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Linking,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { me } from '../../../design-system/mint-editorial';
 
@@ -36,9 +42,31 @@ export interface PropertyAccess {
   consumer_unit_location: string | null;
 }
 
+// 2026-05-24 audit-30 P1: mirror the property_contacts row shape the
+// job detail GET returns. Renders below the access section so a
+// contractor en route can call the tenant or keyholder if they can't
+// get in, and a homeowner / admin can see the same list for context.
+export interface PropertyContact {
+  id: string;
+  name: string;
+  contact_role: string;
+  phone: string | null;
+  email: string | null;
+  unit_label: string | null;
+  notes: string | null;
+}
+
 interface Props {
   access: PropertyAccess | null | undefined;
+  contacts?: PropertyContact[] | null;
 }
+
+const ROLE_LABEL: Record<string, string> = {
+  tenant: 'Tenant',
+  keyholder: 'Keyholder',
+  emergency_contact: 'Emergency contact',
+  managing_agent: 'Managing agent',
+};
 
 const MODE_LABEL: Record<string, string> = {
   key_safe: 'Key safe',
@@ -46,18 +74,21 @@ const MODE_LABEL: Record<string, string> = {
   in_person: 'Homeowner will be home',
 };
 
-export const JobAccessCard: React.FC<Props> = ({ access }) => {
-  if (!access) return null;
+export const JobAccessCard: React.FC<Props> = ({ access, contacts }) => {
+  const contactList = (contacts ?? []).filter(
+    (c) => !!c && !!c.name
+  ) as PropertyContact[];
 
-  const hasAnyDetail =
-    !!access.access_mode ||
-    !!access.key_safe_code ||
-    !!access.access_notes ||
-    !!access.stopcock_location ||
-    !!access.gas_isolator_location ||
-    !!access.consumer_unit_location;
+  const hasAccessDetail =
+    !!access &&
+    (!!access.access_mode ||
+      !!access.key_safe_code ||
+      !!access.access_notes ||
+      !!access.stopcock_location ||
+      !!access.gas_isolator_location ||
+      !!access.consumer_unit_location);
 
-  if (!hasAnyDetail) return null;
+  if (!hasAccessDetail && contactList.length === 0) return null;
 
   return (
     <View style={styles.card}>
@@ -68,7 +99,7 @@ export const JobAccessCard: React.FC<Props> = ({ access }) => {
         <Text style={styles.title}>Access & contacts</Text>
       </View>
 
-      {access.access_mode ? (
+      {access?.access_mode ? (
         <View style={styles.row}>
           <Text style={styles.label}>How to get in</Text>
           <Text style={styles.value}>
@@ -77,12 +108,12 @@ export const JobAccessCard: React.FC<Props> = ({ access }) => {
         </View>
       ) : null}
 
-      {access.key_safe_code ? (
+      {access?.key_safe_code ? (
         <View style={styles.row}>
           <Text style={styles.label}>Lock-box code</Text>
           <Text style={styles.code}>{access.key_safe_code}</Text>
         </View>
-      ) : access.access_mode === 'key_safe' ? (
+      ) : access?.access_mode === 'key_safe' ? (
         <View style={styles.row}>
           <Text style={styles.label}>Lock-box code</Text>
           <Text style={styles.muted}>
@@ -91,31 +122,79 @@ export const JobAccessCard: React.FC<Props> = ({ access }) => {
         </View>
       ) : null}
 
-      {access.access_notes ? (
+      {access?.access_notes ? (
         <View style={styles.row}>
           <Text style={styles.label}>Notes from the homeowner</Text>
           <Text style={styles.value}>{access.access_notes}</Text>
         </View>
       ) : null}
 
-      {access.stopcock_location ? (
+      {access?.stopcock_location ? (
         <View style={styles.row}>
           <Text style={styles.label}>Stopcock</Text>
           <Text style={styles.value}>{access.stopcock_location}</Text>
         </View>
       ) : null}
 
-      {access.gas_isolator_location ? (
+      {access?.gas_isolator_location ? (
         <View style={styles.row}>
           <Text style={styles.label}>Gas isolator</Text>
           <Text style={styles.value}>{access.gas_isolator_location}</Text>
         </View>
       ) : null}
 
-      {access.consumer_unit_location ? (
+      {access?.consumer_unit_location ? (
         <View style={styles.row}>
           <Text style={styles.label}>Consumer unit</Text>
           <Text style={styles.value}>{access.consumer_unit_location}</Text>
+        </View>
+      ) : null}
+
+      {/* 2026-05-24 audit-30 P1: contacts attached to the property —
+          previously the card was titled "Access & contacts" but the
+          contacts half was never rendered. */}
+      {contactList.length > 0 ? (
+        <View style={styles.contactsBlock}>
+          <Text style={styles.label}>People at this property</Text>
+          {contactList.map((c) => {
+            const roleLabel = ROLE_LABEL[c.contact_role] ?? c.contact_role;
+            return (
+              <View key={c.id} style={styles.contactRow}>
+                <View style={styles.contactHeader}>
+                  <Text style={styles.contactName}>{c.name}</Text>
+                  <View style={styles.roleBadge}>
+                    <Text style={styles.roleBadgeText}>{roleLabel}</Text>
+                  </View>
+                </View>
+                {c.unit_label ? (
+                  <Text style={styles.contactUnit}>Unit {c.unit_label}</Text>
+                ) : null}
+                <View style={styles.contactActions}>
+                  {c.phone ? (
+                    <TouchableOpacity
+                      onPress={() => Linking.openURL(`tel:${c.phone}`)}
+                      accessibilityRole='button'
+                      accessibilityLabel={`Call ${c.name}`}
+                    >
+                      <Text style={styles.contactLink}>{c.phone}</Text>
+                    </TouchableOpacity>
+                  ) : null}
+                  {c.email ? (
+                    <TouchableOpacity
+                      onPress={() => Linking.openURL(`mailto:${c.email}`)}
+                      accessibilityRole='button'
+                      accessibilityLabel={`Email ${c.name}`}
+                    >
+                      <Text style={styles.contactLink}>{c.email}</Text>
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
+                {c.notes ? (
+                  <Text style={styles.contactNotes}>{c.notes}</Text>
+                ) : null}
+              </View>
+            );
+          })}
         </View>
       ) : null}
     </View>
@@ -175,5 +254,63 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: me.ink3,
     fontStyle: 'italic',
+  },
+  // 2026-05-24 audit-30 P1: contact rows live under their own block
+  // so they're visually separated from the access fields and stack
+  // tightly on smaller phones.
+  contactsBlock: {
+    gap: 10,
+  },
+  contactRow: {
+    gap: 4,
+    paddingTop: 8,
+    paddingBottom: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: me.line,
+  },
+  contactHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  contactName: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: me.ink,
+  },
+  roleBadge: {
+    backgroundColor: me.brandSoft,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 999,
+  },
+  roleBadgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: me.brand,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  contactUnit: {
+    fontSize: 12,
+    color: me.ink3,
+  },
+  contactActions: {
+    flexDirection: 'row',
+    gap: 12,
+    flexWrap: 'wrap',
+    marginTop: 2,
+  },
+  contactLink: {
+    fontSize: 13,
+    color: me.brand,
+    fontWeight: '600',
+  },
+  contactNotes: {
+    fontSize: 12,
+    color: me.ink2,
+    lineHeight: 18,
+    marginTop: 2,
   },
 });

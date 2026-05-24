@@ -2,15 +2,28 @@ import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 
-// GET /api/landlord/contacts - List all contacts for the authenticated user
+// GET /api/landlord/contacts - List all contacts for the authenticated user.
+// 2026-05-24 audit-30 P1: optional ?propertyId= scopes the result to a
+// single property so the mobile property detail can hydrate just the
+// contacts attached to that property (instead of fetching every contact
+// the landlord owns and filtering client-side).
 export const GET = withApiHandler(
   { roles: ['homeowner', 'admin'], csrf: false },
-  async (_req, { user }) => {
-    const { data, error } = await serverSupabase
+  async (req, { user }) => {
+    const { searchParams } = new URL(req.url);
+    const propertyId = searchParams.get('propertyId');
+
+    let query = serverSupabase
       .from('property_contacts')
       .select('*')
       .eq('owner_id', user.id)
       .order('name');
+
+    if (propertyId) {
+      query = query.eq('property_id', propertyId);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       return NextResponse.json(

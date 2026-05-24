@@ -28,6 +28,7 @@ import { PropertyHealthScore } from './components/PropertyHealthScore';
 import { SpendingAnalytics } from './components/SpendingAnalytics';
 import { RecurringMaintenance } from './components/RecurringMaintenance';
 import { TenantContacts } from './components/TenantContacts';
+import { PropertyContacts } from './components/PropertyContacts';
 import { TeamAccess } from './components/TeamAccess';
 import { ComplianceCertificates } from './components/ComplianceCertificates';
 import { PropertyRoomsSection } from './components/PropertyRoomsSection';
@@ -545,6 +546,13 @@ export const PropertyDetailScreen: React.FC<Props> = ({
 
   const renderManageTab = () => (
     <>
+      {/* 2026-05-24 audit-30 P1: PropertyContacts surfaces the 4-role
+          (tenant / keyholder / emergency / managing agent) collection
+          that the web /landlord/contacts page writes to, so the
+          mobile-managed property carries the same "who do I call
+          when I arrive" list. TenantContacts remains for the
+          tenant-invitation flow (account linkage). */}
+      <PropertyContacts propertyId={propertyId} />
       <TenantContacts propertyId={propertyId} />
       <TeamAccess propertyId={propertyId} />
 
