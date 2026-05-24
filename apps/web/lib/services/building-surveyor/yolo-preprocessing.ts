@@ -10,6 +10,7 @@
 
 import sharp from 'sharp';
 import { logger } from '@mintenance/shared';
+import { safeFetch, SafeFetchError } from '@/lib/security/safe-fetch';
 
 export interface PreprocessedImage {
   /** Preprocessed image tensor [1, 3, 640, 640] */
@@ -28,12 +29,17 @@ export interface PreprocessedImage {
 const MODEL_INPUT_SIZE = 640;
 
 /**
- * Download and preprocess image for YOLO inference
+ * Download and preprocess image for YOLO inference.
  *
- * @param imageUrl - URL or file path to image
+ * @param imageUrl - HTTPS URL to image. Must be in the validateURL
+ *   allowlist (defaults to *.supabase.co / *.supabase.in). Filesystem
+ *   paths are NOT supported — the previous `fs.readFile(imageUrl)`
+ *   branch was an LFI gadget and was removed in the 2026-05-24 audit.
  * @returns Preprocessed image tensor and metadata
  */
-export async function preprocessImageForYOLO(imageUrl: string): Promise<PreprocessedImage> {
+export async function preprocessImageForYOLO(
+  imageUrl: string
+): Promise<PreprocessedImage> {
   try {
     // Download or read image
     const imageBuffer = await downloadImage(imageUrl);
@@ -54,7 +60,9 @@ export async function preprocessImageForYOLO(imageUrl: string): Promise<Preproce
 
     // Convert to RGB array and normalize (0-255 → 0-1)
     const pixels = new Uint8Array(resizedBuffer);
-    const tensor = new Float32Array(1 * 3 * MODEL_INPUT_SIZE * MODEL_INPUT_SIZE);
+    const tensor = new Float32Array(
+      1 * 3 * MODEL_INPUT_SIZE * MODEL_INPUT_SIZE
+    );
 
     // Convert from HWC to CHW format and normalize
     for (let h = 0; h < MODEL_INPUT_SIZE; h++) {
@@ -65,9 +73,15 @@ export async function preprocessImageForYOLO(imageUrl: string): Promise<Preproce
         const b = pixels[pixelIndex + 2] / 255.0;
 
         // CHW format: [channel][height][width]
-        tensor[0 * MODEL_INPUT_SIZE * MODEL_INPUT_SIZE + h * MODEL_INPUT_SIZE + w] = r;
-        tensor[1 * MODEL_INPUT_SIZE * MODEL_INPUT_SIZE + h * MODEL_INPUT_SIZE + w] = g;
-        tensor[2 * MODEL_INPUT_SIZE * MODEL_INPUT_SIZE + h * MODEL_INPUT_SIZE + w] = b;
+        tensor[
+          0 * MODEL_INPUT_SIZE * MODEL_INPUT_SIZE + h * MODEL_INPUT_SIZE + w
+        ] = r;
+        tensor[
+          1 * MODEL_INPUT_SIZE * MODEL_INPUT_SIZE + h * MODEL_INPUT_SIZE + w
+        ] = g;
+        tensor[
+          2 * MODEL_INPUT_SIZE * MODEL_INPUT_SIZE + h * MODEL_INPUT_SIZE + w
+        ] = b;
       }
     }
 
@@ -88,26 +102,38 @@ export async function preprocessImageForYOLO(imageUrl: string): Promise<Preproce
       imageUrl,
       error,
     });
-    throw new Error(`Image preprocessing failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    throw new Error(
+      `Image preprocessing failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+    );
   }
 }
 
 /**
- * Download image from URL or read from file system
+ * Download image from a validated remote URL.
+ *
+ * Audit 2026-05-24 HIGH: previously this function had two attack surfaces:
+ *   1. An unbounded `fetch(imageUrl)` with no DNS check, no size cap, no
+ *      content-type check — classic SSRF.
+ *   2. A `fs.readFile(imageUrl)` fallback for non-HTTP inputs — a
+ *      straight LFI gadget the moment any user-influenced string reached
+ *      this function.
+ *
+ * Both are now routed through `safeFetch` which validates the URL against
+ * the allowlist, resolves DNS to ensure the host is not in private space,
+ * caps the response size, and enforces an image/* content-type.
  */
 async function downloadImage(imageUrl: string): Promise<Buffer> {
-  // Check if it's a URL or file path
-  if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
-    const response = await fetch(imageUrl);
-    if (!response.ok) {
-      throw new Error(`Failed to download image: ${response.status} ${response.statusText}`);
-    }
-    const arrayBuffer = await response.arrayBuffer();
-    return Buffer.from(arrayBuffer);
+  if (!imageUrl.startsWith('https://') && !imageUrl.startsWith('http://')) {
+    throw new SafeFetchError(
+      'INVALID_URL',
+      'YOLO preprocessing requires an http(s) URL; filesystem paths are not supported'
+    );
   }
-
-  // File system path (for local development)
-  const fs = await import('fs/promises');
-  return await fs.readFile(imageUrl);
+  const { buffer } = await safeFetch(imageUrl, {
+    // 25 MB default already covers Supabase-stored property photos
+    // (typical 1-5 MB) with headroom; raise per-call if a training run
+    // legitimately needs more.
+    allowedContentTypes: ['image/'],
+  });
+  return buffer;
 }
-

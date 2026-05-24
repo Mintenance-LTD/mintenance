@@ -74,15 +74,26 @@ export const POST = withApiHandler(
       );
     }
 
-    // Update job status to completed
-    const { error: updateError } = await serverSupabase
+    // Update job status to completed.
+    //
+    // 2026-05-24 audit: optimistic lock on the prior status. Without this
+    // predicate, two concurrent POST /complete requests both pass the
+    // validateStatusTransition read above (job.status === 'in_progress'),
+    // both run the UPDATE, and we fan out two `job_update` notifications
+    // (one homeowner gets two emails + two pushes for the same event).
+    // The .eq('status', JOB_STATUS.IN_PROGRESS) predicate makes the
+    // UPDATE a no-op on the loser; .select('id') lets us detect the
+    // no-op via row count and bail before the notification fanout.
+    const { data: updatedRows, error: updateError } = await serverSupabase
       .from('jobs')
       .update({
         status: JOB_STATUS.COMPLETED,
         completed_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })
-      .eq('id', jobId);
+      .eq('id', jobId)
+      .eq('status', JOB_STATUS.IN_PROGRESS)
+      .select('id');
 
     if (updateError) {
       logger.error('Failed to complete job', {
@@ -91,6 +102,27 @@ export const POST = withApiHandler(
         error: updateError.message,
       });
       throw updateError;
+    }
+
+    if (!updatedRows || updatedRows.length === 0) {
+      // Status changed between the read above and this update — most
+      // commonly a duplicate POST from a flaky mobile network. Treat
+      // as idempotent success: the job is already completed (or moved
+      // on to disputed/cancelled), so the second caller doesn't need
+      // to fan out notifications a second time.
+      logger.info(
+        'Job completion no-op — status changed between read and update',
+        {
+          service: 'jobs',
+          jobId,
+          contractorId: user.id,
+        }
+      );
+      return NextResponse.json({
+        success: true,
+        message: 'Job already completed',
+        idempotent: true,
+      });
     }
 
     // 2026-05-01 audit follow-up: route through NotificationService so push +
