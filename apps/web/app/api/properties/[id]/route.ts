@@ -4,7 +4,11 @@ import {
   createRequestScopedClient,
 } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
-import { NotFoundError, ForbiddenError } from '@/lib/errors/api-error';
+import {
+  NotFoundError,
+  ForbiddenError,
+  BadRequestError,
+} from '@/lib/errors/api-error';
 import { validateRequest } from '@/lib/validation/validator';
 import { updatePropertySchema } from '@/lib/validation/schemas';
 import { withApiHandler } from '@/lib/api/with-api-handler';
@@ -26,11 +30,8 @@ export const GET = withApiHandler(
     // serverSupabase after a verified authorize() is consistent.
 
     // Allow property owner OR team members with any role to view
-    const { authorized } = await PropertyTeamService.authorize(
-      user.id,
-      params.id,
-      'view'
-    );
+    const { authorized, role: propertyRole } =
+      await PropertyTeamService.authorize(user.id, params.id, 'view');
 
     if (!authorized && user.role !== 'admin') {
       throw new NotFoundError('Property not found');
@@ -44,6 +45,31 @@ export const GET = withApiHandler(
 
     if (error || !data) {
       throw new NotFoundError('Property not found');
+    }
+
+    // 2026-05-24 audit-37 P0: previously returned select('*') to any
+    // role that satisfied 'view' — including the viewer team role.
+    // That meant a viewer-role teammate could read key_safe_code
+    // immediately from this surface, bypassing the careful
+    // contractor-side 1-hour reveal window in
+    // lib/services/jobs/key-safe-reveal.ts and any future
+    // homeowner-defined ACL. Now: only the property owner and the
+    // platform admin get the code through this surface. Managers
+    // (who can edit the property + compliance) get the rest of the
+    // access fields but not the code itself; contractors with an
+    // assigned job continue to use the gated /api/jobs/[id] path
+    // which applies the 1h reveal rule. Viewer gets nothing extra
+    // either — they were the most acute case named by the audit.
+    const isOwnerOrPlatformAdmin =
+      propertyRole === 'owner' || user.role === 'admin';
+    if (!isOwnerOrPlatformAdmin) {
+      const redacted = data as Record<string, unknown>;
+      // Always strip the code for non-owner/non-platform-admin
+      // callers. Other access fields (access_mode, access_notes,
+      // stopcock_location, etc.) are kept because managers need them
+      // to plan visits — only the unlock code itself is the
+      // physical-entry secret.
+      redacted.key_safe_code = null;
     }
 
     return NextResponse.json(data);
@@ -157,10 +183,7 @@ export const PUT = withApiHandler(
 
 export const DELETE = withApiHandler(
   { rateLimit: { maxRequests: 30 } },
-  async (request, { user, params }) => {
-    // Use RLS-enforced client for user-scoped operations; fall back to service role
-    const userDb = createRequestScopedClient(request) ?? serverSupabase;
-
+  async (_request, { user, params }) => {
     // Only property owner can delete
     const { authorized } = await PropertyTeamService.authorize(
       user.id,
@@ -173,11 +196,69 @@ export const DELETE = withApiHandler(
       );
     }
 
-    // Delete the property from the database
-    const { error } = await userDb
+    // 2026-05-24 audit-34 P1: refuse to delete a property that's
+    // attached to an assigned or in-progress job. jobs.property_id is
+    // ON DELETE SET NULL live (verified via pg_constraint), so a
+    // delete here silently severs the link mid-job — the contractor
+    // loses access instructions, the homeowner loses room scope, and
+    // any /api/jobs/[id] enrichment that joins on property_id starts
+    // returning null. Block on the same set of in-flight job states
+    // the account-delete route blocks on.
+    const { count: activeJobCount, error: activeJobErr } = await serverSupabase
+      .from('jobs')
+      .select('id', { count: 'exact', head: true })
+      .eq('property_id', params.id)
+      .in('status', ['assigned', 'in_progress']);
+
+    if (activeJobErr) {
+      logger.error('Failed to check active jobs before property delete', {
+        service: 'properties',
+        propertyId: params.id,
+        error: activeJobErr.message,
+      });
+      throw activeJobErr;
+    }
+
+    if ((activeJobCount ?? 0) > 0) {
+      logger.warn('Property delete blocked by active jobs', {
+        service: 'properties',
+        propertyId: params.id,
+        userId: user.id,
+        activeJobCount,
+      });
+      return NextResponse.json(
+        {
+          error: 'Property delete blocked by active marketplace state.',
+          blockers: [
+            {
+              code: 'ACTIVE_JOBS_ON_PROPERTY',
+              count: activeJobCount,
+              message: `${activeJobCount} job(s) attached to this property are still assigned or in progress. Complete, cancel, or detach them before deleting the property.`,
+            },
+          ],
+        },
+        { status: 409 }
+      );
+    }
+
+    // 2026-05-24 audit-34 P2: admin previously bypassed the authorize
+    // gate but the DELETE ran through a request-scoped client (RLS-
+    // bound). Live properties RLS only grants DELETE where
+    // auth.uid() = owner_id — admin has SELECT only — so an admin
+    // delete returned success:true while the row survived. Use the
+    // service-role client when the caller is admin, and the RLS
+    // client when the caller is the owner. Either path verifies the
+    // affected row count to catch the silent-no-op case.
+    const dbClient =
+      user.role === 'admin'
+        ? serverSupabase
+        : (createRequestScopedClient(_request) ?? serverSupabase);
+
+    const { data: deleted, error } = await dbClient
       .from('properties')
       .delete()
-      .eq('id', params.id);
+      .eq('id', params.id)
+      .select('id');
 
     if (error) {
       logger.error('Error deleting property', error, {
@@ -186,6 +267,21 @@ export const DELETE = withApiHandler(
         userId: user.id,
       });
       throw error;
+    }
+
+    if (!deleted || deleted.length === 0) {
+      // RLS swallowed the delete (or the row was already gone). Fail
+      // loud rather than report success.
+      logger.warn('Property delete returned no rows', {
+        service: 'properties',
+        propertyId: params.id,
+        userId: user.id,
+        role: user.role,
+      });
+      throw new BadRequestError(
+        'Property could not be deleted — it may already be gone or you may ' +
+          'not have permission. Contact support if this persists.'
+      );
     }
 
     return NextResponse.json({ success: true });

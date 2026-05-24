@@ -7,6 +7,14 @@ import { withApiHandler } from '@/lib/api/with-api-handler';
 // single property so the mobile property detail can hydrate just the
 // contacts attached to that property (instead of fetching every contact
 // the landlord owns and filtering client-side).
+// 2026-05-24 audit-37 P1: previously always filtered `owner_id = user.id`
+// even for admins. Admin support staff (and the live RLS policy
+// property_contacts_owner_all) were intended to read across owners,
+// but the route forced them to query only contacts THEY had created.
+// When admin scopes via ?propertyId=, drop the owner filter so the
+// admin can see whatever contacts the property actually has. When
+// admin queries without propertyId, keep filtering by owner_id to
+// avoid accidentally dumping every contact platform-wide.
 export const GET = withApiHandler(
   { roles: ['homeowner', 'admin'], csrf: false },
   async (req, { user }) => {
@@ -16,11 +24,20 @@ export const GET = withApiHandler(
     let query = serverSupabase
       .from('property_contacts')
       .select('*')
-      .eq('owner_id', user.id)
       .order('name');
 
     if (propertyId) {
       query = query.eq('property_id', propertyId);
+      // Non-admins are still restricted to their own contacts even
+      // when scoping by propertyId. Admins get the full per-property
+      // list for support / moderation work.
+      if (user.role !== 'admin') {
+        query = query.eq('owner_id', user.id);
+      }
+    } else {
+      // No propertyId — bound by owner_id regardless of role so the
+      // route never returns the global contacts table to anyone.
+      query = query.eq('owner_id', user.id);
     }
 
     const { data, error } = await query;
@@ -98,11 +115,25 @@ export const POST = withApiHandler(
       return trimmed;
     };
 
+    // 2026-05-24 audit-37 P1: previously inserted owner_id: user.id
+    // unconditionally. When platform admin acted on a homeowner's
+    // behalf (support flow), the contact landed with owner_id = admin's
+    // profile id — the homeowner's own contacts list (which filters
+    // by owner_id) never saw it, and a future audit-30 PATCH/DELETE
+    // would mismatch on ownership. Anchor owner_id to the property's
+    // owner so admin-created contacts attach to the right person;
+    // non-admin callers continue to land their own id (which by the
+    // ownership check above already equals property.owner_id).
+    const safeOwnerId =
+      user.role === 'admin' && property.owner_id !== user.id
+        ? property.owner_id
+        : user.id;
+
     const { data: contact, error } = await serverSupabase
       .from('property_contacts')
       .insert({
         property_id,
-        owner_id: user.id,
+        owner_id: safeOwnerId,
         name: name.trim(),
         email: email?.trim() || null,
         phone: phone?.trim() || null,

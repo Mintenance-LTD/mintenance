@@ -22,13 +22,19 @@ import {
 // 2026-05-01 audit follow-up (check-api-contracts): Zod-validated body
 // (rating 1-5, comment min 20 / max 2000) replaces the manual numeric +
 // length checks.
+// 2026-05-24 audit-35 P2: max(2000) disagreed with the live DB
+// CHECK constraint reviews_comment_length_check (length(comment) <=
+// 1000). A 1001-2000 char comment passed Zod, then the insert
+// 23514'd as a generic "Failed to submit review" 500. Tighten the
+// schema to match the constraint so app-level validation gives the
+// caller a useful message instead of a database round-trip.
 const jobReviewSchema = z
   .object({
     rating: z.coerce.number().int().min(1).max(5),
     comment: z
       .string()
       .min(20, 'Review comment must be at least 20 characters')
-      .max(2000),
+      .max(1000, 'Review comment must be at most 1000 characters'),
     wouldRecommend: z.boolean().optional(),
   })
   .strict();

@@ -34,6 +34,11 @@ interface NormalizedPayload {
   jobTitle?: string;
   quoteId?: string;
   notificationId?: string;
+  // 2026-05-24 audit-37 P2: property-scoped notifications (tenant
+  // linking, property team invite accepted, etc.) carry property_id
+  // in their metadata. Normalising it here lets the router deep-link
+  // to PropertyDetail instead of dropping the recipient on the inbox.
+  propertyId?: string;
 }
 
 /**
@@ -58,6 +63,7 @@ export function normalizePayload(data: unknown): NormalizedPayload {
     jobTitle: pick('jobTitle', 'job_title'),
     quoteId: pick('quoteId', 'quote_id'),
     notificationId: pick('notificationId', 'notification_id'),
+    propertyId: pick('propertyId', 'property_id'),
   };
 }
 
@@ -91,6 +97,24 @@ function bidReviewRoute(jobId: string): NotificationRoute {
   };
 }
 
+// 2026-05-24 audit-37 P2: PropertyDetail lives under
+// ProfileTab → ProfileNavigator (see ProfileAccountNavigator). The
+// route param is `propertyId`. Notifications that scope to a single
+// property (tenant_linked, future property_team_* events) deep-link
+// here instead of dropping the user on the generic inbox.
+function propertyDetailRoute(propertyId: string): NotificationRoute {
+  return {
+    screen: 'Main',
+    params: {
+      screen: 'ProfileTab',
+      params: {
+        screen: 'PropertyDetail',
+        params: { propertyId },
+      },
+    },
+  };
+}
+
 /**
  * Map a notification to a route.
  *
@@ -119,6 +143,18 @@ export function routeForNotification(
     case 'contract_signed':
     case 'payment_released':
     case 'bid_rejected':
+    // 2026-05-24 audit-36 P1: contractor tracking push types from
+    // /api/contractor/trips (POST + PATCH). Previously fell through
+    // to the default NOTIFICATIONS_FALLBACK, so a homeowner tapping
+    // "Contractor is on the way" or "Contractor arrived" landed in
+    // the inbox instead of the job tracking/detail screen. The push
+    // metadata carries jobId (see route.ts:196 / [id]/route.ts:111),
+    // so jobDetailsRoute resolves cleanly. job_terminated reuses the
+    // same path so the contractor-withdraw notification deep-links
+    // too.
+    case 'contractor_en_route':
+    case 'contractor_arrived':
+    case 'job_terminated':
       return p.jobId ? jobDetailsRoute(p.jobId) : NOTIFICATIONS_FALLBACK;
 
     case 'bid_received':
@@ -217,6 +253,17 @@ export function routeForNotification(
 
     case 'system':
       return HOME_FALLBACK;
+
+    // 2026-05-24 audit-37 P2: tenant-linking notifications fire when
+    // an invited tenant accepts the invite. The web POST that sends
+    // them includes metadata.property_id (see /api/properties/[id]/
+    // tenants/accept). Previously fell through to the inbox.
+    case 'tenant_linked':
+    case 'property_team_invite':
+    case 'property_team_invite_accepted':
+      return p.propertyId
+        ? propertyDetailRoute(p.propertyId)
+        : NOTIFICATIONS_FALLBACK;
 
     default:
       // Unknown / future notification types — open the inbox so the
