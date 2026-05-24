@@ -37,6 +37,26 @@ import {
 interface RateLimitConfig {
   maxRequests?: number; // default 30
   windowMs?: number; // default 60_000
+  /**
+   * Audit 2026-05-24 HIGH: opt-in fail-closed when the rate limiter has
+   * fallen back to in-memory in production (Redis env vars missing or
+   * Redis outage). Routes tagged with a criticality class will return
+   * 429 instead of accepting per-instance-only enforcement, which would
+   * let an attacker spray across Vercel regions.
+   *
+   * Flip this on for:
+   *   - 'auth'    — login, register, password-reset, verify-phone,
+   *                 check-password-breach, mfa step-up.
+   *   - 'payment' — create-intent, confirm-intent, refund, release-escrow,
+   *                 stripe-connect onboarding, webhooks (after sig check).
+   *   - 'admin'   — every mutating admin route (the wrapper already
+   *                 requires MFA + DB role check; the rate limit is the
+   *                 outermost layer).
+   *
+   * Untagged routes keep the historical degraded-in-memory behaviour so
+   * this is non-breaking. See lib/rate-limiter.ts:fallbackRateLimit.
+   */
+  criticality?: 'auth' | 'payment' | 'admin';
 }
 
 /**
@@ -212,6 +232,10 @@ export function withApiHandler(
           identifier: `${ip}:${request.url}`,
           windowMs,
           maxRequests,
+          // Propagate the criticality class so the limiter can fail-closed
+          // in production when Redis is degraded. See RateLimitConfig
+          // comment above for which routes should set this.
+          criticality: rateLimitCfg?.criticality,
         });
 
         if (!result.allowed) {

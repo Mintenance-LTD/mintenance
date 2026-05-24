@@ -1,52 +1,45 @@
 /**
- * Image downloader for YOLO training data
+ * Image downloader for YOLO training data.
+ *
+ * Audit 2026-05-24 HIGH: previously called `node-fetch(url)` with no
+ * DNS-resolved private-IP check, no size cap, no content-type allowlist.
+ * The "is this a Supabase storage URL?" branch was dead code — both
+ * branches did the same fetch + pipeline. Now routes through `safeFetch`
+ * which centralises the SSRF guards.
  */
 
+import { writeFile } from 'node:fs/promises';
 import { logger } from '@mintenance/shared';
-import { createWriteStream } from 'fs';
-import { pipeline } from 'stream/promises';
-import fetch from 'node-fetch';
+import { safeFetch } from '@/lib/security/safe-fetch';
 
 const SERVICE = 'YOLOTrainingDataEnhanced';
 
 /**
- * Download an image from a URL
+ * Download an image from a validated URL into `outputPath`.
+ *
+ * Caller (`YOLOTrainingDataEnhanced.materializeCorrections`) already
+ * wraps the call in try/catch and skips failed images, so we propagate
+ * the underlying `SafeFetchError` rather than smothering it.
  */
-export async function downloadImage(url: string, outputPath: string): Promise<void> {
-  try {
-    // Handle Supabase storage URLs
-    if (url.includes('supabase.co/storage')) {
-      // If it's a private bucket, we might need to add auth headers
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`Failed to download image: ${response.statusText}`);
-      }
+export async function downloadImage(
+  url: string,
+  outputPath: string
+): Promise<void> {
+  const { buffer, size, contentType } = await safeFetch(url, {
+    // Training imagery only — never video/PDF.
+    allowedContentTypes: ['image/'],
+    // Allow somewhat larger payloads than the inference path: training
+    // corpora occasionally include higher-res reference photos.
+    maxBytes: 50 * 1024 * 1024,
+  });
 
-      const fileStream = createWriteStream(outputPath);
-      await pipeline(response.body as NodeJS.ReadableStream, fileStream);
-    } else {
-      // Regular URL download
-      const response = await fetch(url);
-      if (!response.ok) {
-        throw new Error(`Failed to download image: ${response.statusText}`);
-      }
+  await writeFile(outputPath, buffer);
 
-      const fileStream = createWriteStream(outputPath);
-      await pipeline(response.body as NodeJS.ReadableStream, fileStream);
-    }
-
-    logger.info('Downloaded image', {
-      service: SERVICE,
-      url,
-      outputPath,
-    });
-  } catch (error) {
-    logger.error('Failed to download image', {
-      service: SERVICE,
-      url,
-      outputPath,
-      error,
-    });
-    throw error;
-  }
+  logger.info('Downloaded training image', {
+    service: SERVICE,
+    url,
+    outputPath,
+    bytes: size,
+    contentType,
+  });
 }
