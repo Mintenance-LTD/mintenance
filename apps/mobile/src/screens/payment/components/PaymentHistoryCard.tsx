@@ -6,13 +6,7 @@
  * Direction A · Mint Editorial — token-styled.
  */
 import React from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Linking,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { me } from '../../../design-system/mint-editorial';
 
@@ -81,9 +75,18 @@ const getRefundExpectedDate = (createdAt: string): string => {
   });
 };
 
-export const PaymentCard: React.FC<{ payment: PaymentRecord }> = ({
-  payment,
-}) => (
+// 2026-05-24 audit-27 P2: list of statuses that count as "paid" for
+// receipt-button purposes. Previously only `completed` and `succeeded`
+// got the receipt action even though `released` (the escrow_released
+// status mapped to "Paid" by getStatusLabel) is the canonical
+// homeowner-finished state. Keep these in sync with getStatusLabel /
+// getStatusColor's "Paid" branch.
+const RECEIPT_STATUSES = new Set(['completed', 'succeeded', 'released']);
+
+export const PaymentCard: React.FC<{
+  payment: PaymentRecord;
+  onReceiptPress?: (payment: PaymentRecord) => void;
+}> = ({ payment, onReceiptPress }) => (
   <View style={styles.paymentCard}>
     <View style={styles.paymentHeader}>
       <View style={styles.paymentInfo}>
@@ -134,17 +137,26 @@ export const PaymentCard: React.FC<{ payment: PaymentRecord }> = ({
           <Text style={styles.methodText}>**** {payment.last4}</Text>
         </View>
       )}
-      {(payment.status === 'completed' || payment.status === 'succeeded') && (
+      {RECEIPT_STATUSES.has(payment.status) && onReceiptPress && (
+        // 2026-05-24 audit-27 P2: previously hardcoded
+        // https://mintenance.com/invoices/${payment.jobId} which is
+        // (a) a job id, not an invoice id — that route 410s out to
+        // /payments/invoice/:invoiceId which 404s with a jobId, and
+        // (b) the production host, breaking dev/staging entirely.
+        // The PaymentRecord shape (sourced from escrow_transactions)
+        // doesn't carry an invoiceId today, so route the tap into
+        // the in-app JobDetails screen for that job — homeowners see
+        // payment state + escrow + photos there. Also dropped the
+        // `released` gap: `released` is the canonical escrow-finished
+        // status and `getStatusLabel` already renders it as "Paid".
         <TouchableOpacity
           style={styles.receiptButton}
-          onPress={() =>
-            Linking.openURL(`https://mintenance.com/invoices/${payment.jobId}`)
-          }
+          onPress={() => onReceiptPress(payment)}
           accessibilityRole='button'
-          accessibilityLabel='Download receipt'
+          accessibilityLabel='View payment details'
         >
-          <Ionicons name='download-outline' size={16} color={me.ink} />
-          <Text style={styles.receiptButtonText}>Receipt</Text>
+          <Ionicons name='receipt-outline' size={16} color={me.ink} />
+          <Text style={styles.receiptButtonText}>Details</Text>
         </TouchableOpacity>
       )}
     </View>

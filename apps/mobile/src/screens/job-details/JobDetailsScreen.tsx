@@ -484,8 +484,16 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
             navigation.navigate('JobTimeline', { jobId: job.id })
           }
           onEditPress={() => navigation.navigate('JobEdit', { jobId: job.id })}
+          // 2026-05-24 audit-27 P1: the quick-action sign-off used to
+          // open JobSignOffScreen which only shows text + an Approve
+          // button — bypassing the before/after photo review. The main
+          // sticky CTA already goes to PhotoReview (which has the same
+          // Approve/Request Changes mutations PLUS the BeforeAfterSlider
+          // homeowners are supposed to see before releasing escrow).
+          // Route the quick action there too so both entry points
+          // surface the photo evidence.
           onSignOffPress={() =>
-            navigation.navigate('JobSignOff', { jobId: job.id })
+            navigation.navigate('PhotoReview', { jobId: job.id })
           }
           onDisputePress={() =>
             navigation.navigate('Dispute', {

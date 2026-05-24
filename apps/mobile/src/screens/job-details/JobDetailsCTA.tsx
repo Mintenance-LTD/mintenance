@@ -304,5 +304,36 @@ export function getPriorityCTA({
     );
   }
 
+  // 2026-05-24 audit-27 P1: reciprocal contractor → homeowner review.
+  // /api/jobs/:id/review accepts reviews from either party on a
+  // completed job (the role gate is { homeowner | contractor }, and
+  // revieweeId is derived from `isHomeowner ? contractor_id :
+  // homeowner_id`). Mobile only surfaced the CTA for isOwner, so
+  // assigned contractors had no way to rate the homeowner after the
+  // job wrapped. The escrow release isn't gated on this — it's
+  // optional reputation/trust signal — but the API supported it and
+  // the web side already exposes the contractor flow, so the mobile
+  // side was just missing the entry point.
+  if (
+    isAssignedContractor &&
+    job.status === 'completed' &&
+    job.completion_confirmed_by_homeowner &&
+    !hasReviewed
+  ) {
+    return (
+      <StickyBottomCTA
+        buttonText='Leave a Review'
+        onPress={() =>
+          navigation.navigate('ReviewSubmission', {
+            jobId: job.id,
+            jobTitle: job.title,
+            contractorName: undefined,
+          })
+        }
+        secondaryText='Rate the homeowner'
+      />
+    );
+  }
+
   return null;
 }
