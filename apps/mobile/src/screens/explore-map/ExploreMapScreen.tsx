@@ -5,7 +5,7 @@
  * price-tag markers, and budget-first preview card.
  */
 
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useCallback } from 'react';
 import {
   formatCurrency,
   formatCurrencyRange,
@@ -25,7 +25,7 @@ import {
 } from 'react-native';
 import type { NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { JobsStackParamList } from '../../navigation/types';
 import { goToTab } from '../../navigation/hooks';
@@ -207,6 +207,21 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({
     process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ||
     process.env.GOOGLE_MAPS_API_KEY;
   const shouldRenderNativeMap = Platform.OS !== 'android' || !!googleMapsApiKey;
+
+  // 2026-05-24 audit-38 P2: refetch jobs every time the map regains
+  // focus. Previously, after a contractor submitted a bid from
+  // BidSubmissionScreen and tapped goBack, the map's local state
+  // still showed the just-bid job — /api/jobs/discover already
+  // excludes own-bid jobs server-side, so a fresh fetch resolves
+  // it cleanly. This also covers the cases of returning from
+  // JobDetails after acceptance/cancellation, navigating away to
+  // another tab and back, etc. The view model's refreshJobs is
+  // memoized so this is cheap when state hasn't changed.
+  useFocusEffect(
+    useCallback(() => {
+      viewModel.refreshJobs();
+    }, [viewModel])
+  );
 
   const handleCarouselScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const index = Math.round(e.nativeEvent.contentOffset.x / (CARD_WIDTH + 12));

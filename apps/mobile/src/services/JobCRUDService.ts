@@ -416,6 +416,21 @@ export class JobCRUDService {
       'propertyBathrooms',
       'accessInfo',
       'propertyAccess',
+      // 2026-05-24 audit-38 P1: API /api/jobs/[id] surfaces
+      // propertyContacts (active tenants / keyholders / emergency
+      // contacts / managing agents) for the assigned contractor +
+      // homeowner. JobAccessCard already accepts a `contacts` prop and
+      // JobDetailsScreen wires it from `(job as ...).propertyContacts`
+      // — but formatJob was whitelisting only the access fields, so
+      // the array got dropped on the way through and the "contacts"
+      // half of the "Access & contacts" card always rendered empty.
+      'propertyContacts',
+      // 2026-05-24 audit-33 P2: separate timestamp for homeowner
+      // approval, distinct from completed_at. Also propagate
+      // completion_confirmed_by_homeowner so the homeowner CTA flips
+      // correctly post-approval (already added at audit-26 #131).
+      'completion_confirmed_at',
+      'completion_confirmed_by_homeowner',
       'scheduledStartDate',
       'requirements',
       'start_date',
