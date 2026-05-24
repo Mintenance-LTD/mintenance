@@ -426,14 +426,31 @@ export default function ContractorSettingsPage() {
       const { token: csrfToken3 } = csrfRes3.ok
         ? await csrfRes3.json()
         : { token: '' };
+      // 2026-05-24 audit-28 P1: route only exports POST + requires
+      // { confirmation: 'DELETE' } per Zod schema. Was DELETE with no
+      // body, so the call 405'd / 400'd every time and the button
+      // silently fell through to "Failed to delete account".
       const response = await fetch('/api/user/delete-account', {
-        method: 'DELETE',
-        headers: csrfToken3 ? { 'x-csrf-token': csrfToken3 } : {},
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(csrfToken3 ? { 'x-csrf-token': csrfToken3 } : {}),
+        },
+        body: JSON.stringify({ confirmation: 'DELETE' }),
       });
       if (response.ok) {
         toast.success('Account deleted successfully');
         window.location.href = '/login?deleted=true';
-      } else toast.error('Failed to delete account');
+      } else {
+        // Surface the route's structured error (blockers list / auth-
+        // delete failure / etc) instead of the previous generic toast.
+        try {
+          const data = (await response.json()) as { error?: string };
+          toast.error(data.error || 'Failed to delete account');
+        } catch {
+          toast.error('Failed to delete account');
+        }
+      }
     } catch (error) {
       toast.error('Error deleting account');
     }

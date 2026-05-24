@@ -6,6 +6,7 @@ import { checkDeleteAccountRateLimit } from '@/lib/rate-limiting/admin-gdpr';
 import { tokenBlacklist } from '@/lib/auth/token-blacklist';
 import { validateRequest } from '@/lib/validation/validator';
 import { InternalServerError } from '@/lib/errors/api-error';
+import { stripe } from '@/lib/services/subscription/stripe-client';
 import { z } from 'zod';
 
 const deleteAccountSchema = z.object({
@@ -151,6 +152,87 @@ export const POST = withApiHandler(
         },
         { status: 409 }
       );
+    }
+
+    // 2026-05-24 audit-28 P1: cancel any live Stripe subscriptions
+    // BEFORE deleting local data. Previously the route only ran
+    // delete_user_data + auth.users delete — Stripe was never told
+    // and kept billing the (now-orphaned) customer indefinitely.
+    // Local rows cascade from profiles via FK, so once we hit
+    // delete_user_data we lose every link back to Stripe and the
+    // subscription is unrecoverable from app-side.
+    //
+    // Strategy:
+    //   1. Read stripe_subscription_id from both subscription tables.
+    //   2. For each non-empty id, call stripe.subscriptions.cancel
+    //      (immediate, not period-end — the customer is leaving).
+    //   3. If any cancellation throws, hard-fail the request before
+    //      touching local data, so the user can retry or escalate
+    //      instead of being silently double-charged.
+    //   4. Already-cancelled Stripe rows (resource_missing /
+    //      `No such subscription`) are tolerated — they're already
+    //      in the desired terminal state.
+    const [contractorSubsRes, homeownerSubsRes] = await Promise.all([
+      serverSupabase
+        .from('contractor_subscriptions')
+        .select('id, stripe_subscription_id, status')
+        .eq('contractor_id', user.id),
+      serverSupabase
+        .from('homeowner_subscriptions')
+        .select('id, stripe_subscription_id, status')
+        .eq('homeowner_id', user.id),
+    ]);
+
+    const subscriptionIds = [
+      ...(contractorSubsRes.data ?? []),
+      ...(homeownerSubsRes.data ?? []),
+    ]
+      .map((s) => s.stripe_subscription_id as string | null)
+      .filter((id): id is string => !!id);
+
+    for (const subId of subscriptionIds) {
+      try {
+        await stripe.subscriptions.cancel(subId);
+        logger.info('Cancelled Stripe subscription before account delete', {
+          service: 'user',
+          userId: user.id,
+          subscriptionId: subId,
+        });
+      } catch (err) {
+        const stripeErr = err as {
+          code?: string;
+          message?: string;
+          statusCode?: number;
+        };
+        // Already-deleted / not-found subscriptions are fine — that's
+        // the desired terminal state. Anything else is a real failure
+        // and must block the delete (otherwise we lose the Stripe link
+        // forever and billing continues).
+        if (
+          stripeErr?.code === 'resource_missing' ||
+          stripeErr?.statusCode === 404
+        ) {
+          logger.warn(
+            'Stripe subscription already cancelled/missing, skipping',
+            {
+              service: 'user',
+              userId: user.id,
+              subscriptionId: subId,
+            }
+          );
+          continue;
+        }
+        logger.error('Stripe subscription cancellation failed', err, {
+          service: 'user',
+          userId: user.id,
+          subscriptionId: subId,
+        });
+        throw new InternalServerError(
+          `Could not cancel Stripe subscription ${subId} (${
+            stripeErr?.message ?? 'unknown error'
+          }). Your account has NOT been deleted; please retry or contact support so we can stop the billing before removing your data.`
+        );
+      }
     }
 
     // Log the deletion request for GDPR compliance
