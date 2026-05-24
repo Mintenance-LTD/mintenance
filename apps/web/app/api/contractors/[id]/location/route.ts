@@ -123,14 +123,33 @@ export const POST = withApiHandler(
       updated_at: new Date().toISOString(),
     };
 
-    // For job-scoped sharing, keep one active row per contractor/job so
-    // realtime subscribers and "latest location" reads do not fan out over
-    // historical duplicate rows. Non-job availability pings can still insert
-    // separate rows because the unique index intentionally excludes null job_id.
-    const locationWrite = job_id
+    // 2026-05-24 audit-36 P0: replaced upsert with select-then-
+    // update-or-insert. Live DB has only a PARTIAL unique index on
+    // (contractor_id, job_id) WHERE is_active = true, not a plain
+    // unique constraint. PostgREST's ON CONFLICT (cols) doesn't
+    // include the WHERE predicate, so the upsert could fail (42P10)
+    // or insert duplicate rows. Now: for job-scoped writes, look up
+    // the active row first and UPDATE by id; INSERT only when no
+    // active row exists. Non-job availability pings still INSERT a
+    // fresh row (no uniqueness expected — the index intentionally
+    // excludes NULL job_id).
+    let activeId: string | null = null;
+    if (job_id) {
+      const { data: existing } = await serverSupabase
+        .from('contractor_locations')
+        .select('id')
+        .eq('contractor_id', contractorId)
+        .eq('job_id', job_id)
+        .eq('is_active', true)
+        .maybeSingle();
+      activeId = existing?.id ?? null;
+    }
+
+    const locationWrite = activeId
       ? serverSupabase
           .from('contractor_locations')
-          .upsert(locationPayload, { onConflict: 'contractor_id,job_id' })
+          .update(locationPayload)
+          .eq('id', activeId)
       : serverSupabase.from('contractor_locations').insert(locationPayload);
 
     const { data: location, error: locationError } = await locationWrite

@@ -337,53 +337,62 @@ export class JobContextLocationService {
       7
     );
 
-    // Audit P0 (2026-04-23): two bugs were silent-failing every write
-    // since the feature shipped, hence prod metric `contractor_locations
-    // = 0`:
-    //   (1) sent `timestamp:` — column doesn't exist on the table; the
-    //       real columns are `location_timestamp` + `created_at` /
-    //       `updated_at`. PostgREST returned 400 "column does not exist".
-    //   (2) used `onConflict: 'contractor_id'` but no unique constraint
-    //       existed on `contractor_id` (or any subset). PostgREST 42P10.
-    // Migration `contractor_locations_onconflict_index` adds the partial
-    // unique index `(contractor_id, job_id) WHERE is_active = true`, which
-    // matches the BackgroundLocationTask upsert as well.
+    // 2026-05-24 audit-36 P0: replaced upsert with explicit
+    // select-then-update-or-insert. The previous upsert targeted
+    // `onConflict: 'contractor_id,job_id'`, but the live DB only has a
+    // PARTIAL unique index on that pair (WHERE is_active = true) —
+    // there is no plain unique constraint. PostgREST's ON CONFLICT
+    // (cols) inference doesn't include the WHERE predicate, so the
+    // upsert could fail (42P10) or insert duplicate rows depending on
+    // planner choice. The "contractor_locations = 0" prod metric was
+    // partially explained by this and partially by the historic write
+    // bugs documented above (timestamp column + wrong onConflict).
     //
-    // Audit re-review (2026-04-29): direct-Supabase write here is a
-    // **deliberate exception** to the "API-first" rule (audit step 5).
-    // Live GPS upserts fire every 5–15 seconds while a contractor is
-    // travelling to a job and the row is read by the homeowner's
-    // map screen via Supabase Realtime channel subscription —
-    // routing each update through `/api/...` would (a) add 50–200ms
-    // of round-trip per pulse, (b) burn a Vercel Function invocation
-    // per write, and (c) defeat Realtime which fans out off the
-    // Postgres logical replication slot. The RLS policy on
-    // `contractor_locations` (migration `20260416…contractor_locations_select_scope`)
-    // already scopes INSERT/UPDATE to `auth.uid() = contractor_id`,
-    // so the security boundary that the API routes provide for
-    // other writes is enforced at the DB layer here.
-    const { error } = await supabase.from('contractor_locations').upsert(
-      {
-        contractor_id: this.contractorId,
-        job_id: jobId,
-        meeting_id: meetingId,
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude,
-        accuracy: location.coords.accuracy || undefined,
-        heading: location.coords.heading || undefined,
-        speed: location.coords.speed || undefined,
-        eta_minutes: eta,
-        context: this.currentContext,
-        geohash,
-        location_timestamp: new Date().toISOString(),
-        is_active: true,
-        is_sharing_location: true,
-        updated_at: new Date().toISOString(),
-      },
-      {
-        onConflict: 'contractor_id,job_id',
-      }
-    );
+    // The replacement pattern: query the active row for this
+    // (contractor, job), UPDATE by id when found, INSERT a new row
+    // otherwise. The partial unique index still protects against
+    // concurrent inserts (one would 23505 — the GPS tick retries on
+    // the next pulse anyway). Same write count when steady-state but
+    // unambiguous semantics.
+    //
+    // Direct-Supabase write here is still a deliberate exception to
+    // the API-first rule: GPS pulses fire every 5–15s, the row is
+    // read by the homeowner map via Supabase Realtime, and the
+    // contractor_locations RLS policy scopes INSERT/UPDATE to
+    // auth.uid() = contractor_id so the security boundary is at the
+    // DB layer.
+    const payload = {
+      contractor_id: this.contractorId,
+      job_id: jobId,
+      meeting_id: meetingId,
+      latitude: location.coords.latitude,
+      longitude: location.coords.longitude,
+      accuracy: location.coords.accuracy || undefined,
+      heading: location.coords.heading || undefined,
+      speed: location.coords.speed || undefined,
+      eta_minutes: eta,
+      context: this.currentContext,
+      geohash,
+      location_timestamp: new Date().toISOString(),
+      is_active: true,
+      is_sharing_location: true,
+      updated_at: new Date().toISOString(),
+    };
+
+    const { data: existing } = await supabase
+      .from('contractor_locations')
+      .select('id')
+      .eq('contractor_id', this.contractorId)
+      .eq('job_id', jobId)
+      .eq('is_active', true)
+      .maybeSingle();
+
+    const { error } = existing
+      ? await supabase
+          .from('contractor_locations')
+          .update(payload)
+          .eq('id', existing.id)
+      : await supabase.from('contractor_locations').insert(payload);
 
     if (error) {
       logger.error('Error updating contractor location', error);

@@ -119,6 +119,18 @@ export function routeForNotification(
     case 'contract_signed':
     case 'payment_released':
     case 'bid_rejected':
+    // 2026-05-24 audit-36 P1: contractor tracking push types from
+    // /api/contractor/trips (POST + PATCH). Previously fell through
+    // to the default NOTIFICATIONS_FALLBACK, so a homeowner tapping
+    // "Contractor is on the way" or "Contractor arrived" landed in
+    // the inbox instead of the job tracking/detail screen. The push
+    // metadata carries jobId (see route.ts:196 / [id]/route.ts:111),
+    // so jobDetailsRoute resolves cleanly. job_terminated reuses the
+    // same path so the contractor-withdraw notification deep-links
+    // too.
+    case 'contractor_en_route':
+    case 'contractor_arrived':
+    case 'job_terminated':
       return p.jobId ? jobDetailsRoute(p.jobId) : NOTIFICATIONS_FALLBACK;
 
     case 'bid_received':

@@ -80,7 +80,14 @@ export function normalizeNotificationType(
   // associated contract / completion / scheduling events that
   // homeowners think of as "their job moving forward":
   //   contract_*  · completion_*  · changes_*  · no_show_*
-  //   location_sharing_*  · review_*  · job_*
+  //   location_sharing_*  · review_*  · job_*  · contractor_* (tracking)
+  //
+  // 2026-05-24 audit-36 P2: contractor_en_route + contractor_arrived
+  // are produced by /api/contractor/trips POST + PATCH. They were
+  // falling through to 'system' so the dropdown filter buckets and
+  // job-tab counts didn't include them — even though the dropdown
+  // icon/colour map already knows them by name. Bucket them with
+  // the rest of the job lifecycle events.
   if (
     t.startsWith('job_') ||
     t.startsWith('contract_') ||
@@ -88,7 +95,8 @@ export function normalizeNotificationType(
     t.startsWith('changes_') ||
     t.startsWith('no_show_') ||
     t.startsWith('location_sharing_') ||
-    t.startsWith('review_')
+    t.startsWith('review_') ||
+    t.startsWith('contractor_')
   ) {
     return 'job';
   }
