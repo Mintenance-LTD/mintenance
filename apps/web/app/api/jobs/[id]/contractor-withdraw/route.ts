@@ -273,6 +273,19 @@ export const POST = withApiHandler(
       // `withdrawn` is the canonical status used by the bid-withdraw
       // route for not-yet-accepted bids — re-using here keeps the
       // analytics + dashboard counters consistent.
+      //
+      // 2026-05-24 audit-29 P1: previously demoted this failure to a
+      // logger.warn and continued straight into the job-status reset.
+      // That left a window where the job flipped back to 'posted' while
+      // the contractor's old bid stayed status='accepted' — the homeowner
+      // would reopen the listing with a stale accepted bid still pointing
+      // at the departed contractor, blocking re-acceptance and confusing
+      // contract/payment state. Now: bidErr is fatal. Escrow has already
+      // been refunded by this point and the contract is cancelled, so a
+      // retry path would hit the duplicate-refund branch on Stripe (idempo
+      // key on the Stripe call) and the contract update is a no-op when
+      // the status is already 'cancelled'. The accepted bid is the only
+      // remaining piece that must succeed before we reopen the job.
       const { error: bidErr } = await serverSupabase
         .from('bids')
         .update({ status: 'withdrawn', updated_at: new Date().toISOString() })
@@ -281,11 +294,15 @@ export const POST = withApiHandler(
         .eq('status', 'accepted');
 
       if (bidErr) {
-        logger.warn('Failed to mark accepted bid as withdrawn', {
+        logger.error('Failed to mark accepted bid as withdrawn', bidErr, {
           service: 'jobs',
           jobId,
-          error: bidErr.message,
+          contractorId: user.id,
         });
+        throw new BadRequestError(
+          'Failed to complete withdrawal — your accepted bid could not be released. ' +
+            'Please retry; if this persists contact support so we can clear the bid manually before the job reopens.'
+        );
       }
 
       // ─── Reset job back to posted ─────────────────────────────────
