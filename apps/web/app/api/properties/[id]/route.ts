@@ -30,11 +30,8 @@ export const GET = withApiHandler(
     // serverSupabase after a verified authorize() is consistent.
 
     // Allow property owner OR team members with any role to view
-    const { authorized } = await PropertyTeamService.authorize(
-      user.id,
-      params.id,
-      'view'
-    );
+    const { authorized, role: propertyRole } =
+      await PropertyTeamService.authorize(user.id, params.id, 'view');
 
     if (!authorized && user.role !== 'admin') {
       throw new NotFoundError('Property not found');
@@ -48,6 +45,31 @@ export const GET = withApiHandler(
 
     if (error || !data) {
       throw new NotFoundError('Property not found');
+    }
+
+    // 2026-05-24 audit-37 P0: previously returned select('*') to any
+    // role that satisfied 'view' — including the viewer team role.
+    // That meant a viewer-role teammate could read key_safe_code
+    // immediately from this surface, bypassing the careful
+    // contractor-side 1-hour reveal window in
+    // lib/services/jobs/key-safe-reveal.ts and any future
+    // homeowner-defined ACL. Now: only the property owner and the
+    // platform admin get the code through this surface. Managers
+    // (who can edit the property + compliance) get the rest of the
+    // access fields but not the code itself; contractors with an
+    // assigned job continue to use the gated /api/jobs/[id] path
+    // which applies the 1h reveal rule. Viewer gets nothing extra
+    // either — they were the most acute case named by the audit.
+    const isOwnerOrPlatformAdmin =
+      propertyRole === 'owner' || user.role === 'admin';
+    if (!isOwnerOrPlatformAdmin) {
+      const redacted = data as Record<string, unknown>;
+      // Always strip the code for non-owner/non-platform-admin
+      // callers. Other access fields (access_mode, access_notes,
+      // stopcock_location, etc.) are kept because managers need them
+      // to plan visits — only the unlock code itself is the
+      // physical-entry secret.
+      redacted.key_safe_code = null;
     }
 
     return NextResponse.json(data);
