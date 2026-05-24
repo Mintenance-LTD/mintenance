@@ -24,7 +24,11 @@ import { JobRoomScope } from '../components/JobRoomScope';
 import { ContractorLocationSection } from './components/ContractorLocationSection';
 import { HomeownerLocationRequest } from './components/HomeownerLocationRequest';
 import { JobLocationMap } from './components/JobLocationMap';
-import { JobAccessCard, type PropertyAccess } from './components/JobAccessCard';
+import {
+  JobAccessCard,
+  type PropertyAccess,
+  type PropertyContact,
+} from './components/JobAccessCard';
 import { JobPricingCard } from './components/JobPricingCard';
 import { JobTitleSection } from './components/JobTitleSection';
 import { JobDetailsList } from './components/JobDetailsList';
@@ -349,23 +353,33 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
             assigned contractor (key_safe_code is server-gated by the
             1h-before-scheduled-start window — we just render
             whatever the API returns). Homeowners don't need this on
-            the job detail (their property page owns the edit). */}
-        {isContractor &&
-        user?.id === job.contractor_id &&
-        (job as unknown as { propertyAccess?: PropertyAccess | null })
-          .propertyAccess ? (
-          <>
-            <View style={styles.divider} />
-            <View style={styles.sectionPadded}>
-              <JobAccessCard
-                access={
-                  (job as unknown as { propertyAccess?: PropertyAccess | null })
-                    .propertyAccess ?? null
-                }
-              />
-            </View>
-          </>
-        ) : null}
+            the job detail (their property page owns the edit).
+            2026-05-24 audit-30 P1: also pass propertyContacts so the
+            "& contacts" half of the card actually renders. */}
+        {isContractor && user?.id === job.contractor_id
+          ? (() => {
+              const enriched = job as unknown as {
+                propertyAccess?: PropertyAccess | null;
+                propertyContacts?: PropertyContact[] | null;
+              };
+              const hasAccess = !!enriched.propertyAccess;
+              const hasContacts =
+                Array.isArray(enriched.propertyContacts) &&
+                enriched.propertyContacts.length > 0;
+              if (!hasAccess && !hasContacts) return null;
+              return (
+                <>
+                  <View style={styles.divider} />
+                  <View style={styles.sectionPadded}>
+                    <JobAccessCard
+                      access={enriched.propertyAccess ?? null}
+                      contacts={enriched.propertyContacts ?? null}
+                    />
+                  </View>
+                </>
+              );
+            })()
+          : null}
 
         {isOwner && bidsArray.length > 0 && (
           <>

@@ -40,7 +40,11 @@ interface Property {
 
 interface Contact {
   id: string;
-  property_id: string;
+  // 2026-05-24 audit-30 P2: property_id is nullable + ON DELETE SET NULL,
+  // so a row can outlive its property. Reflect that on the client type
+  // so the UI explicitly differentiates "Unassigned" rows instead of
+  // mislabelling them as belonging to the first property.
+  property_id: string | null;
   name: string;
   email: string | null;
   phone: string | null;
@@ -106,16 +110,31 @@ export function MintEditorialContacts({
     lease_end_date: '',
   });
 
-  const propertyName = (id: string) =>
-    properties.find((p) => p.id === id)?.property_name || 'Unknown property';
+  // 2026-05-24 audit-30 P2: property_id is nullable + ON DELETE SET NULL,
+  // so rows can become orphaned after a property delete. Label them
+  // explicitly so the homeowner can find and clean them up instead of
+  // them silently rendering as "Unknown property".
+  const propertyName = (id: string | null) => {
+    if (!id) return 'Unassigned — property removed';
+    return (
+      properties.find((p) => p.id === id)?.property_name || 'Unknown property'
+    );
+  };
 
-  const visible = useMemo(
-    () =>
-      filterProperty === 'all'
-        ? contacts
-        : contacts.filter((c) => c.property_id === filterProperty),
-    [contacts, filterProperty]
+  // Sentinel value for the orphan filter chip — can't collide with a UUID.
+  const ORPHAN_FILTER = '__orphan__';
+
+  const orphanCount = useMemo(
+    () => contacts.filter((c) => !c.property_id).length,
+    [contacts]
   );
+
+  const visible = useMemo(() => {
+    if (filterProperty === 'all') return contacts;
+    if (filterProperty === ORPHAN_FILTER)
+      return contacts.filter((c) => !c.property_id);
+    return contacts.filter((c) => c.property_id === filterProperty);
+  }, [contacts, filterProperty]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -327,7 +346,7 @@ export function MintEditorialContacts({
         </form>
       ) : null}
 
-      {properties.length > 1 ? (
+      {properties.length > 1 || orphanCount > 0 ? (
         <div
           className='row'
           style={{ gap: 6, flexWrap: 'wrap', marginBottom: 16 }}
@@ -353,6 +372,21 @@ export function MintEditorialContacts({
               </button>
             );
           })}
+          {/* 2026-05-24 audit-30 P2: explicit chip for orphaned contacts
+              (property_id IS NULL after the FK ON DELETE SET NULL fired).
+              Without it, an orphan row would be invisible behind per-
+              property filters and only countable in the "All" total. */}
+          {orphanCount > 0 ? (
+            <button
+              type='button'
+              className={
+                'chip ' + (filterProperty === ORPHAN_FILTER ? 'on' : '')
+              }
+              onClick={() => setFilterProperty(ORPHAN_FILTER)}
+            >
+              Unassigned · {orphanCount}
+            </button>
+          ) : null}
         </div>
       ) : null}
 

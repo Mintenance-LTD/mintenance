@@ -166,6 +166,24 @@ export async function handleGet(
     gas_isolator_location: string | null;
     consumer_unit_location: string | null;
   } | null = null;
+  // 2026-05-24 audit-30 P1: surface property_contacts to the assigned
+  // contractor + homeowner. The card on mobile is literally titled
+  // "Access & contacts" but rendered access fields only — a contractor
+  // could be en route or on-site without ever seeing the tenant,
+  // keyholder, managing-agent, or emergency contact the landlord
+  // attached to the property. The CHECK constraint on contact_role
+  // allows {tenant, keyholder, emergency_contact, managing_agent};
+  // we filter to `is_active = true` so the contractor never gets a
+  // stale phone number for someone who's no longer involved.
+  let propertyContacts: {
+    id: string;
+    name: string;
+    contact_role: string;
+    phone: string | null;
+    email: string | null;
+    unit_label: string | null;
+    notes: string | null;
+  }[] = [];
   if (row.property_id) {
     // 2026-05-23 audit-14: properties RLS only grants SELECT to owner /
     // admin / org_member — the assigned contractor isn't on the policy.
@@ -221,6 +239,23 @@ export async function handleGet(
           consumer_unit_location:
             (p.consumer_unit_location as string | null) ?? null,
         };
+
+        // Fetch active property_contacts. property_contacts RLS only
+        // grants SELECT to the owner/admin (verified live via pg_policy
+        // 2026-05-24); the assigned contractor is not on the policy,
+        // so use serverSupabase scoped by property_id. The
+        // showFullAccess gate above already filters to the people who
+        // are allowed to see contact info.
+        const { data: contactRows } = await serverSupabase
+          .from('property_contacts')
+          .select('id, name, contact_role, phone, email, unit_label, notes')
+          .eq('property_id', row.property_id as string)
+          .eq('is_active', true)
+          .order('contact_role', { ascending: true })
+          .order('name', { ascending: true });
+        if (contactRows) {
+          propertyContacts = contactRows as typeof propertyContacts;
+        }
       }
     }
   }
@@ -256,6 +291,11 @@ export async function handleGet(
     // unless the caller is the homeowner / admin OR the assigned
     // contractor inside the 1h pre-visit reveal window.
     propertyAccess,
+    // 2026-05-24 audit-30 P1: active property contacts (tenant,
+    // keyholder, emergency_contact, managing_agent) the landlord has
+    // attached to this property. Empty array when the caller isn't
+    // entitled to access info or there are no contacts.
+    propertyContacts,
     scheduledStartDate: row.scheduled_start_date,
     images: signedPhotos,
     photos: signedPhotos,
