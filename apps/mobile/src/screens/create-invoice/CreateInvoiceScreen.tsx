@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -21,6 +21,7 @@ import type { ProfileStackParamList } from '../../navigation/types';
 import { me } from '../../design-system/mint-editorial';
 import { formatCurrency } from '../../utils/formatCurrency';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
+import { logger } from '../../utils/logger';
 
 interface CreateInvoiceScreenProps {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'CreateInvoice'>;
@@ -77,6 +78,55 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({
     return [{ description: '', quantity: '1', rate: '' }];
   });
   const [submitting, setSubmitting] = useState(false);
+  // 2026-05-23 audit-24 P1: when navigated with `invoiceId`, hydrate
+  // the form from the existing invoice and PATCH on submit instead of
+  // duplicating with another POST.
+  const editingInvoiceId = route.params?.invoiceId ?? null;
+  const [loadingExisting, setLoadingExisting] = useState(!!editingInvoiceId);
+
+  useEffect(() => {
+    if (!editingInvoiceId || !user?.id) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const invoices = await FinancialManagementService.getInvoices(user.id);
+        const existing = invoices.find((inv) => inv.id === editingInvoiceId);
+        if (!existing || cancelled) return;
+        setClientName(existing.client_name ?? '');
+        // The Invoice type doesn't expose job_id but server invoices
+        // carry it; cast through unknown for runtime read. UUID jobIds
+        // surface as Job reference; free-text references live in notes.
+        const jobIdRaw = (existing as unknown as { job_id?: string | null })
+          .job_id;
+        if (jobIdRaw) setJobRef(jobIdRaw);
+        if (existing.notes) setNotes(existing.notes);
+        if (existing.due_date) setDueDate(new Date(existing.due_date));
+        const items = Array.isArray(existing.line_items)
+          ? existing.line_items
+          : [];
+        if (items.length > 0) {
+          setLineItems(
+            items.map((li) => ({
+              description: li.description ?? '',
+              quantity: String(li.quantity ?? 1),
+              rate: String(li.unit_price ?? li.rate ?? 0),
+            }))
+          );
+        }
+      } catch (e) {
+        logger.warn('Failed to load invoice for edit', {
+          invoiceId: editingInvoiceId,
+          error: e instanceof Error ? e.message : String(e),
+        });
+        toast.error('Failed to load invoice', 'Please go back and try again.');
+      } finally {
+        if (!cancelled) setLoadingExisting(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [editingInvoiceId, user?.id, toast]);
 
   // Discard-prompt — dirty when the user has typed anything OR when
   // a non-trivial line item exists (covers both the time-tracking
@@ -179,26 +229,41 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({
         noteParts.push(`Job reference: ${jobRefTrimmed}`);
       }
 
-      await FinancialManagementService.createInvoice({
-        contractor_id: user.id,
-        client_id: clientId || undefined,
-        client_name: clientName.trim(),
-        job_id: jobRefIsUuid ? jobRefTrimmed : undefined,
-        invoice_number: generateInvoiceNumber(),
-        status: 'draft',
-        subtotal,
-        tax_amount: taxAmount,
-        total_amount: total,
-        due_date: dueDate.toISOString(),
-        issue_date: new Date().toISOString(),
-        notes: noteParts.length > 0 ? noteParts.join('\n\n') : undefined,
-        line_items: parsedItems,
-      });
+      if (editingInvoiceId) {
+        // 2026-05-23 audit-24 P1: edit path. PATCH the existing
+        // invoice rather than creating another draft. Server
+        // recomputes subtotal/tax/total from lineItems + taxRate, so
+        // we don't ship the pre-computed amounts.
+        await FinancialManagementService.updateInvoice(editingInvoiceId, {
+          clientName: clientName.trim(),
+          lineItems: parsedItems,
+          taxRate: 20,
+          dueDate: dueDate.toISOString(),
+          notes: noteParts.length > 0 ? noteParts.join('\n\n') : undefined,
+        });
+        toast.success('Invoice updated', 'Your changes have been saved.');
+      } else {
+        await FinancialManagementService.createInvoice({
+          contractor_id: user.id,
+          client_id: clientId || undefined,
+          client_name: clientName.trim(),
+          job_id: jobRefIsUuid ? jobRefTrimmed : undefined,
+          invoice_number: generateInvoiceNumber(),
+          status: 'draft',
+          subtotal,
+          tax_amount: taxAmount,
+          total_amount: total,
+          due_date: dueDate.toISOString(),
+          issue_date: new Date().toISOString(),
+          notes: noteParts.length > 0 ? noteParts.join('\n\n') : undefined,
+          line_items: parsedItems,
+        });
 
-      toast.success(
-        'Invoice created',
-        'Your invoice has been saved as a draft.'
-      );
+        toast.success(
+          'Invoice created',
+          'Your invoice has been saved as a draft.'
+        );
+      }
       allowExit();
       navigation.goBack();
     } catch {
@@ -225,11 +290,16 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({
         >
           <Ionicons name='arrow-back' size={22} color={me.ink} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>New Invoice</Text>
+        <Text style={styles.headerTitle}>
+          {editingInvoiceId ? 'Edit Invoice' : 'New Invoice'}
+        </Text>
         <TouchableOpacity
-          style={[styles.saveButton, submitting && styles.saveButtonDisabled]}
+          style={[
+            styles.saveButton,
+            (submitting || loadingExisting) && styles.saveButtonDisabled,
+          ]}
           onPress={handleSubmit}
-          disabled={submitting}
+          disabled={submitting || loadingExisting}
           accessibilityRole='button'
           accessibilityLabel={submitting ? 'Saving invoice' : 'Save invoice'}
           accessibilityState={{ disabled: submitting, busy: submitting }}

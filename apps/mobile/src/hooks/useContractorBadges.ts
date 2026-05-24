@@ -59,27 +59,71 @@ export function useContractorBadges(): ContractorBadgesResult {
       return;
     }
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select(SELECT_FIELDS)
-        .eq('id', user.id)
-        .maybeSingle();
+      // 2026-05-24 audit-25 P2: profiles.insurance_expiry +
+      // profiles.dbs_expiry exist in the schema but nothing writes
+      // to them. InsuranceScreen persists to `contractor_insurance`,
+      // the DBS flow persists to `contractor_dbs_checks`. Reading
+      // only the profile columns meant Insured / DBS-Checked badges
+      // never turned on. Query the live record tables in parallel
+      // and use their latest active expiry when the profile column
+      // is null.
+      const [profileRes, insuranceRes, dbsRes] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select(SELECT_FIELDS)
+          .eq('id', user.id)
+          .maybeSingle(),
+        supabase
+          .from('contractor_insurance')
+          .select('expiry_date, status')
+          .eq('contractor_id', user.id)
+          .eq('status', 'active')
+          .order('expiry_date', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        supabase
+          .from('contractor_dbs_checks')
+          .select('expiry_date, status')
+          .eq('contractor_id', user.id)
+          .eq('status', 'active')
+          .order('expiry_date', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+      ]);
 
-      if (error) {
+      if (profileRes.error) {
         logger.warn('useContractorBadges: profile query failed', {
-          error: error.message,
+          error: profileRes.error.message,
         });
         setProfile(null);
         setLoading(false);
         return;
       }
 
-      // insurance_expiry + dbs_expiry are absent from SELECT_FIELDS
-      // today because the columns don't exist yet. Once the
-      // follow-up migration lands, extend SELECT_FIELDS — no
-      // component change required; the utility already reads them
-      // as optional.
-      setProfile((data as ContractorBadgeInput | null) ?? null);
+      const profileData =
+        (profileRes.data as ContractorBadgeInput | null) ?? null;
+      if (!profileData) {
+        setProfile(null);
+        setLoading(false);
+        return;
+      }
+
+      const insuranceExpiry =
+        (profileData as { insurance_expiry?: string | null })
+          .insurance_expiry ??
+        (insuranceRes.data as { expiry_date?: string | null } | null)
+          ?.expiry_date ??
+        null;
+      const dbsExpiry =
+        (profileData as { dbs_expiry?: string | null }).dbs_expiry ??
+        (dbsRes.data as { expiry_date?: string | null } | null)?.expiry_date ??
+        null;
+
+      setProfile({
+        ...profileData,
+        insurance_expiry: insuranceExpiry,
+        dbs_expiry: dbsExpiry,
+      } as ContractorBadgeInput);
       setLoading(false);
     } catch (err) {
       logger.warn('useContractorBadges: probe threw', {

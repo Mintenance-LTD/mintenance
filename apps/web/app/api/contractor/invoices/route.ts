@@ -57,10 +57,7 @@ function calculateTotals(
   };
 }
 
-// 2026-05-23 audit-17 P2: shared notify-homeowner helper used by both
-// POST (create-with-status='sent') and PATCH (draft → sent transition).
-// Pulled out of POST to keep PATCH under the file-size budget while
-// guaranteeing identical fan-out copy.
+// audit-17 P2: shared notify-homeowner helper for POST + PATCH paths.
 async function notifyHomeownerOfInvoice(
   invoice: Record<string, unknown>
 ): Promise<void> {
@@ -365,7 +362,7 @@ export const PATCH = withApiHandler(
     // Check if invoice belongs to contractor
     const { data: existingInvoice } = await userDb
       .from('invoices')
-      .select('contractor_id, status, sent_at')
+      .select('contractor_id, status, sent_at, total_amount')
       .eq('id', invoiceId)
       .single();
 
@@ -396,18 +393,33 @@ export const PATCH = withApiHandler(
       };
     }
 
-    // 2026-05-23 audit-17 P2: detect draft → sent transition. Mobile's
-    // "Send invoice" action PATCHes status='sent', but this handler
-    // previously only updated the row — sendInvoiceEmail and the
-    // invoice_received notification were wired only on POST. So a
-    // contractor tapping "Send" saw the invoice flip to "sent" while
-    // the homeowner got no email and no in-app notification. Stamp
-    // sent_at + fire email + notification on the transition.
+    // 2026-05-23 audit-17 P2: draft → sent stamps sent_at and fires
+    // sendInvoiceEmail + invoice_received (was POST-only).
     const isSendTransition =
       existingInvoice.status !== 'sent' && validatedPatchData.status === 'sent';
     if (isSendTransition && !updateData.sent_at) {
       updateData.sent_at = new Date().toISOString();
     }
+
+    // 2026-05-23 audit-24 P2: status→paid stamps paid_date / paid_amount
+    // server-side (mobile only PATCHes {status:'paid'}; schema rejects
+    // client-supplied paid_date/amount to stop backdating).
+    const isPaidTransition =
+      existingInvoice.status !== 'paid' && validatedPatchData.status === 'paid';
+    if (isPaidTransition) {
+      updateData.paid_date = new Date().toISOString();
+      updateData.paid_amount =
+        (updateData.total_amount as number | undefined) ??
+        existingInvoice.total_amount;
+    }
+
+    // 2026-05-23 audit-24 P2: `reminder:true` PATCH re-fires
+    // sendInvoiceEmail + invoice_received on an already-sent invoice
+    // (the transition gate above wouldn't trigger). Flag isn't a DB
+    // column — strip it from updateData.
+    const isReminderRequest =
+      (validatedPatchData as { reminder?: boolean }).reminder === true;
+    delete (updateData as { reminder?: unknown }).reminder;
 
     // Update invoice
     const { data: invoice, error } = await userDb
@@ -422,12 +434,11 @@ export const PATCH = withApiHandler(
       throw new InternalServerError('Failed to update invoice');
     }
 
-    if (isSendTransition && invoice) {
+    if ((isSendTransition || isReminderRequest) && invoice) {
       try {
         await sendInvoiceEmail(invoice, user);
         await notifyHomeownerOfInvoice(invoice);
       } catch (sendErr) {
-        // Mirror POST: row is already in `sent` state — log and move on.
         logger.error(
           'Error firing invoice send side-effects on PATCH',
           sendErr
@@ -435,13 +446,14 @@ export const PATCH = withApiHandler(
       }
     }
 
-    return NextResponse.json({
-      success: true,
-      invoice,
-      message: isSendTransition
-        ? 'Invoice sent successfully'
-        : 'Invoice updated successfully',
-    });
+    const message = isReminderRequest
+      ? 'Reminder sent'
+      : isPaidTransition
+        ? 'Invoice marked as paid'
+        : isSendTransition
+          ? 'Invoice sent successfully'
+          : 'Invoice updated successfully';
+    return NextResponse.json({ success: true, invoice, message });
   }
 );
 

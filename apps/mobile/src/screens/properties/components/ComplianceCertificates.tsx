@@ -31,12 +31,22 @@ interface Props {
   propertyId: string;
 }
 
+// 2026-05-24 audit-25 P2: live compliance_certificates.cert_type CHECK
+// accepts 9 values (verified via pg_constraint). The summary used to
+// hard-code only the first 5, so landlords could have legionella /
+// fire-safety / asbestos / PAT-testing records on the property and
+// the summary widget would silently hide them — same for the
+// "missing" checklist. All 9 are surfaced now.
 const CERT_LABELS: Record<string, string> = {
   gas_safety: 'Gas Safety',
   eicr: 'Electrical (EICR)',
   epc: 'EPC',
   smoke_alarm: 'Smoke Alarm',
   co_detector: 'CO Detector',
+  legionella: 'Legionella Risk Assessment',
+  fire_safety: 'Fire Safety',
+  asbestos: 'Asbestos Survey',
+  pat_testing: 'PAT Testing',
 };
 
 const STATUS_CONFIG: Record<

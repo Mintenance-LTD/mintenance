@@ -41,6 +41,32 @@ import {
 import { me } from '../../design-system/mint-editorial';
 import { styles, CARD_WIDTH, CATEGORY_MARKERS, CATEGORIES } from './styles';
 
+// 2026-05-24 audit-26 P2: "Search this area" pill styles kept local
+// to this file so we don't disturb the wider explore-map style export.
+const searchAreaStyles = StyleSheet.create({
+  wrapper: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+  },
+  pill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: me.ink,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    ...me.shadow.card,
+  },
+  label: {
+    color: me.onBrand,
+    fontSize: 13,
+    fontWeight: '600',
+  },
+});
+
 // Loading dots animation
 const LoadingDots: React.FC = () => {
   const dot1 = useRef(new Animated.Value(0.3)).current;
@@ -436,6 +462,41 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({
       {viewModel.loading && (
         <View style={styles.loadingOverlay}>
           <LoadingDots />
+        </View>
+      )}
+
+      {/* 2026-05-24 audit-26 P2: "Search this area" button. The
+          viewModel already tracks `hasPanned` (true once the
+          contractor has dragged the map away from the auto-loaded
+          region) and exposes `searchInRegion()` which re-queries the
+          job list using the current region centre + a derived radius.
+          Without a visible control nothing actually invoked it, so
+          panning the map silently kept showing stale-area results.
+          Anchored above the carousel + bottom pills so it never
+          overlaps. */}
+      {viewModel.hasPanned && !viewModel.loading && (
+        <View
+          style={[
+            searchAreaStyles.wrapper,
+            {
+              bottom:
+                viewModel.jobs.length > 0
+                  ? insets.bottom + 224
+                  : insets.bottom + 68,
+            },
+          ]}
+          pointerEvents='box-none'
+        >
+          <TouchableOpacity
+            style={searchAreaStyles.pill}
+            onPress={viewModel.searchInRegion}
+            accessibilityRole='button'
+            accessibilityLabel='Search this area'
+            activeOpacity={0.8}
+          >
+            <Ionicons name='refresh' size={14} color={me.onBrand} />
+            <Text style={searchAreaStyles.label}>Search this area</Text>
+          </TouchableOpacity>
         </View>
       )}
 

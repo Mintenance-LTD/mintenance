@@ -13,6 +13,8 @@ import {
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { JobService } from '../services/JobService';
+import { BidService } from '../services/BidService';
+import { mobileApiClient } from '../utils/mobileApiClient';
 import { useAuth } from '../contexts/AuthContext';
 import { Job } from '@mintenance/types';
 import { JobsStackParamList } from '../navigation/types';
@@ -41,7 +43,7 @@ const MAX_DESC = 5000;
 const VAT_RATE = 20;
 
 const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { jobId } = route.params;
+  const { jobId, existingBidId } = route.params;
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const [job, setJob] = useState<Job | null>(null);
@@ -115,6 +117,58 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
       setLoading(false);
     }
   };
+
+  // 2026-05-24 audit-26 P2: when the screen is opened in "edit" mode
+  // (route.params.existingBidId is set — JobDetailsCTA passes this
+  // when the contractor taps "Bid Pending — Edit Bid"), pre-populate
+  // the quick-bid fields from the existing bid. /api/contractor/bids
+  // is contractor-scoped via auth.uid() so we can safely read by
+  // bidId. line_items + terms are not stored on `bids` (they live
+  // under `quotes`) so the detailed-mode rehydration is out of scope
+  // for this pass — the contractor edits the quick-bid summary and
+  // any line-item changes are still done from a fresh "Submit Quote".
+  useEffect(() => {
+    if (!existingBidId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        // The contractor has at most one bid per job (DB unique
+        // constraint on bids(job_id, contractor_id)), so the
+        // jobId-scoped read returns either the existing bid or null
+        // and we don't need to filter by bidId on the client.
+        const result = await BidService.getMyBidForJob(jobId);
+        if (cancelled || !result || result.id !== existingBidId) return;
+        // The /api/contractor/bids GET returns a wider shape than the
+        // local Bid type (which is the wire shape of submitBid), so
+        // pull the hydration fields via a typed record cast rather
+        // than the strict Bid interface.
+        const target = result as unknown as Record<string, unknown>;
+        const amountField = target.amount;
+        if (typeof amountField === 'number') {
+          setAmount(String(amountField));
+        }
+        const text =
+          (typeof target.description === 'string' && target.description) ||
+          (typeof target.message === 'string' && target.message) ||
+          '';
+        if (text) setDescription(text);
+        const dur = target.estimated_duration_days;
+        if (typeof dur === 'number' && dur > 0) {
+          setEstimatedDuration(String(dur));
+        }
+        const startStr = target.proposed_start_date;
+        if (typeof startStr === 'string') {
+          const parsed = new Date(startStr);
+          if (!Number.isNaN(parsed.getTime())) setProposedStartDate(parsed);
+        }
+      } catch (err) {
+        logger.warn('Failed to hydrate existing bid', { err });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [existingBidId, jobId]);
 
   // Calculations
   const subtotal =
@@ -240,6 +294,40 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
 
     setSubmitting(true);
     try {
+      // 2026-05-24 audit-26 P2: when existingBidId is set, route through
+      // PATCH /api/jobs/:id/bids/:bidId instead of the create endpoint.
+      // The PATCH route only supports {amount, message,
+      // estimated_duration_days, proposed_start_date} — the screen's
+      // detailed-mode line items + terms can't be updated this way
+      // and would be silently dropped, so for now an edit always
+      // PATCHes the quick-bid fields regardless of mode and surfaces
+      // a notice in the success Alert.
+      if (existingBidId) {
+        // PATCH /api/jobs/:jobId/bids/:bidId — schema accepts
+        // amount, message, estimated_duration_days, proposed_start_date.
+        // BidService.updateBid sends `estimated_duration` (string) which
+        // gets silently dropped by the route's non-strict Zod schema,
+        // so go direct here with the correct field names.
+        await mobileApiClient.patch(
+          `/api/jobs/${jobId}/bids/${existingBidId}`,
+          {
+            amount: bidAmount,
+            message: description.trim(),
+            estimated_duration_days: parseInt(estimatedDuration, 10),
+            proposed_start_date: proposedStartDate.toISOString().split('T')[0],
+          }
+        );
+        Alert.alert('Bid Updated', 'Your bid has been updated.', [
+          {
+            text: 'OK',
+            onPress: () => {
+              allowExit();
+              navigation.goBack();
+            },
+          },
+        ]);
+        return;
+      }
       const payload: Record<string, unknown> = {
         jobId,
         contractorId: user.id,

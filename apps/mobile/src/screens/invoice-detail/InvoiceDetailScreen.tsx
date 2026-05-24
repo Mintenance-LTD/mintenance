@@ -66,11 +66,13 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
   const handleSendReminder = async () => {
     if (!invoice || !user) return;
     try {
-      await FinancialManagementService.updateInvoiceStatus(
-        invoice.id,
-        'sent',
-        user.id
-      );
+      // 2026-05-23 audit-24 P2: this used to call updateInvoiceStatus(
+      // 'sent') which on an already-sent invoice no-op'd because the
+      // server only fires email on draft→sent. The new
+      // sendInvoiceReminder helper sends a `reminder: true` PATCH that
+      // the API uses to re-fire the email + invoice_received
+      // notification regardless of current status.
+      await FinancialManagementService.sendInvoiceReminder(invoice.id);
       toast.success('Reminder sent');
       await loadInvoice();
     } catch {
@@ -218,19 +220,28 @@ export const InvoiceDetailScreen: React.FC<InvoiceDetailScreenProps> = ({
         {/* Line Items */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Line Items</Text>
-          {invoice.line_items.map((item, index) => (
-            <View key={index} style={styles.lineItem}>
-              <View style={styles.lineItemLeft}>
-                <Text style={styles.lineItemDesc}>{item.description}</Text>
-                <Text style={styles.lineItemMeta}>
-                  {item.quantity} × {formatCurrency(item.rate)}
+          {invoice.line_items.map((item, index) => {
+            // 2026-05-23 audit-24 P1: API-created invoices ship
+            // `unit_price`, not `rate` (the local editor input still
+            // uses `rate`). Mobile detail used to render NaN/blank
+            // for every API invoice. Coalesce + recompute amount when
+            // the row doesn't carry one so totals match.
+            const rate = item.unit_price ?? item.rate ?? 0;
+            const amount = item.amount ?? rate * (item.quantity ?? 0);
+            return (
+              <View key={index} style={styles.lineItem}>
+                <View style={styles.lineItemLeft}>
+                  <Text style={styles.lineItemDesc}>{item.description}</Text>
+                  <Text style={styles.lineItemMeta}>
+                    {item.quantity} × {formatCurrency(rate)}
+                  </Text>
+                </View>
+                <Text style={styles.lineItemAmount}>
+                  {formatCurrency(amount)}
                 </Text>
               </View>
-              <Text style={styles.lineItemAmount}>
-                {formatCurrency(item.amount)}
-              </Text>
-            </View>
-          ))}
+            );
+          })}
         </View>
 
         {/* Totals */}

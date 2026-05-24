@@ -353,17 +353,31 @@ export const PATCH = withApiHandler(
     }
 
     // Verification submission — fresh credential_verifications row.
-    // Non-fatal: profile state is already 'pending' above, so the
-    // existing admin-review flow still works if this insert fails.
+    // 2026-05-24 audit-25 P1: mobile sends trade / electrical /
+    // plumbing / hvac / roofing as licenseType, but the DB CHECK
+    // (credential_verifications_register_check) only allows
+    // gas_safe / niceic / trustmark / other. The raw value silently
+    // failed insert for every non-gas submission and the dashboard
+    // never received the row. Map to the allowed set; the human label
+    // is already persisted on profiles.license_type above.
     if (d.submitVerification && d.licenseType) {
       const expiresAt = d.licenseExpiry
         ? new Date(d.licenseExpiry).toISOString()
         : null;
+      const normalised = d.licenseType.toLowerCase();
+      const register: 'gas_safe' | 'niceic' | 'trustmark' | 'other' =
+        normalised === 'gas_safe'
+          ? 'gas_safe'
+          : normalised === 'electrical'
+            ? 'niceic'
+            : normalised === 'trustmark'
+              ? 'trustmark'
+              : 'other';
       const { error: credError } = await serverSupabase
         .from('credential_verifications')
         .insert({
           user_id: user.id,
-          register: d.licenseType,
+          register,
           registration_number: d.licenseNumber || '',
           status: 'pending',
           expires_at: expiresAt,
@@ -372,7 +386,12 @@ export const PATCH = withApiHandler(
         logger.error(
           'business-profile credential_verifications insert failed',
           credError,
-          { service: 'contractor.business-profile', userId: user.id }
+          {
+            service: 'contractor.business-profile',
+            userId: user.id,
+            licenseType: d.licenseType,
+            mappedRegister: register,
+          }
         );
       }
     }
