@@ -169,11 +169,26 @@ export const GET = withApiHandler(
     const { data, error } = await query;
 
     if (error) {
+      // 2026-05-24 audit-38 P2: previously logged and returned 200
+      // with { jobs: [] }. On mobile that rendered identically to
+      // "no jobs in this area" — masking RLS drift, malformed
+      // exclusion subqueries, query timeouts, etc., behind a benign-
+      // looking empty map. Operationally invisible failures meant a
+      // crashing/unstable Find Jobs report couldn't tell whether the
+      // problem was "no jobs" or "the route is broken". Fail with
+      // 500 + an error code so the mobile client can distinguish the
+      // two and surface a real retry banner.
       logger.error('jobs/discover query failed', error, {
         service: 'jobs.discover',
         userId: user.id,
       });
-      return NextResponse.json({ jobs: [] }, { status: 200 });
+      return NextResponse.json(
+        {
+          error: 'Failed to load nearby jobs',
+          code: 'DISCOVER_QUERY_FAILED',
+        },
+        { status: 500 }
+      );
     }
 
     let rows = (data ?? []) as JobRow[];
