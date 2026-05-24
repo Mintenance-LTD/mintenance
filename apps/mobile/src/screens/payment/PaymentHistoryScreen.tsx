@@ -23,6 +23,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { ProfileStackParamList } from '../../navigation/types';
+import { goToTab } from '../../navigation/hooks';
 import { LoadingSpinner, ErrorView } from '../../components/shared';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { useResponsive } from '../../hooks/useResponsive';
@@ -251,7 +252,22 @@ export const PaymentHistoryScreen: React.FC<Props> = ({ navigation }) => {
           numColumns={numColumns}
           data={payments}
           keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <PaymentCard payment={item} />}
+          renderItem={({ item }) => (
+            <PaymentCard
+              payment={item}
+              onReceiptPress={(p) => {
+                // 2026-05-24 audit-27 P2: cross-stack jump from
+                // ProfileTab → JobsTab → JobDetails. Replaces the
+                // previous broken Linking.openURL receipt link that
+                // hardcoded a production host + treated the jobId as
+                // an invoiceId.
+                goToTab(navigation, 'JobsTab', {
+                  screen: 'JobDetails',
+                  params: { jobId: p.jobId },
+                });
+              }}
+            />
+          )}
           columnWrapperStyle={numColumns > 1 ? { gap: 12 } : undefined}
           refreshControl={
             <RefreshControl
