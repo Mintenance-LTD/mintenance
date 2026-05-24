@@ -14,7 +14,7 @@ import type { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LoadingSpinner, ErrorView } from '../../components/shared';
 import { useJobDetailsViewModel } from './viewmodels/JobDetailsViewModel';
-import { useJobBids } from '../../hooks/useJobs';
+import { useJobBids, useMyBidForJob } from '../../hooks/useJobs';
 import { BidService } from '../../services/BidService';
 import { ImageCarousel } from '../../components/ui/ImageCarousel';
 import { HostCard } from '../../components/ui/HostCard';
@@ -97,6 +97,20 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   const { data: bidsData, refetch: refetchBids } = useJobBids(jobId, {
     enabled: isJobOwner,
   });
+  // 2026-05-24 audit-26 P1: contractor-side parallel query. When a
+  // contractor opens a job they don't own, /api/jobs/:id/bids 403s,
+  // so useJobBids stays disabled and bidsArray is empty — that
+  // collapses every "Bid Pending" / "Edit Bid" CTA back to a fresh
+  // "Submit Bid", even after deep-link / notification re-entry. The
+  // owner-scoped check `contractor_id = auth.uid()` on
+  // /api/contractor/bids?jobId= safely returns just the caller's
+  // single bid (or empty), which we merge into bidsArray below so
+  // the existing CTA logic in JobDetailsCTA picks it up unchanged.
+  const isContractorViewer =
+    !!user?.id && user.role === 'contractor' && !isJobOwner;
+  const { data: myBidData, refetch: refetchMyBid } = useMyBidForJob(jobId, {
+    enabled: isContractorViewer,
+  });
 
   useEffect(() => {
     if (!viewModel.jobLoading) {
@@ -111,7 +125,16 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   const isContractor = user?.role === 'contractor';
   const isOwner = user?.id === job?.homeowner_id;
 
-  const bidsArray = (Array.isArray(bidsData) ? bidsData : []) as BidListItem[];
+  // Homeowners get the full list from useJobBids; contractors get
+  // their own single bid (zero or one row) from useMyBidForJob. The
+  // arrays never overlap because the two queries are mutually
+  // exclusive (gated on isJobOwner vs isContractorViewer above).
+  const ownerBids = (Array.isArray(bidsData) ? bidsData : []) as BidListItem[];
+  const myBidArray: BidListItem[] = myBidData
+    ? [myBidData as unknown as BidListItem]
+    : [];
+  const bidsArray: BidListItem[] =
+    ownerBids.length > 0 ? ownerBids : myBidArray;
   const myPendingBid =
     isContractor && user?.id
       ? bidsArray.find(
@@ -139,6 +162,12 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
               'Your bid has been withdrawn successfully.'
             );
             refetchBids();
+            // 2026-05-24 audit-26 P1: contractors hit the contractor-
+            // scoped query, not /api/jobs/:id/bids, so the owner
+            // refetch above is a no-op for them. Refetch the
+            // contractor's own bid so the CTA flips back to
+            // "Submit Bid" after a successful withdrawal.
+            refetchMyBid();
             viewModel.refetchJob();
           } catch {
             Alert.alert('Error', 'Failed to withdraw bid. Please try again.');
@@ -148,7 +177,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
         },
       },
     ]);
-  }, [myPendingBid, user?.id, refetchBids, viewModel, jobId]);
+  }, [myPendingBid, user?.id, refetchBids, refetchMyBid, viewModel, jobId]);
 
   if (viewModel.jobLoading && !loadingTimedOut) {
     return <LoadingSpinner message='Loading job details...' />;

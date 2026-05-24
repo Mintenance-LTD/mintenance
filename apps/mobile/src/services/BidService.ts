@@ -137,6 +137,23 @@ export class BidService {
   }
 
   /**
+   * 2026-05-24 audit-26 P1: fetch the calling contractor's bid on a
+   * single job (zero or one row). Used by JobDetailsScreen so a
+   * contractor opening a job they already bid on sees the
+   * "Bid Pending — Edit Bid" CTA instead of "Submit Bid". The
+   * /api/jobs/:id/bids endpoint is owner-gated and 403s for
+   * contractors; /api/contractor/bids?jobId= is scoped via
+   * `contractor_id = auth.uid()` so this round-trip is safe.
+   */
+  static async getMyBidForJob(jobId: string): Promise<Bid | null> {
+    if (!jobId) return null;
+    const url = `/api/contractor/bids?jobId=${encodeURIComponent(jobId)}`;
+    const response = await mobileApiClient.get<{ bids?: Bid[] | null }>(url);
+    const bids = Array.isArray(response.bids) ? response.bids : [];
+    return bids[0] ?? null;
+  }
+
+  /**
    * Mutation methods all hit the nested route
    * `/api/jobs/:jobId/bids/:bidId/...` which requires both ids in
    * the URL. Audit step 11 (2026-04-29): the previous helper

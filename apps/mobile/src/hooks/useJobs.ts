@@ -1,4 +1,5 @@
 import { JobService } from '../services/JobService';
+import { BidService } from '../services/BidService';
 import { queryKeys } from '../lib/queryClient';
 import { useOfflineQuery, useOfflineMutation } from './useOfflineQuery';
 import { Job } from '@mintenance/types';
@@ -65,6 +66,27 @@ export const useJobBids = (
     queryFn: () => JobService.getBidsByJob(jobId),
     enabled: !!jobId && enabled,
     staleTime: 30 * 1000, // 30 seconds for bids
+  });
+};
+
+/**
+ * 2026-05-24 audit-26 P1: contractor-side companion to useJobBids.
+ * /api/jobs/:id/bids is owner-gated so contractors can't use it to
+ * see their own bid state. /api/contractor/bids?jobId= is scoped
+ * by `contractor_id = auth.uid()` and returns the single bid (or
+ * empty) the calling contractor has on that job. Used by
+ * JobDetailsScreen to light up the "Edit Bid / Bid Pending" CTA
+ * after a deep-link, notification, or list-to-detail navigation.
+ */
+export const useMyBidForJob = (
+  jobId: string,
+  { enabled = true }: { enabled?: boolean } = {}
+) => {
+  return useOfflineQuery({
+    queryKey: ['contractor', 'my-bid', jobId] as const,
+    queryFn: () => BidService.getMyBidForJob(jobId),
+    enabled: !!jobId && enabled,
+    staleTime: 30 * 1000,
   });
 };
 

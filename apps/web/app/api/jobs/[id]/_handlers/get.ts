@@ -33,7 +33,14 @@ export async function handleGet(
   const { data, error } = await userDb
     .from('jobs')
     .select(
-      'id, title, description, status, homeowner_id, contractor_id, category, budget, budget_min, budget_max, urgency, location, city, postcode, latitude, longitude, start_date, end_date, scheduled_start_date, flexible_timeline, access_info, requirements, property_id, created_at, updated_at'
+      // 2026-05-24 audit-26 P2: include `completion_confirmed_by_homeowner`
+      // so the mobile homeowner CTA can pick the right post-completion
+      // state. Without it the field returned undefined and the JobsQuickActions
+      // / JobDetailsCTA gates that check "Review Work" vs "Leave a Review"
+      // both fell through silently — a homeowner who'd already approved the
+      // work saw "Review Work" again, and the auto-release timer-aware copy
+      // never appeared.
+      'id, title, description, status, homeowner_id, contractor_id, category, budget, budget_min, budget_max, urgency, location, city, postcode, latitude, longitude, start_date, end_date, scheduled_start_date, flexible_timeline, access_info, requirements, property_id, completion_confirmed_by_homeowner, created_at, updated_at'
     )
     .eq('id', id)
     .single();
@@ -257,6 +264,11 @@ export async function handleGet(
     longitude: toNum(row.longitude),
     homeowner_id: row.homeowner_id,
     contractor_id: row.contractor_id,
+    // 2026-05-24 audit-26 P2: pass through the completion flag so mobile
+    // can drive the homeowner post-completion CTA (Review Work vs Leave
+    // a Review) without round-tripping a separate query.
+    completion_confirmed_by_homeowner:
+      row.completion_confirmed_by_homeowner ?? false,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   } as Record<string, unknown>;

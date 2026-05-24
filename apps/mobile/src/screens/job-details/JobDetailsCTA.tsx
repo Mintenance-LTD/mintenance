@@ -236,29 +236,37 @@ export function getPriorityCTA({
     isOwner &&
     job.status === 'assigned' &&
     contractStatus === 'accepted' &&
-    escrowStatus !== 'held' &&
-    budget > 0
+    escrowStatus !== 'held'
   ) {
-    // Use accepted bid amount for payment instead of budget estimate
+    // 2026-05-24 audit-26 P1: pre-open-bidding the gate was `budget > 0`
+    // and the payable amount fell back to budget. With open-bidding,
+    // jobs.budget is nullable and is NOT the source of truth for the
+    // payable amount — the accepted bid is. Gating on budget meant
+    // budget-less jobs with accepted bids couldn't proceed to escrow.
+    // Now: use acceptedBid.amount if available; only fall back to
+    // budget as the legacy path. Show the CTA whenever there's any
+    // positive amount to charge.
     const acceptedBid = bidsArray.find(
       (b: { status?: string; amount?: number }) => b.status === 'accepted'
     );
-    const amount = acceptedBid?.amount || budget;
-    return (
-      <StickyBottomCTA
-        price={amount}
-        priceLabel='Bid amount'
-        buttonText='Pay Now'
-        onPress={() =>
-          navigation.navigate('JobPayment', {
-            jobId: job.id,
-            amount,
-            contractorId: job.contractor_id || '',
-          })
-        }
-        secondaryText='Secure payment in escrow'
-      />
-    );
+    const amount = acceptedBid?.amount ?? (budget > 0 ? budget : 0);
+    if (amount > 0) {
+      return (
+        <StickyBottomCTA
+          price={amount}
+          priceLabel='Bid amount'
+          buttonText='Pay Now'
+          onPress={() =>
+            navigation.navigate('JobPayment', {
+              jobId: job.id,
+              amount,
+              contractorId: job.contractor_id || '',
+            })
+          }
+          secondaryText='Secure payment in escrow'
+        />
+      );
+    }
   }
 
   if (
