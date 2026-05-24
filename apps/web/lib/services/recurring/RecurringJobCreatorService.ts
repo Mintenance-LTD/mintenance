@@ -81,6 +81,13 @@ export class RecurringJobCreatorService {
       .eq('is_active', true)
       .eq('auto_create_job', true)
       .not('property_id', 'is', null)
+      // 2026-05-24 audit-34 P1: orphan-after-account-delete safeguard.
+      // recurring_schedules.owner_id is now ON DELETE SET NULL (so
+      // schedule rows survive account deletion for the audit trail),
+      // but JobCreationService needs a real homeowner to attach the
+      // created job to. Skip orphaned rows here so the cron doesn't
+      // try to create jobs for a deleted user.
+      .not('owner_id', 'is', null)
       .lte('next_due_date', now);
 
     if (error) {
