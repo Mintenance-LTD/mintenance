@@ -164,11 +164,20 @@ export class NotificationService {
       // `inAppOnly` callers (e.g. retention digests) opt out here
       // because they already delivered through email and would
       // otherwise double-notify the user.
+      // 2026-05-26 audit-54 P1: spread metadata into the push data
+      // payload. Expo only delivers the `data` field to the mobile
+      // app, and the mobile routingTable reads jobId / conversationId
+      // / propertyId / appointmentId etc. from that payload — not
+      // from the top-level `metadata` arg (which never crosses the
+      // FCM/APNS wire). Without this spread, push taps fell through
+      // to the inbox even when the server knew exactly which job /
+      // thread / property to deep-link to.
       void sendPushToDevice({
         userId: params.userId,
         title: params.title,
         body: params.message,
         data: {
+          ...(params.metadata ?? {}),
           notificationId: notificationId ?? undefined,
           type: params.type,
           actionUrl: params.actionUrl,

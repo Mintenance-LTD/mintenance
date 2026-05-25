@@ -145,11 +145,24 @@ export function getPriorityCTA({
     contractStatus === 'accepted' &&
     escrowStatus !== 'held'
   ) {
+    // 2026-05-26 audit-53 P2: distinguish 'pending' (Stripe charged,
+    // webhook still landing) from "no escrow yet". On 'pending' the
+    // homeowner has paid — telling the contractor "homeowner needs to
+    // deposit" is wrong; the truth is "settling now". When the webhook
+    // finishes or the homeowner re-opens the screen (forcing a refetch
+    // after audit-53 P1's confirm-intent call), this transitions to
+    // 'held' and CTA 4 fires.
+    const isSettling = escrowStatus === 'pending';
     return (
       <StickyBottomCTA
-        buttonText='Waiting for Payment'
+        buttonText={isSettling ? 'Payment Settling' : 'Waiting for Payment'}
         onPress={() => navigation.navigate('ContractView', { jobId: job.id })}
-        secondaryText='Homeowner needs to deposit payment into escrow'
+        secondaryText={
+          isSettling
+            ? 'Homeowner has paid — escrow is settling and will be ready in a moment.'
+            : 'Homeowner needs to deposit payment into escrow'
+        }
+        disabled={isSettling}
       />
     );
   }
@@ -238,6 +251,24 @@ export function getPriorityCTA({
     contractStatus === 'accepted' &&
     escrowStatus !== 'held'
   ) {
+    // 2026-05-26 audit-53 P2: when escrow exists as 'pending' (Stripe
+    // already charged, webhook still landing) showing "Pay Now" again
+    // invited duplicate payment attempts. The homeowner pressing the
+    // button a second time would re-run create-intent and could
+    // potentially double-charge. Surface a settling state instead;
+    // the screen refetches on focus and will transition to the next
+    // CTA once escrow flips to 'held'.
+    if (escrowStatus === 'pending') {
+      return (
+        <StickyBottomCTA
+          buttonText='Payment Settling'
+          onPress={() => navigation.navigate('ContractView', { jobId: job.id })}
+          secondaryText='Your payment is being placed in escrow — this usually takes a few seconds.'
+          disabled
+        />
+      );
+    }
+
     // 2026-05-24 audit-26 P1: pre-open-bidding the gate was `budget > 0`
     // and the payable amount fell back to budget. With open-bidding,
     // jobs.budget is nullable and is NOT the source of truth for the
