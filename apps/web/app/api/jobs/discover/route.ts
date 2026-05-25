@@ -119,6 +119,32 @@ export const GET = withApiHandler(
     }
     const { category, limit, latitude, longitude, radiusKm } = parsed.data;
 
+    // 2026-05-26 audit-63 P1: pending contractors must not see open
+    // jobs in Find Jobs. Mobile onboarding tells them "Finish
+    // verification to start bidding" — surfacing the discoverable
+    // feed first lets a not-yet-approved contractor build a bid plan
+    // they then can't submit. Verified contractors and admin always
+    // pass. Treat admin_verified=true as verified too (legacy
+    // boolean used by some admin tools alongside the modern
+    // verification_status='verified' enum). For admin (platform-
+    // support) callers the check is skipped entirely.
+    if (user.role === 'contractor') {
+      const { data: vRow } = await serverSupabase
+        .from('profiles')
+        .select('verification_status, admin_verified')
+        .eq('id', user.id)
+        .single();
+      const verified =
+        vRow?.verification_status === 'verified' ||
+        vRow?.admin_verified === true;
+      if (!verified) {
+        return NextResponse.json({
+          jobs: [],
+          code: 'CONTRACTOR_NOT_VERIFIED',
+        });
+      }
+    }
+
     // Pull the contractor's bid job_ids (any status) so we can exclude
     // them. Homeowners have no bids, so the IN list is empty — the
     // .not('id', 'in', ...) call short-circuits below for non-contractors.
