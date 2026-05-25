@@ -127,10 +127,21 @@ export const POST = withApiHandler(
         );
       }
 
-      // 7. Update job status
+      // 7. Update job status. 2026-05-27 audit-P1-6: also stamp
+      //    started_at for the lifecycle audit. Double-start is already
+      //    prevented by the idempotency cache above (checkIdempotency)
+      //    plus validateStatusTransition rejecting in_progress →
+      //    in_progress, so a simple set is safe here without a
+      //    COALESCE / WHERE started_at IS NULL guard that would
+      //    surface a 0-row no-op as a silent success.
+      const nowIso = new Date().toISOString();
       const { error: updateError } = await serverSupabase
         .from('jobs')
-        .update({ status: 'in_progress', updated_at: new Date().toISOString() })
+        .update({
+          status: 'in_progress',
+          started_at: nowIso,
+          updated_at: nowIso,
+        })
         .eq('id', jobId);
 
       if (updateError) {
