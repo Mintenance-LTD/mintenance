@@ -85,7 +85,19 @@ interface VerificationStatusResponse {
   hasLicenseNumber: boolean;
   hasGeolocation: boolean;
   hasCompanyName: boolean;
+  // 2026-05-26 audit-63 P1: profile-completeness only. Renamed from
+  // `isFullyVerified` (which led callers — including
+  // CreateContractDialog — to treat it as admin-reviewed). Kept the
+  // old key as an alias on the wire for back-compat during the
+  // mobile-build roll-forward; new callers should read
+  // `isAdminVerified` to gate on the real review status.
+  isProfileComplete: boolean;
+  /** @deprecated Use isAdminVerified. Misleading: profile completeness only. */
   isFullyVerified: boolean;
+  // True only when an admin has reviewed and approved the contractor
+  // (profiles.verification_status='verified' or legacy admin_verified=true).
+  isAdminVerified: boolean;
+  verificationStatus: 'pending' | 'verified' | 'rejected' | null;
   data: Record<string, unknown> | null;
 }
 
@@ -96,10 +108,14 @@ interface VerificationStatusResponse {
 export const GET = withApiHandler(
   { roles: ['contractor'], rateLimit: { maxRequests: 30 } },
   async (_request, { user }) => {
+    // 2026-05-26 audit-63 P1: also fetch verification_status +
+    // admin_verified so the response reflects whether an admin has
+    // approved the contractor — not just whether the profile is
+    // shaped correctly.
     const { data: userData, error } = await serverSupabase
       .from('profiles')
       .select(
-        'business_address, license_number, latitude, longitude, company_name'
+        'business_address, license_number, latitude, longitude, company_name, verification_status, admin_verified'
       )
       .eq('id', user.id)
       .single();
@@ -126,18 +142,41 @@ export const GET = withApiHandler(
         .maybeSingle(),
     ]);
 
+    // 2026-05-26 audit-63 P1: profile-completeness is necessary but
+    // not sufficient for "verified". The contractor must also have
+    // passed admin review (verification_status='verified' or legacy
+    // admin_verified=true). Surface both signals so callers can pick
+    // the right gate for their use case.
+    const isProfileComplete = Boolean(
+      userData?.business_address &&
+      userData?.license_number &&
+      userData?.latitude &&
+      userData?.longitude &&
+      userData?.company_name
+    );
+    const isAdminVerified =
+      userData?.verification_status === 'verified' ||
+      userData?.admin_verified === true;
+
     const verificationStatus: VerificationStatusResponse = {
       hasBusinessAddress: Boolean(userData?.business_address),
       hasLicenseNumber: Boolean(userData?.license_number),
       hasGeolocation: Boolean(userData?.latitude && userData?.longitude),
       hasCompanyName: Boolean(userData?.company_name),
-      isFullyVerified: Boolean(
-        userData?.business_address &&
-        userData?.license_number &&
-        userData?.latitude &&
-        userData?.longitude &&
-        userData?.company_name
-      ),
+      isProfileComplete,
+      // Legacy alias — old mobile builds still read `isFullyVerified`
+      // expecting "I can bid now". Tighten the value so the legacy
+      // key now requires BOTH profile completeness AND admin review.
+      // Old callers that only meant "profile filled in" should
+      // migrate to `isProfileComplete`.
+      isFullyVerified: isProfileComplete && isAdminVerified,
+      isAdminVerified,
+      verificationStatus:
+        (userData?.verification_status as
+          | 'pending'
+          | 'verified'
+          | 'rejected'
+          | null) ?? null,
       data: {
         ...userData,
         insurance_provider: insuranceRes.data?.provider || null,
@@ -200,6 +239,22 @@ export const POST = withApiHandler(
     const geocoder = new GeocodingService();
     const coordinates = await geocoder.geocodeAddress(businessAddress);
 
+    // 2026-05-26 audit-63 P1: also set verification_status='pending'
+    // (when the contractor isn't already 'verified') so the admin
+    // review queue picks up the submission. Previously the POST
+    // persisted profile fields but never touched the status enum,
+    // so submissions sat in a "completed but not queued" limbo. We
+    // never downgrade an already-verified contractor — they keep
+    // their approved state even if they re-save the form to refresh
+    // a detail.
+    const { data: currentStatusRow } = await serverSupabase
+      .from('profiles')
+      .select('verification_status')
+      .eq('id', user.id)
+      .single();
+    const shouldQueueForReview =
+      currentStatusRow?.verification_status !== 'verified';
+
     const updateData: Record<string, unknown> = {
       company_name: companyName,
       business_address: coordinates?.formattedAddress || businessAddress,
@@ -209,6 +264,9 @@ export const POST = withApiHandler(
       is_visible_on_map: true,
       last_location_visibility_at: new Date().toISOString(),
     };
+    if (shouldQueueForReview) {
+      updateData.verification_status = 'pending';
+    }
 
     if (coordinates) {
       updateData.latitude = coordinates.lat;
@@ -334,10 +392,28 @@ export const POST = withApiHandler(
       }
     }
 
+    // 2026-05-26 audit-63 P1: previously returned `verified: true`
+    // here despite never flipping profiles.verification_status or
+    // admin_verified. Saving the form is "submitted for review" not
+    // "approved" — only an admin's approval flips the status to
+    // 'verified'. Now we also stamp verification_status='pending'
+    // (unless already 'verified') in the update payload above so
+    // the admin queue picks the submission up. The response below
+    // reports the post-update enum value so the UI can render
+    // "Pending review" / "Verified" copy correctly. We preserve a
+    // `verified: boolean` field for legacy callers but with honest
+    // semantics (only true once an admin has approved).
+    const finalVerificationStatus = shouldQueueForReview
+      ? 'pending'
+      : currentStatusRow?.verification_status;
     return NextResponse.json(
       {
-        message: 'Verification information submitted successfully.',
-        verified: true,
+        message: shouldQueueForReview
+          ? 'Verification information submitted for review.'
+          : 'Verification information updated.',
+        verified: finalVerificationStatus === 'verified',
+        verificationStatus: finalVerificationStatus,
+        submittedForReview: shouldQueueForReview,
         geocoded: Boolean(coordinates),
         coordinates: coordinates
           ? { latitude: coordinates.lat, longitude: coordinates.lng }

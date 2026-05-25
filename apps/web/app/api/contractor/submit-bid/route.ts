@@ -36,6 +36,41 @@ export const POST = withApiHandler(
   async (request: NextRequest, { user }): Promise<NextResponse> => {
     // Use RLS-enforced client for user-scoped reads; fall back to service role
     const userDb = createRequestScopedClient(request) ?? serverSupabase;
+
+    // 2026-05-26 audit-63 P1: enforce the "verified before bidding"
+    // product rule. The mobile onboarding banner already promises
+    // "Finish verification to start bidding" — without this gate a
+    // contractor with verification_status='pending' could submit
+    // bids freely (live DB had one pending contractor with 8 bids
+    // already). admin_verified is the legacy boolean some admin
+    // tools still set; verification_status='verified' is the modern
+    // value flipped by the admin-review approval flow. Accept either
+    // to avoid blocking contractors mid-migration.
+    const { data: verificationRow } = await serverSupabase
+      .from('profiles')
+      .select('verification_status, admin_verified')
+      .eq('id', user.id)
+      .single();
+    const isVerified =
+      verificationRow?.verification_status === 'verified' ||
+      verificationRow?.admin_verified === true;
+    if (!isVerified) {
+      logger.info('Bid submission blocked: contractor not yet verified', {
+        service: 'contractor',
+        userId: user.id,
+        verificationStatus: verificationRow?.verification_status ?? null,
+        adminVerified: verificationRow?.admin_verified ?? null,
+      });
+      return NextResponse.json(
+        {
+          error:
+            'Your contractor profile is still being verified. You can submit bids once an admin reviews your account.',
+          code: 'CONTRACTOR_NOT_VERIFIED',
+        },
+        { status: 403 }
+      );
+    }
+
     // Check subscription requirement
     const { requireSubscriptionForAction, checkSubscriptionLimits } =
       await import('@/lib/middleware/subscription-check');
