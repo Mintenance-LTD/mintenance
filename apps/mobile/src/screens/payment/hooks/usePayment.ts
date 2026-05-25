@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Alert } from 'react-native';
 import { PaymentService } from '../../../services/PaymentService';
+import { mobileApiClient } from '../../../utils/mobileApiClient';
 import { logger } from '../../../utils/logger';
 
 interface PaymentMethod {
@@ -118,7 +119,34 @@ export function usePayment({
           throw new Error('Payment confirmation failed');
         }
 
-        // Note: Escrow record is created server-side by the create-intent endpoint
+        // 2026-05-26 audit-53 P1: explicitly POST /api/payments/
+        // confirm-intent to flip the escrow row from 'pending' to
+        // 'held'. The Stripe webhook does the same flip on
+        // payment_intent.succeeded, but webhook delivery can lag
+        // seconds-to-minutes; without this client-side handoff the
+        // homeowner saw "Payment Successful" while the contractor
+        // sat on "Waiting for Payment". The server-side handler is
+        // idempotent (validateEscrowTransition gates pending->held;
+        // a duplicate call from the webhook no-ops), so firing both
+        // paths is safe. Non-fatal: if confirm-intent fails the
+        // webhook still settles eventually.
+        if (intentResult.paymentIntentId) {
+          try {
+            await mobileApiClient.post('/api/payments/confirm-intent', {
+              paymentIntentId: intentResult.paymentIntentId,
+              jobId,
+            });
+          } catch (confirmErr) {
+            logger.warn('confirm-intent call failed; webhook will reconcile', {
+              jobId,
+              paymentIntentId: intentResult.paymentIntentId,
+              err:
+                confirmErr instanceof Error
+                  ? confirmErr.message
+                  : String(confirmErr),
+            });
+          }
+        }
 
         Alert.alert(
           'Payment Successful',
