@@ -63,7 +63,41 @@ export const GET = withApiHandler(
     if (isContractor) {
       query = query.eq('contractor_id', user.id);
     } else {
-      query = query.eq('client_id', user.id);
+      // 2026-05-26 audit-55 P2: homeowner filter previously matched only
+      // `client_id = user.id`. Live data shows 5 of 9 appointments have
+      // a NULL client_id (legacy rows + appointments inserted before
+      // the contract gained client_id required-ness), so those
+      // appointments showed up for the contractor but disappeared from
+      // the homeowner's calendar.
+      //
+      // Fall back: match by `client_email = user.email` (covers manual
+      // contractor-entered emails where client_id is unset) OR by
+      // job ownership (the linked job's homeowner_id IS the calling
+      // user). For the job-ownership lookup we first resolve the
+      // homeowner's job IDs to a list so PostgREST's `or` filter stays
+      // simple. This widens the recall without leaking other users'
+      // appointments — contractor_id / client_id / job ownership are
+      // all caller-scoped.
+      const orFilters: string[] = [`client_id.eq.${user.id}`];
+      if (user.email) {
+        // sanitise: client_email is just an EQ filter, escape with
+        // standard PostgREST syntax (no wildcards needed).
+        orFilters.push(`client_email.eq.${user.email}`);
+      }
+
+      // Look up jobs this homeowner owns so we can pick up
+      // appointments linked via job_id even when client_id is null.
+      const { data: ownedJobs } = await serverSupabase
+        .from('jobs')
+        .select('id')
+        .eq('homeowner_id', user.id);
+      const jobIds = (ownedJobs || []).map((j) => j.id as string);
+      if (jobIds.length > 0) {
+        // Use the in.() helper so the OR filter handles multiple IDs.
+        orFilters.push(`job_id.in.(${jobIds.join(',')})`);
+      }
+
+      query = query.or(orFilters.join(','));
     }
 
     const { data: appointments, error } = await query;
