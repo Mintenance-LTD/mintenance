@@ -19,13 +19,28 @@ import {
   releaseOnError,
 } from '@/lib/idempotency';
 
+// 2026-05-26 audit-52 P1: HEIC/HEIF added — see before/route.ts for
+// the full rationale. iPhone cameras default to HEIC and
+// PhotoUploadService sends image/heic for .heic assets. Without this
+// the after-photo upload would 400 with "Invalid file type" and the
+// auto-completion trigger never fires.
 const ALLOWED_IMAGE_TYPES = [
   'image/jpeg',
   'image/png',
   'image/webp',
   'image/gif',
+  'image/heic',
+  'image/heif',
 ];
-const ALLOWED_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+const ALLOWED_IMAGE_EXTENSIONS = [
+  'jpg',
+  'jpeg',
+  'png',
+  'webp',
+  'gif',
+  'heic',
+  'heif',
+];
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const MAX_FILES = 10;
 

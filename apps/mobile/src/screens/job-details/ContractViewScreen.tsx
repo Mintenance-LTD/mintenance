@@ -166,13 +166,53 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
           onPress: async () => {
             setSigning(true);
             try {
-              await mobileApiClient.post(
-                `/api/contracts/${contract.id}/accept`,
-                {}
-              );
+              // /api/contracts/[id]/accept returns the updated contract
+              // with the new status. When both parties have signed, the
+              // status flips to 'accepted' and escrow funding becomes
+              // the next required step.
+              const result = await mobileApiClient.post<{
+                contract?: { status?: string };
+              }>(`/api/contracts/${contract.id}/accept`, {});
               HapticService.success();
-              Alert.alert('Signed', 'Contract signed successfully.');
-              await fetchContract();
+
+              const newStatus = result?.contract?.status;
+              // 2026-05-26 audit-51 P1: when the homeowner is the
+              // signature that flips status to 'accepted', the next
+              // step is funding escrow. Previously we just alerted
+              // "Contract signed successfully" and refetched, leaving
+              // the homeowner on the contract screen with no signal
+              // that Pay Now is the next action. Live data confirmed
+              // 5 assigned jobs with no held/pending escrow including
+              // 3 with accepted contracts — homeowners weren't
+              // finding the Pay button on JobDetails. Offer a direct
+              // path to JobPayment from the success alert; "Later"
+              // still leaves them where they are.
+              if (newStatus === 'accepted' && user?.role === 'homeowner') {
+                Alert.alert(
+                  'Contract signed',
+                  'Next step: pay into escrow so the contractor can start work.',
+                  [
+                    { text: 'Later', onPress: () => void fetchContract() },
+                    {
+                      text: 'Pay now',
+                      style: 'default',
+                      onPress: () => {
+                        const contractorName =
+                          contract.contractorName?.trim() || 'Contractor';
+                        navigation.navigate('JobPayment', {
+                          jobId: contract.job_id,
+                          amount: contract.amount,
+                          contractorId: contract.contractor_id,
+                          contractorName,
+                        });
+                      },
+                    },
+                  ]
+                );
+              } else {
+                Alert.alert('Signed', 'Contract signed successfully.');
+                await fetchContract();
+              }
             } catch {
               HapticService.error();
               Alert.alert(
@@ -186,7 +226,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
         },
       ]
     );
-  }, [contract, fetchContract]);
+  }, [contract, fetchContract, navigation, user?.role]);
 
   const handleViewPdf = useCallback(async () => {
     if (!contract) return;

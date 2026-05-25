@@ -227,19 +227,22 @@ export class PhotoUploadService {
         } as unknown as Blob);
         formData.append('metadata', JSON.stringify(metadata));
 
-        let data: {
-          photoId?: string;
-          url?: string;
-          jobCompleted?: boolean;
-        };
+        // 2026-05-26 audit-52 P2: normalise response shape — same as before-photo path.
+        let data: { photoId?: string; url?: string; jobCompleted?: boolean };
         try {
-          data = await withUploadRetry('uploadAfterPhotos', () =>
+          const rawResponse = await withUploadRetry('uploadAfterPhotos', () =>
             mobileApiClient.postFormData<{
               photoId?: string;
               url?: string;
               jobCompleted?: boolean;
+              photos?: { url: string; qualityScore?: number }[];
             }>(`/api/jobs/${jobId}/photos/after`, formData)
           );
+          data = {
+            photoId: rawResponse.photoId,
+            url: rawResponse.photos?.[0]?.url ?? rawResponse.url,
+            jobCompleted: rawResponse.jobCompleted,
+          };
         } catch (uploadError) {
           const apiError = parseError(uploadError);
           results.push({

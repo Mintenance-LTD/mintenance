@@ -119,12 +119,21 @@ export const POST = withApiHandler(
       //
       // Note: This is a special business rule — homeowner requesting changes
       // bypasses the normal terminal state restriction on 'completed' jobs.
+      // 2026-05-26 audit-52 P3: also clear completion_confirmed_at.
+      // confirm-completion stamps that timestamp when the homeowner
+      // approves; without clearing it on a rework cycle, the row keeps
+      // an "approved at 2026-05-25" marker while
+      // completion_confirmed_by_homeowner reverts to false, leaving a
+      // confusing audit state where the boolean and timestamp
+      // disagree. Live `jobs` has all three columns (verified 2026-05-26
+      // via information_schema).
       const { error: updateError } = await serverSupabase
         .from('jobs')
         .update({
           status: JOB_STATUS.IN_PROGRESS,
           completed_at: null,
           completion_confirmed_by_homeowner: false,
+          completion_confirmed_at: null,
           updated_at: new Date().toISOString(),
         })
         .eq('id', jobId);

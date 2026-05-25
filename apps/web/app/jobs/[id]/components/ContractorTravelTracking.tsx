@@ -47,39 +47,59 @@ export function ContractorTravelTracking({
     return () => clearInterval(id);
   }, []);
 
-  // Subscribe to real-time contractor location updates
+  // 2026-05-26 audit-48 P1: Supabase Realtime Postgres Changes filters
+  // are single-column equality only — multi-condition SQL-style "AND"
+  // expressions like the previous one silently failed to subscribe
+  // (no error, just no events). Drop to the most-selective single
+  // filter (job_id is unique per assignment and effectively scopes the
+  // event stream) and run the remaining conditions client-side in the
+  // onUpdate handler. Reference:
+  // https://supabase.com/docs/guides/realtime/postgres-changes#available-filters
+  //
+  // Also wires onInsert so the first GPS tick (which is an INSERT
+  // because of the select-then-update/insert pattern in
+  // JobContextLocationService) paints the map without waiting for the
+  // second tick to fire an UPDATE.
+  const handleLocationEvent = (payload: { new: unknown | null }) => {
+    if (!payload.new) return;
+    const newData = payload.new as Record<string, unknown>;
+    // 2026-05-26 audit-48 P1: belt-and-braces — match the rest of
+    // the previous filter client-side so a stale row from another
+    // contractor or a closed tracking session can't paint the map.
+    if (newData.contractor_id !== contractorId) return;
+    if (newData.is_active === false) return;
+    if (meetingId && newData.meeting_id !== meetingId) return;
+    // 2026-05-23 audit: live `contractor_locations` has
+    // `location_timestamp`, NOT `timestamp`. Reading the wrong
+    // column made `lastUpdate` resolve to `new Date(undefined)`
+    // → Invalid Date → "NaN minutes ago" on the live status pill.
+    // Falls back to `updated_at` as a secondary anchor, then the
+    // current moment so the pill stays meaningful.
+    const locationData: ContractorLocationData = {
+      latitude: newData.latitude as number,
+      longitude: newData.longitude as number,
+      eta: (newData.eta_minutes as number) || 0,
+      heading: newData.heading as number | undefined,
+      speed: newData.speed as number | undefined,
+      timestamp:
+        (newData.location_timestamp as string) ||
+        (newData.updated_at as string) ||
+        new Date().toISOString(),
+      context: (newData.context as string) || 'traveling',
+    };
+
+    setContractorLocation(locationData);
+    setIsTraveling(locationData.context === 'traveling');
+
+    // Update map markers
+    updateMapMarkers(locationData);
+  };
+
   const { status } = useRealtime({
     table: 'contractor_locations',
-    filter: `contractor_id=eq.${contractorId} AND job_id=eq.${jobId}${meetingId ? ` AND meeting_id=eq.${meetingId}` : ''} AND is_active=eq.true`,
-    onUpdate: (payload) => {
-      if (payload.new) {
-        const newData = payload.new as Record<string, unknown>;
-        // 2026-05-23 audit: live `contractor_locations` has
-        // `location_timestamp`, NOT `timestamp`. Reading the wrong
-        // column made `lastUpdate` resolve to `new Date(undefined)`
-        // → Invalid Date → "NaN minutes ago" on the live status pill.
-        // Falls back to `updated_at` as a secondary anchor, then the
-        // current moment so the pill stays meaningful.
-        const locationData: ContractorLocationData = {
-          latitude: newData.latitude as number,
-          longitude: newData.longitude as number,
-          eta: (newData.eta_minutes as number) || 0,
-          heading: newData.heading as number | undefined,
-          speed: newData.speed as number | undefined,
-          timestamp:
-            (newData.location_timestamp as string) ||
-            (newData.updated_at as string) ||
-            new Date().toISOString(),
-          context: (newData.context as string) || 'traveling',
-        };
-
-        setContractorLocation(locationData);
-        setIsTraveling(locationData.context === 'traveling');
-
-        // Update map markers
-        updateMapMarkers(locationData);
-      }
-    },
+    filter: `job_id=eq.${jobId}`,
+    onInsert: handleLocationEvent,
+    onUpdate: handleLocationEvent,
   });
 
   const updateMapMarkers = (locationData: ContractorLocationData) => {

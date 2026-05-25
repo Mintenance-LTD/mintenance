@@ -1,334 +1,52 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  TextInput,
-  Alert,
-  StyleSheet,
-  RefreshControl,
-  StatusBar,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+/**
+ * JobSignOffScreen — deprecated redirect to PhotoReview.
+ *
+ * 2026-05-26 audit-52 P2: this screen previously rendered a text-only
+ * approve / request-change UX that direct-read job state from Supabase
+ * and let the homeowner approve a completion WITHOUT seeing the
+ * before/after photo evidence. The server gates still required after
+ * photos (confirm-completion route, audit-32) but the UX let the
+ * homeowner click Approve based on the contractor's word alone.
+ *
+ * The canonical surface is HomeownerPhotoReviewScreen (registered as
+ * the `PhotoReview` route) which renders the BeforeAfterSlider before
+ * exposing approve / request-changes actions, so any caller that
+ * still navigates to JobSignOff (older JobDetails quick-action,
+ * deep-link, push payload) gets redirected via navigation.replace.
+ *
+ * Kept the route registered + the screen as a stub so existing
+ * navigator references keep type-checking. Once we're confident no
+ * production EAS build still navigates here, both can be deleted.
+ */
+import React, { useEffect } from 'react';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import type { JobsStackParamList } from '../../navigation/types';
-import {
-  ScreenHeader,
-  LoadingSpinner,
-  ErrorView,
-} from '../../components/shared';
-import { Button } from '../../components/ui/Button';
-import { supabase } from '../../config/supabase';
-import { mobileApiClient } from '../../utils/mobileApiClient';
 import { me } from '../../design-system/mint-editorial';
 
 type Props = NativeStackScreenProps<JobsStackParamList, 'JobSignOff'>;
 
-interface JobPhotoPair {
-  before: string;
-  after: string;
-}
-
 export const JobSignOffScreen: React.FC<Props> = ({ route, navigation }) => {
   const { jobId } = route.params;
-  const queryClient = useQueryClient();
-  const [changesText, setChangesText] = useState('');
-  const [showChangesForm, setShowChangesForm] = useState(false);
 
-  const {
-    data: job,
-    isLoading,
-    error,
-    refetch,
-  } = useQuery({
-    queryKey: ['job-signoff', jobId],
-    queryFn: async () => {
-      const { data: row, error: err } = await supabase
-        .from('jobs')
-        .select(
-          'id, title, status, completion_confirmed_by_homeowner, contractor:profiles!contractor_id(first_name, last_name)'
-        )
-        .eq('id', jobId)
-        .single();
-      if (err) throw new Error(err.message);
-      const r = row as Record<string, unknown>;
-      const contractor = r.contractor as {
-        first_name?: string;
-        last_name?: string;
-      } | null;
-      const contractor_name = contractor
-        ? `${contractor.first_name ?? ''} ${contractor.last_name ?? ''}`.trim() ||
-          undefined
-        : undefined;
-      return {
-        id: r.id as string,
-        title: r.title as string,
-        status: r.status as string,
-        completion_confirmed_by_homeowner:
-          (r.completion_confirmed_by_homeowner as boolean) ?? false,
-        contractor_name,
-      };
-    },
-  });
-
-  const confirmMutation = useMutation({
-    mutationFn: async () => {
-      return mobileApiClient.post(`/api/jobs/${jobId}/confirm-completion`, {});
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['job-signoff', jobId] });
-      queryClient.invalidateQueries({ queryKey: ['jobs'] });
-      Alert.alert(
-        'Work Approved',
-        'Payment will be released to the contractor.',
-        [{ text: 'OK', onPress: () => navigation.goBack() }]
-      );
-    },
-    onError: (err: Error) => {
-      Alert.alert('Error', err.message || 'Failed to confirm completion.');
-    },
-  });
-
-  const requestChangesMutation = useMutation({
-    mutationFn: async (comments: string) => {
-      return mobileApiClient.post(`/api/jobs/${jobId}/request-changes`, {
-        comments,
-      });
-    },
-    onSuccess: () => {
-      Alert.alert('Changes Requested', 'The contractor has been notified.', [
-        { text: 'OK', onPress: () => navigation.goBack() },
-      ]);
-    },
-    onError: (err: Error) => {
-      Alert.alert('Error', err.message || 'Failed to request changes.');
-    },
-  });
-
-  const handleApprove = () => {
-    Alert.alert(
-      'Approve Work',
-      'This will release the escrow payment to the contractor. Are you sure?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Approve', onPress: () => confirmMutation.mutate() },
-      ]
-    );
-  };
-
-  const handleRequestChanges = () => {
-    if (changesText.trim().length < 10) {
-      Alert.alert(
-        'Error',
-        'Please describe the changes needed (at least 10 characters).'
-      );
-      return;
-    }
-    requestChangesMutation.mutate(changesText.trim());
-  };
-
-  if (isLoading) return <LoadingSpinner />;
-  if (error)
-    return <ErrorView message='Failed to load job details' onRetry={refetch} />;
-  if (!job) return <ErrorView message='Job not found' onRetry={refetch} />;
-
-  const isAlreadyConfirmed = job.completion_confirmed_by_homeowner;
+  useEffect(() => {
+    // navigation.replace so the back button skips this stub on the
+    // return swipe — no flicker of "Sign-off" mid-stack.
+    navigation.replace('PhotoReview', { jobId });
+  }, [navigation, jobId]);
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle='dark-content' backgroundColor={me.bg2} />
-      <ScreenHeader
-        title='Review Work'
-        showBack
-        onBack={() => navigation.goBack()}
-      />
-
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.content}
-        refreshControl={
-          <RefreshControl
-            refreshing={false}
-            onRefresh={refetch}
-            tintColor={me.ink}
-          />
-        }
-      >
-        <Text style={styles.jobTitle}>{job.title}</Text>
-        {job.contractor_name && (
-          <Text style={styles.contractorName}>by {job.contractor_name}</Text>
-        )}
-
-        {isAlreadyConfirmed ? (
-          <View style={styles.confirmedBanner}>
-            <Text style={styles.confirmedText}>Work has been approved</Text>
-            <Text style={styles.confirmedSubtext}>
-              Payment is being processed.
-            </Text>
-          </View>
-        ) : (
-          <>
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Review Completed Work</Text>
-              <Text style={styles.sectionDescription}>
-                Review the work completed by the contractor. If satisfied,
-                approve to release payment. If changes are needed, describe what
-                needs to be fixed.
-              </Text>
-            </View>
-
-            {!showChangesForm ? (
-              <View style={styles.actions}>
-                <Button
-                  variant='primary'
-                  fullWidth
-                  onPress={handleApprove}
-                  loading={confirmMutation.isPending}
-                  title='Approve Work'
-                />
-
-                <Button
-                  variant='secondary'
-                  fullWidth
-                  onPress={() => setShowChangesForm(true)}
-                  style={styles.secondaryAction}
-                  title='Request Changes'
-                />
-              </View>
-            ) : (
-              <View style={styles.changesForm}>
-                <Text style={styles.changesLabel}>
-                  Describe changes needed:
-                </Text>
-                <TextInput
-                  style={styles.changesInput}
-                  multiline
-                  numberOfLines={5}
-                  placeholder='Please describe what needs to be fixed or changed...'
-                  placeholderTextColor={me.ink3}
-                  value={changesText}
-                  onChangeText={setChangesText}
-                  textAlignVertical='top'
-                />
-                <Text style={styles.charCount}>
-                  {changesText.length}/10 min characters
-                </Text>
-
-                <View style={styles.changesActions}>
-                  <Button
-                    variant='secondary'
-                    onPress={() => setShowChangesForm(false)}
-                    style={styles.cancelButton}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    variant='danger'
-                    onPress={handleRequestChanges}
-                    loading={requestChangesMutation.isPending}
-                    disabled={changesText.trim().length < 10}
-                  >
-                    Submit Request
-                  </Button>
-                </View>
-              </View>
-            )}
-          </>
-        )}
-      </ScrollView>
-    </SafeAreaView>
+    <View style={styles.container}>
+      <ActivityIndicator size='large' color={me.brand} />
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: me.bg2,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  content: {
-    padding: 20,
-  },
-  jobTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: me.ink,
-    marginBottom: 4,
-  },
-  contractorName: {
-    fontSize: 15,
-    color: me.ink2,
-    marginBottom: 24,
-  },
-  confirmedBanner: {
-    backgroundColor: me.brandSoft,
-    borderRadius: 16,
-    padding: 20,
     alignItems: 'center',
-  },
-  confirmedText: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: me.brand2,
-  },
-  confirmedSubtext: {
-    fontSize: 14,
-    color: me.brand2,
-    marginTop: 4,
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: me.ink,
-    marginBottom: 8,
-  },
-  sectionDescription: {
-    fontSize: 15,
-    color: me.ink2,
-    lineHeight: 22,
-  },
-  actions: {
-    gap: 12,
-  },
-  secondaryAction: {
-    marginTop: 4,
-  },
-  changesForm: {
-    marginTop: 8,
-  },
-  changesLabel: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: me.ink,
-    marginBottom: 8,
-  },
-  changesInput: {
+    justifyContent: 'center',
     backgroundColor: me.bg2,
-    borderRadius: 12,
-    padding: 12,
-    fontSize: 15,
-    color: me.ink,
-    minHeight: 120,
-  },
-  charCount: {
-    fontSize: 12,
-    color: me.ink3,
-    textAlign: 'right',
-    marginTop: 4,
-    marginBottom: 16,
-  },
-  changesActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 12,
-  },
-  cancelButton: {
-    minWidth: 100,
   },
 });

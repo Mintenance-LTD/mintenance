@@ -69,6 +69,16 @@ export const CATEGORIES = [
     name: 'Cleaning',
     icon: 'sparkles-outline' as keyof typeof Ionicons.glyphMap,
   },
+  // 2026-05-26 audit-49 P2: live DB has posted landscaping jobs +
+  // CATEGORY_MARKERS above already knows the icon/colour, but the
+  // pill was missing so landscaping jobs only showed under "All".
+  // packages/api-contracts also includes landscaping as a valid
+  // category — adding it here closes the filter gap.
+  {
+    id: 'landscaping',
+    name: 'Landscaping',
+    icon: 'leaf-outline' as keyof typeof Ionicons.glyphMap,
+  },
 ];
 
 export const styles = StyleSheet.create({

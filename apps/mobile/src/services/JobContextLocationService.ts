@@ -148,8 +148,27 @@ export class JobContextLocationService {
    * by a trip-start (legacy entries, manual contractor flow).
    */
   async markArrived(jobId: string, meetingId: string | null): Promise<void> {
+    // 2026-05-26 audit-48 P1: previously hard-threw "No location data
+    // available" if this.lastLocation was null. That happens whenever
+    // the contractor presses Arrived after a tracking session that
+    // didn't manage to get an initial fix (permission edge case, GPS
+    // cold-start, app resume from background) — markArrived has no
+    // way to recover without one more position read. Fall back to a
+    // fresh getCurrentPositionAsync so the arrival still records
+    // wherever the contractor actually is. If THAT also fails we
+    // re-throw the original error so the caller can surface it.
     if (!this.lastLocation) {
-      throw new Error('No location data available');
+      try {
+        const fresh = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+        this.lastLocation = fresh;
+      } catch (err) {
+        logger.warn('markArrived: fallback location fetch failed', {
+          err: err instanceof Error ? err.message : String(err),
+        });
+        throw new Error('No location data available');
+      }
     }
 
     this.currentContext = ContractorLocationContext.ON_JOB;
@@ -415,5 +434,53 @@ export class JobContextLocationService {
       jobId: this.activeJobId,
       meetingId: this.activeMeetingId,
     };
+  }
+}
+
+// 2026-05-26 audit-50 P1: refcounted singleton registry scoped by
+// (contractorId, jobId). Both useAssignedJobLocationAutoStart and
+// useJobTravelTracking previously `new`'d their own service for the
+// same job — stopJobTracking on either set is_active=false on the
+// shared row mid-journey, flickering the homeowner map. acquire bumps
+// the count, release decrements; stop only fires when count hits 0.
+const trackingRegistry = new Map<
+  string,
+  { service: JobContextLocationService; refCount: number }
+>();
+
+const makeKey = (contractorId: string, jobId: string) =>
+  `${contractorId}|${jobId}`;
+
+export function acquireJobTrackingService(
+  contractorId: string,
+  jobId: string
+): JobContextLocationService {
+  const key = makeKey(contractorId, jobId);
+  let entry = trackingRegistry.get(key);
+  if (!entry) {
+    entry = { service: new JobContextLocationService(), refCount: 0 };
+    trackingRegistry.set(key, entry);
+  }
+  entry.refCount += 1;
+  return entry.service;
+}
+
+export async function releaseJobTrackingService(
+  contractorId: string,
+  jobId: string
+): Promise<void> {
+  const key = makeKey(contractorId, jobId);
+  const entry = trackingRegistry.get(key);
+  if (!entry) return;
+  entry.refCount = Math.max(0, entry.refCount - 1);
+  if (entry.refCount === 0) {
+    trackingRegistry.delete(key);
+    try {
+      await entry.service.stopJobTracking();
+    } catch (err) {
+      logger.warn('releaseJobTrackingService: stop threw', {
+        error: err instanceof Error ? err.message : String(err),
+      });
+    }
   }
 }

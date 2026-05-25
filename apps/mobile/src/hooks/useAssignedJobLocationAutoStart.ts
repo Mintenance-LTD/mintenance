@@ -14,7 +14,10 @@ import { AppState, AppStateStatus } from 'react-native';
 import * as Location from 'expo-location';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../config/supabase';
-import { JobContextLocationService } from '../services/JobContextLocationService';
+import {
+  acquireJobTrackingService,
+  releaseJobTrackingService,
+} from '../services/JobContextLocationService';
 import { logger } from '../utils/logger';
 
 const ACTIVE_JOB_STATUSES = ['assigned', 'in_progress'];
@@ -29,19 +32,24 @@ export function useAssignedJobLocationAutoStart(): void {
   const { user } = useAuth();
   const userId = user?.id ?? null;
   const userRole = user?.role ?? null;
-  const serviceRef = useRef<JobContextLocationService | null>(null);
+  // 2026-05-26 audit-50 P1: now references the shared (contractor, job)
+  // singleton via acquire/release so the AppNavigator-level auto-start
+  // and the job-detail ContractorLocationSection share one service +
+  // one contractor_locations row instead of racing.
   const activeJobIdRef = useRef<string | null>(null);
   const inFlightRef = useRef(false);
 
   useEffect(() => {
     if (!userId || userRole !== 'contractor') {
-      activeJobIdRef.current = null;
-      void serviceRef.current?.stopJobTracking();
-      serviceRef.current = null;
+      if (activeJobIdRef.current) {
+        void releaseJobTrackingService(userId ?? '', activeJobIdRef.current);
+        activeJobIdRef.current = null;
+      }
       return;
     }
 
     let cancelled = false;
+    const ownerUserId = userId;
 
     const tryStart = async (trigger: 'mount' | 'foreground') => {
       if (cancelled || inFlightRef.current) return;
@@ -54,7 +62,7 @@ export function useAssignedJobLocationAutoStart(): void {
         const { data, error } = await supabase
           .from('jobs')
           .select('id, latitude, longitude')
-          .eq('contractor_id', userId)
+          .eq('contractor_id', ownerUserId)
           .in('status', ACTIVE_JOB_STATUSES)
           .not('latitude', 'is', null)
           .not('longitude', 'is', null)
@@ -73,23 +81,30 @@ export function useAssignedJobLocationAutoStart(): void {
         if (!job || job.latitude == null || job.longitude == null) return;
         if (activeJobIdRef.current === job.id) return;
 
-        if (serviceRef.current) {
-          await serviceRef.current.stopJobTracking();
+        // Release previous job before acquiring new one.
+        if (activeJobIdRef.current) {
+          await releaseJobTrackingService(ownerUserId, activeJobIdRef.current);
+          activeJobIdRef.current = null;
         }
 
-        const service = new JobContextLocationService();
-        await service.startJobTracking(
-          userId,
-          job.id,
-          null,
-          { latitude: job.latitude, longitude: job.longitude }
-        );
+        const service = acquireJobTrackingService(ownerUserId, job.id);
+        const status = service.getTrackingStatus();
+        // Only start a fresh watch if no other consumer has already
+        // started one for this (contractor, job) pair. If the
+        // job-detail section beat us to it, the existing watcher's
+        // updates still apply.
+        if (!status.isTracking) {
+          await service.startJobTracking(ownerUserId, job.id, null, {
+            latitude: job.latitude,
+            longitude: job.longitude,
+          });
+        }
 
-        serviceRef.current = service;
         activeJobIdRef.current = job.id;
         logger.info('Assigned job location auto-started', {
           jobId: job.id,
           trigger,
+          reusedExistingWatcher: status.isTracking,
         });
       } catch (err) {
         logger.warn('assigned-job location auto-start failed', {
@@ -120,9 +135,10 @@ export function useAssignedJobLocationAutoStart(): void {
       cancelled = true;
       clearTimeout(timer);
       subscription.remove();
-      void serviceRef.current?.stopJobTracking();
-      serviceRef.current = null;
-      activeJobIdRef.current = null;
+      if (activeJobIdRef.current) {
+        void releaseJobTrackingService(ownerUserId, activeJobIdRef.current);
+        activeJobIdRef.current = null;
+      }
     };
   }, [userId, userRole]);
 }
