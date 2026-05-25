@@ -530,6 +530,7 @@ export default async function JobDetailPage2025({
                   beforePhotos={beforePhotos}
                   afterPhotos={afterPhotos}
                   isConfirmed={!!job.completion_confirmed_by_homeowner}
+                  completedAt={job.completed_at}
                 />
               )}
               {job.contractor_id && (
