@@ -69,6 +69,13 @@ export const ReviewSubmissionScreen: React.FC<Props> = ({
   const insets = useSafeAreaInsets();
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
+  // 2026-05-27 audit-P1-5: web has the wouldRecommend toggle and the
+  // API + DB column (would_recommend) shipped 2026-05-09. Mobile was
+  // dropping the value silently — every mobile-submitted review left
+  // would_recommend NULL even when the reviewer felt strongly. Null
+  // is the explicit "no answer" state, so the picker stays tri-state
+  // (null until tapped).
+  const [wouldRecommend, setWouldRecommend] = useState<boolean | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const isValid =
@@ -81,6 +88,10 @@ export const ReviewSubmissionScreen: React.FC<Props> = ({
       await mobileApiClient.post(`/api/jobs/${jobId}/review`, {
         rating,
         comment: comment.trim(),
+        // Omit when the user didn't tap a choice so the column stays
+        // NULL (= "didn't answer"); the API schema marks the field
+        // optional and only persists when explicitly provided.
+        ...(wouldRecommend === null ? {} : { wouldRecommend }),
       });
       HapticService.success();
       Alert.alert('Review submitted', 'Thank you for your feedback!', [
@@ -97,7 +108,7 @@ export const ReviewSubmissionScreen: React.FC<Props> = ({
     } finally {
       setSubmitting(false);
     }
-  }, [isValid, jobId, rating, comment, navigation]);
+  }, [isValid, jobId, rating, comment, wouldRecommend, navigation]);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -169,6 +180,59 @@ export const ReviewSubmissionScreen: React.FC<Props> = ({
             ) : (
               <Text style={styles.ratingHint}>Tap to rate</Text>
             )}
+          </View>
+
+          <View style={styles.recommendSection}>
+            <Text style={styles.sectionLabel}>Would you recommend them?</Text>
+            <View style={styles.recommendRow}>
+              {[
+                { value: true, label: 'Yes' },
+                { value: false, label: 'No' },
+              ].map((opt) => {
+                const selected = wouldRecommend === opt.value;
+                return (
+                  <TouchableOpacity
+                    key={String(opt.value)}
+                    onPress={() => {
+                      setWouldRecommend(opt.value);
+                      HapticService.selection();
+                    }}
+                    accessibilityRole='button'
+                    accessibilityState={{ selected }}
+                    accessibilityLabel={`Would recommend: ${opt.label}`}
+                    style={[
+                      styles.recommendChip,
+                      selected && styles.recommendChipSelected,
+                    ]}
+                  >
+                    <Ionicons
+                      name={
+                        opt.value
+                          ? selected
+                            ? 'thumbs-up'
+                            : 'thumbs-up-outline'
+                          : selected
+                            ? 'thumbs-down'
+                            : 'thumbs-down-outline'
+                      }
+                      size={18}
+                      color={selected ? me.onBrand : me.ink2}
+                    />
+                    <Text
+                      style={[
+                        styles.recommendChipText,
+                        selected && styles.recommendChipTextSelected,
+                      ]}
+                    >
+                      {opt.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            <Text style={styles.recommendHint}>
+              Optional — helps other homeowners.
+            </Text>
           </View>
 
           <View style={styles.commentSection}>
@@ -305,6 +369,49 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: me.ink3,
     marginTop: 14,
+  },
+  recommendSection: {
+    backgroundColor: me.surface,
+    borderRadius: 18,
+    paddingVertical: 20,
+    paddingHorizontal: 18,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: me.line2,
+    ...me.shadow.card,
+  },
+  recommendRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 8,
+  },
+  recommendChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 999,
+    borderWidth: 1.5,
+    borderColor: me.line,
+    backgroundColor: me.bg,
+  },
+  recommendChipSelected: {
+    backgroundColor: me.brand,
+    borderColor: me.brand,
+  },
+  recommendChipText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: me.ink2,
+  },
+  recommendChipTextSelected: {
+    color: me.onBrand,
+  },
+  recommendHint: {
+    fontSize: 12,
+    color: me.ink3,
+    marginTop: 4,
   },
   commentSection: {
     backgroundColor: me.surface,

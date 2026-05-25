@@ -55,7 +55,15 @@ export function AccountSecuritySection({
   onAddPhoneNumber,
   onUpdatePhoneNumber,
 }: AccountSecuritySectionProps) {
-  const skipPhone = process.env.NEXT_PUBLIC_SKIP_PHONE_VERIFICATION === 'true';
+  // 2026-05-27 audit-P2-8: gate the client-side bypass on
+  // NODE_ENV !== 'production' to match the server-side P0.1 fix
+  // (CLAUDE.md). Without this prod guard, a leaked
+  // NEXT_PUBLIC_SKIP_PHONE_VERIFICATION=true in a prod build would
+  // hide the phone-verification UI even though the API still
+  // enforces — leaving users locked out with no actionable prompt.
+  const skipPhone =
+    process.env.NODE_ENV !== 'production' &&
+    process.env.NEXT_PUBLIC_SKIP_PHONE_VERIFICATION === 'true';
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>

@@ -58,6 +58,13 @@ const linkingConfig: LinkingOptions<RootStackParamList>['config'] = {
             ProfileMain: 'profile',
             Properties: 'properties',
             PropertyDetail: 'properties/:propertyId',
+            // 2026-05-26 audit-57 P2: the TeamAccess invite flow opens
+            // `mintenance://profile/subscription` when a non-Agency
+            // homeowner hits the 402 upgrade gate. Without this entry
+            // the URL fails to resolve and the "View plans" CTA dies
+            // silently. Subscription is the registered screen name in
+            // ProfileNavigator (SafeSubscriptionScreen wrapper).
+            Subscription: 'profile/subscription',
           },
         },
       },

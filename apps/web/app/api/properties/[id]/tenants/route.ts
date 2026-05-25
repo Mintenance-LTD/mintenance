@@ -4,6 +4,7 @@ import { withApiHandler } from '@/lib/api/with-api-handler';
 import { EmailService } from '@/lib/email-service';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
 import { logger } from '@mintenance/shared';
+import { PropertyTeamService } from '@/lib/services/property-team/PropertyTeamService';
 
 /**
  * GET /api/properties/[id]/tenants
@@ -28,8 +29,26 @@ export const GET = withApiHandler(
       );
     }
 
-    const isOwner = property.owner_id === user.id || user.role === 'admin';
-    const { data: tenantLink } = !isOwner
+    // 2026-05-26 audit-61 P1: previously only the property owner +
+    // platform admin saw the full tenant list; property-team
+    // managers got 404 even though the mobile UI promised them
+    // "Manage tenants". Honour PropertyTeamService.authorize
+    // ('manage_contacts') alongside the owner / linked-tenant
+    // branches so manager + team-admin see everything, while a
+    // linked tenant still gets only their own row.
+    const isPlatformAdmin = user.role === 'admin';
+    const isOwner = property.owner_id === user.id;
+    const { authorized: isPropertyManager } =
+      !isOwner && !isPlatformAdmin
+        ? await PropertyTeamService.authorize(
+            user.id,
+            propertyId,
+            'manage_contacts'
+          )
+        : { authorized: false };
+    const isPrivilegedReader = isOwner || isPlatformAdmin || isPropertyManager;
+
+    const { data: tenantLink } = !isPrivilegedReader
       ? await serverSupabase
           .from('property_tenants')
           .select('id')
@@ -39,7 +58,7 @@ export const GET = withApiHandler(
           .maybeSingle()
       : { data: null };
 
-    if (!isOwner && !tenantLink) {
+    if (!isPrivilegedReader && !tenantLink) {
       return NextResponse.json(
         { error: 'Property not found' },
         { status: 404 }
@@ -59,7 +78,7 @@ export const GET = withApiHandler(
       )
       .eq('property_id', propertyId);
 
-    if (!isOwner) {
+    if (!isPrivilegedReader) {
       tenantQuery = tenantQuery.eq('user_id', user.id);
     }
 
@@ -101,11 +120,28 @@ export const POST = withApiHandler(
       .eq('id', propertyId)
       .maybeSingle();
 
-    if (!property || (property.owner_id !== user.id && user.role !== 'admin')) {
+    if (!property) {
       return NextResponse.json(
         { error: 'Property not found' },
         { status: 404 }
       );
+    }
+
+    // 2026-05-26 audit-61 P1: route through PropertyTeamService so
+    // managers/team-admins on the property can add tenants. Previously
+    // owner_id-only gate left mobile manager UI with 404 on add.
+    if (user.role !== 'admin') {
+      const { authorized } = await PropertyTeamService.authorize(
+        user.id,
+        propertyId,
+        'manage_contacts'
+      );
+      if (!authorized) {
+        return NextResponse.json(
+          { error: 'Property not found' },
+          { status: 404 }
+        );
+      }
     }
 
     const { name, email, phone, lease_start, lease_end, notes } = body;
@@ -289,11 +325,29 @@ export const DELETE = withApiHandler(
       .eq('id', propertyId)
       .single();
 
-    if (!property || (property.owner_id !== user.id && user.role !== 'admin')) {
+    if (!property) {
       return NextResponse.json(
         { error: 'Property not found' },
         { status: 404 }
       );
+    }
+
+    // 2026-05-26 audit-61 P1: same manage_contacts gate as POST so
+    // managers/team-admins can remove tenants. Without this, the
+    // mobile TenantContacts "remove" button just 404'd from manager
+    // accounts.
+    if (user.role !== 'admin') {
+      const { authorized } = await PropertyTeamService.authorize(
+        user.id,
+        propertyId,
+        'manage_contacts'
+      );
+      if (!authorized) {
+        return NextResponse.json(
+          { error: 'Property not found' },
+          { status: 404 }
+        );
+      }
     }
 
     const { error } = await serverSupabase

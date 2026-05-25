@@ -48,6 +48,13 @@ interface PropertyAccess {
 interface Props {
   propertyId: string;
   initial: Partial<PropertyAccess>;
+  // 2026-05-26 audit-61 P2: when false, the lock-box code input is
+  // hidden entirely. The server already redacts key_safe_code from
+  // /api/properties/[id] for non-owners and now 403s the PATCH; the
+  // UI side of the same gate prevents a manager from seeing a blank
+  // input that begs a guess. Defaults to true so existing owner
+  // call sites work unchanged.
+  canEditKeySafeCode?: boolean;
 }
 
 const MODES: Array<{ key: AccessMode; label: string; sub: string }> = [
@@ -74,6 +81,7 @@ const MODES: Array<{ key: AccessMode; label: string; sub: string }> = [
 export const PropertyAccessSection: React.FC<Props> = ({
   propertyId,
   initial,
+  canEditKeySafeCode = true,
 }) => {
   const queryClient = useQueryClient();
   const [mode, setMode] = useState<AccessMode | null>(
@@ -217,7 +225,7 @@ export const PropertyAccessSection: React.FC<Props> = ({
         })}
       </View>
 
-      {mode === 'key_safe' ? (
+      {mode === 'key_safe' && canEditKeySafeCode ? (
         <>
           <Text style={styles.sectionLabel}>Lock-box code</Text>
           <TextInput
@@ -234,6 +242,17 @@ export const PropertyAccessSection: React.FC<Props> = ({
             // narrow — relying on autoCorrect=false + the explicit
             // "lock-box code" label.
           />
+        </>
+      ) : mode === 'key_safe' && !canEditKeySafeCode ? (
+        // 2026-05-26 audit-61 P2: explicit hint so a manager
+        // understands why they don't see the field, rather than
+        // wondering if it's just blank.
+        <>
+          <Text style={styles.sectionLabel}>Lock-box code</Text>
+          <Text style={[styles.modeSub, { marginBottom: 12 }]}>
+            Hidden — only the property owner can set or change the lock-box
+            code.
+          </Text>
         </>
       ) : null}
 

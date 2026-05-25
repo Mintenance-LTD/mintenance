@@ -15,24 +15,68 @@ import type { Message, MessageThread } from './types';
  * participant names, etc.
  */
 
-/** Fetch paginated messages for a job conversation via the web API. */
+/**
+ * Fetch messages for a job conversation via the web API.
+ *
+ * 2026-05-26 audit-62 P2: previously this assumed the API returned
+ * the whole thread in one shot and sliced client-side. The web route
+ * is keyset-paginated (default + max 50 per page, cursor on
+ * created_at) — for any thread > 50 messages the older messages were
+ * silently dropped, and the in-thread search below only hit the
+ * newest page. Now follows `nextCursor` until the thread ends or we
+ * hit a safety cap (default 1000 messages) so chat history + search
+ * cover the full conversation.
+ *
+ * Returned order matches the API contract: ascending by created_at
+ * so the existing render code reads top-to-bottom.
+ */
+const FETCH_PAGE_SIZE = 50;
+const FETCH_SAFETY_CAP = 1000;
+
 export async function getJobMessages(
   jobId: string,
   limit = 50,
   offset = 0
 ): Promise<Message[]> {
   try {
-    // The API returns the whole thread sorted ascending; mobile
-    // applies the limit/offset window client-side. Typical chat
-    // threads are well under the API's internal cap so this is a
-    // single round-trip. A future server-side `?limit=&offset=`
-    // extension would be a perf win for very long threads.
-    const { messages } = await mobileApiClient.get<{ messages: Message[] }>(
-      `/api/messages/threads/${encodeURIComponent(jobId)}/messages`
+    // Collect pages from newest → older. The API returns each page
+    // ascending; we concat then re-sort once at the end so a
+    // partially-returned final page can't break ordering.
+    interface PageResponse {
+      messages: Message[];
+      nextCursor?: string;
+    }
+    const collected: Message[] = [];
+    let cursor: string | undefined;
+    let pages = 0;
+    while (collected.length < FETCH_SAFETY_CAP) {
+      pages += 1;
+      const params = new URLSearchParams();
+      params.set('limit', String(FETCH_PAGE_SIZE));
+      if (cursor) params.set('cursor', cursor);
+      const response = await mobileApiClient.get<PageResponse>(
+        `/api/messages/threads/${encodeURIComponent(jobId)}/messages?${params.toString()}`
+      );
+      const page = Array.isArray(response?.messages) ? response.messages : [];
+      collected.push(...page);
+      if (!response?.nextCursor || page.length === 0) break;
+      cursor = response.nextCursor;
+    }
+    if (collected.length >= FETCH_SAFETY_CAP) {
+      logger.warn('getJobMessages hit safety cap; older messages truncated', {
+        jobId,
+        fetchedPages: pages,
+        cap: FETCH_SAFETY_CAP,
+      });
+    }
+
+    // Older messages came back at the end of subsequent pages —
+    // re-sort once so the timeline stays strictly ascending.
+    const sorted = collected.sort((a, b) =>
+      (a.createdAt ?? '').localeCompare(b.createdAt ?? '')
     );
-    if (!Array.isArray(messages)) return [];
-    if (offset === 0 && messages.length <= limit) return messages;
-    return messages.slice(offset, offset + limit);
+    if (offset === 0 && sorted.length <= limit) return sorted;
+    return sorted.slice(offset, offset + limit);
   } catch (error) {
     logger.error('Error fetching messages:', error);
     throw error;

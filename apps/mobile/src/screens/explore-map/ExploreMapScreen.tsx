@@ -67,6 +67,36 @@ const searchAreaStyles = StyleSheet.create({
   },
 });
 
+// 2026-05-26 audit-58 P2: retry banner styled as a tappable error pill.
+// Sits at the same vertical zone as the "Search this area" pill but
+// uses the error palette so it doesn't read as a normal control.
+const errorBannerStyles = StyleSheet.create({
+  wrapper: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    paddingHorizontal: 16,
+  },
+  pill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: me.errBg,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    maxWidth: '90%',
+    ...me.shadow.card,
+  },
+  label: {
+    color: me.errFg,
+    fontSize: 13,
+    fontWeight: '600',
+    flexShrink: 1,
+  },
+});
+
 // Loading dots animation
 const LoadingDots: React.FC = () => {
   const dot1 = useRef(new Animated.Value(0.3)).current;
@@ -502,6 +532,29 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({
       {viewModel.loading && (
         <View style={styles.loadingOverlay}>
           <LoadingDots />
+        </View>
+      )}
+
+      {/* 2026-05-26 audit-58 P2: surface real /api/jobs/discover failures
+          instead of showing the same empty state as "no jobs in this
+          area". Tapping the banner re-fires the query. */}
+      {viewModel.errorMessage && !viewModel.loading && (
+        <View
+          style={[errorBannerStyles.wrapper, { bottom: insets.bottom + 68 }]}
+          pointerEvents='box-none'
+        >
+          <TouchableOpacity
+            style={errorBannerStyles.pill}
+            onPress={viewModel.refreshJobs}
+            accessibilityRole='button'
+            accessibilityLabel='Retry loading jobs'
+            activeOpacity={0.8}
+          >
+            <Ionicons name='alert-circle' size={14} color={me.errFg} />
+            <Text style={errorBannerStyles.label}>
+              {viewModel.errorMessage}
+            </Text>
+          </TouchableOpacity>
         </View>
       )}
 

@@ -9,8 +9,17 @@ type Action =
   | 'manage_team' // Invite/remove team members
   | 'manage_compliance' // Upload/edit compliance certs
   | 'manage_maintenance' // Create/edit recurring maintenance
+  | 'manage_contacts' // CRUD on property_contacts + tenants (audit-61 P1)
   | 'create_job'; // Post a job for this property
 
+// 2026-05-26 audit-61 P1: `manage_contacts` introduced because the
+// mobile audit-57 capability flag canManageContacts let managers see
+// the PropertyContacts + TenantContacts UI, but the contacts API
+// routes still gated on owner_id == user.id — managers got an empty
+// list + 404/403 on create/delete. Adding the action here so the
+// API layer can ask the same question the UI asks, and so a future
+// "agency PA managing a portfolio" feature has a real permission to
+// grant. Managers and admins get it; viewers don't.
 const PERMISSION_MATRIX: Record<PropertyRole, Set<Action>> = {
   owner: new Set([
     'view',
@@ -19,6 +28,7 @@ const PERMISSION_MATRIX: Record<PropertyRole, Set<Action>> = {
     'manage_team',
     'manage_compliance',
     'manage_maintenance',
+    'manage_contacts',
     'create_job',
   ]),
   admin: new Set([
@@ -27,6 +37,7 @@ const PERMISSION_MATRIX: Record<PropertyRole, Set<Action>> = {
     'manage_team',
     'manage_compliance',
     'manage_maintenance',
+    'manage_contacts',
     'create_job',
   ]),
   manager: new Set([
@@ -34,6 +45,7 @@ const PERMISSION_MATRIX: Record<PropertyRole, Set<Action>> = {
     'edit',
     'manage_compliance',
     'manage_maintenance',
+    'manage_contacts',
     'create_job',
   ]),
   viewer: new Set(['view']),

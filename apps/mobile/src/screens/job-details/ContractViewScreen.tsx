@@ -29,8 +29,10 @@ import {
   Alert,
   ActivityIndicator,
   Linking,
+  Modal,
   StatusBar,
 } from 'react-native';
+import { SignatureCanvas } from '../../components/ui/SignatureCanvas';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -81,6 +83,9 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
   const [rejecting, setRejecting] = useState(false);
   const [showRejectInput, setShowRejectInput] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
+  // 2026-05-27 audit-P0-4: gates the signature-capture modal that
+  // replaces the legacy tap-to-confirm Alert.
+  const [showSignatureModal, setShowSignatureModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const userRole = user?.role as 'homeowner' | 'contractor' | undefined;
@@ -153,80 +158,75 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
     fetchContract();
   }, [fetchContract]);
 
-  const handleSign = useCallback(async () => {
+  // 2026-05-27 audit-P0-4: launches the in-app SignatureCanvas modal.
+  // The legacy Alert "do you agree" confirmation is replaced with a
+  // real e-signature capture; what gets POSTed is the SVG produced by
+  // the canvas. handleSubmitSignature does the actual API call.
+  const handleSign = useCallback(() => {
     if (!contract) return;
-    Alert.alert(
-      'Sign contract',
-      'By signing, you agree to all terms and conditions in this contract. This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Sign',
-          style: 'default',
-          onPress: async () => {
-            setSigning(true);
-            try {
-              // /api/contracts/[id]/accept returns the updated contract
-              // with the new status. When both parties have signed, the
-              // status flips to 'accepted' and escrow funding becomes
-              // the next required step.
-              const result = await mobileApiClient.post<{
-                contract?: { status?: string };
-              }>(`/api/contracts/${contract.id}/accept`, {});
-              HapticService.success();
+    setShowSignatureModal(true);
+  }, [contract]);
 
-              const newStatus = result?.contract?.status;
-              // 2026-05-26 audit-51 P1: when the homeowner is the
-              // signature that flips status to 'accepted', the next
-              // step is funding escrow. Previously we just alerted
-              // "Contract signed successfully" and refetched, leaving
-              // the homeowner on the contract screen with no signal
-              // that Pay Now is the next action. Live data confirmed
-              // 5 assigned jobs with no held/pending escrow including
-              // 3 with accepted contracts — homeowners weren't
-              // finding the Pay button on JobDetails. Offer a direct
-              // path to JobPayment from the success alert; "Later"
-              // still leaves them where they are.
-              if (newStatus === 'accepted' && user?.role === 'homeowner') {
-                Alert.alert(
-                  'Contract signed',
-                  'Next step: pay into escrow so the contractor can start work.',
-                  [
-                    { text: 'Later', onPress: () => void fetchContract() },
-                    {
-                      text: 'Pay now',
-                      style: 'default',
-                      onPress: () => {
-                        const contractorName =
-                          contract.contractorName?.trim() || 'Contractor';
-                        navigation.navigate('JobPayment', {
-                          jobId: contract.job_id,
-                          amount: contract.amount,
-                          contractorId: contract.contractor_id,
-                          contractorName,
-                        });
-                      },
-                    },
-                  ]
-                );
-              } else {
-                Alert.alert('Signed', 'Contract signed successfully.');
-                await fetchContract();
-              }
-            } catch {
-              HapticService.error();
-              Alert.alert(
-                'Error',
-                'Failed to sign contract. Please try again.'
-              );
-            } finally {
-              setSigning(false);
-            }
-          },
-        },
-      ]
-    );
-  }, [contract, fetchContract, navigation, user?.role]);
+  const handleSubmitSignature = useCallback(
+    async (signatureSvg: string) => {
+      if (!contract) return;
+      setSigning(true);
+      try {
+        // /api/contracts/[id]/accept returns the updated contract with
+        // the new status. When both parties have signed, the status
+        // flips to 'accepted' and escrow funding becomes the next
+        // required step. The optional signature payload is captured
+        // immutably in contract_signatures (audit table).
+        const result = await mobileApiClient.post<{
+          contract?: { status?: string };
+        }>(`/api/contracts/${contract.id}/accept`, {
+          signatureImage: signatureSvg,
+          signatureFormat: 'svg',
+          platform: 'mobile',
+        });
+        HapticService.success();
+        setShowSignatureModal(false);
+
+        const newStatus = result?.contract?.status;
+        // 2026-05-26 audit-51 P1: when the homeowner is the signature
+        // that flips status to 'accepted', the next step is funding
+        // escrow. Offer a direct path to JobPayment from the success
+        // alert; "Later" still leaves them where they are.
+        if (newStatus === 'accepted' && user?.role === 'homeowner') {
+          Alert.alert(
+            'Contract signed',
+            'Next step: pay into escrow so the contractor can start work.',
+            [
+              { text: 'Later', onPress: () => void fetchContract() },
+              {
+                text: 'Pay now',
+                style: 'default',
+                onPress: () => {
+                  const contractorName =
+                    contract.contractorName?.trim() || 'Contractor';
+                  navigation.navigate('JobPayment', {
+                    jobId: contract.job_id,
+                    amount: contract.amount,
+                    contractorId: contract.contractor_id,
+                    contractorName,
+                  });
+                },
+              },
+            ]
+          );
+        } else {
+          Alert.alert('Signed', 'Contract signed successfully.');
+          await fetchContract();
+        }
+      } catch {
+        HapticService.error();
+        Alert.alert('Error', 'Failed to sign contract. Please try again.');
+      } finally {
+        setSigning(false);
+      }
+    },
+    [contract, fetchContract, navigation, user?.role]
+  );
 
   const handleViewPdf = useCallback(async () => {
     if (!contract) return;
@@ -535,8 +535,59 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
           </TouchableOpacity>
         </View>
       )}
+
+      <Modal
+        visible={showSignatureModal}
+        animationType='slide'
+        transparent
+        onRequestClose={() => !signing && setShowSignatureModal(false)}
+      >
+        <View style={signatureModalStyles.backdrop}>
+          <View style={signatureModalStyles.sheet}>
+            <Text style={signatureModalStyles.heading}>Sign the contract</Text>
+            <Text style={signatureModalStyles.subheading}>
+              By signing below, you agree to the terms above. Your signature and
+              the signing device are recorded as evidence — this cannot be
+              undone.
+            </Text>
+            <SignatureCanvas
+              onSign={handleSubmitSignature}
+              onCancel={() => setShowSignatureModal(false)}
+              submitting={signing}
+              label='Draw your signature'
+            />
+          </View>
+        </View>
+      </Modal>
     </View>
   );
+};
+
+const signatureModalStyles = {
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    justifyContent: 'flex-end' as const,
+  },
+  sheet: {
+    backgroundColor: me.bg,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    paddingBottom: 32,
+    gap: 12,
+  },
+  heading: {
+    fontSize: 20,
+    fontWeight: '700' as const,
+    color: me.ink,
+  },
+  subheading: {
+    fontSize: 13,
+    color: me.ink2,
+    lineHeight: 18,
+    marginBottom: 4,
+  },
 };
 
 export default ContractViewScreen;

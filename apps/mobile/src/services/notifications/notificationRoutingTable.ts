@@ -106,13 +106,23 @@ function parseActionUrl(actionUrl?: string): Partial<NormalizedPayload> {
   // /messages/:jobId — conversationId IS jobId by app convention.
   // /api/notifications synthesises action_url like
   // `/messages/<jobId>?userId=<senderId>&userName=<senderName>&jobTitle=Job`.
-  const messageJobId = pickFromUuidPath(pathname, '/messages');
+  //
+  // 2026-05-26 audit-62 P1: also accept the query-string variant
+  // `/messages?jobId=<jobId>` emitted by /api/messages/threads/[id]/
+  // messages on every new message. Live DB had 32 of 36
+  // message_received rows using this shape — the path-only check
+  // above returned undefined for them, the router fell back to the
+  // notifications inbox, and the chat surface stayed unreachable.
+  const messageJobIdFromPath = pickFromUuidPath(pathname, '/messages');
+  const messageJobIdFromQuery =
+    !messageJobIdFromPath && pathname === '/messages' ? qp.get('jobId') : null;
+  const messageJobId = messageJobIdFromPath ?? messageJobIdFromQuery ?? null;
   if (messageJobId) {
     out.jobId = out.jobId ?? messageJobId;
     out.conversationId = messageJobId;
-    const userId = qp.get('userId');
+    const userId = qp.get('userId') ?? qp.get('senderId');
     if (userId) out.senderId = userId;
-    const userName = qp.get('userName');
+    const userName = qp.get('userName') ?? qp.get('senderName');
     if (userName) out.senderName = userName;
     const jobTitle = qp.get('jobTitle');
     if (jobTitle) out.jobTitle = jobTitle;

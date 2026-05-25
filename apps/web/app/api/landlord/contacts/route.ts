@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { PropertyTeamService } from '@/lib/services/property-team/PropertyTeamService';
 
 // GET /api/landlord/contacts - List all contacts for the authenticated user.
 // 2026-05-24 audit-30 P1: optional ?propertyId= scopes the result to a
@@ -27,16 +28,28 @@ export const GET = withApiHandler(
       .order('name');
 
     if (propertyId) {
-      query = query.eq('property_id', propertyId);
-      // Non-admins are still restricted to their own contacts even
-      // when scoping by propertyId. Admins get the full per-property
-      // list for support / moderation work.
-      if (user.role !== 'admin') {
-        query = query.eq('owner_id', user.id);
+      // 2026-05-26 audit-61 P1: when scoped to a property, honour
+      // PropertyTeamService so managers/admins on the property team
+      // get the full per-property contact list — previously the
+      // owner_id filter returned [] for them, which the mobile UI
+      // surfaced as "no contacts" while the underlying rows existed.
+      // The team gate is the security boundary here; service-role
+      // is fine because we've verified the caller's relationship.
+      const { authorized } = await PropertyTeamService.authorize(
+        user.id,
+        propertyId,
+        'manage_contacts'
+      );
+      if (!authorized && user.role !== 'admin') {
+        return NextResponse.json({ contacts: [] });
       }
+      query = query.eq('property_id', propertyId);
     } else {
       // No propertyId — bound by owner_id regardless of role so the
       // route never returns the global contacts table to anyone.
+      // Platform-admin without a propertyId still scopes to their
+      // own contacts; they can pass propertyId to see another
+      // homeowner's list when doing support work.
       query = query.eq('owner_id', user.id);
     }
 
@@ -77,29 +90,57 @@ export const POST = withApiHandler(
       );
     }
 
-    // Verify property ownership
+    // 2026-05-26 audit-61 P1: replace the owner_id-only gate with
+    // PropertyTeamService.authorize('manage_contacts'). Owners and
+    // platform admins still pass; property-team managers (and team
+    // admins) can now create contacts on properties they've been
+    // invited to manage. Viewers still get refused. The route
+    // continues to return 404 for non-existent properties to avoid
+    // leaking which property ids exist.
     const { data: property } = await serverSupabase
       .from('properties')
       .select('id, owner_id')
       .eq('id', property_id)
       .single();
 
-    if (!property || (property.owner_id !== user.id && user.role !== 'admin')) {
+    if (!property) {
+      return NextResponse.json(
+        { error: 'Property not found' },
+        { status: 404 }
+      );
+    }
+
+    const { authorized } = await PropertyTeamService.authorize(
+      user.id,
+      property_id,
+      'manage_contacts'
+    );
+    if (!authorized && user.role !== 'admin') {
       return NextResponse.json(
         { error: 'Property not found or forbidden' },
         { status: 404 }
       );
     }
 
+    // 2026-05-26 audit-61 P2: previously coerced invalid contact_role
+    // → 'tenant' silently. A client typo like 'emergency' (vs
+    // 'emergency_contact') landed in the DB as 'tenant' — the
+    // contractor's on-site Access & Contacts card then labelled an
+    // emergency number as a tenant. Reject the payload instead so
+    // the caller can fix the input.
     const validRoles = [
       'tenant',
       'keyholder',
       'emergency_contact',
       'managing_agent',
-    ];
-    const safeRole = validRoles.includes(contact_role)
-      ? contact_role
-      : 'tenant';
+    ] as const;
+    if (contact_role !== undefined && !validRoles.includes(contact_role)) {
+      return NextResponse.json(
+        { error: `contact_role must be one of: ${validRoles.join(', ')}` },
+        { status: 400 }
+      );
+    }
+    const safeRole = contact_role ?? 'tenant';
 
     // 2026-05-12: also persist move_in_date + lease_end_date when set.
     // The DB columns exist (migration 20260214200000) but the form
@@ -115,19 +156,17 @@ export const POST = withApiHandler(
       return trimmed;
     };
 
-    // 2026-05-24 audit-37 P1: previously inserted owner_id: user.id
-    // unconditionally. When platform admin acted on a homeowner's
-    // behalf (support flow), the contact landed with owner_id = admin's
-    // profile id — the homeowner's own contacts list (which filters
-    // by owner_id) never saw it, and a future audit-30 PATCH/DELETE
-    // would mismatch on ownership. Anchor owner_id to the property's
-    // owner so admin-created contacts attach to the right person;
-    // non-admin callers continue to land their own id (which by the
-    // ownership check above already equals property.owner_id).
+    // 2026-05-24 audit-37 P1 / 2026-05-26 audit-61 P1: anchor
+    // owner_id to the property's owner whenever the caller isn't the
+    // property owner. Originally this only handled the platform-admin
+    // support flow; with audit-61 adding manager + team-admin write
+    // access via PropertyTeamService.authorize('manage_contacts'),
+    // ALL non-owner callers (manager, team admin, platform admin)
+    // need their contacts to land under the property owner so the
+    // owner's contact list + the contractor-facing /api/jobs/[id]
+    // contact embed surface them under a single, stable owner_id.
     const safeOwnerId =
-      user.role === 'admin' && property.owner_id !== user.id
-        ? property.owner_id
-        : user.id;
+      property.owner_id !== user.id ? property.owner_id : user.id;
 
     const { data: contact, error } = await serverSupabase
       .from('property_contacts')

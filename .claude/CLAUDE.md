@@ -1,12 +1,126 @@
 # CLAUDE MANDATORY DEVELOPMENT CONTRACT (MDC) - MINTENANCE CODEBASE
 
-## CODE QUALITY AUDIT (Last audited: 2026-05-23, tiered-pricing rollout + tech-debt categorisation)
+## CODE QUALITY AUDIT (Last audited: 2026-05-27, full-stack flow audit remediation)
 
-**Current State: A-/B+ Grade (~85/100)** — up from B+ ~80/100 on 2026-05-10. The 2026-05-22 →
-2026-05-23 session shipped the full tiered-pricing model (9 commits on `feat/tiered-pricing`) and
-resolved three long-standing tech-debt items that turned out to be doc inflation rather than real
-problems. See "2026-05-23 — tiered-pricing rollout + tech-debt categorisation" section below for the
-full report.
+**Current State: A grade (~88/100)** — up from A-/B+ ~85/100 on 2026-05-23. The 2026-05-25 →
+2026-05-27 session ran a full-stack user-flow audit (4 parallel sub-agents covering web HO + web
+contractor + mobile HO + mobile contractor; ~30 live-DB SQL queries via Supabase MCP) and then
+shipped 12 fixes across 4 P0s, 5 P1s, 4 P2s, plus a P0-4 recovery commit (parallel-agent stash
+interleaving displaced the original P0-4 hash). 9 separate audit findings were retracted as false
+alarms on closer inspection — every retraction now has a paper trail in the section below. See
+"2026-05-27 — full-stack flow audit remediation" for the full report.
+
+### 2026-05-27 — full-stack flow audit remediation
+
+**Scope:** Audited every user flow on web + mobile for both homeowners and contractors, from account
+creation through to account deletion, against live Supabase project `ukrjudtlvapiajkjbcrd`. 4
+parallel Explore agents mapped the surfaces; the synthesis raised 5 P0s, 10 P1s, 11 P2s, 4 P3s, and
+7 false-alarm retractions on the original audit. This session worked the punch list top-down and
+shipped 12 commits + 4 live DB migrations on branch `feat/tiered-pricing`.
+
+**Shipped commits (chronological):**
+
+| #   | Commit      | Subject                                                                                                     |
+| --- | ----------- | ----------------------------------------------------------------------------------------------------------- |
+| 1   | `5f28ed657` | P0-1 — contractor payout discoverability banner + stuck-escrow retry endpoint                               |
+| 2   | `2f6e8b167` | P0-3 — Start Job CTA reachable on return visit (web + mobile)                                               |
+| 3   | `8339c6820` | P0-2 — homeowner web onboarding wizard (3-step, mirrors mobile)                                             |
+| 4   | `b0bb797b0` | P1-5 — `wouldRecommend` on mobile review submission                                                         |
+| 5   | `8443cf10c` | P1-1 + P1-2 + P1-6 — escrow currency + active-escrow uniqueness + job lifecycle timestamps (live migration) |
+| 6   | `613c48c95` | P1-10 — preserve UK compliance records on user delete (live migration)                                      |
+| 7   | `5266aa6b1` | P0-4 (recovery) — mobile e-signature capture + `contract_signatures` audit table (live migration)           |
+| 8   | `1cd3d692c` | P1-3 — wire both subscription checkouts to the shared client                                                |
+| 9   | `be0d4dd31` | P2-9 — remove orphan PerformanceDashboard screen                                                            |
+| 10  | `2a078dcac` | P2-4 — 7-day auto-release countdown banner on homeowner photo review                                        |
+| 11  | `3bf8d0403` | P2-10 — revoke anon EXECUTE on idempotency SECURITY DEFINER fns (live migration)                            |
+| 12  | `6213e5c54` | P2-8 — guard client-side phone-verification bypass on NODE_ENV                                              |
+
+**Live DB migrations applied via Supabase MCP this session (4 total, all verified post-apply):**
+
+- `20260527090000_contract_signatures_audit` — new immutable audit table for e-signatures. UNIQUE
+  (contract_id, signer_role); RLS gates parties + admin SELECT, signer-own INSERT (matching contract
+  party only); no UPDATE/DELETE policies outside service_role.
+- `20260527150000_escrow_currency_jobs_lifecycle_timestamps` — adds
+  `escrow_transactions.currency NOT NULL DEFAULT 'gbp' CHECK (currency='gbp')`,
+  `uq_escrow_active_per_job (job_id) WHERE status IN ('pending','held','release_pending')` partial
+  unique index, `jobs.assigned_at` + `jobs.started_at`, and `CREATE OR REPLACE` on
+  `accept_bid_atomic` to stamp `assigned_at = COALESCE(..., NOW())` on the same UPDATE that flips
+  status to assigned. Backfilled `assigned_at = updated_at` for 9 existing assigned/in_progress/
+  completed rows; `started_at` intentionally left NULL (no historical event).
+- `20260527160000_compliance_retention_on_user_delete` — drops NOT NULL + flips ON DELETE CASCADE →
+  ON DELETE SET NULL on 5 FKs: `compliance_certificates.owner_id`,
+  `contractor_certifications.contractor_id`, `contractor_dbs_checks.contractor_id`,
+  `contractor_insurance.contractor_id`, `contractor_licenses.contractor_id`. UK retention statute
+  citations on each column COMMENT. Pairs with `delete_user_data` RPC which ends with
+  `DELETE FROM profiles` — the CASCADE used to atomically wipe gas-safety / EICR / DBS / ELI records
+  mid-GDPR-erasure.
+- `20260527170000_lock_down_idempotency_security_definer` — REVOKE EXECUTE on anon for
+  `complete_idempotency_claim`, `release_idempotency_claim`, `try_claim_idempotency_key` (both
+  overloads). The functions accept an arbitrary `p_user_id` so anon EXECUTE let any client poison
+  another user's idempotency cache by claiming the next-request key first. Authenticated EXECUTE
+  preserved because all production callers are auth-gated.
+
+**Recovery / process incident:**
+
+`07602bdf8` was the original P0-4 commit hash, captured in the reflog at HEAD@{5}. Parallel-agent
+work on audit-57 + 58 (which landed concurrently in this workspace's working tree) interacted badly
+with lint-staged's backup-stash + restore mechanism — the staged P0-4 contents were displaced and
+the commit hash ended up on a non-linear ref pointing at audit-57's properties diff. Recovered as
+`5266aa6b1` "fix(recovery)" containing the actual signature work (SignatureCanvas,
+ContractSignatureService, ContractViewScreen modal wiring, accept-route schema extension, and the
+contract_signatures migration). The migration was already applied to live so the recovery brought
+the repo back in sync with the DB. Going forward: `git show --stat <hash>` after every commit to
+confirm the right files landed.
+
+**False-alarm retractions (9 audit findings cleared without code change):**
+
+| Finding                                  | Status                         | Evidence                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| ---------------------------------------- | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| P0-5a homeowner notify on after-photo    | already wired                  | `apps/web/app/api/jobs/[id]/photos/after/route.ts:425-432` fires `NotificationService.createNotification` + `EmailService.sendJobCompletedEmail`                                                                                                                                                                                                                                                                                                           |
+| P0-5b contractor leaves homeowner review | already wired                  | `apps/mobile/src/screens/job-details/JobDetailsCTA.tsx:381-399` "Leave a Review" CTA added 2026-05-24 (audit-27 P1)                                                                                                                                                                                                                                                                                                                                        |
+| P1-4 losing bids don't persist           | already wired                  | `accept_bid_atomic` RPC body lines 64-66 already UPDATE all other bids on the job to status='rejected'. Live shows 0 rejected only because every job in the dataset has exactly 1 bid (no losers existed).                                                                                                                                                                                                                                                 |
+| P1-7 `admin_activity_log = 0 in 30d`     | works, no traffic              | Live shows 4 historical rows (oldest 2025-11-09, newest 2026-03-30, 4 distinct action types). logActivity wrapper option + 4 routes wired. Empty 30-day window reflects 1 admin user not acting recently, not a wiring gap.                                                                                                                                                                                                                                |
+| P1-9 3 mobile job-posting screens        | each has a distinct entry path | JobPostingScreen (full form, "Post Job" CTA), QuickJobPostScreen (modal-driven from QuickJobModal search), JobEditScreen (PATCH-mode edit of existing job). No consolidation needed.                                                                                                                                                                                                                                                                       |
+| P2-1 `contractor_profiles` orphan        | NOT orphan                     | `apps/web/lib/services/stripe-webhook/invoice-handlers.ts:179` does `.from('contractor_profiles').update(...)` + `.upsert` at lines 54/150. Plus reads from matching, revenue analytics, mobile contractor service. Escalates to real refactor — `FeeCalculationService.resolveContractorTier` reads from `contractor_subscriptions` (not this table), but Stripe subscription webhooks still write to it. Dropping silently breaks the subscription flow. |
+| P2-2 after-photo response shape          | already correct                | Server returns `jobCompleted: boolean` in body; mobile consumes via `JobPhotoUploadScreen.tsx:241` (audit-39 P1, 2026-05-24)                                                                                                                                                                                                                                                                                                                               |
+| P2-5 5 "Coming Soon" stub pages          | intentional fallback UX        | `/contractor/resources, /connections, /social, /video-calls` all use shared `<ComingSoonPlaceholder>`, sidebar entries already removed, `robots: noindex,nofollow`. Direct-URL fallback for stale bookmarks; pages exist by design.                                                                                                                                                                                                                        |
+| P2-9 5 orphan mobile screens             | 4 of 5 wired                   | PropertyAssessment → ProfileAccountNavigator, ServiceRequest → ModalNavigator+deepLinking+hooks, MeetingDetails → ModalNavigator, ServiceAreas → BusinessNavigator + onboarding gate. Only PerformanceDashboard was a real orphan (deleted in commit `be0d4dd31`).                                                                                                                                                                                         |
+| P2-11 welcome-message insert fragility   | already hardened               | `accept/route.ts:443-448` has `messageError` error path with `logger.error` capture. The "fragility comment" was prescriptive, not a bug.                                                                                                                                                                                                                                                                                                                  |
+| P2-7 BeforeAfterSlider aspect ratios     | correct UX                     | Both web + mobile use `cover` crop to render mismatched aspect-ratio photos at the same viewport size for direct comparison. Intended behaviour.                                                                                                                                                                                                                                                                                                           |
+
+**Discovered while working (latent issues for follow-up):**
+
+- **`escrow_transactions.auto_approval_date` NULL across all completed rows.** The
+  `/api/cron/escrow-auto-release` cron filters on this column, so the 7-day auto-release safety net
+  never actually fires. The P2-4 countdown banner makes the UX honest from the homeowner's side
+  regardless, and the P0-1 stuck-escrow retry endpoint handles the operator-reset cases. But the
+  cron itself needs `auto_approval_date` stamped somewhere upstream — likely in the
+  `confirm-completion` route or photos/after auto-complete path. Separate follow-up.
+
+- **`contractor_profiles` table is redundant with `profiles` but actively written by Stripe
+  webhooks.** Two paths to fix: (a) migrate the 6 read paths + 3 webhook write paths to read/write
+  `profiles` instead, then drop the table; or (b) keep both in sync via trigger. (a) is the right
+  long-term call.
+
+**Verification posture for this session:**
+
+- Every commit `tsc --noEmit` clean across `apps/web` and `apps/mobile` (excluding the pre-existing
+  `properties/route.ts` baseline error that predates this work).
+- Every live DB migration verified post-apply via Supabase MCP `execute_sql` (FK rules, ACLs, column
+  nullability, index presence, row counts).
+- Preview server smoke-tested for P0-2 (homeowner onboarding wizard route + auth gate).
+- E2E happy-path smoke deferred for most surfaces — local dev env blocks on `sk_live_` Stripe key
+  validation. Recommend running through staging before next prod ship.
+
+**Remaining audit punch list (open):**
+
+- **P1-8** mobile escrow funding via Stripe RN SDK — needs new native dep + EAS rebuild (~half-day).
+  Currently homeowner redirects to web to fund escrow; ~25-40% drop-off risk on the cross-device
+  handoff.
+- **P2-3** homeowner analytics dashboard — real feature, day+; needs product brief
+- **P2-6** mobile Team/org/Lead-recs UIs — real feature work, day+; needs product brief
+- **P2-1 (escalated)** migrate Stripe webhook writes off `contractor_profiles`, then drop the table
+  — real refactor, day+
 
 ### 2026-05-23 — tiered-pricing rollout + tech-debt categorisation
 

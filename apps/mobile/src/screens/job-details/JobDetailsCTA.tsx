@@ -4,11 +4,15 @@
  * Decides which single CTA to show based on job status, user role,
  * contract status, escrow status, and bid state.
  */
-import React from 'react';
+import React, { useState } from 'react';
+import { Alert } from 'react-native';
+import { useQueryClient } from '@tanstack/react-query';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { StickyBottomCTA } from '../../components/ui/StickyBottomCTA';
 import type { JobsStackParamList } from '../../navigation/types';
 import type { Job } from '@mintenance/types';
+import { JobService } from '../../services/JobService';
+import { queryKeys } from '../../lib/queryClient';
 
 type JobDetailsScreenNavigationProp = NativeStackNavigationProp<
   JobsStackParamList,
@@ -28,6 +32,13 @@ export interface CTAContext {
   contractStatus: string | null;
   escrowStatus: string | null;
   hasReviewed: boolean;
+  // 2026-05-25 audit-P0-3: count of before-photos already uploaded for
+  // this job. When > 0 in the ready_to_start branch, the CTA shows
+  // "Start Job" directly instead of "Upload Before Photos" — without
+  // this, a contractor returning to the screen after a previous upload
+  // session has no path to start the job, which is the root cause of
+  // the 6-assigned-but-0-in_progress live state.
+  beforePhotoCount: number;
   // Dual-key check: bids come from both camelCase (Bid type) and snake_case (raw Supabase) formats
   bidsArray: Array<{
     id: string;
@@ -52,6 +63,7 @@ export function getPriorityCTA({
   contractStatus,
   escrowStatus,
   hasReviewed,
+  beforePhotoCount,
   bidsArray,
 }: CTAContext): React.ReactElement | null {
   const isAssignedContractor = isContractor && job.contractor_id === userId;
@@ -167,13 +179,34 @@ export function getPriorityCTA({
     );
   }
 
-  // 4. ready_to_start: escrow held -> "Upload Before Photos"
+  // 4. ready_to_start: escrow held. Two sub-states:
+  //    - No before-photos yet: prompt to upload (status quo)
+  //    - Before-photos exist: prompt to Start Job directly.
+  //
+  // 2026-05-25 audit-P0-3: prior to this split, the only "Start Job"
+  // surface lived as a one-shot Alert at the end of a successful upload
+  // in PhotoUpload screen. Contractors who uploaded, closed the app,
+  // and returned later had no path to start — the screen always showed
+  // "Upload Before Photos" until status flipped to in_progress. Live
+  // data: 6 assigned jobs, 0 in_progress, with 3 before-photos already
+  // uploaded server-side.
   if (
     isAssignedContractor &&
     job.status === 'assigned' &&
     contractStatus === 'accepted' &&
     escrowStatus === 'held'
   ) {
+    if (beforePhotoCount > 0) {
+      return (
+        <ReadyToStartCTA
+          jobId={job.id}
+          onStarted={() => {
+            // Caller (JobDetailsScreen) will refetch on focus + status
+            // change; nothing else to do here.
+          }}
+        />
+      );
+    }
     return (
       <StickyBottomCTA
         buttonText='Upload Before Photos'
@@ -367,4 +400,53 @@ export function getPriorityCTA({
   }
 
   return null;
+}
+
+/**
+ * Local CTA component for the ready_to_start sub-state where the
+ * contractor already has at least one before-photo uploaded. Kept inline
+ * (rather than promoted to its own file) because nothing else in the
+ * codebase needs it and the logic is too small to justify a separate
+ * module.
+ *
+ * Surfaces the same API call JobPhotoUploadScreen's post-upload alert
+ * uses, so the network path + idempotency guarantees are identical.
+ */
+function ReadyToStartCTA({
+  jobId,
+  onStarted,
+}: {
+  jobId: string;
+  onStarted: () => void;
+}) {
+  const [starting, setStarting] = useState(false);
+  const qc = useQueryClient();
+
+  const handleStart = async () => {
+    setStarting(true);
+    try {
+      await JobService.startJob(jobId);
+      qc.invalidateQueries({ queryKey: queryKeys.jobs.details(jobId) });
+      qc.invalidateQueries({ queryKey: queryKeys.jobs.lists() });
+      onStarted();
+      Alert.alert(
+        'Job Started',
+        'The homeowner has been notified that work has begun.'
+      );
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to start job';
+      Alert.alert('Could Not Start Job', msg);
+    } finally {
+      setStarting(false);
+    }
+  };
+
+  return (
+    <StickyBottomCTA
+      buttonText={starting ? 'Starting…' : 'Start Job'}
+      onPress={handleStart}
+      secondaryText='Before-photos are uploaded. Tap to begin work.'
+      disabled={starting}
+    />
+  );
 }

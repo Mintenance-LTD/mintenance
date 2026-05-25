@@ -72,16 +72,26 @@ export const PATCH = withApiHandler(
   async (request, { user, params }) => {
     // Require manager+ role on the property team (or admin) to edit
     // access info — same gate as PUT on the parent property route.
-    const { authorized } = await PropertyTeamService.authorize(
-      user.id,
-      params.id,
-      'edit'
-    );
+    const { authorized, role: propertyRole } =
+      await PropertyTeamService.authorize(user.id, params.id, 'edit');
     if (!authorized && user.role !== 'admin') {
       throw new ForbiddenError(
         'You do not have permission to edit this property'
       );
     }
+
+    // 2026-05-26 audit-61 P2: GET on /api/properties/[id] redacts
+    // key_safe_code for non-owner / non-platform-admin callers
+    // (audit-37 P0). PATCH must mirror that — without this gate a
+    // manager opens the editor, sees a blank lock-box field
+    // (because the GET stripped it), types a guess or leaves it
+    // empty, and the existing real code gets overwritten by the
+    // blind PATCH. Owner of the property + platform admin are the
+    // only callers allowed to mutate the code itself; managers /
+    // team-admins continue to edit every other access field.
+    const isPropertyOwner = propertyRole === 'owner';
+    const isPlatformAdmin = user.role === 'admin';
+    const canEditKeySafeCode = isPropertyOwner || isPlatformAdmin;
 
     const validation = await validateRequest(request, accessSchema);
     if ('headers' in validation) {
@@ -96,6 +106,21 @@ export const PATCH = withApiHandler(
       gas_isolator_location,
       consumer_unit_location,
     } = validation.data;
+
+    if (key_safe_code !== undefined && !canEditKeySafeCode) {
+      logger.warn(
+        'Non-owner PATCH attempted to modify key_safe_code; ignoring field',
+        {
+          service: 'properties',
+          propertyId: params.id,
+          userId: user.id,
+          role: propertyRole,
+        }
+      );
+      throw new ForbiddenError(
+        'Only the property owner can edit the lock-box code.'
+      );
+    }
 
     // Build update payload conditionally — caller may PATCH any
     // subset of the access fields; undefined leaves the existing

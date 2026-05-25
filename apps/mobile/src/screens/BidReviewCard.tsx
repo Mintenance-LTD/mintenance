@@ -288,16 +288,29 @@ export const BidReviewCard: React.FC<Props> = ({ bid, quoteData }) => {
             </View>
           )}
 
-          {bid.estimated_duration && (
-            <View style={styles.detailRow}>
-              <View style={styles.detailIconWrap}>
-                <Ionicons name='time-outline' size={16} color='#3B82F6' />
+          {/* 2026-05-26 audit-59 P2: previously read bid.estimated_duration
+              (string) which the API never returns — homeowner cards
+              never showed a duration. Read estimated_duration_days
+              (number) and format it. Fall back to the legacy field
+              for any test fixtures still using the string shape. */}
+          {(() => {
+            const durDays = (
+              bid as unknown as { estimated_duration_days?: number }
+            ).estimated_duration_days;
+            const label =
+              typeof durDays === 'number' && durDays > 0
+                ? `${durDays} ${durDays === 1 ? 'day' : 'days'}`
+                : bid.estimated_duration;
+            if (!label) return null;
+            return (
+              <View style={styles.detailRow}>
+                <View style={styles.detailIconWrap}>
+                  <Ionicons name='time-outline' size={16} color={me.brand} />
+                </View>
+                <Text style={styles.detailText}>Estimated: {label}</Text>
               </View>
-              <Text style={styles.detailText}>
-                Estimated: {bid.estimated_duration}
-              </Text>
-            </View>
-          )}
+            );
+          })()}
           {bid.availability && (
             <View style={styles.detailRow}>
               <View

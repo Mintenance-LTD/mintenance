@@ -30,6 +30,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import { useQueryClient } from '@tanstack/react-query';
 import { LoadingSpinner, ErrorView } from '../components/shared';
 import { useAuth } from '../contexts/AuthContext';
 import { PaymentSummaryCard } from './payment/components/PaymentSummaryCard';
@@ -38,6 +39,7 @@ import { PaymentMethodOption } from './payment/components/PaymentMethodOption';
 import { usePayment } from './payment/hooks/usePayment';
 import { me } from '../design-system/mint-editorial';
 import { useScreenCaptureGuard } from '../hooks/useScreenCaptureGuard';
+import { queryKeys } from '../lib/queryClient';
 
 interface PaymentScreenProps {
   route: {
@@ -65,6 +67,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
 
   const { user } = useAuth();
   const rootNavigation = useNavigation();
+  const queryClient = useQueryClient();
   const {
     jobId,
     amount,
@@ -73,6 +76,24 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
     useEscrow = true,
   } = route.params;
 
+  // 2026-05-26 audit-60 P1: previously the success handler just
+  // called navigation.goBack(). JobDetailsScreen's react-query cache
+  // for the job + escrow still held the pre-payment row, so the CTA
+  // re-rendered as "Pay Now" until something else invalidated it.
+  // Invalidate the relevant keys synchronously before popping so the
+  // next render of the detail screen refetches with fresh state.
+  // Both jobs.details and jobs.bids are invalidated because the
+  // accepted-bid + escrow context flows through the same screen.
+  const handlePaymentSuccess = React.useCallback(() => {
+    queryClient.invalidateQueries({
+      queryKey: queryKeys.jobs.details(jobId),
+    });
+    queryClient.invalidateQueries({
+      queryKey: queryKeys.jobs.bids(jobId),
+    });
+    navigation.goBack();
+  }, [queryClient, jobId, navigation]);
+
   const payment = usePayment({
     userId: user?.id,
     jobId,
@@ -80,7 +101,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
     jobTitle,
     amount,
     useEscrow,
-    onSuccess: () => navigation.goBack(),
+    onSuccess: handlePaymentSuccess,
   });
 
   if (payment.loading) {

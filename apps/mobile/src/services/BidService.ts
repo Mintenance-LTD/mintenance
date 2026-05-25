@@ -6,6 +6,16 @@ export interface BidData {
   contractor_id: string;
   amount: number;
   message: string;
+  // 2026-05-26 audit-59 P2: the API returns estimated_duration_days
+  // (number, server-stamped from estimatedDurationDays on submit).
+  // The legacy `estimated_duration: string` field was kept around for
+  // backward compat but never populated by /api/jobs/:id/bids — the
+  // homeowner card + timeline sort were reading undefined. Track the
+  // canonical field; keep the old key as a soft-deprecated alias for
+  // any in-flight callers (none in source today, but the mobile
+  // schema's strict types previously paired with it).
+  estimated_duration_days?: number;
+  /** @deprecated Use estimated_duration_days. Kept for legacy callers. */
   estimated_duration?: string;
   availability?: string;
 }
@@ -217,10 +227,16 @@ export class BidService {
   static async updateBid(
     bidId: string,
     jobId: string,
+    // 2026-05-26 audit-59 P2: previously the type listed
+    // `estimated_duration` which the PATCH route doesn't accept;
+    // callers passing it had the field silently dropped by the
+    // route's non-strict schema. The canonical PATCH-accepted field
+    // is `estimated_duration_days: number`. Re-typed accordingly;
+    // BidSubmissionScreen edit-mode already POSTs the right key.
     updates: Partial<
       Pick<
         BidData,
-        'amount' | 'message' | 'estimated_duration' | 'availability'
+        'amount' | 'message' | 'estimated_duration_days' | 'availability'
       >
     >
   ): Promise<Bid> {

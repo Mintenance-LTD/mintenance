@@ -53,6 +53,35 @@ interface PropertyJobRow {
   category?: string;
   title?: string;
 }
+
+// 2026-05-26 audit-57 P2: capability flags driven by the `_role`
+// surfaced by /api/properties/[id] (audit-57 server change). Mirrors
+// PropertyTeamService's PERMISSION_MATRIX so the rendered UI hides
+// rows the server would 4xx anyway — viewers no longer see Edit /
+// Delete / Manage Team buttons that just throw on tap.
+type PropertyRoleApi =
+  | 'owner'
+  | 'admin'
+  | 'manager'
+  | 'viewer'
+  | 'platform_admin'
+  | null
+  | undefined;
+function capsForRole(role: PropertyRoleApi) {
+  const r = role ?? 'viewer';
+  const isOwnerOrAdmin = r === 'owner' || r === 'platform_admin';
+  const isOrgAdmin = r === 'admin'; // property-team 'admin' role
+  const isManager = r === 'manager';
+  return {
+    canEdit: isOwnerOrAdmin || isOrgAdmin || isManager,
+    canDelete: isOwnerOrAdmin,
+    canManageTeam: isOwnerOrAdmin || isOrgAdmin,
+    canManageMaintenance: isOwnerOrAdmin || isOrgAdmin || isManager,
+    canManageContacts: isOwnerOrAdmin || isOrgAdmin || isManager,
+    canEditAccess: isOwnerOrAdmin || isOrgAdmin || isManager,
+    canRunAssessment: isOwnerOrAdmin,
+  };
+}
 interface Props {
   navigation: NativeStackNavigationProp<
     ProfileStackParamList,
@@ -110,7 +139,7 @@ export const PropertyDetailScreen: React.FC<Props> = ({
     enabled: !!user && !!propertyId,
   });
 
-  const { data: jobsData } = useQuery({
+  const { data: jobsData, error: jobsError } = useQuery({
     queryKey: ['property-jobs', propertyId],
     queryFn: async () => {
       // 2026-05-23 audit: previously direct-queried supabase. Live
@@ -121,54 +150,72 @@ export const PropertyDetailScreen: React.FC<Props> = ({
       // the same owner/admin check the property route uses, so the
       // job history honours the same access contract as the property
       // detail itself.
-      try {
-        type ApiJobRow = {
-          id: string;
-          title: string;
-          status: string;
-          budget: number | string | null;
-          category: string | null;
-          created_at: string;
-          completed_at: string | null;
+      //
+      // 2026-05-26 audit-57 P2: removed the blanket try/catch that
+      // returned `[]` on any failure. That masked permission
+      // mismatches (audit-57 P1 — team members getting 404 from this
+      // route) and backend errors as "no jobs", so the empty state
+      // looked identical whether the property had no jobs or whether
+      // the API was broken. Let react-query surface the error so the
+      // UI can render a real failure indicator below.
+      type ApiJobRow = {
+        id: string;
+        title: string;
+        status: string;
+        budget: number | string | null;
+        category: string | null;
+        created_at: string;
+        completed_at: string | null;
+      };
+      const res = await mobileApiClient.get<
+        { jobs?: ApiJobRow[] } | ApiJobRow[]
+      >(`/api/properties/${propertyId}/jobs`);
+      const rows = Array.isArray(res)
+        ? res
+        : ((res as { jobs?: ApiJobRow[] }).jobs ?? []);
+      // Coerce into the shared Job shape so downstream consumers
+      // (PropertyHealthScore, SpendingAnalytics) typecheck. budget
+      // is NUMERIC from Postgres — arrives as a string via
+      // supabase-js — coerce to number so sum/avg math works.
+      return rows.map<PropertyJobRow>((r) => {
+        const rawBudget = r.budget;
+        // budget is NUMERIC from Postgres — string at the
+        // supabase-js boundary. PropertyHealthScore /
+        // SpendingAnalytics want `budget: number` required, so
+        // default missing to 0 (downstream reducers already
+        // tolerate 0 — see SpendingAnalytics `j.budget || 0`).
+        const numericBudget =
+          typeof rawBudget === 'number'
+            ? rawBudget
+            : rawBudget != null && Number.isFinite(Number(rawBudget))
+              ? Number(rawBudget)
+              : 0;
+        return {
+          id: r.id,
+          title: r.title,
+          status: r.status,
+          budget: numericBudget,
+          category: r.category ?? undefined,
+          created_at: r.created_at,
         };
-        const res = await mobileApiClient.get<
-          { jobs?: ApiJobRow[] } | ApiJobRow[]
-        >(`/api/properties/${propertyId}/jobs`);
-        const rows = Array.isArray(res)
-          ? res
-          : ((res as { jobs?: ApiJobRow[] }).jobs ?? []);
-        // Coerce into the shared Job shape so downstream consumers
-        // (PropertyHealthScore, SpendingAnalytics) typecheck. budget
-        // is NUMERIC from Postgres — arrives as a string via
-        // supabase-js — coerce to number so sum/avg math works.
-        return rows.map<PropertyJobRow>((r) => {
-          const rawBudget = r.budget;
-          // budget is NUMERIC from Postgres — string at the
-          // supabase-js boundary. PropertyHealthScore /
-          // SpendingAnalytics want `budget: number` required, so
-          // default missing to 0 (downstream reducers already
-          // tolerate 0 — see SpendingAnalytics `j.budget || 0`).
-          const numericBudget =
-            typeof rawBudget === 'number'
-              ? rawBudget
-              : rawBudget != null && Number.isFinite(Number(rawBudget))
-                ? Number(rawBudget)
-                : 0;
-          return {
-            id: r.id,
-            title: r.title,
-            status: r.status,
-            budget: numericBudget,
-            category: r.category ?? undefined,
-            created_at: r.created_at,
-          };
-        });
-      } catch {
-        return [] as PropertyJobRow[];
-      }
+      });
     },
     enabled: !!user && !!propertyId,
+    // Only retry transient failures; treat auth/404 as deterministic.
+    retry: (failureCount, err) => {
+      const apiErr = err as { statusCode?: number; status?: number };
+      const code = apiErr?.statusCode ?? apiErr?.status;
+      if (code === 401 || code === 403 || code === 404) return false;
+      return failureCount < 2;
+    },
   });
+
+  // 2026-05-26 audit-57 P2: derive capabilities from the API's
+  // `_role` hint. Defaults to viewer-equivalent locks if the field is
+  // missing (older app builds / unparseable responses).
+  const propertyRole = (property as { _role?: PropertyRoleApi } | undefined)
+    ?._role;
+  const caps = capsForRole(propertyRole);
 
   const propertyJobs = jobsData || [];
   const completedJobs = propertyJobs.filter((j) => j.status === 'completed');
@@ -420,7 +467,32 @@ export const PropertyDetailScreen: React.FC<Props> = ({
             </View>
           )}
         </View>
-        {propertyJobs.length === 0 ? (
+        {jobsError ? (
+          // 2026-05-26 audit-57 P2: render a real failure state so a
+          // permissions mismatch / backend error doesn't read as "no
+          // jobs". Tap retries the query.
+          <TouchableOpacity
+            style={styles.emptyJobsWrap}
+            onPress={() =>
+              queryClient.invalidateQueries({
+                queryKey: ['property-jobs', propertyId],
+              })
+            }
+            accessibilityRole='button'
+            accessibilityLabel='Retry loading jobs'
+          >
+            <View style={styles.emptyJobsIcon}>
+              <Ionicons
+                name='alert-circle-outline'
+                size={20}
+                color={me.errFg}
+              />
+            </View>
+            <Text style={[styles.emptyJobsText, { color: me.errFg }]}>
+              Could not load jobs for this property. Tap to retry.
+            </Text>
+          </TouchableOpacity>
+        ) : propertyJobs.length === 0 ? (
           <View style={styles.emptyJobsWrap}>
             <View style={styles.emptyJobsIcon}>
               <Ionicons name='briefcase-outline' size={20} color={me.ink3} />
@@ -512,9 +584,18 @@ export const PropertyDetailScreen: React.FC<Props> = ({
   // PropertyDetail through the API).
   const renderAccessTab = () => {
     const p = property as unknown as Record<string, unknown> | null;
+    // 2026-05-26 audit-61 P2: only the property owner + platform
+    // admin can see (and therefore edit) the real lock-box code.
+    // The server already redacts key_safe_code on GET and now 403s
+    // on PATCH from non-owners; hide the input on mobile too so a
+    // manager doesn't see a blank box that begs them to type a
+    // guess and silently fail.
+    const canEditKeySafeCode =
+      propertyRole === 'owner' || propertyRole === 'platform_admin';
     return (
       <PropertyAccessSection
         propertyId={propertyId}
+        canEditKeySafeCode={canEditKeySafeCode}
         initial={{
           access_mode:
             (p?.access_mode as
@@ -551,48 +632,63 @@ export const PropertyDetailScreen: React.FC<Props> = ({
           that the web /landlord/contacts page writes to, so the
           mobile-managed property carries the same "who do I call
           when I arrive" list. TenantContacts remains for the
-          tenant-invitation flow (account linkage). */}
-      <PropertyContacts propertyId={propertyId} />
-      <TenantContacts propertyId={propertyId} />
-      <TeamAccess propertyId={propertyId} />
+          tenant-invitation flow (account linkage).
+          2026-05-26 audit-57 P2: gated on canManageContacts so a
+          viewer-role team member doesn't see an editor whose actions
+          all 403 server-side. */}
+      {caps.canManageContacts && <PropertyContacts propertyId={propertyId} />}
+      {caps.canManageContacts && <TenantContacts propertyId={propertyId} />}
+      {caps.canManageTeam && <TeamAccess propertyId={propertyId} />}
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>ACTIONS</Text>
-        <TouchableOpacity
-          style={styles.actionRow}
-          onPress={() => navigation.navigate('EditProperty', { propertyId })}
-        >
-          <View style={[styles.actionIcon, { backgroundColor: '#DBEAFE' }]}>
-            <Ionicons name='create-outline' size={18} color='#3B82F6' />
-          </View>
-          <Text style={styles.actionText}>Edit Property</Text>
-          <Ionicons name='chevron-forward' size={18} color={me.ink3} />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.actionRow}
-          onPress={() =>
-            navigation.navigate('PropertyAssessment', {
-              propertyId,
-              propertyAddress: property.address,
-            })
-          }
-        >
-          <View style={[styles.actionIcon, { backgroundColor: '#D1FAE5' }]}>
-            <Ionicons name='videocam-outline' size={18} color='#10B981' />
-          </View>
-          <Text style={styles.actionText}>Property Assessment</Text>
-          <Ionicons name='chevron-forward' size={18} color={me.ink3} />
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionRow} onPress={handleDelete}>
-          <View style={[styles.actionIcon, { backgroundColor: me.errBg }]}>
-            <Ionicons name='trash-outline' size={18} color='#EF4444' />
-          </View>
-          <Text style={[styles.actionText, { color: '#EF4444' }]}>
-            Delete Property
-          </Text>
-          <Ionicons name='chevron-forward' size={18} color={me.ink3} />
-        </TouchableOpacity>
-      </View>
+      {(caps.canEdit || caps.canRunAssessment || caps.canDelete) && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>ACTIONS</Text>
+          {caps.canEdit && (
+            <TouchableOpacity
+              style={styles.actionRow}
+              onPress={() =>
+                navigation.navigate('EditProperty', { propertyId })
+              }
+            >
+              <View
+                style={[styles.actionIcon, { backgroundColor: me.brandSoft }]}
+              >
+                <Ionicons name='create-outline' size={18} color={me.brand} />
+              </View>
+              <Text style={styles.actionText}>Edit Property</Text>
+              <Ionicons name='chevron-forward' size={18} color={me.ink3} />
+            </TouchableOpacity>
+          )}
+          {caps.canRunAssessment && (
+            <TouchableOpacity
+              style={styles.actionRow}
+              onPress={() =>
+                navigation.navigate('PropertyAssessment', {
+                  propertyId,
+                  propertyAddress: property.address,
+                })
+              }
+            >
+              <View style={[styles.actionIcon, { backgroundColor: me.warnBg }]}>
+                <Ionicons name='videocam-outline' size={18} color={me.accent} />
+              </View>
+              <Text style={styles.actionText}>Property Assessment</Text>
+              <Ionicons name='chevron-forward' size={18} color={me.ink3} />
+            </TouchableOpacity>
+          )}
+          {caps.canDelete && (
+            <TouchableOpacity style={styles.actionRow} onPress={handleDelete}>
+              <View style={[styles.actionIcon, { backgroundColor: me.errBg }]}>
+                <Ionicons name='trash-outline' size={18} color={me.errFg} />
+              </View>
+              <Text style={[styles.actionText, { color: me.errFg }]}>
+                Delete Property
+              </Text>
+              <Ionicons name='chevron-forward' size={18} color={me.ink3} />
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
     </>
   );
 
@@ -629,13 +725,17 @@ export const PropertyDetailScreen: React.FC<Props> = ({
               color={isFavorite ? me.accent : me.ink2}
             />
           </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => navigation.navigate('EditProperty', { propertyId })}
-            accessibilityLabel='Edit property'
-            style={styles.headerBtn}
-          >
-            <Ionicons name='create-outline' size={22} color={me.brand} />
-          </TouchableOpacity>
+          {caps.canEdit && (
+            <TouchableOpacity
+              onPress={() =>
+                navigation.navigate('EditProperty', { propertyId })
+              }
+              accessibilityLabel='Edit property'
+              style={styles.headerBtn}
+            >
+              <Ionicons name='create-outline' size={22} color={me.brand} />
+            </TouchableOpacity>
+          )}
         </View>
       </View>
       <View style={styles.screenHeader}>
@@ -650,8 +750,25 @@ export const PropertyDetailScreen: React.FC<Props> = ({
         ) : null}
       </View>
 
+      {/* 2026-05-26 audit-57 P2: filter tabs by capability. Viewer
+          team members can't edit the Access fields (server gates
+          PATCH on PropertyAccessSection) and have nothing to do on
+          the Manage tab — hide both rather than render a noop UI. */}
       <View style={styles.tabRow}>
-        {TABS.map((tab) => (
+        {TABS.filter((t) => {
+          if (t.key === 'access') return caps.canEditAccess;
+          if (t.key === 'manage') {
+            return (
+              caps.canManageContacts ||
+              caps.canManageTeam ||
+              caps.canEdit ||
+              caps.canDelete ||
+              caps.canRunAssessment
+            );
+          }
+          if (t.key === 'maintenance') return caps.canManageMaintenance;
+          return true;
+        }).map((tab) => (
           <TouchableOpacity
             key={tab.key}
             style={[styles.tab, activeTab === tab.key && styles.tabActive]}

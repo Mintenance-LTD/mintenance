@@ -118,6 +118,7 @@ export function MintEditorialJobDetailView({
                 beforePhotos={beforePhotos}
                 afterPhotos={afterPhotos}
                 isConfirmed={completionConfirmed}
+                completedAt={job.completed_at}
               />
             </div>
           )}

@@ -16,6 +16,11 @@ import { NotificationService } from '@/lib/services/notifications/NotificationSe
 import { EmailService } from '@/lib/email-service';
 import { ContractSignatoriesService } from '@/lib/services/contracts/ContractSignatoriesService';
 import {
+  validateSignaturePayload,
+  persistContractSignature,
+} from '@/lib/services/contracts/ContractSignatureService';
+import { getClientIp } from '@/lib/request-ip';
+import {
   getIdempotencyKeyFromRequest,
   checkIdempotency,
   storeIdempotencyResult,
@@ -57,6 +62,19 @@ export const POST = withApiHandler(
         contractId,
       });
       return NextResponse.json(idem.cachedResult);
+    }
+
+    // 2026-05-27 audit-P0-4: optional signature payload. The body may
+    // be empty (legacy click-sign clients), in which case we still
+    // record the timestamp but no audit row. Real e-signature clients
+    // attach signatureImage + signatureFormat + platform and we write
+    // the immutable row to contract_signatures.
+    let signaturePayload: ReturnType<typeof validateSignaturePayload> = null;
+    try {
+      const rawBody = await request.clone().json();
+      signaturePayload = validateSignaturePayload(rawBody);
+    } catch {
+      // Body absent / not JSON — legacy click-sign, nothing to do.
     }
 
     return await releaseOnError(idempotencyKey, 'contract_accept', async () => {
@@ -155,6 +173,27 @@ export const POST = withApiHandler(
           userId: user.id,
         });
         throw new InternalServerError('Failed to sign contract');
+      }
+
+      // 2026-05-27 audit-P0-4: capture the immutable signature audit row
+      // for this signer if the client uploaded a payload. Fail-soft:
+      // the timestamp UPDATE above is already committed; a missing
+      // audit row is a soft failure (logged in
+      // persistContractSignature). Legacy click-sign clients send no
+      // payload and skip this entirely — the timestamp stays the
+      // primary evidence until web wires its own SignaturePad.
+      if (signaturePayload) {
+        const signerRole: 'homeowner' | 'contractor' = isContractor
+          ? 'contractor'
+          : 'homeowner';
+        const userAgent = request.headers.get('user-agent');
+        await persistContractSignature(signaturePayload, {
+          contractId,
+          signerId: user.id,
+          signerRole,
+          signerIp: getClientIp(request) ?? null,
+          signerUserAgent: userAgent ? userAgent.slice(0, 1024) : null,
+        });
       }
 
       // 2026-05-13 race-condition fix. The status above is computed from

@@ -129,6 +129,12 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
   // any line-item changes are still done from a fresh "Submit Quote".
   useEffect(() => {
     if (!existingBidId) return;
+    // 2026-05-26 audit-59 P2: PATCH /api/jobs/:id/bids/:bidId only
+    // accepts quick-bid fields. Force quick mode on entry so the
+    // line-item state from a prior new-bid attempt can't leak into
+    // an Edit Bid render and offer detailed inputs the PATCH would
+    // ignore.
+    setMode('quick');
     let cancelled = false;
     (async () => {
       try {
@@ -443,44 +449,58 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
               original look. */}
           <JobRoomScope jobId={jobId} />
 
-          {/* Mode toggle */}
-          <View style={styles.modeToggle}>
-            <TouchableOpacity
-              style={[styles.modeBtn, mode === 'quick' && styles.modeBtnActive]}
-              onPress={() => setMode('quick')}
-              accessibilityRole='tab'
-              accessibilityLabel='Quick Bid'
-              accessibilityState={{ selected: mode === 'quick' }}
-            >
-              <Text
+          {/* Mode toggle.
+              2026-05-26 audit-59 P2: hide detailed-quote tab in edit
+              mode. The PATCH /api/jobs/:id/bids/:bidId route only
+              accepts {amount, message, estimated_duration_days,
+              proposed_start_date} — line_items + tax + terms would
+              be silently dropped if the contractor edited them and
+              tapped Save. Until the PATCH route is extended to
+              update the linked contractor_quotes row, force quick
+              mode on edit and don't render the toggle at all.
+              New-bid flow is unchanged. */}
+          {!existingBidId && (
+            <View style={styles.modeToggle}>
+              <TouchableOpacity
                 style={[
-                  styles.modeBtnText,
-                  mode === 'quick' && styles.modeBtnTextActive,
+                  styles.modeBtn,
+                  mode === 'quick' && styles.modeBtnActive,
                 ]}
+                onPress={() => setMode('quick')}
+                accessibilityRole='tab'
+                accessibilityLabel='Quick Bid'
+                accessibilityState={{ selected: mode === 'quick' }}
               >
-                Quick Bid
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.modeBtn,
-                mode === 'detailed' && styles.modeBtnActive,
-              ]}
-              onPress={() => setMode('detailed')}
-              accessibilityRole='tab'
-              accessibilityLabel='Detailed Quote'
-              accessibilityState={{ selected: mode === 'detailed' }}
-            >
-              <Text
+                <Text
+                  style={[
+                    styles.modeBtnText,
+                    mode === 'quick' && styles.modeBtnTextActive,
+                  ]}
+                >
+                  Quick Bid
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
                 style={[
-                  styles.modeBtnText,
-                  mode === 'detailed' && styles.modeBtnTextActive,
+                  styles.modeBtn,
+                  mode === 'detailed' && styles.modeBtnActive,
                 ]}
+                onPress={() => setMode('detailed')}
+                accessibilityRole='tab'
+                accessibilityLabel='Detailed Quote'
+                accessibilityState={{ selected: mode === 'detailed' }}
               >
-                Detailed Quote
-              </Text>
-            </TouchableOpacity>
-          </View>
+                <Text
+                  style={[
+                    styles.modeBtnText,
+                    mode === 'detailed' && styles.modeBtnTextActive,
+                  ]}
+                >
+                  Detailed Quote
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* QUICK MODE: amount field */}
           {mode === 'quick' && (

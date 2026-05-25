@@ -24,9 +24,15 @@
  *                filters by the visible map area instead of returning
  *                the newest 50 jobs anywhere.
  *
- * Auth: any authenticated user. Contractors get their own pending /
- * accepted / rejected bid job_ids excluded server-side so the client
- * doesn't have to round-trip a second list.
+ * Auth: contractors + admin only. 2026-05-26 audit-58 P1: previously
+ * any authenticated user could call this — homeowners and tenants
+ * received open job titles, coordinates, budgets, categories, and
+ * the posting homeowner's first name. The mobile UI only exposes
+ * Find Jobs to contractors, so locking the API down matches the
+ * intended access surface. Admin is allowed for support/diagnostic
+ * use. Contractors get their own pending / accepted / rejected bid
+ * job_ids excluded server-side so the client doesn't have to
+ * round-trip a second list.
  */
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
@@ -91,7 +97,11 @@ interface JobRow {
 }
 
 export const GET = withApiHandler(
-  { rateLimit: { maxRequests: 60 }, csrf: false },
+  {
+    roles: ['contractor', 'admin'],
+    rateLimit: { maxRequests: 60 },
+    csrf: false,
+  },
   async (request, { user }) => {
     const url = new URL(request.url);
     const parsed = queryParamsSchema.safeParse({
