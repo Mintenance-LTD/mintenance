@@ -70,9 +70,15 @@ const CONTRACTOR_CONSEQUENCES = [
     icon: 'document-text-outline',
     text: 'Bids you placed will be removed from every job',
   },
+  // 2026-05-24 audit-41 P3: previously promised active jobs "revert to
+  // open so the homeowner can find another contractor", but the API
+  // route blocks deletion outright when there's an assigned or
+  // in-progress job (audit-25 ACTIVE_JOBS_CONTRACTOR blocker). Align
+  // the copy with the actual server behaviour so the contractor isn't
+  // told one outcome and then hit with the opposite as a blocker.
   {
     icon: 'briefcase-outline',
-    text: 'Active jobs you were assigned to revert to "open" so the homeowner can find another contractor',
+    text: 'You must withdraw from any assigned or in-progress jobs first — the homeowner needs to find another contractor before your account can be removed',
   },
   {
     icon: 'chatbubble-outline',

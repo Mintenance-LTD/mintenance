@@ -103,12 +103,15 @@ export const PATCH = withApiHandler(
       });
 
       try {
+        // 2026-05-25 audit-43 P1: include metadata.jobId so mobile
+        // routingTable can deep-link to JobDetails instead of inbox.
         await NotificationService.createNotification({
           userId: otherPartyId,
           title: `${job.title} moved to ${formattedDate}`,
           message: `The other side rescheduled. Tap to see the new slot.`,
           type: 'job_scheduled',
           actionUrl: `/jobs/${jobId}`,
+          metadata: { jobId },
         });
       } catch (notificationError) {
         logger.error(

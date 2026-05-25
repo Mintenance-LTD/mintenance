@@ -195,13 +195,28 @@ export class NotificationService {
     const priority = NotificationAgent.getNotificationPriority(params.type);
     const at = scheduledFor || new Date();
 
+    // 2026-05-25 audit-42 P2: previously the inAppOnly flag was honoured
+    // only on the immediate path (see fireImmediately above). When the
+    // notification got deferred — engagement-timing or quiet-hours —
+    // the queue drain in NotificationProcessorService.sendPendingNotification
+    // had no idea the caller had asked to suppress push, so retention
+    // digests etc. silently double-notified after the deferral. Stash
+    // an internal `_in_app_only` flag in the queue's metadata JSONB so
+    // the processor can honour the same gate. notification_queue.metadata
+    // is JSONB live (verified 2026-05-25 via information_schema), so no
+    // migration needed. Underscore prefix marks it as internal — not
+    // intended to surface in deep-link payloads.
+    const queueMetadata = params.inAppOnly
+      ? { ...(params.metadata ?? {}), _in_app_only: true }
+      : params.metadata;
+
     const queueId = await NotificationAgent.queueNotification({
       userId: params.userId,
       notificationType: params.type,
       title: params.title,
       message: params.message,
       actionUrl: params.actionUrl,
-      metadata: params.metadata,
+      metadata: queueMetadata,
       scheduledFor: at,
       priority,
     });

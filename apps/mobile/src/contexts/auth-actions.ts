@@ -322,29 +322,71 @@ export const performSignOut = async (
   currentUser: User | null,
   dispatch: AuthStateDispatch
 ): Promise<void> => {
-  try {
-    trackUserAction('auth.sign_out_attempt', { userId: currentUser?.id });
+  trackUserAction('auth.sign_out_attempt', { userId: currentUser?.id });
 
+  // 2026-05-24 audit-41 P1: previously only cleared local state on the
+  // happy path. Post-account-deletion, supabase.auth.signOut() throws
+  // because the auth user/token is already gone — and the catch
+  // handler logged but never cleared local store, so the deleted
+  // user stayed "signed in" locally with valid SecureStore session
+  // + biometric refresh token, and the next launch still offered
+  // biometric login to a deleted account.
+  //
+  // Audit-41 P2 (#181): also explicitly clear BiometricService refresh
+  // credentials. BiometricService keeps its own SecureStore entry
+  // separate from the session store; clearSessionFromSecureStore
+  // doesn't touch it. Without this the next launch would offer
+  // biometric login until restore fails and cleans itself up.
+  //
+  // Strategy: best-effort the network signOut, then unconditionally
+  // tear down local state in a `finally` regardless of outcome. A
+  // failed network signOut is surfaced via handleError but never
+  // blocks local cleanup.
+  let signOutError: unknown = null;
+  try {
     await measureAsyncPerformance(
       () => AuthService.signOut(),
       'auth.sign_out',
       'auth'
     );
-
-    dispatch.setUser(null);
-    setUserContext(null);
-    dispatch.setSession(null);
-    await clearSessionFromSecureStore();
-    await clearAppCachesOnLogout();
-
-    trackUserAction('auth.sign_out_success', { userId: currentUser?.id });
-    addBreadcrumb('User signed out', 'auth');
   } catch (error) {
-    trackUserAction('auth.sign_out_failed', {
+    signOutError = error;
+    trackUserAction('auth.sign_out_remote_failed', {
       userId: currentUser?.id,
       error: (error as Error).message,
     });
-    handleError(error, 'Sign out');
+  } finally {
+    try {
+      dispatch.setUser(null);
+      setUserContext(null);
+      dispatch.setSession(null);
+      await clearSessionFromSecureStore();
+      try {
+        const { BiometricService } =
+          await import('../services/BiometricService');
+        await BiometricService.clearBiometricData();
+      } catch (bioErr) {
+        // Non-fatal — biometric clear failing shouldn't block sign-out
+        // local teardown. Just log.
+        trackUserAction('auth.sign_out_biometric_clear_failed', {
+          userId: currentUser?.id,
+          error: (bioErr as Error).message,
+        });
+      }
+      await clearAppCachesOnLogout();
+    } catch (cleanupErr) {
+      handleError(cleanupErr, 'Sign out local cleanup');
+    }
+  }
+
+  if (signOutError) {
+    // Surface the remote-signout error to monitoring but don't throw —
+    // local state is already clean and the user has been returned to
+    // the signed-out experience.
+    handleError(signOutError, 'Sign out');
+  } else {
+    trackUserAction('auth.sign_out_success', { userId: currentUser?.id });
+    addBreadcrumb('User signed out', 'auth');
   }
 };
 

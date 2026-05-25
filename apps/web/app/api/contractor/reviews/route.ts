@@ -16,6 +16,13 @@ export const GET = withApiHandler(
     // Use RLS-enforced client for user-scoped reads; fall back to service role
     const userDb = createRequestScopedClient(request) ?? serverSupabase;
 
+    // 2026-05-24 audit-40 P0: previously selected `updated_at`, but
+    // live `reviews` has no such column (verified via
+    // information_schema). PostgREST returned 42703 and the route
+    // 500'd, breaking the contractor reviews tab entirely. The
+    // moderation state lives on response_at / response_published_at
+    // / response_blocked_by_admin; the original row's created_at is
+    // the only timestamp we have. Drop the stale column reference.
     const { data: reviews, error } = await userDb
       .from('reviews')
       .select(
@@ -29,7 +36,6 @@ export const GET = withApiHandler(
         response_published_at,
         response_blocked_by_admin,
         created_at,
-        updated_at,
         reviewer:profiles!reviews_reviewer_id_fkey(id, first_name, last_name, profile_image_url),
         job:jobs!reviews_job_id_fkey(id, title, category)
       `
@@ -67,7 +73,6 @@ export const GET = withApiHandler(
         responseBlockedByAdmin:
           (r.response_blocked_by_admin as boolean | null) ?? false,
         createdAt: r.created_at,
-        updatedAt: r.updated_at,
       };
     });
 
@@ -143,12 +148,17 @@ export const POST = withApiHandler(
     // R7 #19: set response_at so the 48h moderation cron picks it up.
     // response_published_at stays NULL until the cron promotes it or an
     // admin overrides.
+    //
+    // 2026-05-24 audit-40 P0: dropped updated_at — the column does not
+    // exist on the live reviews table (verified via information_schema).
+    // The update was 42703'ing every reply attempt. response_at already
+    // carries the "when did the contractor reply" timestamp the
+    // moderation flow needs.
     const { error: updateError } = await serverSupabase
       .from('reviews')
       .update({
         response,
         response_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
       })
       .eq('id', reviewId);
 
