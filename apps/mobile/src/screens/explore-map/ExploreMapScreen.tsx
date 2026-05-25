@@ -215,12 +215,23 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({
   // excludes own-bid jobs server-side, so a fresh fetch resolves
   // it cleanly. This also covers the cases of returning from
   // JobDetails after acceptance/cancellation, navigating away to
-  // another tab and back, etc. The view model's refreshJobs is
-  // memoized so this is cheap when state hasn't changed.
+  // another tab and back, etc.
+  //
+  // 2026-05-26 audit-49 P0: the dep array was [viewModel] — the view
+  // model object is a fresh reference on every render (the hook
+  // returns a new object literal). refreshJobs toggles `loading`
+  // which re-renders, which produces a new viewModel reference,
+  // which fires useFocusEffect again. That hammered /api/jobs/discover
+  // in a tight loop and produced the "Find a Job crashed" reports.
+  // Depend on the stable callback instead — refreshJobs is memoized
+  // inside the view model. Stash it in a ref so the effect closure
+  // doesn't recapture each render.
+  const refreshJobsRef = useRef(viewModel.refreshJobs);
+  refreshJobsRef.current = viewModel.refreshJobs;
   useFocusEffect(
     useCallback(() => {
-      viewModel.refreshJobs();
-    }, [viewModel])
+      refreshJobsRef.current();
+    }, [])
   );
 
   const handleCarouselScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -348,11 +359,25 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({
                   const index = viewModel.jobs.findIndex(
                     (j) => j.id === job.id
                   );
+                  // 2026-05-26 audit-49 P1: scrollToIndex without
+                  // getItemLayout can throw when the target card hasn't
+                  // been measured yet. Wrap in try/catch and fall back
+                  // to scrollToOffset, which doesn't need layout info.
+                  // CARD_WIDTH + 12 mirrors the snapToInterval used on
+                  // the carousel FlatList, so the offset lands the
+                  // selected card in the same position.
                   if (index >= 0 && carouselRef.current) {
-                    carouselRef.current.scrollToIndex({
-                      index,
-                      animated: true,
-                    });
+                    try {
+                      carouselRef.current.scrollToIndex({
+                        index,
+                        animated: true,
+                      });
+                    } catch {
+                      carouselRef.current.scrollToOffset({
+                        offset: index * (CARD_WIDTH + 12),
+                        animated: true,
+                      });
+                    }
                   }
                 }}
                 anchor={{ x: 0.5, y: 1 }}
@@ -566,6 +591,35 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({
             contentContainerStyle={styles.carouselContent}
             keyExtractor={(item) => item.id}
             onMomentumScrollEnd={handleCarouselScroll}
+            // 2026-05-26 audit-49 P1: explicit failure handler for
+            // scrollToIndex. Without this, tapping a marker for a card
+            // that hasn't been measured yet (off-screen, just appeared
+            // after a refetch) throws and crashes Find Jobs. Card width
+            // is fixed at CARD_WIDTH + 12 gap, so we can compute the
+            // offset directly and recover. setTimeout 0 + a retry of
+            // scrollToIndex is the RN-recommended escape hatch.
+            onScrollToIndexFailed={(info) => {
+              const offset = info.index * (CARD_WIDTH + 12);
+              carouselRef.current?.scrollToOffset({ offset, animated: true });
+              setTimeout(() => {
+                try {
+                  carouselRef.current?.scrollToIndex({
+                    index: info.index,
+                    animated: true,
+                  });
+                } catch {
+                  // Already scrolled via offset — no-op.
+                }
+              }, 100);
+            }}
+            // CARD_WIDTH + 12 mirrors snapToInterval; declaring it as
+            // getItemLayout lets RN skip the measurement pass and the
+            // crash window above narrows dramatically.
+            getItemLayout={(_data, index) => ({
+              length: CARD_WIDTH + 12,
+              offset: (CARD_WIDTH + 12) * index,
+              index,
+            })}
             renderItem={({ item }) => (
               <CarouselCard
                 job={item}
