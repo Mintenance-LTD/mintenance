@@ -39,6 +39,11 @@ interface NormalizedPayload {
   // in their metadata. Normalising it here lets the router deep-link
   // to PropertyDetail instead of dropping the recipient on the inbox.
   propertyId?: string;
+  // 2026-05-25 audit-43 P1: appointment_scheduled push from
+  // /api/contractor/appointments POST ships appointmentId. Standalone
+  // appointments (no jobId) deep-link to Calendar instead of falling
+  // through to inbox.
+  appointmentId?: string;
 }
 
 /**
@@ -64,6 +69,7 @@ export function normalizePayload(data: unknown): NormalizedPayload {
     quoteId: pick('quoteId', 'quote_id'),
     notificationId: pick('notificationId', 'notification_id'),
     propertyId: pick('propertyId', 'property_id'),
+    appointmentId: pick('appointmentId', 'appointment_id'),
   };
 }
 
@@ -213,6 +219,20 @@ export function routeForNotification(
           },
         };
       }
+      return {
+        screen: 'Main',
+        params: { screen: 'ProfileTab', params: { screen: 'Calendar' } },
+      };
+
+    // 2026-05-25 audit-43 P1: scheduling fan-out. Both events carry
+    // metadata.jobId from the web routes (appointment_scheduled also
+    // carries appointmentId for the standalone case where the booking
+    // isn't tied to a job). Job-linked → JobDetails; otherwise drop the
+    // user on Calendar where they can see the new slot in context.
+    // Previously both fell through to the inbox.
+    case 'appointment_scheduled':
+    case 'job_scheduled':
+      if (p.jobId) return jobDetailsRoute(p.jobId);
       return {
         screen: 'Main',
         params: { screen: 'ProfileTab', params: { screen: 'Calendar' } },

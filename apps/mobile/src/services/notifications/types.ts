@@ -54,6 +54,13 @@ export interface NotificationData {
     | 'location_sharing_request'
     | 'location_sharing_started'
     | 'location_sharing_stopped'
+    // 2026-05-25 audit-43 P1: scheduling fan-out — appointment_scheduled
+    // from /api/contractor/appointments POST (with metadata.jobId +
+    // appointmentId) and job_scheduled from /api/jobs/[id]/schedule +
+    // /api/bookings/[id]/reschedule. Previously both fell through to
+    // the inbox because the discriminated union didn't list them.
+    | 'appointment_scheduled'
+    | 'job_scheduled'
     | 'system';
   priority: 'low' | 'normal' | 'high';
   userId: string;

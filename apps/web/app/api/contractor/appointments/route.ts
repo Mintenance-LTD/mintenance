@@ -10,22 +10,40 @@ import { withApiHandler } from '@/lib/api/with-api-handler';
 // Transform empty strings to undefined so optional validators work correctly
 const emptyToUndefined = z.literal('').transform(() => undefined);
 
-const createAppointmentSchema = z.object({
-  title: z.string().min(1).max(500),
-  clientName: z.string().max(200).optional().or(emptyToUndefined),
-  clientEmail: z.string().email().optional().or(emptyToUndefined),
-  clientPhone: z.string().max(50).optional().or(emptyToUndefined),
-  appointmentDate: z.string().min(1),
-  startTime: z.string().min(1),
-  endTime: z.string().min(1),
-  locationType: z
-    .enum(['onsite', 'remote', 'phone'])
-    .optional()
-    .or(emptyToUndefined),
-  locationAddress: z.string().max(500).optional().or(emptyToUndefined),
-  jobId: z.string().uuid().optional().or(emptyToUndefined),
-  notes: z.string().max(5000).optional().or(emptyToUndefined),
-});
+// 2026-05-25 audit-43 P2: appointments has a duration trigger
+// (calculate_appointment_duration) that computes EXTRACT(EPOCH FROM
+// (end_time - start_time)) / 60. Without an end > start check the DB
+// happily stores a negative duration_minutes — and the UI cards then
+// render nonsense durations. Enforce HH:MM[:SS] format and end > start
+// at the API boundary so the modal client-side guard isn't the only
+// safety net.
+const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/;
+const timeString = z
+  .string()
+  .min(1)
+  .regex(TIME_RE, 'must be HH:MM or HH:MM:SS');
+
+const createAppointmentSchema = z
+  .object({
+    title: z.string().min(1).max(500),
+    clientName: z.string().max(200).optional().or(emptyToUndefined),
+    clientEmail: z.string().email().optional().or(emptyToUndefined),
+    clientPhone: z.string().max(50).optional().or(emptyToUndefined),
+    appointmentDate: z.string().min(1),
+    startTime: timeString,
+    endTime: timeString,
+    locationType: z
+      .enum(['onsite', 'remote', 'phone'])
+      .optional()
+      .or(emptyToUndefined),
+    locationAddress: z.string().max(500).optional().or(emptyToUndefined),
+    jobId: z.string().uuid().optional().or(emptyToUndefined),
+    notes: z.string().max(5000).optional().or(emptyToUndefined),
+  })
+  .refine((data) => data.endTime > data.startTime, {
+    message: 'endTime must be after startTime',
+    path: ['endTime'],
+  });
 
 /**
  * GET /api/contractor/appointments

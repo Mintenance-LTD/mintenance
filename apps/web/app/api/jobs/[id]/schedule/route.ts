@@ -114,6 +114,10 @@ export const POST = withApiHandler(
       // 2026-05-21 Mint Editorial voice — drop the emoji, lead with the
       // job + date so the title alone tells you what you need.
       const jobLabel = job.title || 'the job';
+      // 2026-05-25 audit-43 P1: metadata.jobId is what mobile's
+      // routingTable reads to deep-link this notification to JobDetails
+      // (actionUrl is web-only). Previously both sends omitted metadata,
+      // so the mobile tap fell through to the inbox.
       await Promise.all([
         NotificationService.createNotification({
           userId: user.id,
@@ -124,6 +128,7 @@ export const POST = withApiHandler(
             user.role === 'contractor'
               ? `/contractor/jobs/${jobId}`
               : `/jobs/${jobId}`,
+          metadata: { jobId },
         }),
         NotificationService.createNotification({
           userId: otherPartyId,
@@ -134,6 +139,7 @@ export const POST = withApiHandler(
             user.role === 'contractor'
               ? `/jobs/${jobId}`
               : `/contractor/jobs/${jobId}`,
+          metadata: { jobId },
         }),
       ]);
     } catch (notificationError) {

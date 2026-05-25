@@ -38,9 +38,19 @@ export const BookingDetailsScreen: React.FC<Props> = ({
   } = useQuery({
     queryKey: ['booking-details', bookingId],
     queryFn: async () => {
+      // 2026-05-25 audit-43 P2: the booking list shows
+      // scheduled_start_date (verified live — exists on jobs as
+      // timestamp with time zone alongside scheduled_end_date), but
+      // this detail screen was only fetching created_at and labelling
+      // it "Booked on". After a reschedule, the list moved but the
+      // detail screen kept showing the original create date. Fetch
+      // both — render scheduled_start_date as "Scheduled for" and fall
+      // back to created_at as "Booked on" only when no schedule exists.
       const { data: row, error: err } = await supabase
         .from('jobs')
-        .select('title, status, description, created_at')
+        .select(
+          'title, status, description, created_at, scheduled_start_date, scheduled_end_date'
+        )
         .eq('id', bookingId)
         .single();
       if (err) throw new Error(err.message);
@@ -49,6 +59,8 @@ export const BookingDetailsScreen: React.FC<Props> = ({
         status?: string;
         description?: string;
         created_at?: string;
+        scheduled_start_date?: string | null;
+        scheduled_end_date?: string | null;
       } | null;
     },
     retry: 2,
@@ -138,6 +150,22 @@ export const BookingDetailsScreen: React.FC<Props> = ({
             </>
           ) : null}
 
+          {job?.scheduled_start_date ? (
+            <>
+              <Text style={[styles.label, { marginTop: 14 }]}>
+                Scheduled for
+              </Text>
+              <Text style={styles.value}>
+                {new Date(job.scheduled_start_date).toLocaleString('en-GB', {
+                  day: '2-digit',
+                  month: 'long',
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </Text>
+            </>
+          ) : null}
           {job?.created_at ? (
             <>
               <Text style={[styles.label, { marginTop: 14 }]}>Booked on</Text>

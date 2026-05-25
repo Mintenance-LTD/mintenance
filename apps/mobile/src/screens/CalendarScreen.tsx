@@ -38,7 +38,12 @@ import { styles } from './CalendarStyles';
 
 interface ScheduleItem {
   id: string;
-  job_id: string;
+  // 2026-05-25 audit-43 P2: job_id is optional now. Previously fell
+  // back to the appointment id when the appointment wasn't job-linked,
+  // and tapping then navigated to JobDetails with a non-job id which
+  // surfaced as "job not found". Null means "standalone appointment —
+  // don't navigate to JobDetails".
+  job_id: string | null;
   job_title: string;
   date: string; // YYYY-MM-DD
   time_start: string; // HH:MM
@@ -159,7 +164,12 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
       return (res.appointments || []).map(
         (a): ScheduleItem => ({
           id: a.id,
-          job_id: a.job?.id || a.jobId || a.id,
+          // 2026-05-25 audit-43 P2: stop using the appointment id as a
+          // jobId fallback. A standalone appointment (no job link) has
+          // job?.id and jobId both undefined; defaulting to a.id meant
+          // tapping the event navigated to JobDetails with that
+          // non-existent jobId. Now null → press handler skips nav.
+          job_id: a.job?.id || a.jobId || null,
           job_title: a.job?.title || a.jobTitle || a.title || 'Untitled',
           date: a.date,
           time_start: a.time || '09:00',
@@ -347,12 +357,20 @@ export const CalendarScreen: React.FC<Props> = ({ navigation }) => {
                   </Text>
                   <TouchableOpacity
                     style={[styles.eventCard, { borderLeftColor: nodeColor }]}
-                    onPress={() =>
+                    onPress={() => {
+                      // 2026-05-25 audit-43 P2: standalone appointments
+                      // (no job link) shouldn't pretend to be jobs.
+                      // Tap is a no-op for now — there's no dedicated
+                      // AppointmentDetail screen on mobile yet, but at
+                      // least we no longer navigate to a JobDetails
+                      // with a non-job id and surface "Job not found".
+                      if (!item.job_id) return;
                       goToTab(navigation, 'JobsTab', {
                         screen: 'JobDetails',
                         params: { jobId: item.job_id },
-                      })
-                    }
+                      });
+                    }}
+                    disabled={!item.job_id}
                     accessibilityRole='button'
                     accessibilityLabel={`${item.job_title} at ${item.time_start}`}
                   >
