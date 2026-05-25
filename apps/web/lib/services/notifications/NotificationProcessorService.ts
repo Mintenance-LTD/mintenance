@@ -41,6 +41,10 @@ import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { NotificationAgent } from '@/lib/services/agents/NotificationAgent';
 import { sendPushToDevice } from './NotificationPushDispatcher';
+import {
+  loadPreferences,
+  isTypeDisabled,
+} from './NotificationPreferenceResolver';
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -164,47 +168,95 @@ export class NotificationProcessorService {
   }
 
   /**
-   * Process a `pending` queue row: insert the notifications row
-   * (carrying metadata for routing) and fire push. If push fails the
-   * dispatcher will enqueue a `failed_push` row of its own — we don't
-   * have to retry inside this method.
+   * Process a `pending` queue row: insert the notifications row and
+   * fire push. Push failures get re-enqueued by the dispatcher itself.
+   *
+   * 2026-05-25 audit-42 P1/P2: re-checks user preferences at delivery
+   * time. The queue may hold rows for ~7h (quiet-hours wrap-around);
+   * if the user mutes the type / disables a channel meanwhile, we
+   * honour the latest pref instead of overriding it. Also honours the
+   * `_in_app_only` metadata flag stashed by scheduleForLater so
+   * retention digests don't double-notify after the email lands.
    */
   private static async sendPendingNotification(
     queuedNotif: QueuedNotificationRow
   ): Promise<void> {
-    const { data: notification, error: createError } = await serverSupabase
-      .from('notifications')
-      .insert({
-        user_id: queuedNotif.user_id,
-        type: queuedNotif.notification_type,
-        title: queuedNotif.title,
-        message: queuedNotif.message,
-        action_url: queuedNotif.action_url,
-        // 2026-05-01 audit follow-up (review pass 4): carry the routing
-        // payload (jobId, quoteId, …) onto the materialised notification
-        // row. Previously this was silently dropped, so any deferred
-        // notification landed without enough context for deep-linking.
-        ...(queuedNotif.metadata && Object.keys(queuedNotif.metadata).length > 0
-          ? { metadata: queuedNotif.metadata }
-          : {}),
-        read: false,
-        created_at: new Date().toISOString(),
-      })
-      .select('id')
-      .single();
+    const prefs = await loadPreferences(queuedNotif.user_id);
 
-    if (createError) {
-      logger.error('Error creating notification from queue', {
+    // Hard mute: user disabled the type. 'cancelled' status (not
+    // 'failed') so the retry counter doesn't move — user-driven, not
+    // a delivery failure.
+    if (isTypeDisabled(prefs, queuedNotif.notification_type)) {
+      await serverSupabase
+        .from('notification_queue')
+        .update({
+          status: 'cancelled',
+          updated_at: new Date().toISOString(),
+          error_message: 'type_disabled_by_user',
+        })
+        .eq('id', queuedNotif.id);
+      logger.info('Queued notification cancelled — type muted by user', {
         service: 'notification-processor',
-        error: createError.message,
         queueId: queuedNotif.id,
+        userId: queuedNotif.user_id,
+        type: queuedNotif.notification_type,
       });
+      return;
+    }
 
-      await NotificationProcessorService.bumpRetryOrFail(
-        queuedNotif,
-        createError.message
-      );
-      throw new Error(createError.message);
+    const metadata = queuedNotif.metadata ?? {};
+    const inAppOnly = metadata['_in_app_only'] === true;
+
+    // Strip the internal _in_app_only flag before persisting onto the
+    // notifications row + deep-link push payload — it's a routing
+    // hint for this service, not user-visible metadata.
+    const cleanMetadata: Record<string, unknown> = { ...metadata };
+    delete cleanMetadata._in_app_only;
+    const hasMetadata = Object.keys(cleanMetadata).length > 0;
+
+    let notificationId: string | null = null;
+
+    if (prefs.in_app_enabled) {
+      const { data: notification, error: createError } = await serverSupabase
+        .from('notifications')
+        .insert({
+          user_id: queuedNotif.user_id,
+          type: queuedNotif.notification_type,
+          title: queuedNotif.title,
+          message: queuedNotif.message,
+          action_url: queuedNotif.action_url,
+          // 2026-05-01 audit follow-up (review pass 4): carry the routing
+          // payload (jobId, quoteId, …) onto the materialised notification
+          // row. Previously this was silently dropped, so any deferred
+          // notification landed without enough context for deep-linking.
+          ...(hasMetadata ? { metadata: cleanMetadata } : {}),
+          read: false,
+          created_at: new Date().toISOString(),
+        })
+        .select('id')
+        .single();
+
+      if (createError) {
+        logger.error('Error creating notification from queue', {
+          service: 'notification-processor',
+          error: createError.message,
+          queueId: queuedNotif.id,
+        });
+
+        await NotificationProcessorService.bumpRetryOrFail(
+          queuedNotif,
+          createError.message
+        );
+        throw new Error(createError.message);
+      }
+
+      notificationId = notification.id;
+    } else {
+      logger.info('Queued notification: skipping in-app (user disabled)', {
+        service: 'notification-processor',
+        queueId: queuedNotif.id,
+        userId: queuedNotif.user_id,
+      });
     }
 
     // Mark the queue row sent BEFORE firing push: push is
@@ -220,31 +272,36 @@ export class NotificationProcessorService {
       })
       .eq('id', queuedNotif.id);
 
-    // 2026-05-01 audit follow-up (review pass 4): fire the push channel
-    // for queued notifications so deferred sends behave the same as
-    // immediate ones (NotificationService.fireImmediately also calls
-    // sendPushToDevice). Previously the queue drain only created the
-    // in-app row, so any user whose notification was timing-deferred
-    // never got a push for it.
-    void sendPushToDevice({
-      userId: queuedNotif.user_id,
-      title: queuedNotif.title,
-      body: queuedNotif.message,
-      data: {
-        notificationId: notification.id,
-        type: queuedNotif.notification_type,
+    // Push parity with fireImmediately (added 2026-05-01); gated on
+    // freshly-loaded push_enabled + the _in_app_only flag (audit-42).
+    if (prefs.push_enabled && !inAppOnly) {
+      void sendPushToDevice({
+        userId: queuedNotif.user_id,
+        title: queuedNotif.title,
+        body: queuedNotif.message,
+        data: {
+          notificationId: notificationId ?? undefined,
+          type: queuedNotif.notification_type,
+          actionUrl: queuedNotif.action_url ?? undefined,
+        },
+        notificationType: queuedNotif.notification_type,
         actionUrl: queuedNotif.action_url ?? undefined,
-      },
-      notificationType: queuedNotif.notification_type,
-      actionUrl: queuedNotif.action_url ?? undefined,
-      metadata: queuedNotif.metadata ?? undefined,
-      notificationId: notification.id,
-    });
+        metadata: hasMetadata ? cleanMetadata : undefined,
+        notificationId: notificationId ?? undefined,
+      });
+    } else {
+      logger.info('Queued notification: skipping push', {
+        service: 'notification-processor',
+        queueId: queuedNotif.id,
+        userId: queuedNotif.user_id,
+        reason: inAppOnly ? 'in_app_only_flag' : 'push_disabled_by_user',
+      });
+    }
 
     logger.info('Notification sent from queue', {
       service: 'notification-processor',
       queueId: queuedNotif.id,
-      notificationId: notification.id,
+      notificationId,
       userId: queuedNotif.user_id,
     });
   }
@@ -434,10 +491,6 @@ export class NotificationProcessorService {
   static async runProcessingCycle(): Promise<ProcessingResults> {
     const queueResults = await this.processQueuedNotifications();
     const learningResults = await this.processEngagementLearning();
-
-    return {
-      ...queueResults,
-      ...learningResults,
-    };
+    return { ...queueResults, ...learningResults };
   }
 }

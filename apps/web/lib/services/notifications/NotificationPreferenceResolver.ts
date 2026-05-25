@@ -19,6 +19,14 @@ export interface UserNotificationPreferences {
   push_enabled: boolean;
   email_enabled: boolean;
   in_app_enabled: boolean;
+  // 2026-05-24 audit-42 P2: live user_notification_preferences has
+  // sms_enabled (verified via information_schema). The mobile prefs
+  // screen + /api/user/notification-preferences both accept the field,
+  // but the resolver wasn't loading it — so any SMS sender that
+  // imports this preference model had no way to honour the user's
+  // choice. Now mirrored in the model with the same permissive
+  // default as the other channels.
+  sms_enabled: boolean;
   disabled_types: string[];
   quiet_hours_start: string | null; // 'HH:MM:SS' or null
   quiet_hours_end: string | null;
@@ -29,6 +37,7 @@ const DEFAULTS: Omit<UserNotificationPreferences, 'user_id'> = {
   push_enabled: true,
   email_enabled: true,
   in_app_enabled: true,
+  sms_enabled: true,
   disabled_types: [],
   quiet_hours_start: null,
   quiet_hours_end: null,
@@ -74,6 +83,12 @@ export async function loadPreferences(
       push_enabled: Boolean(data.push_enabled),
       email_enabled: Boolean(data.email_enabled),
       in_app_enabled: Boolean(data.in_app_enabled),
+      // 2026-05-24 audit-42 P2: live row may not have sms_enabled if it
+      // predates the column being added — treat undefined as the
+      // permissive default. Boolean(null/undefined) is false which
+      // would silently mute SMS for legacy rows; explicit `=== false`
+      // check keeps unset rows opted-in.
+      sms_enabled: data.sms_enabled === false ? false : true,
       disabled_types: disabled,
       quiet_hours_start: data.quiet_hours_start ?? null,
       quiet_hours_end: data.quiet_hours_end ?? null,
