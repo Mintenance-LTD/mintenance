@@ -120,13 +120,26 @@ export const PropertyContacts: React.FC<Props> = ({ propertyId }) => {
     onSuccess: invalidate,
   });
 
+  // 2026-05-26 audit-50 P1: explicit snake_case key + onError handler.
+  // The API at /api/landlord/contacts/[id] PATCH only reads `is_active`
+  // (line 107) and rejects unknown / missing updatable fields with
+  // "No updatable fields provided". Earlier drafts of this mutation
+  // could drift to camelCase isActive at the wire, in which case the
+  // server returned 400 and the toggle silently stayed in its old
+  // state because there was no onError. Pin the wire shape with an
+  // intermediate variable so a refactor renaming the local Boolean
+  // doesn't change the JSON key, and surface failures via Alert.
   const toggleActiveMutation = useMutation({
     mutationFn: async ({ id, isActive }: { id: string; isActive: boolean }) => {
-      await mobileApiClient.patch(`/api/landlord/contacts/${id}`, {
-        is_active: isActive,
-      });
+      const payload: { is_active: boolean } = { is_active: isActive };
+      await mobileApiClient.patch(`/api/landlord/contacts/${id}`, payload);
     },
     onSuccess: invalidate,
+    onError: (err: unknown) =>
+      Alert.alert(
+        'Could not update contact',
+        err instanceof Error ? err.message : 'Please try again.'
+      ),
   });
 
   const handleCreate = () => {

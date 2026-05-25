@@ -15,6 +15,8 @@ import * as Location from 'expo-location';
 import {
   JobContextLocationService,
   ContractorLocationContext,
+  acquireJobTrackingService,
+  releaseJobTrackingService,
 } from '../services/JobContextLocationService';
 import { MeetingService } from '../services/MeetingService';
 import { logger } from '../utils/logger';
@@ -127,20 +129,30 @@ export function useJobTravelTracking({
           throw new Error('Job location is not available for tracking');
         }
 
-        locationService = new JobContextLocationService();
-        await locationService.startJobTracking(
-          user.id,
-          jobId,
-          null,
-          destination,
-          async (location, eta) => {
-            handleLocationUpdate({
-              latitude: location.coords.latitude,
-              longitude: location.coords.longitude,
-              eta,
-            });
-          }
-        );
+        // 2026-05-26 audit-50 P1: route through the (contractor, job)
+        // singleton registry so the AppNavigator-level auto-start hook
+        // and this job-detail consumer share the same underlying
+        // service + one contractor_locations row instead of racing.
+        // If a watcher is already running for this pair (the global
+        // auto-start beat us to it) we skip a second startJobTracking
+        // and just attach the callback so the section UI updates.
+        locationService = acquireJobTrackingService(user.id, jobId);
+        const status = locationService.getTrackingStatus();
+        if (!status.isTracking) {
+          await locationService.startJobTracking(
+            user.id,
+            jobId,
+            null,
+            destination,
+            async (location, eta) => {
+              handleLocationUpdate({
+                latitude: location.coords.latitude,
+                longitude: location.coords.longitude,
+                eta,
+              });
+            }
+          );
+        }
       } else {
         throw new Error('A job or meeting is required to start tracking');
       }
@@ -190,12 +202,25 @@ export function useJobTravelTracking({
   }, [destination, jobId, meetingId, user, onLocationUpdate]);
 
   /**
-   * Stop tracking
+   * Stop tracking.
+   *
+   * 2026-05-26 audit-50 P1: for jobId-scoped tracking we now release a
+   * reference to the (contractor, job) singleton instead of stopping
+   * the service directly. The service is only torn down when the last
+   * consumer releases — protects the global auto-start hook from
+   * being prematurely stopped when the contractor merely closes the
+   * job detail screen.
    */
   const stopTracking = useCallback(async () => {
     try {
       if (locationServiceRef.current) {
-        await locationServiceRef.current.stopJobTracking();
+        if (jobId && !meetingId && user?.id) {
+          await releaseJobTrackingService(user.id, jobId);
+        } else {
+          // Meeting-based path retains its own lifecycle; the registry
+          // is jobId-keyed and doesn't apply.
+          await locationServiceRef.current.stopJobTracking();
+        }
         locationServiceRef.current = null;
       }
 
@@ -209,14 +234,14 @@ export function useJobTravelTracking({
       setEta(null);
       setError(null);
 
-      logger.info('Stopped travel tracking', { meetingId });
+      logger.info('Stopped travel tracking', { meetingId, jobId });
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : 'Failed to stop tracking';
       setError(errorMessage);
       logger.error('Error stopping travel tracking', err);
     }
-  }, [meetingId]);
+  }, [jobId, meetingId, user?.id]);
 
   /**
    * Mark contractor as arrived
@@ -273,9 +298,18 @@ export function useJobTravelTracking({
         subscriptionRef.current.unsubscribe();
       }
       if (locationServiceRef.current) {
-        locationServiceRef.current.stopJobTracking().catch((err) => {
-          logger.error('Error cleaning up location service', err);
-        });
+        // 2026-05-26 audit-50 P1: release instead of stop so the
+        // global auto-start hook keeps its reference. The service is
+        // only torn down when refcount hits 0.
+        if (jobId && !meetingId && user?.id) {
+          releaseJobTrackingService(user.id, jobId).catch((err) => {
+            logger.error('Error releasing location service', err);
+          });
+        } else {
+          locationServiceRef.current.stopJobTracking().catch((err) => {
+            logger.error('Error cleaning up location service', err);
+          });
+        }
       }
     };
   }, []);
