@@ -72,7 +72,17 @@ export const GET = withApiHandler(
       redacted.key_safe_code = null;
     }
 
-    return NextResponse.json(data);
+    // 2026-05-26 audit-57 P2: surface the caller's role on the
+    // payload so mobile/web can hide owner-only / admin-only actions
+    // (Delete, Manage Team, etc.) from viewer/manager team members.
+    // The server still enforces every gate independently — this is a
+    // UX hint, not the security boundary.
+    const propertyWithRole = {
+      ...(data as Record<string, unknown>),
+      _role: user.role === 'admin' ? 'platform_admin' : propertyRole,
+    };
+
+    return NextResponse.json(propertyWithRole);
   }
 );
 

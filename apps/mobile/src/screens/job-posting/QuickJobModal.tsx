@@ -21,7 +21,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../contexts/AuthContext';
-import { supabase } from '../../config/supabase';
+import { mobileApiClient } from '../../utils/mobileApiClient';
 import {
   QuickJobModalProps,
   SearchSegment,
@@ -47,21 +47,31 @@ export const QuickJobModal: React.FC<QuickJobModalProps> = ({
   const [selectedUrgency, setSelectedUrgency] = useState('flexible');
   const [selectedCategory, setSelectedCategory] = useState('');
 
+  // 2026-05-26 audit-57 P2: previously direct-queried supabase with
+  // `owner_id = user.id`, hiding shared properties that the user can
+  // legitimately post jobs against (PropertyTeamService grants
+  // create_job to manager and admin roles). Route through the
+  // /api/properties endpoint with includeShared=create_job so
+  // owner-rows + non-viewer team rows both surface. The endpoint
+  // tags each row with `_role` for downstream UI hints — we don't
+  // need that here since every returned row is one the user can
+  // post against.
   const { data: properties, isLoading: propertiesLoading } = useQuery({
-    queryKey: ['properties', user?.id],
+    queryKey: ['quick-job-properties', user?.id],
     queryFn: async () => {
       if (!user) return [];
-      try {
-        const { data: rows, error: err } = await supabase
-          .from('properties')
-          .select('id, property_name, address, property_type')
-          .eq('owner_id', user.id)
-          .order('property_name', { ascending: true });
-        if (err) return [];
-        return (rows || []) as Property[];
-      } catch {
-        return [];
-      }
+      const res = await mobileApiClient.get<{ properties: Property[] }>(
+        '/api/properties?includeShared=create_job'
+      );
+      const rows = res?.properties || [];
+      // The API doesn't currently return property_name when reading
+      // through the membership join — keep the alphabetic sort the
+      // old query had so the WhereSelector list is deterministic.
+      return [...rows].sort((a, b) =>
+        (a.property_name || a.address || '').localeCompare(
+          b.property_name || b.address || ''
+        )
+      );
     },
     enabled: !!user && visible,
     staleTime: 30000,
