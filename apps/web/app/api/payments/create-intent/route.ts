@@ -253,37 +253,17 @@ export const POST = withApiHandler(
       // From here on, this is THE amount — do not trust `amount` further.
       let authoritativeAmount = acceptedBid.amount;
 
-      // R7 #8 neighbour referral: spend any accrued credit before the
-      // Stripe charge. Amounts on this route are in pounds — convert to
-      // pence, cap at the amount due, then translate back. A tiny
-      // minimum of £1 is left on the card so Stripe always has a
-      // reserve to hold escrow against.
-      let creditAppliedPence = 0;
-      try {
-        const { NeighbourhoodReferralService } =
-          await import('@/lib/services/referrals/NeighbourhoodReferralService');
-        const amountPence = Math.round(authoritativeAmount * 100);
-        const maxSpendPence = Math.max(0, amountPence - 100); // keep £1 floor
-        if (maxSpendPence > 0) {
-          creditAppliedPence = await NeighbourhoodReferralService.spendCredit(
-            user.id,
-            maxSpendPence,
-            'escrow_payment',
-            jobId
-          );
-          if (creditAppliedPence > 0) {
-            authoritativeAmount = (amountPence - creditAppliedPence) / 100;
-          }
-        }
-      } catch (creditErr) {
-        logger.warn('Credit spend hook failed, continuing at full price', {
-          service: 'payments',
-          userId: user.id,
-          jobId,
-          err:
-            creditErr instanceof Error ? creditErr.message : String(creditErr),
-        });
-      }
+      // 2026-05-25 audit-45 P0: idempotency check moved BEFORE the
+      // referral credit spend. Previously the order was:
+      //   1. spendCredit() — debits user_credits  ← side effect
+      //   2. checkIdempotency() — returns cached on duplicate
+      // A duplicate request returned the cached PaymentIntent but had
+      // ALREADY spent the credit a second time, so a user with £20
+      // credit who double-tapped Pay could end up at £0 credit while
+      // only one real payment landed. spendCredit is not idempotent
+      // by itself (it inserts a credit_ledger debit row each call).
+      // The new order is: idempotency claim FIRST, credit spend INSIDE
+      // the "not a duplicate" branch.
 
       // Idempotency check - prevent duplicate payment intent creation
       const idempotencyKey = getIdempotencyKeyFromRequest(
@@ -318,6 +298,41 @@ export const POST = withApiHandler(
           }
         );
         return NextResponse.json(idempotencyCheck.cachedResult);
+      }
+
+      // R7 #8 neighbour referral: spend any accrued credit before the
+      // Stripe charge. Amounts on this route are in pounds — convert to
+      // pence, cap at the amount due, then translate back. A tiny
+      // minimum of £1 is left on the card so Stripe always has a
+      // reserve to hold escrow against.
+      //
+      // 2026-05-25 audit-45 P0: moved here from above the idempotency
+      // claim so duplicate requests can't double-debit user_credits.
+      let creditAppliedPence = 0;
+      try {
+        const { NeighbourhoodReferralService } =
+          await import('@/lib/services/referrals/NeighbourhoodReferralService');
+        const amountPence = Math.round(authoritativeAmount * 100);
+        const maxSpendPence = Math.max(0, amountPence - 100); // keep £1 floor
+        if (maxSpendPence > 0) {
+          creditAppliedPence = await NeighbourhoodReferralService.spendCredit(
+            user.id,
+            maxSpendPence,
+            'escrow_payment',
+            jobId
+          );
+          if (creditAppliedPence > 0) {
+            authoritativeAmount = (amountPence - creditAppliedPence) / 100;
+          }
+        }
+      } catch (creditErr) {
+        logger.warn('Credit spend hook failed, continuing at full price', {
+          service: 'payments',
+          userId: user.id,
+          jobId,
+          err:
+            creditErr instanceof Error ? creditErr.message : String(creditErr),
+        });
       }
 
       // Record payment attempt using the server-authoritative amount

@@ -68,6 +68,11 @@ export interface NotificationData {
     // verification surface where the badge / next step lives.
     | 'verification_approved'
     | 'verification_rejected'
+    // 2026-05-25 audit-45 P1: Stripe webhook tip-payment-handler fires
+    // this on payment_intent.succeeded for `metadata.type === 'job_tip'`.
+    // Now carries jobId + tipId so the routingTable can deep-link to
+    // the contractor's JobDetails where TipsReceivedSection lives.
+    | 'job_tip_received'
     | 'system';
   priority: 'low' | 'normal' | 'high';
   userId: string;

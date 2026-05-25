@@ -265,6 +265,22 @@ export function routeForNotification(
             },
           };
 
+    // 2026-05-25 audit-45 P1: tip-payment webhook fires this when a
+    // homeowner's tip clears Stripe. Carries metadata.jobId from
+    // tip-payment-handler.ts (added in same audit) so we can deep-link
+    // to the contractor's JobDetails where the TipsReceivedSection
+    // surfaces. Fall back to PaymentHistory if jobId somehow missing.
+    case 'job_tip_received':
+      return p.jobId
+        ? jobDetailsRoute(p.jobId)
+        : {
+            screen: 'Main',
+            params: {
+              screen: 'ProfileTab',
+              params: { screen: 'PaymentHistory' },
+            },
+          };
+
     case 'quote_sent':
       return p.jobId ? jobDetailsRoute(p.jobId) : NOTIFICATIONS_FALLBACK;
 
