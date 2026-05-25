@@ -77,9 +77,21 @@ interface Props {
  * preserved; only the orchestration + state remain here.
  */
 export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { jobId } = route.params;
+  // 2026-05-26 audit-58 P3: previously `const { jobId } = route.params`
+  // would throw if a deep link / notification / fallback route landed
+  // here without params (or with an empty/undefined jobId). The
+  // ScreenErrorBoundary above caught it but the in-screen ErrorView
+  // never got a chance to render — and the boundary doesn't know the
+  // route's `fallbackRoute='JobsList'` until after the crash. Guard
+  // here so a malformed entry shows an actionable error instead of
+  // tearing the screen down.
+  const jobId = route?.params?.jobId;
   const { user } = useAuth();
-  const viewModel = useJobDetailsViewModel(jobId);
+  // useJobDetailsViewModel safely handles empty/undefined jobId (the
+  // underlying useQuery stays disabled until a real id arrives) but
+  // we still short-circuit the rest of the screen below if jobId
+  // never resolves — a missing id is a hard failure for this surface.
+  const viewModel = useJobDetailsViewModel(jobId ?? '');
   const insets = useSafeAreaInsets();
   const [showEscrowModal, setShowEscrowModal] = useState(false);
   const [withdrawingBid, setWithdrawingBid] = useState(false);
@@ -183,6 +195,18 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
     ]);
   }, [myPendingBid, user?.id, refetchBids, refetchMyBid, viewModel, jobId]);
 
+  // 2026-05-26 audit-58 P3: deep link / fallback route arrived
+  // without a usable jobId. Render a clear error rather than
+  // letting useJobDetailsViewModel sit in a permanent "loading"
+  // state with a disabled query.
+  if (!jobId) {
+    return (
+      <ErrorView
+        message='Missing job reference. The link you opened did not include a job id.'
+        onRetry={() => navigation.goBack()}
+      />
+    );
+  }
   if (viewModel.jobLoading && !loadingTimedOut) {
     return <LoadingSpinner message='Loading job details...' />;
   }

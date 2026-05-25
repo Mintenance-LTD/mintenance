@@ -42,6 +42,10 @@ interface JobsMapViewModel {
   selectedJob: JobMapItem | null;
   selectedCategory: string | null;
   loading: boolean;
+  // 2026-05-26 audit-58 P2: distinct from `loading` and an empty
+  // `jobs` array so the UI can tell "no jobs match this area" from
+  // "the discover endpoint blew up". Cleared on each fetchJobs attempt.
+  errorMessage: string | null;
   jobCount: number;
   locationGranted: boolean;
   hasPanned: boolean;
@@ -102,6 +106,9 @@ const useJobsMapViewModel = (): JobsMapViewModel => {
   } | null>(null);
   const [locationGranted, setLocationGranted] = useState(false);
   const [hasPanned, setHasPanned] = useState(false);
+  // 2026-05-26 audit-58 P2: surface real discover failures instead of
+  // letting them masquerade as "0 jobs".
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Get user location on mount — prefers saved profile coordinates (home address), falls back to GPS
   useEffect(() => {
@@ -243,9 +250,29 @@ const useJobsMapViewModel = (): JobsMapViewModel => {
           `/api/jobs/discover?${params.toString()}`
         );
       } catch (err) {
+        // 2026-05-26 audit-58 P2: previously logged + returned silently,
+        // leaving `jobs` whatever stale set was on the map from the
+        // last successful fetch. Contractors couldn't tell whether
+        // the empty/stale view was real or a network/API failure.
+        // Clear the list, raise an errorMessage the screen renders
+        // as a retry banner, and stop the loading spinner so the
+        // user gets out of the indeterminate state.
         logger.error('Error fetching jobs for map', err);
+        const apiErr = err as { statusCode?: number; status?: number };
+        const code = apiErr?.statusCode ?? apiErr?.status;
+        const msg =
+          code === 401 || code === 403
+            ? 'You are signed out or do not have access to job discovery.'
+            : 'Could not load nearby jobs. Tap to retry.';
+        if (isMounted.current) {
+          setJobs([]);
+          setErrorMessage(msg);
+          setLoading(false);
+        }
         return;
       }
+      // Successful fetch — clear any stale error banner.
+      if (isMounted.current) setErrorMessage(null);
       const data = response.jobs ?? [];
 
       const refLat = userLocation?.latitude ?? regionRef.current.latitude;
@@ -305,7 +332,15 @@ const useJobsMapViewModel = (): JobsMapViewModel => {
         initialLoadDone.current = true;
       }
     } catch (err) {
+      // Outer catch covers everything outside the inner mobileApiClient
+      // try/catch above (geo math, mapping). Audit-58 P2: also surface
+      // these so post-fetch crashes don't manifest as a silently empty
+      // map.
       logger.error('Failed to fetch jobs for map', err);
+      if (isMounted.current) {
+        setJobs([]);
+        setErrorMessage('Could not load nearby jobs. Tap to retry.');
+      }
     } finally {
       if (isMounted.current) setLoading(false);
     }
@@ -401,6 +436,7 @@ const useJobsMapViewModel = (): JobsMapViewModel => {
     selectedJob,
     selectedCategory,
     loading,
+    errorMessage,
     jobCount: filteredJobs.length,
     locationGranted,
     hasPanned,
