@@ -333,10 +333,19 @@ export const POST = withApiHandler(
         throw new InternalServerError(msg);
       }
 
-      // Fetch job title for notifications (after successful acceptance)
+      // Fetch job title for notifications (after successful acceptance).
+      //
+      // 2026-05-26 audit-51 P2: previously selected `title, amount`,
+      // but live `jobs` has `budget` not `amount` (verified via
+      // information_schema). PostgREST rejected the whole SELECT,
+      // jobDetails returned null, and the notification copy fell
+      // back to "this job" / "Job". The notification fan-out below
+      // uses `Number(bid.amount || 0)` for the payment amount —
+      // jobs.budget isn't needed here at all — so drop it from the
+      // SELECT and just pull the title.
       const { data: jobDetails } = await serverSupabase
         .from('jobs')
-        .select('title, amount')
+        .select('title')
         .eq('id', jobId)
         .single();
 

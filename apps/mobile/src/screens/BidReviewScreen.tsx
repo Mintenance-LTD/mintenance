@@ -171,7 +171,15 @@ export const BidReviewScreen: React.FC = () => {
   }, [fetchBids]);
 
   const handleAccept = async (cardIndex: number) => {
-    const bid = bids[cardIndex];
+    // 2026-05-26 audit-51 P0: previously indexed into the unsorted
+    // `bids` array. The swipe deck renders `sortedBids` (see
+    // <SwipeCards cards={sortedBids} /> below), so when the homeowner
+    // sorted by rating / timeline / price, the cardIndex coming back
+    // from the deck pointed at a DIFFERENT bid than the one they
+    // visually swiped. Result: the wrong contractor got accepted /
+    // rejected. Read from sortedBids to keep the deck and the
+    // mutation in lockstep.
+    const bid = sortedBids[cardIndex];
     if (!bid || !user?.id || processing) return;
 
     setProcessing(true);
@@ -233,7 +241,9 @@ export const BidReviewScreen: React.FC = () => {
   };
 
   const handleReject = async (cardIndex: number) => {
-    const bid = bids[cardIndex];
+    // 2026-05-26 audit-51 P0: see handleAccept above — must index into
+    // sortedBids (what the deck renders), not the unsorted bids array.
+    const bid = sortedBids[cardIndex];
     if (!bid || !user?.id || processing) return;
 
     setProcessing(true);
