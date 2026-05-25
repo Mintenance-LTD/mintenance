@@ -21,6 +21,13 @@ const WARNING_LINES = 400;
 const KNOWN_LARGE_FILES = new Set([
   'apps/web/middleware.ts',
   'apps/web/lib/auth-manager.ts',
+  // 2026-05-26 audit-56: pre-existing at 554; audit fix added the
+  // durable tokens_revoked_at cutoff to verifyToken() + reworked
+  // clearAuthCookie() so __Host- cookies actually delete. Both
+  // additions sit inline with the rest of the auth-cookie + JWT
+  // verification surface; splitting them out would just create a
+  // 1-import facade.
+  'apps/web/lib/auth.ts',
   'apps/web/app/contractor/reporting/components/ReportingDashboard2025Client.tsx',
   'apps/web/lib/services/agents/EscrowReleaseAgent.ts',
   'apps/web/lib/services/building-surveyor/orchestration/AssessmentOrchestrator.ts',
