@@ -29,7 +29,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../contexts/AuthContext';
 import { formatCurrency } from '../utils/formatCurrency';
 import { BidService, Bid } from '../services/BidService';
-import { supabase } from '../config/supabase';
+// 2026-05-26 audit-59 P2: direct supabase contractor_quotes read removed.
+// /api/jobs/:id/bids already embeds the linked quote via the
+// bids.quote_id FK (see bids/route.ts:89). Reading the table directly
+// here was the wrong source of truth — if a contractor had multiple
+// quotes on the same job, the contractor_id+job_id lookup could pick
+// the wrong row.
 import SwipeableCardWrapper, {
   SwipeableCardRef,
 } from '../components/SwipeableCardWrapper';
@@ -119,10 +124,22 @@ export const BidReviewScreen: React.FC = () => {
       copy.sort(
         (a, b) => (b.contractor?.rating ?? 0) - (a.contractor?.rating ?? 0)
       );
-    else
-      copy.sort((a, b) =>
-        (a.estimated_duration ?? '').localeCompare(b.estimated_duration ?? '')
-      );
+    else {
+      // 2026-05-26 audit-59 P2: previously sorted by `estimated_duration`
+      // (string) which the API never returns — the field is
+      // `estimated_duration_days` (number). The string-compare on
+      // two undefineds left the deck order untouched. Sort by the
+      // numeric days field, ascending, missing values to the end.
+      copy.sort((a, b) => {
+        const ad =
+          (a as unknown as { estimated_duration_days?: number })
+            .estimated_duration_days ?? Number.MAX_SAFE_INTEGER;
+        const bd =
+          (b as unknown as { estimated_duration_days?: number })
+            .estimated_duration_days ?? Number.MAX_SAFE_INTEGER;
+        return ad - bd;
+      });
+    }
     return copy;
   }, [bids, sortBy]);
 
@@ -135,30 +152,32 @@ export const BidReviewScreen: React.FC = () => {
       if (data.length > 0 && data[0]?.job?.title)
         setJobTitle(data[0].job.title);
 
-      // Fetch linked quotes for line items display
-      const contractorIds = data.map((b) => b.contractor_id).filter(Boolean);
-      if (contractorIds.length > 0) {
-        const { data: quotes } = await supabase
-          .from('contractor_quotes')
-          .select(
-            'contractor_id, line_items, tax_rate, tax_amount, total_amount'
-          )
-          .eq('job_id', jobId)
-          .in('contractor_id', contractorIds);
-        const map: BidQuoteMap = {};
-        (quotes || []).forEach((q: Record<string, unknown>) => {
-          const cid = q.contractor_id as string;
-          const items = q.line_items as QuoteLineItem[] | null;
-          if (cid && items?.length)
-            map[cid] = {
-              line_items: items,
-              tax_rate: q.tax_rate as number,
-              tax_amount: q.tax_amount as number,
-              total_amount: q.total_amount as number,
-            };
-        });
-        setQuoteMap(map);
+      // 2026-05-26 audit-59 P2: read the embedded quote from each
+      // bid (the API joins via bids.quote_id FK), keyed by
+      // contractor_id since the card lookup site uses that key.
+      // supabase-js types the join as PropertyRow[] | PropertyRow
+      // depending on cardinality; handle both. Falls back to the
+      // direct fields on bid (total_amount, line_items) if a future
+      // bid carries the quote inline rather than via the join.
+      const map: BidQuoteMap = {};
+      for (const b of data) {
+        const cid = b.contractor_id;
+        if (!cid) continue;
+        const rawQuote = (b as unknown as { quote?: unknown }).quote;
+        const quote = Array.isArray(rawQuote)
+          ? (rawQuote[0] as Record<string, unknown> | undefined)
+          : (rawQuote as Record<string, unknown> | undefined);
+        const items = quote?.line_items as QuoteLineItem[] | undefined;
+        if (items && items.length > 0) {
+          map[cid] = {
+            line_items: items,
+            tax_rate: quote?.tax_rate as number | undefined,
+            tax_amount: quote?.tax_amount as number | undefined,
+            total_amount: quote?.total_amount as number | undefined,
+          };
+        }
       }
+      setQuoteMap(map);
     } catch (err) {
       Alert.alert('Error', 'Failed to load bids');
     } finally {

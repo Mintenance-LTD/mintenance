@@ -363,14 +363,27 @@ export const POST = withApiHandler(
       // Sync `contractor_quotes` status to mirror the bid outcome. This
       // closes the quote → bid → outcome loop so the contractor's
       // /contractor/quotes dashboard reflects reality (accepted count +
-      // total-revenue tile). Fire-and-forget — never blocks accept flow.
-      syncLinkedQuoteStatuses({ acceptedBidId: bidId, jobId }).catch((err) => {
+      // total-revenue tile).
+      //
+      // 2026-05-26 audit-59 P2: previously fire-and-forget — live DB
+      // had 7 accepted bids with linked contractor_quotes still showing
+      // status='sent' because the Vercel function frequently returned
+      // before the .catch promise resolved. The helper already swallows
+      // its own DB errors internally, so awaiting it doesn't introduce
+      // any new failure path for the accept flow but does give the
+      // serverless runtime time to complete the writes.
+      try {
+        await syncLinkedQuoteStatuses({ acceptedBidId: bidId, jobId });
+      } catch (err) {
+        // Defensive — the helper catches its own errors, but if it
+        // ever throws (e.g. unhandled JS error), log and continue so
+        // the bid stays accepted.
         logger.error('Quote status sync failed (non-blocking)', err, {
           service: 'quotes',
           jobId,
           bidId,
         });
-      });
+      }
 
       // Auto-create welcome message thread + insert welcome message
       try {

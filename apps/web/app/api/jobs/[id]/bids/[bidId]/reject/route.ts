@@ -129,25 +129,32 @@ export const POST = withApiHandler(
     });
 
     // Mirror outcome onto linked contractor_quotes row (see helper docs
-    // on the accept route). Fire-and-forget — never blocks reject flow.
+    // on the accept route).
+    //
+    // 2026-05-26 audit-59 P2: previously this used a detached `.then()`
+    // chain that the Vercel serverless function frequently returned
+    // before resolving — leaving contractor_quotes.status='sent'
+    // even after the bid was rejected. Live-DB audit on 2026-05-26
+    // counted 7 accepted bids in that drifted state across accept +
+    // reject paths. Await the update so the route response reflects
+    // the final quote state; failure is still non-fatal (logged but
+    // doesn't fail the reject).
     if (bid.quote_id) {
-      serverSupabase
+      const { error: quoteUpdateError } = await serverSupabase
         .from('contractor_quotes')
         .update({
           status: 'declined',
           updated_at: new Date().toISOString(),
         })
-        .eq('id', bid.quote_id)
-        .then(({ error }) => {
-          if (error) {
-            logger.warn('Failed to flip linked quote → declined', {
-              service: 'quotes',
-              quoteId: bid.quote_id,
-              bidId,
-              error: error.message,
-            });
-          }
+        .eq('id', bid.quote_id);
+      if (quoteUpdateError) {
+        logger.warn('Failed to flip linked quote → declined', {
+          service: 'quotes',
+          quoteId: bid.quote_id,
+          bidId,
+          error: quoteUpdateError.message,
         });
+      }
     }
 
     // Send notification to the contractor whose bid was rejected
