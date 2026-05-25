@@ -1,174 +1,34 @@
 import { NextResponse } from 'next/server';
-import { logger } from '@mintenance/shared';
 import { withApiHandler } from '@/lib/api/with-api-handler';
-import { BadRequestError, InternalServerError } from '@/lib/errors/api-error';
-
-/** Type for Supabase edge function error with possible extended properties */
-interface EdgeFunctionError extends Error {
-  code?: string;
-  statusCode?: number;
-  stack?: string;
-}
-
-/** Type-safe extraction of error properties */
-function getErrorDetails(error: unknown): { code?: string; statusCode?: number; stack?: string } {
-  if (error && typeof error === 'object') {
-    const err = error as EdgeFunctionError;
-    return {
-      code: err.code,
-      statusCode: err.statusCode,
-      stack: err.stack?.substring(0, 500),
-    };
-  }
-  return {};
-}
 
 /**
- * POST /api/contractor/payout/setup
- * Set up Stripe Connect account for contractor payouts
+ * 410 Gone — legacy payout setup endpoint.
+ *
+ * 2026-05-25 audit-46 P1: this route previously invoked the
+ * setup-contractor-payout edge function which inserts into
+ * `contractor_payout_accounts` — a table that does NOT exist on the
+ * live database (verified 2026-05-25 via information_schema). Every
+ * call from the legacy /contractor/payouts page either errored or
+ * silently no-op'd at the edge.
+ *
+ * Canonical flow is `/api/payments/stripe-connect/onboard` (returns a
+ * Stripe Connect Account Link URL) + `/api/payments/stripe-connect/status`.
+ * The legacy /contractor/payouts page now redirects to
+ * /contractor/payouts/onboarding which uses those endpoints.
+ *
+ * Returning 410 so any lingering caller (test suite, stale mobile
+ * build) sees a clear migration error instead of a working-but-broken
+ * setup attempt. Mobile FeeCalculator.setupContractorPayout still
+ * references this path but is only invoked from test mocks today.
  */
-export const POST = withApiHandler(
-  { roles: ['contractor'] },
-  async (_request, { user }) => {
-    // Invoke Supabase Edge Function to set up Stripe Connect
-    // Explicitly pass authorization header to ensure authentication
-    // The service role key should be used for server-side function invocations
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-    if (!serviceRoleKey) {
-      throw new InternalServerError('SUPABASE_SERVICE_ROLE_KEY is not configured');
-    }
-
-    logger.info('Invoking Edge Function', {
-      service: 'payments',
-      userId: user.id,
-      functionName: 'setup-contractor-payout',
-    });
-
-    // Invoke Edge Function using direct HTTP call with proper authentication
-    // Supabase Edge Functions require BOTH Authorization and apikey headers
-    let data: unknown = null;
-    let error: unknown = null;
-
-    try {
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const functionUrl = `${supabaseUrl}/functions/v1/setup-contractor-payout`;
-
-      const response = await fetch(functionUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${serviceRoleKey}`,
-          'apikey': serviceRoleKey,
-        },
-        body: JSON.stringify({ contractorId: user.id }),
-      });
-
-      const responseText = await response.text();
-
-      if (!response.ok) {
-        logger.error('Edge Function HTTP error', {
-          status: response.status,
-          statusText: response.statusText,
-          body: responseText,
-        }, { service: 'api' });
-        error = new Error(`Edge Function error: ${responseText}`);
-      } else {
-        try {
-          data = JSON.parse(responseText);
-        } catch (parseError) {
-          logger.error('Failed to parse Edge Function response', parseError, { service: 'api' });
-          error = new Error('Invalid JSON response from Edge Function');
-        }
-      }
-    } catch (invokeError) {
-      // Catch any exception during invocation
-      logger.error('Exception during Edge Function invoke', invokeError, { service: 'api' });
-      error = invokeError;
-    }
-
-    // Log the raw response for debugging
-    logger.debug('Edge Function Response', {
-      service: 'api',
-      hasData: !!data,
-      hasError: !!error,
-    });
-
-    if (error) {
-      const err = error as Error;
-      const errorDetails = getErrorDetails(error);
-      logger.error('Edge Function returned error', {
-        service: 'contractor',
-        errorMessage: err?.message,
-        errorCode: errorDetails.code,
-        errorStatus: errorDetails.statusCode,
-        hasData: !!data,
-        dataKeys: data && typeof data === 'object' ? Object.keys(data) : null,
-      });
-
-      // Edge Functions return errors in the data field when status is non-2xx
-      // The error object may contain statusCode, message, and the data may contain error details
-      // IMPORTANT: When Edge Function returns non-2xx, Supabase client puts the response body in 'data' field
-      let errorMessage = err.message || 'Failed to set up payout account';
-      let responseErrorDetails: unknown = undefined;
-
-      // Try to extract detailed error information from data
-      // The Edge Function returns: { error: string, details?: unknown } when there's an error
-      if (data) {
-        if (typeof data === 'object') {
-          // Check for error field in response (from Edge Function)
-          if ('error' in data) {
-            const errorValue = (data as { error?: unknown }).error;
-            if (typeof errorValue === 'string') {
-              errorMessage = errorValue;
-            } else if (errorValue) {
-              errorMessage = String(errorValue);
-            }
-          }
-          // Check for details field (from Edge Function error response)
-          if ('details' in data) {
-            responseErrorDetails = (data as { details?: unknown }).details;
-          }
-          // If data itself has a message field
-          if ('message' in data && typeof (data as { message?: unknown }).message === 'string') {
-            errorMessage = (data as { message: string }).message;
-          }
-        } else if (typeof data === 'string') {
-          errorMessage = data;
-        }
-      }
-
-      // Log comprehensive error information for debugging
-      logger.error('Edge Function error', {
-        service: 'payments',
-        userId: user.id,
-        contractorId: user.id,
-        errorMessage,
-        errorDetails: responseErrorDetails,
-        errorStatus: (error as { statusCode?: number }).statusCode,
-        errorCode: (error as { code?: string }).code,
-        errorObject: error,
-        responseData: data,
-      });
-
-      // Return a descriptive error message (BadRequestError surfaces the message to the client)
-      throw new BadRequestError(errorMessage);
-    }
-
-    const payload = (data ?? {}) as Record<string, unknown>;
-    const accountUrl = (payload['accountUrl'] ?? payload['url']) as string | undefined;
-
-    if (!accountUrl) {
-      throw new InternalServerError('Stripe onboarding link was not returned');
-    }
-
-    logger.info('Contractor payout setup initiated', {
-      service: 'payments',
-      userId: user.id,
-    });
-
-    return NextResponse.json({
-      accountUrl,
-      message: 'Redirecting to Stripe onboarding...',
-    });
-  }
-);
+export const POST = withApiHandler({ roles: ['contractor'] }, async () => {
+  return NextResponse.json(
+    {
+      error: 'Endpoint removed',
+      message:
+        'Use POST /api/payments/stripe-connect/onboard to start Stripe Connect onboarding. This legacy endpoint targeted a removed table.',
+      migration: '/api/payments/stripe-connect/onboard',
+    },
+    { status: 410 }
+  );
+});

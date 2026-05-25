@@ -84,7 +84,7 @@ export async function accumulateEarnings(params: {
  */
 export async function getPayoutBalance(
   contractorId: string,
-  currency: string = PRIMARY_CURRENCY,
+  currency: string = PRIMARY_CURRENCY
 ): Promise<PayoutBalance | null> {
   const { data, error } = await serverSupabase
     .from('contractor_payout_balances')
@@ -122,7 +122,16 @@ export async function processEligiblePayouts(): Promise<{
 }> {
   const threshold = getPayoutThreshold(PRIMARY_CURRENCY);
 
-  // Find eligible balances
+  // Find eligible balances.
+  //
+  // 2026-05-25 audit-46 P1: previously omitted lifetime_paid_out_minor
+  // from the SELECT. The UPDATE block below summed
+  // `pending_amount_minor + balance.lifetime_paid_out_minor`, which
+  // returned undefined every time, so `(amount || 0) + (undefined || 0)`
+  // = amount and the lifetime total reset to just this payout. After
+  // months of payouts a contractor's lifetime stat would silently
+  // collapse to whatever last week's transfer was. Pull the column
+  // so the UPDATE has a real cumulative base to add to.
   const { data: balances, error } = await serverSupabase
     .from('contractor_payout_balances')
     .select(
@@ -130,12 +139,13 @@ export async function processEligiblePayouts(): Promise<{
       contractor_id,
       currency,
       pending_amount_minor,
+      lifetime_paid_out_minor,
       profiles!inner (
         stripe_connect_account_id,
         stripe_payouts_enabled,
         stripe_transfers_active
       )
-    `,
+    `
     )
     .gte('pending_amount_minor', threshold)
     .eq('currency', PRIMARY_CURRENCY);
@@ -186,15 +196,19 @@ export async function processEligiblePayouts(): Promise<{
         status: 'pending',
       });
 
-      // Reset balance + bump lifetime
+      // Reset balance + bump lifetime. 2026-05-25 audit-46 P1:
+      // lifetime_paid_out_minor now comes from the SELECT above so the
+      // cumulative total actually accumulates instead of being
+      // overwritten with the current payout each week.
+      const lifetimeBefore =
+        (balance as { lifetime_paid_out_minor?: number | null })
+          .lifetime_paid_out_minor ?? 0;
       await serverSupabase
         .from('contractor_payout_balances')
         .update({
           pending_amount_minor: 0,
           lifetime_paid_out_minor:
-            (balance.pending_amount_minor || 0) +
-            ((balance as unknown as { lifetime_paid_out_minor?: number })
-              .lifetime_paid_out_minor || 0),
+            (balance.pending_amount_minor || 0) + lifetimeBefore,
           last_payout_at: new Date().toISOString(),
           last_payout_transfer_id: transfer.id,
           updated_at: new Date().toISOString(),

@@ -245,14 +245,32 @@ export const POST = withApiHandler(
         });
       }
 
-      // Get contractor's Stripe Connect account
+      // Get contractor's Stripe Connect account.
+      //
+      // 2026-05-25 audit-46 P0: previously selected only
+      // stripe_connect_account_id. The ID is written the moment Stripe
+      // returns an account (long before payouts are enabled), so a
+      // contractor who started but never finished onboarding still
+      // passed this check. The Stripe transfer would then 400 on the
+      // network call ("destination cannot receive funds") and
+      // performStripeTransfer's catch block reverts escrow to 'held' —
+      // homeowner has approved release but the contractor never gets
+      // paid. Pre-flight the same readiness flags webhook handlers
+      // maintain (stripe_payouts_enabled + stripe_transfers_active);
+      // both boolean columns live, verified 2026-05-25.
       const { data: contractor, error: contractorError } = await serverSupabase
         .from('profiles')
-        .select('stripe_connect_account_id')
+        .select(
+          'stripe_connect_account_id, stripe_payouts_enabled, stripe_transfers_active'
+        )
         .eq('id', job.contractor_id)
         .single();
 
-      if (contractorError || !contractor?.stripe_connect_account_id) {
+      const payoutsReady =
+        !!contractor?.stripe_connect_account_id &&
+        contractor.stripe_payouts_enabled === true &&
+        contractor.stripe_transfers_active === true;
+      if (contractorError || !payoutsReady) {
         const { PaymentSetupNotificationService } =
           await import('@/lib/services/contractor/PaymentSetupNotificationService');
         await PaymentSetupNotificationService.notifyPaymentSetupRequired(
@@ -263,11 +281,14 @@ export const POST = withApiHandler(
         ).catch((error) => {
           logger.error('Failed to send payment setup notification', error);
         });
-        logger.error('Contractor missing Stripe Connect account', {
+        logger.error('Contractor Stripe payouts not ready for release', {
           service: 'payments',
           userId: user.id,
           contractorId: job.contractor_id,
           escrowTransactionId,
+          hasAccountId: !!contractor?.stripe_connect_account_id,
+          payoutsEnabled: contractor?.stripe_payouts_enabled,
+          transfersActive: contractor?.stripe_transfers_active,
         });
         return NextResponse.json(
           {
