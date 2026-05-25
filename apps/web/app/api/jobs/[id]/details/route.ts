@@ -89,39 +89,61 @@ export const GET = withApiHandler(
       throw new ForbiddenError('You do not have access to this job');
     }
 
-    const [contractsRes, escrowRes, reviewsRes, assessmentRes] =
-      await Promise.allSettled([
-        serverSupabase
-          .from('contracts')
-          .select('id, status')
-          .eq('job_id', jobId)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle(),
-        serverSupabase
-          .from('escrow_transactions')
-          .select('id, status')
-          .eq('job_id', jobId)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle(),
-        serverSupabase
-          .from('reviews')
-          .select('id')
-          .eq('job_id', jobId)
-          .eq('reviewer_id', user.id)
-          .limit(1)
-          .maybeSingle(),
-        serverSupabase
-          .from('building_assessments')
-          .select(
-            'id, damage_type, severity, confidence, urgency, assessment_data, created_at'
-          )
-          .eq('job_id', jobId)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .maybeSingle(),
-      ]);
+    const [
+      contractsRes,
+      escrowRes,
+      reviewsRes,
+      assessmentRes,
+      beforePhotoRes,
+      afterPhotoRes,
+    ] = await Promise.allSettled([
+      serverSupabase
+        .from('contracts')
+        .select('id, status')
+        .eq('job_id', jobId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      serverSupabase
+        .from('escrow_transactions')
+        .select('id, status')
+        .eq('job_id', jobId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      serverSupabase
+        .from('reviews')
+        .select('id')
+        .eq('job_id', jobId)
+        .eq('reviewer_id', user.id)
+        .limit(1)
+        .maybeSingle(),
+      serverSupabase
+        .from('building_assessments')
+        .select(
+          'id, damage_type, severity, confidence, urgency, assessment_data, created_at'
+        )
+        .eq('job_id', jobId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      // 2026-05-25 audit-P0-3: surface counts of before/after photos so
+      // the contractor CTA can show "Start Job" on a return visit when
+      // before-photos already exist. Previously the gate lived in the
+      // upload screen as a one-shot Alert, so a contractor who uploaded
+      // photos, closed the app, and came back had no path to start the
+      // job — explaining the live 6-assigned-but-0-in_progress state.
+      serverSupabase
+        .from('job_photos_metadata')
+        .select('id', { count: 'exact', head: true })
+        .eq('job_id', jobId)
+        .eq('photo_type', 'before'),
+      serverSupabase
+        .from('job_photos_metadata')
+        .select('id', { count: 'exact', head: true })
+        .eq('job_id', jobId)
+        .eq('photo_type', 'after'),
+    ]);
 
     const contract =
       contractsRes.status === 'fulfilled'
@@ -141,6 +163,15 @@ export const GET = withApiHandler(
             null) as unknown as BuildingAssessmentRow | null)
         : null;
 
+    const beforePhotoCount =
+      beforePhotoRes.status === 'fulfilled'
+        ? (beforePhotoRes.value.count ?? 0)
+        : 0;
+    const afterPhotoCount =
+      afterPhotoRes.status === 'fulfilled'
+        ? (afterPhotoRes.value.count ?? 0)
+        : 0;
+
     return NextResponse.json({
       contractStatus: contract?.status ?? null,
       escrowStatus: escrow?.status ?? null,
@@ -156,6 +187,8 @@ export const GET = withApiHandler(
             createdAt: assessment.created_at,
           }
         : null,
+      beforePhotoCount,
+      afterPhotoCount,
     });
   }
 );

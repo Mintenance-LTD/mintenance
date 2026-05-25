@@ -144,6 +144,17 @@ export default async function ContractorJobDetailPage({
     .limit(1)
     .maybeSingle();
 
+  // 2026-05-25 audit-P0-3: count existing before-photos so JobPhotoUpload
+  // can enable "Start Job" on a return visit. Without this, the button is
+  // gated on local component state (uploadedPhotos.length > 0) which only
+  // increments after a fresh upload IN this session — a contractor who
+  // uploaded photos yesterday sees the button disabled today.
+  const { count: existingBeforePhotosCount } = await serverSupabase
+    .from('job_photos_metadata')
+    .select('id', { count: 'exact', head: true })
+    .eq('job_id', resolvedParams.id)
+    .eq('photo_type', 'before');
+
   const currentStage = determineStage(
     job.status || 'posted',
     contractStatus,
@@ -434,6 +445,7 @@ export default async function ContractorJobDetailPage({
               latitude={job.latitude}
               longitude={job.longitude}
               location={job.location}
+              existingBeforePhotosCount={existingBeforePhotosCount ?? 0}
             />
           )}
 

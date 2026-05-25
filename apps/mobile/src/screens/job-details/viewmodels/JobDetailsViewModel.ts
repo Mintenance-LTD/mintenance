@@ -33,6 +33,12 @@ interface JobDetailsAggregate {
     assessmentData: Record<string, unknown> | null;
     createdAt: string | null;
   } | null;
+  // 2026-05-25 audit-P0-3: aggregate now returns before/after photo
+  // counts so the CTA can show "Start Job" on a return visit when
+  // before-photos already exist. Optional for backwards compatibility
+  // with older server builds while the API change rolls out.
+  beforePhotoCount?: number;
+  afterPhotoCount?: number;
 }
 
 interface JobDetailsState {
@@ -44,6 +50,8 @@ interface JobDetailsState {
   contractStatus: string | null;
   escrowStatus: string | null;
   hasReviewed: boolean;
+  beforePhotoCount: number;
+  afterPhotoCount: number;
 }
 
 interface JobDetailsActions {
@@ -65,6 +73,8 @@ export const useJobDetailsViewModel = (jobId: string): JobDetailsViewModel => {
   const [contractStatus, setContractStatus] = useState<string | null>(null);
   const [escrowStatus, setEscrowStatus] = useState<string | null>(null);
   const [hasReviewed, setHasReviewed] = useState(false);
+  const [beforePhotoCount, setBeforePhotoCount] = useState(0);
+  const [afterPhotoCount, setAfterPhotoCount] = useState(0);
 
   // Use React Query hooks
   const {
@@ -128,6 +138,8 @@ export const useJobDetailsViewModel = (jobId: string): JobDetailsViewModel => {
         setContractStatus(aggregate.contractStatus ?? null);
         setEscrowStatus(aggregate.escrowStatus ?? null);
         setHasReviewed(!!aggregate.hasReviewed);
+        setBeforePhotoCount(aggregate.beforePhotoCount ?? 0);
+        setAfterPhotoCount(aggregate.afterPhotoCount ?? 0);
 
         const stored = aggregate.buildingAssessment;
         if (stored) {
@@ -210,6 +222,8 @@ export const useJobDetailsViewModel = (jobId: string): JobDetailsViewModel => {
     contractStatus,
     escrowStatus,
     hasReviewed,
+    beforePhotoCount,
+    afterPhotoCount,
 
     // Actions
     loadAIAnalysis,
