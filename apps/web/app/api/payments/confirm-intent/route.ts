@@ -74,10 +74,19 @@ export const POST = withApiHandler(
       );
     }
 
-    // Verify job and escrow transaction
+    // Verify job and escrow transaction.
+    //
+    // 2026-05-26 audit-60 P2: previously this route selected only
+    // `homeowner_id` and rejected anyone else, but create-intent
+    // (the sibling route) authorizes `payer_user_id || homeowner_id`
+    // — landlord / agency payer jobs let a non-homeowner fund escrow
+    // via the Stripe sheet, then the mobile follow-up confirm-intent
+    // call 403'd, leaving escrow stuck in `pending` until the Stripe
+    // webhook caught up. Pull payer_user_id too so the two routes
+    // agree on who's allowed to drive the lifecycle.
     const { data: job, error: jobError } = await serverSupabase
       .from('jobs')
-      .select('id, homeowner_id, contractor_id, title')
+      .select('id, homeowner_id, payer_user_id, contractor_id, title')
       .eq('id', jobId)
       .single();
 
@@ -85,7 +94,9 @@ export const POST = withApiHandler(
       throw new NotFoundError('Job not found');
     }
 
-    if (job.homeowner_id !== user.id) {
+    const authorizedPayerId =
+      (job.payer_user_id as string | null) || job.homeowner_id;
+    if (authorizedPayerId !== user.id) {
       throw new ForbiddenError('Unauthorized');
     }
 

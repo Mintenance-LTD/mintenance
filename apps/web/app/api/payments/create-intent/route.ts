@@ -207,19 +207,70 @@ export const POST = withApiHandler(
         throw new BadRequestError('Accepted bid has an invalid amount.');
       }
 
-      if (
-        typeof job.budget === 'number' &&
-        job.budget > 0 &&
-        acceptedBid.amount > job.budget
-      ) {
-        logger.warn('Accepted bid exceeds job budget', {
+      // 2026-05-26 audit-60 P2: removed the legacy `acceptedBid > job.budget`
+      // 400 gate. The open-bidding model (see /api/contractor/submit-bid)
+      // already dropped the symmetric cap on the contractor side — bids
+      // are free-form prices the homeowner can knowingly accept above
+      // any budget hint. Keeping the cap here meant a legacy-budget job
+      // where the homeowner accepted a higher bid would fail at the
+      // payment step with no recourse short of editing the job row.
+      // The absolute platform hard cap below stays in place as the
+      // data-integrity backstop.
+
+      // 2026-05-26 audit-60 P1: block a second payment intent for a
+      // job that already has a non-terminal escrow row. Previously
+      // the dedup check ran AFTER Stripe PaymentIntent creation and
+      // matched on (job_id, payment_intent_id) — so a second intent
+      // (different id) for the same job sailed through and inserted
+      // a new escrow row. Live DB observation: one job already has
+      // both `pending` and `failed` escrow rows. Held / pending /
+      // release_pending / completed all mean the job's escrow life-
+      // cycle is in progress — refuse the new attempt. `failed`,
+      // `cancelled`, and `refunded` are terminal and don't block a
+      // retry. Use serverSupabase (RLS-bypass) so the check sees
+      // every row, not just the caller's-visible ones.
+      const BLOCKING_ESCROW_STATUSES = [
+        'pending',
+        'held',
+        'release_pending',
+        'completed',
+      ];
+      const { data: blockingEscrowRows, error: blockingEscrowErr } =
+        await serverSupabase
+          .from('escrow_transactions')
+          .select('id, status, payment_intent_id, created_at')
+          .eq('job_id', jobId)
+          .in('status', BLOCKING_ESCROW_STATUSES);
+
+      if (blockingEscrowErr) {
+        logger.error(
+          'Failed to check existing escrow before payment intent',
+          blockingEscrowErr,
+          { service: 'payments', userId: user.id, jobId }
+        );
+        // Fail closed — better to ask the user to retry than to risk
+        // a duplicate escrow row.
+        throw new BadRequestError(
+          'Could not verify escrow state. Please try again in a moment.'
+        );
+      }
+
+      if (blockingEscrowRows && blockingEscrowRows.length > 0) {
+        const existing = blockingEscrowRows[0];
+        logger.warn('Payment intent attempted with non-terminal escrow', {
           service: 'payments',
           userId: user.id,
           jobId,
-          bidAmount: acceptedBid.amount,
-          jobBudget: job.budget,
+          existingEscrowId: existing?.id,
+          existingStatus: existing?.status,
         });
-        throw new BadRequestError('Payment amount cannot exceed job budget.');
+        const message =
+          existing?.status === 'held' ||
+          existing?.status === 'release_pending' ||
+          existing?.status === 'completed'
+            ? 'Payment has already been received for this job.'
+            : 'A payment is already in progress for this job. Please wait a moment and refresh.';
+        throw new BadRequestError(message);
       }
 
       // Absolute hard cap to guard against a data-entry error on the bid.
