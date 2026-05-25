@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { PropertyTeamService } from '@/lib/services/property-team/PropertyTeamService';
 
 /**
  * /api/landlord/contacts/[id]
@@ -56,10 +57,14 @@ export const PATCH = withApiHandler(
     const contactId = params.id;
     const body = (await req.json()) as PatchBody;
 
-    // Verify the caller owns this contact before mutating.
+    // 2026-05-26 audit-61 P1: route through PropertyTeamService so
+    // managers/team-admins on the property can edit contacts they
+    // didn't create (audit-37 anchors owner_id to the property
+    // owner, so historically only that owner / platform-admin could
+    // PATCH). Pull property_id too so we can call authorize().
     const { data: existing, error: fetchError } = await serverSupabase
       .from('property_contacts')
-      .select('id, owner_id')
+      .select('id, owner_id, property_id')
       .eq('id', contactId)
       .single();
 
@@ -67,8 +72,15 @@ export const PATCH = withApiHandler(
       return NextResponse.json({ error: 'Contact not found' }, { status: 404 });
     }
 
-    if (existing.owner_id !== user.id && user.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (user.role !== 'admin') {
+      const { authorized } = await PropertyTeamService.authorize(
+        user.id,
+        existing.property_id as string,
+        'manage_contacts'
+      );
+      if (!authorized) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
     }
 
     const updates: Record<string, unknown> = {};
@@ -144,9 +156,11 @@ export const DELETE = withApiHandler(
   async (_req, { user, params }) => {
     const contactId = params.id;
 
+    // 2026-05-26 audit-61 P1: same authorize() gate as PATCH so
+    // property-team managers can delete contacts they manage.
     const { data: existing, error: fetchError } = await serverSupabase
       .from('property_contacts')
-      .select('id, owner_id')
+      .select('id, owner_id, property_id')
       .eq('id', contactId)
       .single();
 
@@ -154,8 +168,15 @@ export const DELETE = withApiHandler(
       return NextResponse.json({ error: 'Contact not found' }, { status: 404 });
     }
 
-    if (existing.owner_id !== user.id && user.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    if (user.role !== 'admin') {
+      const { authorized } = await PropertyTeamService.authorize(
+        user.id,
+        existing.property_id as string,
+        'manage_contacts'
+      );
+      if (!authorized) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
     }
 
     const { error } = await serverSupabase

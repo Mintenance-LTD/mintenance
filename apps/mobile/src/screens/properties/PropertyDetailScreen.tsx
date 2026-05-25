@@ -584,9 +584,18 @@ export const PropertyDetailScreen: React.FC<Props> = ({
   // PropertyDetail through the API).
   const renderAccessTab = () => {
     const p = property as unknown as Record<string, unknown> | null;
+    // 2026-05-26 audit-61 P2: only the property owner + platform
+    // admin can see (and therefore edit) the real lock-box code.
+    // The server already redacts key_safe_code on GET and now 403s
+    // on PATCH from non-owners; hide the input on mobile too so a
+    // manager doesn't see a blank box that begs them to type a
+    // guess and silently fail.
+    const canEditKeySafeCode =
+      propertyRole === 'owner' || propertyRole === 'platform_admin';
     return (
       <PropertyAccessSection
         propertyId={propertyId}
+        canEditKeySafeCode={canEditKeySafeCode}
         initial={{
           access_mode:
             (p?.access_mode as
