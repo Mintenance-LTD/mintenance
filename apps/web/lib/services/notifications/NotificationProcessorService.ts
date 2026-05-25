@@ -279,7 +279,9 @@ export class NotificationProcessorService {
         userId: queuedNotif.user_id,
         title: queuedNotif.title,
         body: queuedNotif.message,
+        // audit-54 P1: spread metadata so mobile router has IDs.
         data: {
+          ...(hasMetadata ? cleanMetadata : {}),
           notificationId: notificationId ?? undefined,
           type: queuedNotif.notification_type,
           actionUrl: queuedNotif.action_url ?? undefined,

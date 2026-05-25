@@ -47,6 +47,85 @@ interface NormalizedPayload {
 }
 
 /**
+ * 2026-05-26 audit-54 P2: parse common actionUrl path patterns into
+ * the same ID shape we get from metadata. Live data showed many
+ * notifications (esp. message_received synthesised at
+ * /api/notifications) carry only `actionUrl` and no metadata, so
+ * without this parse the router has nothing to deep-link with even
+ * though the URL itself encodes the IDs. Returns a partial payload —
+ * caller merges these as a fallback for unset metadata fields.
+ *
+ * Supported patterns:
+ *   /jobs/:jobId                    → { jobId }
+ *   /contractor/jobs/:jobId         → { jobId }
+ *   /messages/:jobId(?...)          → { jobId, conversationId, senderId,
+ *                                       senderName, jobTitle } (jobId
+ *                                       doubles as conversationId per
+ *                                       app convention; ?userId / ?userName
+ *                                       / ?jobTitle query params pulled
+ *                                       from the synthesised URL)
+ *   /properties/:propertyId         → { propertyId }
+ */
+function pickFromUuidPath(
+  pathname: string,
+  prefix: string
+): string | undefined {
+  if (!pathname.startsWith(prefix)) return undefined;
+  const rest = pathname.slice(prefix.length).replace(/^\/+/, '');
+  const seg = rest.split(/[/?#]/)[0];
+  // UUID-ish guard (string length + characters). Avoids capturing the
+  // literal `new` or other route keywords.
+  return seg && /^[0-9a-f-]{8,}$/i.test(seg) ? seg : undefined;
+}
+
+function parseActionUrl(actionUrl?: string): Partial<NormalizedPayload> {
+  if (!actionUrl) return {};
+  let pathname = actionUrl;
+  let search = '';
+  try {
+    // actionUrl may be a relative path like `/jobs/<id>` or an absolute
+    // mintenance://… URL. URL constructor needs a base for relative.
+    const u = new URL(actionUrl, 'https://placeholder.invalid');
+    pathname = u.pathname;
+    search = u.search;
+  } catch {
+    // Fall through with raw string as pathname.
+  }
+  const qp = new URLSearchParams(search);
+  const out: Partial<NormalizedPayload> = {};
+
+  // /contractor/jobs/:id  (check before /jobs/ for prefix specificity)
+  const contractorJobId = pickFromUuidPath(pathname, '/contractor/jobs');
+  if (contractorJobId) out.jobId = contractorJobId;
+
+  if (!out.jobId) {
+    const jobId = pickFromUuidPath(pathname, '/jobs');
+    if (jobId) out.jobId = jobId;
+  }
+
+  // /messages/:jobId — conversationId IS jobId by app convention.
+  // /api/notifications synthesises action_url like
+  // `/messages/<jobId>?userId=<senderId>&userName=<senderName>&jobTitle=Job`.
+  const messageJobId = pickFromUuidPath(pathname, '/messages');
+  if (messageJobId) {
+    out.jobId = out.jobId ?? messageJobId;
+    out.conversationId = messageJobId;
+    const userId = qp.get('userId');
+    if (userId) out.senderId = userId;
+    const userName = qp.get('userName');
+    if (userName) out.senderName = userName;
+    const jobTitle = qp.get('jobTitle');
+    if (jobTitle) out.jobTitle = jobTitle;
+  }
+
+  // /properties/:id
+  const propertyId = pickFromUuidPath(pathname, '/properties');
+  if (propertyId) out.propertyId = propertyId;
+
+  return out;
+}
+
+/**
  * Notification payloads come in both camelCase (mobile push) and
  * snake_case (web-originated push). Normalize once.
  */
@@ -59,16 +138,24 @@ export function normalizePayload(data: unknown): NormalizedPayload {
     }
     return undefined;
   };
+
+  // 2026-05-26 audit-54 P2: parse the actionUrl as a fallback. Live
+  // data showed 36 message_received rows where only action_url was
+  // populated and the router fell through to the inbox.
+  const actionUrl = pick('actionUrl', 'action_url', 'url', 'link');
+  const fromUrl = parseActionUrl(actionUrl);
+
   return {
-    jobId: pick('jobId', 'job_id'),
-    conversationId: pick('conversationId', 'conversation_id'),
+    jobId: pick('jobId', 'job_id') ?? fromUrl.jobId,
+    conversationId:
+      pick('conversationId', 'conversation_id') ?? fromUrl.conversationId,
     meetingId: pick('meetingId', 'meeting_id'),
-    senderId: pick('senderId', 'sender_id'),
-    senderName: pick('senderName', 'sender_name'),
-    jobTitle: pick('jobTitle', 'job_title'),
+    senderId: pick('senderId', 'sender_id') ?? fromUrl.senderId,
+    senderName: pick('senderName', 'sender_name') ?? fromUrl.senderName,
+    jobTitle: pick('jobTitle', 'job_title') ?? fromUrl.jobTitle,
     quoteId: pick('quoteId', 'quote_id'),
     notificationId: pick('notificationId', 'notification_id'),
-    propertyId: pick('propertyId', 'property_id'),
+    propertyId: pick('propertyId', 'property_id') ?? fromUrl.propertyId,
     appointmentId: pick('appointmentId', 'appointment_id'),
   };
 }
