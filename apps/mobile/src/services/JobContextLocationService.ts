@@ -148,8 +148,27 @@ export class JobContextLocationService {
    * by a trip-start (legacy entries, manual contractor flow).
    */
   async markArrived(jobId: string, meetingId: string | null): Promise<void> {
+    // 2026-05-26 audit-48 P1: previously hard-threw "No location data
+    // available" if this.lastLocation was null. That happens whenever
+    // the contractor presses Arrived after a tracking session that
+    // didn't manage to get an initial fix (permission edge case, GPS
+    // cold-start, app resume from background) — markArrived has no
+    // way to recover without one more position read. Fall back to a
+    // fresh getCurrentPositionAsync so the arrival still records
+    // wherever the contractor actually is. If THAT also fails we
+    // re-throw the original error so the caller can surface it.
     if (!this.lastLocation) {
-      throw new Error('No location data available');
+      try {
+        const fresh = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+        this.lastLocation = fresh;
+      } catch (err) {
+        logger.warn('markArrived: fallback location fetch failed', {
+          err: err instanceof Error ? err.message : String(err),
+        });
+        throw new Error('No location data available');
+      }
     }
 
     this.currentContext = ContractorLocationContext.ON_JOB;

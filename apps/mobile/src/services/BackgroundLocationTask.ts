@@ -117,32 +117,53 @@ TaskManager.defineTask(BACKGROUND_LOCATION_TASK, async ({ data, error }) => {
       location.coords.longitude,
       7
     );
-    const { error: upsertErr } = await supabase
-      .from('contractor_locations')
-      .upsert(
-        {
-          contractor_id: ctx.contractorId,
-          job_id: ctx.jobId,
-          meeting_id: ctx.meetingId,
-          latitude: location.coords.latitude,
-          longitude: location.coords.longitude,
-          accuracy: location.coords.accuracy ?? undefined,
-          heading: location.coords.heading ?? undefined,
-          speed: location.coords.speed ?? undefined,
-          eta_minutes: etaMinutes,
-          geohash,
-          context: 'traveling',
-          is_active: true,
-          is_sharing_location: true,
-          location_timestamp: new Date(location.timestamp).toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: 'contractor_id,job_id' }
-      );
 
-    if (upsertErr) {
-      logger.warn('Background location upsert failed', {
-        message: upsertErr.message,
+    // 2026-05-26 audit-48 P1: previously used
+    // upsert({ onConflict: 'contractor_id,job_id' }), but the live DB
+    // only has a PARTIAL unique index on that pair (WHERE is_active =
+    // true) — no plain unique constraint exists. PostgREST's ON CONFLICT
+    // (cols) inference can't reference the WHERE predicate, so the
+    // upsert errored (42P10) or silently inserted duplicate rows
+    // depending on planner choice. The foreground tracker
+    // (JobContextLocationService.updateContractorLocation) was migrated
+    // to select-then-update/insert in audit-36; mirror the same pattern
+    // here so background ticks behave consistently.
+    const payload = {
+      contractor_id: ctx.contractorId,
+      job_id: ctx.jobId,
+      meeting_id: ctx.meetingId,
+      latitude: location.coords.latitude,
+      longitude: location.coords.longitude,
+      accuracy: location.coords.accuracy ?? undefined,
+      heading: location.coords.heading ?? undefined,
+      speed: location.coords.speed ?? undefined,
+      eta_minutes: etaMinutes,
+      geohash,
+      context: 'traveling',
+      is_active: true,
+      is_sharing_location: true,
+      location_timestamp: new Date(location.timestamp).toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    const { data: existing } = await supabase
+      .from('contractor_locations')
+      .select('id')
+      .eq('contractor_id', ctx.contractorId)
+      .eq('job_id', ctx.jobId)
+      .eq('is_active', true)
+      .maybeSingle();
+
+    const { error: writeErr } = existing
+      ? await supabase
+          .from('contractor_locations')
+          .update(payload)
+          .eq('id', existing.id)
+      : await supabase.from('contractor_locations').insert(payload);
+
+    if (writeErr) {
+      logger.warn('Background location write failed', {
+        message: writeErr.message,
       });
     }
   } catch (err) {
