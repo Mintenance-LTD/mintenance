@@ -90,6 +90,14 @@ interface ProfileBits {
   company_name: string | null;
   verification_status: string | null;
   stripe_connect_account_id: string | null;
+  // 2026-05-25 audit-46 P1: payouts complete requires more than just
+  // the Connect account ID — that's written the moment Stripe returns
+  // an account, before the contractor finishes onboarding. The webhook
+  // handlers flip these two flags only when payouts/transfers are
+  // actually enabled. Both columns boolean on live profiles
+  // (verified 2026-05-25 via information_schema).
+  stripe_payouts_enabled: boolean | null;
+  stripe_transfers_active: boolean | null;
   propertyCount: number;
   emailConfirmed: boolean;
 }
@@ -100,6 +108,8 @@ const EMPTY_BITS: ProfileBits = {
   company_name: null,
   verification_status: null,
   stripe_connect_account_id: null,
+  stripe_payouts_enabled: null,
+  stripe_transfers_active: null,
   propertyCount: 0,
   emailConfirmed: false,
 };
@@ -127,7 +137,7 @@ async function fetchProfileBits(
     const { data: profile, error } = await supabase
       .from('profiles')
       .select(
-        'profile_image_url, avatar_url, company_name, verification_status, stripe_connect_account_id'
+        'profile_image_url, avatar_url, company_name, verification_status, stripe_connect_account_id, stripe_payouts_enabled, stripe_transfers_active'
       )
       .eq('id', userId)
       .maybeSingle();
@@ -136,12 +146,18 @@ async function fetchProfileBits(
         error: error.message,
       });
     } else if (profile) {
-      const p = profile as Record<string, string | null>;
-      bits.profile_image_url = p.profile_image_url ?? null;
-      bits.avatar_url = p.avatar_url ?? null;
-      bits.company_name = p.company_name ?? null;
-      bits.verification_status = p.verification_status ?? null;
-      bits.stripe_connect_account_id = p.stripe_connect_account_id ?? null;
+      const p = profile as Record<string, string | boolean | null>;
+      bits.profile_image_url = (p.profile_image_url as string | null) ?? null;
+      bits.avatar_url = (p.avatar_url as string | null) ?? null;
+      bits.company_name = (p.company_name as string | null) ?? null;
+      bits.verification_status =
+        (p.verification_status as string | null) ?? null;
+      bits.stripe_connect_account_id =
+        (p.stripe_connect_account_id as string | null) ?? null;
+      bits.stripe_payouts_enabled =
+        (p.stripe_payouts_enabled as boolean | null) ?? null;
+      bits.stripe_transfers_active =
+        (p.stripe_transfers_active as boolean | null) ?? null;
     }
   } catch (err) {
     logger.warn('useOnboardingProgress: profile query threw', {
@@ -227,7 +243,15 @@ function buildSteps(
     const verificationComplete =
       bits.verification_status === 'verified' ||
       bits.verification_status === 'pending';
-    const payoutsComplete = !!bits.stripe_connect_account_id;
+    // 2026-05-25 audit-46 P1: payouts complete iff Stripe has actually
+    // enabled payouts AND transfers. The account ID alone is set the
+    // moment Stripe returns an account, before the contractor has
+    // submitted KYC. Without the readiness flags, contractors saw the
+    // step tick green while still being unable to receive funds.
+    const payoutsComplete =
+      !!bits.stripe_connect_account_id &&
+      bits.stripe_payouts_enabled === true &&
+      bits.stripe_transfers_active === true;
 
     return [
       ...commonStart,

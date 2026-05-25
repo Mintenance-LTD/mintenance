@@ -42,12 +42,40 @@ export default function ContractorPayoutOnboardingPage() {
     setError(null);
     try {
       const statusRes = await fetch(
-        `/api/payments/stripe-connect/status${refresh ? '?refresh=true' : ''}`,
+        `/api/payments/stripe-connect/status${refresh ? '?refresh=true' : ''}`
       );
       const statusJson = await statusRes.json();
-      setStatus(statusJson.status ?? null);
+      let nextStatus = statusJson.status ?? null;
 
-      if (statusJson.status?.accountId) {
+      // 2026-05-26 audit-47 P0: if the contractor has an account ID but
+      // payouts/transfers are NOT enabled, auto-trigger a Stripe sync.
+      // Production state shows contractors getting stuck after closing
+      // the Stripe-hosted onboarding mid-way — their account ID gets
+      // written but the readiness flags are never flipped because no
+      // webhook fires on abandonment. Without this, the contractor
+      // sees the page in a frozen state forever, with no signal to
+      // resume. One self-heal on landing is cheap (rate-limited to 30/
+      // min anyway) and resolves the common "I finished in Stripe but
+      // Mintenance still says incomplete" case too.
+      if (
+        !refresh &&
+        nextStatus?.accountId &&
+        (!nextStatus.payoutsEnabled || !nextStatus.transfersActive)
+      ) {
+        try {
+          const refreshRes = await fetch(
+            '/api/payments/stripe-connect/status?refresh=true'
+          );
+          const refreshJson = await refreshRes.json();
+          if (refreshJson.status) nextStatus = refreshJson.status;
+        } catch {
+          // Fall back to cached status — non-fatal.
+        }
+      }
+
+      setStatus(nextStatus);
+
+      if (nextStatus?.accountId) {
         const balRes = await fetch('/api/payments/payout-balance');
         const balJson = await balRes.json();
         setBalance(balJson.balance ?? null);
@@ -93,10 +121,10 @@ export default function ContractorPayoutOnboardingPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto max-w-2xl p-6">
+      <div className='mx-auto max-w-2xl p-6'>
         <StandardCard>
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
+          <div className='flex items-center justify-center py-12'>
+            <Loader2 className='h-6 w-6 animate-spin text-gray-500' />
           </div>
         </StandardCard>
       </div>
@@ -104,18 +132,18 @@ export default function ContractorPayoutOnboardingPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6 p-6">
-      <div className="flex items-center gap-3">
-        <Banknote className="h-7 w-7 text-teal-600" />
-        <h1 className="text-2xl font-semibold">Payouts</h1>
+    <div className='mx-auto max-w-2xl space-y-6 p-6'>
+      <div className='flex items-center gap-3'>
+        <Banknote className='h-7 w-7 text-teal-600' />
+        <h1 className='text-2xl font-semibold'>Payouts</h1>
       </div>
 
       {error && (
         <div
-          className="flex items-start gap-3 rounded border border-red-300 bg-red-50 p-4 text-sm text-red-900"
-          role="alert"
+          className='flex items-start gap-3 rounded border border-red-300 bg-red-50 p-4 text-sm text-red-900'
+          role='alert'
         >
-          <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0" />
+          <AlertCircle className='mt-0.5 h-5 w-5 flex-shrink-0' />
           <div>{error}</div>
         </div>
       )}
@@ -154,20 +182,19 @@ function NoAccountState({
 }) {
   return (
     <StandardCard>
-      <div className="space-y-4 p-4">
-        <h2 className="text-lg font-semibold">Set up payouts</h2>
-        <p className="text-sm text-gray-600">
-          To receive payment for completed jobs, set up a Stripe account.
-          Stripe will ask for your bank details, ID, and business information
-          (about 5 minutes). Mintenance never sees or stores these details
-          directly.
+      <div className='space-y-4 p-4'>
+        <h2 className='text-lg font-semibold'>Set up payouts</h2>
+        <p className='text-sm text-gray-600'>
+          To receive payment for completed jobs, set up a Stripe account. Stripe
+          will ask for your bank details, ID, and business information (about 5
+          minutes). Mintenance never sees or stores these details directly.
         </p>
-        <ul className="ml-4 list-disc space-y-1 text-sm text-gray-600">
+        <ul className='ml-4 list-disc space-y-1 text-sm text-gray-600'>
           <li>Payouts are sent weekly on Fridays</li>
           <li>Minimum balance of £50 before a payout is sent</li>
           <li>Stripe handles tax documents (viewable in your dashboard)</li>
         </ul>
-        <Button onClick={onStart} disabled={busy} className="mt-2">
+        <Button onClick={onStart} disabled={busy} className='mt-2'>
           {busy ? 'Redirecting…' : 'Set up payouts with Stripe'}
         </Button>
       </div>
@@ -188,21 +215,21 @@ function ReviewState({
 }) {
   return (
     <StandardCard>
-      <div className="space-y-4 p-4">
-        <div className="flex items-center gap-2">
-          <Loader2 className="h-5 w-5 animate-spin text-amber-600" />
-          <h2 className="text-lg font-semibold">Account under review</h2>
+      <div className='space-y-4 p-4'>
+        <div className='flex items-center gap-2'>
+          <Loader2 className='h-5 w-5 animate-spin text-amber-600' />
+          <h2 className='text-lg font-semibold'>Account under review</h2>
         </div>
-        <p className="text-sm text-gray-600">
+        <p className='text-sm text-gray-600'>
           Stripe is verifying your details. This usually takes a few minutes,
           but can take up to 2 business days for some documents.
         </p>
         {status.requirementsPending.length > 0 && (
-          <div className="rounded border border-amber-300 bg-amber-50 p-3">
-            <div className="mb-2 text-sm font-medium text-amber-900">
+          <div className='rounded border border-amber-300 bg-amber-50 p-3'>
+            <div className='mb-2 text-sm font-medium text-amber-900'>
               Additional information needed:
             </div>
-            <ul className="ml-4 list-disc space-y-1 text-sm text-amber-900">
+            <ul className='ml-4 list-disc space-y-1 text-sm text-amber-900'>
               {status.requirementsPending.slice(0, 5).map((req) => (
                 <li key={req}>{formatRequirement(req)}</li>
               ))}
@@ -210,14 +237,14 @@ function ReviewState({
             <Button
               onClick={onStart}
               disabled={busy}
-              variant="outline"
-              className="mt-3"
+              variant='outline'
+              className='mt-3'
             >
               {busy ? 'Redirecting…' : 'Complete information'}
             </Button>
           </div>
         )}
-        <Button variant="outline" onClick={onRefresh}>
+        <Button variant='outline' onClick={onRefresh}>
           Check status
         </Button>
       </div>
@@ -243,53 +270,53 @@ function ReadyState({
   return (
     <>
       <StandardCard>
-        <div className="space-y-3 p-4">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 className="h-5 w-5 text-green-600" />
-            <h2 className="text-lg font-semibold">Ready to receive payouts</h2>
+        <div className='space-y-3 p-4'>
+          <div className='flex items-center gap-2'>
+            <CheckCircle2 className='h-5 w-5 text-green-600' />
+            <h2 className='text-lg font-semibold'>Ready to receive payouts</h2>
           </div>
-          <div className="grid grid-cols-2 gap-4 text-sm">
+          <div className='grid grid-cols-2 gap-4 text-sm'>
             <div>
-              <div className="text-gray-500">Pending balance</div>
-              <div className="text-xl font-semibold">
+              <div className='text-gray-500'>Pending balance</div>
+              <div className='text-xl font-semibold'>
                 {formatMoney(pending, balance?.currency ?? 'GBP')}
               </div>
             </div>
             <div>
-              <div className="text-gray-500">Lifetime paid out</div>
-              <div className="text-xl font-semibold">
+              <div className='text-gray-500'>Lifetime paid out</div>
+              <div className='text-xl font-semibold'>
                 {formatMoney(
                   balance?.lifetimePaidOutMinor ?? 0,
-                  balance?.currency ?? 'GBP',
+                  balance?.currency ?? 'GBP'
                 )}
               </div>
             </div>
           </div>
           {pending < threshold && (
             <div>
-              <div className="mb-1 flex items-center justify-between text-xs text-gray-600">
+              <div className='mb-1 flex items-center justify-between text-xs text-gray-600'>
                 <span>Progress to next payout</span>
                 <span>
                   {formatMoney(pending, balance?.currency ?? 'GBP')} of{' '}
                   {formatMoney(threshold, balance?.currency ?? 'GBP')}
                 </span>
               </div>
-              <div className="h-2 overflow-hidden rounded-full bg-gray-200">
+              <div className='h-2 overflow-hidden rounded-full bg-gray-200'>
                 <div
-                  className="h-full bg-teal-500 transition-all"
+                  className='h-full bg-teal-500 transition-all'
                   style={{ width: `${progress}%` }}
                 />
               </div>
             </div>
           )}
           {pending >= threshold && (
-            <div className="rounded border border-green-300 bg-green-50 p-3 text-sm text-green-900">
+            <div className='rounded border border-green-300 bg-green-50 p-3 text-sm text-green-900'>
               You&apos;re eligible for a payout. The next weekly transfer runs
               on Friday.
             </div>
           )}
           {balance?.lastPayoutAt && (
-            <div className="text-xs text-gray-500">
+            <div className='text-xs text-gray-500'>
               Last payout:{' '}
               {new Date(balance.lastPayoutAt).toLocaleDateString('en-GB', {
                 day: 'numeric',
@@ -298,12 +325,12 @@ function ReadyState({
               })}
             </div>
           )}
-          <div className="flex gap-2 pt-2">
-            <Button onClick={onOpenDashboard} className="gap-2">
+          <div className='flex gap-2 pt-2'>
+            <Button onClick={onOpenDashboard} className='gap-2'>
               Open Stripe Dashboard
-              <ExternalLink className="h-4 w-4" />
+              <ExternalLink className='h-4 w-4' />
             </Button>
-            <Button variant="outline" onClick={onRefresh}>
+            <Button variant='outline' onClick={onRefresh}>
               Refresh
             </Button>
           </div>
@@ -312,14 +339,14 @@ function ReadyState({
 
       {status.requirementsPending.length > 0 && (
         <StandardCard>
-          <div className="space-y-2 p-4">
-            <div className="flex items-center gap-2 text-amber-900">
-              <AlertCircle className="h-4 w-4" />
-              <div className="text-sm font-medium">Action required soon</div>
+          <div className='space-y-2 p-4'>
+            <div className='flex items-center gap-2 text-amber-900'>
+              <AlertCircle className='h-4 w-4' />
+              <div className='text-sm font-medium'>Action required soon</div>
             </div>
-            <p className="text-xs text-gray-600">
-              Stripe needs additional information to keep your payouts
-              enabled. Visit the dashboard to update.
+            <p className='text-xs text-gray-600'>
+              Stripe needs additional information to keep your payouts enabled.
+              Visit the dashboard to update.
             </p>
           </div>
         </StandardCard>
@@ -345,8 +372,6 @@ function formatRequirement(key: string): string {
 
 function getCsrfToken(): string {
   if (typeof document === 'undefined') return '';
-  const match = document.cookie.match(
-    /(?:^|; )(?:__Host-)?csrf-token=([^;]*)/,
-  );
+  const match = document.cookie.match(/(?:^|; )(?:__Host-)?csrf-token=([^;]*)/);
   return match ? decodeURIComponent(match[1]) : '';
 }

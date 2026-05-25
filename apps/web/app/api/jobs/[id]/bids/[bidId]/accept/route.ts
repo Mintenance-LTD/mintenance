@@ -164,19 +164,42 @@ export const POST = withApiHandler(
       // expected phrasing so the homeowner gets the explanation
       // immediately and the bid stays `pending` (selectable again once
       // the contractor finishes Stripe Connect).
+      //
+      // 2026-05-25 audit-46 P0: previously checked only
+      // stripe_connect_account_id. That ID is written the moment Stripe
+      // returns an account (before the contractor has submitted
+      // anything), so a contractor who clicked "Set up payouts" and
+      // immediately abandoned would still pass this gate. Result:
+      // homeowner pays into escrow but the Stripe transfer rejects at
+      // release time because payouts aren't enabled. Tighten to the
+      // real readiness flags webhook handlers maintain
+      // (stripe_payouts_enabled + stripe_transfers_active are both
+      // boolean live; verified 2026-05-25 via information_schema).
       const { data: contractor } = await userDb
         .from('profiles')
-        .select('stripe_connect_account_id, first_name, last_name')
+        .select(
+          'stripe_connect_account_id, stripe_payouts_enabled, stripe_transfers_active, first_name, last_name'
+        )
         .eq('id', bid.contractor_id)
         .single();
 
-      if (!contractor?.stripe_connect_account_id) {
-        logger.warn('Bid acceptance blocked — contractor has no Stripe setup', {
-          service: 'jobs',
-          contractorId: bid.contractor_id,
-          bidId,
-          jobId,
-        });
+      const payoutsReady =
+        !!contractor?.stripe_connect_account_id &&
+        contractor.stripe_payouts_enabled === true &&
+        contractor.stripe_transfers_active === true;
+      if (!payoutsReady) {
+        logger.warn(
+          'Bid acceptance blocked — contractor Stripe payouts not ready',
+          {
+            service: 'jobs',
+            contractorId: bid.contractor_id,
+            bidId,
+            jobId,
+            hasAccountId: !!contractor?.stripe_connect_account_id,
+            payoutsEnabled: contractor?.stripe_payouts_enabled,
+            transfersActive: contractor?.stripe_transfers_active,
+          }
+        );
         throw new ForbiddenError(
           'This contractor has not completed their payment account setup. They must finish Stripe Connect onboarding before their bid can be accepted.'
         );

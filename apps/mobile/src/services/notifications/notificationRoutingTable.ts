@@ -238,7 +238,39 @@ export function routeForNotification(
         params: { screen: 'ProfileTab', params: { screen: 'Calendar' } },
       };
 
+    // 2026-05-25 audit-44 P1: admin verification outcomes. Deep-link
+    // contractors to VerificationStatus where the badge / next step
+    // lives (ProfileTab → ProfileNavigator → VerificationStatus —
+    // registered in ProfileBusinessNavigator). Previously fell through
+    // to the inbox, so the contractor had to manually navigate to see
+    // whether admin approved or rejected their submission.
+    case 'verification_approved':
+    case 'verification_rejected':
+      return {
+        screen: 'Main',
+        params: {
+          screen: 'ProfileTab',
+          params: { screen: 'VerificationStatus' },
+        },
+      };
+
     case 'payment_received':
+      return p.jobId
+        ? jobDetailsRoute(p.jobId)
+        : {
+            screen: 'Main',
+            params: {
+              screen: 'ProfileTab',
+              params: { screen: 'PaymentHistory' },
+            },
+          };
+
+    // 2026-05-25 audit-45 P1: tip-payment webhook fires this when a
+    // homeowner's tip clears Stripe. Carries metadata.jobId from
+    // tip-payment-handler.ts (added in same audit) so we can deep-link
+    // to the contractor's JobDetails where the TipsReceivedSection
+    // surfaces. Fall back to PaymentHistory if jobId somehow missing.
+    case 'job_tip_received':
       return p.jobId
         ? jobDetailsRoute(p.jobId)
         : {

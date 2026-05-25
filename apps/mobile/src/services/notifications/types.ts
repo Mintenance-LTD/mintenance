@@ -61,6 +61,18 @@ export interface NotificationData {
     // the inbox because the discriminated union didn't list them.
     | 'appointment_scheduled'
     | 'job_scheduled'
+    // 2026-05-25 audit-44 P1: admin verification outcomes from
+    // /api/admin/verifications/[id] (account-level) and
+    // /api/admin/verifications/documents (per-document). Previously
+    // taps fell through to the inbox instead of opening the contractor
+    // verification surface where the badge / next step lives.
+    | 'verification_approved'
+    | 'verification_rejected'
+    // 2026-05-25 audit-45 P1: Stripe webhook tip-payment-handler fires
+    // this on payment_intent.succeeded for `metadata.type === 'job_tip'`.
+    // Now carries jobId + tipId so the routingTable can deep-link to
+    // the contractor's JobDetails where TipsReceivedSection lives.
+    | 'job_tip_received'
     | 'system';
   priority: 'low' | 'normal' | 'high';
   userId: string;

@@ -140,6 +140,32 @@ export const POST = withApiHandler(
       metadata: { jobId, event: 'job_completed' },
     });
 
+    // R7 #8 neighbour referral: if the homeowner redeemed a referral
+    // and this is their first completed job, credit £20 to both
+    // parties. Non-fatal if it fails.
+    //
+    // 2026-05-25 audit-45 P1: previously this hook only fired from
+    // photos/after/route.ts (the auto-completion path). If a
+    // contractor completes via this explicit route — which is wired up
+    // for legacy + manual-complete flows — the homeowner's first-job
+    // referral reward was silently never applied. applyRewardOnFirstJob
+    // is idempotent (checks status='redeemed' + flips to 'rewarded'),
+    // so firing it from both paths is safe.
+    try {
+      const { NeighbourhoodReferralService } =
+        await import('@/lib/services/referrals/NeighbourhoodReferralService');
+      await NeighbourhoodReferralService.applyRewardOnFirstJob(
+        job.homeowner_id,
+        jobId
+      );
+    } catch (refErr) {
+      logger.warn('Referral reward hook failed', {
+        service: 'jobs',
+        jobId,
+        err: refErr instanceof Error ? refErr.message : String(refErr),
+      });
+    }
+
     // Calculate auto-release date for escrow (async, don't block)
     if (job.contractor_id) {
       const { EscrowReleaseAgent } =
