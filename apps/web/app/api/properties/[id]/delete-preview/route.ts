@@ -50,7 +50,7 @@ export const GET = withApiHandler(
       );
     }
 
-    // Run all seven counts in parallel — each is `count(*) HEAD only`
+    // Run all counts in parallel — each is `count(*) HEAD only`
     // (rows: 0) so the round-trip is cheap.
     const [
       compliance,
@@ -60,6 +60,7 @@ export const GET = withApiHandler(
       schedules,
       jobs,
       roomPhotos,
+      maintenanceTickets,
     ] = await Promise.all([
       userDb
         .from('compliance_certificates')
@@ -102,6 +103,20 @@ export const GET = withApiHandler(
           (r) => r,
           () => ({ count: 0 as number | null })
         ),
+      // 2026-05-26 audit-65 P1: maintenance_tickets.property_id is
+      // CASCADE live, so portfolio ticket history gets silently
+      // wiped on property delete. Surface the count in the cascaded
+      // section so the homeowner sees the impact; the DELETE route
+      // also now blocks on open tickets (anything not closed/
+      // resolved/cancelled) so they can't be lost mid-flight.
+      userDb
+        .from('maintenance_tickets')
+        .select('*', { head: true, count: 'exact' })
+        .eq('property_id', params.id)
+        .then(
+          (r) => r,
+          () => ({ count: 0 as number | null })
+        ),
     ]);
 
     // 2026-05-21 audit fix: `jobs` moved from `cascaded` → `preserved`.
@@ -120,6 +135,13 @@ export const GET = withApiHandler(
 
     const cascaded = {
       property_room_photos: roomPhotos.count ?? 0,
+      // 2026-05-26 audit-65 P1: portfolio maintenance tickets
+      // cascade with the property. Closed/resolved tickets cascade
+      // by design (the property is gone, the history is archival).
+      // Open tickets are blocked by the DELETE route — they can
+      // still appear in this count to flag "you have N open tickets"
+      // ahead of the delete attempt.
+      maintenance_tickets: maintenanceTickets.count ?? 0,
     };
 
     const preservedTotal = Object.values(preserved).reduce((s, n) => s + n, 0);

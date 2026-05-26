@@ -294,8 +294,15 @@ export default function PropertyDetailsClient({
     // certs, tenants, contacts, anonymous reports, recurring schedules
     // + historical jobs — all `ON DELETE SET NULL` per the FK retention
     // migrations) vs the records that will be CASCADE-DELETED (room
-    // photos).
-    let confirmMessage = 'Are you sure you want to delete this property?';
+    // photos + closed maintenance_tickets).
+    //
+    // 2026-05-26 audit-65 P2: previously this fell back to a plain
+    // confirm when the preview fetch failed, letting the homeowner
+    // commit a high-impact delete without seeing authoritative
+    // counts. Now we block the action and ask them to refresh —
+    // safer than letting them blow away records sight-unseen.
+    let confirmMessage = '';
+    let previewSucceeded = false;
     try {
       const previewRes = await fetch(
         `/api/properties/${property.id}/delete-preview`,
@@ -318,7 +325,13 @@ export default function PropertyDetailsClient({
           // Real cascading photo table is property_room_photos —
           // earlier shape referenced a non-existent `property_photos`
           // and silently always reported 0.
-          cascaded: { property_room_photos: number };
+          // 2026-05-26 audit-65 P1: also surfaces maintenance_tickets
+          // (CASCADE FK) so portfolio users see the impact before
+          // committing.
+          cascaded: {
+            property_room_photos: number;
+            maintenance_tickets?: number;
+          };
           preservedTotal: number;
           cascadedTotal: number;
         };
@@ -370,17 +383,34 @@ export default function PropertyDetailsClient({
               `  • ${preview.cascaded.property_room_photos} room photo${preview.cascaded.property_room_photos === 1 ? '' : 's'}`
             );
           }
+          if ((preview.cascaded.maintenance_tickets ?? 0) > 0) {
+            lines.push(
+              `  • ${preview.cascaded.maintenance_tickets} maintenance ticket${preview.cascaded.maintenance_tickets === 1 ? '' : 's'} (closed/resolved history)`
+            );
+          }
           lines.push('');
         }
         lines.push('This cannot be undone.');
         confirmMessage = lines.join('\n');
+        previewSucceeded = true;
+      } else {
+        logger.warn('Delete preview returned non-OK status', {
+          service: 'ui',
+          status: previewRes.status,
+        });
       }
     } catch (err) {
-      // Preview is non-blocking — fall back to the plain confirm
-      logger.warn('Delete preview failed, falling back to plain confirm', {
+      logger.warn('Delete preview failed', {
         service: 'ui',
         error: err instanceof Error ? err.message : String(err),
       });
+    }
+
+    if (!previewSucceeded) {
+      toast.error(
+        'We couldn’t verify what would be affected by deleting this property. Refresh the page and try again, or contact support.'
+      );
+      return;
     }
 
     if (confirm(confirmMessage)) {
@@ -396,7 +426,30 @@ export default function PropertyDetailsClient({
           toast.success('Property deleted successfully');
           router.push('/properties');
         } else {
-          toast.error('Failed to delete property');
+          // 2026-05-26 audit-65 P2: previously this collapsed every
+          // non-2xx into the same "Failed to delete property" toast,
+          // so the 409 blocker payload (active jobs / open reports
+          // / open tickets) was hidden from the user. Parse the
+          // response, surface blocker[0].message, fall back to the
+          // generic toast only when no message is provided.
+          let serverMessage: string | undefined;
+          try {
+            const body = (await response.json()) as {
+              error?: string;
+              blockers?: Array<{ message?: string }>;
+            };
+            const blockerMsgs = (body.blockers ?? [])
+              .map((b) => b.message)
+              .filter((m): m is string => !!m);
+            if (blockerMsgs.length > 0) {
+              serverMessage = blockerMsgs.join('\n\n');
+            } else if (body.error) {
+              serverMessage = body.error;
+            }
+          } catch {
+            // Body wasn't JSON — fall back below.
+          }
+          toast.error(serverMessage || 'Failed to delete property');
         }
       } catch (error) {
         logger.error('Error deleting property:', error, { service: 'ui' });

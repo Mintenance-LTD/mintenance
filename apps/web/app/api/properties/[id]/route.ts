@@ -229,23 +229,72 @@ export const DELETE = withApiHandler(
       throw activeJobErr;
     }
 
+    // 2026-05-26 audit-65 P1: also check for cross-flow blockers
+    // that the deletion would silently break / orphan:
+    //   - anonymous_reports.property_id is SET NULL, BUT
+    //     anonymous_report_tokens.property_id is CASCADE — so
+    //     deleting the property keeps the report row in the DB but
+    //     wipes the token, and the landlord reports list/detail
+    //     both require `anonymous_report_tokens!inner`, leaving
+    //     reports orphaned-but-unreachable. Block deletion until
+    //     the reports are resolved or detached.
+    //   - maintenance_tickets.property_id is CASCADE — portfolio
+    //     users would silently lose ticket history. Block on
+    //     non-terminal tickets (anything not closed/resolved).
+    const [anonReportsRes, maintenanceTicketsRes] = await Promise.all([
+      serverSupabase
+        .from('anonymous_reports')
+        .select('id', { count: 'exact', head: true })
+        .eq('property_id', params.id),
+      // Use service-role: maintenance_tickets RLS is org-scoped and
+      // a homeowner deleting their property may not be on the org
+      // (e.g. portfolio user with multiple orgs). The blocker check
+      // is the security boundary here, not the read.
+      serverSupabase
+        .from('maintenance_tickets')
+        .select('id', { count: 'exact', head: true })
+        .eq('property_id', params.id)
+        .not('status', 'in', '("closed","resolved","cancelled")'),
+    ]);
+
+    const blockers: Array<{ code: string; count: number; message: string }> =
+      [];
     if ((activeJobCount ?? 0) > 0) {
-      logger.warn('Property delete blocked by active jobs', {
+      blockers.push({
+        code: 'ACTIVE_JOBS_ON_PROPERTY',
+        count: activeJobCount ?? 0,
+        message: `${activeJobCount} job(s) attached to this property are still assigned or in progress. Complete, cancel, or detach them before deleting the property.`,
+      });
+    }
+    if (!anonReportsRes.error && (anonReportsRes.count ?? 0) > 0) {
+      blockers.push({
+        code: 'ANONYMOUS_REPORTS_ON_PROPERTY',
+        count: anonReportsRes.count ?? 0,
+        message: `${anonReportsRes.count} anonymous report(s) reference this property. Deleting the property would orphan them (the report rows survive but the token link cascades). Archive or resolve the reports first, or contact support to migrate them.`,
+      });
+    }
+    if (
+      !maintenanceTicketsRes.error &&
+      (maintenanceTicketsRes.count ?? 0) > 0
+    ) {
+      blockers.push({
+        code: 'OPEN_MAINTENANCE_TICKETS_ON_PROPERTY',
+        count: maintenanceTicketsRes.count ?? 0,
+        message: `${maintenanceTicketsRes.count} open maintenance ticket(s) are attached to this property. Resolve or close them before deleting (closed tickets cascade with the property by design).`,
+      });
+    }
+
+    if (blockers.length > 0) {
+      logger.warn('Property delete blocked', {
         service: 'properties',
         propertyId: params.id,
         userId: user.id,
-        activeJobCount,
+        blockerCodes: blockers.map((b) => b.code),
       });
       return NextResponse.json(
         {
           error: 'Property delete blocked by active marketplace state.',
-          blockers: [
-            {
-              code: 'ACTIVE_JOBS_ON_PROPERTY',
-              count: activeJobCount,
-              message: `${activeJobCount} job(s) attached to this property are still assigned or in progress. Complete, cancel, or detach them before deleting the property.`,
-            },
-          ],
+          blockers,
         },
         { status: 409 }
       );
