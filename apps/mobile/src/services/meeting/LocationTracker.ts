@@ -54,9 +54,17 @@ export async function updateContractorLocation(
 }
 
 export async function getContractorLocation(
-  contractorId: string
+  contractorId: string,
+  opts?: { jobId?: string }
 ): Promise<ContractorLocation | null> {
   try {
+    // 2026-05-27 audit-78 P2: the location GET requires `job_id` for
+    // homeowner reads (route lines 211-221). The Meeting Details
+    // screen previously called without one, so the homeowner-side
+    // initial fetch hard-403'd before any live ping could surface.
+    // Callers now thread the meeting's job_id; contractor-self and
+    // admin reads ignore the param.
+    const qs = opts?.jobId ? `?job_id=${encodeURIComponent(opts.jobId)}` : '';
     const response = await mobileApiClient.get<{
       location: {
         id: string;
@@ -67,7 +75,7 @@ export async function getContractorLocation(
         timestamp?: string;
         is_sharing_location?: boolean;
       };
-    }>(`/api/contractors/${encodeURIComponent(contractorId)}/location`);
+    }>(`/api/contractors/${encodeURIComponent(contractorId)}/location${qs}`);
     return response?.location
       ? {
           id: response.location.id,
@@ -94,17 +102,27 @@ export async function getContractorLocation(
 
 export function subscribeToContractorLocation(
   contractorId: string,
-  callback: (location: ContractorLocation | null) => void
+  callback: (location: ContractorLocation | null) => void,
+  opts?: { jobId?: string }
 ) {
+  // 2026-05-27 audit-78 P2: scope the realtime filter to the meeting's
+  // job_id when known so the homeowner channel only receives the ping
+  // they actually have read access to. Without job_id we keep the
+  // older contractor-wide filter for backwards compat (admin / mocks).
+  const filter = opts?.jobId
+    ? `contractor_id=eq.${contractorId} AND job_id=eq.${opts.jobId}`
+    : `contractor_id=eq.${contractorId}`;
   return supabase
-    .channel(`contractor_location_${contractorId}`)
+    .channel(
+      `contractor_location_${contractorId}${opts?.jobId ? `_${opts.jobId}` : ''}`
+    )
     .on(
       'postgres_changes',
       {
         event: '*',
         schema: 'public',
         table: 'contractor_locations',
-        filter: `contractor_id=eq.${contractorId}`,
+        filter,
       },
       (rawPayload: unknown) => {
         const payload =
