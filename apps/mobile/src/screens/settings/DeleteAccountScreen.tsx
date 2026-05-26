@@ -119,23 +119,47 @@ export const DeleteAccountScreen: React.FC = () => {
       );
     },
     onError: (err: unknown) => {
-      // 2026-05-23: the API now returns 409 with `{ blockers: [...] }`
-      // when held escrow / active jobs prevent deletion. Surface the
-      // first blocker message rather than the generic
-      // "Failed to delete account" — gives the user actionable info.
+      // 2026-05-23: the API returns 409 with `{ blockers: [...] }` when
+      // held escrow / active jobs prevent deletion. We want to surface
+      // each blocker's message instead of the generic
+      // "Failed to delete account".
+      //
+      // 2026-05-27 audit-75 P1: the previous reads
+      // (`err.response.data.blockers`, `err.blockers`) match Axios's
+      // shape, but the shared @mintenance/api-client wraps the
+      // response JSON into nested `details` levels (see ApiClient
+      // .parseErrorResponse → parseError). The 409 body lives two
+      // levels deep — `err.details.details.blockers`. We also keep
+      // the legacy paths as fallbacks so direct-fetch callers and
+      // any future shape changes don't silently regress to the
+      // generic error.
       const fallback =
         err instanceof Error
           ? err.message
           : 'Failed to delete account. Please contact support.';
       type Blocker = { code: string; message: string };
-      type ApiErr = {
-        response?: { data?: { blockers?: Blocker[]; error?: string } };
-        blockers?: Blocker[];
+      const isBlockerArray = (v: unknown): v is Blocker[] =>
+        Array.isArray(v) &&
+        v.every(
+          (entry) =>
+            entry &&
+            typeof entry === 'object' &&
+            typeof (entry as { message?: unknown }).message === 'string'
+        );
+      const candidates: unknown[] = [];
+      const visit = (node: unknown, depth: number) => {
+        if (!node || typeof node !== 'object' || depth > 4) return;
+        const rec = node as Record<string, unknown>;
+        if (isBlockerArray(rec.blockers)) candidates.push(rec.blockers);
+        // walk likely envelope keys without descending into every
+        // primitive
+        ['details', 'data', 'response', 'body'].forEach((k) => {
+          if (rec[k]) visit(rec[k], depth + 1);
+        });
       };
-      const apiErr = err as ApiErr;
-      const blockers =
-        apiErr.response?.data?.blockers ?? apiErr.blockers ?? null;
-      if (Array.isArray(blockers) && blockers.length > 0) {
+      visit(err, 0);
+      const blockers = candidates.find(isBlockerArray) as Blocker[] | undefined;
+      if (blockers && blockers.length > 0) {
         Alert.alert(
           'Resolve these first',
           blockers.map((b) => `• ${b.message}`).join('\n\n'),

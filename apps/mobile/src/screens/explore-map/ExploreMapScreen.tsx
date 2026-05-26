@@ -41,6 +41,87 @@ import {
 import { me } from '../../design-system/mint-editorial';
 import { styles, CARD_WIDTH, CATEGORY_MARKERS, CATEGORIES } from './styles';
 
+// 2026-05-27 audit-77 P2: empty-state pill that floats above the
+// carousel zone when there are zero discoverable jobs in the
+// current radius. Live data shows 4 posted/unassigned jobs total
+// but 2 sit ~142km outside the 25km London default; without a
+// guidance state the contractor sees a blank map + "0 jobs" pill
+// and doesn't know whether to zoom out, change category, or move
+// the area. Kept local — the styles are specific to this overlay.
+const emptyStateStyles = StyleSheet.create({
+  wrapper: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    alignItems: 'center',
+  },
+  card: {
+    backgroundColor: me.surface,
+    borderRadius: 16,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    maxWidth: 420,
+    width: '100%',
+    ...me.shadow.pop,
+  },
+  iconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: me.brandSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  title: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: me.ink,
+    marginBottom: 4,
+  },
+  body: {
+    fontSize: 13,
+    lineHeight: 18,
+    color: me.ink2,
+    marginBottom: 10,
+  },
+  ctaRow: {
+    flexDirection: 'row',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  ctaButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: me.brand,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+  },
+  ctaButtonSecondary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: me.bg2,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: me.line,
+  },
+  ctaText: {
+    color: me.onBrand,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  ctaTextSecondary: {
+    color: me.ink,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+});
+
 // 2026-05-27 audit-72 P1: full-screen verification-blocked card for
 // pending contractors who hit /api/jobs/discover before admin approval.
 // Styles kept local — this is a one-off layout that shouldn't leak
@@ -735,6 +816,66 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({
       >
         <Ionicons name='navigate' size={20} color={me.brand} />
       </TouchableOpacity>
+
+      {/* 2026-05-27 audit-77 P2: empty-state guidance card. Renders
+          only when we have a successful zero-result fetch — not for
+          loading, verification-blocked, or API-error states (those
+          have their own overlays). Live data has 4 posted jobs but
+          2 are 142km outside the 25km default radius — without this
+          card the contractor saw a blank map + "0 jobs" pill and
+          had to guess whether to zoom out / change category / move
+          the area. CTAs surface the three actionable next steps. */}
+      {!viewModel.loading &&
+        !viewModel.verificationRequired &&
+        !viewModel.errorMessage &&
+        viewModel.jobs.length === 0 && (
+          <View
+            style={[emptyStateStyles.wrapper, { bottom: insets.bottom + 24 }]}
+            pointerEvents='box-none'
+          >
+            <View style={emptyStateStyles.card}>
+              <View style={emptyStateStyles.iconWrap}>
+                <Ionicons name='search-outline' size={18} color={me.brand} />
+              </View>
+              <Text style={emptyStateStyles.title}>No jobs in this area</Text>
+              <Text style={emptyStateStyles.body}>
+                {viewModel.selectedCategory
+                  ? 'Try removing the category filter or moving the map to a different area.'
+                  : 'Try zooming out to a wider area, or moving the map to a different location.'}
+              </Text>
+              <View style={emptyStateStyles.ctaRow}>
+                {viewModel.selectedCategory ? (
+                  <TouchableOpacity
+                    style={emptyStateStyles.ctaButton}
+                    onPress={() => viewModel.handleCategorySelect(null)}
+                    accessibilityRole='button'
+                    accessibilityLabel='Clear category filter'
+                    activeOpacity={0.85}
+                  >
+                    <Ionicons
+                      name='close-circle'
+                      size={14}
+                      color={me.onBrand}
+                    />
+                    <Text style={emptyStateStyles.ctaText}>Clear category</Text>
+                  </TouchableOpacity>
+                ) : null}
+                <TouchableOpacity
+                  style={emptyStateStyles.ctaButtonSecondary}
+                  onPress={viewModel.refreshJobs}
+                  accessibilityRole='button'
+                  accessibilityLabel='Search this area again'
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name='refresh' size={14} color={me.ink} />
+                  <Text style={emptyStateStyles.ctaTextSecondary}>
+                    Search again
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        )}
 
       {/* Horizontal job card carousel */}
       {viewModel.jobs.length > 0 && (

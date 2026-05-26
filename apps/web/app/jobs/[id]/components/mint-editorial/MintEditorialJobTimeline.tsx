@@ -139,13 +139,26 @@ export function MintEditorialJobTimeline({
   const accepted = allBids.find((b) => b.status === 'accepted');
   if (accepted) {
     const ts = new Date(accepted.created_at).getTime() + 1;
+    // 2026-05-27 audit-76 P2: previously hardcoded "held in escrow"
+    // as the meta string. Live data shows 6 accepted bids with no
+    // escrow row — between accept and contract-signing, the
+    // homeowner saw the lie that funds were already held even
+    // though they hadn't paid yet. Now: the per-event meta only
+    // makes the "held" claim when the dedicated escrow-held event
+    // below (line 186, gated on escrowStatus === 'held') fires.
+    // Until then this just says the accepted amount + reflects
+    // the actual next step (contract signing).
+    const meta =
+      lifecycle.escrowStatus === 'held'
+        ? `£${accepted.amount.toLocaleString('en-GB')} held in escrow`
+        : `£${accepted.amount.toLocaleString('en-GB')} · awaiting contract signing`;
     events.push({
       id: 'bid-accepted',
       ts,
       hasRealTs: false,
       icon: <CheckCircle2 size={14} strokeWidth={1.75} />,
       title: `You accepted ${bidContractorName(accepted)}'s bid`,
-      meta: `£${accepted.amount.toLocaleString('en-GB')} held in escrow`,
+      meta,
       tone: 'brand',
     });
   }

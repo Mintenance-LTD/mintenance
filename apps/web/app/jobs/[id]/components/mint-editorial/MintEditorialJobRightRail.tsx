@@ -182,20 +182,22 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
  */
 export function AccessSharedCard({
   property,
-  jobStage,
+  canSeeCode,
 }: {
   property: PropertyShape | null | undefined;
   /**
-   * Pass the same lifecycle stage the contractor side uses. We only
-   * surface the code when the contractor would actually see it
-   * (`ready_to_start` or `in_progress`) — at every other stage the
-   * card shows the mode + notes but masks the code with a hint.
+   * Authoritative "will the contractor see the code right now"
+   * signal — computed by the caller via the shared
+   * `canRevealKeySafeCode` helper so this card matches the
+   * contractor page's 1h-before-scheduled-start rule (audit-63 P1
+   * doc rule, audit-76 P1 propagation). The previous `jobStage`
+   * prop derived the answer from escrow/job status and over-
+   * promised: the homeowner saw "Visible to contractor now" when
+   * the contractor page still masked the code with ••••.
    */
-  jobStage: string;
+  canSeeCode: boolean;
 }) {
   if (!property) return null;
-  const canSeeCode =
-    jobStage === 'ready_to_start' || jobStage === 'in_progress';
   const hasAnyAccess =
     property.access_mode || property.access_notes || property.stopcock_location;
 
@@ -308,7 +310,10 @@ export function AccessSharedCard({
                       Visible to contractor now
                     </span>
                   ) : (
-                    'Reveals to contractor when escrow funds + work is ready to start'
+                    /* audit-76 P1: copy aligned with canRevealKeySafeCode —
+                       reveal is "within 1h of scheduled start", not
+                       "when escrow funds". */
+                    'Reveals to contractor 1 hour before the scheduled start'
                   )}
                 </span>
               </div>
@@ -377,11 +382,20 @@ export function HowPaymentWorksCard({
   escrowDisplay: string;
   contractorFirstName: string;
 }) {
+  // 2026-05-27 audit-76 P2: previously step 1 said "You accept the
+  // bid · £X held in escrow" — which conflates the actual two-step
+  // sequence (accept → both sign → fund escrow). The canonical
+  // helper at jobDetailHelpers.ts:151 already splits these: after
+  // bid acceptance the next CTA is "Sign the contract", and only
+  // after `contractStatus === 'accepted'` does the "Pay into
+  // escrow" step appear. Card copy now matches that lifecycle.
+  // Dispute is rendered as a footer note below the 4 numbered
+  // steps so the numbered sequence reads as the actual flow.
   const steps = [
-    `You accept the bid · ${escrowDisplay} held in escrow`,
+    'You accept the bid · contract drafted to sign',
+    `Both sign · ${escrowDisplay} held in escrow before work starts`,
     'Work is done · you confirm completion in-app',
     `We release payment to ${contractorFirstName} within 24h`,
-    'Dispute? Mintenance mediates free.',
   ];
   return (
     <div
@@ -432,6 +446,19 @@ export function HowPaymentWorksCard({
             <span>{text}</span>
           </div>
         ))}
+        {/* audit-76 P2: dispute path lives outside the numbered
+            sequence — it's not a step everyone takes, just a
+            safety-net assurance. */}
+        <p
+          className='t-meta'
+          style={{
+            margin: '8px 0 0',
+            fontSize: 11,
+            color: 'var(--me-ink-3)',
+          }}
+        >
+          Dispute? Mintenance mediates free.
+        </p>
       </div>
     </div>
   );

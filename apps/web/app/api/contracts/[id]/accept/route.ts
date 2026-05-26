@@ -69,6 +69,25 @@ export const POST = withApiHandler(
     // record the timestamp but no audit row. Real e-signature clients
     // attach signatureImage + signatureFormat + platform and we write
     // the immutable row to contract_signatures.
+    //
+    // audit-76 follow-up Suggestion #7: enforce an upper bound on the
+    // request body BEFORE parsing. The signature_image column caps at
+    // 512 KiB, but validateSignaturePayload only enforces that AFTER
+    // JSON.parse has already materialised the whole body. A malicious
+    // client could send a multi-megabyte JSON payload and force the
+    // function to allocate it. 1 MiB ceiling: 512 KiB image + slack
+    // for the wrapping JSON (base64 inflation ~33%, plus the other
+    // fields). Vercel limits requests platform-side too, but this is
+    // defense-in-depth for self-hosted deploys + future runtimes.
+    const SIGNATURE_BODY_LIMIT = 1024 * 1024; // 1 MiB
+    const contentLength = Number(request.headers.get('content-length') ?? '0');
+    if (
+      Number.isFinite(contentLength) &&
+      contentLength > SIGNATURE_BODY_LIMIT
+    ) {
+      throw new BadRequestError('Request body too large');
+    }
+
     let signaturePayload: ReturnType<typeof validateSignaturePayload> = null;
     try {
       const rawBody = await request.clone().json();

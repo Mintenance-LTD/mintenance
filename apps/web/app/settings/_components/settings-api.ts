@@ -233,10 +233,38 @@ export async function deleteAccount(
       toast.success('Account deleted successfully');
       window.location.href = '/login?deleted=true';
       return true;
-    } else {
-      toast.error('Failed to delete account');
-      return false;
     }
+    // 2026-05-27 audit-75 P1: the route returns 409 with
+    // `{ error, blockers: [...], help }` when held escrow / active
+    // jobs / open disputes / signed-unfunded contracts block the
+    // hard-delete. Previously we showed the generic "Failed to
+    // delete account" toast and the user had no idea what to fix.
+    // Now: parse the body, surface each blocker message as its own
+    // toast (each is short + actionable — "X escrow payment(s)
+    // still in flight... settle them before deleting") plus the
+    // top-level error as a header toast. 422 / 500 paths fall
+    // through to the same generic message via the `error` field.
+    let parsed: {
+      error?: string;
+      blockers?: Array<{ code?: string; message?: string }>;
+      help?: string;
+    } = {};
+    try {
+      parsed = (await response.json()) as typeof parsed;
+    } catch {
+      // body wasn't JSON — fall through to generic
+    }
+    if (Array.isArray(parsed.blockers) && parsed.blockers.length > 0) {
+      toast.error(parsed.error || 'Resolve these before deleting your account');
+      parsed.blockers.forEach((b) => {
+        if (b && typeof b.message === 'string') {
+          toast.error(b.message);
+        }
+      });
+    } else {
+      toast.error(parsed.error || 'Failed to delete account');
+    }
+    return false;
   } catch {
     toast.error('Error deleting account');
     return false;

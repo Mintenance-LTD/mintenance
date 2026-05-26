@@ -134,19 +134,89 @@ export const POST = withApiHandler(
       }
     }
 
-    // Check for existing active trip
+    // 2026-05-27 audit-78 P1: stale-trip recovery. The active-trip guard
+    // used to throw unconditionally on any open en_route row, which left
+    // contractors permanently blocked whenever a previous trip's GPS
+    // tick never landed (live evidence: 1 en_route trip 97 days old +
+    // 0 active contractor_locations row in the same window). Now: if
+    // the open trip has no active contractor_locations companion and
+    // started more than STALE_TRIP_MINUTES ago, auto-cancel it and
+    // continue creating the new trip. A fresh trip with a healthy
+    // location row still blocks (the contractor genuinely is mid-ride).
+    const STALE_TRIP_MINUTES = 10;
     const { data: existingTrip } = await serverSupabase
       .from('contractor_trips')
-      .select('id')
+      .select('id, started_at, job_id')
       .eq('contractor_id', user.id)
       .eq('status', 'en_route')
+      .order('started_at', { ascending: false })
       .limit(1)
       .maybeSingle();
 
     if (existingTrip) {
-      throw new BadRequestError(
-        'You already have an active trip. Complete or cancel it first.'
-      );
+      const startedAt = new Date(existingTrip.started_at);
+      const ageMinutes = (Date.now() - startedAt.getTime()) / 60000;
+      let hasLiveLocation = false;
+      if (existingTrip.job_id) {
+        const { data: liveLoc } = await serverSupabase
+          .from('contractor_locations')
+          .select('id')
+          .eq('contractor_id', user.id)
+          .eq('job_id', existingTrip.job_id)
+          .eq('is_active', true)
+          .limit(1)
+          .maybeSingle();
+        hasLiveLocation = !!liveLoc;
+      } else {
+        // No job_id on the trip — fall back to any active row for this
+        // contractor (availability ping). If anything active exists in
+        // the last 10 min we treat the trip as still alive.
+        const { data: liveLoc } = await serverSupabase
+          .from('contractor_locations')
+          .select('id, location_timestamp')
+          .eq('contractor_id', user.id)
+          .eq('is_active', true)
+          .order('location_timestamp', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (liveLoc) {
+          const locAge =
+            (Date.now() - new Date(liveLoc.location_timestamp).getTime()) /
+            60000;
+          hasLiveLocation = locAge < STALE_TRIP_MINUTES;
+        }
+      }
+
+      if (hasLiveLocation || ageMinutes < STALE_TRIP_MINUTES) {
+        throw new BadRequestError(
+          'You already have an active trip. Complete or cancel it first.'
+        );
+      }
+
+      // Stale → auto-cancel so the new trip can start cleanly.
+      const { error: cancelErr } = await serverSupabase
+        .from('contractor_trips')
+        .update({
+          status: 'cancelled',
+          completed_at: new Date().toISOString(),
+          notes:
+            'Auto-cancelled — stale en_route trip with no recent location ping.',
+        })
+        .eq('id', existingTrip.id)
+        .eq('contractor_id', user.id);
+      if (cancelErr) {
+        logger.warn('Failed to auto-cancel stale trip; falling through', {
+          service: 'trips',
+          tripId: existingTrip.id,
+          error: cancelErr.message,
+        });
+      } else {
+        logger.info('Auto-cancelled stale en_route trip', {
+          service: 'trips',
+          tripId: existingTrip.id,
+          ageMinutes,
+        });
+      }
     }
 
     // Create the trip

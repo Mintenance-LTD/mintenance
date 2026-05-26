@@ -29,6 +29,8 @@ import {
 } from 'lucide-react';
 import { getCsrfHeaders } from '@/lib/csrf-client';
 import { logger } from '@mintenance/shared';
+import toast from 'react-hot-toast';
+import { canRevealKeySafeCode } from '@/lib/services/jobs/key-safe-reveal';
 import type { Bid } from '../BidCard';
 import {
   formatGBP,
@@ -246,9 +248,23 @@ export function MintEditorialJobDetail({
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || 'Failed to accept bid');
       }
+      toast.success('Bid accepted — drafting your contract');
       router.refresh();
     } catch (e) {
+      // 2026-05-27 audit-76 P1: previously this only logged. The
+      // /accept route returns structured errors for cap exceeded,
+      // contractor missing Stripe Connect, bid not pending, or
+      // already-accepted-elsewhere. Without a toast the homeowner
+      // tapped Accept, the button reset, and they had no idea why
+      // nothing happened. Surface the route's error string so they
+      // can act (top up Stripe Connect, withdraw a different
+      // assignment, etc).
       logger.error('Failed to accept bid', e);
+      toast.error(
+        e instanceof Error
+          ? e.message
+          : 'Failed to accept bid. Please try again.'
+      );
       setAccepting(false);
     }
   };
@@ -445,21 +461,23 @@ export function MintEditorialJobDetail({
           <HomeownerChecklistEditor jobId={job.id} jobStatus={job.status} />
 
           {/* Access shared with contractor — mirror of what the
-              contractor sees on `/contractor/jobs/[id]`. The code is
-              revealed to the contractor once escrow is funded and
-              the job is at ready_to_start / in_progress; reveal here
-              follows the same rule so the homeowner sees the same
-              window the contractor does. */}
+              contractor sees on `/contractor/jobs/[id]`.
+              2026-05-27 audit-76 P1: derive the canSeeCode signal
+              via the shared canRevealKeySafeCode helper (same as
+              the contractor page line 199). Previous jobStage
+              tunnelling revealed the code once escrow funded +
+              status==='assigned' — which is days before the
+              scheduled visit. The shared helper enforces the
+              documented "1h before scheduled start" rule, so the
+              homeowner is no longer told the contractor can see
+              the code when the contractor page still masks it. */}
           {property ? (
             <AccessSharedCard
               property={property}
-              jobStage={
-                lifecycle.escrowStatus === 'held' && job.status === 'assigned'
-                  ? 'ready_to_start'
-                  : job.status === 'in_progress'
-                    ? 'in_progress'
-                    : ((job.status as string) ?? 'posted')
-              }
+              canSeeCode={canRevealKeySafeCode({
+                status: job.status,
+                scheduled_start_date: job.scheduled_start_date,
+              })}
             />
           ) : null}
 

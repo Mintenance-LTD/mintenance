@@ -153,12 +153,14 @@ function legacyToCanonicalPatch(
   if (typeof legacyPatch.emailEnabled === 'boolean') {
     out.email_enabled = legacyPatch.emailEnabled;
   }
-  if (
-    legacyPatch.quietHoursEnabled === false ||
-    (typeof legacyPatch.quietHoursEnabled === 'undefined' &&
-      legacyPatch.quietHoursStart === '' &&
-      legacyPatch.quietHoursEnd === '')
-  ) {
+  // 2026-05-27 audit-76 follow-up: only the explicit
+  // `quietHoursEnabled === false` signal clears the window. The
+  // previous heuristic also cleared when enabled was undefined AND
+  // both start/end happened to be empty strings — which conflated a
+  // legitimate caller blanking just one end with "user wants quiet
+  // hours off". Forces callers to be explicit; partial updates that
+  // only touch one field are now no-ops on the other.
+  if (legacyPatch.quietHoursEnabled === false) {
     out.quiet_hours_start = null;
     out.quiet_hours_end = null;
   } else if (legacyPatch.quietHoursEnabled === true) {

@@ -1,3 +1,4 @@
+import { cache } from 'react';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 
 type PropertyRole = 'owner' | 'admin' | 'manager' | 'viewer';
@@ -51,16 +52,17 @@ const PERMISSION_MATRIX: Record<PropertyRole, Set<Action>> = {
   viewer: new Set(['view']),
 };
 
-export class PropertyTeamService {
-  /**
-   * Get a user's role for a specific property.
-   * Returns 'owner' if they own it, or the team role if they're a team member.
-   */
-  static async getRole(
-    userId: string,
-    propertyId: string
-  ): Promise<PropertyRole | null> {
-    // Check ownership first
+// audit-76 follow-up Suggestion #6: React `cache()` wraps `getRole` so
+// repeat calls with the same (userId, propertyId) within ONE request
+// reuse the same Promise. Covers the composite-view case the sub-agent
+// flagged — same route checking authorize twice (gate + capability
+// hint), or future composed handlers calling multiple PropertyTeam
+// helpers in one request. Owner-only callers still short-circuit on
+// the first query (the 2nd is skipped); the cache just dedupes if the
+// same role is asked for again.
+const getRoleCached = cache(
+  async (userId: string, propertyId: string): Promise<PropertyRole | null> => {
+    // Check ownership first — short-circuits the 95% owner case.
     const { data: property } = await serverSupabase
       .from('properties')
       .select('owner_id')
@@ -81,6 +83,20 @@ export class PropertyTeamService {
 
     if (!member) return null;
     return member.role as PropertyRole;
+  }
+);
+
+export class PropertyTeamService {
+  /**
+   * Get a user's role for a specific property.
+   * Returns 'owner' if they own it, or the team role if they're a team member.
+   * Per-request memoized via React `cache()`.
+   */
+  static getRole(
+    userId: string,
+    propertyId: string
+  ): Promise<PropertyRole | null> {
+    return getRoleCached(userId, propertyId);
   }
 
   /**

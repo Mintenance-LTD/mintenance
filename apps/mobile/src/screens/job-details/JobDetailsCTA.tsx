@@ -13,6 +13,7 @@ import type { JobsStackParamList } from '../../navigation/types';
 import type { Job } from '@mintenance/types';
 import { JobService } from '../../services/JobService';
 import { queryKeys } from '../../lib/queryClient';
+import { ReadyToStartCTA } from './ReadyToStartCTA';
 
 type JobDetailsScreenNavigationProp = NativeStackNavigationProp<
   JobsStackParamList,
@@ -446,53 +447,4 @@ export function getPriorityCTA({
   }
 
   return null;
-}
-
-/**
- * Local CTA component for the ready_to_start sub-state where the
- * contractor already has at least one before-photo uploaded. Kept inline
- * (rather than promoted to its own file) because nothing else in the
- * codebase needs it and the logic is too small to justify a separate
- * module.
- *
- * Surfaces the same API call JobPhotoUploadScreen's post-upload alert
- * uses, so the network path + idempotency guarantees are identical.
- */
-function ReadyToStartCTA({
-  jobId,
-  onStarted,
-}: {
-  jobId: string;
-  onStarted: () => void;
-}) {
-  const [starting, setStarting] = useState(false);
-  const qc = useQueryClient();
-
-  const handleStart = async () => {
-    setStarting(true);
-    try {
-      await JobService.startJob(jobId);
-      qc.invalidateQueries({ queryKey: queryKeys.jobs.details(jobId) });
-      qc.invalidateQueries({ queryKey: queryKeys.jobs.lists() });
-      onStarted();
-      Alert.alert(
-        'Job Started',
-        'The homeowner has been notified that work has begun.'
-      );
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to start job';
-      Alert.alert('Could Not Start Job', msg);
-    } finally {
-      setStarting(false);
-    }
-  };
-
-  return (
-    <StickyBottomCTA
-      buttonText={starting ? 'Starting…' : 'Start Job'}
-      onPress={handleStart}
-      secondaryText='Before-photos are uploaded. Tap to begin work.'
-      disabled={starting}
-    />
-  );
 }

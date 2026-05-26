@@ -1,14 +1,7 @@
 /**
- * Job Context Location Service
- *
- * Context-aware location tracking for Mintenance contractors.
- * Unlike Uber's 24/7 tracking, we track contractors ONLY when:
- * 1. They're traveling to a scheduled job/meeting
- * 2. They're on an active job
- * 3. They opt-in to "Available" mode for discovery
- *
- * @filesize Target: <300 lines
- * @compliance Single Responsibility - Location tracking only
+ * Job Context Location Service — context-aware GPS tracking only while
+ * the contractor is traveling to a job, on a job, or opted-in to
+ * Available mode. (Single-responsibility: location tracking only.)
  */
 
 import * as Location from 'expo-location';
@@ -225,6 +218,11 @@ export class JobContextLocationService {
         error: bgErr instanceof Error ? bgErr.message : String(bgErr),
       });
     }
+
+    // audit-76: clear stale GPS state; identity (ON_JOB / activeJobId) intact.
+    this.destination = null;
+    this.lastLocation = null;
+    this.isMoving = false;
 
     logger.info('Contractor marked as arrived', { jobId, meetingId });
   }
