@@ -154,24 +154,33 @@ export const POST = withApiHandler(
       );
     }
 
-    // 2026-05-24 audit-28 P1: cancel any live Stripe subscriptions
-    // BEFORE deleting local data. Previously the route only ran
-    // delete_user_data + auth.users delete — Stripe was never told
-    // and kept billing the (now-orphaned) customer indefinitely.
-    // Local rows cascade from profiles via FK, so once we hit
-    // delete_user_data we lose every link back to Stripe and the
-    // subscription is unrecoverable from app-side.
+    // 2026-05-27 audit-68 P1: reordered Stripe cancellation to AFTER
+    // delete_user_data succeeds, and snapshot the subscription ids
+    // BEFORE the DB delete (the cascade wipes contractor_subscriptions
+    // + homeowner_subscriptions along with the profile, so we'd lose
+    // the stripe_subscription_id link otherwise).
     //
-    // Strategy:
-    //   1. Read stripe_subscription_id from both subscription tables.
-    //   2. For each non-empty id, call stripe.subscriptions.cancel
-    //      (immediate, not period-end — the customer is leaving).
-    //   3. If any cancellation throws, hard-fail the request before
-    //      touching local data, so the user can retry or escalate
-    //      instead of being silently double-charged.
-    //   4. Already-cancelled Stripe rows (resource_missing /
-    //      `No such subscription`) are tolerated — they're already
-    //      in the desired terminal state.
+    // Previous order (Stripe → DB) had a destructive failure mode:
+    // if delete_user_data tripped a FK constraint (e.g. an audit-style
+    // NOT NULL pointer surfaced from a new code path — see audit-68 P1
+    // for the four columns we just nullified in v5), the user kept
+    // their account but lost the Stripe billing linkage entirely. New
+    // order (DB → Stripe → auth.users) keeps Stripe live until the DB
+    // commits, so a DB failure is fully recoverable: the user can
+    // retry, their subscription is still billing, no money in limbo.
+    //
+    // Failure modes under the new ordering:
+    //   - delete_user_data fails → return 500, nothing else touched.
+    //     User can retry; Stripe still billing.
+    //   - Stripe cancel fails AFTER successful DB delete → return 500
+    //     with a "data is gone but billing may continue" message so
+    //     the user contacts support. Operator manually cancels the
+    //     orphan Stripe subscription via the dashboard using the
+    //     snapshot ids we logged. Rare (Stripe ~99.99% uptime), and
+    //     the worst case is a few extra days of billing vs the
+    //     previous worst case of losing the entire subscription link.
+    //   - auth.users delete fails → existing behaviour (return 500
+    //     with caveat; orphan credential needs operator cleanup).
     const [contractorSubsRes, homeownerSubsRes] = await Promise.all([
       serverSupabase
         .from('contractor_subscriptions')
@@ -190,10 +199,47 @@ export const POST = withApiHandler(
       .map((s) => s.stripe_subscription_id as string | null)
       .filter((id): id is string => !!id);
 
+    // Log the deletion request for GDPR compliance
+    await serverSupabase.from('gdpr_audit_log').insert({
+      user_id: user.id,
+      action: 'data_deletion',
+      table_name: 'users',
+      record_id: user.id,
+      performed_by: user.id,
+    });
+
+    // Delete user data first. If the RPC errors we surface a 500 and
+    // Stripe is still live — the user can retry or contact support
+    // without losing their subscription. The fallback that the old
+    // version ran here is gone; partial failures are not OK.
+    const { error: deleteError } = await serverSupabase.rpc(
+      'delete_user_data',
+      { p_user_id: user.id }
+    );
+
+    if (deleteError) {
+      logger.error('delete_user_data RPC failed', deleteError, {
+        service: 'user',
+        userId: user.id,
+        code: deleteError.code,
+        details: deleteError.details,
+      });
+      throw new InternalServerError(
+        `Account deletion failed inside the database (${deleteError.message}). Your data has not been removed and your subscription billing is unchanged — please contact support so we can clear any FK constraint blocking the deletion.`
+      );
+    }
+
+    // DB delete succeeded — now cancel the Stripe subscriptions we
+    // snapshot above. resource_missing / 404 errors are tolerated
+    // (already-cancelled is the desired terminal state). Any other
+    // failure is logged + collected so we can surface them at the
+    // end with a "data deleted but billing may continue" message
+    // instead of pretending success.
+    const stripeFailures: { id: string; message: string }[] = [];
     for (const subId of subscriptionIds) {
       try {
         await stripe.subscriptions.cancel(subId);
-        logger.info('Cancelled Stripe subscription before account delete', {
+        logger.info('Cancelled Stripe subscription after account delete', {
           service: 'user',
           userId: user.id,
           subscriptionId: subId,
@@ -204,10 +250,6 @@ export const POST = withApiHandler(
           message?: string;
           statusCode?: number;
         };
-        // Already-deleted / not-found subscriptions are fine — that's
-        // the desired terminal state. Anything else is a real failure
-        // and must block the delete (otherwise we lose the Stripe link
-        // forever and billing continues).
         if (
           stripeErr?.code === 'resource_missing' ||
           stripeErr?.statusCode === 404
@@ -227,48 +269,11 @@ export const POST = withApiHandler(
           userId: user.id,
           subscriptionId: subId,
         });
-        throw new InternalServerError(
-          `Could not cancel Stripe subscription ${subId} (${
-            stripeErr?.message ?? 'unknown error'
-          }). Your account has NOT been deleted; please retry or contact support so we can stop the billing before removing your data.`
-        );
+        stripeFailures.push({
+          id: subId,
+          message: stripeErr?.message ?? 'unknown error',
+        });
       }
-    }
-
-    // Log the deletion request for GDPR compliance
-    await serverSupabase.from('gdpr_audit_log').insert({
-      user_id: user.id,
-      action: 'data_deletion',
-      table_name: 'users',
-      record_id: user.id,
-      performed_by: user.id,
-    });
-
-    // Delete user data using the role-aware GDPR function (live since
-    // 20260523000003 — handles contractor jobs by unassigning rather
-    // than deleting, and clears RESTRICT/NO ACTION FK dependants
-    // before the jobs DELETE in the homeowner branch). The previous
-    // version of this route ran a non-transactional manual fallback
-    // when the RPC errored — that hid partial failures (jobs left
-    // behind, profile not deleted) under a misleading "success"
-    // response. The fallback is gone; if the RPC errors we surface
-    // it as a 500 so the user (and our logs) see the real problem
-    // rather than a half-deleted account.
-    const { error: deleteError } = await serverSupabase.rpc(
-      'delete_user_data',
-      { p_user_id: user.id }
-    );
-
-    if (deleteError) {
-      logger.error('delete_user_data RPC failed', deleteError, {
-        service: 'user',
-        userId: user.id,
-        code: deleteError.code,
-        details: deleteError.details,
-      });
-      throw new InternalServerError(
-        `Account deletion failed inside the database (${deleteError.message}). Your data has not been removed — please contact support so we can clear any FK constraint blocking the deletion.`
-      );
     }
 
     // 2026-05-23 (v2): drop the auth.users row so the credential stops
@@ -330,6 +335,17 @@ export const POST = withApiHandler(
         `Account data was deleted but the login credential could not be removed${
           authDeleteErrMsg ? ` (${authDeleteErrMsg})` : ''
         }. Please contact support — your data is gone but you may still be able to sign in until an operator clears the credential.`
+      );
+    }
+
+    // 2026-05-27 audit-68 P1: Stripe failures collected during the
+    // reordered cancellation block surface here. Data is gone, auth
+    // credential is gone — but if any Stripe sub failed to cancel,
+    // billing continues until ops manually cancels via the dashboard.
+    // Return 500 with the sub ids so the user (and our logs) know.
+    if (stripeFailures.length > 0) {
+      throw new InternalServerError(
+        `Account data and credentials were deleted, but ${stripeFailures.length} Stripe subscription(s) could not be cancelled — billing may continue until support intervenes. Please contact support with these references: ${stripeFailures.map((f) => f.id).join(', ')}.`
       );
     }
 

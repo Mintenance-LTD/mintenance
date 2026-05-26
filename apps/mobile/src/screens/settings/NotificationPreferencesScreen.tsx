@@ -138,6 +138,25 @@ const GROUPS: readonly PurposeGroup[] = [
 // HH:MM validator. Permissive — accepts "9:00" as well as "09:00".
 const HHMM = /^([0-1]?\d|2[0-3]):[0-5]\d$/;
 
+// 2026-05-27 audit-71 P1: the urgent banner below promises that
+// payment confirmations + escrow holds + contractor "I'm on the way"
+// always reach the user — but the same UI also rendered `payment`
+// as a toggleable row, letting the user mute it. Server enforcement
+// already drops these types from `disabled_types` (see
+// NotificationPreferenceResolver.ts), and this UI guarantee removes
+// the confusing "I muted it but it still arrives" moment by rendering
+// always-on rows as an "Always on" pill rather than a switch.
+// Keep this set in sync with NotificationPreferenceResolver.ts.
+const ALWAYS_ON_TYPES = new Set<string>([
+  'payment',
+  'payment_received',
+  'contractor_en_route',
+]);
+
+function stripAlwaysOnFromDisabled(disabledTypes: string[]): string[] {
+  return disabledTypes.filter((t) => !ALWAYS_ON_TYPES.has(t));
+}
+
 export const NotificationPreferencesScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
   const [prefs, setPrefs] = useState<Prefs>(DEFAULTS);
@@ -176,6 +195,10 @@ export const NotificationPreferencesScreen: React.FC = () => {
   }, []);
 
   const toggleType = (type: string) => {
+    // audit-71 P1: ALWAYS_ON types render as a static "Always on" pill
+    // with no switch — defend the toggle path too, so a bad call site
+    // can't add them to disabled_types.
+    if (ALWAYS_ON_TYPES.has(type)) return;
     setPrefs((prev) => {
       const next = new Set(prev.disabled_types);
       if (next.has(type)) next.delete(type);
@@ -188,6 +211,7 @@ export const NotificationPreferencesScreen: React.FC = () => {
     setPrefs((prev) => {
       const next = new Set(prev.disabled_types);
       g.events.forEach((e) => {
+        if (ALWAYS_ON_TYPES.has(e.type)) return; // can't mute always-on
         if (allMuted) next.delete(e.type);
         else next.add(e.type);
       });
@@ -211,12 +235,16 @@ export const NotificationPreferencesScreen: React.FC = () => {
     }
     setSaving(true);
     try {
+      // audit-71 P1: never persist always-on types in disabled_types.
+      // Server filter is the authoritative defence but stripping here
+      // keeps the persisted row honest with the UI's "Always on" pill.
+      const cleanedDisabled = stripAlwaysOnFromDisabled(prefs.disabled_types);
       await mobileApiClient.patch('/api/user/notification-preferences', {
         push_enabled: prefs.push_enabled,
         email_enabled: prefs.email_enabled,
         sms_enabled: prefs.sms_enabled,
         in_app_enabled: prefs.in_app_enabled,
-        disabled_types: prefs.disabled_types,
+        disabled_types: cleanedDisabled,
         quiet_hours_start: quietStartDraft || null,
         quiet_hours_end: quietEndDraft || null,
         timezone: prefs.timezone || 'UTC',
@@ -303,6 +331,7 @@ export const NotificationPreferencesScreen: React.FC = () => {
 
               {g.events.map((e, idx) => {
                 const enabled = !disabledSet.has(e.type);
+                const isAlwaysOn = ALWAYS_ON_TYPES.has(e.type);
                 return (
                   <View
                     key={e.type}
@@ -317,12 +346,37 @@ export const NotificationPreferencesScreen: React.FC = () => {
                           <Text style={styles.rowSub}>{e.sub}</Text>
                         ) : null}
                       </View>
-                      <Switch
-                        value={enabled}
-                        onValueChange={() => toggleType(e.type)}
-                        trackColor={{ false: me.line, true: me.brand }}
-                        thumbColor={me.onBrand}
-                      />
+                      {isAlwaysOn ? (
+                        // audit-71 P1: pill instead of switch so the
+                        // banner's "always on" copy matches reality.
+                        <View
+                          accessibilityRole='text'
+                          accessibilityLabel={`${e.label} is always on`}
+                          style={{
+                            paddingHorizontal: 10,
+                            paddingVertical: 4,
+                            borderRadius: 999,
+                            backgroundColor: me.brandSoft,
+                          }}
+                        >
+                          <Text
+                            style={{
+                              color: me.brand,
+                              fontSize: 12,
+                              fontWeight: '600',
+                            }}
+                          >
+                            Always on
+                          </Text>
+                        </View>
+                      ) : (
+                        <Switch
+                          value={enabled}
+                          onValueChange={() => toggleType(e.type)}
+                          trackColor={{ false: me.line, true: me.brand }}
+                          thumbColor={me.onBrand}
+                        />
+                      )}
                     </View>
                   </View>
                 );

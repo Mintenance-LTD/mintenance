@@ -40,6 +40,13 @@ interface LiveLocation {
   is_active: boolean | null;
   location_timestamp: string | null;
   updated_at: string | null;
+  // 2026-05-26 audit-67 P2: context tells us whether the contractor
+  // is in travel mode or on-site. The mobile service sets context=
+  // 'on_job' + eta_minutes=0 in markArrived; we render that as a
+  // distinct "Contractor arrived" state instead of "Arriving now"
+  // (which is what eta<=0 displayed alone, ambiguous between "0 min
+  // away" and "actually here").
+  context: string | null;
 }
 
 function formatRelativeTime(iso: string | null): string {
@@ -73,7 +80,7 @@ export const HomeownerLocationRequest: React.FC<Props> = ({ jobId }) => {
         const { data, error } = await supabase
           .from('contractor_locations')
           .select(
-            'eta_minutes, is_sharing_location, is_active, location_timestamp, updated_at'
+            'eta_minutes, is_sharing_location, is_active, location_timestamp, updated_at, context'
           )
           .eq('job_id', jobId)
           .order('updated_at', { ascending: false })
@@ -124,6 +131,7 @@ export const HomeownerLocationRequest: React.FC<Props> = ({ jobId }) => {
             is_active: row.is_active ?? null,
             location_timestamp: row.location_timestamp ?? null,
             updated_at: row.updated_at ?? null,
+            context: row.context ?? null,
           });
         }
       )
@@ -166,6 +174,16 @@ export const HomeownerLocationRequest: React.FC<Props> = ({ jobId }) => {
   const eta = liveLocation?.eta_minutes ?? null;
   const lastFix =
     liveLocation?.location_timestamp ?? liveLocation?.updated_at ?? null;
+  // 2026-05-27 audit-69 P2: arrival context has three platform-specific
+  // aliases — mobile JobContextLocationService writes 'on_job', the
+  // web /api/contractors/[id]/location route accepts 'arrived' and
+  // 'on_site'. All three mean "contractor is at the job site" from
+  // the homeowner's perspective; render any of them as the explicit
+  // "Arrived" state instead of letting the cross-platform delta
+  // silently degrade to the generic "Sharing live location" copy.
+  const ARRIVED_CONTEXTS = new Set(['on_job', 'arrived', 'on_site']);
+  const hasArrived =
+    liveLocation?.context != null && ARRIVED_CONTEXTS.has(liveLocation.context);
 
   if (isLive) {
     return (
@@ -174,9 +192,13 @@ export const HomeownerLocationRequest: React.FC<Props> = ({ jobId }) => {
         <View style={styles.liveCard}>
           <View style={styles.statusRow}>
             <View style={styles.livePulse} />
-            <Text style={styles.liveText}>Sharing live location</Text>
+            <Text style={styles.liveText}>
+              {hasArrived ? 'Contractor arrived' : 'Sharing live location'}
+            </Text>
           </View>
-          {eta !== null ? (
+          {hasArrived ? (
+            <Text style={styles.etaText}>On site</Text>
+          ) : eta !== null ? (
             <Text style={styles.etaText}>
               {eta <= 0 ? 'Arriving now' : `~${eta} min away`}
             </Text>
@@ -184,7 +206,9 @@ export const HomeownerLocationRequest: React.FC<Props> = ({ jobId }) => {
             <Text style={styles.etaMuted}>Calculating arrival time…</Text>
           )}
           <Text style={styles.lastFixText}>
-            Last update: {formatRelativeTime(lastFix)}
+            {hasArrived
+              ? `Arrived ${formatRelativeTime(lastFix)}`
+              : `Last update: ${formatRelativeTime(lastFix)}`}
           </Text>
         </View>
       </View>

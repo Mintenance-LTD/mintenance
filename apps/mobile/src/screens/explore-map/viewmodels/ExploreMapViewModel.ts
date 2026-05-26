@@ -46,6 +46,12 @@ interface JobsMapViewModel {
   // `jobs` array so the UI can tell "no jobs match this area" from
   // "the discover endpoint blew up". Cleared on each fetchJobs attempt.
   errorMessage: string | null;
+  // 2026-05-27 audit-72 P1: /api/jobs/discover returns
+  // { jobs: [], code: 'CONTRACTOR_NOT_VERIFIED' } for pending
+  // contractors. Without surfacing this distinctly the screen shows a
+  // normal empty marketplace with no path forward; the banner needs to
+  // tell the user verification is required + offer a CTA.
+  verificationRequired: boolean;
   jobCount: number;
   locationGranted: boolean;
   hasPanned: boolean;
@@ -109,6 +115,11 @@ const useJobsMapViewModel = (): JobsMapViewModel => {
   // 2026-05-26 audit-58 P2: surface real discover failures instead of
   // letting them masquerade as "0 jobs".
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // 2026-05-27 audit-72 P1: distinct gate for the
+  // CONTRACTOR_NOT_VERIFIED response code so the screen can render a
+  // verification-blocked banner with a "Continue verification" CTA
+  // instead of the standard "no jobs in this area" empty state.
+  const [verificationRequired, setVerificationRequired] = useState(false);
 
   // Get user location on mount — prefers saved profile coordinates (home address), falls back to GPS
   useEffect(() => {
@@ -244,11 +255,12 @@ const useJobsMapViewModel = (): JobsMapViewModel => {
         homeowner_first_name: string | null;
       }
 
-      let response: { jobs: DiscoverRow[] };
+      let response: { jobs: DiscoverRow[]; code?: string };
       try {
-        response = await mobileApiClient.get<{ jobs: DiscoverRow[] }>(
-          `/api/jobs/discover?${params.toString()}`
-        );
+        response = await mobileApiClient.get<{
+          jobs: DiscoverRow[];
+          code?: string;
+        }>(`/api/jobs/discover?${params.toString()}`);
       } catch (err) {
         // 2026-05-26 audit-58 P2: previously logged + returned silently,
         // leaving `jobs` whatever stale set was on the map from the
@@ -273,6 +285,25 @@ const useJobsMapViewModel = (): JobsMapViewModel => {
       }
       // Successful fetch — clear any stale error banner.
       if (isMounted.current) setErrorMessage(null);
+
+      // 2026-05-27 audit-72 P1: /api/jobs/discover returns
+      // { jobs: [], code: 'CONTRACTOR_NOT_VERIFIED' } when the
+      // contractor's verification_status isn't 'verified' and they
+      // aren't admin_verified. Previously we read jobs ?? [] and
+      // silently rendered an empty marketplace — indistinguishable
+      // from "no jobs in your area". Surface the gate distinctly so
+      // the screen can render a verification-blocked banner with a
+      // CTA back to the verification flow.
+      if (response.code === 'CONTRACTOR_NOT_VERIFIED') {
+        if (isMounted.current) {
+          setVerificationRequired(true);
+          setJobs([]);
+          initialLoadDone.current = true;
+        }
+        return;
+      }
+      if (isMounted.current) setVerificationRequired(false);
+
       const data = response.jobs ?? [];
 
       const refLat = userLocation?.latitude ?? regionRef.current.latitude;
@@ -437,6 +468,7 @@ const useJobsMapViewModel = (): JobsMapViewModel => {
     selectedCategory,
     loading,
     errorMessage,
+    verificationRequired,
     jobCount: filteredJobs.length,
     locationGranted,
     hasPanned,

@@ -16,11 +16,20 @@ import { withApiHandler } from '@/lib/api/with-api-handler';
 // Without them every web-side ping landed without the context the
 // UI expected, so homeowners watching a web-only contractor saw a
 // dot but never the travel status.
+//
+// 2026-05-27 audit-69 P2: 'on_job' added to the accepted set. Mobile
+// JobContextLocationService.markArrived writes 'on_job' to mark
+// arrival; the homeowner UI (HomeownerLocationRequest) treats all
+// three of 'on_job' | 'arrived' | 'on_site' as the canonical arrival
+// state. Accepting all three on the write path means web-originated
+// pings using mobile's vocabulary don't 400, and the mobile UI's
+// arrival render is consistent regardless of which platform wrote.
 const LOCATION_CONTEXT_VALUES = [
   'idle',
   'traveling',
   'arrived',
   'on_site',
+  'on_job',
 ] as const;
 
 const updateLocationSchema = z.object({

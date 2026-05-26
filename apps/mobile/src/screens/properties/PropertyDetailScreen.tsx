@@ -240,10 +240,42 @@ export const PropertyDetailScreen: React.FC<Props> = ({
       queryClient.invalidateQueries({ queryKey: ['properties'] });
       navigation.goBack();
     },
-    onError: () => {
+    onError: (err: unknown) => {
+      // 2026-05-26 audit-65 P2: previously every error collapsed to
+      // a generic "We could not delete this property" alert, hiding
+      // the 409 blocker payload (active jobs / open reports / open
+      // tickets) the server sends. Inspect the apiClient's error
+      // shape; surface blocker[0].message verbatim when present,
+      // otherwise fall back to the generic copy.
+      type ApiErr = {
+        status?: number;
+        statusCode?: number;
+        response?: {
+          status?: number;
+          data?: {
+            error?: string;
+            blockers?: Array<{ message?: string }>;
+          };
+        };
+        data?: {
+          error?: string;
+          blockers?: Array<{ message?: string }>;
+        };
+      };
+      const e = err as ApiErr;
+      const status = e?.response?.status ?? e?.statusCode ?? e?.status;
+      const data = e?.response?.data ?? e?.data;
+      const blockerMessages = (data?.blockers ?? [])
+        .map((b) => b.message)
+        .filter((m): m is string => !!m);
+      const message =
+        status === 409 && blockerMessages.length > 0
+          ? blockerMessages.join('\n\n')
+          : (data?.error ??
+            'We could not delete this property. Please try again or contact support.');
       Alert.alert(
-        'Delete Failed',
-        'We could not delete this property. Please try again or contact support.'
+        status === 409 ? 'Cannot delete this property yet' : 'Delete Failed',
+        message
       );
     },
   });
@@ -276,6 +308,10 @@ export const PropertyDetailScreen: React.FC<Props> = ({
   };
   const CASCADED_LABELS: Record<string, string> = {
     property_room_photos: 'room photo',
+    // 2026-05-26 audit-65 P1: maintenance_tickets.property_id is
+    // CASCADE live; portfolio users would silently lose ticket
+    // history. Surface them in the preview alongside room photos.
+    maintenance_tickets: 'maintenance ticket',
   };
   const pluralize = (n: number, singular: string) =>
     `${n} ${singular}${n === 1 ? '' : 's'}`;
@@ -332,20 +368,22 @@ export const PropertyDetailScreen: React.FC<Props> = ({
   };
 
   const handleDelete = async () => {
+    // 2026-05-26 audit-65 P2: previously this fell back to a
+    // generic "couldn't load summary" prompt and let the user delete
+    // anyway — they could blow away records sight-unseen. Now a
+    // preview failure blocks the action and tells the user to refresh.
     let previewBody: string;
     try {
-      // Fetch the server's authoritative preview rather than guessing
-      // counts client-side. Web uses the same endpoint. If preview
-      // fails (network blip), fall back to the generic prompt rather
-      // than blocking the user from deleting at all — the server still
-      // enforces the auth gate on the DELETE call.
       const preview = await mobileApiClient.get<DeletePreview>(
         `/api/properties/${propertyId}/delete-preview`
       );
       previewBody = formatDeletePreview(preview);
     } catch {
-      previewBody =
-        'We could not load the impact summary. Continuing will permanently delete this property.';
+      Alert.alert(
+        'Cannot verify impact',
+        'We couldn’t check what would be affected by deleting this property. Please pull to refresh and try again, or contact support if this persists.'
+      );
+      return;
     }
 
     Alert.alert(

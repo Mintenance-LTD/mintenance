@@ -20,6 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { DeleteAccountModal } from '@/components/account/DeleteAccountModal';
 
 interface GDPRPreferences {
   dataProcessing: boolean;
@@ -141,48 +142,7 @@ export function ContractorDataPrivacy({
     }
   };
 
-  const handleDeleteAccount = async () => {
-    setIsLoading(true);
-    try {
-      // 2026-05-24 audit-28 P1: route schema requires
-      // { confirmation: 'DELETE' } literal (Zod). Was sending
-      // { confirm: true } which always failed validation, and the
-      // generic catch just surfaced "Failed to delete account. Please
-      // contact support." — masking both the real validation error
-      // and any structured blocker (active escrow, open dispute, etc).
-      const response = await fetch('/api/user/delete-account', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ confirmation: 'DELETE' }),
-      });
-
-      if (!response.ok) {
-        // Surface the route's structured error so blockers (active
-        // marketplace state) reach the contractor instead of a generic
-        // "contact support" placeholder.
-        let detail = 'Failed to delete account';
-        try {
-          const data = (await response.json()) as { error?: string };
-          if (data?.error) detail = data.error;
-        } catch {
-          // body wasn't JSON — keep the generic message
-        }
-        throw new Error(detail);
-      }
-
-      // Redirect to login after account deletion
-      window.location.href = '/login?deleted=true';
-    } catch (error) {
-      setMessage({
-        type: 'error',
-        text:
-          error instanceof Error
-            ? error.message
-            : 'Failed to delete account. Please contact support.',
-      });
-      setIsLoading(false);
-    }
-  };
+  // 2026-05-27 audit-68 P2: delete CTA opens shared DeleteAccountModal (typed-DELETE friction). Previously auto-fired on dialog confirm.
 
   return (
     <div
@@ -524,50 +484,15 @@ export function ContractorDataPrivacy({
         </DialogContent>
       </Dialog>
 
-      {/* Delete Account Dialog */}
-      <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Delete Your Account</DialogTitle>
-            <DialogDescription>
-              This action cannot be undone. All your data will be permanently
-              deleted in accordance with GDPR requirements.
-            </DialogDescription>
-          </DialogHeader>
-          <Alert variant='destructive' style={{ marginTop: theme.spacing[4] }}>
-            <AlertCircle className='h-4 w-4' />
-            <AlertTitle>Warning</AlertTitle>
-            <AlertDescription>
-              This will permanently delete your account, all jobs, bids,
-              reviews, portfolio, and associated data. You may want to export
-              your data first.
-            </AlertDescription>
-          </Alert>
-          <div
-            style={{
-              display: 'flex',
-              gap: theme.spacing[3],
-              marginTop: theme.spacing[4],
-            }}
-          >
-            <Button
-              variant='outline'
-              onClick={() => setShowDeleteDialog(false)}
-              style={{ flex: 1 }}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant='destructive'
-              onClick={handleDeleteAccount}
-              disabled={isLoading}
-              style={{ flex: 1 }}
-            >
-              {isLoading ? 'Deleting...' : 'Delete Account'}
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* 2026-05-27 audit-68 P2: shared DeleteAccountModal — requires
+          typing "DELETE" before firing the irreversible deletion. */}
+      {user?.id && (
+        <DeleteAccountModal
+          isOpen={showDeleteDialog}
+          onClose={() => setShowDeleteDialog(false)}
+          userId={user.id}
+        />
+      )}
     </div>
   );
 }

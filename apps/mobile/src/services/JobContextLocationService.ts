@@ -46,6 +46,9 @@ export class JobContextLocationService {
   private lastLocation: Location.LocationObject | null = null;
   private isMoving = false;
   private speedThreshold = 2; // m/s (~7 km/h)
+  // 2026-05-26 audit-67 P2: when true, stopJobTracking skips the
+  // is_active=false write so the homeowner UI keeps showing "Arrived".
+  private arrivalCommitted = false;
 
   /**
    * Start tracking when contractor begins traveling to a job/meeting
@@ -63,11 +66,28 @@ export class JobContextLocationService {
       this.activeMeetingId = meetingId;
       this.destination = destination;
       this.currentContext = ContractorLocationContext.TRAVELING_TO_JOB;
+      this.arrivalCommitted = false;
 
       // Request location permissions
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         throw new Error('Location permission not granted');
+      }
+
+      // 2026-05-26 audit-67 P1: parity with web LocationSharing — fire
+      // the homeowner push + email via the API. Best-effort; GPS
+      // continues even if the notify request fails.
+      try {
+        await mobileApiClient.post(
+          `/api/jobs/${jobId}/enable-location-sharing`,
+          { enabled: true }
+        );
+      } catch (notifyErr) {
+        logger.warn('enable-location-sharing notify failed; tracking anyway', {
+          jobId,
+          error:
+            notifyErr instanceof Error ? notifyErr.message : String(notifyErr),
+        });
       }
 
       // Get initial location
@@ -136,27 +156,15 @@ export class JobContextLocationService {
   }
 
   /**
-   * Mark contractor as arrived at job site
-   *
-   * 2026-05-24 audit-32 P1: previously only updated contractor_locations
-   * and stopped GPS — never closed the contractor_trips row that
-   * /api/contractor/trips POST had opened with status='en_route'. The
-   * trip then stayed open forever and the next "I'm on my way" tap
-   * 400'd with "You already have an active trip". Now: look up the
-   * en_route trip for this job and PATCH it to arrived, mirroring the
-   * web flow. Tolerates absence — not every arrival path is preceded
-   * by a trip-start (legacy entries, manual contractor flow).
+   * Mark contractor as arrived at job site.
+   * 2026-05-24 audit-32 P1: also PATCH the en_route contractor_trips
+   * row to 'arrived' so the next "I'm on my way" tap isn't blocked by
+   * the existing-active-trip guard. Tolerates absence.
    */
   async markArrived(jobId: string, meetingId: string | null): Promise<void> {
-    // 2026-05-26 audit-48 P1: previously hard-threw "No location data
-    // available" if this.lastLocation was null. That happens whenever
-    // the contractor presses Arrived after a tracking session that
-    // didn't manage to get an initial fix (permission edge case, GPS
-    // cold-start, app resume from background) — markArrived has no
-    // way to recover without one more position read. Fall back to a
-    // fresh getCurrentPositionAsync so the arrival still records
-    // wherever the contractor actually is. If THAT also fails we
-    // re-throw the original error so the caller can surface it.
+    // 2026-05-26 audit-48 P1: fall back to a fresh position read if
+    // lastLocation is null (permission edge case, GPS cold-start, app
+    // resume); re-throw only if the recovery read also fails.
     if (!this.lastLocation) {
       try {
         const fresh = await Location.getCurrentPositionAsync({
@@ -172,8 +180,11 @@ export class JobContextLocationService {
     }
 
     this.currentContext = ContractorLocationContext.ON_JOB;
+    this.arrivalCommitted = true;
 
-    // Update database with arrival status
+    // Update database with arrival status (is_active stays true so the
+    // homeowner UI keeps showing the live card — see arrivalCommitted
+    // doc above).
     await this.updateContractorLocation(jobId, meetingId, this.lastLocation, 0);
 
     // Close the contractor_trips en_route row if one exists.
@@ -198,8 +209,22 @@ export class JobContextLocationService {
       );
     }
 
-    // Stop tracking (or reduce frequency)
-    await this.stopJobTracking();
+    // 2026-05-26 audit-67 P2: stop the GPS watcher inline rather than
+    // calling stopJobTracking (which would set is_active=false and
+    // drop the contractor off the homeowner card). arrivalCommitted
+    // tells the eventual stopJobTracking (via registry release) to
+    // preserve the row.
+    if (this.watchSubscription) {
+      this.watchSubscription.remove();
+      this.watchSubscription = null;
+    }
+    try {
+      await BackgroundLocationTask.stop();
+    } catch (bgErr) {
+      logger.warn('BackgroundLocationTask.stop after arrival failed', {
+        error: bgErr instanceof Error ? bgErr.message : String(bgErr),
+      });
+    }
 
     logger.info('Contractor marked as arrived', { jobId, meetingId });
   }
@@ -213,8 +238,11 @@ export class JobContextLocationService {
       this.watchSubscription = null;
     }
 
-    // Mark location as inactive
-    if (this.contractorId && this.activeJobId) {
+    // 2026-05-26 audit-67 P2: post-arrival, leave is_active=true so
+    // the homeowner UI keeps rendering "Arrived". Final deactivation
+    // flows through enable-location-sharing {enabled:false} or the
+    // next session reusing the row.
+    if (this.contractorId && this.activeJobId && !this.arrivalCommitted) {
       await supabase
         .from('contractor_locations')
         .update({ is_active: false })
@@ -231,6 +259,7 @@ export class JobContextLocationService {
     this.destination = null;
     this.lastLocation = null;
     this.isMoving = false;
+    this.arrivalCommitted = false;
 
     logger.info('Stopped job travel tracking');
   }
@@ -356,30 +385,14 @@ export class JobContextLocationService {
       7
     );
 
-    // 2026-05-24 audit-36 P0: replaced upsert with explicit
-    // select-then-update-or-insert. The previous upsert targeted
-    // `onConflict: 'contractor_id,job_id'`, but the live DB only has a
-    // PARTIAL unique index on that pair (WHERE is_active = true) —
-    // there is no plain unique constraint. PostgREST's ON CONFLICT
-    // (cols) inference doesn't include the WHERE predicate, so the
-    // upsert could fail (42P10) or insert duplicate rows depending on
-    // planner choice. The "contractor_locations = 0" prod metric was
-    // partially explained by this and partially by the historic write
-    // bugs documented above (timestamp column + wrong onConflict).
-    //
-    // The replacement pattern: query the active row for this
-    // (contractor, job), UPDATE by id when found, INSERT a new row
-    // otherwise. The partial unique index still protects against
-    // concurrent inserts (one would 23505 — the GPS tick retries on
-    // the next pulse anyway). Same write count when steady-state but
-    // unambiguous semantics.
-    //
-    // Direct-Supabase write here is still a deliberate exception to
-    // the API-first rule: GPS pulses fire every 5–15s, the row is
-    // read by the homeowner map via Supabase Realtime, and the
-    // contractor_locations RLS policy scopes INSERT/UPDATE to
-    // auth.uid() = contractor_id so the security boundary is at the
-    // DB layer.
+    // 2026-05-24 audit-36 P0: explicit select-then-update-or-insert
+    // (not upsert). contractor_locations only has a PARTIAL unique
+    // index on (contractor_id, job_id) WHERE is_active=true; PostgREST
+    // can't infer ON CONFLICT with WHERE predicates, so upsert was
+    // failing (42P10) or duplicating rows. Direct-Supabase is kept
+    // here: GPS pulses fire every 5–15s, the homeowner reads via
+    // Realtime, and the INSERT/UPDATE RLS scopes to auth.uid()=
+    // contractor_id so the security boundary lives at the DB layer.
     const payload = {
       contractor_id: this.contractorId,
       job_id: jobId,

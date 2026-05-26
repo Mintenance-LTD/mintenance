@@ -104,10 +104,32 @@ export async function loadPreferences(
   }
 }
 
+/**
+ * Notification types that are never user-mutable. The mobile prefs
+ * banner (`NotificationPreferencesScreen.tsx`) explicitly promises
+ * payment confirmations, escrow holds, and contractor "I'm on the way"
+ * pings always reach the user. 2026-05-27 audit-71 P1: the same UI
+ * also exposed mute toggles for `payment` (etc.), creating a contract
+ * the server didn't honour. We enforce the always-on guarantee at two
+ * layers: the client strips these types from disabled_types on save,
+ * and this server check ignores them even if a row somehow contains
+ * them (legacy data, third-party API caller). Add new types here when
+ * the always-on banner copy expands.
+ */
+const ALWAYS_ON_TYPES = new Set<string>([
+  'payment', // payment confirmations / escrow funding
+  'payment_received', // legacy alias of payment
+  'contractor_en_route', // "I'm on the way" homeowner notification
+]);
+
 export function isTypeDisabled(
   prefs: UserNotificationPreferences,
   type: string
 ): boolean {
+  // 2026-05-27 audit-71 P1: critical alerts override user mutes. Even
+  // if disabled_types somehow contains an ALWAYS_ON type the server
+  // delivers it anyway — UI copy + this filter guarantee parity.
+  if (ALWAYS_ON_TYPES.has(type)) return false;
   return prefs.disabled_types.includes(type);
 }
 

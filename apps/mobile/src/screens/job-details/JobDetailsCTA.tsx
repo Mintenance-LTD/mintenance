@@ -77,25 +77,71 @@ export function getPriorityCTA({
       : null;
 
     if (myBid) {
-      // Contractor already bid -- show status instead of submit
-      const bidStatus =
-        myBid.status === 'pending'
+      // 2026-05-26 audit-66 P1: only pending bids can be PATCHed
+      // (`api/jobs/[id]/bids/[bidId]/route.ts` enforces
+      // `bid.status !== 'pending' → 400`). Previously every existing
+      // bid surfaced an "Edit Bid" CTA that 400'd for rejected /
+      // withdrawn / accepted bids. Split the rendering:
+      //   - pending  → "Edit Bid" CTA (existingBidId flow)
+      //   - withdrawn → "Submit a New Bid" (submit-bid revives
+      //     withdrawn → pending per audit-31 P1)
+      //   - rejected → status-only (cannot re-bid on rejection per
+      //     the same audit)
+      //   - accepted → status-only (job moved past bidding)
+      const status = (myBid.status || 'sent').toLowerCase();
+      const isEditable = status === 'pending';
+      const canResubmit = status === 'withdrawn';
+      const statusLabel =
+        status === 'pending'
           ? 'Pending'
-          : myBid.status === 'accepted'
+          : status === 'accepted'
             ? 'Accepted'
-            : myBid.status || 'Sent';
+            : status === 'rejected'
+              ? 'Not selected'
+              : status === 'withdrawn'
+                ? 'Withdrawn'
+                : status.charAt(0).toUpperCase() + status.slice(1);
+      if (isEditable) {
+        return (
+          <StickyBottomCTA
+            price={myBid.amount ? myBid.amount : undefined}
+            priceLabel='Your bid'
+            buttonText={`Bid ${statusLabel} — Edit Bid`}
+            onPress={() =>
+              navigation.navigate('BidSubmission', {
+                jobId: job.id,
+                existingBidId: myBid.id,
+              })
+            }
+            secondaryText='Your bid has been submitted'
+          />
+        );
+      }
+      if (canResubmit) {
+        return (
+          <StickyBottomCTA
+            price={undefined}
+            priceLabel='Your bid'
+            buttonText='Submit a New Bid'
+            onPress={() =>
+              navigation.navigate('BidSubmission', { jobId: job.id })
+            }
+            secondaryText={`Your previous bid was ${statusLabel.toLowerCase()}.`}
+          />
+        );
+      }
+      // Accepted / rejected: status-only, no destination
       return (
         <StickyBottomCTA
           price={myBid.amount ? myBid.amount : undefined}
           priceLabel='Your bid'
-          buttonText={`Bid ${bidStatus} — Edit Bid`}
-          onPress={() =>
-            navigation.navigate('BidSubmission', {
-              jobId: job.id,
-              existingBidId: myBid.id,
-            })
+          buttonText={`Bid ${statusLabel}`}
+          onPress={() => {}}
+          secondaryText={
+            status === 'accepted'
+              ? 'You won this job — wait for the homeowner to fund escrow.'
+              : 'This bid is no longer editable.'
           }
-          secondaryText='Your bid has been submitted'
         />
       );
     }
