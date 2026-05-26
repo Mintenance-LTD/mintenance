@@ -145,15 +145,23 @@ export const GET = withApiHandler(
       }
     }
 
-    // Pull the contractor's bid job_ids (any status) so we can exclude
-    // them. Homeowners have no bids, so the IN list is empty — the
-    // .not('id', 'in', ...) call short-circuits below for non-contractors.
+    // 2026-05-27 audit-79 P1: exclude pending/accepted/rejected bids
+    // only — NOT withdrawn. The bid-processor's submit-bid path
+    // revives withdrawn bids back to pending (see bid-processor.ts
+    // line ~196), and JobDetailsCTA explicitly supports the
+    // withdrawn → "Submit a New Bid" affordance (line ~87). The
+    // previous "any status" exclusion meant a contractor who
+    // withdrew a bid never saw the job in Find Jobs again, even
+    // though the detail screen + API both supported resubmission.
+    // Rejected stays excluded — the homeowner already turned this
+    // contractor down, surfacing the job again is noise.
     let excludedJobIds: string[] = [];
     if (user.role === 'contractor') {
       const { data: bidRows, error: bidError } = await serverSupabase
         .from('bids')
         .select('job_id')
-        .eq('contractor_id', user.id);
+        .eq('contractor_id', user.id)
+        .in('status', ['pending', 'accepted', 'rejected']);
       if (bidError) {
         logger.warn('jobs/discover: bid exclusion read failed', {
           service: 'jobs.discover',

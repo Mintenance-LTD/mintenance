@@ -10,6 +10,7 @@ import {
 import MapView, { Marker } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import { me } from '../../../design-system/mint-editorial';
+import { shouldRenderNativeMap as shouldRenderNativeMapUtil } from '../../../utils/mapAvailability';
 
 interface Props {
   address: string;
@@ -38,11 +39,11 @@ export const JobLocationMap: React.FC<Props> = ({
   // unconditionally, so opening any job with coordinates from an
   // un-keyed Android build crashed the JobDetails screen entirely.
   // Fall back to the address-only card in that case.
-  const googleMapsApiKey =
-    process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ||
-    process.env.GOOGLE_MAPS_API_KEY;
-  const shouldRenderNativeMap =
-    Platform.OS !== 'android' || Boolean(googleMapsApiKey);
+  //
+  // 2026-05-27 audit-79 P2: helper reads both the JS env var AND the
+  // build-time `extra.androidGoogleMapsConfigured` flag so the JS
+  // guard agrees with what's actually in the native manifest.
+  const shouldRenderNativeMap = shouldRenderNativeMapUtil();
 
   const handleGetDirections = () => {
     if (!hasValidCoords) return;
