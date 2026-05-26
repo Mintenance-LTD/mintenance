@@ -10,7 +10,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Alert } from 'react-native';
+import { Alert, AppState } from 'react-native';
 import * as Location from 'expo-location';
 import {
   JobContextLocationService,
@@ -309,48 +309,82 @@ export function useJobTravelTracking({
   useEffect(() => {
     if (meetingId || !jobId) return;
 
-    const channel = supabase
-      .channel(`contractor_travel_job_${jobId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'contractor_locations',
-          filter: `job_id=eq.${jobId}`,
-        },
-        (rawPayload: unknown) => {
-          const payload = rawPayload as {
-            new?: {
-              latitude?: number | null;
-              longitude?: number | null;
-              eta_minutes?: number | null;
-              location_timestamp?: string | null;
-              is_active?: boolean | null;
+    // 2026-05-27 audit-76 follow-up: AppState-gated subscribe. Without
+    // this, the Realtime channel stays open while the homeowner has
+    // the app in background — drains battery on the websocket
+    // keep-alive, and on foreground resume can deliver ghost ETA
+    // updates from changes that happened while suspended (since RN
+    // re-delivers buffered Realtime events). We subscribe only while
+    // the app is active, and re-subscribe on foreground resume.
+    type Channel = ReturnType<typeof supabase.channel>;
+    let channel: Channel | null = null;
+
+    const subscribe = () => {
+      if (channel) return;
+      channel = supabase
+        .channel(`contractor_travel_job_${jobId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'contractor_locations',
+            filter: `job_id=eq.${jobId}`,
+          },
+          (rawPayload: unknown) => {
+            const payload = rawPayload as {
+              new?: {
+                latitude?: number | null;
+                longitude?: number | null;
+                eta_minutes?: number | null;
+                location_timestamp?: string | null;
+                is_active?: boolean | null;
+              };
             };
-          };
-          const row = payload.new;
-          if (!row || row.is_active === false) return;
-          if (typeof row.latitude !== 'number') return;
-          if (typeof row.longitude !== 'number') return;
-          const etaValue = row.eta_minutes ?? 0;
-          const travelLocation: TravelLocation = {
-            latitude: row.latitude,
-            longitude: row.longitude,
-            eta: etaValue,
-            timestamp: row.location_timestamp ?? new Date().toISOString(),
-          };
-          setCurrentLocation(travelLocation);
-          setEta(etaValue);
-          if (onLocationUpdate) {
-            onLocationUpdate(travelLocation);
+            const row = payload.new;
+            if (!row || row.is_active === false) return;
+            if (typeof row.latitude !== 'number') return;
+            if (typeof row.longitude !== 'number') return;
+            const etaValue = row.eta_minutes ?? 0;
+            const travelLocation: TravelLocation = {
+              latitude: row.latitude,
+              longitude: row.longitude,
+              eta: etaValue,
+              timestamp: row.location_timestamp ?? new Date().toISOString(),
+            };
+            setCurrentLocation(travelLocation);
+            setEta(etaValue);
+            if (onLocationUpdate) {
+              onLocationUpdate(travelLocation);
+            }
           }
-        }
-      )
-      .subscribe();
+        )
+        .subscribe();
+    };
+
+    const unsubscribe = () => {
+      if (channel) {
+        channel.unsubscribe();
+        channel = null;
+      }
+    };
+
+    // Subscribe immediately if the app is already foregrounded.
+    if (AppState.currentState === 'active') {
+      subscribe();
+    }
+
+    const appStateSub = AppState.addEventListener('change', (next) => {
+      if (next === 'active') {
+        subscribe();
+      } else {
+        unsubscribe();
+      }
+    });
 
     return () => {
-      channel.unsubscribe();
+      appStateSub.remove();
+      unsubscribe();
     };
   }, [jobId, meetingId, onLocationUpdate]);
 
