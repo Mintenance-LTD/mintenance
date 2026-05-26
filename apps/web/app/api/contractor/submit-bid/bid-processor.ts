@@ -188,23 +188,31 @@ export async function processBid(
   const existingBid = await checkExistingBid(validatedData.jobId, contractorId);
 
   if (existingBid) {
-    // 2026-05-24 audit-29 P1: previously updated ANY existing bid back
-    // to status='pending' — that quietly revived rejected bids (which
-    // are only supposed to come back via the homeowner-driven 60s
-    // unreject window at /api/jobs/[id]/bids/[bidId]/unreject) and
-    // mutated accepted/withdrawn rows out of their terminal state. The
-    // route is the contractor's bid-edit path AND the new-bid path
-    // (unique constraint on (job_id, contractor_id) collapses them);
-    // only `pending` is a legitimate source state for an update here.
-    if (existingBid.status && existingBid.status !== 'pending') {
+    // 2026-05-24 audit-29 P1: lock down accepted + rejected — those
+    // are homeowner-driven terminal states and must only be revived
+    // via the explicit /unreject 60s window (rejected) or never
+    // (accepted; the job has moved past bidding).
+    //
+    // 2026-05-27 audit-73 P1: withdrawn is a CONTRACTOR-driven state
+    // — the contractor chose to pull their bid, and the mobile CTA
+    // (JobDetailsCTA.tsx:120) surfaces a "Submit a New Bid" affordance
+    // precisely so they can reverse that decision. Previously this
+    // branch hard-threw "You previously withdrew this bid. Contact the
+    // homeowner if you want to bid again." — a confusing dead-end
+    // contradicting the CTA. Treat withdrawn the same as pending here
+    // so the update path below re-stamps the row back to pending with
+    // the new payload (handled by updateBid → status: 'pending').
+    if (
+      existingBid.status &&
+      existingBid.status !== 'pending' &&
+      existingBid.status !== 'withdrawn'
+    ) {
       const message =
         existingBid.status === 'accepted'
           ? 'This bid was already accepted. You cannot resubmit it.'
           : existingBid.status === 'rejected'
             ? 'This bid was rejected by the homeowner. Ask them to undo within 60 seconds of the rejection or message them about a new bid.'
-            : existingBid.status === 'withdrawn'
-              ? 'You previously withdrew this bid. Contact the homeowner if you want to bid again.'
-              : `Cannot resubmit a bid that is in "${existingBid.status}" status.`;
+            : `Cannot resubmit a bid that is in "${existingBid.status}" status.`;
       throw new Error(message);
     }
 

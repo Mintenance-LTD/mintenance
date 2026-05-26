@@ -22,7 +22,14 @@ export interface BidData {
 
 export interface Bid extends BidData {
   id: string;
-  status: 'pending' | 'accepted' | 'rejected';
+  // 2026-05-27 audit-73 P2: server-side withdraw endpoint
+  // (/api/jobs/[id]/bids/[bidId]/withdraw) writes `status='withdrawn'`
+  // on the row, and JobDetailsCTA already special-cases it for the
+  // "Submit a New Bid" affordance. Including it in the discriminated
+  // union here prevents future consumers (typed lookups, switch
+  // statements, test fixtures) from missing the state. Live data
+  // shows 0 withdrawn rows today, but the write path creates them.
+  status: 'pending' | 'accepted' | 'rejected' | 'withdrawn';
   created_at: string;
   updated_at: string;
   rejection_reason?: string;
