@@ -126,12 +126,29 @@ export class JobSearchService {
     return unwrapJobs(response);
   }
 
+  /**
+   * 2026-05-26 audit-66 P2: the `/api/jobs` GET parses
+   *   `limit, cursor, status, propertyId, search, category,
+   *    minBudget, maxBudget`
+   * and session-scopes the result via `JobQueryService.listJobs(user,
+   * filters)` — there is no `contractor_id` / `homeowner_id` query
+   * parameter on the route. Previously this helper sent
+   * `?contractor_id=<userId>` (or `?homeowner_id=<userId>`) as a
+   * legacy hint; the route silently ignored it, which let an auditor
+   * reasonably conclude the mobile list path used a different
+   * filtering model than the discover map. Dropping the dead
+   * parameter so the wire contract matches the server's actual
+   * behaviour: the response is "jobs scoped to the session's role"
+   * (contractor → their assigned / in_progress / completed jobs;
+   * homeowner → their own posted/assigned/in_progress/completed).
+   * The `userId` / `role` args are kept on the signature so existing
+   * callers compile unchanged — they're informational, not on-wire.
+   */
   static async getJobsByUser(
-    userId: string,
-    role: 'homeowner' | 'contractor'
+    _userId: string,
+    _role: 'homeowner' | 'contractor'
   ): Promise<Job[]> {
-    const key = role === 'homeowner' ? 'homeowner_id' : 'contractor_id';
-    const url = buildJobsUrl({ [key]: userId });
+    const url = buildJobsUrl({});
     const response = await mobileApiClient.get<JobsListResponse>(url);
     return unwrapJobs(response);
   }

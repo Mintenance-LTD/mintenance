@@ -272,10 +272,24 @@ const JobsScreen: React.FC = () => {
     }
 
     return data;
-  }, [allJobs, selectedFilter, debouncedQuery, sortMode, isContractor]);
+    // 2026-05-26 audit-66 P2: bidPendingJobs added — was missing.
+  }, [
+    allJobs,
+    bidPendingJobs,
+    selectedFilter,
+    debouncedQuery,
+    sortMode,
+    isContractor,
+  ]);
 
   const onRefresh = () => {
     queryClient.invalidateQueries({ queryKey: queryKeys.jobs.all });
+    // audit-66 P2: also invalidate contractor pending-bids.
+    if (isContractor && user?.id) {
+      queryClient.invalidateQueries({
+        queryKey: ['contractorBidJobs', user.id],
+      });
+    }
   };
 
   const handleAddJob = useCallback(() => {
