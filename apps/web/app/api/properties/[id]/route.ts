@@ -250,11 +250,17 @@ export const DELETE = withApiHandler(
       // a homeowner deleting their property may not be on the org
       // (e.g. portfolio user with multiple orgs). The blocker check
       // is the security boundary here, not the read.
+      //
+      // audit-76 follow-up Suggestion #5: also count NULL-status
+      // tickets as "open" — `.not('status', 'in', (...))` returns
+      // NULL on NULL inputs (3-valued logic), so rows with no status
+      // were silently slipping past the blocker and getting wiped by
+      // the cascade. `.or('status.is.null,...)` catches both.
       serverSupabase
         .from('maintenance_tickets')
         .select('id', { count: 'exact', head: true })
         .eq('property_id', params.id)
-        .not('status', 'in', '("closed","resolved","cancelled")'),
+        .or('status.is.null,status.not.in.("closed","resolved","cancelled")'),
     ]);
 
     const blockers: Array<{ code: string; count: number; message: string }> =

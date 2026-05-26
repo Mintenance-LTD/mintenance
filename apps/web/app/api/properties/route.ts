@@ -117,6 +117,18 @@ export const GET = withApiHandler(
       // which is not on properties' RLS policy (audit-15 P1). Read
       // via serverSupabase after PropertyTeamService gates each row
       // by role. Only accepted memberships count.
+      //
+      // audit-76 follow-up Watch #2: the embedded `properties:property_id`
+      // join below is read with service-role and therefore bypasses
+      // properties RLS. Safety today rests on two facts: (a) properties
+      // use hard-delete with no soft-delete column (per CLAUDE.md), and
+      // (b) the membership row pre-gates access via user_id + accepted
+      // status. If properties ever gains a soft-delete column or any
+      // RLS narrowing beyond ownership, this read needs to route
+      // through a new `PropertyTeamService.getAccessibleProperties()`
+      // helper that bundles the auth check + filter in one place.
+      // TODO(rls-future): swap the service-role embed for a service
+      // helper when soft-delete lands.
       const ROLES_WITH_CREATE_JOB =
         includeShared === 'create_job'
           ? ['admin', 'manager'] // owner already covered by the own-properties block
