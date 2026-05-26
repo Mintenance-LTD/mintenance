@@ -41,6 +41,66 @@ import {
 import { me } from '../../design-system/mint-editorial';
 import { styles, CARD_WIDTH, CATEGORY_MARKERS, CATEGORIES } from './styles';
 
+// 2026-05-27 audit-72 P1: full-screen verification-blocked card for
+// pending contractors who hit /api/jobs/discover before admin approval.
+// Styles kept local — this is a one-off layout that shouldn't leak
+// into the shared explore-map sheet.
+const verificationBlockedStyles = StyleSheet.create({
+  wrapper: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: me.bg2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+    zIndex: 20,
+  },
+  card: {
+    backgroundColor: me.surface,
+    borderRadius: 18,
+    padding: 24,
+    width: '100%',
+    maxWidth: 360,
+    alignItems: 'center',
+    ...me.shadow.pop,
+  },
+  iconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: me.brandSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  title: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: me.ink,
+    textAlign: 'center',
+    marginBottom: 6,
+  },
+  body: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: me.ink2,
+    textAlign: 'center',
+    marginBottom: 18,
+  },
+  cta: {
+    backgroundColor: me.brand,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    alignSelf: 'stretch',
+    alignItems: 'center',
+  },
+  ctaText: {
+    color: me.onBrand,
+    fontSize: 14,
+    fontWeight: '700',
+  },
+});
+
 // 2026-05-24 audit-26 P2: "Search this area" pill styles kept local
 // to this file so we don't disturb the wider explore-map style export.
 const searchAreaStyles = StyleSheet.create({
@@ -137,8 +197,18 @@ const LoadingDots: React.FC = () => {
 };
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
+// 2026-05-27 audit-72 P3: previously `new Date('').getTime()` returned
+// NaN and propagated through the math as "NaNd ago" on the job card.
+// The API type allows created_at: string | null, the mapper converts
+// null to '', and homeowner posts before the DB column had a NOT NULL
+// default may still surface this way. Fall back to a friendly label
+// for any empty/invalid value.
+function timeAgo(dateStr: string | null | undefined): string {
+  if (!dateStr) return 'Recently posted';
+  const parsed = new Date(dateStr).getTime();
+  if (!Number.isFinite(parsed)) return 'Recently posted';
+  const diff = Date.now() - parsed;
+  if (diff < 0) return 'Recently posted';
   const mins = Math.floor(diff / 60000);
   if (mins < 60) return `${mins}m ago`;
   const hours = Math.floor(mins / 60);
@@ -532,6 +602,44 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({
       {viewModel.loading && (
         <View style={styles.loadingOverlay}>
           <LoadingDots />
+        </View>
+      )}
+
+      {/* 2026-05-27 audit-72 P1: pending contractor sees the
+          verification-blocked card instead of an empty marketplace.
+          The viewModel sets this flag when /api/jobs/discover returns
+          { jobs: [], code: 'CONTRACTOR_NOT_VERIFIED' }. CTA deep-links
+          to ProfileTab → VerificationStatus where the next step in
+          the verification flow lives. */}
+      {viewModel.verificationRequired && !viewModel.loading && (
+        <View style={verificationBlockedStyles.wrapper}>
+          <View style={verificationBlockedStyles.card}>
+            <View style={verificationBlockedStyles.iconWrap}>
+              <Ionicons name='shield-checkmark' size={28} color={me.brand} />
+            </View>
+            <Text style={verificationBlockedStyles.title}>
+              Finish verification to start bidding
+            </Text>
+            <Text style={verificationBlockedStyles.body}>
+              We're reviewing your credentials. Once your account is verified,
+              you'll see jobs near you here and can place bids.
+            </Text>
+            <TouchableOpacity
+              style={verificationBlockedStyles.cta}
+              onPress={() =>
+                goToTab(navigation, 'ProfileTab', {
+                  screen: 'VerificationStatus',
+                })
+              }
+              accessibilityRole='button'
+              accessibilityLabel='Continue verification'
+              activeOpacity={0.85}
+            >
+              <Text style={verificationBlockedStyles.ctaText}>
+                Continue verification
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       )}
 
