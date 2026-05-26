@@ -199,14 +199,30 @@ export const POST = withApiHandler(
       .map((s) => s.stripe_subscription_id as string | null)
       .filter((id): id is string => !!id);
 
-    // Log the deletion request for GDPR compliance
-    await serverSupabase.from('gdpr_audit_log').insert({
-      user_id: user.id,
-      action: 'data_deletion',
-      table_name: 'users',
-      record_id: user.id,
-      performed_by: user.id,
-    });
+    // Log the deletion request for GDPR compliance.
+    //
+    // audit-76 follow-up Suggestion #8: capture the insert error so a
+    // silent audit-log failure is observable. Don't block the
+    // deletion (audit-log gap shouldn't trap a user mid-erasure) but
+    // surface it loudly so we can reconcile manually via the
+    // operator's audit dashboard.
+    const { error: auditError } = await serverSupabase
+      .from('gdpr_audit_log')
+      .insert({
+        user_id: user.id,
+        action: 'data_deletion',
+        table_name: 'users',
+        record_id: user.id,
+        performed_by: user.id,
+      });
+    if (auditError) {
+      logger.warn('Failed to write gdpr_audit_log for deletion request', {
+        service: 'user',
+        userId: user.id,
+        code: auditError.code,
+        message: auditError.message,
+      });
+    }
 
     // Delete user data first. If the RPC errors we surface a 500 and
     // Stripe is still live — the user can retry or contact support
