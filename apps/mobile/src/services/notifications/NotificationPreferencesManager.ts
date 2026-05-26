@@ -1,4 +1,27 @@
-import { supabase } from '../../config/supabase';
+/**
+ * NotificationPreferencesManager — bridge between legacy callers (which
+ * still consume the old `NotificationPreferences` shape with bool flags
+ * per-event) and the canonical server preference model backed by
+ * `user_notification_preferences` (shape: { push/email/sms/in_app
+ * boolean flags + disabled_types[] + quiet_hours_start/end + timezone }).
+ *
+ * 2026-05-27 audit-71 P1: previously this module read and wrote
+ * `profiles.notification_preferences` directly via the Supabase client.
+ * The server pipeline (NotificationPreferenceResolver on web) only reads
+ * `user_notification_preferences`, so any preference saved through this
+ * path was effectively invisible to NotificationService.createNotification
+ * — verified via Supabase MCP, which showed 9 rows in the legacy column
+ * (all `{}` empty placeholders today, but the divergence was a live
+ * landmine) and 0 in the canonical table. This rewrite proxies to
+ * /api/user/notification-preferences so the two sides agree.
+ *
+ * The legacy NotificationPreferences shape (pushEnabled / newJobs /
+ * newBids / newMessages / jobUpdates / paymentUpdates / etc.) is
+ * preserved on the public interface so existing callers (the example
+ * file + tests) compile unchanged; we translate to/from the canonical
+ * shape internally.
+ */
+import { mobileApiClient } from '../../utils/mobileApiClient';
 import { logger } from '../../utils/logger';
 import * as sentry from '../../config/sentry';
 import type { NotificationData, NotificationPreferences } from './types';
@@ -32,43 +55,140 @@ const DEFAULT_PREFERENCES: NotificationPreferences = {
   quietHoursEnd: '07:00',
 };
 
-function parseTime(timeStr: string): number {
-  const [hours, minutes] = timeStr.split(':').map(Number);
-  return (hours ?? 0) * 60 + (minutes ?? 0);
+// Canonical shape returned by /api/user/notification-preferences (server-
+// side mirror of `user_notification_preferences`).
+interface CanonicalPrefs {
+  push_enabled: boolean;
+  email_enabled: boolean;
+  sms_enabled: boolean;
+  in_app_enabled: boolean;
+  disabled_types: string[];
+  quiet_hours_start: string | null;
+  quiet_hours_end: string | null;
+  timezone: string;
+}
+
+// Map from a legacy bool flag to the canonical event types it gates.
+// Used in both directions: when reading, any disabled type in the bucket
+// drops the legacy flag to false; when writing, !flag adds all the types
+// to disabled_types.
+const LEGACY_FLAG_TO_TYPES: Record<string, string[]> = {
+  newJobs: ['job_nearby'],
+  newBids: ['bid_received', 'bid_accepted'],
+  newMessages: ['message_received', 'message'],
+  jobUpdates: [
+    'job_update',
+    'job_started',
+    'job_completed',
+    'job_assigned',
+    'job_confirmed',
+    'changes_requested',
+    'completion_confirmed',
+  ],
+  paymentUpdates: [
+    'payment',
+    'payment_received',
+    'payment_released',
+    'escrow_released',
+    'escrow_auto_released',
+  ],
+  weeklyDigest: ['cashflow_digest'],
+};
+
+function canonicalToLegacy(c: CanonicalPrefs): NotificationPreferences {
+  const disabled = new Set(c.disabled_types);
+  const allDisabled = (types: string[] | undefined): boolean =>
+    !!types && types.length > 0 && types.every((t) => disabled.has(t));
+  return {
+    ...DEFAULT_PREFERENCES,
+    pushEnabled: c.push_enabled,
+    emailEnabled: c.email_enabled,
+    newJobs: !allDisabled(LEGACY_FLAG_TO_TYPES.newJobs),
+    newBids: !allDisabled(LEGACY_FLAG_TO_TYPES.newBids),
+    newMessages: !allDisabled(LEGACY_FLAG_TO_TYPES.newMessages),
+    jobUpdates: !disabled.has('job_update'),
+    paymentUpdates: !disabled.has('payment'),
+    weeklyDigest: !disabled.has('cashflow_digest'),
+    quietHoursEnabled: !!c.quiet_hours_start && !!c.quiet_hours_end,
+    quietHoursStart: c.quiet_hours_start || '22:00',
+    quietHoursEnd: c.quiet_hours_end || '07:00',
+  };
+}
+
+function legacyToCanonicalPatch(
+  prev: CanonicalPrefs,
+  legacyPatch: Partial<NotificationPreferences>
+): Partial<CanonicalPrefs> {
+  const disabled = new Set(prev.disabled_types);
+
+  // Apply legacy bool flips → mutate the disabled_types set.
+  const applyFlag = (flag: keyof NotificationPreferences) => {
+    const value = legacyPatch[flag];
+    if (typeof value !== 'boolean') return;
+    const types = LEGACY_FLAG_TO_TYPES[flag as string];
+    if (!types) return;
+    if (value) {
+      types.forEach((t) => disabled.delete(t));
+    } else {
+      types.forEach((t) => disabled.add(t));
+    }
+  };
+  (
+    [
+      'newJobs',
+      'newBids',
+      'newMessages',
+      'jobUpdates',
+      'paymentUpdates',
+      'weeklyDigest',
+    ] as Array<keyof NotificationPreferences>
+  ).forEach(applyFlag);
+
+  const out: Partial<CanonicalPrefs> = {
+    disabled_types: Array.from(disabled),
+  };
+  if (typeof legacyPatch.pushEnabled === 'boolean') {
+    out.push_enabled = legacyPatch.pushEnabled;
+  }
+  if (typeof legacyPatch.emailEnabled === 'boolean') {
+    out.email_enabled = legacyPatch.emailEnabled;
+  }
+  if (
+    legacyPatch.quietHoursEnabled === false ||
+    (typeof legacyPatch.quietHoursEnabled === 'undefined' &&
+      legacyPatch.quietHoursStart === '' &&
+      legacyPatch.quietHoursEnd === '')
+  ) {
+    out.quiet_hours_start = null;
+    out.quiet_hours_end = null;
+  } else if (legacyPatch.quietHoursEnabled === true) {
+    if (legacyPatch.quietHoursStart) {
+      out.quiet_hours_start = legacyPatch.quietHoursStart;
+    }
+    if (legacyPatch.quietHoursEnd) {
+      out.quiet_hours_end = legacyPatch.quietHoursEnd;
+    }
+  }
+  return out;
+}
+
+async function loadCanonical(): Promise<CanonicalPrefs> {
+  return mobileApiClient.get<CanonicalPrefs>(
+    '/api/user/notification-preferences'
+  );
 }
 
 export async function getNotificationPreferences(
   userId: string
 ): Promise<NotificationPreferences> {
   try {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('notification_preferences')
-      .eq('id', userId)
-      .single();
-
-    if (error && error.code !== 'PGRST116') {
-      throw error;
-    }
-
-    if (!data?.notification_preferences) {
-      addBreadcrumb('Fetched notification preferences', 'debug', {
-        userId,
-        preferences: DEFAULT_PREFERENCES,
-      });
-      return DEFAULT_PREFERENCES;
-    }
-
-    const preferences = {
-      ...DEFAULT_PREFERENCES,
-      ...(data.notification_preferences as Partial<NotificationPreferences>),
-    };
-
+    const canonical = await loadCanonical();
+    const legacy = canonicalToLegacy(canonical);
     addBreadcrumb('Fetched notification preferences', 'debug', {
       userId,
-      preferences,
+      preferences: legacy,
     });
-    return preferences;
+    return legacy;
   } catch (error) {
     logger.error('Failed to get notification preferences', error);
     throw error;
@@ -80,26 +200,9 @@ export async function updateNotificationPreferences(
   preferences: Partial<NotificationPreferences>
 ): Promise<void> {
   try {
-    // Fetch current preferences to merge
-    const { data: current } = await supabase
-      .from('profiles')
-      .select('notification_preferences')
-      .eq('id', userId)
-      .single();
-
-    const merged = {
-      ...DEFAULT_PREFERENCES,
-      ...((current?.notification_preferences as Partial<NotificationPreferences>) ||
-        {}),
-      ...preferences,
-    };
-
-    const { error } = await supabase
-      .from('profiles')
-      .update({ notification_preferences: merged })
-      .eq('id', userId);
-
-    if (error) throw error;
+    const current = await loadCanonical();
+    const patch = legacyToCanonicalPatch(current, preferences);
+    await mobileApiClient.patch('/api/user/notification-preferences', patch);
     logger.info('Notification preferences updated', { userId });
     addBreadcrumb('Updated notification preferences', 'info', {
       userId,
@@ -109,6 +212,11 @@ export async function updateNotificationPreferences(
     logger.error('Failed to update notification preferences', error);
     throw error;
   }
+}
+
+function parseTime(timeStr: string): number {
+  const [hours, minutes] = timeStr.split(':').map(Number);
+  return (hours ?? 0) * 60 + (minutes ?? 0);
 }
 
 export function shouldSendNotification(

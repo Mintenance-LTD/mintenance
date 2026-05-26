@@ -264,6 +264,16 @@ export function routeForNotification(
     case 'completion_confirmed':
     case 'contract_pending_signature':
     case 'job_confirmed':
+    // 2026-05-27 audit-71 P2: types the prefs UI lets users mute but
+    // the router had no case for. All carry metadata.jobId from their
+    // respective web emitters (escrow auto-release, refund admin
+    // action, payment confirm-intent, request-changes). Deep-link to
+    // JobDetails so the homeowner / contractor lands on the relevant
+    // surface instead of the inbox.
+    case 'payment':
+    case 'escrow_released':
+    case 'escrow_auto_released':
+    case 'changes_requested':
     // 2026-05-24 audit-36 P1: contractor tracking push types from
     // /api/contractor/trips (POST + PATCH). Previously fell through
     // to the default NOTIFICATIONS_FALLBACK, so a homeowner tapping
@@ -381,6 +391,11 @@ export function routeForNotification(
       };
 
     case 'payment_received':
+    // 2026-05-27 audit-71 P2: cashflow_digest is the contractor's
+    // Friday earnings summary emitted by CashFlowDigestService. No
+    // jobId — drops the contractor on PaymentHistory which is the
+    // earnings surface.
+    case 'cashflow_digest':
       return p.jobId
         ? jobDetailsRoute(p.jobId)
         : {

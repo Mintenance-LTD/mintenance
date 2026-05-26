@@ -76,6 +76,19 @@ export interface NotificationData {
     // emitted by /api/jobs/[id]/confirm-completion. Previously fell
     // through to the inbox.
     | 'completion_confirmed'
+    // 2026-05-27 audit-71 P2: the prefs UI exposes mute toggles for
+    // `payment` (payment confirmations), `escrow_released` (money
+    // released to contractor), `escrow_auto_released` (7-day reminder),
+    // `cashflow_digest` (Friday digest), and `changes_requested`
+    // (homeowner pushback). All five are emitted live by web routes
+    // (verified via grep across apps/web) but were missing from this
+    // union AND from the mobile router. Without them, mute settings
+    // for these events would be checkboxes pointing at nothing typed.
+    | 'payment'
+    | 'escrow_released'
+    | 'escrow_auto_released'
+    | 'cashflow_digest'
+    | 'changes_requested'
     | 'review_requested'
     // 2026-05-24 audit-39 P1: location sharing events the homeowner
     // request flow + the contractor accept/decline path produce. Was
