@@ -43,7 +43,19 @@ const MAX_DESC = 5000;
 const VAT_RATE = 20;
 
 const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { jobId, existingBidId } = route.params;
+  // 2026-05-27 audit-73 P3: defensive guard against malformed
+  // navigation params (deep link missing jobId, notification routing
+  // fallback into BidSubmission, an error-boundary retry that loses
+  // params). JobDetailsScreen got this same hardening in audit-58
+  // P3 #248 — without it, destructuring `route.params.jobId` on an
+  // undefined `params` throws before we can render a controlled
+  // error state. Render an inline error card + back CTA instead of
+  // crashing into the JS exception boundary.
+  const params = route.params as
+    | { jobId?: string; existingBidId?: string }
+    | undefined;
+  const jobId = params?.jobId;
+  const existingBidId = params?.existingBidId;
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const [job, setJob] = useState<Job | null>(null);
@@ -105,12 +117,18 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
   const allowExit = useUnsavedChanges(isDirty);
 
   useEffect(() => {
-    loadJob();
+    // audit-73 P3: skip the load if jobId is missing — the missing-
+    // jobId early-return below renders the controlled error state.
+    if (!jobId) {
+      setLoading(false);
+      return;
+    }
+    loadJob(jobId);
   }, [jobId]);
 
-  const loadJob = async () => {
+  const loadJob = async (id: string) => {
     try {
-      setJob(await JobService.getJobById(jobId));
+      setJob(await JobService.getJobById(id));
     } catch {
       Alert.alert('Error', 'Failed to load job details');
     } finally {
@@ -128,7 +146,7 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
   // for this pass — the contractor edits the quick-bid summary and
   // any line-item changes are still done from a fresh "Submit Quote".
   useEffect(() => {
-    if (!existingBidId) return;
+    if (!existingBidId || !jobId) return;
     // 2026-05-26 audit-59 P2: PATCH /api/jobs/:id/bids/:bidId only
     // accepts quick-bid fields. Force quick mode on entry so the
     // line-item state from a prior new-bid attempt can't leak into
@@ -136,13 +154,14 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
     // ignore.
     setMode('quick');
     let cancelled = false;
+    const resolvedJobId = jobId;
     (async () => {
       try {
         // The contractor has at most one bid per job (DB unique
         // constraint on bids(job_id, contractor_id)), so the
         // jobId-scoped read returns either the existing bid or null
         // and we don't need to filter by bidId on the client.
-        const result = await BidService.getMyBidForJob(jobId);
+        const result = await BidService.getMyBidForJob(resolvedJobId);
         if (cancelled || !result || result.id !== existingBidId) return;
         // The /api/contractor/bids GET returns a wider shape than the
         // local Bid type (which is the wire shape of submitBid), so
@@ -392,6 +411,42 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
       setSubmitting(false);
     }
   };
+
+  // 2026-05-27 audit-73 P3: explicit missing-jobId render path. A
+  // malformed deep link or notification-routing fallback that lands
+  // here without params previously threw on the route.params
+  // destructure. Now we surface a controlled "missing job" screen
+  // with a Back affordance instead of crashing into the JS error
+  // boundary — same shape as JobDetailsScreen's audit-58 #248 fix.
+  if (!jobId) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text
+          style={{ color: me.ink, fontSize: 16, fontWeight: '600' }}
+          accessibilityRole='header'
+        >
+          Job reference missing
+        </Text>
+        <Text style={{ color: me.ink2, marginTop: 6, textAlign: 'center' }}>
+          We couldn't load the job to bid on. Please go back and try again from
+          the job detail screen.
+        </Text>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          accessibilityRole='button'
+          style={{
+            marginTop: 18,
+            paddingHorizontal: 16,
+            paddingVertical: 10,
+            borderRadius: 10,
+            backgroundColor: me.brand,
+          }}
+        >
+          <Text style={{ color: me.onBrand, fontWeight: '700' }}>Go back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   if (loading || !job) {
     return (

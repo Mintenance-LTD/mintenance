@@ -105,7 +105,14 @@ export const PropertyDetailScreen: React.FC<Props> = ({
   navigation,
   route,
 }) => {
-  const { propertyId } = route.params;
+  // 2026-05-27 audit-74 P3: defensive guard against malformed nav
+  // params (deep link missing propertyId, notification routing
+  // fallback, error-boundary retry that lost state). Same hardening
+  // pattern as JobDetailsScreen audit-58 #248 and BidSubmissionScreen
+  // audit-73 P3. Renders a controlled error state below instead of
+  // throwing on undefined destructure.
+  const params = route.params as { propertyId?: string } | undefined;
+  const propertyId = params?.propertyId;
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
@@ -400,6 +407,16 @@ export const PropertyDetailScreen: React.FC<Props> = ({
     );
   };
 
+  // audit-74 P3: explicit missing-propertyId render path. A bad deep
+  // link / notification fallback lands here without params; render
+  // a controlled error before any data-dependent code runs.
+  if (!propertyId)
+    return (
+      <ErrorView
+        message='Property reference missing. Please open the property from your portfolio.'
+        onRetry={() => navigation.goBack()}
+      />
+    );
   if (isLoading) return <LoadingSpinner message='Loading property...' />;
   if (error)
     return <ErrorView message='Failed to load property' onRetry={refetch} />;

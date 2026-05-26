@@ -72,6 +72,32 @@ export const PropertyContacts: React.FC<Props> = ({ propertyId }) => {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [role, setRole] = useState<ContactRole>('keyholder');
+  // 2026-05-27 audit-74 P2: edit-mode state. When non-null, the same
+  // form below renders pre-populated with the contact's fields and
+  // submit calls PATCH /api/landlord/contacts/[id] instead of POST.
+  // Previously the only way to fix a typo on a keyholder phone was
+  // delete + recreate — even though the API has accepted PATCH on
+  // name/email/phone/role/unit_label/notes/dates/is_active since
+  // audit-30 P1.
+  const [editingId, setEditingId] = useState<string | null>(null);
+
+  const resetForm = () => {
+    setName('');
+    setEmail('');
+    setPhone('');
+    setRole('keyholder');
+    setEditingId(null);
+    setShowForm(false);
+  };
+
+  const beginEdit = (contact: PropertyContact) => {
+    setEditingId(contact.id);
+    setName(contact.name);
+    setEmail(contact.email ?? '');
+    setPhone(contact.phone ?? '');
+    setRole(contact.contact_role);
+    setShowForm(true);
+  };
 
   const { data: contacts = [] } = useQuery({
     queryKey: ['property-contacts', propertyId],
@@ -100,16 +126,36 @@ export const PropertyContacts: React.FC<Props> = ({ propertyId }) => {
     },
     onSuccess: () => {
       invalidate();
-      setName('');
-      setEmail('');
-      setPhone('');
-      setRole('keyholder');
-      setShowForm(false);
+      resetForm();
     },
     onError: (err: unknown) =>
       Alert.alert(
         'Error',
         err instanceof Error ? err.message : 'Failed to add contact.'
+      ),
+  });
+
+  // 2026-05-27 audit-74 P2: PATCH path mirrors the POST shape. Send
+  // each editable field (with email/phone normalised to null when
+  // cleared so the server's trimOrNull helper persists the clear)
+  // so the homeowner can fix any typo without delete+recreate.
+  const editMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await mobileApiClient.patch(`/api/landlord/contacts/${id}`, {
+        name: name.trim(),
+        email: email.trim() || null,
+        phone: phone.trim() || null,
+        contact_role: role,
+      });
+    },
+    onSuccess: () => {
+      invalidate();
+      resetForm();
+    },
+    onError: (err: unknown) =>
+      Alert.alert(
+        'Error',
+        err instanceof Error ? err.message : 'Failed to update contact.'
       ),
   });
 
@@ -142,12 +188,16 @@ export const PropertyContacts: React.FC<Props> = ({ propertyId }) => {
       ),
   });
 
-  const handleCreate = () => {
+  const handleSubmit = () => {
     if (!name.trim()) {
       Alert.alert('Required', 'Please enter a name.');
       return;
     }
-    createMutation.mutate();
+    if (editingId) {
+      editMutation.mutate(editingId);
+    } else {
+      createMutation.mutate();
+    }
   };
 
   const handleDelete = (id: string, contactName: string) => {
@@ -165,7 +215,11 @@ export const PropertyContacts: React.FC<Props> = ({ propertyId }) => {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.sectionTitle}>ACCESS & CONTACTS</Text>
-        <TouchableOpacity onPress={() => setShowForm(!showForm)}>
+        <TouchableOpacity
+          onPress={() => (showForm ? resetForm() : setShowForm(true))}
+          accessibilityRole='button'
+          accessibilityLabel={showForm ? 'Close form' : 'Add contact'}
+        >
           <Ionicons
             name={showForm ? 'close' : 'person-add-outline'}
             size={22}
@@ -225,11 +279,17 @@ export const PropertyContacts: React.FC<Props> = ({ propertyId }) => {
           />
           <TouchableOpacity
             style={styles.createBtn}
-            onPress={handleCreate}
-            disabled={createMutation.isPending}
+            onPress={handleSubmit}
+            disabled={createMutation.isPending || editMutation.isPending}
           >
             <Text style={styles.createBtnText}>
-              {createMutation.isPending ? 'Adding...' : 'Add contact'}
+              {editingId
+                ? editMutation.isPending
+                  ? 'Saving...'
+                  : 'Save changes'
+                : createMutation.isPending
+                  ? 'Adding...'
+                  : 'Add contact'}
             </Text>
           </TouchableOpacity>
         </View>
@@ -282,6 +342,15 @@ export const PropertyContacts: React.FC<Props> = ({ propertyId }) => {
               {!c.is_active && <Text style={styles.inactiveTag}>Inactive</Text>}
             </View>
             <View style={styles.actions}>
+              {/* audit-74 P2: edit affordance — opens the same form
+                  pre-populated and switches to PATCH on save. */}
+              <TouchableOpacity
+                onPress={() => beginEdit(c)}
+                accessibilityRole='button'
+                accessibilityLabel='Edit contact'
+              >
+                <Ionicons name='create-outline' size={18} color={me.ink2} />
+              </TouchableOpacity>
               <TouchableOpacity
                 onPress={() =>
                   toggleActiveMutation.mutate({
