@@ -246,6 +246,24 @@ export function routeForNotification(
     case 'contract_signed':
     case 'payment_released':
     case 'bid_rejected':
+    // 2026-05-27 audit-70 P1: live notifications table has 6
+    // `job_nearby` rows (contractor proximity alerts emitted when a
+    // new job posts in their service area), 2 `job_assigned`, 1
+    // `completion_confirmed`, 1 `job_confirmed`, and 1 each of
+    // `contract_pending_signature` and `message` — none were routed.
+    // All carry metadata.jobId (verified via web emitters); deep-link
+    // to JobDetails which surfaces the relevant CTA per role.
+    //   - job_nearby → contractor sees Bid CTA on the job
+    //   - job_assigned → either party sees status + contract surface
+    //   - completion_confirmed → homeowner sees the next step
+    //   - contract_pending_signature → "your turn to sign" lands on
+    //     the JobDetails surface where ContractManagement renders
+    //   - job_confirmed → assignment confirmation deep-link
+    case 'job_nearby':
+    case 'job_assigned':
+    case 'completion_confirmed':
+    case 'contract_pending_signature':
+    case 'job_confirmed':
     // 2026-05-24 audit-36 P1: contractor tracking push types from
     // /api/contractor/trips (POST + PATCH). Previously fell through
     // to the default NOTIFICATIONS_FALLBACK, so a homeowner tapping
@@ -268,6 +286,12 @@ export function routeForNotification(
     case 'location_sharing_request':
     case 'location_sharing_started':
     case 'location_sharing_stopped':
+    // 2026-05-27 audit-70 P2: web /api/jobs/[id]/enable-location-
+    // sharing fires `location_sharing_enabled` (not `_started`),
+    // so a homeowner tapping "Contractor is sharing their
+    // location" used to land on the inbox instead of JobDetails.
+    // Treat both spellings the same.
+    case 'location_sharing_enabled':
       return p.jobId ? jobDetailsRoute(p.jobId) : NOTIFICATIONS_FALLBACK;
 
     case 'bid_received':
@@ -276,6 +300,11 @@ export function routeForNotification(
     case 'bid_accepted':
       return p.jobId ? jobDetailsRoute(p.jobId) : NOTIFICATIONS_FALLBACK;
 
+    // 2026-05-27 audit-70 P1: bare 'message' is a legacy/alias type
+    // emitted by older paths; live DB still has one row. Fall through
+    // to the same handler as message_received so the chat surface
+    // resolves identically.
+    case 'message':
     case 'message_received': {
       // 2026-05-23 audit-16 P1: web POST /api/messages/threads/:id/messages
       // ships metadata `{ jobId, senderId }` (snake_cased as `job_id` /
