@@ -103,6 +103,18 @@ export const ContractorDashboard: React.FC = () => {
     navigation.navigate('JobsTab', { screen: 'JobsList' });
   };
 
+  // 2026-05-27 audit-77 P1: "Browse Jobs" / "Find New Jobs" CTAs
+  // previously routed to JobsTab → JobsList which is the
+  // contractor-OWNED / assigned-jobs list (JobsScreen calls
+  // JobService.getJobsByUser, not the discover marketplace). The
+  // canonical contractor Find Jobs surface is the AddTab map at
+  // AppNavigator.tsx:129 (centre-button on the tab bar fans into
+  // SafeExploreMapScreen for contractors). Route both CTAs there
+  // so the dashboard verbs match what the app actually does.
+  const openFindJobs = () => {
+    navigation.navigate('AddTab' as never);
+  };
+
   const openMeetingSchedule = () => {
     // 2026-04-30 audit: MeetingSchedule modal requires `contractorId`,
     // which a contractor's own dashboard does not have. Until a calendar
@@ -335,7 +347,7 @@ export const ContractorDashboard: React.FC = () => {
 
           <FadeIn duration={400}>
             <QuickActions
-              onBrowseJobsPress={openJobsList}
+              onBrowseJobsPress={openFindJobs}
               onInboxPress={() =>
                 navigation.navigate('MessagingTab', { screen: 'MessagesList' })
               }
@@ -391,7 +403,7 @@ export const ContractorDashboard: React.FC = () => {
               }))}
               onViewAllPress={openMeetingSchedule}
               onJobDetailsPress={openJobDetails}
-              onFindJobsPress={openJobsList}
+              onFindJobsPress={openFindJobs}
             />
           </SlideIn>
 

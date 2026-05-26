@@ -48,6 +48,13 @@ export interface Bid extends BidData {
     years_experience?: number;
     profile_image_url?: string;
   };
+  /**
+   * @deprecated Legacy alias for `jobs`. Only populated by the manual
+   * createBid wire path; routes that return bids via PostgREST embed
+   * the relation under the table name (`jobs`). New callers should
+   * read `bid.jobs ?? bid.job` so both paths work, or migrate to
+   * `bid.jobs` directly.
+   */
   job?: {
     id: string;
     title: string;
@@ -57,6 +64,35 @@ export interface Bid extends BidData {
     status: string;
     location?: string;
     created_at: string;
+  };
+  /**
+   * 2026-05-27 audit-77 P1: PostgREST embeds the related row under
+   * the table name. `/api/contractor/bids` selects `jobs (...)`, so
+   * the result row carries `bid.jobs` not `bid.job`. JobsScreen's
+   * "Bids Sent" filter was reading the legacy `job` key (always
+   * undefined on the wire), filtering every pending bid out as
+   * undefined and rendering an empty list even when the contractor
+   * had open bids. Adding the canonical key here so typed reads
+   * succeed; consumers should prefer `bid.jobs` going forward.
+   */
+  jobs?: {
+    id: string;
+    title: string;
+    description: string;
+    budget: number;
+    category?: string;
+    status: string;
+    location?: string;
+    created_at: string;
+    photos?: string[] | null;
+    homeowner_id?: string | null;
+    homeowner?: {
+      id: string;
+      first_name: string | null;
+      last_name: string | null;
+      email: string | null;
+      profile_image_url: string | null;
+    } | null;
   };
 }
 

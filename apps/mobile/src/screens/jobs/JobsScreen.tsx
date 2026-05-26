@@ -112,11 +112,8 @@ const JobsScreen: React.FC = () => {
     let completedCount = 0;
     let postedCount = 0;
 
-    // Defensive coercion: Postgres NUMERIC arrives as a string from
-    // supabase-js, and the +=  operator would silently produce NaN /
-    // string concatenation for the "AVG VALUE" KPI tile. The route
-    // layer was fixed 2026-05-22 to coerce server-side; this guard
-    // means a future server regression can't break the KPI.
+    // Defensive coercion against server NUMERIC-as-string regressions
+    // (route fixed 2026-05-22; guards "AVG VALUE" KPI from `+=` on string).
     const toNum = (v: unknown): number | null => {
       if (v == null) return null;
       const n = typeof v === 'number' ? v : Number(v);
@@ -159,8 +156,9 @@ const JobsScreen: React.FC = () => {
       const { BidService } = await import('../../services/BidService');
       const bids = await BidService.getBidsByContractor(user.id);
       const pendingBids = bids.filter((b) => b.status === 'pending');
+      // audit-77 P1: API embeds the relation as `bid.jobs`.
       return pendingBids
-        .map((b) => b.job)
+        .map((b) => b.jobs ?? b.job)
         .filter((j): j is NonNullable<typeof j> => !!j) as unknown as Job[];
     },
     enabled: !!user && isContractor,
