@@ -39,6 +39,13 @@ export interface JobShape {
    *  in `jobs.requirements.preferred_start_date` until a dedicated
    *  column ships. ISO date string (YYYY-MM-DD). */
   preferred_start_date?: string | null;
+  /** ISO timestamp the visit is scheduled to start (live DB column,
+   *  audit-43 P1 wired the appointment-scheduled path). Used by the
+   *  homeowner access-card to honour the documented 1h-before
+   *  key-safe reveal rule (audit-76 P1 makes homeowner copy match
+   *  the contractor-side gate). Null when the homeowner hasn't
+   *  scheduled yet. */
+  scheduled_start_date?: string | null;
   contractor_id?: string;
 }
 
