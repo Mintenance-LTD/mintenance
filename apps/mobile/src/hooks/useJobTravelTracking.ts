@@ -19,6 +19,7 @@ import {
   releaseJobTrackingService,
 } from '../services/JobContextLocationService';
 import { MeetingService } from '../services/MeetingService';
+import { supabase } from '../config/supabase';
 import { logger } from '../utils/logger';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -290,6 +291,68 @@ export function useJobTravelTracking({
       logger.error('Error marking arrival', err);
     }
   }, [jobId, meetingId, user, stopTracking, onArrival]);
+
+  // 2026-05-27 audit-69 P1: when the job-detail path is active (jobId
+  // without meetingId) we previously had NO Realtime subscription —
+  // the meeting branch above subscribes via
+  // MeetingService.subscribeToContractorTravelLocation, but the
+  // job-only path relied entirely on the `onLocationUpdate` callback
+  // attached at startJobTracking time. The registry singleton skips
+  // startJobTracking when a watcher is already running (e.g. the
+  // dashboard NextUpCard or the auto-start hook fired first), so no
+  // callback was attached for the Job Detail consumer, leaving ETA
+  // blank/stale even though tracking was active. Subscribing
+  // independently here keeps Job Detail's currentLocation/eta state
+  // honest. Single-condition filter (job_id only) for Supabase
+  // Realtime parity — multi-condition AND was unreliable per
+  // audit-46 #210; is_active is checked client-side.
+  useEffect(() => {
+    if (meetingId || !jobId) return;
+
+    const channel = supabase
+      .channel(`contractor_travel_job_${jobId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'contractor_locations',
+          filter: `job_id=eq.${jobId}`,
+        },
+        (rawPayload: unknown) => {
+          const payload = rawPayload as {
+            new?: {
+              latitude?: number | null;
+              longitude?: number | null;
+              eta_minutes?: number | null;
+              location_timestamp?: string | null;
+              is_active?: boolean | null;
+            };
+          };
+          const row = payload.new;
+          if (!row || row.is_active === false) return;
+          if (typeof row.latitude !== 'number') return;
+          if (typeof row.longitude !== 'number') return;
+          const etaValue = row.eta_minutes ?? 0;
+          const travelLocation: TravelLocation = {
+            latitude: row.latitude,
+            longitude: row.longitude,
+            eta: etaValue,
+            timestamp: row.location_timestamp ?? new Date().toISOString(),
+          };
+          setCurrentLocation(travelLocation);
+          setEta(etaValue);
+          if (onLocationUpdate) {
+            onLocationUpdate(travelLocation);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      channel.unsubscribe();
+    };
+  }, [jobId, meetingId, onLocationUpdate]);
 
   // Cleanup on unmount
   useEffect(() => {

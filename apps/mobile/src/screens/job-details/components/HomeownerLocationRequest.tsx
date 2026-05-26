@@ -174,12 +174,16 @@ export const HomeownerLocationRequest: React.FC<Props> = ({ jobId }) => {
   const eta = liveLocation?.eta_minutes ?? null;
   const lastFix =
     liveLocation?.location_timestamp ?? liveLocation?.updated_at ?? null;
-  // 2026-05-26 audit-67 P2: render arrival as a distinct state.
-  // markArrived on mobile sets context='on_job' + eta_minutes=0 and
-  // leaves is_active=true so this card stays visible — without the
-  // explicit "Arrived" label the homeowner sees "Arriving now"
-  // forever, ambiguous between "almost here" and "literally on site".
-  const hasArrived = liveLocation?.context === 'on_job';
+  // 2026-05-27 audit-69 P2: arrival context has three platform-specific
+  // aliases — mobile JobContextLocationService writes 'on_job', the
+  // web /api/contractors/[id]/location route accepts 'arrived' and
+  // 'on_site'. All three mean "contractor is at the job site" from
+  // the homeowner's perspective; render any of them as the explicit
+  // "Arrived" state instead of letting the cross-platform delta
+  // silently degrade to the generic "Sharing live location" copy.
+  const ARRIVED_CONTEXTS = new Set(['on_job', 'arrived', 'on_site']);
+  const hasArrived =
+    liveLocation?.context != null && ARRIVED_CONTEXTS.has(liveLocation.context);
 
   if (isLive) {
     return (

@@ -10,7 +10,7 @@
  *   - Call → tel: link if we have a phone number, otherwise a no-op
  *     fall-through that opens the thread instead.
  */
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -25,7 +25,10 @@ import { me } from '../../../design-system/mint-editorial';
 import { mobileApiClient } from '../../../utils/mobileApiClient';
 import { logger } from '../../../utils/logger';
 import { useAuth } from '../../../contexts/AuthContext';
-import { JobContextLocationService } from '../../../services/JobContextLocationService';
+import {
+  acquireJobTrackingService,
+  releaseJobTrackingService,
+} from '../../../services/JobContextLocationService';
 import { styles } from './NextUpCard.styles';
 
 interface NextAppointment {
@@ -56,6 +59,13 @@ export const NextUpCard: React.FC<Props> = ({ next, onOpenJob, onMessage }) => {
   const qc = useQueryClient();
   const { user } = useAuth();
   const [tripStarted, setTripStarted] = useState(false);
+  // 2026-05-27 audit-69 P1: tracks the (contractor, job) ref this card
+  // holds via acquireJobTrackingService so we can release on unmount.
+  // Without this the card spawned `new JobContextLocationService()` —
+  // a fresh instance outside the shared registry — and Job Detail's
+  // Stop / Arrived controls would operate on a different singleton
+  // while the dashboard-started watcher kept running invisibly.
+  const heldRef = useRef<{ contractorId: string; jobId: string } | null>(null);
 
   const tripMutation = useMutation({
     mutationFn: async (jobId: string) => {
@@ -98,16 +108,32 @@ export const NextUpCard: React.FC<Props> = ({ next, onOpenJob, onMessage }) => {
         typeof destLng === 'number'
       ) {
         try {
-          const service = new JobContextLocationService();
-          await service.startJobTracking(user.id, jobId, null, {
-            latitude: destLat,
-            longitude: destLng,
-          });
+          // 2026-05-27 audit-69 P1: acquire from the shared (contractor,
+          // job) registry singleton instead of constructing a fresh
+          // service. Job Detail's Stop/Arrived buttons now operate on
+          // the same instance. If a watcher is already running (e.g.
+          // auto-start beat us), skip the second startJobTracking and
+          // just hold our reference.
+          const service = acquireJobTrackingService(user.id, jobId);
+          heldRef.current = { contractorId: user.id, jobId };
+          const status = service.getTrackingStatus();
+          if (!status.isTracking) {
+            await service.startJobTracking(user.id, jobId, null, {
+              latitude: destLat,
+              longitude: destLng,
+            });
+          }
         } catch (err) {
           // Permission denial or initial-fix failure shouldn't roll
           // back the trip — the contractor has already told the
-          // homeowner they're on the way. Just log it.
+          // homeowner they're on the way. Release our ref so we
+          // don't leak it.
           logger.warn('Could not start GPS tracking after trip start', { err });
+          if (heldRef.current) {
+            const { contractorId, jobId: heldJobId } = heldRef.current;
+            heldRef.current = null;
+            void releaseJobTrackingService(contractorId, heldJobId);
+          }
         }
       }
     },
@@ -123,6 +149,20 @@ export const NextUpCard: React.FC<Props> = ({ next, onOpenJob, onMessage }) => {
       Alert.alert(`Couldn’t start the trip`, msg);
     },
   });
+
+  // 2026-05-27 audit-69 P1: release the registry reference on unmount.
+  // Other consumers (auto-start hook, useJobTravelTracking) keep their
+  // own refs so tracking keeps running while they hold them; only when
+  // refcount hits 0 does the service tear down.
+  useEffect(() => {
+    return () => {
+      if (heldRef.current) {
+        const { contractorId, jobId } = heldRef.current;
+        heldRef.current = null;
+        void releaseJobTrackingService(contractorId, jobId);
+      }
+    };
+  }, []);
 
   const handleCall = useCallback(() => {
     if (!next) return;
