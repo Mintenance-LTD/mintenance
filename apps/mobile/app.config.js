@@ -339,6 +339,20 @@ module.exports = {
       termsOfServiceUrl: 'https://mintenance.app/terms',
       supportUrl: 'https://mintenance.app/support',
       marketingUrl: 'https://mintenance.app',
+      // 2026-05-27 audit-79 P2: the Android native config above accepts
+      // either GOOGLE_MAPS_API_KEY (non-public, EAS secret) or
+      // EXPO_PUBLIC_GOOGLE_MAPS_API_KEY (baked into JS bundle). The
+      // JS runtime guards in ExploreMapScreen / JobLocationMap can only
+      // see EXPO_PUBLIC_*, so an EAS build configured only with the
+      // non-public secret correctly stamped the manifest but the
+      // runtime fell back to "Map unavailable". Surface a build-time
+      // boolean via `extra` so the runtime can match what the native
+      // build actually has. Read at runtime via
+      // expo-constants -> Constants.expoConfig?.extra?.androidGoogleMapsConfigured.
+      androidGoogleMapsConfigured: Boolean(
+        process.env.GOOGLE_MAPS_API_KEY ||
+        process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY
+      ),
     },
   },
 };

@@ -40,6 +40,7 @@ import {
 } from './viewmodels/ExploreMapViewModel';
 import { me } from '../../design-system/mint-editorial';
 import { styles, CARD_WIDTH, CATEGORY_MARKERS, CATEGORIES } from './styles';
+import { shouldRenderNativeMap as shouldRenderNativeMapUtil } from '../../utils/mapAvailability';
 
 // 2026-05-27 audit-77 P2: empty-state pill that floats above the
 // carousel zone when there are zero discoverable jobs in the
@@ -384,10 +385,13 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({
     useNavigation<NativeStackNavigationProp<JobsStackParamList>>();
   const mapRef = useRef<MapView>(null);
   const carouselRef = useRef<FlatList<JobMapItem>>(null);
-  const googleMapsApiKey =
-    process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY ||
-    process.env.GOOGLE_MAPS_API_KEY;
-  const shouldRenderNativeMap = Platform.OS !== 'android' || !!googleMapsApiKey;
+  // 2026-05-27 audit-79 P2: read both the JS env var AND the
+  // build-time `extra.androidGoogleMapsConfigured` flag so the JS
+  // guard agrees with the native AndroidManifest (an EAS build
+  // configured with only the non-public GOOGLE_MAPS_API_KEY secret
+  // had a valid Maps key in the manifest but the runtime fell back
+  // to "Map unavailable").
+  const shouldRenderNativeMap = shouldRenderNativeMapUtil();
 
   // 2026-05-24 audit-38 P2: refetch jobs every time the map regains
   // focus. Previously, after a contractor submitted a bid from
