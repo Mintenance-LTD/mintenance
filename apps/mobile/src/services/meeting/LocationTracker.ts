@@ -105,12 +105,20 @@ export function subscribeToContractorLocation(
   callback: (location: ContractorLocation | null) => void,
   opts?: { jobId?: string }
 ) {
-  // 2026-05-27 audit-78 P2: scope the realtime filter to the meeting's
-  // job_id when known so the homeowner channel only receives the ping
-  // they actually have read access to. Without job_id we keep the
-  // older contractor-wide filter for backwards compat (admin / mocks).
+  // 2026-05-27 audit-84 P1: Supabase Realtime Postgres Changes filters
+  // are single-column equality only — multi-condition SQL-style
+  // "contractor_id=eq.X AND job_id=eq.Y" silently fails to subscribe
+  // (no error, just no events). The web ContractorTravelTracking
+  // already got this fix in audit-48; mirroring it here so the mobile
+  // meeting/job-detail subscriber actually receives updates.
+  //
+  // Strategy: filter by the most-selective single column (job_id when
+  // known, else contractor_id) and narrow the rest client-side. The
+  // job_id-scoped channel is what the homeowner has RLS for, so a
+  // server-side leak of another job's row would already 404; the
+  // client check is belt-and-braces against future RLS regressions.
   const filter = opts?.jobId
-    ? `contractor_id=eq.${contractorId} AND job_id=eq.${opts.jobId}`
+    ? `job_id=eq.${opts.jobId}`
     : `contractor_id=eq.${contractorId}`;
   return supabase
     .channel(
@@ -127,18 +135,20 @@ export function subscribeToContractorLocation(
       (rawPayload: unknown) => {
         const payload =
           rawPayload as RealtimePayload<DatabaseContractorLocationRow>;
-        if (payload.new) {
-          callback({
-            id: payload.new.id,
-            contractorId: payload.new.contractor_id,
-            latitude: payload.new.latitude,
-            longitude: payload.new.longitude,
-            accuracy: payload.new.accuracy,
-            timestamp: payload.new.timestamp,
-            isActive: payload.new.is_active,
-            meetingId: payload.new.meeting_id,
-          });
-        }
+        if (!payload.new) return;
+        // Belt-and-braces client-side narrowing for the conditions the
+        // multi-column filter used to enforce server-side.
+        if (payload.new.contractor_id !== contractorId) return;
+        callback({
+          id: payload.new.id,
+          contractorId: payload.new.contractor_id,
+          latitude: payload.new.latitude,
+          longitude: payload.new.longitude,
+          accuracy: payload.new.accuracy,
+          timestamp: payload.new.timestamp,
+          isActive: payload.new.is_active,
+          meetingId: payload.new.meeting_id,
+        });
       }
     )
     .subscribe();
@@ -178,6 +188,10 @@ export function subscribeToContractorTravelLocation(
     context: ContractorLocationContext;
   }) => void
 ) {
+  // 2026-05-27 audit-84 P1: same single-column-filter rule. Filter by
+  // meeting_id (most selective for this channel) and check the rest
+  // client-side. The previous AND-joined filter silently dropped every
+  // event so the Meeting Details travel pane never lit up live.
   return supabase
     .channel(`contractor_travel_${meetingId}`)
     .on(
@@ -186,28 +200,29 @@ export function subscribeToContractorTravelLocation(
         event: '*',
         schema: 'public',
         table: 'contractor_locations',
-        filter: `contractor_id=eq.${contractorId} AND meeting_id=eq.${meetingId} AND is_active=eq.true`,
+        filter: `meeting_id=eq.${meetingId}`,
       },
       (rawPayload: unknown) => {
         const payload =
           rawPayload as RealtimePayload<DatabaseContractorLocationRow>;
-        if (payload.new) {
-          callback({
-            location: {
-              id: payload.new.id,
-              contractorId: payload.new.contractor_id,
-              latitude: payload.new.latitude,
-              longitude: payload.new.longitude,
-              accuracy: payload.new.accuracy,
-              timestamp: payload.new.timestamp,
-              isActive: payload.new.is_active,
-              meetingId: payload.new.meeting_id,
-            },
-            eta: payload.new.eta_minutes || 0,
-            context:
-              payload.new.context || ContractorLocationContext.TRAVELING_TO_JOB,
-          });
-        }
+        if (!payload.new) return;
+        if (payload.new.contractor_id !== contractorId) return;
+        if (payload.new.is_active === false) return;
+        callback({
+          location: {
+            id: payload.new.id,
+            contractorId: payload.new.contractor_id,
+            latitude: payload.new.latitude,
+            longitude: payload.new.longitude,
+            accuracy: payload.new.accuracy,
+            timestamp: payload.new.timestamp,
+            isActive: payload.new.is_active,
+            meetingId: payload.new.meeting_id,
+          },
+          eta: payload.new.eta_minutes || 0,
+          context:
+            payload.new.context || ContractorLocationContext.TRAVELING_TO_JOB,
+        });
       }
     )
     .subscribe();

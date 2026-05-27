@@ -315,7 +315,8 @@ export class JobContextLocationService {
     );
 
     const timeDiff = (location.timestamp - this.lastLocation.timestamp) / 1000; // seconds
-    const speed = distance / timeDiff; // m/s
+    // 2026-05-27 audit-84 P1: distance is km; *1000 so m/s ↔ m/s.
+    const speed = (distance * 1000) / timeDiff; // m/s
 
     this.isMoving = speed > this.speedThreshold;
   }
