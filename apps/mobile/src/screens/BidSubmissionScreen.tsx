@@ -92,7 +92,31 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
           .order('created_at', { ascending: true });
         if (error) return; // RLS may hide rows — quietly skip
         if (!cancelled) {
-          setRoomsInScope((data ?? []) as JobRoomScopeOption[]);
+          // 2026-05-27 audit-82 P1: job_rooms.size_sqm_at_post is
+          // NUMERIC(8,2) which supabase-js serializes as a string.
+          // LineItemScopeToolbar calls .toFixed(1) on it (throws
+          // "toFixed is not a function" on strings) and the bid
+          // submit payload reads room.size_sqm_at_post as quantity
+          // (then ships a STRING into payload.lineItems[].quantity,
+          // breaking type stability on the wire). Coerce once at the
+          // read boundary so every downstream consumer sees a number
+          // or null.
+          const rows = (data ?? []) as Array<{
+            id: string;
+            name: string;
+            size_sqm_at_post: number | string | null;
+          }>;
+          const normalised = rows.map((r) => {
+            const raw = r.size_sqm_at_post;
+            const n =
+              raw == null ? null : typeof raw === 'number' ? raw : Number(raw);
+            return {
+              id: r.id,
+              name: r.name,
+              size_sqm_at_post: n != null && Number.isFinite(n) ? n : null,
+            };
+          });
+          setRoomsInScope(normalised as JobRoomScopeOption[]);
         }
       } catch {
         // Silent — slice 2 controls self-hide when array is empty
