@@ -153,6 +153,17 @@ export const CATEGORIES = [
     name: 'Pest control',
     icon: 'bug-outline' as keyof typeof Ionicons.glyphMap,
   },
+  // 2026-05-27 audit-82 P3: `general` is a canonical category in
+  // packages/api-contracts JOB_CATEGORIES and CATEGORY_MARKERS above
+  // already knows its icon/colour, but the pill was missing so a
+  // contractor could see "general" jobs under "All" but couldn't
+  // intentionally filter for them. Live shows 0 today; this closes
+  // the filter / enum drift before the first one posts.
+  {
+    id: 'general',
+    name: 'General',
+    icon: 'construct-outline' as keyof typeof Ionicons.glyphMap,
+  },
   {
     id: 'other',
     name: 'Other',

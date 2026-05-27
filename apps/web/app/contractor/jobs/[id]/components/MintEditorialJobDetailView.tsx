@@ -102,11 +102,27 @@ export interface PropertyAccessShape {
   consumer_unit_location: string | null;
 }
 
+// 2026-05-27 audit-81 P1: mirror the property_contacts row shape the
+// job detail GET / mobile JobAccessCard already use, so the contractor
+// can see who lives at / manages the property while en route.
+export interface PropertyContactShape {
+  id: string;
+  name: string;
+  contact_role: string;
+  phone: string | null;
+  email: string | null;
+  unit_label: string | null;
+  notes: string | null;
+}
+
 interface MintEditorialJobDetailViewProps {
   job: JobShape;
   homeowner: HomeownerShape | null;
   contract: ContractShape | null;
   property: PropertyAccessShape | null;
+  // Optional so callers that don't have contacts loaded yet still
+  // type-check cleanly (e.g. tests with old fixtures).
+  propertyContacts?: PropertyContactShape[];
   contractStatus: string;
   currentStage: string;
   stageTitle: string;
@@ -160,6 +176,7 @@ export function MintEditorialJobDetailView({
   homeowner,
   contract,
   property,
+  propertyContacts,
   contractStatus,
   currentStage,
   stageTitle,
@@ -173,6 +190,11 @@ export function MintEditorialJobDetailView({
   userId,
   messageHref,
 }: MintEditorialJobDetailViewProps) {
+  // 2026-05-27 audit-81 P1: filter the contact list to entries that
+  // are at least nameable. Avoids rendering a "People at this
+  // property" section header with empty rows when the homeowner has
+  // started + abandoned a contact row.
+  const contactList = (propertyContacts ?? []).filter((c) => !!c && !!c.name);
   const budgetNum =
     typeof job.budget === 'number'
       ? job.budget
@@ -674,9 +696,23 @@ export function MintEditorialJobDetailView({
               (ready_to_start / in_progress) — the page-level fetch
               should mask it before this view ever sees the value
               (defence-in-depth for any future client-side hydration). */}
+          {/* 2026-05-27 audit-81 P2: open the card if ANY usable
+              access field is set. Previously the gate only checked
+              access_mode / access_notes / stopcock_location, so a
+              homeowner who filled only gas_isolator or consumer_unit
+              location saw the contractor render the fallback
+              "Homeowner hasn't set default access yet" copy. The
+              card body itself already handles missing subfields
+              gracefully; the gate just needs to widen. property
+              contacts also force-open the card so the contractor
+              still gets the tenant/keyholder list when access info
+              is sparse. */}
           {property?.access_mode ||
           property?.access_notes ||
-          property?.stopcock_location ? (
+          property?.stopcock_location ||
+          property?.gas_isolator_location ||
+          property?.consumer_unit_location ||
+          contactList.length > 0 ? (
             <div className='card card-pad'>
               <div className='col' style={{ gap: 10 }}>
                 <div className='row' style={{ gap: 8, alignItems: 'center' }}>
@@ -690,7 +726,7 @@ export function MintEditorialJobDetailView({
                   </h3>
                 </div>
 
-                {property.access_mode ? (
+                {property?.access_mode ? (
                   <div className='col' style={{ gap: 4 }}>
                     <span className='t-meta'>How to get in</span>
                     <span style={{ fontSize: 14, fontWeight: 600 }}>
@@ -703,9 +739,19 @@ export function MintEditorialJobDetailView({
                   </div>
                 ) : null}
 
-                {property.key_safe_code &&
-                (currentStage === 'ready_to_start' ||
-                  currentStage === 'in_progress') ? (
+                {/* 2026-05-27 audit-81 P2: trust the server-side
+                    mask. page.tsx already runs canRevealKeySafeCode()
+                    (the shared 1h-before-start window, also used by
+                    the mobile job-detail API), and only populates
+                    this prop when the rule says reveal. Re-checking
+                    `currentStage` here let the component diverge
+                    from the shared helper and from mobile — e.g.,
+                    the server could say "reveal" inside the 1h
+                    window on `status='assigned'`, but the component
+                    would suppress until the stage flipped to
+                    ready_to_start. Render whenever the prop is
+                    present. */}
+                {property?.key_safe_code ? (
                   <div className='col' style={{ gap: 4 }}>
                     <span className='t-meta'>Lock-box code</span>
                     <span
@@ -720,9 +766,16 @@ export function MintEditorialJobDetailView({
                       {property.key_safe_code}
                     </span>
                   </div>
+                ) : property?.access_mode === 'key_safe' ? (
+                  <div className='col' style={{ gap: 4 }}>
+                    <span className='t-meta'>Lock-box code</span>
+                    <span className='t-meta'>
+                      Reveals within 1 hour of your scheduled start.
+                    </span>
+                  </div>
                 ) : null}
 
-                {property.access_notes ? (
+                {property?.access_notes ? (
                   <div className='col' style={{ gap: 4 }}>
                     <span className='t-meta'>Notes from homeowner</span>
                     <p
@@ -738,9 +791,9 @@ export function MintEditorialJobDetailView({
                   </div>
                 ) : null}
 
-                {(property.stopcock_location ||
-                  property.gas_isolator_location ||
-                  property.consumer_unit_location) && (
+                {(property?.stopcock_location ||
+                  property?.gas_isolator_location ||
+                  property?.consumer_unit_location) && (
                   <div
                     className='col'
                     style={{
@@ -769,6 +822,77 @@ export function MintEditorialJobDetailView({
                         Consumer unit: {property.consumer_unit_location}
                       </span>
                     ) : null}
+                  </div>
+                )}
+
+                {/* 2026-05-27 audit-81 P1: People at this property —
+                    mirrors mobile JobAccessCard's contact list so a
+                    web contractor en route or on site can reach the
+                    tenant / keyholder / emergency contact / managing
+                    agent without chasing the homeowner. */}
+                {contactList.length > 0 && (
+                  <div
+                    className='col'
+                    style={{
+                      gap: 8,
+                      padding: 10,
+                      borderRadius: 8,
+                      background: 'var(--me-bg-2)',
+                      marginTop: 4,
+                    }}
+                  >
+                    <span className='t-meta' style={{ fontWeight: 600 }}>
+                      People at this property
+                    </span>
+                    {contactList.map((c) => {
+                      const roleLabel =
+                        c.contact_role === 'tenant'
+                          ? 'Tenant'
+                          : c.contact_role === 'keyholder'
+                            ? 'Keyholder'
+                            : c.contact_role === 'emergency_contact'
+                              ? 'Emergency contact'
+                              : c.contact_role === 'managing_agent'
+                                ? 'Managing agent'
+                                : c.contact_role;
+                      return (
+                        <div key={c.id} className='col' style={{ gap: 2 }}>
+                          <span style={{ fontSize: 13, fontWeight: 600 }}>
+                            {c.name}
+                            {c.unit_label ? ` — ${c.unit_label}` : ''}
+                          </span>
+                          <span className='t-meta' style={{ fontSize: 11 }}>
+                            {roleLabel}
+                          </span>
+                          {c.phone ? (
+                            <a
+                              href={`tel:${c.phone}`}
+                              style={{ fontSize: 12, color: 'var(--me-brand)' }}
+                            >
+                              {c.phone}
+                            </a>
+                          ) : null}
+                          {c.email ? (
+                            <a
+                              href={`mailto:${c.email}`}
+                              style={{ fontSize: 12, color: 'var(--me-brand)' }}
+                            >
+                              {c.email}
+                            </a>
+                          ) : null}
+                          {c.notes ? (
+                            <span
+                              style={{
+                                fontSize: 12,
+                                whiteSpace: 'pre-wrap',
+                              }}
+                            >
+                              {c.notes}
+                            </span>
+                          ) : null}
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
