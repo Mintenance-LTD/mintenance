@@ -1,24 +1,17 @@
-import Stripe from 'stripe';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import {
   FeeCalculationService,
   type PaymentType,
 } from './FeeCalculationService';
+import type { ContractorSubscriptionTier } from '@/lib/feature-access-types';
 
-// Lazy Stripe init to avoid module-level throws during next build.
-let _stripe: Stripe | null = null;
-function getStripe(): Stripe {
-  if (!_stripe) {
-    if (!process.env.STRIPE_SECRET_KEY) {
-      throw new Error('STRIPE_SECRET_KEY is not configured');
-    }
-    _stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-      apiVersion: '2024-04-10',
-    });
-  }
-  return _stripe;
-}
+// 2026-05-27 whole-app review Critical #3: removed the local Stripe init
+// (was pinned to '2024-04-10', drifted from the canonical
+// '2025-01-27.acacia' in @/lib/stripe). This file doesn't actually call
+// Stripe — the local instance was dead code. If a future caller needs
+// Stripe in here, import from '@/lib/stripe' so the API version stays
+// pinned in one place.
 
 export interface FeeTransferOptions {
   /**
@@ -61,6 +54,24 @@ export interface FeeTransferOptions {
    * @default 'gbp'
    */
   currency?: string;
+
+  /**
+   * Contractor's effective subscription tier — drives the platform fee
+   * rate (12 / 12 / 8 / 5 % for free / basic / pro / business per
+   * PLATFORM_FEE_RATE_BY_TIER).
+   *
+   * 2026-05-27 whole-app review Critical #1: previously not accepted,
+   * so the underlying calculateFees fell back to the 12% default for
+   * EVERY contractor. Pro / Business contractors were over-charged
+   * 4-7 pts on every auto-release, and `platform_fee_transfers`
+   * recorded the wrong amount even when the caller had correctly
+   * tier-resolved the escrow row update.
+   *
+   * Optional: when omitted, the service resolves it from contractorId
+   * via FeeCalculationService.resolveContractorTier so legacy callers
+   * still produce correct numbers.
+   */
+  contractorTier?: ContractorSubscriptionTier;
 }
 
 export interface FeeTransferResult {
@@ -123,12 +134,23 @@ export class FeeTransferService {
       chargeId,
       paymentType = 'final',
       currency = 'gbp',
+      contractorTier: passedTier,
     } = options;
 
-    // Calculate fees
+    // 2026-05-27 whole-app review Critical #1: defense-in-depth — when
+    // the caller didn't pass a tier (legacy callers, tests), resolve
+    // it ourselves so platform_fee_transfers never records the wrong
+    // rate. resolveContractorTier is fail-safe (returns 'basic' on
+    // lookup error, so we never accidentally undercharge).
+    const contractorTier =
+      passedTier ??
+      (await FeeCalculationService.resolveContractorTier(contractorId));
+
+    // Calculate fees with the resolved tier
     const feeBreakdown = FeeCalculationService.calculateFees(amount, {
       paymentType,
       currency,
+      contractorTier,
     });
 
     // Create fee transfer record

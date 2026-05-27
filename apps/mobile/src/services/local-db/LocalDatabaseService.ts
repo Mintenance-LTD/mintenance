@@ -19,6 +19,7 @@ import {
   queueOfflineAction,
   getOfflineActions,
   removeOfflineAction,
+  bumpOfflineActionRetry,
   clearAllData,
   getStorageInfo,
 } from './SyncStore';
@@ -162,6 +163,11 @@ class LocalDatabaseService {
   }
   async removeOfflineAction(actionId: string): Promise<void> {
     return removeOfflineAction(this.requireDb(), actionId);
+  }
+  async bumpOfflineActionRetry(
+    actionId: string
+  ): Promise<{ retryCount: number; maxRetries: number } | null> {
+    return bumpOfflineActionRetry(this.requireDb(), actionId);
   }
   async clearAllData(): Promise<void> {
     return clearAllData(this.requireDb());

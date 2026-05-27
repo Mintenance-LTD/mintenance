@@ -842,10 +842,15 @@ export const ExploreMapScreen: React.FC<ExploreMapScreenProps> = ({
                 <Ionicons name='search-outline' size={18} color={me.brand} />
               </View>
               <Text style={emptyStateStyles.title}>No jobs in this area</Text>
+              {/* 2026-05-27 audit-88 P2: be honest about the 25km
+                  search radius. Without this, a contractor outside
+                  the visible radius reads "No jobs in this area" as
+                  "the app is broken" — when really we just stopped
+                  looking 25km out. Pan the map to widen the search. */}
               <Text style={emptyStateStyles.body}>
                 {viewModel.selectedCategory
-                  ? 'Try removing the category filter or moving the map to a different area.'
-                  : 'Try zooming out to a wider area, or moving the map to a different location.'}
+                  ? 'Mintenance searches within ~25km of where the map is centred. Try removing the category filter or panning the map to a different area.'
+                  : 'Mintenance searches within ~25km of where the map is centred. Try panning the map to a different location, then tap “Search again”.'}
               </Text>
               <View style={emptyStateStyles.ctaRow}>
                 {viewModel.selectedCategory ? (
