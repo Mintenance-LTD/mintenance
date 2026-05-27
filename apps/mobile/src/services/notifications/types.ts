@@ -119,6 +119,16 @@ export interface NotificationData {
     // Now carries jobId + tipId so the routingTable can deep-link to
     // the contractor's JobDetails where TipsReceivedSection lives.
     | 'job_tip_received'
+    // 2026-05-27 audit-80 P2: property/team notification types the
+    // mobile router already handles via switch cases but were missing
+    // from this discriminated union. Adding them so compile-time checks
+    // catch future router/route drift on the property + team surfaces.
+    // - tenant_linked: emitted when a tenant accepts a property invite
+    // - property_team_invite / property_team_invite_accepted: agency
+    //   landlord ↔ team member invitations
+    | 'tenant_linked'
+    | 'property_team_invite'
+    | 'property_team_invite_accepted'
     | 'system';
   priority: 'low' | 'normal' | 'high';
   userId: string;

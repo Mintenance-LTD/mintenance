@@ -154,13 +154,28 @@ export async function markAllAsRead(_userId: string): Promise<void> {
   }
 }
 
+// 2026-05-27 audit-80 P1: social-feed types were removed in
+// migration 007_remove_social_features.sql, and the web feed
+// (apps/web/lib/notifications/feed.ts) already strips them, but
+// mobile's badge count was a raw COUNT(*) on `notifications` so
+// it kept counting unread rows the inbox doesn't render and the
+// router can't deep-link anywhere useful. Keep this list in sync
+// with the web feed's SOCIAL_NOTIFICATION_TYPES set.
+const RETIRED_NOTIFICATION_TYPES = [
+  'post_liked',
+  'comment_added',
+  'comment_replied',
+  'new_follower',
+];
+
 export async function getUnreadCount(userId: string): Promise<number> {
   try {
     const { count, error } = await supabase
       .from('notifications')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
-      .eq('read', false);
+      .eq('read', false)
+      .not('type', 'in', `(${RETIRED_NOTIFICATION_TYPES.join(',')})`);
 
     if (error) {
       logger.error('Failed to get unread count', error.message);
