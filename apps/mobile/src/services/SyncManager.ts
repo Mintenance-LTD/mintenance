@@ -36,7 +36,22 @@ export type {
 
 class SyncManagerService {
   private isInitialized = false;
-  private syncInProgress = false;
+  // 2026-05-27 whole-app review Critical #6: was `syncInProgress: boolean`
+  // — check-then-set is not atomic in JS event-loop semantics. Two
+  // concurrent triggers (e.g. AppState 'active' + 60s background
+  // timer firing within the same tick) could both observe `false`
+  // and both proceed, racing on the offline-action queue and producing
+  // duplicate writes. Promise-based mutex pattern: a single in-flight
+  // promise is shared across concurrent callers so the second caller
+  // awaits the first instead of starting a parallel sync.
+  private syncPromise: Promise<SyncStatus> | null = null;
+  // 2026-05-27 whole-app review Critical #7: was hardcoded to zero in
+  // getSyncStatus. Cache the real values here, refreshed inside
+  // syncAll. UI subscribers (NotificationScreen, settings) now see
+  // actual pending-action counts and accumulated errors.
+  private lastSyncTime: Date | null = null;
+  private lastErrors: SyncError[] = [];
+  private lastPendingUploads = 0;
   private backgroundTimer: NodeJS.Timeout | null = null;
   private appStateSubscription: AppStateSubscription | null = null;
   private networkSubscription: NetworkUnsubscribe | null = null;
@@ -76,6 +91,25 @@ class SyncManagerService {
    * failure doesn't abort the whole sync.
    */
   async syncAll(options: Partial<SyncOptions> = {}): Promise<SyncStatus> {
+    // 2026-05-27 whole-app review Critical #6: share the in-flight
+    // promise across concurrent callers. The first caller's syncAll
+    // runs; subsequent callers (until that promise settles) await it
+    // instead of starting their own race.
+    if (this.syncPromise) {
+      logger.warn('Sync already in progress, awaiting in-flight result');
+      return this.syncPromise;
+    }
+    this.syncPromise = this._doSync(options);
+    try {
+      return await this.syncPromise;
+    } finally {
+      this.syncPromise = null;
+    }
+  }
+
+  private async _doSync(
+    options: Partial<SyncOptions> = {}
+  ): Promise<SyncStatus> {
     const config: SyncOptions = {
       strategy: 'immediate',
       direction: 'bidirectional',
@@ -84,12 +118,6 @@ class SyncManagerService {
       ...options,
     };
 
-    if (this.syncInProgress) {
-      logger.warn('Sync already in progress, skipping');
-      return this.getSyncStatus();
-    }
-
-    this.syncInProgress = true;
     logger.info('Starting full sync', config);
 
     const errors: SyncError[] = [];
@@ -136,22 +164,44 @@ class SyncManagerService {
       await this.updateSyncMetadata();
       await queryClient.invalidateQueries();
 
+      // 2026-05-27 audit fix #7: refresh the cached pendingUploads
+      // count from LocalDatabase so getSyncStatus reports the real
+      // number instead of hardcoded zero.
+      await this.refreshPendingUploads();
+      this.lastErrors = errors;
+      this.lastSyncTime = new Date();
+
       const status = this.getSyncStatus();
       this.notifySyncListeners(status);
 
       logger.info('Full sync completed', {
         errors: errors.length,
-        duration: Date.now(),
+        pendingUploads: this.lastPendingUploads,
       });
       return status;
     } catch (error) {
       logger.error('Full sync failed:', error);
       errors.push(this.createSyncError('sync_manager', 'full_sync', error));
-      const status = { ...this.getSyncStatus(), errors };
+      this.lastErrors = errors;
+      this.lastSyncTime = new Date();
+      const status = this.getSyncStatus();
       this.notifySyncListeners(status);
       return status;
-    } finally {
-      this.syncInProgress = false;
+    }
+  }
+
+  /**
+   * 2026-05-27 audit fix #7: pull live pendingActions from
+   * LocalDatabase. Updates cached field so getSyncStatus stays sync
+   * without forcing every caller to await.
+   */
+  private async refreshPendingUploads(): Promise<void> {
+    try {
+      const storageInfo = await LocalDatabase.getStorageInfo();
+      this.lastPendingUploads =
+        (storageInfo.pendingActions ?? 0) + (storageInfo.dirtyRecords ?? 0);
+    } catch (err) {
+      logger.warn('Failed to refresh pendingUploads cache', { err });
     }
   }
 
@@ -175,12 +225,16 @@ class SyncManagerService {
   }
 
   getSyncStatus(): SyncStatus {
+    // 2026-05-27 whole-app review Critical #7: previously hardcoded
+    // every field. Now returns the cached values populated by syncAll
+    // so subscribers see real pendingUploads + errors. lastSyncTime
+    // falls back to now() only if no sync has run yet (initial state).
     return {
-      isActive: this.syncInProgress,
-      lastSyncTime: new Date(),
-      pendingUploads: 0,
+      isActive: this.syncPromise !== null,
+      lastSyncTime: this.lastSyncTime ?? new Date(),
+      pendingUploads: this.lastPendingUploads,
       pendingDownloads: 0,
-      errors: [],
+      errors: this.lastErrors,
     };
   }
 

@@ -124,6 +124,30 @@ export async function removeOfflineAction(
   await db.runAsync('DELETE FROM offline_actions WHERE id = ?', [actionId]);
 }
 
+/**
+ * 2026-05-27 whole-app review Critical #9: bump retry_count on a
+ * failed offline-action attempt. Returns the new retry_count so the
+ * caller can decide whether to dead-letter (DELETE the row) when the
+ * action's own max_retries cap is exceeded.
+ */
+export async function bumpOfflineActionRetry(
+  db: import('expo-sqlite').SQLiteDatabase,
+  actionId: string
+): Promise<{ retryCount: number; maxRetries: number } | null> {
+  await db.runAsync(
+    'UPDATE offline_actions SET retry_count = retry_count + 1 WHERE id = ?',
+    [actionId]
+  );
+  const row = await db.getFirstAsync<{
+    retry_count: number;
+    max_retries: number;
+  }>('SELECT retry_count, max_retries FROM offline_actions WHERE id = ?', [
+    actionId,
+  ]);
+  if (!row) return null;
+  return { retryCount: row.retry_count, maxRetries: row.max_retries };
+}
+
 export async function clearAllData(
   db: import('expo-sqlite').SQLiteDatabase
 ): Promise<void> {
