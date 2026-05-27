@@ -458,12 +458,25 @@ export const POST = withApiHandler(
             contractorId: bid.contractor_id,
           });
 
+          // 2026-05-27 audit-87 P1: include jobId in metadata + a
+          // jobId-scoped actionUrl. The mobile notification router
+          // resolves `type: 'message'` taps via metadata.jobId or a
+          // URL of the form /messages?jobId=... — without either, the
+          // tap fell through to the inbox instead of opening the new
+          // chat. Web client also benefits: the new actionUrl
+          // deep-links straight into the conversation rather than the
+          // unfiltered message list.
           await NotificationService.createNotification({
             userId: bid.contractor_id,
             title: 'New Message',
             message: `You have a new message from the homeowner about "${jobDetails?.title || 'your job'}"`,
             type: 'message',
-            actionUrl: `/contractor/messages`,
+            actionUrl: `/contractor/messages?jobId=${jobId}`,
+            metadata: {
+              jobId,
+              threadId,
+              senderId: user.id,
+            },
           });
         }
       } catch (messageError) {

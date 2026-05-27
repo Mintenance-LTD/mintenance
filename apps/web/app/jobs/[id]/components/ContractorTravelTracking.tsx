@@ -6,6 +6,7 @@ import { DynamicGoogleMap } from '@/components/maps';
 import { theme } from '@/lib/theme';
 import { logger } from '@mintenance/shared';
 import { Icon } from '@/components/ui/Icon';
+import { useContractorLocationHydration } from './useContractorLocationHydration';
 
 interface ContractorTravelTrackingProps {
   jobId: string;
@@ -94,6 +95,14 @@ export function ContractorTravelTracking({
     // Update map markers
     updateMapMarkers(locationData);
   };
+
+  // 2026-05-27 audit-84 P2: hydrate before subscribing — see hook file.
+  useContractorLocationHydration({
+    jobId,
+    contractorId,
+    meetingId,
+    onHydrate: handleLocationEvent,
+  });
 
   const { status } = useRealtime({
     table: 'contractor_locations',

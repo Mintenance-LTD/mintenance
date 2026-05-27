@@ -146,9 +146,18 @@ export default async function ContractorJobDetailPage({
     .maybeSingle();
 
   const escrowStatus = escrowTransaction?.status || 'none';
-  const escrowHeld = ['held', 'release_pending', 'released'].includes(
-    escrowStatus
-  );
+  // 2026-05-27 audit-83 P2: include 'completed' so the contractor's
+  // Payment step doesn't show incomplete after an auto-released
+  // escrow (the auto-release path lands on 'completed', the legacy
+  // path lands on 'released'). Matches isEscrowFunded() on the
+  // homeowner side (apps/web/app/jobs/[id]/components/mint-editorial/
+  // jobDetailHelpers.ts) so both roles see consistent stepper state.
+  const escrowHeld = [
+    'held',
+    'release_pending',
+    'released',
+    'completed',
+  ].includes(escrowStatus);
 
   // Fetch job photos for AI assessment display.
   // Re-sign Job-storage URLs at render time — the bucket is now private

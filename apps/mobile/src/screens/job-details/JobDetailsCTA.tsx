@@ -14,6 +14,7 @@ import type { Job } from '@mintenance/types';
 import { JobService } from '../../services/JobService';
 import { queryKeys } from '../../lib/queryClient';
 import { ReadyToStartCTA } from './ReadyToStartCTA';
+import { isEscrowFunded, isEscrowHeldOnly } from '../../utils/escrowStatus';
 
 type JobDetailsScreenNavigationProp = NativeStackNavigationProp<
   JobsStackParamList,
@@ -198,11 +199,16 @@ export function getPriorityCTA({
   }
 
   // 3. awaiting_payment: both signed, waiting for escrow -> "Waiting for Payment"
+  // 2026-05-27 audit-83 P1: use the shared isEscrowFunded predicate
+  // instead of strict `=== 'held'`. After homeowner approval escrow
+  // transitions held → release_pending → completed before the job
+  // status flips; without the broader predicate the contractor sees
+  // a misleading "Waiting for Payment" CTA during that window.
   if (
     isAssignedContractor &&
     job.status === 'assigned' &&
     contractStatus === 'accepted' &&
-    escrowStatus !== 'held'
+    !isEscrowFunded(escrowStatus)
   ) {
     // 2026-05-26 audit-53 P2: distinguish 'pending' (Stripe charged,
     // webhook still landing) from "no escrow yet". On 'pending' the
@@ -237,11 +243,15 @@ export function getPriorityCTA({
   // "Upload Before Photos" until status flipped to in_progress. Live
   // data: 6 assigned jobs, 0 in_progress, with 3 before-photos already
   // uploaded server-side.
+  // 2026-05-27 audit-83 P1: "ready to start" needs escrow funded but
+  // not yet released. isEscrowHeldOnly = funded && !released so the
+  // CTA correctly suppresses once payout fires (job has already
+  // completed by then).
   if (
     isAssignedContractor &&
     job.status === 'assigned' &&
     contractStatus === 'accepted' &&
-    escrowStatus === 'held'
+    isEscrowHeldOnly(escrowStatus)
   ) {
     if (beforePhotoCount > 0) {
       return (
@@ -325,11 +335,16 @@ export function getPriorityCTA({
     );
   }
 
+  // 2026-05-27 audit-83 P1: same broader-funded predicate for the
+  // homeowner "Pay Now" branch. Without it, a homeowner whose escrow
+  // has transitioned past held (release_pending / completed) would
+  // briefly see "Pay Now" again and could re-trigger create-intent,
+  // risking a duplicate charge.
   if (
     isOwner &&
     job.status === 'assigned' &&
     contractStatus === 'accepted' &&
-    escrowStatus !== 'held'
+    !isEscrowFunded(escrowStatus)
   ) {
     // 2026-05-26 audit-53 P2: when escrow exists as 'pending' (Stripe
     // already charged, webhook still landing) showing "Pay Now" again
