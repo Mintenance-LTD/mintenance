@@ -36,15 +36,36 @@ export const POST = withApiHandler(
 
     const { email } = validation.data;
     const supabase = serverSupabase;
+    const normalizedEmail = email.toLowerCase();
 
-    // Check if user exists (for better error handling internally)
-    const { data: userData } = await supabase.auth.admin.listUsers();
-    const user = userData?.users?.find(
-      (u) => u.email?.toLowerCase() === email.toLowerCase()
-    );
-    const userExists = !!user;
+    // 2026-05-27 whole-app review Critical #5: closes the email-
+    // enumeration oracle that lived here.
+    //
+    // Previous behaviour:
+    //   1. `supabase.auth.admin.listUsers()` — an UNPAGINATED scan of
+    //      the entire user table on EVERY forgot-password POST. Cost +
+    //      privacy hit.
+    //   2. Branched on `userExists` for the "confirm email + retry" path
+    //      below, which fired 2 extra Supabase RPCs ONLY when the user
+    //      existed and was unconfirmed. The synchronous response time
+    //      delta is a usable enumeration signal despite the "always
+    //      return 200" wrapper.
+    //
+    // Fix:
+    //   1. Targeted `profiles` lookup (indexed, single-row read).
+    //   2. The confirm-and-retry path is moved to a fire-and-forget
+    //      async after we've already prepared the response, so the
+    //      synchronous code path is identical whether or not the user
+    //      exists. Response timing no longer leaks existence.
+    const { data: profileRow } = await supabase
+      .from('profiles')
+      .select('id, email')
+      .eq('email', normalizedEmail)
+      .maybeSingle();
 
-    // Send password reset email
+    // Send password reset email. resetPasswordForEmail does not error
+    // when the address has no Supabase auth user (it silently no-ops),
+    // so the same call runs regardless of `profileRow` presence.
     const redirectUrl = `${request.nextUrl.origin}/reset-password`;
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: redirectUrl,
@@ -57,8 +78,7 @@ export const POST = withApiHandler(
         errorMessage: error.message,
         redirectUrl,
         errorCode: error.status || 'unknown',
-        userExists,
-        emailConfirmed: user?.email_confirmed_at ? true : false,
+        userExists: !!profileRow,
       });
 
       if (
@@ -86,40 +106,41 @@ export const POST = withApiHandler(
         );
       }
 
-      // If email not confirmed, try to confirm then retry
-      if (user && !user.email_confirmed_at) {
-        logger.info('Attempting to confirm email before password reset', {
-          email,
-          userId: user.id,
-          service: 'auth',
-        });
-        try {
-          const { error: confirmError } =
-            await supabase.auth.admin.updateUserById(user.id, {
-              email_confirm: true,
-            });
-          if (!confirmError) {
-            const { error: retryError } =
-              await supabase.auth.resetPasswordForEmail(email, {
-                redirectTo: redirectUrl,
-              });
-            if (!retryError) {
-              logger.info('Password reset email sent after confirming email', {
-                email,
-                service: 'auth',
-              });
+      // 2026-05-27 audit fix: the confirm-and-retry path for unconfirmed
+      // accounts now runs ASYNC (no await) so it doesn't contribute to
+      // the response-timing oracle. We still look up auth.users to know
+      // if a retry is warranted, but only after the response shape is
+      // decided. Logged on completion so operators can confirm recovery.
+      if (profileRow) {
+        void (async () => {
+          try {
+            const { data: authUserRes } = await supabase.auth.admin.getUserById(
+              profileRow.id
+            );
+            const authUser = authUserRes?.user;
+            if (authUser && !authUser.email_confirmed_at) {
+              const { error: confirmError } =
+                await supabase.auth.admin.updateUserById(authUser.id, {
+                  email_confirm: true,
+                });
+              if (!confirmError) {
+                await supabase.auth.resetPasswordForEmail(email, {
+                  redirectTo: redirectUrl,
+                });
+                logger.info(
+                  'Password reset email sent after async email confirm',
+                  { email, service: 'auth' }
+                );
+              }
             }
+          } catch (confirmErr) {
+            logger.error('Async email-confirm retry failed', confirmErr, {
+              email,
+              service: 'auth',
+            });
           }
-        } catch (confirmErr) {
-          logger.error(
-            'Failed to confirm email for password reset',
-            confirmErr,
-            { email, service: 'auth' }
-          );
-        }
-      }
-
-      if (!userExists) {
+        })();
+      } else {
         logger.warn('Password reset requested for non-existent email', {
           email,
           service: 'auth',
