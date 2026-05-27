@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { theme } from '@/lib/theme';
 import { Icon } from '@/components/ui/Icon';
+import { getCsrfHeaders } from '@/lib/csrf-client';
 import {
   Dialog,
   DialogContent,
@@ -57,11 +58,21 @@ export function DeleteAccountModal({
       // "permanently remove your profile and all associated data",
       // which is the hard-delete contract. Point at the GDPR erasure
       // endpoint instead.
+      //
+      // 2026-05-27 audit-86 P1: /api/user/delete-account goes through
+      // withApiHandler which requires CSRF on mutating cookie-auth
+      // requests. The previous fetch sent only Content-Type, so the
+      // route rejected with "Missing CSRF" before the body even got
+      // parsed — the modal surfaced that as a generic "Failed to
+      // delete account" error.
+      const csrfHeaders = await getCsrfHeaders();
       const response = await fetch('/api/user/delete-account', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...csrfHeaders,
         },
+        credentials: 'include',
         body: JSON.stringify({
           confirmation: confirmationText,
         }),

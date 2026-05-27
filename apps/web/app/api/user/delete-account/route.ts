@@ -57,12 +57,27 @@ export const POST = withApiHandler(
       'awaiting_homeowner_approval',
       'pending_review',
     ];
+    // 2026-05-27 audit-86 P2: "funded or resolvable" escrow set. The
+    // signed-unfunded blocker below considers any of these as evidence
+    // that the contract has a working payment path. The previous gate
+    // used `.is('jobs.escrow_transactions.status', null)` which only
+    // matched accepted contracts with NO escrow row — so an accepted
+    // contract whose ALL escrow attempts ended in failed / refunded /
+    // cancelled silently fell through and let the user hard-delete
+    // despite still having a signed commitment. Include the active +
+    // terminal-good statuses; absence of any of these = unfunded.
+    const ESCROW_FUNDED_OR_DONE = [
+      ...ESCROW_ACTIVE_STATUSES,
+      'released',
+      'completed',
+    ];
+
     const [
       { count: activeEscrowCount },
       { count: activeAsHomeownerCount },
       { count: activeAsContractorCount },
       { count: openDisputesCount },
-      { count: signedUnfundedContractsCount },
+      { data: acceptedContractsRows },
     ] = await Promise.all([
       serverSupabase
         .from('escrow_transactions')
@@ -87,19 +102,37 @@ export const POST = withApiHandler(
         .select('id', { count: 'exact', head: true })
         .or(`raised_by.eq.${user.id},against.eq.${user.id}`)
         .not('status', 'in', '("resolved","closed")'),
-      // Signed contracts with no escrow held yet — the contract is
-      // committed but the funding step hasn't happened. Deleting either
-      // party here leaves a dangling commitment.
+      // Signed contracts without a healthy escrow row. We fetch the
+      // accepted contracts + their embedded escrow_transactions
+      // statuses and filter client-side because PostgREST's `.is(...,
+      // null)` only matches the "no row at all" case, not "row exists
+      // but is failed/refunded/cancelled" (see audit-86 P2).
       serverSupabase
         .from('contracts')
-        .select(
-          'id, job_id, jobs!inner(id, status, escrow_transactions(status))',
-          { count: 'exact', head: true }
-        )
+        .select('id, jobs!inner(id, escrow_transactions(status))')
         .or(`homeowner_id.eq.${user.id},contractor_id.eq.${user.id}`)
-        .eq('status', 'accepted')
-        .is('jobs.escrow_transactions.status', null),
+        .eq('status', 'accepted'),
     ]);
+
+    type AcceptedContractRow = {
+      id: string;
+      jobs:
+        | { escrow_transactions: Array<{ status: string | null }> | null }
+        | Array<{
+            escrow_transactions: Array<{ status: string | null }> | null;
+          }>
+        | null;
+    };
+    const signedUnfundedContractsCount = (
+      (acceptedContractsRows as AcceptedContractRow[] | null) ?? []
+    ).filter((row) => {
+      const job = Array.isArray(row.jobs) ? row.jobs[0] : row.jobs;
+      const escrows = job?.escrow_transactions ?? [];
+      // unfunded iff NONE of the escrow rows are in the funded-or-done set
+      return !escrows.some(
+        (e) => e.status != null && ESCROW_FUNDED_OR_DONE.includes(e.status)
+      );
+    }).length;
 
     const blockers: { code: string; message: string; count: number }[] = [];
     if ((activeEscrowCount ?? 0) > 0) {
@@ -130,11 +163,16 @@ export const POST = withApiHandler(
         message: `${openDisputesCount} open dispute(s) involve your account. Wait for resolution (or withdraw the dispute) before deleting.`,
       });
     }
-    if ((signedUnfundedContractsCount ?? 0) > 0) {
+    if (signedUnfundedContractsCount > 0) {
       blockers.push({
         code: 'SIGNED_UNFUNDED_CONTRACTS',
-        count: signedUnfundedContractsCount ?? 0,
-        message: `${signedUnfundedContractsCount} signed contract(s) have no escrow yet. Fund or void them before deleting your account.`,
+        count: signedUnfundedContractsCount,
+        // 2026-05-27 audit-86 P2: the count now also covers accepted
+        // contracts whose only escrow rows are failed / refunded /
+        // cancelled — those used to slip past because the previous
+        // PostgREST filter (`is(...,null)`) only caught the "no row"
+        // case. Either retry the payment or void the contract.
+        message: `${signedUnfundedContractsCount} signed contract(s) have no working escrow yet. Fund (or retry payment) or void them before deleting your account.`,
       });
     }
 
