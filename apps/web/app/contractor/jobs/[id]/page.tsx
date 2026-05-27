@@ -77,6 +77,25 @@ export default async function ContractorJobDetailPage({
   // generic "ask the homeowner in chat" placeholder instead of
   // crashing the whole page.
   let property: Record<string, unknown> | null = null;
+  // 2026-05-27 audit-81 P1: also fetch property_contacts so the
+  // contractor's "Access & contacts" card can render the tenant /
+  // keyholder / emergency_contact / managing_agent list the
+  // homeowner attached on /properties/[id]. Mobile already gets
+  // this via /api/jobs/[id] (audit-30 P1), but the web contractor
+  // page reads the DB directly and was silently dropping it.
+  // property_contacts RLS only grants SELECT to owner/admin, so use
+  // serverSupabase scoped by property_id — matches how the job-GET
+  // route fetches them.
+  type PropertyContactRow = {
+    id: string;
+    name: string;
+    contact_role: string;
+    phone: string | null;
+    email: string | null;
+    unit_label: string | null;
+    notes: string | null;
+  };
+  let propertyContacts: PropertyContactRow[] = [];
   if (job.property_id) {
     const propertyResult = await serverSupabase
       .from('properties')
@@ -87,6 +106,17 @@ export default async function ContractorJobDetailPage({
       .maybeSingle();
     if (!propertyResult.error && propertyResult.data) {
       property = propertyResult.data as Record<string, unknown>;
+    }
+
+    const { data: contactRows } = await serverSupabase
+      .from('property_contacts')
+      .select('id, name, contact_role, phone, email, unit_label, notes')
+      .eq('property_id', job.property_id)
+      .eq('is_active', true)
+      .order('contact_role', { ascending: true })
+      .order('name', { ascending: true });
+    if (contactRows) {
+      propertyContacts = contactRows as PropertyContactRow[];
     }
   }
 
@@ -258,6 +288,7 @@ export default async function ContractorJobDetailPage({
             : null
         }
         property={safeProperty}
+        propertyContacts={propertyContacts}
         contractStatus={contractStatus}
         currentStage={currentStage}
         stageTitle={stageConfig.title}
