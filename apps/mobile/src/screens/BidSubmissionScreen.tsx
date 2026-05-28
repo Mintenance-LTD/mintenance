@@ -31,6 +31,7 @@ import { useUnsavedChanges } from '../hooks/useUnsavedChanges';
 import { JobRoomScope } from './components/JobRoomScope';
 import { supabase } from '../config/supabase';
 import type { JobRoomScopeOption } from './create-quote/components/LineItemScopeToolbar';
+import { featureAccess } from '../utils/featureAccess';
 
 type Props = {
   route: RouteProp<JobsStackParamList, 'BidSubmission'>;
@@ -76,6 +77,38 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+
+  // 2026-05-28 U5: client-side monthly bid-limit pre-warning. Mirrors the
+  // server's CONTRACTOR_BID_LIMIT gate so a contractor learns they're at
+  // (or near) their monthly cap before composing + submitting a bid,
+  // instead of only after a server rejection. New bids only — editing an
+  // existing bid (existingBidId) consumes no new quota. `null` = not yet
+  // resolved; the check fails open so a feature-access fetch blip never
+  // blocks bidding (the server stays authoritative on the real limit).
+  const [bidLimitRemaining, setBidLimitRemaining] = useState<
+    number | 'unlimited' | null
+  >(null);
+  useEffect(() => {
+    if (existingBidId || !user || user.role !== 'contractor') return;
+    let cancelled = false;
+    (async () => {
+      try {
+        await featureAccess.initialize(user.id, 'contractor');
+        if (!cancelled) {
+          setBidLimitRemaining(
+            featureAccess.getRemainingUsage('CONTRACTOR_BID_LIMIT')
+          );
+        }
+      } catch (err) {
+        logger.warn('Bid-limit pre-check failed; allowing bid', {
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [existingBidId, user]);
 
   // Property Rooms Slice 2 — fetch the job's room scope so the
   // line-item editor can offer "Bill by m²" + "Apply to room".
@@ -244,6 +277,17 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
     proposedStartDate !== null &&
     (mode === 'quick' || lineItems.length > 0);
 
+  // U5 bid-limit derived state (new-bid flow only).
+  const atBidLimit = !existingBidId && bidLimitRemaining === 0;
+  const lowBidsRemaining =
+    !existingBidId &&
+    typeof bidLimitRemaining === 'number' &&
+    bidLimitRemaining > 0 &&
+    bidLimitRemaining <= 3;
+  const bidLimitMessage =
+    featureAccess.getFeature('CONTRACTOR_BID_LIMIT')?.upgradeMessage ??
+    "You've reached your monthly bid limit. Upgrade to submit more bids.";
+
   // Line item actions
   const addLineItem = () => {
     Alert.prompt
@@ -318,6 +362,13 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
     setFormError(null);
     if (!user || user.role !== 'contractor') {
       setFormError('Only contractors can submit bids');
+      return;
+    }
+    // U5: stop a new bid at the monthly cap before the round-trip. The
+    // server still rejects independently; this just gives a clear,
+    // immediate upgrade prompt. Edits (existingBidId) are exempt.
+    if (atBidLimit) {
+      setFormError(bidLimitMessage);
       return;
     }
     if (bidAmount <= 0) {
@@ -521,6 +572,23 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
                   this bid yourself based on the work involved. */}
             </View>
           </View>
+
+          {/* U5: monthly bid-limit pre-warning (new bids only). */}
+          {atBidLimit && (
+            <View style={styles.warningBanner}>
+              <Ionicons name='lock-closed' size={16} color={me.errFg} />
+              <Text style={styles.warningText}>{bidLimitMessage}</Text>
+            </View>
+          )}
+          {lowBidsRemaining && (
+            <View style={styles.bidLimitInfoBanner}>
+              <Ionicons name='information-circle' size={16} color={me.brand} />
+              <Text style={styles.bidLimitInfoText}>
+                {bidLimitRemaining} {bidLimitRemaining === 1 ? 'bid' : 'bids'}{' '}
+                left this month on your current plan.
+              </Text>
+            </View>
+          )}
 
           {/* Property Rooms Slice 1 \u2014 rooms-in-scope panel.
               Renders only when the job has a room snapshot; legacy
@@ -824,13 +892,16 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
         <TouchableOpacity
           style={[
             styles.submitButton,
-            (!isValid || submitting) && styles.submitButtonDisabled,
+            (!isValid || submitting || atBidLimit) &&
+              styles.submitButtonDisabled,
           ]}
           onPress={handleSubmit}
-          disabled={!isValid || submitting}
+          disabled={!isValid || submitting || atBidLimit}
           accessibilityRole='button'
           accessibilityLabel='Submit bid'
-          accessibilityState={{ disabled: !isValid || submitting }}
+          accessibilityState={{
+            disabled: !isValid || submitting || atBidLimit,
+          }}
         >
           <Ionicons name='send-outline' size={18} color={me.onBrand} />
           <Text style={styles.submitButtonText}>

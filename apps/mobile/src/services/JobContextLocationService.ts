@@ -51,7 +51,13 @@ export class JobContextLocationService {
     jobId: string,
     meetingId: string | null,
     destination: { latitude: number; longitude: number },
-    onLocationUpdate?: LocationUpdateCallback
+    onLocationUpdate?: LocationUpdateCallback,
+    // 2026-05-28 U4: when the caller has already created a
+    // contractor_trips en_route row (which itself notifies the
+    // homeowner "X is on the way" + all admins), skip the redundant
+    // enable-location-sharing homeowner notify to avoid double-pinging
+    // the homeowner within the same gesture.
+    options?: { skipShareNotify?: boolean }
   ): Promise<void> {
     try {
       this.contractorId = contractorId;
@@ -69,18 +75,26 @@ export class JobContextLocationService {
 
       // 2026-05-26 audit-67 P1: parity with web LocationSharing — fire
       // the homeowner push + email via the API. Best-effort; GPS
-      // continues even if the notify request fails.
-      try {
-        await mobileApiClient.post(
-          `/api/jobs/${jobId}/enable-location-sharing`,
-          { enabled: true }
-        );
-      } catch (notifyErr) {
-        logger.warn('enable-location-sharing notify failed; tracking anyway', {
-          jobId,
-          error:
-            notifyErr instanceof Error ? notifyErr.message : String(notifyErr),
-        });
+      // continues even if the notify request fails. Suppressed when a
+      // trip was just created (U4) — the trip already notified.
+      if (!options?.skipShareNotify) {
+        try {
+          await mobileApiClient.post(
+            `/api/jobs/${jobId}/enable-location-sharing`,
+            { enabled: true }
+          );
+        } catch (notifyErr) {
+          logger.warn(
+            'enable-location-sharing notify failed; tracking anyway',
+            {
+              jobId,
+              error:
+                notifyErr instanceof Error
+                  ? notifyErr.message
+                  : String(notifyErr),
+            }
+          );
+        }
       }
 
       // Get initial location
@@ -449,50 +463,10 @@ export class JobContextLocationService {
   }
 }
 
-// 2026-05-26 audit-50 P1: refcounted singleton registry scoped by
-// (contractorId, jobId). Both useAssignedJobLocationAutoStart and
-// useJobTravelTracking previously `new`'d their own service for the
-// same job — stopJobTracking on either set is_active=false on the
-// shared row mid-journey, flickering the homeowner map. acquire bumps
-// the count, release decrements; stop only fires when count hits 0.
-const trackingRegistry = new Map<
-  string,
-  { service: JobContextLocationService; refCount: number }
->();
-
-const makeKey = (contractorId: string, jobId: string) =>
-  `${contractorId}|${jobId}`;
-
-export function acquireJobTrackingService(
-  contractorId: string,
-  jobId: string
-): JobContextLocationService {
-  const key = makeKey(contractorId, jobId);
-  let entry = trackingRegistry.get(key);
-  if (!entry) {
-    entry = { service: new JobContextLocationService(), refCount: 0 };
-    trackingRegistry.set(key, entry);
-  }
-  entry.refCount += 1;
-  return entry.service;
-}
-
-export async function releaseJobTrackingService(
-  contractorId: string,
-  jobId: string
-): Promise<void> {
-  const key = makeKey(contractorId, jobId);
-  const entry = trackingRegistry.get(key);
-  if (!entry) return;
-  entry.refCount = Math.max(0, entry.refCount - 1);
-  if (entry.refCount === 0) {
-    trackingRegistry.delete(key);
-    try {
-      await entry.service.stopJobTracking();
-    } catch (err) {
-      logger.warn('releaseJobTrackingService: stop threw', {
-        error: err instanceof Error ? err.message : String(err),
-      });
-    }
-  }
-}
+// Refcounted singleton registry (audit-50 P1) extracted to
+// jobTrackingRegistry.ts; re-exported here for backward-compatible
+// imports.
+export {
+  acquireJobTrackingService,
+  releaseJobTrackingService,
+} from './jobTrackingRegistry';

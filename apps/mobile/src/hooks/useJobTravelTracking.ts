@@ -10,7 +10,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { Alert, AppState } from 'react-native';
+import { Alert } from 'react-native';
 import * as Location from 'expo-location';
 import {
   JobContextLocationService,
@@ -20,46 +20,20 @@ import {
 } from '../services/JobContextLocationService';
 import { MeetingService } from '../services/MeetingService';
 import { supabase } from '../config/supabase';
+import { mobileApiClient } from '../utils/mobileApiClient';
 import { logger } from '../utils/logger';
 import { useAuth } from '../contexts/AuthContext';
+import { useContractorTravelRealtime } from './useContractorTravelRealtime';
+import type {
+  TravelLocation,
+  UseJobTravelTrackingOptions,
+  UseJobTravelTrackingReturn,
+} from './useJobTravelTracking.types';
 
-interface TravelLocation {
-  latitude: number;
-  longitude: number;
-  eta: number;
-  heading?: number;
-  speed?: number;
-  timestamp: string;
-}
-
-interface UseJobTravelTrackingOptions {
-  meetingId?: string | null;
-  jobId?: string;
-  destination: { latitude: number; longitude: number };
-  onLocationUpdate?: (location: TravelLocation) => void;
-  onArrival?: () => void;
-  /**
-   * When true, automatically start tracking on mount IF location
-   * permission is already 'granted' (no OS prompt). Falls back to the
-   * manual button in `undetermined`/`denied` states. Live audit
-   * (2026-04-28) showed `contractor_locations = 0` in prod because
-   * the manual "Share My Location" button on the job detail page sat
-   * at the bottom and was rarely tapped — auto-start removes the gap
-   * for contractors who already granted permission via the
-   * AlwaysLocationSoftAsk modal or a prior session.
-   */
-  autoStartIfPermitted?: boolean;
-}
-
-interface UseJobTravelTrackingReturn {
-  isTracking: boolean;
-  currentLocation: TravelLocation | null;
-  eta: number | null;
-  startTracking: () => Promise<void>;
-  stopTracking: () => Promise<void>;
-  markArrived: () => Promise<void>;
-  error: string | null;
-}
+// Mirror of HomeownerLocationRequest's ARRIVED_CONTEXTS — the DB
+// `context` values that mean the contractor is on site (markArrived
+// writes 'on_job'). Used to restore the arrived state on remount.
+const ARRIVED_CONTEXTS = new Set(['on_job', 'arrived', 'on_site']);
 
 export function useJobTravelTracking({
   meetingId,
@@ -71,6 +45,11 @@ export function useJobTravelTracking({
 }: UseJobTravelTrackingOptions): UseJobTravelTrackingReturn {
   const { user } = useAuth();
   const [isTracking, setIsTracking] = useState(false);
+  const [hasArrived, setHasArrived] = useState(false);
+  // Gates auto-start until the on-mount DB check for a prior arrival has
+  // resolved — prevents a race where auto-start re-opens en-route
+  // tracking before we learn the contractor already marked arrived.
+  const [arrivedChecked, setArrivedChecked] = useState(false);
   const [currentLocation, setCurrentLocation] = useState<TravelLocation | null>(
     null
   );
@@ -83,124 +62,163 @@ export function useJobTravelTracking({
   /**
    * Start tracking contractor travel
    */
-  const startTracking = useCallback(async () => {
-    if (!user || user.role !== 'contractor') {
-      setError('Only contractors can start travel tracking');
-      return;
-    }
-
-    try {
-      setError(null);
-      setIsTracking(true);
-
-      const handleLocationUpdate = (locationUpdate: {
-        latitude: number;
-        longitude: number;
-        eta: number;
-      }) => {
-        const travelLocation: TravelLocation = {
-          latitude: locationUpdate.latitude,
-          longitude: locationUpdate.longitude,
-          eta: locationUpdate.eta,
-          timestamp: new Date().toISOString(),
-        };
-
-        setCurrentLocation(travelLocation);
-        setEta(locationUpdate.eta);
-
-        if (onLocationUpdate) {
-          onLocationUpdate(travelLocation);
-        }
-      };
-
-      let locationService: JobContextLocationService;
-      if (meetingId) {
-        // Meeting-based tracking: resolve the meeting destination server-side.
-        locationService = await MeetingService.startTravelTracking(
-          meetingId,
-          user.id,
-          handleLocationUpdate
-        );
-      } else if (jobId) {
-        // Job-detail tracking: use the job's own destination coordinates.
-        if (
-          !Number.isFinite(destination.latitude) ||
-          !Number.isFinite(destination.longitude)
-        ) {
-          throw new Error('Job location is not available for tracking');
-        }
-
-        // 2026-05-26 audit-50 P1: route through the (contractor, job)
-        // singleton registry so the AppNavigator-level auto-start hook
-        // and this job-detail consumer share the same underlying
-        // service + one contractor_locations row instead of racing.
-        // If a watcher is already running for this pair (the global
-        // auto-start beat us to it) we skip a second startJobTracking
-        // and just attach the callback so the section UI updates.
-        locationService = acquireJobTrackingService(user.id, jobId);
-        const status = locationService.getTrackingStatus();
-        if (!status.isTracking) {
-          await locationService.startJobTracking(
-            user.id,
-            jobId,
-            null,
-            destination,
-            async (location, eta) => {
-              handleLocationUpdate({
-                latitude: location.coords.latitude,
-                longitude: location.coords.longitude,
-                eta,
-              });
-            }
-          );
-        }
-      } else {
-        throw new Error('A job or meeting is required to start tracking');
+  const startTracking = useCallback(
+    async (opts: { createTrip?: boolean } = {}) => {
+      if (!user || user.role !== 'contractor') {
+        setError('Only contractors can start travel tracking');
+        return;
       }
 
-      locationServiceRef.current = locationService;
+      try {
+        setError(null);
+        // A fresh start (manual tap or auto-start) means a new journey —
+        // clear any prior arrived state for this job session.
+        setHasArrived(false);
+        setIsTracking(true);
 
-      // Subscribe to real-time updates
-      if (meetingId) {
-        const channel = MeetingService.subscribeToContractorTravelLocation(
-          meetingId,
-          user.id,
-          (data) => {
-            const travelLocation: TravelLocation = {
-              latitude: data.location.latitude,
-              longitude: data.location.longitude,
-              eta: data.eta,
-              timestamp: data.location.timestamp,
-            };
+        const handleLocationUpdate = (locationUpdate: {
+          latitude: number;
+          longitude: number;
+          eta: number;
+        }) => {
+          const travelLocation: TravelLocation = {
+            latitude: locationUpdate.latitude,
+            longitude: locationUpdate.longitude,
+            eta: locationUpdate.eta,
+            timestamp: new Date().toISOString(),
+          };
 
-            setCurrentLocation(travelLocation);
-            setEta(data.eta);
+          setCurrentLocation(travelLocation);
+          setEta(locationUpdate.eta);
 
-            if (onLocationUpdate) {
-              onLocationUpdate(travelLocation);
+          if (onLocationUpdate) {
+            onLocationUpdate(travelLocation);
+          }
+        };
+
+        let locationService: JobContextLocationService;
+        if (meetingId) {
+          // Meeting-based tracking: resolve the meeting destination server-side.
+          locationService = await MeetingService.startTravelTracking(
+            meetingId,
+            user.id,
+            handleLocationUpdate
+          );
+        } else if (jobId) {
+          // Job-detail tracking: use the job's own destination coordinates.
+          if (
+            !Number.isFinite(destination.latitude) ||
+            !Number.isFinite(destination.longitude)
+          ) {
+            throw new Error('Job location is not available for tracking');
+          }
+
+          // 2026-05-28 U4: web parity. An explicit "I'm on my way" tap
+          // (opts.createTrip) creates a contractor_trips en_route row,
+          // mirroring web's OnMyWayButton. The trip POST notifies the
+          // homeowner ("X is on the way") + all admins ("Trip started")
+          // and lights up the web trip card and the global auto-start
+          // hook (useAssignedJobLocationAutoStart is gated on an en_route
+          // trip existing). Best-effort: an "already have an active trip"
+          // 400 just means a trip is already live (homeowner already
+          // notified), so we still suppress the redundant share notify.
+          // Other failures fall back to the enable-location-sharing
+          // notify inside startJobTracking. The silent auto-start path
+          // never passes createTrip — opening the screen shouldn't tell
+          // the homeowner the contractor is on the way.
+          let tripNotified = false;
+          if (opts.createTrip) {
+            try {
+              await mobileApiClient.post('/api/contractor/trips', { jobId });
+              tripNotified = true;
+            } catch (tripErr) {
+              const msg =
+                tripErr instanceof Error ? tripErr.message : String(tripErr);
+              if (/already have an active trip/i.test(msg)) {
+                tripNotified = true;
+              } else {
+                logger.warn(
+                  'Trip creation failed; falling back to location-sharing notify',
+                  { jobId, error: msg }
+                );
+              }
             }
           }
-        );
-        subscriptionRef.current = {
-          unsubscribe: () => {
-            channel.unsubscribe();
-          },
-        };
-      }
 
-      logger.info('Started travel tracking', {
-        meetingId,
-        contractorId: user.id,
-      });
-    } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'Failed to start tracking';
-      setError(errorMessage);
-      setIsTracking(false);
-      Alert.alert('Error', errorMessage);
-      logger.error('Error starting travel tracking', err);
-    }
-  }, [destination, jobId, meetingId, user, onLocationUpdate]);
+          // 2026-05-26 audit-50 P1: route through the (contractor, job)
+          // singleton registry so the AppNavigator-level auto-start hook
+          // and this job-detail consumer share the same underlying
+          // service + one contractor_locations row instead of racing.
+          // If a watcher is already running for this pair (the global
+          // auto-start beat us to it) we skip a second startJobTracking
+          // and just attach the callback so the section UI updates.
+          locationService = acquireJobTrackingService(user.id, jobId);
+          const status = locationService.getTrackingStatus();
+          if (!status.isTracking) {
+            await locationService.startJobTracking(
+              user.id,
+              jobId,
+              null,
+              destination,
+              async (location, eta) => {
+                handleLocationUpdate({
+                  latitude: location.coords.latitude,
+                  longitude: location.coords.longitude,
+                  eta,
+                });
+              },
+              { skipShareNotify: tripNotified }
+            );
+          }
+        } else {
+          throw new Error('A job or meeting is required to start tracking');
+        }
+
+        locationServiceRef.current = locationService;
+
+        // Subscribe to real-time updates
+        if (meetingId) {
+          const channel = MeetingService.subscribeToContractorTravelLocation(
+            meetingId,
+            user.id,
+            (data) => {
+              const travelLocation: TravelLocation = {
+                latitude: data.location.latitude,
+                longitude: data.location.longitude,
+                eta: data.eta,
+                timestamp: data.location.timestamp,
+              };
+
+              setCurrentLocation(travelLocation);
+              setEta(data.eta);
+
+              if (onLocationUpdate) {
+                onLocationUpdate(travelLocation);
+              }
+            }
+          );
+          subscriptionRef.current = {
+            unsubscribe: () => {
+              channel.unsubscribe();
+            },
+          };
+        }
+
+        logger.info('Started travel tracking', {
+          meetingId,
+          contractorId: user.id,
+        });
+      } catch (err) {
+        const errorMessage =
+          err instanceof Error ? err.message : 'Failed to start tracking';
+        setError(errorMessage);
+        setIsTracking(false);
+        Alert.alert('Error', errorMessage);
+        logger.error('Error starting travel tracking', err);
+      }
+    },
+    [destination, jobId, meetingId, user, onLocationUpdate]
+  );
 
   /**
    * Stop tracking.
@@ -271,7 +289,15 @@ export function useJobTravelTracking({
         throw new Error('A job or meeting is required to mark arrival');
       }
 
-      // Stop tracking
+      // Terminal arrived state for this job session. Set BEFORE
+      // stopTracking so that when stopTracking flips isTracking=false
+      // (which re-runs the auto-start effect) the `hasArrived` guard is
+      // already true and tracking can't bounce back to en-route.
+      setHasArrived(true);
+
+      // Stop tracking (service-side markArrived already preserved the
+      // is_active=true row via arrivalCommitted, so the homeowner keeps
+      // seeing the on-site card).
       await stopTracking();
 
       if (onArrival) {
@@ -292,101 +318,26 @@ export function useJobTravelTracking({
     }
   }, [jobId, meetingId, user, stopTracking, onArrival]);
 
-  // 2026-05-27 audit-69 P1: when the job-detail path is active (jobId
-  // without meetingId) we previously had NO Realtime subscription —
-  // the meeting branch above subscribes via
-  // MeetingService.subscribeToContractorTravelLocation, but the
-  // job-only path relied entirely on the `onLocationUpdate` callback
-  // attached at startJobTracking time. The registry singleton skips
-  // startJobTracking when a watcher is already running (e.g. the
-  // dashboard NextUpCard or the auto-start hook fired first), so no
-  // callback was attached for the Job Detail consumer, leaving ETA
-  // blank/stale even though tracking was active. Subscribing
-  // independently here keeps Job Detail's currentLocation/eta state
-  // honest. Single-condition filter (job_id only) for Supabase
-  // Realtime parity — multi-condition AND was unreliable per
-  // audit-46 #210; is_active is checked client-side.
-  useEffect(() => {
-    if (meetingId || !jobId) return;
-
-    // 2026-05-27 audit-76 follow-up: AppState-gated subscribe. Without
-    // this, the Realtime channel stays open while the homeowner has
-    // the app in background — drains battery on the websocket
-    // keep-alive, and on foreground resume can deliver ghost ETA
-    // updates from changes that happened while suspended (since RN
-    // re-delivers buffered Realtime events). We subscribe only while
-    // the app is active, and re-subscribe on foreground resume.
-    type Channel = ReturnType<typeof supabase.channel>;
-    let channel: Channel | null = null;
-
-    const subscribe = () => {
-      if (channel) return;
-      channel = supabase
-        .channel(`contractor_travel_job_${jobId}`)
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'contractor_locations',
-            filter: `job_id=eq.${jobId}`,
-          },
-          (rawPayload: unknown) => {
-            const payload = rawPayload as {
-              new?: {
-                latitude?: number | null;
-                longitude?: number | null;
-                eta_minutes?: number | null;
-                location_timestamp?: string | null;
-                is_active?: boolean | null;
-              };
-            };
-            const row = payload.new;
-            if (!row || row.is_active === false) return;
-            if (typeof row.latitude !== 'number') return;
-            if (typeof row.longitude !== 'number') return;
-            const etaValue = row.eta_minutes ?? 0;
-            const travelLocation: TravelLocation = {
-              latitude: row.latitude,
-              longitude: row.longitude,
-              eta: etaValue,
-              timestamp: row.location_timestamp ?? new Date().toISOString(),
-            };
-            setCurrentLocation(travelLocation);
-            setEta(etaValue);
-            if (onLocationUpdate) {
-              onLocationUpdate(travelLocation);
-            }
-          }
-        )
-        .subscribe();
-    };
-
-    const unsubscribe = () => {
-      if (channel) {
-        channel.unsubscribe();
-        channel = null;
+  // Job-detail-path Realtime subscription (audit-69 P1 + audit-76
+  // AppState gating) lives in useContractorTravelRealtime. Memoise the
+  // state-apply callback so the subscription only churns when its own
+  // inputs change (matching the prior inline effect's deps).
+  const applyRealtimeLocation = useCallback(
+    (loc: TravelLocation) => {
+      setCurrentLocation(loc);
+      setEta(loc.eta);
+      if (onLocationUpdate) {
+        onLocationUpdate(loc);
       }
-    };
+    },
+    [onLocationUpdate]
+  );
 
-    // Subscribe immediately if the app is already foregrounded.
-    if (AppState.currentState === 'active') {
-      subscribe();
-    }
-
-    const appStateSub = AppState.addEventListener('change', (next) => {
-      if (next === 'active') {
-        subscribe();
-      } else {
-        unsubscribe();
-      }
-    });
-
-    return () => {
-      appStateSub.remove();
-      unsubscribe();
-    };
-  }, [jobId, meetingId, onLocationUpdate]);
+  useContractorTravelRealtime({
+    jobId,
+    meetingId,
+    onLocation: applyRealtimeLocation,
+  });
 
   // Cleanup on unmount
   useEffect(() => {
@@ -411,6 +362,49 @@ export function useJobTravelTracking({
     };
   }, []);
 
+  // On mount, restore the arrived state from the DB. If a prior session
+  // already marked this job as arrived (context='on_job', row still
+  // is_active because arrivalCommitted preserved it), we must NOT let
+  // auto-start re-open en-route tracking — that's the bounce-back bug.
+  // `arrivedChecked` gates the auto-start effect until this resolves so
+  // the two don't race on mount. Job-detail path only (jobId, no
+  // meeting); other paths short-circuit the gate immediately.
+  useEffect(() => {
+    let cancelled = false;
+    if (meetingId || !jobId || !user || user.role !== 'contractor') {
+      setArrivedChecked(true);
+      return;
+    }
+    void (async () => {
+      try {
+        const { data } = await supabase
+          .from('contractor_locations')
+          .select('context')
+          .eq('contractor_id', user.id)
+          .eq('job_id', jobId)
+          .eq('is_active', true)
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (cancelled) return;
+        const ctx = (data as { context?: string | null } | null)?.context ?? '';
+        if (ARRIVED_CONTEXTS.has(ctx)) {
+          setHasArrived(true);
+        }
+      } catch (err) {
+        logger.warn('useJobTravelTracking: arrived-state restore failed', {
+          jobId,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      } finally {
+        if (!cancelled) setArrivedChecked(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [jobId, meetingId, user]);
+
   // Auto-start when caller opted in AND location permission is already
   // granted. Mirrors the push-token retry pattern: silent recovery for
   // users who've already given consent via a prior session or the
@@ -418,6 +412,10 @@ export function useJobTravelTracking({
   // here — that path stays manual via the "Share My Location" button.
   useEffect(() => {
     if (!autoStartIfPermitted) return;
+    // Wait for the arrived-state restore, then never auto-start once the
+    // contractor has arrived (terminal for the job session).
+    if (!arrivedChecked) return;
+    if (hasArrived) return;
     if (!user || user.role !== 'contractor') return;
     if (isTracking) return;
     if (!Number.isFinite(destination.latitude)) return;
@@ -446,6 +444,8 @@ export function useJobTravelTracking({
     };
   }, [
     autoStartIfPermitted,
+    arrivedChecked,
+    hasArrived,
     user,
     isTracking,
     destination.latitude,
@@ -455,6 +455,7 @@ export function useJobTravelTracking({
 
   return {
     isTracking,
+    hasArrived,
     currentLocation,
     eta,
     startTracking,

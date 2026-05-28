@@ -234,4 +234,29 @@ export const styles = StyleSheet.create({
     marginTop: 8,
     lineHeight: 22,
   },
+  // 2026-05-28 U3: 7-day auto-release countdown banner.
+  autoReleaseBanner: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 14,
+    marginTop: 16,
+  },
+  autoReleaseIcon: {
+    marginTop: 1,
+  },
+  autoReleaseTextWrap: {
+    flex: 1,
+  },
+  autoReleaseTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  autoReleaseBody: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
 });

@@ -57,14 +57,70 @@ export function usePayment({
     paymentIntentId?: string;
   } | null>(null);
 
-  const fees = PaymentService.calculateFees(amount);
-  const platformFee = fees.platformFee;
-  const contractorPayout = fees.contractorAmount;
-  const totalAmount = useEscrow ? amount : amount + platformFee;
+  // Server-authoritative fee breakdown. The platform fee is tier-aware and
+  // (since 2026-05-22) uncapped — values the mobile client cannot derive
+  // because it doesn't know the contractor's subscription tier. The local
+  // PaymentService.calculateFees() hardcodes the legacy 5% + £50 cap, so it's
+  // used only as a placeholder while the GET below is in flight; the displayed
+  // numbers are always reconciled to whatever the server returns.
+  const [serverFees, setServerFees] = useState<{
+    platformFee: number;
+    contractorPayout: number;
+    totalAmount: number;
+  } | null>(null);
+
+  const fallbackFees = PaymentService.calculateFees(amount);
+  const platformFee = serverFees?.platformFee ?? fallbackFees.platformFee;
+  const contractorPayout =
+    serverFees?.contractorPayout ?? fallbackFees.contractorAmount;
+  const totalAmount = useEscrow
+    ? (serverFees?.totalAmount ?? amount)
+    : amount + platformFee;
 
   useEffect(() => {
     loadPaymentMethods();
   }, []);
+
+  // Fetch the server-calculated fee breakdown so the homeowner sees the same
+  // tier-aware figures the backend will actually apply at escrow release.
+  useEffect(() => {
+    let cancelled = false;
+    if (!jobId) return;
+
+    (async () => {
+      try {
+        const res = await mobileApiClient.get<{
+          fees: {
+            platformFee: number;
+            contractorPayout: number;
+            totalAmount: number;
+          } | null;
+        }>(`/api/jobs/${jobId}/payment-details`);
+
+        if (!cancelled && res.fees) {
+          setServerFees({
+            platformFee: res.fees.platformFee,
+            contractorPayout: res.fees.contractorPayout,
+            totalAmount: res.fees.totalAmount,
+          });
+        }
+      } catch (err) {
+        // Non-fatal — keep the local placeholder. The authoritative fee is
+        // still applied server-side at release regardless of what's shown.
+        logger.warn(
+          'Failed to load server fee breakdown; using local estimate',
+          {
+            jobId,
+            err: err instanceof Error ? err.message : String(err),
+          }
+        );
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [jobId]);
 
   const loadPaymentMethods = async () => {
     if (!userId) return;
