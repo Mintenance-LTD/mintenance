@@ -35,6 +35,15 @@ export interface EscrowTransaction {
   paymentIntentId?: string;
   releasedAt?: string;
   refundedAt?: string;
+  // Real fee breakdown, populated at release (see escrow release flow).
+  // camelCase view fields:
+  platformFee?: number;
+  contractorPayout?: number;
+  stripeProcessingFee?: number;
+  // snake_case DB aliases:
+  platform_fee?: number;
+  contractor_payout?: number;
+  stripe_processing_fee?: number;
   // Database field aliases (snake_case)
   job_id?: string;
   payer_id?: string;

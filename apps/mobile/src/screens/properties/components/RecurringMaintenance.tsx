@@ -86,11 +86,53 @@ export const RecurringMaintenance: React.FC<Props> = ({ propertyId }) => {
       setTitle('');
       setShowForm(false);
     },
-    onError: (err: unknown) =>
+    onError: (err: unknown) => {
+      // 2026-05-28 T2: the server returns 402 with
+      // { requiresSubscription, feature, message } when a free-tier
+      // homeowner tries to schedule recurring maintenance (a Landlord+
+      // feature). Previously we showed a generic "Failed to create
+      // schedule" alert that hid the upgrade path — mirror the
+      // TeamAccess gate and surface a clear CTA to the subscription
+      // screen instead.
+      type ApiErr = {
+        status?: number;
+        response?: {
+          status?: number;
+          data?: { requiresSubscription?: boolean; message?: string };
+        };
+        data?: { requiresSubscription?: boolean; message?: string };
+      };
+      const apiErr = err as ApiErr;
+      const status = apiErr.response?.status ?? apiErr.status;
+      const data = apiErr.response?.data ?? apiErr.data;
+      if (status === 402 || data?.requiresSubscription) {
+        Alert.alert(
+          'Landlord plan required',
+          data?.message ||
+            'Recurring maintenance scheduling requires a Landlord or Agency subscription.',
+          [
+            { text: 'Not now', style: 'cancel' },
+            {
+              text: 'View plans',
+              onPress: () => {
+                try {
+                  type LinkingMod = { openURL: (url: string) => void };
+                  const Linking = require('react-native').Linking as LinkingMod;
+                  Linking.openURL('mintenance://profile/subscription');
+                } catch {
+                  // no-op — user can navigate manually
+                }
+              },
+            },
+          ]
+        );
+        return;
+      }
       Alert.alert(
         'Error',
         err instanceof Error ? err.message : 'Failed to create schedule.'
-      ),
+      );
+    },
   });
 
   const toggleMutation = useMutation({

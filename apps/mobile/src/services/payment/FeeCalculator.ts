@@ -2,22 +2,32 @@ import { supabase } from '../../config/supabase';
 import { apiRequest } from './apiHelper';
 
 export class FeeCalculator {
+  /**
+   * Local fee estimate, used ONLY as a placeholder before the
+   * server-authoritative breakdown loads (see usePayment.ts → GET
+   * /api/jobs/[id]/payment-details). The real platform fee is tier-aware
+   * (12% basic / 8% professional / 5% enterprise) and resolved server-side
+   * from the contractor's subscription — the client can't know the tier.
+   *
+   * Defaults mirror apps/web FeeCalculationService.DEFAULT_CONFIG: 12% basic
+   * rate, no maximum cap (the £50 cap was removed 2026-05-22 with the tiered
+   * fee rollout — Pro/Business's lower % is the effective floor).
+   */
   static calculateFees(amount: number): {
     platformFee: number;
     stripeFee: number;
     contractorAmount: number;
     totalFees: number;
   } {
-    const platformRate = 0.05;
+    const platformRate = 0.12; // basic-tier fallback (matches web default)
     const stripeRate = 0.015; // UK Stripe rate
     const stripeFixed = 0.2; // £0.20 UK fixed fee
     const minPlatformFee = 0.5;
-    const maxPlatformFee = 50;
 
     const rawPlatformFee = amount * platformRate;
-    const platformFee = Math.min(
-      maxPlatformFee,
-      Math.max(minPlatformFee, Number(rawPlatformFee.toFixed(2)))
+    const platformFee = Math.max(
+      minPlatformFee,
+      Number(rawPlatformFee.toFixed(2))
     );
 
     const stripeFee = Number((amount * stripeRate + stripeFixed).toFixed(2));

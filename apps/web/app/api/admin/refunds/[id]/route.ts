@@ -38,6 +38,13 @@ export const POST = withApiHandler(
     // execute on a stale admin session. Match the 15-minute window used
     // by /api/admin/escrow/approve and /api/admin/escrow/hold.
     requireMfaVerifiedWithinMinutes: 15,
+    logActivity: {
+      actionType: 'escrow_admin_action',
+      category: 'revenue',
+      targetType: 'escrow',
+      targetId: (params) => params.id,
+      description: 'Performed an admin escrow action (release/refund/hold)',
+    },
   },
   async (request: NextRequest, { user, params }) => {
     const escrowId = params.id;

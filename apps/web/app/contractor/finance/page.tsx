@@ -33,21 +33,29 @@ function transformPayments(payments: EscrowTransaction[]): Transaction[] {
         'Client'
       : 'Unknown';
 
-    const platformFee = p.amount * 0.05;
-    const processingFee = p.amount * 0.02;
-    const netAmount = p.amount - platformFee - processingFee;
+    // Real fees are only stored once escrow is released. Before that we
+    // have no truthful breakdown, so we surface the gross amount and flag
+    // the fees as not-yet-finalized rather than fabricating a flat rate.
+    const feesFinalized = p.contractorPayout != null || p.platformFee != null;
+    const platformFee = p.platformFee ?? 0;
+    const processingFee = p.stripeProcessingFee ?? 0;
+    const amount = Number(p.amount) || 0;
+    const netAmount = feesFinalized
+      ? (p.contractorPayout ?? amount - platformFee - processingFee)
+      : amount;
 
     return {
       id: p.id,
       jobId: p.jobId || p.job_id || '',
       jobTitle,
       client: clientName,
-      amount: Number(p.amount) || 0,
+      amount,
       status: mappedStatus,
       date: p.createdAt || p.created_at || new Date().toISOString(),
       platformFee,
       processingFee,
       netAmount,
+      feesFinalized,
     };
   });
 }
@@ -168,7 +176,56 @@ export default function ContractorFinancePage2025() {
   }, [transactions, searchQuery, filterStatus]);
 
   const handleExport = () => {
-    toast.success('Exporting financial data...');
+    if (filteredTransactions.length === 0) {
+      toast.error('No transactions to export');
+      return;
+    }
+
+    const escapeCsv = (value: string | number) => {
+      const s = String(value);
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+
+    const headers = [
+      'Date',
+      'Job',
+      'Job ID',
+      'Client',
+      'Gross (£)',
+      'Platform fee (£)',
+      'Processing fee (£)',
+      'Net payout (£)',
+      'Fees finalized',
+      'Status',
+    ];
+
+    const rows = filteredTransactions.map((t) => [
+      new Date(t.date).toLocaleDateString('en-GB'),
+      t.jobTitle,
+      t.jobId,
+      t.client,
+      t.amount.toFixed(2),
+      t.feesFinalized ? t.platformFee.toFixed(2) : '',
+      t.feesFinalized ? t.processingFee.toFixed(2) : '',
+      t.feesFinalized ? t.netAmount.toFixed(2) : '',
+      t.feesFinalized ? 'yes' : 'pending',
+      t.status,
+    ]);
+
+    const csv = [headers, ...rows]
+      .map((row) => row.map(escapeCsv).join(','))
+      .join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `mintenance-finance-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success(`Exported ${rows.length} transactions`);
   };
 
   const handleViewDetails = (transaction: Transaction) => {
@@ -222,9 +279,7 @@ export default function ContractorFinancePage2025() {
             <div className='col' style={{ gap: 4 }}>
               <h1 className='t-h1' style={{ margin: 0 }}>
                 Finance{' '}
-                <em
-                  style={{ color: 'var(--me-brand)', fontStyle: 'italic' }}
-                >
+                <em style={{ color: 'var(--me-brand)', fontStyle: 'italic' }}>
                   overview
                 </em>
               </h1>

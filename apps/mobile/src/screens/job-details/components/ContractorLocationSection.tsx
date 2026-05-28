@@ -49,15 +49,22 @@ export const ContractorLocationSection: React.FC<Props> = ({
     Number.isFinite(destination.latitude) &&
     Number.isFinite(destination.longitude);
 
-  const { isTracking, eta, startTracking, stopTracking, markArrived, error } =
-    useJobTravelTracking({
-      jobId,
-      destination: destination ?? {
-        latitude: Number.NaN,
-        longitude: Number.NaN,
-      },
-      autoStartIfPermitted: true,
-    });
+  const {
+    isTracking,
+    hasArrived,
+    eta,
+    startTracking,
+    stopTracking,
+    markArrived,
+    error,
+  } = useJobTravelTracking({
+    jobId,
+    destination: destination ?? {
+      latitude: Number.NaN,
+      longitude: Number.NaN,
+    },
+    autoStartIfPermitted: true,
+  });
 
   return (
     <View>
@@ -65,7 +72,17 @@ export const ContractorLocationSection: React.FC<Props> = ({
 
       {error && <Text style={styles.errorText}>{error}</Text>}
 
-      {isTracking ? (
+      {hasArrived ? (
+        <View style={styles.arrivedCard}>
+          <View style={styles.trackingStatus}>
+            <Ionicons name='checkmark-circle' size={18} color={me.brand} />
+            <Text style={styles.trackingText}>On site</Text>
+          </View>
+          <Text style={styles.arrivedSubtext}>
+            The homeowner has been notified that you've arrived.
+          </Text>
+        </View>
+      ) : isTracking ? (
         <View style={styles.trackingCard}>
           <View style={styles.trackingStatus}>
             <View style={styles.liveDot} />
@@ -106,7 +123,7 @@ export const ContractorLocationSection: React.FC<Props> = ({
       ) : (
         <TouchableOpacity
           style={[styles.startButton, !hasDestination && styles.disabledButton]}
-          onPress={startTracking}
+          onPress={() => startTracking({ createTrip: true })}
           disabled={!hasDestination}
           accessibilityRole='button'
           accessibilityLabel='Start location tracking'
@@ -145,6 +162,23 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: me.brand,
     ...me.shadow.card,
+  },
+  // Arrived state — terminal "on site" confirmation. Mirrors the
+  // homeowner's "Contractor arrived" read-only display; no en-route
+  // controls (Stop/ETA) because the journey is done.
+  arrivedCard: {
+    backgroundColor: me.brandSoft,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderWidth: 1,
+    borderColor: me.brand,
+    ...me.shadow.card,
+  },
+  arrivedSubtext: {
+    fontSize: 13,
+    color: me.ink2,
+    lineHeight: 18,
   },
   trackingStatus: {
     flexDirection: 'row',

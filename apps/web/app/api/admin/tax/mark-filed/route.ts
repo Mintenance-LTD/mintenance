@@ -33,6 +33,12 @@ export const POST = withApiHandler(
     roles: ['admin'],
     rateLimit: { maxRequests: 20, windowMs: 60_000 },
     requireMfaVerifiedWithinMinutes: 15,
+    logActivity: {
+      actionType: 'tax_1099_mark_filed',
+      category: 'revenue',
+      targetType: 'tax_filing',
+      description: 'Marked a contractor 1099-NEC as filed',
+    },
   },
   async (request, { user }) => {
     const validation = await validateRequest(request, markFiledSchema);

@@ -30,11 +30,23 @@ export function PayoutSetupBanner({
   chargesEnabled,
   payoutsEnabled,
 }: Props) {
-  // Only surface for the mid-flow-abandoned case. The
-  // "no account yet" state is already handled by the bid-acceptance
-  // gate + the empty state on /contractor/payouts/onboarding itself.
-  if (!hasAccount) return null;
-  if (chargesEnabled && payoutsEnabled) return null;
+  // Fully onboarded — nothing to prompt.
+  if (hasAccount && chargesEnabled && payoutsEnabled) return null;
+
+  // Two distinct states get two distinct messages:
+  //  - never started: a soft, proactive nudge so payouts are ready
+  //    BEFORE a bid is won (otherwise the homeowner hits a wall at
+  //    acceptance and the contractor never sees why).
+  //  - mid-flow-abandoned: a louder "finish what you started" alert,
+  //    which is the live state that has stuck escrow rows behind it.
+  const notStarted = !hasAccount;
+  const heading = notStarted
+    ? 'Set up payouts so you can get paid'
+    : 'Finish your payout setup to receive payments';
+  const body = notStarted
+    ? 'Connect a bank account through Stripe now so homeowners can pay you the moment you win a job. This takes about 2 minutes.'
+    : 'Stripe needs a few more details before homeowners can pay you for completed work. This takes about 2 minutes.';
+  const cta = notStarted ? 'Set up payouts' : 'Resume setup';
 
   return (
     <div
@@ -43,19 +55,14 @@ export function PayoutSetupBanner({
     >
       <AlertTriangle className='mt-0.5 h-5 w-5 flex-shrink-0' aria-hidden />
       <div className='flex-1'>
-        <div className='font-medium'>
-          Finish your payout setup to receive payments
-        </div>
-        <div className='text-amber-800/90'>
-          Stripe needs a few more details before homeowners can pay you for
-          completed work. This takes about 2 minutes.
-        </div>
+        <div className='font-medium'>{heading}</div>
+        <div className='text-amber-800/90'>{body}</div>
       </div>
       <Link
         href='/contractor/payouts/onboarding'
         className='inline-flex items-center gap-1 whitespace-nowrap rounded-md border border-amber-400 bg-white px-3 py-1.5 text-sm font-medium text-amber-900 transition hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2'
       >
-        Resume setup
+        {cta}
         <ArrowRight className='h-4 w-4' aria-hidden />
       </Link>
     </div>

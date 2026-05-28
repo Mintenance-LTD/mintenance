@@ -132,6 +132,12 @@ export const PATCH = withApiHandler(
     // forged document on a hijacked admin session gives a contractor
     // platform trust they don't deserve.
     requireMfaVerifiedWithinMinutes: 15,
+    logActivity: {
+      actionType: 'contractor_document_review',
+      category: 'verification',
+      targetType: 'contractor_document',
+      description: 'Reviewed a contractor verification document',
+    },
   },
   async (request, { user }) => {
     const raw = await request.json().catch(() => null);

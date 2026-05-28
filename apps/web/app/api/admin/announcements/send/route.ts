@@ -32,6 +32,12 @@ export const POST = withApiHandler(
     // via email + push + in-app. Single highest-blast-radius admin
     // mutation — demand fresh MFA proof.
     requireMfaVerifiedWithinMinutes: 15,
+    logActivity: {
+      actionType: 'announcement_send',
+      category: 'communication',
+      targetType: 'announcement',
+      description: 'Sent an announcement to the target audience',
+    },
   },
   async (request, { user }) => {
     const body = await request.json();

@@ -431,6 +431,11 @@ export class JobCRUDService {
       // correctly post-approval (already added at audit-26 #131).
       'completion_confirmed_at',
       'completion_confirmed_by_homeowner',
+      // 2026-05-28 U3: when the contractor's after-photo upload
+      // auto-flips status to 'completed' it stamps completed_at. The
+      // homeowner photo-review screen reads it to render the 7-day
+      // auto-release countdown banner (web parity, audit-P2-4).
+      'completed_at',
       'scheduledStartDate',
       'requirements',
       'start_date',

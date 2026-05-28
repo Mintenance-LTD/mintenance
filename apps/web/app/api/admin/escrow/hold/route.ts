@@ -24,6 +24,12 @@ export const POST = withApiHandler(
     roles: ['admin'],
     rateLimit: { maxRequests: 10 },
     requireMfaVerifiedWithinMinutes: 15,
+    logActivity: {
+      actionType: 'escrow_hold',
+      category: 'revenue',
+      targetType: 'escrow',
+      description: 'Placed an escrow on admin review hold',
+    },
   },
   async (request, { user }) => {
     const validation = await validateRequest(request, holdEscrowSchema);

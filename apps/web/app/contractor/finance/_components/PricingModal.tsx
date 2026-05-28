@@ -24,31 +24,43 @@ export function PricingModal({ transaction, onClose }: PricingModalProps) {
       >
         <div className='p-6'>
           <h3 className='t-h2 text-gray-900 mb-6'>Payment Breakdown</h3>
-          <PricingBreakdown
-            items={[
-              {
-                id: '1',
-                label: 'Job Payment',
-                amount: transaction.amount,
-              },
-              {
-                id: '2',
-                label: 'Platform Fee (5%)',
-                amount: -transaction.platformFee,
-                isDiscount: true,
-              },
-              {
-                id: '3',
-                label: 'Processing Fee (2%)',
-                amount: -transaction.processingFee,
-                isDiscount: true,
-              },
-            ]}
-            subtotal={transaction.amount}
-            total={transaction.netAmount}
-            currency='£'
-            showSubtotal={false}
-          />
+          {transaction.feesFinalized ? (
+            <PricingBreakdown
+              items={[
+                {
+                  id: '1',
+                  label: 'Job Payment',
+                  amount: transaction.amount,
+                },
+                {
+                  id: '2',
+                  label: 'Platform Fee',
+                  amount: -transaction.platformFee,
+                  isDiscount: true,
+                },
+                {
+                  id: '3',
+                  label: 'Processing Fee',
+                  amount: -transaction.processingFee,
+                  isDiscount: true,
+                },
+              ]}
+              subtotal={transaction.amount}
+              total={transaction.netAmount}
+              currency='£'
+              showSubtotal={false}
+            />
+          ) : (
+            <div className='rounded-lg bg-amber-50 border border-amber-200 p-4 text-sm text-amber-800'>
+              <p className='font-medium mb-1'>
+                £{transaction.amount.toFixed(2)} held in escrow
+              </p>
+              <p>
+                The platform and processing fees are finalized when this payment
+                is released, so the net payout isn&apos;t available yet.
+              </p>
+            </div>
+          )}
           <div className='mt-6'>
             <button
               onClick={onClose}

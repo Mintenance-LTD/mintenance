@@ -20,6 +20,13 @@ export const POST = withApiHandler(
     // feeds the model retrain pipeline. Mass-validating bad rows
     // would poison the model — demand fresh MFA proof.
     requireMfaVerifiedWithinMinutes: 15,
+    logActivity: {
+      actionType: 'building_assessment_validate',
+      category: 'settings',
+      targetType: 'building_assessment',
+      targetId: (params) => params.id,
+      description: 'Validated or rejected a building assessment',
+    },
   },
   async (request, { user, params }) => {
     const { id } = params;
