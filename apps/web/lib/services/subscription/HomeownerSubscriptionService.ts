@@ -1,22 +1,22 @@
-import Stripe from 'stripe';
+import type Stripe from 'stripe';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+// 2026-05-28 audit: was a local proxy pinned to apiVersion '2024-04-10'.
+// Route through the single shared lazy proxy so the API version stays pinned
+// in one place (lib/stripe.ts → '2025-01-27.acacia').
+import { stripe as sharedStripe } from '@/lib/stripe';
 
-let _stripe: Stripe | null = null;
-function getStripe(): Stripe {
-  if (!_stripe) {
-    if (!process.env.STRIPE_SECRET_KEY) {
-      throw new Error('STRIPE_SECRET_KEY is not configured');
-    }
-    _stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2024-04-10' });
-  }
-  return _stripe;
+function getStripe() {
+  return sharedStripe;
 }
 
 export type HomeownerPlanType = 'landlord' | 'agency';
 
 export class HomeownerSubscriptionService {
-  private static readonly PLAN_PRICING: Record<HomeownerPlanType, { monthly: number; yearly: number; name: string }> = {
+  private static readonly PLAN_PRICING: Record<
+    HomeownerPlanType,
+    { monthly: number; yearly: number; name: string }
+  > = {
     landlord: { monthly: 24.99, yearly: 249, name: 'Landlord' },
     agency: { monthly: 49.99, yearly: 499, name: 'Agency' },
   };
@@ -83,7 +83,9 @@ export class HomeownerSubscriptionService {
 
     const stripePlanKey = `homeowner_${planType}`;
     const products = await stripe.products.list({ limit: 100 });
-    let product = products.data.find((p) => p.metadata?.mintenance_plan === stripePlanKey);
+    let product = products.data.find(
+      (p) => p.metadata?.mintenance_plan === stripePlanKey
+    );
     if (!product) {
       product = await stripe.products.create({
         name: `Mintenance Homeowner ${planPricing.name}`,
@@ -91,11 +93,16 @@ export class HomeownerSubscriptionService {
       });
     }
 
-    const prices = await stripe.prices.list({ product: product.id, active: true, limit: 20 });
-    let stripePrice = prices.data.find((p) =>
-      p.currency === 'gbp' &&
-      p.unit_amount === Math.round(price_gbp * 100) &&
-      p.recurring?.interval === (isYearly ? 'year' : 'month')
+    const prices = await stripe.prices.list({
+      product: product.id,
+      active: true,
+      limit: 20,
+    });
+    let stripePrice = prices.data.find(
+      (p) =>
+        p.currency === 'gbp' &&
+        p.unit_amount === Math.round(price_gbp * 100) &&
+        p.recurring?.interval === (isYearly ? 'year' : 'month')
     );
 
     if (!stripePrice) {
@@ -128,7 +135,9 @@ export class HomeownerSubscriptionService {
     });
 
     const invoice = subscription.latest_invoice as Stripe.Invoice;
-    const paymentIntent = (invoice as Stripe.Invoice & { payment_intent?: Stripe.PaymentIntent }).payment_intent;
+    const paymentIntent = (
+      invoice as Stripe.Invoice & { payment_intent?: Stripe.PaymentIntent }
+    ).payment_intent;
 
     const existing = await this.getCurrentSubscription(homeownerId);
     if (existing) {
@@ -172,7 +181,9 @@ export class HomeownerSubscriptionService {
         homeownerId,
         error: error.message,
       });
-      throw new Error(`Failed to save homeowner subscription: ${error.message}`);
+      throw new Error(
+        `Failed to save homeowner subscription: ${error.message}`
+      );
     }
 
     return {
@@ -188,7 +199,12 @@ export class HomeownerSubscriptionService {
     customerId: string,
     billingCycle: 'monthly' | 'yearly' = 'monthly'
   ) {
-    return this.createSubscription(homeownerId, customerId, 'landlord', billingCycle);
+    return this.createSubscription(
+      homeownerId,
+      customerId,
+      'landlord',
+      billingCycle
+    );
   }
 
   static async cancelSubscription(
@@ -197,7 +213,10 @@ export class HomeownerSubscriptionService {
   ): Promise<{ success: boolean; message: string }> {
     const existing = await this.getCurrentSubscription(homeownerId);
     if (!existing?.stripe_subscription_id) {
-      return { success: false, message: 'No active homeowner subscription found' };
+      return {
+        success: false,
+        message: 'No active homeowner subscription found',
+      };
     }
 
     const stripe = getStripe();
