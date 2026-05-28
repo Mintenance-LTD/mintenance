@@ -77,7 +77,7 @@ const SCAN_ROOTS = ['apps/web', 'apps/mobile', 'packages'];
 
 /** Directory names anywhere in the path that we skip wholesale. */
 const SKIP_DIR_RE =
-  /[\\/](node_modules|\.next|coverage|dist|build|\.turbo|__generated__|migrations|migrations_old_temp)[\\/]/;
+  /[\\/](node_modules|\.next|coverage|dist|build|\.turbo|__generated__|migrations)[\\/]/;
 
 interface Finding {
   file: string;
