@@ -29,12 +29,23 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { AlertCircle, CheckCircle2 } from 'lucide-react';
+import { FoundingMemberCard } from './FoundingMemberCard';
 
 interface SubscriptionClientProps {
   subscription: Subscription | null;
   trialStatus: TrialStatus | null;
   plans: SubscriptionPlanDetails[];
   contractorId: string;
+  /**
+   * 2026-05-28 audit-89 P1: true iff this contractor holds an
+   * early_access_grants row of grant_type='max_subscription_features'.
+   * Flips the page from generic trial+upsell into a founding-member
+   * card. Backend fee logic (FeeCalculationService.resolveContractorTier)
+   * already treats these contractors as 'enterprise' (5% per-job
+   * platform fee) regardless of UI — this prop just makes the page
+   * tell the truth instead of asking them to subscribe.
+   */
+  earlyAccess?: boolean;
 }
 
 export function SubscriptionClient({
@@ -42,6 +53,7 @@ export function SubscriptionClient({
   trialStatus,
   plans,
   contractorId,
+  earlyAccess = false,
 }: SubscriptionClientProps) {
   const [currentSubscription, setCurrentSubscription] = useState(subscription);
   const [isLoading, setIsLoading] = useState(false);
@@ -242,8 +254,16 @@ export function SubscriptionClient({
         </div>
       )}
 
-      {/* Trial Status Banner */}
-      {trialStatus && trialStatus.isTrialActive && (
+      {/* 2026-05-28 audit-89 P1: founding-member card replaces the
+          trial countdown + plan picker for early-access contractors.
+          They have a permanent grant (no monthly subscription, 5%
+          per-job platform fee) so the generic "Your trial expires
+          in N days / Subscribe Now" UX was just wrong. */}
+      {earlyAccess && <FoundingMemberCard />}
+
+      {/* Trial Status Banner — suppressed for early-access contractors
+          who have a permanent grant rather than a time-limited trial. */}
+      {!earlyAccess && trialStatus && trialStatus.isTrialActive && (
         <TrialStatusBanner
           daysRemaining={trialStatus.daysRemaining}
           trialEndsAt={trialStatus.trialEndsAt}
@@ -372,13 +392,20 @@ export function SubscriptionClient({
           </div>
         )}
 
-      {/* Subscription Plans */}
-      <SubscriptionPlans
-        plans={plans}
-        currentPlan={currentSubscription?.planType}
-        onSubscribe={handleSubscribe}
-        isLoading={isLoading || csrfLoading}
-      />
+      {/* Subscription Plans — hidden for early-access contractors.
+          They already have the top-tier feature set via grant and
+          don't need to subscribe; showing them the Basic / Business /
+          Professional cards (with "Subscribe Now" CTAs that would
+          create a Stripe row they don't owe) is misleading and would
+          accept money the platform shouldn't collect from them. */}
+      {!earlyAccess && (
+        <SubscriptionPlans
+          plans={plans}
+          currentPlan={currentSubscription?.planType}
+          onSubscribe={handleSubscribe}
+          isLoading={isLoading || csrfLoading}
+        />
+      )}
 
       {/* Alert Dialog */}
       <AlertDialog
