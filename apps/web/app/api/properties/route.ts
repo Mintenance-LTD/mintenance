@@ -13,6 +13,7 @@ import { createPropertySchema } from '@/lib/validation/schemas';
 import { getFeatureLimit } from '@/lib/feature-access-config';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { getEffectiveHomeownerTier } from '@/lib/subscription/early-access';
+import { resolveAddressCoordinates } from '@/lib/services/geocoding/forward-geocode';
 
 // Type definition for property insert data
 interface PropertyInsertData {
@@ -305,13 +306,34 @@ export const POST = withApiHandler(
     if (body.bedrooms) insertData.bedrooms = body.bedrooms;
     if (body.bathrooms) insertData.bathrooms = body.bathrooms;
 
-    // Coords from mobile (or future geocoded value from web).
-    // `typeof === 'number'` rather than truthy so `0` is preserved.
-    if (typeof body.latitude === 'number') {
-      insertData.latitude = body.latitude;
-    }
-    if (typeof body.longitude === 'number') {
-      insertData.longitude = body.longitude;
+    // 2026-05-28 audit-91 P1: server-authoritative geocode.
+    //
+    // Mobile AddPropertyScreen uses expo-location Location.geocodeAsync
+    // which has no UK region/country bias — it only respects device
+    // locale. An iOS device set to en-US could resolve a Cheltenham
+    // GL51 8NE address to a London or US match. Web's job-creation
+    // path already audits its way around this (audit-90), but property
+    // creation was still trusting client coords blindly.
+    //
+    // Resolver rules:
+    //   1. If client sent lat/lng inside the UK bounding box, trust
+    //      them (preserves manually-dropped map pins).
+    //   2. Otherwise re-geocode the full "address, city, postcode,
+    //      country" string with Google's UK bias.
+    // Always non-fatal — if Google has no key or no result, we just
+    // persist null coords (same as before this fix).
+    const resolved = await resolveAddressCoordinates({
+      address: insertData.address,
+      city: insertData.city,
+      postcode: insertData.postcode,
+      country: insertData.country,
+      clientLatitude: typeof body.latitude === 'number' ? body.latitude : null,
+      clientLongitude:
+        typeof body.longitude === 'number' ? body.longitude : null,
+    });
+    if (resolved) {
+      insertData.latitude = resolved.latitude;
+      insertData.longitude = resolved.longitude;
     }
 
     // Add photos if provided

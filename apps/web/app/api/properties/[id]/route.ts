@@ -13,6 +13,7 @@ import { validateRequest } from '@/lib/validation/validator';
 import { updatePropertySchema } from '@/lib/validation/schemas';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { PropertyTeamService } from '@/lib/services/property-team/PropertyTeamService';
+import { resolveAddressCoordinates } from '@/lib/services/geocoding/forward-geocode';
 
 export const GET = withApiHandler(
   { rateLimit: { maxRequests: 30 } },
@@ -166,6 +167,40 @@ export const PUT = withApiHandler(
     if (photos !== undefined) updateData.photos = photos || [];
     if (latitude !== undefined) updateData.latitude = latitude;
     if (longitude !== undefined) updateData.longitude = longitude;
+
+    // 2026-05-28 audit-91 P1: server-authoritative geocode on update.
+    // Only re-resolve when an address-affecting field actually changed
+    // (or when the client explicitly sent lat/lng) so unrelated field
+    // edits don't burn a Google API call on every PUT.
+    const addressFieldChanged =
+      address !== undefined ||
+      city !== undefined ||
+      postcode !== undefined ||
+      country !== undefined ||
+      latitude !== undefined ||
+      longitude !== undefined;
+    if (addressFieldChanged) {
+      // Read current values so the geocoder sees the merged address,
+      // not just the deltas in this PUT.
+      const { data: existing } = await serverSupabase
+        .from('properties')
+        .select('address, city, postcode, country, latitude, longitude')
+        .eq('id', params.id)
+        .maybeSingle();
+      const merged = {
+        address: (address ?? existing?.address) as string | null | undefined,
+        city: (city ?? existing?.city) as string | null | undefined,
+        postcode: (postcode ?? existing?.postcode) as string | null | undefined,
+        country: (country ?? existing?.country) as string | null | undefined,
+        clientLatitude: typeof latitude === 'number' ? latitude : null,
+        clientLongitude: typeof longitude === 'number' ? longitude : null,
+      };
+      const resolved = await resolveAddressCoordinates(merged);
+      if (resolved) {
+        updateData.latitude = resolved.latitude;
+        updateData.longitude = resolved.longitude;
+      }
+    }
 
     const { data, error } = await serverSupabase
       .from('properties')
