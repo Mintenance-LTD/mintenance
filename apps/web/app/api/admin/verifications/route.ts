@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { sanitizeEmailIlikePattern } from '@/lib/utils/sanitize-postgrest';
 
 /**
  * GET /api/admin/verifications
@@ -45,9 +46,13 @@ export const GET = withApiHandler(
     }
     // 'all' applies no additional filter
 
-    // Apply search filter
-    if (search.trim()) {
-      const term = `%${search.trim()}%`;
+    // Apply search filter. The raw value is interpolated into a PostgREST
+    // `.or()` filter DSL, so it MUST be sanitized — otherwise a `,` in the
+    // input injects extra filter clauses (PostgREST filter injection). Email
+    // search needs `@` and `.`, hence the email-aware variant.
+    const safeSearch = sanitizeEmailIlikePattern(search);
+    if (safeSearch) {
+      const term = `%${safeSearch}%`;
       query = query.or(
         `email.ilike.${term},first_name.ilike.${term},last_name.ilike.${term},company_name.ilike.${term}`
       );
