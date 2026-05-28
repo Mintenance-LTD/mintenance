@@ -34,6 +34,13 @@ export const POST = withApiHandler(
     roles: ['admin'],
     rateLimit: { maxRequests: 3, windowMs: 60_000 },
     requireMfaVerifiedWithinMinutes: 15,
+    logActivity: {
+      actionType: 'tax_1099_generate_all',
+      category: 'revenue',
+      targetType: 'tax_filing',
+      description:
+        'Triggered bulk 1099-NEC generation for all eligible contractors',
+    },
   },
   async (request, { user }) => {
     const validation = await validateRequest(request, generateAllSchema);

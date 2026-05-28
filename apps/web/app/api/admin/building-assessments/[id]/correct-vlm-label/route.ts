@@ -111,6 +111,13 @@ export const POST = withApiHandler(
     // model retrain pipeline. Mass-corrupting labels on a stolen
     // session would degrade the AI in production.
     requireMfaVerifiedWithinMinutes: 15,
+    logActivity: {
+      actionType: 'building_assessment_correct_vlm_label',
+      category: 'settings',
+      targetType: 'building_assessment',
+      targetId: (params) => params.id,
+      description: 'Supplied a corrected VLM training label',
+    },
   },
   async (request, { user, params }) => {
     const { id } = params;

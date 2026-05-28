@@ -25,6 +25,12 @@ export const POST = withApiHandler(
     // email + push. A stolen admin cookie could fire arbitrary mail to
     // any contractor. Same 15-min MFA window as other admin send routes.
     requireMfaVerifiedWithinMinutes: 15,
+    logActivity: {
+      actionType: 'contractor_payment_setup_reminder',
+      category: 'communication',
+      targetType: 'contractor',
+      description: 'Sent a payment-setup reminder to a contractor',
+    },
   },
   async (request) => {
     let raw: unknown;

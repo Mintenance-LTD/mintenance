@@ -33,6 +33,12 @@ export const POST = withApiHandler(
     // pending contractor verification. A stolen admin cookie could
     // trigger a notification storm. Require fresh MFA proof.
     requireMfaVerifiedWithinMinutes: 15,
+    logActivity: {
+      actionType: 'pending_verifications_notify',
+      category: 'communication',
+      targetType: 'verification',
+      description: 'Sent pending-verification notifications',
+    },
   },
   async () => {
     await AdminNotificationService.notifyPendingVerifications();

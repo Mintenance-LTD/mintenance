@@ -21,6 +21,12 @@ export const POST = withApiHandler(
     roles: ['admin'],
     rateLimit: { maxRequests: 10 },
     requireMfaVerifiedWithinMinutes: 15,
+    logActivity: {
+      actionType: 'escrow_fee_transfer_hold',
+      category: 'revenue',
+      targetType: 'escrow',
+      description: 'Held an escrow fee transfer',
+    },
   },
   async (request, { user }) => {
     const validation = await validateRequest(request, holdFeeTransferSchema);
