@@ -178,7 +178,7 @@ const KNOWN_LARGE_FILES = new Set([
   // is a single .ilike → .eq swap with an 8-line audit comment.
   // Splitting the JobCreationService is a dedicated P2 — orthogonal
   // to closing the profile-enumeration vector.
-  'apps/web/lib/services/job-creation-service.ts', // 594 lines (was 550) — Hire-Again preferred-contractor notify
+  'apps/web/lib/services/job-creation-service.ts', // 815 lines (was 594) — audit-90 resolveJobCoordinates helper (server-authoritative property-aware geocode w/ UK bias)
   // Added 2026-04-25: TimeTrackingScreen grew from 489 → 547 lines via
   // the Time-Tracking → Invoice bridge (audit P1 #14). The added code
   // is the aggregation logic + CTA banner + matching styles, all

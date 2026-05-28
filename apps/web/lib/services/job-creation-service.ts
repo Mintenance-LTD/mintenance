@@ -110,29 +110,25 @@ export class JobCreationService {
 
     const insertPayload = this.buildInsertPayload(user, payload);
 
-    // Server-side geocoding: if location text provided but no coordinates,
-    // geocode the address so the job appears at the correct map position
-    if (
-      insertPayload.location &&
-      !insertPayload.latitude &&
-      !insertPayload.longitude
-    ) {
-      try {
-        const coords = await this.geocodeAddress(insertPayload.location);
-        if (coords) {
-          insertPayload.latitude = coords.latitude;
-          insertPayload.longitude = coords.longitude;
-        }
-      } catch (geoError) {
-        // Non-fatal: job is still created, just without coordinates
-        logger.warn('Failed to geocode job location', {
-          service: 'job-creation',
-          location: insertPayload.location,
-          error:
-            geoError instanceof Error ? geoError.message : String(geoError),
-        });
-      }
-    }
+    // 2026-05-28 audit-90 P1: when the homeowner picked a property, the
+    // property row already has city + postcode + (often) latitude +
+    // longitude. The wizard was forwarding only `selectedProperty.address`
+    // (the street line) as `location` — so when the server-or-client
+    // geocoder ran, ambiguous street names like "65 Gloucester Road"
+    // resolved to the most famous global match (London SW7) instead of
+    // the homeowner's actual town. Live evidence: a Cheltenham job
+    // (GL51/GL52) was geocoded to lat=51.4954,lng=-0.1826 (London) and
+    // therefore never appeared on the local contractor's Find Jobs map.
+    //
+    // Server-side resolution order (authoritative — overrides whatever
+    // the client sent):
+    //   1. If property_id is set + property has its own valid
+    //      latitude/longitude  → copy them onto the job (no Google call).
+    //   2. If property_id is set without coords → geocode the full
+    //      "address, city, postcode, country" string with UK bias.
+    //   3. Else fall back to geocoding the raw location text with UK
+    //      bias (defence-in-depth for property-less submissions).
+    await this.resolveJobCoordinates(insertPayload);
 
     const jobRow = await this.insertJob(user.id, insertPayload);
 
@@ -641,8 +637,141 @@ export class JobCreationService {
   }
 
   /**
+   * 2026-05-28 audit-90 P1: resolve a job's lat/lng before insert.
+   * Server is authoritative — when property_id is set we use the
+   * property row's own coords (or its full address) rather than the
+   * raw street-line `location` the client typed. Always overrides
+   * client-supplied coordinates so a wizard that geocoded the street
+   * against the wrong town can't poison the job's map position.
+   */
+  private async resolveJobCoordinates(insertPayload: {
+    property_id?: string | null;
+    location?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
+  }): Promise<void> {
+    // 1. property_id path — read the property's geo columns directly.
+    if (insertPayload.property_id) {
+      try {
+        const { data: prop, error } = await serverSupabase
+          .from('properties')
+          .select('address, city, postcode, country, latitude, longitude')
+          .eq('id', insertPayload.property_id)
+          .maybeSingle();
+
+        if (error) {
+          logger.warn('audit-90: property lookup for geocode failed', {
+            service: 'job-creation',
+            propertyId: insertPayload.property_id,
+            error: error.message,
+          });
+        } else if (prop) {
+          // Prefer the property's pre-computed coordinates — no API
+          // call, no ambiguity, no rate limit consumed.
+          const propLat =
+            typeof prop.latitude === 'number'
+              ? prop.latitude
+              : prop.latitude != null
+                ? Number(prop.latitude)
+                : null;
+          const propLng =
+            typeof prop.longitude === 'number'
+              ? prop.longitude
+              : prop.longitude != null
+                ? Number(prop.longitude)
+                : null;
+          if (
+            propLat !== null &&
+            propLng !== null &&
+            Number.isFinite(propLat) &&
+            Number.isFinite(propLng)
+          ) {
+            insertPayload.latitude = propLat;
+            insertPayload.longitude = propLng;
+            return;
+          }
+
+          // No property coords — geocode the full address line instead
+          // of just the street, so ambiguous names resolve to the
+          // right town. UK bias added inside geocodeAddress.
+          const fullAddress = [
+            prop.address,
+            prop.city,
+            prop.postcode,
+            prop.country ?? 'UK',
+          ]
+            .filter((part): part is string => Boolean(part && part.trim()))
+            .join(', ');
+
+          if (fullAddress) {
+            try {
+              const coords = await this.geocodeAddress(fullAddress);
+              if (coords) {
+                insertPayload.latitude = coords.latitude;
+                insertPayload.longitude = coords.longitude;
+                return;
+              }
+            } catch (geoError) {
+              logger.warn(
+                'audit-90: property-address geocode failed, falling back',
+                {
+                  service: 'job-creation',
+                  propertyId: insertPayload.property_id,
+                  error:
+                    geoError instanceof Error
+                      ? geoError.message
+                      : String(geoError),
+                }
+              );
+            }
+          }
+        }
+      } catch (lookupError) {
+        logger.warn('audit-90: property lookup threw, continuing', {
+          service: 'job-creation',
+          propertyId: insertPayload.property_id,
+          error:
+            lookupError instanceof Error
+              ? lookupError.message
+              : String(lookupError),
+        });
+      }
+    }
+
+    // 2. Property path didn't yield coordinates — keep whatever the
+    //    client sent if it's valid (no property to authoritatively
+    //    override it). Otherwise geocode the raw location text.
+    if (
+      insertPayload.location &&
+      (insertPayload.latitude == null || insertPayload.longitude == null)
+    ) {
+      try {
+        const coords = await this.geocodeAddress(insertPayload.location);
+        if (coords) {
+          insertPayload.latitude = coords.latitude;
+          insertPayload.longitude = coords.longitude;
+        }
+      } catch (geoError) {
+        // Non-fatal: job is still created, just without coordinates.
+        logger.warn('Failed to geocode job location', {
+          service: 'job-creation',
+          location: insertPayload.location,
+          error:
+            geoError instanceof Error ? geoError.message : String(geoError),
+        });
+      }
+    }
+  }
+
+  /**
    * Geocode a location string to lat/lng using Google Maps API.
    * Returns null if geocoding fails or API key is not configured.
+   *
+   * 2026-05-28 audit-90 P1: always biased to the United Kingdom via
+   * `&region=uk&components=country:GB`. Without it, ambiguous street
+   * names ("Gloucester Road", "High Street") fall through to Google's
+   * global-best-match and frequently land in London regardless of the
+   * homeowner's actual town. The platform is UK-only — anchor to it.
    */
   private async geocodeAddress(
     address: string
@@ -656,7 +785,7 @@ export class JobCreationService {
     }
 
     const encodedAddress = encodeURIComponent(address.trim());
-    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodedAddress}&key=${apiKey}`;
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodedAddress}&region=uk&components=country:GB&key=${apiKey}`;
 
     const response = await fetch(url, {
       headers: { Accept: 'application/json' },
