@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Alert } from 'react-native';
 import { PaymentService } from '../../../services/PaymentService';
 import { mobileApiClient } from '../../../utils/mobileApiClient';
@@ -44,6 +44,18 @@ export function usePayment({
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
+
+  // Holds the PaymentIntent created for THIS payment attempt. A "Try Again"
+  // reuses this intent instead of minting a new one. Re-confirming a single
+  // Stripe PaymentIntent can never charge the card twice (Stripe dedupes on
+  // the intent); creating a fresh intent per retry is what risks a double
+  // charge — see PaymentMethodService.confirmPayment's "DO NOT wrap with
+  // retry" warning. A ref (not state) so the retry — which re-invokes the
+  // SAME handlePayment closure via the Alert button — reads the latest value.
+  const pendingIntentRef = useRef<{
+    clientSecret: string;
+    paymentIntentId?: string;
+  } | null>(null);
 
   const fees = PaymentService.calculateFees(amount);
   const platformFee = fees.platformFee;
@@ -92,26 +104,42 @@ export function usePayment({
     setProcessing(true);
     try {
       if (useEscrow) {
-        // Step 1: Create payment intent via API
+        // Step 1: Create the payment intent ONCE. On a retry we reuse the
+        // intent captured below rather than creating another — a second
+        // create call would be a second chargeable intent and defeats the
+        // single-charge guarantee.
         // 2026-05-23 audit-19 P1: paymentIntentSchema requires contractorId.
         // contractorId is already in the hook's options scope; thread it
         // through so the server can validate the request body.
-        const intentResult = await PaymentService.createPaymentIntent(
-          jobId,
-          amount,
-          selectedMethod.id,
-          contractorId
-        );
-
-        if (intentResult.error || !intentResult.clientSecret) {
-          throw new Error(
-            intentResult.error || 'Failed to create payment intent'
+        if (!pendingIntentRef.current) {
+          const intentResult = await PaymentService.createPaymentIntent(
+            jobId,
+            amount,
+            selectedMethod.id,
+            contractorId
           );
+
+          if (intentResult.error || !intentResult.clientSecret) {
+            throw new Error(
+              intentResult.error || 'Failed to create payment intent'
+            );
+          }
+
+          pendingIntentRef.current = {
+            clientSecret: intentResult.clientSecret,
+            paymentIntentId: intentResult.paymentIntentId,
+          };
         }
 
-        // Step 2: Confirm with Stripe SDK
+        const { clientSecret, paymentIntentId } = pendingIntentRef.current;
+
+        // Step 2: Confirm with Stripe SDK. Safe to retry against the SAME
+        // intent — Stripe guarantees at most one successful charge per
+        // PaymentIntent, so a re-confirm after a transient post-charge
+        // failure returns the already-succeeded intent rather than
+        // charging again.
         const confirmed = await PaymentService.confirmPayment({
-          clientSecret: intentResult.clientSecret,
+          clientSecret,
           paymentMethodId: selectedMethod.id,
         });
 
@@ -130,16 +158,16 @@ export function usePayment({
         // a duplicate call from the webhook no-ops), so firing both
         // paths is safe. Non-fatal: if confirm-intent fails the
         // webhook still settles eventually.
-        if (intentResult.paymentIntentId) {
+        if (paymentIntentId) {
           try {
             await mobileApiClient.post('/api/payments/confirm-intent', {
-              paymentIntentId: intentResult.paymentIntentId,
+              paymentIntentId,
               jobId,
             });
           } catch (confirmErr) {
             logger.warn('confirm-intent call failed; webhook will reconcile', {
               jobId,
-              paymentIntentId: intentResult.paymentIntentId,
+              paymentIntentId,
               err:
                 confirmErr instanceof Error
                   ? confirmErr.message
@@ -147,6 +175,10 @@ export function usePayment({
             });
           }
         }
+
+        // Payment landed — drop the cached intent so any future attempt
+        // (a genuinely new payment) starts a fresh one.
+        pendingIntentRef.current = null;
 
         Alert.alert(
           'Payment Successful',
@@ -201,7 +233,10 @@ export function usePayment({
     }
   };
 
-  const resetRetry = () => setRetryCount(0);
+  const resetRetry = () => {
+    setRetryCount(0);
+    pendingIntentRef.current = null;
+  };
 
   return {
     paymentMethods,
