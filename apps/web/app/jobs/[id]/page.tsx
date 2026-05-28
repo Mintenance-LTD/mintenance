@@ -533,13 +533,15 @@ export default async function JobDetailPage2025({
           <div className='grid grid-cols-12 gap-8'>
             <div className='col-span-12 lg:col-span-8 space-y-6'>
               {job.status === 'completed' && afterPhotos.length > 0 && (
-                <HomeownerPhotoReview
-                  jobId={job.id}
-                  beforePhotos={beforePhotos}
-                  afterPhotos={afterPhotos}
-                  isConfirmed={!!job.completion_confirmed_by_homeowner}
-                  completedAt={job.completed_at}
-                />
+                <div id='photo-review'>
+                  <HomeownerPhotoReview
+                    jobId={job.id}
+                    beforePhotos={beforePhotos}
+                    afterPhotos={afterPhotos}
+                    isConfirmed={!!job.completion_confirmed_by_homeowner}
+                    completedAt={job.completed_at}
+                  />
+                </div>
               )}
               {job.contractor_id && (
                 <div id='contract-section'>
