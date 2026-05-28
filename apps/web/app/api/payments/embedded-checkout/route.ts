@@ -3,15 +3,18 @@ import Stripe from 'stripe';
 import { z } from 'zod';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
-import { env, getAppUrl } from '@/lib/env';
+import { getAppUrl } from '@/lib/env';
+// Route through the shared lazy proxy so the API version stays pinned in one
+// place (lib/stripe.ts). Previously `new Stripe(env.STRIPE_SECRET_KEY)` with no
+// apiVersion defaulted to whatever the installed SDK picked. The `Stripe`
+// default import is retained for types only.
+import { stripe } from '@/lib/stripe';
 import {
   FeeCalculationService,
   type PaymentType,
 } from '@/lib/services/payment/FeeCalculationService';
 import { validateRequest } from '@/lib/validation/validator';
 import { withApiHandler } from '@/lib/api/with-api-handler';
-
-const stripe = new Stripe(env.STRIPE_SECRET_KEY);
 
 const bodySchema = z.object({
   priceId: z.string().min(1, 'Price ID is required'),

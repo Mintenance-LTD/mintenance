@@ -15,7 +15,10 @@ import {
   storeIdempotencyResult,
   releaseIdempotencyClaim,
 } from '@/lib/idempotency';
-import type { PaymentType } from '@/lib/services/payment/FeeCalculationService';
+import {
+  FeeCalculationService,
+  type PaymentType,
+} from '@/lib/services/payment/FeeCalculationService';
 import { requireAdminFromDatabase } from '@/lib/admin-verification';
 import {
   ForbiddenError,
@@ -304,10 +307,18 @@ export const POST = withApiHandler(
       const paymentType =
         (escrowTransaction.payment_type as PaymentType) || 'final';
       // 2026-05-22: tier-aware fees (12/8/5%); honours early-access.
-      const feeBreakdown = await calculateReleaseFeeBreakdown(
+      // Resolve the contractor tier exactly once and thread it through both
+      // the escrow fee-column write (below) and the platform_fee_transfers
+      // write (createFeeTransferRecord → FeeTransferService). Resolving it
+      // independently in each path risked divergent rates → a
+      // nondeterministic recorded payout.
+      const contractorTier = await FeeCalculationService.resolveContractorTier(
+        job.contractor_id
+      );
+      const feeBreakdown = calculateReleaseFeeBreakdown(
         escrowTransaction.amount,
         paymentType,
-        job.contractor_id
+        contractorTier
       );
       const contractorAmountCents = Math.round(
         feeBreakdown.contractorAmount * 100
@@ -371,6 +382,7 @@ export const POST = withApiHandler(
         paymentIntentId: escrowTransaction.payment_intent_id || '',
         chargeId,
         paymentType,
+        contractorTier,
       });
 
       // Step 3: Finalize DB — mark as completed with transfer details

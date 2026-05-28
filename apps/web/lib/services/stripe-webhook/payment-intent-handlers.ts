@@ -41,6 +41,54 @@ export async function handlePaymentIntentSucceeded(
   }
 
   try {
+    // Status guard: a late/duplicate/out-of-order payment_intent.succeeded
+    // must NOT flip an escrow that has already progressed past 'held' back to
+    // 'held' — that would re-open a released/completed escrow for a second
+    // release. Look the row up first and bail on any post-held state.
+    const { data: existing, error: lookupError } = await serverSupabase
+      .from('escrow_transactions')
+      .select('id, status')
+      .or(
+        `payment_intent_id.eq.${paymentIntent.id},stripe_payment_intent_id.eq.${paymentIntent.id}`
+      )
+      .maybeSingle();
+
+    if (lookupError) {
+      logger.error('Failed to look up escrow transaction', lookupError, {
+        service: 'stripe-webhook',
+        paymentIntentId: paymentIntent.id,
+      });
+      return;
+    }
+
+    if (!existing) {
+      logger.warn('No escrow transaction found for payment intent', {
+        service: 'stripe-webhook',
+        paymentIntentId: paymentIntent.id,
+      });
+      return;
+    }
+
+    const TERMINAL_OR_RELEASING = [
+      'release_pending',
+      'released',
+      'completed',
+      'refunded',
+      'disputed',
+    ];
+    if (TERMINAL_OR_RELEASING.includes(existing.status)) {
+      logger.warn(
+        'Ignoring payment_intent.succeeded for escrow already past held',
+        {
+          service: 'stripe-webhook',
+          paymentIntentId: paymentIntent.id,
+          escrowId: existing.id,
+          currentStatus: existing.status,
+        }
+      );
+      return;
+    }
+
     const { data: escrowTransaction, error: escrowError } = await serverSupabase
       .from('escrow_transactions')
       .update({
@@ -48,9 +96,7 @@ export async function handlePaymentIntentSucceeded(
         payment_intent_id: paymentIntent.id,
         updated_at: new Date().toISOString(),
       })
-      .or(
-        `payment_intent_id.eq.${paymentIntent.id},stripe_payment_intent_id.eq.${paymentIntent.id}`
-      )
+      .eq('id', existing.id)
       .select()
       .single();
 

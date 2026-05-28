@@ -7,9 +7,14 @@ import { withApiHandler } from '@/lib/api/with-api-handler';
  * Get real-time escrow status
  */
 export const GET = withApiHandler(
-  { roles: ['homeowner', 'contractor', 'admin'], rateLimit: { maxRequests: 20 } },
+  {
+    roles: ['homeowner', 'contractor', 'admin'],
+    rateLimit: { maxRequests: 20 },
+  },
   async (request, { user, params }) => {
     const escrowId = params.id;
+
+    await EscrowStatusService.assertCanView(escrowId, user.id, user.role);
 
     const status = await EscrowStatusService.getCurrentStatus(escrowId);
 

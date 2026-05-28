@@ -1,5 +1,6 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { NotFoundError } from '@/lib/errors/api-error';
 
 interface EscrowStatus {
   status: string;
@@ -18,6 +19,44 @@ interface EscrowStatus {
  * Service for real-time escrow status tracking and blocking reasons
  */
 export class EscrowStatusService {
+  /**
+   * Authorize a caller to read an escrow. Only the payer, the payee, or an
+   * admin may view escrow status/timeline. Throws NotFoundError (not 403) so
+   * the route does not confirm whether an escrow id exists to non-parties.
+   *
+   * These read routes use the service-role client and previously looked up
+   * escrows by id alone, so any authenticated user could read any escrow's
+   * status + release timeline (IDOR). Sibling write routes already gate on
+   * participant identity; this closes the read-side gap.
+   */
+  static async assertCanView(
+    escrowId: string,
+    userId: string,
+    role: string | undefined
+  ): Promise<void> {
+    if (role === 'admin') return;
+
+    const { data: escrow, error } = await serverSupabase
+      .from('escrow_transactions')
+      .select('id, payer_id, payee_id')
+      .eq('id', escrowId)
+      .single();
+
+    if (error || !escrow) {
+      throw new NotFoundError('Escrow not found');
+    }
+
+    if (escrow.payer_id !== userId && escrow.payee_id !== userId) {
+      logger.warn('Cross-tenant escrow read blocked', {
+        service: 'EscrowStatusService',
+        escrowId,
+        callerId: userId,
+        callerRole: role ?? 'unknown',
+      });
+      throw new NotFoundError('Escrow not found');
+    }
+  }
+
   /**
    * Get current status of an escrow transaction
    */

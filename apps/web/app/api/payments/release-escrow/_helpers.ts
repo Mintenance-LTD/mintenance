@@ -18,20 +18,25 @@ import {
   FeeCalculationService,
   type PaymentType,
 } from '@/lib/services/payment/FeeCalculationService';
+import type { ContractorSubscriptionTier } from '@/lib/feature-access-types';
 import { InternalServerError } from '@/lib/errors/api-error';
 import { EmailService } from '@/lib/email-service';
 
 /**
  * Tier-aware fee breakdown for an escrow release. 2026-05-22 Sprint 2.
- * Honours early-access via resolveContractorTier.
+ *
+ * Takes an already-resolved `contractorTier` rather than re-resolving it.
+ * The release path resolves the tier exactly once (see route.ts) and threads
+ * the same value into both the escrow fee-column write and the
+ * platform_fee_transfers write via FeeTransferService. Resolving twice could
+ * yield divergent rates (tier changed mid-flight, or resolveContractorTier
+ * returned different fallbacks), producing a nondeterministic recorded payout.
  */
-export async function calculateReleaseFeeBreakdown(
+export function calculateReleaseFeeBreakdown(
   amount: number,
   paymentType: PaymentType,
-  contractorId: string
+  contractorTier: ContractorSubscriptionTier
 ) {
-  const contractorTier =
-    await FeeCalculationService.resolveContractorTier(contractorId);
   return FeeCalculationService.calculateFees(amount, {
     paymentType,
     contractorTier,
@@ -307,7 +312,12 @@ export async function checkReleaseConditions(
     throw new ForbiddenError('Escrow is on admin hold');
   }
 
-  // 2. Homeowner approval or auto-approval
+  // 2. Homeowner approval or auto-approval.
+  // Capture whether approval is an explicit human action BEFORE the
+  // auto-approval branch can flip the flag (see evaluate.ts gate 2/3 for
+  // the rationale). Explicit homeowner approval supersedes the automated
+  // photo gate below.
+  const explicitHomeownerApproval = !!escrowTransaction.homeowner_approval;
   const updatedFields: {
     homeowner_approval?: boolean;
     cooling_off_ends_at?: string | null;
@@ -345,40 +355,47 @@ export async function checkReleaseConditions(
     updatedFields.cooling_off_ends_at = freshEscrow.cooling_off_ends_at;
   }
 
-  // 3. Photo verification
-  if (escrowTransaction.photo_verification_status !== 'verified') {
-    const blockingReasons =
-      await EscrowStatusService.getBlockingReasons(escrowTransactionId);
-    return {
-      blocked: NextResponse.json(
-        { error: 'Photo verification not completed', blockingReasons },
-        { status: 403 }
-      ),
-    };
-  }
-  if (!escrowTransaction.photo_quality_passed) {
-    return {
-      blocked: NextResponse.json(
-        { error: 'Photo quality check failed' },
-        { status: 403 }
-      ),
-    };
-  }
-  if (!escrowTransaction.geolocation_verified) {
-    return {
-      blocked: NextResponse.json(
-        { error: 'Geolocation verification pending' },
-        { status: 403 }
-      ),
-    };
-  }
-  if (!escrowTransaction.timestamp_verified) {
-    return {
-      blocked: NextResponse.json(
-        { error: 'Timestamp verification pending' },
-        { status: 403 }
-      ),
-    };
+  // 3. Photo verification — only enforced on the auto-approval (7-day) path.
+  // These columns are populated by the automated verification pipeline, not
+  // by the homeowner approval flow. When a homeowner has explicitly approved
+  // the work, their human review supersedes the automated photo checks;
+  // enforcing the gate here would deadlock the release (the columns stay null
+  // on the approval path). See evaluate.ts gate 3 for the matching rationale.
+  if (!explicitHomeownerApproval) {
+    if (escrowTransaction.photo_verification_status !== 'verified') {
+      const blockingReasons =
+        await EscrowStatusService.getBlockingReasons(escrowTransactionId);
+      return {
+        blocked: NextResponse.json(
+          { error: 'Photo verification not completed', blockingReasons },
+          { status: 403 }
+        ),
+      };
+    }
+    if (!escrowTransaction.photo_quality_passed) {
+      return {
+        blocked: NextResponse.json(
+          { error: 'Photo quality check failed' },
+          { status: 403 }
+        ),
+      };
+    }
+    if (!escrowTransaction.geolocation_verified) {
+      return {
+        blocked: NextResponse.json(
+          { error: 'Geolocation verification pending' },
+          { status: 403 }
+        ),
+      };
+    }
+    if (!escrowTransaction.timestamp_verified) {
+      return {
+        blocked: NextResponse.json(
+          { error: 'Timestamp verification pending' },
+          { status: 403 }
+        ),
+      };
+    }
   }
 
   // 4. Cooling-off period
