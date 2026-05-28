@@ -6,7 +6,15 @@ import type { JobFormData } from './validation';
 import { logger } from '@mintenance/shared';
 
 /**
- * Geocode an address using Google Maps Geocoding API
+ * Geocode an address using Google Maps Geocoding API.
+ *
+ * 2026-05-28 audit-90 P1: always biased to the UK via
+ * `&region=uk&components=country:GB`. Without it, "65 Gloucester Road"
+ * resolved to London SW7 instead of the homeowner's Cheltenham
+ * property, putting the job ~143 km outside every local contractor's
+ * radius. Server-side `JobCreationService.resolveJobCoordinates`
+ * still overrides this for property-backed posts; the client geocode
+ * is a fast best-effort that just shouldn't make things worse.
  */
 async function geocodeAddress(
   address: string
@@ -22,7 +30,7 @@ async function geocodeAddress(
 
     const encodedAddress = encodeURIComponent(address);
     const response = await fetch(
-      `https://maps.googleapis.com/maps/api/geocode/json?address=${encodedAddress}&key=${apiKey}`
+      `https://maps.googleapis.com/maps/api/geocode/json?address=${encodedAddress}&region=uk&components=country:GB&key=${apiKey}`
     );
 
     if (!response.ok) {
