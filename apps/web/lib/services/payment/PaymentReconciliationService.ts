@@ -9,11 +9,10 @@
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import Stripe from 'stripe';
-import { env } from '@/lib/env';
-
-const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
-  apiVersion: '2024-04-10',
-});
+// Route through the shared lazy proxy so the API version stays pinned in one
+// place (lib/stripe.ts). The `Stripe` import above is retained for types only
+// (Stripe.PaymentIntent, Stripe.errors.*).
+import { stripe } from '@/lib/stripe';
 
 /** Maps local escrow status → expected Stripe PaymentIntent statuses */
 const STATUS_MAP: Record<string, string[]> = {
@@ -68,9 +67,13 @@ export class PaymentReconciliationService {
       .limit(RECONCILIATION_LIMIT);
 
     if (fetchError) {
-      logger.error('Failed to fetch escrow transactions for reconciliation', fetchError, {
-        service: 'PaymentReconciliationService',
-      });
+      logger.error(
+        'Failed to fetch escrow transactions for reconciliation',
+        fetchError,
+        {
+          service: 'PaymentReconciliationService',
+        }
+      );
       throw new Error('Failed to fetch escrow transactions');
     }
 
@@ -85,7 +88,9 @@ export class PaymentReconciliationService {
       if (!escrow.payment_intent_id) continue;
 
       try {
-        const pi = await stripe.paymentIntents.retrieve(escrow.payment_intent_id);
+        const pi = await stripe.paymentIntents.retrieve(
+          escrow.payment_intent_id
+        );
 
         // Compare amount (Stripe stores in pence, escrow in pounds)
         const stripeAmountPounds = pi.amount / 100;
@@ -93,13 +98,20 @@ export class PaymentReconciliationService {
 
         const expectedStripeStatuses = STATUS_MAP[escrow.status] || [];
         const statusMatch = expectedStripeStatuses.includes(pi.status);
-        const amountMatch = Math.abs(stripeAmountPounds - localAmount) < AMOUNT_TOLERANCE;
+        const amountMatch =
+          Math.abs(stripeAmountPounds - localAmount) < AMOUNT_TOLERANCE;
 
         if (statusMatch && amountMatch) {
           results.matched++;
         } else {
           results.mismatched++;
-          await this.flagMismatch(escrow, pi, statusMatch, amountMatch, stripeAmountPounds);
+          await this.flagMismatch(
+            escrow,
+            pi,
+            statusMatch,
+            amountMatch,
+            stripeAmountPounds
+          );
         }
       } catch (stripeError) {
         if (stripeError instanceof Stripe.errors.StripeInvalidRequestError) {
@@ -113,7 +125,9 @@ export class PaymentReconciliationService {
           results.errors++;
           logger.error(
             'Stripe API error during reconciliation',
-            stripeError instanceof Error ? stripeError : new Error(String(stripeError)),
+            stripeError instanceof Error
+              ? stripeError
+              : new Error(String(stripeError)),
             { service: 'PaymentReconciliationService', escrowId: escrow.id }
           );
         }
