@@ -33,6 +33,7 @@ import {
   ShieldAlert,
   Trash2,
 } from 'lucide-react';
+import { normalizeNotificationType } from '@/lib/notifications/normalize-type';
 
 export type NotificationType = 'job' | 'bid' | 'message' | 'payment' | 'system';
 
@@ -88,13 +89,12 @@ function filteredList(
 
 /**
  * Map a raw notification type onto the canonical filter bucket.
- * - job + bid → Bids & jobs
- * - payment → Money
- * - message → Messages
- * - system → counted under All only (no dedicated tab; matches mockup)
+ * job + bid → Bids & jobs · payment → Money · message → Messages ·
+ * system → All only. DB stores full event names (bid_received, …) and
+ * pages pass raw rows in, so normalise first or every tab counts 0.
  */
-function mapFilter(type: NotificationType): InboxFilter | 'system' {
-  switch (type) {
+function mapFilter(type: string): InboxFilter | 'system' {
+  switch (normalizeNotificationType(type)) {
     case 'job':
     case 'bid':
       return 'jobs';
@@ -103,6 +103,7 @@ function mapFilter(type: NotificationType): InboxFilter | 'system' {
     case 'payment':
       return 'money';
     case 'system':
+    default:
       return 'system';
   }
 }
@@ -171,7 +172,7 @@ function formatTimeAgo(dateString: string): string {
 
 function IconForType({ type }: { type: NotificationType }) {
   const Icon = (() => {
-    switch (type) {
+    switch (normalizeNotificationType(type)) {
       case 'bid':
         return PoundSterling;
       case 'job':
