@@ -1,6 +1,7 @@
 import { supabase } from '../../config/supabase';
 import { User } from '@mintenance/types';
 import { logger } from '../../utils/logger';
+import { mobileApiClient } from '../../utils/mobileApiClient';
 import { DatabaseUserRow, DatabaseReviewRow, UserProfile } from './types';
 
 /**
@@ -128,24 +129,21 @@ export async function getHomeownerForJob(homeownerId: string): Promise<{
  * Update user profile
  */
 export async function updateUserProfile(
-  userId: string,
+  _userId: string,
   updates: Partial<User>
 ): Promise<boolean> {
   try {
-    const { error } = await supabase
-      .from('profiles')
-      .update({
-        first_name: updates.first_name || updates.firstName,
-        last_name: updates.last_name || updates.lastName,
-        phone: updates.phone,
-        bio: updates.bio,
-        profile_image_url: updates.profile_image_url,
-        location: updates.location,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', userId);
+    // Identity is derived server-side from the auth token; do not send a userId.
+    // profile_image_url is intentionally omitted (avatars use the dedicated endpoint).
+    await mobileApiClient.put('/api/users/profile', {
+      first_name: updates.first_name || updates.firstName,
+      last_name: updates.last_name || updates.lastName,
+      phone: updates.phone,
+      bio: updates.bio,
+      location: updates.location,
+    });
 
-    return !error;
+    return true;
   } catch (error) {
     const errorInstance =
       error instanceof Error ? error : new Error(String(error));

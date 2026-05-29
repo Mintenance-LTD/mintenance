@@ -1,6 +1,8 @@
-import { UserService, ContractorStats, UserProfile } from '../../services/UserService';
+import { UserService } from '../../services/UserService';
 import { supabase } from '../../config/supabase';
 import { logger } from '../../utils/logger';
+import { mobileApiClient } from '../../utils/mobileApiClient';
+import { fetchContractorStats } from '@mintenance/data-access';
 
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(() => Promise.resolve()),
@@ -20,6 +22,22 @@ jest.mock('../../config/supabase', () => ({
   },
 }));
 
+// getContractorStats now delegates to the shared @mintenance/data-access query
+jest.mock('@mintenance/data-access', () => ({
+  fetchContractorStats: jest.fn(),
+}));
+
+// updateUserProfile now routes through the mobile API client
+jest.mock('../../utils/mobileApiClient', () => ({
+  mobileApiClient: {
+    get: jest.fn(),
+    post: jest.fn(),
+    put: jest.fn(),
+    patch: jest.fn(),
+    delete: jest.fn(),
+  },
+}));
+
 // Mock logger
 jest.mock('../../utils/logger', () => ({
   logger: {
@@ -30,6 +48,8 @@ jest.mock('../../utils/logger', () => ({
 }));
 
 const mockSupabase = supabase as jest.Mocked<typeof supabase>;
+const mockFetchContractorStats = fetchContractorStats as jest.Mock;
+const mockApi = mobileApiClient as jest.Mocked<typeof mobileApiClient>;
 
 describe('UserService', () => {
   beforeEach(() => {
@@ -39,151 +59,76 @@ describe('UserService', () => {
   describe('getContractorStats', () => {
     const contractorId = 'contractor_123';
 
-    beforeEach(() => {
-      // Mock the current date to ensure consistent test results
-      jest.useFakeTimers();
-      jest.setSystemTime(new Date('2024-01-15T10:00:00Z'));
-    });
-
-    afterEach(() => {
-      jest.useRealTimers();
-    });
-
-    it('should return comprehensive contractor statistics', async () => {
-      const mockJobs = [
-        {
-          id: 'job_1',
-          status: 'completed',
-          budget: 150,
-          created_at: '2024-01-10T10:00:00Z',
-          updated_at: '2024-01-12T15:00:00Z',
-          homeowner_id: 'homeowner_1',
-        },
-        {
-          id: 'job_2',
-          status: 'in_progress',
-          budget: 200,
-          created_at: '2024-01-14T09:00:00Z',
-          updated_at: '2024-01-14T09:00:00Z',
-          homeowner_id: 'homeowner_2',
-        },
-        {
-          id: 'job_3',
-          status: 'assigned',
-          budget: 100,
-          created_at: '2024-01-13T11:00:00Z',
-          updated_at: '2024-01-13T11:00:00Z',
-          homeowner_id: 'homeowner_3',
-        },
-      ];
-
-      const mockReviews = [
-        { rating: 5 },
-        { rating: 4 },
-        { rating: 5 },
-      ];
-
-      const mockTodaysJobs = [
-        {
-          id: 'job_today_1',
-          title: 'Plumbing Repair',
-          location: '123 Main St, London',
-          created_at: '2024-01-15T08:00:00Z',
-          homeowner: {
-            first_name: 'John',
-            last_name: 'Doe',
+    it('should map the shared stats object into the mobile shape', async () => {
+      mockFetchContractorStats.mockResolvedValueOnce({
+        activeJobs: 2,
+        completedJobs: 1,
+        monthlyEarnings: 150.4,
+        avgRating: 4.7,
+        totalReviews: 3,
+        successRate: 33,
+        todaysAppointments: [
+          {
+            id: 'job_today_1',
+            title: 'Plumbing Repair',
+            location: '123 Main St, London',
+            scheduled_start_date: '2024-01-15T08:00:00Z',
+            homeowner: {
+              first_name: 'John',
+              last_name: 'Doe',
+            },
           },
-        },
-      ];
-
-      // Mock jobs query
-      mockSupabase.from.mockReturnValueOnce({
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockResolvedValue({
-          data: mockJobs,
-          error: null,
-        }),
-      } as any);
-
-      // Mock reviews query
-      mockSupabase.from.mockReturnValueOnce({
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockResolvedValue({
-          data: mockReviews,
-          error: null,
-        }),
-      } as any);
-
-      // Mock today's jobs query
-      mockSupabase.from.mockReturnValueOnce({
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        in: jest.fn().mockReturnThis(),
-        gte: jest.fn().mockReturnThis(),
-        lte: jest.fn().mockReturnThis(),
-        order: jest.fn().mockResolvedValue({
-          data: mockTodaysJobs,
-          error: null,
-        }),
-      } as any);
+        ],
+      });
 
       const result = await UserService.getContractorStats(contractorId);
 
+      const expectedTime = new Date('2024-01-15T08:00:00Z').toLocaleTimeString(
+        'en-US',
+        {
+          hour: 'numeric',
+          minute: '2-digit',
+        }
+      );
+
+      const expectedJob = {
+        time: expectedTime,
+        client: 'John Doe',
+        location: '123 Main St, London',
+        type: 'Plumbing Repair',
+        jobId: 'job_today_1',
+      };
+
       expect(result).toEqual({
-        activeJobs: 2, // in_progress + assigned
-        monthlyEarnings: 150, // Only completed job in January 2024
-        rating: 4.7, // (5+4+5)/3 = 4.67 rounded to 4.7
+        activeJobs: 2,
+        monthlyEarnings: 150, // Math.round(150.4)
+        rating: 4.7,
         completedJobs: 1,
-        totalJobs: 3,
+        totalJobs: 3, // activeJobs + completedJobs
         totalJobsCompleted: 1,
-        responseTime: '< 1h', // Because rating >= 4.5
-        successRate: 33, // 1 completed out of 3 total = 33%
+        responseTime: '< 1h', // avgRating >= 4.5
+        successRate: 33,
         todaysAppointments: 1,
-        nextAppointment: {
-          time: '8:00 AM',
-          client: 'John Doe',
-          location: '123 Main St, London',
-          type: 'Plumbing Repair',
-          jobId: 'job_today_1',
-        },
+        nextAppointment: expectedJob,
+        todaysJobs: [expectedJob],
       });
 
-      // Verify database calls
-      expect(mockSupabase.from).toHaveBeenCalledWith('jobs');
-      expect(mockSupabase.from).toHaveBeenCalledWith('reviews');
+      expect(mockFetchContractorStats).toHaveBeenCalledWith(
+        mockSupabase,
+        contractorId
+      );
     });
 
-    it('should handle empty jobs gracefully', async () => {
-      // Mock empty jobs
-      mockSupabase.from.mockReturnValueOnce({
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockResolvedValue({
-          data: [],
-          error: null,
-        }),
-      } as any);
-
-      // Mock empty reviews
-      mockSupabase.from.mockReturnValueOnce({
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockResolvedValue({
-          data: [],
-          error: null,
-        }),
-      } as any);
-
-      // Mock empty today's jobs
-      mockSupabase.from.mockReturnValueOnce({
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        in: jest.fn().mockReturnThis(),
-        gte: jest.fn().mockReturnThis(),
-        lte: jest.fn().mockReturnThis(),
-        order: jest.fn().mockResolvedValue({
-          data: [],
-          error: null,
-        }),
-      } as any);
+    it('should handle empty data gracefully', async () => {
+      mockFetchContractorStats.mockResolvedValueOnce({
+        activeJobs: 0,
+        completedJobs: 0,
+        monthlyEarnings: 0,
+        avgRating: 0,
+        totalReviews: 0,
+        successRate: 0,
+        todaysAppointments: [],
+      });
 
       const result = await UserService.getContractorStats(contractorId);
 
@@ -194,23 +139,17 @@ describe('UserService', () => {
         completedJobs: 0,
         totalJobs: 0,
         totalJobsCompleted: 0,
-        responseTime: '< 4h', // No ratings = < 4.0 rating = < 4h
+        responseTime: '< 4h', // avgRating < 4.0
         successRate: 0,
         todaysAppointments: 0,
         nextAppointment: undefined,
+        todaysJobs: [],
       });
     });
 
-    it('should handle database errors gracefully', async () => {
+    it('should return zero-default stats on error', async () => {
       const dbError = new Error('Database connection failed');
-
-      mockSupabase.from.mockReturnValueOnce({
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockResolvedValue({
-          data: null,
-          error: dbError,
-        }),
-      } as any);
+      mockFetchContractorStats.mockRejectedValueOnce(dbError);
 
       const result = await UserService.getContractorStats(contractorId);
 
@@ -224,6 +163,7 @@ describe('UserService', () => {
         responseTime: '< 2h',
         successRate: 0,
         todaysAppointments: 0,
+        todaysJobs: [],
       });
 
       expect(logger.error).toHaveBeenCalledWith(
@@ -234,46 +174,23 @@ describe('UserService', () => {
 
     it('should calculate different response times based on rating', async () => {
       const testCases = [
-        { rating: 4.8, expectedResponseTime: '< 1h' },
-        { rating: 4.2, expectedResponseTime: '< 2h' },
-        { rating: 3.5, expectedResponseTime: '< 4h' },
+        { avgRating: 4.8, expectedResponseTime: '< 1h' },
+        { avgRating: 4.2, expectedResponseTime: '< 2h' },
+        { avgRating: 3.5, expectedResponseTime: '< 4h' },
       ];
 
       for (const testCase of testCases) {
         jest.clearAllMocks();
 
-        const mockReviews = [{ rating: testCase.rating }];
-
-        // Mock jobs query (empty for simplicity)
-        mockSupabase.from.mockReturnValueOnce({
-          select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockResolvedValue({
-            data: [],
-            error: null,
-          }),
-        } as any);
-
-        // Mock reviews query
-        mockSupabase.from.mockReturnValueOnce({
-          select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockResolvedValue({
-            data: mockReviews,
-            error: null,
-          }),
-        } as any);
-
-        // Mock today's jobs query
-        mockSupabase.from.mockReturnValueOnce({
-          select: jest.fn().mockReturnThis(),
-          eq: jest.fn().mockReturnThis(),
-          in: jest.fn().mockReturnThis(),
-          gte: jest.fn().mockReturnThis(),
-          lte: jest.fn().mockReturnThis(),
-          order: jest.fn().mockResolvedValue({
-            data: [],
-            error: null,
-          }),
-        } as any);
+        mockFetchContractorStats.mockResolvedValueOnce({
+          activeJobs: 0,
+          completedJobs: 0,
+          monthlyEarnings: 0,
+          avgRating: testCase.avgRating,
+          totalReviews: 1,
+          successRate: 0,
+          todaysAppointments: [],
+        });
 
         const result = await UserService.getContractorStats(contractorId);
         expect(result.responseTime).toBe(testCase.expectedResponseTime);
@@ -284,7 +201,7 @@ describe('UserService', () => {
   describe('getUserProfile', () => {
     const userId = 'user_123';
 
-    it('should return user profile with contractor skills', async () => {
+    it('should return user profile with contractor skills and reviews', async () => {
       const mockUser = {
         id: userId,
         email: 'contractor@example.com',
@@ -292,7 +209,6 @@ describe('UserService', () => {
         last_name: 'Smith',
         role: 'contractor',
         phone: '+1234567890',
-        address: '456 Oak Ave',
         bio: 'Experienced plumber',
         profile_image_url: 'https://example.com/profile.jpg',
         created_at: '2023-01-01T00:00:00Z',
@@ -315,7 +231,7 @@ describe('UserService', () => {
         },
       ];
 
-      // Mock user profile query
+      // Mock profiles query
       mockSupabase.from.mockReturnValueOnce({
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
@@ -323,7 +239,7 @@ describe('UserService', () => {
           data: mockUser,
           error: null,
         }),
-      } as any);
+      } as never);
 
       // Mock reviews query
       mockSupabase.from.mockReturnValueOnce({
@@ -334,7 +250,7 @@ describe('UserService', () => {
           data: mockReviews,
           error: null,
         }),
-      } as any);
+      } as never);
 
       const result = await UserService.getUserProfile(userId);
 
@@ -345,15 +261,23 @@ describe('UserService', () => {
         last_name: 'Smith',
         role: 'contractor',
         phone: '+1234567890',
-        address: '456 Oak Ave',
         bio: 'Experienced plumber',
-        profileImageUrl: 'https://example.com/profile.jpg',
+        profile_image_url: 'https://example.com/profile.jpg',
         created_at: '2023-01-01T00:00:00Z',
         updated_at: '2024-01-01T00:00:00Z',
+        skills: [{ skillName: 'Plumbing' }, { skillName: 'Heating' }],
+        reviews: [
+          {
+            rating: 5,
+            comment: 'Excellent work!',
+            reviewer: 'John Doe',
+            createdAt: '2024-01-10T10:00:00Z',
+          },
+        ],
       });
 
       // Verify correct database calls
-      expect(mockSupabase.from).toHaveBeenCalledWith('users');
+      expect(mockSupabase.from).toHaveBeenCalledWith('profiles');
       expect(mockSupabase.from).toHaveBeenCalledWith('reviews');
     });
 
@@ -365,7 +289,6 @@ describe('UserService', () => {
         last_name: 'Johnson',
         role: 'homeowner',
         phone: '+0987654321',
-        address: '789 Pine St',
         bio: null,
         profile_image_url: null,
         created_at: '2023-06-01T00:00:00Z',
@@ -380,7 +303,7 @@ describe('UserService', () => {
           data: mockUser,
           error: null,
         }),
-      } as any);
+      } as never);
 
       const result = await UserService.getUserProfile(userId);
 
@@ -391,16 +314,17 @@ describe('UserService', () => {
         last_name: 'Johnson',
         role: 'homeowner',
         phone: '+0987654321',
-        address: '789 Pine St',
         bio: null,
-        profileImageUrl: null,
+        profile_image_url: null,
         created_at: '2023-06-01T00:00:00Z',
         updated_at: '2024-01-01T00:00:00Z',
+        skills: [],
+        reviews: undefined,
       });
 
-      // Should only call users table, not reviews for homeowners
+      // Should only query profiles (no reviews lookup for homeowners)
       expect(mockSupabase.from).toHaveBeenCalledTimes(1);
-      expect(mockSupabase.from).toHaveBeenCalledWith('users');
+      expect(mockSupabase.from).toHaveBeenCalledWith('profiles');
     });
 
     it('should return null when user not found', async () => {
@@ -413,7 +337,7 @@ describe('UserService', () => {
           data: null,
           error: notFoundError,
         }),
-      } as any);
+      } as never);
 
       const result = await UserService.getUserProfile('nonexistent_user');
 
@@ -443,7 +367,7 @@ describe('UserService', () => {
           data: mockHomeowner,
           error: null,
         }),
-      } as any);
+      } as never);
 
       // Mock review count query
       mockSupabase.from.mockReturnValueOnce({
@@ -452,7 +376,7 @@ describe('UserService', () => {
           count: 15,
           error: null,
         }),
-      } as any);
+      } as never);
 
       const result = await UserService.getHomeownerForJob(homeownerId);
 
@@ -479,7 +403,7 @@ describe('UserService', () => {
           data: mockHomeowner,
           error: null,
         }),
-      } as any);
+      } as never);
 
       mockSupabase.from.mockReturnValueOnce({
         select: jest.fn().mockReturnThis(),
@@ -487,7 +411,7 @@ describe('UserService', () => {
           count: 0,
           error: null,
         }),
-      } as any);
+      } as never);
 
       const result = await UserService.getHomeownerForJob(homeownerId);
 
@@ -503,59 +427,32 @@ describe('UserService', () => {
   describe('updateUserProfile', () => {
     const userId = 'user_123';
 
-    it('should update user profile successfully', async () => {
-      const updates = {
+    it('should update user profile successfully via the API', async () => {
+      mockApi.put.mockResolvedValueOnce({ success: true, profile: {} });
+
+      const result = await UserService.updateUserProfile(userId, {
         firstName: 'Updated',
         lastName: 'Name',
         phone: '+1111111111',
         bio: 'Updated bio',
-        profileImageUrl: 'https://new-image.com/profile.jpg',
-        latitude: 51.5074,
-        longitude: -0.1278,
-        address: 'New Address',
-        isAvailable: true,
-      };
-
-      mockSupabase.from.mockReturnValueOnce({
-        update: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockResolvedValue({
-          error: null,
-        }),
-      } as any);
-
-      const result = await UserService.updateUserProfile(userId, updates);
+      } as never);
 
       expect(result).toBe(true);
-
-      // Verify the update was called with correct data
-      const updateCall = (mockSupabase.from as jest.Mock).mock.results[0].value;
-      expect(updateCall.update).toHaveBeenCalledWith({
+      expect(mockApi.put).toHaveBeenCalledWith('/api/users/profile', {
         first_name: 'Updated',
         last_name: 'Name',
         phone: '+1111111111',
         bio: 'Updated bio',
-        profile_image_url: 'https://new-image.com/profile.jpg',
-        latitude: 51.5074,
-        longitude: -0.1278,
-        address: 'New Address',
-        is_available: true,
-        updated_at: expect.any(String),
+        location: undefined,
       });
     });
 
     it('should handle update failure', async () => {
-      const updateError = new Error('Update failed');
-
-      mockSupabase.from.mockReturnValueOnce({
-        update: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockResolvedValue({
-          error: updateError,
-        }),
-      } as any);
+      mockApi.put.mockRejectedValueOnce(new Error('Update failed'));
 
       const result = await UserService.updateUserProfile(userId, {
         firstName: 'Test',
-      });
+      } as never);
 
       expect(result).toBe(false);
     });
@@ -576,7 +473,6 @@ describe('UserService', () => {
           last_name: 'Builder',
           role: 'contractor',
           phone: '+1234567890',
-          address: '123 Builder St',
           bio: 'Professional builder',
           profile_image_url: 'profile1.jpg',
           created_at: '2023-01-01T00:00:00Z',
@@ -584,9 +480,7 @@ describe('UserService', () => {
           latitude: 51.5155, // ~1km away
           longitude: -0.1426,
           is_available: true,
-          contractor_skills: [
-            { skill_name: 'Building' },
-          ],
+          contractor_skills: [{ skill_name: 'Building' }],
         },
         {
           id: 'contractor_2',
@@ -595,17 +489,14 @@ describe('UserService', () => {
           last_name: 'Plumber',
           role: 'contractor',
           phone: '+0987654321',
-          address: '456 Plumber Ave',
           bio: 'Expert plumber',
           profile_image_url: 'profile2.jpg',
           created_at: '2023-02-01T00:00:00Z',
           updated_at: '2024-01-01T00:00:00Z',
-          latitude: 52.5074, // ~111km away (should be filtered out with 25km radius)
+          latitude: 52.5074, // ~111km away (filtered out at 25km radius)
           longitude: -0.1278,
           is_available: true,
-          contractor_skills: [
-            { skill_name: 'Plumbing' },
-          ],
+          contractor_skills: [{ skill_name: 'Plumbing' }],
         },
       ];
 
@@ -617,7 +508,7 @@ describe('UserService', () => {
         error: null,
       };
 
-      mockSupabase.from.mockReturnValueOnce(mockQuery as any);
+      mockSupabase.from.mockReturnValueOnce(mockQuery as never);
 
       const result = await UserService.getNearbyContractors(
         userLocation.latitude,
@@ -625,10 +516,14 @@ describe('UserService', () => {
         25 // 25km radius
       );
 
-      // Should only return contractor_1 (within 25km)
+      // Should only return contractor_1 (within 25km); contractor_2 is ~111km away
       expect(result).toHaveLength(1);
       expect(result[0].id).toBe('contractor_1');
       expect(result[0].first_name).toBe('John');
+      expect(result[0].skills).toEqual([{ skillName: 'Building' }]);
+      // Distance is computed by the Haversine helper and surfaced on the profile
+      expect(result[0].distance).toBeGreaterThan(0);
+      expect(result[0].distance).toBeLessThanOrEqual(25);
     });
 
     it('should return empty array when no contractors found', async () => {
@@ -640,7 +535,7 @@ describe('UserService', () => {
         error: null,
       };
 
-      mockSupabase.from.mockReturnValueOnce(mockQuery as any);
+      mockSupabase.from.mockReturnValueOnce(mockQuery as never);
 
       const result = await UserService.getNearbyContractors(
         userLocation.latitude,
@@ -661,7 +556,7 @@ describe('UserService', () => {
         error: dbError,
       };
 
-      mockSupabase.from.mockReturnValueOnce(mockQuery as any);
+      mockSupabase.from.mockReturnValueOnce(mockQuery as never);
 
       const result = await UserService.getNearbyContractors(
         userLocation.latitude,
@@ -674,12 +569,52 @@ describe('UserService', () => {
         dbError
       );
     });
+
+    it('should handle very large coordinate differences with a large radius', async () => {
+      const mockContractors = [
+        {
+          id: 'contractor_1',
+          email: 'test@example.com',
+          first_name: 'Test',
+          last_name: 'Contractor',
+          role: 'contractor',
+          phone: '+1234567890',
+          bio: 'Test bio',
+          profile_image_url: null,
+          created_at: '2023-01-01T00:00:00Z',
+          updated_at: '2024-01-01T00:00:00Z',
+          latitude: -89.999, // Near south pole
+          longitude: 179.999, // Near date line
+          contractor_skills: [],
+        },
+      ];
+
+      const mockQuery = {
+        select: jest.fn().mockReturnThis(),
+        eq: jest.fn().mockReturnThis(),
+        not: jest.fn().mockReturnThis(),
+        data: mockContractors,
+        error: null,
+      };
+
+      mockSupabase.from.mockReturnValueOnce(mockQuery as never);
+
+      const result = await UserService.getNearbyContractors(
+        89.999, // Near north pole
+        -179.999, // Near date line
+        50000 // Large radius
+      );
+
+      // Should handle extreme coordinates without crashing
+      expect(Array.isArray(result)).toBe(true);
+      expect(result).toHaveLength(1);
+    });
   });
 
   describe('getPreviousContractors', () => {
     const homeownerId = 'homeowner_123';
 
-    it('should return previous contractors with reviews', async () => {
+    it('should return previous contractors with reviews (deduplicated)', async () => {
       const mockCompletedJobs = [
         {
           contractor_id: 'contractor_1',
@@ -690,10 +625,7 @@ describe('UserService', () => {
             bio: 'Professional builder',
             profile_image_url: 'profile1.jpg',
             phone: '+1234567890',
-            address: '123 Builder St',
-            contractor_skills: [
-              { skill_name: 'Building' },
-            ],
+            contractor_skills: [{ skill_name: 'Building' }],
           },
         },
         {
@@ -705,10 +637,7 @@ describe('UserService', () => {
             bio: 'Professional builder',
             profile_image_url: 'profile1.jpg',
             phone: '+1234567890',
-            address: '123 Builder St',
-            contractor_skills: [
-              { skill_name: 'Building' },
-            ],
+            contractor_skills: [{ skill_name: 'Building' }],
           },
         },
       ];
@@ -730,7 +659,7 @@ describe('UserService', () => {
           data: mockCompletedJobs,
           error: null,
         }),
-      } as any);
+      } as never);
 
       // Mock review query for contractor
       mockSupabase.from.mockReturnValueOnce({
@@ -741,7 +670,7 @@ describe('UserService', () => {
           data: mockReview,
           error: null,
         }),
-      } as any);
+      } as never);
 
       const result = await UserService.getPreviousContractors(homeownerId);
 
@@ -753,9 +682,8 @@ describe('UserService', () => {
         last_name: 'Builder',
         role: 'contractor',
         phone: '+1234567890',
-        address: '123 Builder St',
         bio: 'Professional builder',
-        profileImageUrl: 'profile1.jpg',
+        profile_image_url: 'profile1.jpg',
         created_at: '',
         updated_at: '',
         skills: [{ skillName: 'Building' }],
@@ -779,7 +707,7 @@ describe('UserService', () => {
           data: [],
           error: null,
         }),
-      } as any);
+      } as never);
 
       const result = await UserService.getPreviousContractors(homeownerId);
 
@@ -802,121 +730,11 @@ describe('UserService', () => {
           data: mockCompletedJobs,
           error: null,
         }),
-      } as any);
+      } as never);
 
       const result = await UserService.getPreviousContractors(homeownerId);
 
       expect(result).toEqual([]);
-    });
-  });
-
-  describe('distance calculation helper method', () => {
-    it('should calculate distance correctly', () => {
-      // Access private method for testing with proper context
-      const calculateDistance = (UserService as any).calculateDistance.bind(UserService);
-
-      // Test London to Paris distance
-      const distance = calculateDistance(51.5074, -0.1278, 48.8566, 2.3522);
-      expect(distance).toBeCloseTo(344, 0); // ~344km
-    });
-
-    it('should convert degrees to radians correctly', () => {
-      const toRadians = (UserService as any).toRadians.bind(UserService);
-
-      expect(toRadians(0)).toBe(0);
-      expect(toRadians(90)).toBeCloseTo(Math.PI / 2, 5);
-      expect(toRadians(180)).toBeCloseTo(Math.PI, 5);
-      expect(toRadians(360)).toBeCloseTo(2 * Math.PI, 5);
-    });
-  });
-
-  describe('error handling and edge cases', () => {
-    it('should handle malformed contractor stats data', async () => {
-      const malformedJobs = [
-        {
-          id: 'job_1',
-          status: null, // Invalid status
-          budget: 'invalid', // Invalid budget
-          created_at: 'invalid_date',
-          updated_at: null,
-          homeowner_id: null,
-        },
-      ];
-
-      mockSupabase.from.mockReturnValueOnce({
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockResolvedValue({
-          data: malformedJobs,
-          error: null,
-        }),
-      } as any);
-
-      mockSupabase.from.mockReturnValueOnce({
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockResolvedValue({
-          data: [],
-          error: null,
-        }),
-      } as any);
-
-      mockSupabase.from.mockReturnValueOnce({
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        in: jest.fn().mockReturnThis(),
-        gte: jest.fn().mockReturnThis(),
-        lte: jest.fn().mockReturnThis(),
-        order: jest.fn().mockResolvedValue({
-          data: [],
-          error: null,
-        }),
-      } as any);
-
-      const result = await UserService.getContractorStats('contractor_123');
-
-      // Should handle malformed data gracefully
-      expect(result.monthlyEarnings).toBe(0);
-      expect(result.activeJobs).toBe(0);
-      expect(result.totalJobs).toBe(1);
-    });
-
-    it('should handle very large coordinate differences', async () => {
-      const mockContractors = [
-        {
-          id: 'contractor_1',
-          email: 'test@example.com',
-          first_name: 'Test',
-          last_name: 'Contractor',
-          role: 'contractor',
-          phone: '+1234567890',
-          address: 'Test Address',
-          bio: 'Test bio',
-          profile_image_url: null,
-          created_at: '2023-01-01T00:00:00Z',
-          updated_at: '2024-01-01T00:00:00Z',
-          latitude: -89.999, // Near south pole
-          longitude: 179.999, // Near date line
-          contractor_skills: [],
-        },
-      ];
-
-      const mockQuery = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        not: jest.fn().mockReturnThis(),
-        data: mockContractors,
-        error: null,
-      };
-
-      mockSupabase.from.mockReturnValueOnce(mockQuery as any);
-
-      const result = await UserService.getNearbyContractors(
-        89.999, // Near north pole
-        -179.999, // Near date line
-        50000 // Large radius
-      );
-
-      // Should handle extreme coordinates without crashing
-      expect(Array.isArray(result)).toBe(true);
     });
   });
 });
