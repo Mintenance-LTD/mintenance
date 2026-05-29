@@ -1,7 +1,6 @@
-
 import React from 'react';
-import { render, waitFor, fireEvent } from '../..//test-utils';
-import { BidSubmissionScreen } from '../BidSubmissionScreen';
+import { render, waitFor } from '../..//test-utils';
+import BidSubmissionScreen from '../BidSubmissionScreen';
 import { NavigationContainer } from '@react-navigation/native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
@@ -10,7 +9,9 @@ jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: ({ children }) => children,
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
-jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock')
+);
 
 // Mock navigation
 const mockNavigation = {
@@ -24,13 +25,37 @@ const mockNavigation = {
   isFocused: jest.fn(() => true),
 };
 
+// Valid jobId so the screen renders its content states (Loading… → Job not
+// found) instead of the missing-param error card.
 const mockRoute = {
   key: 'test-key',
   name: 'BidSubmissionScreen',
-  params: {},
+  params: { jobId: 'job-123' },
 };
 
-// Mock any services this screen might use
+// The screen reads the real AuthContext (the test render wrapper only provides
+// a local mock context), so `useAuth()` would throw without this mock.
+jest.mock('../../contexts/AuthContext', () => ({
+  useAuth: () => ({ user: null }),
+}));
+
+// Bid-limit pre-check helper — kept inert so it never touches the network.
+jest.mock('../../utils/featureAccess', () => ({
+  featureAccess: {
+    initialize: jest.fn(() => Promise.resolve()),
+    getRemainingUsage: jest.fn(() => 'unlimited'),
+    getFeature: jest.fn(() => null),
+  },
+}));
+
+// Keep job loading offline and deterministic — null keeps the screen on its
+// "Job not found" state without rendering the heavy quote form.
+jest.mock('../../services/JobService', () => ({
+  JobService: {
+    getJobById: jest.fn(() => Promise.resolve(null)),
+  },
+}));
+
 jest.mock('../../services/AuthService', () => ({
   signIn: jest.fn(),
   signOut: jest.fn(),
@@ -41,11 +66,14 @@ jest.mock('../../config/supabase', () => ({
   supabase: {
     auth: {
       getSession: jest.fn(() => Promise.resolve({ data: { session: null } })),
-      onAuthStateChange: jest.fn(() => ({ data: { subscription: { unsubscribe: jest.fn() } } })),
+      onAuthStateChange: jest.fn(() => ({
+        data: { subscription: { unsubscribe: jest.fn() } },
+      })),
     },
     from: jest.fn(() => ({
       select: jest.fn().mockReturnThis(),
       eq: jest.fn().mockReturnThis(),
+      order: jest.fn(() => Promise.resolve({ data: [], error: null })),
       single: jest.fn(() => Promise.resolve({ data: null, error: null })),
     })),
   },
@@ -80,7 +108,6 @@ describe('BidSubmissionScreen', () => {
     jest.clearAllMocks();
   });
 
-
   it('should render without crashing', async () => {
     const { getByTestId, queryByText } = renderScreen();
 
@@ -99,7 +126,7 @@ describe('BidSubmissionScreen', () => {
   });
 
   it('should handle user interactions', async () => {
-    const { queryByTestId, queryAllByTestId } = renderScreen();
+    const { queryAllByTestId } = renderScreen();
 
     await waitFor(() => {
       // Look for any interactive elements

@@ -1,11 +1,21 @@
 /**
  * Comprehensive Payment Flows Test Suite
- * Tests all critical payment workflows end-to-end
+ * Tests all critical payment workflows end-to-end.
+ *
+ * Payment services route HTTP through `mobileApiClient` (the create-payment-intent /
+ * release-escrow-payment / process-refund Supabase edge functions were deleted
+ * 2026-05-10). Money is GBP-only: 12% platform rate, 1.5% + £0.20 Stripe rate,
+ * £0.50 minimum platform fee, no maximum cap (£50 cap removed 2026-05-22).
  */
-
 
 import { PaymentService } from '../../services/PaymentService';
 import { supabase } from '../../config/supabase';
+import { logger } from '../../utils/logger';
+import { mobileApiClient } from '../../utils/mobileApiClient';
+import {
+  createPaymentMethod as stripeCreatePaymentMethod,
+  confirmPayment as stripeConfirmPayment,
+} from '@stripe/stripe-react-native';
 
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(() => Promise.resolve()),
@@ -18,9 +28,8 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   multiRemove: jest.fn(() => Promise.resolve()),
 }));
 
-// Enhanced mocking for comprehensive testing
 jest.mock('@stripe/stripe-react-native', () => ({
-  initStripe: jest.fn(),
+  initStripe: jest.fn(() => Promise.resolve()),
   createPaymentMethod: jest.fn(),
   confirmPayment: jest.fn(),
   retrievePaymentIntent: jest.fn(),
@@ -28,49 +37,54 @@ jest.mock('@stripe/stripe-react-native', () => ({
   handleCardAction: jest.fn(),
 }));
 
+// Canonical HTTP layer used by every payment service (and apiHelper.apiRequest).
+jest.mock('../../utils/mobileApiClient', () => ({
+  mobileApiClient: {
+    get: jest.fn(),
+    post: jest.fn(),
+    put: jest.fn(),
+    patch: jest.fn(),
+    delete: jest.fn(),
+  },
+}));
+
+// Supabase is still used directly for the profiles read in getContractorPayoutStatus.
 jest.mock('../../config/supabase', () => ({
   supabase: {
-    functions: {
-      invoke: jest.fn(),
+    auth: {
+      getSession: jest.fn(),
     },
     from: jest.fn(),
   },
 }));
 
-const mockSupabase = supabase as jest.Mocked<typeof supabase>;
-const mockStripe = require('@stripe/stripe-react-native');
+jest.mock('../../utils/logger', () => ({
+  logger: {
+    info: jest.fn(),
+    error: jest.fn(),
+    warn: jest.fn(),
+    debug: jest.fn(),
+  },
+}));
+
+const mockApi = mobileApiClient as unknown as Record<string, jest.Mock>;
 
 describe('Payment Flows - Comprehensive Test Suite', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockSupabase.functions.invoke.mockReset();
-    mockSupabase.from.mockReset();
-    mockStripe.createPaymentMethod.mockReset();
-    mockStripe.confirmPayment.mockReset();
-    mockStripe.handleCardAction.mockReset?.();
-    jest.spyOn(console, 'error').mockImplementation(() => {});
-    jest.spyOn(console, 'warn').mockImplementation(() => {});
-  });
-
-  afterEach(() => {
-    jest.restoreAllMocks();
   });
 
   describe('Complete Payment Workflow', () => {
     it('should handle successful end-to-end payment flow', async () => {
       const futureYear = new Date().getFullYear() + 1;
-      // Mock data for complete workflow
       const jobId = 'job-123';
       const contractorId = 'contractor-456';
       const amount = 250;
       const clientSecret = 'pi_test_123_secret_456';
       const paymentMethodId = 'pm_test_789';
 
-      // Step 1: Initialize payment
-      mockSupabase.functions.invoke.mockResolvedValueOnce({
-        data: { client_secret: clientSecret },
-        error: null,
-      });
+      // Step 1: Initialize payment (GBP units, no cents conversion).
+      mockApi.post.mockResolvedValueOnce({ clientSecret });
 
       const initResult = await PaymentService.initializePayment({
         amount,
@@ -79,19 +93,14 @@ describe('Payment Flows - Comprehensive Test Suite', () => {
       });
 
       expect(initResult.client_secret).toBe(clientSecret);
-      expect(mockSupabase.functions.invoke).toHaveBeenCalledWith(
-        'create-payment-intent',
-        {
-          body: {
-            amount: 25000, // $250 in cents
-            jobId,
-            contractorId,
-          },
-        }
-      );
+      expect(mockApi.post).toHaveBeenCalledWith('/api/payments/create-intent', {
+        amount: 250,
+        jobId,
+        contractorId,
+      });
 
-      // Step 2: Create payment method
-      mockStripe.createPaymentMethod.mockResolvedValueOnce({
+      // Step 2: Create payment method (Stripe SDK directly).
+      (stripeCreatePaymentMethod as jest.Mock).mockResolvedValueOnce({
         paymentMethod: {
           id: paymentMethodId,
           card: { last4: '4242', brand: 'visa' },
@@ -107,21 +116,14 @@ describe('Payment Flows - Comprehensive Test Suite', () => {
           expYear: futureYear,
           cvc: '123',
         },
-        billingDetails: {
-          name: 'John Doe',
-          email: 'john@example.com',
-        },
+        billingDetails: { name: 'John Doe', email: 'john@example.com' },
       });
 
       expect(paymentMethod.id).toBe(paymentMethodId);
 
-      // Step 3: Confirm payment
-      mockStripe.confirmPayment.mockResolvedValueOnce({
-        paymentIntent: {
-          id: 'pi_test_123',
-          status: 'succeeded',
-          amount: 25000,
-        },
+      // Step 3: Confirm payment (Stripe SDK directly).
+      (stripeConfirmPayment as jest.Mock).mockResolvedValueOnce({
+        paymentIntent: { id: 'pi_test_123', status: 'succeeded', amount: 250 },
         error: null,
       });
 
@@ -132,24 +134,12 @@ describe('Payment Flows - Comprehensive Test Suite', () => {
 
       expect(confirmResult.status).toBe('succeeded');
 
-      // Step 4: Create escrow transaction
-      mockSupabase.from.mockReturnValue({
-        insert: jest.fn().mockReturnThis(),
-        select: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({
-          data: {
-            id: 'escrow-123',
-            job_id: jobId,
-            payer_id: 'homeowner-123',
-            payee_id: contractorId,
-            amount,
-            status: 'pending',
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString(),
-          },
-          error: null,
-        }),
-      } as any);
+      // Step 4: Create escrow transaction via the API.
+      mockApi.post.mockResolvedValueOnce({
+        id: 'escrow-123',
+        status: 'pending',
+        amount,
+      });
 
       const escrowTransaction = await PaymentService.createEscrowTransaction(
         jobId,
@@ -160,31 +150,36 @@ describe('Payment Flows - Comprehensive Test Suite', () => {
 
       expect(escrowTransaction.status).toBe('pending');
       expect(escrowTransaction.amount).toBe(amount);
+      expect(mockApi.post).toHaveBeenCalledWith('/api/payments/create-intent', {
+        jobId,
+        payerId: 'homeowner-123',
+        payeeId: contractorId,
+        amount,
+      });
 
-      // Step 5: Hold payment in escrow
-      mockSupabase.from.mockReturnValue({
-        update: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockResolvedValue({ error: null }),
-      } as any);
+      // Step 5: Hold payment in escrow (strict { paymentIntentId, jobId } body).
+      mockApi.post.mockResolvedValueOnce({});
 
-      await PaymentService.holdPaymentInEscrow(escrowTransaction.id, 'pi_test_123');
+      await PaymentService.holdPaymentInEscrow(
+        escrowTransaction.id,
+        'pi_test_123'
+      );
 
-      expect(mockSupabase.from).toHaveBeenCalledWith('escrow_transactions');
+      expect(mockApi.post).toHaveBeenCalledWith(
+        '/api/payments/confirm-intent',
+        {
+          paymentIntentId: 'pi_test_123',
+          jobId: 'escrow-123',
+        }
+      );
     });
 
-    it('should handle payment flow with 3D Secure authentication', async () => {
+    it('should surface a requires_action status for 3D Secure', async () => {
       const clientSecret = 'pi_test_123_secret_456';
       const paymentMethodId = 'pm_test_789';
 
-      // Step 1: Initial payment confirmation requires action
-      mockStripe.confirmPayment.mockResolvedValueOnce({
-        paymentIntent: {
-          id: 'pi_test_123',
-          status: 'requires_action',
-          next_action: {
-            type: 'use_stripe_sdk',
-          },
-        },
+      (stripeConfirmPayment as jest.Mock).mockResolvedValueOnce({
+        paymentIntent: { id: 'pi_test_123', status: 'requires_action' },
         error: null,
       });
 
@@ -192,25 +187,10 @@ describe('Payment Flows - Comprehensive Test Suite', () => {
         clientSecret,
         paymentMethodId,
       });
-
       expect(firstAttempt.status).toBe('requires_action');
 
-      // Step 2: Handle card action (3D Secure)
-      mockStripe.handleCardAction.mockResolvedValueOnce({
-        paymentIntent: {
-          id: 'pi_test_123',
-          status: 'requires_confirmation',
-        },
-        error: null,
-      });
-
-      // Step 3: Final confirmation after authentication
-      mockStripe.confirmPayment.mockResolvedValueOnce({
-        paymentIntent: {
-          id: 'pi_test_123',
-          status: 'succeeded',
-          amount: 25000,
-        },
+      (stripeConfirmPayment as jest.Mock).mockResolvedValueOnce({
+        paymentIntent: { id: 'pi_test_123', status: 'succeeded', amount: 250 },
         error: null,
       });
 
@@ -218,149 +198,106 @@ describe('Payment Flows - Comprehensive Test Suite', () => {
         clientSecret,
         paymentMethodId,
       });
-
       expect(finalResult.status).toBe('succeeded');
     });
   });
 
   describe('Escrow Management Workflows', () => {
-    it('should handle complete escrow lifecycle', async () => {
+    it('should release escrow via the status lookup + release endpoint', async () => {
       const transactionId = 'escrow-123';
       const contractorId = 'contractor-456';
       const amount = 300;
 
-      // Mock escrow transaction data
-      const mockTransaction = {
+      mockApi.get.mockResolvedValueOnce({
         id: transactionId,
         amount,
         payment_intent_id: 'pi_test_123',
         job: { contractor_id: contractorId },
-      };
-
-      // Step 1: Get transaction for release
-      mockSupabase.from.mockReturnValueOnce({
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({
-          data: mockTransaction,
-          error: null,
-        }),
-      } as any);
-
-      // Step 2: Release payment
-      mockSupabase.functions.invoke.mockResolvedValueOnce({
-        data: { success: true, transfer_id: 'tr_test_123' },
-        error: null,
       });
-
-      // Step 3: Update transaction status
-      mockSupabase.from.mockReturnValueOnce({
-        update: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockResolvedValue({ error: null }),
-      } as any);
+      mockApi.post.mockResolvedValueOnce({ success: true });
 
       await PaymentService.releaseEscrowPayment(transactionId);
 
-      expect(mockSupabase.functions.invoke).toHaveBeenCalledWith(
-        'release-escrow-payment',
+      expect(mockApi.get).toHaveBeenCalledWith(
+        `/api/escrow/${transactionId}/status`
+      );
+      expect(mockApi.post).toHaveBeenCalledWith(
+        '/api/payments/release-escrow',
         {
-          body: {
-            transactionId,
-            contractorId,
-            amount,
-          },
+          transactionId,
+          contractorId,
+          amount,
         }
       );
     });
 
-    it('should handle escrow refund workflow', async () => {
+    it('should refund escrow via the refund endpoint', async () => {
       const transactionId = 'escrow-123';
-
-      // Step 1: Process refund
-      mockSupabase.functions.invoke.mockResolvedValueOnce({
-        data: { success: true, refund_id: 're_test_123' },
-        error: null,
-      });
-
-      // Step 2: Update transaction status
-      mockSupabase.from.mockReturnValue({
-        update: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockResolvedValue({ error: null }),
-      } as any);
+      mockApi.post.mockResolvedValueOnce({ success: true });
 
       await PaymentService.refundEscrowPayment(transactionId);
 
-      expect(mockSupabase.functions.invoke).toHaveBeenCalledWith(
-        'refund-escrow-payment',
-        { body: { transactionId } }
-      );
-
-      expect(mockSupabase.from().update).toHaveBeenCalledWith({
-        status: 'refunded',
-        refunded_at: expect.any(String),
-        updated_at: expect.any(String),
+      expect(mockApi.post).toHaveBeenCalledWith('/api/payments/refund', {
+        transactionId,
       });
     });
   });
 
   describe('Contractor Payout Workflows', () => {
-    it('should handle contractor payout account setup', async () => {
-      const contractorId = 'contractor-456';
-
-      mockSupabase.functions.invoke.mockResolvedValueOnce({
-        data: {
-          accountUrl: 'https://connect.stripe.com/express/onboarding/acct_123',
-        },
-        error: null,
+    it('should onboard a contractor via the Stripe Connect endpoint', async () => {
+      // setupContractorPayout POSTs to the canonical onboarding route; identity
+      // comes from the auth cookie, so the contractorId arg is ignored server-side.
+      mockApi.post.mockResolvedValueOnce({
+        url: 'https://connect.stripe.com/express/onboarding/acct_123',
       });
 
-      const result = await PaymentService.setupContractorPayout(contractorId);
+      const result =
+        await PaymentService.setupContractorPayout('contractor-456');
 
-      expect(result.accountUrl).toBeDefined();
-      expect(mockSupabase.functions.invoke).toHaveBeenCalledWith(
-        'setup-contractor-payout',
-        { body: { contractorId } }
+      expect(result.accountUrl).toBe(
+        'https://connect.stripe.com/express/onboarding/acct_123'
+      );
+      expect(mockApi.post).toHaveBeenCalledWith(
+        '/api/payments/stripe-connect/onboard',
+        undefined
       );
     });
 
-    it('should check contractor payout status correctly', async () => {
-      const contractorId = 'contractor-456';
-
-      // Test account exists and is complete
-      mockSupabase.from.mockReturnValue({
+    it('should report a complete payout account from profiles', async () => {
+      const mockFrom = {
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({
+        maybeSingle: jest.fn().mockResolvedValue({
           data: {
-            contractor_id: contractorId,
-            stripe_account_id: 'acct_123',
-            account_complete: true,
+            stripe_connect_account_id: 'acct_123',
+            stripe_payouts_enabled: true,
+            stripe_transfers_active: true,
           },
           error: null,
         }),
-      } as any);
+      };
+      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
 
-      const status = await PaymentService.getContractorPayoutStatus(contractorId);
+      const status =
+        await PaymentService.getContractorPayoutStatus('contractor-456');
 
+      expect(supabase.from).toHaveBeenCalledWith('profiles');
+      expect(mockFrom.eq).toHaveBeenCalledWith('id', 'contractor-456');
       expect(status.hasAccount).toBe(true);
       expect(status.accountComplete).toBe(true);
       expect(status.accountId).toBe('acct_123');
     });
 
-    it('should handle no payout account correctly', async () => {
-      const contractorId = 'contractor-456';
-
-      // Test no account exists
-      mockSupabase.from.mockReturnValue({
+    it('should report no payout account when the profile row is missing', async () => {
+      const mockFrom = {
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({
-          data: null,
-          error: { code: 'PGRST116' }, // No rows returned
-        }),
-      } as any);
+        maybeSingle: jest.fn().mockResolvedValue({ data: null, error: null }),
+      };
+      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
 
-      const status = await PaymentService.getContractorPayoutStatus(contractorId);
+      const status =
+        await PaymentService.getContractorPayoutStatus('contractor-456');
 
       expect(status.hasAccount).toBe(false);
       expect(status.accountComplete).toBe(false);
@@ -368,18 +305,27 @@ describe('Payment Flows - Comprehensive Test Suite', () => {
   });
 
   describe('Error Handling and Edge Cases', () => {
-    it('should handle Stripe API errors gracefully', async () => {
+    it('should propagate Stripe createPaymentMethod errors', async () => {
       const futureYear = new Date().getFullYear() + 1;
-      // Test various Stripe error scenarios
       const stripeErrors = [
-        { type: 'card_error', code: 'card_declined', message: 'Your card was declined.' },
+        {
+          type: 'card_error',
+          code: 'card_declined',
+          message: 'Your card was declined.',
+        },
         { type: 'api_error', message: 'An error occurred with our API.' },
-        { type: 'authentication_error', message: 'Authentication with Stripe failed.' },
-        { type: 'rate_limit_error', message: 'Too many requests made to the API too quickly.' },
+        {
+          type: 'authentication_error',
+          message: 'Authentication with Stripe failed.',
+        },
+        {
+          type: 'rate_limit_error',
+          message: 'Too many requests made to the API too quickly.',
+        },
       ];
 
       for (const error of stripeErrors) {
-        mockStripe.createPaymentMethod.mockResolvedValueOnce({
+        (stripeCreatePaymentMethod as jest.Mock).mockResolvedValueOnce({
           paymentMethod: null,
           error,
         });
@@ -388,7 +334,7 @@ describe('Payment Flows - Comprehensive Test Suite', () => {
           PaymentService.createPaymentMethod({
             type: 'card',
             card: {
-              number: '4000000000000002', // Declined card
+              number: '4000000000000002',
               expMonth: 12,
               expYear: futureYear,
               cvc: '123',
@@ -398,25 +344,13 @@ describe('Payment Flows - Comprehensive Test Suite', () => {
       }
     });
 
-    it('should handle network timeouts and retries', async () => {
-      // Simulate network timeout
-      mockSupabase.functions.invoke
+    it('should retry initializePayment on a transient network error', async () => {
+      // initializePayment wraps the API call in withRetry; a single transient
+      // failure is retried internally and the one call resolves successfully.
+      mockApi.post
         .mockRejectedValueOnce(new Error('Network timeout'))
-        .mockResolvedValueOnce({
-          data: { client_secret: 'pi_test_retry_success' },
-          error: null,
-        });
+        .mockResolvedValueOnce({ clientSecret: 'pi_test_retry_success' });
 
-      // Test should fail on first attempt
-      await expect(
-        PaymentService.initializePayment({
-          amount: 100,
-          jobId: 'job-1',
-          contractorId: 'contractor-1',
-        })
-      ).rejects.toThrow('Network timeout');
-
-      // Second attempt should succeed
       const result = await PaymentService.initializePayment({
         amount: 100,
         jobId: 'job-1',
@@ -424,10 +358,11 @@ describe('Payment Flows - Comprehensive Test Suite', () => {
       });
 
       expect(result.client_secret).toBe('pi_test_retry_success');
+      expect(mockApi.post).toHaveBeenCalledTimes(2);
     });
 
-    it('should handle insufficient funds scenarios', async () => {
-      mockStripe.confirmPayment.mockResolvedValueOnce({
+    it('should handle insufficient funds on confirmation', async () => {
+      (stripeConfirmPayment as jest.Mock).mockResolvedValueOnce({
         paymentIntent: null,
         error: {
           type: 'card_error',
@@ -445,21 +380,15 @@ describe('Payment Flows - Comprehensive Test Suite', () => {
     });
 
     it('should handle partial refund scenarios', async () => {
-      const originalAmount = 200;
-      const refundAmount = 50;
-
-      mockSupabase.functions.invoke.mockResolvedValueOnce({
-        data: {
-          success: true,
-          refund_id: 're_partial_123',
-          amount_refunded: refundAmount * 100, // Stripe returns in cents
-        },
-        error: null,
+      mockApi.post.mockResolvedValueOnce({
+        success: true,
+        refund_id: 're_partial_123',
+        amount_refunded: 50,
       });
 
       const result = await PaymentService.refundPayment({
         paymentIntentId: 'pi_test_123',
-        amount: refundAmount,
+        amount: 50,
         reason: 'requested_by_customer',
       });
 
@@ -467,11 +396,11 @@ describe('Payment Flows - Comprehensive Test Suite', () => {
       expect(result.refund_id).toBe('re_partial_123');
     });
 
-    it('should validate payment amounts across different scenarios', async () => {
+    it('should validate payment amounts across scenarios (GBP cap)', async () => {
       const invalidAmounts = [
         { amount: -10, error: 'Amount must be greater than 0' },
         { amount: 0, error: 'Amount must be greater than 0' },
-        { amount: 10001, error: 'Amount cannot exceed $10,000' },
+        { amount: 100001, error: 'Amount cannot exceed £100,000' },
       ];
 
       for (const { amount, error } of invalidAmounts) {
@@ -485,17 +414,12 @@ describe('Payment Flows - Comprehensive Test Suite', () => {
       }
     });
 
-    it('should handle currency conversion edge cases', async () => {
-      const testAmounts = [
-        { input: 99.99, expected: 9999 },
-        { input: 100.001, expected: 10000 }, // Should round
-        { input: 50.555, expected: 5056 }, // Should round up
-      ];
+    it('should pass through amounts without cents conversion', async () => {
+      const testAmounts = [99.99, 100.5, 50.25];
 
-      for (const { input, expected } of testAmounts) {
-        mockSupabase.functions.invoke.mockResolvedValueOnce({
-          data: { client_secret: `pi_test_${expected}` },
-          error: null,
+      for (const input of testAmounts) {
+        mockApi.post.mockResolvedValueOnce({
+          clientSecret: `pi_test_${input}`,
         });
 
         await PaymentService.initializePayment({
@@ -504,14 +428,12 @@ describe('Payment Flows - Comprehensive Test Suite', () => {
           contractorId: 'contractor-1',
         });
 
-        expect(mockSupabase.functions.invoke).toHaveBeenLastCalledWith(
-          'create-payment-intent',
+        expect(mockApi.post).toHaveBeenLastCalledWith(
+          '/api/payments/create-intent',
           {
-            body: {
-              amount: expected,
-              jobId: 'job-1',
-              contractorId: 'contractor-1',
-            },
+            amount: input,
+            jobId: 'job-1',
+            contractorId: 'contractor-1',
           }
         );
       }
@@ -519,42 +441,42 @@ describe('Payment Flows - Comprehensive Test Suite', () => {
   });
 
   describe('Fee Calculation Comprehensive Tests', () => {
-    it('should calculate fees accurately for various scenarios', async () => {
+    it('should calculate GBP fees accurately with no maximum cap', () => {
       const testCases = [
         {
-          amount: 10,
+          amount: 2,
           expected: {
-            platformFee: 0.5, // Minimum fee
-            stripeFee: 0.59, // 2.9% + $0.30
-            contractorAmount: 8.91,
-            totalFees: 1.09,
+            platformFee: 0.5,
+            stripeFee: 0.23,
+            contractorAmount: 1.27,
+            totalFees: 0.73,
           },
         },
         {
           amount: 100,
           expected: {
-            platformFee: 5, // 5%
-            stripeFee: 3.2, // 2.9% + $0.30
-            contractorAmount: 91.8,
-            totalFees: 8.2,
+            platformFee: 12,
+            stripeFee: 1.7,
+            contractorAmount: 86.3,
+            totalFees: 13.7,
           },
         },
         {
           amount: 1000,
           expected: {
-            platformFee: 50, // Capped at $50
-            stripeFee: 29.3, // 2.9% + $0.30
-            contractorAmount: 920.7,
-            totalFees: 79.3,
+            platformFee: 120,
+            stripeFee: 15.2,
+            contractorAmount: 864.8,
+            totalFees: 135.2,
           },
         },
         {
-          amount: 5000,
+          amount: 2000,
           expected: {
-            platformFee: 50, // Capped at $50
-            stripeFee: 145.3, // 2.9% + $0.30
-            contractorAmount: 4804.7,
-            totalFees: 195.3,
+            platformFee: 240,
+            stripeFee: 30.2,
+            contractorAmount: 1729.8,
+            totalFees: 270.2,
           },
         },
       ];
@@ -567,74 +489,40 @@ describe('Payment Flows - Comprehensive Test Suite', () => {
         expect(result.contractorAmount).toBe(expected.contractorAmount);
         expect(result.totalFees).toBe(expected.totalFees);
 
-        // Verify math adds up
-        expect(result.contractorAmount + result.totalFees).toBe(amount);
+        // gross = contractorAmount + totalFees (allow for 2dp rounding)
+        expect(
+          Math.abs(result.contractorAmount + result.totalFees - amount)
+        ).toBeLessThan(0.01);
       });
     });
 
-    it('should handle edge cases in fee calculation', async () => {
-      // Test very small amounts
-      const smallAmount = PaymentService.calculateFees(0.01);
-      expect(smallAmount.platformFee).toBe(0.5); // Minimum fee applies
-      expect(smallAmount.contractorAmount).toBeLessThan(0);
+    it('should apply the minimum platform fee for tiny amounts', () => {
+      const result = PaymentService.calculateFees(2);
+      expect(result.platformFee).toBe(0.5);
+    });
 
-      // Test amounts that hit exactly the minimum
-      const minAmount = PaymentService.calculateFees(10);
-      expect(minAmount.platformFee).toBe(0.5);
-
-      // Test amounts that hit exactly the cap
-      const capAmount = PaymentService.calculateFees(1000);
-      expect(capAmount.platformFee).toBe(50);
+    it('should scale the platform fee linearly above the old cap', () => {
+      // £2000 * 12% = £240 — proves the legacy £50 cap is gone.
+      const result = PaymentService.calculateFees(2000);
+      expect(result.platformFee).toBe(240);
     });
   });
 
   describe('Payment History and Reporting', () => {
-    it('should retrieve comprehensive payment history', async () => {
+    it('should retrieve the authenticated user payment history', async () => {
       const userId = 'user-123';
       const mockHistory = [
-        {
-          id: 'txn-1',
-          job_id: 'job-1',
-          payer_id: userId,
-          payee_id: 'contractor-1',
-          amount: 150,
-          status: 'completed',
-          created_at: '2024-01-01T00:00:00Z',
-          job: { title: 'Kitchen Repair' },
-          payer: { first_name: 'John', last_name: 'Doe' },
-          payee: { first_name: 'Jane', last_name: 'Smith' },
-        },
-        {
-          id: 'txn-2',
-          job_id: 'job-2',
-          payer_id: 'homeowner-2',
-          payee_id: userId,
-          amount: 200,
-          status: 'held',
-          created_at: '2024-01-02T00:00:00Z',
-          job: { title: 'Electrical Work' },
-          payer: { first_name: 'Bob', last_name: 'Wilson' },
-          payee: { first_name: 'John', last_name: 'Doe' },
-        },
+        { id: 'txn-1', amount: 150, status: 'completed' },
+        { id: 'txn-2', amount: 200, status: 'held' },
       ];
 
-      mockSupabase.from.mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        or: jest.fn().mockReturnThis(),
-        order: jest.fn().mockResolvedValue({
-          data: mockHistory,
-          error: null,
-        }),
-      } as any);
+      mockApi.get.mockResolvedValueOnce({ payments: mockHistory });
 
       const result = await PaymentService.getUserPaymentHistory(userId);
 
+      expect(mockApi.get).toHaveBeenCalledWith('/api/payments/history');
       expect(result).toHaveLength(2);
-      expect(result[0].amount).toBe(150);
-      expect(result[1].amount).toBe(200);
-      expect(mockSupabase.from().or).toHaveBeenCalledWith(
-        `payer_id.eq.${userId},payee_id.eq.${userId}`
-      );
+      expect((result[0] as { amount: number }).amount).toBe(150);
     });
 
     it('should retrieve job-specific escrow transactions', async () => {
@@ -647,35 +535,37 @@ describe('Payment Flows - Comprehensive Test Suite', () => {
           payee_id: 'contractor-1',
           amount: 300,
           status: 'held',
-          created_at: '2024-01-01T00:00:00Z',
-          updated_at: '2024-01-01T01:00:00Z',
         },
       ];
 
-      mockSupabase.from.mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        order: jest.fn().mockResolvedValue({
-          data: mockTransactions,
-          error: null,
-        }),
-      } as any);
+      mockApi.get.mockResolvedValueOnce({ escrow: mockTransactions });
 
       const result = await PaymentService.getJobEscrowTransactions(jobId);
 
+      expect(mockApi.get).toHaveBeenCalledWith(`/api/jobs/${jobId}/escrow`);
       expect(result).toHaveLength(1);
       expect(result[0].jobId).toBe(jobId);
       expect(result[0].status).toBe('held');
+    });
+
+    it('should return an empty list when history fetch fails', async () => {
+      mockApi.get.mockRejectedValueOnce(new Error('Query failed'));
+
+      const result = await PaymentService.getUserPaymentHistory('user-123');
+
+      expect(result).toEqual([]);
+      expect(logger.error).toHaveBeenCalledWith(
+        'Failed to fetch user payment history',
+        expect.objectContaining({ userId: 'user-123' })
+      );
     });
   });
 
   describe('Security and Validation Tests', () => {
     it('should validate card expiration dates correctly', async () => {
-      const currentDate = new Date();
-      const currentYear = currentDate.getFullYear();
-      const currentMonth = currentDate.getMonth() + 1;
+      const currentYear = new Date().getFullYear();
+      const currentMonth = new Date().getMonth() + 1;
 
-      // Test expired card (last year)
       await expect(
         PaymentService.createPaymentMethod({
           type: 'card',
@@ -688,7 +578,6 @@ describe('Payment Flows - Comprehensive Test Suite', () => {
         })
       ).rejects.toThrow('Card has expired');
 
-      // Test expired card (this year, previous month)
       if (currentMonth > 1) {
         await expect(
           PaymentService.createPaymentMethod({
@@ -703,8 +592,7 @@ describe('Payment Flows - Comprehensive Test Suite', () => {
         ).rejects.toThrow('Card has expired');
       }
 
-      // Test valid card (next year)
-      mockStripe.createPaymentMethod.mockResolvedValueOnce({
+      (stripeCreatePaymentMethod as jest.Mock).mockResolvedValueOnce({
         paymentMethod: { id: 'pm_valid', card: { last4: '4242' } },
         error: null,
       });
@@ -722,85 +610,40 @@ describe('Payment Flows - Comprehensive Test Suite', () => {
       expect(result.id).toBe('pm_valid');
     });
 
-    it('should handle SQL injection attempts safely', async () => {
+    it('should not forward the caller id to the history endpoint', async () => {
+      // The server derives identity from the Bearer token, so a malicious userId
+      // is never interpolated into the request URL.
       const maliciousUserId = "'; DROP TABLE users; --";
+      mockApi.get.mockResolvedValueOnce({ payments: [] });
 
-      mockSupabase.from.mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        or: jest.fn().mockReturnThis(),
-        order: jest.fn().mockResolvedValue({
-          data: [],
-          error: null,
-        }),
-      } as any);
-
-      // Should not throw an error and should be handled safely by Supabase
-      const result = await PaymentService.getUserPaymentHistory(maliciousUserId);
+      const result =
+        await PaymentService.getUserPaymentHistory(maliciousUserId);
 
       expect(result).toEqual([]);
-      // Verify the malicious input was passed as a parameter, not concatenated
-      expect(mockSupabase.from().or).toHaveBeenCalledWith(
-        `payer_id.eq.${maliciousUserId},payee_id.eq.${maliciousUserId}`
-      );
+      expect(mockApi.get).toHaveBeenCalledWith('/api/payments/history');
     });
   });
 
   describe('Performance and Load Testing', () => {
-    it('should handle multiple concurrent payment operations', async () => {
+    it('should handle multiple concurrent payment initializations', async () => {
       const concurrentRequests = 10;
-      const promises: Promise<any>[] = [];
+      mockApi.post.mockResolvedValue({ clientSecret: 'pi_concurrent_test' });
 
-      // Setup mocks for concurrent requests
-      mockSupabase.functions.invoke.mockResolvedValue({
-        data: { client_secret: 'pi_concurrent_test' },
-        error: null,
-      });
-
-      // Create multiple concurrent payment initialization requests
-      for (let i = 0; i < concurrentRequests; i++) {
-        promises.push(
-          PaymentService.initializePayment({
-            amount: 100 + i,
-            jobId: `job-${i}`,
-            contractorId: `contractor-${i}`,
-          })
-        );
-      }
+      const promises = Array.from({ length: concurrentRequests }, (_, i) =>
+        PaymentService.initializePayment({
+          amount: 100 + i,
+          jobId: `job-${i}`,
+          contractorId: `contractor-${i}`,
+        })
+      );
 
       const results = await Promise.all(promises);
 
       expect(results).toHaveLength(concurrentRequests);
-      results.forEach(result => {
+      results.forEach((result) => {
         expect(result.client_secret).toBe('pi_concurrent_test');
       });
-
-      expect(mockSupabase.functions.invoke).toHaveBeenCalledTimes(concurrentRequests);
-    });
-
-    it('should handle large payment history queries efficiently', async () => {
-      const largeDataSet = Array.from({ length: 1000 }, (_, i) => ({
-        id: `txn-${i}`,
-        job_id: `job-${i}`,
-        amount: 100 + i,
-        status: i % 2 === 0 ? 'completed' : 'pending',
-        created_at: new Date(Date.now() - i * 86400000).toISOString(),
-      }));
-
-      mockSupabase.from.mockReturnValue({
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        order: jest.fn().mockResolvedValue({
-          data: largeDataSet,
-          error: null,
-        }),
-      } as any);
-
-      const startTime = Date.now();
-      const result = await PaymentService.getPaymentHistory('user-1');
-      const endTime = Date.now();
-
-      expect(result).toHaveLength(1000);
-      expect(endTime - startTime).toBeLessThan(1000); // Should complete within 1 second
+      expect(mockApi.post).toHaveBeenCalledTimes(concurrentRequests);
     });
   });
 });
