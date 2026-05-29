@@ -155,7 +155,6 @@ describe('Navigation Types', () => {
         MeetingSchedule: { contractorId: 'contractor-123' },
         MeetingDetails: { meetingId: 'meeting-123' },
         ContractorProfile: { contractorId: 'contractor-123' },
-        EnhancedHome: undefined,
         Notifications: undefined,
         AIAssessment: undefined,
         AISearch: undefined,
