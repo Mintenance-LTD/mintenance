@@ -26,7 +26,7 @@ import { validateRequest } from '@/lib/validation/validator';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { PropertyTeamService } from '@/lib/services/property-team/PropertyTeamService';
 import { isValidUUID } from '@/lib/validation/uuid';
-import { ROOM_TYPES } from '../route';
+import { ROOM_TYPES } from '../schema';
 
 const updateRoomSchema = z
   .object({
