@@ -76,7 +76,7 @@ describe('BookingCard', () => {
       expect(getByText('March 15, 2024')).toBeTruthy();
       expect(getByText('10:00 AM')).toBeTruthy();
       expect(getByText('2 hours')).toBeTruthy();
-      expect(getByText('$150')).toBeTruthy();
+      expect(getByText('£150')).toBeTruthy();
       expect(getByText('Total')).toBeTruthy();
     });
 
@@ -111,7 +111,7 @@ describe('BookingCard', () => {
         <BookingCard booking={baseBooking} {...mockCallbacks} />
       );
 
-      expect(getByText('View Details')).toBeTruthy();
+      expect(getByText('Details')).toBeTruthy();
     });
 
     it('should render share button', () => {
@@ -170,7 +170,7 @@ describe('BookingCard', () => {
         <BookingCard booking={booking} {...mockCallbacks} />
       );
 
-      expect(getByText('Special Instructions:')).toBeTruthy();
+      expect(getByText('Special Instructions')).toBeTruthy();
       expect(getByText('Please call before arriving')).toBeTruthy();
     });
 
@@ -179,7 +179,7 @@ describe('BookingCard', () => {
         <BookingCard booking={baseBooking} {...mockCallbacks} />
       );
 
-      expect(queryByText('Special Instructions:')).toBeNull();
+      expect(queryByText('Special Instructions')).toBeNull();
     });
 
     it('should render empty special instructions section when empty string', () => {
@@ -191,11 +191,12 @@ describe('BookingCard', () => {
         <BookingCard booking={booking} {...mockCallbacks} />
       );
 
-      expect(queryByText('Special Instructions:')).toBeNull();
+      expect(queryByText('Special Instructions')).toBeNull();
     });
 
     it('should render long special instructions', () => {
-      const longInstructions = 'This is a very long instruction that might wrap to multiple lines. Please make sure to follow all these detailed steps carefully when you arrive at the property.';
+      const longInstructions =
+        'This is a very long instruction that might wrap to multiple lines. Please make sure to follow all these detailed steps carefully when you arrive at the property.';
       const booking = {
         ...baseBooking,
         specialInstructions: longInstructions,
@@ -209,12 +210,12 @@ describe('BookingCard', () => {
   });
 
   describe('Rendering - Price Display', () => {
-    it('should render price with dollar sign', () => {
+    it('should render price with pound sign', () => {
       const { getByText } = render(
         <BookingCard booking={baseBooking} {...mockCallbacks} />
       );
 
-      expect(getByText('$150')).toBeTruthy();
+      expect(getByText('£150')).toBeTruthy();
     });
 
     it('should render decimal prices correctly', () => {
@@ -223,7 +224,7 @@ describe('BookingCard', () => {
         <BookingCard booking={booking} {...mockCallbacks} />
       );
 
-      expect(getByText('$150.5')).toBeTruthy();
+      expect(getByText('£150.5')).toBeTruthy();
     });
 
     it('should render zero price', () => {
@@ -232,7 +233,7 @@ describe('BookingCard', () => {
         <BookingCard booking={booking} {...mockCallbacks} />
       );
 
-      expect(getByText('$0')).toBeTruthy();
+      expect(getByText('£0')).toBeTruthy();
     });
 
     it('should render large amounts', () => {
@@ -241,7 +242,7 @@ describe('BookingCard', () => {
         <BookingCard booking={booking} {...mockCallbacks} />
       );
 
-      expect(getByText('$9999.99')).toBeTruthy();
+      expect(getByText('£9999.99')).toBeTruthy();
     });
   });
 
@@ -433,7 +434,7 @@ describe('BookingCard', () => {
         <BookingCard booking={booking} {...mockCallbacks} />
       );
 
-      expect(getByText('View Details')).toBeTruthy();
+      expect(getByText('Details')).toBeTruthy();
     });
   });
 
@@ -492,7 +493,7 @@ describe('BookingCard', () => {
         <BookingCard booking={baseBooking} {...mockCallbacks} />
       );
 
-      fireEvent.press(getByText('View Details'));
+      fireEvent.press(getByText('Details'));
       expect(mockCallbacks.onViewDetails).toHaveBeenCalledWith(baseBooking);
       expect(mockCallbacks.onViewDetails).toHaveBeenCalledTimes(1);
     });
@@ -531,7 +532,7 @@ describe('BookingCard', () => {
 
       fireEvent.press(getByText('Reschedule'));
       fireEvent.press(getByLabelText('Share booking'));
-      fireEvent.press(getByText('View Details'));
+      fireEvent.press(getByText('Details'));
 
       expect(mockCallbacks.onReschedule).toHaveBeenCalledTimes(1);
       expect(mockCallbacks.onShare).toHaveBeenCalledTimes(1);
@@ -662,7 +663,8 @@ describe('BookingCard', () => {
 
   describe('Edge Cases - Service Names', () => {
     it('should handle very long service names', () => {
-      const longServiceName = 'Emergency 24/7 Advanced Plumbing and Heating Repair Service with Extended Warranty';
+      const longServiceName =
+        'Emergency 24/7 Advanced Plumbing and Heating Repair Service with Extended Warranty';
       const booking = { ...baseBooking, serviceName: longServiceName };
       const { getByText } = render(
         <BookingCard booking={booking} {...mockCallbacks} />
@@ -692,7 +694,8 @@ describe('BookingCard', () => {
 
   describe('Edge Cases - Addresses', () => {
     it('should handle very long addresses', () => {
-      const longAddress = '123456789 Very Long Street Name That Goes On And On, Apartment 42B, Building C, Complex Name, City, State 12345-6789, Country';
+      const longAddress =
+        '123456789 Very Long Street Name That Goes On And On, Apartment 42B, Building C, Complex Name, City, State 12345-6789, Country';
       const booking = { ...baseBooking, address: longAddress };
       const { getByText } = render(
         <BookingCard booking={booking} {...mockCallbacks} />
@@ -702,12 +705,12 @@ describe('BookingCard', () => {
     });
 
     it('should handle address with special characters', () => {
-      const booking = { ...baseBooking, address: '123 O\'Brien St., Apt. #5' };
+      const booking = { ...baseBooking, address: "123 O'Brien St., Apt. #5" };
       const { getByText } = render(
         <BookingCard booking={booking} {...mockCallbacks} />
       );
 
-      expect(getByText('123 O\'Brien St., Apt. #5')).toBeTruthy();
+      expect(getByText("123 O'Brien St., Apt. #5")).toBeTruthy();
     });
   });
 
@@ -759,7 +762,7 @@ describe('BookingCard', () => {
         'All day',
       ];
 
-      durations.forEach(duration => {
+      durations.forEach((duration) => {
         const booking = { ...baseBooking, estimatedDuration: duration };
         const { getByText } = render(
           <BookingCard booking={booking} {...mockCallbacks} />
@@ -783,7 +786,7 @@ describe('BookingCard', () => {
         'cancelled',
       ];
 
-      statuses.forEach(status => {
+      statuses.forEach((status) => {
         const booking = { ...baseBooking, status };
         const { getByText } = render(
           <BookingCard booking={booking} {...mockCallbacks} />
@@ -869,7 +872,7 @@ describe('BookingCard', () => {
       expect(getByText('Ring doorbell twice')).toBeTruthy();
       expect(getByText('Reschedule')).toBeTruthy();
       expect(getByText('Cancel')).toBeTruthy();
-      expect(getByText('View Details')).toBeTruthy();
+      expect(getByText('Details')).toBeTruthy();
       expect(getByLabelText('Share booking')).toBeTruthy();
     });
 
@@ -959,12 +962,12 @@ describe('BookingCard', () => {
         <BookingCard booking={baseBooking} {...mockCallbacks} />
       );
 
-      expect(getByText('$150')).toBeTruthy();
+      expect(getByText('£150')).toBeTruthy();
 
       const updatedBooking = { ...baseBooking, amount: 200 };
       rerender(<BookingCard booking={updatedBooking} {...mockCallbacks} />);
 
-      expect(getByText('$200')).toBeTruthy();
+      expect(getByText('£200')).toBeTruthy();
     });
 
     it('should update when special instructions change', () => {
@@ -972,7 +975,7 @@ describe('BookingCard', () => {
         <BookingCard booking={baseBooking} {...mockCallbacks} />
       );
 
-      expect(queryByText('Special Instructions:')).toBeNull();
+      expect(queryByText('Special Instructions')).toBeNull();
 
       const updatedBooking = {
         ...baseBooking,

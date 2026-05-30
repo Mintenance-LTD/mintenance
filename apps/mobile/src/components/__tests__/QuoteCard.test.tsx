@@ -8,7 +8,9 @@ jest.mock('../../theme', () => ({
   theme: {
     colors: {
       primary: '#0EA5E9',
+      primaryLight: '#CCFBF1',
       secondary: '#10B981',
+      accent: '#F59E0B',
       success: '#16A34A',
       error: '#EF4444',
       warning: '#D97706',
@@ -16,6 +18,8 @@ jest.mock('../../theme', () => ({
       textPrimary: '#0F172A',
       textSecondary: '#475569',
       textTertiary: '#64748B',
+      textInverse: '#FFFFFF',
+      surface: '#FFFFFF',
       background: '#FFFFFF',
       backgroundSecondary: '#F8FAFC',
       surfaceSecondary: '#F8FAFC',
@@ -49,7 +53,9 @@ jest.mock('../../theme', () => ({
 }));
 
 // Helper function to create mock quotes
-const createMockQuote = (overrides?: Partial<ContractorQuote>): ContractorQuote => ({
+const createMockQuote = (
+  overrides?: Partial<ContractorQuote>
+): ContractorQuote => ({
   id: 'quote-123',
   quote_number: 'Q-2024-001',
   contractor_id: 'contractor-1',
@@ -58,7 +64,8 @@ const createMockQuote = (overrides?: Partial<ContractorQuote>): ContractorQuote 
   client_email: 'john@example.com',
   client_phone: '07700900000',
   project_title: 'Kitchen Renovation',
-  project_description: 'Complete kitchen remodel with new cabinets and countertops',
+  project_description:
+    'Complete kitchen remodel with new cabinets and countertops',
   subtotal: 5000,
   tax_amount: 1000,
   discount_amount: 0,
@@ -68,7 +75,7 @@ const createMockQuote = (overrides?: Partial<ContractorQuote>): ContractorQuote 
   tax_rate: 20,
   currency: 'GBP',
   status: 'draft',
-  valid_until: '2026-02-28',
+  valid_until: '2099-12-31',
   terms_and_conditions: 'Standard terms apply',
   notes: '',
   template_id: undefined,
@@ -297,7 +304,7 @@ describe('QuoteCard', () => {
       const statusBadge = getByText('SENT').parent;
       expect(statusBadge?.props.style).toEqual(
         expect.arrayContaining([
-          expect.objectContaining({ backgroundColor: '#0EA5E9' }), // primary
+          expect.objectContaining({ backgroundColor: '#0F172A' }), // textPrimary
         ])
       );
     });
@@ -318,7 +325,7 @@ describe('QuoteCard', () => {
       const statusBadge = getByText('VIEWED').parent;
       expect(statusBadge?.props.style).toEqual(
         expect.arrayContaining([
-          expect.objectContaining({ backgroundColor: '#D97706' }), // warning
+          expect.objectContaining({ backgroundColor: '#F59E0B' }), // accent
         ])
       );
     });
@@ -339,7 +346,7 @@ describe('QuoteCard', () => {
       const statusBadge = getByText('ACCEPTED').parent;
       expect(statusBadge?.props.style).toEqual(
         expect.arrayContaining([
-          expect.objectContaining({ backgroundColor: '#16A34A' }), // success
+          expect.objectContaining({ backgroundColor: '#0EA5E9' }), // primary
         ])
       );
     });
@@ -368,7 +375,7 @@ describe('QuoteCard', () => {
     it('applies correct color for expired status', () => {
       const quote = createMockQuote({
         status: 'sent',
-        valid_until: '2020-01-01' // Past date
+        valid_until: '2020-01-01', // Past date
       });
       const { getByText } = render(
         <QuoteCard
@@ -486,7 +493,7 @@ describe('QuoteCard', () => {
     it('status becomes expired when valid_until is in past', () => {
       const quote = createMockQuote({
         status: 'sent',
-        valid_until: '2020-01-01'
+        valid_until: '2020-01-01',
       });
       const { getByText } = render(
         <QuoteCard
@@ -505,7 +512,7 @@ describe('QuoteCard', () => {
     it('isExpired is true when valid_until is in past', () => {
       const quote = createMockQuote({
         status: 'draft',
-        valid_until: '2020-01-01'
+        valid_until: '2020-01-01',
       });
       const { getByText } = render(
         <QuoteCard
@@ -525,7 +532,7 @@ describe('QuoteCard', () => {
     it('isExpired is false when valid_until is in future', () => {
       const quote = createMockQuote({
         status: 'sent',
-        valid_until: '2030-12-31'
+        valid_until: '2030-12-31',
       });
       const { getByText } = render(
         <QuoteCard
@@ -545,7 +552,7 @@ describe('QuoteCard', () => {
     it('shows error color for expired valid_until text', () => {
       const quote = createMockQuote({
         status: 'sent',
-        valid_until: '2020-01-01'
+        valid_until: '2020-01-01',
       });
       const { getByText } = render(
         <QuoteCard
@@ -569,7 +576,7 @@ describe('QuoteCard', () => {
     it('expired quotes display EXPIRED badge', () => {
       const quote = createMockQuote({
         status: 'accepted',
-        valid_until: '2020-01-01'
+        valid_until: '2020-01-01',
       });
       const { getByText } = render(
         <QuoteCard
@@ -588,7 +595,7 @@ describe('QuoteCard', () => {
     it('handles quote without valid_until field', () => {
       const quote = createMockQuote({
         status: 'draft',
-        valid_until: undefined
+        valid_until: undefined,
       });
       const { getByText, queryByText } = render(
         <QuoteCard
@@ -674,7 +681,7 @@ describe('QuoteCard', () => {
       const discountText = getByText('-£500.00');
       expect(discountText.props.style).toEqual(
         expect.arrayContaining([
-          expect.objectContaining({ color: '#16A34A' }), // success
+          expect.objectContaining({ color: '#0EA5E9' }), // primary
         ])
       );
     });
@@ -803,7 +810,7 @@ describe('QuoteCard', () => {
 
     it('shows project_description when present', () => {
       const quote = createMockQuote({
-        project_description: 'Complete kitchen remodel'
+        project_description: 'Complete kitchen remodel',
       });
       const { getByText } = render(
         <QuoteCard
@@ -974,7 +981,7 @@ describe('QuoteCard', () => {
       const quote = createMockQuote({
         markup_percentage: 15,
         discount_percentage: 0,
-        notes: 'Test notes'
+        notes: 'Test notes',
       });
       const { getByText } = render(
         <QuoteCard
@@ -1163,7 +1170,7 @@ describe('QuoteCard', () => {
       const quote = createMockQuote({
         subtotal: 5000,
         tax_amount: 1000,
-        discount_amount: 500
+        discount_amount: 500,
       });
       const { getByText } = render(
         <QuoteCard
@@ -1181,7 +1188,7 @@ describe('QuoteCard', () => {
       expect(getByText('-£500.00')).toBeTruthy();
     });
 
-    it('discount shown in success color', () => {
+    it('discount shown in primary color', () => {
       const quote = createMockQuote({ discount_amount: 500 });
       const { getByText } = render(
         <QuoteCard
@@ -1197,7 +1204,7 @@ describe('QuoteCard', () => {
       const discountText = getByText('-£500.00');
       expect(discountText.props.style).toEqual(
         expect.arrayContaining([
-          expect.objectContaining({ color: '#16A34A' }),
+          expect.objectContaining({ color: '#0EA5E9' }), // primary
         ])
       );
     });
@@ -1206,7 +1213,7 @@ describe('QuoteCard', () => {
       const quote = createMockQuote({
         subtotal: 1234.56,
         tax_amount: 246.91,
-        discount_amount: 100
+        discount_amount: 100,
       });
       const { getByText } = render(
         <QuoteCard
@@ -1268,7 +1275,7 @@ describe('QuoteCard', () => {
         notes: undefined,
         discount_amount: undefined,
         markup_percentage: undefined,
-        valid_until: undefined
+        valid_until: undefined,
       });
       const { getByText } = render(
         <QuoteCard
@@ -1336,7 +1343,7 @@ describe('QuoteCard', () => {
     it('handles expired quote with draft status', () => {
       const quote = createMockQuote({
         status: 'draft',
-        valid_until: '2020-01-01'
+        valid_until: '2020-01-01',
       });
       const { getByText } = render(
         <QuoteCard
@@ -1355,7 +1362,7 @@ describe('QuoteCard', () => {
     it('handles non-expired quote', () => {
       const quote = createMockQuote({
         status: 'sent',
-        valid_until: '2030-12-31'
+        valid_until: '2030-12-31',
       });
       const { getByText } = render(
         <QuoteCard
@@ -1416,7 +1423,7 @@ describe('QuoteCard', () => {
         markup_percentage: 15,
         discount_percentage: 10,
         notes: 'Special requirements',
-        valid_until: '2026-12-31'
+        valid_until: '2026-12-31',
       });
       const { getByText } = render(
         <QuoteCard
@@ -1444,7 +1451,7 @@ describe('QuoteCard', () => {
       const quote = createMockQuote({
         status: 'sent',
         project_description: 'Bathroom renovation',
-        valid_until: '2026-12-31'
+        valid_until: '2026-12-31',
       });
       const { getByText, root } = render(
         <QuoteCard
@@ -1468,7 +1475,7 @@ describe('QuoteCard', () => {
       const quote = createMockQuote({
         status: 'sent',
         valid_until: '2020-01-01',
-        project_description: 'Expired project'
+        project_description: 'Expired project',
       });
       const { getByText } = render(
         <QuoteCard
@@ -1518,10 +1525,15 @@ describe('QuoteCard', () => {
     });
 
     it('all statuses render correctly', () => {
-      const statuses: ('draft' | 'sent' | 'viewed' | 'accepted' | 'rejected')[] =
-        ['draft', 'sent', 'viewed', 'accepted', 'rejected'];
+      const statuses: (
+        | 'draft'
+        | 'sent'
+        | 'viewed'
+        | 'accepted'
+        | 'rejected'
+      )[] = ['draft', 'sent', 'viewed', 'accepted', 'rejected'];
 
-      statuses.forEach(status => {
+      statuses.forEach((status) => {
         const quote = createMockQuote({ status });
         const { getByText } = render(
           <QuoteCard
@@ -1545,7 +1557,7 @@ describe('QuoteCard', () => {
         discount_amount: 1000,
         markup_percentage: 20,
         discount_percentage: 15,
-        notes: 'Client requires eco-friendly materials'
+        notes: 'Client requires eco-friendly materials',
       });
       const { getByText } = render(
         <QuoteCard
@@ -1573,7 +1585,7 @@ describe('QuoteCard', () => {
         discount_amount: undefined,
         markup_percentage: undefined,
         discount_percentage: undefined,
-        notes: undefined
+        notes: undefined,
       });
       const { getByText, queryByText } = render(
         <QuoteCard
