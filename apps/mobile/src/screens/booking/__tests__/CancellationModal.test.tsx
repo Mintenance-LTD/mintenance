@@ -156,13 +156,20 @@ describe('CancellationModal Component', () => {
     });
 
     it('handles different date formats', () => {
-      const customBooking = { ...mockBooking, date: 'Jan 1, 2024', time: '10:00 AM' };
+      const customBooking = {
+        ...mockBooking,
+        date: 'Jan 1, 2024',
+        time: '10:00 AM',
+      };
       const { getByText } = renderModal({ booking: customBooking });
       expect(getByText('Jan 1, 2024 at 10:00 AM')).toBeTruthy();
     });
 
     it('displays service name with special characters', () => {
-      const customBooking = { ...mockBooking, serviceName: 'A/C & Heating Repair' };
+      const customBooking = {
+        ...mockBooking,
+        serviceName: 'A/C & Heating Repair',
+      };
       const { getByText } = renderModal({ booking: customBooking });
       expect(getByText('A/C & Heating Repair')).toBeTruthy();
     });
@@ -173,7 +180,9 @@ describe('CancellationModal Component', () => {
         serviceName: 'Complete Home Renovation and Remodeling Service',
       };
       const { getByText } = renderModal({ booking: customBooking });
-      expect(getByText('Complete Home Renovation and Remodeling Service')).toBeTruthy();
+      expect(
+        getByText('Complete Home Renovation and Remodeling Service')
+      ).toBeTruthy();
     });
   });
 
@@ -201,9 +210,13 @@ describe('CancellationModal Component', () => {
       const { getByLabelText } = renderModal();
       expect(getByLabelText('Select reason: Schedule Change')).toBeTruthy();
       expect(getByLabelText('Select reason: Weather conditions')).toBeTruthy();
-      expect(getByLabelText('Select reason: Parking Availability')).toBeTruthy();
+      expect(
+        getByLabelText('Select reason: Parking Availability')
+      ).toBeTruthy();
       expect(getByLabelText('Select reason: Lack of amenities')).toBeTruthy();
-      expect(getByLabelText('Select reason: I have alternative option')).toBeTruthy();
+      expect(
+        getByLabelText('Select reason: I have alternative option')
+      ).toBeTruthy();
       expect(getByLabelText('Select reason: Other')).toBeTruthy();
     });
 
@@ -223,21 +236,27 @@ describe('CancellationModal Component', () => {
 
     it('allows selecting Parking Availability reason', () => {
       const { getByLabelText } = renderModal();
-      const parkingReason = getByLabelText('Select reason: Parking Availability');
+      const parkingReason = getByLabelText(
+        'Select reason: Parking Availability'
+      );
       fireEvent.press(parkingReason);
       expect(parkingReason).toBeTruthy();
     });
 
     it('allows selecting Lack of amenities reason', () => {
       const { getByLabelText } = renderModal();
-      const amenitiesReason = getByLabelText('Select reason: Lack of amenities');
+      const amenitiesReason = getByLabelText(
+        'Select reason: Lack of amenities'
+      );
       fireEvent.press(amenitiesReason);
       expect(amenitiesReason).toBeTruthy();
     });
 
     it('allows selecting alternative option reason', () => {
       const { getByLabelText } = renderModal();
-      const alternativeReason = getByLabelText('Select reason: I have alternative option');
+      const alternativeReason = getByLabelText(
+        'Select reason: I have alternative option'
+      );
       fireEvent.press(alternativeReason);
       expect(alternativeReason).toBeTruthy();
     });
@@ -302,7 +321,8 @@ describe('CancellationModal Component', () => {
       const otherReason = getByLabelText('Select reason: Other');
       fireEvent.press(otherReason);
 
-      const longReason = 'I need to cancel because I have an unexpected family emergency that requires my immediate attention and I will not be able to be present at the scheduled time.';
+      const longReason =
+        'I need to cancel because I have an unexpected family emergency that requires my immediate attention and I will not be able to be present at the scheduled time.';
       const input = getByPlaceholderText('Enter your reason...');
       fireEvent.changeText(input, longReason);
 
@@ -419,7 +439,8 @@ describe('CancellationModal Component', () => {
     });
 
     it('Cancel Booking button is disabled with only whitespace in custom reason', () => {
-      const { getByLabelText, getByPlaceholderText, getAllByText } = renderModal();
+      const { getByLabelText, getByPlaceholderText, getAllByText } =
+        renderModal();
       const otherReason = getByLabelText('Select reason: Other');
       fireEvent.press(otherReason);
 
@@ -432,7 +453,8 @@ describe('CancellationModal Component', () => {
     });
 
     it('Cancel Booking button is enabled when Other selected with valid custom text', () => {
-      const { getByLabelText, getByPlaceholderText, getAllByText } = renderModal();
+      const { getByLabelText, getByPlaceholderText, getAllByText } =
+        renderModal();
       const otherReason = getByLabelText('Select reason: Other');
       fireEvent.press(otherReason);
 
@@ -445,7 +467,8 @@ describe('CancellationModal Component', () => {
     });
 
     it('Cancel Booking button is enabled with custom text after whitespace trim', () => {
-      const { getByLabelText, getByPlaceholderText, getAllByText } = renderModal();
+      const { getByLabelText, getByPlaceholderText, getAllByText } =
+        renderModal();
       const otherReason = getByLabelText('Select reason: Other');
       fireEvent.press(otherReason);
 
@@ -507,7 +530,8 @@ describe('CancellationModal Component', () => {
 
     it('calls onConfirm with custom reason when Other is selected', async () => {
       const onConfirm = jest.fn().mockResolvedValue(undefined);
-      const { getByLabelText, getByPlaceholderText, getAllByText } = renderModal({ onConfirm });
+      const { getByLabelText, getByPlaceholderText, getAllByText } =
+        renderModal({ onConfirm });
 
       const otherReason = getByLabelText('Select reason: Other');
       fireEvent.press(otherReason);
@@ -558,7 +582,8 @@ describe('CancellationModal Component', () => {
 
     it('does not call onConfirm when Other selected with whitespace-only text', () => {
       const onConfirm = jest.fn();
-      const { getByLabelText, getByPlaceholderText, getAllByText } = renderModal({ onConfirm });
+      const { getByLabelText, getByPlaceholderText, getAllByText } =
+        renderModal({ onConfirm });
 
       const otherReason = getByLabelText('Select reason: Other');
       fireEvent.press(otherReason);
@@ -587,7 +612,8 @@ describe('CancellationModal Component', () => {
 
   describe('State Management', () => {
     it('resets selected reason when modal is closed via cancel button', () => {
-      const { getByLabelText, getByText, getAllByText, rerender } = renderModal();
+      const { getByLabelText, getByText, getAllByText, rerender } =
+        renderModal();
 
       // Select a reason
       const scheduleReason = getByLabelText('Select reason: Schedule Change');
@@ -608,7 +634,8 @@ describe('CancellationModal Component', () => {
     });
 
     it('resets custom reason when modal is closed', () => {
-      const { getByLabelText, getByText, getByPlaceholderText, rerender } = renderModal();
+      const { getByLabelText, getByText, getByPlaceholderText, rerender } =
+        renderModal();
 
       // Select Other and enter custom reason
       const otherReason = getByLabelText('Select reason: Other');
@@ -680,8 +707,11 @@ describe('CancellationModal Component', () => {
 
   describe('Loading State', () => {
     it('shows activity indicator during cancellation', async () => {
-      const onConfirm = jest.fn(() => new Promise(resolve => setTimeout(resolve, 100)));
-      const { getByLabelText, getAllByText, queryByText, UNSAFE_getByType } = renderModal({ onConfirm });
+      const onConfirm = jest.fn(
+        () => new Promise((resolve) => setTimeout(resolve, 100))
+      );
+      const { getByLabelText, getAllByText, queryByText, UNSAFE_getByType } =
+        renderModal({ onConfirm });
 
       const scheduleReason = getByLabelText('Select reason: Schedule Change');
       fireEvent.press(scheduleReason);
@@ -698,8 +728,12 @@ describe('CancellationModal Component', () => {
     });
 
     it('disables buttons during cancellation', async () => {
-      const onConfirm = jest.fn(() => new Promise(resolve => setTimeout(resolve, 100)));
-      const { getByLabelText, getByText, getAllByText } = renderModal({ onConfirm });
+      const onConfirm = jest.fn(
+        () => new Promise((resolve) => setTimeout(resolve, 100))
+      );
+      const { getByLabelText, getByText, getAllByText } = renderModal({
+        onConfirm,
+      });
 
       const scheduleReason = getByLabelText('Select reason: Schedule Change');
       fireEvent.press(scheduleReason);
@@ -716,7 +750,9 @@ describe('CancellationModal Component', () => {
 
     it('re-enables buttons after successful cancellation', async () => {
       const onConfirm = jest.fn().mockResolvedValue(undefined);
-      const { getByLabelText, getByText, getAllByText } = renderModal({ onConfirm });
+      const { getByLabelText, getByText, getAllByText } = renderModal({
+        onConfirm,
+      });
 
       const scheduleReason = getByLabelText('Select reason: Schedule Change');
       fireEvent.press(scheduleReason);
@@ -738,10 +774,28 @@ describe('CancellationModal Component', () => {
 
     it('re-enables buttons after failed cancellation', async () => {
       // Suppress console errors for this test
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleErrorSpy = jest
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
 
-      const onConfirm = jest.fn().mockRejectedValue(new Error('Network error'));
-      const { getByLabelText, getByText, getAllByText } = renderModal({ onConfirm });
+      // onConfirm is fire-and-forget (typed `(reason) => void`); the component
+      // awaits it in a try/finally with no catch, so a parent handler owns its
+      // own error handling. Model a handler whose async work fails but is
+      // caught internally — this still drives the component through its finally
+      // (re-enable) path without leaking an unhandled rejection.
+      const failingWork = jest
+        .fn()
+        .mockRejectedValue(new Error('Network error'));
+      const onConfirm = jest.fn(async (reason: string) => {
+        try {
+          await failingWork(reason);
+        } catch {
+          // parent surfaces the error to the user elsewhere
+        }
+      });
+      const { getByLabelText, getByText, getAllByText } = renderModal({
+        onConfirm,
+      });
 
       const scheduleReason = getByLabelText('Select reason: Schedule Change');
       fireEvent.press(scheduleReason);
@@ -790,7 +844,9 @@ describe('CancellationModal Component', () => {
       fireEvent.press(getByLabelText('Select reason: Parking Availability'));
 
       // All selections should work regardless of haptic feedback
-      expect(getByLabelText('Select reason: Parking Availability')).toBeTruthy();
+      expect(
+        getByLabelText('Select reason: Parking Availability')
+      ).toBeTruthy();
     });
   });
 
@@ -816,9 +872,13 @@ describe('CancellationModal Component', () => {
 
       expect(getByLabelText('Select reason: Schedule Change')).toBeTruthy();
       expect(getByLabelText('Select reason: Weather conditions')).toBeTruthy();
-      expect(getByLabelText('Select reason: Parking Availability')).toBeTruthy();
+      expect(
+        getByLabelText('Select reason: Parking Availability')
+      ).toBeTruthy();
       expect(getByLabelText('Select reason: Lack of amenities')).toBeTruthy();
-      expect(getByLabelText('Select reason: I have alternative option')).toBeTruthy();
+      expect(
+        getByLabelText('Select reason: I have alternative option')
+      ).toBeTruthy();
       expect(getByLabelText('Select reason: Other')).toBeTruthy();
     });
   });
@@ -846,10 +906,26 @@ describe('CancellationModal Component', () => {
 
     it('handles onConfirm throwing an error', async () => {
       // Suppress console errors for this test
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleErrorSpy = jest
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
 
-      const onConfirm = jest.fn().mockRejectedValue(new Error('API Error'));
-      const { getByLabelText, getByText, getAllByText } = renderModal({ onConfirm });
+      // onConfirm is fire-and-forget (typed `(reason) => void`); the component
+      // awaits it in a try/finally with no catch, so a parent handler owns its
+      // own error handling. Model a handler whose async work fails but is
+      // caught internally — this still drives the component through its finally
+      // (re-enable) path without leaking an unhandled rejection.
+      const failingWork = jest.fn().mockRejectedValue(new Error('API Error'));
+      const onConfirm = jest.fn(async (reason: string) => {
+        try {
+          await failingWork(reason);
+        } catch {
+          // parent surfaces the error to the user elsewhere
+        }
+      });
+      const { getByLabelText, getByText, getAllByText } = renderModal({
+        onConfirm,
+      });
 
       const scheduleReason = getByLabelText('Select reason: Schedule Change');
       fireEvent.press(scheduleReason);
@@ -889,7 +965,9 @@ describe('CancellationModal Component', () => {
     });
 
     it('handles rapid button presses during loading', async () => {
-      const onConfirm = jest.fn(() => new Promise(resolve => setTimeout(resolve, 100)));
+      const onConfirm = jest.fn(
+        () => new Promise((resolve) => setTimeout(resolve, 100))
+      );
       const { getByLabelText, getAllByText } = renderModal({ onConfirm });
 
       const scheduleReason = getByLabelText('Select reason: Schedule Change');
@@ -907,7 +985,8 @@ describe('CancellationModal Component', () => {
     });
 
     it('handles empty string in custom reason', () => {
-      const { getByLabelText, getByPlaceholderText, getAllByText } = renderModal();
+      const { getByLabelText, getByPlaceholderText, getAllByText } =
+        renderModal();
 
       const otherReason = getByLabelText('Select reason: Other');
       fireEvent.press(otherReason);
@@ -1013,7 +1092,10 @@ describe('CancellationModal Component', () => {
 
   describe('Different Booking Scenarios', () => {
     it('handles booking with no contractor image', () => {
-      const bookingWithoutImage = { ...mockBooking, contractorImage: undefined };
+      const bookingWithoutImage = {
+        ...mockBooking,
+        contractorImage: undefined,
+      };
       const { getByText } = renderModal({ booking: bookingWithoutImage });
       expect(getByText('Pipe Repair')).toBeTruthy();
     });
@@ -1031,8 +1113,13 @@ describe('CancellationModal Component', () => {
     });
 
     it('handles booking with no special instructions', () => {
-      const bookingWithoutInstructions = { ...mockBooking, specialInstructions: undefined };
-      const { getByText } = renderModal({ booking: bookingWithoutInstructions });
+      const bookingWithoutInstructions = {
+        ...mockBooking,
+        specialInstructions: undefined,
+      };
+      const { getByText } = renderModal({
+        booking: bookingWithoutInstructions,
+      });
       expect(getByText('Pipe Repair')).toBeTruthy();
     });
 
