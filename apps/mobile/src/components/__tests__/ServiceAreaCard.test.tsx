@@ -10,12 +10,16 @@ jest.mock('../../theme', () => ({
       primary: '#0F172A',
       secondary: '#10B981',
       success: '#10B981',
+      accent: '#F59E0B',
       error: '#EF4444',
       warning: '#F59E0B',
       textPrimary: '#0F172A',
+      textInverse: '#FFFFFF',
       textSecondary: '#475569',
       background: '#FFFFFF',
+      surface: '#FFFFFF',
       surfaceSecondary: '#F8FAFC',
+      backgroundSecondary: '#F8FAFC',
       border: '#E2E8F0',
       borderLight: '#F1F5F9',
     },
@@ -44,7 +48,9 @@ jest.mock('../../theme', () => ({
 }));
 
 // Helper function to create mock service area
-const createMockServiceArea = (overrides?: Partial<ServiceArea>): ServiceArea => ({
+const createMockServiceArea = (
+  overrides?: Partial<ServiceArea>
+): ServiceArea => ({
   id: 'area-123',
   contractor_id: 'contractor-456',
   area_name: 'Test Area',
@@ -107,7 +113,7 @@ describe('ServiceAreaCard', () => {
 
     it('should render description when present', () => {
       const serviceArea = createMockServiceArea({
-        description: 'Central business district coverage'
+        description: 'Central business district coverage',
       });
       const { getByText } = render(
         <ServiceAreaCard
@@ -134,7 +140,8 @@ describe('ServiceAreaCard', () => {
         />
       );
 
-      const container = getByText('Test Area').parent?.parent?.parent?.parent?.parent;
+      const container =
+        getByText('Test Area').parent?.parent?.parent?.parent?.parent;
       expect(container).toBeTruthy();
     });
 
@@ -151,7 +158,8 @@ describe('ServiceAreaCard', () => {
       );
 
       const areaName = getByText('Test Area');
-      const touchableContainer = areaName.parent?.parent?.parent?.parent?.parent;
+      const touchableContainer =
+        areaName.parent?.parent?.parent?.parent?.parent;
       fireEvent.press(touchableContainer!);
 
       expect(mockOnPress).toHaveBeenCalledTimes(1);
@@ -264,7 +272,7 @@ describe('ServiceAreaCard', () => {
       expect(getByText('Inactive')).toBeTruthy();
     });
 
-    it('should have success color for active status indicator', () => {
+    it('should have primary color for active status indicator', () => {
       const serviceArea = createMockServiceArea({ is_active: true });
       const { getByText } = render(
         <ServiceAreaCard
@@ -278,9 +286,7 @@ describe('ServiceAreaCard', () => {
 
       const statusText = getByText('Active');
       expect(statusText.props.style).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ color: '#10B981' }),
-        ])
+        expect.arrayContaining([expect.objectContaining({ color: '#0F172A' })])
       );
     });
 
@@ -298,13 +304,11 @@ describe('ServiceAreaCard', () => {
 
       const statusText = getByText('Inactive');
       expect(statusText.props.style).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ color: '#475569' }),
-        ])
+        expect.arrayContaining([expect.objectContaining({ color: '#475569' })])
       );
     });
 
-    it('should have success color for active status text', () => {
+    it('should have primary color for active status text', () => {
       const serviceArea = createMockServiceArea({ is_active: true });
       const { getByText } = render(
         <ServiceAreaCard
@@ -318,9 +322,7 @@ describe('ServiceAreaCard', () => {
 
       const statusText = getByText('Active');
       expect(statusText.props.style).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ color: '#10B981' }),
-        ])
+        expect.arrayContaining([expect.objectContaining({ color: '#0F172A' })])
       );
     });
 
@@ -338,9 +340,7 @@ describe('ServiceAreaCard', () => {
 
       const statusText = getByText('Inactive');
       expect(statusText.props.style).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({ color: '#475569' }),
-        ])
+        expect.arrayContaining([expect.objectContaining({ color: '#475569' })])
       );
     });
   });
@@ -1172,7 +1172,7 @@ describe('ServiceAreaCard', () => {
       expect(playIcon).toBeTruthy();
     });
 
-    it('should have warning color for toggle icon when active', () => {
+    it('should have accent color for toggle icon when active', () => {
       const serviceArea = createMockServiceArea({ is_active: true });
       const { UNSAFE_getByProps } = render(
         <ServiceAreaCard
@@ -1368,7 +1368,9 @@ describe('ServiceAreaCard', () => {
       );
 
       expect(getByText('Premium Downtown Area')).toBeTruthy();
-      expect(getByText('Central business district with premium coverage')).toBeTruthy();
+      expect(
+        getByText('Central business district with premium coverage')
+      ).toBeTruthy();
       expect(getByText('PRIMARY')).toBeTruthy();
       expect(getByText('Active')).toBeTruthy();
       expect(getByText('Radius Coverage')).toBeTruthy();
@@ -1485,10 +1487,10 @@ describe('ServiceAreaCard', () => {
         'radius',
         'polygon',
         'postal_codes',
-        'cities'
+        'cities',
       ];
 
-      types.forEach(type => {
+      types.forEach((type) => {
         const serviceArea = createMockServiceArea({
           area_type: type,
           postal_codes: type === 'postal_codes' ? ['SW1A'] : undefined,

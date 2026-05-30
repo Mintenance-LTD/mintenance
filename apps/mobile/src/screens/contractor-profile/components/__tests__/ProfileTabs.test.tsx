@@ -21,10 +21,10 @@ jest.mock('../../../../theme', () => ({
   theme: {
     colors: {
       surface: '#FFFFFF',
-      border: '#E5E5E5',
-      primary: '#10B981',
-      textTertiary: '#A3A3A3',
-      textPrimary: '#171717',
+      border: '#D8E2DA',
+      primary: '#1A2520',
+      textTertiary: '#768079',
+      textPrimary: '#1A2520',
     },
     spacing: {
       lg: 16,
@@ -59,28 +59,28 @@ describe('ProfileTabs Component', () => {
   describe('Core Rendering', () => {
     it('renders without crashing', () => {
       const { UNSAFE_root } = render(
-        <ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
       );
       expect(UNSAFE_root).toBeTruthy();
     });
 
     it('renders the Photos tab', () => {
       const { getByText } = render(
-        <ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
       );
       expect(getByText('Photos')).toBeTruthy();
     });
 
     it('renders the Reviews tab', () => {
       const { getByText } = render(
-        <ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
       );
       expect(getByText('Reviews')).toBeTruthy();
     });
 
     it('renders both tabs simultaneously', () => {
       const { getByText } = render(
-        <ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
       );
       expect(getByText('Photos')).toBeTruthy();
       expect(getByText('Reviews')).toBeTruthy();
@@ -88,7 +88,7 @@ describe('ProfileTabs Component', () => {
 
     it('renders container with correct structure', () => {
       const { UNSAFE_root } = render(
-        <ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
       );
       const viewElements = UNSAFE_root.findAllByType(View as any);
       expect(viewElements.length).toBeGreaterThan(0);
@@ -96,21 +96,25 @@ describe('ProfileTabs Component', () => {
 
     it('renders with all required props', () => {
       expect(() => {
-        render(<ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />);
+        render(
+          <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
+        );
       }).not.toThrow();
     });
 
     it('renders two TouchableOpacity components for tabs', () => {
       const { UNSAFE_root } = render(
-        <ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
       );
-      const touchableElements = UNSAFE_root.findAllByType(TouchableOpacity as any);
+      const touchableElements = UNSAFE_root.findAllByType(
+        TouchableOpacity as any
+      );
       expect(touchableElements.length).toBe(2);
     });
 
     it('renders exactly two Text components for tab labels', () => {
       const { UNSAFE_root } = render(
-        <ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
       );
       const textElements = UNSAFE_root.findAllByType(Text as any);
       expect(textElements.length).toBe(2);
@@ -118,7 +122,7 @@ describe('ProfileTabs Component', () => {
 
     it('renders View components for container structure', () => {
       const { UNSAFE_root } = render(
-        <ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
       );
       const viewElements = UNSAFE_root.findAllByType(View as any);
       expect(viewElements.length).toBeGreaterThanOrEqual(1);
@@ -132,7 +136,7 @@ describe('ProfileTabs Component', () => {
   describe('Tab Interaction', () => {
     it('calls onTabChange when Photos tab is pressed', () => {
       const { getByText } = render(
-        <ProfileTabs activeTab="reviews" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='reviews' onTabChange={onTabChangeMock} />
       );
 
       fireEvent.press(getByText('Photos'));
@@ -141,7 +145,7 @@ describe('ProfileTabs Component', () => {
 
     it('calls onTabChange when Reviews tab is pressed', () => {
       const { getByText } = render(
-        <ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
       );
 
       fireEvent.press(getByText('Reviews'));
@@ -150,7 +154,7 @@ describe('ProfileTabs Component', () => {
 
     it('calls onTabChange only once per press', () => {
       const { getByText } = render(
-        <ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
       );
 
       fireEvent.press(getByText('Reviews'));
@@ -159,7 +163,7 @@ describe('ProfileTabs Component', () => {
 
     it('handles pressing the same tab multiple times', () => {
       const { getByText } = render(
-        <ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
       );
 
       fireEvent.press(getByText('Photos'));
@@ -174,7 +178,7 @@ describe('ProfileTabs Component', () => {
 
     it('handles pressing different tabs sequentially', () => {
       const { getByText } = render(
-        <ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
       );
 
       fireEvent.press(getByText('Reviews'));
@@ -189,7 +193,7 @@ describe('ProfileTabs Component', () => {
 
     it('Photos tab is a TouchableOpacity', () => {
       const { getByText } = render(
-        <ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
       );
 
       const photosText = getByText('Photos');
@@ -199,7 +203,7 @@ describe('ProfileTabs Component', () => {
 
     it('Reviews tab is a TouchableOpacity', () => {
       const { getByText } = render(
-        <ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
       );
 
       const reviewsText = getByText('Reviews');
@@ -209,7 +213,7 @@ describe('ProfileTabs Component', () => {
 
     it('tabs are clickable elements', () => {
       const { getByText } = render(
-        <ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
       );
 
       fireEvent.press(getByText('Photos'));
@@ -218,7 +222,7 @@ describe('ProfileTabs Component', () => {
 
     it('tab interaction works correctly for Photos', () => {
       const { getByText } = render(
-        <ProfileTabs activeTab="reviews" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='reviews' onTabChange={onTabChangeMock} />
       );
 
       fireEvent.press(getByText('Photos'));
@@ -227,7 +231,7 @@ describe('ProfileTabs Component', () => {
 
     it('tab interaction works correctly for Reviews', () => {
       const { getByText } = render(
-        <ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
       );
 
       fireEvent.press(getByText('Reviews'));
@@ -236,7 +240,7 @@ describe('ProfileTabs Component', () => {
 
     it('handles rapid tab switching', () => {
       const { getByText } = render(
-        <ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
       );
 
       for (let i = 0; i < 10; i++) {
@@ -249,7 +253,7 @@ describe('ProfileTabs Component', () => {
 
     it('handles 100 rapid presses on Photos tab', () => {
       const { getByText } = render(
-        <ProfileTabs activeTab="reviews" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='reviews' onTabChange={onTabChangeMock} />
       );
 
       for (let i = 0; i < 100; i++) {
@@ -261,7 +265,7 @@ describe('ProfileTabs Component', () => {
 
     it('handles 100 rapid presses on Reviews tab', () => {
       const { getByText } = render(
-        <ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
       );
 
       for (let i = 0; i < 100; i++) {
@@ -279,32 +283,40 @@ describe('ProfileTabs Component', () => {
   describe('Active Tab Styling - Photos', () => {
     it('applies active tab styling when Photos is active', () => {
       const { getByText } = render(
-        <ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
       );
 
       const photosButton = getByText('Photos').parent;
       const styles = Array.isArray(photosButton?.props.style)
-        ? photosButton.props.style.flat(Infinity).filter((s: any) => s && typeof s === 'object')
-        : [photosButton?.props.style].filter((s: any) => s && typeof s === 'object');
+        ? photosButton.props.style
+            .flat(Infinity)
+            .filter((s: any) => s && typeof s === 'object')
+        : [photosButton?.props.style].filter(
+            (s: any) => s && typeof s === 'object'
+          );
 
       const hasPrimaryBorder = styles.some(
-        (style: any) => style?.borderBottomColor === '#10B981'
+        (style: any) => style?.borderBottomColor === '#1A2520'
       );
       expect(hasPrimaryBorder).toBe(true);
     });
 
     it('applies active text styling when Photos is active', () => {
       const { getByText } = render(
-        <ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
       );
 
       const photosText = getByText('Photos');
       const styles = Array.isArray(photosText.props.style)
-        ? photosText.props.style.flat(Infinity).filter((s: any) => s && typeof s === 'object')
-        : [photosText.props.style].filter((s: any) => s && typeof s === 'object');
+        ? photosText.props.style
+            .flat(Infinity)
+            .filter((s: any) => s && typeof s === 'object')
+        : [photosText.props.style].filter(
+            (s: any) => s && typeof s === 'object'
+          );
 
       const hasActiveTextColor = styles.some(
-        (style: any) => style?.color === '#171717'
+        (style: any) => style?.color === '#1A2520'
       );
       const hasActiveTextWeight = styles.some(
         (style: any) => style?.fontWeight === '600'
@@ -316,13 +328,17 @@ describe('ProfileTabs Component', () => {
 
     it('does not apply active styling to Reviews when Photos is active', () => {
       const { getByText } = render(
-        <ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
       );
 
       const reviewsButton = getByText('Reviews').parent;
       const styles = Array.isArray(reviewsButton?.props.style)
-        ? reviewsButton.props.style.flat(Infinity).filter((s: any) => s && typeof s === 'object')
-        : [reviewsButton?.props.style].filter((s: any) => s && typeof s === 'object');
+        ? reviewsButton.props.style
+            .flat(Infinity)
+            .filter((s: any) => s && typeof s === 'object')
+        : [reviewsButton?.props.style].filter(
+            (s: any) => s && typeof s === 'object'
+          );
 
       const hasTransparentBorder = styles.some(
         (style: any) => style?.borderBottomColor === 'transparent'
@@ -332,39 +348,55 @@ describe('ProfileTabs Component', () => {
 
     it('Reviews text has inactive styling when Photos is active', () => {
       const { getByText } = render(
-        <ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
       );
 
       const reviewsText = getByText('Reviews');
       const styles = Array.isArray(reviewsText.props.style)
-        ? reviewsText.props.style.flat(Infinity).filter((s: any) => s && typeof s === 'object')
-        : [reviewsText.props.style].filter((s: any) => s && typeof s === 'object');
+        ? reviewsText.props.style
+            .flat(Infinity)
+            .filter((s: any) => s && typeof s === 'object')
+        : [reviewsText.props.style].filter(
+            (s: any) => s && typeof s === 'object'
+          );
 
       const color = styles.reverse().find((s: any) => s?.color)?.color;
-      expect(color).toBe('#A3A3A3');
+      expect(color).toBe('#768079');
     });
 
     it('visual distinction between active Photos and inactive Reviews', () => {
       const { getByText } = render(
-        <ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
       );
 
       const photosText = getByText('Photos');
       const reviewsText = getByText('Reviews');
 
       const photosStyles = Array.isArray(photosText.props.style)
-        ? photosText.props.style.flat(Infinity).filter((s: any) => s && typeof s === 'object')
-        : [photosText.props.style].filter((s: any) => s && typeof s === 'object');
+        ? photosText.props.style
+            .flat(Infinity)
+            .filter((s: any) => s && typeof s === 'object')
+        : [photosText.props.style].filter(
+            (s: any) => s && typeof s === 'object'
+          );
 
       const reviewsStyles = Array.isArray(reviewsText.props.style)
-        ? reviewsText.props.style.flat(Infinity).filter((s: any) => s && typeof s === 'object')
-        : [reviewsText.props.style].filter((s: any) => s && typeof s === 'object');
+        ? reviewsText.props.style
+            .flat(Infinity)
+            .filter((s: any) => s && typeof s === 'object')
+        : [reviewsText.props.style].filter(
+            (s: any) => s && typeof s === 'object'
+          );
 
-      const photosColor = photosStyles.reverse().find((s: any) => s?.color)?.color;
-      const reviewsColor = reviewsStyles.reverse().find((s: any) => s?.color)?.color;
+      const photosColor = photosStyles
+        .reverse()
+        .find((s: any) => s?.color)?.color;
+      const reviewsColor = reviewsStyles
+        .reverse()
+        .find((s: any) => s?.color)?.color;
 
-      expect(photosColor).toBe('#171717');
-      expect(reviewsColor).toBe('#A3A3A3');
+      expect(photosColor).toBe('#1A2520');
+      expect(reviewsColor).toBe('#768079');
     });
   });
 
@@ -375,32 +407,40 @@ describe('ProfileTabs Component', () => {
   describe('Active Tab Styling - Reviews', () => {
     it('applies active tab styling when Reviews is active', () => {
       const { getByText } = render(
-        <ProfileTabs activeTab="reviews" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='reviews' onTabChange={onTabChangeMock} />
       );
 
       const reviewsButton = getByText('Reviews').parent;
       const styles = Array.isArray(reviewsButton?.props.style)
-        ? reviewsButton.props.style.flat(Infinity).filter((s: any) => s && typeof s === 'object')
-        : [reviewsButton?.props.style].filter((s: any) => s && typeof s === 'object');
+        ? reviewsButton.props.style
+            .flat(Infinity)
+            .filter((s: any) => s && typeof s === 'object')
+        : [reviewsButton?.props.style].filter(
+            (s: any) => s && typeof s === 'object'
+          );
 
       const hasPrimaryBorder = styles.some(
-        (style: any) => style?.borderBottomColor === '#10B981'
+        (style: any) => style?.borderBottomColor === '#1A2520'
       );
       expect(hasPrimaryBorder).toBe(true);
     });
 
     it('applies active text styling when Reviews is active', () => {
       const { getByText } = render(
-        <ProfileTabs activeTab="reviews" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='reviews' onTabChange={onTabChangeMock} />
       );
 
       const reviewsText = getByText('Reviews');
       const styles = Array.isArray(reviewsText.props.style)
-        ? reviewsText.props.style.flat(Infinity).filter((s: any) => s && typeof s === 'object')
-        : [reviewsText.props.style].filter((s: any) => s && typeof s === 'object');
+        ? reviewsText.props.style
+            .flat(Infinity)
+            .filter((s: any) => s && typeof s === 'object')
+        : [reviewsText.props.style].filter(
+            (s: any) => s && typeof s === 'object'
+          );
 
       const hasActiveTextColor = styles.some(
-        (style: any) => style?.color === '#171717'
+        (style: any) => style?.color === '#1A2520'
       );
       const hasActiveTextWeight = styles.some(
         (style: any) => style?.fontWeight === '600'
@@ -412,13 +452,17 @@ describe('ProfileTabs Component', () => {
 
     it('does not apply active styling to Photos when Reviews is active', () => {
       const { getByText } = render(
-        <ProfileTabs activeTab="reviews" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='reviews' onTabChange={onTabChangeMock} />
       );
 
       const photosButton = getByText('Photos').parent;
       const styles = Array.isArray(photosButton?.props.style)
-        ? photosButton.props.style.flat(Infinity).filter((s: any) => s && typeof s === 'object')
-        : [photosButton?.props.style].filter((s: any) => s && typeof s === 'object');
+        ? photosButton.props.style
+            .flat(Infinity)
+            .filter((s: any) => s && typeof s === 'object')
+        : [photosButton?.props.style].filter(
+            (s: any) => s && typeof s === 'object'
+          );
 
       const hasTransparentBorder = styles.some(
         (style: any) => style?.borderBottomColor === 'transparent'
@@ -428,39 +472,55 @@ describe('ProfileTabs Component', () => {
 
     it('Photos text has inactive styling when Reviews is active', () => {
       const { getByText } = render(
-        <ProfileTabs activeTab="reviews" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='reviews' onTabChange={onTabChangeMock} />
       );
 
       const photosText = getByText('Photos');
       const styles = Array.isArray(photosText.props.style)
-        ? photosText.props.style.flat(Infinity).filter((s: any) => s && typeof s === 'object')
-        : [photosText.props.style].filter((s: any) => s && typeof s === 'object');
+        ? photosText.props.style
+            .flat(Infinity)
+            .filter((s: any) => s && typeof s === 'object')
+        : [photosText.props.style].filter(
+            (s: any) => s && typeof s === 'object'
+          );
 
       const color = styles.reverse().find((s: any) => s?.color)?.color;
-      expect(color).toBe('#A3A3A3');
+      expect(color).toBe('#768079');
     });
 
     it('visual distinction between active Reviews and inactive Photos', () => {
       const { getByText } = render(
-        <ProfileTabs activeTab="reviews" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='reviews' onTabChange={onTabChangeMock} />
       );
 
       const photosText = getByText('Photos');
       const reviewsText = getByText('Reviews');
 
       const photosStyles = Array.isArray(photosText.props.style)
-        ? photosText.props.style.flat(Infinity).filter((s: any) => s && typeof s === 'object')
-        : [photosText.props.style].filter((s: any) => s && typeof s === 'object');
+        ? photosText.props.style
+            .flat(Infinity)
+            .filter((s: any) => s && typeof s === 'object')
+        : [photosText.props.style].filter(
+            (s: any) => s && typeof s === 'object'
+          );
 
       const reviewsStyles = Array.isArray(reviewsText.props.style)
-        ? reviewsText.props.style.flat(Infinity).filter((s: any) => s && typeof s === 'object')
-        : [reviewsText.props.style].filter((s: any) => s && typeof s === 'object');
+        ? reviewsText.props.style
+            .flat(Infinity)
+            .filter((s: any) => s && typeof s === 'object')
+        : [reviewsText.props.style].filter(
+            (s: any) => s && typeof s === 'object'
+          );
 
-      const photosColor = photosStyles.reverse().find((s: any) => s?.color)?.color;
-      const reviewsColor = reviewsStyles.reverse().find((s: any) => s?.color)?.color;
+      const photosColor = photosStyles
+        .reverse()
+        .find((s: any) => s?.color)?.color;
+      const reviewsColor = reviewsStyles
+        .reverse()
+        .find((s: any) => s?.color)?.color;
 
-      expect(photosColor).toBe('#A3A3A3');
-      expect(reviewsColor).toBe('#171717');
+      expect(photosColor).toBe('#768079');
+      expect(reviewsColor).toBe('#1A2520');
     });
   });
 
@@ -471,7 +531,7 @@ describe('ProfileTabs Component', () => {
   describe('Container Styling', () => {
     it('container has correct background color', () => {
       const { UNSAFE_root } = render(
-        <ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
       );
 
       const viewElements = UNSAFE_root.findAllByType(View as any);
@@ -491,7 +551,7 @@ describe('ProfileTabs Component', () => {
 
     it('container has flexDirection row', () => {
       const { UNSAFE_root } = render(
-        <ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
       );
 
       const viewElements = UNSAFE_root.findAllByType(View as any);
@@ -511,7 +571,7 @@ describe('ProfileTabs Component', () => {
 
     it('container has bottom border', () => {
       const { UNSAFE_root } = render(
-        <ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
       );
 
       const viewElements = UNSAFE_root.findAllByType(View as any);
@@ -524,7 +584,7 @@ describe('ProfileTabs Component', () => {
         expect.arrayContaining([
           expect.objectContaining({
             borderBottomWidth: 1,
-            borderBottomColor: '#E5E5E5',
+            borderBottomColor: '#D8E2DA',
           }),
         ])
       );
@@ -532,7 +592,7 @@ describe('ProfileTabs Component', () => {
 
     it('container has correct complete style object', () => {
       const { UNSAFE_root } = render(
-        <ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
       );
 
       const viewElements = UNSAFE_root.findAllByType(View as any);
@@ -547,7 +607,7 @@ describe('ProfileTabs Component', () => {
             flexDirection: 'row',
             backgroundColor: '#FFFFFF',
             borderBottomWidth: 1,
-            borderBottomColor: '#E5E5E5',
+            borderBottomColor: '#D8E2DA',
           }),
         ])
       );
@@ -561,7 +621,7 @@ describe('ProfileTabs Component', () => {
   describe('Tab Button Styling', () => {
     it('Photos tab has flex: 1', () => {
       const { getByText } = render(
-        <ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
       );
 
       const photosButton = getByText('Photos').parent;
@@ -580,7 +640,7 @@ describe('ProfileTabs Component', () => {
 
     it('Reviews tab has flex: 1', () => {
       const { getByText } = render(
-        <ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
       );
 
       const reviewsButton = getByText('Reviews').parent;
@@ -599,7 +659,7 @@ describe('ProfileTabs Component', () => {
 
     it('Photos tab has correct padding', () => {
       const { getByText } = render(
-        <ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
       );
 
       const photosButton = getByText('Photos').parent;
@@ -618,7 +678,7 @@ describe('ProfileTabs Component', () => {
 
     it('Reviews tab has correct padding', () => {
       const { getByText } = render(
-        <ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
       );
 
       const reviewsButton = getByText('Reviews').parent;
@@ -637,7 +697,7 @@ describe('ProfileTabs Component', () => {
 
     it('Photos tab has alignItems center', () => {
       const { getByText } = render(
-        <ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
       );
 
       const photosButton = getByText('Photos').parent;
@@ -656,7 +716,7 @@ describe('ProfileTabs Component', () => {
 
     it('Reviews tab has alignItems center', () => {
       const { getByText } = render(
-        <ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
       );
 
       const reviewsButton = getByText('Reviews').parent;
@@ -675,7 +735,7 @@ describe('ProfileTabs Component', () => {
 
     it('Photos tab has bottom border width 2', () => {
       const { getByText } = render(
-        <ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
       );
 
       const photosButton = getByText('Photos').parent;
@@ -694,7 +754,7 @@ describe('ProfileTabs Component', () => {
 
     it('Reviews tab has bottom border width 2', () => {
       const { getByText } = render(
-        <ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
       );
 
       const reviewsButton = getByText('Reviews').parent;
@@ -713,29 +773,41 @@ describe('ProfileTabs Component', () => {
 
     it('inactive Photos tab has transparent border', () => {
       const { getByText } = render(
-        <ProfileTabs activeTab="reviews" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='reviews' onTabChange={onTabChangeMock} />
       );
 
       const photosButton = getByText('Photos').parent;
       const styles = Array.isArray(photosButton?.props.style)
-        ? photosButton.props.style.flat(Infinity).filter((s: any) => s && typeof s === 'object')
-        : [photosButton?.props.style].filter((s: any) => s && typeof s === 'object');
+        ? photosButton.props.style
+            .flat(Infinity)
+            .filter((s: any) => s && typeof s === 'object')
+        : [photosButton?.props.style].filter(
+            (s: any) => s && typeof s === 'object'
+          );
 
-      const borderColor = styles.reverse().find((s: any) => s?.borderBottomColor)?.borderBottomColor;
+      const borderColor = styles
+        .reverse()
+        .find((s: any) => s?.borderBottomColor)?.borderBottomColor;
       expect(borderColor).toBe('transparent');
     });
 
     it('inactive Reviews tab has transparent border', () => {
       const { getByText } = render(
-        <ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
       );
 
       const reviewsButton = getByText('Reviews').parent;
       const styles = Array.isArray(reviewsButton?.props.style)
-        ? reviewsButton.props.style.flat(Infinity).filter((s: any) => s && typeof s === 'object')
-        : [reviewsButton?.props.style].filter((s: any) => s && typeof s === 'object');
+        ? reviewsButton.props.style
+            .flat(Infinity)
+            .filter((s: any) => s && typeof s === 'object')
+        : [reviewsButton?.props.style].filter(
+            (s: any) => s && typeof s === 'object'
+          );
 
-      const borderColor = styles.reverse().find((s: any) => s?.borderBottomColor)?.borderBottomColor;
+      const borderColor = styles
+        .reverse()
+        .find((s: any) => s?.borderBottomColor)?.borderBottomColor;
       expect(borderColor).toBe('transparent');
     });
   });
@@ -747,7 +819,7 @@ describe('ProfileTabs Component', () => {
   describe('Text Styling', () => {
     it('Photos text has correct font size', () => {
       const { getByText } = render(
-        <ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
       );
 
       const photosText = getByText('Photos');
@@ -766,7 +838,7 @@ describe('ProfileTabs Component', () => {
 
     it('Reviews text has correct font size', () => {
       const { getByText } = render(
-        <ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
       );
 
       const reviewsText = getByText('Reviews');
@@ -785,7 +857,7 @@ describe('ProfileTabs Component', () => {
 
     it('inactive Photos text has correct color', () => {
       const { getByText } = render(
-        <ProfileTabs activeTab="reviews" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='reviews' onTabChange={onTabChangeMock} />
       );
 
       const photosText = getByText('Photos');
@@ -796,7 +868,7 @@ describe('ProfileTabs Component', () => {
       expect(styles).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            color: '#A3A3A3',
+            color: '#768079',
           }),
         ])
       );
@@ -804,7 +876,7 @@ describe('ProfileTabs Component', () => {
 
     it('inactive Reviews text has correct color', () => {
       const { getByText } = render(
-        <ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
       );
 
       const reviewsText = getByText('Reviews');
@@ -815,7 +887,7 @@ describe('ProfileTabs Component', () => {
       expect(styles).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            color: '#A3A3A3',
+            color: '#768079',
           }),
         ])
       );
@@ -823,15 +895,19 @@ describe('ProfileTabs Component', () => {
 
     it('active Photos text has correct color and weight', () => {
       const { getByText } = render(
-        <ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
       );
 
       const photosText = getByText('Photos');
       const styles = Array.isArray(photosText.props.style)
-        ? photosText.props.style.flat(Infinity).filter((s: any) => s && typeof s === 'object')
-        : [photosText.props.style].filter((s: any) => s && typeof s === 'object');
+        ? photosText.props.style
+            .flat(Infinity)
+            .filter((s: any) => s && typeof s === 'object')
+        : [photosText.props.style].filter(
+            (s: any) => s && typeof s === 'object'
+          );
 
-      const hasActiveColor = styles.some((s: any) => s?.color === '#171717');
+      const hasActiveColor = styles.some((s: any) => s?.color === '#1A2520');
       const hasActiveWeight = styles.some((s: any) => s?.fontWeight === '600');
 
       expect(hasActiveColor).toBe(true);
@@ -840,15 +916,19 @@ describe('ProfileTabs Component', () => {
 
     it('active Reviews text has correct color and weight', () => {
       const { getByText } = render(
-        <ProfileTabs activeTab="reviews" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='reviews' onTabChange={onTabChangeMock} />
       );
 
       const reviewsText = getByText('Reviews');
       const styles = Array.isArray(reviewsText.props.style)
-        ? reviewsText.props.style.flat(Infinity).filter((s: any) => s && typeof s === 'object')
-        : [reviewsText.props.style].filter((s: any) => s && typeof s === 'object');
+        ? reviewsText.props.style
+            .flat(Infinity)
+            .filter((s: any) => s && typeof s === 'object')
+        : [reviewsText.props.style].filter(
+            (s: any) => s && typeof s === 'object'
+          );
 
-      const hasActiveColor = styles.some((s: any) => s?.color === '#171717');
+      const hasActiveColor = styles.some((s: any) => s?.color === '#1A2520');
       const hasActiveWeight = styles.some((s: any) => s?.fontWeight === '600');
 
       expect(hasActiveColor).toBe(true);
@@ -863,7 +943,7 @@ describe('ProfileTabs Component', () => {
   describe('Integration Tests', () => {
     it('complete workflow: switch from Photos to Reviews', () => {
       const { getByText } = render(
-        <ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
       );
 
       fireEvent.press(getByText('Reviews'));
@@ -873,7 +953,7 @@ describe('ProfileTabs Component', () => {
 
     it('complete workflow: switch from Reviews to Photos', () => {
       const { getByText } = render(
-        <ProfileTabs activeTab="reviews" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='reviews' onTabChange={onTabChangeMock} />
       );
 
       fireEvent.press(getByText('Photos'));
@@ -883,7 +963,7 @@ describe('ProfileTabs Component', () => {
 
     it('complete workflow: multiple tab switches', () => {
       const { getByText } = render(
-        <ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
       );
 
       fireEvent.press(getByText('Reviews'));
@@ -900,7 +980,7 @@ describe('ProfileTabs Component', () => {
 
     it('renders correctly with Photos active', () => {
       const { getByText } = render(
-        <ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
       );
 
       const photosText = getByText('Photos');
@@ -912,7 +992,7 @@ describe('ProfileTabs Component', () => {
 
     it('renders correctly with Reviews active', () => {
       const { getByText } = render(
-        <ProfileTabs activeTab="reviews" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='reviews' onTabChange={onTabChangeMock} />
       );
 
       const photosText = getByText('Photos');
@@ -924,12 +1004,14 @@ describe('ProfileTabs Component', () => {
 
     it('maintains state across multiple renders with Photos', () => {
       const { rerender, getByText } = render(
-        <ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
       );
 
       expect(getByText('Photos')).toBeTruthy();
 
-      rerender(<ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />);
+      rerender(
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
+      );
 
       expect(getByText('Photos')).toBeTruthy();
       expect(getByText('Reviews')).toBeTruthy();
@@ -937,12 +1019,14 @@ describe('ProfileTabs Component', () => {
 
     it('maintains state across multiple renders with Reviews', () => {
       const { rerender, getByText } = render(
-        <ProfileTabs activeTab="reviews" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='reviews' onTabChange={onTabChangeMock} />
       );
 
       expect(getByText('Reviews')).toBeTruthy();
 
-      rerender(<ProfileTabs activeTab="reviews" onTabChange={onTabChangeMock} />);
+      rerender(
+        <ProfileTabs activeTab='reviews' onTabChange={onTabChangeMock} />
+      );
 
       expect(getByText('Photos')).toBeTruthy();
       expect(getByText('Reviews')).toBeTruthy();
@@ -950,49 +1034,77 @@ describe('ProfileTabs Component', () => {
 
     it('updates when activeTab prop changes from photos to reviews', () => {
       const { rerender, getByText } = render(
-        <ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
       );
 
       const photosTextBefore = getByText('Photos');
       const photosStylesBefore = Array.isArray(photosTextBefore.props.style)
-        ? photosTextBefore.props.style.flat(Infinity).filter((s: any) => s && typeof s === 'object')
-        : [photosTextBefore.props.style].filter((s: any) => s && typeof s === 'object');
+        ? photosTextBefore.props.style
+            .flat(Infinity)
+            .filter((s: any) => s && typeof s === 'object')
+        : [photosTextBefore.props.style].filter(
+            (s: any) => s && typeof s === 'object'
+          );
 
-      const hasActiveColorBefore = photosStylesBefore.some((s: any) => s?.color === '#171717');
+      const hasActiveColorBefore = photosStylesBefore.some(
+        (s: any) => s?.color === '#1A2520'
+      );
       expect(hasActiveColorBefore).toBe(true);
 
-      rerender(<ProfileTabs activeTab="reviews" onTabChange={onTabChangeMock} />);
+      rerender(
+        <ProfileTabs activeTab='reviews' onTabChange={onTabChangeMock} />
+      );
 
       const reviewsTextAfter = getByText('Reviews');
       const reviewsStylesAfter = Array.isArray(reviewsTextAfter.props.style)
-        ? reviewsTextAfter.props.style.flat(Infinity).filter((s: any) => s && typeof s === 'object')
-        : [reviewsTextAfter.props.style].filter((s: any) => s && typeof s === 'object');
+        ? reviewsTextAfter.props.style
+            .flat(Infinity)
+            .filter((s: any) => s && typeof s === 'object')
+        : [reviewsTextAfter.props.style].filter(
+            (s: any) => s && typeof s === 'object'
+          );
 
-      const hasActiveColorAfter = reviewsStylesAfter.some((s: any) => s?.color === '#171717');
+      const hasActiveColorAfter = reviewsStylesAfter.some(
+        (s: any) => s?.color === '#1A2520'
+      );
       expect(hasActiveColorAfter).toBe(true);
     });
 
     it('updates when activeTab prop changes from reviews to photos', () => {
       const { rerender, getByText } = render(
-        <ProfileTabs activeTab="reviews" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='reviews' onTabChange={onTabChangeMock} />
       );
 
       const reviewsTextBefore = getByText('Reviews');
       const reviewsStylesBefore = Array.isArray(reviewsTextBefore.props.style)
-        ? reviewsTextBefore.props.style.flat(Infinity).filter((s: any) => s && typeof s === 'object')
-        : [reviewsTextBefore.props.style].filter((s: any) => s && typeof s === 'object');
+        ? reviewsTextBefore.props.style
+            .flat(Infinity)
+            .filter((s: any) => s && typeof s === 'object')
+        : [reviewsTextBefore.props.style].filter(
+            (s: any) => s && typeof s === 'object'
+          );
 
-      const hasActiveColorBefore = reviewsStylesBefore.some((s: any) => s?.color === '#171717');
+      const hasActiveColorBefore = reviewsStylesBefore.some(
+        (s: any) => s?.color === '#1A2520'
+      );
       expect(hasActiveColorBefore).toBe(true);
 
-      rerender(<ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />);
+      rerender(
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
+      );
 
       const photosTextAfter = getByText('Photos');
       const photosStylesAfter = Array.isArray(photosTextAfter.props.style)
-        ? photosTextAfter.props.style.flat(Infinity).filter((s: any) => s && typeof s === 'object')
-        : [photosTextAfter.props.style].filter((s: any) => s && typeof s === 'object');
+        ? photosTextAfter.props.style
+            .flat(Infinity)
+            .filter((s: any) => s && typeof s === 'object')
+        : [photosTextAfter.props.style].filter(
+            (s: any) => s && typeof s === 'object'
+          );
 
-      const hasActiveColorAfter = photosStylesAfter.some((s: any) => s?.color === '#171717');
+      const hasActiveColorAfter = photosStylesAfter.some(
+        (s: any) => s?.color === '#1A2520'
+      );
       expect(hasActiveColorAfter).toBe(true);
     });
   });
@@ -1004,19 +1116,23 @@ describe('ProfileTabs Component', () => {
   describe('Type Safety', () => {
     it('accepts "photos" as valid activeTab value', () => {
       expect(() => {
-        render(<ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />);
+        render(
+          <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
+        );
       }).not.toThrow();
     });
 
     it('accepts "reviews" as valid activeTab value', () => {
       expect(() => {
-        render(<ProfileTabs activeTab="reviews" onTabChange={onTabChangeMock} />);
+        render(
+          <ProfileTabs activeTab='reviews' onTabChange={onTabChangeMock} />
+        );
       }).not.toThrow();
     });
 
     it('onTabChange receives correct type for photos', () => {
       const { getByText } = render(
-        <ProfileTabs activeTab="reviews" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='reviews' onTabChange={onTabChangeMock} />
       );
 
       fireEvent.press(getByText('Photos'));
@@ -1027,7 +1143,7 @@ describe('ProfileTabs Component', () => {
 
     it('onTabChange receives correct type for reviews', () => {
       const { getByText } = render(
-        <ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
       );
 
       fireEvent.press(getByText('Reviews'));
@@ -1044,7 +1160,7 @@ describe('ProfileTabs Component', () => {
   describe('Performance', () => {
     it('renders efficiently', () => {
       const startTime = Date.now();
-      render(<ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />);
+      render(<ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />);
       const endTime = Date.now();
 
       expect(endTime - startTime).toBeLessThan(1000);
@@ -1052,7 +1168,7 @@ describe('ProfileTabs Component', () => {
 
     it('handles re-renders efficiently', () => {
       const { rerender } = render(
-        <ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
       );
 
       const startTime = Date.now();
@@ -1071,7 +1187,7 @@ describe('ProfileTabs Component', () => {
 
     it('handles rapid tab changes efficiently', () => {
       const { getByText } = render(
-        <ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
       );
 
       const startTime = Date.now();
@@ -1096,14 +1212,14 @@ describe('ProfileTabs Component', () => {
       const secondCallback = jest.fn();
 
       const { rerender, getByText } = render(
-        <ProfileTabs activeTab="photos" onTabChange={firstCallback} />
+        <ProfileTabs activeTab='photos' onTabChange={firstCallback} />
       );
 
       fireEvent.press(getByText('Reviews'));
       expect(firstCallback).toHaveBeenCalledWith('reviews');
       expect(secondCallback).not.toHaveBeenCalled();
 
-      rerender(<ProfileTabs activeTab="photos" onTabChange={secondCallback} />);
+      rerender(<ProfileTabs activeTab='photos' onTabChange={secondCallback} />);
 
       fireEvent.press(getByText('Reviews'));
       expect(secondCallback).toHaveBeenCalledWith('reviews');
@@ -1112,11 +1228,11 @@ describe('ProfileTabs Component', () => {
 
     it('handles simultaneous prop updates', () => {
       const { rerender, getByText } = render(
-        <ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
       );
 
       const newCallback = jest.fn();
-      rerender(<ProfileTabs activeTab="reviews" onTabChange={newCallback} />);
+      rerender(<ProfileTabs activeTab='reviews' onTabChange={newCallback} />);
 
       fireEvent.press(getByText('Photos'));
       expect(newCallback).toHaveBeenCalledWith('photos');
@@ -1125,7 +1241,7 @@ describe('ProfileTabs Component', () => {
 
     it('renders consistently after 10 re-renders', () => {
       const { rerender, getByText } = render(
-        <ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
       );
 
       for (let i = 0; i < 10; i++) {
@@ -1143,7 +1259,7 @@ describe('ProfileTabs Component', () => {
 
     it('maintains functionality after 50 interactions', () => {
       const { getByText } = render(
-        <ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
       );
 
       for (let i = 0; i < 50; i++) {
@@ -1163,7 +1279,7 @@ describe('ProfileTabs Component', () => {
   describe('Accessibility', () => {
     it('Photos tab is accessible', () => {
       const { getByText } = render(
-        <ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
       );
 
       const photosText = getByText('Photos');
@@ -1172,7 +1288,7 @@ describe('ProfileTabs Component', () => {
 
     it('Reviews tab is accessible', () => {
       const { getByText } = render(
-        <ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
       );
 
       const reviewsText = getByText('Reviews');
@@ -1181,7 +1297,7 @@ describe('ProfileTabs Component', () => {
 
     it('both tabs are findable by text', () => {
       const { getByText } = render(
-        <ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
       );
 
       expect(() => getByText('Photos')).not.toThrow();
@@ -1190,7 +1306,7 @@ describe('ProfileTabs Component', () => {
 
     it('tab labels are clear and descriptive', () => {
       const { getByText } = render(
-        <ProfileTabs activeTab="photos" onTabChange={onTabChangeMock} />
+        <ProfileTabs activeTab='photos' onTabChange={onTabChangeMock} />
       );
 
       const photosText = getByText('Photos');
