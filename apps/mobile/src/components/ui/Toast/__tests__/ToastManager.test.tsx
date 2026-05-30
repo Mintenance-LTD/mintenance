@@ -1,15 +1,30 @@
 import React from 'react';
 import { render, waitFor, act } from '@testing-library/react-native';
-import ToastManager, { toastManager, useToast } from '../ToastManager';
+import { ToastManager, toastManager, useToast } from '../ToastManager';
 
 // Mock dependencies
 jest.mock('../../../../design-system/theme', () => ({
   useTheme: () => ({
     theme: {
       colors: {
-        success: { 50: '#e6f4ea', 200: '#a8e0c2', 600: '#2f9e44', 800: '#1b5e20' },
-        error: { 50: '#ffebee', 200: '#ef9a9a', 600: '#e53935', 800: '#b71c1c' },
-        warning: { 50: '#fff8e1', 200: '#ffe082', 600: '#ffb300', 800: '#ff8f00' },
+        success: {
+          50: '#e6f4ea',
+          200: '#a8e0c2',
+          600: '#2f9e44',
+          800: '#1b5e20',
+        },
+        error: {
+          50: '#ffebee',
+          200: '#ef9a9a',
+          600: '#e53935',
+          800: '#b71c1c',
+        },
+        warning: {
+          50: '#fff8e1',
+          200: '#ffe082',
+          600: '#ffb300',
+          800: '#ff8f00',
+        },
         info: { 50: '#e3f2fd', 200: '#90caf9', 600: '#1e88e5', 800: '#0d47a1' },
         surface: { primary: '#ffffff', secondary: '#f5f5f5' },
         border: { primary: '#e0e0e0' },
@@ -21,6 +36,11 @@ jest.mock('../../../../design-system/theme', () => ({
 }));
 
 jest.mock('../../../../design-system/tokens', () => ({
+  // Spread the real named exports (colors, typography, spacing, …) so
+  // `import { colors } from './tokens'` in design-system/theme.tsx resolves.
+  // The factory previously only provided `designTokens`, leaving `colors`
+  // undefined and crashing the theme module at import time.
+  ...jest.requireActual('../../../../design-system/tokens'),
   designTokens: {
     spacing: {
       0.5: 2,
@@ -390,11 +410,13 @@ describe('ToastManager Component', () => {
       const promise = Promise.reject(new Error('Test error'));
 
       act(() => {
-        toastManager.promise(promise, {
-          loading: 'Processing...',
-          success: 'Success!',
-          error: 'Failed!',
-        }).catch(() => {});
+        toastManager
+          .promise(promise, {
+            loading: 'Processing...',
+            success: 'Success!',
+            error: 'Failed!',
+          })
+          .catch(() => {});
       });
 
       expect(getByText('Processing...')).toBeTruthy();
@@ -428,10 +450,12 @@ describe('ToastManager Component', () => {
       const promise = Promise.reject(new Error('Network error'));
 
       act(() => {
-        toastManager.promise(promise, {
-          loading: 'Connecting...',
-          error: (error: any) => `Error: ${error.message}`,
-        }).catch(() => {});
+        toastManager
+          .promise(promise, {
+            loading: 'Connecting...',
+            error: (error: any) => `Error: ${error.message}`,
+          })
+          .catch(() => {});
       });
 
       await waitFor(() => {
@@ -500,9 +524,21 @@ describe('ToastManager Component', () => {
       const { getByText } = render(<ToastManager />);
 
       act(() => {
-        toastManager.show({ type: 'success', title: 'Top Toast', position: 'top' });
-        toastManager.show({ type: 'error', title: 'Bottom Toast', position: 'bottom' });
-        toastManager.show({ type: 'info', title: 'Center Toast', position: 'center' });
+        toastManager.show({
+          type: 'success',
+          title: 'Top Toast',
+          position: 'top',
+        });
+        toastManager.show({
+          type: 'error',
+          title: 'Bottom Toast',
+          position: 'bottom',
+        });
+        toastManager.show({
+          type: 'info',
+          title: 'Center Toast',
+          position: 'center',
+        });
       });
 
       expect(getByText('Top Toast')).toBeTruthy();
@@ -588,9 +624,12 @@ describe('ToastManager Component', () => {
         </>
       );
 
-      await waitFor(() => {
-        expect(queryByText('Temporary')).toBeNull();
-      }, { timeout: 500 });
+      await waitFor(
+        () => {
+          expect(queryByText('Temporary')).toBeNull();
+        },
+        { timeout: 500 }
+      );
     });
   });
 
@@ -605,9 +644,7 @@ describe('ToastManager Component', () => {
       });
 
       expect(listener).toHaveBeenCalledWith(
-        expect.arrayContaining([
-          expect.objectContaining({ title: 'Test' }),
-        ])
+        expect.arrayContaining([expect.objectContaining({ title: 'Test' })])
       );
 
       listener.mockClear();
