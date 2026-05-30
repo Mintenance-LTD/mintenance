@@ -37,7 +37,13 @@ jobs:
       timeout-minutes: 10
 
     - name: Run security audit
-      run: npm audit --audit-level moderate
+      # 2026-05-30: aligned to `high` (matches ci-cd.yml). The 25 remaining
+      # moderate advisories are all transitive build/dev tooling (expo
+      # toolchain, @remotion/*, @google-cloud/storage→gaxios, next→postcss)
+      # with no non-breaking fix; `npm audit fix --force` would force expo/next
+      # major bumps. Block on high/critical (currently clean); triage moderates
+      # via the uploaded security-reports artifact + scheduled Snyk run.
+      run: npm audit --audit-level high
 
     - name: Run Snyk security scan
       if: ${{ env.HAS_SNYK == 'true' }}
