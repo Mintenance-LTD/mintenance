@@ -23,15 +23,20 @@ jest.mock('@expo/vector-icons', () => ({
     );
   },
   glyphMap: {
-    'star': 'star',
-    'heart': 'heart',
-    'close': 'close',
-    'checkmark': 'checkmark',
+    star: 'star',
+    heart: 'heart',
+    close: 'close',
+    checkmark: 'checkmark',
     'alert-circle': 'alert-circle',
   },
 }));
 
 jest.mock('../../../../design-system/tokens', () => ({
+  // Spread the real named exports (colors, typography, spacing, …) so
+  // `import { colors } from './tokens'` in design-system/theme.tsx resolves.
+  // The factory previously only provided `designTokens`, leaving `colors`
+  // undefined and crashing the theme module at import time.
+  ...jest.requireActual('../../../../design-system/tokens'),
   designTokens: {
     colors: {
       primary: { 500: '#0EA5E9', 600: '#0284C7' },
@@ -130,7 +135,7 @@ describe('Badge Component', () => {
     });
 
     it('renders with custom testID', () => {
-      const { getByTestId } = render(<Badge testID="custom-badge">Test</Badge>);
+      const { getByTestId } = render(<Badge testID='custom-badge'>Test</Badge>);
       expect(getByTestId('custom-badge')).toBeTruthy();
     });
   });
@@ -161,49 +166,52 @@ describe('Badge Component', () => {
     });
 
     it('applies correct background color for primary variant', () => {
-      const { getByText } = render(<Badge variant="primary">Primary</Badge>);
-      const badge = getByText('Primary').parent;
-      const styles = Array.isArray(badge?.props.style) ? badge.props.style : [badge?.props.style];
+      const { getByText } = render(<Badge variant='primary'>Primary</Badge>);
+      // The styled View is the grandparent: text -> content View -> styled View
+      const badge = getByText('Primary').parent?.parent;
+      const styles = Array.isArray(badge?.props.style)
+        ? badge.props.style
+        : [badge?.props.style];
       expect(styles).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            backgroundColor: '#0EA5E9',
+            backgroundColor: '#E0E7FF',
           }),
         ])
       );
     });
 
     it('applies correct background color for neutral variant', () => {
-      const { getByText } = render(<Badge variant="neutral">Neutral</Badge>);
-      const badge = getByText('Neutral').parent;
+      const { getByText } = render(<Badge variant='neutral'>Neutral</Badge>);
+      const badge = getByText('Neutral').parent?.parent;
       expect(badge?.props.style).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            backgroundColor: '#F5F5F5',
+            backgroundColor: '#F7F7F7',
           }),
         ])
       );
     });
 
     it('applies correct text color for neutral variant', () => {
-      const { getByText } = render(<Badge variant="neutral">Neutral</Badge>);
+      const { getByText } = render(<Badge variant='neutral'>Neutral</Badge>);
       const text = getByText('Neutral');
       expect(text.props.style).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            color: '#171717',
+            color: '#222222',
           }),
         ])
       );
     });
 
-    it('applies inverse text color for colored variants', () => {
-      const { getByText } = render(<Badge variant="primary">Primary</Badge>);
+    it('applies tinted text color for colored variants', () => {
+      const { getByText } = render(<Badge variant='primary'>Primary</Badge>);
       const text = getByText('Primary');
       expect(text.props.style).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            color: '#FFFFFF',
+            color: '#3730A3',
           }),
         ])
       );
@@ -225,8 +233,8 @@ describe('Badge Component', () => {
     });
 
     it('applies small size padding', () => {
-      const { getByText } = render(<Badge size="sm">Small</Badge>);
-      const badge = getByText('Small').parent;
+      const { getByText } = render(<Badge size='sm'>Small</Badge>);
+      const badge = getByText('Small').parent?.parent;
       expect(badge?.props.style).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
@@ -239,8 +247,8 @@ describe('Badge Component', () => {
     });
 
     it('applies medium size padding (default)', () => {
-      const { getByText } = render(<Badge size="md">Medium</Badge>);
-      const badge = getByText('Medium').parent;
+      const { getByText } = render(<Badge size='md'>Medium</Badge>);
+      const badge = getByText('Medium').parent?.parent;
       expect(badge?.props.style).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
@@ -253,8 +261,8 @@ describe('Badge Component', () => {
     });
 
     it('applies large size padding', () => {
-      const { getByText } = render(<Badge size="lg">Large</Badge>);
-      const badge = getByText('Large').parent;
+      const { getByText } = render(<Badge size='lg'>Large</Badge>);
+      const badge = getByText('Large').parent?.parent;
       expect(badge?.props.style).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
@@ -267,7 +275,7 @@ describe('Badge Component', () => {
     });
 
     it('applies correct font size for sm', () => {
-      const { getByText } = render(<Badge size="sm">Small</Badge>);
+      const { getByText } = render(<Badge size='sm'>Small</Badge>);
       const text = getByText('Small');
       expect(text.props.style).toEqual(
         expect.arrayContaining([
@@ -279,24 +287,24 @@ describe('Badge Component', () => {
     });
 
     it('applies correct font size for md', () => {
-      const { getByText } = render(<Badge size="md">Medium</Badge>);
+      const { getByText } = render(<Badge size='md'>Medium</Badge>);
       const text = getByText('Medium');
       expect(text.props.style).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            fontSize: 14,
+            fontSize: 13,
           }),
         ])
       );
     });
 
     it('applies correct font size for lg', () => {
-      const { getByText } = render(<Badge size="lg">Large</Badge>);
+      const { getByText } = render(<Badge size='lg'>Large</Badge>);
       const text = getByText('Large');
       expect(text.props.style).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            fontSize: 16,
+            fontSize: 15,
           }),
         ])
       );
@@ -310,11 +318,11 @@ describe('Badge Component', () => {
   describe('Rounded Prop', () => {
     it('applies default border radius when rounded is false', () => {
       const { getByText } = render(<Badge rounded={false}>Not Rounded</Badge>);
-      const badge = getByText('Not Rounded').parent;
+      const badge = getByText('Not Rounded').parent?.parent;
       expect(badge?.props.style).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            borderRadius: 12,
+            borderRadius: 16,
           }),
         ])
       );
@@ -322,7 +330,7 @@ describe('Badge Component', () => {
 
     it('applies full border radius when rounded is true', () => {
       const { getByText } = render(<Badge rounded={true}>Rounded</Badge>);
-      const badge = getByText('Rounded').parent;
+      const badge = getByText('Rounded').parent?.parent;
       expect(badge?.props.style).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
@@ -344,13 +352,15 @@ describe('Badge Component', () => {
     });
 
     it('renders with icon when provided', () => {
-      const { getByTestId } = render(<Badge icon="star">With Icon</Badge>);
+      const { getByTestId } = render(<Badge icon='star'>With Icon</Badge>);
       expect(getByTestId('icon-star')).toBeTruthy();
     });
 
     it('applies correct icon size for sm badge', () => {
       const { getByTestId } = render(
-        <Badge icon="star" size="sm">Small</Badge>
+        <Badge icon='star' size='sm'>
+          Small
+        </Badge>
       );
       const icon = getByTestId('icon-star');
       expect(icon.props.accessibilityLabel).toContain('size: 12');
@@ -358,7 +368,9 @@ describe('Badge Component', () => {
 
     it('applies correct icon size for md badge', () => {
       const { getByTestId } = render(
-        <Badge icon="star" size="md">Medium</Badge>
+        <Badge icon='star' size='md'>
+          Medium
+        </Badge>
       );
       const icon = getByTestId('icon-star');
       expect(icon.props.accessibilityLabel).toContain('size: 14');
@@ -366,7 +378,9 @@ describe('Badge Component', () => {
 
     it('applies correct icon size for lg badge', () => {
       const { getByTestId } = render(
-        <Badge icon="star" size="lg">Large</Badge>
+        <Badge icon='star' size='lg'>
+          Large
+        </Badge>
       );
       const icon = getByTestId('icon-star');
       expect(icon.props.accessibilityLabel).toContain('size: 16');
@@ -374,23 +388,27 @@ describe('Badge Component', () => {
 
     it('applies correct icon color for colored variant', () => {
       const { getByTestId } = render(
-        <Badge icon="star" variant="primary">Icon</Badge>
+        <Badge icon='star' variant='primary'>
+          Icon
+        </Badge>
       );
       const icon = getByTestId('icon-star');
-      expect(icon.props.accessibilityLabel).toContain('color: #FFFFFF');
+      expect(icon.props.accessibilityLabel).toContain('color: #3730A3');
     });
 
     it('applies correct icon color for neutral variant', () => {
       const { getByTestId } = render(
-        <Badge icon="star" variant="neutral">Icon</Badge>
+        <Badge icon='star' variant='neutral'>
+          Icon
+        </Badge>
       );
       const icon = getByTestId('icon-star');
-      expect(icon.props.accessibilityLabel).toContain('color: #171717');
+      expect(icon.props.accessibilityLabel).toContain('color: #222222');
     });
 
     it('positions icon before text', () => {
       const { getByText, getByTestId } = render(
-        <Badge icon="star">Text</Badge>
+        <Badge icon='star'>Text</Badge>
       );
       const content = getByText('Text').parent;
       const icon = getByTestId('icon-star');
@@ -421,28 +439,22 @@ describe('Badge Component', () => {
 
     it('calls onPress when pressed', () => {
       const onPress = jest.fn();
-      const { getByText } = render(
-        <Badge onPress={onPress}>Press Me</Badge>
-      );
+      const { getByText } = render(<Badge onPress={onPress}>Press Me</Badge>);
 
       fireEvent.press(getByText('Press Me'));
       expect(onPress).toHaveBeenCalledTimes(1);
     });
 
     it('wraps pressable badge in Animated.View', () => {
-      const { getByText } = render(
-        <Badge onPress={() => {}}>Animated</Badge>
-      );
+      const { getByText } = render(<Badge onPress={() => {}}>Animated</Badge>);
       const badge = getByText('Animated').parent?.parent;
       const animatedWrapper = badge?.parent;
 
-      expect(animatedWrapper?.type.displayName).toBe('AnimatedComponent');
+      expect(animatedWrapper?.type).toBe('Animated.View');
     });
 
     it('has activeOpacity of 1', () => {
-      const { getByText } = render(
-        <Badge onPress={() => {}}>Press</Badge>
-      );
+      const { getByText } = render(<Badge onPress={() => {}}>Press</Badge>);
       const touchable = getByText('Press').parent?.parent;
       expect(touchable?.props.activeOpacity).toBe(1);
     });
@@ -454,10 +466,15 @@ describe('Badge Component', () => {
 
   describe('Accessibility', () => {
     it('has button role when pressable', () => {
-      const { getByRole } = render(
+      // The pressable badge is a TouchableOpacity carrying the children as its
+      // accessibility label. RNTL's getByRole('button') only matches elements
+      // flagged accessible={true}; the component relies on TouchableOpacity's
+      // runtime default, so assert the role prop on the labelled element.
+      const { getByLabelText } = render(
         <Badge onPress={() => {}}>Button Badge</Badge>
       );
-      expect(getByRole('button')).toBeTruthy();
+      const badge = getByLabelText('Button Badge');
+      expect(badge.props.accessibilityRole).toBe('button');
     });
 
     it('has text role when static', () => {
@@ -481,10 +498,10 @@ describe('Badge Component', () => {
     });
 
     it('updates accessibility state when pressed', () => {
-      const { getByRole } = render(
+      const { getByLabelText } = render(
         <Badge onPress={() => {}}>Pressable</Badge>
       );
-      const badge = getByRole('button');
+      const badge = getByLabelText('Pressable');
 
       fireEvent(badge, 'pressIn');
       expect(badge.props.accessibilityState.selected).toBe(true);
@@ -501,13 +518,9 @@ describe('Badge Component', () => {
   describe('Custom Styles', () => {
     it('applies custom style prop to badge', () => {
       const customStyle = { marginTop: 20, marginBottom: 10 };
-      const { getByText } = render(
-        <Badge style={customStyle}>Styled</Badge>
-      );
-      const badge = getByText('Styled').parent;
-      expect(badge?.props.style).toEqual(
-        expect.arrayContaining([customStyle])
-      );
+      const { getByText } = render(<Badge style={customStyle}>Styled</Badge>);
+      const badge = getByText('Styled').parent?.parent;
+      expect(badge?.props.style).toEqual(expect.arrayContaining([customStyle]));
     });
 
     it('applies custom textStyle prop to text', () => {
@@ -524,14 +537,16 @@ describe('Badge Component', () => {
     it('merges custom styles with default styles', () => {
       const customStyle = { opacity: 0.8 };
       const { getByText } = render(
-        <Badge variant="primary" style={customStyle}>Merged</Badge>
+        <Badge variant='primary' style={customStyle}>
+          Merged
+        </Badge>
       );
-      const badge = getByText('Merged').parent;
+      const badge = getByText('Merged').parent?.parent;
       const styles = badge?.props.style.flat();
 
       expect(styles).toEqual(
         expect.arrayContaining([
-          expect.objectContaining({ backgroundColor: '#0EA5E9' }),
+          expect.objectContaining({ backgroundColor: '#E0E7FF' }),
           customStyle,
         ])
       );
@@ -543,17 +558,19 @@ describe('Badge Component', () => {
   // --------------------------------------------------------------------------
 
   describe('Shadows', () => {
-    it('applies shadow styles', () => {
+    it('renders flat (no shadow) in the redesigned badge', () => {
       const { getByText } = render(<Badge>Shadow</Badge>);
-      const badge = getByText('Shadow').parent;
-      expect(badge?.props.style).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            shadowColor: '#171717',
-            shadowOpacity: 0.05,
-          }),
-        ])
+      const badge = getByText('Shadow').parent?.parent;
+      const merged = Object.assign(
+        {},
+        ...getStylesArray(badge?.props.style).filter(Boolean)
       );
+      // The redesigned Badge is flat: it sets overflow:'hidden' and intentionally
+      // carries no shadow properties.
+      expect(merged.overflow).toBe('hidden');
+      expect(merged.shadowColor).toBeUndefined();
+      expect(merged.shadowOpacity).toBeUndefined();
+      expect(merged.elevation).toBeUndefined();
     });
   });
 });
@@ -579,7 +596,7 @@ describe('Chip Component', () => {
     });
 
     it('renders with custom testID', () => {
-      const { getByTestId } = render(<Chip testID="custom-chip">Test</Chip>);
+      const { getByTestId } = render(<Chip testID='custom-chip'>Test</Chip>);
       expect(getByTestId('custom-chip')).toBeTruthy();
     });
   });
@@ -591,7 +608,7 @@ describe('Chip Component', () => {
   describe('Selection', () => {
     it('renders unselected by default', () => {
       const { getByText } = render(<Chip>Unselected</Chip>);
-      const chip = getByText('Unselected').parent;
+      const chip = getByText('Unselected').parent?.parent;
       expect(chip?.props.style).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
@@ -603,12 +620,12 @@ describe('Chip Component', () => {
 
     it('applies border when not selected', () => {
       const { getByText } = render(<Chip selected={false}>Not Selected</Chip>);
-      const chip = getByText('Not Selected').parent;
+      const chip = getByText('Not Selected').parent?.parent;
       expect(chip?.props.style).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
             borderWidth: 1,
-            borderColor: '#E5E5E5',
+            borderColor: '#EBEBEB',
           }),
         ])
       );
@@ -616,7 +633,7 @@ describe('Chip Component', () => {
 
     it('removes border when selected', () => {
       const { getByText } = render(<Chip selected={true}>Selected</Chip>);
-      const chip = getByText('Selected').parent;
+      const chip = getByText('Selected').parent?.parent;
       expect(chip?.props.style).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
@@ -629,11 +646,11 @@ describe('Chip Component', () => {
 
     it('uses neutral variant when not selected', () => {
       const { getByText } = render(<Chip selected={false}>Neutral</Chip>);
-      const chip = getByText('Neutral').parent;
+      const chip = getByText('Neutral').parent?.parent;
       expect(chip?.props.style).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            backgroundColor: '#F5F5F5',
+            backgroundColor: '#F7F7F7',
           }),
         ])
       );
@@ -641,21 +658,23 @@ describe('Chip Component', () => {
 
     it('switches to primary variant when selected', () => {
       const { getByText } = render(<Chip selected={true}>Primary</Chip>);
-      const chip = getByText('Primary').parent;
+      const chip = getByText('Primary').parent?.parent;
       expect(chip?.props.style).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            backgroundColor: '#0EA5E9',
+            backgroundColor: '#E0E7FF',
           }),
         ])
       );
     });
 
     it('exposes selected state in accessibility', () => {
-      const { getByRole } = render(
-        <Chip selected={true} onPress={() => {}}>Selected</Chip>
+      const { getByLabelText } = render(
+        <Chip selected={true} onPress={() => {}}>
+          Selected
+        </Chip>
       );
-      const chip = getByRole('button');
+      const chip = getByLabelText('Selected');
       expect(chip.props.accessibilityState.selected).toBe(true);
     });
   });
@@ -696,7 +715,9 @@ describe('Chip Component', () => {
 
     it('renders custom delete icon', () => {
       const { getByTestId } = render(
-        <Chip onDelete={() => {}} deleteIcon="checkmark">Custom Icon</Chip>
+        <Chip onDelete={() => {}} deleteIcon='checkmark'>
+          Custom Icon
+        </Chip>
       );
       expect(getByTestId('icon-checkmark')).toBeTruthy();
     });
@@ -742,15 +763,14 @@ describe('Chip Component', () => {
       const { getByText } = render(
         <Chip onPress={() => {}}>Pressable Chip</Chip>
       );
-      const chip = getByText('Pressable Chip').parent;
+      // text -> content View -> TouchableOpacity (Chip has no Animated wrapper)
+      const chip = getByText('Pressable Chip').parent?.parent;
       expect(chip?.type).toBe('TouchableOpacity');
     });
 
     it('calls onPress when pressed', () => {
       const onPress = jest.fn();
-      const { getByText } = render(
-        <Chip onPress={onPress}>Press Me</Chip>
-      );
+      const { getByText } = render(<Chip onPress={onPress}>Press Me</Chip>);
 
       fireEvent.press(getByText('Press Me'));
       expect(onPress).toHaveBeenCalledTimes(1);
@@ -760,7 +780,9 @@ describe('Chip Component', () => {
       const onPress = jest.fn();
       const onDelete = jest.fn();
       const { getByText, getByLabelText } = render(
-        <Chip onPress={onPress} onDelete={onDelete}>Chip</Chip>
+        <Chip onPress={onPress} onDelete={onDelete}>
+          Chip
+        </Chip>
       );
 
       fireEvent.press(getByText('Chip'));
@@ -779,13 +801,15 @@ describe('Chip Component', () => {
 
   describe('Icon', () => {
     it('renders with icon', () => {
-      const { getByTestId } = render(<Chip icon="star">With Icon</Chip>);
+      const { getByTestId } = render(<Chip icon='star'>With Icon</Chip>);
       expect(getByTestId('icon-star')).toBeTruthy();
     });
 
     it('renders both icon and delete button', () => {
       const { getByTestId } = render(
-        <Chip icon="heart" onDelete={() => {}}>Both Icons</Chip>
+        <Chip icon='heart' onDelete={() => {}}>
+          Both Icons
+        </Chip>
       );
       expect(getByTestId('icon-heart')).toBeTruthy();
       expect(getByTestId('icon-close')).toBeTruthy();
@@ -798,10 +822,13 @@ describe('Chip Component', () => {
 
   describe('Accessibility', () => {
     it('has button role when pressable', () => {
-      const { getByRole } = render(
+      // See Badge equivalent: TouchableOpacity carries accessibilityRole
+      // 'button' but is not flagged accessible={true}, so query via label.
+      const { getByLabelText } = render(
         <Chip onPress={() => {}}>Button Chip</Chip>
       );
-      expect(getByRole('button')).toBeTruthy();
+      const chip = getByLabelText('Button Chip');
+      expect(chip.props.accessibilityRole).toBe('button');
     });
 
     it('has text role when static', () => {
@@ -810,17 +837,13 @@ describe('Chip Component', () => {
     });
 
     it('delete button has button role', () => {
-      const { getAllByRole } = render(
-        <Chip onDelete={() => {}}>Chip</Chip>
-      );
-      const buttons = getAllByRole('button');
-      expect(buttons.length).toBeGreaterThan(0);
+      const { getByLabelText } = render(<Chip onDelete={() => {}}>Chip</Chip>);
+      const deleteButton = getByLabelText('Remove');
+      expect(deleteButton.props.accessibilityRole).toBe('button');
     });
 
     it('delete button has Remove label', () => {
-      const { getByLabelText } = render(
-        <Chip onDelete={() => {}}>Chip</Chip>
-      );
+      const { getByLabelText } = render(<Chip onDelete={() => {}}>Chip</Chip>);
       expect(getByLabelText('Remove')).toBeTruthy();
     });
   });
@@ -832,13 +855,9 @@ describe('Chip Component', () => {
   describe('Custom Styles', () => {
     it('applies custom style prop', () => {
       const customStyle = { marginTop: 20 };
-      const { getByText } = render(
-        <Chip style={customStyle}>Styled</Chip>
-      );
-      const chip = getByText('Styled').parent;
-      expect(chip?.props.style).toEqual(
-        expect.arrayContaining([customStyle])
-      );
+      const { getByText } = render(<Chip style={customStyle}>Styled</Chip>);
+      const chip = getByText('Styled').parent?.parent;
+      expect(chip?.props.style).toEqual(expect.arrayContaining([customStyle]));
     });
 
     it('applies custom textStyle prop', () => {
@@ -871,7 +890,7 @@ describe('NotificationBadge Component', () => {
 
     it('renders with custom testID', () => {
       const { getByTestId } = render(
-        <NotificationBadge count={5} testID="custom-notification" />
+        <NotificationBadge count={5} testID='custom-notification' />
       );
       expect(getByTestId('custom-notification')).toBeTruthy();
     });
@@ -956,15 +975,15 @@ describe('NotificationBadge Component', () => {
 
   describe('Zero Handling', () => {
     it('returns null when count is 0 by default', () => {
-      const { container } = render(<NotificationBadge count={0} />);
-      expect(container.children.length).toBe(0);
+      const { toJSON } = render(<NotificationBadge count={0} />);
+      expect(toJSON()).toBeNull();
     });
 
     it('returns null when count is 0 and showZero is false', () => {
-      const { container } = render(
+      const { toJSON } = render(
         <NotificationBadge count={0} showZero={false} />
       );
-      expect(container.children.length).toBe(0);
+      expect(toJSON()).toBeNull();
     });
 
     it('displays "0" when count is 0 and showZero is true', () => {
@@ -1055,17 +1074,16 @@ describe('NotificationBadge Component', () => {
     it('uses sm size by default', () => {
       const { getByText } = render(<NotificationBadge count={5} />);
       const text = getByText('5');
+      // NotificationBadge passes a single (non-array) text style object.
       expect(text.props.style).toEqual(
-        expect.arrayContaining([
-          expect.objectContaining({
-            fontSize: 12,
-          }),
-        ])
+        expect.objectContaining({
+          fontSize: 12,
+        })
       );
     });
 
     it('applies sm size dimensions', () => {
-      const { getByText } = render(<NotificationBadge count={5} size="sm" />);
+      const { getByText } = render(<NotificationBadge count={5} size='sm' />);
       const badge = getByText('5').parent;
       expect(badge?.props.style).toEqual(
         expect.arrayContaining([
@@ -1078,7 +1096,7 @@ describe('NotificationBadge Component', () => {
     });
 
     it('applies md size dimensions', () => {
-      const { getByText } = render(<NotificationBadge count={5} size="md" />);
+      const { getByText } = render(<NotificationBadge count={5} size='md' />);
       const badge = getByText('5').parent;
       expect(badge?.props.style).toEqual(
         expect.arrayContaining([
@@ -1091,7 +1109,7 @@ describe('NotificationBadge Component', () => {
     });
 
     it('applies lg size dimensions', () => {
-      const { getByText } = render(<NotificationBadge count={5} size="lg" />);
+      const { getByText } = render(<NotificationBadge count={5} size='lg' />);
       const badge = getByText('5').parent;
       expect(badge?.props.style).toEqual(
         expect.arrayContaining([
@@ -1115,7 +1133,7 @@ describe('NotificationBadge Component', () => {
       expect(badge?.props.style).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            backgroundColor: '#EF4444',
+            backgroundColor: '#FEE2E2',
           }),
         ])
       );
@@ -1123,13 +1141,13 @@ describe('NotificationBadge Component', () => {
 
     it('applies custom variant', () => {
       const { getByText } = render(
-        <NotificationBadge count={5} variant="success" />
+        <NotificationBadge count={5} variant='success' />
       );
       const badge = getByText('5').parent;
       expect(badge?.props.style).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            backgroundColor: '#22C55E',
+            backgroundColor: '#CCFBF1',
           }),
         ])
       );
@@ -1159,9 +1177,7 @@ describe('NotificationBadge Component', () => {
         <NotificationBadge count={5} style={customStyle} />
       );
       const badge = getByText('5').parent;
-      expect(badge?.props.style).toEqual(
-        expect.arrayContaining([customStyle])
-      );
+      expect(badge?.props.style).toEqual(expect.arrayContaining([customStyle]));
     });
 
     it('merges custom styles with default positioning', () => {
