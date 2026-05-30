@@ -12,7 +12,6 @@
  */
 
 import { NextResponse } from 'next/server';
-import { z } from 'zod';
 import {
   serverSupabase,
   createRequestScopedClient,
@@ -27,45 +26,9 @@ import { validateRequest } from '@/lib/validation/validator';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { PropertyTeamService } from '@/lib/services/property-team/PropertyTeamService';
 import { isValidUUID } from '@/lib/validation/uuid';
-
-export const ROOM_TYPES = [
-  'kitchen',
-  'bathroom',
-  'bedroom',
-  'living_room',
-  'dining_room',
-  'garage',
-  'garden',
-  'exterior',
-  'roof',
-  'hallway',
-  'office',
-  'utility',
-  'other',
-] as const;
-
-export const createRoomSchema = z
-  .object({
-    name: z
-      .string()
-      .trim()
-      .min(1, 'Room name is required')
-      .max(80, 'Room name must be 80 characters or fewer'),
-    room_type: z.enum(ROOM_TYPES),
-    size_sqm: z
-      .number()
-      .min(0, 'Size cannot be negative')
-      .max(10000, 'Size looks unrealistically large')
-      .optional()
-      .nullable(),
-    notes: z
-      .string()
-      .trim()
-      .max(500, 'Notes must be 500 characters or fewer')
-      .optional()
-      .nullable(),
-  })
-  .strict();
+// ROOM_TYPES + createRoomSchema live in ./schema (not here) — App Router
+// route files may only export handlers/config, else `next build` fails.
+import { createRoomSchema } from './schema';
 
 export const GET = withApiHandler(
   { rateLimit: { maxRequests: 60 } },

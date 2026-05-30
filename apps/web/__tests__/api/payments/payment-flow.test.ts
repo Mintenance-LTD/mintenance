@@ -711,41 +711,40 @@ describe('FeeCalculationService', () => {
     });
   });
 
-  describe('Platform Fee (5%, min 0.50, max 50.00)', () => {
-    it('should apply 5% platform fee for a standard 100 GBP payment', () => {
+  describe('Platform Fee (Basic tier 12%, min 0.50, no max cap)', () => {
+    it('should apply the 12% Basic-tier platform fee for a standard 100 GBP payment', () => {
       const result = FeeCalculationService.calculateFees(100);
 
-      // Platform fee: 100 * 0.05 = 5.00
-      expect(result.platformFee).toBe(5.0);
-      expect(result.platformFeeRate).toBe(0.05);
+      // Platform fee: 100 * 0.12 = 12.00 (Basic-tier default)
+      expect(result.platformFee).toBe(12.0);
+      expect(result.platformFeeRate).toBe(0.12);
     });
 
     it('should enforce minimum platform fee of 0.50 for very small payments', () => {
-      const result = FeeCalculationService.calculateFees(5);
+      const result = FeeCalculationService.calculateFees(2);
 
-      // 5% of 5 = 0.25, which is below min 0.50
+      // 12% of 2 = 0.24, which is below min 0.50
       // Should clamp to 0.50
       expect(result.platformFee).toBe(0.5);
     });
 
-    it('should enforce maximum platform fee of 50.00 for large payments', () => {
+    it('should NOT cap the platform fee for large payments (£50 cap removed 2026-05-22)', () => {
       const result = FeeCalculationService.calculateFees(2000);
 
-      // 5% of 2000 = 100, which exceeds max 50.00
-      // Should clamp to 50.00
-      expect(result.platformFee).toBe(50.0);
+      // 12% of 2000 = 240.00 — tiered-fee rollout removed the old £50 cap
+      expect(result.platformFee).toBe(240.0);
     });
 
     it('should apply exactly the minimum fee at the threshold', () => {
-      // 5% of 10 = 0.50 (exactly the minimum)
-      const result = FeeCalculationService.calculateFees(10);
+      // 12% of 4 = 0.48, below the 0.50 minimum → clamps to 0.50
+      const result = FeeCalculationService.calculateFees(4);
       expect(result.platformFee).toBe(0.5);
     });
 
-    it('should apply exactly the maximum fee at the threshold', () => {
-      // 5% of 1000 = 50.00 (exactly the maximum)
+    it('should scale the fee linearly with no upper cap', () => {
+      // 12% of 1000 = 120.00 (no maximum applied)
       const result = FeeCalculationService.calculateFees(1000);
-      expect(result.platformFee).toBe(50.0);
+      expect(result.platformFee).toBe(120.0);
     });
   });
 
@@ -753,25 +752,25 @@ describe('FeeCalculationService', () => {
     it('should correctly calculate contractor payout for 100 GBP', () => {
       const result = FeeCalculationService.calculateFees(100);
 
-      // Platform fee: 5.00
+      // Platform fee: 100 * 0.12 = 12.00
       // Stripe fee: 1.70
-      // Total fees: 6.70
-      // Contractor gets: 100 - 6.70 = 93.30
-      expect(result.totalFees).toBe(6.7);
-      expect(result.contractorAmount).toBe(93.3);
+      // Total fees: 13.70
+      // Contractor gets: 100 - 13.70 = 86.30
+      expect(result.totalFees).toBe(13.7);
+      expect(result.contractorAmount).toBe(86.3);
     });
 
     it('should correctly calculate contractor payout for 500 GBP', () => {
       const result = FeeCalculationService.calculateFees(500);
 
-      // Platform fee: 500 * 0.05 = 25.00
+      // Platform fee: 500 * 0.12 = 60.00
       // Stripe fee: 500 * 0.015 + 0.20 = 7.50 + 0.20 = 7.70
-      // Total fees: 32.70
-      // Contractor gets: 500 - 32.70 = 467.30
-      expect(result.platformFee).toBe(25.0);
+      // Total fees: 67.70
+      // Contractor gets: 500 - 67.70 = 432.30
+      expect(result.platformFee).toBe(60.0);
       expect(result.stripeFee).toBe(7.7);
-      expect(result.totalFees).toBe(32.7);
-      expect(result.contractorAmount).toBe(467.3);
+      expect(result.totalFees).toBe(67.7);
+      expect(result.contractorAmount).toBe(432.3);
     });
 
     it('should floor contractor amount to zero when fees exceed payment', () => {
@@ -787,19 +786,19 @@ describe('FeeCalculationService', () => {
   });
 
   describe('Payment Type Variants', () => {
-    it('should apply same 5% rate for deposit payments', () => {
+    it('should apply the same 12% Basic rate for deposit payments', () => {
       const result = FeeCalculationService.calculateFees(100, {
         paymentType: 'deposit',
       });
-      expect(result.platformFeeRate).toBe(0.05);
+      expect(result.platformFeeRate).toBe(0.12);
       expect(result.paymentType).toBe('deposit');
     });
 
-    it('should apply same 5% rate for milestone payments', () => {
+    it('should apply the same 12% Basic rate for milestone payments', () => {
       const result = FeeCalculationService.calculateFees(100, {
         paymentType: 'milestone',
       });
-      expect(result.platformFeeRate).toBe(0.05);
+      expect(result.platformFeeRate).toBe(0.12);
       expect(result.paymentType).toBe('milestone');
     });
 
@@ -835,14 +834,14 @@ describe('FeeCalculationService', () => {
     it('should correctly calculate fees in cents for 10000 (100 GBP)', () => {
       const result = FeeCalculationService.calculateFeesInCents(10000);
 
-      // Platform fee: 500 (5.00 GBP)
+      // Platform fee: 1200 (12.00 GBP)
       // Stripe fee: 170 (1.70 GBP)
-      // Total fees: 670 (6.70 GBP)
-      // Contractor: 9330 (93.30 GBP)
-      expect(result.platformFee).toBe(500);
+      // Total fees: 1370 (13.70 GBP)
+      // Contractor: 8630 (86.30 GBP)
+      expect(result.platformFee).toBe(1200);
       expect(result.stripeFee).toBe(170);
-      expect(result.totalFees).toBe(670);
-      expect(result.contractorAmount).toBe(9330);
+      expect(result.totalFees).toBe(1370);
+      expect(result.contractorAmount).toBe(8630);
       expect(result.originalAmount).toBe(10000);
     });
   });
@@ -861,7 +860,7 @@ describe('FeeCalculationService', () => {
     });
 
     it('should round all results to two decimal places', () => {
-      // 33.33 * 0.05 = 1.6665 -> should round to 1.67
+      // 33.33 * 0.12 = 3.9996 -> should round to 4.00
       const result = FeeCalculationService.calculateFees(33.33);
       const twoDecimalRegex = /^\d+(\.\d{1,2})?$/;
 
@@ -903,9 +902,9 @@ describe('FeeCalculationService', () => {
 
   describe('Helper Methods', () => {
     it('should return correct platform fee rate for each payment type', () => {
-      expect(FeeCalculationService.getPlatformFeeRate('deposit')).toBe(0.05);
-      expect(FeeCalculationService.getPlatformFeeRate('final')).toBe(0.05);
-      expect(FeeCalculationService.getPlatformFeeRate('milestone')).toBe(0.05);
+      expect(FeeCalculationService.getPlatformFeeRate('deposit')).toBe(0.12);
+      expect(FeeCalculationService.getPlatformFeeRate('final')).toBe(0.12);
+      expect(FeeCalculationService.getPlatformFeeRate('milestone')).toBe(0.12);
     });
 
     it('should return Stripe fee rate of 1.5%', () => {
@@ -918,8 +917,8 @@ describe('FeeCalculationService', () => {
 
     it('should calculate platform fee only', () => {
       const fee = FeeCalculationService.calculatePlatformFee(200);
-      // 200 * 0.05 = 10.00
-      expect(fee).toBe(10.0);
+      // 200 * 0.12 = 24.00
+      expect(fee).toBe(24.0);
     });
 
     it('should calculate Stripe fee only', () => {
@@ -930,9 +929,9 @@ describe('FeeCalculationService', () => {
 
     it('should calculate contractor payout', () => {
       const payout = FeeCalculationService.calculateContractorPayout(200);
-      // Platform: 10.00, Stripe: 3.20, Total: 13.20
-      // Contractor: 200 - 13.20 = 186.80
-      expect(payout).toBe(186.8);
+      // Platform: 24.00, Stripe: 3.20, Total: 27.20
+      // Contractor: 200 - 27.20 = 172.80
+      expect(payout).toBe(172.8);
     });
   });
 });
@@ -1022,10 +1021,12 @@ describe('POST /api/payments/refund', () => {
       const response = await POST(request);
       const body = await response.json();
 
+      // 2026-05-09: the refund route gained a perimeter `roles: ['homeowner']`
+      // lock (withApiHandler), so a contractor is now rejected with a generic
+      // 403 BEFORE the inner "only the homeowner who paid" check is reached.
+      // Either path means the contractor cannot refund.
       expect(response.status).toBe(403);
-      expect(body.error).toContain(
-        'Only the homeowner who paid can request a refund'
-      );
+      expect(body.error).toBeDefined();
     });
 
     it('should reject refund from a user who is neither homeowner nor contractor', async () => {
@@ -1451,6 +1452,12 @@ describe('POST /api/payments/release-escrow', () => {
           selectReturn: {
             data: {
               stripe_connect_account_id: 'acct_test_contractor',
+              // 2026-05-25 audit-46 P0: release now pre-flights these
+              // payout-readiness flags before transferring funds. Without
+              // them the route 400s ("contractor not set up") before the
+              // Stripe transfer is ever attempted.
+              stripe_payouts_enabled: true,
+              stripe_transfers_active: true,
             },
             error: null,
           },
@@ -1672,10 +1679,15 @@ describe('POST /api/payments/create-intent', () => {
   });
 
   describe('Payment Amount Validation', () => {
-    it('should reject payment exceeding job budget', async () => {
+    it('should reject a bid exceeding the absolute platform maximum', async () => {
+      // 2026-05-26 audit-60 P2 removed the legacy `acceptedBid > job.budget`
+      // 400 gate (open-bidding model — homeowners may knowingly accept a bid
+      // above any budget hint). The remaining server-side guard is the
+      // £100,000 ABSOLUTE_MAX_PAYMENT data-integrity backstop, which this
+      // test now exercises.
       mocks.validateRequest.mockResolvedValue({
         data: {
-          amount: 600,
+          amount: 100001,
           currency: 'gbp',
           jobId: '550e8400-e29b-41d4-a716-446655440000',
           contractorId: 'contractor-abc',
@@ -1710,9 +1722,11 @@ describe('POST /api/payments/create-intent', () => {
             error: null,
           },
         },
+        // Server-authoritative amount comes from the accepted bid; set it
+        // above the £100k absolute cap to trip the backstop.
         bids: {
           selectReturn: {
-            data: { amount: 600, status: 'accepted' },
+            data: { id: 'bid-1', amount: 100001, status: 'accepted' },
             error: null,
           },
         },
@@ -1725,7 +1739,7 @@ describe('POST /api/payments/create-intent', () => {
       const body = await response.json();
 
       expect(response.status).toBe(400);
-      expect(body.error).toContain('cannot exceed');
+      expect(body.error).toContain('exceeds platform maximum');
     });
   });
 
@@ -2159,9 +2173,17 @@ describe('Cross-Cutting Payment Security', () => {
       expect(body.success).toBe(true);
     });
 
-    it('should return 409 on lock contention for refund', async () => {
-      // null return means lock contention
-      mocks.checkIdempotency.mockResolvedValue(null);
+    it('should surface a 503 when the idempotency store signals contention', async () => {
+      // 2026-05: checkIdempotency no longer returns null for contention —
+      // null now means "claim acquired, proceed". Real contention (another
+      // in-flight request holding the key) THROWS
+      // IdempotencyStoreUnavailableError, a ServiceUnavailableError subclass
+      // that withApiHandler maps to a clean 503 (fail-closed).
+      const { ServiceUnavailableError } =
+        await import('@/lib/errors/api-error');
+      mocks.checkIdempotency.mockRejectedValue(
+        new ServiceUnavailableError('Idempotency store')
+      );
 
       mocks.validateRequest.mockResolvedValue({
         data: {
@@ -2177,8 +2199,8 @@ describe('Cross-Cutting Payment Security', () => {
       const response = await POST(request);
       const body = await response.json();
 
-      expect(response.status).toBe(409);
-      expect(body.error).toContain('being processed');
+      expect(response.status).toBe(503);
+      expect(body.error).toBeDefined();
     });
   });
 
