@@ -47,7 +47,6 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
   const [location, setLocation] = useState('');
   const [category, setCategory] = useState('handyman');
   const [urgency, setUrgency] = useState<'low' | 'medium' | 'high'>('medium');
-  const [budget, setBudget] = useState('');
   const [aiPricingAnalysis, setAIPricingAnalysis] =
     useState<PricingAnalysis | null>(null);
   const [validationErrors, setValidationErrors] = useState<
@@ -67,7 +66,13 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
   });
 
   const createJobMutation = useCreateJob();
-  const { silverMode, loading: silverLoading } = useSilverMode();
+  // 2026-05-23: silver-mode users used to be auto-routed to a
+  // separate 3-step PostJobWizardScreen. That screen duplicated this
+  // one's validation + submit pipeline and was already starting to
+  // drift (audit P2). Retired in favour of plumbing `silverMode`
+  // through to JobPostingFormFields so the full screen scales fonts
+  // + raises touch targets for the silver-mode audience.
+  const { silverMode } = useSilverMode();
 
   // Discard-prompt — fields all start empty, so any user-typed
   // content (incl. selecting a non-default category, urgency, or
@@ -76,7 +81,6 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
     title ||
     description ||
     location ||
-    budget ||
     photos.length > 0 ||
     buildingAssessment ||
     aiPricingAnalysis ||
@@ -89,21 +93,10 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
     if (user && user.role !== 'homeowner') {
       goToTab(navigation, 'HomeTab');
     }
-    // R3 deferred #7 — Silver-mode users go to the simplified 3-step
-    // wizard. PostJobWizard is registered on the JobsStack and this
-    // screen IS already typed against JobsStackParamList, so the
-    // typed prop accepts the call directly. 2026-05-01 audit P1: cast
-    // dropped now that the typed prop matches the registered route.
-    if (!silverLoading && silverMode) {
-      navigation.navigate('PostJobWizard');
-    }
-  }, [user, navigation, silverMode, silverLoading]);
+  }, [user, navigation]);
 
   const handlePricingUpdate = (analysis: PricingAnalysis) => {
     setAIPricingAnalysis(analysis);
-    if (!budget && analysis.suggestedPrice.optimal) {
-      setBudget(analysis.suggestedPrice.optimal.toString());
-    }
   };
 
   const handleAddPhoto = async () => {
@@ -153,21 +146,14 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
   };
 
   /**
-   * 2026-05-01 audit P1 close-out (per-screen validateJobDraft adoption):
-   * the shared `validateJobDraft` adapter from `@mintenance/api-contracts`
-   * runs the SAME server schema, so the baseline length / range / required
-   * checks match the wire-level Zod errors exactly. We keep two
-   * screen-specific UX constraints on top (budget min £10 / max £50,000)
-   * because the canonical schema's bounds are wider than the marketplace
-   * product wants — those layered constraints are intentional, not drift.
+   * 2026-05-22: budget input removed from this screen. The shared
+   * `validateJobDraft` adapter from `@mintenance/api-contracts` runs the
+   * SAME server schema, so client-side errors here mirror the wire-level
+   * Zod errors exactly.
    */
   const validateField = (fieldName: string, value: string): string => {
-    // Single-field check: build a partial draft and ask the canonical
-    // adapter what (if anything) is wrong with it. Server-aligned by
-    // construction.
     const draft: Parameters<typeof validateJobDraft>[0] = {
-      [fieldName === 'budget' ? 'budget' : fieldName]:
-        fieldName === 'budget' ? value : value,
+      [fieldName]: value,
       // Mark the OTHER required fields as syntactically valid so the
       // adapter only complains about THIS field. Trim to non-empty
       // safe defaults for the schema's minimum lengths.
@@ -176,21 +162,11 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
         description: description || 'Placeholder description text 20+',
       }),
       ...(fieldName !== 'location' && { location: location || 'placeholder' }),
-      ...(fieldName !== 'budget' && { budget: parseFloat(budget) || 100 }),
     };
     const result = validateJobDraft(draft);
     if (!result.ok) {
       const fieldError = result.errors.find((e) => e.field === fieldName);
       if (fieldError) return fieldError.message;
-    }
-
-    // Layered UX constraints on top of the canonical schema.
-    if (fieldName === 'budget' && value.trim()) {
-      const n = parseFloat(value);
-      if (Number.isFinite(n)) {
-        if (n > 50000) return 'Budget cannot exceed £50,000';
-        if (n < 10) return 'Minimum budget is £10';
-      }
     }
     return '';
   };
@@ -205,9 +181,6 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
         break;
       case 'location':
         setLocation(value);
-        break;
-      case 'budget':
-        setBudget(value);
         break;
     }
     const error = validateField(fieldName, value);
@@ -243,9 +216,18 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
       title: validateField('title', title),
       description: validateField('description', description),
       location: validateField('location', location),
-      budget: validateField('budget', budget),
     };
     setValidationErrors(errors);
+
+    // 2026-05-22: photos required on every job (replaces the old
+    // budget>£500 gate). Surface inline before falling through.
+    if (photos.length < 1) {
+      Alert.alert(
+        'Photos required',
+        'Please add at least one photo so contractors can quote accurately.'
+      );
+      return;
+    }
 
     if (Object.values(errors).some((e) => e !== '') || allErrors.length > 0) {
       if (allErrors.length > 0) {
@@ -264,33 +246,12 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
       return;
     }
 
-    const budgetNumber = parseFloat(budget);
-
-    if (
-      aiPricingAnalysis &&
-      Math.abs(budgetNumber - aiPricingAnalysis.suggestedPrice.optimal) >
-        aiPricingAnalysis.suggestedPrice.optimal * 0.3
-    ) {
-      const proceed = await new Promise<boolean>((resolve) => {
-        Alert.alert(
-          'Budget Notice',
-          `Your budget (£${budgetNumber}) differs from our AI recommendation (£${aiPricingAnalysis.suggestedPrice.optimal}). Continue anyway?`,
-          [
-            { text: 'Cancel', onPress: () => resolve(false) },
-            { text: 'Continue', onPress: () => resolve(true) },
-          ]
-        );
-      });
-      if (!proceed) return;
-    }
-
     setIsSubmitting(true);
     try {
       logger.info('Submitting job posting', {
         title,
         category,
         urgency,
-        budget: budgetNumber,
       });
       // R6 #19 tenancy metadata — only attached when the user opted in.
       const tenancyMetadata =
@@ -313,7 +274,6 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
         title: title.trim(),
         description: description.trim(),
         location: location.trim(),
-        budget: budgetNumber,
         homeownerId: user.id,
         category,
         urgency,
@@ -344,17 +304,31 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <View style={[styles.header, { paddingTop: insets.top }]}>
+      {/* 2026-05-22 Mint Editorial v2: top bar (back arrow only) +
+          separate paper-feel screenHeader block. Replaces the
+          centred phone-app navbar (back ← "Post a Job" → spacer)
+          to match HomeownerDashboard / BusinessHub / Finance and
+          the rest of the editorial surfaces. */}
+      <View style={[styles.topBar, { paddingTop: insets.top + 8 }]}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
           accessibilityRole='button'
           accessibilityLabel='Go back'
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Ionicons name='arrow-back' size={24} color={me.ink} />
+          <Ionicons name='arrow-back' size={20} color={me.ink} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Post a Job</Text>
-        <View style={{ width: 40 }} />
+      </View>
+      <View style={styles.screenHeader}>
+        <Text style={styles.eyebrow}>New job</Text>
+        <Text style={styles.headline} accessibilityRole='header'>
+          Post a Job
+        </Text>
+        <Text style={styles.sub}>
+          Describe the work and add photos — contractors will quote and you
+          choose the bid that suits you best.
+        </Text>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -364,12 +338,12 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
           location={location}
           category={category}
           urgency={urgency}
-          budget={budget}
           photos={photos}
           buildingAssessment={buildingAssessment}
           aiPricingAnalysis={aiPricingAnalysis}
           validationErrors={validationErrors}
           jobCategories={JOB_CATEGORIES}
+          silverMode={silverMode}
           onFieldChange={handleFieldChange}
           onCategoryChange={setCategory}
           onUrgencyChange={setUrgency}
@@ -378,9 +352,6 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
           onRemovePhoto={handleRemovePhoto}
           onAssessmentComplete={(assessment) => {
             setBuildingAssessment(assessment);
-            if (!budget && assessment.estimatedCost.likely) {
-              setBudget(Math.round(assessment.estimatedCost.likely).toString());
-            }
           }}
           onAssessmentCorrection={(assessmentId, corrections) => {
             logger.info('Training data corrections submitted', {
@@ -443,17 +414,16 @@ const JobPostingScreen: React.FC<Props> = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: me.bg2,
+    backgroundColor: me.bg,
   },
-  header: {
+  // Editorial v2 top bar + screenHeader pair. Legacy `header` /
+  // `headerTitle` styles (centred phone-app navbar) removed
+  // alongside the JSX refactor.
+  topBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    backgroundColor: me.surface,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: me.line,
+    paddingHorizontal: 12,
+    paddingBottom: 8,
   },
   backButton: {
     width: 40,
@@ -463,10 +433,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerTitle: {
-    fontSize: 18,
+  screenHeader: {
+    paddingHorizontal: 20,
+    paddingTop: 4,
+    paddingBottom: 14,
+  },
+  eyebrow: {
+    fontSize: 11,
     fontWeight: '700',
+    color: me.brand,
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+    marginBottom: 6,
+  },
+  headline: {
+    fontFamily: me.font.display,
+    fontSize: 28,
+    lineHeight: 32,
     color: me.ink,
+    letterSpacing: me.displayTracking,
+  },
+  sub: {
+    fontSize: 13,
+    color: me.ink3,
+    marginTop: 6,
+    lineHeight: 18,
   },
   content: {
     flex: 1,

@@ -195,8 +195,8 @@ export function Footer2025() {
                 margin: '0 0 20px',
               }}
             >
-              The modern way to hire verified tradespeople — fair prices,
-              protected payments, every job in one place.
+              The modern way to hire local tradespeople — fair prices,
+              escrow-protected payments, every job in one place.
             </p>
 
             <section aria-labelledby='newsletter-heading'>

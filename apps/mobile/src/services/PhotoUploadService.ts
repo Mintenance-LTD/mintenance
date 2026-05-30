@@ -29,6 +29,10 @@ interface PhotoUploadResult {
   url?: string;
   metadata?: PhotoMetadata;
   error?: string;
+  // 2026-05-24 audit-39 P1: after-photo API auto-completes only when
+  // contractor+escrow gates pass; surface the flag so callers don't
+  // falsely claim "Job Completed" on a still-in_progress job.
+  jobCompleted?: boolean;
 }
 
 /**
@@ -223,14 +227,22 @@ export class PhotoUploadService {
         } as unknown as Blob);
         formData.append('metadata', JSON.stringify(metadata));
 
-        let data: { photoId?: string; url?: string };
+        // 2026-05-26 audit-52 P2: normalise response shape — same as before-photo path.
+        let data: { photoId?: string; url?: string; jobCompleted?: boolean };
         try {
-          data = await withUploadRetry('uploadAfterPhotos', () =>
+          const rawResponse = await withUploadRetry('uploadAfterPhotos', () =>
             mobileApiClient.postFormData<{
               photoId?: string;
               url?: string;
+              jobCompleted?: boolean;
+              photos?: { url: string; qualityScore?: number }[];
             }>(`/api/jobs/${jobId}/photos/after`, formData)
           );
+          data = {
+            photoId: rawResponse.photoId,
+            url: rawResponse.photos?.[0]?.url ?? rawResponse.url,
+            jobCompleted: rawResponse.jobCompleted,
+          };
         } catch (uploadError) {
           const apiError = parseError(uploadError);
           results.push({
@@ -245,6 +257,9 @@ export class PhotoUploadService {
           photoId: data.photoId,
           url: data.url,
           metadata,
+          // 2026-05-24 audit-39 P1: propagate server jobCompleted so
+          // the screen can pick the right success message.
+          jobCompleted: data.jobCompleted === true,
         });
       } catch (error) {
         const apiError = parseError(error);

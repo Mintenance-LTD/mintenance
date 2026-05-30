@@ -1,6 +1,6 @@
 /**
  * BookingService Class
- * 
+ *
  * Handles all booking-related business logic including loading,
  * cancelling, and managing booking data.
  */
@@ -30,8 +30,11 @@ export class BookingService {
       // Transform jobs into booking format
       const bookings = await Promise.all(
         (allJobs || []).map(async (job: Job) => {
-          const otherUserId = user.role === 'homeowner' ? job.contractor_id : job.homeowner_id;
-          const otherUser = otherUserId ? await this.getUserInfo(otherUserId) : null;
+          const otherUserId =
+            user.role === 'homeowner' ? job.contractor_id : job.homeowner_id;
+          const otherUser = otherUserId
+            ? await this.getUserInfo(otherUserId)
+            : null;
 
           return {
             id: job.id,
@@ -42,8 +45,21 @@ export class BookingService {
             serviceName: job.title || 'Service Request',
             address: (job.location || 'Address not provided') as string,
             serviceId: job.id,
-            date: this.formatDate(job.created_at),
-            time: this.formatTime(job.created_at),
+            // 2026-05-23 audit-20 P2: reschedule writes
+            // jobs.scheduled_start_date but this list used to format
+            // job.created_at as the displayed booking date/time. The
+            // backend update succeeded yet the UI kept showing the
+            // original job creation timestamp — users thought
+            // rescheduling didn't work. Prefer scheduled_start_date
+            // and fall back to created_at for legacy jobs without one.
+            date: this.formatDate(
+              (job as { scheduled_start_date?: string }).scheduled_start_date ||
+                job.created_at
+            ),
+            time: this.formatTime(
+              (job as { scheduled_start_date?: string }).scheduled_start_date ||
+                job.created_at
+            ),
             status: this.mapJobStatusToBookingStatus(job.status),
             amount: job.budget || 0,
             rating: undefined,
@@ -86,7 +102,10 @@ export class BookingService {
         .select('id, first_name, last_name, profile_image_url')
         .eq('id', userId)
         .single();
-      if (error) { logger.error('Error getting user info:', error.message); return null; }
+      if (error) {
+        logger.error('Error getting user info:', error.message);
+        return null;
+      }
       return data as UserProfile;
     } catch (error) {
       logger.error('Error getting user info:', error);
@@ -121,7 +140,9 @@ export class BookingService {
     }
   }
 
-  private mapJobStatusToBookingStatus(jobStatus: string): 'upcoming' | 'completed' | 'cancelled' {
+  private mapJobStatusToBookingStatus(
+    jobStatus: string
+  ): 'upcoming' | 'completed' | 'cancelled' {
     switch (jobStatus?.toLowerCase()) {
       case 'posted':
       case 'assigned':

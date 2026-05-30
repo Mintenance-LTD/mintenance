@@ -1,9 +1,23 @@
+/**
+ * EscrowDashboardScreen — Mint Editorial redesign per
+ * redesign-v2 contractor business deck screen 13.
+ *
+ * Replaces the legacy 3-pill summary (Held / Pending / Released)
+ * with a single amber held-funds hero plus per-job rows that include
+ * a 4-step progress bar (Posted → Working → Sign-off → Released)
+ * and a footer note explaining the 7-day auto-release safety net.
+ *
+ * Bucket maths were corrected on 2026-05-21 (Bug #7) — `pending` and
+ * `held` both belong to the "held-in-escrow" pot, `release_pending`
+ * means the homeowner-approval window has opened, and `released` /
+ * `completed` are the terminal paid state. We retain that intent
+ * grouping here so the hero amount matches the per-row tally.
+ */
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
-  StyleSheet,
   FlatList,
   ActivityIndicator,
   RefreshControl,
@@ -20,6 +34,7 @@ import { supabase } from '../../config/supabase';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { logger } from '../../utils/logger';
 import { me } from '../../design-system/mint-editorial';
+import { styles } from './escrowDashboardStyles';
 
 type Props = NativeStackScreenProps<ProfileStackParamList, 'EscrowDashboard'>;
 
@@ -29,39 +44,78 @@ interface EscrowRecord {
   status: string;
   created_at: string;
   job_title: string;
+  payer_name?: string;
 }
 
-// Pill colours match the bucket-grouping in the summary header: pending
-// + held share amber (money committed but not yet released), released +
-// completed share green (terminal paid state). The fallback in
-// `renderRecord` keeps any unexpected future status visible rather than
-// throwing.
-const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
-  pending: { bg: '#FEF3C7', text: '#D97706' },
-  held: { bg: '#FEF3C7', text: '#D97706' },
-  release_pending: { bg: '#DBEAFE', text: '#2563EB' },
-  released: { bg: '#D1FAE5', text: '#059669' },
-  completed: { bg: '#D1FAE5', text: '#059669' },
+/**
+ * The canonical escrow lifecycle is
+ *   pending → held → release_pending → completed.
+ * The deck's progress bar uses the *job* labels Posted → Working →
+ * Sign-off → Released. The mapping below stays honest:
+ *   - pending → step 0 (posted; Stripe charge in flight)
+ *   - held    → step 1 (working; contractor is doing the work)
+ *   - release_pending → step 2 (sign-off; homeowner reviewing)
+ *   - released / completed → step 3 (released; money out)
+ */
+const STAGE_BY_STATUS: Record<string, 0 | 1 | 2 | 3> = {
+  pending: 0,
+  held: 1,
+  release_pending: 2,
+  released: 3,
+  completed: 3,
 };
 
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-GB', {
+const formatCurrency = (amount: number): string =>
+  new Intl.NumberFormat('en-GB', {
     style: 'currency',
     currency: 'GBP',
   }).format(amount);
-}
 
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('en-GB', {
+const heldSinceLabel = (createdIso: string): string => {
+  const ms = Date.now() - new Date(createdIso).getTime();
+  if (Number.isNaN(ms) || ms < 0) return 'Held since today';
+  const days = Math.floor(ms / (1000 * 60 * 60 * 24));
+  if (days <= 0) return 'Held since today';
+  if (days === 1) return 'Held since yesterday';
+  return `Held since ${new Date(createdIso).toLocaleDateString('en-GB', {
     day: 'numeric',
     month: 'short',
-    year: 'numeric',
-  });
-}
+  })}`;
+};
 
-function formatStatus(status: string): string {
-  return status.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-}
+const ProgressBar: React.FC<{ stage: 0 | 1 | 2 | 3 }> = ({ stage }) => (
+  <>
+    <View style={styles.progressTrack}>
+      {[0, 1, 2, 3].map((i) => {
+        const done = i < stage;
+        const active = i === stage && stage !== 3;
+        return (
+          <View
+            key={i}
+            style={[
+              styles.progressSeg,
+              done && styles.progressSegDone,
+              active && styles.progressSegActive,
+              stage === 3 && styles.progressSegDone,
+            ]}
+          />
+        );
+      })}
+    </View>
+    <View style={styles.progressLabels}>
+      <Text style={styles.progressLabel}>Posted</Text>
+      <Text style={[styles.progressLabel, styles.progressLabelCenter]}>
+        Working
+      </Text>
+      <Text style={[styles.progressLabel, styles.progressLabelCenter]}>
+        Sign-off
+      </Text>
+      <Text style={[styles.progressLabel, styles.progressLabelEnd]}>
+        Released
+      </Text>
+    </View>
+  </>
+);
 
 const EscrowDashboardScreen: React.FC<Props> = ({ navigation }) => {
   const insets = useSafeAreaInsets();
@@ -74,24 +128,39 @@ const EscrowDashboardScreen: React.FC<Props> = ({ navigation }) => {
   const fetchEscrowData = useCallback(async () => {
     if (!user?.id) return;
     try {
+      // 2026-05-23 audit: use explicit FK form for the job embed —
+      // matches PaymentHistoryScreen + the homeowner /financials API
+      // route. The payer embed was already explicit (profiles!payer_id).
       const { data, error } = await supabase
         .from('escrow_transactions')
-        .select('id, amount, status, created_at, job:job_id(title)')
+        .select(
+          'id, amount, status, created_at, job:jobs!escrow_transactions_job_id_fkey(title), payer:profiles!payer_id(first_name, last_name)'
+        )
         .or(`payer_id.eq.${user.id},payee_id.eq.${user.id}`)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
 
       const mapped: EscrowRecord[] = (data ?? []).map(
-        (row: Record<string, unknown>) => ({
-          id: row.id as string,
-          amount: row.amount as number,
-          status: row.status as string,
-          created_at: row.created_at as string,
-          job_title:
-            ((row.job as Record<string, unknown>)?.title as string) ??
-            'Untitled Job',
-        })
+        (row: Record<string, unknown>) => {
+          const payer = row.payer as {
+            first_name?: string;
+            last_name?: string;
+          } | null;
+          const payerName = payer
+            ? [payer.first_name, payer.last_name].filter(Boolean).join(' ')
+            : '';
+          return {
+            id: row.id as string,
+            amount: row.amount as number,
+            status: row.status as string,
+            created_at: row.created_at as string,
+            job_title:
+              ((row.job as Record<string, unknown>)?.title as string) ??
+              'Untitled job',
+            payer_name: payerName || undefined,
+          };
+        }
       );
       setRecords(mapped);
     } catch (error) {
@@ -111,63 +180,26 @@ const EscrowDashboardScreen: React.FC<Props> = ({ navigation }) => {
     fetchEscrowData();
   }, [fetchEscrowData]);
 
-  // 2026-05-21 audit: the summary buckets did exact-string matches on
-  // `held` / `release_pending` / `released`, but the canonical escrow
-  // lifecycle (CLAUDE.md) is `pending → held → release_pending →
-  // completed`. Rows with status `pending` (homeowner committed,
-  // Stripe charge in flight) and `completed` (terminal released state)
-  // were invisible to all three buckets — so the list could total
-  // £2.66 while the header summed to £1.20. Group statuses by intent.
-  const sumByStatus = (statuses: readonly string[]) =>
-    records
-      .filter((r) => statuses.includes(r.status))
-      .reduce((sum, r) => sum + r.amount, 0);
-  const totalHeld = sumByStatus(['pending', 'held']);
-  const totalPending = sumByStatus(['release_pending']);
-  const totalReleased = sumByStatus(['released', 'completed']);
-
-  const SummaryCard: React.FC<{
-    label: string;
-    amount: number;
-    color: string;
-    icon: string;
-  }> = ({ label, amount, color, icon }) => (
-    <View style={[styles.summaryCard, { borderLeftColor: color }]}>
-      <View style={[styles.summaryIconWrap, { backgroundColor: color + '20' }]}>
-        <Ionicons
-          name={icon as keyof typeof Ionicons.glyphMap}
-          size={20}
-          color={color}
-        />
-      </View>
-      <Text style={styles.summaryLabel}>{label}</Text>
-      <Text style={[styles.summaryAmount, { color }]}>
-        {formatCurrency(amount)}
-      </Text>
-    </View>
+  const heldRecords = records.filter((r) =>
+    ['pending', 'held'].includes(r.status)
   );
+  const totalHeld = heldRecords.reduce((sum, r) => sum + r.amount, 0);
 
   const renderRecord = ({ item }: { item: EscrowRecord }) => {
-    const statusStyle = STATUS_COLORS[item.status] ??
-      STATUS_COLORS.held ?? { bg: '#F3F4F6', text: '#6B7280' };
+    const stage: 0 | 1 | 2 | 3 = STAGE_BY_STATUS[item.status] ?? 1;
+    const subline = item.payer_name
+      ? `${item.payer_name} · ${heldSinceLabel(item.created_at)}`
+      : heldSinceLabel(item.created_at);
     return (
       <View style={styles.recordCard}>
         <View style={styles.recordHeader}>
           <Text style={styles.recordTitle} numberOfLines={1}>
             {item.job_title}
           </Text>
-          <View
-            style={[styles.statusBadge, { backgroundColor: statusStyle.bg }]}
-          >
-            <Text style={[styles.statusBadgeText, { color: statusStyle.text }]}>
-              {formatStatus(item.status)}
-            </Text>
-          </View>
-        </View>
-        <View style={styles.recordFooter}>
           <Text style={styles.recordAmount}>{formatCurrency(item.amount)}</Text>
-          <Text style={styles.recordDate}>{formatDate(item.created_at)}</Text>
         </View>
+        <Text style={styles.recordMeta}>{subline}</Text>
+        <ProgressBar stage={stage} />
       </View>
     );
   };
@@ -175,33 +207,21 @@ const EscrowDashboardScreen: React.FC<Props> = ({ navigation }) => {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <View style={styles.container}>
-        <View style={[styles.headerBar, { paddingTop: insets.top + 8 }]}>
+        <View style={[styles.topNav, { paddingTop: insets.top + 8 }]}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
             accessibilityRole='button'
             accessibilityLabel='Go back'
-            style={styles.headerBackBtn}
+            style={styles.backBtn}
           >
-            <Ionicons name='arrow-back' size={24} color={me.ink} />
+            <Ionicons name='arrow-back' size={20} color={me.ink} />
           </TouchableOpacity>
-          <View style={styles.headerTitleGroup}>
-            <Text style={styles.headerOverline}>FINANCIAL OVERVIEW</Text>
-            <Text style={styles.headerBarTitle}>Escrow Dashboard</Text>
-          </View>
-          <View style={styles.headerSpacer} />
         </View>
 
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size='large' color={me.brand} />
           </View>
-        ) : records.length === 0 ? (
-          <EmptyState
-            icon='wallet-outline'
-            title='No Escrow Records'
-            subtitle='Escrow transactions will appear here once payments are made.'
-            style={styles.emptyState}
-          />
         ) : (
           <FlatList
             data={records}
@@ -217,26 +237,66 @@ const EscrowDashboardScreen: React.FC<Props> = ({ navigation }) => {
               />
             }
             ListHeaderComponent={
-              <View style={styles.summaryRow}>
-                <SummaryCard
-                  label='Held'
-                  amount={totalHeld}
-                  color='#D97706'
-                  icon='lock-closed-outline'
-                />
-                <SummaryCard
-                  label='Pending'
-                  amount={totalPending}
-                  color='#2563EB'
-                  icon='time-outline'
-                />
-                <SummaryCard
-                  label='Released'
-                  amount={totalReleased}
-                  color='#059669'
-                  icon='checkmark-circle-outline'
-                />
+              <View>
+                <View style={styles.screenHeader}>
+                  <Text style={styles.eyebrow}>Escrow</Text>
+                  <Text style={styles.headline}>Escrow</Text>
+                  <Text style={styles.sub}>
+                    {user?.role === 'contractor'
+                      ? 'Money customers have set aside for you.'
+                      : 'Money you have set aside for your contractors.'}
+                  </Text>
+                </View>
+                <View style={styles.heroCard}>
+                  <View style={styles.heroBody}>
+                    <Text style={styles.heroEyebrow}>Held in escrow</Text>
+                    <Text style={styles.heroAmount}>
+                      {formatCurrency(totalHeld)}
+                    </Text>
+                    <Text style={styles.heroSub}>
+                      {heldRecords.length === 0
+                        ? 'No funds currently held.'
+                        : `${heldRecords.length} ${heldRecords.length === 1 ? 'job' : 'jobs'} · awaiting customer sign-off`}
+                    </Text>
+                  </View>
+                  <Ionicons
+                    name='lock-closed'
+                    size={20}
+                    color={me.warnFg}
+                    style={styles.heroLockIcon}
+                  />
+                </View>
+
+                <Text style={styles.sectionEyebrow}>
+                  Active escrow · {records.length}
+                </Text>
               </View>
+            }
+            ListEmptyComponent={
+              <EmptyState
+                icon='wallet-outline'
+                title='No escrow records'
+                subtitle='Escrow transactions will appear here once payments are made.'
+                style={styles.emptyState}
+              />
+            }
+            ListFooterComponent={
+              records.length > 0 ? (
+                <View style={styles.autoReleaseCard}>
+                  <Ionicons
+                    name='shield-checkmark-outline'
+                    size={16}
+                    color={me.brand}
+                  />
+                  <Text style={styles.autoReleaseText}>
+                    Funds release automatically{' '}
+                    <Text style={styles.autoReleaseStrong}>
+                      7 days after job completion
+                    </Text>{' '}
+                    if the customer doesn't flag an issue.
+                  </Text>
+                </View>
+              ) : null
             }
           />
         )}
@@ -244,143 +304,5 @@ const EscrowDashboardScreen: React.FC<Props> = ({ navigation }) => {
     </SafeAreaView>
   );
 };
-
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: me.surface,
-  },
-  container: {
-    flex: 1,
-    backgroundColor: me.bg,
-  },
-  headerBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingBottom: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: me.line,
-    backgroundColor: me.surface,
-  },
-  headerBackBtn: {
-    padding: 8,
-  },
-  headerTitleGroup: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  headerOverline: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: me.ink3,
-    letterSpacing: 1.2,
-    marginBottom: 2,
-  },
-  headerBarTitle: {
-    fontFamily: me.font.display,
-    fontSize: 20,
-    color: me.ink,
-    letterSpacing: me.displayTracking,
-  },
-  headerSpacer: {
-    width: 40,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyState: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  listContent: {
-    padding: 16,
-    paddingBottom: 40,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    gap: 8,
-    marginBottom: 20,
-  },
-  summaryCard: {
-    flex: 1,
-    backgroundColor: me.surface,
-    borderRadius: me.radius.card,
-    padding: 14,
-    borderLeftWidth: 3,
-    borderWidth: 1,
-    borderColor: me.line,
-    ...me.shadow.card,
-  },
-  summaryIconWrap: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  summaryLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: me.ink3,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginBottom: 4,
-  },
-  summaryAmount: {
-    fontFamily: me.font.display,
-    fontSize: 22,
-    letterSpacing: me.displayTracking,
-  },
-  recordCard: {
-    backgroundColor: me.surface,
-    borderRadius: me.radius.card,
-    padding: 16,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: me.line,
-    ...me.shadow.card,
-  },
-  recordHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  recordTitle: {
-    flex: 1,
-    fontSize: 15,
-    fontWeight: '600',
-    color: me.ink,
-    marginRight: 8,
-  },
-  statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  statusBadgeText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  recordFooter: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  recordAmount: {
-    fontFamily: me.font.display,
-    fontSize: 18,
-    color: me.ink,
-    letterSpacing: me.displayTracking,
-  },
-  recordDate: {
-    fontSize: 13,
-    color: me.ink3,
-  },
-});
 
 export { EscrowDashboardScreen };

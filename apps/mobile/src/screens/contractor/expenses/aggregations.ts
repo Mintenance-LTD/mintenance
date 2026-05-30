@@ -24,3 +24,42 @@ export function computeExpenseStats(expenses: Expense[]): {
     .reduce((sum, e) => sum + e.amount, 0);
   return { totalExpenses, thisMonth, billableTotal };
 }
+
+/**
+ * Sum the *current-calendar-month* spend by category — feeds the
+ * 4-tile breakdown on the redesigned Expenses screen (Materials /
+ * Fuel & van / Tools / Subs-fees combined). Returns an empty object
+ * when there is no spend so callers don't need a null branch.
+ */
+export function computeCategoryTotalsThisMonth(
+  expenses: Expense[]
+): Record<string, number> {
+  const now = new Date();
+  const totals: Record<string, number> = {};
+  expenses.forEach((e) => {
+    const d = new Date(e.date);
+    if (
+      d.getMonth() !== now.getMonth() ||
+      d.getFullYear() !== now.getFullYear()
+    ) {
+      return;
+    }
+    const key = (e.category || 'other').toLowerCase();
+    totals[key] = (totals[key] ?? 0) + e.amount;
+  });
+  return totals;
+}
+
+/**
+ * Count expenses logged this calendar month — used by the hero card
+ * sub-line ("12 receipts · auto-categorised").
+ */
+export function countExpensesThisMonth(expenses: Expense[]): number {
+  const now = new Date();
+  return expenses.filter((e) => {
+    const d = new Date(e.date);
+    return (
+      d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
+    );
+  }).length;
+}

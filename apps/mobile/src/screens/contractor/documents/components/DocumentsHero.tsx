@@ -1,17 +1,28 @@
-import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { me } from '../../../../design-system/mint-editorial';
-import { styles } from '../../DocumentsStyles';
-import { formatFileSize } from '../types';
-import { UPLOAD_ICON_ON_GREEN_GRADIENT } from '../theme/heroColors';
-
 /**
- * Full-bleed gradient hero for the Documents screen — back button,
- * title + subtitle, optional upload icon, and three stat pills.
- * Extracted 2026-05-09 (AUDIT_PUNCH_LIST P2 #44d).
+ * DocumentsHero — Mint Editorial v2 (2026-05-23 redesign).
+ *
+ * Replaces the prior full-bleed mint-gradient hero (2 decorative
+ * circles + 3-up stat pills "Documents / Categories / Total Size")
+ * with the calm editorial pattern: paper bg, mint eyebrow, serif
+ * "Documents" title, single muted subtitle counting files, and a
+ * mint-soft upload pill in the top-right for contractors.
  */
+import React from 'react';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { me } from '../../../../design-system/mint-editorial';
+import { formatFileSize } from '../types';
+
+interface Props {
+  topInset: number;
+  isContractor: boolean;
+  count: number;
+  categories: number;
+  totalSize: number;
+  onBack: () => void;
+  onUpload: () => void;
+}
+
 export function DocumentsHero({
   topInset,
   isContractor,
@@ -20,72 +31,107 @@ export function DocumentsHero({
   totalSize,
   onBack,
   onUpload,
-}: {
-  topInset: number;
-  isContractor: boolean;
-  count: number;
-  categories: number;
-  totalSize: number;
-  onBack: () => void;
-  onUpload: () => void;
-}) {
-  return (
-    <LinearGradient
-      colors={[me.brand2, me.brand]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={[styles.hero, { paddingTop: topInset + 12 }]}
-    >
-      <View style={styles.decor1} />
-      <View style={styles.decor2} />
+}: Props) {
+  const subtitleParts: string[] = [
+    `${count} ${count === 1 ? 'file' : 'files'}`,
+  ];
+  if (categories > 0) {
+    subtitleParts.push(
+      `${categories} ${categories === 1 ? 'category' : 'categories'}`
+    );
+  }
+  if (totalSize > 0) {
+    subtitleParts.push(formatFileSize(totalSize));
+  }
+  const subtitle = subtitleParts.join(' · ');
 
-      <View style={styles.heroNav}>
+  return (
+    <View style={[styles.wrap, { paddingTop: topInset + 12 }]}>
+      <View style={styles.navRow}>
         <TouchableOpacity
-          style={styles.navBtn}
           onPress={onBack}
+          style={styles.iconBtn}
           accessibilityRole='button'
           accessibilityLabel='Go back'
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Ionicons name='arrow-back' size={20} color={me.onBrand} />
+          <Ionicons name='arrow-back' size={20} color={me.ink} />
         </TouchableOpacity>
-        <View style={{ flex: 1, marginLeft: 12 }}>
-          <Text style={styles.heroTitle}>Documents</Text>
-          <Text style={styles.heroSubtitle}>
-            {count} {count === 1 ? 'file' : 'files'} uploaded
-          </Text>
-        </View>
-        {isContractor && (
+        {isContractor ? (
           <TouchableOpacity
-            style={styles.uploadHeroBtn}
+            style={styles.uploadBtn}
             onPress={onUpload}
             accessibilityRole='button'
             accessibilityLabel='Upload document'
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Ionicons
-              name='cloud-upload-outline'
-              size={18}
-              color={UPLOAD_ICON_ON_GREEN_GRADIENT}
-            />
+            <Ionicons name='cloud-upload-outline' size={16} color={me.brand} />
+            <Text style={styles.uploadText}>Upload</Text>
           </TouchableOpacity>
-        )}
+        ) : null}
       </View>
 
-      <View style={styles.statRow}>
-        <View style={styles.statPill}>
-          <Text style={styles.statValue}>{count}</Text>
-          <Text style={styles.statLabel}>Documents</Text>
-        </View>
-        <View style={styles.statPill}>
-          <Text style={styles.statValue}>{categories}</Text>
-          <Text style={styles.statLabel}>Categories</Text>
-        </View>
-        <View style={styles.statPill}>
-          <Text style={styles.statValue}>
-            {totalSize > 0 ? formatFileSize(totalSize) : '—'}
-          </Text>
-          <Text style={styles.statLabel}>Total Size</Text>
-        </View>
-      </View>
-    </LinearGradient>
+      <Text style={styles.eyebrow}>Library</Text>
+      <Text style={styles.title}>Documents</Text>
+      <Text style={styles.subtitle}>{subtitle}</Text>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  wrap: {
+    paddingHorizontal: 20,
+    paddingBottom: 14,
+    backgroundColor: me.bg,
+  },
+  navRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  iconBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: me.bg2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  uploadBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: me.brandSoft,
+    borderWidth: 1,
+    borderColor: me.brandSoft,
+  },
+  uploadText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: me.brand,
+  },
+  eyebrow: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: me.brand,
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+    marginBottom: 6,
+  },
+  title: {
+    fontFamily: me.font.display,
+    fontSize: 28,
+    lineHeight: 32,
+    color: me.ink,
+    letterSpacing: me.displayTracking,
+    marginBottom: 4,
+  },
+  subtitle: {
+    fontSize: 13,
+    color: me.ink3,
+  },
+});

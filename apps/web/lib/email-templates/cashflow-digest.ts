@@ -1,17 +1,19 @@
 /**
  * Friday cash-flow digest email — weekly summary for contractors.
  *
- * R2 #16 of docs/RETENTION_ROADMAP_2026.md. Reframes Mintenance as "the
- * platform that pays" per the source PDF §4.3 contractor mental model
- * "I'll never see the money".
+ * R2 #16 of docs/RETENTION_ROADMAP_2026.md.
+ *
+ * Mint Editorial voice (2026-05-21 port): reframe the digest around the
+ * contractor's mental model ("when do I see the money") — every figure
+ * is money already secured, not an invoice waiting to be chased.
  */
 
-import { escapeHtml, year, emailShell } from './shared';
+import { escapeHtml, year, mintEmailShell, MINT_BRAND_GREEN } from './shared';
 import type { CashFlowDigestData } from './types';
 
 function fmtGBP(n: number): string {
-  return `£${n.toLocaleString(undefined, {
-    minimumFractionDigits: 2,
+  return `£${n.toLocaleString('en-GB', {
+    minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   })}`;
 }
@@ -26,77 +28,37 @@ export function cashFlowDigestTemplate(
   unsubscribeFooter: string
 ): { subject: string; html: string; text: string } {
   const e = escapeHtml;
-  const color = '#059669';
   const range = `${fmtShortDate(data.weekStart)} – ${fmtShortDate(data.weekEnd)}`;
+  const subject = `${fmtGBP(data.earnedThisWeek)} earned · ${range}`;
+  const preview = `${fmtGBP(data.releasingNextWeek)} releasing next week, ${fmtGBP(data.activeEscrowTotal)} held against active jobs.`;
 
-  const extra = `.stat-card{background:white;border:1px solid #e5e7eb;border-radius:12px;padding:18px;text-align:center}
-    .stat-value{font-size:22px;font-weight:700;color:${color};margin-bottom:2px}
-    .stat-label{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:#6b7280}
-    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:20px 0}
-    .reassurance{background:#ecfdf5;border-left:4px solid ${color};padding:14px 18px;border-radius:6px;margin-top:20px;font-size:14px;color:#065f46}`;
+  const statCard = (value: string, label: string) => `
+    <div style="background:#fff;border:1px solid #eee;border-radius:10px;padding:16px;text-align:center">
+      <div style="font-family:'Source Serif 4',Georgia,serif;font-size:22px;font-weight:600;color:${MINT_BRAND_GREEN};letter-spacing:-0.01em">${value}</div>
+      <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.8px;color:#888;margin-top:4px">${label}</div>
+    </div>`;
 
-  const html = emailShell(
-    color,
-    extra,
-    `<h1 style="margin:0">Your week on Mintenance</h1>
-     <p style="margin:8px 0 0;opacity:0.9">${range}</p>`,
+  const html = mintEmailShell(
+    subject,
+    preview,
     `<p>Hi ${e(data.contractorName)},</p>
-     <p>Your cash-flow summary for the week — every number below is
-        money already secured through Protected Payment, not an
-        invoice you still need to chase.</p>
-
-     <div class="grid-2">
-       <div class="stat-card">
-         <div class="stat-value">${fmtGBP(data.earnedThisWeek)}</div>
-         <div class="stat-label">Earned this week</div>
-       </div>
-       <div class="stat-card">
-         <div class="stat-value">${fmtGBP(data.releasingNextWeek)}</div>
-         <div class="stat-label">Releasing next week</div>
-       </div>
-       <div class="stat-card">
-         <div class="stat-value">${data.jobsCompleted}</div>
-         <div class="stat-label">Jobs completed</div>
-       </div>
-       <div class="stat-card">
-         <div class="stat-value">${fmtGBP(data.activeEscrowTotal)}</div>
-         <div class="stat-label">${data.activeEscrowCount} job${
-           data.activeEscrowCount === 1 ? '' : 's'
-         } held &amp; protected</div>
-       </div>
-     </div>
-
-     <p style="text-align:center">
-       <a href="${e(data.viewUrl)}" class="cta">Open your payments dashboard</a>
-     </p>
-
-     <div class="reassurance">
-       <strong>Protected Payment works for you too:</strong> homeowner
-       funds are held before you arrive and released on approval (or
-       automatically after the 7-day review window). No chasing invoices.
-     </div>`,
+     <p>Your week on Mintenance — every number below is money already secured. No invoices to chase.</p>
+     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:18px 0">
+       <tr>
+         <td style="padding:6px;width:50%">${statCard(fmtGBP(data.earnedThisWeek), 'Earned this week')}</td>
+         <td style="padding:6px;width:50%">${statCard(fmtGBP(data.releasingNextWeek), 'Releasing next week')}</td>
+       </tr>
+       <tr>
+         <td style="padding:6px;width:50%">${statCard(String(data.jobsCompleted), 'Jobs completed')}</td>
+         <td style="padding:6px;width:50%">${statCard(fmtGBP(data.activeEscrowTotal), `${data.activeEscrowCount} held in escrow`)}</td>
+       </tr>
+     </table>
+     <a href="${e(data.viewUrl)}" class="cta">Open your payments →</a>
+     <div class="note">Escrow holds the money before you arrive and releases it on approval — or automatically after 7 days if the homeowner doesn't act. That's it.</div>`,
     unsubscribeFooter
   );
 
-  const text = `Hi ${data.contractorName},
+  const text = `Hi ${data.contractorName},\n\nYour week on Mintenance (${range}):\n- Earned this week: ${fmtGBP(data.earnedThisWeek)}\n- Releasing next week: ${fmtGBP(data.releasingNextWeek)}\n- Jobs completed: ${data.jobsCompleted}\n- Held in escrow: ${fmtGBP(data.activeEscrowTotal)} across ${data.activeEscrowCount} job${data.activeEscrowCount === 1 ? '' : 's'}\n\nEvery number is money already secured. No invoices to chase.\n\nOpen your payments: ${data.viewUrl}\n\n© ${year()} Mintenance Ltd.`;
 
-Your week on Mintenance (${range}):
-- Earned this week: ${fmtGBP(data.earnedThisWeek)}
-- Releasing next week: ${fmtGBP(data.releasingNextWeek)}
-- Jobs completed: ${data.jobsCompleted}
-- Protected & held: ${fmtGBP(data.activeEscrowTotal)} across ${data.activeEscrowCount} job${
-    data.activeEscrowCount === 1 ? '' : 's'
-  }
-
-Open your dashboard: ${data.viewUrl}
-
-Protected Payment works for you too — homeowner funds are held before you arrive and released on approval (or automatically after the 7-day review window).
-
-© ${year()} Mintenance.`;
-
-  return {
-    subject: `Your week on Mintenance: ${fmtGBP(data.earnedThisWeek)} earned`,
-    html,
-    text,
-  };
+  return { subject, html, text };
 }

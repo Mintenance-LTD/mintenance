@@ -3,7 +3,7 @@ import '../styles/professional-design-system.css';
 import '../styles/responsive.css';
 import '../styles/print.css';
 import '../styles/animations-enhanced.css';
-import { Inter } from 'next/font/google';
+import { Inter, Instrument_Serif, Geist } from 'next/font/google';
 import { cookies, headers } from 'next/headers';
 import CookieConsent from '../components/CookieConsent';
 import { ErrorBoundary } from '../components/ui/ErrorBoundary';
@@ -17,25 +17,42 @@ import { SessionMonitor } from '../components/session/SessionMonitor';
 const materialSymbolsUrl =
   'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap';
 
-// Mint Editorial fonts (Phase 1). Loaded async via media="print" swap
-// the same way Material Symbols is — only the homeowner dashboard
-// currently uses them when `data-theme="mint-editorial"` is set, but
-// loading globally lets the toggle flip without re-hydrating.
-const mintEditorialFontsUrl =
-  'https://fonts.googleapis.com/css2?family=Instrument+Serif:ital,wght@0,400;1,400&family=Geist:wght@300;400;500;600;700&display=swap';
-
-// Optimize font loading
+// Optimize font loading. 2026-05-23 — Mint Editorial typography
+// RESTORED to the original spec from .design-bundle/redesign-v2/
+// themes.css. The 2026-05-21 "unify on Inter" change accidentally
+// swapped the editorial serif (Instrument Serif) for heavy Inter-Black
+// sans, which is why every Mint Editorial v2 surface still read as
+// the legacy UI despite the layout redesign.
+//
+//   --me-font-display → Instrument Serif (editorial serif, weight 400)
+//   --me-font-body    → Geist            (modern geometric sans, 400)
+//   --me-font-ui      → Geist            (same as body)
+//
+// Inter is retained for legacy surfaces that haven't migrated to the
+// Mint Editorial tokens yet.
 const inter = Inter({
   subsets: ['latin'],
   display: 'swap',
   variable: '--font-inter',
 });
+const instrumentSerif = Instrument_Serif({
+  subsets: ['latin'],
+  weight: '400',
+  style: ['normal', 'italic'],
+  display: 'swap',
+  variable: '--font-instrument-serif',
+});
+const geist = Geist({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-geist',
+});
 // import { PerformanceDashboard } from '../components/PerformanceDashboard' // Temporarily disabled for testing
 
 export const metadata = {
-  title: 'Mintenance - Find Verified Tradespeople For Home Projects',
+  title: 'Mintenance — Hire Local Tradespeople For Home Projects',
   description:
-    'Connect with verified tradespeople, compare quotes, and manage home maintenance projects with protected payments.',
+    'Connect with local tradespeople, compare quotes, and manage home maintenance projects with escrow-protected payments.',
   icons: {
     icon: '/assets/favicon.png',
     apple: '/assets/icon.png',
@@ -103,14 +120,6 @@ export default async function RootLayout({
           media='print'
           crossOrigin='anonymous'
         />
-        {/* Mint Editorial fonts — async via media="print" so they don't
-            block first paint when the legacy theme is active. */}
-        <link
-          rel='stylesheet'
-          href={mintEditorialFontsUrl}
-          media='print'
-          crossOrigin='anonymous'
-        />
         <script
           nonce={cspNonce}
           dangerouslySetInnerHTML={{
@@ -125,7 +134,9 @@ export default async function RootLayout({
           <link rel='stylesheet' href={materialSymbolsUrl} />
         </noscript>
       </head>
-      <body className={inter.variable}>
+      <body
+        className={`${inter.variable} ${instrumentSerif.variable} ${geist.variable}`}
+      >
         {/* Skip-to-content link for keyboard and screen reader users */}
         <a
           href='#main-content'

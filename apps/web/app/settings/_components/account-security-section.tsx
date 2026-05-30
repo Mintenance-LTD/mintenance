@@ -1,4 +1,4 @@
-import type { Dispatch, SetStateAction } from 'react';
+import { useState, type Dispatch, type SetStateAction } from 'react';
 import { Shield } from 'lucide-react';
 import type { PasswordData } from './types';
 
@@ -55,7 +55,24 @@ export function AccountSecuritySection({
   onAddPhoneNumber,
   onUpdatePhoneNumber,
 }: AccountSecuritySectionProps) {
-  const skipPhone = process.env.NEXT_PUBLIC_SKIP_PHONE_VERIFICATION === 'true';
+  // 2026-05-27 audit-P2-8: gate the client-side bypass on
+  // NODE_ENV !== 'production' to match the server-side P0.1 fix
+  // (CLAUDE.md). Without this prod guard, a leaked
+  // NEXT_PUBLIC_SKIP_PHONE_VERIFICATION=true in a prod build would
+  // hide the phone-verification UI even though the API still
+  // enforces — leaving users locked out with no actionable prompt.
+  const skipPhone =
+    process.env.NODE_ENV !== 'production' &&
+    process.env.NEXT_PUBLIC_SKIP_PHONE_VERIFICATION === 'true';
+
+  // 2026-05-27 audit-75 P2: typed-DELETE confirmation before the
+  // irreversible button enables. The shared DeleteAccountModal and
+  // the mobile DeleteAccountScreen both require typing "DELETE";
+  // this section previously had a plain confirm-button-2 which was
+  // far easier to misfire. Same wording as the shared modal for
+  // consistency across surfaces.
+  const [deleteTypeConfirm, setDeleteTypeConfirm] = useState('');
+  const isDeleteConfirmed = deleteTypeConfirm.trim().toUpperCase() === 'DELETE';
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
@@ -380,21 +397,52 @@ export function AccountSecuritySection({
                 color: 'var(--me-err-fg)',
               }}
             >
-              Are you absolutely sure?
+              Are you absolutely sure? Type <strong>DELETE</strong> to confirm.
             </p>
+            <input
+              type='text'
+              value={deleteTypeConfirm}
+              onChange={(e) => setDeleteTypeConfirm(e.target.value)}
+              placeholder='DELETE'
+              autoComplete='off'
+              aria-label='Type DELETE to confirm account deletion'
+              className='field-input'
+              style={{
+                padding: '8px 12px',
+                border: '1px solid var(--me-line)',
+                borderRadius: 8,
+                fontSize: 14,
+                maxWidth: 240,
+              }}
+            />
             <div style={{ display: 'flex', gap: 12 }}>
               <button
-                onClick={onDeleteAccount}
+                onClick={async () => {
+                  if (!isDeleteConfirmed) return;
+                  await onDeleteAccount();
+                  // Reset on the chance the parent reopens this state
+                  // after a blocked deletion (409 keeps the modal open
+                  // so the user can read the toasts and act).
+                  setDeleteTypeConfirm('');
+                }}
+                disabled={!isDeleteConfirmed}
                 className='btn'
                 style={{
-                  background: 'var(--me-err-fg)',
+                  background: isDeleteConfirmed
+                    ? 'var(--me-err-fg)'
+                    : 'var(--me-ink-3)',
                   color: 'var(--me-on-brand)',
+                  opacity: isDeleteConfirmed ? 1 : 0.6,
+                  cursor: isDeleteConfirmed ? 'pointer' : 'not-allowed',
                 }}
               >
                 Yes, delete forever
               </button>
               <button
-                onClick={() => setShowDeleteConfirm(false)}
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setDeleteTypeConfirm('');
+                }}
                 className='btn btn-secondary'
               >
                 Cancel

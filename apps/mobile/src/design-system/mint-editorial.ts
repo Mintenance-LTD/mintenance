@@ -10,13 +10,17 @@
 // Keep the values in this file in lock-step with `mint-editorial.css`. The
 // web file is the source of truth; if a token changes there, mirror it here.
 //
-// FONTS: the web display face is Instrument Serif and the body face is Geist.
-// Neither is bundled in the mobile app yet, so `font.display` falls back to a
-// cross-platform serif and `font.body` to the system sans. Registering the
-// real faces via `expo-font` and swapping the two values below is the only
-// step needed to complete the type treatment.
-
-import { Platform } from 'react-native';
+// FONTS: 2026-05-23 — RESTORED to the original Mint Editorial spec from
+// `.design-bundle/redesign-v2/themes.css`. The 2026-05-21 "unify on Inter"
+// change accidentally swapped the editorial serif (Instrument Serif) for
+// Inter-Black, which is what made the APK read as legacy UI even after
+// the layout redesign — the skeleton was new but every headline rendered
+// in heavy sans-serif. Now:
+//   display: Instrument Serif (regular, weight 400) — editorial serif
+//   body:    Geist (regular, weight 400) — clean modern sans
+// Both families come from `@expo-google-fonts/{instrument-serif,geist}`,
+// registered in App.tsx at boot. Inter weights are still bundled for any
+// screen that opts into Inter-* explicitly (numerics, etc.).
 
 // Warm near-black used as the cast colour for the paper shadows below.
 // Held as a module const (not an inline `shadowColor` literal) so the
@@ -64,21 +68,24 @@ export const me = {
   },
 
   // ---- type ----
+  // Display = Instrument Serif Regular (the editorial serif).
+  // Body    = Geist Regular (modern geometric sans).
+  // Italic-display is available as `InstrumentSerif_400Regular_Italic`
+  // when a screen wants the pull-quote / accent italics shown in the
+  // mockups. Family names follow the @expo-google-fonts naming.
   font: {
-    // Cross-platform serif standing in for Instrument Serif until the
-    // real face is bundled (see file header).
-    display: Platform.select({
-      ios: 'Georgia',
-      android: 'serif',
-      default: 'serif',
-    }) as string,
-    body: Platform.select({
-      ios: 'System',
-      android: 'sans-serif',
-      default: 'System',
-    }) as string,
+    display: 'InstrumentSerif_400Regular',
+    displayItalic: 'InstrumentSerif_400Regular_Italic',
+    body: 'Geist_400Regular',
+    bodyMedium: 'Geist_500Medium',
+    bodySemiBold: 'Geist_600SemiBold',
+    bodyBold: 'Geist_700Bold',
   },
-  displayTracking: -0.3, // ~ -0.012em at 26px
+  // Instrument Serif looks best with much lighter tracking than Inter-Black.
+  // Spec value from themes.css `--display-tracking: -0.012em` → at 26-30px
+  // headlines that's roughly -0.3 to -0.36px. Keep the same numeric token
+  // so existing call sites don't need to change.
+  displayTracking: -0.3,
 
   // ---- shadows (paper) — React Native shape ----
   shadow: {
@@ -117,6 +124,25 @@ export const me = {
     paintingFg: '#7A3F0F',
     defaultBg: '#DCEAE5',
     defaultFg: '#2F6F5F',
+  },
+
+  // ---- document-type swatches (mirrors --me-doc-* in mint-editorial.css)
+  // Spec-locked palette from redesign-v2/documents-web.html, picked so
+  // each document type reads at a glance:
+  //   contract → deep purple,  bid → magenta,   payment → teal,
+  //   cert     → forest green, receipt → amber.
+  // Keep these values in sync with apps/web/styles/mint-editorial.css.
+  doc: {
+    contractFg: '#5B3B96',
+    contractBg: '#EDE6F7',
+    bidFg: '#A8225F',
+    bidBg: '#FBE0EE',
+    paymentFg: '#0E5779',
+    paymentBg: '#D6EDF1',
+    certFg: '#206B45',
+    certBg: '#DCEFE3',
+    receiptFg: '#7A5A0F',
+    receiptBg: '#FBE9CB',
   },
 } as const;
 

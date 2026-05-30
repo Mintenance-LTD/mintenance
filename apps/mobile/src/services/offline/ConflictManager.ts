@@ -105,9 +105,23 @@ export class ConflictManager {
           return await JobService.getJobById(entityId);
         }
         case 'bid': {
-          const { JobService } = require('../JobService');
-          const bids = await JobService.getBidsByJob(entityId);
-          return (bids as ServerEntityData[]).find((b) => b.id === entityId);
+          // 2026-05-27 whole-app review Critical #8: previously called
+          // `JobService.getBidsByJob(entityId)` — but `entityId` is a
+          // bidId, not a jobId. The .find() always returned undefined,
+          // so bid conflicts were never detected and the merge-strategy
+          // path silently degraded to "no conflict".
+          //
+          // Until a server-side `GET /api/jobs/[id]/bids/[bidId]`
+          // endpoint + `BidService.getBidById` exist (separate scope),
+          // we explicitly return null + log so the gap is operator-
+          // visible. Falls through to "no conflict detected", which is
+          // the SAME behaviour as the broken previous version — but
+          // now it's traceable in logs instead of silent.
+          logger.warn(
+            'Bid conflict detection skipped — getBidById not yet implemented',
+            { entityId }
+          );
+          return null;
         }
         case 'profile': {
           const { UserService } = require('../UserService');

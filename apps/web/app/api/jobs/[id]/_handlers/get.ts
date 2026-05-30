@@ -6,6 +6,7 @@ import {
 import { logger } from '@mintenance/shared';
 import { ForbiddenError, NotFoundError } from '@/lib/errors/api-error';
 import { resignJobStorageUrls } from '@/lib/api/job-storage';
+import { canRevealKeySafeCode } from '@/lib/services/jobs/key-safe-reveal';
 
 export async function handleGet(
   request: NextRequest,
@@ -32,7 +33,14 @@ export async function handleGet(
   const { data, error } = await userDb
     .from('jobs')
     .select(
-      'id, title, description, status, homeowner_id, contractor_id, category, budget, budget_min, budget_max, urgency, location, city, postcode, latitude, longitude, start_date, end_date, flexible_timeline, access_info, requirements, created_at, updated_at'
+      // 2026-05-24 audit-26 P2: include `completion_confirmed_by_homeowner`
+      // so the mobile homeowner CTA can pick the right post-completion
+      // state. Without it the field returned undefined and the JobsQuickActions
+      // / JobDetailsCTA gates that check "Review Work" vs "Leave a Review"
+      // both fell through silently — a homeowner who'd already approved the
+      // work saw "Review Work" again, and the auto-release timer-aware copy
+      // never appeared.
+      'id, title, description, status, homeowner_id, contractor_id, category, budget, budget_min, budget_max, urgency, location, city, postcode, latitude, longitude, start_date, end_date, scheduled_start_date, flexible_timeline, access_info, requirements, property_id, completion_confirmed_by_homeowner, created_at, updated_at'
     )
     .eq('id', id)
     .single();
@@ -119,6 +127,143 @@ export async function handleGet(
   ].filter(Boolean);
   const signedPhotos = await resignJobStorageUrls(rawPhotos);
 
+  // Coerce Postgres NUMERIC columns (serialised as strings by
+  // supabase-js to preserve precision) into real JS numbers. The
+  // mobile JobLocationMap passes `latitude` / `longitude` straight
+  // into `react-native-maps` <MapView initialRegion> + <Marker
+  // coordinate> props which crash the native Android module on a
+  // string. Budgets need to be real numbers so any consumer doing
+  // arithmetic (avg, sum, comparison) doesn't NaN-out via string
+  // concatenation. Returning `null` for invalid values keeps
+  // downstream `typeof === 'number'` guards honest.
+  const toNum = (v: unknown): number | null => {
+    if (v == null) return null;
+    const n = typeof v === 'number' ? v : Number(v);
+    return Number.isFinite(n) ? n : null;
+  };
+
+  // No `property_type` column on `jobs`. The previous hardcoded
+  // `propertyType: 'house'` was lying to every detail-screen viewer;
+  // if a job has a `property_id`, the real property_type lives on
+  // the linked properties row. Query best-effort + don't break the
+  // detail page if the join fails.
+  let propertyType: string | null = null;
+  let propertyBedrooms: number | null = null;
+  let propertyBathrooms: number | null = null;
+  // 2026-05-23 audit: extended to also include the access columns so
+  // mobile contractors get the same data the web contractor page sees.
+  // Previously only `access_info` (the free-text field on `jobs`) was
+  // surfaced; the structured property access fields (key_safe_code,
+  // access_notes, stopcock/gas/consumer locations, access_mode) lived
+  // only on the linked `properties` row and never reached mobile.
+  // key_safe_code is gated by canRevealKeySafeCode() — same 1h-before-
+  // start window the web contractor page uses (key-safe-reveal.ts).
+  let propertyAccess: {
+    access_mode: string | null;
+    key_safe_code: string | null;
+    access_notes: string | null;
+    stopcock_location: string | null;
+    gas_isolator_location: string | null;
+    consumer_unit_location: string | null;
+  } | null = null;
+  // 2026-05-24 audit-30 P1: surface property_contacts to the assigned
+  // contractor + homeowner. The card on mobile is literally titled
+  // "Access & contacts" but rendered access fields only — a contractor
+  // could be en route or on-site without ever seeing the tenant,
+  // keyholder, managing-agent, or emergency contact the landlord
+  // attached to the property. The CHECK constraint on contact_role
+  // allows {tenant, keyholder, emergency_contact, managing_agent};
+  // we filter to `is_active = true` so the contractor never gets a
+  // stale phone number for someone who's no longer involved.
+  let propertyContacts: {
+    id: string;
+    name: string;
+    contact_role: string;
+    phone: string | null;
+    email: string | null;
+    unit_label: string | null;
+    notes: string | null;
+  }[] = [];
+  if (row.property_id) {
+    // 2026-05-23 audit-14: properties RLS only grants SELECT to owner /
+    // admin / org_member — the assigned contractor isn't on the policy.
+    // Reading via `userDb` returned `null` for every contractor caller
+    // and `propertyAccess` was silently undefined on mobile JobAccessCard.
+    // The user identity + role check above (homeowner / admin / assigned
+    // contractor / contractor-viewing-open-job) is the authoritative
+    // gate, and the `showFullAccess` branch below re-filters to homeowner
+    // /admin/assigned-contractor before exposing access fields. Using
+    // serverSupabase here is the same pattern audit-12 #62 adopted for
+    // the property access PATCH (managers also aren't on the policy).
+    const { data: propertyRow } = await serverSupabase
+      .from('properties')
+      .select(
+        'property_type, bedrooms, bathrooms, access_mode, key_safe_code, access_notes, stopcock_location, gas_isolator_location, consumer_unit_location'
+      )
+      .eq('id', row.property_id as string)
+      .maybeSingle();
+    if (propertyRow) {
+      const p = propertyRow as Record<string, unknown>;
+      propertyType = (p.property_type as string | null) ?? null;
+      propertyBedrooms = (p.bedrooms as number | null) ?? null;
+      propertyBathrooms = (p.bathrooms as number | null) ?? null;
+
+      // Reveal logic — homeowners always see everything; the assigned
+      // contractor sees structured fields but the key_safe_code is
+      // gated by the 1h-before-scheduled-start window.
+      const isAssignedContractor =
+        user.id === (row.contractor_id as string | null);
+      const showFullAccess =
+        isHomeowner || user.role === 'admin' || isAssignedContractor;
+
+      if (showFullAccess) {
+        const canSeeCode =
+          isHomeowner ||
+          user.role === 'admin' ||
+          canRevealKeySafeCode({
+            status: row.status as string | null,
+            scheduled_start_date: row.scheduled_start_date as
+              | string
+              | null
+              | undefined,
+          });
+        propertyAccess = {
+          access_mode: (p.access_mode as string | null) ?? null,
+          key_safe_code: canSeeCode
+            ? ((p.key_safe_code as string | null) ?? null)
+            : null,
+          access_notes: (p.access_notes as string | null) ?? null,
+          stopcock_location: (p.stopcock_location as string | null) ?? null,
+          gas_isolator_location:
+            (p.gas_isolator_location as string | null) ?? null,
+          consumer_unit_location:
+            (p.consumer_unit_location as string | null) ?? null,
+        };
+
+        // Fetch active property_contacts. property_contacts RLS only
+        // grants SELECT to the owner/admin (verified live via pg_policy
+        // 2026-05-24); the assigned contractor is not on the policy,
+        // so use serverSupabase scoped by property_id. The
+        // showFullAccess gate above already filters to the people who
+        // are allowed to see contact info.
+        const { data: contactRows } = await serverSupabase
+          .from('property_contacts')
+          .select('id, name, contact_role, phone, email, unit_label, notes')
+          .eq('property_id', row.property_id as string)
+          .eq('is_active', true)
+          .order('contact_role', { ascending: true })
+          .order('name', { ascending: true });
+        if (contactRows) {
+          propertyContacts = contactRows as typeof propertyContacts;
+        }
+      }
+    }
+  }
+
+  const budget = toNum(row.budget);
+  const budgetMin = toNum(row.budget_min);
+  const budgetMax = toNum(row.budget_max);
+
   // Format comprehensive job data for frontend
   const formattedJob = {
     id: row.id,
@@ -126,35 +271,44 @@ export async function handleGet(
     description: row.description,
     category: row.category,
     status: row.status,
-    // `priority` retained as a fallback only for legacy rows where
-    // a write may have hit the wrong column before the urgency
-    // alignment commit landed. Going forward `row.urgency` is the
-    // canonical source.
-    urgency: row.urgency ?? row.priority ?? 'medium',
-    budget: row.budget || 0,
-    budget_min: row.budget_min || row.budget || 0,
-    budget_max: row.budget_max || row.budget || 0,
+    urgency: row.urgency ?? 'medium',
+    budget: budget ?? 0,
+    budget_min: budgetMin ?? budget ?? 0,
+    budget_max: budgetMax ?? budget ?? 0,
     start_date: row.start_date,
     end_date: row.end_date,
     flexible_timeline: row.flexible_timeline || false,
     location: row.location || '',
     city: row.city || '',
     postcode: row.postcode || '',
-    propertyType: 'house',
+    propertyType,
+    propertyBedrooms,
+    propertyBathrooms,
     accessInfo: row.access_info || '',
-    // `images` is the legacy field name (web). `photos` is the field
-    // mobile's JobDetailsScreen / ImageCarousel actually reads. Keep
-    // both populated with the same signed URLs so neither caller breaks.
+    // Structured property access fields. Null when the job has no
+    // property_id, when the caller isn't homeowner/admin/assigned-
+    // contractor, or when the lookup fails. key_safe_code is null
+    // unless the caller is the homeowner / admin OR the assigned
+    // contractor inside the 1h pre-visit reveal window.
+    propertyAccess,
+    // 2026-05-24 audit-30 P1: active property contacts (tenant,
+    // keyholder, emergency_contact, managing_agent) the landlord has
+    // attached to this property. Empty array when the caller isn't
+    // entitled to access info or there are no contacts.
+    propertyContacts,
+    scheduledStartDate: row.scheduled_start_date,
     images: signedPhotos,
     photos: signedPhotos,
-    requirements: row.requirements || [],
-    latitude: row.latitude,
-    longitude: row.longitude,
+    requirements: row.requirements ?? null,
+    latitude: toNum(row.latitude),
+    longitude: toNum(row.longitude),
     homeowner_id: row.homeowner_id,
     contractor_id: row.contractor_id,
-    homeowner: null,
-    contractor: null,
-    bidCount: 0,
+    // 2026-05-24 audit-26 P2: pass through the completion flag so mobile
+    // can drive the homeowner post-completion CTA (Review Work vs Leave
+    // a Review) without round-tripping a separate query.
+    completion_confirmed_by_homeowner:
+      row.completion_confirmed_by_homeowner ?? false,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   } as Record<string, unknown>;

@@ -12,20 +12,17 @@
  * file stays comfortable. Reuses getOrCreateStripeCustomer.
  */
 
-import Stripe from 'stripe';
+import type Stripe from 'stripe';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
-import { env } from '@/lib/env';
 import { HomeownerSubscriptionService } from './HomeownerSubscriptionService';
+// 2026-05-28 audit: was a local proxy pinned to apiVersion '2024-04-10'.
+// Route through the single shared lazy proxy so the API version stays pinned
+// in one place (lib/stripe.ts → '2025-01-27.acacia').
+import { stripe as sharedStripe } from '@/lib/stripe';
 
-let _stripe: Stripe | null = null;
-function getStripe(): Stripe {
-  if (!_stripe) {
-    _stripe = new Stripe(env.STRIPE_SECRET_KEY, {
-      apiVersion: '2024-04-10',
-    });
-  }
-  return _stripe;
+function getStripe() {
+  return sharedStripe;
 }
 
 export interface HomeHealthPlan {

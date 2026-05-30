@@ -11,8 +11,13 @@ import {
   DarkTheme,
   useFocusEffect,
   useNavigation,
-  useNavigationContainerRef,
 } from '@react-navigation/native';
+// 2026-05-26 audit-58 P2: shared module-level ref so non-navigator
+// surfaces (ScreenErrorBoundary, notification handlers, deep-link
+// bridges) can navigate without needing hook context. Replaces the
+// previous `useNavigationContainerRef` which was hook-local to this
+// component.
+import { navigationRef } from './navigationRef';
 import type { NavigationProp } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -81,6 +86,17 @@ import { BookingDetailsScreen } from '../screens/booking/BookingDetailsScreen';
 
 const SafeHomeScreen = withScreenErrorBoundary(HomeScreen, 'Home');
 
+// 2026-05-22 Find-Jobs-crash audit fix: wrap the contractor map in a
+// screen-level error boundary. Any thrown error inside the native
+// `react-native-maps` MapView (e.g. an unconfigured Google Maps API
+// key on Android, or a malformed Marker coordinate after a server
+// regression) used to crash the whole app — now it renders the
+// boundary fallback so the contractor can still navigate elsewhere.
+const SafeExploreMapScreen = withScreenErrorBoundary(
+  ExploreMapScreen,
+  'FindJobs'
+);
+
 // ============================================================================
 // NAVIGATION STACKS
 // ============================================================================
@@ -111,7 +127,7 @@ const AddActionScreen: React.FC = () => {
   // Contractor: AddTab IS the destination — render the Find Jobs map inline so
   // the tab indicator correctly highlights "Find Jobs".
   if (user?.role === 'contractor') {
-    return <ExploreMapScreen />;
+    return <SafeExploreMapScreen />;
   }
 
   return null;
@@ -289,7 +305,9 @@ export const AppNavigator: React.FC = () => {
   const { user, loading } = useAuth();
   const { colorScheme } = useTheme();
   const isDark = colorScheme === 'dark';
-  const navigationRef = useNavigationContainerRef<RootStackParamList>();
+  // 2026-05-26 audit-58 P2: imported from ./navigationRef so the
+  // boundary + push-notification + future cross-cutting consumers all
+  // share one ref instance instead of relying on the hook-local one.
   const listenersRegistered = useRef(false);
 
   // Register push notification listeners once navigation is ready and user is authenticated

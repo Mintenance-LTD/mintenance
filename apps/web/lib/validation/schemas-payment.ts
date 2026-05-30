@@ -10,7 +10,11 @@ export const paymentIntentSchema = z.object({
     .positive('Amount must be positive')
     .max(10000, 'Amount exceeds maximum (£10,000)')
     .transform((val) => Math.round(val * 100) / 100),
-  currency: z.enum(['gbp', 'eur', 'usd']).default('gbp'),
+  // GBP-only platform (CLAUDE.md MDC). The escrow_transactions.currency
+  // column has a CHECK (currency='gbp') and the edge-fn currency CI guard
+  // blocks non-GBP — accepting eur/usd here would let a request set a
+  // currency that the rest of the stack rejects downstream.
+  currency: z.enum(['gbp']).default('gbp'),
   jobId: z.string().uuid('Invalid job ID'),
   contractorId: z.string().uuid('Invalid contractor ID'),
   metadata: z

@@ -20,9 +20,10 @@ const COMPARISON_ROWS = [
     mintenance: 'Review bids, profiles and messages together',
   },
   {
-    feature: 'Trust and verification',
-    traditional: 'You check insurance and credentials yourself',
-    mintenance: 'Contractor details are visible before you hire',
+    feature: 'Contractor credentials',
+    traditional: 'You chase insurance and credentials yourself',
+    mintenance:
+      'Self-declared business, licence and insurance info visible before you hire',
   },
   {
     feature: 'Payment protection',

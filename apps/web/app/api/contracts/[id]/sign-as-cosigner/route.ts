@@ -29,6 +29,7 @@ import {
   getIdempotencyKeyFromRequest,
   checkIdempotency,
   storeIdempotencyResult,
+  releaseOnError,
 } from '@/lib/idempotency';
 
 export const POST = withApiHandler(
@@ -64,119 +65,128 @@ export const POST = withApiHandler(
       return NextResponse.json(idem.cachedResult);
     }
 
-    // Find the caller's signatory row for this contract.
-    const { data: row, error: rowError } = await serverSupabase
-      .from('contract_signatories')
-      .select('id, signed_at, role')
-      .eq('contract_id', contractId)
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    if (rowError) {
-      logger.error('Failed to load signatory row', {
-        service: 'contracts/sign-as-cosigner',
-        contractId,
-        userId: user.id,
-        error: rowError.message,
-      });
-      throw new NotFoundError('Signatory record not found');
-    }
-    if (!row) {
-      throw new ForbiddenError(
-        'You are not listed as a co-signer on this contract'
-      );
-    }
-    if (row.signed_at) {
-      return NextResponse.json({
-        success: true,
-        already_signed: true,
-        signed_at: row.signed_at,
-      });
-    }
-
-    const nowIso = new Date().toISOString();
-    const { error: updateError } = await serverSupabase
-      .from('contract_signatories')
-      .update({ signed_at: nowIso })
-      .eq('id', row.id);
-
-    if (updateError) {
-      logger.error('Failed to update signatory', {
-        service: 'contracts/sign-as-cosigner',
-        contractId,
-        error: updateError.message,
-      });
-      throw new BadRequestError('Failed to record signature');
-    }
-
-    // Re-evaluate: if all co-signers + both legacy parties are signed,
-    // promote the contract to ACCEPTED.
-    const { data: contract } = await serverSupabase
-      .from('contracts')
-      .select(
-        'id, job_id, status, title, contractor_id, homeowner_id, contractor_signed_at, homeowner_signed_at'
-      )
-      .eq('id', contractId)
-      .single();
-
-    let promoted = false;
-    if (
-      contract &&
-      contract.contractor_signed_at &&
-      contract.homeowner_signed_at &&
-      contract.status !== CONTRACT_STATUS.ACCEPTED &&
-      (await ContractSignatoriesService.areAllCosignersSigned(contractId))
-    ) {
-      const { error: promoteError } = await serverSupabase
-        .from('contracts')
-        .update({
-          status: CONTRACT_STATUS.ACCEPTED,
-          updated_at: nowIso,
-        })
-        .eq('id', contractId);
-
-      if (promoteError) {
-        logger.warn('Failed to promote contract to ACCEPTED', {
-          service: 'contracts/sign-as-cosigner',
-          contractId,
-          error: promoteError.message,
-        });
-      } else {
-        promoted = true;
-        // Notify both legacy parties.
-        await Promise.allSettled([
-          NotificationService.createNotification({
-            userId: contract.contractor_id,
-            type: 'contract_signed',
-            title: 'Contract Accepted!',
-            message: `All parties have signed the contract for "${contract.title || 'your job'}".`,
-            actionUrl: `/contractor/jobs/${contract.job_id}`,
-          }),
-          NotificationService.createNotification({
-            userId: contract.homeowner_id,
-            type: 'contract_signed',
-            title: 'Contract Accepted!',
-            message: `All parties have signed the contract for "${contract.title || 'your job'}".`,
-            actionUrl: `/jobs/${contract.job_id}`,
-          }),
-        ]);
-      }
-    }
-
-    const responseData = {
-      success: true,
-      signed_at: nowIso,
-      contract_promoted: promoted,
-    };
-
-    await storeIdempotencyResult(
+    return await releaseOnError(
       idempotencyKey,
       'contract_sign_cosigner',
-      responseData,
-      user.id,
-      { contractId, signatoryId: row.id }
-    );
+      async () => {
+        // Find the caller's signatory row for this contract.
+        const { data: row, error: rowError } = await serverSupabase
+          .from('contract_signatories')
+          .select('id, signed_at, role')
+          .eq('contract_id', contractId)
+          .eq('user_id', user.id)
+          .maybeSingle();
 
-    return NextResponse.json(responseData);
+        if (rowError) {
+          logger.error('Failed to load signatory row', {
+            service: 'contracts/sign-as-cosigner',
+            contractId,
+            userId: user.id,
+            error: rowError.message,
+          });
+          throw new NotFoundError('Signatory record not found');
+        }
+        if (!row) {
+          throw new ForbiddenError(
+            'You are not listed as a co-signer on this contract'
+          );
+        }
+        if (row.signed_at) {
+          return NextResponse.json({
+            success: true,
+            already_signed: true,
+            signed_at: row.signed_at,
+          });
+        }
+
+        const nowIso = new Date().toISOString();
+        const { error: updateError } = await serverSupabase
+          .from('contract_signatories')
+          .update({ signed_at: nowIso })
+          .eq('id', row.id);
+
+        if (updateError) {
+          logger.error('Failed to update signatory', {
+            service: 'contracts/sign-as-cosigner',
+            contractId,
+            error: updateError.message,
+          });
+          throw new BadRequestError('Failed to record signature');
+        }
+
+        // Re-evaluate: if all co-signers + both legacy parties are signed,
+        // promote the contract to ACCEPTED.
+        const { data: contract } = await serverSupabase
+          .from('contracts')
+          .select(
+            'id, job_id, status, title, contractor_id, homeowner_id, contractor_signed_at, homeowner_signed_at'
+          )
+          .eq('id', contractId)
+          .single();
+
+        let promoted = false;
+        if (
+          contract &&
+          contract.contractor_signed_at &&
+          contract.homeowner_signed_at &&
+          contract.status !== CONTRACT_STATUS.ACCEPTED &&
+          (await ContractSignatoriesService.areAllCosignersSigned(contractId))
+        ) {
+          const { error: promoteError } = await serverSupabase
+            .from('contracts')
+            .update({
+              status: CONTRACT_STATUS.ACCEPTED,
+              updated_at: nowIso,
+            })
+            .eq('id', contractId);
+
+          if (promoteError) {
+            logger.warn('Failed to promote contract to ACCEPTED', {
+              service: 'contracts/sign-as-cosigner',
+              contractId,
+              error: promoteError.message,
+            });
+          } else {
+            promoted = true;
+            // Notify both legacy parties.
+            // 2026-05-21 Mint Editorial voice — match accept/route.ts so
+            // every "fully signed" path produces the same notification.
+            const jobLabel = contract.title || 'your job';
+            await Promise.allSettled([
+              NotificationService.createNotification({
+                userId: contract.contractor_id,
+                type: 'contract_signed',
+                title: `${jobLabel} — contract is live`,
+                message: `All sides signed. Homeowner funds escrow next; you'll get a notification when the money lands.`,
+                actionUrl: `/contractor/jobs/${contract.job_id}`,
+              }),
+              NotificationService.createNotification({
+                userId: contract.homeowner_id,
+                type: 'contract_signed',
+                title: `${jobLabel} — contract is live`,
+                message: `All sides signed. Next step is to fund the escrow — payment stays held until you approve the finished work.`,
+                actionUrl: `/jobs/${contract.job_id}`,
+              }),
+            ]);
+          }
+        }
+
+        const responseData = {
+          success: true,
+          signed_at: nowIso,
+          contract_promoted: promoted,
+        };
+
+        await storeIdempotencyResult(
+          idempotencyKey,
+          'contract_sign_cosigner',
+          responseData,
+          user.id,
+          { contractId, signatoryId: row.id }
+        );
+
+        return NextResponse.json(responseData);
+      }
+    );
   }
 );

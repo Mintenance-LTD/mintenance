@@ -16,10 +16,13 @@ export const LogoSection: React.FC<LogoSectionProps> = ({
 }) => (
   <View style={styles.section}>
     <Text style={styles.sectionTitle}>Company Logo</Text>
-    {/* Audit follow-up (2026-04-29): icon-only touchable now exposes
-        an `accessibilityLabel` so screen readers announce its
-        purpose. Without it, VoiceOver / TalkBack just said "Button"
-        and the user had no way to know what it did. */}
+    {/* 2026-05-23 audit-21 P1: profiles has no company_logo column —
+        this picker is a preview-only surface until the column +
+        upload path land. Be honest about it on the screen rather
+        than promising a save that doesn't happen. */}
+    <Text style={styles.sectionSubtitle}>
+      Preview only — logo upload coming soon.
+    </Text>
     <TouchableOpacity
       style={styles.logoUpload}
       onPress={onPickLogo}
@@ -147,6 +150,13 @@ export const ServiceAreaSection: React.FC<ServiceAreaSectionProps> = ({
 }) => (
   <View style={styles.section}>
     <Text style={styles.sectionTitle}>Service Area</Text>
+    {/* 2026-05-23 audit-21 P1: service radius lives on
+        contractor_service_areas, not profiles. Real persistence
+        happens via the dedicated Service Areas screen — this slider
+        is a placeholder until the two surfaces are unified. */}
+    <Text style={styles.sectionSubtitle}>
+      Preview only — set your real coverage under Service Areas.
+    </Text>
     <View style={styles.inputGroup}>
       <Text style={styles.inputLabel}>Service Radius (km)</Text>
       <TextInput

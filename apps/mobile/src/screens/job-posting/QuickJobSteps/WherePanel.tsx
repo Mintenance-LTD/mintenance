@@ -2,8 +2,12 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import type { RootTabParamList } from '../../../navigation/types';
 import { Property } from './types';
 import { me } from '../../../design-system/mint-editorial';
+
+type WhereNavProp = BottomTabNavigationProp<RootTabParamList>;
 
 interface Props {
   properties: Property[] | undefined;
@@ -18,7 +22,7 @@ export const WherePanel: React.FC<Props> = ({
   onSelect,
   onClose,
 }) => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<WhereNavProp>();
   return (
     <View style={styles.panel}>
       <Text style={styles.panelTitle}>Select your property</Text>
@@ -71,7 +75,7 @@ export const WherePanel: React.FC<Props> = ({
             onPress={() => {
               onClose();
               setTimeout(() => {
-                (navigation as any).navigate('ProfileTab', {
+                navigation.navigate('ProfileTab', {
                   screen: 'AddProperty',
                 });
               }, 300);

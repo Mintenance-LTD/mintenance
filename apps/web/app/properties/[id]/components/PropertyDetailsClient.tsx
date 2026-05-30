@@ -63,6 +63,20 @@ interface Property {
   squareFeet: number;
   yearBuilt: number;
   images: string[];
+  // 2026-05-23 audit: read-only surface for the access fields so
+  // legacy-theme users at least see what's set (edit goes through
+  // the editorial flow / mobile / future legacy form).
+  access_mode?: 'key_safe' | 'smart_lock' | 'in_person' | null;
+  access_notes?: string | null;
+  stopcock_location?: string | null;
+  gas_isolator_location?: string | null;
+  consumer_unit_location?: string | null;
+  // key_safe_code intentionally NOT surfaced here — the legacy theme
+  // doesn't have the editorial Access view's authorisation context
+  // (manager vs owner vs admin), so we don't render the most
+  // sensitive field at all in the legacy fallback. Homeowners on
+  // legacy theme can switch to the editorial cookie + see / edit it
+  // there.
 }
 
 interface PropertyDetailsClientProps {
@@ -276,11 +290,19 @@ export default function PropertyDetailsClient({
 
   const handleDelete = async () => {
     // Fetch retention preview so the confirmation dialog can warn the
-    // homeowner about records that will be preserved (compliance
+    // homeowner about records that will be PRESERVED (compliance
     // certs, tenants, contacts, anonymous reports, recurring schedules
-    // — see migration 20260520000002_landlord_fk_retention.sql) vs the
-    // records that will be cascade-deleted (jobs, photos).
-    let confirmMessage = 'Are you sure you want to delete this property?';
+    // + historical jobs — all `ON DELETE SET NULL` per the FK retention
+    // migrations) vs the records that will be CASCADE-DELETED (room
+    // photos + closed maintenance_tickets).
+    //
+    // 2026-05-26 audit-65 P2: previously this fell back to a plain
+    // confirm when the preview fetch failed, letting the homeowner
+    // commit a high-impact delete without seeing authoritative
+    // counts. Now we block the action and ask them to refresh —
+    // safer than letting them blow away records sight-unseen.
+    let confirmMessage = '';
+    let previewSucceeded = false;
     try {
       const previewRes = await fetch(
         `/api/properties/${property.id}/delete-preview`,
@@ -294,8 +316,22 @@ export default function PropertyDetailsClient({
             property_contacts: number;
             anonymous_reports: number;
             recurring_schedules: number;
+            // 2026-05-21: jobs.property_id is `SET NULL` live, so
+            // historical jobs survive a property delete and now
+            // surface under "preserved" rather than the previous
+            // (incorrect) "cascaded".
+            jobs: number;
           };
-          cascaded: { jobs: number; property_photos: number };
+          // Real cascading photo table is property_room_photos —
+          // earlier shape referenced a non-existent `property_photos`
+          // and silently always reported 0.
+          // 2026-05-26 audit-65 P1: also surfaces maintenance_tickets
+          // (CASCADE FK) so portfolio users see the impact before
+          // committing.
+          cascaded: {
+            property_room_photos: number;
+            maintenance_tickets?: number;
+          };
           preservedTotal: number;
           cascadedTotal: number;
         };
@@ -333,31 +369,48 @@ export default function PropertyDetailsClient({
               `  • ${preview.preserved.recurring_schedules} recurring schedule${preview.preserved.recurring_schedules === 1 ? '' : 's'}`
             );
           }
+          if (preview.preserved.jobs > 0) {
+            lines.push(
+              `  • ${preview.preserved.jobs} historical job${preview.preserved.jobs === 1 ? '' : 's'}`
+            );
+          }
           lines.push('');
         }
         if (preview.cascadedTotal > 0) {
           lines.push('The following will be PERMANENTLY DELETED:');
-          if (preview.cascaded.jobs > 0) {
+          if (preview.cascaded.property_room_photos > 0) {
             lines.push(
-              `  • ${preview.cascaded.jobs} job${preview.cascaded.jobs === 1 ? '' : 's'}`
+              `  • ${preview.cascaded.property_room_photos} room photo${preview.cascaded.property_room_photos === 1 ? '' : 's'}`
             );
           }
-          if (preview.cascaded.property_photos > 0) {
+          if ((preview.cascaded.maintenance_tickets ?? 0) > 0) {
             lines.push(
-              `  • ${preview.cascaded.property_photos} property photo${preview.cascaded.property_photos === 1 ? '' : 's'}`
+              `  • ${preview.cascaded.maintenance_tickets} maintenance ticket${preview.cascaded.maintenance_tickets === 1 ? '' : 's'} (closed/resolved history)`
             );
           }
           lines.push('');
         }
         lines.push('This cannot be undone.');
         confirmMessage = lines.join('\n');
+        previewSucceeded = true;
+      } else {
+        logger.warn('Delete preview returned non-OK status', {
+          service: 'ui',
+          status: previewRes.status,
+        });
       }
     } catch (err) {
-      // Preview is non-blocking — fall back to the plain confirm
-      logger.warn('Delete preview failed, falling back to plain confirm', {
+      logger.warn('Delete preview failed', {
         service: 'ui',
         error: err instanceof Error ? err.message : String(err),
       });
+    }
+
+    if (!previewSucceeded) {
+      toast.error(
+        'We couldn’t verify what would be affected by deleting this property. Refresh the page and try again, or contact support.'
+      );
+      return;
     }
 
     if (confirm(confirmMessage)) {
@@ -373,7 +426,30 @@ export default function PropertyDetailsClient({
           toast.success('Property deleted successfully');
           router.push('/properties');
         } else {
-          toast.error('Failed to delete property');
+          // 2026-05-26 audit-65 P2: previously this collapsed every
+          // non-2xx into the same "Failed to delete property" toast,
+          // so the 409 blocker payload (active jobs / open reports
+          // / open tickets) was hidden from the user. Parse the
+          // response, surface blocker[0].message, fall back to the
+          // generic toast only when no message is provided.
+          let serverMessage: string | undefined;
+          try {
+            const body = (await response.json()) as {
+              error?: string;
+              blockers?: Array<{ message?: string }>;
+            };
+            const blockerMsgs = (body.blockers ?? [])
+              .map((b) => b.message)
+              .filter((m): m is string => !!m);
+            if (blockerMsgs.length > 0) {
+              serverMessage = blockerMsgs.join('\n\n');
+            } else if (body.error) {
+              serverMessage = body.error;
+            }
+          } catch {
+            // Body wasn't JSON — fall back below.
+          }
+          toast.error(serverMessage || 'Failed to delete property');
         }
       } catch (error) {
         logger.error('Error deleting property:', error, { service: 'ui' });
@@ -661,6 +737,89 @@ export default function PropertyDetailsClient({
                 <YearOverYearComparison jobs={jobs} />
               </FeatureGateCard>
             </div>
+
+            {/* 2026-05-23 audit: read-only Access & contacts panel.
+                Edit lives in the editorial theme — legacy users at
+                least see what's configured. key_safe_code is
+                deliberately not rendered here (no access-mode-aware
+                authorisation context on legacy theme; the editorial
+                Access view owns the sensitive reveal). */}
+            {(property.access_mode ||
+              property.access_notes ||
+              property.stopcock_location ||
+              property.gas_isolator_location ||
+              property.consumer_unit_location) && (
+              <div className='bg-white rounded-xl border border-gray-200 p-6 mt-6'>
+                <div className='flex items-center justify-between mb-4'>
+                  <h2 className='text-lg font-semibold text-gray-900'>
+                    Access & contacts
+                  </h2>
+                  <a
+                    href='?tab=access'
+                    className='text-sm text-teal-600 hover:underline'
+                    title='Edit access details in the new theme'
+                  >
+                    Edit →
+                  </a>
+                </div>
+                <dl className='grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm'>
+                  {property.access_mode && (
+                    <div>
+                      <dt className='text-gray-500 text-xs uppercase tracking-wide mb-1'>
+                        Mode
+                      </dt>
+                      <dd className='text-gray-900'>
+                        {property.access_mode === 'key_safe'
+                          ? 'Key safe'
+                          : property.access_mode === 'smart_lock'
+                            ? 'Smart lock (instructions only)'
+                            : "You'll be home"}
+                      </dd>
+                    </div>
+                  )}
+                  {property.access_notes && (
+                    <div className='sm:col-span-2'>
+                      <dt className='text-gray-500 text-xs uppercase tracking-wide mb-1'>
+                        Notes
+                      </dt>
+                      <dd className='text-gray-900 whitespace-pre-line'>
+                        {property.access_notes}
+                      </dd>
+                    </div>
+                  )}
+                  {property.stopcock_location && (
+                    <div>
+                      <dt className='text-gray-500 text-xs uppercase tracking-wide mb-1'>
+                        Stopcock
+                      </dt>
+                      <dd className='text-gray-900'>
+                        {property.stopcock_location}
+                      </dd>
+                    </div>
+                  )}
+                  {property.gas_isolator_location && (
+                    <div>
+                      <dt className='text-gray-500 text-xs uppercase tracking-wide mb-1'>
+                        Gas isolator
+                      </dt>
+                      <dd className='text-gray-900'>
+                        {property.gas_isolator_location}
+                      </dd>
+                    </div>
+                  )}
+                  {property.consumer_unit_location && (
+                    <div>
+                      <dt className='text-gray-500 text-xs uppercase tracking-wide mb-1'>
+                        Consumer unit
+                      </dt>
+                      <dd className='text-gray-900'>
+                        {property.consumer_unit_location}
+                      </dd>
+                    </div>
+                  )}
+                </dl>
+              </div>
+            )}
           </div>
         )}
 

@@ -13,6 +13,8 @@ import {
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { JobService } from '../services/JobService';
+import { BidService } from '../services/BidService';
+import { mobileApiClient } from '../utils/mobileApiClient';
 import { useAuth } from '../contexts/AuthContext';
 import { Job } from '@mintenance/types';
 import { JobsStackParamList } from '../navigation/types';
@@ -29,6 +31,7 @@ import { useUnsavedChanges } from '../hooks/useUnsavedChanges';
 import { JobRoomScope } from './components/JobRoomScope';
 import { supabase } from '../config/supabase';
 import type { JobRoomScopeOption } from './create-quote/components/LineItemScopeToolbar';
+import { featureAccess } from '../utils/featureAccess';
 
 type Props = {
   route: RouteProp<JobsStackParamList, 'BidSubmission'>;
@@ -41,7 +44,19 @@ const MAX_DESC = 5000;
 const VAT_RATE = 20;
 
 const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { jobId } = route.params;
+  // 2026-05-27 audit-73 P3: defensive guard against malformed
+  // navigation params (deep link missing jobId, notification routing
+  // fallback into BidSubmission, an error-boundary retry that loses
+  // params). JobDetailsScreen got this same hardening in audit-58
+  // P3 #248 — without it, destructuring `route.params.jobId` on an
+  // undefined `params` throws before we can render a controlled
+  // error state. Render an inline error card + back CTA instead of
+  // crashing into the JS exception boundary.
+  const params = route.params as
+    | { jobId?: string; existingBidId?: string }
+    | undefined;
+  const jobId = params?.jobId;
+  const existingBidId = params?.existingBidId;
   const insets = useSafeAreaInsets();
   const { user } = useAuth();
   const [job, setJob] = useState<Job | null>(null);
@@ -63,6 +78,38 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
 
+  // 2026-05-28 U5: client-side monthly bid-limit pre-warning. Mirrors the
+  // server's CONTRACTOR_BID_LIMIT gate so a contractor learns they're at
+  // (or near) their monthly cap before composing + submitting a bid,
+  // instead of only after a server rejection. New bids only — editing an
+  // existing bid (existingBidId) consumes no new quota. `null` = not yet
+  // resolved; the check fails open so a feature-access fetch blip never
+  // blocks bidding (the server stays authoritative on the real limit).
+  const [bidLimitRemaining, setBidLimitRemaining] = useState<
+    number | 'unlimited' | null
+  >(null);
+  useEffect(() => {
+    if (existingBidId || !user || user.role !== 'contractor') return;
+    let cancelled = false;
+    (async () => {
+      try {
+        await featureAccess.initialize(user.id, 'contractor');
+        if (!cancelled) {
+          setBidLimitRemaining(
+            featureAccess.getRemainingUsage('CONTRACTOR_BID_LIMIT')
+          );
+        }
+      } catch (err) {
+        logger.warn('Bid-limit pre-check failed; allowing bid', {
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [existingBidId, user]);
+
   // Property Rooms Slice 2 — fetch the job's room scope so the
   // line-item editor can offer "Bill by m²" + "Apply to room".
   const [roomsInScope, setRoomsInScope] = useState<JobRoomScopeOption[]>([]);
@@ -78,7 +125,31 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
           .order('created_at', { ascending: true });
         if (error) return; // RLS may hide rows — quietly skip
         if (!cancelled) {
-          setRoomsInScope((data ?? []) as JobRoomScopeOption[]);
+          // 2026-05-27 audit-82 P1: job_rooms.size_sqm_at_post is
+          // NUMERIC(8,2) which supabase-js serializes as a string.
+          // LineItemScopeToolbar calls .toFixed(1) on it (throws
+          // "toFixed is not a function" on strings) and the bid
+          // submit payload reads room.size_sqm_at_post as quantity
+          // (then ships a STRING into payload.lineItems[].quantity,
+          // breaking type stability on the wire). Coerce once at the
+          // read boundary so every downstream consumer sees a number
+          // or null.
+          const rows = (data ?? []) as Array<{
+            id: string;
+            name: string;
+            size_sqm_at_post: number | string | null;
+          }>;
+          const normalised = rows.map((r) => {
+            const raw = r.size_sqm_at_post;
+            const n =
+              raw == null ? null : typeof raw === 'number' ? raw : Number(raw);
+            return {
+              id: r.id,
+              name: r.name,
+              size_sqm_at_post: n != null && Number.isFinite(n) ? n : null,
+            };
+          });
+          setRoomsInScope(normalised as JobRoomScopeOption[]);
         }
       } catch {
         // Silent — slice 2 controls self-hide when array is empty
@@ -103,18 +174,83 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
   const allowExit = useUnsavedChanges(isDirty);
 
   useEffect(() => {
-    loadJob();
+    // audit-73 P3: skip the load if jobId is missing — the missing-
+    // jobId early-return below renders the controlled error state.
+    if (!jobId) {
+      setLoading(false);
+      return;
+    }
+    loadJob(jobId);
   }, [jobId]);
 
-  const loadJob = async () => {
+  const loadJob = async (id: string) => {
     try {
-      setJob(await JobService.getJobById(jobId));
+      setJob(await JobService.getJobById(id));
     } catch {
       Alert.alert('Error', 'Failed to load job details');
     } finally {
       setLoading(false);
     }
   };
+
+  // 2026-05-24 audit-26 P2: when the screen is opened in "edit" mode
+  // (route.params.existingBidId is set — JobDetailsCTA passes this
+  // when the contractor taps "Bid Pending — Edit Bid"), pre-populate
+  // the quick-bid fields from the existing bid. /api/contractor/bids
+  // is contractor-scoped via auth.uid() so we can safely read by
+  // bidId. line_items + terms are not stored on `bids` (they live
+  // under `quotes`) so the detailed-mode rehydration is out of scope
+  // for this pass — the contractor edits the quick-bid summary and
+  // any line-item changes are still done from a fresh "Submit Quote".
+  useEffect(() => {
+    if (!existingBidId || !jobId) return;
+    // 2026-05-26 audit-59 P2: PATCH /api/jobs/:id/bids/:bidId only
+    // accepts quick-bid fields. Force quick mode on entry so the
+    // line-item state from a prior new-bid attempt can't leak into
+    // an Edit Bid render and offer detailed inputs the PATCH would
+    // ignore.
+    setMode('quick');
+    let cancelled = false;
+    const resolvedJobId = jobId;
+    (async () => {
+      try {
+        // The contractor has at most one bid per job (DB unique
+        // constraint on bids(job_id, contractor_id)), so the
+        // jobId-scoped read returns either the existing bid or null
+        // and we don't need to filter by bidId on the client.
+        const result = await BidService.getMyBidForJob(resolvedJobId);
+        if (cancelled || !result || result.id !== existingBidId) return;
+        // The /api/contractor/bids GET returns a wider shape than the
+        // local Bid type (which is the wire shape of submitBid), so
+        // pull the hydration fields via a typed record cast rather
+        // than the strict Bid interface.
+        const target = result as unknown as Record<string, unknown>;
+        const amountField = target.amount;
+        if (typeof amountField === 'number') {
+          setAmount(String(amountField));
+        }
+        const text =
+          (typeof target.description === 'string' && target.description) ||
+          (typeof target.message === 'string' && target.message) ||
+          '';
+        if (text) setDescription(text);
+        const dur = target.estimated_duration_days;
+        if (typeof dur === 'number' && dur > 0) {
+          setEstimatedDuration(String(dur));
+        }
+        const startStr = target.proposed_start_date;
+        if (typeof startStr === 'string') {
+          const parsed = new Date(startStr);
+          if (!Number.isNaN(parsed.getTime())) setProposedStartDate(parsed);
+        }
+      } catch (err) {
+        logger.warn('Failed to hydrate existing bid', { err });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [existingBidId, jobId]);
 
   // Calculations
   const subtotal =
@@ -127,7 +263,9 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
   const platformFee = totalAmount * (PLATFORM_FEE_PERCENT / 100);
   const yourEarnings = totalAmount - platformFee;
   const bidAmount = mode === 'detailed' ? totalAmount : parseFloat(amount) || 0;
-  const isOverBudget = job?.budget != null && bidAmount > job.budget;
+  // 2026-05-22: homeowner-set budget no longer anchors contractor bids.
+  void bidAmount;
+  const isOverBudget = false;
   const descShort =
     description.trim().length > 0 && description.trim().length < MIN_DESC;
 
@@ -138,6 +276,17 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
     parseInt(estimatedDuration, 10) > 0 &&
     proposedStartDate !== null &&
     (mode === 'quick' || lineItems.length > 0);
+
+  // U5 bid-limit derived state (new-bid flow only).
+  const atBidLimit = !existingBidId && bidLimitRemaining === 0;
+  const lowBidsRemaining =
+    !existingBidId &&
+    typeof bidLimitRemaining === 'number' &&
+    bidLimitRemaining > 0 &&
+    bidLimitRemaining <= 3;
+  const bidLimitMessage =
+    featureAccess.getFeature('CONTRACTOR_BID_LIMIT')?.upgradeMessage ??
+    "You've reached your monthly bid limit. Upgrade to submit more bids.";
 
   // Line item actions
   const addLineItem = () => {
@@ -215,6 +364,13 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
       setFormError('Only contractors can submit bids');
       return;
     }
+    // U5: stop a new bid at the monthly cap before the round-trip. The
+    // server still rejects independently; this just gives a clear,
+    // immediate upgrade prompt. Edits (existingBidId) are exempt.
+    if (atBidLimit) {
+      setFormError(bidLimitMessage);
+      return;
+    }
     if (bidAmount <= 0) {
       setFormError('Please enter a valid bid amount');
       return;
@@ -238,6 +394,40 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
 
     setSubmitting(true);
     try {
+      // 2026-05-24 audit-26 P2: when existingBidId is set, route through
+      // PATCH /api/jobs/:id/bids/:bidId instead of the create endpoint.
+      // The PATCH route only supports {amount, message,
+      // estimated_duration_days, proposed_start_date} — the screen's
+      // detailed-mode line items + terms can't be updated this way
+      // and would be silently dropped, so for now an edit always
+      // PATCHes the quick-bid fields regardless of mode and surfaces
+      // a notice in the success Alert.
+      if (existingBidId) {
+        // PATCH /api/jobs/:jobId/bids/:bidId — schema accepts
+        // amount, message, estimated_duration_days, proposed_start_date.
+        // BidService.updateBid sends `estimated_duration` (string) which
+        // gets silently dropped by the route's non-strict Zod schema,
+        // so go direct here with the correct field names.
+        await mobileApiClient.patch(
+          `/api/jobs/${jobId}/bids/${existingBidId}`,
+          {
+            amount: bidAmount,
+            message: description.trim(),
+            estimated_duration_days: parseInt(estimatedDuration, 10),
+            proposed_start_date: proposedStartDate.toISOString().split('T')[0],
+          }
+        );
+        Alert.alert('Bid Updated', 'Your bid has been updated.', [
+          {
+            text: 'OK',
+            onPress: () => {
+              allowExit();
+              navigation.goBack();
+            },
+          },
+        ]);
+        return;
+      }
       const payload: Record<string, unknown> = {
         jobId,
         contractorId: user.id,
@@ -297,6 +487,42 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
     }
   };
 
+  // 2026-05-27 audit-73 P3: explicit missing-jobId render path. A
+  // malformed deep link or notification-routing fallback that lands
+  // here without params previously threw on the route.params
+  // destructure. Now we surface a controlled "missing job" screen
+  // with a Back affordance instead of crashing into the JS error
+  // boundary — same shape as JobDetailsScreen's audit-58 #248 fix.
+  if (!jobId) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text
+          style={{ color: me.ink, fontSize: 16, fontWeight: '600' }}
+          accessibilityRole='header'
+        >
+          Job reference missing
+        </Text>
+        <Text style={{ color: me.ink2, marginTop: 6, textAlign: 'center' }}>
+          We couldn't load the job to bid on. Please go back and try again from
+          the job detail screen.
+        </Text>
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          accessibilityRole='button'
+          style={{
+            marginTop: 18,
+            paddingHorizontal: 16,
+            paddingVertical: 10,
+            borderRadius: 10,
+            backgroundColor: me.brand,
+          }}
+        >
+          <Text style={{ color: me.onBrand, fontWeight: '700' }}>Go back</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   if (loading || !job) {
     return (
       <View style={styles.loadingContainer}>
@@ -342,16 +568,27 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
               <Text style={styles.jobDescription} numberOfLines={2}>
                 {job.description}
               </Text>
-              {job.budget != null && (
-                <View style={styles.budgetBadge}>
-                  <Text style={styles.budgetText}>
-                    Budget: {'\u00A3'}
-                    {job.budget.toLocaleString()}
-                  </Text>
-                </View>
-              )}
+              {/* 2026-05-22: homeowner-set budget badge removed \u2014 price
+                  this bid yourself based on the work involved. */}
             </View>
           </View>
+
+          {/* U5: monthly bid-limit pre-warning (new bids only). */}
+          {atBidLimit && (
+            <View style={styles.warningBanner}>
+              <Ionicons name='lock-closed' size={16} color={me.errFg} />
+              <Text style={styles.warningText}>{bidLimitMessage}</Text>
+            </View>
+          )}
+          {lowBidsRemaining && (
+            <View style={styles.bidLimitInfoBanner}>
+              <Ionicons name='information-circle' size={16} color={me.brand} />
+              <Text style={styles.bidLimitInfoText}>
+                {bidLimitRemaining} {bidLimitRemaining === 1 ? 'bid' : 'bids'}{' '}
+                left this month on your current plan.
+              </Text>
+            </View>
+          )}
 
           {/* Property Rooms Slice 1 \u2014 rooms-in-scope panel.
               Renders only when the job has a room snapshot; legacy
@@ -359,44 +596,58 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
               original look. */}
           <JobRoomScope jobId={jobId} />
 
-          {/* Mode toggle */}
-          <View style={styles.modeToggle}>
-            <TouchableOpacity
-              style={[styles.modeBtn, mode === 'quick' && styles.modeBtnActive]}
-              onPress={() => setMode('quick')}
-              accessibilityRole='tab'
-              accessibilityLabel='Quick Bid'
-              accessibilityState={{ selected: mode === 'quick' }}
-            >
-              <Text
+          {/* Mode toggle.
+              2026-05-26 audit-59 P2: hide detailed-quote tab in edit
+              mode. The PATCH /api/jobs/:id/bids/:bidId route only
+              accepts {amount, message, estimated_duration_days,
+              proposed_start_date} — line_items + tax + terms would
+              be silently dropped if the contractor edited them and
+              tapped Save. Until the PATCH route is extended to
+              update the linked contractor_quotes row, force quick
+              mode on edit and don't render the toggle at all.
+              New-bid flow is unchanged. */}
+          {!existingBidId && (
+            <View style={styles.modeToggle}>
+              <TouchableOpacity
                 style={[
-                  styles.modeBtnText,
-                  mode === 'quick' && styles.modeBtnTextActive,
+                  styles.modeBtn,
+                  mode === 'quick' && styles.modeBtnActive,
                 ]}
+                onPress={() => setMode('quick')}
+                accessibilityRole='tab'
+                accessibilityLabel='Quick Bid'
+                accessibilityState={{ selected: mode === 'quick' }}
               >
-                Quick Bid
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.modeBtn,
-                mode === 'detailed' && styles.modeBtnActive,
-              ]}
-              onPress={() => setMode('detailed')}
-              accessibilityRole='tab'
-              accessibilityLabel='Detailed Quote'
-              accessibilityState={{ selected: mode === 'detailed' }}
-            >
-              <Text
+                <Text
+                  style={[
+                    styles.modeBtnText,
+                    mode === 'quick' && styles.modeBtnTextActive,
+                  ]}
+                >
+                  Quick Bid
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
                 style={[
-                  styles.modeBtnText,
-                  mode === 'detailed' && styles.modeBtnTextActive,
+                  styles.modeBtn,
+                  mode === 'detailed' && styles.modeBtnActive,
                 ]}
+                onPress={() => setMode('detailed')}
+                accessibilityRole='tab'
+                accessibilityLabel='Detailed Quote'
+                accessibilityState={{ selected: mode === 'detailed' }}
               >
-                Detailed Quote
-              </Text>
-            </TouchableOpacity>
-          </View>
+                <Text
+                  style={[
+                    styles.modeBtnText,
+                    mode === 'detailed' && styles.modeBtnTextActive,
+                  ]}
+                >
+                  Detailed Quote
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* QUICK MODE: amount field */}
           {mode === 'quick' && (
@@ -641,13 +892,16 @@ const BidSubmissionScreen: React.FC<Props> = ({ route, navigation }) => {
         <TouchableOpacity
           style={[
             styles.submitButton,
-            (!isValid || submitting) && styles.submitButtonDisabled,
+            (!isValid || submitting || atBidLimit) &&
+              styles.submitButtonDisabled,
           ]}
           onPress={handleSubmit}
-          disabled={!isValid || submitting}
+          disabled={!isValid || submitting || atBidLimit}
           accessibilityRole='button'
           accessibilityLabel='Submit bid'
-          accessibilityState={{ disabled: !isValid || submitting }}
+          accessibilityState={{
+            disabled: !isValid || submitting || atBidLimit,
+          }}
         >
           <Ionicons name='send-outline' size={18} color={me.onBrand} />
           <Text style={styles.submitButtonText}>

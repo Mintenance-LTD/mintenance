@@ -42,6 +42,16 @@ interface JobsMapViewModel {
   selectedJob: JobMapItem | null;
   selectedCategory: string | null;
   loading: boolean;
+  // 2026-05-26 audit-58 P2: distinct from `loading` and an empty
+  // `jobs` array so the UI can tell "no jobs match this area" from
+  // "the discover endpoint blew up". Cleared on each fetchJobs attempt.
+  errorMessage: string | null;
+  // 2026-05-27 audit-72 P1: /api/jobs/discover returns
+  // { jobs: [], code: 'CONTRACTOR_NOT_VERIFIED' } for pending
+  // contractors. Without surfacing this distinctly the screen shows a
+  // normal empty marketplace with no path forward; the banner needs to
+  // tell the user verification is required + offer a CTA.
+  verificationRequired: boolean;
   jobCount: number;
   locationGranted: boolean;
   hasPanned: boolean;
@@ -102,6 +112,14 @@ const useJobsMapViewModel = (): JobsMapViewModel => {
   } | null>(null);
   const [locationGranted, setLocationGranted] = useState(false);
   const [hasPanned, setHasPanned] = useState(false);
+  // 2026-05-26 audit-58 P2: surface real discover failures instead of
+  // letting them masquerade as "0 jobs".
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // 2026-05-27 audit-72 P1: distinct gate for the
+  // CONTRACTOR_NOT_VERIFIED response code so the screen can render a
+  // verification-blocked banner with a "Continue verification" CTA
+  // instead of the standard "no jobs in this area" empty state.
+  const [verificationRequired, setVerificationRequired] = useState(false);
 
   // Get user location on mount — prefers saved profile coordinates (home address), falls back to GPS
   useEffect(() => {
@@ -113,13 +131,31 @@ const useJobsMapViewModel = (): JobsMapViewModel => {
         // the screen no longer reads the profiles table directly.
         try {
           if (user?.id) {
-            const profile = await mobileApiClient.get<{
-              latitude?: number | null;
-              longitude?: number | null;
+            // /api/users/profile returns `{ profile: { latitude, longitude, ... } }`.
+            // Previous read used `profile?.latitude` directly — the shape
+            // mismatch silently broke the saved-coords path, so the
+            // screen ALWAYS fell through to GPS even when the user had a
+            // saved home address. Fixed 2026-05-22.
+            //
+            // lat/lng come back from Supabase as strings (Postgres
+            // NUMERIC), so coerce defensively before use.
+            const response = await mobileApiClient.get<{
+              profile?: {
+                latitude?: number | string | null;
+                longitude?: number | string | null;
+              };
             }>('/api/users/profile');
-            const lat = profile?.latitude;
-            const lng = profile?.longitude;
-            if (lat && lng && isMounted.current) {
+            const rawLat = response?.profile?.latitude;
+            const rawLng = response?.profile?.longitude;
+            const lat = rawLat == null ? null : Number(rawLat);
+            const lng = rawLng == null ? null : Number(rawLng);
+            if (
+              lat !== null &&
+              lng !== null &&
+              Number.isFinite(lat) &&
+              Number.isFinite(lng) &&
+              isMounted.current
+            ) {
               const coords = { latitude: lat, longitude: lng };
               setUserLocation(coords);
               setRegion((prev) => ({ ...prev, latitude: lat, longitude: lng }));
@@ -202,57 +238,109 @@ const useJobsMapViewModel = (): JobsMapViewModel => {
         params.set('radiusKm', '25');
       }
 
+      // Numeric columns may arrive as strings if the server forgets to
+      // coerce — accept both so a server regression can't crash the
+      // native Marker render.
       interface DiscoverRow {
         id: string;
         title: string;
         category: string;
         urgency: string;
-        budget: number | null;
-        budget_min: number | null;
-        budget_max: number | null;
-        latitude: number | null;
-        longitude: number | null;
+        budget: number | string | null;
+        budget_min: number | string | null;
+        budget_max: number | string | null;
+        latitude: number | string | null;
+        longitude: number | string | null;
         created_at: string | null;
         homeowner_first_name: string | null;
       }
 
-      let response: { jobs: DiscoverRow[] };
+      let response: { jobs: DiscoverRow[]; code?: string };
       try {
-        response = await mobileApiClient.get<{ jobs: DiscoverRow[] }>(
-          `/api/jobs/discover?${params.toString()}`
-        );
+        response = await mobileApiClient.get<{
+          jobs: DiscoverRow[];
+          code?: string;
+        }>(`/api/jobs/discover?${params.toString()}`);
       } catch (err) {
+        // 2026-05-26 audit-58 P2: previously logged + returned silently,
+        // leaving `jobs` whatever stale set was on the map from the
+        // last successful fetch. Contractors couldn't tell whether
+        // the empty/stale view was real or a network/API failure.
+        // Clear the list, raise an errorMessage the screen renders
+        // as a retry banner, and stop the loading spinner so the
+        // user gets out of the indeterminate state.
         logger.error('Error fetching jobs for map', err);
+        const apiErr = err as { statusCode?: number; status?: number };
+        const code = apiErr?.statusCode ?? apiErr?.status;
+        const msg =
+          code === 401 || code === 403
+            ? 'You are signed out or do not have access to job discovery.'
+            : 'Could not load nearby jobs. Tap to retry.';
+        if (isMounted.current) {
+          setJobs([]);
+          setErrorMessage(msg);
+          setLoading(false);
+        }
         return;
       }
+      // Successful fetch — clear any stale error banner.
+      if (isMounted.current) setErrorMessage(null);
+
+      // 2026-05-27 audit-72 P1: /api/jobs/discover returns
+      // { jobs: [], code: 'CONTRACTOR_NOT_VERIFIED' } when the
+      // contractor's verification_status isn't 'verified' and they
+      // aren't admin_verified. Previously we read jobs ?? [] and
+      // silently rendered an empty marketplace — indistinguishable
+      // from "no jobs in your area". Surface the gate distinctly so
+      // the screen can render a verification-blocked banner with a
+      // CTA back to the verification flow.
+      if (response.code === 'CONTRACTOR_NOT_VERIFIED') {
+        if (isMounted.current) {
+          setVerificationRequired(true);
+          setJobs([]);
+          initialLoadDone.current = true;
+        }
+        return;
+      }
+      if (isMounted.current) setVerificationRequired(false);
+
       const data = response.jobs ?? [];
 
       const refLat = userLocation?.latitude ?? regionRef.current.latitude;
       const refLng = userLocation?.longitude ?? regionRef.current.longitude;
 
       // Server already excludes jobs the contractor bid on, dropped
-      // missing-coords rows, and applied the category filter — so the
-      // client just maps the rows.
+      // missing-coords rows, and applied the category filter — but
+      // we still coerce-and-validate every numeric field client-side
+      // because Postgres NUMERIC columns are JSON-serialised as strings
+      // by supabase-js, and passing a string to `react-native-maps`
+      // <Marker coordinate={{...}}> crashes the native module on Android.
+      const toNum = (v: unknown): number | null => {
+        if (v == null) return null;
+        const n = typeof v === 'number' ? v : Number(v);
+        return Number.isFinite(n) ? n : null;
+      };
       const mapped: JobMapItem[] = data
-        .filter((row) => row.latitude != null && row.longitude != null)
         .map((row) => {
-          const lat = row.latitude as number;
-          const lng = row.longitude as number;
+          const lat = toNum(row.latitude);
+          const lng = toNum(row.longitude);
+          if (lat === null || lng === null) return null;
           return {
             id: row.id,
             title: row.title,
             category: row.category || 'general',
             urgency: row.urgency || 'medium',
-            budget: row.budget != null ? Number(row.budget) : null,
-            budget_min: row.budget_min,
-            budget_max: row.budget_max,
+            budget: toNum(row.budget),
+            budget_min: toNum(row.budget_min),
+            budget_max: toNum(row.budget_max),
             latitude: lat,
             longitude: lng,
             distance: calculateDistance(refLat, refLng, lat, lng),
             homeowner_name: row.homeowner_first_name || 'Homeowner',
             created_at: row.created_at ?? '',
           };
-        });
+        })
+        .filter((j): j is JobMapItem => j !== null);
 
       mapped.sort((a, b) => a.distance - b.distance);
 
@@ -275,7 +363,15 @@ const useJobsMapViewModel = (): JobsMapViewModel => {
         initialLoadDone.current = true;
       }
     } catch (err) {
+      // Outer catch covers everything outside the inner mobileApiClient
+      // try/catch above (geo math, mapping). Audit-58 P2: also surface
+      // these so post-fetch crashes don't manifest as a silently empty
+      // map.
       logger.error('Failed to fetch jobs for map', err);
+      if (isMounted.current) {
+        setJobs([]);
+        setErrorMessage('Could not load nearby jobs. Tap to retry.');
+      }
     } finally {
       if (isMounted.current) setLoading(false);
     }
@@ -371,6 +467,8 @@ const useJobsMapViewModel = (): JobsMapViewModel => {
     selectedJob,
     selectedCategory,
     loading,
+    errorMessage,
+    verificationRequired,
     jobCount: filteredJobs.length,
     locationGranted,
     hasPanned,

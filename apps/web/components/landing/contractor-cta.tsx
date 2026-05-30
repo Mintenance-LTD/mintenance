@@ -19,14 +19,14 @@ const BENEFITS = [
       'See real posted jobs with budgets and details — no credits, no guessing.',
   },
   {
-    title: 'Guaranteed payment',
+    title: 'Escrow-protected payment',
     description:
-      "The homeowner's money is held safely before you pick up a tool. You will get paid.",
+      "The homeowner's funds are held in escrow before you pick up a tool. Complete the job and on approval the payout is released to your Stripe account.",
   },
   {
     title: 'Your work speaks for itself',
     description:
-      'Before/after photos protect you from bad-faith disputes. Verified badges show your credentials from day one.',
+      'Before/after photos protect you from bad-faith disputes. List your licences, insurance and optional DBS check on your profile so homeowners can see the credentials you’ve added.',
   },
 ];
 

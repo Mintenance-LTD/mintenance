@@ -109,13 +109,15 @@ export const POST = withApiHandler(
     // Emails can land later — we keep this route synchronous-light.
     if (resolvedUserId) {
       try {
+        // 2026-05-21 Mint Editorial voice — name the contract; the
+        // inviter's email is in the metadata, not the headline.
         await NotificationService.createNotification({
           userId: resolvedUserId,
           type: 'contract_cosign_requested',
-          title: 'Contract signature requested',
-          message: `${email} has been invited to co-sign the contract for "${contract.title || 'a job'}". Open your dashboard to review and sign.`,
+          title: `You're invited to co-sign ${contract.title || 'a contract'}`,
+          message: `Two-minute read, one tap to sign. Your signature doesn't move any money.`,
           actionUrl: `/jobs/${contract.job_id}`,
-          metadata: { contractId, jobId: contract.job_id },
+          metadata: { contractId, jobId: contract.job_id, invitedEmail: email },
         });
       } catch {
         // non-fatal

@@ -88,20 +88,34 @@ async function fetchAppointmentEvents(): Promise<CalendarEvent[]> {
     if (!res.ok) return [];
     const data = await res.json();
     const items = data.appointments || [];
-    return items.map((a: Record<string, unknown>) => ({
-      id: a.id as string,
-      title: (a.title as string) || 'Appointment',
-      type: 'appointment' as const,
-      date:
-        (a.scheduled_at as string) ||
-        (a.date as string) ||
-        new Date().toISOString(),
-      startTime: (a.start_time as string) || '10:00',
-      endTime: (a.end_time as string) || '11:00',
-      client: (a.client_name as string) || '',
-      location: (a.location as string) || '',
-      status: a.status as string,
-    }));
+    // 2026-05-25 audit-43 P1: /api/appointments returns the mapped
+    // shape { date, time, endTime, client: {id,name}, locationAddress }.
+    // This helper was reading scheduled_at / start_time / end_time /
+    // client_name / location — none of which the route emits. Result:
+    // every appointment defaulted to 10:00–11:00 with no client/loc.
+    // Switched to the canonical shape; left the legacy keys as
+    // fallbacks in case any older response shape is still in flight.
+    return items.map((a: Record<string, unknown>) => {
+      const clientObj = a.client as { name?: string } | undefined | null;
+      const clientName =
+        (typeof clientObj === 'object' && clientObj?.name) ||
+        (a.client_name as string) ||
+        '';
+      return {
+        id: a.id as string,
+        title: (a.title as string) || 'Appointment',
+        type: 'appointment' as const,
+        date:
+          (a.date as string) ||
+          (a.scheduled_at as string) ||
+          new Date().toISOString(),
+        startTime: (a.time as string) || (a.start_time as string) || '10:00',
+        endTime: (a.endTime as string) || (a.end_time as string) || '11:00',
+        client: clientName,
+        location: (a.locationAddress as string) || (a.location as string) || '',
+        status: a.status as string,
+      };
+    });
   } catch (error) {
     logger.error('Error fetching calendar appointment events', error, {
       service: 'contractor-calendar',

@@ -22,6 +22,8 @@ import type { JobsStackParamList } from '../navigation/types';
 import { ScreenHeader, LoadingSpinner } from '../components/shared';
 import { Banner } from '../components/ui/Banner';
 import { mobileApiClient as apiClient } from '../utils/mobileApiClient';
+import { supabase } from '../config/supabase';
+import { useAuth } from '../contexts/AuthContext';
 import { logger } from '../utils/logger';
 import { me } from '../design-system/mint-editorial';
 
@@ -33,6 +35,44 @@ interface DisputeScreenParams {
 interface Props {
   route: RouteProp<{ Dispute: DisputeScreenParams }, 'Dispute'>;
   navigation: NativeStackNavigationProp<JobsStackParamList, 'Dispute'>;
+}
+
+// 2026-05-24 audit-27 P1 — upload picked images to job-attachments and
+// return 30-day signed URLs. Per-file errors are swallowed so one bad
+// image doesn't block submission; fallback `job-attachments:<path>` is
+// pushed when signing itself fails so the row still preserves a pointer.
+async function uploadDisputeEvidence(
+  jobId: string,
+  userId: string,
+  assets: ImagePicker.ImagePickerAsset[]
+): Promise<string[]> {
+  const evidence: string[] = [];
+  for (let i = 0; i < assets.length; i++) {
+    const asset = assets[i]!;
+    try {
+      const rawExt = (asset.uri.split('.').pop() ?? 'jpg').toLowerCase();
+      const ext = /^[a-z0-9]{1,5}$/.test(rawExt) ? rawExt : 'jpg';
+      const filePath = `${jobId}/disputes/${userId}/${Date.now()}-${i}.${ext}`;
+      const buf = await (await (await fetch(asset.uri)).blob()).arrayBuffer();
+      const { error: upErr } = await supabase.storage
+        .from('job-attachments')
+        .upload(filePath, buf, {
+          contentType: `image/${ext === 'jpg' ? 'jpeg' : ext}`,
+          upsert: false,
+        });
+      if (upErr) {
+        logger.warn('Dispute evidence upload failed', { error: upErr, i });
+        continue;
+      }
+      const { data: signed } = await supabase.storage
+        .from('job-attachments')
+        .createSignedUrl(filePath, 60 * 60 * 24 * 30);
+      evidence.push(signed?.signedUrl ?? `job-attachments:${filePath}`);
+    } catch (err) {
+      logger.warn('Dispute evidence upload error', { error: err, i });
+    }
+  }
+  return evidence;
 }
 
 const DISPUTE_REASONS = [
@@ -89,6 +129,7 @@ const DISPUTE_REASONS = [
 
 export const DisputeScreen: React.FC<Props> = ({ route, navigation }) => {
   const { jobId, jobTitle } = route.params;
+  const { user } = useAuth();
   const [selectedReason, setSelectedReason] = useState<string | null>(null);
   const [description, setDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -139,13 +180,18 @@ export const DisputeScreen: React.FC<Props> = ({ route, navigation }) => {
         escrow: { id: string };
       }>(`/api/jobs/${jobId}/escrow`);
 
-      const evidenceUris = attachments.map((a) => a.uri);
+      // 2026-05-24 audit-27 P1: was `evidenceUris` (silently dropped by
+      // route's Zod) of local file:// URIs (unusable for admin review).
+      // Now uploads to job-attachments and sends signed URLs as `evidence`.
+      const evidence = user?.id
+        ? await uploadDisputeEvidence(jobId, user.id, attachments)
+        : [];
       await apiClient.post('/api/disputes/create', {
         escrowId: escrowResponse.escrow.id,
         reason: selectedReason,
         description: description.trim(),
         priority: 'medium',
-        evidenceUris,
+        evidence,
       });
       Alert.alert(
         'Dispute Submitted',

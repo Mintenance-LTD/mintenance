@@ -11,6 +11,7 @@ import {
   MessageSquare,
   ChevronLeft,
   ChevronRight,
+  Clock,
 } from 'lucide-react';
 import { fetchWithCsrf } from '@/lib/csrf-client';
 
@@ -24,6 +25,43 @@ interface HomeownerPhotoReviewProps {
   beforePhotos: PhotoRecord[];
   afterPhotos: PhotoRecord[];
   isConfirmed: boolean;
+  /**
+   * jobs.completed_at — the moment the contractor's after-photo upload
+   * auto-flipped status to 'completed'. The 7-day auto-release window
+   * runs from this timestamp; we surface a countdown so homeowners
+   * know funds will move even if they do nothing. 2026-05-25 audit-P2-4.
+   */
+  completedAt?: string | null;
+}
+
+/** Days the homeowner has to approve before the cron auto-releases. */
+const AUTO_RELEASE_WINDOW_DAYS = 7;
+
+function computeAutoReleaseInfo(completedAt: string | null | undefined): {
+  deadline: Date;
+  daysRemaining: number;
+  passed: boolean;
+} | null {
+  if (!completedAt) return null;
+  const completed = new Date(completedAt);
+  if (Number.isNaN(completed.getTime())) return null;
+  const deadline = new Date(completed);
+  deadline.setUTCDate(deadline.getUTCDate() + AUTO_RELEASE_WINDOW_DAYS);
+  const msRemaining = deadline.getTime() - Date.now();
+  // Ceil so "23 hours left" reads as "1 day" not "0 days".
+  const daysRemaining = Math.max(
+    0,
+    Math.ceil(msRemaining / (24 * 60 * 60 * 1000))
+  );
+  return { deadline, daysRemaining, passed: msRemaining <= 0 };
+}
+
+function formatDeadline(d: Date): string {
+  return d.toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
 }
 
 /**
@@ -34,7 +72,9 @@ export function HomeownerPhotoReview({
   beforePhotos,
   afterPhotos,
   isConfirmed,
+  completedAt,
 }: HomeownerPhotoReviewProps) {
+  const autoRelease = computeAutoReleaseInfo(completedAt);
   const router = useRouter();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showChangesForm, setShowChangesForm] = useState(false);
@@ -151,6 +191,36 @@ export function HomeownerPhotoReview({
           >
             <ChevronRight className='h-5 w-5 text-gray-600' />
           </button>
+        </div>
+      )}
+
+      {/* Auto-release countdown — only when work is awaiting homeowner action. */}
+      {!isApproved && !successMessage && autoRelease && (
+        <div
+          className={`flex items-start gap-3 p-3 rounded-lg border ${
+            autoRelease.passed
+              ? 'bg-amber-50 border-amber-200 text-amber-900'
+              : autoRelease.daysRemaining <= 2
+                ? 'bg-amber-50 border-amber-200 text-amber-900'
+                : 'bg-blue-50 border-blue-200 text-blue-900'
+          }`}
+          role='status'
+        >
+          <Clock className='h-5 w-5 flex-shrink-0 mt-0.5' aria-hidden />
+          <div className='text-sm'>
+            <div className='font-medium'>
+              {autoRelease.passed
+                ? 'Funds queued for auto-release'
+                : autoRelease.daysRemaining === 1
+                  ? '1 day left to approve or request changes'
+                  : `${autoRelease.daysRemaining} days left to approve or request changes`}
+            </div>
+            <div className='opacity-90'>
+              {autoRelease.passed
+                ? `The ${AUTO_RELEASE_WINDOW_DAYS}-day review window has passed (${formatDeadline(autoRelease.deadline)}). Payment will be released to the contractor on the next cron run.`
+                : `If you take no action, payment auto-releases on ${formatDeadline(autoRelease.deadline)}. This protects contractors from indefinite holds.`}
+            </div>
+          </div>
         </div>
       )}
 

@@ -7,29 +7,17 @@ import { withApiHandler } from '@/lib/api/with-api-handler';
  * Used by useNotificationCounts hook.
  */
 export const GET = withApiHandler({}, async (_request, { user }) => {
-  // Fetch unread message count across threads
-  const { data: userThreads } = await serverSupabase
-    .from('message_threads')
-    .select('id')
-    .contains('participant_ids', [user.id]);
-
-  const threadIds = (userThreads ?? []).map((t) => t.id);
-
-  let messageCount = 0;
-  if (threadIds.length > 0) {
-    const { data: msgs } = await serverSupabase
-      .from('messages')
-      .select('id, read_by')
-      .in('thread_id', threadIds)
-      .neq('sender_id', user.id);
-
-    messageCount = (msgs ?? []).filter(
-      (m: { id: string; read_by: string[] | null }) => {
-        const readBy = Array.isArray(m.read_by) ? m.read_by : [];
-        return !readBy.includes(user.id);
-      }
-    ).length;
-  }
+  // 2026-05-23 audit P1: previously joined via message_threads.thread_id
+  // and filtered `messages.read_by` array-membership. Live schema has
+  // `messages` keyed by (sender_id, receiver_id, job_id) with a single
+  // `read` boolean — no thread_id, no read_by. The thread_id query
+  // returned 0 rows on every call, masking real unread counts.
+  const { count: messageCountRaw } = await serverSupabase
+    .from('messages')
+    .select('id', { count: 'exact', head: true })
+    .eq('receiver_id', user.id)
+    .eq('read', false);
+  const messageCount = messageCountRaw ?? 0;
 
   // 2026-05-02 audit follow-up (98% readiness step 2): the `connections`
   // table was removed by supabase/migrations/007_remove_social_features.sql,

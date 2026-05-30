@@ -1,5 +1,17 @@
 export interface DerivedClient {
   id: string;
+  // 2026-05-23 audit-22 P1: API now returns both `id` and `client_id`
+  // on every row. `id` matches what mobile already destructures;
+  // `client_id` is the canonical identifier ClientDetailScreen reads
+  // when fetching past jobs. `homeowner_id` is the platform profile
+  // UUID — null for manually-added contractor_clients rows that
+  // don't yet have a Mintenance account. `recent_job_id` carries the
+  // most recent job between contractor + homeowner so the message
+  // button can navigate to a real thread instead of passing the
+  // homeowner UUID as a conversation key.
+  client_id?: string;
+  homeowner_id?: string | null;
+  recent_job_id?: string | null;
   first_name: string;
   last_name: string;
   email: string;
@@ -20,7 +32,11 @@ interface JobRecord {
   created_at: string;
   completed_at?: string;
   budget?: number;
-  final_price?: number;
+  // 2026-05-23 audit: `final_price` does not exist on live jobs.
+  // Field removed from this client-only derived type. Revenue from
+  // /api/contractor/clients is now sourced from released escrow on
+  // the server, so consumers receive `total_revenue` already
+  // computed — this local deriver is the mobile-only fallback path.
   homeowner?: {
     id: string;
     first_name?: string;
@@ -70,7 +86,7 @@ function deriveClients(jobs: JobRecord[]): DerivedClient[] {
     const done = cj.filter(
       (j) => j.status === 'completed' || j.status === 'in_progress'
     );
-    const rev = cj.reduce((s, j) => s + (j.final_price || j.budget || 0), 0);
+    const rev = cj.reduce((s, j) => s + (j.budget || 0), 0);
     const sorted = [...cj].sort(
       (a, b) =>
         new Date(b.created_at).getTime() - new Date(a.created_at).getTime()

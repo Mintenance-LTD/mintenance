@@ -118,6 +118,11 @@ export function useNavSections(
             href: '/landlord/recurring',
             icon: RefreshCw,
           },
+          {
+            label: 'Year-over-Year',
+            href: '/landlord/analytics/year-over-year',
+            icon: TrendingUp,
+          },
         ],
       },
       {
@@ -304,6 +309,11 @@ export function useNavSections(
         items: [
           { label: 'Users', href: '/admin/users', icon: Users },
           { label: 'Revenue', href: '/admin/revenue', icon: PoundSterling },
+          {
+            label: 'Pricing Metrics',
+            href: '/admin/pricing-metrics',
+            icon: BarChart3,
+          },
           {
             label: 'Communications',
             href: '/admin/communications',

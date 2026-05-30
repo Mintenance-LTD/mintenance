@@ -55,11 +55,12 @@ export const POST = withApiHandler(
     // checks. Previously the direct table insert silently skipped push.
     if (enabled) {
       try {
+        // 2026-05-21 Mint Editorial voice.
         await NotificationService.createNotification({
           userId: job.homeowner_id,
           type: 'location_sharing_enabled',
-          title: 'Location Sharing Enabled',
-          message: `Contractor has enabled location sharing for "${job.title || 'the job'}". You can now track their location.`,
+          title: `Your contractor is sharing their location`,
+          message: `Tap to follow them in for ${job.title || 'the job'}. Sharing stops automatically when they arrive.`,
           actionUrl: `/jobs/${jobId}`,
           metadata: { jobId, contractorId: user.id },
         });

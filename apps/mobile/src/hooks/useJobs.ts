@@ -1,4 +1,5 @@
 import { JobService } from '../services/JobService';
+import { BidService } from '../services/BidService';
 import { queryKeys } from '../lib/queryClient';
 import { useOfflineQuery, useOfflineMutation } from './useOfflineQuery';
 import { Job } from '@mintenance/types';
@@ -48,12 +49,44 @@ export const useJob = (jobId: string) => {
   });
 };
 
-export const useJobBids = (jobId: string) => {
+/**
+ * 2026-05-23 audit: `enabled` is now caller-controlled. The bids
+ * endpoint /api/jobs/:id/bids returns 403 for non-owners, but the
+ * JobDetailsScreen used to fire this hook for everyone — every
+ * contractor opening a job triggered a forbidden response + retry
+ * storm. Callers (homeowner-side) pass enabled: isOwner so the
+ * query only runs when the auth context allows it.
+ */
+export const useJobBids = (
+  jobId: string,
+  { enabled = true }: { enabled?: boolean } = {}
+) => {
   return useOfflineQuery({
     queryKey: queryKeys.jobs.bids(jobId),
     queryFn: () => JobService.getBidsByJob(jobId),
-    enabled: !!jobId,
+    enabled: !!jobId && enabled,
     staleTime: 30 * 1000, // 30 seconds for bids
+  });
+};
+
+/**
+ * 2026-05-24 audit-26 P1: contractor-side companion to useJobBids.
+ * /api/jobs/:id/bids is owner-gated so contractors can't use it to
+ * see their own bid state. /api/contractor/bids?jobId= is scoped
+ * by `contractor_id = auth.uid()` and returns the single bid (or
+ * empty) the calling contractor has on that job. Used by
+ * JobDetailsScreen to light up the "Edit Bid / Bid Pending" CTA
+ * after a deep-link, notification, or list-to-detail navigation.
+ */
+export const useMyBidForJob = (
+  jobId: string,
+  { enabled = true }: { enabled?: boolean } = {}
+) => {
+  return useOfflineQuery({
+    queryKey: ['contractor', 'my-bid', jobId] as const,
+    queryFn: () => BidService.getMyBidForJob(jobId),
+    enabled: !!jobId && enabled,
+    staleTime: 30 * 1000,
   });
 };
 
@@ -73,7 +106,10 @@ export const useCreateJob = () => {
       title: string;
       description: string;
       location: string;
-      budget: number;
+      // 2026-05-22: budget is now optional. Contractors set their own
+      // price on each bid. Kept here for legacy callers (e.g. seeded
+      // demo data) but the homeowner forms no longer collect it.
+      budget?: number;
       homeownerId: string;
       category?: string;
       subcategory?: string;
@@ -82,6 +118,9 @@ export const useCreateJob = () => {
       // R6 #19 landlord / tenancy — optional forwarding to the server
       is_rental_property?: boolean;
       tenancy_metadata?: Record<string, unknown>;
+      // 2026-05-22: per-job toggles persisted to jobs.requirements jsonb
+      // (e.g. contractor_before_photos for no-upload flows).
+      requirements?: Record<string, unknown>;
     }) => {
       // 2026-05-01 audit P1 close-out: replaced ad-hoc inline validation
       // (every length / range / required check that drifted from the
@@ -100,13 +139,15 @@ export const useCreateJob = () => {
         title: jobData.title,
         description: jobData.description,
         location: jobData.location,
-        budget: jobData.budget,
         category: jobData.category as JobDraft['category'],
         urgency: jobData.urgency,
         photoUrls: jobData.photos,
         isRentalProperty: jobData.is_rental_property,
         tenancyMetadata: jobData.tenancy_metadata,
       };
+      if (jobData.budget !== undefined) {
+        draft.budget = jobData.budget;
+      }
 
       const validation = validateJobDraft(draft);
       if (!validation.ok) {

@@ -1,7 +1,13 @@
 import { cookies } from 'next/headers';
 import { NextRequest } from 'next/server';
 import { DatabaseManager } from './database';
-import { generateJWT, verifyJWT, generateTokenPair, hashRefreshToken, ConfigManager } from '@mintenance/auth';
+import {
+  generateJWT,
+  verifyJWT,
+  generateTokenPair,
+  hashRefreshToken,
+  ConfigManager,
+} from '@mintenance/auth';
 import { serverSupabase } from './api/supabaseServer';
 import { logger } from './logger';
 import type { User, JWTPayload } from '@mintenance/types';
@@ -10,7 +16,6 @@ import type { User, JWTPayload } from '@mintenance/types';
 function getConfig(): ConfigManager {
   return ConfigManager.getInstance();
 }
-
 
 // Centralized cookie names and TTLs
 // Use __Host- prefix in production for additional security, regular names in development
@@ -42,13 +47,15 @@ interface RotateRefreshTokenResult {
   user_role: string;
   family_id?: string;
   next_generation?: number;
-  session_started_at?: string;   // VULN-009: Original login time (ISO timestamp)
-  last_activity_at?: string;      // VULN-009: Last activity time (ISO timestamp)
+  session_started_at?: string; // VULN-009: Original login time (ISO timestamp)
+  last_activity_at?: string; // VULN-009: Last activity time (ISO timestamp)
 }
 /**
  * Create a JWT token for a user
  */
-export async function createToken(user: Pick<User, 'id' | 'email' | 'role'>): Promise<string> {
+export async function createToken(
+  user: Pick<User, 'id' | 'email' | 'role'>
+): Promise<string> {
   const secret = getConfig().getRequired('JWT_SECRET');
   return generateJWT(user, secret, '1h');
 }
@@ -93,14 +100,16 @@ export async function createTokenPair(
     ip_address?: string;
     family_id?: string;
     generation?: number;
-    session_started_at?: string;  // VULN-009
-    last_activity_at?: string;     // VULN-009
+    session_started_at?: string; // VULN-009
+    last_activity_at?: string; // VULN-009
   }
 
   const insertData: RefreshTokenInsert = {
     user_id: user.id,
     token_hash: await hashRefreshToken(refreshToken),
-    expires_at: new Date(Date.now() + REFRESH_TTL_SEC_SHORT * 1000).toISOString(), // 7 days
+    expires_at: new Date(
+      Date.now() + REFRESH_TTL_SEC_SHORT * 1000
+    ).toISOString(), // 7 days
     device_info: deviceInfo,
     ip_address: ipAddress,
     // VULN-009: Store session tracking timestamps
@@ -138,21 +147,27 @@ export async function createTokenPair(
  * Invalidate entire token family when breach is detected
  * SECURITY: If a consumed refresh token is reused, it indicates token theft
  */
-export async function invalidateTokenFamily(familyId: string, reason: string = 'breach_detected'): Promise<void> {
-  logger.error('[SECURITY ALERT] Token family breach detected - invalidating all tokens', {
-    service: 'auth',
-    familyId,
-    reason,
-    severity: 'CRITICAL',
-    action: 'invalidate_token_family',
-  });
+export async function invalidateTokenFamily(
+  familyId: string,
+  reason: string = 'breach_detected'
+): Promise<void> {
+  logger.error(
+    '[SECURITY ALERT] Token family breach detected - invalidating all tokens',
+    {
+      service: 'auth',
+      familyId,
+      reason,
+      severity: 'CRITICAL',
+      action: 'invalidate_token_family',
+    }
+  );
 
   // Revoke all tokens in the family
   const { error } = await serverSupabase
     .from('refresh_tokens')
     .update({
       revoked_at: new Date().toISOString(),
-      revoked_reason: reason
+      revoked_reason: reason,
     })
     .eq('family_id', familyId)
     .is('revoked_at', null);
@@ -177,7 +192,12 @@ export async function invalidateTokenFamily(familyId: string, reason: string = '
  * Uses atomic PostgreSQL function to prevent race conditions
  * CRITICAL FIX: Added breach detection for token reuse
  */
-export async function rotateTokens(userId: string, oldRefreshToken: string, deviceInfo?: DeviceInfo, ipAddress?: string): Promise<{ accessToken: string; refreshToken: string }> {
+export async function rotateTokens(
+  userId: string,
+  oldRefreshToken: string,
+  deviceInfo?: DeviceInfo,
+  ipAddress?: string
+): Promise<{ accessToken: string; refreshToken: string }> {
   const tokenHash = await hashRefreshToken(oldRefreshToken);
 
   // SECURITY: Check if token has already been consumed (breach detection)
@@ -189,39 +209,55 @@ export async function rotateTokens(userId: string, oldRefreshToken: string, devi
     .eq('user_id', userId)
     .single();
 
-  if (checkError && checkError.code !== 'PGRST116') { // PGRST116 = no rows returned
-    logger.error('Failed to check token status for breach detection', checkError, {
-      service: 'auth',
-      userId,
-    });
+  if (checkError && checkError.code !== 'PGRST116') {
+    // PGRST116 = no rows returned
+    logger.error(
+      'Failed to check token status for breach detection',
+      checkError,
+      {
+        service: 'auth',
+        userId,
+      }
+    );
   }
 
   // BREACH DETECTION: If token was already consumed, invalidate entire family
   if (existingToken?.consumed_at) {
-    logger.error('[SECURITY BREACH] Consumed refresh token reused - possible token theft', {
-      service: 'auth',
-      userId,
-      familyId: existingToken.family_id,
-      consumedAt: existingToken.consumed_at,
-      severity: 'CRITICAL',
-    });
+    logger.error(
+      '[SECURITY BREACH] Consumed refresh token reused - possible token theft',
+      {
+        service: 'auth',
+        userId,
+        familyId: existingToken.family_id,
+        consumedAt: existingToken.consumed_at,
+        severity: 'CRITICAL',
+      }
+    );
 
     // Invalidate entire token family to protect user
     if (existingToken.family_id) {
-      await invalidateTokenFamily(existingToken.family_id, 'token_reuse_detected');
+      await invalidateTokenFamily(
+        existingToken.family_id,
+        'token_reuse_detected'
+      );
     }
 
-    throw new Error('Security breach detected: token reuse. All sessions have been invalidated. Please login again.');
+    throw new Error(
+      'Security breach detected: token reuse. All sessions have been invalidated. Please login again.'
+    );
   }
 
   // Use PostgreSQL function for atomic token rotation with row-level locking
   // This prevents race conditions when concurrent requests try to rotate the same token
-  const { data: result, error } = await serverSupabase
+  const { data: result, error } = (await serverSupabase
     .rpc('rotate_refresh_token', {
       p_user_id: userId,
       p_token_hash: tokenHash,
     })
-    .single() as { data: RotateRefreshTokenResult | null; error: { code?: string; message?: string } | null };
+    .single()) as {
+    data: RotateRefreshTokenResult | null;
+    error: { code?: string; message?: string } | null;
+  };
 
   if (error) {
     logger.error('Token rotation failed', error, {
@@ -230,7 +266,10 @@ export async function rotateTokens(userId: string, oldRefreshToken: string, devi
       errorCode: error.code,
       errorMessage: error.message,
     });
-    throw new Error('Token rotation failed: ' + (error.message || 'Invalid or already rotated token'));
+    throw new Error(
+      'Token rotation failed: ' +
+        (error.message || 'Invalid or already rotated token')
+    );
   }
 
   if (!result || !result.user_email || !result.user_role) {
@@ -261,10 +300,10 @@ export async function rotateTokens(userId: string, oldRefreshToken: string, devi
     user,
     deviceInfo,
     ipAddress,
-    result.family_id,      // Preserve family across rotations
+    result.family_id, // Preserve family across rotations
     result.next_generation, // Increment generation
-    sessionStart,          // VULN-009: Preserve original session start
-    lastActivity           // VULN-009: Update last activity
+    sessionStart, // VULN-009: Preserve original session start
+    lastActivity // VULN-009: Update last activity
   );
 }
 
@@ -274,9 +313,9 @@ export async function rotateTokens(userId: string, oldRefreshToken: string, devi
 export async function revokeAllTokens(userId: string): Promise<void> {
   await serverSupabase
     .from('refresh_tokens')
-    .update({ 
+    .update({
       revoked_at: new Date().toISOString(),
-      revoked_reason: 'logout_all'
+      revoked_reason: 'logout_all',
     })
     .eq('user_id', userId)
     .is('revoked_at', null);
@@ -284,7 +323,8 @@ export async function revokeAllTokens(userId: string): Promise<void> {
 
 /**
  * Verify a JWT token
- * Also checks token blacklist for invalidated tokens
+ * Also checks token blacklist for invalidated tokens AND the durable
+ * per-user `profiles.tokens_revoked_at` cutoff.
  */
 export async function verifyToken(token: string): Promise<JWTPayload | null> {
   // SECURITY: Check if token is blacklisted first
@@ -292,40 +332,107 @@ export async function verifyToken(token: string): Promise<JWTPayload | null> {
     const { tokenBlacklist } = await import('./auth/token-blacklist');
     const isBlacklisted = await tokenBlacklist.isTokenBlacklisted(token);
     if (isBlacklisted) {
-      logger.warn('Token verification failed: token is blacklisted', { service: 'auth' });
+      logger.warn('Token verification failed: token is blacklisted', {
+        service: 'auth',
+      });
       return null;
     }
   } catch (error) {
     // SECURITY: Fail closed - reject token if blacklist check fails
     // This prevents revoked tokens from being accepted during outages
-    logger.error('Token blacklist check failed - rejecting token for safety', error, { service: 'auth' });
+    logger.error(
+      'Token blacklist check failed - rejecting token for safety',
+      error,
+      { service: 'auth' }
+    );
     return null;
   }
 
   const secret = getConfig().getRequired('JWT_SECRET');
-  return verifyJWT(token, secret);
+  const payload = await verifyJWT(token, secret);
+  if (!payload) return null;
+
+  // 2026-05-26 audit-56 P0: durable per-user revocation backstop.
+  // The in-memory blacklist doesn't survive serverless cold starts /
+  // horizontal scaling. profiles.tokens_revoked_at is bumped on every
+  // logout (and any future password-reset / admin-revoke path); any
+  // JWT issued strictly before that cutoff is rejected regardless of
+  // blacklist state. JWT iat is in SECONDS per RFC 7519; the DB
+  // timestamp is in milliseconds, so compare in the same unit.
+  try {
+    if (payload.sub && payload.iat) {
+      const { data: profile } = await serverSupabase
+        .from('profiles')
+        .select('tokens_revoked_at')
+        .eq('id', payload.sub)
+        .maybeSingle();
+      const revokedAt = profile?.tokens_revoked_at
+        ? new Date(profile.tokens_revoked_at as string).getTime()
+        : 0;
+      if (revokedAt > 0 && payload.iat * 1000 < revokedAt) {
+        logger.warn(
+          'Token verification failed: issued before tokens_revoked_at',
+          {
+            service: 'auth',
+            userId: payload.sub,
+            iat: payload.iat,
+            revokedAt,
+          }
+        );
+        return null;
+      }
+    }
+  } catch (error) {
+    // SECURITY: Fail closed — if we can't confirm the revocation
+    // cutoff, treat the token as suspect. Production correctness
+    // matters more than the rare false-reject from a transient DB
+    // hiccup. The user can re-login.
+    logger.error(
+      'tokens_revoked_at lookup failed - rejecting token for safety',
+      error,
+      { service: 'auth' }
+    );
+    return null;
+  }
+
+  return payload;
 }
 
 /**
  * Create Set-Cookie headers for authentication (use in API routes)
  */
-export function createAuthCookieHeaders(token: string, rememberMe: boolean = false, refreshToken?: string): Headers {
+export function createAuthCookieHeaders(
+  token: string,
+  rememberMe: boolean = false,
+  refreshToken?: string
+): Headers {
   const headers = new Headers();
   const accessTokenMaxAge = ACCESS_TTL_SEC; // 1 hour
-  const refreshTokenMaxAge = rememberMe ? REFRESH_TTL_SEC_LONG : REFRESH_TTL_SEC_SHORT; // 30 days if remember me, else 7 days
+  const refreshTokenMaxAge = rememberMe
+    ? REFRESH_TTL_SEC_LONG
+    : REFRESH_TTL_SEC_SHORT; // 30 days if remember me, else 7 days
   const isProduction = getConfig().isProduction();
 
   // Set access token (short-lived)
-  headers.append('Set-Cookie', `${AUTH_COOKIE}=${token}; HttpOnly; Path=/; Max-Age=${accessTokenMaxAge}; SameSite=Strict${isProduction ? '; Secure' : ''}`);
+  headers.append(
+    'Set-Cookie',
+    `${AUTH_COOKIE}=${token}; HttpOnly; Path=/; Max-Age=${accessTokenMaxAge}; SameSite=Strict${isProduction ? '; Secure' : ''}`
+  );
 
   // Set refresh token (long-lived, HTTP-only for security)
   if (refreshToken) {
-    headers.append('Set-Cookie', `${REFRESH_COOKIE}=${refreshToken}; HttpOnly; Path=/; Max-Age=${refreshTokenMaxAge}; SameSite=Strict${isProduction ? '; Secure' : ''}`);
+    headers.append(
+      'Set-Cookie',
+      `${REFRESH_COOKIE}=${refreshToken}; HttpOnly; Path=/; Max-Age=${refreshTokenMaxAge}; SameSite=Strict${isProduction ? '; Secure' : ''}`
+    );
   }
 
   // Set remember-me flag for UI (non-sensitive)
   if (rememberMe) {
-    headers.append('Set-Cookie', `${REMEMBER_COOKIE}=true; Path=/; Max-Age=${refreshTokenMaxAge}; SameSite=Strict${isProduction ? '; Secure' : ''}`);
+    headers.append(
+      'Set-Cookie',
+      `${REMEMBER_COOKIE}=true; Path=/; Max-Age=${refreshTokenMaxAge}; SameSite=Strict${isProduction ? '; Secure' : ''}`
+    );
   }
 
   return headers;
@@ -334,10 +441,16 @@ export function createAuthCookieHeaders(token: string, rememberMe: boolean = fal
 /**
  * Set authentication cookies (access token + refresh token) - use in Server Components
  */
-export async function setAuthCookie(token: string, rememberMe: boolean = false, refreshToken?: string) {
+export async function setAuthCookie(
+  token: string,
+  rememberMe: boolean = false,
+  refreshToken?: string
+) {
   const cookieStore = await cookies();
   const accessTokenMaxAge = ACCESS_TTL_SEC; // 1 hour
-  const refreshTokenMaxAge = rememberMe ? REFRESH_TTL_SEC_LONG : REFRESH_TTL_SEC_SHORT; // 30 days if remember me, else 7 days
+  const refreshTokenMaxAge = rememberMe
+    ? REFRESH_TTL_SEC_LONG
+    : REFRESH_TTL_SEC_SHORT; // 30 days if remember me, else 7 days
 
   // Set access token (short-lived)
   cookieStore.set(AUTH_COOKIE, token, {
@@ -372,19 +485,44 @@ export async function setAuthCookie(token: string, rememberMe: boolean = false, 
 }
 
 /**
- * Clear all authentication cookies
+ * Clear all authentication cookies.
+ *
+ * 2026-05-26 audit-56 P0: previously used `cookieStore.delete(name)`
+ * which emits a Set-Cookie header without an explicit `Path` / `Secure`
+ * attribute. The browser cookie-jar only removes a `__Host-`-prefixed
+ * cookie when the deletion Set-Cookie matches `Path=/; Secure; no
+ * Domain` (the prefix's contract). With the bare delete() form the
+ * production cookie stayed in the browser jar after logout — the user
+ * could navigate to /contractor/discover seconds later and still be
+ * recognised as logged in until the JWT naturally expired (~1 hour).
+ *
+ * Re-write the cookies with empty value + maxAge:0 + matching
+ * attributes so the browser definitely drops them. The blacklist
+ * (in-memory or Redis) is unreliable on Vercel serverless — see
+ * verifyToken() for the durable per-user `tokens_revoked_at` check
+ * that backstops this.
  */
 export async function clearAuthCookie() {
   const cookieStore = await cookies();
-  cookieStore.delete(AUTH_COOKIE);
-  cookieStore.delete(REFRESH_COOKIE);
-  cookieStore.delete(REMEMBER_COOKIE);
+  const secure = getConfig().isProduction();
+  const baseAttrs = {
+    maxAge: 0,
+    expires: new Date(0),
+    path: '/',
+    secure,
+    sameSite: 'strict' as const,
+  };
+  cookieStore.set(AUTH_COOKIE, '', { ...baseAttrs, httpOnly: true });
+  cookieStore.set(REFRESH_COOKIE, '', { ...baseAttrs, httpOnly: true });
+  cookieStore.set(REMEMBER_COOKIE, '', { ...baseAttrs, httpOnly: false });
 }
 
 /**
  * Get current user from request headers (set by middleware)
  */
-export function getCurrentUserFromHeaders(headers: Headers): Pick<User, 'id' | 'email' | 'role'> | null {
+export function getCurrentUserFromHeaders(
+  headers: Headers
+): Pick<User, 'id' | 'email' | 'role'> | null {
   const userId = headers.get('x-user-id');
   const userEmail = headers.get('x-user-email');
   const userRole = headers.get('x-user-role');
@@ -409,7 +547,10 @@ export function getCurrentUserFromHeaders(headers: Headers): Pick<User, 'id' | '
  * Get current user directly from cookies (more reliable for server components)
  * This is an alternative to header-based user propagation
  */
-export async function getCurrentUserFromCookies(): Promise<Pick<User, 'id' | 'email' | 'role' | 'first_name' | 'last_name'> | null> {
+export async function getCurrentUserFromCookies(): Promise<Pick<
+  User,
+  'id' | 'email' | 'role' | 'first_name' | 'last_name'
+> | null> {
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get(AUTH_COOKIE)?.value;
@@ -420,7 +561,12 @@ export async function getCurrentUserFromCookies(): Promise<Pick<User, 'id' | 'em
 
     const jwtPayload = await verifyToken(token);
 
-    if (!jwtPayload || !jwtPayload.sub || !jwtPayload.email || !jwtPayload.role) {
+    if (
+      !jwtPayload ||
+      !jwtPayload.sub ||
+      !jwtPayload.email ||
+      !jwtPayload.role
+    ) {
       return null;
     }
 
@@ -483,7 +629,10 @@ export async function getCurrentUser(): Promise<User | null> {
  */
 export async function getCurrentUserFromBearerToken(
   request: NextRequest
-): Promise<Pick<User, 'id' | 'email' | 'role' | 'first_name' | 'last_name'> | null> {
+): Promise<Pick<
+  User,
+  'id' | 'email' | 'role' | 'first_name' | 'last_name'
+> | null> {
   try {
     const authHeader = request.headers.get('authorization');
     if (!authHeader?.startsWith('Bearer ')) {
@@ -496,7 +645,10 @@ export async function getCurrentUserFromBearerToken(
     }
 
     // Verify the Supabase JWT server-side
-    const { data: { user }, error } = await serverSupabase.auth.getUser(token);
+    const {
+      data: { user },
+      error,
+    } = await serverSupabase.auth.getUser(token);
 
     if (error || !user) {
       logger.warn('Bearer token verification failed', {
@@ -540,7 +692,10 @@ export async function getCurrentUserFromBearerToken(
  */
 export async function getUserFromRequest(
   request: NextRequest
-): Promise<Pick<User, 'id' | 'email' | 'role' | 'first_name' | 'last_name'> | null> {
+): Promise<Pick<
+  User,
+  'id' | 'email' | 'role' | 'first_name' | 'last_name'
+> | null> {
   // Try cookie auth first (web browsers)
   const cookieUser = await getCurrentUserFromCookies();
   if (cookieUser) return cookieUser;
@@ -551,4 +706,3 @@ export async function getUserFromRequest(
 
 // Alias export for backward compatibility
 export const getUser = getCurrentUserFromCookies;
-

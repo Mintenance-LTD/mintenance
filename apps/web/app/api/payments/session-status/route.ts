@@ -2,11 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { z } from 'zod';
 import { logger } from '@mintenance/shared';
-import { env } from '@/lib/env';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { ForbiddenError, NotFoundError } from '@/lib/errors/api-error';
-
-const stripe = new Stripe(env.STRIPE_SECRET_KEY);
+// 2026-05-27 whole-app review Critical #3: was `new Stripe(env.STRIPE_SECRET_KEY)`
+// with no apiVersion, defaulting to whatever the installed SDK picked.
+// Swap to the shared lazy proxy so the API version stays pinned at
+// '2025-01-27.acacia' in one place. Audit P2.1 (2026-05-10) retired
+// every other un-pinned Stripe init; this was the last straggler.
+import { stripe } from '@/lib/stripe';
 
 const querySchema = z.object({
   session_id: z

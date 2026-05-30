@@ -393,6 +393,9 @@ export function DetailsStep({
       {/* Smart Job Analysis — AI suggestions based on description.
           Legacy component, palette-mapped via the page's
           .me-legacy-fit wrapper. */}
+      {/* 2026-05-22: budget removed from form — AI budget suggestion is
+          shown read-only on BudgetStep instead. Pass a no-op so the
+          shared SmartJobAnalysis component still mounts cleanly. */}
       <SmartJobAnalysis
         title={formData.title}
         description={formData.description}
@@ -401,9 +404,7 @@ export function DetailsStep({
         onCategorySelect={(category) =>
           setFormData((prev) => ({ ...prev, category }))
         }
-        onBudgetSelect={(budget) =>
-          setFormData((prev) => ({ ...prev, budget: budget.toString() }))
-        }
+        onBudgetSelect={() => {}}
         onUrgencySelect={(urgency) =>
           setFormData((prev) => ({ ...prev, urgency }))
         }

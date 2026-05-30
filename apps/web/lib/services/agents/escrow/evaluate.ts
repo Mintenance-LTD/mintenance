@@ -30,15 +30,13 @@ interface MetadataWithRisks {
  *   7. No high dispute-risk predictions
  */
 export async function evaluateAutoRelease(
-  escrowId: string,
+  escrowId: string
 ): Promise<AgentResult | null> {
   try {
-    const { TrustScoreService } = await import(
-      '@/lib/services/contractor/TrustScoreService'
-    );
-    const { HomeownerApprovalService } = await import(
-      '@/lib/services/escrow/HomeownerApprovalService'
-    );
+    const { TrustScoreService } =
+      await import('@/lib/services/contractor/TrustScoreService');
+    const { HomeownerApprovalService } =
+      await import('@/lib/services/escrow/HomeownerApprovalService');
 
     const { data: escrow, error: escrowError } = await serverSupabase
       .from('escrow_transactions')
@@ -71,7 +69,7 @@ export async function evaluateAutoRelease(
             contractor_id,
             homeowner_id
           )
-        `,
+        `
       )
       .eq('id', escrowId)
       .single();
@@ -105,7 +103,13 @@ export async function evaluateAutoRelease(
       return null;
     }
 
-    // 2. Homeowner approval or auto-approval
+    // 2. Homeowner approval or auto-approval.
+    // Capture whether the approval is an explicit human action BEFORE the
+    // auto-approval branch can flip the flag. An explicit homeowner approval
+    // is a stronger signal than the automated photo checks, so it satisfies
+    // the photo-verification gate below (gate 3). The automated photo gate is
+    // the stand-in for human review only on the 7-day auto-approval path.
+    const explicitHomeownerApproval = !!escrow.homeowner_approval;
     if (!escrow.homeowner_approval) {
       const autoApprovalEligible =
         await HomeownerApprovalService.checkAutoApprovalEligibility(escrowId);
@@ -125,16 +129,23 @@ export async function evaluateAutoRelease(
       escrow.cooling_off_ends_at = updatedEscrow.cooling_off_ends_at;
     }
 
-    // 3. Photo verification
-    if (escrow.photo_verification_status !== 'verified') return null;
-    if (!escrow.photo_quality_passed) return null;
-    if (!escrow.geolocation_verified) return null;
-    if (!escrow.timestamp_verified) return null;
-    if (
-      escrow.before_after_comparison_score !== null &&
-      escrow.before_after_comparison_score < 0.6
-    ) {
-      return null;
+    // 3. Photo verification — only enforced on the auto-approval (7-day) path.
+    // These columns live on escrow_transactions but are populated by the
+    // automated verification pipeline, NOT by the homeowner approval flow.
+    // When a homeowner has explicitly approved the work, their human review
+    // supersedes the automated photo checks; enforcing the photo gate here
+    // would deadlock the release (the columns stay null on the approval path).
+    if (!explicitHomeownerApproval) {
+      if (escrow.photo_verification_status !== 'verified') return null;
+      if (!escrow.photo_quality_passed) return null;
+      if (!escrow.geolocation_verified) return null;
+      if (!escrow.timestamp_verified) return null;
+      if (
+        escrow.before_after_comparison_score !== null &&
+        escrow.before_after_comparison_score < 0.6
+      ) {
+        return null;
+      }
     }
 
     // 4. Cooling-off period
@@ -162,7 +173,7 @@ export async function evaluateAutoRelease(
     const trustBasedReleaseDate =
       await TrustScoreService.getGraduatedReleaseDate(
         escrowId,
-        homeownerApprovalDate,
+        homeownerApprovalDate
       );
     if (trustBasedReleaseDate > new Date()) {
       return null;
@@ -173,7 +184,7 @@ export async function evaluateAutoRelease(
       const releaseDate = await calculateAutoReleaseDate(
         escrowId,
         job.id,
-        job.contractor_id,
+        job.contractor_id
       );
       if (!releaseDate) return null;
       const { data: updatedEscrow } = await serverSupabase
@@ -194,9 +205,8 @@ export async function evaluateAutoRelease(
     }
 
     // Tier-specific rule check for photo score threshold
-    const { PayoutTierService } = await import(
-      '@/lib/services/payment/PayoutTierService'
-    );
+    const { PayoutTierService } =
+      await import('@/lib/services/payment/PayoutTierService');
     let contractorTier = 'standard';
     try {
       const tier = await PayoutTierService.calculateTier(job.contractor_id);
@@ -212,7 +222,7 @@ export async function evaluateAutoRelease(
     const escrowTier = escrowTierMap[contractorTier] || 'bronze';
 
     const rule = await getApplicableRule(escrowTier, escrow.amount || 0, '');
-    if (rule?.requirePhotoVerification) {
+    if (rule?.requirePhotoVerification && !explicitHomeownerApproval) {
       if (
         escrow.photo_verification_status !== 'verified' ||
         (escrow.photo_verification_score || 0) < (rule.minPhotoScore || 0.7)
@@ -241,7 +251,7 @@ export async function evaluateAutoRelease(
       (result) =>
         result.metadata &&
         typeof result.metadata === 'object' &&
-        (result.metadata as MetadataWithRisks).risks,
+        (result.metadata as MetadataWithRisks).risks
     );
     if (
       riskAssessmentWithRisks?.metadata &&
@@ -252,7 +262,7 @@ export async function evaluateAutoRelease(
       if (Array.isArray(risks)) {
         const highRiskDisputes = risks.filter(
           (r: RiskPrediction) =>
-            r.risk_type === 'dispute' && r.severity === 'high',
+            r.risk_type === 'dispute' && r.severity === 'high'
         );
         if (highRiskDisputes.length > 0) {
           const extendedDate = new Date();

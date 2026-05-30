@@ -4,6 +4,7 @@ import { withApiHandler } from '@/lib/api/with-api-handler';
 import { EmailService } from '@/lib/email-service';
 import { NotificationService } from '@/lib/services/notifications/NotificationService';
 import { logger } from '@mintenance/shared';
+import { PropertyTeamService } from '@/lib/services/property-team/PropertyTeamService';
 
 /**
  * GET /api/properties/[id]/tenants
@@ -28,8 +29,26 @@ export const GET = withApiHandler(
       );
     }
 
-    const isOwner = property.owner_id === user.id || user.role === 'admin';
-    const { data: tenantLink } = !isOwner
+    // 2026-05-26 audit-61 P1: previously only the property owner +
+    // platform admin saw the full tenant list; property-team
+    // managers got 404 even though the mobile UI promised them
+    // "Manage tenants". Honour PropertyTeamService.authorize
+    // ('manage_contacts') alongside the owner / linked-tenant
+    // branches so manager + team-admin see everything, while a
+    // linked tenant still gets only their own row.
+    const isPlatformAdmin = user.role === 'admin';
+    const isOwner = property.owner_id === user.id;
+    const { authorized: isPropertyManager } =
+      !isOwner && !isPlatformAdmin
+        ? await PropertyTeamService.authorize(
+            user.id,
+            propertyId,
+            'manage_contacts'
+          )
+        : { authorized: false };
+    const isPrivilegedReader = isOwner || isPlatformAdmin || isPropertyManager;
+
+    const { data: tenantLink } = !isPrivilegedReader
       ? await serverSupabase
           .from('property_tenants')
           .select('id')
@@ -39,20 +58,33 @@ export const GET = withApiHandler(
           .maybeSingle()
       : { data: null };
 
-    if (!isOwner && !tenantLink) {
+    if (!isPrivilegedReader && !tenantLink) {
       return NextResponse.json(
         { error: 'Property not found' },
         { status: 404 }
       );
     }
 
-    const { data: tenants, error } = await serverSupabase
+    // 2026-05-23 audit: linked tenants used to see every tenant's
+    // email/phone/lease/notes for the property. In a multi-tenant let
+    // (shared houses, HMOs) that's a privacy leak — tenant A could
+    // pull tenant B's contact details + lease dates. The owner branch
+    // still returns the full list (they manage the property); linked
+    // tenants now get only their own row back.
+    let tenantQuery = serverSupabase
       .from('property_tenants')
       .select(
         'id, name, email, phone, lease_start, lease_end, notes, is_active, invitation_sent_at, invitation_accepted_at, user_id, created_at'
       )
-      .eq('property_id', propertyId)
-      .order('created_at', { ascending: false });
+      .eq('property_id', propertyId);
+
+    if (!isPrivilegedReader) {
+      tenantQuery = tenantQuery.eq('user_id', user.id);
+    }
+
+    const { data: tenants, error } = await tenantQuery.order('created_at', {
+      ascending: false,
+    });
 
     if (error) {
       return NextResponse.json(
@@ -88,11 +120,28 @@ export const POST = withApiHandler(
       .eq('id', propertyId)
       .maybeSingle();
 
-    if (!property || (property.owner_id !== user.id && user.role !== 'admin')) {
+    if (!property) {
       return NextResponse.json(
         { error: 'Property not found' },
         { status: 404 }
       );
+    }
+
+    // 2026-05-26 audit-61 P1: route through PropertyTeamService so
+    // managers/team-admins on the property can add tenants. Previously
+    // owner_id-only gate left mobile manager UI with 404 on add.
+    if (user.role !== 'admin') {
+      const { authorized } = await PropertyTeamService.authorize(
+        user.id,
+        propertyId,
+        'manage_contacts'
+      );
+      if (!authorized) {
+        return NextResponse.json(
+          { error: 'Property not found' },
+          { status: 404 }
+        );
+      }
     }
 
     const { name, email, phone, lease_start, lease_end, notes } = body;
@@ -162,11 +211,12 @@ export const POST = withApiHandler(
         // Notify the existing user. Previous direct insert used a
         // `data` column that doesn't exist — PostgREST rejected the
         // INSERT, so tenants were never told their access was granted.
+        // 2026-05-21 Mint Editorial voice.
         await NotificationService.createNotification({
           userId: existingUser.id,
           type: 'tenant_linked',
-          title: 'Property Access Granted',
-          message: `You've been added as a tenant at ${property.address || property.name || 'a property'}. You can now submit maintenance requests.`,
+          title: `You're on the tenants list at ${property.address || property.name || 'a property'}`,
+          message: `Anything need fixing? Open the property and post a job — the landlord pays.`,
           actionUrl: `/properties/${propertyId}`,
           metadata: { property_id: propertyId },
         });
@@ -275,11 +325,29 @@ export const DELETE = withApiHandler(
       .eq('id', propertyId)
       .single();
 
-    if (!property || (property.owner_id !== user.id && user.role !== 'admin')) {
+    if (!property) {
       return NextResponse.json(
         { error: 'Property not found' },
         { status: 404 }
       );
+    }
+
+    // 2026-05-26 audit-61 P1: same manage_contacts gate as POST so
+    // managers/team-admins can remove tenants. Without this, the
+    // mobile TenantContacts "remove" button just 404'd from manager
+    // accounts.
+    if (user.role !== 'admin') {
+      const { authorized } = await PropertyTeamService.authorize(
+        user.id,
+        propertyId,
+        'manage_contacts'
+      );
+      if (!authorized) {
+        return NextResponse.json(
+          { error: 'Property not found' },
+          { status: 404 }
+        );
+      }
     }
 
     const { error } = await serverSupabase

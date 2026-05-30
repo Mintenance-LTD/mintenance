@@ -30,7 +30,7 @@ const OPTIONS: Array<{
     value: 'mint-editorial',
     title: 'Mint Editorial (default)',
     description:
-      'The current Mintenance look: teal-mint, warm near-black, Instrument Serif headlines, calm paper shadows.',
+      'The current Mintenance look: teal-mint, warm near-black, Inter Black headlines, calm paper shadows.',
     swatches: ['#3F8C7A', '#1A2520', '#F3F7F4', '#C49A4D'],
   },
   {

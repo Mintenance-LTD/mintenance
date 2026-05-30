@@ -9,6 +9,8 @@ import {
   Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { ProfileStackParamList } from '../navigation/types';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '../components/ui/Button';
@@ -37,7 +39,8 @@ const RESOURCE_STYLES: Record<string, { iconColor: string; iconBg: string }> = {
 };
 
 const HelpCenterScreen: React.FC = () => {
-  const navigation = useNavigation();
+  const navigation =
+    useNavigation<NativeStackNavigationProp<ProfileStackParamList>>();
   const insets = useSafeAreaInsets();
   const [searchQuery, setSearchQuery] = useState('');
   const [expandedFaq, setExpandedFaq] = useState<string | null>(null);
@@ -99,7 +102,13 @@ const HelpCenterScreen: React.FC = () => {
     {
       id: 'call',
       title: 'Call Us',
-      description: '1-800-MINT-HELP',
+      // 2026-05-22 audit F4: removed US placeholder "1-800-MINT-HELP"
+      // / tel:+18006468435 — Mintenance is a UK-only product
+      // (mintenance.co.uk) and shipping a US vanity number was false
+      // contact data. Phone support isn't live yet; route this tile
+      // to the same "coming soon" pattern as Live Chat so users
+      // aren't misled into trying a dead number.
+      description: 'Phone support coming soon',
       icon: 'call',
       action: () => handlePhoneCall(),
     },
@@ -132,7 +141,15 @@ const HelpCenterScreen: React.FC = () => {
   };
 
   const handlePhoneCall = () => {
-    Linking.openURL('tel:+18006468435');
+    // Audit F4: previous `tel:+18006468435` (US 1-800 number) was a
+    // placeholder on a UK-only product. Until a real UK support
+    // number is wired in, surface the same coming-soon UX as Live
+    // Chat so the tap doesn't deep-link the user into dialling a
+    // dead number.
+    Alert.alert(
+      'Call Us',
+      'Phone support is coming soon. Please use email support in the meantime.'
+    );
   };
 
   const handleEmailSupport = () => {
@@ -149,20 +166,31 @@ const HelpCenterScreen: React.FC = () => {
       faq.answer.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const resources = [
-    { icon: 'book' as const, label: 'User Guide', url: HELP_LINKS.userGuide },
+  // 2026-05-23: "Video Tutorials" used to deep-link out to an external
+  // marketing URL. The in-app LearningCardsScreen (R3 #20 — 60-second
+  // how-to library) had been built but was never wired up. Switched to
+  // an in-app navigation so the catalogue is actually reachable.
+  type ResourceItem = {
+    icon: 'book' | 'play-circle' | 'globe' | 'people';
+    label: string;
+  } & (
+    | { url: string; route?: never }
+    | { route: 'LearningCards'; url?: never }
+  );
+  const resources: ResourceItem[] = [
+    { icon: 'book', label: 'User Guide', url: HELP_LINKS.userGuide },
     {
-      icon: 'play-circle' as const,
+      icon: 'play-circle',
       label: 'Video Tutorials',
-      url: HELP_LINKS.videos,
+      route: 'LearningCards',
     },
     {
-      icon: 'globe' as const,
+      icon: 'globe',
       label: 'Knowledge Base',
       url: HELP_LINKS.knowledgeBase,
     },
     {
-      icon: 'people' as const,
+      icon: 'people',
       label: 'Community Forum',
       url: HELP_LINKS.community,
     },
@@ -300,7 +328,11 @@ const HelpCenterScreen: React.FC = () => {
                   styles.resourceItem,
                   idx < resources.length - 1 && styles.resourceItemBorder,
                 ]}
-                onPress={() => Linking.openURL(res.url)}
+                onPress={() =>
+                  res.route
+                    ? navigation.navigate(res.route)
+                    : Linking.openURL(res.url)
+                }
                 activeOpacity={0.7}
               >
                 <View style={styles.resourceLeft}>

@@ -223,7 +223,11 @@ export const createPropertySchema = z
       .optional(),
     bedrooms: z.number().int().min(0).optional(),
     bathrooms: z.number().int().min(0).optional(),
-    notes: z.string().max(1000).optional(),
+    // 2026-05-27 audit-74 P1: dropped the dead `notes` key. Live
+    // `public.properties` has no notes column (only access_notes,
+    // which is access-instructions, not generic notes). The route
+    // never persisted it; mobile UI stopped sending it. Keeping the
+    // Zod entry would mis-signal that callers can save notes here.
     // R6 step 13 (2026-04-29): mobile's AddPropertyScreen captures
     // device GPS / Mapbox-resolved coords and forwarded them in the
     // payload — but the schema dropped the keys silently and the

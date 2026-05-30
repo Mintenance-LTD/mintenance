@@ -99,24 +99,47 @@ export const POST = withApiHandler(
 
     const amountPence = Math.round(amount * 100);
 
-    // 3. Create the Stripe PaymentIntent (Direct Charge model)
+    // 3. Create the Stripe PaymentIntent (Direct Charge model).
+    //
+    // 2026-05-25 audit-45 P1: idempotency key previously hashed only
+    // {jobId, userId, amountPence}, so a second £10 tip on the same job
+    // by the same homeowner reused the FIRST PaymentIntent. The insert
+    // below has a unique constraint on stripe_payment_intent_id —
+    // every same-amount repeat tip then 23505'd at the DB layer and
+    // the "Send another tip" CTA on TipJarCard.tsx looked broken.
+    //
+    // Three windows of dedup we still need:
+    //   1. Network retry of the same POST (browser/SDK retry): preserve.
+    //   2. Double-click within seconds: preserve.
+    //   3. Genuinely-new tip later: must NOT collide.
+    //
+    // Salt with a coarse minute-bucket timestamp so (1)+(2) still
+    // dedupe (any retry inside the same minute reuses the PI) while
+    // (3) — tips sent minutes apart — gets a fresh key. Same shape used
+    // by other production idempotency keys on this codebase.
+    const minuteBucket = Math.floor(Date.now() / 60_000);
     let paymentIntent;
     try {
-      paymentIntent = await stripe.paymentIntents.create({
-        amount: amountPence,
-        currency: 'gbp',
-        capture_method: 'automatic',
-        transfer_data: {
-          destination: contractor.stripe_connect_account_id,
+      paymentIntent = await stripe.paymentIntents.create(
+        {
+          amount: amountPence,
+          currency: 'gbp',
+          capture_method: 'automatic',
+          transfer_data: {
+            destination: contractor.stripe_connect_account_id,
+          },
+          // No application_fee_amount — full tip goes to contractor.
+          metadata: {
+            type: 'job_tip',
+            job_id: jobId,
+            payer_id: user.id,
+            payee_id: contractor.id,
+          },
         },
-        // No application_fee_amount — full tip goes to contractor.
-        metadata: {
-          type: 'job_tip',
-          job_id: jobId,
-          payer_id: user.id,
-          payee_id: contractor.id,
-        },
-      });
+        {
+          idempotencyKey: `tip_${jobId}_${user.id}_${amountPence}_${minuteBucket}`,
+        }
+      );
     } catch (err) {
       logger.error('Failed to create tip PaymentIntent', err, {
         service: 'job-tips',

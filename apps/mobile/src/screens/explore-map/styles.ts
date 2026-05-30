@@ -5,7 +5,13 @@ import type { Ionicons } from '@expo/vector-icons';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 export const CARD_WIDTH = SCREEN_WIDTH * 0.78;
 
-// Category marker config — icon + color per trade
+// Category marker config — icon + color per trade.
+// 2026-05-27 audit-72 P2: extended to cover every entry in
+// packages/api-contracts JOB_CATEGORIES. Live DB had a `handyman` job
+// (verified via Supabase MCP) that fell back to the generic grey
+// hammer marker because it wasn't represented here. The categories
+// below must stay in sync with JOB_CATEGORIES; the CATEGORIES array
+// below covers the same set for the pill filter row.
 export const CATEGORY_MARKERS: Record<
   string,
   { icon: keyof typeof Ionicons.glyphMap; bg: string }
@@ -20,6 +26,18 @@ export const CATEGORY_MARKERS: Record<
   landscaping: { icon: 'leaf', bg: me.brand },
   appliance: { icon: 'settings', bg: me.accent },
   general: { icon: 'construct', bg: me.ink2 },
+  // audit-72 P2 additions
+  handyman: { icon: 'build', bg: me.accent },
+  flooring: { icon: 'grid', bg: me.brand },
+  tiling: { icon: 'apps', bg: me.brand },
+  plastering: { icon: 'brush', bg: me.accent },
+  guttering: { icon: 'rainy', bg: me.brand },
+  fencing: { icon: 'shield', bg: me.accent },
+  damp: { icon: 'water-outline', bg: me.errFg },
+  pest_control: { icon: 'bug', bg: me.errFg },
+  heating: { icon: 'flame', bg: me.errFg },
+  gardening: { icon: 'flower', bg: me.brand },
+  other: { icon: 'ellipsis-horizontal', bg: me.ink2 },
 };
 
 // Category tabs
@@ -68,6 +86,88 @@ export const CATEGORIES = [
     id: 'cleaning',
     name: 'Cleaning',
     icon: 'sparkles-outline' as keyof typeof Ionicons.glyphMap,
+  },
+  // 2026-05-26 audit-49 P2: live DB has posted landscaping jobs +
+  // CATEGORY_MARKERS above already knows the icon/colour, but the
+  // pill was missing so landscaping jobs only showed under "All".
+  // packages/api-contracts also includes landscaping as a valid
+  // category — adding it here closes the filter gap.
+  {
+    id: 'landscaping',
+    name: 'Landscaping',
+    icon: 'leaf-outline' as keyof typeof Ionicons.glyphMap,
+  },
+  // 2026-05-27 audit-72 P2: extend pill filters to match the full
+  // shared JOB_CATEGORIES list. Without these the contractor can see
+  // a handyman job under "All" but can't intentionally filter for it
+  // — and live DB confirmed a handyman job exists. Adding the
+  // remainder so the discover-filter contract matches the post-job
+  // category contract.
+  {
+    id: 'handyman',
+    name: 'Handyman',
+    icon: 'build-outline' as keyof typeof Ionicons.glyphMap,
+  },
+  {
+    id: 'heating',
+    name: 'Heating',
+    icon: 'flame-outline' as keyof typeof Ionicons.glyphMap,
+  },
+  {
+    id: 'gardening',
+    name: 'Gardening',
+    icon: 'flower-outline' as keyof typeof Ionicons.glyphMap,
+  },
+  {
+    id: 'flooring',
+    name: 'Flooring',
+    icon: 'grid-outline' as keyof typeof Ionicons.glyphMap,
+  },
+  {
+    id: 'tiling',
+    name: 'Tiling',
+    icon: 'apps-outline' as keyof typeof Ionicons.glyphMap,
+  },
+  {
+    id: 'plastering',
+    name: 'Plastering',
+    icon: 'brush-outline' as keyof typeof Ionicons.glyphMap,
+  },
+  {
+    id: 'guttering',
+    name: 'Guttering',
+    icon: 'rainy-outline' as keyof typeof Ionicons.glyphMap,
+  },
+  {
+    id: 'fencing',
+    name: 'Fencing',
+    icon: 'shield-outline' as keyof typeof Ionicons.glyphMap,
+  },
+  {
+    id: 'damp',
+    name: 'Damp',
+    icon: 'water-outline' as keyof typeof Ionicons.glyphMap,
+  },
+  {
+    id: 'pest_control',
+    name: 'Pest control',
+    icon: 'bug-outline' as keyof typeof Ionicons.glyphMap,
+  },
+  // 2026-05-27 audit-82 P3: `general` is a canonical category in
+  // packages/api-contracts JOB_CATEGORIES and CATEGORY_MARKERS above
+  // already knows its icon/colour, but the pill was missing so a
+  // contractor could see "general" jobs under "All" but couldn't
+  // intentionally filter for them. Live shows 0 today; this closes
+  // the filter / enum drift before the first one posts.
+  {
+    id: 'general',
+    name: 'General',
+    icon: 'construct-outline' as keyof typeof Ionicons.glyphMap,
+  },
+  {
+    id: 'other',
+    name: 'Other',
+    icon: 'ellipsis-horizontal-outline' as keyof typeof Ionicons.glyphMap,
   },
 ];
 

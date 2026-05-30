@@ -84,9 +84,17 @@ export const PUT = withApiHandler(
 
     // Update the contractor's profile
     const isVerified = status === 'verified';
+    // 2026-05-25 audit-44 P1: previously only wrote admin_verified +
+    // background_check_status. Mobile reads profiles.verification_status
+    // (useContractorVerification + the "License Verified" pill on
+    // VerificationStatusScreen) — without writing it the contractor
+    // sees "Pending" forever even after the admin approves. Live CHECK
+    // allows 'none' | 'pending' | 'verified' | 'rejected' (verified via
+    // pg_constraint 2026-05-25).
     const updateData: Record<string, unknown> = {
       admin_verified: isVerified,
       background_check_status: status,
+      verification_status: isVerified ? 'verified' : 'rejected',
       updated_at: new Date().toISOString(),
     };
 
@@ -106,6 +114,65 @@ export const PUT = withApiHandler(
         { error: 'Failed to update verification status' },
         { status: 500 }
       );
+    }
+
+    // 2026-05-25 audit-44 P1: cascade the account-level decision onto
+    // any still-pending credential_verifications rows. Without this the
+    // mobile VerificationStatusScreen (which renders per-register slots
+    // straight off credential_verifications) keeps showing 'pending'
+    // even when the admin has approved the whole account. We only touch
+    // 'pending' rows — never override a row an admin has explicitly
+    // verified or rejected through /api/admin/verifications/credentials,
+    // and never auto-expire 'expired' rows. Status CHECK allows
+    // pending/verified/rejected/expired (verified live 2026-05-25).
+    const credentialUpdate: Record<string, unknown> = {
+      status: isVerified ? 'verified' : 'rejected',
+      verified_by: user.id,
+      updated_at: new Date().toISOString(),
+    };
+    if (isVerified) credentialUpdate.verified_at = new Date().toISOString();
+    if (!isVerified)
+      credentialUpdate.rejected_reason =
+        reason ?? 'Account verification denied';
+
+    const { error: credErr } = await serverSupabase
+      .from('credential_verifications')
+      .update(credentialUpdate)
+      .eq('user_id', contractorId)
+      .eq('status', 'pending');
+    if (credErr) {
+      // Non-blocking — the profile flag is the primary source of trust.
+      logger.warn('Failed to cascade credential_verifications', {
+        service: 'admin-verifications',
+        contractorId,
+        error: credErr.message,
+      });
+    }
+
+    // 2026-05-25 audit-44 P1: same cascade for uploaded evidence rows
+    // that ship with review_status='pending' (set by
+    // /api/contractor/documents POST when verification_type is included).
+    // Without this they accumulate forever and the admin has no per-doc
+    // queue. The new /api/admin/verifications/documents endpoint exposes
+    // individual approval; the cascade here covers the "approve the
+    // whole account" workflow.
+    const docUpdate: Record<string, unknown> = {
+      review_status: isVerified ? 'approved' : 'rejected',
+      reviewed_at: new Date().toISOString(),
+      reviewed_by: user.id,
+      updated_at: new Date().toISOString(),
+    };
+    const { error: docErr } = await serverSupabase
+      .from('contractor_documents')
+      .update(docUpdate)
+      .eq('contractor_id', contractorId)
+      .eq('review_status', 'pending');
+    if (docErr) {
+      logger.warn('Failed to cascade contractor_documents review_status', {
+        service: 'admin-verifications',
+        contractorId,
+        error: docErr.message,
+      });
     }
 
     // Log the admin action in the admin_activity_log table

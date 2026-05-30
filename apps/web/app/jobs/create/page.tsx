@@ -92,9 +92,17 @@ export default function CreateJobPage2025() {
   const { csrfToken } = useCSRF();
   const [currentStep, setCurrentStep] = useState(1);
 
-  // Mint AI dock prefills via /api/ai/job-draft → query params. The
-  // initial seed + soft-navigation patch helpers live in
-  // utils/url-prefill.ts to keep this file under the MDC line cap.
+  // URL query params can seed title / category / urgency / budget when
+  // the user navigates in from a deep-link (e.g. a property's "Request
+  // service" CTA or a notification). The initial seed + soft-navigation
+  // patch helpers live in utils/url-prefill.ts to keep this file under
+  // the MDC line cap.
+  //
+  // The /api/ai/job-draft round-trip that previously powered the Mint
+  // AI compose dock (removed 2026-05-21 — user explicitly didn't want
+  // an AI chat surface) is still wired server-side in case a future
+  // natural-language entry point wants to reuse it, but no UI posts
+  // to it today.
   const [formData, setFormData] = useState<JobFormData>(() =>
     initialFormDataFromParams(searchParams)
   );
@@ -133,8 +141,33 @@ export default function CreateJobPage2025() {
   useEffect(() => {
     if (user && user.role === 'homeowner') {
       setLoadingProperties(true);
-      fetch('/api/properties')
-        .then((res) => res.json())
+      fetch('/api/properties', { credentials: 'include' })
+        .then(async (res) => {
+          if (!res.ok) {
+            // 2026-05-23: surface 4xx / 5xx instead of silently
+            // swallowing — "No properties found" was masking real
+            // failures (auth, rate limit, RLS).
+            const body = await res.text().catch(() => '');
+            const err = new Error(
+              `Properties fetch failed: ${res.status} ${res.statusText}${
+                body ? ` — ${body.slice(0, 200)}` : ''
+              }`
+            );
+            logger.error('Failed to load properties for job creation', err, {
+              service: 'app',
+              status: res.status,
+            });
+            toast.error(
+              res.status === 429
+                ? 'Too many requests — wait a moment then refresh.'
+                : res.status === 401 || res.status === 403
+                  ? 'Session expired — please sign in again.'
+                  : 'Could not load your properties. Please refresh.'
+            );
+            throw err;
+          }
+          return res.json();
+        })
         .then((data) => {
           if (data.properties) {
             setProperties(data.properties);
@@ -153,7 +186,9 @@ export default function CreateJobPage2025() {
             }
           }
         })
-        .catch(() => {})
+        .catch((err) => {
+          logger.error('Properties fetch threw', err, { service: 'app' });
+        })
         .finally(() => setLoadingProperties(false));
     }
   }, [user, searchParams]);
@@ -228,12 +263,9 @@ export default function CreateJobPage2025() {
         updates.urgency = suggestedUrgency;
       }
 
-      if (assessment.estimatedCost && (!prev.budget || prev.budget === '')) {
-        const { min, max } = assessment.estimatedCost;
-        updates.budget = String(Math.round((min + max) / 2));
-        updates.budget_min = String(Math.round(min));
-        updates.budget_max = String(Math.round(max));
-      }
+      // 2026-05-22: AI cost estimate is shown read-only in BudgetStep
+      // as a homeowner hint — it is no longer written back to the form
+      // state since budget input was removed.
 
       if (Object.keys(updates).length === 0) return prev;
       return { ...prev, ...updates };
@@ -241,11 +273,6 @@ export default function CreateJobPage2025() {
 
     if (suggestedCategory) suggestions.push(suggestedCategory);
     if (suggestedUrgency) suggestions.push(suggestedUrgency);
-    if (assessment.estimatedCost) {
-      suggestions.push(
-        `£${Math.round(assessment.estimatedCost.min)}-£${Math.round(assessment.estimatedCost.max)}`
-      );
-    }
 
     if (suggestions.length > 0) {
       toast.success(`Mint AI suggested: ${suggestions.join(' · ')}`, {
@@ -412,12 +439,9 @@ export default function CreateJobPage2025() {
     formData.description &&
     formData.description.length >= 50
   );
-  const canProceedStep2 = true;
-  const canProceedStep3 = !!(
-    formData.urgency &&
-    formData.budget &&
-    (parseFloat(String(formData.budget)) <= 500 || hasImages)
-  );
+  // Photos are required on every job (2026-05-22).
+  const canProceedStep2 = hasImages;
+  const canProceedStep3 = !!formData.urgency;
 
   const canProceedNext =
     (currentStep === 1 && canProceedStep1) ||

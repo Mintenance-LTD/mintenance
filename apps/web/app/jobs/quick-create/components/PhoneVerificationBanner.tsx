@@ -18,10 +18,16 @@ export function PhoneVerificationBanner({
 }) {
   const router = useRouter();
 
-  if (
-    phoneVerified ||
-    process.env.NEXT_PUBLIC_SKIP_PHONE_VERIFICATION === 'true'
-  ) {
+  // 2026-05-27 audit-P2-8: gate the client-side bypass on
+  // NODE_ENV !== 'production' to match the server-side P0.1 fix
+  // (CLAUDE.md). Without this prod guard, a leaked
+  // NEXT_PUBLIC_SKIP_PHONE_VERIFICATION=true would hide this
+  // banner even though /api/jobs still rejects the post — the
+  // user clicks Post Job, gets a 4xx, with no actionable prompt.
+  const devBypass =
+    process.env.NODE_ENV !== 'production' &&
+    process.env.NEXT_PUBLIC_SKIP_PHONE_VERIFICATION === 'true';
+  if (phoneVerified || devBypass) {
     return null;
   }
 

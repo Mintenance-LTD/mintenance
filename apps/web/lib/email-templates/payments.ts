@@ -5,7 +5,7 @@
  * carry the amount + counterparty name; calm body with one note and
  * one CTA. No emoji, no `🎉`, no gradient header bars.
  */
-import { escapeHtml, year, emailShell, mintEmailShell } from './shared';
+import { escapeHtml, year, mintEmailShell } from './shared';
 import type {
   PaymentConfirmationData,
   PaymentReceivedData,
@@ -81,42 +81,27 @@ export function invoiceNotificationTemplate(
   unsubscribeFooter: string
 ): { subject: string; html: string; text: string } {
   const e = escapeHtml;
-  const color = '#0d9488';
-  const fmtAmount = `\u00a3${data.totalAmount.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const fmtAmount = `\u00a3${data.totalAmount.toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
   const formattedDue = new Date(data.dueDate).toLocaleDateString('en-GB', {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
   });
-  const extra = `.amount-box{background:white;border:2px solid ${color};border-radius:12px;padding:20px;text-align:center;margin:20px 0}
-    .amount{font-size:32px;font-weight:bold;color:${color}}
-    .detail-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #e5e7eb;font-size:14px}
-    .due-note{background:#fffbeb;border-left:4px solid #f59e0b;padding:12px 16px;border-radius:4px;margin-top:20px;font-size:13px;color:#92400e}`;
-  const html = emailShell(
-    color,
-    extra,
-    `<h1 style="margin:0">New Invoice</h1><p style="margin:8px 0 0;opacity:0.9">You have received an invoice from your contractor</p>`,
+  const subject = `${fmtAmount} invoice \u2014 ${data.title}`;
+  const preview = `${data.invoiceNumber} from ${data.contractorName} \u00b7 due ${formattedDue}.`;
+  const html = mintEmailShell(
+    subject,
+    preview,
     `<p>Hi ${e(data.clientName)},</p>
-     <p><strong>${e(data.contractorName)}</strong> has sent you an invoice for their services.</p>
-     <div class="amount-box">
-       <div style="font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#6b7280;margin-bottom:4px">Amount Due</div>
-       <div class="amount">${fmtAmount}</div>
-       <div style="font-size:13px;color:#6b7280;margin-top:4px">${e(data.invoiceNumber)}</div>
-     </div>
-     <div style="background:white;border-radius:8px;padding:16px;margin:16px 0">
-       <div class="detail-row"><span style="color:#6b7280">Invoice</span><strong>${e(data.invoiceNumber)}</strong></div>
-       <div class="detail-row"><span style="color:#6b7280">For</span><strong>${e(data.title)}</strong></div>
-       <div class="detail-row"><span style="color:#6b7280">From</span><strong>${e(data.contractorName)}</strong></div>
-       <div class="detail-row" style="border:none"><span style="color:#6b7280">Due Date</span><strong>${formattedDue}</strong></div>
-     </div>
-     <div class="due-note"><strong>Payment due:</strong> Please review and pay this invoice by ${formattedDue} to avoid any delays.</div>
-     <p style="text-align:center"><a href="${e(data.viewUrl)}" class="cta">View Invoice</a></p>`,
+     <p><strong>${e(data.contractorName)}</strong> has sent invoice <strong>${e(data.invoiceNumber)}</strong> for <strong>${e(data.title)}</strong>:</p>
+     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:14px 0">
+       <tr><td style="padding:6px 0;color:#666;font-size:13px">Amount</td><td style="padding:6px 0;text-align:right;font-weight:600">${fmtAmount}</td></tr>
+       <tr><td style="padding:6px 0;color:#666;font-size:13px">Due</td><td style="padding:6px 0;text-align:right;font-weight:600">${formattedDue}</td></tr>
+     </table>
+     <a href="${e(data.viewUrl)}" class="cta">Review &amp; pay \u2192</a>
+     <p style="font-size:12px;color:#888">If something doesn't look right, reply on the job thread before the due date \u2014 easier to sort early.</p>`,
     unsubscribeFooter
   );
-  const text = `Hi ${data.clientName},\n\n${data.contractorName} has sent you an invoice.\n\nInvoice: ${data.invoiceNumber}\nFor: ${data.title}\nAmount: ${fmtAmount}\nDue: ${formattedDue}\n\nView invoice: ${data.viewUrl}\n\n\u00a9 ${year()} Mintenance.`;
-  return {
-    subject: `Invoice ${data.invoiceNumber} - ${fmtAmount} from ${data.contractorName}`,
-    html,
-    text,
-  };
+  const text = `Hi ${data.clientName},\n\n${data.contractorName} sent invoice ${data.invoiceNumber} for ${data.title}.\n\nAmount: ${fmtAmount}\nDue: ${formattedDue}\n\nReview & pay: ${data.viewUrl}\n\n\u00a9 ${year()} Mintenance Ltd.`;
+  return { subject, html, text };
 }

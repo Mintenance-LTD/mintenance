@@ -36,6 +36,12 @@ export const POST = withApiHandler(
     roles: ['admin'],
     rateLimit: { maxRequests: 5, windowMs: 60_000 },
     requireMfaVerifiedWithinMinutes: 15,
+    logActivity: {
+      actionType: 'tax_1099_generate',
+      category: 'revenue',
+      targetType: 'tax_filing',
+      description: 'Generated 1099-NEC data for contractors',
+    },
   },
   async (request, { user }) => {
     const validation = await validateRequest(request, generate1099Schema);
@@ -52,7 +58,8 @@ export const POST = withApiHandler(
       idsToProcess = contractorIds;
     } else {
       // Fetch all contractors who need a 1099 for this year
-      const pending = await Form1099Service.getContractorsRequiring1099(taxYear);
+      const pending =
+        await Form1099Service.getContractorsRequiring1099(taxYear);
 
       if (pending.length === 0) {
         return NextResponse.json({
@@ -62,7 +69,7 @@ export const POST = withApiHandler(
         });
       }
 
-      idsToProcess = pending.map(s => s.contractor_id);
+      idsToProcess = pending.map((s) => s.contractor_id);
     }
 
     logger.info('Starting 1099 batch generation', {
@@ -76,8 +83,8 @@ export const POST = withApiHandler(
     // Generate 1099 data for each contractor (partial failures allowed)
     const results = await Form1099Service.generateBatch(idsToProcess, taxYear);
 
-    const succeeded = results.filter(r => r.success).length;
-    const failed = results.filter(r => !r.success).length;
+    const succeeded = results.filter((r) => r.success).length;
+    const failed = results.filter((r) => !r.success).length;
 
     logger.info('1099 batch generation complete', {
       service: 'admin-tax',
@@ -97,5 +104,5 @@ export const POST = withApiHandler(
         results,
       },
     });
-  },
+  }
 );

@@ -37,16 +37,98 @@ export interface NotificationData {
     | 'job_update'
     | 'bid_received'
     | 'bid_rejected'
+    // 2026-05-27 audit-70 P2: bid_accepted was handled by the
+    // routing-table switch but missing from this union. The gap let
+    // real production notification types drift past compile-time
+    // checks (the router accepts `string` so unmapped types are
+    // invisible). Live data: 3 bid_accepted rows + the router has had
+    // the case wired since the original cut.
+    | 'bid_accepted'
     | 'meeting_scheduled'
     | 'payment_received'
     | 'payment_released'
     | 'message_received'
+    // 2026-05-27 audit-70 P1: legacy bare 'message' alias still
+    // present in live data — one row found via Supabase MCP. Router
+    // now folds it into the message_received handler.
+    | 'message'
     | 'quote_sent'
     | 'contract_created'
     | 'contract_signed'
+    // 2026-05-27 audit-70 P1: web /api/contracts/[id]/sign emits
+    // `contract_pending_signature` for the second-signer notification.
+    // Critical two-party flow — missing from the union meant taps
+    // fell through to the inbox instead of the signing surface.
+    | 'contract_pending_signature'
     | 'job_completed'
     | 'job_started'
+    // 2026-05-27 audit-70 P1: contractor proximity alert when a new
+    // job posts in their service area. Live DB has 6 unrouted rows;
+    // router now sends them to JobDetails where the Bid CTA lives.
+    | 'job_nearby'
+    // 2026-05-27 audit-70 P1: assignment lifecycle notifications.
+    // job_assigned fires when a homeowner accepts a contractor's
+    // bid; job_confirmed mirrors it for the contractor side; both
+    // were unrouted despite live data.
+    | 'job_assigned'
+    | 'job_confirmed'
+    // 2026-05-27 audit-70 P1: homeowner approval-of-completion
+    // emitted by /api/jobs/[id]/confirm-completion. Previously fell
+    // through to the inbox.
+    | 'completion_confirmed'
+    // 2026-05-27 audit-71 P2: the prefs UI exposes mute toggles for
+    // `payment` (payment confirmations), `escrow_released` (money
+    // released to contractor), `escrow_auto_released` (7-day reminder),
+    // `cashflow_digest` (Friday digest), and `changes_requested`
+    // (homeowner pushback). All five are emitted live by web routes
+    // (verified via grep across apps/web) but were missing from this
+    // union AND from the mobile router. Without them, mute settings
+    // for these events would be checkboxes pointing at nothing typed.
+    | 'payment'
+    | 'escrow_released'
+    | 'escrow_auto_released'
+    | 'cashflow_digest'
+    | 'changes_requested'
     | 'review_requested'
+    // 2026-05-24 audit-39 P1: location sharing events the homeowner
+    // request flow + the contractor accept/decline path produce. Was
+    // previously falling through to the inbox because the discriminated
+    // union didn't list them and the router default kicked in.
+    | 'location_sharing_request'
+    | 'location_sharing_started'
+    | 'location_sharing_stopped'
+    // 2026-05-27 audit-70 P2: web alias for the same event —
+    // /api/jobs/[id]/enable-location-sharing emits this spelling.
+    | 'location_sharing_enabled'
+    // 2026-05-25 audit-43 P1: scheduling fan-out — appointment_scheduled
+    // from /api/contractor/appointments POST (with metadata.jobId +
+    // appointmentId) and job_scheduled from /api/jobs/[id]/schedule +
+    // /api/bookings/[id]/reschedule. Previously both fell through to
+    // the inbox because the discriminated union didn't list them.
+    | 'appointment_scheduled'
+    | 'job_scheduled'
+    // 2026-05-25 audit-44 P1: admin verification outcomes from
+    // /api/admin/verifications/[id] (account-level) and
+    // /api/admin/verifications/documents (per-document). Previously
+    // taps fell through to the inbox instead of opening the contractor
+    // verification surface where the badge / next step lives.
+    | 'verification_approved'
+    | 'verification_rejected'
+    // 2026-05-25 audit-45 P1: Stripe webhook tip-payment-handler fires
+    // this on payment_intent.succeeded for `metadata.type === 'job_tip'`.
+    // Now carries jobId + tipId so the routingTable can deep-link to
+    // the contractor's JobDetails where TipsReceivedSection lives.
+    | 'job_tip_received'
+    // 2026-05-27 audit-80 P2: property/team notification types the
+    // mobile router already handles via switch cases but were missing
+    // from this discriminated union. Adding them so compile-time checks
+    // catch future router/route drift on the property + team surfaces.
+    // - tenant_linked: emitted when a tenant accepts a property invite
+    // - property_team_invite / property_team_invite_accepted: agency
+    //   landlord ↔ team member invitations
+    | 'tenant_linked'
+    | 'property_team_invite'
+    | 'property_team_invite_accepted'
     | 'system';
   priority: 'low' | 'normal' | 'high';
   userId: string;

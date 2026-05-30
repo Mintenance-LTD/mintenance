@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { resignJobStorageUrls } from '@/lib/api/job-storage';
+import { canRevealKeySafeCode } from '@/lib/services/jobs/key-safe-reveal';
 import { redirect } from 'next/navigation';
 import React from 'react';
 import { theme } from '@/lib/theme';
@@ -76,6 +77,25 @@ export default async function ContractorJobDetailPage({
   // generic "ask the homeowner in chat" placeholder instead of
   // crashing the whole page.
   let property: Record<string, unknown> | null = null;
+  // 2026-05-27 audit-81 P1: also fetch property_contacts so the
+  // contractor's "Access & contacts" card can render the tenant /
+  // keyholder / emergency_contact / managing_agent list the
+  // homeowner attached on /properties/[id]. Mobile already gets
+  // this via /api/jobs/[id] (audit-30 P1), but the web contractor
+  // page reads the DB directly and was silently dropping it.
+  // property_contacts RLS only grants SELECT to owner/admin, so use
+  // serverSupabase scoped by property_id — matches how the job-GET
+  // route fetches them.
+  type PropertyContactRow = {
+    id: string;
+    name: string;
+    contact_role: string;
+    phone: string | null;
+    email: string | null;
+    unit_label: string | null;
+    notes: string | null;
+  };
+  let propertyContacts: PropertyContactRow[] = [];
   if (job.property_id) {
     const propertyResult = await serverSupabase
       .from('properties')
@@ -86,6 +106,17 @@ export default async function ContractorJobDetailPage({
       .maybeSingle();
     if (!propertyResult.error && propertyResult.data) {
       property = propertyResult.data as Record<string, unknown>;
+    }
+
+    const { data: contactRows } = await serverSupabase
+      .from('property_contacts')
+      .select('id, name, contact_role, phone, email, unit_label, notes')
+      .eq('property_id', job.property_id)
+      .eq('is_active', true)
+      .order('contact_role', { ascending: true })
+      .order('name', { ascending: true });
+    if (contactRows) {
+      propertyContacts = contactRows as PropertyContactRow[];
     }
   }
 
@@ -115,9 +146,18 @@ export default async function ContractorJobDetailPage({
     .maybeSingle();
 
   const escrowStatus = escrowTransaction?.status || 'none';
-  const escrowHeld = ['held', 'release_pending', 'released'].includes(
-    escrowStatus
-  );
+  // 2026-05-27 audit-83 P2: include 'completed' so the contractor's
+  // Payment step doesn't show incomplete after an auto-released
+  // escrow (the auto-release path lands on 'completed', the legacy
+  // path lands on 'released'). Matches isEscrowFunded() on the
+  // homeowner side (apps/web/app/jobs/[id]/components/mint-editorial/
+  // jobDetailHelpers.ts) so both roles see consistent stepper state.
+  const escrowHeld = [
+    'held',
+    'release_pending',
+    'released',
+    'completed',
+  ].includes(escrowStatus);
 
   // Fetch job photos for AI assessment display.
   // Re-sign Job-storage URLs at render time — the bucket is now private
@@ -142,6 +182,17 @@ export default async function ContractorJobDetailPage({
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle();
+
+  // 2026-05-25 audit-P0-3: count existing before-photos so JobPhotoUpload
+  // can enable "Start Job" on a return visit. Without this, the button is
+  // gated on local component state (uploadedPhotos.length > 0) which only
+  // increments after a fresh upload IN this session — a contractor who
+  // uploaded photos yesterday sees the button disabled today.
+  const { count: existingBeforePhotosCount } = await serverSupabase
+    .from('job_photos_metadata')
+    .select('id', { count: 'exact', head: true })
+    .eq('job_id', resolvedParams.id)
+    .eq('photo_type', 'before');
 
   const currentStage = determineStage(
     job.status || 'posted',
@@ -174,14 +225,20 @@ export default async function ContractorJobDetailPage({
   const isMintEditorial =
     cookieStore.get('mintenance-theme')?.value === 'mint-editorial';
 
-  // Access-info defence-in-depth: only surface the key-safe code to
-  // the contractor when the job is at the "ready to start" or "in
-  // progress" lifecycle stage. Earlier stages (contract_pending,
-  // awaiting_payment) shouldn't see the code — escrow must be funded
-  // first. The view also gates the render but masking server-side
-  // ensures the code never ships to the client when it shouldn't.
-  const canSeeKeySafeCode =
-    currentStage === 'ready_to_start' || currentStage === 'in_progress';
+  // Access-info defence-in-depth: the key_safe_code field on
+  // `properties` is the most sensitive piece on this page. Migration
+  // 20260520000003 + the homeowner-facing copy promise the same rule:
+  // reveal to the contractor "within 1h of the scheduled job start",
+  // not "on contract acceptance". The previous gate
+  // (`stage === 'ready_to_start' || 'in_progress'`) fired the
+  // moment escrow funded — which can be days before the visit. The
+  // shared `canRevealKeySafeCode` helper matches the documented rule
+  // and is reused by the mobile job-detail API so contractors get
+  // consistent behaviour on both surfaces.
+  const canSeeKeySafeCode = canRevealKeySafeCode({
+    status: job.status,
+    scheduled_start_date: job.scheduled_start_date,
+  });
   const safeProperty = property
     ? {
         access_mode: (property as Record<string, unknown>).access_mode as
@@ -240,6 +297,7 @@ export default async function ContractorJobDetailPage({
             : null
         }
         property={safeProperty}
+        propertyContacts={propertyContacts}
         contractStatus={contractStatus}
         currentStage={currentStage}
         stageTitle={stageConfig.title}
@@ -427,6 +485,7 @@ export default async function ContractorJobDetailPage({
               latitude={job.latitude}
               longitude={job.longitude}
               location={job.location}
+              existingBeforePhotosCount={existingBeforePhotosCount ?? 0}
             />
           )}
 

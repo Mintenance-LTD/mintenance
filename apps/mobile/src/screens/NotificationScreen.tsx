@@ -130,11 +130,29 @@ export const NotificationScreen: React.FC = () => {
           try {
             if (payload.eventType === 'INSERT') {
               const row = payload.new as Record<string, unknown>;
+              // 2026-05-27 audit-80 P1: live data has 66 notifications
+              // with no metadata but 69 carrying action_url. Previously
+              // we passed the raw action_url STRING through to
+              // notification.data, but the router's normalizePayload
+              // does `(data ?? {}) as Record<…>` — a string is not an
+              // object, so `pick('actionUrl', 'action_url', ...)`
+              // returned undefined and realtime taps fell through to
+              // the inbox. Wrap into the canonical { actionUrl } shape
+              // (matching the REST feed's wire format) so the router
+              // can deep-link.
+              const rawData = row.metadata ?? row.data;
+              const actionUrl = row.action_url;
+              const data =
+                rawData != null
+                  ? rawData
+                  : typeof actionUrl === 'string' && actionUrl.length > 0
+                    ? { actionUrl }
+                    : undefined;
               const next = {
                 id: String(row.id),
                 title: (row.title as string) || 'Notification',
                 body: (row.message as string) || '',
-                data: row.metadata ?? row.data ?? row.action_url,
+                data,
                 type: (row.type as NotificationData['type']) || 'system',
                 priority: 'normal' as const,
                 userId: String(row.user_id ?? user.id),

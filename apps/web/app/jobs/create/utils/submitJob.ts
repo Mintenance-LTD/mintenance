@@ -6,7 +6,15 @@ import type { JobFormData } from './validation';
 import { logger } from '@mintenance/shared';
 
 /**
- * Geocode an address using Google Maps Geocoding API
+ * Geocode an address using Google Maps Geocoding API.
+ *
+ * 2026-05-28 audit-90 P1: always biased to the UK via
+ * `&region=uk&components=country:GB`. Without it, "65 Gloucester Road"
+ * resolved to London SW7 instead of the homeowner's Cheltenham
+ * property, putting the job ~143 km outside every local contractor's
+ * radius. Server-side `JobCreationService.resolveJobCoordinates`
+ * still overrides this for property-backed posts; the client geocode
+ * is a fast best-effort that just shouldn't make things worse.
  */
 async function geocodeAddress(
   address: string
@@ -22,7 +30,7 @@ async function geocodeAddress(
 
     const encodedAddress = encodeURIComponent(address);
     const response = await fetch(
-      `https://maps.googleapis.com/maps/api/geocode/json?address=${encodedAddress}&key=${apiKey}`
+      `https://maps.googleapis.com/maps/api/geocode/json?address=${encodedAddress}&region=uk&components=country:GB&key=${apiKey}`
     );
 
     if (!response.ok) {
@@ -82,6 +90,11 @@ interface SubmitJobOptions {
    *  /api/jobs which fires a direct "invited bid" notification on
    *  top of the normal nearby-broadcast. */
   preferredContractorId?: string;
+  /** 2026-05-22: extra keys merged into the `requirements` jsonb. Used
+   *  by no-photo flows (quick-create) to set
+   *  `contractor_before_photos: true` so the server's photo gate
+   *  accepts the post. */
+  extraRequirements?: Record<string, unknown>;
 }
 
 interface SubmitJobResult {
@@ -100,6 +113,7 @@ export async function submitJob({
   aiAssessment,
   preferredDate,
   preferredContractorId,
+  extraRequirements,
 }: SubmitJobOptions): Promise<SubmitJobResult> {
   // CRITICAL FIX: Fetch a fresh CSRF token right before submission to ensure cookie and header match
   // This ensures consistency with the image upload which also fetches a fresh token
@@ -135,35 +149,13 @@ export async function submitJob({
   // Geocode the location before submitting
   const coordinates = await geocodeAddress(formData.location?.trim() || '');
 
-  const budgetValue =
-    typeof formData.budget === 'number'
-      ? formData.budget
-      : parseFloat(String(formData.budget));
   const propertyIdValue = formData.property_id || null;
-
-  // Coerce optional number-ish strings to numbers for the schema.
-  // `budget_min` / `budget_max` are stored as strings in the form
-  // state (BudgetRangeSelector uses string inputs) but the canonical
-  // schema in @mintenance/api-contracts accepts `z.coerce.number()`,
-  // so we send them as numbers if parsable.
-  const toNum = (v: string | number | undefined): number | undefined => {
-    if (v === undefined || v === '' || v === null) return undefined;
-    const n = typeof v === 'number' ? v : parseFloat(String(v));
-    return Number.isFinite(n) && n > 0 ? n : undefined;
-  };
-  const budgetMin = toNum(formData.budget_min);
-  const budgetMax = toNum(formData.budget_max);
 
   const requestBody: {
     title: string;
     description: string;
     location: string;
     category: string;
-    budget: number;
-    budget_min?: number;
-    budget_max?: number;
-    show_budget_to_contractors?: boolean;
-    require_itemized_bids?: boolean;
     urgency?: 'low' | 'medium' | 'high' | 'emergency';
     requiredSkills: string[];
     property_id: string | null;
@@ -180,31 +172,12 @@ export async function submitJob({
     description: formData.description?.trim() || '',
     location: formData.location?.trim() || '',
     category: formData.category,
-    budget: budgetValue,
     requiredSkills: formData.requiredSkills || [],
     property_id: propertyIdValue,
     photoUrls,
   };
 
-  // Fields the form collects but the previous version of this helper
-  // silently dropped before sending to /api/jobs:
-  //   - urgency        (Budget step's "When do you need this done?"
-  //                     selector — quick-create relies on this too)
-  //   - budget_min/max (Budget step's range slider)
-  //   - show_budget_to_contractors / require_itemized_bids (Budget
-  //                     step toggles)
-  // The schema in @mintenance/api-contracts/jobs.ts accepts all of
-  // them; this helper just wasn't forwarding the values.
   if (formData.urgency) requestBody.urgency = formData.urgency;
-  if (budgetMin !== undefined) requestBody.budget_min = budgetMin;
-  if (budgetMax !== undefined) requestBody.budget_max = budgetMax;
-  if (formData.show_budget_to_contractors !== undefined) {
-    requestBody.show_budget_to_contractors =
-      formData.show_budget_to_contractors;
-  }
-  if (formData.require_itemized_bids !== undefined) {
-    requestBody.require_itemized_bids = formData.require_itemized_bids;
-  }
 
   // R6 #19 landlord / tenancy fields. We forward the booleans + email
   // intent; the server can look up payer_user_id from the email in a
@@ -246,7 +219,7 @@ export async function submitJob({
   // ran the AI assessment failed with a generic 400. Bug confirmed
   // 2026-05-12 user report (the "selectors don't work" / "post job"
   // appears stuck symptom).
-  const reqs: Record<string, unknown> = {};
+  const reqs: Record<string, unknown> = { ...(extraRequirements ?? {}) };
   if (aiAssessment) reqs.ai_assessment_metadata = aiAssessment;
   if (preferredDate) reqs.preferred_start_date = preferredDate;
   if (Object.keys(reqs).length > 0) {

@@ -202,6 +202,15 @@ export function SchedulingClient({ userId }: SchedulingClientProps) {
         return;
       }
 
+      // 2026-05-25 audit-43 P2: client-side guard mirroring the server
+      // .refine(endTime > startTime). The DB duration trigger computes
+      // EPOCH(end - start)/60 which goes negative if end <= start, and
+      // the appointment list then renders nonsense durations.
+      if (newAppt.endTime <= newAppt.startTime) {
+        toast.error('End time must be after start time');
+        return;
+      }
+
       const response = await fetch('/api/contractor/appointments', {
         method: 'POST',
         headers: {
@@ -244,6 +253,20 @@ export function SchedulingClient({ userId }: SchedulingClientProps) {
   };
 
   const handleSaveAvailability = async () => {
+    // 2026-05-25 audit-43 P2: every enabled day must have end > start.
+    // Without this, the server happily stores nonsense slots which the
+    // availability map / booking heuristics later misread as "available
+    // all day" or "never available". Skip-checks are limited to
+    // isAvailable=true rows so disabled days with their default
+    // 09:00/17:00 placeholders don't trip the guard.
+    const badSlot = availability.find(
+      (s) => s.isAvailable && s.endTime <= s.startTime
+    );
+    if (badSlot) {
+      toast.error(`${badSlot.day}: end time must be after start time`);
+      return;
+    }
+
     setSavingAvailability(true);
     try {
       const response = await fetch('/api/contractor/availability', {

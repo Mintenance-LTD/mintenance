@@ -74,6 +74,48 @@ export const styles = StyleSheet.create({
     color: me.ink,
     marginBottom: 14,
   },
+  // 2026-05-28 audit-89/T3: founding-member (early-access) card — tinted
+  // green panel mirroring the web FoundingMemberCard.
+  foundingCard: {
+    backgroundColor: me.okBg,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: me.okFg,
+    padding: 20,
+    marginBottom: 24,
+  },
+  foundingHeaderRow: {
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'flex-start',
+  },
+  foundingBody: {
+    flex: 1,
+  },
+  foundingTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: me.ink,
+    marginBottom: 8,
+  },
+  foundingText: {
+    fontSize: 14,
+    color: me.ink2,
+    lineHeight: 21,
+    marginBottom: 12,
+  },
+  foundingBullets: {
+    gap: 4,
+  },
+  foundingBullet: {
+    fontSize: 13,
+    color: me.ink2,
+    lineHeight: 19,
+  },
+  foundingBulletStrong: {
+    fontWeight: '700',
+    color: me.ink,
+  },
   planCard: {
     backgroundColor: me.surface,
     borderRadius: 16,

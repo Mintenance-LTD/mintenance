@@ -1,5 +1,7 @@
 import type { FeeCalculation } from '@mintenance/types';
 import { logger } from '@/lib/logger';
+import { PLATFORM_FEE_RATE_BY_TIER } from '@/lib/feature-access-config';
+import type { ContractorSubscriptionTier } from '@/lib/feature-access-types';
 
 export type PaymentType = 'deposit' | 'final' | 'milestone';
 
@@ -11,8 +13,17 @@ interface FeeCalculationOptions {
   paymentType?: PaymentType;
 
   /**
+   * Contractor's effective subscription tier. When provided, fee rate is
+   * looked up from PLATFORM_FEE_RATE_BY_TIER and overrides paymentType
+   * default. Use getContractorTierForFee() to resolve this with early-access
+   * bypass. 2026-05-22 Sprint 2.
+   */
+  contractorTier?: ContractorSubscriptionTier;
+
+  /**
    * Custom platform fee rate (as decimal, e.g., 0.05 for 5%)
-   * If not provided, uses default rate based on payment type
+   * Highest precedence — overrides both contractorTier and paymentType.
+   * Mostly used by tests.
    */
   platformFeeRate?: number;
 
@@ -23,8 +34,11 @@ interface FeeCalculationOptions {
   minPlatformFee?: number;
 
   /**
-   * Maximum platform fee amount
-   * @default 50.00
+   * Maximum platform fee amount. 2026-05-22: removed the £50 default cap as
+   * part of tiered-fee rollout — Pro/Business tiers' lower % is the cap.
+   * Callers can still pass an explicit value to constrain (e.g. for test
+   * fixtures or admin overrides).
+   * @default Infinity (no cap)
    */
   maxPlatformFee?: number;
 
@@ -88,13 +102,18 @@ export class FeeCalculationService {
    * Default fee configuration
    */
   private static readonly DEFAULT_CONFIG = {
+    // 2026-05-22 Sprint 2: the per-paymentType fallback is the Basic tier
+    // rate. The tier-aware lookup runs first; this only fires when caller
+    // doesn't pass contractorTier (legacy code paths, tests, admin imports).
     platformFeeRate: {
-      deposit: 0.05, // 5% for deposits
-      final: 0.05, // 5% for final payments
-      milestone: 0.05, // 5% for milestone payments
+      deposit: 0.12,
+      final: 0.12,
+      milestone: 0.12,
     },
     minPlatformFee: 0.5,
-    maxPlatformFee: 50.0,
+    // 2026-05-22: was 50.0 (£50 cap subsidised large jobs). Tier-aware fees
+    // make the cap unnecessary — Business pays 5%, that's the floor.
+    maxPlatformFee: Number.POSITIVE_INFINITY,
     stripeFeeRate: 0.015, // 1.5% (UK Stripe rate)
     stripeFixedFee: 0.2, // £0.20 (UK Stripe fixed fee)
     currency: 'gbp',
@@ -117,6 +136,7 @@ export class FeeCalculationService {
 
     const {
       paymentType = 'final',
+      contractorTier,
       platformFeeRate,
       minPlatformFee = this.DEFAULT_CONFIG.minPlatformFee,
       maxPlatformFee = this.DEFAULT_CONFIG.maxPlatformFee,
@@ -124,9 +144,14 @@ export class FeeCalculationService {
       stripeFixedFee = this.DEFAULT_CONFIG.stripeFixedFee,
     } = options;
 
-    // Determine platform fee rate
+    // Determine platform fee rate. Precedence: explicit override >
+    // tier-based lookup > paymentType-based default.
+    // 2026-05-22 Sprint 2 wired contractorTier as the standard path.
     const effectivePlatformFeeRate =
-      platformFeeRate ?? this.DEFAULT_CONFIG.platformFeeRate[paymentType];
+      platformFeeRate ??
+      (contractorTier !== undefined
+        ? PLATFORM_FEE_RATE_BY_TIER[contractorTier]
+        : this.DEFAULT_CONFIG.platformFeeRate[paymentType]);
 
     // Calculate platform fee with min/max constraints
     let platformFee = amount * effectivePlatformFeeRate;
@@ -275,6 +300,63 @@ export class FeeCalculationService {
   ): number {
     const breakdown = this.calculateFees(amount, options);
     return breakdown.contractorAmount;
+  }
+
+  /**
+   * Resolve a contractor's effective tier for fee calculation.
+   *
+   * Resolution order (matches lib/middleware/subscription-check.ts):
+   * 1. Early-access founding-member grant → 'enterprise' (5% rate)
+   * 2. Active contractor_subscriptions row → its plan_type
+   * 3. Fallback → 'basic' (12% rate)
+   *
+   * Caller is responsible for passing the result to calculateFees as
+   * `contractorTier`. Kept as a static method on the service so the two
+   * fee-calculation call sites (embedded-checkout, release-escrow) have
+   * one canonical place to fetch this from. 2026-05-22 Sprint 2.
+   */
+  static async resolveContractorTier(
+    contractorId: string
+  ): Promise<ContractorSubscriptionTier> {
+    try {
+      const { getEarlyAccessEntitlement } =
+        await import('@/lib/subscription/early-access');
+      const earlyAccess = await getEarlyAccessEntitlement(contractorId);
+      if (earlyAccess.eligible && earlyAccess.role === 'contractor') {
+        return 'enterprise';
+      }
+
+      const { serverSupabase } = await import('@/lib/api/supabaseServer');
+      const { data: subscription } = await serverSupabase
+        .from('contractor_subscriptions')
+        .select('plan_type, status')
+        .eq('contractor_id', contractorId)
+        .in('status', ['active', 'trial'])
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const planType = subscription?.plan_type;
+      if (
+        planType === 'free' ||
+        planType === 'basic' ||
+        planType === 'professional' ||
+        planType === 'enterprise'
+      ) {
+        return planType;
+      }
+      return 'basic';
+    } catch (err) {
+      // Fail safe — if tier lookup throws, charge the highest rate so the
+      // contractor isn't accidentally subsidised. Logged so we can detect
+      // the lookup chain breaking in prod.
+      logger.warn('Failed to resolve contractor tier; defaulting to basic', {
+        service: 'FeeCalculationService',
+        contractorId,
+        error: err instanceof Error ? err.message : String(err),
+      });
+      return 'basic';
+    }
   }
 
   /**

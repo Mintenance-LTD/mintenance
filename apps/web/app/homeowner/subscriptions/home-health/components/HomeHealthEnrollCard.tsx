@@ -6,17 +6,27 @@
  * Flow:
  *   1. Load existing subscription + homeowner's properties
  *   2. If no subscription, show property picker + "Enroll £9.99/mo" CTA
- *   3. POST /api/subscriptions/home-health → returns clientSecret
- *      (client-side Stripe Elements would confirm the PaymentIntent;
- *      for now we surface the Stripe-hosted payment link from Checkout
- *      as a follow-up — this form captures the subscription intent and
- *      tells the user what's next)
+ *   3. POST /api/subscriptions/home-health → returns the subscription's
+ *      first-invoice PaymentIntent client_secret. We mount Stripe
+ *      Elements inline and confirm the payment so the subscription
+ *      actually activates (no "enrolled without paying" state).
  *   4. If subscription exists, show active plan + cancel button
  */
 
 import React, { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import { CheckCircle, Calendar, XCircle, Sparkles } from 'lucide-react';
+import {
+  Elements,
+  PaymentElement,
+  useStripe,
+  useElements,
+} from '@stripe/react-stripe-js';
+import { Loader2, Lock } from 'lucide-react';
+import { logger } from '@mintenance/shared';
+import { getStripeClient } from '@/lib/stripe/elements/client';
+
+const HOME_HEALTH_MONTHLY = 9.99;
 
 interface Subscription {
   id: string;
@@ -39,9 +49,125 @@ const HOME_HEALTH_BENEFITS = [
   'Annual boiler service (Gas Safe)',
   'Smoke-alarm check (twice a year)',
   'Gutter clean & roof inspection (twice a year)',
-  'Verified contractors only',
+  'Local contractors reviewed by our team',
   'Cancel any time',
 ];
+
+const stripePromise = getStripeClient();
+
+function HomeHealthPaymentForm({
+  clientSecret,
+  onSuccess,
+  onCancel,
+}: {
+  clientSecret: string;
+  onSuccess: () => void;
+  onCancel: () => void;
+}) {
+  const appearance = { theme: 'stripe' as const };
+  if (!stripePromise) {
+    return (
+      <p className='text-sm text-rose-700'>
+        Payments are unavailable right now. Please try again later.
+      </p>
+    );
+  }
+  return (
+    <Elements stripe={stripePromise} options={{ clientSecret, appearance }}>
+      <HomeHealthConfirmForm
+        clientSecret={clientSecret}
+        onSuccess={onSuccess}
+        onCancel={onCancel}
+      />
+    </Elements>
+  );
+}
+
+function HomeHealthConfirmForm({
+  clientSecret,
+  onSuccess,
+  onCancel,
+}: {
+  clientSecret: string;
+  onSuccess: () => void;
+  onCancel: () => void;
+}) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [processing, setProcessing] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!stripe || !elements) return;
+    setProcessing(true);
+
+    const { error: submitError } = await elements.submit();
+    if (submitError) {
+      toast.error(submitError.message || 'Payment validation failed');
+      setProcessing(false);
+      return;
+    }
+
+    const { error, paymentIntent } = await stripe.confirmPayment({
+      elements,
+      clientSecret,
+      confirmParams: {
+        return_url: `${window.location.origin}/homeowner/subscriptions/home-health`,
+      },
+      redirect: 'if_required',
+    });
+
+    if (error) {
+      logger.error('Home Health confirmPayment error', {
+        error: error.message,
+        code: error.code,
+      });
+      toast.error(error.message || 'Payment failed. Please try again.');
+      setProcessing(false);
+      return;
+    }
+
+    if (paymentIntent?.status === 'succeeded') {
+      onSuccess();
+    } else {
+      toast.error('Payment was not completed. Please try again.');
+    }
+    setProcessing(false);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className='space-y-5'>
+      <PaymentElement options={{ layout: 'tabs' }} />
+      <div className='flex items-center gap-3 pt-2'>
+        <button
+          type='button'
+          onClick={onCancel}
+          disabled={processing}
+          className='px-5 py-3 text-sm font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-xl transition-colors disabled:opacity-50'
+        >
+          Cancel
+        </button>
+        <button
+          type='submit'
+          disabled={processing || !stripe || !elements}
+          className='flex-1 inline-flex items-center justify-center gap-2 px-6 py-3.5 text-sm font-semibold text-white bg-teal-600 hover:bg-teal-700 rounded-xl transition-colors disabled:opacity-60'
+        >
+          {processing ? (
+            <>
+              <Loader2 size={16} className='animate-spin' />
+              Processing…
+            </>
+          ) : (
+            <>
+              <Lock size={15} />
+              Pay £{HOME_HEALTH_MONTHLY.toFixed(2)} & activate
+            </>
+          )}
+        </button>
+      </div>
+    </form>
+  );
+}
 
 export function HomeHealthEnrollCard() {
   const [sub, setSub] = useState<Subscription | null>(null);
@@ -49,6 +175,7 @@ export function HomeHealthEnrollCard() {
   const [selectedProperty, setSelectedProperty] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [clientSecret, setClientSecret] = useState<string | null>(null);
 
   const load = async () => {
     try {
@@ -91,18 +218,26 @@ export function HomeHealthEnrollCard() {
       if (!res.ok) throw new Error(data.error || `status ${res.status}`);
 
       if (data.clientSecret) {
-        toast.success(
-          "Subscription created. We'll email you a payment link to complete setup."
-        );
+        // Mount Stripe Elements to collect payment + activate the
+        // subscription. Do NOT mark anything as done until confirmation.
+        setClientSecret(data.clientSecret as string);
       } else {
+        // No payment intent required (e.g. a free-trial price) — the
+        // subscription is already active.
         toast.success('Subscription created. Home Health is now active.');
+        await load();
       }
-      await load();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Enrollment failed');
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const onPaymentSuccess = async () => {
+    setClientSecret(null);
+    toast.success('Payment confirmed. Home Health is now active.');
+    await load();
   };
 
   const cancel = async () => {
@@ -134,6 +269,26 @@ export function HomeHealthEnrollCard() {
 
   if (loading) {
     return <p className='text-sm text-gray-500'>Loading…</p>;
+  }
+
+  if (clientSecret) {
+    return (
+      <div className='bg-white border border-gray-200 rounded-2xl p-6'>
+        <div className='flex items-center gap-2 text-teal-700 mb-4'>
+          <Lock className='w-5 h-5' />
+          <span className='font-semibold'>Complete your payment</span>
+        </div>
+        <p className='text-sm text-gray-600 mb-5'>
+          Confirm payment to activate Home Health (£
+          {HOME_HEALTH_MONTHLY.toFixed(2)}/mo). You can cancel any time.
+        </p>
+        <HomeHealthPaymentForm
+          clientSecret={clientSecret}
+          onSuccess={onPaymentSuccess}
+          onCancel={() => setClientSecret(null)}
+        />
+      </div>
+    );
   }
 
   if (sub && ['active', 'trial', 'past_due'].includes(sub.status)) {

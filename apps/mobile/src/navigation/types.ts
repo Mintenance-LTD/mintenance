@@ -38,12 +38,24 @@ export type RootTabParamList = {
 // ============================================================================
 
 export type AuthStackParamList = {
+  // Phase 3 (2026-05-22) — brand-gradient splash, the new
+  // initialRouteName of AuthNavigator (from mobile-auth.html
+  // screen 01). Three CTAs: "Create account" → Welcome,
+  // "Sign in" → Login, "Continue as guest" → coming-soon alert.
+  Splash: undefined;
   // Phase 2 Screen 0 (2026-04-20) — pre-signup welcome/role-tile
-  // landing. Replaces Login as the AuthStack initialRouteName.
-  // Users who only want to sign in tap the "Sign in" link at the
-  // bottom of this screen; users who select a role tile go to
-  // Register with that role pre-chosen.
+  // landing. Reached from Splash → "Create account". Users who
+  // only want to sign in tap the "Sign in" link at the bottom
+  // of this screen; users who select a role tile go to Register
+  // with that role pre-chosen.
   Welcome: undefined;
+  // Phase 3 (2026-05-22) — HomeownerSetup (screen 08) and
+  // WelcomeFirstJob (screen 10) are NOT registered as auth-stack
+  // routes. They live inside Main as fullscreen modals dispatched
+  // by `OnboardingGateStack` once AuthContext flips the user to
+  // signed-in. See `useHomeownerSetupGate` /
+  // `useWelcomeFirstJobGate` + the matching `*Modal.tsx` wrappers
+  // in `components/onboarding/`.
   // `email` is set when arriving from EmailVerificationPending after a
   // successful signUp, so the user doesn't re-type their address on the
   // sign-in step. We never forward the password: email-confirm is ON,
@@ -74,10 +86,11 @@ export type JobsStackParamList = {
   JobsList: undefined;
   JobDetails: { jobId: string };
   JobPosting: undefined;
-  // R3 deferred #7 — Silver-mode-friendly assisted wizard (3 steps,
-  // larger touch targets, fewer fields). Auto-routed when
-  // useSilverMode().silverMode is true.
-  PostJobWizard: undefined;
+  // 2026-05-23: PostJobWizard route retired. Silver-mode users no
+  // longer need a separate screen — JobPostingScreen now plumbs
+  // `silverMode` down to JobPostingFormFields (1.35× scale +
+  // ≥56pt touch targets). The 3-step wizard had drifted from the
+  // canonical validation + submit pipeline and was deleted.
   ExploreMap: undefined;
   BidSubmission: { jobId: string; existingBidId?: string };
   JobPayment: {
@@ -135,6 +148,11 @@ export type ProfileStackParamList = {
   // was the only thing that needed the V2 disambiguator.
   // ContractorPayouts: removed — Payouts in BusinessNavigator handles this
   HelpCenter: undefined;
+  // R3 #20 of RETENTION_ROADMAP_2026.md — 60-second how-to catalogue.
+  // The screen had been built but was orphaned (no navigator entry)
+  // until 2026-05-23. Reachable from HelpCenter "Video Tutorials"
+  // and any deep link wanting the in-app library.
+  LearningCards: undefined;
   InvoiceManagement: undefined;
   // CreateInvoice can be opened blank, in edit mode (`invoiceId`), or
   // pre-filled from time-tracking (`initialLineItems`). The two pre-fill
@@ -166,8 +184,11 @@ export type ProfileStackParamList = {
   ServiceAreas: undefined;
   QuoteBuilder: undefined;
   CreateQuote: { jobId?: string };
+  QuickQuote: { jobId?: string; clientName?: string; clientPhone?: string };
   ContractorCardEditor: undefined;
   ContractorVerification: undefined;
+  VerificationStatus: undefined;
+  MyPublicProfile: undefined;
   BusinessProfile: undefined;
   Properties: undefined;
   PropertyDetail: { propertyId: string };
@@ -244,11 +265,13 @@ export type ModalStackParamList = {
   ServiceRequest:
     | { propertyId?: string; priority?: 'low' | 'medium' | 'high' }
     | undefined;
+  EmergencyJob: { propertyId?: string } | undefined;
   // Tier 1 step 7 (2026-04-19 onboarding audit) — live-capture
   // selfie screen for new contractors. Front camera only, no
   // library picker. Takes no params.
   SelfieCapture: undefined;
   CreateQuote: { jobId?: string };
+  QuickQuote: { jobId?: string; clientName?: string; clientPhone?: string };
   MeetingSchedule: {
     contractorId: string;
     contractorName?: string;
@@ -270,7 +293,9 @@ export type ModalStackParamList = {
     /** Required when `source === 'bidReview'`. */
     bidId?: string;
   };
-  EnhancedHome: undefined;
+  // EnhancedHome removed 2026-05-22 (audit F2) — orphan stub screen
+  // with 100% hardcoded data. Re-add when the underlying view model
+  // is wired to real APIs.
   Notifications: undefined;
   AIAssessment: undefined;
   AISearch: undefined;

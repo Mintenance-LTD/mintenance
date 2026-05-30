@@ -45,6 +45,7 @@ import { DocumentsHero } from './documents/components/DocumentsHero';
 import { FilterChips } from './documents/components/FilterChips';
 import { DocumentCard } from './documents/components/DocumentCard';
 import { DocumentsEmptyState } from './documents/components/DocumentsEmptyState';
+import { ExpiringBanner } from './documents/components/ExpiringBanner';
 
 export const DocumentsScreen: React.FC = () => {
   const insets = useSafeAreaInsets();
@@ -146,6 +147,16 @@ export const DocumentsScreen: React.FC = () => {
               onBack={() => navigation.goBack()}
               onUpload={handlePickDocument}
             />
+            {isContractor && (
+              <ExpiringBanner
+                documents={documents}
+                onRenew={() =>
+                  (navigation as ReturnType<typeof Object>).navigate(
+                    'AddCertification'
+                  )
+                }
+              />
+            )}
             <FilterChips
               filter={filter}
               filterCounts={filterCounts}

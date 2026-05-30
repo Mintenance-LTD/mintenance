@@ -28,30 +28,65 @@ import { mobileApiClient } from '../../utils/mobileApiClient';
 import { useAuth } from '../../contexts/AuthContext';
 import { me } from '../../design-system/mint-editorial';
 
-const CONSEQUENCES = [
+// 2026-05-23: copy made honest against the actual server behaviour
+// after the role-aware delete_user_data migration.
+//   * Homeowner role → jobs they posted are deleted (with the bids
+//     placed on them); their properties are dropped.
+//   * Contractor role → jobs they were assigned to are unassigned and
+//     reverted to 'posted' so the homeowner can re-source. Bids the
+//     contractor authored are dropped.
+// The previous copy promised "contractors notified" — there is no
+// notification fan-out in the server path today; rewritten to not
+// over-promise.
+const HOMEOWNER_CONSEQUENCES = [
   {
     icon: 'person-remove-outline',
     text: 'Your profile and all personal data will be permanently removed',
   },
   {
     icon: 'briefcase-outline',
-    text: 'All active jobs will be cancelled and contractors notified',
+    text: 'Jobs you posted will be deleted, along with the bids on them',
+  },
+  {
+    icon: 'home-outline',
+    text: 'Properties you own on Mintenance will be removed',
   },
   {
     icon: 'chatbubble-outline',
     text: 'Message history will be deleted from your account',
   },
   {
-    icon: 'card-outline',
-    text: 'Payment methods and invoice records will be cleared',
+    icon: 'time-outline',
+    text: 'This action takes effect immediately and cannot be undone',
+  },
+] as const;
+
+const CONTRACTOR_CONSEQUENCES = [
+  {
+    icon: 'person-remove-outline',
+    text: 'Your profile and all personal data will be permanently removed',
   },
   {
-    icon: 'star-outline',
-    text: 'Reviews you have written and received will be anonymised',
+    icon: 'document-text-outline',
+    text: 'Bids you placed will be removed from every job',
+  },
+  // 2026-05-24 audit-41 P3: previously promised active jobs "revert to
+  // open so the homeowner can find another contractor", but the API
+  // route blocks deletion outright when there's an assigned or
+  // in-progress job (audit-25 ACTIVE_JOBS_CONTRACTOR blocker). Align
+  // the copy with the actual server behaviour so the contractor isn't
+  // told one outcome and then hit with the opposite as a blocker.
+  {
+    icon: 'briefcase-outline',
+    text: 'You must withdraw from any assigned or in-progress jobs first — the homeowner needs to find another contractor before your account can be removed',
+  },
+  {
+    icon: 'chatbubble-outline',
+    text: 'Message history will be deleted from your account',
   },
   {
     icon: 'time-outline',
-    text: 'This action is irreversible and cannot be undone',
+    text: 'This action takes effect immediately and cannot be undone',
   },
 ] as const;
 
@@ -59,6 +94,14 @@ export const DeleteAccountScreen: React.FC = () => {
   const navigation = useNavigation();
   const { user, signOut } = useAuth();
   const [confirmText, setConfirmText] = useState('');
+  // 2026-05-23: role-aware copy — see HOMEOWNER_CONSEQUENCES /
+  // CONTRACTOR_CONSEQUENCES above. Fall back to homeowner copy when
+  // the role isn't loaded yet (rare, but safe — the API path will
+  // refuse if profile is missing).
+  const CONSEQUENCES =
+    user?.role === 'contractor'
+      ? CONTRACTOR_CONSEQUENCES
+      : HOMEOWNER_CONSEQUENCES;
 
   const deleteMutation = useMutation({
     mutationFn: () =>
@@ -66,19 +109,66 @@ export const DeleteAccountScreen: React.FC = () => {
         confirmation: 'DELETE',
       }),
     onSuccess: () => {
+      // 2026-05-23: previously this said "scheduled for deletion" but
+      // the API hard-deletes immediately (data + auth.users in a single
+      // transaction). Aligned the copy to match reality.
       Alert.alert(
         'Account Deleted',
-        'Your account has been scheduled for deletion. You will be signed out.',
+        'Your account and all associated data have been permanently deleted. You will be signed out.',
         [{ text: 'OK', onPress: () => signOut?.() }]
       );
     },
-    onError: (err: unknown) =>
-      Alert.alert(
-        'Error',
+    onError: (err: unknown) => {
+      // 2026-05-23: the API returns 409 with `{ blockers: [...] }` when
+      // held escrow / active jobs prevent deletion. We want to surface
+      // each blocker's message instead of the generic
+      // "Failed to delete account".
+      //
+      // 2026-05-27 audit-75 P1: the previous reads
+      // (`err.response.data.blockers`, `err.blockers`) match Axios's
+      // shape, but the shared @mintenance/api-client wraps the
+      // response JSON into nested `details` levels (see ApiClient
+      // .parseErrorResponse → parseError). The 409 body lives two
+      // levels deep — `err.details.details.blockers`. We also keep
+      // the legacy paths as fallbacks so direct-fetch callers and
+      // any future shape changes don't silently regress to the
+      // generic error.
+      const fallback =
         err instanceof Error
           ? err.message
-          : 'Failed to delete account. Please contact support.'
-      ),
+          : 'Failed to delete account. Please contact support.';
+      type Blocker = { code: string; message: string };
+      const isBlockerArray = (v: unknown): v is Blocker[] =>
+        Array.isArray(v) &&
+        v.every(
+          (entry) =>
+            entry &&
+            typeof entry === 'object' &&
+            typeof (entry as { message?: unknown }).message === 'string'
+        );
+      const candidates: unknown[] = [];
+      const visit = (node: unknown, depth: number) => {
+        if (!node || typeof node !== 'object' || depth > 4) return;
+        const rec = node as Record<string, unknown>;
+        if (isBlockerArray(rec.blockers)) candidates.push(rec.blockers);
+        // walk likely envelope keys without descending into every
+        // primitive
+        ['details', 'data', 'response', 'body'].forEach((k) => {
+          if (rec[k]) visit(rec[k], depth + 1);
+        });
+      };
+      visit(err, 0);
+      const blockers = candidates.find(isBlockerArray) as Blocker[] | undefined;
+      if (blockers && blockers.length > 0) {
+        Alert.alert(
+          'Resolve these first',
+          blockers.map((b) => `• ${b.message}`).join('\n\n'),
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+      Alert.alert('Error', fallback);
+    },
   });
 
   const isConfirmed = confirmText.trim().toUpperCase() === 'DELETE';

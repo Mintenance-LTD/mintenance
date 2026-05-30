@@ -28,39 +28,12 @@ import {
   overallBadge,
 } from './complianceHelpers';
 
-// ── Types ────────────────────────────────────────────────────────────
-
-interface ComplianceCert {
-  id: string;
-  property_id: string;
-  cert_type: string;
-  certificate_number: string | null;
-  issued_date: string | null;
-  expiry_date: string | null;
-  issuer_name: string | null;
-  status: string;
-  document_url: string | null;
-  renewal_job_id: string | null;
-}
-
-interface PropertyWithCompliance {
-  id: string;
-  property_name: string;
-  address: string;
-  certMap: Record<string, ComplianceCert | null>;
-  additionalCerts: ComplianceCert[];
-  overallStatus: string;
-  certCount: number;
-}
-
-interface ComplianceSummary {
-  totalProperties: number;
-  totalCerts: number;
-  validCount: number;
-  expiringCount: number;
-  expiredCount: number;
-  missingCount: number;
-}
+// Types live in `./compliance-types.ts` (Slice 4 added room link).
+import type {
+  ComplianceCert,
+  PropertyWithCompliance,
+  ComplianceSummary,
+} from './compliance-types';
 
 interface Props {
   properties: PropertyWithCompliance[];
@@ -373,6 +346,11 @@ export function ComplianceDashboardClient({ properties, summary }: Props) {
                                   By: {cert.issuer_name}
                                 </p>
                               )}
+                              {cert.property_room ? (
+                                <p className='text-xs text-gray-500'>
+                                  Room: {cert.property_room.name}
+                                </p>
+                              ) : null}
                               <div className='flex gap-2 mt-3'>
                                 {cert.document_url && (
                                   <a
@@ -427,6 +405,11 @@ export function ComplianceDashboardClient({ properties, summary }: Props) {
                               <span className='capitalize'>
                                 {cert.cert_type.replace(/_/g, ' ')}
                               </span>
+                              {cert.property_room ? (
+                                <span className='text-xs text-gray-500'>
+                                  · {cert.property_room.name}
+                                </span>
+                              ) : null}
                             </div>
                             {cert.expiry_date && (
                               <span className='text-xs text-gray-500'>

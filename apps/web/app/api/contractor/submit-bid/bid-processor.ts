@@ -28,10 +28,15 @@ interface BidPayload {
 interface ExistingBid {
   id: string;
   quote_id?: string | null;
+  status?: string | null;
 }
 
 /**
- * Check if contractor already has a bid on this job
+ * Check if contractor already has a bid on this job.
+ *
+ * 2026-05-24 audit-29 P1: now returns the existing bid's `status` too
+ * so the caller can refuse to revive terminal bids. The unique
+ * constraint on (job_id, contractor_id) means at most one row exists.
  */
 async function checkExistingBid(
   jobId: string,
@@ -39,7 +44,7 @@ async function checkExistingBid(
 ): Promise<ExistingBid | null> {
   const { data: existingBid } = await serverSupabase
     .from('bids')
-    .select('id, quote_id')
+    .select('id, quote_id, status')
     .eq('job_id', jobId)
     .eq('contractor_id', contractorId)
     .single();
@@ -145,14 +150,27 @@ async function handleRaceCondition(
   contractorId: string,
   payload: BidPayload
 ): Promise<{ bid: unknown; error: unknown }> {
+  // 2026-05-24 audit-29 P1: mirror the same state-machine gate as
+  // processBid's primary path. Reaching here means an INSERT just
+  // collided with the unique (job_id, contractor_id) constraint —
+  // whichever bid is already there might be terminal, and silently
+  // promoting it back to pending would bypass the unreject window.
   const { data: raceConditionBid } = await serverSupabase
     .from('bids')
-    .select('id')
+    .select('id, status')
     .eq('job_id', jobId)
     .eq('contractor_id', contractorId)
     .single();
 
   if (raceConditionBid) {
+    if (raceConditionBid.status && raceConditionBid.status !== 'pending') {
+      return {
+        bid: null,
+        error: new Error(
+          `Cannot resubmit a bid that is in "${raceConditionBid.status}" status.`
+        ),
+      };
+    }
     return updateBid(raceConditionBid.id, payload);
   }
 
@@ -170,6 +188,34 @@ export async function processBid(
   const existingBid = await checkExistingBid(validatedData.jobId, contractorId);
 
   if (existingBid) {
+    // 2026-05-24 audit-29 P1: lock down accepted + rejected — those
+    // are homeowner-driven terminal states and must only be revived
+    // via the explicit /unreject 60s window (rejected) or never
+    // (accepted; the job has moved past bidding).
+    //
+    // 2026-05-27 audit-73 P1: withdrawn is a CONTRACTOR-driven state
+    // — the contractor chose to pull their bid, and the mobile CTA
+    // (JobDetailsCTA.tsx:120) surfaces a "Submit a New Bid" affordance
+    // precisely so they can reverse that decision. Previously this
+    // branch hard-threw "You previously withdrew this bid. Contact the
+    // homeowner if you want to bid again." — a confusing dead-end
+    // contradicting the CTA. Treat withdrawn the same as pending here
+    // so the update path below re-stamps the row back to pending with
+    // the new payload (handled by updateBid → status: 'pending').
+    if (
+      existingBid.status &&
+      existingBid.status !== 'pending' &&
+      existingBid.status !== 'withdrawn'
+    ) {
+      const message =
+        existingBid.status === 'accepted'
+          ? 'This bid was already accepted. You cannot resubmit it.'
+          : existingBid.status === 'rejected'
+            ? 'This bid was rejected by the homeowner. Ask them to undo within 60 seconds of the rejection or message them about a new bid.'
+            : `Cannot resubmit a bid that is in "${existingBid.status}" status.`;
+      throw new Error(message);
+    }
+
     // Update existing bid
     const { bid, error: updateError } = await updateBid(
       existingBid.id,

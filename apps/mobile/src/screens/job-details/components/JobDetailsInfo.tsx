@@ -14,6 +14,8 @@ interface JobDetailsInfoProps {
   job: Job;
 }
 
+// 2026-05-22: budget row removed. Contractors quote their own price on
+// each bid — no homeowner-set budget is displayed.
 const INFO_ITEMS = [
   {
     key: 'location',
@@ -21,13 +23,6 @@ const INFO_ITEMS = [
     icon: 'location-outline' as const,
     color: me.errFg,
     bg: me.errBg,
-  },
-  {
-    key: 'budget',
-    label: 'Budget Range',
-    icon: 'cash-outline' as const,
-    color: me.brand,
-    bg: me.brandSoft,
   },
   {
     key: 'timeline',
@@ -46,13 +41,6 @@ const INFO_ITEMS = [
 ];
 
 export const JobDetailsInfo: React.FC<JobDetailsInfoProps> = ({ job }) => {
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-GB', {
-      style: 'currency',
-      currency: 'GBP',
-    }).format(amount);
-  };
-
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-GB', {
       year: 'numeric',
@@ -66,10 +54,6 @@ export const JobDetailsInfo: React.FC<JobDetailsInfoProps> = ({ job }) => {
       case 'location':
         return typeof job.location === 'string'
           ? job.location
-          : 'Not specified';
-      case 'budget':
-        return job.budget_min && job.budget_max
-          ? `${formatCurrency(job.budget_min)} - ${formatCurrency(job.budget_max)}`
           : 'Not specified';
       case 'timeline':
         return job.timeline || 'Flexible';

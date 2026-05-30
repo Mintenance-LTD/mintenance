@@ -38,6 +38,24 @@ const bodySchema = z.object({
   attachments: z.array(z.string().trim().min(1)).optional(),
 });
 
+// Query schema for the GET handler — keyset pagination on (created_at, id)
+// so long-running job threads don't blow up the response payload.
+// `cursor` is an ISO datetime: pages older than this timestamp. The sibling
+// `/threads/[id]/route.ts` GET already implements the same cursor shape;
+// keep them aligned so React Query's useInfiniteQuery treats both as the
+// same paginated surface. See lib/hooks/queries/useMessages.ts.
+const PAGE_SIZE_DEFAULT = 50;
+const PAGE_SIZE_MAX = 100;
+const messagesQuerySchema = z.object({
+  limit: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(PAGE_SIZE_MAX)
+    .default(PAGE_SIZE_DEFAULT),
+  cursor: z.string().datetime().optional(),
+});
+
 export const GET = withApiHandler(
   { csrf: false, rateLimit: { maxRequests: 30 } },
   async (request: NextRequest, { user, params }) => {
@@ -58,15 +76,44 @@ export const GET = withApiHandler(
       throw new NotFoundError('Thread not found or access denied');
     }
 
-    // Fetch messages by job_id (actual DB schema — messages table has job_id,
-    // sender_id, receiver_id, content, read; NOT thread_id/metadata/read_by)
-    const { data: messageData, error: messagesError } = await serverSupabase
+    // 2026-05-24 audit (HIGH): the previous implementation pulled every
+    // message for the job with no LIMIT and ORDER BY created_at ASC. On a
+    // long-running job thread (hundreds or thousands of messages) that
+    // blew up the response payload + Supabase rowcount budget and made
+    // the endpoint a DoS vector for any participant. Switched to keyset
+    // pagination on (created_at DESC, id DESC) with a default page size
+    // of 50. Default page returns the most recent messages; client paginates
+    // back via ?cursor=<oldest_created_at_iso>. The response is reversed to
+    // ASC so existing consumers (apps/web/app/messages/page.tsx,
+    // lib/hooks/queries/useMessages.ts) render chronologically without
+    // additional sorting. nextCursor is set only when more rows exist.
+    const url = new URL(request.url);
+    const parsedQuery = messagesQuerySchema.safeParse({
+      limit: url.searchParams.get('limit') ?? undefined,
+      cursor: url.searchParams.get('cursor') ?? undefined,
+    });
+
+    if (!parsedQuery.success) {
+      throw new BadRequestError('Invalid pagination parameters');
+    }
+
+    const { limit, cursor } = parsedQuery.data;
+
+    let messageQuery = serverSupabase
       .from('messages')
       .select(
         'id, job_id, sender_id, receiver_id, content, message_type, attachment_url, read, created_at'
       )
       .eq('job_id', jobId)
-      .order('created_at', { ascending: true });
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
+      .limit(limit + 1);
+
+    if (cursor) {
+      messageQuery = messageQuery.lt('created_at', cursor);
+    }
+
+    const { data: messageData, error: messagesError } = await messageQuery;
 
     if (messagesError) {
       logger.error('Failed to load thread messages', messagesError, {
@@ -77,27 +124,43 @@ export const GET = withApiHandler(
       throw messagesError;
     }
 
-    const messages = (messageData ?? []).map((row: ActualMessageRow) =>
-      mapActualMessageRow(row, jobId, user.id)
-    );
+    const rows = (messageData ?? []) as ActualMessageRow[];
+    const hasMore = rows.length > limit;
+    const limitedRows = hasMore ? rows.slice(0, limit) : rows;
+    const nextCursor = hasMore
+      ? limitedRows[limitedRows.length - 1]?.created_at
+      : undefined;
 
-    // Mark messages addressed to this user as read (fire and forget)
-    Promise.resolve(
-      serverSupabase
-        .from('messages')
-        .update({ read: true })
-        .eq('job_id', jobId)
-        .eq('receiver_id', user.id)
-        .eq('read', false)
-    ).catch((err: unknown) => {
-      logger.error('Failed to mark messages as read', err, {
-        service: 'messages',
-        jobId,
-        userId: user.id,
+    // Reverse to ASC so the response matches the legacy contract and
+    // both existing consumers can render top-to-bottom without sorting.
+    const messages = limitedRows
+      .slice()
+      .reverse()
+      .map((row: ActualMessageRow) => mapActualMessageRow(row, jobId, user.id));
+
+    // Mark messages addressed to this user as read (fire and forget).
+    // Only mark the page we returned — otherwise loading an older page
+    // would race-mark newer unseen messages as read.
+    if (limitedRows.length > 0) {
+      const returnedIds = limitedRows.map((row) => row.id);
+      Promise.resolve(
+        serverSupabase
+          .from('messages')
+          .update({ read: true })
+          .eq('job_id', jobId)
+          .eq('receiver_id', user.id)
+          .eq('read', false)
+          .in('id', returnedIds)
+      ).catch((err: unknown) => {
+        logger.error('Failed to mark messages as read', err, {
+          service: 'messages',
+          jobId,
+          userId: user.id,
+        });
       });
-    });
+    }
 
-    return NextResponse.json({ messages });
+    return NextResponse.json({ messages, nextCursor });
   }
 );
 
@@ -330,11 +393,13 @@ export const POST = withApiHandler(
         // the in-app row, and the user's preference/quiet-hours settings
         // are honoured. Direct `.from('notifications').insert(...)` here
         // silently skipped push for every message for months.
+        // 2026-05-21 Mint Editorial voice — sender as title, message
+        // preview as body (matches WhatsApp/iMessage feel).
         await NotificationService.createNotification({
           userId: receiverId,
           type: 'message_received',
-          title: 'New Message',
-          message: `${senderName}: ${messagePreview}${messageText.length > 80 ? '...' : ''}`,
+          title: senderName,
+          message: `${messagePreview}${messageText.length > 80 ? '…' : ''}`,
           actionUrl: `/messages?jobId=${jobId}`,
           metadata: { jobId, senderId: user.id },
         });
@@ -364,25 +429,15 @@ export const POST = withApiHandler(
             jobId,
           });
         }
-        // Send push notification to the receiver's device
-        try {
-          const { NotificationService: PushService } =
-            await import('@/lib/services/notifications/NotificationService');
-          await PushService.createNotification({
-            userId: receiverId,
-            title: `${senderName}`,
-            message: messagePreview + (messageText.length > 80 ? '...' : ''),
-            type: 'message_received',
-            actionUrl: `/messages?jobId=${jobId}`,
-          });
-        } catch (pushError) {
-          logger.error('Message POST push notification error', pushError, {
-            service: 'messages',
-            receiverId,
-            jobId,
-          });
-          // Push failure should not block message send
-        }
+        // 2026-05-23 audit-16 P2: a second NotificationService import +
+        // createNotification call lived here. The earlier call above
+        // (with metadata: { jobId, senderId }) already does the in-app
+        // insert AND the push via NotificationService.createNotification
+        // — the wrapper fans out to both channels. This block produced
+        // an exact duplicate row + a duplicate push, AND dropped the
+        // jobId/senderId metadata so the second push couldn't deep-link.
+        // Removed; the upstream call already covers in-app + push +
+        // honours quiet-hours / preferences.
       } catch (notificationError) {
         logger.error(
           'Message POST notification creation error',

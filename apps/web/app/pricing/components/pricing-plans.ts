@@ -28,16 +28,17 @@ export function getHomeownerPlans(isAnnual: boolean): PricingPlan[] {
         'Post unlimited jobs',
         'Manage 1 property',
         'AI-powered pro matching',
-        'View verified pro profiles',
+        'View contractor profiles',
         'Standard messaging',
         'Payment protection',
         'Review system',
         'AI building assessment',
       ],
       notIncluded: [
-        'Compliance dashboard',
+        'Compliance dashboard & expiry reminders',
         'Tenant reporting links',
-        'Recurring maintenance',
+        'Recurring maintenance scheduling',
+        'Multiple properties',
       ],
       cta: 'Get Started Free',
       color: 'gray',
@@ -89,6 +90,23 @@ export function getHomeownerPlans(isAnnual: boolean): PricingPlan[] {
   ];
 }
 
+/**
+ * 2026-05-22 — Sprint 1 of feat/tiered-pricing.
+ *
+ * Aligned with code reality:
+ * - Fees changed 15/10/7 → 12/8/5 (single source of truth in
+ *   feature-access-config.ts PLATFORM_FEE_RATE_BY_TIER). Sprint 2 wires
+ *   FeeCalculationService to read this so the % advertised here is the %
+ *   actually charged.
+ * - Basic gains a 3-active-jobs cap. Enforced at bid-accept time in Sprint 2.
+ * - Pro bid limit corrected: was 50 in code but advertised as unlimited;
+ *   config bumped to 'unlimited' in feature-access-contractor.ts.
+ * - Dropped from landing (no code consumer, no roadmap to build):
+ *   dedicated account manager, custom branding, white-label invoicing,
+ *   advanced automation tools, social feed.
+ * - "Lead recommendations" is the consolidated name for the marketing/lead
+ *   features we'll actually build (daily push+email digest, Sprint 3).
+ */
 export function getContractorPlans(isAnnual: boolean): PricingPlan[] {
   return [
     {
@@ -101,15 +119,16 @@ export function getContractorPlans(isAnnual: boolean): PricingPlan[] {
       features: [
         'Create business profile',
         'Bid on 10 jobs per month',
-        '15% platform fee',
+        'Work on up to 3 jobs at a time',
+        '12% platform fee',
         'Basic messaging',
         'Review collection',
         'Payment processing',
       ],
       notIncluded: [
-        'Featured listing',
+        'Unlimited bids & active jobs',
+        'Featured in search results',
         'Advanced analytics',
-        'Priority placement',
       ],
       cta: 'Start Free',
       color: 'gray',
@@ -124,12 +143,12 @@ export function getContractorPlans(isAnnual: boolean): PricingPlan[] {
       features: [
         'Everything in Basic',
         'Unlimited job bids',
-        '10% platform fee (33% savings)',
+        'Unlimited active jobs',
+        '8% platform fee (33% savings)',
         'Featured in search results',
         'Advanced analytics dashboard',
-        'Priority support',
-        'Lead recommendations',
-        'Custom quote templates',
+        'Priority support (24h response)',
+        'Lead recommendations (daily digest)',
       ],
       popular: true,
       cta: 'Go Professional',
@@ -144,14 +163,12 @@ export function getContractorPlans(isAnnual: boolean): PricingPlan[] {
       description: 'For established businesses and teams',
       features: [
         'Everything in Professional',
-        '7% platform fee (53% savings)',
+        '5% platform fee (58% savings vs Basic)',
         'Top placement in search',
         'Team member accounts (up to 10)',
-        'Dedicated account manager',
         'API access',
-        'Custom branding',
-        'White-label invoicing',
-        'Advanced automation tools',
+        'Phone support',
+        'Custom reports & data exports',
       ],
       cta: 'Contact Sales',
       color: 'purple',

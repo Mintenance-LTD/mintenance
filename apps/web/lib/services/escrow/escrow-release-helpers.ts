@@ -3,10 +3,12 @@
  * main orchestrator file under the 500-line pre-commit limit.
  */
 
-import Stripe from 'stripe';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
-import { env } from '@/lib/env';
+// Route through the shared lazy proxy so the API version stays pinned in one
+// place (lib/stripe.ts). This is the escrow transfer/payout path — previously
+// it ran on a hardcoded 13-month-old apiVersion ('2024-04-10').
+import { stripe } from '@/lib/stripe';
 
 interface EligibleEscrowLike {
   id: string;
@@ -19,10 +21,6 @@ interface JobLike {
   contractor_id: string;
   title: string;
 }
-
-const stripe = new Stripe(env.STRIPE_SECRET_KEY, {
-  apiVersion: '2024-04-10',
-});
 
 /**
  * Retrieve the charge ID from a payment intent for fee tracking.

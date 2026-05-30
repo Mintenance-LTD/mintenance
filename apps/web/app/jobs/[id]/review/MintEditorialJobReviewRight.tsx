@@ -213,7 +213,7 @@ export function MintEditorialJobReviewRight({
               ) : null}
               {contractor?.total_jobs_completed != null
                 ? `${contractor.total_jobs_completed} jobs`
-                : 'Verified pro'}
+                : 'Local pro'}
             </div>
           </div>
           <Link href='/jobs/create' className='btn btn-secondary btn-sm'>

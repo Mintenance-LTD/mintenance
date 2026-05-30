@@ -26,6 +26,21 @@ interface RateLimitConfig {
   windowMs: number;
   maxRequests: number;
   identifier: string;
+  /**
+   * Audit 2026-05-24 HIGH: opt-in fail-closed when the limiter has fallen
+   * back to in-memory in production. The in-memory map only enforces
+   * per-instance limits — on a multi-region Vercel deployment the same
+   * IP can hit N instances and execute N × limit requests. For credential
+   * primitives, payment endpoints, and admin mutations that is not
+   * acceptable: the cost of a false rejection (a 60s 429 to a real user)
+   * is much lower than the cost of allowing a credential-stuffing /
+   * payment-replay / admin-spray attack through.
+   *
+   * Routes that don't set this field keep the historical behaviour
+   * (degraded in-memory limit) so this change is non-breaking. Flip it
+   * on for auth/payment/admin routes as they migrate.
+   */
+  criticality?: 'auth' | 'payment' | 'admin';
 }
 
 export class RedisRateLimiter {
@@ -135,6 +150,31 @@ export class RedisRateLimiter {
     // P1 Security: When Redis is down in production, use strict limits
     // In-memory Map won't sync across Vercel Edge instances
     const isProduction = process.env.NODE_ENV === 'production';
+
+    // Audit 2026-05-24 HIGH: fail-closed for criticality-tagged configs
+    // in production. The in-memory fallback enforces per-instance limits
+    // only — for auth/payment/admin classes that is structurally unsafe
+    // because the same source IP can replay against every region/instance.
+    // We reject these requests outright with a Retry-After so the caller
+    // backs off; logs note the fact so on-call knows Redis is degraded.
+    if (isProduction && config.criticality) {
+      logger.error(
+        '[rate-limiter] FAIL-CLOSED — Redis unavailable in production for critical class',
+        undefined,
+        {
+          service: 'rate_limiter',
+          identifier: config.identifier,
+          environment: 'production',
+          criticality: config.criticality,
+        }
+      );
+      return {
+        allowed: false,
+        remaining: 0,
+        resetTime: Date.now() + config.windowMs,
+        retryAfter: Math.ceil(config.windowMs / 1000),
+      };
+    }
 
     if (isProduction) {
       logger.warn(

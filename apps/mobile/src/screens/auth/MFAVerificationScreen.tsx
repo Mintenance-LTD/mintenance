@@ -152,19 +152,24 @@ export default function MFAVerificationScreen() {
         );
       }
 
-      // Navigate to appropriate screen.
-      // 2026-04-30 audit P1: `redirectScreen` is a runtime string that
-      // could refer to ANY navigator (auth/main/profile), so the cast
-      // to `never` is intentional and unavoidable here. AuthContext
-      // controls which navigator is mounted post-auth so this just
-      // transitions to whatever the AuthStack root expects next.
+      // 2026-05-22 audit C6: the default branch used to call
+      // `navigation.navigate('Dashboard')` or `'ContractorDashboard'`,
+      // but neither route name is registered in any navigator — the
+      // call fired a "RESET action not handled" warning and left the
+      // user on the MFA screen. AuthContext already swaps the root
+      // navigator from AuthNavigator to the main tab navigator the
+      // moment MFA succeeds, so a manual navigate is unnecessary in
+      // the default case. Only honour an explicit `redirectScreen`
+      // route param (used by deep-links that need to land on a
+      // specific screen after step-up auth).
       if (redirectScreen) {
+        // Runtime string targeting any navigator — `as never` is the
+        // intentional escape hatch for cross-navigator navigation.
         navigation.navigate(redirectScreen as never);
-      } else {
-        const defaultScreen =
-          data.user.role === 'contractor' ? 'ContractorDashboard' : 'Dashboard';
-        navigation.navigate(defaultScreen as never);
       }
+      // Else: do nothing. The AuthContext state flip (post-MFA) will
+      // unmount AuthNavigator and mount the main app, landing the
+      // user on the default tab.
     } catch (error) {
       const message =
         error instanceof Error ? error.message : 'Verification failed';

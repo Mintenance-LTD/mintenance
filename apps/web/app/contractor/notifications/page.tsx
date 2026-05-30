@@ -19,9 +19,15 @@ import {
   getNotificationColor,
 } from './notification-icons';
 import { safeActionUrl } from '@/lib/notifications/safe-action-url';
+import { normalizeNotificationType } from '@/lib/notifications/normalize-type';
 import { logger } from '@mintenance/shared';
 import { MintEditorialNotificationsView } from './components/MintEditorialNotificationsView';
 import type { Notification, FilterType } from './notification-types';
+import {
+  NotificationsInboxView,
+  type InboxFilter,
+  type InboxNotification,
+} from '@/components/notifications/NotificationsInboxView';
 
 export default function ContractorNotificationsPage2025() {
   const router = useRouter();
@@ -280,46 +286,30 @@ export default function ContractorNotificationsPage2025() {
       ? `${user.first_name} ${user.last_name}`.trim()
       : user.email;
 
-  // Filter notifications
+  // Filter notifications. DB stores full event names (`bid_received`,
+  // `message_received`, `contract_created`, …) so we normalise to the
+  // canonical 5-bucket union before comparing — otherwise the category
+  // tabs all count 0. (jobs = job + bid family; matches the homeowner
+  // page + canonical NotificationsInboxView.)
   const filteredNotifications = notifications.filter((n) => {
     if (filter === 'unread') return !n.is_read;
-    if (filter === 'jobs')
-      return (
-        n.type === 'job' ||
-        n.type === 'bid' ||
-        n.type === 'bid_received' ||
-        n.type === 'bid_accepted' ||
-        n.type === 'job_update' ||
-        n.type === 'job_viewed' ||
-        n.type === 'job_nearby' ||
-        n.type === 'quote_viewed' ||
-        n.type === 'quote_accepted' ||
-        n.type === 'project_reminder'
-      );
-    if (filter === 'messages') return n.type === 'message';
-    if (filter === 'payments') return n.type === 'payment';
+    const bucket = normalizeNotificationType(n.type);
+    if (filter === 'jobs') return bucket === 'job' || bucket === 'bid';
+    if (filter === 'messages') return bucket === 'message';
+    if (filter === 'payments') return bucket === 'payment';
     return true;
   });
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
-  const jobsCount = notifications.filter(
-    (n) =>
-      n.type === 'job' ||
-      n.type === 'bid' ||
-      n.type === 'bid_received' ||
-      n.type === 'bid_accepted' ||
-      n.type === 'job_update' ||
-      n.type === 'job_viewed' ||
-      n.type === 'job_nearby' ||
-      n.type === 'quote_viewed' ||
-      n.type === 'quote_accepted' ||
-      n.type === 'project_reminder'
-  ).length;
+  const jobsCount = notifications.filter((n) => {
+    const bucket = normalizeNotificationType(n.type);
+    return bucket === 'job' || bucket === 'bid';
+  }).length;
   const messagesCount = notifications.filter(
-    (n) => n.type === 'message'
+    (n) => normalizeNotificationType(n.type) === 'message'
   ).length;
   const paymentsCount = notifications.filter(
-    (n) => n.type === 'payment'
+    (n) => normalizeNotificationType(n.type) === 'payment'
   ).length;
 
   const formatTimeAgo = (dateString: string) => {
@@ -338,35 +328,49 @@ export default function ContractorNotificationsPage2025() {
   };
 
   if (isMintEditorial) {
-    const filterTabs = [
-      { label: 'All', value: 'all' as FilterType, count: notifications.length },
-      { label: 'Unread', value: 'unread' as FilterType, count: unreadCount },
-      { label: 'Jobs', value: 'jobs' as FilterType, count: jobsCount },
-      {
-        label: 'Messages',
-        value: 'messages' as FilterType,
-        count: messagesCount,
-      },
-      {
-        label: 'Payments',
-        value: 'payments' as FilterType,
-        count: paymentsCount,
-      },
-    ];
+    // 2026-05-21: contractor inbox now shares the canonical
+    // NotificationsInboxView with the homeowner inbox so labels,
+    // copy, icons + behaviour can't drift between the two roles.
+    // Filter mapping: "money" maps onto the legacy "payments" so
+    // the server-side type taxonomy (job/bid/message/payment/system)
+    // stays untouched.
+    const legacyToInbox = (f: FilterType): InboxFilter => {
+      switch (f) {
+        case 'jobs':
+          return 'jobs';
+        case 'messages':
+          return 'messages';
+        case 'payments':
+          return 'money';
+        case 'unread':
+        case 'all':
+        default:
+          return 'all';
+      }
+    };
+    const inboxToLegacy = (f: InboxFilter): FilterType => {
+      switch (f) {
+        case 'jobs':
+          return 'jobs';
+        case 'messages':
+          return 'messages';
+        case 'money':
+          return 'payments';
+        case 'all':
+        default:
+          return 'all';
+      }
+    };
     return (
-      <MintEditorialNotificationsView
-        notifications={notifications}
-        filteredNotifications={filteredNotifications}
-        loadingNotifications={loadingNotifications}
-        unreadCount={unreadCount}
-        filterTabs={filterTabs}
-        filter={filter}
-        onFilterChange={setFilter}
-        onMarkAllAsRead={handleMarkAllAsRead}
-        onClearAll={handleClearAll}
-        onNotificationClick={handleNotificationClick}
-        onDeleteNotification={handleDeleteNotification}
-        formatTimeAgo={formatTimeAgo}
+      <NotificationsInboxView
+        notifications={notifications as InboxNotification[]}
+        loading={loadingNotifications}
+        filter={legacyToInbox(filter)}
+        onFilterChange={(f) => setFilter(inboxToLegacy(f))}
+        preferencesHref='/contractor/settings'
+        onMarkAllRead={handleMarkAllAsRead}
+        onNotificationClick={(n) => handleNotificationClick(n as Notification)}
+        onDelete={handleDeleteNotification}
       />
     );
   }

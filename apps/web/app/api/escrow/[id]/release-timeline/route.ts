@@ -7,10 +7,18 @@ import { EscrowStatusService } from '@/lib/services/escrow/EscrowStatusService';
  * Get release timeline and blockers
  */
 export const GET = withApiHandler(
-  { rateLimit: { maxRequests: 20 } },
+  {
+    roles: ['homeowner', 'contractor', 'admin'],
+    rateLimit: { maxRequests: 20 },
+  },
   async (_request, { user, params }) => {
-    const blockingReasons = await EscrowStatusService.getBlockingReasons(params.id);
-    const estimatedReleaseDate = await EscrowStatusService.getEstimatedReleaseDate(params.id);
+    await EscrowStatusService.assertCanView(params.id, user.id, user.role);
+
+    const blockingReasons = await EscrowStatusService.getBlockingReasons(
+      params.id
+    );
+    const estimatedReleaseDate =
+      await EscrowStatusService.getEstimatedReleaseDate(params.id);
 
     return NextResponse.json({
       success: true,

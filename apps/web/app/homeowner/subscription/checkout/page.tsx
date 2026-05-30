@@ -1,6 +1,6 @@
 import { getCurrentUserFromCookies } from '@/lib/auth';
 import { redirect } from 'next/navigation';
-import { SubscriptionCheckoutClient } from '@/app/contractor/subscription/checkout/components/SubscriptionCheckoutClient';
+import { SubscriptionCheckoutClient } from '@/components/checkout/SubscriptionCheckoutClient';
 
 export const metadata = {
   title: 'Complete Homeowner Premium | Mintenance',
@@ -10,7 +10,11 @@ export const metadata = {
 export default async function HomeownerSubscriptionCheckoutPage({
   searchParams,
 }: {
-  searchParams: Promise<{ clientSecret?: string; subscriptionId?: string; planType?: string }>;
+  searchParams: Promise<{
+    clientSecret?: string;
+    subscriptionId?: string;
+    planType?: string;
+  }>;
 }) {
   const { clientSecret, subscriptionId, planType } = await searchParams;
   const user = await getCurrentUserFromCookies();
@@ -29,7 +33,7 @@ export default async function HomeownerSubscriptionCheckoutPage({
       subscriptionId={subscriptionId}
       planType={planType || 'premium'}
       returnUrl={`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/homeowner/subscription?success=true`}
-      successRedirectPath="/homeowner/subscription?success=true"
+      successRedirectPath='/homeowner/subscription?success=true'
     />
   );
 }

@@ -5,7 +5,7 @@ import { HomeownerPageWrapper } from '@/app/dashboard/components/HomeownerPageWr
 export const metadata: Metadata = {
   title: 'Search | Mintenance',
   description:
-    'Search for maintenance jobs and verified contractors with advanced filters.',
+    'Search for maintenance jobs and local contractors with advanced filters.',
 };
 
 /**

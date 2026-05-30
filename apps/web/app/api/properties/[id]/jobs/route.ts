@@ -2,28 +2,33 @@ import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { NotFoundError } from '@/lib/errors/api-error';
+import { PropertyTeamService } from '@/lib/services/property-team/PropertyTeamService';
 
 /**
  * GET /api/properties/[id]/jobs
  * List all jobs associated with a property.
+ *
+ * 2026-05-26 audit-57 P1: previously this route gated on
+ * `property.owner_id === user.id` (+ platform admin). The sibling
+ * /api/properties/[id] route already honours PropertyTeamService.authorize
+ * — managers/viewers who can see the property got `[]` back from this
+ * route, so PropertyHealthScore / SpendingAnalytics / Job History on
+ * shared properties looked silently empty even when jobs existed. Mirror
+ * the authorize('view') gate the detail route uses so the two surfaces
+ * agree on visibility.
  */
 export const GET = withApiHandler(
   { csrf: false, rateLimit: { maxRequests: 30 } },
   async (_request, { user, params }) => {
     const propertyId = params.id as string;
 
-    // Verify property exists and belongs to the requesting user
-    const { data: property, error: propError } = await serverSupabase
-      .from('properties')
-      .select('id, owner_id')
-      .eq('id', propertyId)
-      .maybeSingle();
+    const { authorized } = await PropertyTeamService.authorize(
+      user.id,
+      propertyId,
+      'view'
+    );
 
-    if (propError || !property) {
-      throw new NotFoundError('Property not found');
-    }
-
-    if (property.owner_id !== user.id && user.role !== 'admin') {
+    if (!authorized && user.role !== 'admin') {
       throw new NotFoundError('Property not found');
     }
 

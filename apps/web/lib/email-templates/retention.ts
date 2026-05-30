@@ -3,9 +3,13 @@
  *
  * Keeps Annual Home MOT + post-job +90d nudge in one file so both
  * crons reuse the same shell + unsubscribe footer.
+ *
+ * Mint Editorial voice (2026-05-21 port): the prior copy was already
+ * close to the locked voice ("Ninety days on", calm 5-minute check
+ * framing). Mostly a shell + palette swap.
  */
 
-import { escapeHtml, year, emailShell } from './shared';
+import { escapeHtml, year, mintEmailShell } from './shared';
 
 export interface AnnualHomeMOTData {
   homeownerName: string;
@@ -31,63 +35,34 @@ export function annualHomeMOTTemplate(
   unsubscribeFooter: string
 ): { subject: string; html: string; text: string } {
   const e = escapeHtml;
-  const color = '#0d9488';
   const ageLine = data.propertyAge
-    ? `Your home is around ${data.propertyAge} years old, so we've weighted the list toward the checks that matter most at that age.`
-    : 'Here are the checks that matter for every UK home.';
-
-  const extra = `.mot-card{background:white;border:1px solid #e5e7eb;border-radius:12px;padding:18px;margin:20px 0}
-    .mot-list{margin:0;padding-left:20px}
-    .mot-list li{margin:6px 0;color:#374151;font-size:14px}`;
+    ? `${data.propertyName} is around ${data.propertyAge} years old, so we've weighted the list toward what matters most at that age.`
+    : `Here are the checks that matter for every UK home.`;
 
   const listHtml = data.recommendedChecks
     .map((item) => `<li>${e(item)}</li>`)
     .join('');
 
-  const html = emailShell(
-    color,
-    extra,
-    `<h1 style="margin:0">Your Annual Home MOT</h1>
-     <p style="margin:8px 0 0;opacity:0.9">${e(data.propertyName)}</p>`,
+  const subject = `Annual home MOT for ${data.propertyName}.`;
+  const preview = `Five-minute check, ${data.recommendedChecks.length} items. Catches the expensive ones early.`;
+
+  const html = mintEmailShell(
+    subject,
+    preview,
     `<p>Hi ${e(data.homeownerName)},</p>
-     <p>${ageLine} A quick 5-minute annual check keeps small problems from becoming expensive ones.</p>
-
-     <div class="mot-card">
-       <div style="font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#6b7280;margin-bottom:10px">
-         This year's checks
-       </div>
-       <ul class="mot-list">${listHtml}</ul>
+     <p>${ageLine} A quick annual check keeps small problems from turning into expensive ones.</p>
+     <div class="note">
+       <strong>This year's checks</strong>
+       <ul style="margin:8px 0 0;padding-left:20px;line-height:1.7">${listHtml}</ul>
      </div>
-
-     <p style="text-align:center">
-       <a href="${e(data.viewUrl)}" class="cta">Post one of these jobs</a>
-     </p>
-
-     <p style="font-size:13px;color:#6b7280;margin-top:20px">
-       You're getting this because it's the anniversary of the day you added
-       this property to Mintenance. You can switch annual reminders off in
-       your notification settings.
-     </p>`,
+     <a href="${e(data.viewUrl)}" class="cta">Post one of these jobs →</a>
+     <p style="font-size:12px;color:#888;margin-top:18px">You're getting this because it's the anniversary of the day you added this property. Switch annual reminders off in notification settings.</p>`,
     unsubscribeFooter
   );
 
-  const text = `Hi ${data.homeownerName},
+  const text = `Hi ${data.homeownerName},\n\nAnnual home MOT for ${data.propertyName}.\n\n${ageLine}\n\nThis year's checks:\n${data.recommendedChecks.map((c) => `- ${c}`).join('\n')}\n\nPost one of these jobs: ${data.viewUrl}\n\n© ${year()} Mintenance Ltd.`;
 
-Your Annual Home MOT for ${data.propertyName}.
-
-${ageLine} Here's this year's list:
-
-${data.recommendedChecks.map((c) => `- ${c}`).join('\n')}
-
-Post one of these jobs: ${data.viewUrl}
-
-© ${year()} Mintenance.`;
-
-  return {
-    subject: `Your Annual Home MOT — ${data.propertyName}`,
-    html,
-    text,
-  };
+  return { subject, html, text };
 }
 
 export function postJobNudgeTemplate(
@@ -95,7 +70,6 @@ export function postJobNudgeTemplate(
   unsubscribeFooter: string
 ): { subject: string; html: string; text: string } {
   const e = escapeHtml;
-  const color = '#0d9488';
   const completed = new Date(data.completedDate).toLocaleDateString('en-GB', {
     day: 'numeric',
     month: 'long',
@@ -104,52 +78,32 @@ export function postJobNudgeTemplate(
 
   const photoRow =
     data.beforePhotoUrl && data.afterPhotoUrl
-      ? `<div style="display:flex;gap:8px;margin:18px 0">
-           <img src="${e(data.beforePhotoUrl)}" alt="Before" style="flex:1;border-radius:8px;max-width:48%"/>
-           <img src="${e(data.afterPhotoUrl)}" alt="After" style="flex:1;border-radius:8px;max-width:48%"/>
-         </div>`
+      ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:18px 0"><tr>
+           <td style="padding-right:4px;width:50%"><img src="${e(data.beforePhotoUrl)}" alt="Before" style="width:100%;border-radius:8px;display:block"/></td>
+           <td style="padding-left:4px;width:50%"><img src="${e(data.afterPhotoUrl)}" alt="After" style="width:100%;border-radius:8px;display:block"/></td>
+         </tr></table>`
       : '';
 
   const suggestions = data.nextSuggestions
     .map((s) => `<li>${e(s)}</li>`)
     .join('');
 
-  const extra = `.mot-list{margin:0;padding-left:20px}
-    .mot-list li{margin:6px 0;color:#374151;font-size:14px}`;
+  const subject = `Ninety days since "${data.jobTitle}" — what's next?`;
+  const preview = `Most UK homes need a handful of small jobs a year. Here are a few worth thinking about.`;
 
-  const html = emailShell(
-    color,
-    extra,
-    `<h1 style="margin:0">Ninety days on</h1>
-     <p style="margin:8px 0 0;opacity:0.9">${e(data.jobTitle)}</p>`,
+  const html = mintEmailShell(
+    subject,
+    preview,
     `<p>Hi ${e(data.homeownerName)},</p>
-     <p>90 days ago (${completed}) ${e(data.contractorName)} finished
-        &ldquo;${e(data.jobTitle)}&rdquo; for you. Here's the before/after
-        as a reminder of the change:</p>
+     <p>90 days ago (${completed}) <strong>${e(data.contractorName)}</strong> finished <strong>${e(data.jobTitle)}</strong> for you. Here's the before/after as a reminder of the change:</p>
      ${photoRow}
-     <p>Most UK homes need a handful of small jobs a year. A few to
-        consider while you're here:</p>
-     <ul class="mot-list">${suggestions}</ul>
-     <p style="text-align:center">
-       <a href="${e(data.viewUrl)}" class="cta">Post your next job</a>
-     </p>`,
+     <p>Most UK homes need a handful of small jobs a year. A few to consider while you're here:</p>
+     <ul style="margin:0;padding-left:20px;line-height:1.8">${suggestions}</ul>
+     <a href="${e(data.viewUrl)}" class="cta">Post your next job →</a>`,
     unsubscribeFooter
   );
 
-  const text = `Hi ${data.homeownerName},
+  const text = `Hi ${data.homeownerName},\n\n90 days ago (${completed}) ${data.contractorName} finished "${data.jobTitle}" for you.\n\nNext job ideas:\n${data.nextSuggestions.map((s) => `- ${s}`).join('\n')}\n\nPost your next: ${data.viewUrl}\n\n© ${year()} Mintenance Ltd.`;
 
-90 days ago (${completed}) ${data.contractorName} finished "${data.jobTitle}" for you.
-
-Next job ideas:
-${data.nextSuggestions.map((s) => `- ${s}`).join('\n')}
-
-Post your next: ${data.viewUrl}
-
-© ${year()} Mintenance.`;
-
-  return {
-    subject: `Ninety days since "${data.jobTitle}" — what's next?`,
-    html,
-    text,
-  };
+  return { subject, html, text };
 }

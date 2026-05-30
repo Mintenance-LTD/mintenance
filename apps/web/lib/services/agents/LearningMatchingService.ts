@@ -26,7 +26,7 @@ interface HomeownerJobResult {
 /**
  * Service for learning-based matching improvements
  * Enhanced with Nested Learning multi-frequency memory system
- * 
+ *
  * Implements:
  * - Multi-frequency memory (short/mid/long-term)
  * - Associative memory mapping M: K → V
@@ -58,7 +58,9 @@ export class LearningMatchingService {
   /**
    * Trigger self-modification when performance degrades
    */
-  private static async triggerSelfModification(performanceDrop: number): Promise<void> {
+  private static async triggerSelfModification(
+    performanceDrop: number
+  ): Promise<void> {
     await this.initializeAdaptiveEngine();
 
     logger.info('LearningMatchingService self-modification triggered', {
@@ -85,7 +87,7 @@ export class LearningMatchingService {
       // Level 0 (High-frequency): Last 10 matches, updates every match (frequency=1)
       // Level 1 (Mid-frequency): Monthly patterns, updates daily (frequency=16)
       // Level 2 (Low-frequency): Overall preferences, updates weekly (frequency=1M)
-      
+
       const config: ContinuumMemoryConfig = {
         agentName: this.AGENT_NAME,
         defaultChunkSize: 10,
@@ -158,11 +160,15 @@ export class LearningMatchingService {
       await this.initializeMemorySystem();
 
       // Extract features for associative memory keys
-      const keys = await this.extractMatchingKeys(contractorId, homeownerId, baseScore);
+      const keys = await this.extractMatchingKeys(
+        contractorId,
+        homeownerId,
+        baseScore
+      );
 
       // Query all memory levels and combine results
       const memoryAdjustments: number[] = [];
-      
+
       for (let level = 0; level < 3; level++) {
         try {
           const queryResult = await memoryManager.query(
@@ -170,7 +176,7 @@ export class LearningMatchingService {
             keys,
             level
           );
-          
+
           // Memory returns adjustment factor (0-1 range, normalized)
           // Convert to adjustment multiplier (0.8 to 1.2 range)
           const adjustment = 0.8 + (queryResult.values[0] || 0.5) * 0.4;
@@ -187,14 +193,14 @@ export class LearningMatchingService {
 
       // Combine adjustments from all levels with weights
       // Short-term: 0.3, Mid-term: 0.4, Long-term: 0.3
-      const combinedAdjustment = 
+      const combinedAdjustment =
         memoryAdjustments[0] * 0.3 +
         memoryAdjustments[1] * 0.4 +
         memoryAdjustments[2] * 0.3;
 
       // Fallback to rule-based if memory not available
       let finalAdjustment = combinedAdjustment;
-      if (memoryAdjustments.every(adj => adj === 1.0)) {
+      if (memoryAdjustments.every((adj) => adj === 1.0)) {
         // No memory data available, use rule-based fallback
         finalAdjustment = await this.calculateRuleBasedAdjustment(
           contractorId,
@@ -261,21 +267,25 @@ export class LearningMatchingService {
     keys.push(baseScore.priceCompetitiveness / 100);
 
     // Homeowner preference features
-    const pastContractorIds = homeownerJobs?.map(j => j.contractor_id) || [];
+    const pastContractorIds = homeownerJobs?.map((j) => j.contractor_id) || [];
     keys.push(pastContractorIds.includes(contractorId) ? 1 : 0); // Repeat contractor
     keys.push(Math.min((homeownerJobs?.length || 0) / 10, 1)); // Homeowner experience
     keys.push(Math.min((pastContractorIds.length || 0) / 5, 1)); // Contractor diversity
 
     // Category preferences
-    const categories = homeownerJobs?.map(j => j.category || '').filter(Boolean) || [];
-    const categoryFrequency = categories.length > 0 ? categories.length / 10 : 0;
+    const categories =
+      homeownerJobs?.map((j) => j.category || '').filter(Boolean) || [];
+    const categoryFrequency =
+      categories.length > 0 ? categories.length / 10 : 0;
     keys.push(Math.min(categoryFrequency, 1));
 
     // Budget patterns
-    const budgets = homeownerJobs?.map(j => j.budget || 0).filter(b => b > 0) || [];
-    const avgBudget = budgets.length > 0
-      ? budgets.reduce((a, b) => a + b, 0) / budgets.length
-      : 0;
+    const budgets =
+      homeownerJobs?.map((j) => j.budget || 0).filter((b) => b > 0) || [];
+    const avgBudget =
+      budgets.length > 0
+        ? budgets.reduce((a, b) => a + b, 0) / budgets.length
+        : 0;
     keys.push(Math.min(avgBudget / 5000, 1)); // Normalized average budget
 
     // Pad to expected input size (32 features)
@@ -454,7 +464,14 @@ export class LearningMatchingService {
     keys.push((contractor?.rating || 0) / 5);
     keys.push(Math.min((contractor?.total_jobs_completed || 0) / 100, 1));
     keys.push(job.category ? 1 : 0); // Category match
-    keys.push(Math.min((job.budget || 0) / 5000, 1)); // Normalized budget
+    // 2026-05-23: budget feature degraded. Under the open-bidding
+    // model (2026-05-22) homeowners no longer set a budget, so
+    // `job.budget` is NULL for every recent job. Pushing 0 keeps
+    // the feature vector shape stable but the signal is effectively
+    // dead — the matching model needs retraining without this
+    // feature (or with `accepted_bid_amount` substituted post-bid).
+    // Tracked under R5 of the ML roadmap.
+    keys.push(Math.min((job.budget ?? 0) / 5000, 1));
 
     // Homeowner preference features
     const typedJobs = (homeownerJobs || []) as HomeownerJobResult[];
@@ -470,4 +487,3 @@ export class LearningMatchingService {
     return keys.slice(0, 32);
   }
 }
-

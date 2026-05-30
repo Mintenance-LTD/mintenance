@@ -267,20 +267,31 @@ export function getUpgradeTiers(
 // =====================================================
 
 /**
- * Pricing information for contractor subscription tiers
+ * Pricing information for contractor subscription tiers.
+ *
+ * `platformFeeRate` is the % the platform takes on each transaction.
+ * Sprint 2 wires this into FeeCalculationService so fees are tier-aware.
+ * Early-access founding-member cohort is mapped to 'enterprise' so they
+ * automatically get the 5% rate. See lib/subscription/early-access.ts.
  */
 export const TIER_PRICING = {
   free: {
-    name: 'Free',
+    name: 'Basic',
     price: 0,
     period: 'forever',
-    description: 'Perfect to get started - free forever',
+    description: 'Free to start — pay only when you win work',
+    platformFeeRate: 0.12,
+    bidLimit: 10,
+    activeJobsLimit: 3,
   },
   basic: {
     name: 'Basic',
     price: 0,
     period: 'month',
-    description: 'Get started and build your reputation',
+    description: 'Free to start — pay only when you win work',
+    platformFeeRate: 0.12,
+    bidLimit: 10,
+    activeJobsLimit: 3,
   },
   professional: {
     name: 'Professional',
@@ -288,13 +299,31 @@ export const TIER_PRICING = {
     period: 'month',
     description: 'For growing contractor businesses',
     popular: true,
+    platformFeeRate: 0.08,
+    bidLimit: 'unlimited' as const,
+    activeJobsLimit: 'unlimited' as const,
   },
   enterprise: {
     name: 'Business',
     price: 99,
     period: 'month',
     description: 'For established businesses and teams',
+    platformFeeRate: 0.05,
+    bidLimit: 'unlimited' as const,
+    activeJobsLimit: 'unlimited' as const,
   },
+} as const;
+
+/**
+ * Platform fee rate by contractor tier — single source of truth.
+ * Imported by FeeCalculationService (Sprint 2) and the pricing landing page.
+ * No tier cap on fees (the £50 cap was removed 2026-05-22).
+ */
+export const PLATFORM_FEE_RATE_BY_TIER = {
+  free: 0.12,
+  basic: 0.12,
+  professional: 0.08,
+  enterprise: 0.05,
 } as const;
 
 /**

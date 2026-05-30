@@ -92,7 +92,7 @@ export function ReviewStep({
             onEdit={() => onEditStep(2)}
           />
         )}
-        <BudgetSummary formData={formData} onEdit={() => onEditStep(3)} />
+        <TimelineSummary formData={formData} onEdit={() => onEditStep(3)} />
         {assessment && (
           <AssessmentSummary
             assessment={assessment}
@@ -281,7 +281,7 @@ function PhotosSummary({
   );
 }
 
-function BudgetSummary({
+function TimelineSummary({
   formData,
   onEdit,
 }: {
@@ -298,46 +298,23 @@ function BudgetSummary({
           marginBottom: 14,
         }}
       >
-        <div style={{ ...fieldLabelStyle, marginBottom: 0 }}>
-          Budget &amp; timeline
-        </div>
+        <div style={{ ...fieldLabelStyle, marginBottom: 0 }}>Timeline</div>
         <EditButton onClick={onEdit} />
       </div>
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: 16,
-        }}
-      >
-        <div>
-          <div style={fieldLabelStyle}>Budget</div>
-          <p
-            style={{
-              margin: 0,
-              fontFamily: 'var(--me-font-display)',
-              fontSize: 26,
-              color: 'var(--me-ink)',
-            }}
-          >
-            £{formData.budget || '0'}
-          </p>
-        </div>
-        <div>
-          <div style={fieldLabelStyle}>Urgency</div>
-          <p
-            style={{
-              margin: 0,
-              fontSize: 15,
-              fontWeight: 600,
-              color: 'var(--me-ink)',
-              textTransform: 'capitalize',
-            }}
-          >
-            {URGENCY_OPTIONS.find((o) => o.value === formData.urgency)?.label ||
-              formData.urgency}
-          </p>
-        </div>
+      <div>
+        <div style={fieldLabelStyle}>Urgency</div>
+        <p
+          style={{
+            margin: 0,
+            fontSize: 15,
+            fontWeight: 600,
+            color: 'var(--me-ink)',
+            textTransform: 'capitalize',
+          }}
+        >
+          {URGENCY_OPTIONS.find((o) => o.value === formData.urgency)?.label ||
+            formData.urgency}
+        </p>
       </div>
     </div>
   );

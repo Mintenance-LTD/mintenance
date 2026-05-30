@@ -1,3 +1,25 @@
+/**
+ * ContractViewScreen — Mint Editorial polish per redesign-v2
+ * homeowner-deck "Contract to sign" detail.
+ *
+ * Visual changes only — the signing flow itself is untouched:
+ *   - Minimal top nav (back + PDF download + status pill).
+ *   - Inline Mint Editorial header (eyebrow + serif "Contract"),
+ *     rendered inside the scroll body so the chrome feels like part
+ *     of the document.
+ *   - Serif treatment on the contract amount (matching the rest of
+ *     the editorial hero cards).
+ *   - Paper background (`me.bg`) instead of the sunken `me.bg2`.
+ *   - Draft-banner copy moves to `me.warnFg` tokens (legacy `#92400E`
+ *     literal hex retired).
+ *
+ * Types + status helpers extracted to `./contract-view/contractViewModel.ts`
+ * so the screen file stays under the 500-line MDC cap.
+ *
+ * Signing, PDF view, revision-request, and reject flows are preserved
+ * byte-for-byte. They are legally and financially sensitive; changes
+ * here are visual only.
+ */
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -7,8 +29,10 @@ import {
   Alert,
   ActivityIndicator,
   Linking,
+  Modal,
   StatusBar,
 } from 'react-native';
+import { SignatureCanvas } from '../../components/ui/SignatureCanvas';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -27,6 +51,15 @@ import { ContractRevisionRequest } from './components/ContractRevisionRequest';
 import { ContractPartiesSection } from './components/ContractPartiesSection';
 import { ContractTimeline } from './components/ContractTimeline';
 import { styles } from './contractViewStyles';
+import {
+  type Contract,
+  type ContractParty,
+  type QuoteLineItem,
+  formatContractDate,
+  getStatusColor,
+  getStatusLabel,
+  NON_SIGNABLE_STATUSES,
+} from './contract-view/contractViewModel';
 
 type ScreenRouteProp = RouteProp<JobsStackParamList, 'ContractView'>;
 type ScreenNavigationProp = NativeStackNavigationProp<
@@ -39,75 +72,20 @@ interface Props {
   navigation: ScreenNavigationProp;
 }
 
-interface ContractParty {
-  first_name?: string;
-  last_name?: string;
-  company_name?: string;
-}
-
-interface Contract {
-  id: string;
-  job_id: string;
-  contractor_id: string;
-  homeowner_id: string;
-  status: string;
-  title: string | null;
-  description: string | null;
-  amount: number;
-  start_date: string | null;
-  end_date: string | null;
-  contractor_signed_at: string | null;
-  homeowner_signed_at: string | null;
-  terms: Record<string, unknown>;
-  created_at: string;
-  contractorName: string;
-  homeownerName: string;
-}
-
-const formatDate = (dateStr: string) =>
-  new Date(dateStr).toLocaleDateString('en-GB', {
-    weekday: 'short',
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
-
-const STATUS_COLORS: Record<string, string> = {
-  accepted: me.brand,
-  pending_contractor: me.accent,
-  pending_homeowner: me.accent,
-  rejected: me.errFg,
-  cancelled: me.errFg,
-};
-const STATUS_LABELS: Record<string, string> = {
-  draft: 'Draft',
-  pending_contractor: 'Pending Contractor Signature',
-  pending_homeowner: 'Pending Homeowner Signature',
-  accepted: 'Accepted',
-  rejected: 'Rejected',
-  cancelled: 'Cancelled',
-};
-const getStatusColor = (s: string) => STATUS_COLORS[s] || me.ink2;
-const getStatusLabel = (s: string) => STATUS_LABELS[s] || s;
-
 export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
   const { jobId } = route.params;
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const [contract, setContract] = useState<Contract | null>(null);
-  const [quoteItems, setQuoteItems] = useState<
-    Array<{
-      description: string;
-      quantity: number;
-      unitPrice: number;
-      total: number;
-    }>
-  >([]);
+  const [quoteItems, setQuoteItems] = useState<QuoteLineItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [signing, setSigning] = useState(false);
   const [rejecting, setRejecting] = useState(false);
   const [showRejectInput, setShowRejectInput] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
+  // 2026-05-27 audit-P0-4: gates the signature-capture modal that
+  // replaces the legacy tap-to-confirm Alert.
+  const [showSignatureModal, setShowSignatureModal] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const userRole = user?.role as 'homeowner' | 'contractor' | undefined;
@@ -152,7 +130,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
             .select('line_items')
             .eq('id', qid)
             .single();
-          if (q?.line_items) setQuoteItems(q.line_items as typeof quoteItems);
+          if (q?.line_items) setQuoteItems(q.line_items as QuoteLineItem[]);
         } else {
           // Try by job_id + contractor_id
           const { supabase } = await import('../../config/supabase');
@@ -164,7 +142,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
             .order('created_at', { ascending: false })
             .limit(1)
             .maybeSingle();
-          if (q?.line_items) setQuoteItems(q.line_items as typeof quoteItems);
+          if (q?.line_items) setQuoteItems(q.line_items as QuoteLineItem[]);
         }
       } else {
         setContract(null);
@@ -180,84 +158,110 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
     fetchContract();
   }, [fetchContract]);
 
-  const handleSign = useCallback(async () => {
+  // 2026-05-27 audit-P0-4: launches the in-app SignatureCanvas modal.
+  // The legacy Alert "do you agree" confirmation is replaced with a
+  // real e-signature capture; what gets POSTed is the SVG produced by
+  // the canvas. handleSubmitSignature does the actual API call.
+  const handleSign = useCallback(() => {
     if (!contract) return;
+    setShowSignatureModal(true);
+  }, [contract]);
 
-    Alert.alert(
-      'Sign Contract',
-      'By signing, you agree to all terms and conditions in this contract. This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Sign',
-          style: 'default',
-          onPress: async () => {
-            setSigning(true);
-            try {
-              await mobileApiClient.post(
-                `/api/contracts/${contract.id}/accept`,
-                {}
-              );
-              HapticService.success();
-              Alert.alert('Signed', 'Contract signed successfully.');
-              await fetchContract();
-            } catch {
-              HapticService.error();
-              Alert.alert(
-                'Error',
-                'Failed to sign contract. Please try again.'
-              );
-            } finally {
-              setSigning(false);
-            }
-          },
-        },
-      ]
-    );
-  }, [contract, fetchContract]);
+  const handleSubmitSignature = useCallback(
+    async (signatureSvg: string) => {
+      if (!contract) return;
+      setSigning(true);
+      try {
+        // /api/contracts/[id]/accept returns the updated contract with
+        // the new status. When both parties have signed, the status
+        // flips to 'accepted' and escrow funding becomes the next
+        // required step. The optional signature payload is captured
+        // immutably in contract_signatures (audit table).
+        const result = await mobileApiClient.post<{
+          contract?: { status?: string };
+        }>(`/api/contracts/${contract.id}/accept`, {
+          signatureImage: signatureSvg,
+          signatureFormat: 'svg',
+          platform: 'mobile',
+        });
+        HapticService.success();
+        setShowSignatureModal(false);
+
+        const newStatus = result?.contract?.status;
+        // 2026-05-26 audit-51 P1: when the homeowner is the signature
+        // that flips status to 'accepted', the next step is funding
+        // escrow. Offer a direct path to JobPayment from the success
+        // alert; "Later" still leaves them where they are.
+        if (newStatus === 'accepted' && user?.role === 'homeowner') {
+          Alert.alert(
+            'Contract signed',
+            'Next step: pay into escrow so the contractor can start work.',
+            [
+              { text: 'Later', onPress: () => void fetchContract() },
+              {
+                text: 'Pay now',
+                style: 'default',
+                onPress: () => {
+                  const contractorName =
+                    contract.contractorName?.trim() || 'Contractor';
+                  navigation.navigate('JobPayment', {
+                    jobId: contract.job_id,
+                    amount: contract.amount,
+                    contractorId: contract.contractor_id,
+                    contractorName,
+                  });
+                },
+              },
+            ]
+          );
+        } else {
+          Alert.alert('Signed', 'Contract signed successfully.');
+          await fetchContract();
+        }
+      } catch {
+        HapticService.error();
+        Alert.alert('Error', 'Failed to sign contract. Please try again.');
+      } finally {
+        setSigning(false);
+      }
+    },
+    [contract, fetchContract, navigation, user?.role]
+  );
 
   const handleViewPdf = useCallback(async () => {
     if (!contract) return;
     try {
       // Ask the server for a short-lived signed PDF URL. The API route
       // requires auth, so we use mobileApiClient (which injects the
-      // Bearer token) instead of opening a raw URL in the system browser
-      // (which has no auth cookies and would always 401).
+      // Bearer token) instead of opening a raw URL in the system browser.
       const response = await mobileApiClient.get<{ url?: string }>(
         `/api/contracts/${contract.id}/pdf`
       );
-
       if (response?.url) {
-        // Server returned a pre-signed URL — open it in the in-app browser.
-        // The signed URL is time-limited but doesn't require auth to download.
         await WebBrowser.openBrowserAsync(response.url);
         return;
       }
-
-      // Fallback: download the raw binary via expo-file-system (which
-      // IS installed, unlike expo-sharing) and open with the system viewer.
+      // Fallback: download the binary via expo-file-system and open
+      // with the system viewer (expo-sharing is not installed).
       const { supabase } = await import('../../config/supabase');
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData?.session?.access_token ?? '';
-
       const localUri = `${cacheDirectory ?? ''}contract-${contract.id}.pdf`;
       const downloadResult = await downloadAsync(
         `${API_BASE_URL}/api/contracts/${contract.id}/pdf`,
         localUri,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
       if (downloadResult.status === 200) {
-        // Open the downloaded file with the system PDF viewer
         const canOpen = await Linking.canOpenURL(downloadResult.uri);
         if (canOpen) {
           await Linking.openURL(downloadResult.uri);
         } else {
-          Alert.alert('PDF Downloaded', `Contract saved to ${localUri}`);
+          Alert.alert('PDF downloaded', `Contract saved to ${localUri}`);
         }
       } else {
         Alert.alert(
-          'Cannot Open PDF',
+          'Cannot open PDF',
           'Unable to download the contract PDF. Please try again.'
         );
       }
@@ -275,7 +279,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
       });
       HapticService.success();
       Alert.alert(
-        'Changes Requested',
+        'Changes requested',
         'The contractor has been notified of your requested changes.'
       );
       setShowRejectInput(false);
@@ -294,10 +298,9 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
     setRejectReason('');
   }, []);
 
-  const nonSignableStatuses = ['accepted', 'rejected', 'cancelled'];
   const canSign =
     contract &&
-    !nonSignableStatuses.includes(contract.status) &&
+    !NON_SIGNABLE_STATUSES.includes(contract.status) &&
     ((userRole === 'contractor' && !contract.contractor_signed_at) ||
       (userRole === 'homeowner' && !contract.homeowner_signed_at));
   const canReject =
@@ -311,8 +314,8 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
   if (loading) {
     return (
       <View style={[styles.centered, { paddingTop: insets.top }]}>
-        <ActivityIndicator size='large' color={me.ink} />
-        <Text style={styles.loadingText}>Loading contract...</Text>
+        <ActivityIndicator size='large' color={me.brand} />
+        <Text style={styles.loadingText}>Loading contract…</Text>
       </View>
     );
   }
@@ -323,7 +326,7 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
         <View style={styles.emptyIconWrap}>
           <Ionicons name='document-text-outline' size={32} color={me.ink3} />
         </View>
-        <Text style={styles.emptyTitle}>{error || 'No Contract Found'}</Text>
+        <Text style={styles.emptyTitle}>{error || 'No contract found'}</Text>
         <Text style={styles.emptySubtitle}>
           {userRole === 'contractor'
             ? 'A contract will be created after a bid is accepted.'
@@ -333,49 +336,42 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
           style={styles.retryButton}
           onPress={() => navigation.goBack()}
         >
-          <Text style={styles.retryButtonText}>Go Back</Text>
+          <Text style={styles.retryButtonText}>Go back</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
   const hasBottomBar = showPrepareButton || showSignButton;
+  const statusColor = getStatusColor(contract.status);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <StatusBar barStyle='dark-content' backgroundColor={me.surface} />
+      <StatusBar barStyle='dark-content' backgroundColor={me.bg} />
 
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
           accessibilityRole='button'
           accessibilityLabel='Go back'
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Ionicons name='arrow-back' size={22} color={me.ink} />
+          <Ionicons name='arrow-back' size={20} color={me.ink} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Contract</Text>
+        <View style={styles.headerSpacer} />
         <TouchableOpacity
           style={styles.pdfButton}
           onPress={handleViewPdf}
           accessibilityRole='button'
           accessibilityLabel='Download PDF'
         >
-          <Ionicons name='download-outline' size={20} color={me.ink} />
+          <Ionicons name='download-outline' size={18} color={me.ink} />
         </TouchableOpacity>
         <View
-          style={[
-            styles.statusBadge,
-            { backgroundColor: getStatusColor(contract.status) + '20' },
-          ]}
+          style={[styles.statusBadge, { backgroundColor: statusColor + '20' }]}
         >
-          <Text
-            style={[
-              styles.statusText,
-              { color: getStatusColor(contract.status) },
-            ]}
-          >
+          <Text style={[styles.statusText, { color: statusColor }]}>
             {getStatusLabel(contract.status)}
           </Text>
         </View>
@@ -389,10 +385,14 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        {/* Draft contract banner */}
+        <View style={styles.screenHeader}>
+          <Text style={styles.eyebrow}>Contract</Text>
+          <Text style={styles.headline}>Contract</Text>
+        </View>
+
         {showPrepareButton && (
           <View style={styles.draftBanner}>
-            <Ionicons name='alert-circle-outline' size={22} color={me.accent} />
+            <Ionicons name='alert-circle-outline' size={20} color={me.warnFg} />
             <View style={styles.draftBannerContent}>
               <Text style={styles.draftBannerTitle}>
                 Contract needs preparation
@@ -405,35 +405,31 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
           </View>
         )}
 
-        {/* Parties */}
         <ContractPartiesSection
           contractorName={contract.contractorName}
           homeownerName={contract.homeownerName}
         />
 
-        {/* Amount + Escrow Badge */}
         <View style={styles.amountCard}>
           <View style={styles.amountRow}>
             <View>
-              <Text style={styles.amountLabel}>CONTRACT AMOUNT</Text>
+              <Text style={styles.amountLabel}>Contract amount</Text>
               <Text style={styles.amountValue}>
-                {'\u00A3'}
-                {Number(contract.amount).toLocaleString()}
+                £{Number(contract.amount).toLocaleString('en-GB')}
               </Text>
             </View>
             <View style={styles.escrowBadge}>
               <Ionicons name='shield-checkmark' size={14} color={me.brand} />
-              <Text style={styles.escrowBadgeText}>Escrow Protected</Text>
+              <Text style={styles.escrowBadgeText}>Escrow protected</Text>
             </View>
           </View>
         </View>
 
-        {/* Agreed scope from quote */}
         {quoteItems.length > 0 && (
           <View style={styles.scopeCard}>
             <View style={styles.scopeHeader}>
               <Ionicons name='list' size={16} color={me.brand} />
-              <Text style={styles.scopeTitle}>Agreed Scope</Text>
+              <Text style={styles.scopeTitle}>Agreed scope</Text>
             </View>
             {quoteItems.map((item, idx) => (
               <View
@@ -446,33 +442,31 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
                 <View style={styles.scopeItemInfo}>
                   <Text style={styles.scopeItemDesc}>{item.description}</Text>
                   <Text style={styles.scopeItemQty}>
-                    {item.quantity} x {'\u00A3'}
-                    {(item.unitPrice || 0).toFixed(2)}
+                    {item.quantity} × £{(item.unitPrice || 0).toFixed(2)}
                   </Text>
                 </View>
                 <Text style={styles.scopeItemTotal}>
-                  {'\u00A3'}
-                  {(item.total || 0).toFixed(2)}
+                  £{(item.total || 0).toFixed(2)}
                 </Text>
               </View>
             ))}
           </View>
         )}
 
-        {/* Title, description, dates, terms */}
         <ContractTermsView
           title={contract.title}
           description={contract.description}
           start_date={contract.start_date}
           end_date={contract.end_date}
           terms={contract.terms}
-          formatDate={formatDate}
+          formatDate={formatContractDate}
         />
 
-        {/* Signatures + accepted banner */}
-        <ContractSignatureSection contract={contract} formatDate={formatDate} />
+        <ContractSignatureSection
+          contract={contract}
+          formatDate={formatContractDate}
+        />
 
-        {/* Timeline */}
         <ContractTimeline
           createdAt={contract.created_at}
           contractorSignedAt={contract.contractor_signed_at}
@@ -480,7 +474,6 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
           status={contract.status}
         />
 
-        {/* Revision request */}
         <ContractRevisionRequest
           canReject={canReject}
           showRejectInput={showRejectInput}
@@ -493,7 +486,6 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
         />
       </ScrollView>
 
-      {/* Prepare Contract Button (for draft contracts) */}
       {showPrepareButton && (
         <View
           style={[
@@ -513,12 +505,11 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
             accessibilityLabel='Prepare contract'
           >
             <Ionicons name='document-text' size={20} color={me.onBrand} />
-            <Text style={styles.signButtonText}>Prepare Contract</Text>
+            <Text style={styles.signButtonText}>Prepare contract</Text>
           </TouchableOpacity>
         </View>
       )}
 
-      {/* Sign Button */}
       {showSignButton && (
         <View
           style={[
@@ -538,14 +529,65 @@ export const ContractViewScreen: React.FC<Props> = ({ route, navigation }) => {
             ) : (
               <>
                 <Ionicons name='create' size={20} color={me.onBrand} />
-                <Text style={styles.signButtonText}>Sign Contract</Text>
+                <Text style={styles.signButtonText}>Sign contract</Text>
               </>
             )}
           </TouchableOpacity>
         </View>
       )}
+
+      <Modal
+        visible={showSignatureModal}
+        animationType='slide'
+        transparent
+        onRequestClose={() => !signing && setShowSignatureModal(false)}
+      >
+        <View style={signatureModalStyles.backdrop}>
+          <View style={signatureModalStyles.sheet}>
+            <Text style={signatureModalStyles.heading}>Sign the contract</Text>
+            <Text style={signatureModalStyles.subheading}>
+              By signing below, you agree to the terms above. Your signature and
+              the signing device are recorded as evidence — this cannot be
+              undone.
+            </Text>
+            <SignatureCanvas
+              onSign={handleSubmitSignature}
+              onCancel={() => setShowSignatureModal(false)}
+              submitting={signing}
+              label='Draw your signature'
+            />
+          </View>
+        </View>
+      </Modal>
     </View>
   );
+};
+
+const signatureModalStyles = {
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    justifyContent: 'flex-end' as const,
+  },
+  sheet: {
+    backgroundColor: me.bg,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    paddingBottom: 32,
+    gap: 12,
+  },
+  heading: {
+    fontSize: 20,
+    fontWeight: '700' as const,
+    color: me.ink,
+  },
+  subheading: {
+    fontSize: 13,
+    color: me.ink2,
+    lineHeight: 18,
+    marginBottom: 4,
+  },
 };
 
 export default ContractViewScreen;

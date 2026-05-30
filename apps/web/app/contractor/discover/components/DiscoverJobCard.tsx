@@ -156,13 +156,17 @@ function CategoryIcon({
 }
 
 function getBudgetDisplay(job: DiscoverJob): string {
+  // 2026-05-22: the homeowner-set "Up to £X" line was removed because it
+  // anchored bids to the ceiling. The AI cost estimate (when present) is
+  // still shown as a market reference, but no homeowner budget falls
+  // through to the contractor any more.
   const est =
     job.building_assessments?.[0]?.assessment_data?.contractorAdvice
       ?.estimatedCost;
   if (est?.min != null && est?.max != null) {
-    return `£${est.min.toLocaleString()} – £${est.max.toLocaleString()}`;
+    return `AI estimate £${est.min.toLocaleString()} – £${est.max.toLocaleString()}`;
   }
-  return `Up to £${job.budget.toLocaleString()}`;
+  return 'Open — quote your own price';
 }
 
 /**

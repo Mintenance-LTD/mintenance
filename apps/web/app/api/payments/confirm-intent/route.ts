@@ -74,10 +74,19 @@ export const POST = withApiHandler(
       );
     }
 
-    // Verify job and escrow transaction
+    // Verify job and escrow transaction.
+    //
+    // 2026-05-26 audit-60 P2: previously this route selected only
+    // `homeowner_id` and rejected anyone else, but create-intent
+    // (the sibling route) authorizes `payer_user_id || homeowner_id`
+    // — landlord / agency payer jobs let a non-homeowner fund escrow
+    // via the Stripe sheet, then the mobile follow-up confirm-intent
+    // call 403'd, leaving escrow stuck in `pending` until the Stripe
+    // webhook caught up. Pull payer_user_id too so the two routes
+    // agree on who's allowed to drive the lifecycle.
     const { data: job, error: jobError } = await serverSupabase
       .from('jobs')
-      .select('id, homeowner_id, contractor_id, title')
+      .select('id, homeowner_id, payer_user_id, contractor_id, title')
       .eq('id', jobId)
       .single();
 
@@ -85,7 +94,9 @@ export const POST = withApiHandler(
       throw new NotFoundError('Job not found');
     }
 
-    if (job.homeowner_id !== user.id) {
+    const authorizedPayerId =
+      (job.payer_user_id as string | null) || job.homeowner_id;
+    if (authorizedPayerId !== user.id) {
       throw new ForbiddenError('Unauthorized');
     }
 
@@ -93,7 +104,15 @@ export const POST = withApiHandler(
     const { data: currentEscrow, error: fetchError } = await serverSupabase
       .from('escrow_transactions')
       .select(
-        'id, job_id, amount, status, stripe_payment_intent_id, payment_intent_id, version, created_at, updated_at'
+        // 2026-05-23 audit-19 P1: live escrow_transactions has neither
+        // `stripe_payment_intent_id` nor a `version` column — `payment_intent_id`
+        // (no stripe_ prefix) is the only payment-intent ref, and there's
+        // no optimistic-locking version column on this table. The previous
+        // SELECT 400'd PostgREST and the route 404'd back to the homeowner,
+        // leaving the escrow stuck in `pending` for any payment that
+        // happened to arrive before the Stripe webhook (the supposed
+        // fallback path). Verified via information_schema 2026-05-23.
+        'id, job_id, amount, status, payment_intent_id, created_at, updated_at'
       )
       .eq('payment_intent_id', paymentIntentId)
       .eq('job_id', jobId)
@@ -150,7 +169,8 @@ export const POST = withApiHandler(
         const { data: refetched } = await serverSupabase
           .from('escrow_transactions')
           .select(
-            'id, job_id, amount, status, stripe_payment_intent_id, payment_intent_id, version, created_at, updated_at'
+            // Same audit-19 P1 column fix as above — payment_intent_id only.
+            'id, job_id, amount, status, payment_intent_id, created_at, updated_at'
           )
           .eq('payment_intent_id', paymentIntentId)
           .eq('job_id', jobId)
@@ -205,12 +225,15 @@ export const POST = withApiHandler(
     try {
       const amount = escrowTransaction.amount;
       const jobTitle = job.title || 'your job';
+      // 2026-05-21 Mint Editorial voice: amount-led titles, concrete
+      // next step in the body.
+      const fmtAmount = `£${Number(amount).toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
 
       const contractorNotifPromise = job.contractor_id
         ? NotificationService.createNotification({
             userId: job.contractor_id,
-            title: 'Payment Secured in Escrow',
-            message: `Payment of £${Number(amount).toLocaleString()} for "${jobTitle}" has been secured in escrow. You can now start work.`,
+            title: `${fmtAmount} funded — you're cleared to start`,
+            message: `Escrow is good on "${jobTitle}". Upload before-photos and tap Start Job when you're on site.`,
             type: 'payment',
             actionUrl: `/contractor/jobs/${jobId}`,
           })
@@ -218,8 +241,8 @@ export const POST = withApiHandler(
 
       const homeownerNotifPromise = NotificationService.createNotification({
         userId: user.id,
-        title: 'Payment Confirmed',
-        message: `Your payment of £${Number(amount).toLocaleString()} for "${jobTitle}" is now held securely in escrow until the job is completed.`,
+        title: `${fmtAmount} held in escrow`,
+        message: `Your payment for "${jobTitle}" is locked in. The contractor only gets it once you approve the finished work.`,
         type: 'payment',
         actionUrl: `/jobs/${jobId}`,
       });

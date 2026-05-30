@@ -20,6 +20,86 @@ import { BadRequestError } from '@/lib/errors/api-error';
 import { EmailService } from '@/lib/email-service';
 import { env } from '@/lib/env';
 import { logger } from '@mintenance/shared';
+import { FeeCalculationService } from '@/lib/services/payment/FeeCalculationService';
+
+/**
+ * 2026-05-22 Sprint 5.1: contractor-org seat gate.
+ *
+ * The landing page promises Business-tier contractors "Team member
+ * accounts (up to 10)". This gate enforces both halves of that promise:
+ *
+ * 1. The org's creator (effectively the org owner — set on insert in
+ *    the org-create flow) must be on the enterprise tier OR have an
+ *    early-access founding-member grant. Free/Basic/Pro contractors get
+ *    a 402 with the upgrade payload.
+ * 2. Even on Business, the total active memberships + non-revoked
+ *    pending invitations must be < 10.
+ *
+ * No-op for non-contractor orgs (landlord/agency homeowner orgs use a
+ * separate /api/properties/[id]/team flow with its own gate).
+ */
+const CONTRACTOR_TEAM_SEAT_CAP = 10;
+
+async function checkContractorTeamGate(
+  orgId: string,
+  orgCreatedBy: string | null
+): Promise<NextResponse | null> {
+  if (!orgCreatedBy) return null;
+
+  const { data: ownerProfile } = await serverSupabase
+    .from('profiles')
+    .select('role')
+    .eq('id', orgCreatedBy)
+    .maybeSingle();
+
+  if (ownerProfile?.role !== 'contractor') return null;
+
+  const tier = await FeeCalculationService.resolveContractorTier(orgCreatedBy);
+  if (tier !== 'enterprise') {
+    return NextResponse.json(
+      {
+        error: 'Subscription required',
+        message:
+          'Team member accounts require a Business subscription. Upgrade to add up to 10 team seats.',
+        requiresSubscription: true,
+        feature: 'CONTRACTOR_TEAM_SEATS',
+      },
+      { status: 402 }
+    );
+  }
+
+  // Total seat usage = active members + non-revoked pending invitations.
+  // Both queries scoped to org_id so the cap is per-organization.
+  const [membershipsRes, invitesRes] = await Promise.all([
+    serverSupabase
+      .from('organization_memberships')
+      .select('id', { count: 'exact', head: true })
+      .eq('org_id', orgId)
+      .eq('status', 'active'),
+    serverSupabase
+      .from('organization_invitations')
+      .select('id', { count: 'exact', head: true })
+      .eq('org_id', orgId)
+      .is('revoked_at', null)
+      .is('accepted_at', null),
+  ]);
+
+  const totalSeats = (membershipsRes.count ?? 0) + (invitesRes.count ?? 0);
+
+  if (totalSeats >= CONTRACTOR_TEAM_SEAT_CAP) {
+    return NextResponse.json(
+      {
+        error: 'Seat limit reached',
+        message: `Your Business plan includes ${CONTRACTOR_TEAM_SEAT_CAP} team seats. Remove an existing member or revoke a pending invite to free up a seat.`,
+        requiresUpgrade: false,
+        feature: 'CONTRACTOR_TEAM_SEATS',
+      },
+      { status: 422 }
+    );
+  }
+
+  return null;
+}
 
 const paramsSchema = z.object({
   id: z.string().uuid(),
@@ -67,12 +147,19 @@ export const POST = withApiHandler(
 
     const { data: org } = await serverSupabase
       .from('organizations')
-      .select('id, name, organization_type')
+      .select('id, name, organization_type, created_by')
       .eq('id', orgId)
       .maybeSingle();
     if (!org) {
       throw new BadRequestError('Organization not found');
     }
+
+    // Tier + seat-cap gate for contractor orgs. Returns 402/422 if blocked.
+    const gateResponse = await checkContractorTeamGate(
+      orgId,
+      (org.created_by as string | null) ?? null
+    );
+    if (gateResponse) return gateResponse;
 
     // Fast path: email already maps to a profile → add directly.
     // Audit P2 (2026-04-23): switched from `.ilike()` to `.eq()` —

@@ -16,13 +16,23 @@ export class EscrowService {
     );
   }
 
+  /**
+   * 2026-05-26 audit-53 P2: previous signature took
+   * (transactionId, paymentIntentId) and POSTed
+   * { transactionId, paymentIntentId } — but /api/payments/confirm-intent
+   * has a .strict() Zod schema that accepts only
+   * { paymentIntentId, jobId } and rejects unknown keys, so every
+   * call 400'd before the route's state-machine even ran. Signature
+   * now matches the route contract; first arg renamed jobId.
+   * Production callers were tests-only — no behavioural drift.
+   */
   static async holdPaymentInEscrow(
-    transactionId: string,
+    jobId: string,
     paymentIntentId: string
   ): Promise<void> {
     await mobileApiClient.post('/api/payments/confirm-intent', {
-      transactionId,
       paymentIntentId,
+      jobId,
     });
   }
 

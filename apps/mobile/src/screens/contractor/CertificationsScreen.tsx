@@ -28,16 +28,31 @@ interface Certification {
   name: string;
   issuer: string;
   issue_date: string;
-  expiry_date: string;
+  // 2026-05-23 audit-23 P2: contractor_certifications.expiry_date is
+  // nullable on live (perpetual certifications send null here). Type
+  // updated so getExpiryStatus and the "Expires" line can branch on
+  // it cleanly instead of fabricating a 1970 date.
+  expiry_date: string | null;
   credential_id?: string;
   category: string;
   verified: boolean;
 }
 
+// 2026-05-23 audit-23 P2: AddCertificationScreen intentionally sends
+// expiryDate: null when the certification has no expiry, and live
+// contractor_certifications.expiry_date is nullable. Previously this
+// function ran `new Date(null|'')` (parses to 1970-01-01) which
+// rendered every no-expiry certification as Expired. Treat null /
+// empty as "No expiry" and surface as 'success' since unrestricted-
+// term certifications shouldn't read as risky.
 const getExpiryStatus = (
-  expiryDate: string
+  expiryDate: string | null | undefined
 ): { label: string; variant: 'success' | 'warning' | 'error' } => {
+  if (!expiryDate) return { label: 'No expiry', variant: 'success' };
   const expiry = new Date(expiryDate);
+  if (Number.isNaN(expiry.getTime())) {
+    return { label: 'No expiry', variant: 'success' };
+  }
   const now = new Date();
   const daysUntil = Math.floor(
     (expiry.getTime() - now.getTime()) / (1000 * 86400)
@@ -61,16 +76,23 @@ export const CertificationsScreen: React.FC = () => {
         .eq('contractor_id', user.id)
         .order('issue_date', { ascending: false });
       if (err) throw new Error(err.message);
+      // 2026-05-23 audit: live column is `is_verified`, not `verified`.
+      // The query was succeeding but the verified field always
+      // resolved to `false`, so the green verification checkmark never
+      // rendered for any contractor — including those whose
+      // certifications had been admin-verified. Web API
+      // /api/contractor/certifications already does the
+      // is_verified → verified rename; this screen bypasses the API.
       return (rows || []).map(
         (c: Record<string, unknown>): Certification => ({
           id: c.id as string,
           name: (c.name as string) || '',
           issuer: (c.issuer as string) || '',
           issue_date: c.issue_date as string,
-          expiry_date: c.expiry_date as string,
+          expiry_date: (c.expiry_date as string | null) ?? null,
           credential_id: c.credential_id as string | undefined,
           category: (c.category as string) || 'general',
-          verified: (c.verified as boolean) ?? false,
+          verified: (c.is_verified as boolean) ?? false,
         })
       );
     },
@@ -144,7 +166,9 @@ export const CertificationsScreen: React.FC = () => {
                 </Text>
                 <Text style={styles.certDate}>
                   Expires:{' '}
-                  {new Date(item.expiry_date).toLocaleDateString('en-GB')}
+                  {item.expiry_date
+                    ? new Date(item.expiry_date).toLocaleDateString('en-GB')
+                    : '—'}
                 </Text>
               </View>
               {item.credential_id && (

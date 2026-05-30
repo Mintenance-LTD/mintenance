@@ -78,35 +78,39 @@ export default function SafetyPage() {
                   className='w-12 h-12 mb-4'
                   style={{ color: 'var(--me-brand)' }}
                 />
-                <h2 style={cardHeadingStyle}>Verified Contractors</h2>
+                <h2 style={cardHeadingStyle}>Contractor onboarding</h2>
                 <p style={{ color: 'var(--me-ink-2)', marginBottom: 16 }}>
-                  All contractors on our platform undergo a comprehensive
-                  verification process including:
+                  Every contractor submits the following at onboarding, and our
+                  admin team reviews each submission before they can bid:
                 </p>
                 <ul className='space-y-2' style={{ color: 'var(--me-ink-2)' }}>
                   <li className='flex items-start'>
                     <span className='mr-2' style={{ color: 'var(--me-brand)' }}>
                       •
                     </span>
-                    <span>Identity verification</span>
+                    <span>
+                      Business details (name, contact, years of experience)
+                    </span>
                   </li>
                   <li className='flex items-start'>
                     <span className='mr-2' style={{ color: 'var(--me-brand)' }}>
                       •
                     </span>
-                    <span>Background checks</span>
+                    <span>Declared trade licences (e.g. Gas Safe, NICEIC)</span>
                   </li>
                   <li className='flex items-start'>
                     <span className='mr-2' style={{ color: 'var(--me-brand)' }}>
                       •
                     </span>
-                    <span>Insurance verification</span>
+                    <span>Declared insurance provider and policy</span>
                   </li>
                   <li className='flex items-start'>
                     <span className='mr-2' style={{ color: 'var(--me-brand)' }}>
                       •
                     </span>
-                    <span>Skills assessment</span>
+                    <span>
+                      Optional DBS check (basic, standard or enhanced)
+                    </span>
                   </li>
                 </ul>
               </div>

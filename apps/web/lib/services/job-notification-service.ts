@@ -12,10 +12,6 @@ interface NotificationJobContext {
 
 interface NotificationPayload {
   required_skills?: string[] | null;
-  show_budget_to_contractors?: boolean;
-  budget?: number;
-  budget_min?: number;
-  budget_max?: number;
 }
 
 interface ContractorRecord {
@@ -232,7 +228,10 @@ export class JobNotificationService {
     // every recipient gets the same push pipeline as a 1:1 notification.
     // Fan-out is parallel via Promise.allSettled so a single contractor's
     // preference / push failure doesn't block the rest.
-    const budgetText = this.getBudgetText(payload);
+    // 2026-05-22: budget removed from broadcast text. Homeowner-set
+    // budgets stopped being collected on new jobs, and legacy budgets
+    // shouldn't anchor contractors either. They quote based on the
+    // job description + photos.
     const skillsText =
       payload.required_skills && payload.required_skills.length > 0
         ? `Requires: ${payload.required_skills.join(', ')}. `
@@ -244,7 +243,7 @@ export class JobNotificationService {
           userId: contractor.id,
           type: 'job_nearby',
           title: 'New Job Near You',
-          message: `New job "${job.title}" posted near you. ${skillsText}Budget: ${budgetText}`,
+          message: `New job "${job.title}" posted near you. ${skillsText}Submit your bid to be considered.`,
           actionUrl: `/jobs/${job.id}`,
           metadata: { jobId: job.id },
         })
@@ -356,19 +355,5 @@ export class JobNotificationService {
       preferredContractorId,
       homeownerId,
     });
-  }
-
-  private getBudgetText(payload: NotificationPayload): string {
-    if (
-      !payload.show_budget_to_contractors &&
-      payload.budget_min &&
-      payload.budget_max
-    ) {
-      return `£${payload.budget_min.toLocaleString()}-£${payload.budget_max.toLocaleString()}`;
-    }
-    if (payload.budget) {
-      return `£${payload.budget.toLocaleString()}`;
-    }
-    return 'Negotiable';
   }
 }

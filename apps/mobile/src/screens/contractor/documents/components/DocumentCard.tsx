@@ -3,12 +3,21 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { me } from '../../../../design-system/mint-editorial';
 import { styles } from '../../DocumentsStyles';
-import { type Document, formatFileSize, getDocStyle } from '../types';
+import {
+  type Document,
+  formatFileSize,
+  getDocStyle,
+  getFileExtLabel,
+} from '../types';
+import { DocIcon } from '../../../../components/documents/DocIcon';
 
 /**
- * One document card in the list. Color accent + category icon +
- * filename + meta row + optional star + chevron.
+ * One document card in the contractor library. Type-coloured left
+ * accent + DocIcon paper tile (with extension chip) + filename + meta
+ * row + optional star + chevron. Matches the contractor library spec
+ * in redesign-v2/documents-web.html.
  * Extracted 2026-05-09 (AUDIT_PUNCH_LIST P2 #44d).
+ * Spec-matched 2026-05-21 (DocIcon paper shape + ext chip).
  */
 export function DocumentCard({
   document,
@@ -23,6 +32,7 @@ export function DocumentCard({
 }) {
   const docStyle = getDocStyle(document.category);
   const sizeStr = formatFileSize(document.file_size);
+  const extLabel = getFileExtLabel(document.filename);
 
   return (
     <TouchableOpacity
@@ -34,9 +44,9 @@ export function DocumentCard({
 
       <View style={styles.docContent}>
         <View style={styles.docTopRow}>
-          <View style={[styles.docIconWrap, { backgroundColor: docStyle.bg }]}>
-            <Ionicons name={docStyle.icon} size={20} color={docStyle.color} />
-          </View>
+          <DocIcon color={docStyle.color} bg={docStyle.bg} ext={extLabel}>
+            <Ionicons name={docStyle.icon} size={22} color={docStyle.color} />
+          </DocIcon>
 
           <View style={styles.docInfo}>
             <Text style={styles.docName} numberOfLines={1}>

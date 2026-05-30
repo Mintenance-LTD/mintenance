@@ -18,6 +18,7 @@ import {
   getIdempotencyKeyFromRequest,
   checkIdempotency,
   storeIdempotencyResult,
+  releaseOnError,
 } from '@/lib/idempotency';
 import {
   NotFoundError,
@@ -35,6 +36,41 @@ export const POST = withApiHandler(
   async (request: NextRequest, { user }): Promise<NextResponse> => {
     // Use RLS-enforced client for user-scoped reads; fall back to service role
     const userDb = createRequestScopedClient(request) ?? serverSupabase;
+
+    // 2026-05-26 audit-63 P1: enforce the "verified before bidding"
+    // product rule. The mobile onboarding banner already promises
+    // "Finish verification to start bidding" — without this gate a
+    // contractor with verification_status='pending' could submit
+    // bids freely (live DB had one pending contractor with 8 bids
+    // already). admin_verified is the legacy boolean some admin
+    // tools still set; verification_status='verified' is the modern
+    // value flipped by the admin-review approval flow. Accept either
+    // to avoid blocking contractors mid-migration.
+    const { data: verificationRow } = await serverSupabase
+      .from('profiles')
+      .select('verification_status, admin_verified')
+      .eq('id', user.id)
+      .single();
+    const isVerified =
+      verificationRow?.verification_status === 'verified' ||
+      verificationRow?.admin_verified === true;
+    if (!isVerified) {
+      logger.info('Bid submission blocked: contractor not yet verified', {
+        service: 'contractor',
+        userId: user.id,
+        verificationStatus: verificationRow?.verification_status ?? null,
+        adminVerified: verificationRow?.admin_verified ?? null,
+      });
+      return NextResponse.json(
+        {
+          error:
+            'Your contractor profile is still being verified. You can submit bids once an admin reviews your account.',
+          code: 'CONTRACTOR_NOT_VERIFIED',
+        },
+        { status: 403 }
+      );
+    }
+
     // Check subscription requirement
     const { requireSubscriptionForAction, checkSubscriptionLimits } =
       await import('@/lib/middleware/subscription-check');
@@ -109,96 +145,97 @@ export const POST = withApiHandler(
       return NextResponse.json(idempotencyCheck.cachedResult);
     }
 
-    // Validate request body
-    const bodyData = body as Record<string, unknown>;
-    logger.debug('[BID_SUBMIT] Raw request body', {
-      service: 'contractor',
-      bodyEstimatedDuration: bodyData.estimatedDuration,
-      bodyProposedStartDate: bodyData.proposedStartDate,
-      bodyEstimatedDurationType: typeof bodyData.estimatedDuration,
-      jobId: bodyData.jobId,
-      bidAmount: bodyData.bidAmount,
-      proposalTextLength:
-        typeof bodyData.proposalText === 'string'
-          ? bodyData.proposalText.length
-          : 0,
-    });
-
-    let validatedData: SubmitBidInput;
-    try {
-      validatedData = submitBidSchema.parse(body);
-      logger.debug('[BID_SUBMIT] Validation passed', {
+    return await releaseOnError(idempotencyKey, 'submit_bid', async () => {
+      // Validate request body
+      const bodyData = body as Record<string, unknown>;
+      logger.debug('[BID_SUBMIT] Raw request body', {
         service: 'contractor',
-        estimatedDuration: validatedData.estimatedDuration,
-        proposedStartDate: validatedData.proposedStartDate,
-        estimatedDurationType: typeof validatedData.estimatedDuration,
+        bodyEstimatedDuration: bodyData.estimatedDuration,
+        bodyProposedStartDate: bodyData.proposedStartDate,
+        bodyEstimatedDurationType: typeof bodyData.estimatedDuration,
+        jobId: bodyData.jobId,
+        bidAmount: bodyData.bidAmount,
+        proposalTextLength:
+          typeof bodyData.proposalText === 'string'
+            ? bodyData.proposalText.length
+            : 0,
       });
-    } catch (validationError) {
-      if (validationError instanceof z.ZodError) {
-        // Format validation errors for better client feedback
-        const errorMessages = validationError.issues.map((issue) => {
-          const path = issue.path.join('.');
-          return `${path}: ${issue.message}`;
-        });
 
-        logger.warn('[BID_SUBMIT] Validation failed', {
+      let validatedData: SubmitBidInput;
+      try {
+        validatedData = submitBidSchema.parse(body);
+        logger.debug('[BID_SUBMIT] Validation passed', {
           service: 'contractor',
-          errors: validationError.issues,
-          errorMessages,
-          bodyEstimatedDuration: bodyData.estimatedDuration,
-          bodyProposedStartDate: bodyData.proposedStartDate,
-          bodyEstimatedDurationType: typeof bodyData.estimatedDuration,
-          jobId: bodyData.jobId,
-          bidAmount: bodyData.bidAmount,
-          proposalTextLength:
-            typeof bodyData.proposalText === 'string'
-              ? bodyData.proposalText.length
-              : 0,
+          estimatedDuration: validatedData.estimatedDuration,
+          proposedStartDate: validatedData.proposedStartDate,
+          estimatedDurationType: typeof validatedData.estimatedDuration,
         });
+      } catch (validationError) {
+        if (validationError instanceof z.ZodError) {
+          // Format validation errors for better client feedback
+          const errorMessages = validationError.issues.map((issue) => {
+            const path = issue.path.join('.');
+            return `${path}: ${issue.message}`;
+          });
 
-        // Return first error message in a user-friendly format
-        const firstError = validationError.issues[0];
-        let userMessage = 'Invalid bid data';
-        if (firstError) {
-          if (firstError.path.includes('proposalText')) {
-            if (firstError.code === 'too_small') {
-              userMessage =
-                'Proposal description must be at least 50 characters';
-            } else if (firstError.code === 'too_big') {
-              userMessage =
-                'Proposal description cannot exceed 5000 characters';
-            }
-          } else if (firstError.path.includes('bidAmount')) {
-            userMessage = 'Bid amount must be a positive number';
-          } else if (firstError.path.includes('jobId')) {
-            userMessage = 'Invalid job ID';
-          } else if (firstError.path.includes('estimatedDuration')) {
-            userMessage =
-              'Estimated duration must be a positive number (in days)';
-          } else if (firstError.path.includes('proposedStartDate')) {
-            userMessage = 'Proposed start date must be in YYYY-MM-DD format';
-          } else {
-            userMessage = firstError.message;
-          }
-        }
-
-        return NextResponse.json(
-          {
-            error: userMessage,
-            details: validationError.issues,
+          logger.warn('[BID_SUBMIT] Validation failed', {
+            service: 'contractor',
+            errors: validationError.issues,
             errorMessages,
-          },
-          { status: 400 }
-        );
-      }
-      throw validationError;
-    }
+            bodyEstimatedDuration: bodyData.estimatedDuration,
+            bodyProposedStartDate: bodyData.proposedStartDate,
+            bodyEstimatedDurationType: typeof bodyData.estimatedDuration,
+            jobId: bodyData.jobId,
+            bidAmount: bodyData.bidAmount,
+            proposalTextLength:
+              typeof bodyData.proposalText === 'string'
+                ? bodyData.proposalText.length
+                : 0,
+          });
 
-    // Check if job exists and is accepting bids (include homeowner details for email)
-    const { data: job, error: jobError } = await userDb
-      .from('jobs')
-      .select(
-        `
+          // Return first error message in a user-friendly format
+          const firstError = validationError.issues[0];
+          let userMessage = 'Invalid bid data';
+          if (firstError) {
+            if (firstError.path.includes('proposalText')) {
+              if (firstError.code === 'too_small') {
+                userMessage =
+                  'Proposal description must be at least 50 characters';
+              } else if (firstError.code === 'too_big') {
+                userMessage =
+                  'Proposal description cannot exceed 5000 characters';
+              }
+            } else if (firstError.path.includes('bidAmount')) {
+              userMessage = 'Bid amount must be a positive number';
+            } else if (firstError.path.includes('jobId')) {
+              userMessage = 'Invalid job ID';
+            } else if (firstError.path.includes('estimatedDuration')) {
+              userMessage =
+                'Estimated duration must be a positive number (in days)';
+            } else if (firstError.path.includes('proposedStartDate')) {
+              userMessage = 'Proposed start date must be in YYYY-MM-DD format';
+            } else {
+              userMessage = firstError.message;
+            }
+          }
+
+          return NextResponse.json(
+            {
+              error: userMessage,
+              details: validationError.issues,
+              errorMessages,
+            },
+            { status: 400 }
+          );
+        }
+        throw validationError;
+      }
+
+      // Check if job exists and is accepting bids (include homeowner details for email)
+      const { data: job, error: jobError } = await userDb
+        .from('jobs')
+        .select(
+          `
         id,
         title,
         status,
@@ -211,371 +248,324 @@ export const POST = withApiHandler(
           last_name
         )
       `
-      )
-      .eq('id', validatedData.jobId)
-      .single();
+        )
+        .eq('id', validatedData.jobId)
+        .single();
 
-    if (jobError || !job) {
-      logger.warn('Bid submitted for non-existent job', {
-        service: 'contractor',
-        jobId: validatedData.jobId,
-        contractorId: user.id,
-      });
-      throw new NotFoundError('Job not found');
-    }
-
-    // Check if job is open for bids AND not already assigned
-    if (job.status !== JOB_STATUS.POSTED && job.status !== 'open') {
-      logger.warn('Bid submitted for closed job', {
-        service: 'contractor',
-        jobId: validatedData.jobId,
-        jobStatus: job.status,
-      });
-      throw new BadRequestError('This job is no longer accepting bids');
-    }
-
-    // SECURITY: Prevent homeowners from bidding on their own jobs
-    if (job.homeowner_id === user.id) {
-      logger.warn('Self-bid attempt blocked', {
-        service: 'contractor',
-        jobId: validatedData.jobId,
-        userId: user.id,
-      });
-      throw new ForbiddenError('You cannot bid on your own job');
-    }
-
-    // SECURITY FIX: Verify job is not already assigned to a contractor
-    const { data: jobWithContractor } = await userDb
-      .from('jobs')
-      .select('contractor_id')
-      .eq('id', validatedData.jobId)
-      .single();
-
-    if (jobWithContractor?.contractor_id) {
-      logger.warn('Bid submitted for already assigned job', {
-        service: 'contractor',
-        jobId: validatedData.jobId,
-        assignedContractor: jobWithContractor.contractor_id,
-        attemptingContractor: user.id,
-      });
-      return NextResponse.json(
-        {
-          error: 'This job has already been assigned to a contractor',
-        },
-        { status: 400 }
-      );
-    }
-
-    // Validate bid amount doesn't exceed job budget
-    // Use pre-tax subtotal for comparison (bidAmount may include VAT from client)
-    if (job.budget) {
-      const preTaxAmount = validatedData.subtotal ?? validatedData.bidAmount;
-      const preTaxCents = Math.round(preTaxAmount * 100);
-      const budgetCents = Math.round(job.budget * 100);
-
-      if (preTaxCents > budgetCents) {
-        logger.warn('Bid amount exceeds job budget', {
+      if (jobError || !job) {
+        logger.warn('Bid submitted for non-existent job', {
           service: 'contractor',
           jobId: validatedData.jobId,
-          bidAmount: validatedData.bidAmount,
-          subtotal: validatedData.subtotal,
-          preTaxAmount,
-          jobBudget: job.budget,
           contractorId: user.id,
+        });
+        throw new NotFoundError('Job not found');
+      }
+
+      // Check if job is open for bids AND not already assigned
+      if (job.status !== JOB_STATUS.POSTED && job.status !== 'open') {
+        logger.warn('Bid submitted for closed job', {
+          service: 'contractor',
+          jobId: validatedData.jobId,
+          jobStatus: job.status,
+        });
+        throw new BadRequestError('This job is no longer accepting bids');
+      }
+
+      // SECURITY: Prevent homeowners from bidding on their own jobs
+      if (job.homeowner_id === user.id) {
+        logger.warn('Self-bid attempt blocked', {
+          service: 'contractor',
+          jobId: validatedData.jobId,
+          userId: user.id,
+        });
+        throw new ForbiddenError('You cannot bid on your own job');
+      }
+
+      // SECURITY FIX: Verify job is not already assigned to a contractor
+      const { data: jobWithContractor } = await userDb
+        .from('jobs')
+        .select('contractor_id')
+        .eq('id', validatedData.jobId)
+        .single();
+
+      if (jobWithContractor?.contractor_id) {
+        logger.warn('Bid submitted for already assigned job', {
+          service: 'contractor',
+          jobId: validatedData.jobId,
+          assignedContractor: jobWithContractor.contractor_id,
+          attemptingContractor: user.id,
         });
         return NextResponse.json(
           {
-            error: `Bid amount (£${preTaxAmount.toFixed(2)}) cannot exceed job budget (£${job.budget.toFixed(2)})`,
+            error: 'This job has already been assigned to a contractor',
           },
           { status: 400 }
         );
       }
 
-      // Check if budget might have been reduced after bids were submitted
-      const { count: existingBidCount } = await userDb
-        .from('bids')
-        .select('id', { count: 'exact', head: true })
-        .eq('job_id', validatedData.jobId)
-        .neq('status', 'withdrawn');
+      // 2026-05-23 audit: the budget cap was the last enforcement point
+      // that contradicted the 2026-05-22 open-bidding rollout. The homeowner
+      // no longer sets a budget; contractors set their own price with a
+      // required justification. Keeping the server cap meant:
+      //   * Mobile UI says "homeowners no longer set the budget" while the
+      //     server still rejects bids above any legacy budget value.
+      //   * `job.budget.toFixed(2)` (line 290 pre-fix) threw a TypeError
+      //     when supabase-js returned NUMERIC as a string — turning a
+      //     soft 400 into a 500 for any legacy job with a populated budget.
+      //   * The "budget appears to have been reduced" warning was dead
+      //     observability — it only fired when the cap fired.
+      //
+      // Cap removed. Bid amount validation now sits with the homeowner
+      // (they pick the bid that fits) + the AI pricing recommendation
+      // (which already informs contractors when their price is too low
+      // or too high).
 
-      if (existingBidCount && existingBidCount > 0) {
-        const { data: existingBids } = await userDb
-          .from('bids')
-          .select('amount, contractor_id, status')
-          .eq('job_id', validatedData.jobId)
-          .neq('status', 'withdrawn');
+      // Get pricing recommendation (async, don't block)
+      const pricingRecommendation = await PricingAgent.generateRecommendation(
+        validatedData.jobId,
+        user.id,
+        validatedData.bidAmount
+      ).catch((error) => {
+        logger.error('Error generating pricing recommendation', error, {
+          service: 'contractor',
+          jobId: validatedData.jobId,
+        });
+        return null;
+      });
 
-        const budgetReduced = existingBids?.some(
-          (bid: {
-            amount: number | null;
-            contractor_id: string;
-            status: string;
-          }) => {
-            const bidAmount = bid.amount || 0;
-            const bidAmountCents = Math.round(bidAmount * 100);
-            return bidAmountCents > budgetCents;
-          }
-        );
+      // Calculate competitiveness score if recommendation exists
+      let competitivenessScore: number | undefined;
+      let pricingRecommendationId: string | undefined;
+      let suggestedPriceRange: Record<string, number> | undefined;
 
-        if (budgetReduced) {
-          logger.warn(
-            'Budget appears to have been reduced after bids were submitted',
+      if (pricingRecommendation) {
+        competitivenessScore = pricingRecommendation.competitivenessScore;
+        pricingRecommendationId = pricingRecommendation.id || undefined;
+        suggestedPriceRange = {
+          min: pricingRecommendation.recommendedMinPrice,
+          max: pricingRecommendation.recommendedMaxPrice,
+          optimal: pricingRecommendation.recommendedOptimalPrice,
+        };
+      }
+
+      // Prepare the bid payload
+      const proposalText = (validatedData.proposalText || '').trim();
+      const bidPayload = {
+        job_id: validatedData.jobId,
+        contractor_id: user.id,
+        amount: validatedData.bidAmount,
+        description: proposalText,
+        message: proposalText, // Keep both columns in sync (canonical column is 'message')
+        status: 'pending' as const,
+        competitiveness_score: competitivenessScore,
+        pricing_recommendation_id: pricingRecommendationId,
+        suggested_price_range: suggestedPriceRange,
+        was_price_recommended: pricingRecommendation
+          ? Math.abs(
+              validatedData.bidAmount -
+                pricingRecommendation.recommendedOptimalPrice
+            ) < 0.01
+          : false,
+        // Columns confirmed to exist via migration 20260320000001
+        ...(validatedData.estimatedDuration !== undefined && {
+          estimated_duration_days: validatedData.estimatedDuration,
+        }),
+        ...(validatedData.proposedStartDate && {
+          proposed_start_date: validatedData.proposedStartDate,
+        }),
+        updated_at: new Date().toISOString(),
+      };
+
+      logger.debug('[BID_SUBMIT] Bid payload created', {
+        service: 'contractor',
+        hasEstimatedDuration: validatedData.estimatedDuration !== undefined,
+        hasProposedStartDate: !!validatedData.proposedStartDate,
+        estimatedDuration: validatedData.estimatedDuration,
+        proposedStartDate: validatedData.proposedStartDate,
+        // Note: estimated_duration and proposed_start_date are not included in payload
+        // due to potential schema variations - see TODO above
+      });
+
+      // Process bid creation or update
+      let bid: unknown;
+      let isUpdate: boolean;
+      try {
+        logger.debug('[BID_SUBMIT] Calling processBid', {
+          service: 'contractor',
+          jobId: validatedData.jobId,
+          contractorId: user.id,
+          bidPayloadKeys: Object.keys(bidPayload),
+          hasEstimatedDuration: 'estimated_duration' in bidPayload,
+          hasProposedStartDate: 'proposed_start_date' in bidPayload,
+        });
+
+        const result = await processBid(validatedData, user.id, bidPayload);
+        bid = result.bid;
+        isUpdate = result.isUpdate;
+
+        logger.debug('[BID_SUBMIT] processBid succeeded', {
+          service: 'contractor',
+          isUpdate,
+          hasBidId: bid && typeof bid === 'object' && 'id' in bid,
+        });
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : 'Unknown error';
+        const dbError = error as {
+          code?: string;
+          message?: string;
+          details?: string;
+          hint?: string;
+        };
+
+        // Log the actual database error details
+        logger.error('[BID_SUBMIT] processBid failed', {
+          service: 'contractor',
+          errorMessage,
+          errorCode: dbError.code,
+          errorMessageFromDb: dbError.message,
+          errorDetails: dbError.details,
+          errorHint: dbError.hint,
+          errorStack: error instanceof Error ? error.stack : undefined,
+          jobId: validatedData.jobId,
+          contractorId: user.id,
+        });
+
+        // Check if it's a database error we can handle
+        if (dbError.code || dbError.message) {
+          const userMessage = getDatabaseErrorMessage(dbError);
+          logger.warn('[BID_SUBMIT] Returning database error to client', {
+            service: 'contractor',
+            userMessage,
+            actualErrorCode: dbError.code,
+            actualErrorMessage: dbError.message,
+          });
+          return NextResponse.json(
             {
-              service: 'contractor',
-              jobId: validatedData.jobId,
-              currentBudget: job.budget,
-              existingBidCount,
-            }
+              error: userMessage,
+              // Include actual error details in development for debugging
+              ...(process.env.NODE_ENV === 'development' && {
+                debug: {
+                  code: dbError.code,
+                  message: dbError.message,
+                  details: dbError.details,
+                  hint: dbError.hint,
+                },
+              }),
+            },
+            { status: 400 }
           );
         }
+
+        // Re-throw if it's not a database error
+        throw error;
       }
-    }
 
-    // Get pricing recommendation (async, don't block)
-    const pricingRecommendation = await PricingAgent.generateRecommendation(
-      validatedData.jobId,
-      user.id,
-      validatedData.bidAmount
-    ).catch((error) => {
-      logger.error('Error generating pricing recommendation', error, {
-        service: 'contractor',
-        jobId: validatedData.jobId,
-      });
-      return null;
-    });
-
-    // Calculate competitiveness score if recommendation exists
-    let competitivenessScore: number | undefined;
-    let pricingRecommendationId: string | undefined;
-    let suggestedPriceRange: Record<string, number> | undefined;
-
-    if (pricingRecommendation) {
-      competitivenessScore = pricingRecommendation.competitivenessScore;
-      pricingRecommendationId = pricingRecommendation.id || undefined;
-      suggestedPriceRange = {
-        min: pricingRecommendation.recommendedMinPrice,
-        max: pricingRecommendation.recommendedMaxPrice,
-        optimal: pricingRecommendation.recommendedOptimalPrice,
-      };
-    }
-
-    // Prepare the bid payload
-    const proposalText = (validatedData.proposalText || '').trim();
-    const bidPayload = {
-      job_id: validatedData.jobId,
-      contractor_id: user.id,
-      amount: validatedData.bidAmount,
-      description: proposalText,
-      message: proposalText, // Keep both columns in sync (canonical column is 'message')
-      status: 'pending' as const,
-      competitiveness_score: competitivenessScore,
-      pricing_recommendation_id: pricingRecommendationId,
-      suggested_price_range: suggestedPriceRange,
-      was_price_recommended: pricingRecommendation
-        ? Math.abs(
-            validatedData.bidAmount -
-              pricingRecommendation.recommendedOptimalPrice
-          ) < 0.01
-        : false,
-      // Columns confirmed to exist via migration 20260320000001
-      ...(validatedData.estimatedDuration !== undefined && {
-        estimated_duration_days: validatedData.estimatedDuration,
-      }),
-      ...(validatedData.proposedStartDate && {
-        proposed_start_date: validatedData.proposedStartDate,
-      }),
-      updated_at: new Date().toISOString(),
-    };
-
-    logger.debug('[BID_SUBMIT] Bid payload created', {
-      service: 'contractor',
-      hasEstimatedDuration: validatedData.estimatedDuration !== undefined,
-      hasProposedStartDate: !!validatedData.proposedStartDate,
-      estimatedDuration: validatedData.estimatedDuration,
-      proposedStartDate: validatedData.proposedStartDate,
-      // Note: estimated_duration and proposed_start_date are not included in payload
-      // due to potential schema variations - see TODO above
-    });
-
-    // Process bid creation or update
-    let bid: unknown;
-    let isUpdate: boolean;
-    try {
-      logger.debug('[BID_SUBMIT] Calling processBid', {
-        service: 'contractor',
-        jobId: validatedData.jobId,
-        contractorId: user.id,
-        bidPayloadKeys: Object.keys(bidPayload),
-        hasEstimatedDuration: 'estimated_duration' in bidPayload,
-        hasProposedStartDate: 'proposed_start_date' in bidPayload,
-      });
-
-      const result = await processBid(validatedData, user.id, bidPayload);
-      bid = result.bid;
-      isUpdate = result.isUpdate;
-
-      logger.debug('[BID_SUBMIT] processBid succeeded', {
-        service: 'contractor',
-        isUpdate,
-        hasBidId: bid && typeof bid === 'object' && 'id' in bid,
-      });
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
-      const dbError = error as {
-        code?: string;
-        message?: string;
-        details?: string;
-        hint?: string;
-      };
-
-      // Log the actual database error details
-      logger.error('[BID_SUBMIT] processBid failed', {
-        service: 'contractor',
-        errorMessage,
-        errorCode: dbError.code,
-        errorMessageFromDb: dbError.message,
-        errorDetails: dbError.details,
-        errorHint: dbError.hint,
-        errorStack: error instanceof Error ? error.stack : undefined,
-        jobId: validatedData.jobId,
-        contractorId: user.id,
-      });
-
-      // Check if it's a database error we can handle
-      if (dbError.code || dbError.message) {
-        const userMessage = getDatabaseErrorMessage(dbError);
-        logger.warn('[BID_SUBMIT] Returning database error to client', {
+      if (!bid || typeof bid !== 'object' || !('id' in bid)) {
+        logger.error('Bid creation/update failed but no error was thrown', {
           service: 'contractor',
-          userMessage,
-          actualErrorCode: dbError.code,
-          actualErrorMessage: dbError.message,
-        });
-        return NextResponse.json(
-          {
-            error: userMessage,
-            // Include actual error details in development for debugging
-            ...(process.env.NODE_ENV === 'development' && {
-              debug: {
-                code: dbError.code,
-                message: dbError.message,
-                details: dbError.details,
-                hint: dbError.hint,
-              },
-            }),
-          },
-          { status: 400 }
-        );
-      }
-
-      // Re-throw if it's not a database error
-      throw error;
-    }
-
-    if (!bid || typeof bid !== 'object' || !('id' in bid)) {
-      logger.error('Bid creation/update failed but no error was thrown', {
-        service: 'contractor',
-        contractorId: user.id,
-        jobId: validatedData.jobId,
-      });
-      throw new Error('Failed to submit bid');
-    }
-
-    // Process quote creation or update
-    const homeowner = Array.isArray(job.homeowner)
-      ? job.homeowner[0]
-      : job.homeowner;
-    const homeownerName = homeowner
-      ? `${homeowner.first_name || ''} ${homeowner.last_name || ''}`.trim() ||
-        'Client'
-      : 'Client';
-    const homeownerEmail = homeowner?.email || '';
-
-    const quotePayload = prepareQuoteData(
-      validatedData,
-      user.id,
-      job.title,
-      homeownerName,
-      homeownerEmail
-    );
-
-    // Get existing quote ID from bid
-    const { data: bidWithQuote } = await userDb
-      .from('bids')
-      .select('quote_id')
-      .eq('id', (bid as { id: string }).id)
-      .single();
-
-    const existingQuoteId = bidWithQuote?.quote_id || null;
-
-    await processQuote(
-      quotePayload,
-      existingQuoteId,
-      (bid as { id: string }).id
-    );
-
-    // Send notifications (only for new bids, not updates)
-    await sendBidNotifications(
-      job.homeowner,
-      user,
-      job,
-      validatedData,
-      isUpdate
-    );
-
-    logger.info('Bid submitted successfully', {
-      service: 'contractor',
-      bidId: (bid as { id: string }).id,
-      contractorId: user.id,
-      jobId: validatedData.jobId,
-      bidAmount: validatedData.bidAmount,
-    });
-
-    // Trigger auto-accept evaluation asynchronously (fire-and-forget)
-    if (!isUpdate && (bid as { status?: string }).status === 'pending') {
-      BidAcceptanceAgent.evaluateAutoAccept(
-        (bid as { id: string }).id,
-        validatedData.jobId,
-        homeowner?.id || '',
-        {
-          jobId: validatedData.jobId,
-          userId: homeowner?.id,
           contractorId: user.id,
-        }
-      ).catch((error) => {
-        logger.error('Error in auto-accept evaluation', {
-          service: 'contractor',
           jobId: validatedData.jobId,
-          bidId: (bid as { id: string }).id,
-          error: error instanceof Error ? error.message : 'Unknown error',
         });
-      });
-    }
+        throw new Error('Failed to submit bid');
+      }
 
-    const responseData = {
-      success: true,
-      updated: isUpdate,
-      message: isUpdate
-        ? 'Your bid has been updated successfully.'
-        : 'Your bid has been submitted successfully.',
-      bid: {
-        id: (bid as { id: string }).id,
+      // Process quote creation or update
+      const homeowner = Array.isArray(job.homeowner)
+        ? job.homeowner[0]
+        : job.homeowner;
+      const homeownerName = homeowner
+        ? `${homeowner.first_name || ''} ${homeowner.last_name || ''}`.trim() ||
+          'Client'
+        : 'Client';
+      const homeownerEmail = homeowner?.email || '';
+
+      const quotePayload = prepareQuoteData(
+        validatedData,
+        user.id,
+        job.title,
+        homeownerName,
+        homeownerEmail
+      );
+
+      // Get existing quote ID from bid
+      const { data: bidWithQuote } = await userDb
+        .from('bids')
+        .select('quote_id')
+        .eq('id', (bid as { id: string }).id)
+        .single();
+
+      const existingQuoteId = bidWithQuote?.quote_id || null;
+
+      await processQuote(
+        quotePayload,
+        existingQuoteId,
+        (bid as { id: string }).id
+      );
+
+      // Send notifications (only for new bids, not updates)
+      await sendBidNotifications(
+        job.homeowner,
+        user,
+        job,
+        validatedData,
+        isUpdate
+      );
+
+      logger.info('Bid submitted successfully', {
+        service: 'contractor',
+        bidId: (bid as { id: string }).id,
+        contractorId: user.id,
         jobId: validatedData.jobId,
         bidAmount: validatedData.bidAmount,
-        status: (bid as { status?: string }).status || 'pending',
-        createdAt: (bid as { created_at?: string }).created_at,
-      },
-    };
+      });
 
-    // Store idempotency result for future duplicate requests
-    await storeIdempotencyResult(
-      idempotencyKey,
-      'submit_bid',
-      responseData,
-      user.id,
-      { jobId: validatedData.jobId, bidId: (bid as { id: string }).id }
-    );
+      // Trigger auto-accept evaluation asynchronously (fire-and-forget)
+      if (!isUpdate && (bid as { status?: string }).status === 'pending') {
+        BidAcceptanceAgent.evaluateAutoAccept(
+          (bid as { id: string }).id,
+          validatedData.jobId,
+          homeowner?.id || '',
+          {
+            jobId: validatedData.jobId,
+            userId: homeowner?.id,
+            contractorId: user.id,
+          }
+        ).catch((error) => {
+          logger.error('Error in auto-accept evaluation', {
+            service: 'contractor',
+            jobId: validatedData.jobId,
+            bidId: (bid as { id: string }).id,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
+        });
+      }
 
-    return NextResponse.json(responseData, { status: 201 });
+      const responseData = {
+        success: true,
+        updated: isUpdate,
+        message: isUpdate
+          ? 'Your bid has been updated successfully.'
+          : 'Your bid has been submitted successfully.',
+        bid: {
+          id: (bid as { id: string }).id,
+          jobId: validatedData.jobId,
+          bidAmount: validatedData.bidAmount,
+          status: (bid as { status?: string }).status || 'pending',
+          createdAt: (bid as { created_at?: string }).created_at,
+        },
+      };
+
+      // Store idempotency result for future duplicate requests
+      await storeIdempotencyResult(
+        idempotencyKey,
+        'submit_bid',
+        responseData,
+        user.id,
+        { jobId: validatedData.jobId, bidId: (bid as { id: string }).id }
+      );
+
+      return NextResponse.json(responseData, { status: 201 });
+    });
   }
 );

@@ -53,6 +53,16 @@ interface ApiExpense {
   createdAt: string;
 }
 
+// 2026-05-23 audit-23 P2: live `contractor_expenses` has no
+// tax_deductible column — recordExpense persists the intent as a
+// `tax-deductible` tag (see ALLOWED_TAGS below). The previous
+// fromApi() hardcoded tax_deductible:false, so the create roundtrip
+// looked fine but every subsequent read silently lost the flag.
+// Category totals on the expenses screen then under-reported the
+// tax-deductible bucket. Map the tag back to the boolean so totals
+// match what the contractor entered.
+const TAX_DEDUCTIBLE_TAG = 'tax-deductible';
+
 function fromApi(e: ApiExpense, contractorId: string): ExpenseRecord {
   return {
     id: e.id,
@@ -62,7 +72,9 @@ function fromApi(e: ApiExpense, contractorId: string): ExpenseRecord {
     description: e.description,
     date: e.date,
     receipt_url: e.receiptUrl ?? undefined,
-    tax_deductible: false,
+    tax_deductible: Array.isArray(e.tags)
+      ? e.tags.includes(TAX_DEDUCTIBLE_TAG)
+      : false,
     created_at: e.createdAt,
     updated_at: e.createdAt,
   };
@@ -111,7 +123,7 @@ export async function recordExpense(
       noteFragments.push(`subcategory: ${expenseData.subcategory}`);
     }
     if (expenseData.vendor) noteFragments.push(`vendor: ${expenseData.vendor}`);
-    const tags = expenseData.tax_deductible ? ['tax-deductible'] : [];
+    const tags = expenseData.tax_deductible ? [TAX_DEDUCTIBLE_TAG] : [];
 
     const body = {
       description: expenseData.description,

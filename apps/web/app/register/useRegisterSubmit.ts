@@ -137,10 +137,18 @@ export function useRegisterSubmit() {
 
       setSubmitStatus('success');
       setTimeout(() => {
+        // 2026-05-25 audit-P0-2: fresh homeowner sign-ups now land on
+        // the onboarding wizard (mirrors the mobile HomeownerSetupModal
+        // flow) before they hit the dashboard, so we capture the same
+        // property_type + concern_tags + flip onboarding_completed that
+        // mobile has been quietly accumulating. The wizard page itself
+        // redirects to /dashboard if the flag is already true, so the
+        // unconditional homeowner-to-wizard route is idempotent and
+        // safe even on repeat sign-ups with the same email.
         const redirectPath =
           data.role === 'contractor'
             ? '/contractor/dashboard-enhanced'
-            : '/dashboard';
+            : '/onboarding/homeowner';
         router.push(redirectPath);
         router.refresh();
       }, 1500);

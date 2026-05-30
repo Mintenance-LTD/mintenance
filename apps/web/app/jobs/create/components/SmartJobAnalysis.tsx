@@ -51,7 +51,9 @@ interface SmartJobAnalysisProps {
   location?: string;
   imageUrls?: string[];
   onCategorySelect: (category: string) => void;
-  onBudgetSelect: (budget: number) => void;
+  /** No longer used — kept on the type so existing callers stay
+   *  compatible while the budget removal lands. */
+  onBudgetSelect?: (budget: number) => void;
   onUrgencySelect: (urgency: 'low' | 'medium' | 'high') => void;
 }
 
@@ -61,7 +63,6 @@ export function SmartJobAnalysis({
   location,
   imageUrls = [],
   onCategorySelect,
-  onBudgetSelect,
   onUrgencySelect,
 }: SmartJobAnalysisProps) {
   const [analysis, setAnalysis] = useState<JobAnalysisResult | null>(null);
@@ -328,81 +329,9 @@ export function SmartJobAnalysis({
             </div>
           </div>
 
-          {/* Budget Suggestion */}
-          <div
-            style={{
-              padding: theme.spacing[3],
-              backgroundColor: theme.colors.surface,
-              borderRadius: theme.borderRadius.md,
-              border: `1px solid ${theme.colors.border}`,
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                marginBottom: theme.spacing[2],
-              }}
-            >
-              <div>
-                <div
-                  style={{
-                    fontSize: theme.typography.fontSize.xs,
-                    color: theme.colors.textSecondary,
-                    marginBottom: theme.spacing[1],
-                  }}
-                >
-                  Suggested Budget
-                </div>
-                <div
-                  style={{
-                    fontSize: theme.typography.fontSize.base,
-                    fontWeight: theme.typography.fontWeight.semibold,
-                    color: theme.colors.textPrimary,
-                  }}
-                >
-                  {formatMoney(analysis.suggestedBudget.recommended)}
-                </div>
-                <div
-                  style={{
-                    fontSize: theme.typography.fontSize.xs,
-                    color: theme.colors.textSecondary,
-                    marginTop: theme.spacing[1],
-                  }}
-                >
-                  Range: {formatMoney(analysis.suggestedBudget.min)} -{' '}
-                  {formatMoney(analysis.suggestedBudget.max)}
-                </div>
-              </div>
-              <button
-                onClick={() =>
-                  onBudgetSelect(analysis.suggestedBudget.recommended)
-                }
-                style={{
-                  padding: `${theme.spacing[1]} ${theme.spacing[3]}`,
-                  backgroundColor: theme.colors.primary,
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: theme.borderRadius.md,
-                  fontSize: theme.typography.fontSize.sm,
-                  fontWeight: theme.typography.fontWeight.semibold,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = '#374151';
-                  e.currentTarget.style.transform = 'translateY(-1px)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = theme.colors.primary;
-                  e.currentTarget.style.transform = 'translateY(0)';
-                }}
-              >
-                Apply
-              </button>
-            </div>
-          </div>
+          {/* Budget suggestion intentionally not shown here — the AI
+              cost estimate now appears read-only on the Timeline step.
+              Removed 2026-05-22 alongside the budget input removal. */}
 
           {/* Timeline Suggestion */}
           <div

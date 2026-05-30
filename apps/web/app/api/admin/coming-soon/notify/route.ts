@@ -22,6 +22,12 @@ export const POST = withApiHandler(
     // Require fresh MFA proof — matches the precedent for admin send
     // routes (announcements/send, refunds/[id], etc.).
     requireMfaVerifiedWithinMinutes: 15,
+    logActivity: {
+      actionType: 'coming_soon_notify',
+      category: 'communication',
+      targetType: 'waitlist',
+      description: 'Sent launch notifications to coming-soon waitlist',
+    },
   },
   async () => {
     // Get all un-notified signups

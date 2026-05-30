@@ -14,7 +14,7 @@ import type { RouteProp } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LoadingSpinner, ErrorView } from '../../components/shared';
 import { useJobDetailsViewModel } from './viewmodels/JobDetailsViewModel';
-import { useJobBids } from '../../hooks/useJobs';
+import { useJobBids, useMyBidForJob } from '../../hooks/useJobs';
 import { BidService } from '../../services/BidService';
 import { ImageCarousel } from '../../components/ui/ImageCarousel';
 import { HostCard } from '../../components/ui/HostCard';
@@ -24,6 +24,11 @@ import { JobRoomScope } from '../components/JobRoomScope';
 import { ContractorLocationSection } from './components/ContractorLocationSection';
 import { HomeownerLocationRequest } from './components/HomeownerLocationRequest';
 import { JobLocationMap } from './components/JobLocationMap';
+import {
+  JobAccessCard,
+  type PropertyAccess,
+  type PropertyContact,
+} from './components/JobAccessCard';
 import { JobPricingCard } from './components/JobPricingCard';
 import { JobTitleSection } from './components/JobTitleSection';
 import { JobDetailsList } from './components/JobDetailsList';
@@ -72,9 +77,21 @@ interface Props {
  * preserved; only the orchestration + state remain here.
  */
 export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
-  const { jobId } = route.params;
+  // 2026-05-26 audit-58 P3: previously `const { jobId } = route.params`
+  // would throw if a deep link / notification / fallback route landed
+  // here without params (or with an empty/undefined jobId). The
+  // ScreenErrorBoundary above caught it but the in-screen ErrorView
+  // never got a chance to render — and the boundary doesn't know the
+  // route's `fallbackRoute='JobsList'` until after the crash. Guard
+  // here so a malformed entry shows an actionable error instead of
+  // tearing the screen down.
+  const jobId = route?.params?.jobId;
   const { user } = useAuth();
-  const viewModel = useJobDetailsViewModel(jobId);
+  // useJobDetailsViewModel safely handles empty/undefined jobId (the
+  // underlying useQuery stays disabled until a real id arrives) but
+  // we still short-circuit the rest of the screen below if jobId
+  // never resolves — a missing id is a hard failure for this surface.
+  const viewModel = useJobDetailsViewModel(jobId ?? '');
   const insets = useSafeAreaInsets();
   const [showEscrowModal, setShowEscrowModal] = useState(false);
   const [withdrawingBid, setWithdrawingBid] = useState(false);
@@ -83,7 +100,33 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   // surface a retry — the underlying query will still resolve in the
   // background if the request eventually returns.
   const [loadingTimedOut, setLoadingTimedOut] = useState(false);
-  const { data: bidsData, refetch: refetchBids } = useJobBids(jobId);
+  // 2026-05-23 audit: /api/jobs/:id/bids is homeowner-only (returns 403
+  // for non-owners). Gate the bids fetch on ownership so contractors
+  // viewing public job details don't spam 403s + retries on this
+  // endpoint. Until the job loads we can't be sure of ownership, so
+  // the hook stays disabled — once viewModel.job arrives we re-enable
+  // for owners only.
+  const isJobOwner =
+    !!viewModel.job?.homeowner_id &&
+    !!user?.id &&
+    viewModel.job.homeowner_id === user.id;
+  const { data: bidsData, refetch: refetchBids } = useJobBids(jobId, {
+    enabled: isJobOwner,
+  });
+  // 2026-05-24 audit-26 P1: contractor-side parallel query. When a
+  // contractor opens a job they don't own, /api/jobs/:id/bids 403s,
+  // so useJobBids stays disabled and bidsArray is empty — that
+  // collapses every "Bid Pending" / "Edit Bid" CTA back to a fresh
+  // "Submit Bid", even after deep-link / notification re-entry. The
+  // owner-scoped check `contractor_id = auth.uid()` on
+  // /api/contractor/bids?jobId= safely returns just the caller's
+  // single bid (or empty), which we merge into bidsArray below so
+  // the existing CTA logic in JobDetailsCTA picks it up unchanged.
+  const isContractorViewer =
+    !!user?.id && user.role === 'contractor' && !isJobOwner;
+  const { data: myBidData, refetch: refetchMyBid } = useMyBidForJob(jobId, {
+    enabled: isContractorViewer,
+  });
 
   useEffect(() => {
     if (!viewModel.jobLoading) {
@@ -98,7 +141,16 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
   const isContractor = user?.role === 'contractor';
   const isOwner = user?.id === job?.homeowner_id;
 
-  const bidsArray = (Array.isArray(bidsData) ? bidsData : []) as BidListItem[];
+  // Homeowners get the full list from useJobBids; contractors get
+  // their own single bid (zero or one row) from useMyBidForJob. The
+  // arrays never overlap because the two queries are mutually
+  // exclusive (gated on isJobOwner vs isContractorViewer above).
+  const ownerBids = (Array.isArray(bidsData) ? bidsData : []) as BidListItem[];
+  const myBidArray: BidListItem[] = myBidData
+    ? [myBidData as unknown as BidListItem]
+    : [];
+  const bidsArray: BidListItem[] =
+    ownerBids.length > 0 ? ownerBids : myBidArray;
   const myPendingBid =
     isContractor && user?.id
       ? bidsArray.find(
@@ -126,6 +178,12 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
               'Your bid has been withdrawn successfully.'
             );
             refetchBids();
+            // 2026-05-24 audit-26 P1: contractors hit the contractor-
+            // scoped query, not /api/jobs/:id/bids, so the owner
+            // refetch above is a no-op for them. Refetch the
+            // contractor's own bid so the CTA flips back to
+            // "Submit Bid" after a successful withdrawal.
+            refetchMyBid();
             viewModel.refetchJob();
           } catch {
             Alert.alert('Error', 'Failed to withdraw bid. Please try again.');
@@ -135,8 +193,20 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
         },
       },
     ]);
-  }, [myPendingBid, user?.id, refetchBids, viewModel, jobId]);
+  }, [myPendingBid, user?.id, refetchBids, refetchMyBid, viewModel, jobId]);
 
+  // 2026-05-26 audit-58 P3: deep link / fallback route arrived
+  // without a usable jobId. Render a clear error rather than
+  // letting useJobDetailsViewModel sit in a permanent "loading"
+  // state with a disabled query.
+  if (!jobId) {
+    return (
+      <ErrorView
+        message='Missing job reference. The link you opened did not include a job id.'
+        onRetry={() => navigation.goBack()}
+      />
+    );
+  }
   if (viewModel.jobLoading && !loadingTimedOut) {
     return <LoadingSpinner message='Loading job details...' />;
   }
@@ -264,7 +334,11 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           </View>
         )}
 
-        {budget > 0 && (
+        {/* 2026-05-22: JobPricingCard hidden — contractors set their own
+            price on each bid and the homeowner picks from the bids.
+            Kept the import so the component file stays referenced for
+            historical reuse; the gate is what changed. */}
+        {false && budget > 0 && (
           <JobPricingCard
             budget={budget}
             onEscrowInfo={() => setShowEscrowModal(true)}
@@ -298,6 +372,38 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
             </View>
           </>
         ) : null}
+
+        {/* 2026-05-23 audit: surface property access details to the
+            assigned contractor (key_safe_code is server-gated by the
+            1h-before-scheduled-start window — we just render
+            whatever the API returns). Homeowners don't need this on
+            the job detail (their property page owns the edit).
+            2026-05-24 audit-30 P1: also pass propertyContacts so the
+            "& contacts" half of the card actually renders. */}
+        {isContractor && user?.id === job.contractor_id
+          ? (() => {
+              const enriched = job as unknown as {
+                propertyAccess?: PropertyAccess | null;
+                propertyContacts?: PropertyContact[] | null;
+              };
+              const hasAccess = !!enriched.propertyAccess;
+              const hasContacts =
+                Array.isArray(enriched.propertyContacts) &&
+                enriched.propertyContacts.length > 0;
+              if (!hasAccess && !hasContacts) return null;
+              return (
+                <>
+                  <View style={styles.divider} />
+                  <View style={styles.sectionPadded}>
+                    <JobAccessCard
+                      access={enriched.propertyAccess ?? null}
+                      contacts={enriched.propertyContacts ?? null}
+                    />
+                  </View>
+                </>
+              );
+            })()
+          : null}
 
         {isOwner && bidsArray.length > 0 && (
           <>
@@ -416,8 +522,16 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
             navigation.navigate('JobTimeline', { jobId: job.id })
           }
           onEditPress={() => navigation.navigate('JobEdit', { jobId: job.id })}
+          // 2026-05-24 audit-27 P1: the quick-action sign-off used to
+          // open JobSignOffScreen which only shows text + an Approve
+          // button — bypassing the before/after photo review. The main
+          // sticky CTA already goes to PhotoReview (which has the same
+          // Approve/Request Changes mutations PLUS the BeforeAfterSlider
+          // homeowners are supposed to see before releasing escrow).
+          // Route the quick action there too so both entry points
+          // surface the photo evidence.
           onSignOffPress={() =>
-            navigation.navigate('JobSignOff', { jobId: job.id })
+            navigation.navigate('PhotoReview', { jobId: job.id })
           }
           onDisputePress={() =>
             navigation.navigate('Dispute', {
@@ -452,6 +566,7 @@ export const JobDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
         contractStatus: viewModel.contractStatus,
         escrowStatus: viewModel.escrowStatus,
         hasReviewed: viewModel.hasReviewed,
+        beforePhotoCount: viewModel.beforePhotoCount,
         bidsArray,
       })}
 

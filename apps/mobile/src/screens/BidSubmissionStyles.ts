@@ -224,6 +224,23 @@ export const styles = StyleSheet.create({
     marginBottom: 16,
   },
   warningText: { flex: 1, fontSize: 13, color: '#DC2626', fontWeight: '500' },
+  // 2026-05-28 U5: monthly bid-limit "near cap" soft notice (brand-tinted,
+  // non-blocking — distinct from the red warningBanner used at the hard cap).
+  bidLimitInfoBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: me.brandSoft,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+  },
+  bidLimitInfoText: {
+    flex: 1,
+    fontSize: 13,
+    color: me.brand,
+    fontWeight: '600',
+  },
   // Char count
   charCountRow: { alignItems: 'flex-end', marginTop: 4 },
   charCount: { fontSize: 12, color: me.ink3 },

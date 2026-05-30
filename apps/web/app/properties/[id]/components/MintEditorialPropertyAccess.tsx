@@ -62,7 +62,15 @@ const MODES: AccessModeOption[] = [
     key: 'smart_lock',
     icon: <Lock size={16} strokeWidth={1.75} />,
     label: 'Smart lock',
-    sub: 'One-time code per contractor',
+    // 2026-05-23 audit: per-contractor one-time-code generation isn't
+    // implemented — no `smart_lock_codes` table, no provisioning
+    // service, no per-contractor reveal flow. The previous copy
+    // ("One-time code per contractor") promised a feature that
+    // doesn't exist. Relabelled to the honest fallback: contractor
+    // sees the instructions written in `access_notes`. Tracked as
+    // a dedicated rollout (needs lock vendor selection +
+    // OAuth/API integration + schema + reveal flow).
+    sub: 'Instructions only — full integration coming soon',
   },
   {
     key: 'in_person',
@@ -135,59 +143,103 @@ export function MintEditorialPropertyAccess({
   initialAccess,
 }: Props) {
   const trades = deriveSavedTrades(jobs);
-  const [mode, setMode] = useState<AccessModeKey | null>(
-    initialAccess?.access_mode ?? null
-  );
-  const [keySafeCode, setKeySafeCode] = useState(
-    initialAccess?.key_safe_code ?? ''
-  );
-  const [accessNotes, setAccessNotes] = useState(
-    initialAccess?.access_notes ?? ''
-  );
-  const [stopcock, setStopcock] = useState(
-    initialAccess?.stopcock_location ?? ''
-  );
+  // 2026-05-27 audit-85 P3: hold the saved baseline in state so a
+  // successful save can reset it. Previously the dirty flag was
+  // compared against the prop (immutable for the component's life),
+  // so after saving "isDirty" stayed true and the Save button never
+  // went back to its disabled / "Saved" pill state.
+  const [baseline, setBaseline] = useState<PropertyAccessValues>({
+    access_mode: initialAccess?.access_mode ?? null,
+    key_safe_code: initialAccess?.key_safe_code ?? null,
+    access_notes: initialAccess?.access_notes ?? null,
+    stopcock_location: initialAccess?.stopcock_location ?? null,
+    gas_isolator_location: initialAccess?.gas_isolator_location ?? null,
+    consumer_unit_location: initialAccess?.consumer_unit_location ?? null,
+  });
+  const [mode, setMode] = useState<AccessModeKey | null>(baseline.access_mode);
+  const [keySafeCode, setKeySafeCode] = useState(baseline.key_safe_code ?? '');
+  const [accessNotes, setAccessNotes] = useState(baseline.access_notes ?? '');
+  const [stopcock, setStopcock] = useState(baseline.stopcock_location ?? '');
   const [gasIsolator, setGasIsolator] = useState(
-    initialAccess?.gas_isolator_location ?? ''
+    baseline.gas_isolator_location ?? ''
   );
   const [consumerUnit, setConsumerUnit] = useState(
-    initialAccess?.consumer_unit_location ?? ''
+    baseline.consumer_unit_location ?? ''
   );
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState<number | null>(null);
 
-  // Dirty flag — only enable Save when something changed from the
-  // server-side initial state.
+  // Normalise a UI string back to the null/string the baseline stores
+  // so the dirty + payload checks stay symmetric with the server.
+  const norm = (v: string) => (v.trim() ? v.trim() : null);
+  const currentKeySafe = norm(keySafeCode);
+  const currentNotes = norm(accessNotes);
+  const currentStopcock = norm(stopcock);
+  const currentGas = norm(gasIsolator);
+  const currentConsumer = norm(consumerUnit);
+
+  // Dirty flag + per-field dirty checks. The per-field flags drive the
+  // PATCH payload below — see P1.
+  const modeDirty = mode !== baseline.access_mode;
+  const keySafeDirty = currentKeySafe !== baseline.key_safe_code;
+  const notesDirty = currentNotes !== baseline.access_notes;
+  const stopcockDirty = currentStopcock !== baseline.stopcock_location;
+  const gasDirty = currentGas !== baseline.gas_isolator_location;
+  const consumerDirty = currentConsumer !== baseline.consumer_unit_location;
   const isDirty =
-    mode !== (initialAccess?.access_mode ?? null) ||
-    keySafeCode !== (initialAccess?.key_safe_code ?? '') ||
-    accessNotes !== (initialAccess?.access_notes ?? '') ||
-    stopcock !== (initialAccess?.stopcock_location ?? '') ||
-    gasIsolator !== (initialAccess?.gas_isolator_location ?? '') ||
-    consumerUnit !== (initialAccess?.consumer_unit_location ?? '');
+    modeDirty ||
+    keySafeDirty ||
+    notesDirty ||
+    stopcockDirty ||
+    gasDirty ||
+    consumerDirty;
 
   const handleSave = async () => {
     if (saving || !isDirty) return;
     setSaving(true);
     try {
+      // 2026-05-27 audit-85 P1: only PATCH the fields that actually
+      // changed. /api/properties/[id]/access blocks non-owner/non-
+      // platform-admin callers from touching key_safe_code (even to
+      // null), and /api/properties/[id] redacts it to null for
+      // managers — so a manager whose form was hydrated with a null
+      // key_safe_code, who edited only the notes, was sending
+      // {key_safe_code: null, ...} and getting 403. Sending only
+      // dirty fields means managers can edit the access fields they
+      // are allowed to touch without the owner-only key_safe_code
+      // riding along on every save. Mirrors the mobile pattern in
+      // PropertyAccessSection.tsx.
+      const patchBody: Record<string, unknown> = {};
+      if (modeDirty) patchBody.access_mode = mode;
+      if (keySafeDirty) patchBody.key_safe_code = currentKeySafe;
+      if (notesDirty) patchBody.access_notes = currentNotes;
+      if (stopcockDirty) patchBody.stopcock_location = currentStopcock;
+      if (gasDirty) patchBody.gas_isolator_location = currentGas;
+      if (consumerDirty) patchBody.consumer_unit_location = currentConsumer;
+
       const csrfHeaders = await getCsrfHeaders();
       const res = await fetch(`/api/properties/${propertyId}/access`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', ...csrfHeaders },
         credentials: 'include',
-        body: JSON.stringify({
-          access_mode: mode,
-          key_safe_code: keySafeCode.trim() || null,
-          access_notes: accessNotes.trim() || null,
-          stopcock_location: stopcock.trim() || null,
-          gas_isolator_location: gasIsolator.trim() || null,
-          consumer_unit_location: consumerUnit.trim() || null,
-        }),
+        body: JSON.stringify(patchBody),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({ error: 'Save failed' }));
         throw new Error(body.error || 'Failed to save access details');
       }
+      // 2026-05-27 audit-85 P3: reset the dirty baseline to what we
+      // just persisted so subsequent edits compare against the latest
+      // saved state and the Save button correctly flips back to
+      // disabled / "Saved".
+      setBaseline({
+        access_mode: mode,
+        key_safe_code: currentKeySafe,
+        access_notes: currentNotes,
+        stopcock_location: currentStopcock,
+        gas_isolator_location: currentGas,
+        consumer_unit_location: currentConsumer,
+      });
       setSavedAt(Date.now());
       toast.success('Access details saved');
     } catch (error) {

@@ -57,6 +57,34 @@ function calculateTotals(
   };
 }
 
+// audit-17 P2: shared notify-homeowner helper for POST + PATCH paths.
+async function notifyHomeownerOfInvoice(
+  invoice: Record<string, unknown>
+): Promise<void> {
+  const jobId = invoice.job_id as string | null | undefined;
+  if (!jobId) return;
+  const { data: job } = await serverSupabase
+    .from('jobs')
+    .select('homeowner_id')
+    .eq('id', jobId)
+    .single();
+  if (!job) return;
+  const total = Number(invoice.total_amount ?? 0);
+  const fmtAmount = `£${total.toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
+  await NotificationService.createNotification({
+    userId: job.homeowner_id,
+    type: 'invoice_received',
+    title: `${fmtAmount} invoice — ${invoice.title}`,
+    message: `Open ${invoice.invoice_number} to review the line items and pay.`,
+    actionUrl: `/jobs/${jobId}`,
+    metadata: {
+      invoice_id: invoice.id,
+      invoice_number: invoice.invoice_number,
+      amount: total,
+    },
+  });
+}
+
 // Send invoice notification email to the client using the platform email service
 async function sendInvoiceEmail(
   invoice: Record<string, unknown>,
@@ -277,38 +305,11 @@ export const POST = withApiHandler(
       throw new InternalServerError('Failed to create invoice');
     }
 
-    // If status is 'sent', send email notification
+    // If status is 'sent', send email notification + homeowner push.
     if (validatedData.status === 'sent' && invoice) {
       try {
         await sendInvoiceEmail(invoice, user);
-
-        if (validatedData.jobId) {
-          const { data: job } = await serverSupabase
-            .from('jobs')
-            .select('homeowner_id')
-            .eq('id', validatedData.jobId)
-            .single();
-
-          if (job) {
-            // Route through NotificationService so push + preference
-            // checks apply. Direct insert used a `data` column that
-            // doesn't exist on notifications — PostgREST rejects the
-            // whole INSERT, so invoice-received notifications never
-            // reached homeowners.
-            await NotificationService.createNotification({
-              userId: job.homeowner_id,
-              type: 'invoice_received',
-              title: 'New Invoice Received',
-              message: `You have received an invoice (${invoiceNumber}) for ${validatedData.title}`,
-              actionUrl: `/jobs/${validatedData.jobId}`,
-              metadata: {
-                invoice_id: invoice.id,
-                invoice_number: invoiceNumber,
-                amount: totalAmount,
-              },
-            });
-          }
-        }
+        await notifyHomeownerOfInvoice(invoice);
       } catch (emailError) {
         logger.error('Error sending invoice email', emailError);
         // Don't fail the request if email fails
@@ -361,7 +362,7 @@ export const PATCH = withApiHandler(
     // Check if invoice belongs to contractor
     const { data: existingInvoice } = await userDb
       .from('invoices')
-      .select('contractor_id, status')
+      .select('contractor_id, status, sent_at, total_amount')
       .eq('id', invoiceId)
       .single();
 
@@ -392,6 +393,34 @@ export const PATCH = withApiHandler(
       };
     }
 
+    // 2026-05-23 audit-17 P2: draft → sent stamps sent_at and fires
+    // sendInvoiceEmail + invoice_received (was POST-only).
+    const isSendTransition =
+      existingInvoice.status !== 'sent' && validatedPatchData.status === 'sent';
+    if (isSendTransition && !updateData.sent_at) {
+      updateData.sent_at = new Date().toISOString();
+    }
+
+    // 2026-05-23 audit-24 P2: status→paid stamps paid_date / paid_amount
+    // server-side (mobile only PATCHes {status:'paid'}; schema rejects
+    // client-supplied paid_date/amount to stop backdating).
+    const isPaidTransition =
+      existingInvoice.status !== 'paid' && validatedPatchData.status === 'paid';
+    if (isPaidTransition) {
+      updateData.paid_date = new Date().toISOString();
+      updateData.paid_amount =
+        (updateData.total_amount as number | undefined) ??
+        existingInvoice.total_amount;
+    }
+
+    // 2026-05-23 audit-24 P2: `reminder:true` PATCH re-fires
+    // sendInvoiceEmail + invoice_received on an already-sent invoice
+    // (the transition gate above wouldn't trigger). Flag isn't a DB
+    // column — strip it from updateData.
+    const isReminderRequest =
+      (validatedPatchData as { reminder?: boolean }).reminder === true;
+    delete (updateData as { reminder?: unknown }).reminder;
+
     // Update invoice
     const { data: invoice, error } = await userDb
       .from('invoices')
@@ -405,11 +434,26 @@ export const PATCH = withApiHandler(
       throw new InternalServerError('Failed to update invoice');
     }
 
-    return NextResponse.json({
-      success: true,
-      invoice,
-      message: 'Invoice updated successfully',
-    });
+    if ((isSendTransition || isReminderRequest) && invoice) {
+      try {
+        await sendInvoiceEmail(invoice, user);
+        await notifyHomeownerOfInvoice(invoice);
+      } catch (sendErr) {
+        logger.error(
+          'Error firing invoice send side-effects on PATCH',
+          sendErr
+        );
+      }
+    }
+
+    const message = isReminderRequest
+      ? 'Reminder sent'
+      : isPaidTransition
+        ? 'Invoice marked as paid'
+        : isSendTransition
+          ? 'Invoice sent successfully'
+          : 'Invoice updated successfully';
+    return NextResponse.json({ success: true, invoice, message });
   }
 );
 

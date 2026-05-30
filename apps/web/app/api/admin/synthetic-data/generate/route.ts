@@ -25,6 +25,12 @@ export const POST = withApiHandler(
     // training. Stolen cookie = cost exfiltration + training-data
     // poisoning vector. Same 15-min MFA window as other admin mutations.
     requireMfaVerifiedWithinMinutes: 15,
+    logActivity: {
+      actionType: 'synthetic_data_generate',
+      category: 'settings',
+      targetType: 'training_data',
+      description: 'Generated synthetic training data',
+    },
   },
   async (request, { user }) => {
     const body = await request.json();

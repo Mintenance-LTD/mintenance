@@ -8,6 +8,10 @@
  *
  * Kept out of page.tsx because page.tsx is right at the 500-line MDC
  * limit and these helpers are pure / unit-testable in isolation.
+ *
+ * 2026-05-22: budget* params are still accepted on inbound URLs (the
+ * Mint AI dock may emit them) but they are silently dropped — budget
+ * collection no longer happens on this form.
  */
 import type { JobFormData } from './validation';
 
@@ -27,42 +31,17 @@ function pickUrgency(raw: string | null | undefined): JobFormData['urgency'] {
     : 'medium';
 }
 
-function resolveBudget(
-  rawMin: string | null | undefined,
-  rawMax: string | null | undefined
-): { budget: string; budget_min: string; budget_max: string } {
-  const min = parseFloat(rawMin ?? '');
-  const max = parseFloat(rawMax ?? '');
-  if (Number.isFinite(min) && Number.isFinite(max) && max >= min) {
-    return {
-      budget: String(Math.round((min + max) / 2)),
-      budget_min: rawMin ?? '',
-      budget_max: rawMax ?? '',
-    };
-  }
-  return { budget: '', budget_min: '', budget_max: '' };
-}
-
 /**
  * Returns the initial `JobFormData` seed for the form, taking every
  * value from the URL when present and falling back to safe defaults.
  */
 export function initialFormDataFromParams(params: Params): JobFormData {
-  const budget = resolveBudget(
-    params?.get('budget_min') ?? null,
-    params?.get('budget_max') ?? null
-  );
   return {
     title: params?.get('title') ?? '',
     description: params?.get('description') ?? '',
     location: params?.get('location') ?? '',
     category: params?.get('category') ?? '',
     urgency: pickUrgency(params?.get('urgency')),
-    budget: budget.budget,
-    budget_min: budget.budget_min,
-    budget_max: budget.budget_max,
-    show_budget_to_contractors: false,
-    require_itemized_bids: false,
     requiredSkills: [],
     property_id: params?.get('property_id') ?? '',
   };
@@ -84,8 +63,13 @@ export function formDataPatchFromParams(
   const category = params?.get('category') ?? undefined;
   const location = params?.get('location') ?? undefined;
   const urgencyRaw = params?.get('urgency') ?? undefined;
-  const rawMin = params?.get('budget_min') ?? undefined;
-  const rawMax = params?.get('budget_max') ?? undefined;
+  // 2026-05-23 audit: property_id was being read on initial mount
+  // (initialFormDataFromParams above) but NOT on the soft-navigation
+  // patch path. A tenant-report "Create Job" tap pushes new params
+  // into an already-mounted /jobs/create screen — the patch would
+  // apply title/description/category but drop property_id, and the
+  // homeowner submitted a job unlinked from the source property.
+  const propertyId = params?.get('property_id') ?? undefined;
 
   const anySet =
     !!title ||
@@ -93,8 +77,7 @@ export function formDataPatchFromParams(
     !!category ||
     !!location ||
     !!urgencyRaw ||
-    !!rawMin ||
-    !!rawMax;
+    !!propertyId;
   if (!anySet) return null;
 
   const patch: Partial<JobFormData> = {};
@@ -105,12 +88,6 @@ export function formDataPatchFromParams(
   if (urgencyRaw && (ALLOWED_URGENCY as string[]).includes(urgencyRaw)) {
     patch.urgency = urgencyRaw as JobFormData['urgency'];
   }
-  const min = parseFloat(rawMin ?? '');
-  const max = parseFloat(rawMax ?? '');
-  if (Number.isFinite(min) && Number.isFinite(max) && max >= min) {
-    patch.budget_min = rawMin ?? '';
-    patch.budget_max = rawMax ?? '';
-    patch.budget = String(Math.round((min + max) / 2));
-  }
+  if (propertyId) patch.property_id = propertyId;
   return patch;
 }

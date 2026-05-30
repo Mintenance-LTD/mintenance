@@ -1,9 +1,13 @@
 /**
  * Tests for PaymentService - Payment Processing Operations
  * Critical service handling real money transactions - comprehensive testing required
+ *
+ * The payment services route HTTP through `mobileApiClient` (the create-payment-intent /
+ * release-escrow-payment / process-refund Supabase edge functions were deleted 2026-05-10).
+ * Fees are GBP-only and tier-aware server-side; the client FeeCalculator fallback is a flat
+ * 12% platform rate, 1.5% + £0.20 Stripe rate, £0.50 minimum platform fee, no maximum cap.
  */
 
-// Mock Stripe first
 import { PaymentService } from '../PaymentService';
 import {
   confirmPayment as stripeConfirmPayment,
@@ -12,17 +16,19 @@ import {
 
 import { supabase } from '../../config/supabase';
 import { logger } from '../../utils/logger';
-import { config } from '../../config/environment';
+import { mobileApiClient } from '../../utils/mobileApiClient';
 
 jest.mock('@stripe/stripe-react-native', () => ({
   initStripe: jest.fn(() => Promise.resolve()),
   createPaymentMethod: jest.fn(),
   confirmPayment: jest.fn(),
   presentPaymentSheet: jest.fn(() => Promise.resolve({ error: null })),
-  createTokenWithCard: jest.fn(() => Promise.resolve({
-    token: { id: 'tok_test' },
-    error: null,
-  })),
+  createTokenWithCard: jest.fn(() =>
+    Promise.resolve({
+      token: { id: 'tok_test' },
+      error: null,
+    })
+  ),
 }));
 
 jest.mock('@react-native-async-storage/async-storage', () => ({
@@ -36,23 +42,28 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   multiRemove: jest.fn(() => Promise.resolve()),
 }));
 
-// Mock fetch for API calls
-global.fetch = jest.fn();
+// Canonical HTTP layer used by every payment service (and apiHelper.apiRequest).
+jest.mock('../../utils/mobileApiClient', () => ({
+  mobileApiClient: {
+    get: jest.fn(),
+    post: jest.fn(),
+    put: jest.fn(),
+    patch: jest.fn(),
+    delete: jest.fn(),
+  },
+}));
 
-// Mock supabase
+// Supabase is still used directly for: contracts (createPaymentIntent), payments table
+// (getPaymentHistory string path), and profiles (getContractorPayoutStatus).
 jest.mock('../../config/supabase', () => ({
   supabase: {
     auth: {
       getSession: jest.fn(),
     },
     from: jest.fn(),
-    functions: {
-      invoke: jest.fn(),
-    },
   },
 }));
 
-// Mock logger
 jest.mock('../../utils/logger', () => ({
   logger: {
     info: jest.fn(),
@@ -62,15 +73,13 @@ jest.mock('../../utils/logger', () => ({
   },
 }));
 
-// Mock config - also set the env var used by mobileApiClient so fetch URLs match
-jest.mock('../../config/environment', () => {
-  process.env.EXPO_PUBLIC_API_URL = 'https://api.mintenance.com';
-  return {
-    config: {
-      apiBaseUrl: 'https://api.mintenance.com',
-    },
-  };
-});
+const mockApi = mobileApiClient as unknown as {
+  get: jest.Mock;
+  post: jest.Mock;
+  put: jest.Mock;
+  patch: jest.Mock;
+  delete: jest.Mock;
+};
 
 describe('PaymentService', () => {
   const mockSession = {
@@ -86,33 +95,17 @@ describe('PaymentService', () => {
   const mockPaymentIntent = {
     id: 'pi_test_123',
     status: 'succeeded',
-    amount: 10000, // $100 in cents
+    amount: 10000,
     client_secret: 'pi_test_secret',
-  };
-
-  const mockEscrowTransaction = {
-    id: 'escrow-123',
-    job_id: 'job-123',
-    payer_id: 'user-123',
-    payee_id: 'contractor-123',
-    amount: 100,
-    status: 'pending',
-    created_at: '2025-01-15T10:00:00Z',
-    updated_at: '2025-01-15T10:00:00Z',
   };
 
   beforeEach(() => {
     jest.clearAllMocks();
-    (global.fetch as jest.Mock).mockReset();
   });
 
   describe('initializePayment', () => {
     it('should initialize payment with valid amount', async () => {
-      const mockResponse = { client_secret: 'pi_test_secret' };
-      (supabase.functions.invoke as jest.Mock).mockResolvedValue({
-        data: mockResponse,
-        error: null,
-      });
+      mockApi.post.mockResolvedValue({ clientSecret: 'pi_test_secret' });
 
       const result = await PaymentService.initializePayment({
         amount: 100,
@@ -120,14 +113,13 @@ describe('PaymentService', () => {
         contractorId: 'contractor-123',
       });
 
-      expect(supabase.functions.invoke).toHaveBeenCalledWith('create-payment-intent', {
-        body: {
-          amount: 10000, // Amount in cents
-          jobId: 'job-123',
-          contractorId: 'contractor-123',
-        },
+      // No cents conversion — server takes GBP units.
+      expect(mockApi.post).toHaveBeenCalledWith('/api/payments/create-intent', {
+        amount: 100,
+        jobId: 'job-123',
+        contractorId: 'contractor-123',
       });
-      expect(result).toEqual(mockResponse);
+      expect(result).toEqual({ client_secret: 'pi_test_secret' });
     });
 
     it('should throw error for zero amount', async () => {
@@ -153,19 +145,17 @@ describe('PaymentService', () => {
     it('should throw error for amount exceeding limit', async () => {
       await expect(
         PaymentService.initializePayment({
-          amount: 10001,
+          amount: 100001,
           jobId: 'job-123',
           contractorId: 'contractor-123',
         })
-      ).rejects.toThrow('Amount cannot exceed $10,000');
+      ).rejects.toThrow('Amount cannot exceed £100,000');
     });
 
     it('should handle API error', async () => {
-      const error = new Error('Payment initialization failed');
-      (supabase.functions.invoke as jest.Mock).mockResolvedValue({
-        data: null,
-        error: { message: error.message },
-      });
+      mockApi.post.mockRejectedValue(
+        new Error('Payment initialization failed')
+      );
 
       await expect(
         PaymentService.initializePayment({
@@ -181,24 +171,19 @@ describe('PaymentService', () => {
       );
     });
 
-    it('should round amount to nearest cent', async () => {
-      (supabase.functions.invoke as jest.Mock).mockResolvedValue({
-        data: { client_secret: 'pi_test_secret' },
-        error: null,
-      });
+    it('should pass the amount through without cents conversion', async () => {
+      mockApi.post.mockResolvedValue({ clientSecret: 'pi_test_secret' });
 
       await PaymentService.initializePayment({
-        amount: 99.999,
+        amount: 99.99,
         jobId: 'job-123',
         contractorId: 'contractor-123',
       });
 
-      expect(supabase.functions.invoke).toHaveBeenCalledWith('create-payment-intent', {
-        body: {
-          amount: 10000, // Rounded to 100.00
-          jobId: 'job-123',
-          contractorId: 'contractor-123',
-        },
+      expect(mockApi.post).toHaveBeenCalledWith('/api/payments/create-intent', {
+        amount: 99.99,
+        jobId: 'job-123',
+        contractorId: 'contractor-123',
       });
     });
   });
@@ -223,7 +208,7 @@ describe('PaymentService', () => {
         card: {
           number: '4242424242424242',
           expMonth: 12,
-          expYear: 2026,
+          expYear: 2099,
           cvc: '123',
         },
         billingDetails: {
@@ -237,7 +222,7 @@ describe('PaymentService', () => {
         card: {
           number: '4242424242424242',
           expMonth: 12,
-          expYear: 2026,
+          expYear: 2099,
           cvc: '123',
         },
         billingDetails: {
@@ -257,8 +242,8 @@ describe('PaymentService', () => {
           type: 'card',
           card: {
             number: '4242424242424242',
-            expMonth: currentMonth - 1,
-            expYear: currentYear,
+            expMonth: currentMonth === 1 ? 12 : currentMonth - 1,
+            expYear: currentMonth === 1 ? currentYear - 1 : currentYear,
             cvc: '123',
           },
         })
@@ -277,7 +262,7 @@ describe('PaymentService', () => {
           card: {
             number: '4000000000000002',
             expMonth: 12,
-            expYear: 2026,
+            expYear: 2099,
             cvc: '123',
           },
         })
@@ -323,15 +308,11 @@ describe('PaymentService', () => {
 
   describe('createEscrowTransaction', () => {
     it('should create escrow transaction successfully', async () => {
-      const mockFrom = {
-        insert: jest.fn().mockReturnThis(),
-        select: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({
-          data: mockEscrowTransaction,
-          error: null,
-        }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
+      mockApi.post.mockResolvedValue({
+        id: 'escrow-123',
+        status: 'pending',
+        amount: 100,
+      });
 
       const result = await PaymentService.createEscrowTransaction(
         'job-123',
@@ -340,167 +321,114 @@ describe('PaymentService', () => {
         100
       );
 
-      expect(supabase.from).toHaveBeenCalledWith('escrow_transactions');
-      expect(mockFrom.insert).toHaveBeenCalledWith({
-        job_id: 'job-123',
-        payer_id: 'user-123',
-        payee_id: 'contractor-123',
+      expect(mockApi.post).toHaveBeenCalledWith('/api/payments/create-intent', {
+        jobId: 'job-123',
+        payerId: 'user-123',
+        payeeId: 'contractor-123',
         amount: 100,
-        status: 'pending',
-        created_at: expect.any(String),
-        updated_at: expect.any(String),
       });
-      expect(result).toEqual(mockEscrowTransaction);
+      expect(result).toEqual({
+        id: 'escrow-123',
+        status: 'pending',
+        amount: 100,
+      });
     });
 
-    it('should handle database error', async () => {
-      const mockFrom = {
-        insert: jest.fn().mockReturnThis(),
-        select: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({
-          data: null,
-          error: { message: 'Database error' },
-        }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
+    it('should handle API error', async () => {
+      mockApi.post.mockRejectedValue(new Error('Database error'));
 
       await expect(
-        PaymentService.createEscrowTransaction('job-123', 'user-123', 'contractor-123', 100)
+        PaymentService.createEscrowTransaction(
+          'job-123',
+          'user-123',
+          'contractor-123',
+          100
+        )
       ).rejects.toThrow('Database error');
     });
   });
 
   describe('holdPaymentInEscrow', () => {
     it('should hold payment in escrow successfully', async () => {
-      const mockFrom = {
-        update: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockResolvedValue({
-          error: null,
-        }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
+      mockApi.post.mockResolvedValue({});
 
-      await PaymentService.holdPaymentInEscrow('escrow-123', 'pi_test_123');
+      await PaymentService.holdPaymentInEscrow('job-123', 'pi_test_123');
 
-      expect(supabase.from).toHaveBeenCalledWith('escrow_transactions');
-      expect(mockFrom.update).toHaveBeenCalledWith({
-        status: 'held',
-        payment_intent_id: 'pi_test_123',
-        updated_at: expect.any(String),
-      });
-      expect(mockFrom.eq).toHaveBeenCalledWith('id', 'escrow-123');
+      expect(mockApi.post).toHaveBeenCalledWith(
+        '/api/payments/confirm-intent',
+        {
+          paymentIntentId: 'pi_test_123',
+          jobId: 'job-123',
+        }
+      );
     });
 
     it('should handle update error', async () => {
-      const mockFrom = {
-        update: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockResolvedValue({
-          error: { message: 'Update failed' },
-        }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
+      mockApi.post.mockRejectedValue(new Error('Update failed'));
 
       await expect(
-        PaymentService.holdPaymentInEscrow('escrow-123', 'pi_test_123')
+        PaymentService.holdPaymentInEscrow('job-123', 'pi_test_123')
       ).rejects.toThrow('Update failed');
     });
   });
 
   describe('releaseEscrowPayment', () => {
     it('should release escrow payment successfully', async () => {
-      const mockFrom = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({
-          data: {
-            id: 'escrow-123',
-            amount: 100,
-            payment_intent_id: 'pi_test_123',
-            job: { contractor_id: 'contractor-123' },
-          },
-          error: null,
-        }),
-        update: jest.fn().mockReturnThis(),
-      };
-
-      const mockUpdate = {
-        eq: jest.fn().mockResolvedValue({ error: null }),
-      };
-
-      (supabase.from as jest.Mock)
-        .mockReturnValueOnce(mockFrom) // First call for select
-        .mockReturnValueOnce({ update: jest.fn().mockReturnValue(mockUpdate) }); // Second call for update
-
-      (supabase.functions.invoke as jest.Mock).mockResolvedValue({
-        error: null,
+      mockApi.get.mockResolvedValue({
+        id: 'escrow-123',
+        amount: 100,
+        payment_intent_id: 'pi_test_123',
+        job: { contractor_id: 'contractor-123' },
       });
+      mockApi.post.mockResolvedValue({});
 
       await PaymentService.releaseEscrowPayment('escrow-123');
 
-      expect(supabase.functions.invoke).toHaveBeenCalledWith('release-escrow-payment', {
-        body: {
+      expect(mockApi.get).toHaveBeenCalledWith('/api/escrow/escrow-123/status');
+      expect(mockApi.post).toHaveBeenCalledWith(
+        '/api/payments/release-escrow',
+        {
           transactionId: 'escrow-123',
           contractorId: 'contractor-123',
           amount: 100,
-        },
-      });
+        }
+      );
     });
 
     it('should handle transaction not found error', async () => {
-      const mockFrom = {
-        select: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({
-          data: null,
-          error: { message: 'Not found' },
-        }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
+      mockApi.get.mockRejectedValue(new Error('Not found'));
 
-      await expect(PaymentService.releaseEscrowPayment('escrow-123')).rejects.toThrow('Not found');
+      await expect(
+        PaymentService.releaseEscrowPayment('escrow-123')
+      ).rejects.toThrow('Not found');
     });
   });
 
   describe('refundEscrowPayment', () => {
     it('should refund escrow payment successfully', async () => {
-      (supabase.functions.invoke as jest.Mock).mockResolvedValue({
-        error: null,
-      });
-
-      const mockFrom = {
-        update: jest.fn().mockReturnThis(),
-        eq: jest.fn().mockResolvedValue({ error: null }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
+      mockApi.post.mockResolvedValue({});
 
       await PaymentService.refundEscrowPayment('escrow-123');
 
-      expect(supabase.functions.invoke).toHaveBeenCalledWith('refund-escrow-payment', {
-        body: { transactionId: 'escrow-123' },
-      });
-      expect(mockFrom.update).toHaveBeenCalledWith({
-        status: 'refunded',
-        refunded_at: expect.any(String),
-        updated_at: expect.any(String),
+      expect(mockApi.post).toHaveBeenCalledWith('/api/payments/refund', {
+        transactionId: 'escrow-123',
       });
     });
 
     it('should handle refund error', async () => {
-      (supabase.functions.invoke as jest.Mock).mockResolvedValue({
-        error: { message: 'Refund failed' },
-      });
+      mockApi.post.mockRejectedValue(new Error('Refund failed'));
 
-      await expect(PaymentService.refundEscrowPayment('escrow-123')).rejects.toThrow(
-        'Refund failed'
-      );
+      await expect(
+        PaymentService.refundEscrowPayment('escrow-123')
+      ).rejects.toThrow('Refund failed');
     });
   });
 
   describe('refundPayment', () => {
     it('should process refund with valid amount', async () => {
-      (supabase.functions.invoke as jest.Mock).mockResolvedValue({
-        data: { success: true, refund_id: 'refund-123' },
-        error: null,
+      mockApi.post.mockResolvedValue({
+        success: true,
+        refund_id: 'refund-123',
       });
 
       const result = await PaymentService.refundPayment({
@@ -509,12 +437,10 @@ describe('PaymentService', () => {
         reason: 'Customer requested refund',
       });
 
-      expect(supabase.functions.invoke).toHaveBeenCalledWith('process-refund', {
-        body: {
-          paymentIntentId: 'pi_test_123',
-          amount: 50,
-          reason: 'Customer requested refund',
-        },
+      expect(mockApi.post).toHaveBeenCalledWith('/api/payments/refund', {
+        paymentIntentId: 'pi_test_123',
+        amount: 50,
+        reason: 'Customer requested refund',
       });
       expect(result).toEqual({ success: true, refund_id: 'refund-123' });
     });
@@ -545,51 +471,47 @@ describe('PaymentService', () => {
       const fees = PaymentService.calculateFees(100);
 
       expect(fees).toEqual({
-        platformFee: 5, // 5% of $100
-        stripeFee: 3.2, // 2.9% + $0.30
-        contractorAmount: 91.8, // $100 - $5 - $3.20
-        totalFees: 8.2,
+        platformFee: 12, // 12% of £100
+        stripeFee: 1.7, // 1.5% of £100 + £0.20
+        contractorAmount: 86.3,
+        totalFees: 13.7,
       });
     });
 
     it('should apply minimum platform fee', () => {
-      const fees = PaymentService.calculateFees(5);
+      const fees = PaymentService.calculateFees(2);
 
       expect(fees).toEqual({
-        platformFee: 0.5, // Minimum $0.50
-        stripeFee: 0.45, // 2.9% of $5 + $0.30
-        contractorAmount: 4.05,
-        totalFees: 0.95,
+        platformFee: 0.5, // 12% of £2 = £0.24 → floored to £0.50 minimum
+        stripeFee: 0.23, // 1.5% of £2 + £0.20
+        contractorAmount: 1.27,
+        totalFees: 0.73,
       });
     });
 
-    it('should apply maximum platform fee', () => {
+    it('should scale platform fee linearly with no maximum cap', () => {
       const fees = PaymentService.calculateFees(2000);
 
       expect(fees).toEqual({
-        platformFee: 50, // Maximum $50
-        stripeFee: 58.3, // 2.9% of $2000 + $0.30
-        contractorAmount: 1891.7,
-        totalFees: 108.3,
+        platformFee: 240, // 12% of £2000 — no £50 cap anymore
+        stripeFee: 30.2, // 1.5% of £2000 + £0.20
+        contractorAmount: 1729.8,
+        totalFees: 270.2,
       });
     });
 
     it('should handle decimal amounts correctly', () => {
       const fees = PaymentService.calculateFees(99.99);
 
-      expect(fees.platformFee).toBeCloseTo(5, 2);
-      expect(fees.stripeFee).toBeCloseTo(3.2, 2);
-      expect(fees.totalFees).toBeCloseTo(8.2, 2);
-      expect(fees.contractorAmount).toBeCloseTo(91.79, 2);
+      expect(fees.platformFee).toBeCloseTo(12, 2);
+      expect(fees.stripeFee).toBeCloseTo(1.7, 2);
+      expect(fees.totalFees).toBeCloseTo(13.7, 2);
+      expect(fees.contractorAmount).toBeCloseTo(86.29, 2);
     });
   });
 
   describe('getPaymentMethods', () => {
     it('should fetch payment methods successfully', async () => {
-      (supabase.auth.getSession as jest.Mock).mockResolvedValue({
-        data: mockSession,
-      });
-
       const mockMethods = [
         {
           id: 'pm_1',
@@ -617,19 +539,11 @@ describe('PaymentService', () => {
         },
       ];
 
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: async () => ({ paymentMethods: mockMethods }),
-      });
+      mockApi.get.mockResolvedValue({ paymentMethods: mockMethods });
 
       const result = await PaymentService.getPaymentMethods();
 
-      expect(fetch).toHaveBeenCalledWith(`${config.apiBaseUrl}/api/payments/methods`, {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${mockSession.session.access_token}`,
-        },
-      });
+      expect(mockApi.get).toHaveBeenCalledWith('/api/payments/methods');
       expect(result).toEqual({
         methods: [
           expect.objectContaining({
@@ -656,10 +570,8 @@ describe('PaymentService', () => {
       });
     });
 
-    it('should handle authentication error', async () => {
-      (supabase.auth.getSession as jest.Mock).mockResolvedValue({
-        data: { session: null },
-      });
+    it('should return an error when the request is unauthenticated', async () => {
+      mockApi.get.mockRejectedValue(new Error('Not authenticated'));
 
       const result = await PaymentService.getPaymentMethods();
 
@@ -671,14 +583,7 @@ describe('PaymentService', () => {
     });
 
     it('should handle API error', async () => {
-      (supabase.auth.getSession as jest.Mock).mockResolvedValue({
-        data: mockSession,
-      });
-
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: false,
-        json: async () => ({ error: 'Server error' }),
-      });
+      mockApi.get.mockRejectedValue(new Error('Server error'));
 
       const result = await PaymentService.getPaymentMethods();
 
@@ -688,43 +593,28 @@ describe('PaymentService', () => {
 
   describe('savePaymentMethod', () => {
     it('should save payment method successfully', async () => {
-      (supabase.auth.getSession as jest.Mock).mockResolvedValue({
-        data: mockSession,
-      });
+      mockApi.post.mockResolvedValue({ success: true });
 
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: async () => ({ success: true }),
-      });
+      const result = await PaymentService.savePaymentMethod(
+        'pm_test_123',
+        true
+      );
 
-      const result = await PaymentService.savePaymentMethod('pm_test_123', true);
-
-      expect(fetch).toHaveBeenCalledWith(`${config.apiBaseUrl}/api/payments/add-method`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${mockSession.session.access_token}`,
-        },
-        body: JSON.stringify({
-          paymentMethodId: 'pm_test_123',
-          setAsDefault: true,
-        }),
+      expect(mockApi.post).toHaveBeenCalledWith('/api/payments/add-method', {
+        paymentMethodId: 'pm_test_123',
+        setAsDefault: true,
       });
       expect(result).toEqual({ success: true });
-      expect(logger.info).toHaveBeenCalledWith('Payment method saved successfully', {
-        paymentMethodId: 'pm_test_123',
-      });
+      expect(logger.info).toHaveBeenCalledWith(
+        'Payment method saved successfully',
+        {
+          paymentMethodId: 'pm_test_123',
+        }
+      );
     });
 
     it('should handle save error', async () => {
-      (supabase.auth.getSession as jest.Mock).mockResolvedValue({
-        data: mockSession,
-      });
-
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: false,
-        json: async () => ({ error: 'Failed to save' }),
-      });
+      mockApi.post.mockRejectedValue(new Error('Failed to save'));
 
       const result = await PaymentService.savePaymentMethod('pm_test_123');
 
@@ -737,43 +627,29 @@ describe('PaymentService', () => {
 
   describe('deletePaymentMethod', () => {
     it('should delete payment method successfully', async () => {
-      (supabase.auth.getSession as jest.Mock).mockResolvedValue({
-        data: mockSession,
-      });
-
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: async () => ({}),
-      });
+      mockApi.delete.mockResolvedValue({});
 
       const result = await PaymentService.deletePaymentMethod('pm_test_123');
 
-      expect(fetch).toHaveBeenCalledWith(
-        `${config.apiBaseUrl}/api/payments/remove-method`,
+      expect(mockApi.delete).toHaveBeenCalledWith(
+        '/api/payments/remove-method',
         {
-          method: 'DELETE',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${mockSession.session.access_token}`,
-          },
           body: JSON.stringify({ paymentMethodId: 'pm_test_123' }),
         }
       );
       expect(result).toEqual({ success: true });
-      expect(logger.info).toHaveBeenCalledWith('Payment method deleted successfully', {
-        paymentMethodId: 'pm_test_123',
-      });
+      expect(logger.info).toHaveBeenCalledWith(
+        'Payment method deleted successfully',
+        {
+          paymentMethodId: 'pm_test_123',
+        }
+      );
     });
 
     it('should handle deletion error', async () => {
-      (supabase.auth.getSession as jest.Mock).mockResolvedValue({
-        data: mockSession,
-      });
-
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: false,
-        json: async () => ({ error: 'Cannot delete default method' }),
-      });
+      mockApi.delete.mockRejectedValue(
+        new Error('Cannot delete default method')
+      );
 
       const result = await PaymentService.deletePaymentMethod('pm_test_123');
 
@@ -786,61 +662,49 @@ describe('PaymentService', () => {
 
   describe('processJobPayment', () => {
     it('should process payment successfully', async () => {
-      (supabase.auth.getSession as jest.Mock).mockResolvedValue({
-        data: mockSession,
-      });
+      mockApi.post.mockResolvedValue({ paymentIntentId: 'pi_test_123' });
 
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          success: true,
-          paymentIntentId: 'pi_test_123',
-        }),
-      });
+      const result = await PaymentService.processJobPayment(
+        'job-123',
+        100,
+        'pm_test_123',
+        true
+      );
 
-      const result = await PaymentService.processJobPayment('job-123', 100, 'pm_test_123', true);
-
-      expect(fetch).toHaveBeenCalledWith(
-        `${config.apiBaseUrl}/api/payments/process-job-payment`,
+      expect(mockApi.post).toHaveBeenCalledWith(
+        '/api/payments/process-job-payment',
         {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${mockSession.session.access_token}`,
-          },
-          body: JSON.stringify({
-            jobId: 'job-123',
-            amount: 100,
-            paymentMethodId: 'pm_test_123',
-            saveForFuture: true,
-          }),
+          jobId: 'job-123',
+          amount: 100,
+          paymentMethodId: 'pm_test_123',
+          saveForFuture: true,
         }
       );
       expect(result).toEqual({
         success: true,
         paymentIntentId: 'pi_test_123',
       });
-      expect(logger.info).toHaveBeenCalledWith('Payment processed successfully', {
-        jobId: 'job-123',
-        amount: 100,
-      });
+      expect(logger.info).toHaveBeenCalledWith(
+        'Payment processed successfully',
+        {
+          jobId: 'job-123',
+          amount: 100,
+        }
+      );
     });
 
     it('should handle 3D Secure authentication requirement', async () => {
-      (supabase.auth.getSession as jest.Mock).mockResolvedValue({
-        data: mockSession,
+      mockApi.post.mockResolvedValue({
+        requiresAction: true,
+        clientSecret: 'pi_test_secret',
+        paymentIntentId: 'pi_test_123',
       });
 
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          requiresAction: true,
-          clientSecret: 'pi_test_secret',
-          paymentIntentId: 'pi_test_123',
-        }),
-      });
-
-      const result = await PaymentService.processJobPayment('job-123', 100, 'pm_test_123');
+      const result = await PaymentService.processJobPayment(
+        'job-123',
+        100,
+        'pm_test_123'
+      );
 
       expect(result).toEqual({
         success: false,
@@ -848,22 +712,22 @@ describe('PaymentService', () => {
         clientSecret: 'pi_test_secret',
         paymentIntentId: 'pi_test_123',
       });
-      expect(logger.info).toHaveBeenCalledWith('Payment requires 3D Secure authentication', {
-        jobId: 'job-123',
-      });
+      expect(logger.info).toHaveBeenCalledWith(
+        'Payment requires 3D Secure authentication',
+        {
+          jobId: 'job-123',
+        }
+      );
     });
 
     it('should handle payment processing error', async () => {
-      (supabase.auth.getSession as jest.Mock).mockResolvedValue({
-        data: mockSession,
-      });
+      mockApi.post.mockRejectedValue(new Error('Insufficient funds'));
 
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: false,
-        json: async () => ({ error: 'Insufficient funds' }),
-      });
-
-      const result = await PaymentService.processJobPayment('job-123', 100, 'pm_test_123');
+      const result = await PaymentService.processJobPayment(
+        'job-123',
+        100,
+        'pm_test_123'
+      );
 
       expect(result).toEqual({
         success: false,
@@ -905,7 +769,9 @@ describe('PaymentService', () => {
 
       expect(supabase.from).toHaveBeenCalledWith('payments');
       expect(mockFrom.eq).toHaveBeenCalledWith('user_id', 'user-123');
-      expect(mockFrom.order).toHaveBeenCalledWith('created_at', { ascending: false });
+      expect(mockFrom.order).toHaveBeenCalledWith('created_at', {
+        ascending: false,
+      });
       expect(result).toEqual(mockPayments);
     });
 
@@ -927,10 +793,6 @@ describe('PaymentService', () => {
     });
 
     it('should handle pagination with limit and offset', async () => {
-      (supabase.auth.getSession as jest.Mock).mockResolvedValue({
-        data: mockSession,
-      });
-
       const mockPayments = {
         payments: [
           { id: 'payment-1', amount: 100 },
@@ -939,21 +801,12 @@ describe('PaymentService', () => {
         total: 10,
       };
 
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: async () => mockPayments,
-      });
+      mockApi.get.mockResolvedValue(mockPayments);
 
       const result = await PaymentService.getPaymentHistory(5, 10);
 
-      expect(fetch).toHaveBeenCalledWith(
-        `${config.apiBaseUrl}/api/payments/history?limit=5&offset=10`,
-        {
-          method: 'GET',
-          headers: {
-            Authorization: `Bearer ${mockSession.session.access_token}`,
-          },
-        }
+      expect(mockApi.get).toHaveBeenCalledWith(
+        '/api/payments/history?limit=5&offset=10'
       );
       expect(result).toEqual(mockPayments);
     });
@@ -983,7 +836,7 @@ describe('PaymentService', () => {
   });
 
   describe('getUserPaymentHistory', () => {
-    it('should fetch payment history for user as payer and payee', async () => {
+    it('should fetch payment history for the authenticated user', async () => {
       const mockTransactions = [
         {
           id: 'trans-1',
@@ -991,39 +844,19 @@ describe('PaymentService', () => {
           status: 'completed',
           payer_id: 'user-123',
           payee_id: 'contractor-456',
-          job: { title: 'Fix plumbing' },
-          payer: { first_name: 'John', last_name: 'Doe' },
-          payee: { first_name: 'Jane', last_name: 'Smith' },
         },
       ];
 
-      const mockFrom = {
-        select: jest.fn().mockReturnThis(),
-        or: jest.fn().mockReturnThis(),
-        order: jest.fn().mockResolvedValue({
-          data: mockTransactions,
-          error: null,
-        }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
+      mockApi.get.mockResolvedValue({ payments: mockTransactions });
 
       const result = await PaymentService.getUserPaymentHistory('user-123');
 
-      expect(supabase.from).toHaveBeenCalledWith('escrow_transactions');
-      expect(mockFrom.or).toHaveBeenCalledWith('payer_id.eq.user-123,payee_id.eq.user-123');
+      expect(mockApi.get).toHaveBeenCalledWith('/api/payments/history');
       expect(result).toEqual(mockTransactions);
     });
 
     it('should return empty array on error', async () => {
-      const mockFrom = {
-        select: jest.fn().mockReturnThis(),
-        or: jest.fn().mockReturnThis(),
-        order: jest.fn().mockResolvedValue({
-          data: null,
-          error: { message: 'Query failed' },
-        }),
-      };
-      (supabase.from as jest.Mock).mockReturnValue(mockFrom);
+      mockApi.get.mockRejectedValue(new Error('Query failed'));
 
       const result = await PaymentService.getUserPaymentHistory('user-123');
 
@@ -1036,23 +869,25 @@ describe('PaymentService', () => {
   });
 
   describe('getContractorPayoutStatus', () => {
-    it('should return payout status for contractor with account', async () => {
+    it('should return payout status for contractor with a complete account', async () => {
       const mockFrom = {
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({
+        maybeSingle: jest.fn().mockResolvedValue({
           data: {
-            contractor_id: 'contractor-123',
-            stripe_account_id: 'acct_123',
-            account_complete: true,
+            stripe_connect_account_id: 'acct_123',
+            stripe_payouts_enabled: true,
+            stripe_transfers_active: true,
           },
           error: null,
         }),
       };
       (supabase.from as jest.Mock).mockReturnValue(mockFrom);
 
-      const result = await PaymentService.getContractorPayoutStatus('contractor-123');
+      const result =
+        await PaymentService.getContractorPayoutStatus('contractor-123');
 
+      expect(supabase.from).toHaveBeenCalledWith('profiles');
       expect(result).toEqual({
         hasAccount: true,
         accountComplete: true,
@@ -1064,14 +899,15 @@ describe('PaymentService', () => {
       const mockFrom = {
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({
+        maybeSingle: jest.fn().mockResolvedValue({
           data: null,
-          error: { code: 'PGRST116' },
+          error: null,
         }),
       };
       (supabase.from as jest.Mock).mockReturnValue(mockFrom);
 
-      const result = await PaymentService.getContractorPayoutStatus('contractor-123');
+      const result =
+        await PaymentService.getContractorPayoutStatus('contractor-123');
 
       expect(result).toEqual({
         hasAccount: false,
@@ -1083,91 +919,62 @@ describe('PaymentService', () => {
       const mockFrom = {
         select: jest.fn().mockReturnThis(),
         eq: jest.fn().mockReturnThis(),
-        single: jest.fn().mockResolvedValue({
+        maybeSingle: jest.fn().mockResolvedValue({
           data: null,
           error: { message: 'Database connection failed' },
         }),
       };
       (supabase.from as jest.Mock).mockReturnValue(mockFrom);
 
-      await expect(PaymentService.getContractorPayoutStatus('contractor-123')).rejects.toThrow(
-        'Database connection failed'
-      );
+      await expect(
+        PaymentService.getContractorPayoutStatus('contractor-123')
+      ).rejects.toThrow('Database connection failed');
     });
   });
 
   describe('requestRefund', () => {
     it('should request refund successfully', async () => {
-      (supabase.auth.getSession as jest.Mock).mockResolvedValue({
-        data: mockSession,
+      mockApi.get.mockResolvedValue({
+        payments: [{ id: 'payment-123', jobId: 'job-123' }],
       });
+      mockApi.post.mockResolvedValue({ refundId: 'refund-123' });
 
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          payments: [{ id: 'payment-123', jobId: 'job-123' }],
-        }),
-      });
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          payments: [{ id: 'payment-123', jobId: 'job-123' }],
-        }),
-      });
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          refundId: 'refund-123',
-        }),
-      });
+      const result = await PaymentService.requestRefund(
+        'payment-123',
+        'Service not delivered'
+      );
 
-      const result = await PaymentService.requestRefund('payment-123', 'Service not delivered');
-
-      expect(fetch).toHaveBeenNthCalledWith(2, `${config.apiBaseUrl}/api/payments/refund`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${mockSession.session.access_token}`,
-        },
-        body: JSON.stringify({
-          jobId: 'job-123',
-          escrowTransactionId: 'payment-123',
-          reason: 'Service not delivered',
-        }),
+      expect(mockApi.get).toHaveBeenCalledWith(
+        '/api/payments/history?limit=50&offset=0'
+      );
+      expect(mockApi.post).toHaveBeenCalledWith('/api/payments/refund', {
+        jobId: 'job-123',
+        escrowTransactionId: 'payment-123',
+        reason: 'Service not delivered',
       });
       expect(result).toEqual({
         success: true,
         refundId: 'refund-123',
       });
-      expect(logger.info).toHaveBeenCalledWith('Refund requested successfully', {
-        paymentId: 'payment-123',
-        refundId: 'refund-123',
-      });
+      expect(logger.info).toHaveBeenCalledWith(
+        'Refund requested successfully',
+        {
+          paymentId: 'payment-123',
+          refundId: 'refund-123',
+        }
+      );
     });
 
     it('should handle refund request error', async () => {
-      (supabase.auth.getSession as jest.Mock).mockResolvedValue({
-        data: mockSession,
+      mockApi.get.mockResolvedValue({
+        payments: [{ id: 'payment-123', jobId: 'job-123' }],
       });
+      mockApi.post.mockRejectedValue(new Error('Refund period expired'));
 
-      (global.fetch as jest.Mock).mockResolvedValue({
-        ok: true,
-        json: async () => ({
-          payments: [{ id: 'payment-123', jobId: 'job-123' }],
-        }),
-      });
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          payments: [{ id: 'payment-123', jobId: 'job-123' }],
-        }),
-      });
-      (global.fetch as jest.Mock).mockResolvedValueOnce({
-        ok: false,
-        json: async () => ({ error: 'Refund period expired' }),
-      });
-
-      const result = await PaymentService.requestRefund('payment-123', 'Late request');
+      const result = await PaymentService.requestRefund(
+        'payment-123',
+        'Late request'
+      );
 
       expect(result).toEqual({
         success: false,
@@ -1202,10 +1009,7 @@ describe('PaymentService', () => {
     });
 
     it('should handle very small positive amounts', async () => {
-      (supabase.functions.invoke as jest.Mock).mockResolvedValue({
-        data: { client_secret: 'pi_test_secret' },
-        error: null,
-      });
+      mockApi.post.mockResolvedValue({ clientSecret: 'pi_test_secret' });
 
       await PaymentService.initializePayment({
         amount: 0.01,
@@ -1213,21 +1017,15 @@ describe('PaymentService', () => {
         contractorId: 'contractor-123',
       });
 
-      expect(supabase.functions.invoke).toHaveBeenCalledWith('create-payment-intent', {
-        body: {
-          amount: 1, // $0.01 in cents
-          jobId: 'job-123',
-          contractorId: 'contractor-123',
-        },
+      expect(mockApi.post).toHaveBeenCalledWith('/api/payments/create-intent', {
+        amount: 0.01,
+        jobId: 'job-123',
+        contractorId: 'contractor-123',
       });
     });
 
     it('should sanitize error messages before logging', async () => {
-      const sensitiveError = new Error('Error: stripe_sk_live_123456');
-      (supabase.functions.invoke as jest.Mock).mockResolvedValue({
-        data: null,
-        error: { message: sensitiveError.message },
-      });
+      mockApi.post.mockRejectedValue(new Error('Error: stripe_sk_live_123456'));
 
       await expect(
         PaymentService.initializePayment({
@@ -1237,20 +1035,15 @@ describe('PaymentService', () => {
         })
       ).rejects.toThrow();
 
-      // Ensure sensitive data is not logged
       expect(logger.error).toHaveBeenCalled();
     });
 
-    it('should handle network timeout gracefully', async () => {
-      (supabase.auth.getSession as jest.Mock).mockResolvedValue({
-        data: mockSession,
-      });
-
-      (global.fetch as jest.Mock).mockRejectedValue(new Error('Network timeout'));
+    it('should handle network errors gracefully', async () => {
+      mockApi.get.mockRejectedValue(new Error('Network request failed'));
 
       const result = await PaymentService.getPaymentMethods();
 
-      expect(result).toEqual({ error: 'Network timeout' });
+      expect(result).toEqual({ error: 'Network request failed' });
       expect(logger.error).toHaveBeenCalledWith(
         'Failed to fetch payment methods',
         expect.objectContaining({ error: expect.any(Error) })
@@ -1262,7 +1055,6 @@ describe('PaymentService', () => {
       const currentYear = now.getFullYear();
       const currentMonth = now.getMonth() + 1;
 
-      // Card expiring this month should be valid
       (stripeCreatePaymentMethod as jest.Mock).mockResolvedValue({
         paymentMethod: { id: 'pm_test' },
         error: null,
@@ -1280,14 +1072,13 @@ describe('PaymentService', () => {
         })
       ).resolves.toBeTruthy();
 
-      // Card expired last month should fail
       await expect(
         PaymentService.createPaymentMethod({
           type: 'card',
           card: {
             number: '4242424242424242',
-            expMonth: currentMonth - 1,
-            expYear: currentYear,
+            expMonth: currentMonth === 1 ? 12 : currentMonth - 1,
+            expYear: currentMonth === 1 ? currentYear - 1 : currentYear,
             cvc: '123',
           },
         })

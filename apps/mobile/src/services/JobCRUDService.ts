@@ -61,7 +61,9 @@ export class JobCRUDService {
     title: string;
     description: string;
     location: string;
-    budget: number;
+    // 2026-05-22: budget is now optional — contractors price each bid
+    // themselves and the homeowner picks from the bids.
+    budget?: number;
     homeownerId?: string;
     homeowner_id?: string;
     category?: string;
@@ -81,6 +83,9 @@ export class JobCRUDService {
     // values to snapshot into job_rooms after the job is created.
     // Validated server-side against the selected property.
     room_ids?: string[];
+    // 2026-05-22: per-job toggles persisted to jobs.requirements jsonb
+    // (e.g. contractor_before_photos for no-upload flows).
+    requirements?: Record<string, unknown>;
   }): Promise<Job> {
     const context = {
       service: 'JobCRUDService',
@@ -106,11 +111,6 @@ export class JobCRUDService {
         context
       );
       ServiceErrorHandler.validateRequired(safeLocation, 'Location', context);
-      ServiceErrorHandler.validatePositiveNumber(
-        jobData.budget,
-        'Budget',
-        context
-      );
 
       const homeowner_id = jobData.homeowner_id ?? jobData.homeownerId;
       ServiceErrorHandler.validateRequired(
@@ -126,7 +126,7 @@ export class JobCRUDService {
           title: safeTitle,
           description: safeDescription,
           location: safeLocation,
-          budget: jobData.budget,
+          ...(jobData.budget !== undefined ? { budget: jobData.budget } : {}),
           category: jobData.category,
           urgency: jobData.urgency,
           photoUrls: jobData.photos,
@@ -143,6 +143,11 @@ export class JobCRUDService {
           // and silently drops any that don't belong to the property.
           ...(jobData.room_ids && jobData.room_ids.length > 0
             ? { room_ids: jobData.room_ids }
+            : {}),
+          // 2026-05-22: per-job requirements jsonb (e.g.
+          // contractor_before_photos for no-upload flows).
+          ...(jobData.requirements
+            ? { requirements: jobData.requirements }
             : {}),
         }
       );
@@ -337,6 +342,19 @@ export class JobCRUDService {
     data: DatabaseJobRow | Record<string, unknown>
   ): Job {
     const raw = data as Record<string, unknown>;
+
+    // Coerce Postgres NUMERIC (budget*, latitude, longitude) — they
+    // arrive from supabase-js as strings to preserve precision, but
+    // downstream consumers (JobLocationMap → react-native-maps,
+    // arithmetic on budget) require real numbers. Returning
+    // `undefined` for unparseable values keeps optional-typed fields
+    // honest.
+    const toNum = (v: unknown): number | undefined => {
+      if (v == null) return undefined;
+      const n = typeof v === 'number' ? v : Number(v);
+      return Number.isFinite(n) ? n : undefined;
+    };
+
     const job: Job = {
       id: raw.id as string,
       title: (raw.title as string) ?? '',
@@ -344,7 +362,7 @@ export class JobCRUDService {
       location: (raw.location as string) ?? '',
       homeowner_id: (raw.homeowner_id as string) ?? '',
       status: (raw.status as DatabaseJobRow['status']) ?? 'posted',
-      budget: (raw.budget as number) ?? 0,
+      budget: toNum(raw.budget) ?? 0,
       category: (raw.category as string) ?? '',
       subcategory: (raw.subcategory as string) ?? '',
       // API returns 'urgency', DB returns 'priority'
@@ -359,6 +377,17 @@ export class JobCRUDService {
         new Date().toISOString(),
     };
 
+    // Optional numeric fields — propagate when present, coerced to
+    // real numbers so JobLocationMap and budget math don't crash.
+    const budgetMin = toNum(raw.budget_min);
+    if (budgetMin !== undefined) job.budget_min = budgetMin;
+    const budgetMax = toNum(raw.budget_max);
+    if (budgetMax !== undefined) job.budget_max = budgetMax;
+    const latitude = toNum(raw.latitude);
+    if (latitude !== undefined) job.latitude = latitude;
+    const longitude = toNum(raw.longitude);
+    if (longitude !== undefined) job.longitude = longitude;
+
     if (raw.contractor_id !== undefined) {
       job.contractor_id = raw.contractor_id as string;
     }
@@ -369,6 +398,56 @@ export class JobCRUDService {
       job.contractorId = raw.contractor_id as string | undefined;
       job.createdAt = job.created_at;
       job.updatedAt = job.updated_at;
+    }
+
+    // 2026-05-23 audit-14: propagate enriched fields the web detail API
+    // returns. The canonical `Job` type doesn't declare them (`propertyType`,
+    // `propertyAccess`, `scheduledStartDate`, `requirements`, etc.), so
+    // they ride on the returned object as runtime extras read by mobile
+    // screens via a typed cast. Without this propagation the JobAccessCard
+    // never renders for the assigned contractor (no `propertyAccess`),
+    // and downstream gates that depend on `scheduledStartDate` /
+    // `requirements` silently no-op. We only copy fields that are
+    // actually present in `raw` so legacy callers (direct DB rows) don't
+    // pollute the object with `undefined` keys.
+    const extraKeys = [
+      'propertyType',
+      'propertyBedrooms',
+      'propertyBathrooms',
+      'accessInfo',
+      'propertyAccess',
+      // 2026-05-24 audit-38 P1: API /api/jobs/[id] surfaces
+      // propertyContacts (active tenants / keyholders / emergency
+      // contacts / managing agents) for the assigned contractor +
+      // homeowner. JobAccessCard already accepts a `contacts` prop and
+      // JobDetailsScreen wires it from `(job as ...).propertyContacts`
+      // — but formatJob was whitelisting only the access fields, so
+      // the array got dropped on the way through and the "contacts"
+      // half of the "Access & contacts" card always rendered empty.
+      'propertyContacts',
+      // 2026-05-24 audit-33 P2: separate timestamp for homeowner
+      // approval, distinct from completed_at. Also propagate
+      // completion_confirmed_by_homeowner so the homeowner CTA flips
+      // correctly post-approval (already added at audit-26 #131).
+      'completion_confirmed_at',
+      'completion_confirmed_by_homeowner',
+      // 2026-05-28 U3: when the contractor's after-photo upload
+      // auto-flips status to 'completed' it stamps completed_at. The
+      // homeowner photo-review screen reads it to render the 7-day
+      // auto-release countdown banner (web parity, audit-P2-4).
+      'completed_at',
+      'scheduledStartDate',
+      'requirements',
+      'start_date',
+      'end_date',
+      'flexible_timeline',
+      'property_id',
+    ] as const;
+    const jobAny = job as unknown as Record<string, unknown>;
+    for (const key of extraKeys) {
+      if (raw[key] !== undefined) {
+        jobAny[key] = raw[key];
+      }
     }
 
     return job;

@@ -2,10 +2,10 @@
 
 import type { ReactNode } from 'react';
 import Link from 'next/link';
-import { Search, Bell } from 'lucide-react';
+import { Search } from 'lucide-react';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { MintEditorialContractorSidebar } from './MintEditorialContractorSidebar';
 import { MintEditorialContractorTopNav } from './MintEditorialContractorTopNav';
-import { MintEditorialDock } from '@/app/dashboard/components/mint-editorial/MintEditorialDock';
 
 interface MintEditorialContractorShellProps {
   /** Display name shown in the sidebar user card. */
@@ -63,13 +63,7 @@ export function MintEditorialContractorShell({
           </div>
           <MintEditorialContractorTopNav />
           <div style={{ flex: 1 }} />
-          <Link
-            href='/contractor/notifications'
-            className='btn btn-ghost btn-sm'
-            aria-label='Notifications'
-          >
-            <Bell size={15} strokeWidth={1.75} />
-          </Link>
+          <NotificationBell href='/contractor/notifications' />
         </div>
 
         {/* `me-legacy-fit` on the content area makes the override
@@ -88,8 +82,6 @@ export function MintEditorialContractorShell({
         >
           {children}
         </div>
-
-        <MintEditorialDock />
       </div>
     </div>
   );

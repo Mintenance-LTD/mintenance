@@ -243,11 +243,24 @@ export class EscrowAutoReleaseService {
       return false;
     }
 
-    // Calculate fees
+    // Calculate fees.
+    //
+    // 2026-05-27 whole-app review Critical #1: resolve the contractor's
+    // tier ONCE at the top of the release flow and thread it through
+    // every fee-affecting call (calculateFees here + both
+    // transferPlatformFee calls below). Previously this site computed
+    // the breakdown with the default 12% rate, then updated
+    // escrow_transactions.platform_fee + contractor_payout from THAT
+    // breakdown — so Pro / Business contractors were over-charged on
+    // both the escrow row AND the platform_fee_transfers row. Manual
+    // release-escrow already does this; the cron path didn't.
     const paymentType = (escrow.payment_type as PaymentType) || 'final';
+    const contractorTier = await FeeCalculationService.resolveContractorTier(
+      escrow.payee_id
+    );
     const feeBreakdown = FeeCalculationService.calculateFees(
       escrow.amount || 0,
-      { paymentType }
+      { paymentType, contractorTier }
     );
     const contractorAmountCents = Math.round(
       feeBreakdown.contractorAmount * 100
@@ -280,6 +293,7 @@ export class EscrowAutoReleaseService {
           paymentIntentId: escrow.payment_intent_id || '',
           chargeId: chargeIdAcc,
           paymentType,
+          contractorTier, // audit: thread tier through to fee-transfer record
         });
       } catch (error) {
         logger.error(
@@ -372,6 +386,7 @@ export class EscrowAutoReleaseService {
         paymentIntentId: escrow.payment_intent_id || '',
         chargeId,
         paymentType,
+        contractorTier, // audit: thread tier through to fee-transfer record
       });
     } catch (error) {
       logger.error(

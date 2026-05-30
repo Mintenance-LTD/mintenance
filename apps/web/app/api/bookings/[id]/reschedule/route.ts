@@ -91,6 +91,67 @@ export const PATCH = withApiHandler(
       throw new Error('Failed to reschedule');
     }
 
+    // 2026-05-26 audit-55 P2: also re-stamp any non-cancelled
+    // appointment rows linked to this job. Previously only
+    // jobs.scheduled_start_date moved, leaving any
+    // appointments.{appointment_date,start_time,end_time} pointing at
+    // the OLD slot — calendar (which reads appointments) and booking
+    // list (which reads jobs) then disagreed about when the work was
+    // happening. Preserve the original duration by computing
+    // new_end_time = new_start_time + duration_minutes (server-stamped
+    // by the calculate_appointment_duration trigger when start/end
+    // were originally set). Best-effort: a failure here logs and
+    // doesn't fail the reschedule (the job row is the primary signal).
+    try {
+      const { data: linkedAppointments } = await serverSupabase
+        .from('appointments')
+        .select('id, start_time, end_time, duration_minutes, status')
+        .eq('job_id', jobId)
+        .neq('status', 'cancelled');
+
+      if (linkedAppointments && linkedAppointments.length > 0) {
+        const newDateStr = newDate.toISOString().split('T')[0];
+        const newStartTime = newDate.toISOString().split('T')[1].slice(0, 8);
+        const updates = linkedAppointments.map((apt) => {
+          const durationMin =
+            (apt.duration_minutes as number | null | undefined) ?? 60;
+          const endDate = new Date(newDate.getTime() + durationMin * 60 * 1000);
+          const newEndTime = endDate.toISOString().split('T')[1].slice(0, 8);
+          return serverSupabase
+            .from('appointments')
+            .update({
+              appointment_date: newDateStr,
+              start_time: newStartTime,
+              end_time: newEndTime,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', apt.id as string);
+        });
+        const results = await Promise.all(updates);
+        for (const r of results) {
+          if (r.error) {
+            logger.warn('appointment row reschedule sync failed', {
+              service: 'bookings',
+              jobId,
+              error: r.error.message,
+            });
+          }
+        }
+      }
+    } catch (appointmentErr) {
+      logger.warn(
+        'appointment-sync block threw during reschedule (non-fatal)',
+        {
+          service: 'bookings',
+          jobId,
+          error:
+            appointmentErr instanceof Error
+              ? appointmentErr.message
+              : String(appointmentErr),
+        }
+      );
+    }
+
     // Notify other party
     const otherPartyId = isHomeowner ? job.contractor_id : job.homeowner_id;
     if (otherPartyId) {
@@ -103,12 +164,15 @@ export const PATCH = withApiHandler(
       });
 
       try {
+        // 2026-05-25 audit-43 P1: include metadata.jobId so mobile
+        // routingTable can deep-link to JobDetails instead of inbox.
         await NotificationService.createNotification({
           userId: otherPartyId,
-          title: 'Booking Rescheduled',
-          message: `"${job.title}" has been rescheduled to ${formattedDate}`,
+          title: `${job.title} moved to ${formattedDate}`,
+          message: `The other side rescheduled. Tap to see the new slot.`,
           type: 'job_scheduled',
           actionUrl: `/jobs/${jobId}`,
+          metadata: { jobId },
         });
       } catch (notificationError) {
         logger.error(

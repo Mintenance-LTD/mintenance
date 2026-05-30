@@ -30,7 +30,14 @@ interface JobData {
   title: string;
   status: string;
   completed_at: string | null;
-  budget: number;
+  // 2026-05-23: `budget` retained for back-compat with the
+  // MintEditorialJobReview's quoted+tip total. The downstream
+  // component will fall back to 0 if null — same observable
+  // behaviour as before — but now the type tells the truth about
+  // open-bidding jobs (budget is usually NULL). Long term, the
+  // "quoted" figure should come from escrow_transactions.amount
+  // instead; tracked as a follow-up.
+  budget: number | null;
   contractor_id: string | null;
   contractor?: {
     id: string;
@@ -119,7 +126,7 @@ export default function ReviewSubmissionPage() {
           title: jobData.title || 'Untitled Job',
           status: jobData.status,
           completed_at: jobData.completed_at,
-          budget: jobData.budget || 0,
+          budget: jobData.budget ?? null,
           contractor_id: jobData.contractor_id,
           contractor: contractor
             ? {

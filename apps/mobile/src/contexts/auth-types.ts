@@ -15,6 +15,12 @@ export interface SignUpUserData {
   firstName: string;
   lastName: string;
   role: 'homeowner' | 'contractor';
+  // 2026-05-23: previously the registration form validated phoneNumber
+  // as required for contractors but never forwarded it to Supabase, so
+  // every signup left profiles.phone NULL. Now optional on the type and
+  // wired through performSignUp -> AuthService.signUp -> supabase.auth
+  // signUp options.data, where the handle_new_user trigger picks it up.
+  phone?: string;
 }
 
 export interface AuthContextType {

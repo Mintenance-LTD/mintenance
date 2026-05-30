@@ -48,7 +48,12 @@ const PROPERTY_TYPES = [
 ] as const;
 
 export const EditPropertyScreen: React.FC<Props> = ({ navigation, route }) => {
-  const { propertyId } = route.params;
+  // 2026-05-27 audit-74 P3: defensive guard — bad deep link or
+  // notification fallback into EditProperty without params used to
+  // crash on destructure. Same pattern as PropertyDetailScreen and
+  // BidSubmissionScreen.
+  const params = route.params as { propertyId?: string } | undefined;
+  const propertyId = params?.propertyId;
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
@@ -61,7 +66,10 @@ export const EditPropertyScreen: React.FC<Props> = ({ navigation, route }) => {
   const [bathrooms, setBathrooms] = useState('');
   const [yearBuilt, setYearBuilt] = useState('');
   const [squareFootage, setSquareFootage] = useState('');
-  const [notes, setNotes] = useState('');
+  // 2026-05-27 audit-74 P1: removed dead notes state — `properties`
+  // has no notes column; the create/PUT payloads never sent it; the
+  // edit field silently lost user input. Access instructions live on
+  // the Access tab (access_notes column).
   // Track whether the user has made edits since the form hydrated.
   // We intentionally don't compare current values to `property.*` —
   // that comparison breaks when null DB columns hydrate to '' which
@@ -103,7 +111,6 @@ export const EditPropertyScreen: React.FC<Props> = ({ navigation, route }) => {
       setSquareFootage(
         property.square_footage != null ? String(property.square_footage) : ''
       );
-      setNotes(property.notes || '');
     }
   }, [property]);
 
@@ -149,6 +156,14 @@ export const EditPropertyScreen: React.FC<Props> = ({ navigation, route }) => {
     updateMutation.mutate();
   };
 
+  // audit-74 P3: explicit missing-propertyId render path.
+  if (!propertyId)
+    return (
+      <ErrorView
+        message='Property reference missing. Please open the property from your portfolio.'
+        onRetry={() => navigation.goBack()}
+      />
+    );
   if (isLoading) return <LoadingSpinner message='Loading property...' />;
   if (error)
     return <ErrorView message='Failed to load property' onRetry={refetch} />;
@@ -353,22 +368,9 @@ export const EditPropertyScreen: React.FC<Props> = ({ navigation, route }) => {
             </View>
           </View>
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>NOTES</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              value={notes}
-              onChangeText={(v) => {
-                setNotes(v);
-                setHasEdits(true);
-              }}
-              placeholder='Any additional notes...'
-              placeholderTextColor={me.ink3}
-              multiline
-              numberOfLines={4}
-              textAlignVertical='top'
-            />
-          </View>
+          {/* 2026-05-27 audit-74 P1: removed dead Notes section —
+              `properties` has no notes column. Access instructions
+              are captured on the Access tab. */}
 
           <TouchableOpacity
             style={[

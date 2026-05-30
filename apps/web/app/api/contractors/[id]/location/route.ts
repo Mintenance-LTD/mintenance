@@ -9,6 +9,29 @@ import {
 } from '@/lib/errors/api-error';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 
+// 2026-05-23 audit: added eta_minutes + context so the web ping
+// shape matches mobile JobContextLocationService. The homeowner
+// travel tracker (ContractorTravelTracking.tsx) reads both fields
+// to render the "on the way" / "arrived" pill + the live ETA.
+// Without them every web-side ping landed without the context the
+// UI expected, so homeowners watching a web-only contractor saw a
+// dot but never the travel status.
+//
+// 2026-05-27 audit-69 P2: 'on_job' added to the accepted set. Mobile
+// JobContextLocationService.markArrived writes 'on_job' to mark
+// arrival; the homeowner UI (HomeownerLocationRequest) treats all
+// three of 'on_job' | 'arrived' | 'on_site' as the canonical arrival
+// state. Accepting all three on the write path means web-originated
+// pings using mobile's vocabulary don't 400, and the mobile UI's
+// arrival render is consistent regardless of which platform wrote.
+const LOCATION_CONTEXT_VALUES = [
+  'idle',
+  'traveling',
+  'arrived',
+  'on_site',
+  'on_job',
+] as const;
+
 const updateLocationSchema = z.object({
   latitude: z.number().min(-90).max(90),
   longitude: z.number().min(-180).max(180),
@@ -17,6 +40,11 @@ const updateLocationSchema = z.object({
   heading: z.number().min(0).max(360).optional(),
   speed: z.number().nonnegative().optional(),
   job_id: z.string().uuid().optional(),
+  /** Minutes-until-arrival hint surfaced to the homeowner. Caller
+   * can omit when not in transit. */
+  eta_minutes: z.number().int().nonnegative().max(10080).optional(),
+  /** Travel state for the homeowner-facing pill. */
+  context: z.enum(LOCATION_CONTEXT_VALUES).optional(),
 });
 
 /**
@@ -52,8 +80,17 @@ export const POST = withApiHandler(
       );
     }
 
-    const { latitude, longitude, accuracy, altitude, heading, speed, job_id } =
-      parsed.data;
+    const {
+      latitude,
+      longitude,
+      accuracy,
+      altitude,
+      heading,
+      speed,
+      job_id,
+      eta_minutes,
+      context,
+    } = parsed.data;
 
     // Verify the contractor is assigned to this job before accepting a
     // job-scoped location ping. The first ping creates the sharing row, so
@@ -83,6 +120,11 @@ export const POST = withApiHandler(
       altitude: altitude || null,
       heading: heading || null,
       speed: speed || null,
+      // 2026-05-23 audit: persist the mobile-parity fields so the
+      // homeowner travel-tracking UI lights up regardless of whether
+      // the contractor is sharing from web or mobile.
+      eta_minutes: typeof eta_minutes === 'number' ? eta_minutes : null,
+      context: context ?? (job_id ? 'traveling' : 'idle'),
       is_active: true,
       is_sharing_location: true,
       location_timestamp: new Date().toISOString(),
@@ -90,14 +132,33 @@ export const POST = withApiHandler(
       updated_at: new Date().toISOString(),
     };
 
-    // For job-scoped sharing, keep one active row per contractor/job so
-    // realtime subscribers and "latest location" reads do not fan out over
-    // historical duplicate rows. Non-job availability pings can still insert
-    // separate rows because the unique index intentionally excludes null job_id.
-    const locationWrite = job_id
+    // 2026-05-24 audit-36 P0: replaced upsert with select-then-
+    // update-or-insert. Live DB has only a PARTIAL unique index on
+    // (contractor_id, job_id) WHERE is_active = true, not a plain
+    // unique constraint. PostgREST's ON CONFLICT (cols) doesn't
+    // include the WHERE predicate, so the upsert could fail (42P10)
+    // or insert duplicate rows. Now: for job-scoped writes, look up
+    // the active row first and UPDATE by id; INSERT only when no
+    // active row exists. Non-job availability pings still INSERT a
+    // fresh row (no uniqueness expected — the index intentionally
+    // excludes NULL job_id).
+    let activeId: string | null = null;
+    if (job_id) {
+      const { data: existing } = await serverSupabase
+        .from('contractor_locations')
+        .select('id')
+        .eq('contractor_id', contractorId)
+        .eq('job_id', job_id)
+        .eq('is_active', true)
+        .maybeSingle();
+      activeId = existing?.id ?? null;
+    }
+
+    const locationWrite = activeId
       ? serverSupabase
           .from('contractor_locations')
-          .upsert(locationPayload, { onConflict: 'contractor_id,job_id' })
+          .update(locationPayload)
+          .eq('id', activeId)
       : serverSupabase.from('contractor_locations').insert(locationPayload);
 
     const { data: location, error: locationError } = await locationWrite

@@ -195,6 +195,99 @@ export const POST = withApiHandler(
       throw new ForbiddenError('You are not authorized to pay this invoice');
     }
 
+    // 2026-05-23 audit-17 P1: the /payments/[id]/confirm page POSTs to
+    // this route on mount. The previous implementation unconditionally
+    // created a new PaymentIntent + escrow_transactions row + payments
+    // row every time, so each refresh / re-open / navigation churn left
+    // a trail of orphaned pending payments for the same invoice. Stripe
+    // bills $0.00 PaymentIntents but each one consumes API quota AND
+    // the duplicated rows make idempotent webhook handling much harder
+    // (e.g. webhook fires for one intent while another is still pending
+    // in the DB).
+    //
+    // Look up any existing pending payment for this (invoice, payer)
+    // tuple first. If the Stripe PaymentIntent is still in a pre-payment
+    // state (`requires_payment_method`, `requires_confirmation`,
+    // `requires_action`) we re-use it and the linked escrow row. The
+    // notification is also skipped on the reuse path so re-opens don't
+    // re-spam the contractor.
+    const { data: existingPayment } = await serverSupabase
+      .from('payments')
+      .select('id, status, stripe_payment_intent_id')
+      .eq('invoice_id', invoice.id)
+      .eq('payer_id', user.id)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const REUSABLE_STRIPE_STATUSES = new Set([
+      'requires_payment_method',
+      'requires_confirmation',
+      'requires_action',
+      'processing',
+    ]);
+
+    if (existingPayment?.stripe_payment_intent_id) {
+      try {
+        const existingIntent = await stripe.paymentIntents.retrieve(
+          existingPayment.stripe_payment_intent_id
+        );
+        if (REUSABLE_STRIPE_STATUSES.has(existingIntent.status)) {
+          const { data: existingEscrow } = await serverSupabase
+            .from('escrow_transactions')
+            .select('id, status')
+            .eq('invoice_id', invoice.id)
+            .eq('payment_intent_id', existingIntent.id)
+            .maybeSingle();
+          logger.info('Re-using existing pending invoice payment intent', {
+            invoiceId: invoice.id,
+            paymentId: existingPayment.id,
+            paymentIntentId: existingIntent.id,
+            intentStatus: existingIntent.status,
+          });
+          return NextResponse.json({
+            success: true,
+            paymentIntent: {
+              id: existingIntent.id,
+              clientSecret: existingIntent.client_secret,
+              amount: existingIntent.amount,
+              currency: existingIntent.currency,
+            },
+            escrow: existingEscrow
+              ? { id: existingEscrow.id, status: existingEscrow.status }
+              : null,
+            payment: {
+              id: existingPayment.id,
+              status: existingPayment.status,
+            },
+            invoice: {
+              id: invoice.id,
+              number: invoice.invoice_number,
+              amount: invoice.total_amount,
+            },
+            redirectUrl:
+              validatedData.returnUrl ||
+              `/payments/${existingPayment.id}/confirm`,
+            reused: true,
+          });
+        }
+        // Existing intent is in a terminal state (canceled / succeeded /
+        // requires nothing). Fall through to create a fresh one; the
+        // stale row stays in `payments` for audit / Stripe-reconciliation.
+      } catch (retrieveErr) {
+        // Stripe lookup failure shouldn't block the user from paying —
+        // log and fall through to create a fresh intent.
+        logger.warn('Failed to retrieve existing payment intent', {
+          paymentIntentId: existingPayment.stripe_payment_intent_id,
+          error:
+            retrieveErr instanceof Error
+              ? retrieveErr.message
+              : String(retrieveErr),
+        });
+      }
+    }
+
     // Create Stripe payment intent
     const paymentIntent = await createPaymentIntent(invoice, user.id);
 
@@ -247,11 +340,13 @@ export const POST = withApiHandler(
     // contractor without invoice context. Routing through
     // `NotificationService.createNotification` also adds push delivery
     // + per-user preference checks.
+    // 2026-05-21 Mint Editorial voice — amount-led, names the next step.
+    const fmtAmount = `£${Number(invoice.total_amount).toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
     await NotificationService.createNotification({
       userId: invoice.contractor_id,
       type: 'payment_initiated',
-      title: 'Payment Initiated',
-      message: `Payment has been initiated for invoice ${invoice.invoice_number}`,
+      title: `${fmtAmount} on the way for ${invoice.invoice_number}`,
+      message: `Payment is in flight — typically lands in 1–2 business days.`,
       metadata: {
         invoice_id: invoice.id,
         payment_id: payment?.id,

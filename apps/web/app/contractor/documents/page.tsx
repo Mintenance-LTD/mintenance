@@ -14,6 +14,8 @@ import { StatsCards } from './DocumentsPage/StatsCards';
 import { Sidebar } from './DocumentsPage/Sidebar';
 import { DocumentsView } from './DocumentsPage/DocumentsView';
 import { UploadModal } from './DocumentsPage/UploadModal';
+import { ContractorLibraryHero } from './DocumentsPage/ContractorLibraryHero';
+import { ContractorLibraryView } from './DocumentsPage/ContractorLibraryView';
 import { safeCopyToClipboard } from '@/lib/utils/clipboard';
 
 export default function DocumentManagementPage() {
@@ -123,6 +125,17 @@ export default function DocumentManagementPage() {
     () => documents.reduce((sum, doc) => sum + doc.size_bytes, 0),
     [documents]
   );
+
+  // Mint-Editorial hero stat: distinct categories present in the
+  // library (matches "CATEGORIES" tile in the mockup). "all" doesn't
+  // count — it's a meta-filter, not a real category.
+  const categoryCount = useMemo(() => {
+    const seen = new Set<string>();
+    for (const doc of documents) {
+      if (doc.category && doc.category !== 'all') seen.add(doc.category);
+    }
+    return seen.size;
+  }, [documents]);
 
   // Upload file
   const handleUpload = async (files: FileList | null) => {
@@ -340,92 +353,95 @@ export default function DocumentManagementPage() {
           : 'min-h-0 bg-gradient-to-br from-emerald-50 via-white to-red-50'
       }
     >
-      {/* Header — canonical .t-h1 + .btn-primary when Mint Editorial,
-          legacy emerald gradient hero otherwise. */}
+      {/* Mint Editorial — hero panel + 2-col grid matching the
+          2026-05-21 mockup. Legacy theme keeps the emerald gradient
+          + sidebar/grid layout untouched. */}
       {isMintEditorial ? (
-        <div
-          className='between'
-          style={{ alignItems: 'flex-start', padding: '20px 0 24px' }}
-        >
-          <div className='col' style={{ gap: 4 }}>
-            <h1 className='t-h1'>Document management</h1>
-            <p className='t-body'>
-              Store contracts, invoices, certificates, and proof-of-work photos.
-              Star important files and share with homeowners securely.
-            </p>
-          </div>
-          <button
-            type='button'
-            className='btn btn-primary btn-sm'
-            onClick={() => setShowUploadModal(true)}
-          >
-            <Upload size={14} strokeWidth={1.75} />
-            Upload document
-          </button>
-        </div>
-      ) : (
-        <MotionDiv
-          initial='hidden'
-          animate='visible'
-          variants={fadeIn}
-          className='bg-gradient-to-r from-emerald-600 to-red-600 text-white'
-        >
-          <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12'>
-            <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'>
-              <div>
-                <h1 className='text-4xl font-bold mb-2'>Document Management</h1>
-                <p className='text-emerald-100'>
-                  Store and manage all your business documents in one place
-                </p>
-              </div>
-              <button
-                onClick={() => setShowUploadModal(true)}
-                className='flex items-center gap-2 px-6 py-3 bg-white text-emerald-600 rounded-lg hover:bg-emerald-50 transition-colors font-medium'
-              >
-                <Upload className='w-5 h-5' />
-                Upload Document
-              </button>
-            </div>
-          </div>
-        </MotionDiv>
-      )}
-
-      <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
-        {/* Stats */}
-        <StatsCards
-          totalDocuments={documents.length}
-          totalSize={totalSize}
-          starredCount={starredDocuments.length}
-          categories={categories}
-        />
-
-        {/* Main Content */}
-        <div className='grid grid-cols-1 lg:grid-cols-4 gap-6'>
-          <Sidebar
+        <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6'>
+          <ContractorLibraryHero
+            fileCount={documents.length}
+            categoryCount={categoryCount}
+            totalBytes={totalSize}
+            expiringCount={0}
+          />
+          <ContractorLibraryView
+            documents={documents}
+            filteredDocuments={filteredDocuments}
             categories={categories}
             selectedCategory={selectedCategory}
-            onSelectCategory={setSelectedCategory}
-            recentDocuments={recentDocuments}
-            onDownload={handleDownload}
-            onView={handleView}
-          />
-
-          <DocumentsView
             searchQuery={searchQuery}
+            onSelectCategory={setSelectedCategory}
             onSearchChange={setSearchQuery}
-            viewMode={viewMode}
-            onViewModeChange={setViewMode}
-            filteredDocuments={filteredDocuments}
-            selectedCategory={selectedCategory}
-            onUploadClick={() => setShowUploadModal(true)}
+            onUploadClick={() => router.push('/contractor/documents/upload')}
             onToggleStar={handleToggleStar}
             onView={handleView}
-            onDownload={handleDownload}
-            onShare={handleShare}
-            onDelete={handleDelete}
           />
         </div>
-      </div>
+      ) : (
+        <>
+          <MotionDiv
+            initial='hidden'
+            animate='visible'
+            variants={fadeIn}
+            className='bg-gradient-to-r from-emerald-600 to-red-600 text-white'
+          >
+            <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12'>
+              <div className='flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4'>
+                <div>
+                  <h1 className='text-4xl font-bold mb-2'>
+                    Document Management
+                  </h1>
+                  <p className='text-emerald-100'>
+                    Store and manage all your business documents in one place
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowUploadModal(true)}
+                  className='flex items-center gap-2 px-6 py-3 bg-white text-emerald-600 rounded-lg hover:bg-emerald-50 transition-colors font-medium'
+                >
+                  <Upload className='w-5 h-5' />
+                  Upload Document
+                </button>
+              </div>
+            </div>
+          </MotionDiv>
+
+          <div className='max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8'>
+            <StatsCards
+              totalDocuments={documents.length}
+              totalSize={totalSize}
+              starredCount={starredDocuments.length}
+              categories={categories}
+            />
+
+            <div className='grid grid-cols-1 lg:grid-cols-4 gap-6'>
+              <Sidebar
+                categories={categories}
+                selectedCategory={selectedCategory}
+                onSelectCategory={setSelectedCategory}
+                recentDocuments={recentDocuments}
+                onDownload={handleDownload}
+                onView={handleView}
+              />
+
+              <DocumentsView
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                viewMode={viewMode}
+                onViewModeChange={setViewMode}
+                filteredDocuments={filteredDocuments}
+                selectedCategory={selectedCategory}
+                onUploadClick={() => setShowUploadModal(true)}
+                onToggleStar={handleToggleStar}
+                onView={handleView}
+                onDownload={handleDownload}
+                onShare={handleShare}
+                onDelete={handleDelete}
+              />
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Upload Modal */}
       {showUploadModal && (

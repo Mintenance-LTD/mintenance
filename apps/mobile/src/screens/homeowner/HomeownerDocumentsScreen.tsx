@@ -10,7 +10,6 @@ import {
   TextInput,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useQuery } from '@tanstack/react-query';
@@ -20,10 +19,7 @@ import { mobileApiClient } from '../../utils/mobileApiClient';
 import { me } from '../../design-system/mint-editorial';
 import { formatCurrency } from '../../utils/formatCurrency';
 import { styles } from '../contractor/DocumentsStyles';
-import {
-  colors as designColors,
-  STATUS_COLORS,
-} from '@mintenance/design-tokens';
+import { DocIcon } from '../../components/documents/DocIcon';
 
 type DocType = 'contract' | 'bid' | 'payment';
 type TabKey = 'all' | 'contracts' | 'bids' | 'payments';
@@ -50,6 +46,12 @@ interface DocumentsApiResponse {
   counts: { contracts: number; bids: number; payments: number; total: number };
 }
 
+// Spec-locked doc-type palette mirroring `--me-doc-*` in
+// apps/web/styles/mint-editorial.css. Picked from
+// redesign-v2/documents-web.html so each type reads at a glance:
+//   Contract → deep purple, Bid → magenta, Payment → teal.
+// `fileLabel` is the extension chip on the paper-shape DocIcon —
+// contracts and payment receipts are PDFs, bids carry a "BID" chip.
 const TYPE_STYLE: Record<
   DocType,
   {
@@ -57,25 +59,29 @@ const TYPE_STYLE: Record<
     bg: string;
     icon: keyof typeof Ionicons.glyphMap;
     label: string;
+    fileLabel: string;
   }
 > = {
   contract: {
-    color: me.brand,
-    bg: me.brandSoft,
+    color: me.doc.contractFg,
+    bg: me.doc.contractBg,
     icon: 'document-text',
     label: 'Contract',
+    fileLabel: 'PDF',
   },
   bid: {
-    color: STATUS_COLORS.assigned.text,
-    bg: STATUS_COLORS.assigned.bg,
+    color: me.doc.bidFg,
+    bg: me.doc.bidBg,
     icon: 'hammer',
     label: 'Bid',
+    fileLabel: 'BID',
   },
   payment: {
-    color: STATUS_COLORS.posted.text,
-    bg: STATUS_COLORS.posted.bg,
+    color: me.doc.paymentFg,
+    bg: me.doc.paymentBg,
     icon: 'card',
     label: 'Payment',
+    fileLabel: 'PDF',
   },
 };
 
@@ -90,40 +96,88 @@ const TABS: {
   { key: 'payments', label: 'Payments', icon: 'card-outline' },
 ];
 
-function getStatusLabel(
+// Status badge — bg + fg pair from the Mint Editorial status tokens.
+// Mirrors statusBadge() in apps/web/app/documents/components/DocumentCard.tsx
+// so the homeowner sees the same labels and colour weights on mobile
+// and web.
+interface BadgeStyle {
+  label: string;
+  bg: string;
+  fg: string;
+}
+
+function getStatusBadge(
   type: DocType,
-  status: string
-): { label: string; color: string } {
+  status: string,
+  contractorSigned?: boolean,
+  homeownerSigned?: boolean
+): BadgeStyle {
   if (type === 'contract') {
-    if (status === 'accepted')
-      return { label: 'Fully Signed', color: designColors.success };
-    if (status === 'pending_homeowner')
-      return { label: 'Awaiting You', color: designColors.info };
-    if (status === 'pending_contractor')
-      return { label: 'Awaiting Contractor', color: designColors.warning };
-    if (status === 'rejected')
-      return { label: 'Rejected', color: designColors.error };
-    return { label: status, color: me.ink2 };
+    if (status === 'accepted' || (contractorSigned && homeownerSigned)) {
+      return { label: 'Fully signed', bg: me.doc.certBg, fg: me.doc.certFg };
+    }
+    if (status === 'pending_homeowner') {
+      return {
+        label: 'Awaiting you',
+        bg: me.doc.paymentBg,
+        fg: me.doc.paymentFg,
+      };
+    }
+    if (status === 'pending_contractor') {
+      return {
+        label: 'Awaiting contractor',
+        bg: me.doc.receiptBg,
+        fg: me.doc.receiptFg,
+      };
+    }
+    if (status === 'rejected' || status === 'cancelled') {
+      return {
+        label: status === 'rejected' ? 'Rejected' : 'Cancelled',
+        bg: me.errBg,
+        fg: me.errFg,
+      };
+    }
+    return { label: status, bg: me.bg2, fg: me.ink2 };
   }
   if (type === 'bid') {
-    if (status === 'accepted')
-      return { label: 'Accepted', color: designColors.success };
-    if (status === 'pending')
-      return { label: 'Pending Review', color: designColors.warning };
-    if (status === 'rejected')
-      return { label: 'Declined', color: designColors.error };
-    return { label: status, color: me.ink2 };
+    if (status === 'accepted') {
+      return { label: 'Accepted', bg: me.doc.certBg, fg: me.doc.certFg };
+    }
+    if (status === 'pending') {
+      return { label: 'Pending review', bg: me.doc.bidBg, fg: me.doc.bidFg };
+    }
+    if (status === 'rejected' || status === 'declined') {
+      return { label: 'Declined', bg: me.errBg, fg: me.errFg };
+    }
+    return { label: status, bg: me.bg2, fg: me.ink2 };
   }
-  if (status === 'held')
-    return { label: 'In Escrow', color: designColors.info };
-  if (status === 'released' || status === 'completed')
-    return { label: 'Released', color: designColors.success };
+  // Payment
+  if (status === 'released' || status === 'completed') {
+    return { label: 'Released', bg: me.doc.certBg, fg: me.doc.certFg };
+  }
+  if (status === 'held' || status === 'in_escrow') {
+    return { label: 'In escrow', bg: me.doc.receiptBg, fg: me.doc.receiptFg };
+  }
   if (status === 'release_pending')
-    return { label: 'Release Pending', color: designColors.warning };
+    return { label: 'Release pending', bg: me.warnBg, fg: me.warnFg };
   if (status === 'pending')
-    return { label: 'Processing', color: designColors.warning };
-  if (status === 'refunded') return { label: 'Refunded', color: me.ink2 };
-  return { label: status, color: me.ink2 };
+    return { label: 'Processing', bg: me.warnBg, fg: me.warnFg };
+  if (status === 'refunded')
+    return { label: 'Refunded', bg: me.bg2, fg: me.ink2 };
+  return { label: status, bg: me.bg2, fg: me.ink2 };
+}
+
+function isAwaiting(doc: DocumentItem): boolean {
+  return (
+    (doc.type === 'contract' && doc.status === 'pending_homeowner') ||
+    (doc.type === 'bid' && doc.status === 'pending')
+  );
+}
+
+function awaitingPrimaryLabel(type: DocType): string | null {
+  if (type === 'contract') return 'Review & sign →';
+  if (type === 'bid') return 'Review bid →';
+  return null;
 }
 
 function formatRelative(dateString: string): string {
@@ -234,71 +288,48 @@ export const HomeownerDocumentsScreen: React.FC = () => {
         }
         ListHeaderComponent={
           <View>
-            {/* Hero */}
-            <LinearGradient
-              colors={[me.brand2, me.brand] as const}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={[styles.hero, { paddingTop: insets.top + 12 }]}
+            {/* Editorial header — paper bg, mint eyebrow, serif title.
+                Replaces the prior mint-gradient hero with 2 decorative
+                circles + 4-up white-on-brand stat pills. Counts are
+                surfaced inline by the filter chips row below. */}
+            <View
+              style={[
+                localStyles.editorialHero,
+                { paddingTop: insets.top + 12 },
+              ]}
             >
-              <View style={styles.decor1} />
-              <View style={styles.decor2} />
-
-              <View style={styles.heroNav}>
+              <View style={localStyles.editorialNavRow}>
                 <TouchableOpacity
-                  style={styles.navBtn}
+                  style={localStyles.editorialNavBtn}
                   onPress={() => navigation.goBack()}
                   accessibilityRole='button'
                   accessibilityLabel='Go back'
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 >
-                  <Ionicons name='arrow-back' size={20} color={me.onBrand} />
+                  <Ionicons name='arrow-back' size={20} color={me.ink} />
                 </TouchableOpacity>
-                <View style={{ flex: 1, marginLeft: 12 }}>
-                  <Text style={styles.heroTitle}>Documents</Text>
-                  <Text style={styles.heroSubtitle}>
-                    Contracts, bids, and payment records
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.statRow}>
-                <View style={styles.statPill}>
-                  <Text style={styles.statValue}>{counts.total}</Text>
-                  <Text style={styles.statLabel}>Total</Text>
-                </View>
-                <View style={styles.statPill}>
-                  <Text style={styles.statValue}>{counts.contracts}</Text>
-                  <Text style={styles.statLabel}>Contracts</Text>
-                </View>
-                <View style={styles.statPill}>
-                  <Text style={styles.statValue}>{counts.bids}</Text>
-                  <Text style={styles.statLabel}>Bids</Text>
-                </View>
                 {needsAttention > 0 ? (
-                  <View
-                    style={[
-                      styles.statPill,
-                      {
-                        backgroundColor: me.warnBg,
-                        borderColor: me.accent,
-                      },
-                    ]}
-                  >
-                    <Text style={[styles.statValue, { color: me.accent }]}>
-                      {needsAttention}
-                    </Text>
-                    <Text style={[styles.statLabel, { color: me.accent }]}>
-                      Action
+                  <View style={localStyles.attentionPill}>
+                    <Ionicons
+                      name='alert-circle-outline'
+                      size={13}
+                      color={me.errFg}
+                    />
+                    <Text style={localStyles.attentionText}>
+                      {needsAttention} need attention
                     </Text>
                   </View>
-                ) : (
-                  <View style={styles.statPill}>
-                    <Text style={styles.statValue}>{counts.payments}</Text>
-                    <Text style={styles.statLabel}>Payments</Text>
-                  </View>
-                )}
+                ) : null}
               </View>
-            </LinearGradient>
+              <Text style={localStyles.editorialEyebrow}>Library</Text>
+              <Text style={localStyles.editorialTitle}>Documents</Text>
+              <Text style={localStyles.editorialSubtitle}>
+                {counts.total} {counts.total === 1 ? 'file' : 'files'} ·{' '}
+                {counts.contracts}{' '}
+                {counts.contracts === 1 ? 'contract' : 'contracts'} ·{' '}
+                {counts.bids} {counts.bids === 1 ? 'bid' : 'bids'}
+              </Text>
+            </View>
 
             {/* Search */}
             <View style={localStyles.searchWrap}>
@@ -407,21 +438,35 @@ export const HomeownerDocumentsScreen: React.FC = () => {
         }
         renderItem={({ item }) => {
           const ts = TYPE_STYLE[item.type];
-          const status = getStatusLabel(item.type, item.status);
+          const badge = getStatusBadge(
+            item.type,
+            item.status,
+            item.contractor_signed,
+            item.homeowner_signed
+          );
+          const awaiting = isAwaiting(item);
+          const primaryLabel = awaitingPrimaryLabel(item.type);
+          // Awaiting cards get the spec's `.attn` treatment — full
+          // brand-coloured border + a soft brand shadow — so they pop
+          // visibly from the rest of the grid. Non-awaiting cards keep
+          // the type-coloured left accent.
           return (
             <TouchableOpacity
-              style={styles.docCard}
+              style={[styles.docCard, awaiting && localStyles.docCardAwaiting]}
               activeOpacity={0.7}
               onPress={() => openDoc(item)}
             >
-              <View style={[styles.docAccent, { backgroundColor: ts.color }]} />
+              <View
+                style={[
+                  styles.docAccent,
+                  { backgroundColor: awaiting ? me.brand : ts.color },
+                ]}
+              />
               <View style={styles.docContent}>
                 <View style={styles.docTopRow}>
-                  <View
-                    style={[styles.docIconWrap, { backgroundColor: ts.bg }]}
-                  >
-                    <Ionicons name={ts.icon} size={20} color={ts.color} />
-                  </View>
+                  <DocIcon color={ts.color} bg={ts.bg} ext={ts.fileLabel}>
+                    <Ionicons name={ts.icon} size={22} color={ts.color} />
+                  </DocIcon>
                   <View style={styles.docInfo}>
                     <Text style={styles.docName} numberOfLines={1}>
                       {item.name}
@@ -430,16 +475,13 @@ export const HomeownerDocumentsScreen: React.FC = () => {
                       <View
                         style={[
                           styles.categoryPill,
-                          { backgroundColor: status.color + '20' },
+                          { backgroundColor: badge.bg },
                         ]}
                       >
                         <Text
-                          style={[
-                            styles.categoryPillText,
-                            { color: status.color },
-                          ]}
+                          style={[styles.categoryPillText, { color: badge.fg }]}
                         >
-                          {status.label}
+                          {badge.label}
                         </Text>
                       </View>
                       {item.contractor_name ? (
@@ -476,6 +518,27 @@ export const HomeownerDocumentsScreen: React.FC = () => {
                     />
                   </View>
                 </View>
+
+                {/* Awaiting action chips — spec lock from
+                    redesign-v2/documents-web.html. Mirrors the
+                    `awaiting && primaryLabel` block on the web
+                    DocumentCard. The chips don't capture their own
+                    press: tapping the card already routes to the
+                    contract/bid review surface. */}
+                {awaiting && primaryLabel ? (
+                  <View style={localStyles.actionRow}>
+                    <View style={localStyles.actionPrimary}>
+                      <Text style={localStyles.actionPrimaryText}>
+                        {primaryLabel}
+                      </Text>
+                    </View>
+                    <View style={localStyles.actionGhost}>
+                      <Text style={localStyles.actionGhostText}>
+                        Remind me later
+                      </Text>
+                    </View>
+                  </View>
+                ) : null}
               </View>
             </TouchableOpacity>
           );
@@ -487,6 +550,62 @@ export const HomeownerDocumentsScreen: React.FC = () => {
 };
 
 const localStyles = {
+  // 2026-05-23 editorial header (replaces the mint-gradient hero +
+  // 4-up stat pill row in this file). Matches the redesign-v2
+  // Documents mockup — paper bg, mint eyebrow, serif title.
+  editorialHero: {
+    paddingHorizontal: 20,
+    paddingBottom: 14,
+    backgroundColor: me.bg,
+  },
+  editorialNavRow: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    justifyContent: 'space-between' as const,
+    marginBottom: 12,
+  },
+  editorialNavBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: me.bg2,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+  },
+  attentionPill: {
+    flexDirection: 'row' as const,
+    alignItems: 'center' as const,
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: me.errBg,
+    borderRadius: 16,
+  },
+  attentionText: {
+    fontSize: 11,
+    fontWeight: '700' as const,
+    color: me.errFg,
+  },
+  editorialEyebrow: {
+    fontSize: 11,
+    fontWeight: '700' as const,
+    color: me.brand,
+    textTransform: 'uppercase' as const,
+    letterSpacing: 1.2,
+    marginBottom: 6,
+  },
+  editorialTitle: {
+    fontFamily: me.font.display,
+    fontSize: 28,
+    lineHeight: 32,
+    color: me.ink,
+    letterSpacing: me.displayTracking,
+    marginBottom: 4,
+  },
+  editorialSubtitle: {
+    fontSize: 13,
+    color: me.ink3,
+  },
   searchWrap: {
     paddingHorizontal: 16,
     paddingTop: 12,
@@ -512,6 +631,47 @@ const localStyles = {
     fontSize: 15,
     fontWeight: '700' as const,
     color: me.ink,
+  },
+  // Awaiting (.attn) card treatment — matches the homeowner DocumentCard
+  // spec on web: brand border + soft brand shadow lift the card off the
+  // grid so users notice items that need their input.
+  docCardAwaiting: {
+    borderWidth: 1,
+    borderColor: me.brand,
+    ...me.shadow.pop,
+  },
+  // Action chip row — appears under awaiting cards. Mirrors the dashed
+  // top border + "Review & sign →" + "Remind me later" pair on web.
+  actionRow: {
+    flexDirection: 'row' as const,
+    gap: 8,
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: me.line2,
+  },
+  actionPrimary: {
+    backgroundColor: me.brand,
+    borderRadius: me.radius.btn,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  actionPrimaryText: {
+    color: me.onBrand,
+    fontSize: 13,
+    fontWeight: '700' as const,
+  },
+  actionGhost: {
+    borderWidth: 1,
+    borderColor: me.line,
+    borderRadius: me.radius.btn,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  actionGhostText: {
+    color: me.ink2,
+    fontSize: 13,
+    fontWeight: '600' as const,
   },
 };
 

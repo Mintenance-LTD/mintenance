@@ -125,6 +125,8 @@ export function MintEditorialContractorDashboardRail({
                   flexShrink: 0,
                 }}
               >
+                {/* 2026-05-22: budget hidden — contractors set their own
+                    price on each bid. */}
                 {j.budget > 0 ? formatMoney(j.budget) : 'Open'}
               </span>
             </Link>

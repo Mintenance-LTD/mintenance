@@ -36,7 +36,6 @@ import { QuickJobHeader } from './quick-job-post/components/QuickJobHeader';
 import { PropertyBanner } from './quick-job-post/components/PropertyBanner';
 import { RepairTemplateGrid } from './quick-job-post/components/RepairTemplateGrid';
 import { IssueDescription } from './quick-job-post/components/IssueDescription';
-import { BudgetGrid } from './quick-job-post/components/BudgetGrid';
 import { UrgencyGrid } from './quick-job-post/components/UrgencyGrid';
 import { SubmitFooter } from './quick-job-post/components/SubmitFooter';
 import { RoomScopePicker } from './components/RoomScopePicker';
@@ -58,7 +57,6 @@ export const QuickJobPostScreen: React.FC = () => {
     categoryLabel ? `${categoryLabel} issue` : ''
   );
   const [description, setDescription] = useState('');
-  const [budget, setBudget] = useState('150');
   const [urgency, setUrgency] = useState(params?.urgency || 'this_week');
   const [category, setCategory] = useState(initialCategory);
   const matchingTemplate = initialCategory
@@ -77,7 +75,6 @@ export const QuickJobPostScreen: React.FC = () => {
     setSelectedTemplate(template.id);
     setTitle(template.title);
     setDescription(template.description);
-    setBudget(template.budget);
     setCategory(template.category);
   }, []);
 
@@ -90,7 +87,6 @@ export const QuickJobPostScreen: React.FC = () => {
     const result = await submitQuickJob({
       title,
       description,
-      budget,
       urgency,
       category,
       propertyId: params?.propertyId,
@@ -160,8 +156,6 @@ export const QuickJobPostScreen: React.FC = () => {
           setDescription={setDescription}
           showTitleInput={!selectedTemplate && !params?.category}
         />
-
-        <BudgetGrid budget={budget} onChange={setBudget} />
 
         <UrgencyGrid urgency={urgency} onChange={setUrgency} />
 

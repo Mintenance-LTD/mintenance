@@ -37,6 +37,40 @@ interface PhotoPair {
   after: { url: string; id: string; timestamp?: string };
 }
 
+/** Days the homeowner has to approve before the cron auto-releases. */
+const AUTO_RELEASE_WINDOW_DAYS = 7;
+
+// 2026-05-28 U3: mirror of web computeAutoReleaseInfo (audit-P2-4). The
+// 7-day auto-release window runs from jobs.completed_at (stamped when
+// the after-photo upload auto-flips the job to 'completed'). Surfacing
+// the deadline reassures homeowners that funds move even with no action.
+function computeAutoReleaseInfo(completedAt: string | null | undefined): {
+  deadline: Date;
+  daysRemaining: number;
+  passed: boolean;
+} | null {
+  if (!completedAt) return null;
+  const completed = new Date(completedAt);
+  if (Number.isNaN(completed.getTime())) return null;
+  const deadline = new Date(completed);
+  deadline.setUTCDate(deadline.getUTCDate() + AUTO_RELEASE_WINDOW_DAYS);
+  const msRemaining = deadline.getTime() - Date.now();
+  // Ceil so "23 hours left" reads as "1 day" not "0 days".
+  const daysRemaining = Math.max(
+    0,
+    Math.ceil(msRemaining / (24 * 60 * 60 * 1000))
+  );
+  return { deadline, daysRemaining, passed: msRemaining <= 0 };
+}
+
+function formatDeadline(d: Date): string {
+  return d.toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  });
+}
+
 export const HomeownerPhotoReviewScreen: React.FC = () => {
   const navigation = useNavigation();
   const route = useRoute<PhotoReviewRouteProp>();
@@ -50,6 +84,8 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
   const [showChangesForm, setShowChangesForm] = useState(false);
   const [changesComment, setChangesComment] = useState('');
   const [jobTitle, setJobTitle] = useState('');
+  const [completedAt, setCompletedAt] = useState<string | null>(null);
+  const autoRelease = computeAutoReleaseInfo(completedAt);
 
   const fetchPhotos = useCallback(async () => {
     try {
@@ -60,6 +96,7 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
         PhotoUploadService.getJobPhotos(jobId),
       ]);
       if (jobData?.title) setJobTitle(jobData.title);
+      setCompletedAt(jobData?.completed_at ?? null);
 
       const beforePhotos = (photos || []).filter(
         (p) => p.photo_type === 'before'
@@ -245,6 +282,57 @@ export const HomeownerPhotoReviewScreen: React.FC = () => {
           activePairIndex={activePairIndex}
           onSelectPair={setActivePairIndex}
         />
+
+        {/* Auto-release countdown — only while awaiting homeowner action. */}
+        {!showChangesForm &&
+          autoRelease &&
+          (() => {
+            const isUrgent =
+              autoRelease.passed || autoRelease.daysRemaining <= 2;
+            return (
+              <View
+                accessibilityRole='alert'
+                style={[
+                  styles.autoReleaseBanner,
+                  {
+                    backgroundColor: isUrgent ? me.warnBg : me.infoBg,
+                    borderColor: isUrgent ? me.warnFg : me.infoFg,
+                  },
+                ]}
+              >
+                <Ionicons
+                  name='time-outline'
+                  size={20}
+                  color={isUrgent ? me.warnFg : me.infoFg}
+                  style={styles.autoReleaseIcon}
+                />
+                <View style={styles.autoReleaseTextWrap}>
+                  <Text
+                    style={[
+                      styles.autoReleaseTitle,
+                      { color: isUrgent ? me.warnFg : me.infoFg },
+                    ]}
+                  >
+                    {autoRelease.passed
+                      ? 'Funds queued for auto-release'
+                      : autoRelease.daysRemaining === 1
+                        ? '1 day left to approve or request changes'
+                        : `${autoRelease.daysRemaining} days left to approve or request changes`}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.autoReleaseBody,
+                      { color: isUrgent ? me.warnFg : me.infoFg },
+                    ]}
+                  >
+                    {autoRelease.passed
+                      ? `The ${AUTO_RELEASE_WINDOW_DAYS}-day review window has passed (${formatDeadline(autoRelease.deadline)}). Payment will be released to the contractor on the next automatic run.`
+                      : `If you take no action, payment auto-releases on ${formatDeadline(autoRelease.deadline)}. This protects contractors from indefinite holds.`}
+                  </Text>
+                </View>
+              </View>
+            );
+          })()}
 
         {/* Changes Form (rendered inside scroll so it's above the keyboard) */}
         {showChangesForm && (

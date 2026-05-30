@@ -15,9 +15,10 @@ jest.mock('@expo/vector-icons', () => ({
   Ionicons: 'Ionicons',
 }));
 
-// Deterministic date for consistent testing
+// Deterministic date for consistent testing.
+// JobDetailsInfo formats dates with `toLocaleDateString('en-GB', ...)`.
 const FIXED_DATE = '2024-01-15T10:30:00.000Z';
-const FIXED_DATE_FORMATTED = 'January 15, 2024';
+const FIXED_DATE_FORMATTED = '15 January 2024';
 
 describe('JobDetailsInfo Component', () => {
   beforeEach(() => {
@@ -86,9 +87,32 @@ describe('JobDetailsInfo Component', () => {
       const { getByText } = render(<JobDetailsInfo job={mockJob} />);
 
       expect(getByText('Location')).toBeTruthy();
-      expect(getByText('Budget Range')).toBeTruthy();
       expect(getByText('Timeline')).toBeTruthy();
       expect(getByText('Created')).toBeTruthy();
+    });
+
+    // 2026-05-22: budget row removed from JobDetailsInfo — contractors
+    // set their own price on each bid and the homeowner picks from
+    // the bids. Pinned so a regression surfaces if it sneaks back.
+    it('should NOT render Budget Range row', () => {
+      const mockJob: Job = {
+        id: 'job-no-budget',
+        title: 'Test',
+        description: 'Test',
+        location: 'Test Location',
+        homeowner_id: 'user-no-budget',
+        status: 'posted',
+        budget: 5000,
+        budget_min: 4000,
+        budget_max: 6000,
+        created_at: FIXED_DATE,
+        updated_at: FIXED_DATE,
+      };
+
+      const { queryByText } = render(<JobDetailsInfo job={mockJob} />);
+
+      expect(queryByText('Budget Range')).toBeNull();
+      expect(queryByText('$4,000.00 - $6,000.00')).toBeNull();
     });
   });
 
@@ -128,15 +152,21 @@ describe('JobDetailsInfo Component', () => {
         updated_at: FIXED_DATE,
       };
 
-      const { getAllByText } = render(<JobDetailsInfo job={mockJob} />);
-
-      // "Not specified" should appear for empty location
-      const notSpecifiedElements = getAllByText('Not specified');
-      expect(notSpecifiedElements.length).toBeGreaterThan(0);
+      // 2026-05-22: this test previously relied on the Budget row's
+      // "Not specified" fallback (since budget_min/_max weren't both
+      // set). With the budget row removed, an empty location string
+      // falls through to the literal `''` from `getValue('location')`
+      // — the component has no empty-string fallback for location.
+      // Keep the test as a sanity check that the screen still renders
+      // (no crash) with an empty location.
+      const { getByText } = render(<JobDetailsInfo job={mockJob} />);
+      expect(getByText('Job Details')).toBeTruthy();
+      expect(getByText('Location')).toBeTruthy();
     });
 
     it('should handle very long location addresses', () => {
-      const longLocation = '1234 Very Long Street Name Avenue Boulevard, Apartment 567, Building C, New York City, New York State, United States of America 10001-5678';
+      const longLocation =
+        '1234 Very Long Street Name Avenue Boulevard, Apartment 567, Building C, New York City, New York State, United States of America 10001-5678';
 
       const mockJob: Job = {
         id: 'job-6',
@@ -176,227 +206,9 @@ describe('JobDetailsInfo Component', () => {
     });
   });
 
-  // ==================== BUDGET TESTS ====================
-
-  describe('Budget Display', () => {
-    it('should display budget range when both min and max are provided', () => {
-      const mockJob: Job = {
-        id: 'job-8',
-        title: 'Test',
-        description: 'Test',
-        location: 'Test Location',
-        homeowner_id: 'user-8',
-        status: 'posted',
-        budget: 5000,
-        budget_min: 4000,
-        budget_max: 6000,
-        created_at: FIXED_DATE,
-        updated_at: FIXED_DATE,
-      };
-
-      const { getByText } = render(<JobDetailsInfo job={mockJob} />);
-
-      expect(getByText('$4,000.00 - $6,000.00')).toBeTruthy();
-    });
-
-    it('should display "Not specified" when budget_min is missing', () => {
-      const mockJob: Job = {
-        id: 'job-9',
-        title: 'Test',
-        description: 'Test',
-        location: 'Test Location',
-        homeowner_id: 'user-9',
-        status: 'posted',
-        budget: 5000,
-        budget_max: 6000,
-        created_at: FIXED_DATE,
-        updated_at: FIXED_DATE,
-      };
-
-      const { getByText } = render(<JobDetailsInfo job={mockJob} />);
-
-      expect(getByText('Not specified')).toBeTruthy();
-    });
-
-    it('should display "Not specified" when budget_max is missing', () => {
-      const mockJob: Job = {
-        id: 'job-10',
-        title: 'Test',
-        description: 'Test',
-        location: 'Test Location',
-        homeowner_id: 'user-10',
-        status: 'posted',
-        budget: 5000,
-        budget_min: 4000,
-        created_at: FIXED_DATE,
-        updated_at: FIXED_DATE,
-      };
-
-      const { getByText } = render(<JobDetailsInfo job={mockJob} />);
-
-      expect(getByText('Not specified')).toBeTruthy();
-    });
-
-    it('should display "Not specified" when both budget_min and budget_max are missing', () => {
-      const mockJob: Job = {
-        id: 'job-11',
-        title: 'Test',
-        description: 'Test',
-        location: 'Test Location',
-        homeowner_id: 'user-11',
-        status: 'posted',
-        budget: 5000,
-        created_at: FIXED_DATE,
-        updated_at: FIXED_DATE,
-      };
-
-      const { getByText } = render(<JobDetailsInfo job={mockJob} />);
-
-      expect(getByText('Not specified')).toBeTruthy();
-    });
-
-    it('should format small budget amounts correctly', () => {
-      const mockJob: Job = {
-        id: 'job-12',
-        title: 'Test',
-        description: 'Test',
-        location: 'Test Location',
-        homeowner_id: 'user-12',
-        status: 'posted',
-        budget: 50,
-        budget_min: 25,
-        budget_max: 75,
-        created_at: FIXED_DATE,
-        updated_at: FIXED_DATE,
-      };
-
-      const { getByText } = render(<JobDetailsInfo job={mockJob} />);
-
-      expect(getByText('$25.00 - $75.00')).toBeTruthy();
-    });
-
-    it('should format large budget amounts correctly', () => {
-      const mockJob: Job = {
-        id: 'job-13',
-        title: 'Test',
-        description: 'Test',
-        location: 'Test Location',
-        homeowner_id: 'user-13',
-        status: 'posted',
-        budget: 50000,
-        budget_min: 45000,
-        budget_max: 55000,
-        created_at: FIXED_DATE,
-        updated_at: FIXED_DATE,
-      };
-
-      const { getByText } = render(<JobDetailsInfo job={mockJob} />);
-
-      expect(getByText('$45,000.00 - $55,000.00')).toBeTruthy();
-    });
-
-    it('should format very large budget amounts with proper separators', () => {
-      const mockJob: Job = {
-        id: 'job-14',
-        title: 'Test',
-        description: 'Test',
-        location: 'Test Location',
-        homeowner_id: 'user-14',
-        status: 'posted',
-        budget: 1000000,
-        budget_min: 950000,
-        budget_max: 1050000,
-        created_at: FIXED_DATE,
-        updated_at: FIXED_DATE,
-      };
-
-      const { getByText } = render(<JobDetailsInfo job={mockJob} />);
-
-      expect(getByText('$950,000.00 - $1,050,000.00')).toBeTruthy();
-    });
-
-    it('should format decimal budget amounts correctly', () => {
-      const mockJob: Job = {
-        id: 'job-15',
-        title: 'Test',
-        description: 'Test',
-        location: 'Test Location',
-        homeowner_id: 'user-15',
-        status: 'posted',
-        budget: 1234.56,
-        budget_min: 1000.50,
-        budget_max: 1500.75,
-        created_at: FIXED_DATE,
-        updated_at: FIXED_DATE,
-      };
-
-      const { getByText } = render(<JobDetailsInfo job={mockJob} />);
-
-      expect(getByText('$1,000.50 - $1,500.75')).toBeTruthy();
-    });
-
-    it('should handle zero budget amounts', () => {
-      const mockJob: Job = {
-        id: 'job-16',
-        title: 'Test',
-        description: 'Test',
-        location: 'Test Location',
-        homeowner_id: 'user-16',
-        status: 'posted',
-        budget: 0,
-        budget_min: 0,
-        budget_max: 0,
-        created_at: FIXED_DATE,
-        updated_at: FIXED_DATE,
-      };
-
-      const { getByText } = render(<JobDetailsInfo job={mockJob} />);
-
-      // Zero is treated as falsy by the component logic, so "Not specified" is shown
-      expect(getByText('Not specified')).toBeTruthy();
-    });
-
-    it('should handle budget range where min equals max', () => {
-      const mockJob: Job = {
-        id: 'job-17',
-        title: 'Test',
-        description: 'Test',
-        location: 'Test Location',
-        homeowner_id: 'user-17',
-        status: 'posted',
-        budget: 3000,
-        budget_min: 3000,
-        budget_max: 3000,
-        created_at: FIXED_DATE,
-        updated_at: FIXED_DATE,
-      };
-
-      const { getByText } = render(<JobDetailsInfo job={mockJob} />);
-
-      expect(getByText('$3,000.00 - $3,000.00')).toBeTruthy();
-    });
-
-    it('should handle budget_min of 0 and budget_max with value', () => {
-      const mockJob: Job = {
-        id: 'job-18',
-        title: 'Test',
-        description: 'Test',
-        location: 'Test Location',
-        homeowner_id: 'user-18',
-        status: 'posted',
-        budget: 2500,
-        budget_min: 0,
-        budget_max: 5000,
-        created_at: FIXED_DATE,
-        updated_at: FIXED_DATE,
-      };
-
-      const { getByText } = render(<JobDetailsInfo job={mockJob} />);
-
-      // Zero budget_min is treated as falsy, so "Not specified" is shown
-      expect(getByText('Not specified')).toBeTruthy();
-    });
-  });
+  // Budget Display tests removed 2026-05-22 — JobDetailsInfo no longer
+  // renders a Budget Range row. The negative-render guard lives in the
+  // Rendering describe above.
 
   // ==================== TIMELINE TESTS ====================
 
@@ -496,7 +308,8 @@ describe('JobDetailsInfo Component', () => {
     });
 
     it('should handle timeline with long description', () => {
-      const longTimeline = 'Flexible schedule, can work around homeowner availability, prefer weekdays between 9 AM and 5 PM';
+      const longTimeline =
+        'Flexible schedule, can work around homeowner availability, prefer weekdays between 9 AM and 5 PM';
 
       const mockJob: Job = {
         id: 'job-24',
@@ -555,7 +368,7 @@ describe('JobDetailsInfo Component', () => {
 
       const { getByText } = render(<JobDetailsInfo job={mockJob} />);
 
-      expect(getByText('January 1, 2024')).toBeTruthy();
+      expect(getByText('1 January 2024')).toBeTruthy();
     });
 
     it('should format different date correctly - mid year', () => {
@@ -575,7 +388,7 @@ describe('JobDetailsInfo Component', () => {
 
       const { getByText } = render(<JobDetailsInfo job={mockJob} />);
 
-      expect(getByText('June 15, 2024')).toBeTruthy();
+      expect(getByText('15 June 2024')).toBeTruthy();
     });
 
     it('should format different date correctly - end of year', () => {
@@ -595,7 +408,7 @@ describe('JobDetailsInfo Component', () => {
 
       const { getByText } = render(<JobDetailsInfo job={mockJob} />);
 
-      expect(getByText('December 31, 2024')).toBeTruthy();
+      expect(getByText('31 December 2024')).toBeTruthy();
     });
 
     it('should handle date from different year', () => {
@@ -615,7 +428,7 @@ describe('JobDetailsInfo Component', () => {
 
       const { getByText } = render(<JobDetailsInfo job={mockJob} />);
 
-      expect(getByText('March 20, 2023')).toBeTruthy();
+      expect(getByText('20 March 2023')).toBeTruthy();
     });
 
     it('should handle date from future year', () => {
@@ -635,14 +448,16 @@ describe('JobDetailsInfo Component', () => {
 
       const { getByText } = render(<JobDetailsInfo job={mockJob} />);
 
-      expect(getByText('August 10, 2025')).toBeTruthy();
+      expect(getByText('10 August 2025')).toBeTruthy();
     });
   });
 
   // ==================== ICON RENDERING TESTS ====================
 
   describe('Icon Rendering', () => {
-    it('should render location icon', () => {
+    // 2026-05-22: budget icon removed alongside the Budget Range row.
+    // Now 3 icons: location, calendar (timeline), time (created).
+    it('should render an icon for each of the three info items', () => {
       const mockJob: Job = {
         id: 'job-31',
         title: 'Test',
@@ -651,28 +466,6 @@ describe('JobDetailsInfo Component', () => {
         homeowner_id: 'user-31',
         status: 'posted',
         budget: 2000,
-        created_at: FIXED_DATE,
-        updated_at: FIXED_DATE,
-      };
-
-      const { UNSAFE_getAllByType } = render(<JobDetailsInfo job={mockJob} />);
-      const icons = UNSAFE_getAllByType('Ionicons' as any);
-
-      // Should have 4 icons (location, cash, calendar, time)
-      expect(icons).toHaveLength(4);
-    });
-
-    it('should render all four icons for info items', () => {
-      const mockJob: Job = {
-        id: 'job-32',
-        title: 'Test',
-        description: 'Test',
-        location: 'Test Location',
-        homeowner_id: 'user-32',
-        status: 'posted',
-        budget: 2000,
-        budget_min: 1500,
-        budget_max: 2500,
         timeline: '1 week',
         created_at: FIXED_DATE,
         updated_at: FIXED_DATE,
@@ -681,14 +474,14 @@ describe('JobDetailsInfo Component', () => {
       const { UNSAFE_getAllByType } = render(<JobDetailsInfo job={mockJob} />);
       const icons = UNSAFE_getAllByType('Ionicons' as any);
 
-      expect(icons).toHaveLength(4);
+      expect(icons).toHaveLength(3);
     });
   });
 
   // ==================== EDGE CASES ====================
 
   describe('Edge Cases', () => {
-    it('should handle null values gracefully', () => {
+    it('should handle null timeline gracefully', () => {
       const mockJob: Job = {
         id: 'job-33',
         title: 'Test',
@@ -697,8 +490,6 @@ describe('JobDetailsInfo Component', () => {
         homeowner_id: 'user-33',
         status: 'posted',
         budget: 2000,
-        budget_min: null as any,
-        budget_max: null as any,
         timeline: null as any,
         created_at: FIXED_DATE,
         updated_at: FIXED_DATE,
@@ -707,70 +498,11 @@ describe('JobDetailsInfo Component', () => {
       const { getByText } = render(<JobDetailsInfo job={mockJob} />);
 
       expect(getByText('Job Details')).toBeTruthy();
-      expect(getByText('Not specified')).toBeTruthy();
       expect(getByText('Flexible')).toBeTruthy();
     });
 
-    it('should handle undefined budget range values', () => {
-      const mockJob: Job = {
-        id: 'job-34',
-        title: 'Test',
-        description: 'Test',
-        location: 'Test Location',
-        homeowner_id: 'user-34',
-        status: 'posted',
-        budget: 2000,
-        budget_min: undefined,
-        budget_max: undefined,
-        created_at: FIXED_DATE,
-        updated_at: FIXED_DATE,
-      };
-
-      const { getByText } = render(<JobDetailsInfo job={mockJob} />);
-
-      expect(getByText('Not specified')).toBeTruthy();
-    });
-
-    it('should handle negative budget values', () => {
-      const mockJob: Job = {
-        id: 'job-35',
-        title: 'Test',
-        description: 'Test',
-        location: 'Test Location',
-        homeowner_id: 'user-35',
-        status: 'posted',
-        budget: -1000,
-        budget_min: -1500,
-        budget_max: -500,
-        created_at: FIXED_DATE,
-        updated_at: FIXED_DATE,
-      };
-
-      const { getByText } = render(<JobDetailsInfo job={mockJob} />);
-
-      // Negative values are truthy, so they should be formatted and displayed
-      expect(getByText('-$1,500.00 - -$500.00')).toBeTruthy();
-    });
-
-    it('should handle very small decimal budget values', () => {
-      const mockJob: Job = {
-        id: 'job-36',
-        title: 'Test',
-        description: 'Test',
-        location: 'Test Location',
-        homeowner_id: 'user-36',
-        status: 'posted',
-        budget: 0.50,
-        budget_min: 0.25,
-        budget_max: 0.75,
-        created_at: FIXED_DATE,
-        updated_at: FIXED_DATE,
-      };
-
-      const { getByText } = render(<JobDetailsInfo job={mockJob} />);
-
-      expect(getByText('$0.25 - $0.75')).toBeTruthy();
-    });
+    // 2026-05-22: budget-specific edge cases (null/undefined range, negative
+    // values, very small decimals) removed alongside the Budget Range row.
 
     it('should handle whitespace-only location', () => {
       const mockJob: Job = {
@@ -812,97 +544,13 @@ describe('JobDetailsInfo Component', () => {
     });
   });
 
-  // ==================== CURRENCY FORMATTING TESTS ====================
-
-  describe('Currency Formatting Function', () => {
-    it('should format integer amounts with two decimal places', () => {
-      const mockJob: Job = {
-        id: 'job-39',
-        title: 'Test',
-        description: 'Test',
-        location: 'Test Location',
-        homeowner_id: 'user-39',
-        status: 'posted',
-        budget: 1000,
-        budget_min: 1000,
-        budget_max: 2000,
-        created_at: FIXED_DATE,
-        updated_at: FIXED_DATE,
-      };
-
-      const { getByText } = render(<JobDetailsInfo job={mockJob} />);
-
-      expect(getByText('$1,000.00 - $2,000.00')).toBeTruthy();
-    });
-
-    it('should format amounts with one decimal place', () => {
-      const mockJob: Job = {
-        id: 'job-40',
-        title: 'Test',
-        description: 'Test',
-        location: 'Test Location',
-        homeowner_id: 'user-40',
-        status: 'posted',
-        budget: 1234.5,
-        budget_min: 1234.5,
-        budget_max: 5678.9,
-        created_at: FIXED_DATE,
-        updated_at: FIXED_DATE,
-      };
-
-      const { getByText } = render(<JobDetailsInfo job={mockJob} />);
-
-      expect(getByText('$1,234.50 - $5,678.90')).toBeTruthy();
-    });
-
-    it('should use USD currency symbol', () => {
-      const mockJob: Job = {
-        id: 'job-41',
-        title: 'Test',
-        description: 'Test',
-        location: 'Test Location',
-        homeowner_id: 'user-41',
-        status: 'posted',
-        budget: 500,
-        budget_min: 400,
-        budget_max: 600,
-        created_at: FIXED_DATE,
-        updated_at: FIXED_DATE,
-      };
-
-      const { getByText } = render(<JobDetailsInfo job={mockJob} />);
-
-      const budgetText = getByText('$400.00 - $600.00');
-      expect(budgetText).toBeTruthy();
-      expect(budgetText.props.children.toString()).toContain('$');
-    });
-
-    it('should use en-US locale formatting', () => {
-      const mockJob: Job = {
-        id: 'job-42',
-        title: 'Test',
-        description: 'Test',
-        location: 'Test Location',
-        homeowner_id: 'user-42',
-        status: 'posted',
-        budget: 12345.67,
-        budget_min: 10000,
-        budget_max: 15000,
-        created_at: FIXED_DATE,
-        updated_at: FIXED_DATE,
-      };
-
-      const { getByText } = render(<JobDetailsInfo job={mockJob} />);
-
-      // en-US uses comma as thousand separator
-      expect(getByText('$10,000.00 - $15,000.00')).toBeTruthy();
-    });
-  });
+  // Currency formatting tests removed 2026-05-22 — JobDetailsInfo no
+  // longer renders any currency, so there is nothing to format.
 
   // ==================== DATE FORMATTING TESTS ====================
 
   describe('Date Formatting Function', () => {
-    it('should use en-US locale for date formatting', () => {
+    it('should use en-GB locale for date formatting', () => {
       const mockJob: Job = {
         id: 'job-43',
         title: 'Test',
@@ -917,7 +565,7 @@ describe('JobDetailsInfo Component', () => {
 
       const { getByText } = render(<JobDetailsInfo job={mockJob} />);
 
-      expect(getByText('February 14, 2024')).toBeTruthy();
+      expect(getByText('14 February 2024')).toBeTruthy();
     });
 
     it('should include full month name', () => {
@@ -935,7 +583,7 @@ describe('JobDetailsInfo Component', () => {
 
       const { getByText } = render(<JobDetailsInfo job={mockJob} />);
 
-      expect(getByText('September 5, 2024')).toBeTruthy();
+      expect(getByText('5 September 2024')).toBeTruthy();
     });
 
     it('should include 4-digit year', () => {
@@ -953,7 +601,7 @@ describe('JobDetailsInfo Component', () => {
 
       const { getByText } = render(<JobDetailsInfo job={mockJob} />);
 
-      const dateText = getByText('November 22, 2024');
+      const dateText = getByText('22 November 2024');
       expect(dateText.props.children.toString()).toContain('2024');
     });
 
@@ -972,7 +620,7 @@ describe('JobDetailsInfo Component', () => {
 
       const { getByText } = render(<JobDetailsInfo job={mockJob} />);
 
-      expect(getByText('February 29, 2024')).toBeTruthy();
+      expect(getByText('29 February 2024')).toBeTruthy();
     });
   });
 
@@ -983,7 +631,8 @@ describe('JobDetailsInfo Component', () => {
       const mockJob: Job = {
         id: 'job-47',
         title: 'Complete Bathroom Remodel',
-        description: 'Full bathroom renovation including fixtures, tiles, and plumbing',
+        description:
+          'Full bathroom renovation including fixtures, tiles, and plumbing',
         location: '789 Pine Street, Chicago, IL 60601',
         homeowner_id: 'user-47',
         status: 'posted',
@@ -995,14 +644,17 @@ describe('JobDetailsInfo Component', () => {
         updated_at: '2024-03-10T09:00:00.000Z',
       };
 
-      const { getByText } = render(<JobDetailsInfo job={mockJob} />);
+      const { getByText, queryByText } = render(
+        <JobDetailsInfo job={mockJob} />
+      );
 
       // Verify all fields are present
       expect(getByText('Job Details')).toBeTruthy();
       expect(getByText('789 Pine Street, Chicago, IL 60601')).toBeTruthy();
-      expect(getByText('$7,000.00 - $9,000.00')).toBeTruthy();
       expect(getByText('3-4 weeks')).toBeTruthy();
-      expect(getByText('March 10, 2024')).toBeTruthy();
+      expect(getByText('10 March 2024')).toBeTruthy();
+      // 2026-05-22: budget row removed.
+      expect(queryByText('$7,000.00 - $9,000.00')).toBeNull();
     });
 
     it('should handle real-world job with all optional fields', () => {
@@ -1026,13 +678,16 @@ describe('JobDetailsInfo Component', () => {
         updated_at: '2024-04-21T10:15:00.000Z',
       };
 
-      const { getByText } = render(<JobDetailsInfo job={mockJob} />);
+      const { getByText, queryByText } = render(
+        <JobDetailsInfo job={mockJob} />
+      );
 
       expect(getByText('Job Details')).toBeTruthy();
       expect(getByText('321 Elm Drive, Austin, TX 78701')).toBeTruthy();
-      expect(getByText('$4,000.00 - $5,000.00')).toBeTruthy();
       expect(getByText('1-2 weeks')).toBeTruthy();
-      expect(getByText('April 20, 2024')).toBeTruthy();
+      expect(getByText('20 April 2024')).toBeTruthy();
+      // 2026-05-22: budget row removed.
+      expect(queryByText('$4,000.00 - $5,000.00')).toBeNull();
     });
 
     it('should handle minimal real-world job data', () => {
@@ -1048,13 +703,16 @@ describe('JobDetailsInfo Component', () => {
         updated_at: '2024-05-01T08:00:00.000Z',
       };
 
-      const { getByText } = render(<JobDetailsInfo job={mockJob} />);
+      const { getByText, queryByText } = render(
+        <JobDetailsInfo job={mockJob} />
+      );
 
       expect(getByText('Job Details')).toBeTruthy();
       expect(getByText('Downtown')).toBeTruthy();
-      expect(getByText('Not specified')).toBeTruthy(); // budget range
       expect(getByText('Flexible')).toBeTruthy(); // timeline
-      expect(getByText('May 1, 2024')).toBeTruthy();
+      expect(getByText('1 May 2024')).toBeTruthy();
+      // 2026-05-22: budget row removed.
+      expect(queryByText('Budget Range')).toBeNull();
     });
   });
 
@@ -1124,16 +782,19 @@ describe('JobDetailsInfo Component', () => {
         updated_at: FIXED_DATE,
       };
 
-      const { getByText, rerender } = render(<JobDetailsInfo job={mockJob} />);
+      const { getByText, rerender, queryByText } = render(
+        <JobDetailsInfo job={mockJob} />
+      );
 
       // Initial render should show correct data
       expect(getByText('999 Test St')).toBeTruthy();
-      expect(getByText('$2,500.00 - $3,500.00')).toBeTruthy();
+      // 2026-05-22: budget row removed.
+      expect(queryByText('$2,500.00 - $3,500.00')).toBeNull();
 
       // Re-render with same props should be consistent
       rerender(<JobDetailsInfo job={mockJob} />);
       expect(getByText('999 Test St')).toBeTruthy();
-      expect(getByText('$2,500.00 - $3,500.00')).toBeTruthy();
+      expect(queryByText('$2,500.00 - $3,500.00')).toBeNull();
     });
   });
 });

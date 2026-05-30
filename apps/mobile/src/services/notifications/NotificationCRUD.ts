@@ -88,17 +88,48 @@ export async function getUserNotifications(
       throw new Error(error.message);
     }
 
-    return (data ?? []).map((row: Record<string, unknown>) => ({
-      id: row.id as string,
-      title: row.title as string,
-      body: (row.message as string) || '',
-      data: row.metadata ?? row.data ?? row.action_url,
-      type: row.type as string,
-      priority: (row.priority as string) || 'normal',
-      userId,
-      createdAt: row.created_at as string,
-      read: row.read as boolean,
-    })) as unknown as NotificationData[];
+    return (data ?? []).map((row: Record<string, unknown>) => {
+      // 2026-05-26 audit-62 P2: previously passed row.action_url
+      // through as a raw string when metadata/data were null —
+      // notificationRoutingTable.normalizePayload() expects an
+      // object with keys like {actionUrl, action_url, jobId, ...},
+      // so a bare URL string normalised to {} and the tap fell
+      // back to the inbox. Wrap the URL into the object shape the
+      // router understands so the parseActionUrl() fallback path
+      // can extract the jobId / conversationId.
+      const rawMetadata = row.metadata as Record<string, unknown> | null;
+      const rawData = row.data as Record<string, unknown> | null;
+      const rawActionUrl = row.action_url as string | null;
+      let normalizedData: unknown = rawMetadata ?? rawData ?? null;
+      if (rawActionUrl) {
+        // If we already have an object, fold the URL in; if not,
+        // synthesise one. normalizePayload reads action_url and
+        // actionUrl interchangeably.
+        if (
+          normalizedData &&
+          typeof normalizedData === 'object' &&
+          !Array.isArray(normalizedData)
+        ) {
+          normalizedData = {
+            ...(normalizedData as Record<string, unknown>),
+            action_url: rawActionUrl,
+          };
+        } else {
+          normalizedData = { action_url: rawActionUrl };
+        }
+      }
+      return {
+        id: row.id as string,
+        title: row.title as string,
+        body: (row.message as string) || '',
+        data: normalizedData,
+        type: row.type as string,
+        priority: (row.priority as string) || 'normal',
+        userId,
+        createdAt: row.created_at as string,
+        read: row.read as boolean,
+      };
+    }) as unknown as NotificationData[];
   } catch (error) {
     logger.error('Failed to get user notifications', error);
     throw error;
@@ -123,13 +154,28 @@ export async function markAllAsRead(_userId: string): Promise<void> {
   }
 }
 
+// 2026-05-27 audit-80 P1: social-feed types were removed in
+// migration 007_remove_social_features.sql, and the web feed
+// (apps/web/lib/notifications/feed.ts) already strips them, but
+// mobile's badge count was a raw COUNT(*) on `notifications` so
+// it kept counting unread rows the inbox doesn't render and the
+// router can't deep-link anywhere useful. Keep this list in sync
+// with the web feed's SOCIAL_NOTIFICATION_TYPES set.
+const RETIRED_NOTIFICATION_TYPES = [
+  'post_liked',
+  'comment_added',
+  'comment_replied',
+  'new_follower',
+];
+
 export async function getUnreadCount(userId: string): Promise<number> {
   try {
     const { count, error } = await supabase
       .from('notifications')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
-      .eq('read', false);
+      .eq('read', false)
+      .not('type', 'in', `(${RETIRED_NOTIFICATION_TYPES.join(',')})`);
 
     if (error) {
       logger.error('Failed to get unread count', error.message);

@@ -19,6 +19,14 @@ export interface UserNotificationPreferences {
   push_enabled: boolean;
   email_enabled: boolean;
   in_app_enabled: boolean;
+  // 2026-05-24 audit-42 P2: live user_notification_preferences has
+  // sms_enabled (verified via information_schema). The mobile prefs
+  // screen + /api/user/notification-preferences both accept the field,
+  // but the resolver wasn't loading it — so any SMS sender that
+  // imports this preference model had no way to honour the user's
+  // choice. Now mirrored in the model with the same permissive
+  // default as the other channels.
+  sms_enabled: boolean;
   disabled_types: string[];
   quiet_hours_start: string | null; // 'HH:MM:SS' or null
   quiet_hours_end: string | null;
@@ -29,6 +37,7 @@ const DEFAULTS: Omit<UserNotificationPreferences, 'user_id'> = {
   push_enabled: true,
   email_enabled: true,
   in_app_enabled: true,
+  sms_enabled: true,
   disabled_types: [],
   quiet_hours_start: null,
   quiet_hours_end: null,
@@ -74,6 +83,12 @@ export async function loadPreferences(
       push_enabled: Boolean(data.push_enabled),
       email_enabled: Boolean(data.email_enabled),
       in_app_enabled: Boolean(data.in_app_enabled),
+      // 2026-05-24 audit-42 P2: live row may not have sms_enabled if it
+      // predates the column being added — treat undefined as the
+      // permissive default. Boolean(null/undefined) is false which
+      // would silently mute SMS for legacy rows; explicit `=== false`
+      // check keeps unset rows opted-in.
+      sms_enabled: data.sms_enabled === false ? false : true,
       disabled_types: disabled,
       quiet_hours_start: data.quiet_hours_start ?? null,
       quiet_hours_end: data.quiet_hours_end ?? null,
@@ -89,10 +104,32 @@ export async function loadPreferences(
   }
 }
 
+/**
+ * Notification types that are never user-mutable. The mobile prefs
+ * banner (`NotificationPreferencesScreen.tsx`) explicitly promises
+ * payment confirmations, escrow holds, and contractor "I'm on the way"
+ * pings always reach the user. 2026-05-27 audit-71 P1: the same UI
+ * also exposed mute toggles for `payment` (etc.), creating a contract
+ * the server didn't honour. We enforce the always-on guarantee at two
+ * layers: the client strips these types from disabled_types on save,
+ * and this server check ignores them even if a row somehow contains
+ * them (legacy data, third-party API caller). Add new types here when
+ * the always-on banner copy expands.
+ */
+const ALWAYS_ON_TYPES = new Set<string>([
+  'payment', // payment confirmations / escrow funding
+  'payment_received', // legacy alias of payment
+  'contractor_en_route', // "I'm on the way" homeowner notification
+]);
+
 export function isTypeDisabled(
   prefs: UserNotificationPreferences,
   type: string
 ): boolean {
+  // 2026-05-27 audit-71 P1: critical alerts override user mutes. Even
+  // if disabled_types somehow contains an ALWAYS_ON type the server
+  // delivers it anyway — UI copy + this filter guarantee parity.
+  if (ALWAYS_ON_TYPES.has(type)) return false;
   return prefs.disabled_types.includes(type);
 }
 

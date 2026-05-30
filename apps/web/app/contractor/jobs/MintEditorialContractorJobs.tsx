@@ -195,13 +195,21 @@ function JobCard({ job }: { job: Job }) {
           className='between'
           style={{ marginTop: 'auto', paddingTop: 4, gap: 8 }}
         >
+          {/* 2026-05-22: posted-job Budget column hidden — contractors
+              price each bid themselves. For assigned jobs the figure
+              comes from the accepted bid, which lives downstream of
+              this card (BidJobDetailsPanel / earnings sidebar). */}
           <div className='col' style={{ gap: 0 }}>
-            <span className='t-meta' style={{ fontSize: 11 }}>
-              {isAssigned ? 'Job value' : 'Budget'}
-            </span>
-            <span className='me-list-amount' style={{ fontSize: 20 }}>
-              {job.budget > 0 ? formatMoney(job.budget) : '—'}
-            </span>
+            {isAssigned && job.budget > 0 ? (
+              <>
+                <span className='t-meta' style={{ fontSize: 11 }}>
+                  Job value
+                </span>
+                <span className='me-list-amount' style={{ fontSize: 20 }}>
+                  {formatMoney(job.budget)}
+                </span>
+              </>
+            ) : null}
           </div>
           {isAssigned ? (
             <Link

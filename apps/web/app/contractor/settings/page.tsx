@@ -426,14 +426,51 @@ export default function ContractorSettingsPage() {
       const { token: csrfToken3 } = csrfRes3.ok
         ? await csrfRes3.json()
         : { token: '' };
+      // 2026-05-24 audit-28 P1: route only exports POST + requires
+      // { confirmation: 'DELETE' } per Zod schema. Was DELETE with no
+      // body, so the call 405'd / 400'd every time and the button
+      // silently fell through to "Failed to delete account".
       const response = await fetch('/api/user/delete-account', {
-        method: 'DELETE',
-        headers: csrfToken3 ? { 'x-csrf-token': csrfToken3 } : {},
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(csrfToken3 ? { 'x-csrf-token': csrfToken3 } : {}),
+        },
+        body: JSON.stringify({ confirmation: 'DELETE' }),
       });
       if (response.ok) {
         toast.success('Account deleted successfully');
         window.location.href = '/login?deleted=true';
-      } else toast.error('Failed to delete account');
+      } else {
+        // 2026-05-27 audit-75 P1: the route returns
+        // `{ error, blockers: [{ code, message, count }], help }`
+        // on 409. Previously we only surfaced data.error (the
+        // top-level "Account deletion is blocked..." message); the
+        // actionable per-blocker messages — which tell the user
+        // EXACTLY which escrow/job/dispute to settle first — were
+        // discarded. Now: render the top-level error + each blocker
+        // as its own toast so contractor sees the full punch list.
+        try {
+          const data = (await response.json()) as {
+            error?: string;
+            blockers?: Array<{ code?: string; message?: string }>;
+          };
+          if (Array.isArray(data.blockers) && data.blockers.length > 0) {
+            toast.error(
+              data.error || 'Resolve these before deleting your account'
+            );
+            data.blockers.forEach((b) => {
+              if (b && typeof b.message === 'string') {
+                toast.error(b.message);
+              }
+            });
+          } else {
+            toast.error(data.error || 'Failed to delete account');
+          }
+        } catch {
+          toast.error('Failed to delete account');
+        }
+      }
     } catch (error) {
       toast.error('Error deleting account');
     }

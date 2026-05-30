@@ -4,6 +4,7 @@ import { createHash } from 'crypto';
 import { logger } from '@mintenance/shared';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { env } from '@/lib/env';
+import { stripe as sharedStripe } from '@/lib/stripe';
 import {
   handleAPIError,
   BadRequestError,
@@ -161,11 +162,10 @@ export class StripeWebhookService {
   }
 
   private getStripeInstance(): Stripe {
-    const apiKey = env.STRIPE_SECRET_KEY;
-    if (!apiKey) {
-      throw new Error('STRIPE_SECRET_KEY not configured');
-    }
-    return new Stripe(apiKey);
+    // Route through the shared lazy proxy so the API version stays pinned
+    // in one place (lib/stripe.ts). Previously `new Stripe(apiKey)` with no
+    // apiVersion defaulted to whatever the installed SDK picked.
+    return sharedStripe;
   }
 
   private constructEvent(

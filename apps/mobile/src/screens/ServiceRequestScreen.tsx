@@ -29,7 +29,6 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
 
   const isDirty = !!(
     form.description ||
-    form.budget ||
     form.selectedSubcategory ||
     form.photos.length > 0
   );
@@ -65,7 +64,6 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
       title={form.title}
       description={form.description}
       location={form.location}
-      budget={form.budget}
       priority={form.priority}
       photos={form.photos}
       loading={form.loading}
@@ -79,7 +77,6 @@ const ServiceRequestScreen: React.FC<Props> = ({ navigation }) => {
       onTitleChange={form.setTitle}
       onDescriptionChange={form.setDescription}
       onLocationChange={form.setLocation}
-      onBudgetChange={form.setBudget}
       onPriorityChange={form.setPriority}
       onAddPhoto={form.showImagePickerOptions}
       onRemovePhoto={form.removePhoto}

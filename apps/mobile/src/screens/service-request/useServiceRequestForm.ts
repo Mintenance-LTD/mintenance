@@ -26,7 +26,6 @@ export function useServiceRequestForm(onSuccess: () => void) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
-  const [budget, setBudget] = useState('');
   const [priority, setPriority] = useState<'low' | 'medium' | 'high'>(
     initialPriority ?? 'medium'
   );
@@ -173,8 +172,6 @@ export function useServiceRequestForm(onSuccess: () => void) {
       Alert.alert('Error', 'You must be logged in to request a service');
       return;
     }
-    const budgetNumber = parseFloat(budget);
-
     // 2026-05-01 audit P1 close-out (per-screen validateJobDraft adoption):
     // run the canonical schema before submitting so the user sees the same
     // error message the route would have rejected with. Replaces the ad-hoc
@@ -184,7 +181,6 @@ export function useServiceRequestForm(onSuccess: () => void) {
       title,
       description,
       location,
-      budget: budgetNumber,
       category: selectedCategory.id as
         | import('@mintenance/api-contracts').JobCategory
         | undefined,
@@ -226,7 +222,6 @@ export function useServiceRequestForm(onSuccess: () => void) {
         title: sanitize.text(title, 200),
         description: sanitize.jobDescription(description),
         location: sanitize.address(location),
-        budget: budgetNumber,
         homeownerId: user.id,
         category: selectedCategory.id,
         subcategory: selectedSubcategory
@@ -237,6 +232,14 @@ export function useServiceRequestForm(onSuccess: () => void) {
         property_id: selectedProperty?.id,
         latitude,
         longitude,
+        // 2026-05-22: the server requires >=1 photo OR the silver-mode
+        // contractor_before_photos opt-in. When the homeowner posts a
+        // service request without uploading photos, auto-flip the
+        // flag so the contractor takes them on arrival — preserves
+        // the pre-budget-removal "post without photos" UX.
+        ...(uploadedPhotoUrls.length === 0
+          ? { requirements: { contractor_before_photos: true } }
+          : {}),
       });
 
       Alert.alert(
@@ -264,8 +267,6 @@ export function useServiceRequestForm(onSuccess: () => void) {
     setDescription,
     location,
     setLocation,
-    budget,
-    setBudget,
     priority,
     setPriority,
     photos,

@@ -1,358 +1,250 @@
+/**
+ * CalendarStyles — Mint Editorial paper-toned palette.
+ * Pre-redesign this file shipped a green-gradient hero + decorative
+ * circles + 3-color event-dot row. Those are gone — only paper bg,
+ * `me.*` tokens, and the timeline rail palette remain.
+ */
 import { StyleSheet } from 'react-native';
 import { me } from '../design-system/mint-editorial';
 
 export const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: me.bg2,
+    backgroundColor: me.bg,
   },
-
-  // ── Hero ──
-  hero: {
-    paddingBottom: 16,
-    overflow: 'hidden',
-  },
-  decorCircle: {
-    position: 'absolute',
-    borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-  },
-  decorCircle1: {
-    width: 200,
-    height: 200,
-    top: -60,
-    right: -40,
-  },
-  decorCircle2: {
-    width: 140,
-    height: 140,
-    bottom: -30,
-    left: -30,
-  },
-  heroTopBar: {
+  topNav: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    marginBottom: 16,
+    paddingHorizontal: 20,
+    paddingBottom: 4,
   },
-  frostedCircle: {
+  backBtn: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: me.bg2,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  heroTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: me.onBrand,
-    letterSpacing: -0.3,
   },
   todayPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    backgroundColor: me.surface,
     paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingVertical: 9,
+    borderRadius: 999,
+    backgroundColor: me.bg2,
+    borderWidth: 1,
+    borderColor: me.line2,
   },
   todayPillText: {
-    fontSize: 13,
+    fontSize: 12,
+    fontWeight: '700',
+    color: me.ink,
+  },
+  screenHeader: {
+    paddingHorizontal: 20,
+    marginTop: 6,
+    marginBottom: 16,
+  },
+  eyebrow: {
+    fontSize: 11,
     fontWeight: '700',
     color: me.brand,
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
+    marginBottom: 6,
   },
-
-  // ── Month nav ──
-  monthNav: {
+  headline: {
+    fontFamily: me.font.display,
+    fontSize: 32,
+    color: me.ink,
+    letterSpacing: me.displayTracking,
+  },
+  sub: {
+    fontSize: 14,
+    color: me.ink3,
+    marginTop: 4,
+  },
+  // Week strip — paper background, no full-bleed.
+  weekRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 20,
-    marginBottom: 14,
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    marginBottom: 22,
   },
-  navArrow: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  monthLabel: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: me.onBrand,
-    letterSpacing: -0.2,
-    minWidth: 160,
-    textAlign: 'center',
-  },
-
-  // ── Week strip ──
-  weekStrip: {
-    flexDirection: 'row',
-    paddingHorizontal: 12,
-    gap: 6,
-  },
-  dayCell: {
+  dayCol: {
     flex: 1,
-    minWidth: 44,
     alignItems: 'center',
-    paddingVertical: 10,
-    borderRadius: 14,
-  },
-  dayCellSelected: {
-    backgroundColor: me.surface,
-  },
-  dayCellToday: {
-    backgroundColor: 'rgba(255,255,255,0.12)',
+    paddingVertical: 6,
   },
   dayName: {
     fontSize: 11,
-    fontWeight: '500',
-    color: 'rgba(255,255,255,0.6)',
-    marginBottom: 4,
-    textTransform: 'uppercase',
+    fontWeight: '600',
+    color: me.ink3,
+    marginBottom: 8,
+  },
+  dayNameSelected: {
+    color: me.ink,
+  },
+  dayNumberChip: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
+  },
+  dayNumberChipSelected: {
+    backgroundColor: me.ink,
+  },
+  dayNumberChipToday: {
+    borderWidth: 1,
+    borderColor: me.brand,
   },
   dayNumber: {
+    fontFamily: me.font.display,
     fontSize: 18,
-    fontWeight: '700',
-    color: me.onBrand,
+    color: me.ink,
+    letterSpacing: me.displayTracking,
   },
-  dayTextSelected: {
-    color: me.brand,
-  },
-  dayNumberToday: {
+  dayNumberSelected: {
     color: me.onBrand,
   },
   dotsRow: {
     flexDirection: 'row',
-    gap: 3,
-    marginTop: 4,
+    gap: 2,
+    marginTop: 6,
+    minHeight: 5,
   },
-  eventDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
+  dot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
   },
-  eventDotWhite: {
+  dotIdle: {
     backgroundColor: me.brand,
   },
-
-  // ── Stats bar ──
-  statsBar: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 8,
-    backgroundColor: me.surface,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: me.line,
+  dotSelected: {
+    backgroundColor: me.brand,
   },
-  statPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: me.bg2,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-  },
-  statDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-  },
-  statText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: me.ink2,
-  },
-
-  // ── Day label ──
-  dayLabelRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  // Day eyebrow above the agenda.
+  dayEyebrow: {
     paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 8,
-  },
-  dayLabelText: {
-    fontSize: 16,
+    marginBottom: 14,
+    fontSize: 11,
     fontWeight: '700',
-    color: me.ink,
-    letterSpacing: -0.2,
-  },
-  dayLabelCount: {
-    fontSize: 13,
-    fontWeight: '600',
     color: me.ink3,
-  },
-
-  // ── Schedule cards ──
-  listContainer: {
-    paddingHorizontal: 16,
-    paddingBottom: 100,
-    gap: 10,
-  },
-  scheduleCard: {
-    flexDirection: 'row',
-    backgroundColor: me.surface,
-    borderRadius: 20,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: me.line,
-  },
-  accentBar: {
-    width: 4,
-  },
-  cardInner: {
-    flex: 1,
-    padding: 14,
-  },
-  cardTopRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 6,
-  },
-  cardTitleArea: {
-    flex: 1,
-    marginRight: 12,
-  },
-  typeChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
-    marginBottom: 6,
-  },
-  typeLabel: {
-    fontSize: 10,
-    fontWeight: '700',
     textTransform: 'uppercase',
-    letterSpacing: 0.3,
+    letterSpacing: 1.4,
   },
-  scheduleTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: me.ink,
+  // Timeline agenda.
+  listContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 40,
   },
-  timeColumn: {
-    alignItems: 'flex-end',
-    paddingTop: 2,
-  },
-  timeStart: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: me.ink,
-  },
-  timeEnd: {
-    fontSize: 12,
-    color: me.ink3,
-    marginTop: 2,
-  },
-  addressRow: {
+  row: {
     flexDirection: 'row',
+    alignItems: 'stretch',
+    minHeight: 60,
+  },
+  railCol: {
+    width: 24,
     alignItems: 'center',
-    gap: 4,
+    paddingTop: 22,
+  },
+  railNode: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  railLine: {
+    flex: 1,
+    width: 2,
+    backgroundColor: me.line,
     marginTop: 4,
   },
-  addressText: {
-    fontSize: 12,
-    color: me.ink3,
+  rowBody: {
     flex: 1,
+    paddingBottom: 18,
   },
-  cardChevron: {
-    justifyContent: 'center',
-    paddingRight: 12,
-  },
-
-  // ── States ──
-  centeredState: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 40,
-  },
-  loadingWrap: {
-    width: 64,
-    height: 64,
-    borderRadius: 20,
-    backgroundColor: me.brandSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  stateIconWrap: {
-    width: 72,
-    height: 72,
-    borderRadius: 24,
-    backgroundColor: me.brandSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 16,
-  },
-  stateTitle: {
-    fontSize: 18,
+  rowEyebrow: {
+    fontSize: 11,
     fontWeight: '600',
-    color: me.ink,
+    color: me.ink3,
     marginBottom: 4,
   },
-  stateSubtitle: {
-    fontSize: 14,
-    color: me.ink2,
-    textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 20,
-  },
-  retryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: me.brand,
-    paddingHorizontal: 20,
+  eventCard: {
+    backgroundColor: me.surface,
+    borderRadius: 10,
     paddingVertical: 12,
-    borderRadius: 14,
-    marginTop: 12,
+    paddingHorizontal: 14,
+    borderLeftWidth: 3,
+    borderTopWidth: 1,
+    borderRightWidth: 1,
+    borderBottomWidth: 1,
+    borderTopColor: me.line2,
+    borderRightColor: me.line2,
+    borderBottomColor: me.line2,
+    ...me.shadow.card,
   },
-  retryButtonText: {
+  eventTitle: {
     fontSize: 14,
     fontWeight: '600',
-    color: me.onBrand,
+    color: me.ink,
   },
-  browseButton: {
+  eventMetaRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
+    marginTop: 4,
+  },
+  eventMeta: {
+    fontSize: 11,
+    color: me.ink3,
+    flex: 1,
+  },
+  // Empty / loading / error.
+  centeredState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+    paddingBottom: 80,
+  },
+  stateTitle: {
+    fontFamily: me.font.display,
+    fontSize: 20,
+    color: me.ink,
+    marginTop: 14,
+    letterSpacing: me.displayTracking,
+  },
+  stateSubtitle: {
+    fontSize: 13,
+    color: me.ink2,
+    textAlign: 'center',
+    marginTop: 6,
+    lineHeight: 19,
+  },
+  retryButton: {
+    marginTop: 18,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 999,
     backgroundColor: me.brand,
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 14,
-    ...me.shadow.pop,
+  },
+  retryButtonText: {
+    color: me.onBrand,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+  browseButton: {
+    marginTop: 18,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 999,
+    backgroundColor: me.ink,
   },
   browseButtonText: {
     color: me.onBrand,
-    fontSize: 15,
-    fontWeight: '600',
-  },
-
-  // ── FAB ──
-  fab: {
-    position: 'absolute',
-    right: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: me.brand,
-    alignItems: 'center',
-    justifyContent: 'center',
-    ...me.shadow.pop,
+    fontSize: 13,
+    fontWeight: '700',
   },
 });

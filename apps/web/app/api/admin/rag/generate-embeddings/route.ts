@@ -32,6 +32,12 @@ export const POST = withApiHandler(
     // generator — a stolen cookie could trigger a multi-thousand-row
     // embedding pass. Require fresh MFA proof.
     requireMfaVerifiedWithinMinutes: 15,
+    logActivity: {
+      actionType: 'rag_generate_embeddings',
+      category: 'settings',
+      targetType: 'rag_corpus',
+      description: 'Generated RAG pathology embeddings',
+    },
   },
   async () => {
     try {

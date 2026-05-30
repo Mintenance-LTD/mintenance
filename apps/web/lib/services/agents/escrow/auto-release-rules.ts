@@ -165,6 +165,23 @@ export async function calculateAutoReleaseDate(
       return null;
     }
 
+    // 2026-05-23: the auto-release rule used to be looked up by
+    // `job.budget`, which is NULL for every job posted under the
+    // open-bidding model. That always selected the lowest-priority
+    // default rule. The auto-release flow only runs after escrow is
+    // funded, so the actual funded amount is the authoritative
+    // "job value" — fetch it from escrow_transactions and fall back
+    // to budget only for legacy jobs.
+    const { data: escrowRow } = await serverSupabase
+      .from('escrow_transactions')
+      .select('amount')
+      .eq('id', escrowId)
+      .single();
+    const jobValueForRule =
+      (escrowRow?.amount && Number(escrowRow.amount) > 0
+        ? Number(escrowRow.amount)
+        : job.budget) || 0;
+
     const trustHoldPeriodDays =
       await TrustScoreService.getHoldPeriodDays(contractorId);
 
@@ -190,7 +207,7 @@ export async function calculateAutoReleaseDate(
 
     const rule = await getApplicableRule(
       escrowTier,
-      job.budget || 0,
+      jobValueForRule,
       job.category || ''
     );
 

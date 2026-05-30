@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -21,6 +21,7 @@ import type { ProfileStackParamList } from '../../navigation/types';
 import { me } from '../../design-system/mint-editorial';
 import { formatCurrency } from '../../utils/formatCurrency';
 import { useUnsavedChanges } from '../../hooks/useUnsavedChanges';
+import { logger } from '../../utils/logger';
 
 interface CreateInvoiceScreenProps {
   navigation: NativeStackNavigationProp<ProfileStackParamList, 'CreateInvoice'>;
@@ -77,6 +78,55 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({
     return [{ description: '', quantity: '1', rate: '' }];
   });
   const [submitting, setSubmitting] = useState(false);
+  // 2026-05-23 audit-24 P1: when navigated with `invoiceId`, hydrate
+  // the form from the existing invoice and PATCH on submit instead of
+  // duplicating with another POST.
+  const editingInvoiceId = route.params?.invoiceId ?? null;
+  const [loadingExisting, setLoadingExisting] = useState(!!editingInvoiceId);
+
+  useEffect(() => {
+    if (!editingInvoiceId || !user?.id) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const invoices = await FinancialManagementService.getInvoices(user.id);
+        const existing = invoices.find((inv) => inv.id === editingInvoiceId);
+        if (!existing || cancelled) return;
+        setClientName(existing.client_name ?? '');
+        // The Invoice type doesn't expose job_id but server invoices
+        // carry it; cast through unknown for runtime read. UUID jobIds
+        // surface as Job reference; free-text references live in notes.
+        const jobIdRaw = (existing as unknown as { job_id?: string | null })
+          .job_id;
+        if (jobIdRaw) setJobRef(jobIdRaw);
+        if (existing.notes) setNotes(existing.notes);
+        if (existing.due_date) setDueDate(new Date(existing.due_date));
+        const items = Array.isArray(existing.line_items)
+          ? existing.line_items
+          : [];
+        if (items.length > 0) {
+          setLineItems(
+            items.map((li) => ({
+              description: li.description ?? '',
+              quantity: String(li.quantity ?? 1),
+              rate: String(li.unit_price ?? li.rate ?? 0),
+            }))
+          );
+        }
+      } catch (e) {
+        logger.warn('Failed to load invoice for edit', {
+          invoiceId: editingInvoiceId,
+          error: e instanceof Error ? e.message : String(e),
+        });
+        toast.error('Failed to load invoice', 'Please go back and try again.');
+      } finally {
+        if (!cancelled) setLoadingExisting(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [editingInvoiceId, user?.id, toast]);
 
   // Discard-prompt — dirty when the user has typed anything OR when
   // a non-trivial line item exists (covers both the time-tracking
@@ -154,26 +204,66 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({
         amount: (parseFloat(i.quantity) || 1) * parseFloat(i.rate),
       }));
 
-      await FinancialManagementService.createInvoice({
-        contractor_id: user.id,
-        client_id: clientId || user.id,
-        client_name: clientName.trim(),
-        job_id: jobRef.trim() || undefined,
-        invoice_number: generateInvoiceNumber(),
-        status: 'draft',
-        subtotal,
-        tax_amount: taxAmount,
-        total_amount: total,
-        due_date: dueDate.toISOString(),
-        issue_date: new Date().toISOString(),
-        notes: notes.trim() || undefined,
-        line_items: parsedItems,
-      });
+      // 2026-05-23 audit-17 P1: previously sent `client_id: clientId || user.id`.
+      // The form has no client picker — clientId state is never set — so the
+      // fallback shipped the contractor's own profile UUID. The API treats
+      // clientId as a contractor_clients.id and 400'd every "type a client
+      // name and save" attempt. Server already accepts the clientName-only
+      // path; only send clientId when an actual contractor_clients row is
+      // selected.
+      // 2026-05-23 audit-17 P2: the "Job reference" input is free-text
+      // (e.g. "Kitchen repaint", "JOB-1024") but was being forwarded as
+      // job_id which the API enforces as UUID — so any human reference
+      // rejected the whole invoice. Free-text references now ride along
+      // in notes so the contractor still records them; the field is only
+      // forwarded as job_id when it parses as a UUID (real linkage path
+      // for time-tracking → invoice flows that pass an actual jobId).
+      const UUID_RE =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const jobRefTrimmed = jobRef.trim();
+      const jobRefIsUuid =
+        jobRefTrimmed.length > 0 && UUID_RE.test(jobRefTrimmed);
+      const noteParts: string[] = [];
+      if (notes.trim()) noteParts.push(notes.trim());
+      if (jobRefTrimmed && !jobRefIsUuid) {
+        noteParts.push(`Job reference: ${jobRefTrimmed}`);
+      }
 
-      toast.success(
-        'Invoice created',
-        'Your invoice has been saved as a draft.'
-      );
+      if (editingInvoiceId) {
+        // 2026-05-23 audit-24 P1: edit path. PATCH the existing
+        // invoice rather than creating another draft. Server
+        // recomputes subtotal/tax/total from lineItems + taxRate, so
+        // we don't ship the pre-computed amounts.
+        await FinancialManagementService.updateInvoice(editingInvoiceId, {
+          clientName: clientName.trim(),
+          lineItems: parsedItems,
+          taxRate: 20,
+          dueDate: dueDate.toISOString(),
+          notes: noteParts.length > 0 ? noteParts.join('\n\n') : undefined,
+        });
+        toast.success('Invoice updated', 'Your changes have been saved.');
+      } else {
+        await FinancialManagementService.createInvoice({
+          contractor_id: user.id,
+          client_id: clientId || undefined,
+          client_name: clientName.trim(),
+          job_id: jobRefIsUuid ? jobRefTrimmed : undefined,
+          invoice_number: generateInvoiceNumber(),
+          status: 'draft',
+          subtotal,
+          tax_amount: taxAmount,
+          total_amount: total,
+          due_date: dueDate.toISOString(),
+          issue_date: new Date().toISOString(),
+          notes: noteParts.length > 0 ? noteParts.join('\n\n') : undefined,
+          line_items: parsedItems,
+        });
+
+        toast.success(
+          'Invoice created',
+          'Your invoice has been saved as a draft.'
+        );
+      }
       allowExit();
       navigation.goBack();
     } catch {
@@ -200,11 +290,16 @@ export const CreateInvoiceScreen: React.FC<CreateInvoiceScreenProps> = ({
         >
           <Ionicons name='arrow-back' size={22} color={me.ink} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>New Invoice</Text>
+        <Text style={styles.headerTitle}>
+          {editingInvoiceId ? 'Edit Invoice' : 'New Invoice'}
+        </Text>
         <TouchableOpacity
-          style={[styles.saveButton, submitting && styles.saveButtonDisabled]}
+          style={[
+            styles.saveButton,
+            (submitting || loadingExisting) && styles.saveButtonDisabled,
+          ]}
           onPress={handleSubmit}
-          disabled={submitting}
+          disabled={submitting || loadingExisting}
           accessibilityRole='button'
           accessibilityLabel={submitting ? 'Saving invoice' : 'Save invoice'}
           accessibilityState={{ disabled: submitting, busy: submitting }}

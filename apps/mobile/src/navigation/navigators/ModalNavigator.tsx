@@ -5,9 +5,9 @@ import type { ModalStackParamList } from '../types';
 // Import existing screens
 import ServiceRequestScreen from '../../screens/ServiceRequestScreen';
 import { ContractorProfileScreen } from '../../screens/contractor-profile';
-import { EnhancedHomeScreen } from '../../screens/enhanced-home';
 import { PaymentMethodsScreen as PaymentMethodsScreenRefactored } from '../../screens/payment-methods';
 import { CreateQuoteScreen } from '../../screens/create-quote';
+import { QuickQuoteScreen } from '../../screens/quick-quote/QuickQuoteScreen';
 import { MeetingScheduleScreen } from '../../screens/meeting-schedule';
 import MeetingDetailsScreen from '../../screens/MeetingDetailsScreen';
 import { NotificationScreen } from '../../screens/NotificationScreen';
@@ -16,6 +16,8 @@ import { AISearchScreen } from '../../screens/AISearchScreen';
 import { QuickJobPostScreen } from '../../screens/job-posting/QuickJobPostScreen';
 // Tier 1 step 7 — live-capture selfie modal.
 import { SelfieCaptureScreen } from '../../screens/onboarding/SelfieCaptureScreen';
+// Homeowner deck screen 09 — fast-path emergency posting flow.
+import { EmergencyJobScreen } from '../../screens/emergency-job/EmergencyJobScreen';
 
 // Import error boundary wrapper
 import { withScreenErrorBoundary } from '../../components/ErrorBoundaryProvider';
@@ -36,6 +38,12 @@ const SafeCreateQuoteScreen = withScreenErrorBoundary(
   { fallbackRoute: 'Main' }
 );
 
+const SafeQuickQuoteScreen = withScreenErrorBoundary(
+  QuickQuoteScreen,
+  'QuickQuote',
+  { fallbackRoute: 'Main' }
+);
+
 const SafeMeetingScheduleScreen = withScreenErrorBoundary(
   MeetingScheduleScreen,
   'Schedule Meeting',
@@ -51,12 +59,6 @@ const SafeMeetingDetailsScreen = withScreenErrorBoundary(
 const SafeContractorProfileScreen = withScreenErrorBoundary(
   ContractorProfileScreen,
   'Contractor Profile',
-  { fallbackRoute: 'Main' }
-);
-
-const SafeEnhancedHomeScreen = withScreenErrorBoundary(
-  EnhancedHomeScreen,
-  'Enhanced Home',
   { fallbackRoute: 'Main' }
 );
 
@@ -81,6 +83,12 @@ const SafeAISearchScreen = withScreenErrorBoundary(
 const SafeQuickJobPostScreen = withScreenErrorBoundary(
   QuickJobPostScreen,
   'Quick Job Post',
+  { fallbackRoute: 'Main' }
+);
+
+const SafeEmergencyJobScreen = withScreenErrorBoundary(
+  EmergencyJobScreen,
+  'Emergency Job',
   { fallbackRoute: 'Main' }
 );
 
@@ -121,6 +129,15 @@ const ModalNavigator: React.FC = () => {
       />
 
       <ModalStack.Screen
+        name='QuickQuote'
+        component={SafeQuickQuoteScreen}
+        options={{
+          title: 'Quick quote',
+          gestureEnabled: true,
+        }}
+      />
+
+      <ModalStack.Screen
         name='MeetingSchedule'
         component={SafeMeetingScheduleScreen}
         options={{
@@ -147,14 +164,14 @@ const ModalNavigator: React.FC = () => {
         })}
       />
 
-      <ModalStack.Screen
-        name='EnhancedHome'
-        component={SafeEnhancedHomeScreen}
-        options={{
-          title: 'Home',
-          gestureEnabled: true,
-        }}
-      />
+      {/* 2026-05-22 audit F2: removed `EnhancedHome` modal registration.
+          The screen was an orphan — its EnhancedHomeViewModel returns
+          100% hardcoded `specialOffers` / `services` / `topContractors`
+          arrays and a mock `"New York, USA"` location, and no code path
+          calls `navigation.navigate('EnhancedHome')` anywhere. Keeping
+          it registered as a reachable modal route created risk that a
+          deep link or future caller would surface the fake data to a
+          real user. Re-add when the screen is wired to real APIs. */}
 
       <ModalStack.Screen
         name='Notifications'
@@ -198,6 +215,18 @@ const ModalNavigator: React.FC = () => {
         options={{
           title: 'Post a Quick Job',
           gestureEnabled: true,
+        }}
+      />
+
+      <ModalStack.Screen
+        name='EmergencyJob'
+        component={SafeEmergencyJobScreen}
+        options={{
+          title: 'Emergency',
+          gestureEnabled: true,
+          // Emergency feels less dismissable than a routine modal — keep
+          // swipe-down enabled (per RN convention) but no animation
+          // bounce.
         }}
       />
     </ModalStack.Navigator>

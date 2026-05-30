@@ -1,6 +1,32 @@
 import { NextResponse } from 'next/server';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { withApiHandler } from '@/lib/api/with-api-handler';
+import { getEffectiveHomeownerTier } from '@/lib/subscription/early-access';
+import { hasFeatureAccess } from '@/lib/feature-access-config';
+
+/**
+ * 2026-05-22 Sprint 4: tier gate. Team access (invites + role-based) is
+ * Agency-only on the new pricing model. Landlord tier does not include it.
+ * Admins bypass. Early-access (-> agency) automatically unlocks.
+ * Returns 402 with feature flag so clients can render the upgrade CTA.
+ */
+async function requireAgencyTier(userId: string, role: string) {
+  if (role === 'admin') return null;
+  const tier = await getEffectiveHomeownerTier(userId);
+  if (!hasFeatureAccess('HOMEOWNER_TEAM_ACCESS', 'homeowner', tier)) {
+    return NextResponse.json(
+      {
+        error: 'Subscription required',
+        message:
+          'Team member invites require an Agency subscription. The Landlord plan does not include team access.',
+        requiresSubscription: true,
+        feature: 'HOMEOWNER_TEAM_ACCESS',
+      },
+      { status: 402 }
+    );
+  }
+  return null;
+}
 
 // GET /api/properties/[id]/team
 // csrf:false — this is an idempotent read. withApiHandler's default enables
@@ -47,6 +73,9 @@ export const POST = withApiHandler(
   async (req, { user, params }) => {
     const propertyId = params.id;
     const body = await req.json();
+
+    const tierBlock = await requireAgencyTier(user.id, user.role);
+    if (tierBlock) return tierBlock;
 
     const { data: property } = await serverSupabase
       .from('properties')
@@ -103,6 +132,16 @@ export const POST = withApiHandler(
       );
     }
 
+    // 2026-05-23 audit: full team-invite activation flow isn't built
+    // yet — there's no email send, no acceptance token, no accept
+    // page, and PropertyTeamService.getRole only matches members
+    // with status='accepted' AND user_id set. We still record the
+    // invite intent here (capturing email + role for the owner's
+    // dashboard + the future activation flow), but the API response
+    // now tells the truth so the UI can show "pending activation"
+    // instead of a misleading "Invitation sent". status set
+    // explicitly to 'pending' rather than relying on the DB default
+    // so the value is unambiguous in the row.
     const { data: member, error } = await serverSupabase
       .from('property_team_members')
       .insert({
@@ -110,6 +149,7 @@ export const POST = withApiHandler(
         invited_by: user.id,
         email,
         role,
+        status: 'pending',
       })
       .select()
       .single();
@@ -121,7 +161,18 @@ export const POST = withApiHandler(
       );
     }
 
-    return NextResponse.json({ member }, { status: 201 });
+    return NextResponse.json(
+      {
+        member,
+        invitation: {
+          status: 'recorded',
+          activated: false,
+          message:
+            'Invitation recorded. Activation flow (email + accept page) is not yet built — the invitee cannot access this property until it ships. Tracked as a follow-up.',
+        },
+      },
+      { status: 201 }
+    );
   }
 );
 

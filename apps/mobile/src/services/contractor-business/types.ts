@@ -129,8 +129,14 @@ export interface Invoice {
 export interface InvoiceLineItem {
   description: string;
   quantity: number;
-  rate: number;
-  amount: number;
+  // 2026-05-23 audit-24 P1: API persists the canonical `unit_price`
+  // shape (matches contractorInvoiceLineItemSchema on the web). The
+  // mobile editor still uses `rate` as its local input field, but
+  // anything that round-trips through the API only has `unit_price`.
+  // Read sites should coalesce `unit_price ?? rate`.
+  rate?: number;
+  unit_price?: number;
+  amount?: number;
 }
 
 export interface ExpenseRecord {

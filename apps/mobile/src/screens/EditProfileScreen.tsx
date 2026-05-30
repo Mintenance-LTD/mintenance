@@ -355,19 +355,19 @@ const EditProfileScreen: React.FC = () => {
   };
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle='dark-content' backgroundColor={me.bg2} />
-      <View style={styles.header}>
+      <StatusBar barStyle='dark-content' backgroundColor={me.bg} />
+      {/* Editorial v2: slim top bar (back + Save pill) +
+          eyebrow + serif headline. Replaces centred navbar. */}
+      <View style={styles.topBar}>
         <TouchableOpacity
           style={styles.backButton}
           onPress={() => navigation.goBack()}
           accessibilityRole='button'
           accessibilityLabel='Go back'
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          <Ionicons name='arrow-back' size={24} color={me.ink} />
+          <Ionicons name='arrow-back' size={20} color={me.ink} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle} accessibilityRole='header'>
-          Edit Profile
-        </Text>
         <TouchableOpacity
           style={styles.saveButton}
           onPress={handleSave}
@@ -378,9 +378,15 @@ const EditProfileScreen: React.FC = () => {
           }
         >
           <Text style={styles.saveButtonText}>
-            {loading ? 'Saving...' : 'Save'}
+            {loading ? 'Saving…' : 'Save'}
           </Text>
         </TouchableOpacity>
+      </View>
+      <View style={styles.screenHeader}>
+        <Text style={styles.eyebrow}>Profile</Text>
+        <Text style={styles.headline} accessibilityRole='header'>
+          Edit Profile
+        </Text>
       </View>
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <PhotoSection
@@ -422,20 +428,16 @@ const EditProfileScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: me.bg2,
-  },
-  header: {
-    backgroundColor: me.surface,
-    paddingTop: 16,
-    paddingBottom: 12,
-    paddingHorizontal: 16,
+  container: { flex: 1, backgroundColor: me.bg },
+  // Editorial v2 (2026-05-22): topBar + screenHeader replace
+  // the centred phone-app navbar (back ← title → save).
+  topBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: me.line,
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: 4,
   },
   backButton: {
     width: 40,
@@ -445,28 +447,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: me.ink,
-    flex: 1,
-    textAlign: 'center',
-    marginHorizontal: 16,
-  },
   saveButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     backgroundColor: me.brand,
-    borderRadius: 20,
+    borderRadius: 9999,
   },
-  saveButtonText: {
-    fontSize: 14,
+  saveButtonText: { fontSize: 14, fontWeight: '700', color: me.onBrand },
+  screenHeader: { paddingHorizontal: 20, paddingTop: 4, paddingBottom: 14 },
+  eyebrow: {
+    fontSize: 11,
     fontWeight: '700',
-    color: me.onBrand,
+    color: me.brand,
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+    marginBottom: 6,
   },
-  content: {
-    flex: 1,
+  headline: {
+    fontFamily: me.font.display,
+    fontSize: 28,
+    lineHeight: 32,
+    color: me.ink,
+    letterSpacing: me.displayTracking,
   },
+  content: { flex: 1 },
 });
 
 export default EditProfileScreen;

@@ -22,13 +22,19 @@ import {
 // 2026-05-01 audit follow-up (check-api-contracts): Zod-validated body
 // (rating 1-5, comment min 20 / max 2000) replaces the manual numeric +
 // length checks.
+// 2026-05-24 audit-35 P2: max(2000) disagreed with the live DB
+// CHECK constraint reviews_comment_length_check (length(comment) <=
+// 1000). A 1001-2000 char comment passed Zod, then the insert
+// 23514'd as a generic "Failed to submit review" 500. Tighten the
+// schema to match the constraint so app-level validation gives the
+// caller a useful message instead of a database round-trip.
 const jobReviewSchema = z
   .object({
     rating: z.coerce.number().int().min(1).max(5),
     comment: z
       .string()
       .min(20, 'Review comment must be at least 20 characters')
-      .max(2000),
+      .max(1000, 'Review comment must be at most 1000 characters'),
     wouldRecommend: z.boolean().optional(),
   })
   .strict();
@@ -156,12 +162,20 @@ export const POST = withApiHandler(
     // Notify the reviewee — wrapped in try/catch so a notification failure
     // never causes a 500 after the review has already been successfully stored.
     try {
+      // 2026-05-21 Mint Editorial voice — show the star count visually.
+      const stars = '★'.repeat(rating);
+      // 2026-05-23 audit-16 P2: include jobId in metadata so the mobile
+      // routing table can deep-link to JobDetails. Without this the
+      // 'review' notification fell back to the inbox on mobile (only
+      // 'review_requested' was routed) and the contractor's "Tap to
+      // read it and reply" CTA went nowhere useful.
       await NotificationService.createNotification({
         userId: revieweeId,
-        title: 'New Review',
-        message: `You received a ${rating}-star review for "${job.title}"`,
+        title: `${stars} review on ${job.title}`,
+        message: `Tap to read it and reply if you want to.`,
         type: 'review',
         actionUrl: isHomeowner ? `/contractor/reviews` : `/jobs/${jobId}`,
+        metadata: { jobId, reviewId: review.id, rating },
       });
 
       // Check for 5-star review milestones (contractors only)

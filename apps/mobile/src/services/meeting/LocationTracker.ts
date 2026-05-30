@@ -54,9 +54,17 @@ export async function updateContractorLocation(
 }
 
 export async function getContractorLocation(
-  contractorId: string
+  contractorId: string,
+  opts?: { jobId?: string }
 ): Promise<ContractorLocation | null> {
   try {
+    // 2026-05-27 audit-78 P2: the location GET requires `job_id` for
+    // homeowner reads (route lines 211-221). The Meeting Details
+    // screen previously called without one, so the homeowner-side
+    // initial fetch hard-403'd before any live ping could surface.
+    // Callers now thread the meeting's job_id; contractor-self and
+    // admin reads ignore the param.
+    const qs = opts?.jobId ? `?job_id=${encodeURIComponent(opts.jobId)}` : '';
     const response = await mobileApiClient.get<{
       location: {
         id: string;
@@ -67,7 +75,7 @@ export async function getContractorLocation(
         timestamp?: string;
         is_sharing_location?: boolean;
       };
-    }>(`/api/contractors/${encodeURIComponent(contractorId)}/location`);
+    }>(`/api/contractors/${encodeURIComponent(contractorId)}/location${qs}`);
     return response?.location
       ? {
           id: response.location.id,
@@ -94,33 +102,53 @@ export async function getContractorLocation(
 
 export function subscribeToContractorLocation(
   contractorId: string,
-  callback: (location: ContractorLocation | null) => void
+  callback: (location: ContractorLocation | null) => void,
+  opts?: { jobId?: string }
 ) {
+  // 2026-05-27 audit-84 P1: Supabase Realtime Postgres Changes filters
+  // are single-column equality only — multi-condition SQL-style
+  // "contractor_id=eq.X AND job_id=eq.Y" silently fails to subscribe
+  // (no error, just no events). The web ContractorTravelTracking
+  // already got this fix in audit-48; mirroring it here so the mobile
+  // meeting/job-detail subscriber actually receives updates.
+  //
+  // Strategy: filter by the most-selective single column (job_id when
+  // known, else contractor_id) and narrow the rest client-side. The
+  // job_id-scoped channel is what the homeowner has RLS for, so a
+  // server-side leak of another job's row would already 404; the
+  // client check is belt-and-braces against future RLS regressions.
+  const filter = opts?.jobId
+    ? `job_id=eq.${opts.jobId}`
+    : `contractor_id=eq.${contractorId}`;
   return supabase
-    .channel(`contractor_location_${contractorId}`)
+    .channel(
+      `contractor_location_${contractorId}${opts?.jobId ? `_${opts.jobId}` : ''}`
+    )
     .on(
       'postgres_changes',
       {
         event: '*',
         schema: 'public',
         table: 'contractor_locations',
-        filter: `contractor_id=eq.${contractorId}`,
+        filter,
       },
       (rawPayload: unknown) => {
         const payload =
           rawPayload as RealtimePayload<DatabaseContractorLocationRow>;
-        if (payload.new) {
-          callback({
-            id: payload.new.id,
-            contractorId: payload.new.contractor_id,
-            latitude: payload.new.latitude,
-            longitude: payload.new.longitude,
-            accuracy: payload.new.accuracy,
-            timestamp: payload.new.timestamp,
-            isActive: payload.new.is_active,
-            meetingId: payload.new.meeting_id,
-          });
-        }
+        if (!payload.new) return;
+        // Belt-and-braces client-side narrowing for the conditions the
+        // multi-column filter used to enforce server-side.
+        if (payload.new.contractor_id !== contractorId) return;
+        callback({
+          id: payload.new.id,
+          contractorId: payload.new.contractor_id,
+          latitude: payload.new.latitude,
+          longitude: payload.new.longitude,
+          accuracy: payload.new.accuracy,
+          timestamp: payload.new.timestamp,
+          isActive: payload.new.is_active,
+          meetingId: payload.new.meeting_id,
+        });
       }
     )
     .subscribe();
@@ -160,6 +188,10 @@ export function subscribeToContractorTravelLocation(
     context: ContractorLocationContext;
   }) => void
 ) {
+  // 2026-05-27 audit-84 P1: same single-column-filter rule. Filter by
+  // meeting_id (most selective for this channel) and check the rest
+  // client-side. The previous AND-joined filter silently dropped every
+  // event so the Meeting Details travel pane never lit up live.
   return supabase
     .channel(`contractor_travel_${meetingId}`)
     .on(
@@ -168,28 +200,29 @@ export function subscribeToContractorTravelLocation(
         event: '*',
         schema: 'public',
         table: 'contractor_locations',
-        filter: `contractor_id=eq.${contractorId} AND meeting_id=eq.${meetingId} AND is_active=eq.true`,
+        filter: `meeting_id=eq.${meetingId}`,
       },
       (rawPayload: unknown) => {
         const payload =
           rawPayload as RealtimePayload<DatabaseContractorLocationRow>;
-        if (payload.new) {
-          callback({
-            location: {
-              id: payload.new.id,
-              contractorId: payload.new.contractor_id,
-              latitude: payload.new.latitude,
-              longitude: payload.new.longitude,
-              accuracy: payload.new.accuracy,
-              timestamp: payload.new.timestamp,
-              isActive: payload.new.is_active,
-              meetingId: payload.new.meeting_id,
-            },
-            eta: payload.new.eta_minutes || 0,
-            context:
-              payload.new.context || ContractorLocationContext.TRAVELING_TO_JOB,
-          });
-        }
+        if (!payload.new) return;
+        if (payload.new.contractor_id !== contractorId) return;
+        if (payload.new.is_active === false) return;
+        callback({
+          location: {
+            id: payload.new.id,
+            contractorId: payload.new.contractor_id,
+            latitude: payload.new.latitude,
+            longitude: payload.new.longitude,
+            accuracy: payload.new.accuracy,
+            timestamp: payload.new.timestamp,
+            isActive: payload.new.is_active,
+            meetingId: payload.new.meeting_id,
+          },
+          eta: payload.new.eta_minutes || 0,
+          context:
+            payload.new.context || ContractorLocationContext.TRAVELING_TO_JOB,
+        });
       }
     )
     .subscribe();

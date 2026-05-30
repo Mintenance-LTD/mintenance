@@ -4,7 +4,16 @@ export interface EscrowTransactionRow {
   homeowner_id: string;
   contractor_id: string;
   amount: number;
-  status: 'pending' | 'held' | 'release_pending' | 'released' | 'refunded' | 'processing' | 'completed' | 'failed' | 'disputed';
+  status:
+    | 'pending'
+    | 'held'
+    | 'release_pending'
+    | 'released'
+    | 'refunded'
+    | 'processing'
+    | 'completed'
+    | 'failed'
+    | 'disputed';
   stripe_payment_intent_id: string | null;
   stripe_transfer_id: string | null;
   created_at: string;
@@ -31,6 +40,12 @@ export interface PaymentMethod {
 
 export interface CreatePaymentIntentResponse {
   clientSecret?: string;
+  // 2026-05-26 audit-53 P1: surfaced from the API response so the
+  // caller can POST /api/payments/confirm-intent after Stripe
+  // confirmPayment succeeds. Without this the escrow row stays
+  // 'pending' until the webhook arrives.
+  paymentIntentId?: string;
+  escrowTransactionId?: string;
   error?: string;
 }
 

@@ -2,9 +2,9 @@
 
 import type { ReactNode } from 'react';
 import Link from 'next/link';
-import { Search, Bell } from 'lucide-react';
+import { Search } from 'lucide-react';
+import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { MintEditorialSidebar } from './MintEditorialSidebar';
-import { MintEditorialDock } from './MintEditorialDock';
 import { MintEditorialTopNav } from './MintEditorialTopNav';
 
 interface MintEditorialShellProps {
@@ -82,18 +82,10 @@ export function MintEditorialShell({
           </div>
           <MintEditorialTopNav />
           <div style={{ flex: 1 }} />
-          <Link
-            href='/notifications'
-            className='btn btn-ghost btn-sm'
-            aria-label='Notifications'
-          >
-            <Bell size={15} strokeWidth={1.75} />
-          </Link>
+          <NotificationBell href='/notifications' />
         </div>
 
         <div style={{ padding: contentPadding, flex: 1 }}>{children}</div>
-
-        <MintEditorialDock />
       </div>
     </div>
   );

@@ -104,6 +104,11 @@ export const updateInvoiceSchema = z.object({
     .max(500, 'Address too long')
     .transform((val) => sanitizeText(val, 500))
     .optional(),
+  // 2026-05-23 audit-24 P2: mobile "Send reminder" sends reminder=true
+  // to re-fire the invoice_received email + notification on an already-
+  // sent invoice. Not persisted; the handler reads it, fires the side
+  // effects, then strips it from the DB update payload.
+  reminder: z.boolean().optional(),
 });
 
 // Type exports

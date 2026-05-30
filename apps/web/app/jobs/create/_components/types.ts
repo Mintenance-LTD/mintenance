@@ -72,15 +72,35 @@ export const SERVICE_CATEGORIES = [
 ] as const;
 
 export const URGENCY_OPTIONS = [
-  { value: 'low', label: 'Flexible', description: 'Within 2-4 weeks', color: 'blue' },
-  { value: 'medium', label: 'Soon', description: 'Within 1-2 weeks', color: 'amber' },
-  { value: 'high', label: 'Urgent', description: 'Within 3-5 days', color: 'orange' },
-  { value: 'emergency', label: 'Emergency', description: 'Within 24 hours', color: 'rose' },
+  {
+    value: 'low',
+    label: 'Flexible',
+    description: 'Within 2-4 weeks',
+    color: 'blue',
+  },
+  {
+    value: 'medium',
+    label: 'Soon',
+    description: 'Within 1-2 weeks',
+    color: 'amber',
+  },
+  {
+    value: 'high',
+    label: 'Urgent',
+    description: 'Within 3-5 days',
+    color: 'orange',
+  },
+  {
+    value: 'emergency',
+    label: 'Emergency',
+    description: 'Within 24 hours',
+    color: 'rose',
+  },
 ] as const;
 
 export const STEPS = [
   { id: 1, label: 'Details', shortLabel: 'Details' },
   { id: 2, label: 'Photos', shortLabel: 'Photos' },
-  { id: 3, label: 'Budget', shortLabel: 'Budget' },
+  { id: 3, label: 'Timeline', shortLabel: 'Timeline' },
   { id: 4, label: 'Review', shortLabel: 'Review' },
 ] as const;

@@ -56,7 +56,12 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
   const [bedrooms, setBedrooms] = useState('');
   const [bathrooms, setBathrooms] = useState('');
   const [purchaseDate, setPurchaseDate] = useState<Date | null>(null);
-  const [notes, setNotes] = useState('');
+  // 2026-05-27 audit-74 P1: removed the dead "notes" field. The
+  // create payload didn't include it, /api/properties POST has no
+  // notes binding, and live `public.properties` has no `notes`
+  // column — only `access_notes` (semantically different: contractor
+  // access instructions, captured separately on the Access tab).
+  // Users were typing into a field that silently lost their input.
   const [locating, setLocating] = useState(false);
   const [latitude, setLatitude] = useState<number | undefined>();
   const [longitude, setLongitude] = useState<number | undefined>();
@@ -65,7 +70,6 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
     address1 ||
     city ||
     postcode ||
-    notes ||
     bedrooms ||
     bathrooms
   );
@@ -371,19 +375,10 @@ export const AddPropertyScreen: React.FC<Props> = ({ navigation }) => {
             />
           </View>
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>NOTES</Text>
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              value={notes}
-              onChangeText={setNotes}
-              placeholder='Any additional notes about the property...'
-              placeholderTextColor={me.ink3}
-              multiline
-              numberOfLines={4}
-              textAlignVertical='top'
-            />
-          </View>
+          {/* 2026-05-27 audit-74 P1: removed the dead Notes section.
+              Property access instructions live on the Access tab
+              (access_notes column); generic property notes have no
+              backing column in the DB. */}
 
           <TouchableOpacity
             style={[

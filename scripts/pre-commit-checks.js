@@ -21,6 +21,13 @@ const WARNING_LINES = 400;
 const KNOWN_LARGE_FILES = new Set([
   'apps/web/middleware.ts',
   'apps/web/lib/auth-manager.ts',
+  // 2026-05-26 audit-56: pre-existing at 554; audit fix added the
+  // durable tokens_revoked_at cutoff to verifyToken() + reworked
+  // clearAuthCookie() so __Host- cookies actually delete. Both
+  // additions sit inline with the rest of the auth-cookie + JWT
+  // verification surface; splitting them out would just create a
+  // 1-import facade.
+  'apps/web/lib/auth.ts',
   'apps/web/app/contractor/reporting/components/ReportingDashboard2025Client.tsx',
   'apps/web/lib/services/agents/EscrowReleaseAgent.ts',
   'apps/web/lib/services/building-surveyor/orchestration/AssessmentOrchestrator.ts',
@@ -42,6 +49,13 @@ const KNOWN_LARGE_FILES = new Set([
   // into ./types, ./stripe-client, ./plan-pricing, ./queries,
   // ./stripe-operations, ./persistence. Facade is now 81 lines.
   'apps/web/app/api/contracts/route.ts',
+  // 2026-05-24 audit-33: pre-existing at 506 lines, audit fix added the
+  // auto-release scheduling hook (12 net lines after extracting the
+  // helper to ./_schedule-auto-release.ts). Whole route warrants a
+  // split into upload + verify + completion-side-effects but the
+  // 2026-05-22 audit only touched the completion-side-effects block
+  // and a wholesale split is out of scope for the audit pass.
+  'apps/web/app/api/jobs/[id]/photos/after/route.ts',
   'apps/web/lib/rate-limiter-enhanced.ts',
   'apps/mobile/src/components/JobStatusTracker.tsx',
   'apps/mobile/src/screens/home/RecentJobs.tsx',
@@ -164,7 +178,7 @@ const KNOWN_LARGE_FILES = new Set([
   // is a single .ilike → .eq swap with an 8-line audit comment.
   // Splitting the JobCreationService is a dedicated P2 — orthogonal
   // to closing the profile-enumeration vector.
-  'apps/web/lib/services/job-creation-service.ts', // 594 lines (was 550) — Hire-Again preferred-contractor notify
+  'apps/web/lib/services/job-creation-service.ts', // 815 lines (was 594) — audit-90 resolveJobCoordinates helper (server-authoritative property-aware geocode w/ UK bias)
   // Added 2026-04-25: TimeTrackingScreen grew from 489 → 547 lines via
   // the Time-Tracking → Invoice bridge (audit P1 #14). The added code
   // is the aggregation logic + CTA banner + matching styles, all
@@ -486,6 +500,34 @@ const KNOWN_LARGE_FILES = new Set([
   'apps/web/app/jobs/create/components/SmartJobAnalysis.tsx', // 663
   'apps/web/app/jobs/components/JobCard2025.tsx', // 649
   'apps/web/app/dashboard/components/AirbnbSearchBar.tsx', // 570
+  // Pre-existing >500-LOC file touched only by the false-marketing-claims
+  // scrub (2026-05-21). The file rendered the /contractors directory hero
+  // with fabricated stat badges (100% Verified Professionals etc.) which
+  // were replaced with verifiable platform behaviours; the split is a P2.
+  'apps/web/app/contractors/components/ContractorsBrowseProfessional.tsx', // 606 (was 601)
+  // Added 2026-05-23 (audit-5 budget→escrow refactor): both files
+  // were already over the 500-LOC gate before the audit (528 + 609
+  // lines on HEAD). The audit edits add the escrow-flatten + null
+  // bucket-skip + new analytics joining — net ~8 lines for
+  // AdvancedSearchService, ~66 lines for RecommendationsService.
+  // Neither change relocates business logic; both call sites already
+  // bundle large state machines (search facets, multi-category
+  // recommendation engine) that warrant their own split sprint.
+  // Splits tracked as a dedicated P2 — orthogonal to closing the
+  // "analytics silently read £0" finding.
+  'apps/web/lib/services/AdvancedSearchService.ts', // 536 (was 528)
+  'apps/web/lib/services/RecommendationsService.ts', // 675 (was 609)
+  // Added 2026-05-23 (audit-7 reconciliation redirect): the
+  // release-escrow route was sitting at 499 LOC (1 LOC under the
+  // gate). The audit found the recovery-trail insert was writing to
+  // a nonexistent `escrow_reconciliation` table; redirecting to the
+  // existing `escrow_audit_log` requires more fields (actor_id,
+  // actor_role, job_id, contractor_payout, release_reason,
+  // is_admin_action, and a metadata payload preserving the original
+  // reconciliation_id + issue_type) — +18 LOC. Splitting the
+  // Stripe-transfer-with-fee-pulling escrow release flow is a
+  // dedicated P2; not a blocker on closing the lost-recovery-trail bug.
+  'apps/web/app/api/payments/release-escrow/route.ts', // 517 (was 499)
 ]);
 
 function countLines(filePath) {

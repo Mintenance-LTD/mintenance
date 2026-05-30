@@ -16,13 +16,13 @@ export const dynamic = 'force-dynamic';
 export const metadata: Metadata = {
   title: 'Find Trusted Local Contractors | Mintenance',
   description:
-    'Browse and hire verified contractors for all your home maintenance needs. Read reviews, compare prices, and connect with trusted professionals near you.',
+    'Browse and hire local contractors on the Mintenance platform. Read reviews, compare prices, and connect with tradespeople near you.',
   keywords:
-    'find contractors, local contractors, verified professionals, home maintenance, trusted tradespeople, contractor reviews',
+    'find contractors, local contractors, home maintenance, tradespeople, contractor reviews',
   openGraph: {
     title: 'Find Trusted Local Contractors | Mintenance',
     description:
-      'Browse and hire verified contractors for all your home maintenance needs.',
+      'Browse and hire local contractors on the Mintenance platform for all your home maintenance needs.',
     type: 'website',
     images: [
       {
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Find Contractors | Mintenance',
     description:
-      'Browse verified contractors near you. Compare ratings, reviews, and portfolios.',
+      'Browse local contractors near you. Compare ratings, reviews, and portfolios.',
   },
 };
 

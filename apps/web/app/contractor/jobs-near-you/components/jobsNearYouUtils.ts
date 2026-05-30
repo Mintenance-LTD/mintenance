@@ -11,7 +11,6 @@
 interface JobWithDistanceForScoring {
   skillMatchCount?: number;
   distance?: number;
-  budget?: string;
   created_at: string;
 }
 
@@ -43,25 +42,25 @@ export function calculateDistance(
 /**
  * Calculate a composite recommendation score for a job.
  *
- * Weights:
+ * Weights (2026-05-22, after homeowner-set budget removal):
  *  - Skill match: up to 40 points (40 per matched skill)
- *  - Distance: up to 30 points (inversely proportional, 500 km baseline)
- *  - Budget: up to 20 points (proportional, 1000 baseline)
- *  - Recency: up to 10 points (inversely proportional, 30-day baseline)
+ *  - Distance: up to 40 points (inversely proportional, 500 km baseline)
+ *  - Recency: up to 20 points (inversely proportional, 30-day baseline)
+ *
+ * The 20-point budget component was removed when homeowners stopped
+ * setting budgets — using it would have biased the recommendation
+ * against every new job (which has budget = 0).
  */
 export function calculateRecommendationScore(
   job: JobWithDistanceForScoring
 ): number {
   const skillMatchScore = (job.skillMatchCount || 0) * 40;
   const distanceScore = job.distance
-    ? Math.max(0, 30 * (1 - job.distance / 500))
-    : 0;
-  const budgetScore = job.budget
-    ? Math.min(20, (parseFloat(job.budget) / 1000) * 20)
+    ? Math.max(0, 40 * (1 - job.distance / 500))
     : 0;
   const daysSincePosted = Math.floor(
     (Date.now() - new Date(job.created_at).getTime()) / (1000 * 60 * 60 * 24)
   );
-  const recencyScore = Math.max(0, 10 * (1 - daysSincePosted / 30));
-  return skillMatchScore + distanceScore + budgetScore + recencyScore;
+  const recencyScore = Math.max(0, 20 * (1 - daysSincePosted / 30));
+  return skillMatchScore + distanceScore + recencyScore;
 }

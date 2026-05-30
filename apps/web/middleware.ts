@@ -162,8 +162,60 @@ export async function middleware(request: NextRequest) {
   }
 
   // Mobile clients send Bearer token in Authorization header instead of cookies.
+  //
+  // 2026-05-27 whole-app review Critical #4: previously this branch
+  // short-circuited the middleware on JWT-format match alone. The
+  // signature + session-timeout + blacklist checks only fired inside
+  // `withApiHandler` (via `verifyToken` → `getCurrentUser`), so a
+  // stolen mobile token that had already aged past the absolute / idle
+  // session timeout would still be accepted (`verifyToken` checks the
+  // in-memory blacklist + `tokens_revoked_at` cutoff, but does NOT
+  // check session timeouts — those only run in middleware for the
+  // cookie path). Now we mirror the cookie path's middleware-level
+  // gates so the bearer surface gets the same enforcement.
   const bearerToken = extractBearerToken(request);
-  if (pathname.startsWith('/api/') && isValidJwtFormat(bearerToken)) {
+  if (
+    pathname.startsWith('/api/') &&
+    isValidJwtFormat(bearerToken) &&
+    bearerToken
+  ) {
+    // Signature check — same as cookie path.
+    const bearerPayload = await verifyJwtToken(
+      bearerToken,
+      cfg,
+      request,
+      pathname
+    );
+    if (!bearerPayload) {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 });
+    }
+
+    // Token blacklist (in-memory + Redis).
+    const isBlacklisted = await checkTokenBlacklist(
+      bearerToken,
+      pathname,
+      bearerPayload.sub
+    );
+    if (isBlacklisted) {
+      return NextResponse.json({ error: 'Token revoked' }, { status: 401 });
+    }
+
+    // Exp check.
+    const now = Math.floor(Date.now() / 1000);
+    if (bearerPayload.exp && bearerPayload.exp < now) {
+      return NextResponse.json({ error: 'Token expired' }, { status: 401 });
+    }
+
+    // Session timeout — absolute + idle. Returns a NextResponse only
+    // when enforcement fires; null means session is still valid.
+    const timeoutResponse = await enforceSessionTimeouts(
+      bearerPayload,
+      bearerToken,
+      request,
+      pathname
+    );
+    if (timeoutResponse) return timeoutResponse;
+
     const requestHeaders = new Headers(request.headers);
     requestHeaders.set('x-pathname', pathname);
     const requestId = crypto.randomUUID();

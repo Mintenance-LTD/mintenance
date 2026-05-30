@@ -15,6 +15,7 @@ import {
   getNotificationColor,
   getNotificationIcon,
 } from './notification-icons';
+import { normalizeNotificationType } from '@/lib/notifications/normalize-type';
 
 export type FilterType = 'all' | 'unread' | 'jobs' | 'messages' | 'payments';
 
@@ -79,11 +80,18 @@ function filteredList(
     case 'unread':
       return notifications.filter((n) => !n.is_read);
     case 'jobs':
-      return notifications.filter((n) => n.type === 'job' || n.type === 'bid');
+      return notifications.filter((n) => {
+        const bucket = normalizeNotificationType(n.type);
+        return bucket === 'job' || bucket === 'bid';
+      });
     case 'messages':
-      return notifications.filter((n) => n.type === 'message');
+      return notifications.filter(
+        (n) => normalizeNotificationType(n.type) === 'message'
+      );
     case 'payments':
-      return notifications.filter((n) => n.type === 'payment');
+      return notifications.filter(
+        (n) => normalizeNotificationType(n.type) === 'payment'
+      );
     default:
       return notifications;
   }

@@ -58,12 +58,22 @@ export async function handleTipPaymentSucceeded(
       const message = tip.note
         ? `${amountLabel} tip on your completed job. Note: "${tip.note}"`
         : `${amountLabel} tip on your completed job — funds land in your next payout.`;
+      // 2026-05-25 audit-45 P2: thread jobId + tipId so the mobile
+      // routingTable case for 'job_tip_received' can deep-link to the
+      // contractor's JobDetails (where TipsReceivedSection lives).
+      // sendNotification merges extra metadata alongside its fixed
+      // { source: 'stripe-webhook' } marker.
       await sendNotification(
         tip.payee_id,
         title,
         message,
         'job_tip_received',
-        tip.job_id ? `/contractor/jobs/${tip.job_id}` : undefined
+        tip.job_id ? `/contractor/jobs/${tip.job_id}` : undefined,
+        {
+          ...(tip.job_id ? { jobId: tip.job_id } : {}),
+          tipId: tip.id,
+          amount: Number(tip.amount),
+        }
       );
     } catch (notifyErr) {
       logger.error('Tip recorded but notification failed', notifyErr, {

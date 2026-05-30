@@ -26,6 +26,13 @@ interface QuotePayload {
     quantity: number;
     unitPrice: number;
     total: number;
+    // 2026-05-23 audit-14: optional room-scoped pricing fields. Mobile
+    // contractors using detailed bids set `unit='sqm'` + `room_id` when
+    // they price by room area; legacy bids without rooms continue to
+    // omit both fields. contractor_quotes.line_items is jsonb so the
+    // extra keys persist without a schema migration.
+    unit?: 'item' | 'sqm';
+    room_id?: string | null;
   }>;
   terms: string | null;
   status: 'sent';

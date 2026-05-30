@@ -30,7 +30,14 @@ interface InvoiceLineItemInput {
  */
 interface CreateInvoiceInput {
   contractor_id: string;
-  client_id: string;
+  // 2026-05-23 audit-17 P1: client_id is now optional. The API path
+  // accepts a clientName-only invoice (no contractor_clients FK) — when
+  // the contractor types a free-text client and saves, we should NOT
+  // synthesize a fake clientId; that previously fell back to the
+  // contractor's own profile UUID and the API rejected with "Client
+  // not found or not yours". Only forward client_id when it actually
+  // points at a contractor_clients row.
+  client_id?: string;
   client_name?: string;
   client_email?: string;
   client_phone?: string;
@@ -78,11 +85,15 @@ export async function createInvoice(
       'Contractor ID',
       context
     );
-    ServiceErrorHandler.validateRequired(
-      invoiceData.client_id,
-      'Client ID',
-      context
-    );
+    // 2026-05-23 audit-17 P1: client_id is no longer required — the
+    // server accepts a clientName-only invoice. Requiring it here
+    // forced the screen to fall back to the contractor's profile UUID
+    // and the server rejected the resulting body. Validate clientName
+    // instead so we still surface a useful error when the caller has
+    // neither.
+    if (!invoiceData.client_id && !invoiceData.client_name?.trim()) {
+      throw new Error('Either client_id or client_name is required');
+    }
     ServiceErrorHandler.validatePositiveNumber(
       invoiceData.total_amount,
       'Total amount',
@@ -110,7 +121,13 @@ export async function createInvoice(
 
     const body: Record<string, unknown> = {
       jobId: invoiceData.job_id || undefined,
-      clientId: invoiceData.client_id,
+      // 2026-05-23 audit-17 P1: only forward clientId when it points at
+      // a real contractor_clients row. The server schema marks it
+      // .optional() and the handler resolves contact details from the
+      // row when present; sending an empty string or a fake fallback
+      // (previously contractor's own profile UUID) triggers "Client not
+      // found or not yours".
+      clientId: invoiceData.client_id || undefined,
       clientName: invoiceData.client_name,
       clientEmail: invoiceData.client_email,
       clientPhone: invoiceData.client_phone,
@@ -138,6 +155,80 @@ export async function createInvoice(
   if (!result.success || !result.data)
     throw new Error('Failed to create invoice');
   return result.data;
+}
+
+/**
+ * 2026-05-23 audit-24 P1: full-invoice PATCH for the edit flow.
+ * CreateInvoiceScreen used to "edit" by calling createInvoice again,
+ * which silently duplicated drafts. This wrapper maps mobile form
+ * state to the PATCH body (lineItems use API's unit_price shape).
+ *
+ * Pass `reminder: true` to fire the email + invoice_received
+ * notification regardless of status (audit-24 P2 — InvoiceDetailScreen
+ * "Send reminder" was previously a no-op on already-sent invoices).
+ */
+export async function updateInvoice(
+  invoiceId: string,
+  updates: {
+    clientName?: string;
+    clientEmail?: string;
+    clientAddress?: string;
+    title?: string;
+    description?: string;
+    lineItems?: Array<{
+      description: string;
+      quantity: number;
+      unit_price?: number;
+      rate?: number;
+      amount?: number;
+    }>;
+    taxRate?: number;
+    paymentTerms?: string;
+    notes?: string;
+    dueDate?: string;
+    status?: Invoice['status'];
+    reminder?: boolean;
+  }
+): Promise<Invoice> {
+  const mappedLineItems = updates.lineItems?.map((li) => ({
+    description: li.description,
+    quantity: li.quantity ?? 1,
+    unit_price:
+      typeof li.unit_price === 'number' ? li.unit_price : (li.rate ?? 0),
+    amount: li.amount,
+  }));
+
+  const body: Record<string, unknown> = {
+    ...(updates.clientName !== undefined && { clientName: updates.clientName }),
+    ...(updates.clientEmail !== undefined && {
+      clientEmail: updates.clientEmail,
+    }),
+    ...(updates.clientAddress !== undefined && {
+      clientAddress: updates.clientAddress,
+    }),
+    ...(updates.title !== undefined && { title: updates.title }),
+    ...(updates.description !== undefined && {
+      description: updates.description,
+    }),
+    ...(mappedLineItems !== undefined && { lineItems: mappedLineItems }),
+    ...(updates.taxRate !== undefined && { taxRate: updates.taxRate }),
+    ...(updates.paymentTerms !== undefined && {
+      paymentTerms: updates.paymentTerms,
+    }),
+    ...(updates.notes !== undefined && { notes: updates.notes }),
+    ...(updates.dueDate !== undefined && { dueDate: updates.dueDate }),
+    ...(updates.status !== undefined && { status: updates.status }),
+    ...(updates.reminder === true && { reminder: true }),
+  };
+
+  const response = await mobileApiClient.patch<{
+    success: boolean;
+    invoice: Invoice;
+  }>(`/api/contractor/invoices?id=${encodeURIComponent(invoiceId)}`, body);
+  if (!response?.invoice) {
+    throw new Error('Invoice update returned no payload');
+  }
+  return response.invoice;
 }
 
 export async function updateInvoiceStatus(
@@ -222,6 +313,19 @@ export async function sendInvoice(
   // Marking status='sent' is the canonical "send" action.
   await updateInvoiceStatus(invoiceId, 'sent', contractorId);
   logger.info('Invoice marked as sent', { invoiceId });
+}
+
+/**
+ * 2026-05-23 audit-24 P2: explicit "Send reminder" path.
+ * updateInvoiceStatus('sent') on an already-sent invoice no-ops the
+ * email + notification because the server only fires those on the
+ * draft → sent transition. This wrapper sends a `reminder: true`
+ * PATCH flag that the API uses to re-fire the email and the
+ * invoice_received notification regardless of status.
+ */
+export async function sendInvoiceReminder(invoiceId: string): Promise<void> {
+  await updateInvoice(invoiceId, { reminder: true });
+  logger.info('Invoice reminder sent', { invoiceId });
 }
 
 export async function generateInvoiceNumber(

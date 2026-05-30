@@ -30,6 +30,7 @@ import {
   handleSubscribePress,
 } from './handleSubscribe';
 import { CurrentPlanCard } from './components/CurrentPlanCard';
+import { FoundingMemberCard } from './components/FoundingMemberCard';
 import { PlanCard } from './components/PlanCard';
 import { InlineError, InlineLoading } from './components/StatusInline';
 
@@ -46,19 +47,24 @@ export const SubscriptionScreen: React.FC = () => {
     isLoading,
     error: statusError,
     refetch: refetchStatus,
-  } = useSubscriptionStatusQuery(userRole);
+  } = useSubscriptionStatusQuery(userRole, user?.id);
 
   const subscribeMutation = useSubscribeMutation();
   const cancelMutation = useCancelSubscriptionMutation();
 
   const currentPlan = status?.subscription;
+  // Early-access (founding-member) cohort: backend already grants the
+  // top-tier feature set + 5% fee with no subscription, so suppress the
+  // trial countdown and plan picker (mirrors web audit-89).
+  const earlyAccess = !!status?.earlyAccess?.eligible;
   const rawTrial = status?.trial;
-  const trial = rawTrial
-    ? {
-        active: rawTrial.isTrialActive ?? rawTrial.active ?? false,
-        daysRemaining: rawTrial.daysRemaining,
-      }
-    : null;
+  const trial =
+    rawTrial && !earlyAccess
+      ? {
+          active: rawTrial.isTrialActive ?? rawTrial.active ?? false,
+          daysRemaining: rawTrial.daysRemaining,
+        }
+      : null;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -87,39 +93,45 @@ export const SubscriptionScreen: React.FC = () => {
           <InlineError onRetry={() => refetchStatus()} />
         ) : (
           <>
-            <CurrentPlanCard
-              currentPlan={currentPlan ?? null}
-              trial={trial}
-              cancelling={cancelMutation.isPending}
-              onCancel={() =>
-                confirmCancelSubscription(() => cancelMutation.mutate())
-              }
-            />
+            {earlyAccess ? (
+              <FoundingMemberCard />
+            ) : (
+              <>
+                <CurrentPlanCard
+                  currentPlan={currentPlan ?? null}
+                  trial={trial}
+                  cancelling={cancelMutation.isPending}
+                  onCancel={() =>
+                    confirmCancelSubscription(() => cancelMutation.mutate())
+                  }
+                />
 
-            <Text style={styles.sectionTitle}>Available Plans</Text>
+                <Text style={styles.sectionTitle}>Available Plans</Text>
 
-            {plans.map((plan) => (
-              <PlanCard
-                key={plan.id}
-                plan={plan}
-                isCurrent={currentPlan?.planType === plan.id}
-                isSelected={selectedPlan === plan.id}
-                hasExistingSubscription={!!currentPlan}
-                subscribing={subscribeMutation.isPending}
-                onSubscribe={(planId) =>
-                  handleSubscribePress({
-                    planType: planId,
-                    onSubscribe: (id) => subscribeMutation.mutate(id),
-                    onAddCard: () =>
-                      (
-                        navigation as unknown as {
-                          navigate: (screen: string) => void;
-                        }
-                      ).navigate('PaymentMethods'),
-                  })
-                }
-              />
-            ))}
+                {plans.map((plan) => (
+                  <PlanCard
+                    key={plan.id}
+                    plan={plan}
+                    isCurrent={currentPlan?.planType === plan.id}
+                    isSelected={selectedPlan === plan.id}
+                    hasExistingSubscription={!!currentPlan}
+                    subscribing={subscribeMutation.isPending}
+                    onSubscribe={(planId) =>
+                      handleSubscribePress({
+                        planType: planId,
+                        onSubscribe: (id) => subscribeMutation.mutate(id),
+                        onAddCard: () =>
+                          (
+                            navigation as unknown as {
+                              navigate: (screen: string) => void;
+                            }
+                          ).navigate('PaymentMethods'),
+                      })
+                    }
+                  />
+                ))}
+              </>
+            )}
           </>
         )}
       </ScrollView>

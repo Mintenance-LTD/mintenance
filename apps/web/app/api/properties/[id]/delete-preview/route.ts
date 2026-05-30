@@ -16,15 +16,20 @@ import { logger } from '@mintenance/shared';
  * confirmation modal to show a "5 compliance certs will be retained
  * for legal retention" warning before the user commits.
  *
- * Migration 20260520000002_landlord_fk_retention.sql flipped the FK on
- *   - compliance_certificates  (gas safety ≥2yr, EICR ≥5yr)
- *   - property_tenants         (HMRC 6-year window)
- *   - property_contacts        (keyholder / agent history)
- *   - anonymous_reports        (dispute-resolution evidence)
- *   - recurring_schedules      (cycle definition preserved)
- * to `ON DELETE SET NULL`. The remaining FK relationships still cascade
- * (units, photos, jobs etc.) — those are surfaced too so the user
- * understands what's about to vanish.
+ * Live FK state (re-verified 2026-05-21 via pg_constraint):
+ *
+ *   ON DELETE SET NULL (preserved):
+ *     - compliance_certificates  (gas safety ≥2yr, EICR ≥5yr)
+ *     - property_tenants         (HMRC 6-year window)
+ *     - property_contacts        (keyholder / agent history)
+ *     - anonymous_reports        (dispute-resolution evidence)
+ *     - recurring_schedules      (cycle definition preserved)
+ *     - jobs                     (historical job records survive)
+ *
+ *   ON DELETE CASCADE (vanishes):
+ *     - property_room_photos     (photo of a room on the property)
+ *     - units, property_rooms, property_team_members, etc. (left
+ *       implicit — preview surfaces the user-visible cases)
  *
  * Permission gate: same `PropertyTeamService.authorize('delete')` as
  * the DELETE route so the preview never leaks counts to a non-owner.
@@ -45,60 +50,98 @@ export const GET = withApiHandler(
       );
     }
 
-    // Run all six counts in parallel — each is `count(*) HEAD only`
+    // Run all counts in parallel — each is `count(*) HEAD only`
     // (rows: 0) so the round-trip is cheap.
-    const [compliance, tenants, contacts, anonymous, schedules, jobs, photos] =
-      await Promise.all([
-        userDb
-          .from('compliance_certificates')
-          .select('*', { head: true, count: 'exact' })
-          .eq('property_id', params.id),
-        // property_tenants is conditionally created — graceful fallback
-        userDb
-          .from('property_tenants')
-          .select('*', { head: true, count: 'exact' })
-          .eq('property_id', params.id)
-          .then(
-            (r) => r,
-            () => ({ count: 0 as number | null })
-          ),
-        userDb
-          .from('property_contacts')
-          .select('*', { head: true, count: 'exact' })
-          .eq('property_id', params.id),
-        userDb
-          .from('anonymous_reports')
-          .select('*', { head: true, count: 'exact' })
-          .eq('property_id', params.id),
-        userDb
-          .from('recurring_schedules')
-          .select('*', { head: true, count: 'exact' })
-          .eq('property_id', params.id),
-        userDb
-          .from('jobs')
-          .select('*', { head: true, count: 'exact' })
-          .eq('property_id', params.id),
-        userDb
-          .from('property_photos')
-          .select('*', { head: true, count: 'exact' })
-          .eq('property_id', params.id)
-          .then(
-            (r) => r,
-            () => ({ count: 0 as number | null })
-          ),
-      ]);
+    const [
+      compliance,
+      tenants,
+      contacts,
+      anonymous,
+      schedules,
+      jobs,
+      roomPhotos,
+      maintenanceTickets,
+    ] = await Promise.all([
+      userDb
+        .from('compliance_certificates')
+        .select('*', { head: true, count: 'exact' })
+        .eq('property_id', params.id),
+      // property_tenants is conditionally created — graceful fallback
+      userDb
+        .from('property_tenants')
+        .select('*', { head: true, count: 'exact' })
+        .eq('property_id', params.id)
+        .then(
+          (r) => r,
+          () => ({ count: 0 as number | null })
+        ),
+      userDb
+        .from('property_contacts')
+        .select('*', { head: true, count: 'exact' })
+        .eq('property_id', params.id),
+      userDb
+        .from('anonymous_reports')
+        .select('*', { head: true, count: 'exact' })
+        .eq('property_id', params.id),
+      userDb
+        .from('recurring_schedules')
+        .select('*', { head: true, count: 'exact' })
+        .eq('property_id', params.id),
+      userDb
+        .from('jobs')
+        .select('*', { head: true, count: 'exact' })
+        .eq('property_id', params.id),
+      // 2026-05-21 audit fix: previously this counted `property_photos`
+      // (a non-existent table) and silently fell back to 0. The real
+      // cascading photo table is `property_room_photos`, which is what
+      // a property delete actually wipes.
+      userDb
+        .from('property_room_photos')
+        .select('*', { head: true, count: 'exact' })
+        .eq('property_id', params.id)
+        .then(
+          (r) => r,
+          () => ({ count: 0 as number | null })
+        ),
+      // 2026-05-26 audit-65 P1: maintenance_tickets.property_id is
+      // CASCADE live, so portfolio ticket history gets silently
+      // wiped on property delete. Surface the count in the cascaded
+      // section so the homeowner sees the impact; the DELETE route
+      // also now blocks on open tickets (anything not closed/
+      // resolved/cancelled) so they can't be lost mid-flight.
+      userDb
+        .from('maintenance_tickets')
+        .select('*', { head: true, count: 'exact' })
+        .eq('property_id', params.id)
+        .then(
+          (r) => r,
+          () => ({ count: 0 as number | null })
+        ),
+    ]);
 
+    // 2026-05-21 audit fix: `jobs` moved from `cascaded` → `preserved`.
+    // jobs.property_id is `ON DELETE SET NULL` live (verified via
+    // pg_constraint), so historical jobs survive a property delete —
+    // homeowners and contractors can still see the audit trail. The
+    // previous shape mis-promised the user they'd vanish.
     const preserved = {
       compliance_certificates: compliance.count ?? 0,
       property_tenants: tenants.count ?? 0,
       property_contacts: contacts.count ?? 0,
       anonymous_reports: anonymous.count ?? 0,
       recurring_schedules: schedules.count ?? 0,
+      jobs: jobs.count ?? 0,
     };
 
     const cascaded = {
-      jobs: jobs.count ?? 0,
-      property_photos: photos.count ?? 0,
+      property_room_photos: roomPhotos.count ?? 0,
+      // 2026-05-26 audit-65 P1: portfolio maintenance tickets
+      // cascade with the property. Closed/resolved tickets cascade
+      // by design (the property is gone, the history is archival).
+      // Open tickets are blocked by the DELETE route — they can
+      // still appear in this count to flag "you have N open tickets"
+      // ahead of the delete attempt.
+      maintenance_tickets: maintenanceTickets.count ?? 0,
     };
 
     const preservedTotal = Object.values(preserved).reduce((s, n) => s + n, 0);

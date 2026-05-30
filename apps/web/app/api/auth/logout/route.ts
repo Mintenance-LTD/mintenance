@@ -68,6 +68,37 @@ export const POST = withApiHandler(
     // leaves stolen refresh tokens valid until their natural expiry.
     await authManager.logout(userId);
 
+    // 2026-05-26 audit-56 P0: bump profiles.tokens_revoked_at so any
+    // access JWT issued before now is rejected by verifyToken's durable
+    // cutoff check. The in-memory blacklist doesn't survive serverless
+    // cold starts; this DB-backed cutoff does. Without this, a user
+    // who clicked Sign Out could still authenticate via a still-valid
+    // cookie for up to ACCESS_TTL_SEC (1 hour) after logout.
+    if (userId) {
+      try {
+        const { serverSupabase } = await import('@/lib/api/supabaseServer');
+        await serverSupabase
+          .from('profiles')
+          .update({ tokens_revoked_at: new Date().toISOString() })
+          .eq('id', userId);
+      } catch (revokeErr) {
+        // Non-fatal: cookies are still cleared on the response; we
+        // just lose the durable backstop for this session. The blacklist
+        // + cookie deletion still apply.
+        logger.warn(
+          'Failed to bump profiles.tokens_revoked_at on logout (non-fatal)',
+          {
+            service: 'auth',
+            userId,
+            err:
+              revokeErr instanceof Error
+                ? revokeErr.message
+                : String(revokeErr),
+          }
+        );
+      }
+    }
+
     logger.info('User logged out successfully', { service: 'auth', userId });
 
     const response = NextResponse.json(

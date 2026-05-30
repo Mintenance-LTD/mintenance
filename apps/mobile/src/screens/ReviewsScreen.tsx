@@ -111,31 +111,37 @@ export const ReviewsScreen: React.FC<Props> = ({ navigation }) => {
 
       {reviews && reviews.length > 0 && (
         <>
+          {/* 2026-05-21 Mint Editorial layout — serif average on the left,
+              distribution bars on the right, side-by-side per
+              contractor-mobile-audit.html screen 08. */}
           <View style={styles.summaryCard}>
-            <Text style={styles.avgRating}>{averageRating}</Text>
-            <StarRating rating={parseFloat(averageRating)} size={22} />
-            <Text style={styles.reviewCount}>
-              {reviews.length} review{reviews.length !== 1 ? 's' : ''}
-            </Text>
-          </View>
-
-          {/* Rating Distribution */}
-          <View style={styles.distributionCard}>
-            {[5, 4, 3, 2, 1].map((star) => {
-              const count = reviews.filter((r) => r.rating === star).length;
-              const pct =
-                reviews.length > 0 ? (count / reviews.length) * 100 : 0;
-              return (
-                <View key={star} style={styles.distRow}>
-                  <Text style={styles.distLabel}>{star}</Text>
-                  <Ionicons name='star' size={12} color={me.accent} />
-                  <View style={styles.distBarBg}>
-                    <View style={[styles.distBarFill, { width: `${pct}%` }]} />
+            <View style={styles.summaryLeft}>
+              <Text style={styles.avgRating}>{averageRating}</Text>
+              <View style={styles.summaryStars}>
+                <StarRating rating={parseFloat(averageRating)} size={14} />
+              </View>
+              <Text style={styles.reviewCount}>
+                {reviews.length} review{reviews.length !== 1 ? 's' : ''}
+              </Text>
+            </View>
+            <View style={styles.summaryRight}>
+              {[5, 4, 3, 2, 1].map((star) => {
+                const count = reviews.filter((r) => r.rating === star).length;
+                const pct =
+                  reviews.length > 0 ? (count / reviews.length) * 100 : 0;
+                return (
+                  <View key={star} style={styles.distRow}>
+                    <Text style={styles.distLabel}>{star}</Text>
+                    <View style={styles.distBarBg}>
+                      <View
+                        style={[styles.distBarFill, { width: `${pct}%` }]}
+                      />
+                    </View>
+                    <Text style={styles.distCount}>{count}</Text>
                   </View>
-                  <Text style={styles.distCount}>{count}</Text>
-                </View>
-              );
-            })}
+                );
+              })}
+            </View>
           </View>
 
           {/* Filter Chips - Dark active state */}
@@ -223,64 +229,71 @@ const styles = StyleSheet.create({
     backgroundColor: me.bg2,
   },
   summaryCard: {
+    flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: me.surface,
     marginHorizontal: 16,
     marginTop: 12,
     marginBottom: 10,
-    padding: 20,
-    borderRadius: 16,
+    padding: 18,
+    borderRadius: 18,
+    gap: 14,
     ...me.shadow.card,
   },
+  summaryLeft: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 72,
+  },
+  summaryRight: {
+    flex: 1,
+    paddingTop: 4,
+  },
   avgRating: {
-    fontSize: 36,
-    fontWeight: '700',
-    color: me.ink,
-    marginBottom: 4,
+    fontFamily: me.font.display,
+    fontSize: 44,
+    lineHeight: 44,
+    color: me.warm,
+    letterSpacing: me.displayTracking,
+  },
+  summaryStars: {
+    marginTop: 2,
   },
   reviewCount: {
-    fontSize: 13,
-    color: me.ink2,
-    marginTop: 6,
+    fontSize: 11,
+    color: me.ink3,
+    marginTop: 4,
   },
   listContainer: {
     padding: 16,
     gap: 10,
   },
-  distributionCard: {
-    backgroundColor: me.surface,
-    marginHorizontal: 16,
-    marginBottom: 10,
-    padding: 16,
-    borderRadius: 16,
-    ...me.shadow.card,
-  },
   distRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 4,
-    gap: 6,
+    gap: 8,
   },
   distLabel: {
-    width: 16,
-    fontSize: 13,
-    fontWeight: '600',
-    color: me.ink,
+    width: 10,
+    fontSize: 11,
+    color: me.ink3,
   },
   distBarBg: {
     flex: 1,
-    height: 8,
+    height: 6,
     backgroundColor: me.bg2,
-    borderRadius: 4,
+    borderRadius: 9999,
+    overflow: 'hidden',
   },
   distBarFill: {
-    height: 8,
-    backgroundColor: me.ink,
-    borderRadius: 4,
+    height: 6,
+    backgroundColor: me.warm,
+    borderRadius: 9999,
   },
   distCount: {
     width: 24,
-    fontSize: 12,
+    fontSize: 11,
     color: me.ink3,
     textAlign: 'right',
   },

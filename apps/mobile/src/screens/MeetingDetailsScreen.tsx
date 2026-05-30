@@ -129,8 +129,12 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
           longitudeDelta: 0.01,
         });
 
+        // 2026-05-27 audit-78 P2: pass meeting.job_id so the homeowner
+        // read passes the API's `job_id` gate; without it the route
+        // 403's homeowners before any live ping is read.
         const contractorLoc = await MeetingService.getContractorLocation(
-          meetingData.contractor_id
+          meetingData.contractor_id,
+          meetingData.job_id ? { jobId: meetingData.job_id } : undefined
         );
         setContractorLocation(contractorLoc);
 
@@ -144,7 +148,8 @@ const MeetingDetailsScreen: React.FC<Props> = ({ route, navigation }) => {
             meetingData.contractor_id,
             (location) => {
               if (location) setContractorLocation(location);
-            }
+            },
+            meetingData.job_id ? { jobId: meetingData.job_id } : undefined
           );
         meetingSubscription.current = MeetingService.subscribeToMeetingUpdates(
           meetingId,

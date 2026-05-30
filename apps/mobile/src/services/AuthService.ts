@@ -40,6 +40,12 @@ export interface SignUpData {
   firstName: string;
   lastName: string;
   role: 'homeowner' | 'contractor';
+  /** 2026-05-23: forwarded to Supabase signup options.data so the
+   *  handle_new_user trigger persists it to profiles.phone. The
+   *  registration form validates this as required for contractors
+   *  (useRegistrationForm) but the API contract is optional so
+   *  legacy callers and homeowners can omit it. */
+  phone?: string;
 }
 
 export class AuthService {
@@ -122,6 +128,9 @@ export class AuthService {
             last_name: userData.lastName,
             role: userData.role,
             full_name: `${userData.firstName} ${userData.lastName}`,
+            // 2026-05-23: snake_case to match the trigger's
+            // raw_user_meta_data->>'phone' read.
+            ...(userData.phone ? { phone: userData.phone.trim() } : {}),
           },
         },
       });

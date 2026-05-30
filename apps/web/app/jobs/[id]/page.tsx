@@ -445,6 +445,14 @@ export default async function JobDetailPage2025({
           created_at: job.created_at,
           completed_at: job.completed_at,
           preferred_start_date: preferredStartDate,
+          // audit-76 P1 follow-up: AccessSharedCard derives the
+          // key-safe reveal window from this column via
+          // canRevealKeySafeCode(). Without it the helper sees
+          // `scheduled_start_date === undefined` and always returns
+          // false on `status='assigned'`, so the homeowner card would
+          // under-promise (mask the code) even when the contractor
+          // page actually reveals it.
+          scheduled_start_date: job.scheduled_start_date,
           contractor_id: job.contractor_id,
           completion_confirmed_by_homeowner:
             job.completion_confirmed_by_homeowner,
@@ -525,12 +533,15 @@ export default async function JobDetailPage2025({
           <div className='grid grid-cols-12 gap-8'>
             <div className='col-span-12 lg:col-span-8 space-y-6'>
               {job.status === 'completed' && afterPhotos.length > 0 && (
-                <HomeownerPhotoReview
-                  jobId={job.id}
-                  beforePhotos={beforePhotos}
-                  afterPhotos={afterPhotos}
-                  isConfirmed={!!job.completion_confirmed_by_homeowner}
-                />
+                <div id='photo-review'>
+                  <HomeownerPhotoReview
+                    jobId={job.id}
+                    beforePhotos={beforePhotos}
+                    afterPhotos={afterPhotos}
+                    isConfirmed={!!job.completion_confirmed_by_homeowner}
+                    completedAt={job.completed_at}
+                  />
+                </div>
               )}
               {job.contractor_id && (
                 <div id='contract-section'>

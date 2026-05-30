@@ -36,11 +36,19 @@ export const GET = withApiHandler(
       throw new BadRequestError('userId must be a valid UUID');
     }
 
-    // 1. Fetch user profile
+    // 1. Fetch user profile.
+    // 2026-05-23 audit: `profiles.insurance_provider` and
+    // `profiles.insurance_policy_number` do not exist on live —
+    // insurance details live in the `contractor_insurance` table.
+    // Selecting them errored the entire dossier query, returning
+    // "column does not exist" to the admin user-detail page.
+    // Profile now carries only the expiry column (`insurance_expiry_date`)
+    // and contractor_insurance is joined separately below for the
+    // provider + policy number.
     const { data: profile, error: profileError } = await serverSupabase
       .from('profiles')
       .select(
-        'id, email, first_name, last_name, role, phone, profile_image_url, company_name, license_number, business_address, latitude, longitude, insurance_provider, insurance_policy_number, insurance_expiry_date, years_experience, admin_verified, bio, created_at, updated_at'
+        'id, email, first_name, last_name, role, phone, profile_image_url, company_name, license_number, business_address, latitude, longitude, insurance_expiry_date, years_experience, admin_verified, bio, created_at, updated_at'
       )
       .eq('id', userId)
       .single();
@@ -51,6 +59,23 @@ export const GET = withApiHandler(
         error: profileError?.message,
       });
       throw new NotFoundError('User not found');
+    }
+
+    // 2026-05-23 audit: insurance details live on `contractor_insurance`,
+    // not on profiles. Side-fetch the most recently-updated row so the
+    // admin dossier still surfaces `insuranceProvider` (null when the
+    // contractor hasn't registered insurance yet, or the user isn't
+    // a contractor).
+    let insuranceProvider: string | null = null;
+    if (profile.role === 'contractor') {
+      const { data: insuranceRow } = await serverSupabase
+        .from('contractor_insurance')
+        .select('provider')
+        .eq('contractor_id', userId)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      insuranceProvider = insuranceRow?.provider ?? null;
     }
 
     // 2. Fetch all related data in parallel for performance
@@ -231,7 +256,7 @@ export const GET = withApiHandler(
           companyName: profile.company_name,
           licenseNumber: profile.license_number,
           businessAddress: profile.business_address,
-          insuranceProvider: profile.insurance_provider,
+          insuranceProvider,
           insuranceExpiryDate: profile.insurance_expiry_date,
           yearsExperience: profile.years_experience,
           adminVerified: profile.admin_verified,

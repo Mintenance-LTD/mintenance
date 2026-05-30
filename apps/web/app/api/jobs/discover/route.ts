@@ -24,9 +24,15 @@
  *                filters by the visible map area instead of returning
  *                the newest 50 jobs anywhere.
  *
- * Auth: any authenticated user. Contractors get their own pending /
- * accepted / rejected bid job_ids excluded server-side so the client
- * doesn't have to round-trip a second list.
+ * Auth: contractors + admin only. 2026-05-26 audit-58 P1: previously
+ * any authenticated user could call this — homeowners and tenants
+ * received open job titles, coordinates, budgets, categories, and
+ * the posting homeowner's first name. The mobile UI only exposes
+ * Find Jobs to contractors, so locking the API down matches the
+ * intended access surface. Admin is allowed for support/diagnostic
+ * use. Contractors get their own pending / accepted / rejected bid
+ * job_ids excluded server-side so the client doesn't have to
+ * round-trip a second list.
  */
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
@@ -91,7 +97,11 @@ interface JobRow {
 }
 
 export const GET = withApiHandler(
-  { rateLimit: { maxRequests: 60 }, csrf: false },
+  {
+    roles: ['contractor', 'admin'],
+    rateLimit: { maxRequests: 60 },
+    csrf: false,
+  },
   async (request, { user }) => {
     const url = new URL(request.url);
     const parsed = queryParamsSchema.safeParse({
@@ -109,15 +119,49 @@ export const GET = withApiHandler(
     }
     const { category, limit, latitude, longitude, radiusKm } = parsed.data;
 
-    // Pull the contractor's bid job_ids (any status) so we can exclude
-    // them. Homeowners have no bids, so the IN list is empty — the
-    // .not('id', 'in', ...) call short-circuits below for non-contractors.
+    // 2026-05-26 audit-63 P1: pending contractors must not see open
+    // jobs in Find Jobs. Mobile onboarding tells them "Finish
+    // verification to start bidding" — surfacing the discoverable
+    // feed first lets a not-yet-approved contractor build a bid plan
+    // they then can't submit. Verified contractors and admin always
+    // pass. Treat admin_verified=true as verified too (legacy
+    // boolean used by some admin tools alongside the modern
+    // verification_status='verified' enum). For admin (platform-
+    // support) callers the check is skipped entirely.
+    if (user.role === 'contractor') {
+      const { data: vRow } = await serverSupabase
+        .from('profiles')
+        .select('verification_status, admin_verified')
+        .eq('id', user.id)
+        .single();
+      const verified =
+        vRow?.verification_status === 'verified' ||
+        vRow?.admin_verified === true;
+      if (!verified) {
+        return NextResponse.json({
+          jobs: [],
+          code: 'CONTRACTOR_NOT_VERIFIED',
+        });
+      }
+    }
+
+    // 2026-05-27 audit-79 P1: exclude pending/accepted/rejected bids
+    // only — NOT withdrawn. The bid-processor's submit-bid path
+    // revives withdrawn bids back to pending (see bid-processor.ts
+    // line ~196), and JobDetailsCTA explicitly supports the
+    // withdrawn → "Submit a New Bid" affordance (line ~87). The
+    // previous "any status" exclusion meant a contractor who
+    // withdrew a bid never saw the job in Find Jobs again, even
+    // though the detail screen + API both supported resubmission.
+    // Rejected stays excluded — the homeowner already turned this
+    // contractor down, surfacing the job again is noise.
     let excludedJobIds: string[] = [];
     if (user.role === 'contractor') {
       const { data: bidRows, error: bidError } = await serverSupabase
         .from('bids')
         .select('job_id')
-        .eq('contractor_id', user.id);
+        .eq('contractor_id', user.id)
+        .in('status', ['pending', 'accepted', 'rejected']);
       if (bidError) {
         logger.warn('jobs/discover: bid exclusion read failed', {
           service: 'jobs.discover',
@@ -169,14 +213,47 @@ export const GET = withApiHandler(
     const { data, error } = await query;
 
     if (error) {
+      // 2026-05-24 audit-38 P2: previously logged and returned 200
+      // with { jobs: [] }. On mobile that rendered identically to
+      // "no jobs in this area" — masking RLS drift, malformed
+      // exclusion subqueries, query timeouts, etc., behind a benign-
+      // looking empty map. Operationally invisible failures meant a
+      // crashing/unstable Find Jobs report couldn't tell whether the
+      // problem was "no jobs" or "the route is broken". Fail with
+      // 500 + an error code so the mobile client can distinguish the
+      // two and surface a real retry banner.
       logger.error('jobs/discover query failed', error, {
         service: 'jobs.discover',
         userId: user.id,
       });
-      return NextResponse.json({ jobs: [] }, { status: 200 });
+      return NextResponse.json(
+        {
+          error: 'Failed to load nearby jobs',
+          code: 'DISCOVER_QUERY_FAILED',
+        },
+        { status: 500 }
+      );
     }
 
     let rows = (data ?? []) as JobRow[];
+
+    // Postgres NUMERIC columns are serialised by supabase-js as strings
+    // to preserve arbitrary precision. The mobile map and the haversine
+    // filter below both need real JS numbers, so coerce here. Returning
+    // `null` for anything that doesn't parse keeps downstream
+    // `typeof === 'number'` checks honest.
+    //
+    // 2026-05-22 Find-Jobs-crash audit: before this coercion, the route
+    // returned lat/lng as strings, which made the haversine filter
+    // below reject every row (`typeof "51.9" !== 'number'`) so the
+    // contractor map showed zero pins; and any pin that did render
+    // passed strings to native `react-native-maps` Markers, which
+    // crashed the Find Jobs tab on Android.
+    const toNum = (v: unknown): number | null => {
+      if (v == null) return null;
+      const n = typeof v === 'number' ? v : Number(v);
+      return Number.isFinite(n) ? n : null;
+    };
 
     // Apply Haversine radius filter when both coords are supplied.
     // Done in JS because the live DB doesn't have PostGIS in
@@ -190,18 +267,10 @@ export const GET = withApiHandler(
       typeof longitude === 'number'
     ) {
       rows = rows.filter((row) => {
-        if (
-          typeof row.latitude !== 'number' ||
-          typeof row.longitude !== 'number'
-        ) {
-          return false;
-        }
-        const distance = haversineKm(
-          latitude,
-          longitude,
-          row.latitude,
-          row.longitude
-        );
+        const rowLat = toNum(row.latitude);
+        const rowLng = toNum(row.longitude);
+        if (rowLat === null || rowLng === null) return false;
+        const distance = haversineKm(latitude, longitude, rowLat, rowLng);
         return distance <= radiusKm;
       });
       // Re-apply the caller's `limit` on the post-filter set.
@@ -217,11 +286,11 @@ export const GET = withApiHandler(
         title: row.title ?? '',
         category: row.category ?? 'general',
         urgency: row.urgency ?? 'medium',
-        budget: row.budget != null ? Number(row.budget) : null,
-        budget_min: row.budget_min,
-        budget_max: row.budget_max,
-        latitude: row.latitude,
-        longitude: row.longitude,
+        budget: toNum(row.budget),
+        budget_min: toNum(row.budget_min),
+        budget_max: toNum(row.budget_max),
+        latitude: toNum(row.latitude),
+        longitude: toNum(row.longitude),
         created_at: row.created_at,
         homeowner_first_name: firstName,
       };

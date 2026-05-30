@@ -15,8 +15,17 @@ import {
   BadgeCheck,
   FileCheck,
 } from 'lucide-react';
-import { ContractorGridCard, ContractorListCard, SkeletonGridCard, SkeletonListCard } from './ContractorBrowseCards';
-import { EmptyState, TrustSection, CTASection } from './ContractorBrowseSections';
+import {
+  ContractorGridCard,
+  ContractorListCard,
+  SkeletonGridCard,
+  SkeletonListCard,
+} from './ContractorBrowseCards';
+import {
+  EmptyState,
+  TrustSection,
+  CTASection,
+} from './ContractorBrowseSections';
 
 /* ==========================================
    TYPE DEFINITIONS
@@ -45,7 +54,12 @@ interface ContractorsBrowseProfessionalProps {
 }
 
 type ViewMode = 'grid' | 'list';
-type SortOption = 'recommended' | 'rating' | 'experience' | 'rate_low' | 'rate_high';
+type SortOption =
+  | 'recommended'
+  | 'rating'
+  | 'experience'
+  | 'rate_low'
+  | 'rate_high';
 
 /* ==========================================
    MAIN COMPONENT
@@ -53,7 +67,7 @@ type SortOption = 'recommended' | 'rating' | 'experience' | 'rate_low' | 'rate_h
 
 export function ContractorsBrowseProfessional({
   contractors,
-  totalCount
+  totalCount,
 }: ContractorsBrowseProfessionalProps) {
   // State Management
   const [searchQuery, setSearchQuery] = useState('');
@@ -68,54 +82,76 @@ export function ContractorsBrowseProfessional({
     skills: [] as string[],
     maxRate: 0,
     minExperience: 0,
-    location: ''
+    location: '',
   });
 
   // Extract unique values for filters
-  const allSkills = useMemo(() =>
-    Array.from(new Set(contractors.flatMap(c => c.skills))).sort().slice(0, 12),
+  const allSkills = useMemo(
+    () =>
+      Array.from(new Set(contractors.flatMap((c) => c.skills)))
+        .sort()
+        .slice(0, 12),
     [contractors]
   );
 
-  const allLocations = useMemo(() =>
-    Array.from(new Set(contractors.map(c => c.city).filter((city): city is string => Boolean(city)))).sort(),
+  const allLocations = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          contractors
+            .map((c) => c.city)
+            .filter((city): city is string => Boolean(city))
+        )
+      ).sort(),
     [contractors]
   );
 
   // Filter Contractors
   const filteredContractors = useMemo(() => {
-    return contractors.filter(contractor => {
+    return contractors.filter((contractor) => {
       // Search filter
       if (searchQuery) {
         const query = searchQuery.toLowerCase();
-        const searchText = `${contractor.name} ${contractor.company_name} ${contractor.skills.join(' ')} ${contractor.city}`.toLowerCase();
+        const searchText =
+          `${contractor.name} ${contractor.company_name} ${contractor.skills.join(' ')} ${contractor.city}`.toLowerCase();
         if (!searchText.includes(query)) return false;
       }
 
       // Rating filter
-      if (filters.minRating > 0 && contractor.rating < filters.minRating) return false;
+      if (filters.minRating > 0 && contractor.rating < filters.minRating)
+        return false;
 
       // Verified filter
       if (filters.verified && !contractor.verified) return false;
 
       // Skills filter
       if (filters.skills.length > 0) {
-        const hasSkill = filters.skills.some(skill => contractor.skills.includes(skill));
+        const hasSkill = filters.skills.some((skill) =>
+          contractor.skills.includes(skill)
+        );
         if (!hasSkill) return false;
       }
 
       // Max rate filter
-      if (filters.maxRate > 0 && contractor.hourly_rate && contractor.hourly_rate > filters.maxRate) {
+      if (
+        filters.maxRate > 0 &&
+        contractor.hourly_rate &&
+        contractor.hourly_rate > filters.maxRate
+      ) {
         return false;
       }
 
       // Min experience filter
-      if (filters.minExperience > 0 && (contractor.years_experience || 0) < filters.minExperience) {
+      if (
+        filters.minExperience > 0 &&
+        (contractor.years_experience || 0) < filters.minExperience
+      ) {
         return false;
       }
 
       // Location filter
-      if (filters.location && contractor.city !== filters.location) return false;
+      if (filters.location && contractor.city !== filters.location)
+        return false;
 
       return true;
     });
@@ -129,16 +165,28 @@ export function ContractorsBrowseProfessional({
       case 'rating':
         return sorted.sort((a, b) => b.rating - a.rating);
       case 'experience':
-        return sorted.sort((a, b) => (b.years_experience || 0) - (a.years_experience || 0));
+        return sorted.sort(
+          (a, b) => (b.years_experience || 0) - (a.years_experience || 0)
+        );
       case 'rate_low':
-        return sorted.sort((a, b) => (a.hourly_rate || 999) - (b.hourly_rate || 999));
+        return sorted.sort(
+          (a, b) => (a.hourly_rate || 999) - (b.hourly_rate || 999)
+        );
       case 'rate_high':
-        return sorted.sort((a, b) => (b.hourly_rate || 0) - (a.hourly_rate || 0));
+        return sorted.sort(
+          (a, b) => (b.hourly_rate || 0) - (a.hourly_rate || 0)
+        );
       case 'recommended':
       default:
         return sorted.sort((a, b) => {
-          const scoreA = (a.rating * 0.4) + (Math.min(a.completed_jobs / 50, 1) * 0.3) + (a.verified ? 0.3 : 0);
-          const scoreB = (b.rating * 0.4) + (Math.min(b.completed_jobs / 50, 1) * 0.3) + (b.verified ? 0.3 : 0);
+          const scoreA =
+            a.rating * 0.4 +
+            Math.min(a.completed_jobs / 50, 1) * 0.3 +
+            (a.verified ? 0.3 : 0);
+          const scoreB =
+            b.rating * 0.4 +
+            Math.min(b.completed_jobs / 50, 1) * 0.3 +
+            (b.verified ? 0.3 : 0);
           return scoreB - scoreA;
         });
     }
@@ -146,11 +194,11 @@ export function ContractorsBrowseProfessional({
 
   // Event Handlers
   const toggleSkillFilter = useCallback((skill: string) => {
-    setFilters(prev => ({
+    setFilters((prev) => ({
       ...prev,
       skills: prev.skills.includes(skill)
-        ? prev.skills.filter(s => s !== skill)
-        : [...prev.skills, skill]
+        ? prev.skills.filter((s) => s !== skill)
+        : [...prev.skills, skill],
     }));
   }, []);
 
@@ -161,7 +209,7 @@ export function ContractorsBrowseProfessional({
       skills: [],
       maxRate: 0,
       minExperience: 0,
-      location: ''
+      location: '',
     });
     setSearchQuery('');
   }, []);
@@ -173,98 +221,124 @@ export function ContractorsBrowseProfessional({
     filters.maxRate > 0,
     filters.minExperience > 0,
     filters.location,
-    searchQuery
+    searchQuery,
   ].filter(Boolean).length;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className='min-h-screen bg-gray-50'>
       {/* Professional Hero Section */}
-      <section className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white relative overflow-hidden">
+      <section className='bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white relative overflow-hidden'>
         {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute inset-0" style={{
-            backgroundImage: 'radial-gradient(circle at 20% 50%, rgba(20, 184, 166, 0.2) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(251, 191, 36, 0.2) 0%, transparent 50%)'
-          }} />
+        <div className='absolute inset-0 opacity-10'>
+          <div
+            className='absolute inset-0'
+            style={{
+              backgroundImage:
+                'radial-gradient(circle at 20% 50%, rgba(20, 184, 166, 0.2) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(251, 191, 36, 0.2) 0%, transparent 50%)',
+            }}
+          />
         </div>
 
-        <div className="relative max-w-7xl mx-auto px-6 py-16">
-          <div className="max-w-3xl">
-            <div className="flex items-center gap-2 mb-4">
-              <Award className="w-6 h-6 text-amber-400" />
-              <span className="text-amber-400 font-semibold text-sm tracking-wide uppercase">
+        <div className='relative max-w-7xl mx-auto px-6 py-16'>
+          <div className='max-w-3xl'>
+            <div className='flex items-center gap-2 mb-4'>
+              <Award className='w-6 h-6 text-amber-400' />
+              <span className='text-amber-400 font-semibold text-sm tracking-wide uppercase'>
                 Premium Professionals
               </span>
             </div>
 
-            <h1 className="text-5xl font-bold mb-4 leading-tight">
+            <h1 className='text-5xl font-bold mb-4 leading-tight'>
               Find Your Perfect
-              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-emerald-400">
+              <span className='block text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-emerald-400'>
                 Contractor Match
               </span>
             </h1>
 
-            <p className="text-xl text-gray-300 mb-8">
-              {totalCount.toLocaleString()} verified professionals ready to bring your project to life
+            <p className='text-xl text-gray-300 mb-8'>
+              {totalCount.toLocaleString()} local professionals on the
+              Mintenance platform — escrow-protected from posting to payout.
             </p>
 
             {/* Hero Search Bar */}
-            <div className="bg-white rounded-2xl shadow-2xl p-2 flex items-center gap-2">
-              <div className="flex-1 flex items-center gap-3 px-4">
-                <Search className="w-5 h-5 text-gray-400" />
+            <div className='bg-white rounded-2xl shadow-2xl p-2 flex items-center gap-2'>
+              <div className='flex-1 flex items-center gap-3 px-4'>
+                <Search className='w-5 h-5 text-gray-400' />
                 <input
-                  type="text"
-                  placeholder="Search by name, skill, or location..."
+                  type='text'
+                  placeholder='Search by name, skill, or location...'
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="flex-1 py-3 text-gray-900 placeholder-gray-400 focus:outline-none text-base"
+                  className='flex-1 py-3 text-gray-900 placeholder-gray-400 focus:outline-none text-base'
                 />
                 {searchQuery && (
                   <button
                     onClick={() => setSearchQuery('')}
-                    className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+                    className='p-1 hover:bg-gray-100 rounded-full transition-colors'
                   >
-                    <X className="w-4 h-4 text-gray-500" />
+                    <X className='w-4 h-4 text-gray-500' />
                   </button>
                 )}
               </div>
-              <button className="px-6 py-3 bg-gradient-to-r from-teal-600 to-emerald-600 text-white rounded-xl font-semibold hover:from-teal-700 hover:to-emerald-700 transition-all duration-200 shadow-lg hover:shadow-xl">
+              <button className='px-6 py-3 bg-gradient-to-r from-teal-600 to-emerald-600 text-white rounded-xl font-semibold hover:from-teal-700 hover:to-emerald-700 transition-all duration-200 shadow-lg hover:shadow-xl'>
                 Search
               </button>
             </div>
 
-            {/* Trust Badges */}
-            <div className="flex flex-wrap items-center gap-3 mt-6">
-              <div className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full border border-white/20 hover:bg-white/20 transition-all duration-300">
-                <Shield className="w-4 h-4 text-teal-400" />
-                <span className="text-sm font-semibold text-white">Verified Professionals</span>
+            {/* Safeguards row — replaces three fabricated trust badges
+                (Verified Professionals / Insured & Licensed / Background
+                Checked). Each item below maps to a real platform behaviour. */}
+            <div className='flex flex-wrap items-center gap-3 mt-6'>
+              <div className='flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full border border-white/20 hover:bg-white/20 transition-all duration-300'>
+                <Shield className='w-4 h-4 text-teal-400' />
+                <span className='text-sm font-semibold text-white'>
+                  Reviewed at onboarding
+                </span>
               </div>
-              <div className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full border border-white/20 hover:bg-white/20 transition-all duration-300">
-                <BadgeCheck className="w-4 h-4 text-teal-400" />
-                <span className="text-sm font-semibold text-white">Insured & Licensed</span>
+              <div className='flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full border border-white/20 hover:bg-white/20 transition-all duration-300'>
+                <BadgeCheck className='w-4 h-4 text-teal-400' />
+                <span className='text-sm font-semibold text-white'>
+                  Escrow-protected payments
+                </span>
               </div>
-              <div className="flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full border border-white/20 hover:bg-white/20 transition-all duration-300">
-                <FileCheck className="w-4 h-4 text-teal-400" />
-                <span className="text-sm font-semibold text-white">Background Checked</span>
+              <div className='flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm rounded-full border border-white/20 hover:bg-white/20 transition-all duration-300'>
+                <FileCheck className='w-4 h-4 text-teal-400' />
+                <span className='text-sm font-semibold text-white'>
+                  Photo proof before & after
+                </span>
               </div>
             </div>
 
-            {/* Quick Stats */}
-            <div className="grid grid-cols-4 gap-6 mt-8">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-teal-400">{totalCount.toLocaleString()}+</div>
-                <div className="text-sm text-gray-400 mt-1">Verified Professionals</div>
+            {/* Platform stats. Previously displayed 50,000+ jobs, 4.8 rating
+                and 98% satisfaction — all fabricated metrics. Now only the
+                live contractor count is shown (totalCount comes from the DB
+                query), alongside three factual descriptors. */}
+            <div className='grid grid-cols-2 md:grid-cols-4 gap-6 mt-8'>
+              <div className='text-center'>
+                <div className='text-3xl font-bold text-teal-400'>
+                  {totalCount.toLocaleString()}
+                </div>
+                <div className='text-sm text-gray-400 mt-1'>
+                  Professionals on platform
+                </div>
               </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-teal-400">50,000+</div>
-                <div className="text-sm text-gray-400 mt-1">Jobs Completed</div>
+              <div className='text-center'>
+                <div className='text-3xl font-bold text-teal-400'>Manual</div>
+                <div className='text-sm text-gray-400 mt-1'>
+                  Onboarding review
+                </div>
               </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-teal-400">4.8</div>
-                <div className="text-sm text-gray-400 mt-1">Average Rating</div>
+              <div className='text-center'>
+                <div className='text-3xl font-bold text-teal-400'>Escrow</div>
+                <div className='text-sm text-gray-400 mt-1'>
+                  Payment protection
+                </div>
               </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-teal-400">98%</div>
-                <div className="text-sm text-gray-400 mt-1">Satisfaction</div>
+              <div className='text-center'>
+                <div className='text-3xl font-bold text-teal-400'>GBP</div>
+                <div className='text-sm text-gray-400 mt-1'>
+                  UK-based · GBP only
+                </div>
               </div>
             </div>
           </div>
@@ -272,88 +346,107 @@ export function ContractorsBrowseProfessional({
       </section>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        <div className="flex gap-8">
+      <div className='max-w-7xl mx-auto px-6 py-8'>
+        <div className='flex gap-8'>
           {/* Sidebar Filters - Desktop */}
-          <aside className={`
+          <aside
+            className={`
             ${showFilters ? 'block' : 'hidden'}
             lg:block w-full lg:w-80 flex-shrink-0
             fixed lg:sticky top-0 left-0 right-0 lg:top-8
             h-screen lg:h-auto overflow-y-auto
             bg-white lg:bg-transparent z-50 lg:z-auto
             p-6 lg:p-0
-          `}>
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6 sticky top-8">
+          `}
+          >
+            <div className='bg-white rounded-2xl border border-gray-200 shadow-sm p-6 sticky top-8'>
               {/* Filter Header */}
-              <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
-                <div className="flex items-center gap-2">
-                  <SlidersHorizontal className="w-5 h-5 text-slate-900" />
-                  <h2 className="text-lg font-bold text-slate-900">Filters</h2>
+              <div className='flex items-center justify-between mb-6 pb-4 border-b border-gray-200'>
+                <div className='flex items-center gap-2'>
+                  <SlidersHorizontal className='w-5 h-5 text-slate-900' />
+                  <h2 className='text-lg font-bold text-slate-900'>Filters</h2>
                   {activeFiltersCount > 0 && (
-                    <span className="px-2 py-0.5 bg-teal-100 text-teal-700 rounded-full text-xs font-semibold">
+                    <span className='px-2 py-0.5 bg-teal-100 text-teal-700 rounded-full text-xs font-semibold'>
                       {activeFiltersCount}
                     </span>
                   )}
                 </div>
                 <button
                   onClick={clearAllFilters}
-                  className="text-sm text-teal-600 hover:text-teal-700 font-semibold transition-colors"
+                  className='text-sm text-teal-600 hover:text-teal-700 font-semibold transition-colors'
                 >
                   Clear all
                 </button>
               </div>
 
               {/* Verified Only */}
-              <div className="mb-6 pb-6 border-b border-gray-100">
-                <label className="flex items-center gap-3 cursor-pointer group">
-                  <div className={`
+              <div className='mb-6 pb-6 border-b border-gray-100'>
+                <label className='flex items-center gap-3 cursor-pointer group'>
+                  <div
+                    className={`
                     w-5 h-5 rounded border-2 flex items-center justify-center transition-all
-                    ${filters.verified
-                      ? 'bg-teal-500 border-teal-500'
-                      : 'border-gray-300 group-hover:border-teal-400'}
-                  `}>
-                    {filters.verified && <CheckCircle2 className="w-3 h-3 text-white" />}
+                    ${
+                      filters.verified
+                        ? 'bg-teal-500 border-teal-500'
+                        : 'border-gray-300 group-hover:border-teal-400'
+                    }
+                  `}
+                  >
+                    {filters.verified && (
+                      <CheckCircle2 className='w-3 h-3 text-white' />
+                    )}
                   </div>
                   <input
-                    type="checkbox"
+                    type='checkbox'
                     checked={filters.verified}
-                    onChange={(e) => setFilters(prev => ({ ...prev, verified: e.target.checked }))}
-                    className="sr-only"
+                    onChange={(e) =>
+                      setFilters((prev) => ({
+                        ...prev,
+                        verified: e.target.checked,
+                      }))
+                    }
+                    className='sr-only'
                   />
-                  <div className="flex items-center gap-2">
-                    <Shield className="w-4 h-4 text-teal-600" />
-                    <span className="text-sm font-semibold text-slate-900">Verified Only</span>
+                  <div className='flex items-center gap-2'>
+                    <Shield className='w-4 h-4 text-teal-600' />
+                    <span className='text-sm font-semibold text-slate-900'>
+                      Verified Only
+                    </span>
                   </div>
                 </label>
               </div>
 
               {/* Minimum Rating */}
-              <div className="mb-6 pb-6 border-b border-gray-100">
-                <label className="block text-sm font-bold text-slate-900 mb-3">
+              <div className='mb-6 pb-6 border-b border-gray-100'>
+                <label className='block text-sm font-bold text-slate-900 mb-3'>
                   Minimum Rating
                 </label>
-                <div className="space-y-2">
-                  {[5, 4.5, 4.0, 3.5].map(rating => (
+                <div className='space-y-2'>
+                  {[5, 4.5, 4.0, 3.5].map((rating) => (
                     <button
                       key={rating}
-                      onClick={() => setFilters(prev => ({
-                        ...prev,
-                        minRating: prev.minRating === rating ? 0 : rating
-                      }))}
+                      onClick={() =>
+                        setFilters((prev) => ({
+                          ...prev,
+                          minRating: prev.minRating === rating ? 0 : rating,
+                        }))
+                      }
                       className={`
                         w-full px-4 py-2.5 rounded-xl text-left text-sm font-medium transition-all
                         flex items-center justify-between
-                        ${filters.minRating === rating
-                          ? 'bg-gradient-to-r from-teal-50 to-emerald-50 text-teal-700 border-2 border-teal-200'
-                          : 'hover:bg-gray-50 text-gray-700 border-2 border-transparent'}
+                        ${
+                          filters.minRating === rating
+                            ? 'bg-gradient-to-r from-teal-50 to-emerald-50 text-teal-700 border-2 border-teal-200'
+                            : 'hover:bg-gray-50 text-gray-700 border-2 border-transparent'
+                        }
                       `}
                     >
-                      <div className="flex items-center gap-2">
-                        <Star className="w-4 h-4 fill-amber-400 text-amber-400" />
+                      <div className='flex items-center gap-2'>
+                        <Star className='w-4 h-4 fill-amber-400 text-amber-400' />
                         <span>{rating}+ stars</span>
                       </div>
                       {filters.minRating === rating && (
-                        <CheckCircle2 className="w-4 h-4 text-teal-600" />
+                        <CheckCircle2 className='w-4 h-4 text-teal-600' />
                       )}
                     </button>
                   ))}
@@ -361,20 +454,22 @@ export function ContractorsBrowseProfessional({
               </div>
 
               {/* Skills Filter */}
-              <div className="mb-6 pb-6 border-b border-gray-100">
-                <label className="block text-sm font-bold text-slate-900 mb-3">
+              <div className='mb-6 pb-6 border-b border-gray-100'>
+                <label className='block text-sm font-bold text-slate-900 mb-3'>
                   Skills & Specialties
                 </label>
-                <div className="flex flex-wrap gap-2">
-                  {allSkills.map(skill => (
+                <div className='flex flex-wrap gap-2'>
+                  {allSkills.map((skill) => (
                     <button
                       key={skill}
                       onClick={() => toggleSkillFilter(skill)}
                       className={`
                         px-3 py-1.5 rounded-full text-xs font-semibold transition-all
-                        ${filters.skills.includes(skill)
-                          ? 'bg-teal-500 text-white shadow-md scale-105'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}
+                        ${
+                          filters.skills.includes(skill)
+                            ? 'bg-teal-500 text-white shadow-md scale-105'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                        }
                       `}
                     >
                       {skill}
@@ -385,17 +480,22 @@ export function ContractorsBrowseProfessional({
 
               {/* Location Filter */}
               {allLocations.length > 0 && (
-                <div className="mb-6 pb-6 border-b border-gray-100">
-                  <label className="block text-sm font-bold text-slate-900 mb-3">
+                <div className='mb-6 pb-6 border-b border-gray-100'>
+                  <label className='block text-sm font-bold text-slate-900 mb-3'>
                     Location
                   </label>
                   <select
                     value={filters.location}
-                    onChange={(e) => setFilters(prev => ({ ...prev, location: e.target.value }))}
-                    className="w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 text-sm focus:outline-none focus:border-teal-500 transition-colors"
+                    onChange={(e) =>
+                      setFilters((prev) => ({
+                        ...prev,
+                        location: e.target.value,
+                      }))
+                    }
+                    className='w-full px-4 py-2.5 rounded-xl border-2 border-gray-200 text-sm focus:outline-none focus:border-teal-500 transition-colors'
                   >
-                    <option value="">All Locations</option>
-                    {allLocations.map(location => (
+                    <option value=''>All Locations</option>
+                    {allLocations.map((location) => (
                       <option key={location} value={location}>
                         {location}
                       </option>
@@ -405,27 +505,36 @@ export function ContractorsBrowseProfessional({
               )}
 
               {/* Max Hourly Rate */}
-              <div className="mb-6 pb-6 border-b border-gray-100">
-                <label className="block text-sm font-bold text-slate-900 mb-3">
+              <div className='mb-6 pb-6 border-b border-gray-100'>
+                <label className='block text-sm font-bold text-slate-900 mb-3'>
                   Max Hourly Rate
                 </label>
                 <input
-                  type="range"
-                  min="0"
-                  max="200"
-                  step="10"
+                  type='range'
+                  min='0'
+                  max='200'
+                  step='10'
                   value={filters.maxRate}
-                  onChange={(e) => setFilters(prev => ({ ...prev, maxRate: parseInt(e.target.value) }))}
-                  className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-teal-500"
+                  onChange={(e) =>
+                    setFilters((prev) => ({
+                      ...prev,
+                      maxRate: parseInt(e.target.value),
+                    }))
+                  }
+                  className='w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-teal-500'
                 />
-                <div className="flex items-center justify-between mt-3">
-                  <span className="text-sm font-semibold text-slate-900">
-                    {filters.maxRate === 0 ? 'Any rate' : `£${filters.maxRate}/hr`}
+                <div className='flex items-center justify-between mt-3'>
+                  <span className='text-sm font-semibold text-slate-900'>
+                    {filters.maxRate === 0
+                      ? 'Any rate'
+                      : `£${filters.maxRate}/hr`}
                   </span>
                   {filters.maxRate > 0 && (
                     <button
-                      onClick={() => setFilters(prev => ({ ...prev, maxRate: 0 }))}
-                      className="text-xs text-teal-600 hover:text-teal-700 font-semibold"
+                      onClick={() =>
+                        setFilters((prev) => ({ ...prev, maxRate: 0 }))
+                      }
+                      className='text-xs text-teal-600 hover:text-teal-700 font-semibold'
                     >
                       Clear
                     </button>
@@ -435,27 +544,32 @@ export function ContractorsBrowseProfessional({
 
               {/* Experience Filter */}
               <div>
-                <label className="block text-sm font-bold text-slate-900 mb-3">
+                <label className='block text-sm font-bold text-slate-900 mb-3'>
                   Minimum Experience
                 </label>
-                <div className="space-y-2">
+                <div className='space-y-2'>
                   {[
                     { years: 0, label: 'Any experience' },
                     { years: 2, label: '2+ years' },
                     { years: 5, label: '5+ years' },
-                    { years: 10, label: '10+ years' }
+                    { years: 10, label: '10+ years' },
                   ].map(({ years, label }) => (
                     <button
                       key={years}
-                      onClick={() => setFilters(prev => ({
-                        ...prev,
-                        minExperience: prev.minExperience === years ? 0 : years
-                      }))}
+                      onClick={() =>
+                        setFilters((prev) => ({
+                          ...prev,
+                          minExperience:
+                            prev.minExperience === years ? 0 : years,
+                        }))
+                      }
                       className={`
                         w-full px-4 py-2.5 rounded-xl text-left text-sm font-medium transition-all
-                        ${filters.minExperience === years
-                          ? 'bg-gradient-to-r from-teal-50 to-emerald-50 text-teal-700 border-2 border-teal-200'
-                          : 'hover:bg-gray-50 text-gray-700 border-2 border-transparent'}
+                        ${
+                          filters.minExperience === years
+                            ? 'bg-gradient-to-r from-teal-50 to-emerald-50 text-teal-700 border-2 border-teal-200'
+                            : 'hover:bg-gray-50 text-gray-700 border-2 border-transparent'
+                        }
                       `}
                     >
                       {label}
@@ -467,7 +581,7 @@ export function ContractorsBrowseProfessional({
               {/* Mobile Close Button */}
               <button
                 onClick={() => setShowFilters(false)}
-                className="lg:hidden mt-6 w-full px-6 py-3 bg-slate-900 text-white rounded-xl font-semibold hover:bg-slate-800 transition-colors"
+                className='lg:hidden mt-6 w-full px-6 py-3 bg-slate-900 text-white rounded-xl font-semibold hover:bg-slate-800 transition-colors'
               >
                 View {sortedContractors.length} Results
               </button>
@@ -475,41 +589,44 @@ export function ContractorsBrowseProfessional({
           </aside>
 
           {/* Main Results */}
-          <main className="flex-1">
+          <main className='flex-1'>
             {/* Toolbar */}
-            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-6">
-              <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className='bg-white rounded-2xl border border-gray-200 shadow-sm p-4 mb-6'>
+              <div className='flex items-center justify-between flex-wrap gap-4'>
                 {/* Results Count */}
                 <div>
-                  <h2 className="text-lg font-bold text-slate-900">
-                    {sortedContractors.length} {sortedContractors.length === 1 ? 'Contractor' : 'Contractors'}
+                  <h2 className='text-lg font-bold text-slate-900'>
+                    {sortedContractors.length}{' '}
+                    {sortedContractors.length === 1
+                      ? 'Contractor'
+                      : 'Contractors'}
                   </h2>
                   {activeFiltersCount > 0 && (
-                    <p className="text-sm text-gray-600 mt-1">
+                    <p className='text-sm text-gray-600 mt-1'>
                       Filtered from {totalCount.toLocaleString()} total
                     </p>
                   )}
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className='flex items-center gap-3'>
                   {/* Sort Dropdown */}
-                  <div className="relative">
+                  <div className='relative'>
                     <select
                       value={sortBy}
                       onChange={(e) => setSortBy(e.target.value as SortOption)}
-                      className="pl-4 pr-10 py-2.5 bg-white border-2 border-gray-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:border-teal-500 appearance-none cursor-pointer transition-colors"
+                      className='pl-4 pr-10 py-2.5 bg-white border-2 border-gray-200 rounded-xl text-sm font-semibold text-slate-900 focus:outline-none focus:border-teal-500 appearance-none cursor-pointer transition-colors'
                     >
-                      <option value="recommended">Recommended</option>
-                      <option value="rating">Highest Rated</option>
-                      <option value="experience">Most Experience</option>
-                      <option value="rate_low">Price: Low to High</option>
-                      <option value="rate_high">Price: High to Low</option>
+                      <option value='recommended'>Recommended</option>
+                      <option value='rating'>Highest Rated</option>
+                      <option value='experience'>Most Experience</option>
+                      <option value='rate_low'>Price: Low to High</option>
+                      <option value='rate_high'>Price: High to Low</option>
                     </select>
-                    <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none" />
+                    <ChevronDown className='absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none' />
                   </div>
 
                   {/* View Toggle */}
-                  <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-xl">
+                  <div className='flex items-center gap-1 bg-gray-100 p-1 rounded-xl'>
                     <button
                       onClick={() => setViewMode('grid')}
                       className={`p-2 rounded-lg transition-all ${
@@ -517,9 +634,9 @@ export function ContractorsBrowseProfessional({
                           ? 'bg-white text-teal-600 shadow-sm'
                           : 'text-gray-600 hover:text-gray-900'
                       }`}
-                      aria-label="Grid view"
+                      aria-label='Grid view'
                     >
-                      <Grid3x3 className="w-5 h-5" />
+                      <Grid3x3 className='w-5 h-5' />
                     </button>
                     <button
                       onClick={() => setViewMode('list')}
@@ -528,21 +645,21 @@ export function ContractorsBrowseProfessional({
                           ? 'bg-white text-teal-600 shadow-sm'
                           : 'text-gray-600 hover:text-gray-900'
                       }`}
-                      aria-label="List view"
+                      aria-label='List view'
                     >
-                      <List className="w-5 h-5" />
+                      <List className='w-5 h-5' />
                     </button>
                   </div>
 
                   {/* Mobile Filter Button */}
                   <button
                     onClick={() => setShowFilters(!showFilters)}
-                    className="lg:hidden px-4 py-2.5 bg-slate-900 text-white rounded-xl font-semibold flex items-center gap-2 hover:bg-slate-800 transition-colors"
+                    className='lg:hidden px-4 py-2.5 bg-slate-900 text-white rounded-xl font-semibold flex items-center gap-2 hover:bg-slate-800 transition-colors'
                   >
-                    <SlidersHorizontal className="w-4 h-4" />
+                    <SlidersHorizontal className='w-4 h-4' />
                     Filters
                     {activeFiltersCount > 0 && (
-                      <span className="px-2 py-0.5 bg-teal-500 rounded-full text-xs">
+                      <span className='px-2 py-0.5 bg-teal-500 rounded-full text-xs'>
                         {activeFiltersCount}
                       </span>
                     )}
@@ -555,29 +672,38 @@ export function ContractorsBrowseProfessional({
             {sortedContractors.length === 0 ? (
               <EmptyState onClearFilters={clearAllFilters} />
             ) : (
-              <div className={
-                viewMode === 'grid'
-                  ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6'
-                  : 'space-y-4'
-              }>
-                {sortedContractors.map((contractor) => (
+              <div
+                className={
+                  viewMode === 'grid'
+                    ? 'grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6'
+                    : 'space-y-4'
+                }
+              >
+                {sortedContractors.map((contractor) =>
                   viewMode === 'grid' ? (
-                    <ContractorGridCard key={contractor.id} contractor={contractor} />
+                    <ContractorGridCard
+                      key={contractor.id}
+                      contractor={contractor}
+                    />
                   ) : (
-                    <ContractorListCard key={contractor.id} contractor={contractor} />
+                    <ContractorListCard
+                      key={contractor.id}
+                      contractor={contractor}
+                    />
                   )
-                ))}
+                )}
               </div>
             )}
 
             {/* Load More */}
-            {sortedContractors.length > 0 && sortedContractors.length < totalCount && (
-              <div className="mt-8 text-center">
-                <button className="px-8 py-4 bg-white text-slate-900 border-2 border-slate-900 rounded-xl font-semibold hover:bg-slate-900 hover:text-white transition-all duration-200 shadow-sm hover:shadow-lg">
-                  Load More Contractors
-                </button>
-              </div>
-            )}
+            {sortedContractors.length > 0 &&
+              sortedContractors.length < totalCount && (
+                <div className='mt-8 text-center'>
+                  <button className='px-8 py-4 bg-white text-slate-900 border-2 border-slate-900 rounded-xl font-semibold hover:bg-slate-900 hover:text-white transition-all duration-200 shadow-sm hover:shadow-lg'>
+                    Load More Contractors
+                  </button>
+                </div>
+              )}
           </main>
         </div>
       </div>
@@ -585,7 +711,7 @@ export function ContractorsBrowseProfessional({
       {/* Mobile Filter Backdrop */}
       {showFilters && (
         <div
-          className="lg:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-40"
+          className='lg:hidden fixed inset-0 bg-black/50 backdrop-blur-sm z-40'
           onClick={() => setShowFilters(false)}
         />
       )}
@@ -598,4 +724,3 @@ export function ContractorsBrowseProfessional({
     </div>
   );
 }
-

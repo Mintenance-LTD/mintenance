@@ -38,6 +38,13 @@ export const POST = withApiHandler(
     // execute on a stale admin session. Match the 15-minute window used
     // by /api/admin/escrow/approve and /api/admin/escrow/hold.
     requireMfaVerifiedWithinMinutes: 15,
+    logActivity: {
+      actionType: 'escrow_admin_action',
+      category: 'revenue',
+      targetType: 'escrow',
+      targetId: (params) => params.id,
+      description: 'Performed an admin escrow action (release/refund/hold)',
+    },
   },
   async (request: NextRequest, { user, params }) => {
     const escrowId = params.id;
@@ -131,21 +138,27 @@ export const POST = withApiHandler(
           throw new BadRequestError('Failed to update escrow status');
         }
 
-        // Create Stripe transfer
+        // Create Stripe transfer. Idempotency key keyed on escrow+amount so
+        // duplicate admin-release clicks don't issue a second transfer.
         const amountCents = Math.round(escrow.amount * 100);
         try {
-          const transfer = await stripe.transfers.create({
-            amount: amountCents,
-            currency: 'gbp',
-            destination: contractor.stripe_connect_account_id,
-            description: `Admin release for job: ${job.title}`,
-            metadata: {
-              escrow_id: escrowId,
-              job_id: job.id,
-              admin_id: user.id,
-              reason,
+          const transfer = await stripe.transfers.create(
+            {
+              amount: amountCents,
+              currency: 'gbp',
+              destination: contractor.stripe_connect_account_id,
+              description: `Admin release for job: ${job.title}`,
+              metadata: {
+                escrow_id: escrowId,
+                job_id: job.id,
+                admin_id: user.id,
+                reason,
+              },
             },
-          });
+            {
+              idempotencyKey: `admin_release_${escrowId}_${amountCents}`,
+            }
+          );
 
           // Mark as released
           await serverSupabase
@@ -159,20 +172,23 @@ export const POST = withApiHandler(
             .eq('id', escrowId);
 
           // Notify both parties via NotificationService (handles DB + push + email)
+          // 2026-05-21 Mint Editorial voice \u2014 amount-led title, explicit
+          // about admin involvement so users aren't confused.
+          const fmtAmount = `\u00a3${Number(escrow.amount).toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
           await Promise.allSettled([
             NotificationService.createNotification({
               userId: job.contractor_id,
               type: 'escrow_released',
-              title: 'Payment Released',
-              message: `Payment of \u00a3${escrow.amount.toFixed(2)} for "${job.title}" has been released by admin.`,
+              title: `${fmtAmount} released by Mint admin for ${job.title}`,
+              message: `Funds typically land in 1\u20132 business days.`,
               actionUrl: `/contractor/jobs/${job.id}`,
               metadata: { jobId: job.id, escrowId },
             }),
             NotificationService.createNotification({
               userId: job.homeowner_id,
               type: 'escrow_released',
-              title: 'Payment Released',
-              message: `Payment of \u00a3${escrow.amount.toFixed(2)} for "${job.title}" has been released to the contractor.`,
+              title: `${fmtAmount} released to your contractor for ${job.title}`,
+              message: `Mint admin released the funds after review.`,
               actionUrl: `/jobs/${job.id}`,
               metadata: { jobId: job.id, escrowId },
             }),
@@ -298,12 +314,16 @@ export const POST = withApiHandler(
           // notifications silently dropped to the floor in prod. Also
           // the refund happens after a successful Stripe call so
           // users absolutely need to know.
+          // 2026-05-21 Mint Editorial voice \u2014 refund timing in the body
+          // (homeowner needs that fact); contractor side states what
+          // happens to the assignment.
+          const fmtRefund = `\u00a3${Number(refundAmountValue).toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
           await Promise.allSettled([
             NotificationService.createNotification({
               userId: job.homeowner_id,
               type: 'escrow_refunded',
-              title: 'Payment Refunded',
-              message: `A refund of \u00a3${refundAmountValue.toFixed(2)} for "${job.title}" has been processed. It may take 5-10 business days to appear.`,
+              title: `${fmtRefund} refunded for ${job.title}`,
+              message: `Stripe takes 5\u201310 business days to settle the refund back to your card.`,
               actionUrl: `/jobs/${job.id}`,
               metadata: {
                 jobId: job.id,
@@ -314,8 +334,8 @@ export const POST = withApiHandler(
             NotificationService.createNotification({
               userId: job.contractor_id,
               type: 'escrow_refunded',
-              title: 'Job Payment Refunded',
-              message: `The payment of \u00a3${refundAmountValue.toFixed(2)} for "${job.title}" has been refunded to the homeowner.`,
+              title: `${fmtRefund} refunded to homeowner for ${job.title}`,
+              message: `The escrow was returned. The job is closed on your side.`,
               actionUrl: `/contractor/jobs/${job.id}`,
               metadata: {
                 jobId: job.id,
@@ -393,20 +413,22 @@ export const POST = withApiHandler(
         // Notify both parties through NotificationService — same
         // `data` vs `metadata` bug as the refund branch above meant the
         // hold notification was silently rejected.
+        // 2026-05-21 Mint Editorial voice — explicit on the 48h SLA so
+        // both sides know when to expect a resolution.
         await Promise.allSettled([
           NotificationService.createNotification({
             userId: job.homeowner_id,
             type: 'escrow_hold',
-            title: 'Payment Under Review',
-            message: `The payment for "${job.title}" is under admin review.`,
+            title: `${job.title} — Mint admin reviewing the payment`,
+            message: `Funds stay held while we look at it. 48-hour SLA.`,
             actionUrl: `/jobs/${job.id}`,
             metadata: { jobId: job.id, escrowId },
           }),
           NotificationService.createNotification({
             userId: job.contractor_id,
             type: 'escrow_hold',
-            title: 'Payment Under Review',
-            message: `The payment for "${job.title}" is under admin review.`,
+            title: `${job.title} — Mint admin reviewing the payment`,
+            message: `Funds stay held while we look at it. 48-hour SLA.`,
             actionUrl: `/contractor/jobs/${job.id}`,
             metadata: { jobId: job.id, escrowId },
           }),

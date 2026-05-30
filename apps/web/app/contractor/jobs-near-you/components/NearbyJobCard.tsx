@@ -223,12 +223,10 @@ export function NearbyJobCard({
         </Button>
       </div>
 
-      {/* Budget and Location Metrics */}
+      {/* Location (budget removed 2026-05-22 — contractors set their
+          own price on each bid). */}
       <div
         style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: theme.spacing[3],
           marginBottom: theme.spacing[4],
           padding: theme.spacing[4],
           ...getGradientCardStyle('success'),
@@ -236,35 +234,6 @@ export function NearbyJobCard({
           border: `1px solid ${tokens.success}20`,
         }}
       >
-        {job.budget && (
-          <div>
-            <div
-              style={{
-                fontSize: theme.typography.fontSize.xs,
-                fontWeight: theme.typography.fontWeight.medium,
-                color: tokens.textSecondary,
-                marginBottom: theme.spacing[1],
-                textTransform: 'uppercase',
-                letterSpacing: '0.05em',
-              }}
-            >
-              Budget
-            </div>
-            <div
-              style={{
-                fontSize: theme.typography.fontSize['2xl'],
-                fontWeight: theme.typography.fontWeight.bold,
-                color: tokens.textPrimary,
-              }}
-            >
-              <AnimatedCounter
-                value={parseFloat(job.budget)}
-                formatType='currency'
-                currency='GBP'
-              />
-            </div>
-          </div>
-        )}
         {job.location && (
           <div>
             <div

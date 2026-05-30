@@ -102,10 +102,24 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
     else Alert.alert('Error', 'Cannot make phone call');
   };
   const handleMessage = (c: DerivedClient) => {
-    // 2026-04-30 audit P1: typed cross-stack helper replaces `as never`.
+    // 2026-05-23 audit-22 P1: conversationId is the jobId across the
+    // app (MessagingScreen destructures conversationId AS jobId). The
+    // previous code passed the homeowner UUID — same shape mismatch
+    // the bid-accept fix (audit-16 #88) caught. For job-derived
+    // clients we now use the most recent job between contractor +
+    // homeowner. For manual-only clients (no jobs yet), tell the
+    // contractor a thread will open after their first job.
+    const jobId = c.recent_job_id;
+    if (!jobId) {
+      Alert.alert(
+        'No thread yet',
+        'Messaging opens after your first job with this client. Use email or phone for now.'
+      );
+      return;
+    }
     goToMessagingThread(tabNav, {
-      conversationId: c.id,
-      recipientId: c.id,
+      conversationId: jobId,
+      recipientId: c.homeowner_id ?? c.id,
       recipientName: `${c.first_name} ${c.last_name}`.trim(),
     });
   };
@@ -212,8 +226,13 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
 
   return (
     <View style={s.root}>
-      {/* Header */}
-      <View style={[s.hdr, { paddingTop: insets.top + 8 }]}>
+      {/* Editorial header \u2014 2026-05-22 Mint Editorial v2:
+          replaces the previous centered phone-app navbar
+          ("My Clients" middle, back-arrow left, dummy spacer
+          right) with the spec's eyebrow + serif headline pattern
+          used across BusinessHub / Finance / Invoices / Calendar
+          / ServiceAreas. */}
+      <View style={[s.topBar, { paddingTop: insets.top + 8 }]}>
         <TouchableOpacity
           style={s.back}
           onPress={() => navigation.goBack()}
@@ -222,21 +241,24 @@ export const CRMDashboardScreen: React.FC<CRMDashboardScreenProps> = ({
         >
           <Ionicons name='arrow-back' size={22} color={me.ink} />
         </TouchableOpacity>
-        <Text style={s.hdrTitle}>My Clients</Text>
-        <View style={{ width: 40 }} />
       </View>
-
-      {total > 0 && (
-        <View style={s.sumBar}>
-          <Text style={s.sumTxt}>
-            {total} Client{total !== 1 ? 's' : ''}
-            {'  \u00B7  '}
-            {active} Active{'  \u00B7  '}
-            {'\u00A3'}
+      <View style={s.screenHeader}>
+        <Text style={s.eyebrow}>Clients</Text>
+        <Text style={s.headline} accessibilityRole='header'>
+          My Clients
+        </Text>
+        {total > 0 ? (
+          <Text style={s.headerSub}>
+            {total} client{total !== 1 ? 's' : ''} \u00B7 {active} active \u00B7
+            \u00A3
             {avgVal.toLocaleString()} avg value
           </Text>
-        </View>
-      )}
+        ) : (
+          <Text style={s.headerSub}>
+            Build relationships with the homeowners you've worked with.
+          </Text>
+        )}
+      </View>
 
       <View style={s.searchRow}>
         <View style={{ flex: 1 }}>

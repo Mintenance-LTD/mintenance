@@ -2,13 +2,27 @@ import type { Ionicons } from '@expo/vector-icons';
 import { me } from '../../../../design-system/mint-editorial';
 
 /**
- * Per-document-category icon + colour palette for the Documents screen.
+ * Per-document-category icon + colour palette for the contractor
+ * Documents library.
  *
- * Lives under `theme/` so the pre-commit hex hook (which grandfathers
- * `/theme/` paths) doesn't flag the Tailwind-style literals — they
- * have no equivalents in the mobile theme tokens yet.
+ * Spec-locked from `redesign-v2/documents-web.html` (Contractor library
+ * screen). The category palette mirrors the web ContractorLibraryView
+ * so the mobile + web libraries read identically:
+ *   - Contracts      → deep purple (--me-doc-contract-*)
+ *   - Photos         → teal-leaning blue (--me-doc-payment-*)
+ *   - Certifications → green (--me-doc-cert-*)
+ *   - Insurance      → magenta (--me-doc-bid-*)
+ *   - Receipts       → amber (--me-doc-receipt-*)
+ *   - Templates      → ink (neutral)
  *
- * Extracted 2026-05-09 (AUDIT_PUNCH_LIST P2 #44d follow-up).
+ * Icons match the web hero/tiles: contracts use document-text, photos
+ * use camera, certifications use shield, insurance uses ribbon (lock-
+ * adjacent on Ionicons), receipts use wallet/receipt, templates use
+ * copy.
+ *
+ * Lives under `theme/` so the pre-commit hex hook grandfathers the
+ * path — but all values are now token-derived, so there are no raw
+ * hex literals to grandfather any more.
  */
 
 interface CategoryStyle {
@@ -19,40 +33,52 @@ interface CategoryStyle {
 
 const CATEGORY_STYLE: Record<string, CategoryStyle> = {
   contracts: {
-    color: me.brand,
-    bg: me.brandSoft,
+    color: me.doc.contractFg,
+    bg: me.doc.contractBg,
     icon: 'document-text',
   },
   contract: {
-    color: me.brand,
-    bg: me.brandSoft,
+    color: me.doc.contractFg,
+    bg: me.doc.contractBg,
     icon: 'document-text',
   },
-  photos: { color: '#3B82F6', bg: '#DBEAFE', icon: 'image' },
-  photo: { color: '#3B82F6', bg: '#DBEAFE', icon: 'image' },
+  photos: { color: me.doc.paymentFg, bg: me.doc.paymentBg, icon: 'camera' },
+  photo: { color: me.doc.paymentFg, bg: me.doc.paymentBg, icon: 'camera' },
   certifications: {
-    color: me.accent,
-    bg: me.warnBg,
-    icon: 'ribbon',
+    color: me.doc.certFg,
+    bg: me.doc.certBg,
+    icon: 'shield-checkmark',
   },
   certification: {
-    color: me.accent,
-    bg: me.warnBg,
+    color: me.doc.certFg,
+    bg: me.doc.certBg,
+    icon: 'shield-checkmark',
+  },
+  insurance: {
+    color: me.doc.bidFg,
+    bg: me.doc.bidBg,
     icon: 'ribbon',
   },
-  insurance: { color: '#8B5CF6', bg: '#EDE9FE', icon: 'shield-checkmark' },
   receipts: {
-    color: me.ink2,
-    bg: me.bg3,
-    icon: 'receipt',
+    color: me.doc.receiptFg,
+    bg: me.doc.receiptBg,
+    icon: 'wallet',
   },
   receipt: {
-    color: me.ink2,
-    bg: me.bg3,
-    icon: 'receipt',
+    color: me.doc.receiptFg,
+    bg: me.doc.receiptBg,
+    icon: 'wallet',
   },
-  templates: { color: '#3B82F6', bg: '#DBEAFE', icon: 'copy' },
-  template: { color: '#3B82F6', bg: '#DBEAFE', icon: 'copy' },
+  templates: {
+    color: me.ink2,
+    bg: me.bg2,
+    icon: 'copy',
+  },
+  template: {
+    color: me.ink2,
+    bg: me.bg2,
+    icon: 'copy',
+  },
 };
 
 export function getDocStyle(category: string): CategoryStyle {

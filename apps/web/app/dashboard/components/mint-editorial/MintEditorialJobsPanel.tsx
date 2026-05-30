@@ -100,12 +100,9 @@ function ProjectCard({ job }: { job: ActiveJob }) {
             ) : null}
           </div>
         </div>
-        <div className='me-project-budget'>
-          <span className='label'>Budget</span>
-          <span className='amount'>
-            {job.budget > 0 ? formatGBP(job.budget) : '—'}
-          </span>
-        </div>
+        {/* 2026-05-22: Budget block hidden — contractors price each bid
+            themselves. When escrow is held, the locked amount is
+            already surfaced in the held-badge above. */}
         <Link href={`/jobs/${job.id}`} className='btn btn-primary btn-block'>
           {job.bidsCount > 0 ? 'Compare bids' : 'View details'}{' '}
           <ArrowRight size={14} strokeWidth={1.75} />
@@ -139,8 +136,8 @@ export function MintEditorialJobsPanel({
           }}
         >
           <p className='t-body' style={{ marginBottom: 12 }}>
-            Nothing posted yet. Start with a job and verified tradespeople will
-            respond within 24-48h.
+            Nothing posted yet. Start with a job and local tradespeople will
+            typically respond within 24–48h.
           </p>
           <Link href='/jobs/create' className='btn btn-primary'>
             <Plus size={14} strokeWidth={2} /> Post your first job

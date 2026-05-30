@@ -4,9 +4,11 @@
  */
 import {
   createInvoice,
+  updateInvoice,
   updateInvoiceStatus,
   getInvoices,
   sendInvoice,
+  sendInvoiceReminder,
   generateInvoiceNumber,
 } from './financial/InvoiceService';
 import {
@@ -24,9 +26,15 @@ import {
 export class FinancialManagementService {
   // Invoice
   static createInvoice = createInvoice;
+  // 2026-05-23 audit-24 P1: full PATCH for the edit flow (was missing —
+  // editing routed back through createInvoice and silently duplicated).
+  static updateInvoice = updateInvoice;
   static updateInvoiceStatus = updateInvoiceStatus;
   static getInvoices = getInvoices;
   static sendInvoice = sendInvoice;
+  // 2026-05-23 audit-24 P2: re-fires email + invoice_received on an
+  // already-sent invoice (status-only PATCH was previously a no-op).
+  static sendInvoiceReminder = sendInvoiceReminder;
   static generateInvoiceNumber = generateInvoiceNumber;
 
   // Expenses

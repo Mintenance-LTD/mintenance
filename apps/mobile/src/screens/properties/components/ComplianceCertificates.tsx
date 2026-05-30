@@ -16,18 +16,37 @@ interface Certificate {
   expiry_date?: string;
   issuer_name?: string;
   status: 'valid' | 'expiring' | 'expired' | 'missing';
+  // Property Rooms Slice 4 (2026-05-21): optional link to a room.
+  // The compliance API returns the joined room row when present so
+  // the chip can read `Kitchen` directly without a second query.
+  property_room_id?: string | null;
+  property_room?: {
+    id: string;
+    name: string;
+    room_type: string;
+  } | null;
 }
 
 interface Props {
   propertyId: string;
 }
 
+// 2026-05-24 audit-25 P2: live compliance_certificates.cert_type CHECK
+// accepts 9 values (verified via pg_constraint). The summary used to
+// hard-code only the first 5, so landlords could have legionella /
+// fire-safety / asbestos / PAT-testing records on the property and
+// the summary widget would silently hide them — same for the
+// "missing" checklist. All 9 are surfaced now.
 const CERT_LABELS: Record<string, string> = {
   gas_safety: 'Gas Safety',
   eicr: 'Electrical (EICR)',
   epc: 'EPC',
   smoke_alarm: 'Smoke Alarm',
   co_detector: 'CO Detector',
+  legionella: 'Legionella Risk Assessment',
+  fire_safety: 'Fire Safety',
+  asbestos: 'Asbestos Survey',
+  pat_testing: 'PAT Testing',
 };
 
 const STATUS_CONFIG: Record<
@@ -113,6 +132,15 @@ export const ComplianceCertificates: React.FC<Props> = ({ propertyId }) => {
             <View style={styles.certInfo}>
               <Text style={styles.certType}>
                 {CERT_LABELS[cert.cert_type] || cert.cert_type}
+                {/* Property Rooms Slice 4 — surface the linked room
+                    inline so the row reads "EICR · Kitchen" when
+                    scoped. Missing-scope certs render unchanged. */}
+                {cert.property_room ? (
+                  <Text style={styles.certRoom}>
+                    {'  ·  '}
+                    {cert.property_room.name}
+                  </Text>
+                ) : null}
               </Text>
               {cert.expiry_date ? (
                 <Text style={styles.certDate}>
@@ -194,6 +222,11 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: me.ink,
+  },
+  certRoom: {
+    fontSize: 12,
+    fontWeight: '400',
+    color: me.ink3,
   },
   certDate: { fontSize: 12, color: me.ink3, marginTop: 2 },
   certMissing: {

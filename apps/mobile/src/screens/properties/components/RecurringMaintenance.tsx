@@ -28,11 +28,26 @@ interface Props {
   propertyId: string;
 }
 
+// 2026-05-24 audit-31 P1: live recurring_schedules_frequency_check
+// allows only {monthly, quarterly, biannual, annual} (verified via
+// pg_constraint). The previous chip set included 'weekly' and
+// 'yearly' which both 23514'd at the DB on save. Frequencies + colour
+// labels now mirror the live constraint exactly. 'biannual' colour
+// reused from quarterly's family for visual rhythm.
 const FREQ_COLORS: Record<string, string> = {
-  weekly: '#8B5CF6',
   monthly: '#3B82F6',
   quarterly: '#F59E0B',
-  yearly: '#10B981',
+  biannual: '#8B5CF6',
+  annual: '#10B981',
+};
+
+const FREQ_OPTIONS = ['monthly', 'quarterly', 'biannual', 'annual'] as const;
+
+const FREQ_LABEL: Record<string, string> = {
+  monthly: 'Monthly',
+  quarterly: 'Quarterly',
+  biannual: 'Every 6 months',
+  annual: 'Annual',
 };
 
 export const RecurringMaintenance: React.FC<Props> = ({ propertyId }) => {
@@ -71,11 +86,53 @@ export const RecurringMaintenance: React.FC<Props> = ({ propertyId }) => {
       setTitle('');
       setShowForm(false);
     },
-    onError: (err: unknown) =>
+    onError: (err: unknown) => {
+      // 2026-05-28 T2: the server returns 402 with
+      // { requiresSubscription, feature, message } when a free-tier
+      // homeowner tries to schedule recurring maintenance (a Landlord+
+      // feature). Previously we showed a generic "Failed to create
+      // schedule" alert that hid the upgrade path — mirror the
+      // TeamAccess gate and surface a clear CTA to the subscription
+      // screen instead.
+      type ApiErr = {
+        status?: number;
+        response?: {
+          status?: number;
+          data?: { requiresSubscription?: boolean; message?: string };
+        };
+        data?: { requiresSubscription?: boolean; message?: string };
+      };
+      const apiErr = err as ApiErr;
+      const status = apiErr.response?.status ?? apiErr.status;
+      const data = apiErr.response?.data ?? apiErr.data;
+      if (status === 402 || data?.requiresSubscription) {
+        Alert.alert(
+          'Landlord plan required',
+          data?.message ||
+            'Recurring maintenance scheduling requires a Landlord or Agency subscription.',
+          [
+            { text: 'Not now', style: 'cancel' },
+            {
+              text: 'View plans',
+              onPress: () => {
+                try {
+                  type LinkingMod = { openURL: (url: string) => void };
+                  const Linking = require('react-native').Linking as LinkingMod;
+                  Linking.openURL('mintenance://profile/subscription');
+                } catch {
+                  // no-op — user can navigate manually
+                }
+              },
+            },
+          ]
+        );
+        return;
+      }
       Alert.alert(
         'Error',
         err instanceof Error ? err.message : 'Failed to create schedule.'
-      ),
+      );
+    },
   });
 
   const toggleMutation = useMutation({
@@ -156,27 +213,25 @@ export const RecurringMaintenance: React.FC<Props> = ({ propertyId }) => {
             placeholderTextColor={me.ink3}
           />
           <View style={styles.freqRow}>
-            {(['weekly', 'monthly', 'quarterly', 'yearly'] as const).map(
-              (f) => (
-                <TouchableOpacity
-                  key={f}
+            {FREQ_OPTIONS.map((f) => (
+              <TouchableOpacity
+                key={f}
+                style={[
+                  styles.freqChip,
+                  frequency === f && { backgroundColor: FREQ_COLORS[f] },
+                ]}
+                onPress={() => setFrequency(f)}
+              >
+                <Text
                   style={[
-                    styles.freqChip,
-                    frequency === f && { backgroundColor: FREQ_COLORS[f] },
+                    styles.freqText,
+                    frequency === f && styles.freqTextActive,
                   ]}
-                  onPress={() => setFrequency(f)}
                 >
-                  <Text
-                    style={[
-                      styles.freqText,
-                      frequency === f && styles.freqTextActive,
-                    ]}
-                  >
-                    {f.charAt(0).toUpperCase() + f.slice(1)}
-                  </Text>
-                </TouchableOpacity>
-              )
-            )}
+                  {FREQ_LABEL[f]}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
           <TouchableOpacity
             style={styles.createBtn}

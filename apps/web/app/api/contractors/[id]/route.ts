@@ -116,6 +116,25 @@ export const GET = withApiHandler(
           .eq('id', id)
           .single();
 
+        // 2026-05-23 audit: surface insurance for the "insured" trust
+        // pill on contractor public profiles. The mobile
+        // MyPublicProfileScreen reads `contractor.insurance.coverage_amount`
+        // to decide whether to render the badge — without this
+        // side-fetch it was always null, so contractors with current
+        // policies couldn't preview their own insured-badge.
+        // Picks the most-recently-updated active row that hasn't
+        // expired; null when the contractor has no live cover.
+        const todayIso = new Date().toISOString().slice(0, 10);
+        const { data: activeInsurance } = await serverSupabase
+          .from('contractor_insurance')
+          .select('coverage_amount, expiry_date')
+          .eq('contractor_id', id)
+          .eq('status', 'active')
+          .gte('expiry_date', todayIso)
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
         const skills = skillsData?.map((s) => s.skill_name) || [];
 
         // Fetch review count from reviews table
@@ -196,10 +215,19 @@ export const GET = withApiHandler(
           featured: boolean;
         }> = [];
         try {
+          // 2026-05-23 audit: `jobs.final_price` doesn't exist on
+          // live. Selecting it errored the SELECT and the catch below
+          // silently emptied the portfolio tile list — the public
+          // contractor profile would only show manual portfolio
+          // images, never the completed-jobs tiles. Source `cost`
+          // from realised escrow per job (matches the source-of-truth
+          // used by /api/contractors/[id]/metrics + the CRM client
+          // list).
           const { data: completedJobs } = await serverSupabase
             .from('jobs')
             .select(
-              'id, title, category, description, final_price, budget, completed_at'
+              `id, title, category, description, budget, completed_at,
+               escrow_transactions(amount, status)`
             )
             .eq('contractor_id', id)
             .eq('status', 'completed')
@@ -210,9 +238,15 @@ export const GET = withApiHandler(
             title?: string | null;
             category?: string | null;
             description?: string | null;
-            final_price?: number | null;
             budget?: number | null;
             completed_at?: string | null;
+            escrow_transactions?:
+              | Array<{
+                  amount?: number | string | null;
+                  status?: string | null;
+                }>
+              | { amount?: number | string | null; status?: string | null }
+              | null;
           }>;
           const completedJobIds = completedJobsArr.map((j) => j.id);
           if (completedJobIds.length > 0) {
@@ -247,6 +281,19 @@ export const GET = withApiHandler(
               const signedList = rawList
                 .map((u) => signedByRaw.get(u))
                 .filter((u): u is string => Boolean(u));
+              // Pick realised escrow as the authoritative cost
+              // figure, with budget as a legacy fallback. Undefined
+              // when neither — the UI hides the cost line.
+              const escrowRows = Array.isArray(job.escrow_transactions)
+                ? job.escrow_transactions
+                : job.escrow_transactions
+                  ? [job.escrow_transactions]
+                  : [];
+              const realised = escrowRows
+                .filter(
+                  (t) => t?.status === 'released' || t?.status === 'completed'
+                )
+                .reduce<number>((acc, t) => acc + Number(t.amount ?? 0), 0);
               portfolioJobs.push({
                 id: job.id,
                 title: job.title || 'Completed job',
@@ -254,7 +301,7 @@ export const GET = withApiHandler(
                 images: signedList,
                 description: job.description || '',
                 completionDate: job.completed_at || '',
-                cost: job.final_price ?? job.budget ?? undefined,
+                cost: realised > 0 ? realised : (job.budget ?? undefined),
                 featured: false,
               });
             }
@@ -348,6 +395,13 @@ export const GET = withApiHandler(
             unresolved_count: number;
             avg_resolution_hours: number | null;
           };
+          // 2026-05-23 audit: surfaced to mobile MyPublicProfileScreen
+          // so the "Insured up to £X" trust pill renders for contractors
+          // with a current, active policy. Null when no live cover.
+          insurance?: {
+            coverage_amount: number;
+            expires_at: string | null;
+          } | null;
         } = {
           id: contractor.id,
           name:
@@ -394,6 +448,13 @@ export const GET = withApiHandler(
             unresolved_count: unresolvedCount,
             avg_resolution_hours: avgResolutionHours,
           },
+          insurance:
+            activeInsurance && Number(activeInsurance.coverage_amount) > 0
+              ? {
+                  coverage_amount: Number(activeInsurance.coverage_amount),
+                  expires_at: activeInsurance.expiry_date ?? null,
+                }
+              : null,
         };
 
         logger.info('Contractor retrieved successfully', {

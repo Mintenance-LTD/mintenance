@@ -1,0 +1,251 @@
+/**
+ * ReportingScreen — Mint Editorial styles. Paper background, serif
+ * headline, dark-active quarter pills, monthly bar chart with current
+ * quarter highlighted, top-categories list, export CTA. No hex.
+ */
+import { StyleSheet } from 'react-native';
+import { me } from '../../../design-system/mint-editorial';
+
+export const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: me.bg },
+  scroll: { flex: 1 },
+  scrollContent: { paddingBottom: 40 },
+  topNav: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    paddingBottom: 4,
+  },
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: me.bg2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  screenHeader: {
+    paddingHorizontal: 20,
+    marginTop: 6,
+    marginBottom: 16,
+  },
+  eyebrow: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: me.brand,
+    textTransform: 'uppercase',
+    letterSpacing: 1.5,
+    marginBottom: 6,
+  },
+  headline: {
+    fontFamily: me.font.display,
+    fontSize: 32,
+    color: me.ink,
+    letterSpacing: me.displayTracking,
+  },
+  sub: {
+    fontSize: 14,
+    color: me.ink3,
+    marginTop: 4,
+  },
+  // Quarter switcher pills.
+  pillsScroll: {
+    maxHeight: 50,
+  },
+  pillsRow: {
+    paddingHorizontal: 20,
+    paddingVertical: 4,
+    gap: 8,
+    alignItems: 'center',
+  },
+  pill: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 999,
+    backgroundColor: me.surface,
+    borderWidth: 1,
+    borderColor: me.line2,
+  },
+  pillActive: {
+    backgroundColor: me.ink,
+    borderColor: me.ink,
+  },
+  pillText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: me.ink2,
+  },
+  pillTextActive: {
+    color: me.onBrand,
+  },
+  // Net revenue card with embedded bar chart.
+  revenueCard: {
+    marginHorizontal: 20,
+    marginTop: 18,
+    marginBottom: 22,
+    backgroundColor: me.surface,
+    borderRadius: 18,
+    paddingHorizontal: 20,
+    paddingVertical: 18,
+    borderWidth: 1,
+    borderColor: me.line2,
+    ...me.shadow.card,
+  },
+  revenueEyebrow: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: me.ink3,
+    textTransform: 'uppercase',
+    letterSpacing: 1.4,
+    marginBottom: 4,
+  },
+  revenueAmount: {
+    fontFamily: me.font.display,
+    fontSize: 36,
+    color: me.ink,
+    letterSpacing: me.displayTracking,
+  },
+  chartRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    justifyContent: 'space-between',
+    height: 96,
+    marginTop: 16,
+    marginBottom: 6,
+    gap: 6,
+  },
+  chartCol: { flex: 1, alignItems: 'center', height: '100%' },
+  bar: {
+    width: '100%',
+    borderRadius: 4,
+  },
+  barIdle: { backgroundColor: me.brandSoft },
+  barActive: { backgroundColor: me.brand },
+  chartLabelsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 6,
+  },
+  chartLabel: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 10,
+    fontWeight: '600',
+    color: me.ink3,
+  },
+  chartEmpty: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 26,
+    gap: 6,
+  },
+  chartEmptyText: {
+    fontSize: 12,
+    color: me.ink3,
+  },
+  // Section eyebrow + lists.
+  sectionEyebrow: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: me.ink3,
+    textTransform: 'uppercase',
+    letterSpacing: 1.4,
+    marginBottom: 12,
+    paddingHorizontal: 20,
+  },
+  listCard: {
+    marginHorizontal: 20,
+    backgroundColor: me.surface,
+    borderRadius: 18,
+    paddingHorizontal: 4,
+    borderWidth: 1,
+    borderColor: me.line2,
+    ...me.shadow.card,
+  },
+  listRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: me.line2,
+  },
+  listRowLast: { borderBottomWidth: 0 },
+  listLabel: {
+    fontSize: 14,
+    color: me.ink,
+    fontWeight: '600',
+    flex: 1,
+    marginRight: 12,
+    textTransform: 'capitalize',
+  },
+  listValue: {
+    fontSize: 14,
+    color: me.ink2,
+    fontWeight: '700',
+  },
+  // Export CTA.
+  exportBtn: {
+    marginTop: 22,
+    marginHorizontal: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 14,
+    borderRadius: 14,
+    backgroundColor: me.surface,
+    borderWidth: 1,
+    borderColor: me.line,
+  },
+  exportText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: me.ink,
+  },
+  // Loading / error.
+  loadingWrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+    gap: 10,
+  },
+  loadingText: { fontSize: 13, color: me.ink2 },
+  errorCard: {
+    marginHorizontal: 20,
+    marginTop: 16,
+    padding: 22,
+    alignItems: 'center',
+    backgroundColor: me.surface,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: me.line2,
+  },
+  errorIconWrap: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: me.errBg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 10,
+  },
+  errorText: {
+    fontSize: 14,
+    color: me.ink,
+    marginBottom: 14,
+    textAlign: 'center',
+  },
+  retryButton: {
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: 999,
+    backgroundColor: me.brand,
+  },
+  retryButtonText: {
+    color: me.onBrand,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+});

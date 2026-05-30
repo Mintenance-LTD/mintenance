@@ -35,6 +35,12 @@ export const POST = withApiHandler(
     // next requests to re-burn LLM credits at full price. Cost-impact
     // mutation; require fresh MFA proof.
     requireMfaVerifiedWithinMinutes: 15,
+    logActivity: {
+      actionType: 'ai_cache_clear',
+      category: 'settings',
+      targetType: 'ai_cache',
+      description: 'Cleared AI response cache',
+    },
   },
   async (request, { user }) => {
     const body = await request.json();

@@ -2,11 +2,21 @@ import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { logger } from '../utils/logger';
 import { theme } from '../theme';
+import { safeNavigate } from '../navigation/navigationRef';
 
 interface Props {
   children: ReactNode;
   screenName: string;
   fallbackComponent?: (error: Error, retry: () => void) => ReactNode;
+  // 2026-05-26 audit-58 P2: previously withScreenErrorBoundary passed
+  // these props but the boundary didn't declare them — the navigator's
+  // intent ("crash on Find Jobs goes back to JobsList") was silently
+  // dropped and every crash showed only a generic Retry. Now wired
+  // through to a Home button rendered under Retry. If fallbackRoute
+  // is set, the button navigates there; otherwise it pops to the
+  // Main → JobsTab → JobsList default.
+  fallbackRoute?: string;
+  showHomeButton?: boolean;
 }
 
 interface State {
@@ -58,6 +68,27 @@ export class ScreenErrorBoundary extends Component<Props, State> {
     });
   };
 
+  goHome = () => {
+    // 2026-05-26 audit-58 P2: prefer the navigator-supplied
+    // fallbackRoute (e.g. 'JobsList' for the Find Jobs / Job Details
+    // screens) so users land on the surface the navigator wanted
+    // them on rather than the global Home tab. Falls back to the
+    // Main tab navigator if the route can't be resolved (caller
+    // didn't provide one or the container isn't mounted yet —
+    // safeNavigate is best-effort).
+    const fallback = this.props.fallbackRoute;
+    if (fallback) {
+      const ok = safeNavigate(fallback);
+      if (ok) {
+        this.retry();
+        return;
+      }
+    }
+    // Generic recovery: pop to root Main stack.
+    safeNavigate('Main');
+    this.retry();
+  };
+
   render() {
     if (this.state.hasError) {
       if (this.props.fallbackComponent && this.state.error) {
@@ -89,6 +120,22 @@ export class ScreenErrorBoundary extends Component<Props, State> {
           <TouchableOpacity style={styles.button} onPress={this.retry}>
             <Text style={styles.buttonText}>Retry</Text>
           </TouchableOpacity>
+
+          {/* 2026-05-26 audit-58 P2: secondary fallback nav target.
+              Default-on when a fallbackRoute is supplied; explicitly
+              opt-in via showHomeButton otherwise. */}
+          {(this.props.showHomeButton ||
+            (this.props.fallbackRoute &&
+              this.props.showHomeButton !== false)) && (
+            <TouchableOpacity
+              style={[styles.button, styles.buttonSecondary]}
+              onPress={this.goHome}
+            >
+              <Text style={[styles.buttonText, styles.buttonTextSecondary]}>
+                {this.props.fallbackRoute ? 'Go back' : 'Go to Home'}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       );
     }
@@ -157,5 +204,14 @@ const styles = StyleSheet.create({
     color: theme.colors.textInverse,
     fontSize: 16,
     fontWeight: '600',
+  },
+  buttonSecondary: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: theme.colors.textPrimary,
+    marginTop: 12,
+  },
+  buttonTextSecondary: {
+    color: theme.colors.textPrimary,
   },
 });

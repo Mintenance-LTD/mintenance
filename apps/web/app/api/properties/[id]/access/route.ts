@@ -1,9 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import {
-  serverSupabase,
-  createRequestScopedClient,
-} from '@/lib/api/supabaseServer';
+import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
 import { NotFoundError, ForbiddenError } from '@/lib/errors/api-error';
 import { validateRequest } from '@/lib/validation/validator';
@@ -73,20 +70,28 @@ const accessSchema = z.object({
 export const PATCH = withApiHandler(
   { rateLimit: { maxRequests: 30 } },
   async (request, { user, params }) => {
-    const userDb = createRequestScopedClient(request) ?? serverSupabase;
-
     // Require manager+ role on the property team (or admin) to edit
     // access info — same gate as PUT on the parent property route.
-    const { authorized } = await PropertyTeamService.authorize(
-      user.id,
-      params.id,
-      'edit'
-    );
+    const { authorized, role: propertyRole } =
+      await PropertyTeamService.authorize(user.id, params.id, 'edit');
     if (!authorized && user.role !== 'admin') {
       throw new ForbiddenError(
         'You do not have permission to edit this property'
       );
     }
+
+    // 2026-05-26 audit-61 P2: GET on /api/properties/[id] redacts
+    // key_safe_code for non-owner / non-platform-admin callers
+    // (audit-37 P0). PATCH must mirror that — without this gate a
+    // manager opens the editor, sees a blank lock-box field
+    // (because the GET stripped it), types a guess or leaves it
+    // empty, and the existing real code gets overwritten by the
+    // blind PATCH. Owner of the property + platform admin are the
+    // only callers allowed to mutate the code itself; managers /
+    // team-admins continue to edit every other access field.
+    const isPropertyOwner = propertyRole === 'owner';
+    const isPlatformAdmin = user.role === 'admin';
+    const canEditKeySafeCode = isPropertyOwner || isPlatformAdmin;
 
     const validation = await validateRequest(request, accessSchema);
     if ('headers' in validation) {
@@ -101,6 +106,21 @@ export const PATCH = withApiHandler(
       gas_isolator_location,
       consumer_unit_location,
     } = validation.data;
+
+    if (key_safe_code !== undefined && !canEditKeySafeCode) {
+      logger.warn(
+        'Non-owner PATCH attempted to modify key_safe_code; ignoring field',
+        {
+          service: 'properties',
+          propertyId: params.id,
+          userId: user.id,
+          role: propertyRole,
+        }
+      );
+      throw new ForbiddenError(
+        'Only the property owner can edit the lock-box code.'
+      );
+    }
 
     // Build update payload conditionally — caller may PATCH any
     // subset of the access fields; undefined leaves the existing
@@ -140,7 +160,15 @@ export const PATCH = withApiHandler(
           : null;
     }
 
-    const { data, error } = await userDb
+    // 2026-05-23 audit: write via service-role. The PropertyTeamService
+    // gate above is the authoritative app-side check; the live properties
+    // RLS UPDATE policy only allows `owner_id = auth.uid()`, so the
+    // previous request-scoped client silently no-op'd for accepted
+    // managers — they passed the app check, then their PATCH did nothing.
+    // A future migration that extends RLS to property_team_members would
+    // let us drop back to userDb, but until then the team-edit promise
+    // requires service-role.
+    const { data, error } = await serverSupabase
       .from('properties')
       .update(updateData)
       .eq('id', params.id)

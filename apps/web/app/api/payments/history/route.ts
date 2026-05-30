@@ -22,6 +22,9 @@ const selectFields = `
   payee_id,
   amount,
   status,
+  platform_fee,
+  contractor_payout,
+  stripe_processing_fee,
   released_at,
   refunded_at,
   created_at,
@@ -38,6 +41,9 @@ type EscrowRow = {
   payee_id: string;
   amount: number | string;
   status: string;
+  platform_fee?: number | string | null;
+  contractor_payout?: number | string | null;
+  stripe_processing_fee?: number | string | null;
   released_at?: string | null;
   refunded_at?: string | null;
   created_at: string;
@@ -78,6 +84,13 @@ const mapEscrowRow = (row: EscrowRow): EscrowTransaction => ({
   updatedAt: row.updated_at,
   releasedAt: row.released_at ?? undefined,
   refundedAt: row.refunded_at ?? undefined,
+  platformFee: row.platform_fee != null ? Number(row.platform_fee) : undefined,
+  contractorPayout:
+    row.contractor_payout != null ? Number(row.contractor_payout) : undefined,
+  stripeProcessingFee:
+    row.stripe_processing_fee != null
+      ? Number(row.stripe_processing_fee)
+      : undefined,
   job: row.job
     ? {
         title: row.job.title ?? 'Untitled Job',

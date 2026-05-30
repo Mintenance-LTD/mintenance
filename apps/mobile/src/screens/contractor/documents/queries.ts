@@ -53,23 +53,37 @@ export function useDocumentsQuery(args: {
       });
 
       if (isContractor) {
-        const { data: docs } = await supabase
-          .from('contractor_documents')
-          .select('*')
-          .eq('contractor_id', userId)
-          .order('created_at', { ascending: false });
-        (docs || []).forEach((d: Record<string, unknown>) => {
-          allDocs.push({
-            id: d.id as string,
-            filename: (d.name as string) || (d.filename as string) || '',
-            category: (d.category as string) || 'other',
-            uploaded_at: d.created_at as string,
-            starred: (d.starred as boolean) ?? false,
-            file_size: d.size_bytes as number | undefined,
-            public_url: d.public_url as string | undefined,
-            job_id: d.job_id as string | undefined,
+        // 2026-05-25 audit-44 P1: previously read contractor_documents
+        // directly. The bucket is private — contractor_documents.public_url
+        // is stored as NULL (see /api/contractor/documents POST), so
+        // every uploaded file landed on the mobile DocumentsScreen with
+        // no openable URL and openDocument surfaced "No File". Web's GET
+        // /api/contractor/documents regenerates a 1h signed URL from
+        // storage_path on every request; route mobile through it so
+        // taps actually open the file. The web route also folds in
+        // contracts as virtual rows, which we already cover above via
+        // the dedicated contracts SELECT — to avoid duplication we ask
+        // it for the same contractor's uploaded docs only and dedupe
+        // by id when contract virtual rows would overlap.
+        const docsRes = await mobileApiClient.get<{
+          documents: Array<Record<string, unknown>>;
+        }>('/api/contractor/documents');
+        (docsRes.documents || [])
+          .filter(
+            (d) => !d.is_contract && !(d.id as string).startsWith('contract-')
+          )
+          .forEach((d) => {
+            allDocs.push({
+              id: d.id as string,
+              filename: (d.name as string) || (d.filename as string) || '',
+              category: (d.category as string) || 'other',
+              uploaded_at: d.created_at as string,
+              starred: (d.starred as boolean) ?? false,
+              file_size: d.size_bytes as number | undefined,
+              public_url: d.public_url as string | undefined,
+              job_id: d.job_id as string | undefined,
+            });
           });
-        });
 
         // 2026-05-02 audit follow-up: the prior SELECT picked
         // `certification_name` + `issuing_body` — neither of which
@@ -86,13 +100,22 @@ export function useDocumentsQuery(args: {
         (certs || []).forEach((c: Record<string, unknown>) => {
           const name = (c.name as string) || 'Certification';
           const issuer = (c.issuer as string) || '';
+          // 2026-05-25 audit-44 P2: filter chip key is 'certifications'
+          // (plural — see DocFilter union + FILTER_CONFIG in types.ts).
+          // The singular 'certification' meant projected cert rows were
+          // visible only under "All" — the dedicated "Certs" chip
+          // hid them.
           allDocs.push({
             id: `cert-${c.id as string}`,
             filename: issuer ? `${name} — ${issuer}` : name,
-            category: 'certification',
+            category: 'certifications',
             uploaded_at: (c.issue_date as string) || '',
             starred: false,
             public_url: c.document_url as string | undefined,
+            // Surface the expiry so the screen can flag lapsing certs
+            // (UK landlord/contractor compliance window — Gas Safe and
+            // EICR are time-bound).
+            expires_at: (c.expiry_date as string | null) ?? undefined,
           });
         });
       }

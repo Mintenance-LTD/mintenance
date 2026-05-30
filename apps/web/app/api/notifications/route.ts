@@ -165,11 +165,14 @@ export const GET = withApiHandler(
           (n) => n.id === `quote-viewed-${quote.id}`
         );
         if (!existingNotif) {
+          // 2026-05-21 Mint Editorial voice — name the client first.
+          const clientLabel = quote.client_name || 'A client';
+          const quoteLabel = quote.title || quote.quote_number || 'your quote';
           realTimeNotifications.push({
             id: `quote-viewed-${quote.id}`,
             type: 'quote_viewed',
-            title: 'Quote Viewed',
-            message: `${quote.client_name || 'A client'} viewed your quote "${quote.title || quote.quote_number || 'Untitled'}"`,
+            title: `${clientLabel} opened ${quoteLabel}`,
+            message: `Now's a good time to nudge them.`,
             read: false,
             created_at: quote.viewed_at || new Date().toISOString(),
             action_url: `/contractor/quotes/${quote.id}`,
@@ -197,11 +200,15 @@ export const GET = withApiHandler(
           (n) => n.id === `quote-accepted-${quote.id}`
         );
         if (!existingNotif) {
+          // 2026-05-21 Mint Editorial voice — no emoji, amount in title.
+          const clientLabel = quote.client_name || 'A client';
+          const quoteLabel = quote.title || quote.quote_number || 'your quote';
+          const fmtAmount = `£${parseFloat(String(quote.total_amount || 0)).toLocaleString('en-GB', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`;
           realTimeNotifications.push({
             id: `quote-accepted-${quote.id}`,
             type: 'quote_accepted',
-            title: 'Quote Accepted! 🎉',
-            message: `${quote.client_name || 'A client'} accepted your quote "${quote.title || quote.quote_number || 'Untitled'}" for £${parseFloat(String(quote.total_amount || 0)).toFixed(2)}`,
+            title: `${clientLabel} accepted ${quoteLabel} — ${fmtAmount}`,
+            message: `Confirm the start date and you're on.`,
             read: false,
             created_at: quote.accepted_at || new Date().toISOString(),
             action_url: `/contractor/quotes/${quote.id}`,
@@ -211,46 +218,33 @@ export const GET = withApiHandler(
     }
 
     // 3. Unread Messages - Messages received in the last 30 days
-    const { data: userThreads } = await userDb
-      .from('message_threads')
-      .select('id, job_id')
-      .contains('participant_ids', [userId]);
-
-    const threadToJobId = new Map<string, string>();
-    const userThreadIds: string[] = [];
-    for (const t of userThreads ?? []) {
-      threadToJobId.set(t.id, t.job_id);
-      userThreadIds.push(t.id);
-    }
-
+    //
+    // 2026-05-23 audit P1: the live messages schema is
+    //   (id, job_id, sender_id, receiver_id, content, read, ...)
+    // — there is no `thread_id` and no `read_by` array. The previous
+    // implementation joined via message_threads.id IN (...).thread_id
+    // which never matched anything, so unread-message notifications
+    // were silently empty for every user. Filter directly on
+    // `receiver_id = userId AND read = false` and use messages.job_id
+    // (which the table carries) for the action URL.
     interface MessageRecord {
       id: string;
       sender_id: string;
-      thread_id?: string;
       content?: string;
       created_at: string;
       job_id?: string;
     }
 
-    let unreadMessages: MessageRecord[] | null = null;
-    if (userThreadIds.length > 0) {
-      const { data } = await userDb
-        .from('messages')
-        .select('id, created_at, content, sender_id, thread_id, read_by')
-        .in('thread_id', userThreadIds)
-        .neq('sender_id', userId)
-        .gte('created_at', oneMonthAgo.toISOString())
-        .order('created_at', { ascending: false })
-        .limit(30);
-      unreadMessages = (
-        (data ?? []) as unknown as (MessageRecord & { read_by?: string[] })[]
-      )
-        .filter((m) => {
-          const readBy = Array.isArray(m.read_by) ? m.read_by : [];
-          return !readBy.includes(userId);
-        })
-        .slice(0, 10);
-    }
+    const { data: unreadRaw } = await userDb
+      .from('messages')
+      .select('id, created_at, content, sender_id, job_id')
+      .eq('receiver_id', userId)
+      .eq('read', false)
+      .gte('created_at', oneMonthAgo.toISOString())
+      .order('created_at', { ascending: false })
+      .limit(10);
+    const unreadMessages: MessageRecord[] | null =
+      (unreadRaw as MessageRecord[] | null) ?? null;
 
     interface SenderRecord {
       id: string;
@@ -283,19 +277,22 @@ export const GET = withApiHandler(
             : 'Someone';
 
           const messageContent = msg.content || '';
-          const jobId = msg.thread_id
-            ? threadToJobId.get(msg.thread_id)
-            : undefined;
+          // 2026-05-23: read job_id directly off the message row
+          // (messages.job_id is the live schema's link, not the
+          // removed thread_id indirection).
+          const jobId = msg.job_id;
 
           const actionUrl = jobId
             ? `/messages/${jobId}?userId=${msg.sender_id}&userName=${encodeURIComponent(senderName)}&jobTitle=Job`
             : '/messages';
 
+          // 2026-05-21 Mint Editorial voice — sender as title, body is
+          // the message preview itself (matches WhatsApp/iMessage feel).
           realTimeNotifications.push({
             id: `msg-${msg.id}`,
             type: 'message_received',
-            title: 'New Message',
-            message: `${senderName}: ${messageContent.substring(0, 80)}${messageContent.length > 80 ? '...' : ''}`,
+            title: senderName,
+            message: `${messageContent.substring(0, 100)}${messageContent.length > 100 ? '…' : ''}`,
             read: false,
             created_at: msg.created_at || new Date().toISOString(),
             action_url: actionUrl,
@@ -337,11 +334,16 @@ export const GET = withApiHandler(
             (startDate.getTime() - now.getTime()) / (1000 * 60 * 60)
           );
 
+          // 2026-05-21 Mint Editorial voice — when in the title, advice in body.
+          const startsIn =
+            hoursUntil === 0
+              ? 'today'
+              : `in ${hoursUntil} hour${hoursUntil !== 1 ? 's' : ''}`;
           realTimeNotifications.push({
             id: `project-reminder-${job.id}`,
             type: 'project_reminder',
-            title: 'Project Reminder',
-            message: `"${job.title || 'Untitled Project'}" starts ${hoursUntil === 0 ? 'today' : `in ${hoursUntil} hour${hoursUntil !== 1 ? 's' : ''}`}`,
+            title: `${job.title || 'Project'} starts ${startsIn}`,
+            message: `Time to load the van — check parking + access on the job thread.`,
             read: false,
             created_at: job.scheduled_start_date || new Date().toISOString(),
             action_url: `/jobs/${job.id}`,

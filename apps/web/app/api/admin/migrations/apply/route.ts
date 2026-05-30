@@ -29,6 +29,12 @@ export const POST = withApiHandler(
     // could dry-run any migration file before execution; require fresh
     // MFA proof so stolen cookies alone can't inspect migration contents.
     requireMfaVerifiedWithinMinutes: 15,
+    logActivity: {
+      actionType: 'migration_apply',
+      category: 'settings',
+      targetType: 'migration',
+      description: 'Prepared a SQL migration for execution',
+    },
   },
   async (request) => {
     const body = await request.json();

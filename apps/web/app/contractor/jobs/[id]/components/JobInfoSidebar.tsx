@@ -1,5 +1,8 @@
 import React from 'react';
-import { Calendar, Mail, MapPin, Phone, PoundSterling } from 'lucide-react';
+// 2026-05-23: PoundSterling icon dropped along with the BudgetCard
+// function below. The budget anchor is no longer surfaced to
+// contractors — they set their own price on each bid.
+import { Calendar, Mail, MapPin, Phone } from 'lucide-react';
 import { Card } from '@/components/ui/Card.unified';
 import { theme } from '@/lib/theme';
 import { RoomsScopeCard } from './RoomsScopeCard';
@@ -13,7 +16,6 @@ interface Homeowner {
 
 interface JobForSidebar {
   id?: string;
-  budget?: number | null;
   description?: string | null;
   scheduled_start_date?: string | null;
   latitude?: number | null;
@@ -36,7 +38,8 @@ export function JobInfoSidebar({
         gap: theme.spacing[6],
       }}
     >
-      <BudgetCard budget={job.budget ?? 0} />
+      {/* BudgetCard removed 2026-05-22 — contractors set their own price
+          on each bid; the homeowner picks from the bids. */}
       <JobDetailsCard
         description={job.description}
         scheduledStartDate={job.scheduled_start_date}
@@ -56,59 +59,10 @@ export function JobInfoSidebar({
   );
 }
 
-function BudgetCard({ budget }: { budget: number }) {
-  return (
-    <Card padding='lg' hover={false}>
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-        }}
-      >
-        <div>
-          <div
-            style={{
-              fontSize: theme.typography.fontSize.xs,
-              fontWeight: theme.typography.fontWeight.medium,
-              color: theme.colors.textSecondary,
-              textTransform: 'uppercase',
-              letterSpacing: '1.2px',
-              marginBottom: theme.spacing[1],
-            }}
-          >
-            Budget
-          </div>
-          <div
-            style={{
-              fontSize: theme.typography.fontSize['2xl'],
-              fontWeight: theme.typography.fontWeight.bold,
-              color: theme.colors.textPrimary,
-            }}
-          >
-            £{Number(budget || 0).toLocaleString()}
-          </div>
-        </div>
-        <div
-          style={{
-            width: '44px',
-            height: '44px',
-            borderRadius: theme.borderRadius.full,
-            backgroundColor: `${theme.colors.success}15`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <PoundSterling
-            className='h-5 w-5'
-            style={{ color: theme.colors.success }}
-          />
-        </div>
-      </div>
-    </Card>
-  );
-}
+// BudgetCard function deleted 2026-05-23 — orphaned since 2026-05-22
+// (removed from the sidebar layout in the budget-removal commit
+// 479c164ce) and the audit flagged its `budget || 0` render path
+// as dead code that would have shown "£0" if accidentally restored.
 
 function JobDetailsCard({
   description,

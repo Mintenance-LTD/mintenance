@@ -26,7 +26,7 @@ import { validateRequest } from '@/lib/validation/validator';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { PropertyTeamService } from '@/lib/services/property-team/PropertyTeamService';
 import { isValidUUID } from '@/lib/validation/uuid';
-import { ROOM_TYPES } from '../route';
+import { ROOM_TYPES } from '../schema';
 
 const updateRoomSchema = z
   .object({
@@ -81,9 +81,10 @@ export const PATCH = withApiHandler(
       return validation;
     }
 
-    const userDb = createRequestScopedClient(request) ?? serverSupabase;
-
-    const { data, error } = await userDb
+    // 2026-05-23 audit-20 P2: service-role write after authorize() —
+    // team_edit members aren't on property_rooms RLS.
+    void createRequestScopedClient;
+    const { data, error } = await serverSupabase
       .from('property_rooms')
       .update(validation.data)
       .eq('id', params.roomId)
@@ -130,9 +131,9 @@ export const DELETE = withApiHandler(
       );
     }
 
-    const userDb = createRequestScopedClient(request) ?? serverSupabase;
-
-    const { error, count } = await userDb
+    // 2026-05-23 audit-20 P2: same service-role delete after authorize().
+    void createRequestScopedClient;
+    const { error, count } = await serverSupabase
       .from('property_rooms')
       .delete({ count: 'exact' })
       .eq('id', params.roomId)

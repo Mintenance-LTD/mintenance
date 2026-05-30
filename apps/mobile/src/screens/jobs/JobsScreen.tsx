@@ -112,12 +112,20 @@ const JobsScreen: React.FC = () => {
     let completedCount = 0;
     let postedCount = 0;
 
+    // Defensive coercion against server NUMERIC-as-string regressions
+    // (route fixed 2026-05-22; guards "AVG VALUE" KPI from `+=` on string).
+    const toNum = (v: unknown): number | null => {
+      if (v == null) return null;
+      const n = typeof v === 'number' ? v : Number(v);
+      return Number.isFinite(n) ? n : null;
+    };
+
     allJobs.forEach((j) => {
       const age =
         (now - new Date(j.created_at || j.createdAt || now).getTime()) /
         (1000 * 3600 * 24);
       if (age < 1) newToday++;
-      const b = j.budget || j.budget_min || 0;
+      const b = toNum(j.budget) ?? toNum(j.budget_min) ?? 0;
       if (b > 0) {
         totalBudget += b;
         budgetCount++;
@@ -148,8 +156,9 @@ const JobsScreen: React.FC = () => {
       const { BidService } = await import('../../services/BidService');
       const bids = await BidService.getBidsByContractor(user.id);
       const pendingBids = bids.filter((b) => b.status === 'pending');
+      // audit-77 P1: API embeds the relation as `bid.jobs`.
       return pendingBids
-        .map((b) => b.job)
+        .map((b) => b.jobs ?? b.job)
         .filter((j): j is NonNullable<typeof j> => !!j) as unknown as Job[];
     },
     enabled: !!user && isContractor,
@@ -191,22 +200,39 @@ const JobsScreen: React.FC = () => {
 
     if (debouncedQuery.trim()) {
       const q = debouncedQuery.toLowerCase();
-      data = data.filter(
-        (j) =>
-          j.title.toLowerCase().includes(q) ||
-          j.description.toLowerCase().includes(q) ||
-          (typeof j.location === 'string' &&
-            j.location.toLowerCase().includes(q))
-      );
+      // 2026-05-23 audit: live `jobs.description` is NOT NULL, but the
+      // mobile cache layer + offline transforms can produce partial
+      // records (e.g. an outbox draft, or a row dehydrated by an older
+      // offline-store schema). Without null-guards, a single such record
+      // crashes the whole search filter and the list goes blank. Every
+      // text comparison is now guarded.
+      data = data.filter((j) => {
+        const title = typeof j.title === 'string' ? j.title.toLowerCase() : '';
+        const description =
+          typeof j.description === 'string' ? j.description.toLowerCase() : '';
+        const location =
+          typeof j.location === 'string' ? j.location.toLowerCase() : '';
+        return (
+          title.includes(q) || description.includes(q) || location.includes(q)
+        );
+      });
     }
 
     if (isContractor) {
       switch (sortMode) {
         case 'highest_pay':
-          data.sort(
-            (a, b) =>
-              (b.budget || b.budget_min || 0) - (a.budget || a.budget_min || 0)
-          );
+          // 2026-05-22 audit C1: Postgres NUMERIC arrives as a string
+          // from supabase-js; subtracting strings silently produces
+          // NaN and the sort order goes random. Reuse the `toNum`
+          // pattern from the stats memo above.
+          {
+            const toBudget = (j: Job): number => {
+              const raw = j.budget ?? j.budget_min ?? 0;
+              const n = typeof raw === 'number' ? raw : Number(raw);
+              return Number.isFinite(n) ? n : 0;
+            };
+            data.sort((a, b) => toBudget(b) - toBudget(a));
+          }
           break;
         case 'newest':
           data.sort(
@@ -244,10 +270,24 @@ const JobsScreen: React.FC = () => {
     }
 
     return data;
-  }, [allJobs, selectedFilter, debouncedQuery, sortMode, isContractor]);
+    // 2026-05-26 audit-66 P2: bidPendingJobs added — was missing.
+  }, [
+    allJobs,
+    bidPendingJobs,
+    selectedFilter,
+    debouncedQuery,
+    sortMode,
+    isContractor,
+  ]);
 
   const onRefresh = () => {
     queryClient.invalidateQueries({ queryKey: queryKeys.jobs.all });
+    // audit-66 P2: also invalidate contractor pending-bids.
+    if (isContractor && user?.id) {
+      queryClient.invalidateQueries({
+        queryKey: ['contractorBidJobs', user.id],
+      });
+    }
   };
 
   const handleAddJob = useCallback(() => {

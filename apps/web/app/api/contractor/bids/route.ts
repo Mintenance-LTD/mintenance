@@ -9,6 +9,13 @@ export const GET = withApiHandler(
     const { searchParams } = new URL(request.url);
     const statusFilter = searchParams.get('status');
     const bidIdFilter = searchParams.get('bidId');
+    // 2026-05-24 audit-26 P1: jobId filter lets the contractor job
+    // detail screen check "do I have a bid on this job?" without
+    // pulling the full bid list. The homeowner-side
+    // /api/jobs/:id/bids is owner-gated, so contractors had no way
+    // to see their own bid state and the CTA stayed on "Submit Bid"
+    // even after they'd bid.
+    const jobIdFilter = searchParams.get('jobId');
 
     // Pagination params (cursor-based via offset/limit)
     const limitParam = Math.min(
@@ -20,11 +27,21 @@ export const GET = withApiHandler(
     let query = serverSupabase
       .from('bids')
       .select(
+        // 2026-05-24 audit-26 P2: include the fields the BidSubmissionScreen
+        // "Edit Bid" flow needs to hydrate the form — message (canonical
+        // column, mirror of description), estimated_duration_days, and
+        // proposed_start_date. Without these the edit screen rendered
+        // blank for every field below "amount/description", and the
+        // contractor had to retype the whole bid to make a change.
         `
       id,
       job_id,
+      contractor_id,
       amount,
       description,
+      message,
+      estimated_duration_days,
+      proposed_start_date,
       status,
       created_at,
       updated_at,
@@ -54,6 +71,10 @@ export const GET = withApiHandler(
 
     if (bidIdFilter) {
       query = query.eq('id', bidIdFilter);
+    }
+
+    if (jobIdFilter) {
+      query = query.eq('job_id', jobIdFilter);
     }
 
     if (statusFilter) {

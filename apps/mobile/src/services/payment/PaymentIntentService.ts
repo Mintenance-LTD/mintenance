@@ -79,7 +79,8 @@ export class PaymentIntentService {
   static async createPaymentIntent(
     jobId: string,
     amount: number,
-    paymentMethodId?: string
+    paymentMethodId?: string,
+    contractorId?: string
   ): Promise<CreatePaymentIntentResponse> {
     try {
       const { data: contract, error: contractError } = await supabase
@@ -95,12 +96,38 @@ export class PaymentIntentService {
         );
       }
 
-      const data = await apiRequest<{ clientSecret: string }>(
-        '/api/payments/create-intent',
-        { method: 'POST', body: { jobId, amount, paymentMethodId } }
-      );
+      // 2026-05-23 audit-19 P1: paymentIntentSchema marks contractorId
+      // as required. The previous body (jobId/amount/paymentMethodId only)
+      // hit the validator 400 before any Stripe call, so the escrow funding
+      // step silently failed at the API boundary. The caller already has
+      // contractorId in scope (usePayment options) — thread it through so
+      // the server can resolve payee_id without re-querying jobs.
+      if (!contractorId) {
+        throw new Error('Contractor ID is required to fund this job');
+      }
 
-      return { clientSecret: data.clientSecret };
+      // 2026-05-26 audit-53 P1: the server response includes
+      // paymentIntentId + escrowTransactionId in addition to
+      // clientSecret. usePayment.handlePayment needs paymentIntentId
+      // to POST /api/payments/confirm-intent — the route that flips
+      // escrow from 'pending' to 'held' (route requires a strict body
+      // shape { paymentIntentId, jobId }). Surfacing it from the
+      // service is cheaper than re-parsing pi_xxx out of the
+      // clientSecret string at the call site.
+      const data = await apiRequest<{
+        clientSecret: string;
+        paymentIntentId?: string;
+        escrowTransactionId?: string;
+      }>('/api/payments/create-intent', {
+        method: 'POST',
+        body: { jobId, amount, paymentMethodId, contractorId },
+      });
+
+      return {
+        clientSecret: data.clientSecret,
+        paymentIntentId: data.paymentIntentId,
+        escrowTransactionId: data.escrowTransactionId,
+      };
     } catch (error) {
       logger.error('Failed to create payment intent', { error, jobId, amount });
       return {

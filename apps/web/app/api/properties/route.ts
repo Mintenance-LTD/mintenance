@@ -13,6 +13,7 @@ import { createPropertySchema } from '@/lib/validation/schemas';
 import { getFeatureLimit } from '@/lib/feature-access-config';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { getEffectiveHomeownerTier } from '@/lib/subscription/early-access';
+import { resolveAddressCoordinates } from '@/lib/services/geocoding/forward-geocode';
 
 // Type definition for property insert data
 interface PropertyInsertData {
@@ -69,14 +70,28 @@ export const GET = withApiHandler(
       );
     }
 
-    const { data: properties, error } = await userDb
+    // 2026-05-26 audit-57 P2: support an opt-in `includeShared`
+    // query param so callers like QuickJobModal can also include
+    // properties the user is a non-owner team member on. Default
+    // behaviour (no param) is unchanged: owner-only, RLS-scoped.
+    // `includeShared=create_job` returns owned + memberships that
+    // confer create_job (owner/admin/manager roles per
+    // PropertyTeamService.PERMISSION_MATRIX). Each row carries a
+    // `_role` hint so the UI knows whether it owns the property.
+    const url = new URL(request.url);
+    const includeShared = url.searchParams.get('includeShared');
+
+    const PROPERTY_COLS =
+      'id, property_name, address, property_type, is_primary, photos, city, postcode, country, bedrooms, bathrooms, latitude, longitude, created_at, updated_at';
+
+    const { data: ownProperties, error } = await userDb
       .from('properties')
       .select(
         // R6 step 13 (2026-04-29): include `country`, `latitude`,
         // `longitude` so the edit screen + map view can pre-fill /
         // render markers without a second round-trip. Was missing
         // from the column list even though the DB has them.
-        'id, property_name, address, property_type, is_primary, photos, city, postcode, country, bedrooms, bathrooms, latitude, longitude, created_at, updated_at'
+        PROPERTY_COLS
       )
       .eq('owner_id', user.id)
       .order('is_primary', { ascending: false })
@@ -90,8 +105,84 @@ export const GET = withApiHandler(
       throw error;
     }
 
+    type PropertyRow = Record<string, unknown> & { id: string };
+    const ownTagged: PropertyRow[] = (ownProperties || []).map((p) => ({
+      ...(p as PropertyRow),
+      _role: 'owner' as const,
+    }));
+
+    let result = ownTagged;
+
+    if (includeShared) {
+      // Team-member rows expose properties via property_team_members,
+      // which is not on properties' RLS policy (audit-15 P1). Read
+      // via serverSupabase after PropertyTeamService gates each row
+      // by role. Only accepted memberships count.
+      //
+      // audit-76 follow-up Watch #2: the embedded `properties:property_id`
+      // join below is read with service-role and therefore bypasses
+      // properties RLS. Safety today rests on two facts: (a) properties
+      // use hard-delete with no soft-delete column (per CLAUDE.md), and
+      // (b) the membership row pre-gates access via user_id + accepted
+      // status. If properties ever gains a soft-delete column or any
+      // RLS narrowing beyond ownership, this read needs to route
+      // through a new `PropertyTeamService.getAccessibleProperties()`
+      // helper that bundles the auth check + filter in one place.
+      // TODO(rls-future): swap the service-role embed for a service
+      // helper when soft-delete lands.
+      const ROLES_WITH_CREATE_JOB =
+        includeShared === 'create_job'
+          ? ['admin', 'manager'] // owner already covered by the own-properties block
+          : ['admin', 'manager', 'viewer'];
+      const { data: memberships, error: memErr } = await serverSupabase
+        .from('property_team_members')
+        .select(`role, property_id, properties:property_id (${PROPERTY_COLS})`)
+        .eq('user_id', user.id)
+        .eq('status', 'accepted')
+        .in('role', ROLES_WITH_CREATE_JOB);
+
+      if (memErr) {
+        logger.warn('Failed to load shared property memberships', {
+          service: 'properties',
+          userId: user.id,
+          err: memErr.message,
+        });
+        // Don't fail the whole listing — own properties still flow.
+      } else if (memberships) {
+        // supabase-js types the embedded `properties:property_id (...)`
+        // relation as an array even though it's a many-to-one FK; each
+        // membership row carries at most one property. Defensively
+        // flatMap + filter so we don't crash on stale joins.
+        type MemberRow = {
+          role: 'admin' | 'manager' | 'viewer';
+          property_id: string;
+          properties: PropertyRow[] | PropertyRow | null;
+        };
+        const sharedTagged: PropertyRow[] = (
+          memberships as unknown as MemberRow[]
+        ).flatMap((m) => {
+          const props = Array.isArray(m.properties)
+            ? m.properties
+            : m.properties
+              ? [m.properties]
+              : [];
+          return props.map((p) => ({
+            ...(p as PropertyRow),
+            _role: m.role,
+          }));
+        });
+        // De-duplicate against own list (a user could in theory own
+        // and have a stale membership row for the same property).
+        const ownIds = new Set(ownTagged.map((p) => p.id));
+        result = [
+          ...ownTagged,
+          ...sharedTagged.filter((p) => !ownIds.has(p.id)),
+        ];
+      }
+    }
+
     return NextResponse.json({
-      properties: properties || [],
+      properties: result,
     });
   }
 );
@@ -215,13 +306,34 @@ export const POST = withApiHandler(
     if (body.bedrooms) insertData.bedrooms = body.bedrooms;
     if (body.bathrooms) insertData.bathrooms = body.bathrooms;
 
-    // Coords from mobile (or future geocoded value from web).
-    // `typeof === 'number'` rather than truthy so `0` is preserved.
-    if (typeof body.latitude === 'number') {
-      insertData.latitude = body.latitude;
-    }
-    if (typeof body.longitude === 'number') {
-      insertData.longitude = body.longitude;
+    // 2026-05-28 audit-91 P1: server-authoritative geocode.
+    //
+    // Mobile AddPropertyScreen uses expo-location Location.geocodeAsync
+    // which has no UK region/country bias — it only respects device
+    // locale. An iOS device set to en-US could resolve a Cheltenham
+    // GL51 8NE address to a London or US match. Web's job-creation
+    // path already audits its way around this (audit-90), but property
+    // creation was still trusting client coords blindly.
+    //
+    // Resolver rules:
+    //   1. If client sent lat/lng inside the UK bounding box, trust
+    //      them (preserves manually-dropped map pins).
+    //   2. Otherwise re-geocode the full "address, city, postcode,
+    //      country" string with Google's UK bias.
+    // Always non-fatal — if Google has no key or no result, we just
+    // persist null coords (same as before this fix).
+    const resolved = await resolveAddressCoordinates({
+      address: insertData.address,
+      city: insertData.city,
+      postcode: insertData.postcode,
+      country: insertData.country,
+      clientLatitude: typeof body.latitude === 'number' ? body.latitude : null,
+      clientLongitude:
+        typeof body.longitude === 'number' ? body.longitude : null,
+    });
+    if (resolved) {
+      insertData.latitude = resolved.latitude;
+      insertData.longitude = resolved.longitude;
     }
 
     // Add photos if provided

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { withApiHandler } from '@/lib/api/with-api-handler';
 import { serverSupabase } from '@/lib/api/supabaseServer';
 import { logger } from '@mintenance/shared';
+import { sanitizeEmailIlikePattern } from '@/lib/utils/sanitize-postgrest';
 
 /**
  * GET /api/admin/verifications
@@ -45,9 +46,13 @@ export const GET = withApiHandler(
     }
     // 'all' applies no additional filter
 
-    // Apply search filter
-    if (search.trim()) {
-      const term = `%${search.trim()}%`;
+    // Apply search filter. The raw value is interpolated into a PostgREST
+    // `.or()` filter DSL, so it MUST be sanitized — otherwise a `,` in the
+    // input injects extra filter clauses (PostgREST filter injection). Email
+    // search needs `@` and `.`, hence the email-aware variant.
+    const safeSearch = sanitizeEmailIlikePattern(search);
+    if (safeSearch) {
+      const term = `%${safeSearch}%`;
       query = query.or(
         `email.ilike.${term},first_name.ilike.${term},last_name.ilike.${term},company_name.ilike.${term}`
       );
@@ -116,6 +121,31 @@ export const GET = withApiHandler(
       }
     }
 
+    // 2026-05-25 audit-44 P1: surface pending document counts on the
+    // list so admins can spot contractors with evidence waiting in
+    // /api/admin/verifications/documents. Previously the list had no
+    // signal that uploads were pending, so the doc-review queue went
+    // unnoticed forever.
+    let pendingDocsMap: Record<string, number> = {};
+    if (contractorIds.length > 0) {
+      const { data: pendingDocs } = await serverSupabase
+        .from('contractor_documents')
+        .select('contractor_id')
+        .in('contractor_id', contractorIds)
+        .eq('review_status', 'pending')
+        .not('verification_type', 'is', null);
+
+      if (pendingDocs) {
+        pendingDocsMap = pendingDocs.reduce<Record<string, number>>(
+          (acc, d) => {
+            acc[d.contractor_id] = (acc[d.contractor_id] || 0) + 1;
+            return acc;
+          },
+          {}
+        );
+      }
+    }
+
     const mappedContractors = (contractors ?? []).map((c) => ({
       id: c.id,
       email: c.email ?? '',
@@ -131,6 +161,7 @@ export const GET = withApiHandler(
       trade_categories: c.skills ?? [],
       skills: skillsMap[c.id] ?? [],
       certifications_count: certsMap[c.id] ?? 0,
+      pending_documents_count: pendingDocsMap[c.id] ?? 0,
       rating: c.rating ?? 0,
       total_jobs_completed: c.total_jobs_completed ?? 0,
       city: c.city ?? null,
