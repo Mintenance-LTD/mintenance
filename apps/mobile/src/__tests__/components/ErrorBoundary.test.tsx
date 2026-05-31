@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { render , waitFor} from '../test-utils';
+import { render, waitFor } from '../test-utils';
 import { ErrorBoundary } from '../../components/ErrorBoundary';
 import { Text } from 'react-native';
 
@@ -9,10 +8,13 @@ jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: ({ children }) => children,
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
-jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock')
+);
 
-// Mock logger
-jest.mock('../../utils/logger', () => ({
+// Mock logger — ErrorBoundary imports `logger` from '@mintenance/shared'
+jest.mock('@mintenance/shared', () => ({
+  ...jest.requireActual('@mintenance/shared'),
   logger: {
     error: jest.fn(),
     warn: jest.fn(),
@@ -21,7 +23,7 @@ jest.mock('../../utils/logger', () => ({
   },
 }));
 
-const { logger } = require('../../utils/logger');
+const { logger } = require('@mintenance/shared');
 
 // Component that throws an error
 const ThrowError = ({ shouldThrow }: { shouldThrow: boolean }) => {
@@ -38,7 +40,6 @@ describe('ErrorBoundary', () => {
   afterEach(() => {
     jest.clearAllMocks();
   });
-
 
   it('should render children when no error occurs', () => {
     const { getByText } = render(
@@ -62,9 +63,11 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>
     );
 
-    expect(getByText('Something went wrong')).toBeTruthy();
+    expect(getByText('Oops! Something went wrong')).toBeTruthy();
     expect(
-      getByText('An unexpected error occurred. Please try again.')
+      getByText(
+        "We're sorry for the inconvenience. The error has been reported to our team."
+      )
     ).toBeTruthy();
     expect(getByText('Try Again')).toBeTruthy();
 
@@ -79,15 +82,15 @@ describe('ErrorBoundary', () => {
     );
 
     expect(logger.error).toHaveBeenCalledWith(
-      'Error caught by boundary:',
+      'React Error Boundary caught an error',
       expect.any(Error),
       expect.any(Object)
     );
   });
 
   it('should show debug info in development mode', () => {
-    const originalDev = (global as any).__DEV__;
-    (global as any).__DEV__ = true;
+    const originalEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'development';
 
     const consoleSpy = jest
       .spyOn(console, 'error')
@@ -99,16 +102,16 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>
     );
 
-    expect(getByText('Debug Info:')).toBeTruthy();
+    expect(getByText('Error Details (Development Only):')).toBeTruthy();
     expect(getByText('Test error')).toBeTruthy();
 
     consoleSpy.mockRestore();
-    (global as any).__DEV__ = originalDev;
+    process.env.NODE_ENV = originalEnv;
   });
 
   it('should not show debug info in production mode', () => {
-    const originalDev = (global as any).__DEV__;
-    (global as any).__DEV__ = false;
+    const originalEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
 
     const consoleSpy = jest
       .spyOn(console, 'error')
@@ -120,9 +123,9 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>
     );
 
-    expect(queryByText('Debug Info:')).toBeFalsy();
+    expect(queryByText('Error Details (Development Only):')).toBeFalsy();
 
     consoleSpy.mockRestore();
-    (global as any).__DEV__ = originalDev;
+    process.env.NODE_ENV = originalEnv;
   });
 });

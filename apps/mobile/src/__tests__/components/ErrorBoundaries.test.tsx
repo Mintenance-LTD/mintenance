@@ -1,6 +1,13 @@
+// React 18's error-boundary commit path requires the act environment flag to
+// be set; without it react-test-renderer aborts the recoverable-error retry
+// render and unmounts ("Can't access .root on unmounted test renderer"). The
+// node test environment used by this suite doesn't set it automatically.
+(
+  globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
+).IS_REACT_ACT_ENVIRONMENT = true;
 
 import React from 'react';
-import { render, fireEvent , waitFor} from '../test-utils';
+import { render, fireEvent, waitFor, act } from '../test-utils';
 import { Text } from 'react-native';
 import {
   ErrorBoundary,
@@ -15,7 +22,9 @@ jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: ({ children }) => children,
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
-jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock')
+);
 
 // Mock components that throw errors
 const ThrowError = ({
@@ -39,10 +48,20 @@ jest.mock('@react-navigation/native', () => ({
   useNavigation: () => ({
     navigate: mockNavigate,
   }),
+  createNavigationContainerRef: () => ({
+    isReady: jest.fn(() => false),
+    navigate: mockNavigate,
+  }),
 }));
 
-// Mock Sentry
+// Mock Sentry. ScreenErrorBoundary / AsyncErrorBoundary import from
+// ../../config/sentry, while the base ErrorBoundary reports via a dynamic
+// import('@sentry/react-native') — mock both so every reporting path is
+// observable.
 jest.mock('../../config/sentry', () => ({
+  captureException: jest.fn(),
+}));
+jest.mock('@sentry/react-native', () => ({
   captureException: jest.fn(),
 }));
 
@@ -83,7 +102,7 @@ describe('Error Boundaries', () => {
         </ErrorBoundary>
       );
 
-      expect(getByText('Something went wrong')).toBeTruthy();
+      expect(getByText('Oops! Something went wrong')).toBeTruthy();
       expect(getByText('Try Again')).toBeTruthy();
     });
 
@@ -94,17 +113,20 @@ describe('Error Boundaries', () => {
         </ErrorBoundary>
       );
 
-      expect(getByText('Something went wrong')).toBeTruthy();
+      expect(getByText('Oops! Something went wrong')).toBeTruthy();
 
-      // Mock successful retry
+      // Press "Try Again" to reset the boundary's error state while the
+      // children still throw — the boundary clears hasError and attempts to
+      // re-render the children.
+      const retryButton = getByText('Try Again');
+      act(() => fireEvent.press(retryButton));
+
+      // Swap in non-throwing children so the recovered render succeeds.
       rerender(
         <ErrorBoundary>
           <ThrowError shouldThrow={false} />
         </ErrorBoundary>
       );
-
-      const retryButton = getByText('Try Again');
-      act(() => fireEvent.press(retryButton));
 
       // After retry, should show the component without error
       expect(getByText('No Error')).toBeTruthy();
@@ -151,8 +173,14 @@ describe('Error Boundaries', () => {
       );
 
       expect(getByText('Screen Error')).toBeTruthy();
-      expect(getByText('The Test Screen screen encountered an error')).toBeTruthy();
-      expect(getByText('Something went wrong while loading this screen. Please try again.')).toBeTruthy();
+      expect(
+        getByText('The Test Screen screen encountered an error')
+      ).toBeTruthy();
+      expect(
+        getByText(
+          'Something went wrong while loading this screen. Please try again.'
+        )
+      ).toBeTruthy();
       expect(getByText('Retry')).toBeTruthy();
     });
 
@@ -175,20 +203,18 @@ describe('Error Boundaries', () => {
 
       // Component should show error initially
       expect(getByText('Screen Error')).toBeTruthy();
-      
+
       // Press retry button
       act(() => fireEvent.press(getByText('Retry')));
-      
+
       // The retry mechanism would reset the error state
       // This test verifies the button exists and is pressable
       expect(getByText('Retry')).toBeTruthy();
     });
 
     it('uses custom fallback component when provided', () => {
-      const customFallback = (error: Error, retry: () => void) => (
-        <></>
-      );
-      
+      const customFallback = (error: Error, retry: () => void) => <></>;
+
       const { queryByText } = render(
         <ScreenErrorBoundary
           screenName='Test Screen'
@@ -259,11 +285,13 @@ describe('Error Boundaries', () => {
     });
 
     it('shows retry loading state during async retry', async () => {
-      const slowRetry = jest
-        .fn()
-        .mockImplementation(
-          () => new Promise((resolve) => setTimeout(resolve, 100))
-        );
+      let resolveRetry: (() => void) | undefined;
+      const slowRetry = jest.fn().mockImplementation(
+        () =>
+          new Promise<void>((resolve) => {
+            resolveRetry = resolve;
+          })
+      );
 
       const { getByText } = render(
         <AsyncErrorBoundary operationName='slow operation' onRetry={slowRetry}>
@@ -272,9 +300,21 @@ describe('Error Boundaries', () => {
       );
 
       const retryButton = getByText('Try Again');
-      act(() => fireEvent.press(retryButton));
+      // Press kicks off the async retry. handleRetry sets isRetrying=true
+      // synchronously before awaiting onRetry(); flush that commit via act.
+      await act(async () => {
+        fireEvent.press(retryButton);
+      });
 
+      // While the retry promise is still pending, the button reflects the
+      // loading state.
       expect(getByText('Retrying...')).toBeTruthy();
+
+      // Resolve the pending retry so the boundary tears down cleanly within
+      // this test (avoids a dangling promise leaking into later tests).
+      await act(async () => {
+        resolveRetry?.();
+      });
     });
   });
 
@@ -298,7 +338,8 @@ describe('Error Boundaries', () => {
 
   describe('Error Boundary Integration', () => {
     it('captures and reports errors to Sentry', async () => {
-      const { captureException } = require('../../config/sentry');
+      // ErrorBoundary reports via a dynamic import('@sentry/react-native').
+      const { captureException } = require('@sentry/react-native');
 
       render(
         <ErrorBoundary>
@@ -306,8 +347,10 @@ describe('Error Boundaries', () => {
         </ErrorBoundary>
       );
 
-      // Wait for dynamic import to resolve
-      await new Promise((resolve) => setTimeout(resolve, 10));
+      // Wait for the dynamic import + its .then() to resolve.
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      });
 
       expect(captureException).toHaveBeenCalledWith(
         expect.objectContaining({

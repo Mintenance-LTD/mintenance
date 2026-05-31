@@ -29,6 +29,8 @@ const mocks = vi.hoisted(() => ({
   validateStatusTransition: vi.fn(),
   validateBidTransition: vi.fn(),
   createNotification: vi.fn(),
+  markEmailSent: vi.fn(),
+  resolveContractorTier: vi.fn(),
   sendBidAcceptedEmail: vi.fn(),
   learnFromAcceptance: vi.fn(),
   learnFromBidOutcome: vi.fn(),
@@ -93,11 +95,28 @@ vi.mock('@/lib/idempotency', () => ({
   getIdempotencyKeyFromRequest: mocks.getIdempotencyKeyFromRequest,
   checkIdempotency: mocks.checkIdempotency,
   storeIdempotencyResult: mocks.storeIdempotencyResult,
+  // The route wraps its protected work in releaseOnError(key, op, fn).
+  // Mirror the real implementation: run the callback, swallow any
+  // release-failure, and re-throw the original error so withApiHandler's
+  // error handling still maps it to the right status code.
+  releaseOnError: vi.fn(
+    async (_key: string, _op: string, fn: () => Promise<unknown>) => fn()
+  ),
 }));
 
 vi.mock('@/lib/services/notifications/NotificationService', () => ({
   NotificationService: {
     createNotification: mocks.createNotification,
+    markEmailSent: mocks.markEmailSent,
+  },
+}));
+
+// 2026-05-22 active-jobs cap: the route lazily imports FeeCalculationService
+// to resolve the accepting contractor's tier. Default to 'pro' so the
+// Free/Basic active-jobs cap branch is skipped on the happy path.
+vi.mock('@/lib/services/payment/FeeCalculationService', () => ({
+  FeeCalculationService: {
+    resolveContractorTier: mocks.resolveContractorTier,
   },
 }));
 
@@ -252,6 +271,9 @@ function setupDefaultMocks() {
   mocks.validateStatusTransition.mockReturnValue(undefined);
   mocks.validateBidTransition.mockReturnValue(undefined);
   mocks.createNotification.mockResolvedValue('notif-1');
+  mocks.markEmailSent.mockResolvedValue(undefined);
+  // Pro tier skips the Free/Basic active-jobs cap.
+  mocks.resolveContractorTier.mockResolvedValue('pro');
   mocks.sendBidAcceptedEmail.mockResolvedValue(true);
   mocks.learnFromAcceptance.mockResolvedValue(undefined);
   mocks.learnFromBidOutcome.mockResolvedValue(undefined);
@@ -393,17 +415,26 @@ function setupAcceptMocks(
       return chain;
     }
     if (table === 'profiles') {
+      // 2026-05-25 audit-46 P0: the route now requires the contractor's
+      // Stripe payouts to be fully enabled (stripe_payouts_enabled +
+      // stripe_transfers_active both true), not just an account id, before
+      // a bid can be accepted. The contractor lookup also feeds the email
+      // (email/first_name/last_name/company_name) and the draft-contract
+      // identity (company_name/license_number/license_type) selects.
+      const profileData = {
+        email: 'contractor@test.com',
+        first_name: 'Bob',
+        last_name: 'Builder',
+        company_name: 'Bob Co',
+        license_number: 'LIC-123',
+        license_type: 'electrical',
+        stripe_connect_account_id: 'acct_123',
+        stripe_payouts_enabled: true,
+        stripe_transfers_active: true,
+      };
       return createChainMock({
-        single: {
-          data: {
-            email: 'contractor@test.com',
-            first_name: 'Bob',
-            last_name: 'Builder',
-            company_name: 'Bob Co',
-            stripe_connect_account_id: 'acct_123',
-          },
-          error: null,
-        },
+        single: { data: profileData, error: null },
+        maybeSingle: { data: profileData, error: null },
       });
     }
     if (table === 'contracts') {

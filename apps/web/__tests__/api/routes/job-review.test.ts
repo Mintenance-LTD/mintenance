@@ -58,24 +58,65 @@ vi.mock('@/lib/services/notifications/NotificationService', () => ({
 
 vi.mock('@/lib/errors/api-error', async () => {
   class APIError extends Error {
-    constructor(public code: string, public userMessage: string, public statusCode: number = 500, public details?: unknown) {
-      super(userMessage); this.name = 'APIError';
+    constructor(
+      public code: string,
+      public userMessage: string,
+      public statusCode: number = 500,
+      public details?: unknown
+    ) {
+      super(userMessage);
+      this.name = 'APIError';
     }
-    toResponse() { return { error: { code: this.code, message: this.userMessage }, timestamp: new Date().toISOString() }; }
+    toResponse() {
+      return {
+        error: { code: this.code, message: this.userMessage },
+        timestamp: new Date().toISOString(),
+      };
+    }
   }
-  class UnauthorizedError extends APIError { constructor(m = 'Unauthorized') { super('UNAUTHORIZED', m, 401); } }
-  class ForbiddenError extends APIError { constructor(m = 'Forbidden') { super('FORBIDDEN', m, 403); } }
-  class NotFoundError extends APIError { constructor(m = 'Resource not found') { super('NOT_FOUND', m, 404); } }
-  class BadRequestError extends APIError { constructor(m = 'Bad Request', d?: unknown) { super('BAD_REQUEST', m, 400, d); } }
+  class UnauthorizedError extends APIError {
+    constructor(m = 'Unauthorized') {
+      super('UNAUTHORIZED', m, 401);
+    }
+  }
+  class ForbiddenError extends APIError {
+    constructor(m = 'Forbidden') {
+      super('FORBIDDEN', m, 403);
+    }
+  }
+  class NotFoundError extends APIError {
+    constructor(m = 'Resource not found') {
+      super('NOT_FOUND', m, 404);
+    }
+  }
+  class BadRequestError extends APIError {
+    constructor(m = 'Bad Request', d?: unknown) {
+      super('BAD_REQUEST', m, 400, d);
+    }
+  }
   return {
-    APIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError,
+    APIError,
+    UnauthorizedError,
+    ForbiddenError,
+    NotFoundError,
+    BadRequestError,
     handleAPIError: vi.fn((error: unknown) => {
       if (error instanceof APIError) {
         const { NextResponse } = require('next/server');
-        return NextResponse.json(error.toResponse(), { status: error.statusCode });
+        return NextResponse.json(error.toResponse(), {
+          status: error.statusCode,
+        });
       }
       const { NextResponse } = require('next/server');
-      return NextResponse.json({ error: { code: 'INTERNAL_SERVER_ERROR', message: 'An unexpected error occurred' } }, { status: 500 });
+      return NextResponse.json(
+        {
+          error: {
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'An unexpected error occurred',
+          },
+        },
+        { status: 500 }
+      );
     }),
   };
 });
@@ -85,7 +126,10 @@ vi.mock('@/lib/cors', () => ({ getCorsHeaders: vi.fn(() => ({})) }));
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-function createPostRequest(url: string, body: Record<string, unknown>): NextRequest {
+function createPostRequest(
+  url: string,
+  body: Record<string, unknown>
+): NextRequest {
   return new NextRequest(new URL(url, 'http://localhost:3000'), {
     method: 'POST',
     headers: {
@@ -118,7 +162,10 @@ function setupDefaultMocks() {
   });
   mocks.requireCSRF.mockResolvedValue(undefined);
   mocks.rateLimiterCheckRateLimit.mockResolvedValue({
-    allowed: true, remaining: 19, resetTime: Date.now() + 60000, retryAfter: 0,
+    allowed: true,
+    remaining: 19,
+    resetTime: Date.now() + 60000,
+    retryAfter: 0,
   });
   mocks.createNotification.mockResolvedValue(undefined);
 }
@@ -132,16 +179,27 @@ const completedJob = {
 };
 
 // Helper to set up supabase mocks per table for POST review flow
-function setupReviewMocks(overrides: {
-  jobData?: unknown;
-  jobError?: unknown;
-  existingReview?: unknown;
-  insertReturn?: { data: unknown; error: unknown };
-  fiveStarCount?: number;
-} = {}) {
-  const jobResult = { data: overrides.jobData ?? completedJob, error: overrides.jobError ?? null };
-  const existingReviewResult = { data: overrides.existingReview ?? null, error: null };
-  const insertReturn = overrides.insertReturn ?? { data: { id: 'review-1' }, error: null };
+function setupReviewMocks(
+  overrides: {
+    jobData?: unknown;
+    jobError?: unknown;
+    existingReview?: unknown;
+    insertReturn?: { data: unknown; error: unknown };
+    fiveStarCount?: number;
+  } = {}
+) {
+  const jobResult = {
+    data: overrides.jobData ?? completedJob,
+    error: overrides.jobError ?? null,
+  };
+  const existingReviewResult = {
+    data: overrides.existingReview ?? null,
+    error: null,
+  };
+  const insertReturn = overrides.insertReturn ?? {
+    data: { id: 'review-1' },
+    error: null,
+  };
 
   mocks.supabaseFrom.mockImplementation((table: string) => {
     if (table === 'jobs') {
@@ -159,29 +217,31 @@ function setupReviewMocks(overrides: {
       // 2. Insert: .insert(...).select('id').single()
       // 3. (Optional) Count 5-star: .select('id', { count: 'exact', head: true }).eq().eq()
       return {
-        select: vi.fn().mockImplementation((_cols: string, opts?: { count?: string }) => {
-          if (opts?.count === 'exact') {
-            // 5-star count query
+        select: vi
+          .fn()
+          .mockImplementation((_cols: string, opts?: { count?: string }) => {
+            if (opts?.count === 'exact') {
+              // 5-star count query
+              return {
+                eq: vi.fn().mockReturnValue({
+                  eq: vi.fn().mockResolvedValue({
+                    count: overrides.fiveStarCount ?? 3,
+                    error: null,
+                  }),
+                }),
+              };
+            }
+            // Duplicate check
             return {
               eq: vi.fn().mockReturnValue({
-                eq: vi.fn().mockResolvedValue({
-                  count: overrides.fiveStarCount ?? 3,
-                  error: null,
+                eq: vi.fn().mockReturnValue({
+                  limit: vi.fn().mockReturnValue({
+                    single: vi.fn().mockResolvedValue(existingReviewResult),
+                  }),
                 }),
               }),
             };
-          }
-          // Duplicate check
-          return {
-            eq: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                limit: vi.fn().mockReturnValue({
-                  single: vi.fn().mockResolvedValue(existingReviewResult),
-                }),
-              }),
-            }),
-          };
-        }),
+          }),
         insert: vi.fn().mockReturnValue({
           select: vi.fn().mockReturnValue({
             single: vi.fn().mockResolvedValue(insertReturn),
@@ -209,10 +269,13 @@ describe('POST /api/jobs/[id]/review', () => {
   it('should return 401 when user is not authenticated', async () => {
     mocks.getCurrentUserFromCookies.mockResolvedValue(null);
 
-    const req = createPostRequest('http://localhost:3000/api/jobs/job-1/review', {
-      rating: 5,
-      comment: 'Great work done by the contractor!',
-    });
+    const req = createPostRequest(
+      'http://localhost:3000/api/jobs/job-1/review',
+      {
+        rating: 5,
+        comment: 'Great work done by the contractor!',
+      }
+    );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(401);
   });
@@ -227,10 +290,13 @@ describe('POST /api/jobs/[id]/review', () => {
       last_name: 'User',
     });
 
-    const req = createPostRequest('http://localhost:3000/api/jobs/job-1/review', {
-      rating: 5,
-      comment: 'Great work done by the contractor!',
-    });
+    const req = createPostRequest(
+      'http://localhost:3000/api/jobs/job-1/review',
+      {
+        rating: 5,
+        comment: 'Great work done by the contractor!',
+      }
+    );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(403);
   });
@@ -239,23 +305,32 @@ describe('POST /api/jobs/[id]/review', () => {
   it('should return 400 when rating is missing', async () => {
     setupReviewMocks();
 
-    const req = createPostRequest('http://localhost:3000/api/jobs/job-1/review', {
-      comment: 'Great work done by the contractor!',
-    });
+    const req = createPostRequest(
+      'http://localhost:3000/api/jobs/job-1/review',
+      {
+        comment: 'Great work done by the contractor!',
+      }
+    );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(400);
 
+    // Route schema is `rating: z.coerce.number().int().min(1).max(5)` with no
+    // custom message; a missing rating coerces undefined -> NaN, so Zod's
+    // default "Expected number, received nan" is surfaced as the 400 message.
     const body = await res.json();
-    expect(body.error.message).toContain('Rating must be between 1 and 5');
+    expect(body.error.message).toContain('Expected number');
   });
 
   it('should return 400 when rating is out of range', async () => {
     setupReviewMocks();
 
-    const req = createPostRequest('http://localhost:3000/api/jobs/job-1/review', {
-      rating: 6,
-      comment: 'Great work done by the contractor!',
-    });
+    const req = createPostRequest(
+      'http://localhost:3000/api/jobs/job-1/review',
+      {
+        rating: 6,
+        comment: 'Great work done by the contractor!',
+      }
+    );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(400);
   });
@@ -264,10 +339,13 @@ describe('POST /api/jobs/[id]/review', () => {
   it('should return 400 when comment is too short', async () => {
     setupReviewMocks();
 
-    const req = createPostRequest('http://localhost:3000/api/jobs/job-1/review', {
-      rating: 4,
-      comment: 'Too short',
-    });
+    const req = createPostRequest(
+      'http://localhost:3000/api/jobs/job-1/review',
+      {
+        rating: 4,
+        comment: 'Too short',
+      }
+    );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(400);
 
@@ -279,10 +357,13 @@ describe('POST /api/jobs/[id]/review', () => {
   it('should return 404 when job does not exist', async () => {
     setupReviewMocks({ jobData: null, jobError: { message: 'not found' } });
 
-    const req = createPostRequest('http://localhost:3000/api/jobs/bad-id/review', {
-      rating: 5,
-      comment: 'This is a long enough review comment for testing.',
-    });
+    const req = createPostRequest(
+      'http://localhost:3000/api/jobs/bad-id/review',
+      {
+        rating: 5,
+        comment: 'This is a long enough review comment for testing.',
+      }
+    );
     const res = await POST(req, segmentData('bad-id'));
     expect(res.status).toBe(404);
   });
@@ -291,10 +372,13 @@ describe('POST /api/jobs/[id]/review', () => {
   it('should return 400 when job is not completed', async () => {
     setupReviewMocks({ jobData: { ...completedJob, status: 'in_progress' } });
 
-    const req = createPostRequest('http://localhost:3000/api/jobs/job-1/review', {
-      rating: 5,
-      comment: 'This is a long enough review comment for testing.',
-    });
+    const req = createPostRequest(
+      'http://localhost:3000/api/jobs/job-1/review',
+      {
+        rating: 5,
+        comment: 'This is a long enough review comment for testing.',
+      }
+    );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(400);
 
@@ -313,10 +397,13 @@ describe('POST /api/jobs/[id]/review', () => {
     });
     setupReviewMocks();
 
-    const req = createPostRequest('http://localhost:3000/api/jobs/job-1/review', {
-      rating: 5,
-      comment: 'This is a long enough review comment for testing.',
-    });
+    const req = createPostRequest(
+      'http://localhost:3000/api/jobs/job-1/review',
+      {
+        rating: 5,
+        comment: 'This is a long enough review comment for testing.',
+      }
+    );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(403);
 
@@ -328,10 +415,13 @@ describe('POST /api/jobs/[id]/review', () => {
   it('should return 400 when user has already reviewed this job', async () => {
     setupReviewMocks({ existingReview: { id: 'existing-review-1' } });
 
-    const req = createPostRequest('http://localhost:3000/api/jobs/job-1/review', {
-      rating: 5,
-      comment: 'This is a long enough review comment for testing.',
-    });
+    const req = createPostRequest(
+      'http://localhost:3000/api/jobs/job-1/review',
+      {
+        rating: 5,
+        comment: 'This is a long enough review comment for testing.',
+      }
+    );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(400);
 
@@ -343,10 +433,13 @@ describe('POST /api/jobs/[id]/review', () => {
   it('should successfully create a review from homeowner', async () => {
     setupReviewMocks();
 
-    const req = createPostRequest('http://localhost:3000/api/jobs/job-1/review', {
-      rating: 5,
-      comment: 'Excellent work done by the contractor, very thorough!',
-    });
+    const req = createPostRequest(
+      'http://localhost:3000/api/jobs/job-1/review',
+      {
+        rating: 5,
+        comment: 'Excellent work done by the contractor, very thorough!',
+      }
+    );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(200);
 
@@ -367,10 +460,13 @@ describe('POST /api/jobs/[id]/review', () => {
     });
     setupReviewMocks();
 
-    const req = createPostRequest('http://localhost:3000/api/jobs/job-1/review', {
-      rating: 4,
-      comment: 'Great homeowner, very communicative throughout!',
-    });
+    const req = createPostRequest(
+      'http://localhost:3000/api/jobs/job-1/review',
+      {
+        rating: 4,
+        comment: 'Great homeowner, very communicative throughout!',
+      }
+    );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(200);
 
@@ -406,7 +502,14 @@ describe('GET /api/jobs/[id]/review', () => {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
               eq: vi.fn().mockResolvedValue({
-                data: [{ id: 'r-1', rating: 5, comment: 'Great!', created_at: '2026-01-01T00:00:00Z' }],
+                data: [
+                  {
+                    id: 'r-1',
+                    rating: 5,
+                    comment: 'Great!',
+                    created_at: '2026-01-01T00:00:00Z',
+                  },
+                ],
                 error: null,
               }),
             }),

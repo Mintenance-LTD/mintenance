@@ -72,6 +72,11 @@ vi.mock('@/lib/idempotency', () => ({
   getIdempotencyKeyFromRequest: mocks.getIdempotencyKeyFromRequest,
   checkIdempotency: mocks.checkIdempotency,
   storeIdempotencyResult: mocks.storeIdempotencyResult,
+  // The route wraps its protected block in releaseOnError(key, op, fn),
+  // which simply runs fn() and releases the idempotency claim on throw.
+  // Mock it as a thin pass-through so the wrapped logic still executes.
+  releaseOnError: (_key: string, _op: string, fn: () => Promise<unknown>) =>
+    fn(),
 }));
 
 vi.mock('@/lib/services/notifications/NotificationHelper', () => ({
@@ -242,9 +247,15 @@ function setupConfirmMocks(
     if (table === 'escrow_transactions') {
       return {
         select: vi.fn().mockReturnValue({
+          // Pre-flight escrow lookup:
+          //   .eq('job_id', id).order('created_at', …).limit(1).maybeSingle()
+          // Email-amount lookup:
+          //   .eq('job_id', id).in('status', […]).limit(1).single()
           eq: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              single: vi.fn().mockResolvedValue(escrowResult),
+            order: vi.fn().mockReturnValue({
+              limit: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue(escrowResult),
+              }),
             }),
             in: vi.fn().mockReturnValue({
               limit: vi.fn().mockReturnValue({

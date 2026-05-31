@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { render , waitFor} from '../test-utils';
+import { render, waitFor } from '../test-utils';
 import { Text, View } from 'react-native';
 import { Card } from '../../components/ui/Card';
 
@@ -9,7 +8,9 @@ jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: ({ children }) => children,
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
-jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock')
+);
 
 describe('Card Component', () => {
   // Basic rendering tests
@@ -42,13 +43,13 @@ describe('Card Component', () => {
     it('renders with complex children structure', () => {
       const { getByText, getByTestId } = render(
         <Card>
-          <View testID="card-header">
+          <View testID='card-header'>
             <Text>Header</Text>
           </View>
-          <View testID="card-body">
+          <View testID='card-body'>
             <Text>Body Content</Text>
           </View>
-          <View testID="card-footer">
+          <View testID='card-footer'>
             <Text>Footer</Text>
           </View>
         </Card>
@@ -67,7 +68,7 @@ describe('Card Component', () => {
   describe('Variants', () => {
     it('renders with default variant', () => {
       const { getByText } = render(
-        <Card variant="default">
+        <Card variant='default'>
           <Text>Default Card</Text>
         </Card>
       );
@@ -86,7 +87,7 @@ describe('Card Component', () => {
     // Test different variants if they exist in theme
     it('handles variant prop changes', () => {
       const { rerender, getByText } = render(
-        <Card variant="default">
+        <Card variant='default'>
           <Text>Card Content</Text>
         </Card>
       );
@@ -110,7 +111,7 @@ describe('Card Component', () => {
       const customStyle = {
         backgroundColor: 'red',
         padding: 20,
-        margin: 10
+        margin: 10,
       };
 
       const { getByText } = render(
@@ -126,7 +127,7 @@ describe('Card Component', () => {
       const customStyles = [
         { backgroundColor: 'blue' },
         { padding: 15 },
-        { margin: 5 }
+        { margin: 5 },
       ];
 
       const { getByText } = render(
@@ -141,7 +142,7 @@ describe('Card Component', () => {
     it('overrides default styles with custom styles', () => {
       const overrideStyle = {
         padding: 0,
-        borderRadius: 0
+        borderRadius: 0,
       };
 
       const { getByText } = render(
@@ -227,11 +228,11 @@ describe('Card Component', () => {
       const { getByText } = render(
         <Card>
           {[
-            <Text key="1">First</Text>,
+            <Text key='1'>First</Text>,
             null,
-            <Text key="2">Second</Text>,
+            <Text key='2'>Second</Text>,
             false,
-            <Text key="3">Third</Text>
+            <Text key='3'>Third</Text>,
           ]}
         </Card>
       );
@@ -257,7 +258,7 @@ describe('Card Component', () => {
     it('preserves accessibility props of children', () => {
       const { getByText } = render(
         <Card>
-          <Text accessibilityLabel="Custom label">
+          <Text accessibilityLabel='Custom label'>
             Card with accessible content
           </Text>
         </Card>
@@ -271,9 +272,9 @@ describe('Card Component', () => {
       const { getByTestId } = render(
         <Card>
           <View
-            testID="accessible-container"
-            accessibilityRole="none"
-            accessibilityLabel="Card region"
+            testID='accessible-container'
+            accessibilityRole='region'
+            accessibilityLabel='Card region'
           >
             <Text>Accessible content</Text>
           </View>
@@ -314,11 +315,7 @@ describe('Card Component', () => {
         <Text key={i}>Item {i}</Text>
       ));
 
-      const { root } = render(
-        <Card>
-          {largeContent}
-        </Card>
-      );
+      const { root } = render(<Card>{largeContent}</Card>);
 
       expect(root).toBeTruthy();
     });
@@ -339,7 +336,7 @@ describe('Card Component', () => {
     it('responds to theme changes appropriately', () => {
       // This would test theme provider changes in a real scenario
       const { getByText } = render(
-        <Card variant="default">
+        <Card variant='default'>
           <Text>Theme Test Card</Text>
         </Card>
       );

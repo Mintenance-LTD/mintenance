@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, fireEvent, waitFor } from '../../test-utils';
+import { render, fireEvent, waitFor, act } from '../../test-utils';
 import { Alert } from 'react-native';
 
 jest.mock('@react-native-async-storage/async-storage', () => ({
@@ -51,10 +51,43 @@ jest.mock('../../../utils/ErrorManager', () => ({
 jest.mock('../../../utils/SecurityManager', () => ({
   SecurityManager: {
     validateTextInput: () => ({ errors: [] }),
+    validateFileUpload: jest.fn(() =>
+      Promise.resolve({ isValid: true, errors: [] })
+    ),
   },
 }));
 
+// 2026-05-22: photos are now required on every job. The screen uploads
+// local photo URIs via the shared `uploadJobPhotos` helper before POSTing.
+// Mock it so the create flow doesn't make a real network call and returns
+// stable public URLs.
+jest.mock('../../../utils/uploadJobPhotos', () => ({
+  uploadJobPhotos: jest.fn(() =>
+    Promise.resolve(['https://cdn.example.com/photo-0.jpg'])
+  ),
+}));
+
+// expo-image-picker is `require()`d lazily inside handleAddPhoto. Returning
+// a non-local (https) URI skips the file-upload security validation branch
+// and adds the photo straight to state.
+jest.mock('expo-image-picker', () => ({
+  launchImageLibraryAsync: jest.fn(() =>
+    Promise.resolve({
+      canceled: false,
+      assets: [{ uri: 'https://cdn.example.com/local-photo.jpg' }],
+    })
+  ),
+}));
+
 const JobPostingScreen = require('../../../screens/JobPostingScreen').default;
+
+// Adds one photo through the real handleAddPhoto path so the
+// photos-required gate is satisfied before submitting.
+async function addOnePhoto(getByTestId: (id: string) => unknown) {
+  await act(async () => {
+    fireEvent.press(getByTestId('add-photo-button') as never);
+  });
+}
 
 describe('Job Creation - Critical Path', () => {
   beforeEach(() => {
@@ -79,11 +112,14 @@ describe('Job Creation - Critical Path', () => {
       'Fix leaky faucet in the upstairs bathroom'
     );
     fireEvent.changeText(getByTestId('job-location-input'), 'Central London');
-    fireEvent.changeText(getByTestId('job-budget-input'), '500');
     fireEvent.press(getByTestId('category-option-plumbing'));
     fireEvent.press(getByText('High'));
+    // Photos required since 2026-05-22 — budget input was removed.
+    await addOnePhoto(getByTestId);
 
-    fireEvent.press(getByText(/post job/i));
+    await act(async () => {
+      fireEvent.press(getByText(/post job/i));
+    });
 
     await waitFor(() => {
       expect(mockMutateAsync).toHaveBeenCalledWith(
@@ -91,7 +127,6 @@ describe('Job Creation - Critical Path', () => {
           title: 'Plumbing Repair',
           description: 'Fix leaky faucet in the upstairs bathroom',
           location: 'Central London',
-          budget: 500,
           homeownerId: 'homeowner_1',
           category: 'plumbing',
           urgency: 'high',
@@ -104,22 +139,33 @@ describe('Job Creation - Critical Path', () => {
   });
 
   it('should validate required fields', async () => {
-    const { getByText, queryByText } = render(
+    const { getByText, getByTestId, queryByText } = render(
       <JobPostingScreen
         navigation={{ navigate: jest.fn() }}
         route={{ params: {} }}
       />
     );
 
-    fireEvent.press(getByText(/post job/i));
+    // A photo is required before the field-validation branch is reached
+    // (the photos-required gate short-circuits otherwise). Add one so we
+    // exercise the title/description/location validation path with the
+    // form fields left empty.
+    await addOnePhoto(getByTestId);
+
+    await act(async () => {
+      fireEvent.press(getByText(/post job/i));
+    });
 
     await waitFor(() => {
       expect(Alert.alert).toHaveBeenCalledWith(
         'Validation Error',
         'Please fix the errors in the form before submitting'
       );
-      expect(queryByText('Description is required')).toBeTruthy();
-      expect(queryByText('Location is required')).toBeTruthy();
+      // Inline errors come straight from the shared `validateJobDraft`
+      // Zod schema (createJobRequestSchema). Title is the required field
+      // (min 5 chars); description and location are optional in the
+      // current schema, so an empty form surfaces the title error.
+      expect(queryByText('Title must be at least 5 characters')).toBeTruthy();
       expect(mockMutateAsync).not.toHaveBeenCalled();
     });
   });
@@ -138,8 +184,12 @@ describe('Job Creation - Critical Path', () => {
       getByTestId('job-description-input'),
       'Detailed job description for testing'
     );
-    fireEvent.changeText(getByTestId('job-budget-input'), '150');
-    fireEvent.press(getByText(/post job/i));
+    // Photos required since 2026-05-22 — budget input was removed.
+    await addOnePhoto(getByTestId);
+
+    await act(async () => {
+      fireEvent.press(getByText(/post job/i));
+    });
 
     await waitFor(() => {
       expect(mockMutateAsync).toHaveBeenCalledWith(
