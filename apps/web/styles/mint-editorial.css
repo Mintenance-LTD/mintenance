@@ -1605,4 +1605,13 @@
     width: auto !important;
     margin-left: auto;
   }
+
+  /* Scheduling home — `minmax(0,1fr) 320px` two-column grid (calendar +
+   * upcoming/need-help rail). On a phone the fixed 320px rail left
+   * almost no room for the calendar, so its 7-column month grid
+   * collapsed and overflowed the viewport. Stack to a single column so
+   * the calendar gets full width and the rail drops beneath it. */
+  .me-root .me-sched-grid {
+    grid-template-columns: 1fr !important;
+  }
 }
