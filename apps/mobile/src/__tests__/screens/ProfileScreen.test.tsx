@@ -5,6 +5,7 @@ import { Alert, Linking } from 'react-native';
 import ProfileScreen from '../../screens/ProfileScreen';
 import { useAuth } from '../../contexts/AuthContext';
 import { JobService } from '../../services/JobService';
+import { UserService } from '../../services/UserService';
 import { useNavigation } from '@react-navigation/native';
 
 // Mock native dependencies that crash at import time without native modules
@@ -14,6 +15,8 @@ jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 
+// Animation primitives render their children directly so the header,
+// stats, and menu sections beneath them are present in the tree.
 jest.mock('../../components/animations/primitives', () => ({
   FadeIn: ({ children }: { children: React.ReactNode }) => children,
   SlideIn: ({ children }: { children: React.ReactNode }) => children,
@@ -21,20 +24,21 @@ jest.mock('../../components/animations/primitives', () => ({
   __esModule: true,
 }));
 
-jest.mock('../../screens/profile/components/ProfileHeader', () => ({
-  __esModule: true,
-  default: () => null,
-  ProfileHeader: () => null,
-}));
+// ProfileHeader, HomeownerStats and ProfileMenuSection are intentionally
+// rendered for real — they own the text the assertions below look for
+// (display name, email, "Since {joinDate}", stat values, and the menu
+// labels/section titles). `useProfileStats` is left unmocked so the real
+// hook computes stats from the mocked JobService/UserService responses.
 
-jest.mock('../../screens/profile/components/ProfileMenuSection', () => ({
-  __esModule: true,
-  default: () => null,
-  ProfileMenuSection: () => null,
-}));
-
-jest.mock('../../screens/profile/hooks/useProfileStats', () => ({
-  useProfileStats: () => ({ unreadNotifications: 0, completedJobs: 0, activeJobs: 0 }),
+// useContractorVerification hits supabase; mock it to a deterministic
+// all-false state so the contractor render path is offline + stable.
+jest.mock('../../screens/profile/hooks/useContractorVerification', () => ({
+  useContractorVerification: () => ({
+    identityVerified: false,
+    licenseVerified: false,
+    paymentMethodLinked: false,
+    phoneVerified: false,
+  }),
 }));
 
 jest.mock('../../services/notifications/NotificationCRUD', () => ({
@@ -48,6 +52,11 @@ jest.mock('../../services/JobService', () => ({
     getJobsByHomeowner: jest.fn(),
     getJobsByUser: jest.fn(),
     getUserJobs: jest.fn(),
+  },
+}));
+jest.mock('../../services/UserService', () => ({
+  UserService: {
+    getContractorStats: jest.fn(),
   },
 }));
 jest.mock('@react-navigation/native');
@@ -64,8 +73,11 @@ const mockNavigation = {
 };
 
 const mockUseAuth = useAuth as jest.MockedFunction<typeof useAuth>;
-const mockUseNavigation = useNavigation as jest.MockedFunction<typeof useNavigation>;
+const mockUseNavigation = useNavigation as jest.MockedFunction<
+  typeof useNavigation
+>;
 const mockJobService = JobService as jest.Mocked<typeof JobService>;
+const mockUserService = UserService as jest.Mocked<typeof UserService>;
 
 describe('ProfileScreen', () => {
   beforeEach(() => {
@@ -91,6 +103,15 @@ describe('ProfileScreen', () => {
       session: null,
     });
 
+    // Default contractor-stats response (used by the contractor render path)
+    mockUserService.getContractorStats.mockResolvedValue({
+      totalJobs: 0,
+      completedJobs: 0,
+      activeJobs: 0,
+      rating: 0,
+      responseTime: 'N/A',
+    } as any);
+
     // Mock job service responses
     mockJobService.getJobsByHomeowner.mockResolvedValue([
       {
@@ -102,7 +123,7 @@ describe('ProfileScreen', () => {
         budget: 15000,
         location: {
           latitude: 40.7128,
-          longitude: -74.0060,
+          longitude: -74.006,
           address: '123 Main St',
           city: 'New York',
           state: 'NY',
@@ -123,7 +144,7 @@ describe('ProfileScreen', () => {
         budget: 500,
         location: {
           latitude: 40.7128,
-          longitude: -74.0060,
+          longitude: -74.006,
           address: '123 Main St',
           city: 'New York',
           state: 'NY',
@@ -249,7 +270,9 @@ describe('ProfileScreen', () => {
   });
 
   it('should handle job service errors gracefully', async () => {
-    mockJobService.getJobsByHomeowner.mockRejectedValue(new Error('Service error'));
+    mockJobService.getJobsByHomeowner.mockRejectedValue(
+      new Error('Service error')
+    );
 
     const { getAllByText, getByText } = render(<ProfileScreen />);
 
@@ -278,13 +301,23 @@ describe('ProfileScreen', () => {
     expect(getByText('Account')).toBeTruthy();
   });
 
-  it('should navigate to notification settings', () => {
+  it('should navigate to notifications via the root Modal stack', () => {
+    // The Notifications row lives on the Modal stack (sibling of the
+    // tabs on RootStack), so the screen walks up two parents and
+    // targets `Modal` → `Notifications` rather than a plain navigate.
+    const rootNavigate = jest.fn();
+    const rootNav = { navigate: rootNavigate };
+    const tabsNav = { getParent: jest.fn(() => rootNav) };
+    mockNavigation.getParent = jest.fn(() => tabsNav);
+
     const { getByText } = render(<ProfileScreen />);
 
     const notificationButton = getByText('Notifications');
     act(() => fireEvent.press(notificationButton));
 
-    expect(mockNavigation.navigate).toHaveBeenCalledWith('NotificationSettings');
+    expect(rootNavigate).toHaveBeenCalledWith('Modal', {
+      screen: 'Notifications',
+    });
   });
 
   it('should navigate to payment methods', () => {

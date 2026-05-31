@@ -1,8 +1,12 @@
 import React from 'react';
-import { render, fireEvent, waitFor } from '../test-utils';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { render, waitFor, act } from '../test-utils';
 import { HomeScreen } from '../../screens/home';
 import { useAuth } from '../../contexts/AuthContext';
 import { UserService } from '../../services/UserService';
+import { JobService } from '../../services/JobService';
+import { BidService } from '../../services/BidService';
+import { NotificationService } from '../../services/NotificationService';
 
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaProvider: ({ children }) => children,
@@ -13,39 +17,68 @@ jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock')
 );
 
-const mockNavigation = {
-  navigate: jest.fn(),
-  goBack: jest.fn(),
-  dispatch: jest.fn(),
-  reset: jest.fn(),
-  setParams: jest.fn(),
-  addListener: jest.fn(),
-  removeListener: jest.fn(),
-  canGoBack: jest.fn(() => true),
-  isFocused: jest.fn(() => true),
-  setOptions: jest.fn(),
-};
+// expo-task-manager pulls expo-modules-core's native EventEmitter, which is
+// undefined under jest and crashes the whole import graph
+// (ContractorDashboard → NextUpCard → JobContextLocationService →
+// BackgroundLocationTask). Stub it out — none of these assertions exercise
+// background location.
+jest.mock('expo-task-manager', () => ({
+  defineTask: jest.fn(),
+  isTaskRegisteredAsync: jest.fn(() => Promise.resolve(false)),
+  unregisterTaskAsync: jest.fn(() => Promise.resolve()),
+  unregisterAllTasksAsync: jest.fn(() => Promise.resolve()),
+}));
 
-const mockRoute = {
-  params: {},
-  key: 'test-route',
-  name: 'TestScreen',
-};
-// We render directly and mock navigation and auth
+// The Reanimated-backed animation primitives pull the real native module in
+// jest (the repo's reanimated mock chokes on it). They're pure presentation
+// wrappers — render children straight through so the dashboards mount.
+jest.mock('../../components/animations/primitives', () => {
+  const ReactActual = require('react');
+  const pass = ({ children }: { children: React.ReactNode }) =>
+    ReactActual.createElement(ReactActual.Fragment, null, children);
+  return {
+    FadeIn: pass,
+    SlideIn: pass,
+    ScaleIn: pass,
+    Pulse: pass,
+    BouncyPress: pass,
+  };
+});
 
-// Mock dependencies
+// Mock dependencies. The services expose their methods as static class
+// fields / getters, which jest auto-mock does not reliably convert to
+// jest.fn(). Provide explicit factories with the CURRENT method names the
+// dashboards call.
 jest.mock('../../contexts/AuthContext');
-jest.mock('../../services/UserService');
+jest.mock('../../services/UserService', () => ({
+  UserService: { getContractorStats: jest.fn() },
+}));
+jest.mock('../../services/JobService', () => ({
+  JobService: { getUserJobs: jest.fn() },
+}));
+jest.mock('../../services/BidService', () => ({
+  BidService: { getBidsByJobs: jest.fn() },
+}));
+jest.mock('../../services/NotificationService', () => ({
+  NotificationService: { getUnreadCount: jest.fn() },
+}));
 jest.mock('@react-navigation/native', () => ({
+  ...jest.requireActual('@react-navigation/native'),
   useNavigation: () => ({
     navigate: jest.fn(),
     goBack: jest.fn(),
+    getParent: jest.fn(() => ({ navigate: jest.fn() })),
   }),
   useFocusEffect: jest.fn(),
 }));
 
 const mockUseAuth = jest.mocked(useAuth);
 const mockUserService = UserService as jest.Mocked<typeof UserService>;
+const mockJobService = JobService as jest.Mocked<typeof JobService>;
+const mockBidService = BidService as jest.Mocked<typeof BidService>;
+const mockNotificationService = NotificationService as jest.Mocked<
+  typeof NotificationService
+>;
 
 const mockUser = {
   id: 'user-1',
@@ -59,36 +92,28 @@ const mockUser = {
   updated_at: new Date().toISOString(),
 };
 
-const mockJobs = [
-  {
-    id: 'job-1',
-    title: 'Kitchen Faucet Repair',
-    description: 'Leaky kitchen faucet needs professional repair',
-    location: '123 Main Street, Anytown',
-    budget: 150,
-    status: 'posted' as const,
-    category: 'Plumbing',
-    homeowner_id: 'user-1',
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-  {
-    id: 'job-2',
-    title: 'Electrical Outlet Installation',
-    description: 'Install new electrical outlet in living room',
-    location: '456 Oak Street, Somewhere',
-    budget: 200,
-    status: 'assigned' as const,
-    category: 'Electrical',
-    homeowner_id: 'user-1',
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  },
-];
+// Each render needs a fresh QueryClient (the dashboards use @tanstack/react-query
+// useQuery hooks). Retries off so rejected queries surface the error UI fast.
+function renderHome() {
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+  });
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <HomeScreen />
+    </QueryClientProvider>
+  );
+}
 
 describe('HomeScreen', () => {
+  let nowSpy: jest.SpyInstance;
+
   beforeEach(() => {
     jest.clearAllMocks();
+    // Pin the clock to a morning hour so the time-based greeting is
+    // deterministic ("Good morning") regardless of when the suite runs.
+    nowSpy = jest.spyOn(Date.prototype, 'getHours').mockReturnValue(9);
+
     mockUseAuth.mockReturnValue({
       user: mockUser,
       session: null,
@@ -98,35 +123,47 @@ describe('HomeScreen', () => {
       signOut: jest.fn(),
       updateProfile: jest.fn(),
     });
+
+    // Homeowner dashboard data sources — default to empty so the calm/empty
+    // surface renders without throwing.
+    mockJobService.getUserJobs.mockResolvedValue([] as any);
+    mockBidService.getBidsByJobs.mockResolvedValue([] as any);
+    mockNotificationService.getUnreadCount.mockResolvedValue(0 as any);
+    mockUserService.getContractorStats.mockResolvedValue({} as any);
   });
 
   afterEach(() => {
+    nowSpy.mockRestore();
     jest.clearAllMocks();
   });
 
   describe('Homeowner View', () => {
-    it('renders welcome header and user name', async () => {
-      const { getByText } = render(<HomeScreen />);
+    it('renders the brand, editorial greeting and headline', async () => {
+      const { getByText } = renderHome();
 
       await waitFor(() => {
-        expect(getByText('Mintenance Service Hub')).toBeTruthy();
-        expect(getByText('Good morning,')).toBeTruthy();
-        expect(getByText('John')).toBeTruthy();
+        expect(getByText('Mintenance')).toBeTruthy();
+        // Greeting is a single Text node: "{greeting}, {userName}".
+        expect(getByText('Good morning, John')).toBeTruthy();
+        expect(getByText('Home, taken care of.')).toBeTruthy();
       });
     });
 
-    it('shows previous contractors section', async () => {
-      const { getByText } = render(<HomeScreen />);
-
-      expect(getByText('Previously Used Contractors')).toBeTruthy();
-      expect(getByText('Your trusted professionals')).toBeTruthy();
-    });
-
-    it('shows Find Contractors call to action', async () => {
-      const { getByText } = render(<HomeScreen />);
+    it('shows the Quick post trade grid', async () => {
+      const { getByText } = renderHome();
 
       await waitFor(() => {
-        expect(getByText('Find Contractors')).toBeTruthy();
+        expect(getByText('Quick post')).toBeTruthy();
+        expect(getByText('Plumbing')).toBeTruthy();
+        expect(getByText('Electrical')).toBeTruthy();
+      });
+    });
+
+    it('shows the Active Projects section', async () => {
+      const { getByText } = renderHome();
+
+      await waitFor(() => {
+        expect(getByText('Active Projects')).toBeTruthy();
       });
     });
   });
@@ -144,32 +181,21 @@ describe('HomeScreen', () => {
       });
     });
 
-    it('shows greeting and verification badge for contractors', async () => {
-      mockUseAuth.mockReturnValue({
-        user: { ...mockUser, role: 'contractor', isVerified: true },
-        session: null,
-        loading: false,
-        signIn: jest.fn(),
-        signUp: jest.fn(),
-        signOut: jest.fn(),
-        updateProfile: jest.fn(),
-      });
-
+    it('shows the editorial greeting with the business name', async () => {
       mockUserService.getContractorStats.mockResolvedValue({} as any);
 
-      const { getByText } = render(<HomeScreen />);
+      const { getByText } = renderHome();
 
       await waitFor(() => {
-        expect(getByText('Good morning!')).toBeTruthy();
-        expect(getByText('Verified Contractor')).toBeTruthy();
+        // ContractorDashboard greeting: "{getTimeGreeting()}, {businessName}"
+        // businessName falls back to first + last name.
+        expect(getByText('Good morning, John Doe')).toBeTruthy();
       });
     });
   });
 
-  // Loading states are handled with skeletons in the contractor view; skipped here.
-
   describe('Error Handling', () => {
-    it('shows error UI and retry button for contractor errors', async () => {
+    it('shows error UI and retry button when contractor stats fail', async () => {
       mockUseAuth.mockReturnValue({
         user: { ...mockUser, role: 'contractor' },
         session: null,
@@ -184,29 +210,25 @@ describe('HomeScreen', () => {
         new Error('Network error')
       );
 
-      const { getByText } = render(<HomeScreen />);
+      const { getByText } = renderHome();
 
       await waitFor(() => {
-        expect(getByText('Something went wrong')).toBeTruthy();
-        expect(getByText('Retry')).toBeTruthy();
+        expect(getByText('Failed to load dashboard')).toBeTruthy();
+        expect(getByText('Try Again')).toBeTruthy();
       });
     });
   });
-
-  // Pull to refresh covered implicitly via RefreshControl; skip explicit test.
 
   describe('Empty States', () => {
-    it('shows empty previous contractors when none exist', async () => {
-      const { getByText } = render(<HomeScreen />);
+    it('shows the empty Active Projects state when the homeowner has no jobs', async () => {
+      mockJobService.getUserJobs.mockResolvedValue([] as any);
+
+      const { getByText } = renderHome();
 
       await waitFor(() => {
-        expect(getByText('No previous contractors yet')).toBeTruthy();
-        expect(
-          getByText('Complete your first job to see contractors here')
-        ).toBeTruthy();
+        expect(getByText('No jobs posted yet')).toBeTruthy();
+        expect(getByText('Post your first job to get started!')).toBeTruthy();
       });
     });
   });
-
-  // Job status badges are not part of the current HomeScreen UI.
 });
