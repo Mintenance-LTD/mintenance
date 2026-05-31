@@ -1614,4 +1614,30 @@
   .me-root .me-sched-grid {
     grid-template-columns: 1fr !important;
   }
+
+  /* Financials / payments "Transaction history" — an inline-styled flex
+   * pseudo-table (Job / Tradesperson / Date / Amount / Status / Receipt)
+   * whose cells carry `flex: 1`/`flex: 1.6`, so on a phone all six
+   * shared one line and collided (date over job title). Hide the desktop
+   * header and let each row wrap: stop cells stretching, give the job
+   * title the full first line, push Receipt to the right. The inline
+   * flex on each cell is overridden here (hence !important). */
+  .me-root .me-fin-thead {
+    display: none;
+  }
+  .me-root .me-fin-trow {
+    flex-wrap: wrap;
+    gap: 4px 12px;
+  }
+  .me-root .me-fin-trow > div {
+    flex: 0 0 auto !important;
+    text-align: left !important;
+  }
+  .me-root .me-fin-trow > div:first-child {
+    flex: 1 1 100% !important;
+  }
+  .me-root .me-fin-trow > div:last-child {
+    margin-left: auto;
+    width: auto !important;
+  }
 }
