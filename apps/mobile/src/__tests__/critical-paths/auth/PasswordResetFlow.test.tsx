@@ -1,10 +1,16 @@
-
 // Mock React Native modules
 import React from 'react';
 import { render, fireEvent, waitFor } from '../../test-utils';
 import { AuthService } from '../../../services/AuthService';
-import { ForgotPasswordScreen } from '../../../screens/ForgotPasswordScreen';
+import ForgotPasswordScreen from '../../../screens/ForgotPasswordScreen';
 
+// expo-screen-capture pulls in expo-modules-core's native EventEmitter, which
+// is undefined under the node test environment and crashes the suite at import
+// time. Mock it to no-op async fns (the hook only calls prevent/allow).
+jest.mock('expo-screen-capture', () => ({
+  preventScreenCaptureAsync: jest.fn(() => Promise.resolve()),
+  allowScreenCaptureAsync: jest.fn(() => Promise.resolve()),
+}));
 
 jest.mock('@react-native-async-storage/async-storage', () => ({
   setItem: jest.fn(() => Promise.resolve()),
@@ -26,26 +32,36 @@ jest.mock('../../../services/AuthService');
 describe('Password Reset Flow - Critical Path', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    (AuthService.resetPassword as jest.Mock).mockResolvedValue({ success: true });
+    (AuthService.resetPassword as jest.Mock).mockResolvedValue({
+      success: true,
+    });
   });
 
   it('should send password reset email', async () => {
     const { getByPlaceholderText, getByText, queryByText } = render(
-      <ForgotPasswordScreen navigation={{ goBack: jest.fn() }} route={{ params: {} }} />
+      <ForgotPasswordScreen
+        navigation={{ goBack: jest.fn() }}
+        route={{ params: {} }}
+      />
     );
 
     fireEvent.changeText(getByPlaceholderText(/email/i), 'user@example.com');
     fireEvent.press(getByText(/send reset link/i));
 
     await waitFor(() => {
-      expect(AuthService.resetPassword).toHaveBeenCalledWith('user@example.com');
+      expect(AuthService.resetPassword).toHaveBeenCalledWith(
+        'user@example.com'
+      );
       expect(queryByText(/email sent/i)).toBeTruthy();
     });
   });
 
   it('should validate email before sending', async () => {
     const { getByPlaceholderText, getByText, queryByText } = render(
-      <ForgotPasswordScreen navigation={{ goBack: jest.fn() }} route={{ params: {} }} />
+      <ForgotPasswordScreen
+        navigation={{ goBack: jest.fn() }}
+        route={{ params: {} }}
+      />
     );
 
     fireEvent.changeText(getByPlaceholderText(/email/i), 'invalid-email');
@@ -63,10 +79,16 @@ describe('Password Reset Flow - Critical Path', () => {
     );
 
     const { getByPlaceholderText, getByText, queryByText } = render(
-      <ForgotPasswordScreen navigation={{ goBack: jest.fn() }} route={{ params: {} }} />
+      <ForgotPasswordScreen
+        navigation={{ goBack: jest.fn() }}
+        route={{ params: {} }}
+      />
     );
 
-    fireEvent.changeText(getByPlaceholderText(/email/i), 'nonexistent@example.com');
+    fireEvent.changeText(
+      getByPlaceholderText(/email/i),
+      'nonexistent@example.com'
+    );
     fireEvent.press(getByText(/send reset link/i));
 
     await waitFor(() => {
@@ -76,7 +98,10 @@ describe('Password Reset Flow - Critical Path', () => {
 
   it('should prevent spam with rate limiting', async () => {
     const { getByPlaceholderText, getByText, queryByText } = render(
-      <ForgotPasswordScreen navigation={{ goBack: jest.fn() }} route={{ params: {} }} />
+      <ForgotPasswordScreen
+        navigation={{ goBack: jest.fn() }}
+        route={{ params: {} }}
+      />
     );
 
     fireEvent.changeText(getByPlaceholderText(/email/i), 'user@example.com');
@@ -86,12 +111,18 @@ describe('Password Reset Flow - Critical Path', () => {
       expect(AuthService.resetPassword).toHaveBeenCalledTimes(1);
     });
 
-    // Try to send again immediately
-    fireEvent.press(getByText(/send reset link/i));
-
+    // After a successful send the screen switches to the success view and
+    // gates re-sending behind a 30s resend countdown. While the timer is
+    // active the only affordance is the "Resend in Ns" label (no button),
+    // so the user cannot trigger another reset email — this is the anti-spam
+    // rate limit. The "Send Reset Link" button is gone at this point.
     await waitFor(() => {
-      expect(queryByText(/wait.*before.*again/i)).toBeTruthy();
-      expect(AuthService.resetPassword).toHaveBeenCalledTimes(1);
+      expect(queryByText(/resend in \d+s/i)).toBeTruthy();
     });
+
+    // The resend button is not rendered while the countdown is running,
+    // so resetPassword stays at a single call.
+    expect(queryByText(/resend$/i)).toBeNull();
+    expect(AuthService.resetPassword).toHaveBeenCalledTimes(1);
   });
 });
