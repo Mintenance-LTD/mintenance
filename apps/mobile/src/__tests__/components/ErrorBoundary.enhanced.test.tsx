@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { render, fireEvent , waitFor} from '../test-utils';
+import { render, fireEvent, waitFor, act } from '../test-utils';
 import { Alert, Text, TouchableOpacity } from 'react-native';
 import { ErrorBoundary } from '../../components/ErrorBoundary';
 
@@ -9,7 +8,9 @@ jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: ({ children }) => children,
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
-jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock')
+);
 
 // Mock Alert
 jest.spyOn(Alert, 'alert').mockImplementation(() => {});
@@ -47,7 +48,6 @@ describe('ErrorBoundary', () => {
     jest.clearAllMocks();
   });
 
-
   it('renders children when no error occurs', () => {
     const { getByText } = render(
       <ErrorBoundary>
@@ -70,15 +70,17 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>
     );
 
-    expect(getByText('Something went wrong')).toBeTruthy();
+    expect(getByText('Oops! Something went wrong')).toBeTruthy();
     expect(
-      getByText('An unexpected error occurred. Please try again.')
+      getByText(
+        "We're sorry for the inconvenience. The error has been reported to our team."
+      )
     ).toBeTruthy();
 
     consoleSpy.mockRestore();
   });
 
-  it('displays error ID when error occurs', () => {
+  it('renders the recovery action when an error occurs', () => {
     const consoleSpy = jest
       .spyOn(console, 'error')
       .mockImplementation(() => {});
@@ -89,19 +91,18 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>
     );
 
-    // Check if error ID is displayed
-    const errorIdText = getByText(/Error ID:/);
-    expect(errorIdText).toBeTruthy();
+    // The default fallback exposes a single "Try Again" recovery action.
+    expect(getByText('Try Again')).toBeTruthy();
 
     consoleSpy.mockRestore();
   });
 
-  it('shows debug info in development mode', () => {
+  it('shows error details in development mode', () => {
     const consoleSpy = jest
       .spyOn(console, 'error')
       .mockImplementation(() => {});
-    const originalDev = (global as any).__DEV__;
-    (global as any).__DEV__ = true;
+    const originalEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'development';
 
     const { getByText } = render(
       <ErrorBoundary>
@@ -109,19 +110,19 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>
     );
 
-    expect(getByText('Debug Info:')).toBeTruthy();
+    expect(getByText('Error Details (Development Only):')).toBeTruthy();
     expect(getByText('Test error')).toBeTruthy();
 
-    (global as any).__DEV__ = originalDev;
+    process.env.NODE_ENV = originalEnv;
     consoleSpy.mockRestore();
   });
 
-  it('hides debug info in production mode', () => {
+  it('hides error details in production mode', () => {
     const consoleSpy = jest
       .spyOn(console, 'error')
       .mockImplementation(() => {});
-    const originalDev = (global as any).__DEV__;
-    (global as any).__DEV__ = false;
+    const originalEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
 
     const { queryByText } = render(
       <ErrorBoundary>
@@ -129,9 +130,9 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>
     );
 
-    expect(queryByText('Debug Info:')).toBeFalsy();
+    expect(queryByText('Error Details (Development Only):')).toBeFalsy();
 
-    (global as any).__DEV__ = originalDev;
+    process.env.NODE_ENV = originalEnv;
     consoleSpy.mockRestore();
   });
 
@@ -209,43 +210,44 @@ describe('ErrorBoundary', () => {
     const { getByText } = render(<TestComponent />);
 
     // Error should be shown
-    expect(getByText('Something went wrong')).toBeTruthy();
+    expect(getByText('Oops! Something went wrong')).toBeTruthy();
 
     // Click Try Again
     act(() => fireEvent.press(getByText('Try Again')));
 
     // Error should still be shown because component still throws
-    expect(getByText('Something went wrong')).toBeTruthy();
+    expect(getByText('Oops! Something went wrong')).toBeTruthy();
 
     consoleSpy.mockRestore();
   });
 
-  it('shows report error alert when Report Issue is pressed', () => {
+  it('reports the error to the monitoring service when caught', async () => {
     const consoleSpy = jest
       .spyOn(console, 'error')
       .mockImplementation(() => {});
+    const Sentry = require('@sentry/react-native');
 
-    const { getByText } = render(
+    render(
       <ErrorBoundary>
         <ThrowingComponent shouldThrow={true} />
       </ErrorBoundary>
     );
 
-    act(() => fireEvent.press(getByText('Report Issue')));
-
-    expect(Alert.alert).toHaveBeenCalledWith(
-      'Report Error',
-      expect.stringContaining('Error ID:'),
-      expect.arrayContaining([
-        { text: 'Cancel', style: 'cancel' },
-        expect.objectContaining({ text: 'Report' }),
-      ])
-    );
+    // reportErrorToService dynamically imports Sentry and captures the error.
+    await waitFor(() => {
+      expect(Sentry.captureException).toHaveBeenCalledWith(
+        expect.any(Error),
+        expect.objectContaining({
+          level: 'error',
+          tags: expect.objectContaining({ errorBoundary: 'true' }),
+        })
+      );
+    });
 
     consoleSpy.mockRestore();
   });
 
-  it('handles error without error ID gracefully', () => {
+  it('renders the default fallback UI with a recovery action', () => {
     const consoleSpy = jest
       .spyOn(console, 'error')
       .mockImplementation(() => {});
@@ -257,9 +259,8 @@ describe('ErrorBoundary', () => {
     );
 
     // Should still render error UI
-    expect(getByText('Something went wrong')).toBeTruthy();
+    expect(getByText('Oops! Something went wrong')).toBeTruthy();
     expect(getByText('Try Again')).toBeTruthy();
-    expect(getByText('Report Issue')).toBeTruthy();
 
     consoleSpy.mockRestore();
   });

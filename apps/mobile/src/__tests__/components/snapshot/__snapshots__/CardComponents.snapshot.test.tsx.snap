@@ -4,22 +4,22 @@ exports[`Card Components - Snapshots JobCard should match snapshot for completed
 <TouchableOpacity
   accessibilityLabel="Job: Electrical Work, , completed"
   accessibilityRole="button"
+  activeOpacity={0.95}
   onPress={[Function]}
   style={
     {
       "backgroundColor": "#FFFFFF",
-      "borderRadius": 12,
-      "elevation": 2,
-      "marginHorizontal": 16,
-      "marginVertical": 8,
-      "padding": 16,
+      "borderRadius": 16,
+      "marginHorizontal": 4,
+      "marginVertical": 6,
+      "padding": 18,
       "shadowColor": "#000000",
       "shadowOffset": {
         "height": 2,
         "width": 0,
       },
-      "shadowOpacity": 0.08,
-      "shadowRadius": 8,
+      "shadowOpacity": 0.06,
+      "shadowRadius": 10,
     }
   }
   testID="job-card"
@@ -29,45 +29,74 @@ exports[`Card Components - Snapshots JobCard should match snapshot for completed
       {
         "alignItems": "flex-start",
         "flexDirection": "row",
-        "justifyContent": "space-between",
-        "marginBottom": 8,
+        "marginBottom": 10,
       }
     }
   >
-    <Text
-      numberOfLines={2}
+    <View
       style={
         {
-          "color": "#222222",
+          "alignItems": "center",
+          "backgroundColor": "#F7F7F7",
+          "borderRadius": 12,
+          "height": 40,
+          "justifyContent": "center",
+          "marginRight": 12,
+          "width": 40,
+        }
+      }
+    >
+      <Text
+        color="#717171"
+        name="construct"
+        size={18}
+      >
+        construct
+      </Text>
+    </View>
+    <View
+      style={
+        {
           "flex": 1,
-          "fontSize": 19,
-          "fontWeight": "600",
           "marginRight": 8,
         }
       }
     >
-      Electrical Work
-    </Text>
+      <Text
+        numberOfLines={2}
+        style={
+          {
+            "color": "#222222",
+            "fontSize": 16,
+            "fontWeight": "600",
+            "lineHeight": 22,
+          }
+        }
+      >
+        Electrical Work
+      </Text>
+    </View>
     <Text
       style={
         {
           "color": "#222222",
-          "fontSize": 19,
+          "fontSize": 18,
           "fontWeight": "700",
+          "letterSpacing": -0.3,
         }
       }
     >
-      £NaN
+      £0
     </Text>
   </View>
   <Text
-    numberOfLines={3}
+    numberOfLines={2}
     style={
       {
         "color": "#717171",
-        "fontSize": 15,
-        "lineHeight": 21,
-        "marginBottom": 12,
+        "fontSize": 14,
+        "lineHeight": 20,
+        "marginBottom": 14,
       }
     }
   />
@@ -76,7 +105,7 @@ exports[`Card Components - Snapshots JobCard should match snapshot for completed
       {
         "alignItems": "center",
         "flexDirection": "row",
-        "justifyContent": "space-between",
+        "gap": 8,
       }
     }
   >
@@ -84,14 +113,12 @@ exports[`Card Components - Snapshots JobCard should match snapshot for completed
       style={
         [
           {
-            "borderRadius": 8,
-            "borderWidth": 1,
-            "paddingHorizontal": 8,
+            "borderRadius": 12,
+            "paddingHorizontal": 10,
             "paddingVertical": 4,
           },
           {
-            "backgroundColor": "#ECFDF5",
-            "borderColor": "#A7F3D0",
+            "backgroundColor": "#6B7280",
           },
         ]
       }
@@ -100,11 +127,11 @@ exports[`Card Components - Snapshots JobCard should match snapshot for completed
         style={
           [
             {
-              "fontSize": 11,
-              "fontWeight": "500",
+              "fontSize": 12,
+              "fontWeight": "600",
             },
             {
-              "color": "#047857",
+              "color": "#FFFFFF",
             },
           ]
         }
@@ -112,6 +139,20 @@ exports[`Card Components - Snapshots JobCard should match snapshot for completed
         Completed
       </Text>
     </View>
+    <View
+      style={
+        {
+          "flex": 1,
+        }
+      }
+    />
+    <Text
+      color="#B0B0B0"
+      name="chevron-forward"
+      size={16}
+    >
+      chevron-forward
+    </Text>
   </View>
 </TouchableOpacity>
 `;
@@ -120,22 +161,22 @@ exports[`Card Components - Snapshots JobCard should match snapshot for pending j
 <TouchableOpacity
   accessibilityLabel="Job: Plumbing Repair, , posted"
   accessibilityRole="button"
+  activeOpacity={0.95}
   onPress={[Function]}
   style={
     {
       "backgroundColor": "#FFFFFF",
-      "borderRadius": 12,
-      "elevation": 2,
-      "marginHorizontal": 16,
-      "marginVertical": 8,
-      "padding": 16,
+      "borderRadius": 16,
+      "marginHorizontal": 4,
+      "marginVertical": 6,
+      "padding": 18,
       "shadowColor": "#000000",
       "shadowOffset": {
         "height": 2,
         "width": 0,
       },
-      "shadowOpacity": 0.08,
-      "shadowRadius": 8,
+      "shadowOpacity": 0.06,
+      "shadowRadius": 10,
     }
   }
   testID="job-card"
@@ -145,31 +186,60 @@ exports[`Card Components - Snapshots JobCard should match snapshot for pending j
       {
         "alignItems": "flex-start",
         "flexDirection": "row",
-        "justifyContent": "space-between",
-        "marginBottom": 8,
+        "marginBottom": 10,
       }
     }
   >
-    <Text
-      numberOfLines={2}
+    <View
       style={
         {
-          "color": "#222222",
+          "alignItems": "center",
+          "backgroundColor": "#F7F7F7",
+          "borderRadius": 12,
+          "height": 40,
+          "justifyContent": "center",
+          "marginRight": 12,
+          "width": 40,
+        }
+      }
+    >
+      <Text
+        color="#717171"
+        name="construct"
+        size={18}
+      >
+        construct
+      </Text>
+    </View>
+    <View
+      style={
+        {
           "flex": 1,
-          "fontSize": 19,
-          "fontWeight": "600",
           "marginRight": 8,
         }
       }
     >
-      Plumbing Repair
-    </Text>
+      <Text
+        numberOfLines={2}
+        style={
+          {
+            "color": "#222222",
+            "fontSize": 16,
+            "fontWeight": "600",
+            "lineHeight": 22,
+          }
+        }
+      >
+        Plumbing Repair
+      </Text>
+    </View>
     <Text
       style={
         {
           "color": "#222222",
-          "fontSize": 19,
+          "fontSize": 18,
           "fontWeight": "700",
+          "letterSpacing": -0.3,
         }
       }
     >
@@ -177,13 +247,13 @@ exports[`Card Components - Snapshots JobCard should match snapshot for pending j
     </Text>
   </View>
   <Text
-    numberOfLines={3}
+    numberOfLines={2}
     style={
       {
         "color": "#717171",
-        "fontSize": 15,
-        "lineHeight": 21,
-        "marginBottom": 12,
+        "fontSize": 14,
+        "lineHeight": 20,
+        "marginBottom": 14,
       }
     }
   >
@@ -194,7 +264,7 @@ exports[`Card Components - Snapshots JobCard should match snapshot for pending j
       {
         "alignItems": "center",
         "flexDirection": "row",
-        "justifyContent": "space-between",
+        "gap": 8,
       }
     }
   >
@@ -202,14 +272,12 @@ exports[`Card Components - Snapshots JobCard should match snapshot for pending j
       style={
         [
           {
-            "borderRadius": 8,
-            "borderWidth": 1,
-            "paddingHorizontal": 8,
+            "borderRadius": 12,
+            "paddingHorizontal": 10,
             "paddingVertical": 4,
           },
           {
-            "backgroundColor": "#EFF6FF",
-            "borderColor": "#BFDBFE",
+            "backgroundColor": "#3B82F6",
           },
         ]
       }
@@ -218,11 +286,11 @@ exports[`Card Components - Snapshots JobCard should match snapshot for pending j
         style={
           [
             {
-              "fontSize": 11,
-              "fontWeight": "500",
+              "fontSize": 12,
+              "fontWeight": "600",
             },
             {
-              "color": "#2563EB",
+              "color": "#FFFFFF",
             },
           ]
         }
@@ -230,6 +298,20 @@ exports[`Card Components - Snapshots JobCard should match snapshot for pending j
         Posted
       </Text>
     </View>
+    <View
+      style={
+        {
+          "flex": 1,
+        }
+      }
+    />
+    <Text
+      color="#B0B0B0"
+      name="chevron-forward"
+      size={16}
+    >
+      chevron-forward
+    </Text>
   </View>
 </TouchableOpacity>
 `;
