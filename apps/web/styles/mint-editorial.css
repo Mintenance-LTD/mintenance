@@ -1533,3 +1533,83 @@
     padding: 18px 16px 120px !important;
   }
 }
+
+/* ============================================================
+ * Content-level mobile fixes (phone widths) — these address the
+ * "clashes" where multi-column page content was crammed into a
+ * phone width and overlapped. Scoped to .me-root (the theme scope)
+ * so they only affect Mint Editorial surfaces.
+ * ============================================================ */
+@media (max-width: 768px) {
+  /* Property sub-nav tabs — 7 tabs overflowed and overlapped each
+   * other. Make the row horizontally scrollable and stop tabs from
+   * shrinking so each label stays whole. */
+  .me-root .me-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .me-root .me-tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .me-root .me-tab {
+    flex-shrink: 0;
+    white-space: nowrap;
+    padding: 10px 12px;
+  }
+
+  /* Property Overview was a fixed 2-column grid (inline style) that
+   * never stacked, squeezing the right column (health/recent jobs)
+   * and the Major Systems table so badges overlapped labels. Stack
+   * to a single column on phones. */
+  .me-root .me-prop-overview {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Property header stat row was `repeat(3, 1fr) auto` with the
+   * "Post a job" button jammed into the 4th cell. Keep the 3 stat
+   * tiles in a row and drop the CTA onto its own full-width line. */
+  .me-root .me-prop-stats {
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  }
+  .me-root .me-prop-stats-cta {
+    grid-column: 1 / -1;
+    justify-content: center;
+  }
+
+  /* Payments transactions table — a 5-column <table> that overflowed
+   * the viewport and collided cells (date over amount, etc.). Collapse
+   * each row into a stacked card: description on its own line, then
+   * date / amount / status / actions wrapping beneath it. */
+  .me-root .me-pay-table thead {
+    display: none;
+  }
+  .me-root .me-pay-table,
+  .me-root .me-pay-table tbody,
+  .me-root .me-pay-row {
+    display: block;
+    width: 100%;
+  }
+  .me-root .me-pay-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 12px;
+    padding: 14px 16px;
+    border-top: 1px solid var(--me-line-2);
+  }
+  .me-root .me-pay-cell {
+    display: block;
+    padding: 0;
+    border-top: 0;
+  }
+  /* Description takes the full first line; the rest flow under it. */
+  .me-root .me-pay-cell:first-child {
+    flex: 1 1 100%;
+  }
+  .me-root .me-pay-actions {
+    margin-left: auto;
+    text-align: right;
+  }
+}
