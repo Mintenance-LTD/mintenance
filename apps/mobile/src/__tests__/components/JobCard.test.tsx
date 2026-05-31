@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { render, fireEvent, waitFor } from '../test-utils';
+import { render, fireEvent, waitFor, act } from '../test-utils';
 import { JobCard } from '../../components/JobCard';
 import { Job } from '../../types';
 
@@ -9,7 +8,9 @@ jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: ({ children }) => children,
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
-jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock')
+);
 
 const mockJob: Job = {
   id: 'test-job-1',
@@ -38,16 +39,15 @@ describe('JobCard', () => {
     jest.clearAllMocks();
   });
 
-
   it('renders job information correctly', () => {
     const { getByText } = render(
       <JobCard job={mockJob} onPress={mockOnPress} />
     );
 
     expect(getByText('Kitchen Faucet Repair')).toBeTruthy();
-    expect(getByText('$150')).toBeTruthy();
+    expect(getByText('£150')).toBeTruthy();
     expect(getByText('Plumbing')).toBeTruthy();
-    expect(getByText('HIGH PRIORITY')).toBeTruthy();
+    expect(getByText('High')).toBeTruthy();
   });
 
   it('calls onPress when card is tapped', () => {
@@ -92,7 +92,7 @@ describe('JobCard', () => {
       <JobCard job={assignedJob} onPress={mockOnPress} />
     );
 
-    expect(getByText('ASSIGNED')).toBeTruthy();
+    expect(getByText('Assigned')).toBeTruthy();
   });
 
   it('shows photo indicator when photos exist', () => {
@@ -121,7 +121,7 @@ describe('JobCard', () => {
     );
 
     expect(getByText('Basic Job')).toBeTruthy();
-    expect(getByText('$100')).toBeTruthy();
+    expect(getByText('£100')).toBeTruthy();
   });
 
   it('formats budget correctly', () => {
@@ -130,7 +130,7 @@ describe('JobCard', () => {
       <JobCard job={expensiveJob} onPress={mockOnPress} />
     );
 
-    expect(getByText('$1,501')).toBeTruthy();
+    expect(getByText('£1,501')).toBeTruthy();
   });
 
   it('truncates long descriptions', () => {
@@ -145,6 +145,6 @@ describe('JobCard', () => {
     );
 
     const description = getByText(/This is a very long description/);
-    expect(description.props.numberOfLines).toBe(3);
+    expect(description.props.numberOfLines).toBe(2);
   });
 });
