@@ -143,6 +143,7 @@ export function SchedulingClient2025({
   // `.card-pad` + `.t-h3`. Reuses the same Calendar wrapper.
   const calendarAndUpcomingMintEditorial = (
     <div
+      className='me-sched-grid'
       style={{
         display: 'grid',
         gridTemplateColumns: 'minmax(0, 1.5fr) minmax(0, 1fr)',
