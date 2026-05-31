@@ -1640,4 +1640,24 @@
     margin-left: auto;
     width: auto !important;
   }
+
+  /* Maintenance plan — "What's next" + Auto-rebook is a second
+   * `minmax(0,1.55fr) minmax(0,1fr)` grid that never stacked, so on a
+   * phone the What's-next card was ~230px wide and its rows overlapped
+   * (task title / "In 1d" / date / Auto-job badge all collided). Stack
+   * to one column. */
+  .me-root .me-mplan-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* The 12-month year strip can't fit 12 columns on a phone. Keep the
+   * inner grid at a usable min-width and let the card scroll
+   * horizontally instead of crushing every month to ~30px. */
+  .me-root .me-mplan-strip {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  .me-root .me-mplan-strip > div {
+    min-width: 720px;
+  }
 }
