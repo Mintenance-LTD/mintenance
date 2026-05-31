@@ -1660,4 +1660,26 @@
   .me-root .me-mplan-strip > div {
     min-width: 720px;
   }
+
+  /* Settings — its own in-page layout (22%-wide nav rail + flex:1
+   * content) that never stacked, so on a phone the content column was
+   * clipped off the right edge ("Change" button cut, "Full" toggle
+   * clipped, email truncated). Stack the rail above the content and let
+   * the nav span full width. */
+  .me-root.settings-page .settings-shell {
+    flex-direction: column;
+  }
+  .me-root.settings-page .settings-nav {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  /* Job detail — hero strip (1fr 320px) and body (1fr 360px) both pin a
+   * fixed-width right rail, crushing the left column on a phone (the
+   * "Job brief" text wrapped one word per line and the rail overlapped).
+   * Stack both to a single column; the rail drops beneath the content. */
+  .me-root .me-job-hero,
+  .me-root .me-job-body {
+    grid-template-columns: 1fr !important;
+  }
 }
