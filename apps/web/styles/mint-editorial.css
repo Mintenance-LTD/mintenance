@@ -1453,3 +1453,83 @@
 /* The theme switch lives at /settings → Appearance now (Phase 1). The
    floating dev pill that previously sat at top-right has been removed
    so the dashboard chrome matches the design exactly. */
+
+/* ============================================================
+ * Mobile nav drawer — homeowner Mint Editorial shell (.me-shell)
+ * ------------------------------------------------------------
+ * The 240px sidebar is fine on desktop, but on phones it stayed
+ * a fixed in-flow column and stole ~60% of the viewport, clipping
+ * page content (Export / Add property / cards) off the right edge.
+ * Below 768px the sidebar becomes an off-canvas drawer toggled by
+ * the topbar hamburger, and the content column gets the full width.
+ * Scoped to `.me-shell` so the contractor sidebar (which reuses the
+ * `.me-sidebar` class inside its own responsive shell) is untouched.
+ * ============================================================ */
+.me-shell .me-menu-btn {
+  display: none;
+}
+.me-shell .me-drawer-backdrop {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .me-shell .me-menu-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    border: 1px solid var(--me-line);
+    background: var(--me-surface);
+    color: var(--me-ink);
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+
+  /* Sidebar → off-canvas drawer */
+  .me-shell .me-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 60;
+    height: 100vh;
+    height: 100dvh;
+    width: 270px;
+    max-width: 82vw;
+    transform: translateX(-100%);
+    transition: transform 0.22s ease;
+    box-shadow: var(--me-shadow-pop);
+  }
+  .me-shell.me-drawer-open .me-sidebar {
+    transform: translateX(0);
+  }
+
+  /* Dimming backdrop behind the open drawer */
+  .me-shell .me-drawer-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 55;
+    background: rgba(17, 24, 28, 0.42);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.22s ease;
+  }
+  .me-shell.me-drawer-open .me-drawer-backdrop {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* Tighten chrome so the page fits a phone width */
+  .me-shell .me-topbar {
+    padding: 0 14px;
+    gap: 10px;
+  }
+  .me-shell .me-topbar .search-pill {
+    display: none;
+  }
+  .me-shell .me-content {
+    padding: 18px 16px 120px !important;
+  }
+}
