@@ -10,37 +10,50 @@
 process.env.JWT_SECRET = 'test-secret-key-that-is-long-enough-for-security';
 
 // Use vi.hoisted() so these are available when hoisted vi.mock() factories execute
-const { mockConfigInstance, mockCookieStore, supabaseChain } = vi.hoisted(() => {
-  const mockConfigInstance = {
-    get: vi.fn((key: string) => {
-      if (key === 'JWT_SECRET') return 'test-secret-key-that-is-long-enough-for-security';
-      return undefined;
-    }),
-    getRequired: vi.fn((key: string) => {
-      if (key === 'JWT_SECRET') return 'test-secret-key-that-is-long-enough-for-security';
-      throw new Error(`Missing required config: ${key}`);
-    }),
-    isProduction: vi.fn(() => false),
-  };
+const { mockConfigInstance, mockCookieStore, supabaseChain } = vi.hoisted(
+  () => {
+    const mockConfigInstance = {
+      get: vi.fn((key: string) => {
+        if (key === 'JWT_SECRET')
+          return 'test-secret-key-that-is-long-enough-for-security';
+        return undefined;
+      }),
+      getRequired: vi.fn((key: string) => {
+        if (key === 'JWT_SECRET')
+          return 'test-secret-key-that-is-long-enough-for-security';
+        throw new Error(`Missing required config: ${key}`);
+      }),
+      isProduction: vi.fn(() => false),
+    };
 
-  const mockCookieStore = {
-    get: vi.fn(),
-    set: vi.fn(),
-    delete: vi.fn(),
-  };
+    const mockCookieStore = {
+      get: vi.fn(),
+      set: vi.fn(),
+      delete: vi.fn(),
+    };
 
-  const supabaseChain: Record<string, ReturnType<typeof vi.fn>> = {};
-  supabaseChain.single = vi.fn(() => Promise.resolve({ data: null, error: null }));
-  supabaseChain.is = vi.fn(() => supabaseChain);
-  supabaseChain.eq = vi.fn(() => supabaseChain);
-  supabaseChain.select = vi.fn(() => supabaseChain);
-  supabaseChain.insert = vi.fn(() => supabaseChain);
-  supabaseChain.update = vi.fn(() => supabaseChain);
-  supabaseChain.delete = vi.fn(() => supabaseChain);
-  supabaseChain.rpc = vi.fn(() => supabaseChain);
+    const supabaseChain: Record<string, ReturnType<typeof vi.fn>> = {};
+    supabaseChain.single = vi.fn(() =>
+      Promise.resolve({ data: null, error: null })
+    );
+    // verifyToken's durable per-user revocation backstop (auth.ts, 2026-05-26 audit-56 P0)
+    // calls serverSupabase.from('profiles').select().eq().maybeSingle() to read
+    // tokens_revoked_at. Default to "no profile row" so the cutoff check is a no-op
+    // and a freshly minted JWT verifies successfully.
+    supabaseChain.maybeSingle = vi.fn(() =>
+      Promise.resolve({ data: null, error: null })
+    );
+    supabaseChain.is = vi.fn(() => supabaseChain);
+    supabaseChain.eq = vi.fn(() => supabaseChain);
+    supabaseChain.select = vi.fn(() => supabaseChain);
+    supabaseChain.insert = vi.fn(() => supabaseChain);
+    supabaseChain.update = vi.fn(() => supabaseChain);
+    supabaseChain.delete = vi.fn(() => supabaseChain);
+    supabaseChain.rpc = vi.fn(() => supabaseChain);
 
-  return { mockConfigInstance, mockCookieStore, supabaseChain };
-});
+    return { mockConfigInstance, mockCookieStore, supabaseChain };
+  }
+);
 
 // Mock ConfigManager to return the shared singleton instance
 vi.mock('@mintenance/auth', async () => {
@@ -77,18 +90,38 @@ vi.mock('../auth/token-blacklist', () => ({
 // Mock server-only modules
 vi.mock('../database', () => ({
   supabase: {
-    from: vi.fn(function() {
+    from: vi.fn(function () {
       return {
-        select: vi.fn(function() { return { eq: vi.fn(function() { return { single: vi.fn() }; }) }; }),
-        insert: vi.fn(function() { return { select: vi.fn(function() { return { single: vi.fn() }; }) }; }),
-        update: vi.fn(function() { return { eq: vi.fn(function() { return {}; }) }; }),
-        delete: vi.fn(function() { return { eq: vi.fn() }; }),
+        select: vi.fn(function () {
+          return {
+            eq: vi.fn(function () {
+              return { single: vi.fn() };
+            }),
+          };
+        }),
+        insert: vi.fn(function () {
+          return {
+            select: vi.fn(function () {
+              return { single: vi.fn() };
+            }),
+          };
+        }),
+        update: vi.fn(function () {
+          return {
+            eq: vi.fn(function () {
+              return {};
+            }),
+          };
+        }),
+        delete: vi.fn(function () {
+          return { eq: vi.fn() };
+        }),
       };
-    })
+    }),
   },
   DatabaseManager: {
     getUserById: vi.fn(),
-  }
+  },
 }));
 
 vi.mock('../api/supabaseServer', () => ({
@@ -122,7 +155,7 @@ describe('Auth Library', () => {
     role: 'homeowner' as const,
     first_name: 'John',
     last_name: 'Doe',
-    email_verified: true
+    email_verified: true,
   };
 
   /**
@@ -130,7 +163,12 @@ describe('Auth Library', () => {
    * Must be called after vi.clearAllMocks() since that clears all mock implementations.
    */
   function resetSupabaseChain() {
-    supabaseChain.single.mockImplementation(() => Promise.resolve({ data: null, error: null }));
+    supabaseChain.single.mockImplementation(() =>
+      Promise.resolve({ data: null, error: null })
+    );
+    supabaseChain.maybeSingle.mockImplementation(() =>
+      Promise.resolve({ data: null, error: null })
+    );
     supabaseChain.is.mockImplementation(() => supabaseChain);
     supabaseChain.eq.mockImplementation(() => supabaseChain);
     supabaseChain.select.mockImplementation(() => supabaseChain);
@@ -153,11 +191,13 @@ describe('Auth Library', () => {
 
     // Reset ConfigManager mock to default behavior (vi.clearAllMocks clears implementations)
     mockConfigInstance.get.mockImplementation((key: string) => {
-      if (key === 'JWT_SECRET') return 'test-secret-key-that-is-long-enough-for-security';
+      if (key === 'JWT_SECRET')
+        return 'test-secret-key-that-is-long-enough-for-security';
       return undefined;
     });
     mockConfigInstance.getRequired.mockImplementation((key: string) => {
-      if (key === 'JWT_SECRET') return 'test-secret-key-that-is-long-enough-for-security';
+      if (key === 'JWT_SECRET')
+        return 'test-secret-key-that-is-long-enough-for-security';
       throw new Error(`Missing required config: ${key}`);
     });
     mockConfigInstance.isProduction.mockImplementation(() => false);
@@ -237,7 +277,8 @@ describe('Auth Library', () => {
     });
 
     it('should return null for expired token', async () => {
-      const expiredToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyLCJleHAiOjF9.INVALID_SIGNATURE';
+      const expiredToken =
+        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyLCJleHAiOjF9.INVALID_SIGNATURE';
 
       const payload = await verifyToken(expiredToken);
       expect(payload).toBeNull();
@@ -248,7 +289,7 @@ describe('Auth Library', () => {
         'not-a-jwt',
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9',
         'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.invalid',
-        ''
+        '',
       ];
 
       for (const token of malformedTokens) {
@@ -269,7 +310,10 @@ describe('Auth Library', () => {
         singleCallCount++;
         if (singleCallCount === 1) {
           // Breach check: no token found (PGRST116 = no rows)
-          return Promise.resolve({ data: null, error: { code: 'PGRST116', message: 'No rows found' } });
+          return Promise.resolve({
+            data: null,
+            error: { code: 'PGRST116', message: 'No rows found' },
+          });
         }
         if (singleCallCount === 2) {
           // RPC rotate result - success
@@ -301,16 +345,24 @@ describe('Auth Library', () => {
         singleCallCount++;
         if (singleCallCount === 1) {
           // Breach check: no token found
-          return Promise.resolve({ data: null, error: { code: 'PGRST116', message: 'No rows found' } });
+          return Promise.resolve({
+            data: null,
+            error: { code: 'PGRST116', message: 'No rows found' },
+          });
         }
         // RPC rotate: fails
         return Promise.resolve({
           data: null,
-          error: { code: 'PGRST116', message: 'Token not found or already rotated' },
+          error: {
+            code: 'PGRST116',
+            message: 'Token not found or already rotated',
+          },
         });
       });
 
-      await expect(rotateTokens(mockUser.id, 'invalid-refresh-token')).rejects.toThrow('Token rotation failed');
+      await expect(
+        rotateTokens(mockUser.id, 'invalid-refresh-token')
+      ).rejects.toThrow('Token rotation failed');
     });
 
     it('should throw for expired refresh token', async () => {
@@ -319,7 +371,10 @@ describe('Auth Library', () => {
         singleCallCount++;
         if (singleCallCount === 1) {
           // Breach check: no token found
-          return Promise.resolve({ data: null, error: { code: 'PGRST116', message: 'No rows found' } });
+          return Promise.resolve({
+            data: null,
+            error: { code: 'PGRST116', message: 'No rows found' },
+          });
         }
         // RPC rotate: expired token error
         return Promise.resolve({
@@ -328,7 +383,9 @@ describe('Auth Library', () => {
         });
       });
 
-      await expect(rotateTokens(mockUser.id, 'expired-token')).rejects.toThrow('Token rotation failed');
+      await expect(rotateTokens(mockUser.id, 'expired-token')).rejects.toThrow(
+        'Token rotation failed'
+      );
     });
   });
 
@@ -360,7 +417,7 @@ describe('Auth Library', () => {
           secure: false,
           sameSite: 'strict',
           path: '/',
-          maxAge: expect.any(Number)
+          maxAge: expect.any(Number),
         })
       );
     });
@@ -369,10 +426,43 @@ describe('Auth Library', () => {
       // clearAuthCookie() takes no args, calls cookies() internally
       await clearAuthCookie();
 
-      // Should delete all three cookies (auth, refresh, remember) with dev names
-      expect(mockCookieStore.delete).toHaveBeenCalledWith('mintenance-auth');
-      expect(mockCookieStore.delete).toHaveBeenCalledWith('mintenance-refresh');
-      expect(mockCookieStore.delete).toHaveBeenCalledWith('mintenance-remember');
+      // 2026-05-26 audit-56 P0: clearAuthCookie no longer uses cookieStore.delete()
+      // (which omits Path/Secure and leaves __Host- cookies in the browser jar).
+      // It now overwrites each cookie with an empty value + maxAge:0 + matching
+      // attributes so the browser definitely drops them. Assert all three dev-named
+      // cookies are reset, and that the security-sensitive auth/refresh cookies stay
+      // httpOnly during the clear.
+      expect(mockCookieStore.delete).not.toHaveBeenCalled();
+      expect(mockCookieStore.set).toHaveBeenCalledWith(
+        'mintenance-auth',
+        '',
+        expect.objectContaining({
+          maxAge: 0,
+          path: '/',
+          httpOnly: true,
+          sameSite: 'strict',
+        })
+      );
+      expect(mockCookieStore.set).toHaveBeenCalledWith(
+        'mintenance-refresh',
+        '',
+        expect.objectContaining({
+          maxAge: 0,
+          path: '/',
+          httpOnly: true,
+          sameSite: 'strict',
+        })
+      );
+      expect(mockCookieStore.set).toHaveBeenCalledWith(
+        'mintenance-remember',
+        '',
+        expect.objectContaining({
+          maxAge: 0,
+          path: '/',
+          httpOnly: false,
+          sameSite: 'strict',
+        })
+      );
     });
   });
 
