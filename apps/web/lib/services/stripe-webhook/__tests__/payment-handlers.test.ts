@@ -204,7 +204,10 @@ describe('handlePaymentIntentSucceeded', () => {
     );
   });
 
-  it('returns early when escrow update errors', async () => {
+  it('returns early when escrow lookup errors', async () => {
+    // The handler now looks the escrow row up via .maybeSingle() before
+    // updating (out-of-order / duplicate payment_intent.succeeded guard).
+    // An error on that lookup is logged and short-circuits before the update.
     const chain = buildChain({ singleError: { message: 'not found' } });
     mockFrom.mockReturnValue(chain);
 
@@ -212,7 +215,7 @@ describe('handlePaymentIntentSucceeded', () => {
     await handlePaymentIntentSucceeded(pi, mockNotify);
 
     expect(mockLoggerError).toHaveBeenCalledWith(
-      'Failed to update escrow transaction',
+      'Failed to look up escrow transaction',
       expect.objectContaining({ message: 'not found' }),
       expect.any(Object)
     );

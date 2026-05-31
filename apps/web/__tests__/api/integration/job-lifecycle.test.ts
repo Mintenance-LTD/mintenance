@@ -78,6 +78,8 @@ const mocks = vi.hoisted(() => ({
   getIdempotencyKeyFromRequest: vi.fn(),
   checkIdempotency: vi.fn(),
   storeIdempotencyResult: vi.fn(),
+  releaseIdempotencyClaim: vi.fn(),
+  releaseOnError: vi.fn(),
 
   // State machine
   validateStatusTransition: vi.fn(),
@@ -87,6 +89,9 @@ const mocks = vi.hoisted(() => ({
   // Subscription
   requireSubscriptionForAction: vi.fn(),
   checkSubscriptionLimits: vi.fn(),
+
+  // Fees / tier
+  resolveContractorTier: vi.fn(),
 
   // UUID validation
   isValidUUID: vi.fn(),
@@ -234,6 +239,11 @@ vi.mock('@/lib/idempotency', () => ({
   getIdempotencyKeyFromRequest: mocks.getIdempotencyKeyFromRequest,
   checkIdempotency: mocks.checkIdempotency,
   storeIdempotencyResult: mocks.storeIdempotencyResult,
+  releaseIdempotencyClaim: mocks.releaseIdempotencyClaim,
+  // releaseOnError(key, op, fn) wraps fn and re-throws after releasing the
+  // claim on failure (see lib/idempotency.ts:316). The real impl just runs
+  // fn(); the test mock must do the same or the route bodies never execute.
+  releaseOnError: mocks.releaseOnError,
 }));
 
 vi.mock('@/lib/services/agents/LearningMatchingService', () => ({
@@ -266,6 +276,16 @@ vi.mock('@/lib/job-state-machine', () => ({
 vi.mock('@/lib/middleware/subscription-check', () => ({
   requireSubscriptionForAction: mocks.requireSubscriptionForAction,
   checkSubscriptionLimits: mocks.checkSubscriptionLimits,
+}));
+
+// 2026-05-22 Sprint 2: bid-accept now resolves the contractor's tier and
+// enforces a 3-active-job cap on free/basic. The route dynamic-imports this
+// service. Return 'professional' (unlimited active jobs) so the cap path is
+// skipped — these lifecycle tests don't exercise the cap.
+vi.mock('@/lib/services/payment/FeeCalculationService', () => ({
+  FeeCalculationService: {
+    resolveContractorTier: mocks.resolveContractorTier,
+  },
 }));
 
 vi.mock('@/app/api/contractor/submit-bid/validation', () => ({
@@ -490,6 +510,13 @@ function setupInfrastructureMocks(user = homeownerUser) {
   mocks.getIdempotencyKeyFromRequest.mockReturnValue('idem-key-1');
   mocks.checkIdempotency.mockResolvedValue({ isDuplicate: false });
   mocks.storeIdempotencyResult.mockResolvedValue(undefined);
+  mocks.releaseIdempotencyClaim.mockResolvedValue(undefined);
+  // Mirror the real releaseOnError: execute the wrapped fn and return its
+  // result. Without this the routes that wrap their body in releaseOnError
+  // would never run their handler logic.
+  mocks.releaseOnError.mockImplementation(
+    async (_key: string, _op: string, fn: () => Promise<unknown>) => fn()
+  );
   mocks.validateStatusTransition.mockReturnValue(undefined);
   mocks.validateBidTransition.mockReturnValue(undefined);
   mocks.validateEscrowTransition.mockReturnValue(undefined);
@@ -523,6 +550,7 @@ function setupInfrastructureMocks(user = homeownerUser) {
   mocks.isValidUUID.mockReturnValue(true);
   mocks.requireSubscriptionForAction.mockResolvedValue(null);
   mocks.checkSubscriptionLimits.mockResolvedValue({ allowed: true });
+  mocks.resolveContractorTier.mockResolvedValue('professional');
   mocks.learnFromAcceptance.mockResolvedValue(undefined);
   mocks.learnFromBidOutcome.mockResolvedValue(undefined);
   mocks.supabaseRpc.mockResolvedValue({
@@ -617,6 +645,24 @@ describe('Job Lifecycle - 2. Bid submitted', () => {
   it('should create a bid with status "pending" for a posted job', async () => {
     // Job is posted and open for bids
     mocks.supabaseFrom.mockImplementation((table: string) => {
+      if (table === 'profiles') {
+        // 2026-05-26 audit-63 gate: route reads the contractor's
+        // verification status before allowing a bid. Return a verified
+        // contractor so the bid proceeds.
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: {
+                  verification_status: 'verified',
+                  admin_verified: true,
+                },
+                error: null,
+              }),
+            }),
+          }),
+        };
+      }
       if (table === 'jobs') {
         return {
           select: vi.fn().mockReturnValue({
@@ -769,19 +815,30 @@ describe('Job Lifecycle - 3. Bid accepted', () => {
         };
       }
       if (table === 'profiles') {
+        // 2026-05-25 audit-46 P0: bid-accept now requires the contractor's
+        // real payout-readiness flags (stripe_payouts_enabled +
+        // stripe_transfers_active), not just stripe_connect_account_id.
+        // Mark the contractor fully payout-ready so acceptance proceeds.
+        const profileData = {
+          first_name: 'Bob',
+          last_name: 'Contractor',
+          email: 'contractor@test.com',
+          stripe_connect_account_id: 'acct_test',
+          stripe_payouts_enabled: true,
+          stripe_transfers_active: true,
+          company_name: null,
+          license_number: null,
+          license_type: null,
+        };
         return {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
-              single: vi.fn().mockResolvedValue({
-                data: {
-                  first_name: 'Bob',
-                  last_name: 'Contractor',
-                  email: 'contractor@test.com',
-                  stripe_connect_account_id: 'acct_test',
-                  company_name: null,
-                },
-                error: null,
-              }),
+              single: vi
+                .fn()
+                .mockResolvedValue({ data: profileData, error: null }),
+              maybeSingle: vi
+                .fn()
+                .mockResolvedValue({ data: profileData, error: null }),
             }),
           }),
         };
@@ -1672,15 +1729,32 @@ describe('Job Lifecycle - 9. Homeowner approves completion', () => {
         };
       }
       if (table === 'escrow_transactions') {
+        // 2026-05-24 audit-33 P1: confirm-completion now pre-flights the
+        // escrow row via .eq('job_id').order(...).limit(1).maybeSingle()
+        // before any mutating write, then (for held rows) stamps the
+        // homeowner-approval + auto_release_date fields and leaves
+        // status='held' for the auto-release cron (it deliberately no
+        // longer flips status to release_pending here).
         return {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnValue({
+              // Legacy held lookup (kept for safety)
               eq: vi.fn().mockReturnValue({
                 single: vi.fn().mockResolvedValue({
                   data: { id: ESCROW_ID, status: 'held', amount: 15000 },
                   error: null,
                 }),
               }),
+              // preEscrow pre-flight: latest escrow row for the job
+              order: vi.fn().mockReturnValue({
+                limit: vi.fn().mockReturnValue({
+                  maybeSingle: vi.fn().mockResolvedValue({
+                    data: { id: ESCROW_ID, status: 'held', amount: 15000 },
+                    error: null,
+                  }),
+                }),
+              }),
+              // Escrow amount lookup for the work-approved email
               in: vi.fn().mockReturnValue({
                 limit: vi.fn().mockReturnValue({
                   single: vi.fn().mockResolvedValue({
@@ -1744,12 +1818,22 @@ describe('Job Lifecycle - 9. Homeowner approves completion', () => {
     expect(body.success).toBe(true);
     expect(body.message).toContain('confirmed');
 
-    // Verify escrow was transitioned to release_pending
+    // 2026-05-13 funds-in-limbo audit fix: the route no longer flips the
+    // escrow row to status='release_pending' itself. It keeps status='held'
+    // (the daily auto-release cron is the canonical processor) and instead
+    // stamps the homeowner-approval + auto_release_date fields so the cron
+    // picks the row up on its next pass. Assert the approval stamp rather
+    // than the dropped status write.
     expect(escrowUpdates.length).toBeGreaterThanOrEqual(1);
     const escrowUpdate = escrowUpdates[0] as Record<string, unknown>;
-    expect(escrowUpdate.status).toBe('release_pending');
+    expect(escrowUpdate.homeowner_approval).toBe(true);
+    expect(escrowUpdate.auto_release_date).toBeTruthy();
+    expect(escrowUpdate.release_reason).toBe('homeowner_approved');
+    // status is intentionally NOT written here anymore
+    expect(escrowUpdate.status).toBeUndefined();
 
-    // Verify escrow transition was validated
+    // The route still sanity-checks the held -> release_pending transition
+    // (a guard against racing releases) even though it doesn't perform it.
     expect(mocks.validateEscrowTransition).toHaveBeenCalledWith(
       'held',
       'release_pending'
