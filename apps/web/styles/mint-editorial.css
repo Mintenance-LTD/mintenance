@@ -1682,4 +1682,32 @@
   .me-root .me-job-body {
     grid-template-columns: 1fr !important;
   }
+
+  /* Compare-bids rows are a `44px 1fr 120px 140px 110px` grid (~514px)
+   * that overflowed a phone. Switch to a wrapping flex: avatar + name on
+   * the first line, price + earliest-slot on the second, the action
+   * buttons full-width on the third. */
+  .me-root .me-bid-row {
+    display: flex !important;
+    flex-wrap: wrap;
+    gap: 10px 14px;
+  }
+  .me-root .me-bid-row > :nth-child(1) {
+    flex: 0 0 auto;
+  }
+  .me-root .me-bid-row > :nth-child(2) {
+    flex: 1 1 calc(100% - 58px);
+    min-width: 0;
+  }
+  .me-root .me-bid-row > :nth-child(3),
+  .me-root .me-bid-row > :nth-child(4) {
+    flex: 1 1 auto;
+  }
+  .me-root .me-bid-row > :nth-child(5) {
+    flex: 1 1 100%;
+  }
+  /* Stack the two action buttons into a row at full width */
+  .me-root .me-bid-row > :nth-child(5) {
+    flex-direction: row;
+  }
 }
