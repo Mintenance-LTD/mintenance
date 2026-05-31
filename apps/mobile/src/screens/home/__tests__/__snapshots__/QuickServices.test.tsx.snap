@@ -34,13 +34,13 @@ exports[`QuickServices Component Snapshots should match snapshot 1`] = `
             "paddingVertical": 10,
           },
           {
-            "borderBottomColor": "#222222",
+            "borderBottomColor": "#1A2520",
           },
         ]
       }
     >
       <Text
-        accessibilityLabel="Icon: water-outline, size: 24, color: #222222"
+        accessibilityLabel="Icon: water-outline, size: 24, color: #1A2520"
         testID="icon-water-outline"
       >
         water-outline
@@ -49,14 +49,14 @@ exports[`QuickServices Component Snapshots should match snapshot 1`] = `
         style={
           [
             {
-              "color": "#717171",
+              "color": "#4A5751",
               "fontSize": 13,
               "fontWeight": "500",
               "marginTop": 5,
               "textAlign": "center",
             },
             {
-              "color": "#222222",
+              "color": "#1A2520",
               "fontWeight": "600",
             },
           ]
@@ -84,7 +84,7 @@ exports[`QuickServices Component Snapshots should match snapshot 1`] = `
       }
     >
       <Text
-        accessibilityLabel="Icon: flash-outline, size: 24, color: #717171"
+        accessibilityLabel="Icon: flash-outline, size: 24, color: #4A5751"
         testID="icon-flash-outline"
       >
         flash-outline
@@ -93,7 +93,7 @@ exports[`QuickServices Component Snapshots should match snapshot 1`] = `
         style={
           [
             {
-              "color": "#717171",
+              "color": "#4A5751",
               "fontSize": 13,
               "fontWeight": "500",
               "marginTop": 5,
@@ -125,7 +125,7 @@ exports[`QuickServices Component Snapshots should match snapshot 1`] = `
       }
     >
       <Text
-        accessibilityLabel="Icon: home-outline, size: 24, color: #717171"
+        accessibilityLabel="Icon: home-outline, size: 24, color: #4A5751"
         testID="icon-home-outline"
       >
         home-outline
@@ -134,7 +134,7 @@ exports[`QuickServices Component Snapshots should match snapshot 1`] = `
         style={
           [
             {
-              "color": "#717171",
+              "color": "#4A5751",
               "fontSize": 13,
               "fontWeight": "500",
               "marginTop": 5,
@@ -166,7 +166,7 @@ exports[`QuickServices Component Snapshots should match snapshot 1`] = `
       }
     >
       <Text
-        accessibilityLabel="Icon: snow-outline, size: 24, color: #717171"
+        accessibilityLabel="Icon: snow-outline, size: 24, color: #4A5751"
         testID="icon-snow-outline"
       >
         snow-outline
@@ -175,7 +175,7 @@ exports[`QuickServices Component Snapshots should match snapshot 1`] = `
         style={
           [
             {
-              "color": "#717171",
+              "color": "#4A5751",
               "fontSize": 13,
               "fontWeight": "500",
               "marginTop": 5,
@@ -207,7 +207,7 @@ exports[`QuickServices Component Snapshots should match snapshot 1`] = `
       }
     >
       <Text
-        accessibilityLabel="Icon: home-outline, size: 24, color: #717171"
+        accessibilityLabel="Icon: home-outline, size: 24, color: #4A5751"
         testID="icon-home-outline"
       >
         home-outline
@@ -216,7 +216,7 @@ exports[`QuickServices Component Snapshots should match snapshot 1`] = `
         style={
           [
             {
-              "color": "#717171",
+              "color": "#4A5751",
               "fontSize": 13,
               "fontWeight": "500",
               "marginTop": 5,
@@ -248,7 +248,7 @@ exports[`QuickServices Component Snapshots should match snapshot 1`] = `
       }
     >
       <Text
-        accessibilityLabel="Icon: color-palette-outline, size: 24, color: #717171"
+        accessibilityLabel="Icon: color-palette-outline, size: 24, color: #4A5751"
         testID="icon-color-palette-outline"
       >
         color-palette-outline
@@ -257,7 +257,7 @@ exports[`QuickServices Component Snapshots should match snapshot 1`] = `
         style={
           [
             {
-              "color": "#717171",
+              "color": "#4A5751",
               "fontSize": 13,
               "fontWeight": "500",
               "marginTop": 5,
@@ -289,7 +289,7 @@ exports[`QuickServices Component Snapshots should match snapshot 1`] = `
       }
     >
       <Text
-        accessibilityLabel="Icon: hammer-outline, size: 24, color: #717171"
+        accessibilityLabel="Icon: hammer-outline, size: 24, color: #4A5751"
         testID="icon-hammer-outline"
       >
         hammer-outline
@@ -298,7 +298,7 @@ exports[`QuickServices Component Snapshots should match snapshot 1`] = `
         style={
           [
             {
-              "color": "#717171",
+              "color": "#4A5751",
               "fontSize": 13,
               "fontWeight": "500",
               "marginTop": 5,
@@ -330,7 +330,7 @@ exports[`QuickServices Component Snapshots should match snapshot 1`] = `
       }
     >
       <Text
-        accessibilityLabel="Icon: sparkles-outline, size: 24, color: #717171"
+        accessibilityLabel="Icon: sparkles-outline, size: 24, color: #4A5751"
         testID="icon-sparkles-outline"
       >
         sparkles-outline
@@ -339,7 +339,7 @@ exports[`QuickServices Component Snapshots should match snapshot 1`] = `
         style={
           [
             {
-              "color": "#717171",
+              "color": "#4A5751",
               "fontSize": 13,
               "fontWeight": "500",
               "marginTop": 5,
@@ -356,7 +356,7 @@ exports[`QuickServices Component Snapshots should match snapshot 1`] = `
   <View
     style={
       {
-        "backgroundColor": "#F0F0F0",
+        "backgroundColor": "#D8E2DA",
         "height": 1,
       }
     }
@@ -398,13 +398,13 @@ exports[`QuickServices Component Snapshots should match snapshot with custom han
             "paddingVertical": 10,
           },
           {
-            "borderBottomColor": "#222222",
+            "borderBottomColor": "#1A2520",
           },
         ]
       }
     >
       <Text
-        accessibilityLabel="Icon: water-outline, size: 24, color: #222222"
+        accessibilityLabel="Icon: water-outline, size: 24, color: #1A2520"
         testID="icon-water-outline"
       >
         water-outline
@@ -413,14 +413,14 @@ exports[`QuickServices Component Snapshots should match snapshot with custom han
         style={
           [
             {
-              "color": "#717171",
+              "color": "#4A5751",
               "fontSize": 13,
               "fontWeight": "500",
               "marginTop": 5,
               "textAlign": "center",
             },
             {
-              "color": "#222222",
+              "color": "#1A2520",
               "fontWeight": "600",
             },
           ]
@@ -448,7 +448,7 @@ exports[`QuickServices Component Snapshots should match snapshot with custom han
       }
     >
       <Text
-        accessibilityLabel="Icon: flash-outline, size: 24, color: #717171"
+        accessibilityLabel="Icon: flash-outline, size: 24, color: #4A5751"
         testID="icon-flash-outline"
       >
         flash-outline
@@ -457,7 +457,7 @@ exports[`QuickServices Component Snapshots should match snapshot with custom han
         style={
           [
             {
-              "color": "#717171",
+              "color": "#4A5751",
               "fontSize": 13,
               "fontWeight": "500",
               "marginTop": 5,
@@ -489,7 +489,7 @@ exports[`QuickServices Component Snapshots should match snapshot with custom han
       }
     >
       <Text
-        accessibilityLabel="Icon: home-outline, size: 24, color: #717171"
+        accessibilityLabel="Icon: home-outline, size: 24, color: #4A5751"
         testID="icon-home-outline"
       >
         home-outline
@@ -498,7 +498,7 @@ exports[`QuickServices Component Snapshots should match snapshot with custom han
         style={
           [
             {
-              "color": "#717171",
+              "color": "#4A5751",
               "fontSize": 13,
               "fontWeight": "500",
               "marginTop": 5,
@@ -530,7 +530,7 @@ exports[`QuickServices Component Snapshots should match snapshot with custom han
       }
     >
       <Text
-        accessibilityLabel="Icon: snow-outline, size: 24, color: #717171"
+        accessibilityLabel="Icon: snow-outline, size: 24, color: #4A5751"
         testID="icon-snow-outline"
       >
         snow-outline
@@ -539,7 +539,7 @@ exports[`QuickServices Component Snapshots should match snapshot with custom han
         style={
           [
             {
-              "color": "#717171",
+              "color": "#4A5751",
               "fontSize": 13,
               "fontWeight": "500",
               "marginTop": 5,
@@ -571,7 +571,7 @@ exports[`QuickServices Component Snapshots should match snapshot with custom han
       }
     >
       <Text
-        accessibilityLabel="Icon: home-outline, size: 24, color: #717171"
+        accessibilityLabel="Icon: home-outline, size: 24, color: #4A5751"
         testID="icon-home-outline"
       >
         home-outline
@@ -580,7 +580,7 @@ exports[`QuickServices Component Snapshots should match snapshot with custom han
         style={
           [
             {
-              "color": "#717171",
+              "color": "#4A5751",
               "fontSize": 13,
               "fontWeight": "500",
               "marginTop": 5,
@@ -612,7 +612,7 @@ exports[`QuickServices Component Snapshots should match snapshot with custom han
       }
     >
       <Text
-        accessibilityLabel="Icon: color-palette-outline, size: 24, color: #717171"
+        accessibilityLabel="Icon: color-palette-outline, size: 24, color: #4A5751"
         testID="icon-color-palette-outline"
       >
         color-palette-outline
@@ -621,7 +621,7 @@ exports[`QuickServices Component Snapshots should match snapshot with custom han
         style={
           [
             {
-              "color": "#717171",
+              "color": "#4A5751",
               "fontSize": 13,
               "fontWeight": "500",
               "marginTop": 5,
@@ -653,7 +653,7 @@ exports[`QuickServices Component Snapshots should match snapshot with custom han
       }
     >
       <Text
-        accessibilityLabel="Icon: hammer-outline, size: 24, color: #717171"
+        accessibilityLabel="Icon: hammer-outline, size: 24, color: #4A5751"
         testID="icon-hammer-outline"
       >
         hammer-outline
@@ -662,7 +662,7 @@ exports[`QuickServices Component Snapshots should match snapshot with custom han
         style={
           [
             {
-              "color": "#717171",
+              "color": "#4A5751",
               "fontSize": 13,
               "fontWeight": "500",
               "marginTop": 5,
@@ -694,7 +694,7 @@ exports[`QuickServices Component Snapshots should match snapshot with custom han
       }
     >
       <Text
-        accessibilityLabel="Icon: sparkles-outline, size: 24, color: #717171"
+        accessibilityLabel="Icon: sparkles-outline, size: 24, color: #4A5751"
         testID="icon-sparkles-outline"
       >
         sparkles-outline
@@ -703,7 +703,7 @@ exports[`QuickServices Component Snapshots should match snapshot with custom han
         style={
           [
             {
-              "color": "#717171",
+              "color": "#4A5751",
               "fontSize": 13,
               "fontWeight": "500",
               "marginTop": 5,
@@ -720,7 +720,7 @@ exports[`QuickServices Component Snapshots should match snapshot with custom han
   <View
     style={
       {
-        "backgroundColor": "#F0F0F0",
+        "backgroundColor": "#D8E2DA",
         "height": 1,
       }
     }

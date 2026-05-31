@@ -82,6 +82,22 @@ vi.mock('@/lib/email-service', () => ({
   },
 }));
 
+// Isolate the idempotency wrapper: the real module imports
+// ServiceUnavailableError from @/lib/errors/api-error and talks to Supabase
+// RPCs. We stub it so checkIdempotency reports a non-duplicate request and
+// releaseOnError simply runs the protected callback.
+vi.mock('@/lib/idempotency', () => ({
+  getIdempotencyKeyFromRequest: vi.fn(
+    (_req: unknown, op: string, userId: string, jobId: string) =>
+      `${op}:${userId}:${jobId}`
+  ),
+  checkIdempotency: vi.fn().mockResolvedValue({ isDuplicate: false }),
+  storeIdempotencyResult: vi.fn().mockResolvedValue(undefined),
+  releaseOnError: vi.fn(
+    async (_key: string, _op: string, fn: () => Promise<unknown>) => fn()
+  ),
+}));
+
 vi.mock('@/lib/errors/api-error', async () => {
   class APIError extends Error {
     constructor(
@@ -120,12 +136,18 @@ vi.mock('@/lib/errors/api-error', async () => {
       super('BAD_REQUEST', m, 400, d);
     }
   }
+  class ServiceUnavailableError extends APIError {
+    constructor(m = 'Service Unavailable') {
+      super('SERVICE_UNAVAILABLE', m, 503);
+    }
+  }
   return {
     APIError,
     UnauthorizedError,
     ForbiddenError,
     NotFoundError,
     BadRequestError,
+    ServiceUnavailableError,
     handleAPIError: vi.fn((error: unknown) => {
       if (error instanceof APIError) {
         const { NextResponse } = require('next/server');
@@ -289,17 +311,13 @@ function setupPhotoMocks(
   // Storage mock
   // Phase 2: routes now use createSignedUrl() instead of getPublicUrl().
   mocks.supabaseStorageFrom.mockReturnValue({
-    upload: vi
-      .fn()
-      .mockResolvedValue({
-        data: { path: 'job-photos/job-1/after/photo.jpg' },
-        error: null,
-      }),
-    getPublicUrl: vi
-      .fn()
-      .mockReturnValue({
-        data: { publicUrl: 'https://storage.example.com/photo.jpg' },
-      }),
+    upload: vi.fn().mockResolvedValue({
+      data: { path: 'job-photos/job-1/after/photo.jpg' },
+      error: null,
+    }),
+    getPublicUrl: vi.fn().mockReturnValue({
+      data: { publicUrl: 'https://storage.example.com/photo.jpg' },
+    }),
     createSignedUrl: vi.fn().mockResolvedValue({
       data: { signedUrl: 'https://storage.example.com/photo.jpg?token=test' },
       error: null,

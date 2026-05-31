@@ -16,7 +16,12 @@ import { POST } from '../generate-embedding/route';
 import { NextRequest } from 'next/server';
 
 // Use vi.hoisted to ensure these are available for hoisted vi.mock calls
-const { mockRateLimiter, mockAIResponseCache, mockGetCurrentUser, mockCheckAIUserRateLimit } = vi.hoisted(() => ({
+const {
+  mockRateLimiter,
+  mockAIResponseCache,
+  mockGetCurrentUser,
+  mockCheckAIUserRateLimit,
+} = vi.hoisted(() => ({
   mockRateLimiter: {
     checkRateLimit: vi.fn(),
   },
@@ -51,7 +56,9 @@ vi.mock('@/lib/rate-limiter', () => ({
 
 vi.mock('@/lib/api/supabaseServer', () => ({
   serverSupabase: {
-    auth: { getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }) },
+    auth: {
+      getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
+    },
     from: vi.fn(() => ({ select: vi.fn(() => ({ data: [], error: null })) })),
   },
 }));
@@ -118,9 +125,13 @@ describe('POST /api/ai/generate-embedding', () => {
       remaining: 9,
       resetTime: Date.now() + 60000,
     });
-    
+
     mockAIResponseCache.get.mockImplementation(
-      async (_type: string, _input: unknown, fetchFn: () => Promise<unknown>) => {
+      async (
+        _type: string,
+        _input: unknown,
+        fetchFn: () => Promise<unknown>
+      ) => {
         return fetchFn();
       }
     );
@@ -132,46 +143,58 @@ describe('POST /api/ai/generate-embedding', () => {
 
   describe('Input Validation', () => {
     it('should return 400 for missing text', async () => {
-      const request = new NextRequest('http://localhost:3000/api/ai/generate-embedding', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
-      });
+      const request = new NextRequest(
+        'http://localhost:3000/api/ai/generate-embedding',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({}),
+        }
+      );
 
       const response = await POST(request);
       const data = await response.json();
 
       expect(response.status).toBe(400);
-      expect(data.error).toContain('Text is required');
+      // Zod-validated body: missing `text` surfaces the default "Required" issue message
+      expect(data.error).toContain('Required');
     });
 
     it('should return 400 for non-string text', async () => {
-      const request = new NextRequest('http://localhost:3000/api/ai/generate-embedding', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: 123 }),
-      });
+      const request = new NextRequest(
+        'http://localhost:3000/api/ai/generate-embedding',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: 123 }),
+        }
+      );
 
       const response = await POST(request);
       const data = await response.json();
 
       expect(response.status).toBe(400);
-      expect(data.error).toContain('must be a string');
+      // Zod-validated body: non-string `text` surfaces "Expected string, received number"
+      expect(data.error).toContain('Expected string');
     });
 
     it('should return 400 for text exceeding 32000 characters', async () => {
       const longText = 'a'.repeat(32001);
-      const request = new NextRequest('http://localhost:3000/api/ai/generate-embedding', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: longText }),
-      });
+      const request = new NextRequest(
+        'http://localhost:3000/api/ai/generate-embedding',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: longText }),
+        }
+      );
 
       const response = await POST(request);
       const data = await response.json();
 
       expect(response.status).toBe(400);
-      expect(data.error).toContain('too long');
+      // Zod-validated body: over-length `text` surfaces the .max(32000) issue message
+      expect(data.error).toContain('at most');
       expect(data.error).toContain('32000');
     });
 
@@ -185,11 +208,14 @@ describe('POST /api/ai/generate-embedding', () => {
         usage: { prompt_tokens: 100, total_tokens: 100 },
       } as any);
 
-      const request = new NextRequest('http://localhost:3000/api/ai/generate-embedding', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: maxText }),
-      });
+      const request = new NextRequest(
+        'http://localhost:3000/api/ai/generate-embedding',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: maxText }),
+        }
+      );
 
       const response = await POST(request);
 
@@ -201,11 +227,14 @@ describe('POST /api/ai/generate-embedding', () => {
     it('should return 503 when OpenAI API key not configured', async () => {
       delete process.env.OPENAI_API_KEY;
 
-      const request = new NextRequest('http://localhost:3000/api/ai/generate-embedding', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: 'test' }),
-      });
+      const request = new NextRequest(
+        'http://localhost:3000/api/ai/generate-embedding',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: 'test' }),
+        }
+      );
 
       const response = await POST(request);
       const data = await response.json();
@@ -220,11 +249,14 @@ describe('POST /api/ai/generate-embedding', () => {
 
       vi.mocked(openai.embeddings.create).mockRejectedValue(error);
 
-      const request = new NextRequest('http://localhost:3000/api/ai/generate-embedding', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: 'test' }),
-      });
+      const request = new NextRequest(
+        'http://localhost:3000/api/ai/generate-embedding',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: 'test' }),
+        }
+      );
 
       const response = await POST(request);
 
@@ -239,11 +271,14 @@ describe('POST /api/ai/generate-embedding', () => {
 
       vi.mocked(openai.embeddings.create).mockRejectedValue(error);
 
-      const request = new NextRequest('http://localhost:3000/api/ai/generate-embedding', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: 'test' }),
-      });
+      const request = new NextRequest(
+        'http://localhost:3000/api/ai/generate-embedding',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: 'test' }),
+        }
+      );
 
       const response = await POST(request);
 
@@ -256,11 +291,14 @@ describe('POST /api/ai/generate-embedding', () => {
 
       vi.mocked(openai.embeddings.create).mockRejectedValue(abortError);
 
-      const request = new NextRequest('http://localhost:3000/api/ai/generate-embedding', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: 'test' }),
-      });
+      const request = new NextRequest(
+        'http://localhost:3000/api/ai/generate-embedding',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: 'test' }),
+        }
+      );
 
       const response = await POST(request);
 
@@ -276,11 +314,14 @@ describe('POST /api/ai/generate-embedding', () => {
 
       vi.mocked(openai.embeddings.create).mockRejectedValue(error);
 
-      const request = new NextRequest('http://localhost:3000/api/ai/generate-embedding', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: 'test' }),
-      });
+      const request = new NextRequest(
+        'http://localhost:3000/api/ai/generate-embedding',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: 'test' }),
+        }
+      );
 
       const response = await POST(request);
 
@@ -298,11 +339,14 @@ describe('POST /api/ai/generate-embedding', () => {
         usage: { prompt_tokens: 10, total_tokens: 10 },
       } as any);
 
-      const request = new NextRequest('http://localhost:3000/api/ai/generate-embedding', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: 'test' }),
-      });
+      const request = new NextRequest(
+        'http://localhost:3000/api/ai/generate-embedding',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: 'test' }),
+        }
+      );
 
       await POST(request);
 
@@ -310,13 +354,18 @@ describe('POST /api/ai/generate-embedding', () => {
     });
 
     it('should reject request if CSRF validation fails', async () => {
-      vi.mocked(requireCSRF).mockRejectedValue(new Error('CSRF validation failed'));
+      vi.mocked(requireCSRF).mockRejectedValue(
+        new Error('CSRF validation failed')
+      );
 
-      const request = new NextRequest('http://localhost:3000/api/ai/generate-embedding', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: 'test' }),
-      });
+      const request = new NextRequest(
+        'http://localhost:3000/api/ai/generate-embedding',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: 'test' }),
+        }
+      );
 
       const response = await POST(request);
 
@@ -333,11 +382,14 @@ describe('POST /api/ai/generate-embedding', () => {
         usage: { prompt_tokens: 10, total_tokens: 10 },
       } as any);
 
-      const request = new NextRequest('http://localhost:3000/api/ai/generate-embedding', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: 'test maintenance issue' }),
-      });
+      const request = new NextRequest(
+        'http://localhost:3000/api/ai/generate-embedding',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: 'test maintenance issue' }),
+        }
+      );
 
       const response = await POST(request);
       const data = await response.json();
@@ -358,11 +410,14 @@ describe('POST /api/ai/generate-embedding', () => {
         usage: { prompt_tokens: 10, total_tokens: 10 },
       } as any);
 
-      const request = new NextRequest('http://localhost:3000/api/ai/generate-embedding', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: 'test' }),
-      });
+      const request = new NextRequest(
+        'http://localhost:3000/api/ai/generate-embedding',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: 'test' }),
+        }
+      );
 
       const response = await POST(request);
       const data = await response.json();
@@ -380,14 +435,17 @@ describe('POST /api/ai/generate-embedding', () => {
         usage: { prompt_tokens: 10, total_tokens: 10 },
       } as any);
 
-      const request = new NextRequest('http://localhost:3000/api/ai/generate-embedding', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          text: 'test',
-          model: 'text-embedding-3-large'
-        }),
-      });
+      const request = new NextRequest(
+        'http://localhost:3000/api/ai/generate-embedding',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            text: 'test',
+            model: 'text-embedding-3-large',
+          }),
+        }
+      );
 
       const response = await POST(request);
       const data = await response.json();
@@ -405,11 +463,14 @@ describe('POST /api/ai/generate-embedding', () => {
         usage: { prompt_tokens: 10, total_tokens: 10 },
       } as any);
 
-      const request = new NextRequest('http://localhost:3000/api/ai/generate-embedding', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: 'test' }),
-      });
+      const request = new NextRequest(
+        'http://localhost:3000/api/ai/generate-embedding',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: 'test' }),
+        }
+      );
 
       const response = await POST(request);
 
@@ -424,11 +485,14 @@ describe('POST /api/ai/generate-embedding', () => {
         usage: { prompt_tokens: 10, total_tokens: 10 },
       } as any);
 
-      const request = new NextRequest('http://localhost:3000/api/ai/generate-embedding', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: 'test' }),
-      });
+      const request = new NextRequest(
+        'http://localhost:3000/api/ai/generate-embedding',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: 'test' }),
+        }
+      );
 
       const response = await POST(request);
 
@@ -442,11 +506,14 @@ describe('POST /api/ai/generate-embedding', () => {
         new Error('Network error')
       );
 
-      const request = new NextRequest('http://localhost:3000/api/ai/generate-embedding', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: 'test' }),
-      });
+      const request = new NextRequest(
+        'http://localhost:3000/api/ai/generate-embedding',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: 'test' }),
+        }
+      );
 
       const response = await POST(request);
 
@@ -461,11 +528,14 @@ describe('POST /api/ai/generate-embedding', () => {
         new Error('Detailed error message')
       );
 
-      const request = new NextRequest('http://localhost:3000/api/ai/generate-embedding', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: 'test' }),
-      });
+      const request = new NextRequest(
+        'http://localhost:3000/api/ai/generate-embedding',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: 'test' }),
+        }
+      );
 
       const response = await POST(request);
 
@@ -483,11 +553,14 @@ describe('POST /api/ai/generate-embedding', () => {
         new Error('Sensitive error message')
       );
 
-      const request = new NextRequest('http://localhost:3000/api/ai/generate-embedding', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: 'test' }),
-      });
+      const request = new NextRequest(
+        'http://localhost:3000/api/ai/generate-embedding',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: 'test' }),
+        }
+      );
 
       const response = await POST(request);
       const data = await response.json();
@@ -507,14 +580,17 @@ describe('POST /api/ai/generate-embedding', () => {
         usage: { prompt_tokens: 10, total_tokens: 10 },
       } as any);
 
-      const request = new NextRequest('http://localhost:3000/api/ai/generate-embedding', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: 'test' }),
-      });
+      const request = new NextRequest(
+        'http://localhost:3000/api/ai/generate-embedding',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: 'test' }),
+        }
+      );
 
       const response = await POST(request);
-      
+
       // Verify the response was successful (logging happens as side effect)
       expect(response.status).toBe(200);
     });

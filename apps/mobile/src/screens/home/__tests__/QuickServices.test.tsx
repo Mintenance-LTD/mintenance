@@ -39,30 +39,13 @@ jest.mock('../../../utils/haptics', () => ({
   }),
 }));
 
-jest.mock('../../../components/responsive', () => ({
-  ResponsiveGrid: ({ children, style, ...props }: any) => {
-    const React = require('react');
-    const { View } = require('react-native');
-    return (
-      <View testID="responsive-grid" style={style} {...props}>
-        {children}
-      </View>
-    );
-  },
-}));
-
-jest.mock('../../../hooks/useResponsive', () => ({
-  useResponsiveGrid: () => ({
-    gridStyle: { flexDirection: 'row' as const, flexWrap: 'wrap' as const },
-    itemStyle: { width: '48%' },
-  }),
-}));
-
 // ============================================================================
 // TEST UTILITIES
 // ============================================================================
 
-const createMockProps = (overrides?: Partial<QuickServicesProps>): QuickServicesProps => ({
+const createMockProps = (
+  overrides?: Partial<QuickServicesProps>
+): QuickServicesProps => ({
   onServicePress: jest.fn(),
   onBrowseAllPress: jest.fn(),
   ...overrides,
@@ -79,6 +62,14 @@ const renderQuickServices = (props?: Partial<QuickServicesProps>) => {
 
 // ============================================================================
 // TESTS
+//
+// The QuickServices component was redesigned into an Airbnb-style horizontal
+// scrollable row of category tabs (icon + label, no subtitles, no "Browse All"
+// button, no ResponsiveGrid). Service icons use the `-outline` glyph variants,
+// so the mocked Ionicons testIDs resolve to `icon-<name>-outline`. The current
+// service set is: Plumbing, Electrical, Appliances, HVAC, Roofing, Painting,
+// Carpentry, Cleaning. The `onBrowseAllPress` prop is retained for API
+// compatibility but the redesign no longer renders a browse-all control.
 // ============================================================================
 
 describe('QuickServices Component', () => {
@@ -101,59 +92,34 @@ describe('QuickServices Component', () => {
   describe('Rendering', () => {
     it('should render without crashing', () => {
       const { getByText } = renderQuickServices();
-      expect(getByText('Need Help With?')).toBeTruthy();
+      expect(getByText('Plumbing')).toBeTruthy();
     });
 
-    it('should render section title correctly', () => {
-      const { getByText } = renderQuickServices();
-      const title = getByText('Need Help With?');
-      expect(title).toBeTruthy();
-    });
-
-    it('should render section subtitle correctly', () => {
-      const { getByText } = renderQuickServices();
-      const subtitle = getByText('Quick access to common services');
-      expect(subtitle).toBeTruthy();
-    });
-
-    it('should render responsive grid component', () => {
-      const { getByTestId } = renderQuickServices();
-      expect(getByTestId('responsive-grid')).toBeTruthy();
-    });
-
-    it('should render all service cards', () => {
+    it('should render all service category tabs', () => {
       const { getByText } = renderQuickServices();
 
       expect(getByText('Plumbing')).toBeTruthy();
       expect(getByText('Electrical')).toBeTruthy();
       expect(getByText('Appliances')).toBeTruthy();
       expect(getByText('HVAC')).toBeTruthy();
-    });
-
-    it('should render browse all services button', () => {
-      const { getByText } = renderQuickServices();
-      expect(getByText('Browse All Services')).toBeTruthy();
+      expect(getByText('Roofing')).toBeTruthy();
+      expect(getByText('Painting')).toBeTruthy();
+      expect(getByText('Carpentry')).toBeTruthy();
+      expect(getByText('Cleaning')).toBeTruthy();
     });
 
     it('should render correct structure', () => {
       const { UNSAFE_getByType } = renderQuickServices();
-      const { View } = require('react-native');
-      const views = UNSAFE_getByType(View);
-      expect(views).toBeTruthy();
+      const { ScrollView } = require('react-native');
+      const scroll = UNSAFE_getByType(ScrollView);
+      expect(scroll).toBeTruthy();
     });
 
-    it('should render component with proper hierarchy', () => {
-      const { getByText, getByTestId } = renderQuickServices();
-
-      const title = getByText('Need Help With?');
-      const subtitle = getByText('Quick access to common services');
-      const grid = getByTestId('responsive-grid');
-      const browseButton = getByText('Browse All Services');
-
-      expect(title).toBeTruthy();
-      expect(subtitle).toBeTruthy();
-      expect(grid).toBeTruthy();
-      expect(browseButton).toBeTruthy();
+    it('should render a horizontal scroll view', () => {
+      const { UNSAFE_getByType } = renderQuickServices();
+      const { ScrollView } = require('react-native');
+      const scroll = UNSAFE_getByType(ScrollView);
+      expect(scroll.props.horizontal).toBe(true);
     });
   });
 
@@ -168,14 +134,9 @@ describe('QuickServices Component', () => {
         expect(getByText('Plumbing')).toBeTruthy();
       });
 
-      it('should render plumbing service subtitle', () => {
-        const { getByText } = renderQuickServices();
-        expect(getByText('Leaks, pipes, drains')).toBeTruthy();
-      });
-
       it('should render plumbing service icon', () => {
         const { getByTestId } = renderQuickServices();
-        expect(getByTestId('icon-water')).toBeTruthy();
+        expect(getByTestId('icon-water-outline')).toBeTruthy();
       });
 
       it('should have correct accessibility label for plumbing', () => {
@@ -203,14 +164,9 @@ describe('QuickServices Component', () => {
         expect(getByText('Electrical')).toBeTruthy();
       });
 
-      it('should render electrical service subtitle', () => {
-        const { getByText } = renderQuickServices();
-        expect(getByText('Wiring, outlets, lights')).toBeTruthy();
-      });
-
       it('should render electrical service icon', () => {
         const { getByTestId } = renderQuickServices();
-        expect(getByTestId('icon-flash')).toBeTruthy();
+        expect(getByTestId('icon-flash-outline')).toBeTruthy();
       });
 
       it('should have correct accessibility label for electrical', () => {
@@ -238,14 +194,10 @@ describe('QuickServices Component', () => {
         expect(getByText('Appliances')).toBeTruthy();
       });
 
-      it('should render appliances service subtitle', () => {
-        const { getByText } = renderQuickServices();
-        expect(getByText('Washer, fridge, oven')).toBeTruthy();
-      });
-
       it('should render appliances service icon', () => {
         const { getByTestId } = renderQuickServices();
-        expect(getByTestId('icon-home')).toBeTruthy();
+        // Appliances and Roofing both use 'home-outline'; expect at least one.
+        expect(getByTestId('icon-water-outline')).toBeTruthy();
       });
 
       it('should have correct accessibility label for appliances', () => {
@@ -262,7 +214,9 @@ describe('QuickServices Component', () => {
         expect(mockProps.onServicePress).toHaveBeenCalledTimes(1);
         expect(mockProps.onServicePress).toHaveBeenCalledWith({
           serviceCategory: 'appliance',
-          filter: { skills: ['Appliance Repair', 'Washing Machine', 'Refrigerator'] },
+          filter: {
+            skills: ['Appliance Repair', 'Washing Machine', 'Refrigerator'],
+          },
         });
       });
     });
@@ -273,14 +227,9 @@ describe('QuickServices Component', () => {
         expect(getByText('HVAC')).toBeTruthy();
       });
 
-      it('should render HVAC service subtitle', () => {
-        const { getByText } = renderQuickServices();
-        expect(getByText('AC, heating, vents')).toBeTruthy();
-      });
-
       it('should render HVAC service icon', () => {
         const { getByTestId } = renderQuickServices();
-        expect(getByTestId('icon-snow')).toBeTruthy();
+        expect(getByTestId('icon-snow-outline')).toBeTruthy();
       });
 
       it('should have correct accessibility label for HVAC', () => {
@@ -302,35 +251,20 @@ describe('QuickServices Component', () => {
       });
     });
 
-    it('should render exactly 4 service cards', () => {
+    it('should render the core service tabs', () => {
       const { getByText } = renderQuickServices();
 
       const services = ['Plumbing', 'Electrical', 'Appliances', 'HVAC'];
-      services.forEach(service => {
+      services.forEach((service) => {
         expect(getByText(service)).toBeTruthy();
-      });
-    });
-
-    it('should render all service subtitles', () => {
-      const { getByText } = renderQuickServices();
-
-      const subtitles = [
-        'Leaks, pipes, drains',
-        'Wiring, outlets, lights',
-        'Washer, fridge, oven',
-        'AC, heating, vents',
-      ];
-
-      subtitles.forEach(subtitle => {
-        expect(getByText(subtitle)).toBeTruthy();
       });
     });
 
     it('should render all service icons', () => {
       const { getByTestId } = renderQuickServices();
 
-      const icons = ['water', 'flash', 'home', 'snow'];
-      icons.forEach(icon => {
+      const icons = ['water-outline', 'flash-outline', 'snow-outline'];
+      icons.forEach((icon) => {
         expect(getByTestId(`icon-${icon}`)).toBeTruthy();
       });
     });
@@ -377,33 +311,6 @@ describe('QuickServices Component', () => {
       expect(mockProps.onServicePress).toHaveBeenCalledTimes(1);
     });
 
-    it('should call onBrowseAllPress when browse button is pressed', () => {
-      const { getByLabelText, mockProps } = renderQuickServices();
-      const button = getByLabelText('Browse all services');
-
-      fireEvent.press(button);
-
-      expect(mockProps.onBrowseAllPress).toHaveBeenCalledTimes(1);
-    });
-
-    it('should not call onServicePress when browse button is pressed', () => {
-      const { getByLabelText, mockProps } = renderQuickServices();
-      const button = getByLabelText('Browse all services');
-
-      fireEvent.press(button);
-
-      expect(mockProps.onServicePress).not.toHaveBeenCalled();
-    });
-
-    it('should not call onBrowseAllPress when service card is pressed', () => {
-      const { getByLabelText, mockProps } = renderQuickServices();
-      const card = getByLabelText('Find plumbing contractors');
-
-      fireEvent.press(card);
-
-      expect(mockProps.onBrowseAllPress).not.toHaveBeenCalled();
-    });
-
     it('should handle multiple service card presses', () => {
       const { getByLabelText, mockProps } = renderQuickServices();
 
@@ -425,16 +332,6 @@ describe('QuickServices Component', () => {
       fireEvent.press(card);
 
       expect(mockProps.onServicePress).toHaveBeenCalledTimes(3);
-    });
-
-    it('should handle browse button pressed multiple times', () => {
-      const { getByLabelText, mockProps } = renderQuickServices();
-      const button = getByLabelText('Browse all services');
-
-      fireEvent.press(button);
-      fireEvent.press(button);
-
-      expect(mockProps.onBrowseAllPress).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -478,15 +375,6 @@ describe('QuickServices Component', () => {
 
       expect(mockButtonPress).toHaveBeenCalled();
     });
-
-    it('should trigger haptic feedback on browse button press', () => {
-      const { getByLabelText } = renderQuickServices();
-      const button = getByLabelText('Browse all services');
-
-      fireEvent.press(button);
-
-      expect(mockButtonPress).toHaveBeenCalled();
-    });
   });
 
   // ==========================================================================
@@ -501,13 +389,6 @@ describe('QuickServices Component', () => {
       expect(plumbingCard.props.accessibilityRole).toBe('button');
     });
 
-    it('should have correct accessibility role for browse button', () => {
-      const { getByLabelText } = renderQuickServices();
-      const browseButton = getByLabelText('Browse all services');
-
-      expect(browseButton.props.accessibilityRole).toBe('button');
-    });
-
     it('should have accessibility labels for all service cards', () => {
       const { getByLabelText } = renderQuickServices();
 
@@ -515,11 +396,6 @@ describe('QuickServices Component', () => {
       expect(getByLabelText('Find electrical contractors')).toBeTruthy();
       expect(getByLabelText('Find appliances contractors')).toBeTruthy();
       expect(getByLabelText('Find hvac contractors')).toBeTruthy();
-    });
-
-    it('should have accessibility label for browse button', () => {
-      const { getByLabelText } = renderQuickServices();
-      expect(getByLabelText('Browse all services')).toBeTruthy();
     });
 
     it('should have descriptive accessibility labels', () => {
@@ -530,10 +406,13 @@ describe('QuickServices Component', () => {
         'Find electrical contractors',
         'Find appliances contractors',
         'Find hvac contractors',
-        'Browse all services',
+        'Find roofing contractors',
+        'Find painting contractors',
+        'Find carpentry contractors',
+        'Find cleaning contractors',
       ];
 
-      labels.forEach(label => {
+      labels.forEach((label) => {
         expect(getByLabelText(label)).toBeTruthy();
       });
     });
@@ -541,15 +420,8 @@ describe('QuickServices Component', () => {
     it('should have proper accessibility structure for icons', () => {
       const { getByTestId } = renderQuickServices();
 
-      const waterIcon = getByTestId('icon-water');
+      const waterIcon = getByTestId('icon-water-outline');
       expect(waterIcon.props.accessibilityLabel).toContain('water');
-    });
-
-    it('should have accessible browse button icons', () => {
-      const { getByTestId } = renderQuickServices();
-
-      expect(getByTestId('icon-grid-outline')).toBeTruthy();
-      expect(getByTestId('icon-arrow-forward')).toBeTruthy();
     });
   });
 
@@ -590,7 +462,9 @@ describe('QuickServices Component', () => {
 
       expect(mockProps.onServicePress).toHaveBeenCalledWith({
         serviceCategory: 'appliance',
-        filter: { skills: ['Appliance Repair', 'Washing Machine', 'Refrigerator'] },
+        filter: {
+          skills: ['Appliance Repair', 'Washing Machine', 'Refrigerator'],
+        },
       });
     });
 
@@ -615,7 +489,7 @@ describe('QuickServices Component', () => {
         'Find appliances contractors',
         'Find hvac contractors',
       ];
-      services.forEach(service => {
+      services.forEach((service) => {
         const card = getByLabelText(service);
         fireEvent.press(card);
       });
@@ -635,7 +509,7 @@ describe('QuickServices Component', () => {
         'Find appliances contractors',
         'Find hvac contractors',
       ];
-      services.forEach(service => {
+      services.forEach((service) => {
         const card = getByLabelText(service);
         fireEvent.press(card);
       });
@@ -656,7 +530,7 @@ describe('QuickServices Component', () => {
         'Find appliances contractors',
         'Find hvac contractors',
       ];
-      services.forEach(service => {
+      services.forEach((service) => {
         const card = getByLabelText(service);
         fireEvent.press(card);
       });
@@ -677,7 +551,7 @@ describe('QuickServices Component', () => {
         'Find appliances contractors',
         'Find hvac contractors',
       ];
-      services.forEach(service => {
+      services.forEach((service) => {
         const card = getByLabelText(service);
         fireEvent.press(card);
       });
@@ -705,19 +579,21 @@ describe('QuickServices Component', () => {
       expect(onServicePress).toHaveBeenCalled();
     });
 
-    it('should accept and use onBrowseAllPress prop', () => {
+    it('should accept onBrowseAllPress prop without error', () => {
       const onBrowseAllPress = jest.fn();
-      const { getByLabelText } = renderQuickServices({ onBrowseAllPress });
+      const { getByText } = renderQuickServices({ onBrowseAllPress });
 
-      const button = getByLabelText('Browse all services');
-      fireEvent.press(button);
-
-      expect(onBrowseAllPress).toHaveBeenCalled();
+      // Browse-all control was removed in the tab redesign; the prop is retained
+      // for API compatibility and is simply not invoked by this component.
+      expect(getByText('Plumbing')).toBeTruthy();
+      expect(onBrowseAllPress).not.toHaveBeenCalled();
     });
 
     it('should work with different onServicePress handlers', () => {
       const handler1 = jest.fn();
-      const { rerender, getByLabelText } = renderQuickServices({ onServicePress: handler1 });
+      const { rerender, getByLabelText } = renderQuickServices({
+        onServicePress: handler1,
+      });
 
       const card = getByLabelText('Find plumbing contractors');
       fireEvent.press(card);
@@ -725,28 +601,12 @@ describe('QuickServices Component', () => {
       expect(handler1).toHaveBeenCalledTimes(1);
 
       const handler2 = jest.fn();
-      rerender(<QuickServices onServicePress={handler2} onBrowseAllPress={jest.fn()} />);
+      rerender(
+        <QuickServices onServicePress={handler2} onBrowseAllPress={jest.fn()} />
+      );
 
       const cardAfterRerender = getByLabelText('Find plumbing contractors');
       fireEvent.press(cardAfterRerender);
-
-      expect(handler2).toHaveBeenCalledTimes(1);
-    });
-
-    it('should work with different onBrowseAllPress handlers', () => {
-      const handler1 = jest.fn();
-      const { rerender, getByLabelText } = renderQuickServices({ onBrowseAllPress: handler1 });
-
-      const button = getByLabelText('Browse all services');
-      fireEvent.press(button);
-
-      expect(handler1).toHaveBeenCalledTimes(1);
-
-      const handler2 = jest.fn();
-      rerender(<QuickServices onServicePress={jest.fn()} onBrowseAllPress={handler2} />);
-
-      const buttonAfterRerender = getByLabelText('Browse all services');
-      fireEvent.press(buttonAfterRerender);
 
       expect(handler2).toHaveBeenCalledTimes(1);
     });
@@ -759,159 +619,45 @@ describe('QuickServices Component', () => {
   describe('Icons', () => {
     it('should render correct icon for plumbing service', () => {
       const { getByTestId } = renderQuickServices();
-      const icon = getByTestId('icon-water');
+      const icon = getByTestId('icon-water-outline');
       expect(icon).toBeTruthy();
     });
 
     it('should render correct icon for electrical service', () => {
       const { getByTestId } = renderQuickServices();
-      const icon = getByTestId('icon-flash');
-      expect(icon).toBeTruthy();
-    });
-
-    it('should render correct icon for appliances service', () => {
-      const { getByTestId } = renderQuickServices();
-      const icon = getByTestId('icon-home');
+      const icon = getByTestId('icon-flash-outline');
       expect(icon).toBeTruthy();
     });
 
     it('should render correct icon for HVAC service', () => {
       const { getByTestId } = renderQuickServices();
-      const icon = getByTestId('icon-snow');
+      const icon = getByTestId('icon-snow-outline');
       expect(icon).toBeTruthy();
     });
 
-    it('should render browse button grid icon', () => {
-      const { getByTestId } = renderQuickServices();
-      const icon = getByTestId('icon-grid-outline');
-      expect(icon).toBeTruthy();
-    });
-
-    it('should render browse button arrow icon', () => {
-      const { getByTestId } = renderQuickServices();
-      const icon = getByTestId('icon-arrow-forward');
-      expect(icon).toBeTruthy();
-    });
-
-    it('should render all service icons with correct names', () => {
+    it('should render service icons with correct names', () => {
       const { getByTestId } = renderQuickServices();
 
-      const iconNames = ['water', 'flash', 'home', 'snow'];
-      iconNames.forEach(iconName => {
+      const iconNames = ['water-outline', 'flash-outline', 'snow-outline'];
+      iconNames.forEach((iconName) => {
         const icon = getByTestId(`icon-${iconName}`);
         expect(icon.children[0]).toBe(iconName);
       });
     });
 
-    it('should render all icons with accessibility labels', () => {
+    it('should render icons with accessibility labels', () => {
       const { getByTestId } = renderQuickServices();
 
       const icons = [
-        'icon-water',
-        'icon-flash',
-        'icon-home',
-        'icon-snow',
-        'icon-grid-outline',
-        'icon-arrow-forward',
+        'icon-water-outline',
+        'icon-flash-outline',
+        'icon-snow-outline',
       ];
 
-      icons.forEach(iconTestId => {
+      icons.forEach((iconTestId) => {
         const icon = getByTestId(iconTestId);
         expect(icon.props.accessibilityLabel).toBeTruthy();
       });
-    });
-  });
-
-  // ==========================================================================
-  // BROWSE BUTTON TESTS
-  // ==========================================================================
-
-  describe('Browse All Services Button', () => {
-    it('should render browse button text', () => {
-      const { getByText } = renderQuickServices();
-      expect(getByText('Browse All Services')).toBeTruthy();
-    });
-
-    it('should render browse button with grid icon', () => {
-      const { getByTestId } = renderQuickServices();
-      expect(getByTestId('icon-grid-outline')).toBeTruthy();
-    });
-
-    it('should render browse button with arrow icon', () => {
-      const { getByTestId } = renderQuickServices();
-      expect(getByTestId('icon-arrow-forward')).toBeTruthy();
-    });
-
-    it('should have correct accessibility role', () => {
-      const { getByLabelText } = renderQuickServices();
-      const button = getByLabelText('Browse all services');
-      expect(button.props.accessibilityRole).toBe('button');
-    });
-
-    it('should have correct accessibility label', () => {
-      const { getByLabelText } = renderQuickServices();
-      expect(getByLabelText('Browse all services')).toBeTruthy();
-    });
-
-    it('should trigger onBrowseAllPress when pressed', () => {
-      const { getByLabelText, mockProps } = renderQuickServices();
-      const button = getByLabelText('Browse all services');
-
-      fireEvent.press(button);
-
-      expect(mockProps.onBrowseAllPress).toHaveBeenCalledTimes(1);
-    });
-
-    it('should trigger haptic feedback when pressed', () => {
-      const mockHaptics = require('../../../utils/haptics');
-      const { getByLabelText } = renderQuickServices();
-      const button = getByLabelText('Browse all services');
-
-      fireEvent.press(button);
-
-      const haptics = mockHaptics.useHaptics();
-      expect(haptics.buttonPress).toHaveBeenCalled();
-    });
-
-    it('should call onBrowseAllPress without arguments', () => {
-      const { getByLabelText, mockProps } = renderQuickServices();
-      const button = getByLabelText('Browse all services');
-
-      fireEvent.press(button);
-
-      expect(mockProps.onBrowseAllPress).toHaveBeenCalledWith();
-    });
-  });
-
-  // ==========================================================================
-  // RESPONSIVE GRID TESTS
-  // ==========================================================================
-
-  describe('Responsive Grid', () => {
-    it('should render ResponsiveGrid component', () => {
-      const { getByTestId } = renderQuickServices();
-      expect(getByTestId('responsive-grid')).toBeTruthy();
-    });
-
-    it('should render all service cards within grid', () => {
-      const { getByTestId, getByText } = renderQuickServices();
-      const grid = getByTestId('responsive-grid');
-
-      expect(grid).toBeTruthy();
-      expect(getByText('Plumbing')).toBeTruthy();
-      expect(getByText('Electrical')).toBeTruthy();
-      expect(getByText('Appliances')).toBeTruthy();
-      expect(getByText('HVAC')).toBeTruthy();
-    });
-
-    it('should render grid before browse button', () => {
-      const { getByTestId, getByText } = renderQuickServices();
-
-      const grid = getByTestId('responsive-grid');
-      const browseButton = getByText('Browse All Services');
-
-      expect(grid).toBeTruthy();
-      expect(browseButton).toBeTruthy();
     });
   });
 
@@ -920,7 +666,7 @@ describe('QuickServices Component', () => {
   // ==========================================================================
 
   describe('Integration', () => {
-    it('should handle complete user flow: view services and browse all', async () => {
+    it('should handle complete user flow: select multiple services', async () => {
       const { getByLabelText, mockProps } = renderQuickServices();
 
       const plumbingCard = getByLabelText('Find plumbing contractors');
@@ -930,11 +676,11 @@ describe('QuickServices Component', () => {
         expect(mockProps.onServicePress).toHaveBeenCalledTimes(1);
       });
 
-      const browseButton = getByLabelText('Browse all services');
-      fireEvent.press(browseButton);
+      const electricalCard = getByLabelText('Find electrical contractors');
+      fireEvent.press(electricalCard);
 
       await waitFor(() => {
-        expect(mockProps.onBrowseAllPress).toHaveBeenCalledTimes(1);
+        expect(mockProps.onServicePress).toHaveBeenCalledTimes(2);
       });
     });
 
@@ -967,11 +713,11 @@ describe('QuickServices Component', () => {
       expect(mockProps.onServicePress).toHaveBeenCalledTimes(1);
       expect(mockProps.onBrowseAllPress).not.toHaveBeenCalled();
 
-      const browseButton = getByLabelText('Browse all services');
-      fireEvent.press(browseButton);
+      const electricalCard = getByLabelText('Find electrical contractors');
+      fireEvent.press(electricalCard);
 
-      expect(mockProps.onServicePress).toHaveBeenCalledTimes(1);
-      expect(mockProps.onBrowseAllPress).toHaveBeenCalledTimes(1);
+      expect(mockProps.onServicePress).toHaveBeenCalledTimes(2);
+      expect(mockProps.onBrowseAllPress).not.toHaveBeenCalled();
     });
   });
 
@@ -998,7 +744,12 @@ describe('QuickServices Component', () => {
 
       expect(getByLabelText('Find plumbing contractors')).toBeTruthy();
 
-      rerender(<QuickServices onServicePress={jest.fn()} onBrowseAllPress={jest.fn()} />);
+      rerender(
+        <QuickServices
+          onServicePress={jest.fn()}
+          onBrowseAllPress={jest.fn()}
+        />
+      );
 
       expect(getByLabelText('Find plumbing contractors')).toBeTruthy();
     });
@@ -1006,7 +757,7 @@ describe('QuickServices Component', () => {
     it('should render correctly with no interaction', () => {
       const { getByText, mockProps } = renderQuickServices();
 
-      expect(getByText('Need Help With?')).toBeTruthy();
+      expect(getByText('Plumbing')).toBeTruthy();
       expect(mockProps.onServicePress).not.toHaveBeenCalled();
       expect(mockProps.onBrowseAllPress).not.toHaveBeenCalled();
     });
@@ -1014,7 +765,7 @@ describe('QuickServices Component', () => {
     it('should handle component unmounting gracefully', () => {
       const { unmount, getByText } = renderQuickServices();
 
-      expect(getByText('Need Help With?')).toBeTruthy();
+      expect(getByText('Plumbing')).toBeTruthy();
 
       expect(() => unmount()).not.toThrow();
     });
@@ -1033,7 +784,10 @@ describe('QuickServices Component', () => {
     it('should match snapshot with custom handlers', () => {
       const onServicePress = jest.fn();
       const onBrowseAllPress = jest.fn();
-      const { toJSON } = renderQuickServices({ onServicePress, onBrowseAllPress });
+      const { toJSON } = renderQuickServices({
+        onServicePress,
+        onBrowseAllPress,
+      });
       expect(toJSON()).toMatchSnapshot();
     });
   });

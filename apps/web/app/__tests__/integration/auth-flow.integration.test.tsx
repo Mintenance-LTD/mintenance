@@ -196,7 +196,7 @@ describe('Authentication Flow Integration Tests', () => {
       fireEvent.change(screen.getByLabelText(/last name/i), {
         target: { value: 'Smith' },
       });
-      fireEvent.change(screen.getByLabelText(/^email address$/i), {
+      fireEvent.change(screen.getByLabelText(/^email$/i), {
         target: { value: 'newuser@example.com' },
       });
       fireEvent.change(screen.getByLabelText(/^password$/i), {
@@ -223,9 +223,11 @@ describe('Authentication Flow Integration Tests', () => {
         );
       });
 
+      // 2026-05-25 audit-P0-2: fresh homeowner sign-ups land on the
+      // onboarding wizard (/onboarding/homeowner) before the dashboard.
       await waitFor(
         () => {
-          expect(mockPush).toHaveBeenCalledWith('/dashboard');
+          expect(mockPush).toHaveBeenCalledWith('/onboarding/homeowner');
         },
         { timeout: 2500 }
       );
@@ -235,7 +237,7 @@ describe('Authentication Flow Integration Tests', () => {
       const { default: SignUpPage } = await import('@/app/register/page');
       render(<SignUpPage />);
 
-      fireEvent.change(screen.getByLabelText(/^email address$/i), {
+      fireEvent.change(screen.getByLabelText(/^email$/i), {
         target: { value: 'test@example.com' },
       });
       fireEvent.change(screen.getByLabelText(/^password$/i), {
@@ -262,7 +264,7 @@ describe('Authentication Flow Integration Tests', () => {
       const { default: SignUpPage } = await import('@/app/register/page');
       render(<SignUpPage />);
 
-      fireEvent.change(screen.getByLabelText(/^email address$/i), {
+      fireEvent.change(screen.getByLabelText(/^email$/i), {
         target: { value: 'test@example.com' },
       });
       fireEvent.change(screen.getByLabelText(/^password$/i), {
@@ -287,7 +289,7 @@ describe('Authentication Flow Integration Tests', () => {
       render(<SignUpPage />);
 
       // Use fireEvent.change to bypass HTML5 email input restrictions in happy-dom
-      const emailInput = screen.getByLabelText(/^email address$/i);
+      const emailInput = screen.getByLabelText(/^email$/i);
       await user.clear(emailInput);
       // Set value directly to bypass HTML5 email validation
       Object.getOwnPropertyDescriptor(
@@ -333,7 +335,7 @@ describe('Authentication Flow Integration Tests', () => {
       fireEvent.change(screen.getByLabelText(/last name/i), {
         target: { value: 'Doe' },
       });
-      fireEvent.change(screen.getByLabelText(/^email address$/i), {
+      fireEvent.change(screen.getByLabelText(/^email$/i), {
         target: { value: 'test@example.com' },
       });
       fireEvent.change(screen.getByLabelText(/^password$/i), {
@@ -346,16 +348,15 @@ describe('Authentication Flow Integration Tests', () => {
 
       fireEvent.click(screen.getByRole('button', { name: /create account/i }));
 
-      // Register page shows "Registration Successful!" on success
+      // Mint Editorial register redesign shows "Account created." on success
       await waitFor(() => {
-        expect(
-          screen.getByText(/Registration Successful/i)
-        ).toBeInTheDocument();
+        expect(screen.getByText(/Account created/i)).toBeInTheDocument();
       });
 
+      // 2026-05-25 audit-P0-2: homeowner sign-ups route to onboarding first
       await waitFor(
         () => {
-          expect(mockPush).toHaveBeenCalledWith('/dashboard');
+          expect(mockPush).toHaveBeenCalledWith('/onboarding/homeowner');
         },
         { timeout: 2500 }
       );
@@ -379,7 +380,7 @@ describe('Authentication Flow Integration Tests', () => {
       fireEvent.change(screen.getByLabelText(/last name/i), {
         target: { value: 'Doe' },
       });
-      fireEvent.change(screen.getByLabelText(/^email address$/i), {
+      fireEvent.change(screen.getByLabelText(/^email$/i), {
         target: { value: 'existing@example.com' },
       });
       fireEvent.change(screen.getByLabelText(/^password$/i), {
@@ -407,10 +408,7 @@ describe('Authentication Flow Integration Tests', () => {
       const { default: LoginPage } = await import('@/app/login/page');
       render(<LoginPage />);
 
-      await user.type(
-        screen.getByLabelText(/^email address$/i),
-        'user@example.com'
-      );
+      await user.type(screen.getByLabelText(/^email$/i), 'user@example.com');
       // Use exact match to avoid matching "Show password" aria-label button
       await user.type(
         screen.getByLabelText(/^password$/i),
@@ -448,17 +446,19 @@ describe('Authentication Flow Integration Tests', () => {
       const { default: LoginPage } = await import('@/app/login/page');
       render(<LoginPage />);
 
-      await user.type(
-        screen.getByLabelText(/^email address$/i),
-        'user@example.com'
-      );
+      await user.type(screen.getByLabelText(/^email$/i), 'user@example.com');
       await user.type(screen.getByLabelText(/^password$/i), 'WrongPassword');
 
       await user.click(screen.getByRole('button', { name: /sign in/i }));
 
-      // 'Invalid login credentials' contains 'invalid' -> shows "Incorrect password..." message
+      // 2026-05-13 account-enumeration fix: the login page now displays the
+      // server's error verbatim rather than rewriting it into "Incorrect
+      // password" (which leaked account existence). Mock returns
+      // 'Invalid login credentials', so that exact text is rendered.
       await waitFor(() => {
-        expect(screen.getByText(/incorrect password/i)).toBeInTheDocument();
+        expect(
+          screen.getByText(/invalid login credentials/i)
+        ).toBeInTheDocument();
       });
 
       // Should NOT redirect
@@ -478,16 +478,18 @@ describe('Authentication Flow Integration Tests', () => {
       render(<LoginPage />);
 
       await user.type(
-        screen.getByLabelText(/^email address$/i),
+        screen.getByLabelText(/^email$/i),
         'unverified@example.com'
       );
       await user.type(screen.getByLabelText(/^password$/i), 'Password123!');
 
       await user.click(screen.getByRole('button', { name: /sign in/i }));
 
-      // 'Email not confirmed' contains 'confirm' -> shows "Please verify your email address..."
+      // 2026-05-13 account-enumeration fix: the login page renders the
+      // server's 401 message verbatim. Mock returns 'Email not confirmed',
+      // so that exact text is shown (no client-side rewrite).
       await waitFor(() => {
-        expect(screen.getByText(/verify your email/i)).toBeInTheDocument();
+        expect(screen.getByText(/email not confirmed/i)).toBeInTheDocument();
       });
     });
 
@@ -495,9 +497,9 @@ describe('Authentication Flow Integration Tests', () => {
       const { default: LoginPage } = await import('@/app/login/page');
       render(<LoginPage />);
 
-      // The login page has a "Forgot password?" link
-      const forgotPasswordLink = screen.getByText(/forgot password/i);
-      // Login page has "Forgot password?" link at /forgot-password (not /auth/forgot-password)
+      // Mint Editorial login redesign renders the reset link as "Forgot?"
+      // in the password-row header, pointing at /forgot-password.
+      const forgotPasswordLink = screen.getByText(/^forgot\?$/i);
       expect(forgotPasswordLink.closest('a')).toHaveAttribute(
         'href',
         '/forgot-password'
@@ -567,10 +569,7 @@ describe('Authentication Flow Integration Tests', () => {
       const { default: LoginPage } = await import('@/app/login/page');
       render(<LoginPage />);
 
-      await user.type(
-        screen.getByLabelText(/^email address$/i),
-        homeowner.email
-      );
+      await user.type(screen.getByLabelText(/^email$/i), homeowner.email);
       await user.type(screen.getByLabelText(/^password$/i), 'Password123!');
       await user.click(screen.getByRole('button', { name: /sign in/i }));
 
@@ -604,10 +603,7 @@ describe('Authentication Flow Integration Tests', () => {
       const { default: LoginPage } = await import('@/app/login/page');
       render(<LoginPage />);
 
-      await user.type(
-        screen.getByLabelText(/^email address$/i),
-        contractor.email
-      );
+      await user.type(screen.getByLabelText(/^email$/i), contractor.email);
       await user.type(screen.getByLabelText(/^password$/i), 'Password123!');
       await user.click(screen.getByRole('button', { name: /sign in/i }));
 

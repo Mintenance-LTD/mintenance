@@ -62,6 +62,22 @@ vi.mock('@/lib/services/notifications/NotificationHelper', () => ({
   notifyJobStatusChange: mocks.notifyJobStatusChange,
 }));
 
+// The route wraps its body in the idempotency claim/complete pattern. Mock
+// it as a passthrough so the route's real gate logic (auth, contract,
+// escrow, before-photo, state transition) is what the tests exercise.
+// getIdempotencyKeyFromRequest returns a stable key; checkIdempotency
+// returns null (caller owns the claim → proceed); releaseOnError just runs
+// the wrapped fn; storeIdempotencyResult is a no-op.
+vi.mock('@/lib/idempotency', () => ({
+  getIdempotencyKeyFromRequest: vi.fn(() => 'idem-key-job-start'),
+  checkIdempotency: vi.fn().mockResolvedValue(null),
+  storeIdempotencyResult: vi.fn().mockResolvedValue(undefined),
+  releaseIdempotencyClaim: vi.fn().mockResolvedValue(undefined),
+  releaseOnError: vi.fn(
+    async (_key: string, _op: string, fn: () => Promise<unknown>) => fn()
+  ),
+}));
+
 vi.mock('@/lib/services/notifications/NotificationService', () => ({
   NotificationService: {
     markEmailSent: mocks.markEmailSent,

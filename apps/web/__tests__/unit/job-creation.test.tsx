@@ -16,12 +16,20 @@ import toast from 'react-hot-toast';
  */
 
 // Mock dependencies
+// A single stable URLSearchParams instance — returning a fresh object on
+// every render makes `searchParams` an unstable effect/useCallback dep,
+// which sends the property-fetch effect into an infinite re-render loop
+// ("Maximum update depth exceeded"). The real next/navigation hook returns
+// a referentially-stable object per navigation, so this mirrors prod.
+const { mockSearchParams } = vi.hoisted(() => ({
+  mockSearchParams: new URLSearchParams(),
+}));
 vi.mock('next/navigation', async (importOriginal) => {
   const actual = await importOriginal<typeof import('next/navigation')>();
   return {
     ...actual,
     useRouter: vi.fn(),
-    useSearchParams: vi.fn(() => new URLSearchParams()),
+    useSearchParams: vi.fn(() => mockSearchParams),
   };
 });
 vi.mock('@/hooks/useCurrentUser');
@@ -56,16 +64,23 @@ const mockUser = {
   last_name: 'Doe',
 };
 
+// Property IDs must be valid UUIDs: the canonical createJobRequestSchema
+// in @mintenance/api-contracts validates `propertyId` with z.uuid() (the
+// submit-time safety net added to validation.ts on 2026-05-01). The old
+// 'prop-123' placeholders failed that check, so the form never submitted.
+const PROP_HOUSE_ID = '11111111-1111-4111-8111-111111111111';
+const PROP_RENTAL_ID = '22222222-2222-4222-8222-222222222222';
+
 const mockProperties = [
   {
-    id: 'prop-123',
+    id: PROP_HOUSE_ID,
     property_name: 'My House',
     address: '123 Main St, London',
     property_type: 'house',
     photos: ['/house.jpg'],
   },
   {
-    id: 'prop-456',
+    id: PROP_RENTAL_ID,
     property_name: 'Rental Property',
     address: '456 Oak Ave, London',
     property_type: 'apartment',
@@ -114,8 +129,12 @@ describe('CreateJobPage', () => {
       const propertyButton = screen.getByText('My House').closest('button');
       await user.click(propertyButton!);
 
-      // Property should be selected (check for visual indicator)
-      expect(propertyButton).toHaveClass('border-teal-600');
+      // Property should be selected. The Mint Editorial redesign (2026-05)
+      // dropped Tailwind `border-teal-600` for inline `--me-*` tokens; the
+      // active state is the brand-soft background fill.
+      expect(propertyButton!.getAttribute('style')).toContain(
+        'background: var(--me-brand-soft)'
+      );
     });
 
     it('should select service category', async () => {
@@ -125,7 +144,10 @@ describe('CreateJobPage', () => {
       const plumbingButton = await screen.findByText('Plumbing');
       await user.click(plumbingButton.closest('button')!);
 
-      expect(plumbingButton.closest('button')).toHaveClass('border-teal-600');
+      // Active category uses the Mint Editorial brand-soft fill (no Tailwind).
+      expect(plumbingButton.closest('button')!.getAttribute('style')).toContain(
+        'background: var(--me-brand-soft)'
+      );
     });
 
     it('should validate required fields before proceeding', async () => {
@@ -170,7 +192,7 @@ describe('CreateJobPage', () => {
 
       await waitFor(() => {
         expect(
-          screen.getByText(/Uploaded Photos \(1\/10\)/)
+          screen.getByText(/Uploaded photos \(1\/10\)/)
         ).toBeInTheDocument();
       });
     });
@@ -186,29 +208,33 @@ describe('CreateJobPage', () => {
 
       await user.upload(input, file);
 
-      // The remove button is an X icon without accessible name, find it by its position in the upload preview
-      const previewContainer =
-        screen.getByText(/Uploaded Photos/).parentElement!;
-      const removeButton = previewContainer.querySelector('button')!;
+      // The remove button now carries an accessible name ("Remove photo 1").
+      const removeButton = screen.getByRole('button', {
+        name: /remove photo/i,
+      });
       await user.click(removeButton);
 
-      expect(screen.queryByText(/Uploaded Photos/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Uploaded photos/)).not.toBeInTheDocument();
     });
   });
 
   describe('Step 3: Budget and Timeline', () => {
-    it('should set budget amount', async () => {
+    it('should reach the timeline step (budget input removed 2026-05-22)', async () => {
       const user = userEvent.setup();
       render(<CreateJobPage />);
 
       await completeStep1(user);
       await completeStep2(user);
 
-      const budgetInput = screen.getByPlaceholderText(/Enter maximum budget/i);
-      await user.type(budgetInput, '250');
-
-      expect(budgetInput).toHaveValue(250);
-      expect(screen.getByText('£250')).toBeInTheDocument();
+      // The homeowner-facing budget field was removed 2026-05-22 — contractors
+      // now bid their own price. Step 3 is purely the timeline step.
+      expect(
+        screen.queryByPlaceholderText(/Enter maximum budget/i)
+      ).not.toBeInTheDocument();
+      expect(screen.getByText('Set your timeline')).toBeInTheDocument();
+      expect(
+        screen.getByText('When do you need this done?')
+      ).toBeInTheDocument();
     });
 
     it('should select urgency level', async () => {
@@ -221,7 +247,10 @@ describe('CreateJobPage', () => {
       const urgentButton = screen.getByText('Urgent');
       await user.click(urgentButton.closest('button')!);
 
-      expect(urgentButton.closest('button')).toHaveClass('border-teal-600');
+      // Active urgency uses the Mint Editorial brand-soft fill (no Tailwind).
+      expect(urgentButton.closest('button')!.getAttribute('style')).toContain(
+        'background: var(--me-brand-soft)'
+      );
     });
 
     it('should set preferred date', async () => {
@@ -253,10 +282,12 @@ describe('CreateJobPage', () => {
 
       await completeAllSteps(user);
 
-      // Check summary displays entered information
+      // Check summary displays entered information. Budget was removed from
+      // the review summary 2026-05-22; the summary now shows the selected
+      // urgency in the Timeline section instead.
       expect(screen.getByText('Fix bathroom leak')).toBeInTheDocument();
-      expect(screen.getByText('£250')).toBeInTheDocument();
       expect(screen.getByText('My House')).toBeInTheDocument();
+      expect(screen.getByText('Urgent')).toBeInTheDocument();
     });
 
     it('should submit job successfully', async () => {
@@ -270,17 +301,19 @@ describe('CreateJobPage', () => {
 
       await completeAllSteps(user);
 
-      const postButton = screen.getByText('Post Job');
+      // Submit button copy is "Post job" in the Mint Editorial redesign.
+      const postButton = screen.getByText('Post job');
       await user.click(postButton);
 
       await waitFor(() => {
+        // `budget` was removed from JobFormData 2026-05-22 — contractors bid
+        // their own price, so it is no longer part of the submit payload.
         expect(submitJob).toHaveBeenCalledWith(
           expect.objectContaining({
             formData: expect.objectContaining({
               title: 'Fix bathroom leak',
               category: 'plumbing',
-              budget: '250',
-              property_id: 'prop-123',
+              property_id: PROP_HOUSE_ID,
             }),
             photoUrls: [],
             csrfToken: 'test-token',
@@ -301,7 +334,7 @@ describe('CreateJobPage', () => {
 
       await completeAllSteps(user);
 
-      const postButton = screen.getByText('Post Job');
+      const postButton = screen.getByText('Post job');
       await user.click(postButton);
 
       await waitFor(() => {
@@ -377,14 +410,16 @@ describe('QuickJobPage', () => {
     expect(titleInput).toHaveValue('Leaky Tap/Pipe');
   });
 
-  it('should select budget range', async () => {
-    const user = userEvent.setup();
+  it('should not show budget range (removed 2026-05-22)', () => {
     render(<QuickJobPage />);
 
-    const budgetButton = screen.getByText('£100-200');
-    await user.click(budgetButton);
-
-    expect(budgetButton).toHaveClass('border-teal-600');
+    // The quick-create budget-range selector was removed 2026-05-22 —
+    // contractors now bid their own price. The form should still render its
+    // title input and have no budget option.
+    expect(screen.queryByText('£100-200')).not.toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText(/Leaking kitchen tap/i)
+    ).toBeInTheDocument();
   });
 
   it('should select urgency', async () => {
@@ -462,17 +497,25 @@ async function completeStep1(user: ReturnType<typeof userEvent.setup>) {
 }
 
 async function completeStep2(user: ReturnType<typeof userEvent.setup>) {
-  // Skip photos - they're optional
+  // Photos are required on every job (2026-05-22) — the Next button on the
+  // photos step stays disabled until at least one image is added, so we must
+  // upload one before advancing.
+  const file = new File(['photo'], 'leak.jpg', { type: 'image/jpeg' });
+  const input = screen.getByLabelText(/upload/i) as HTMLInputElement;
+  await user.upload(input, file);
+
+  await waitFor(() => {
+    expect(screen.getByText(/Uploaded photos/)).toBeInTheDocument();
+  });
+
   const nextButton = screen.getByText('Next');
   await user.click(nextButton);
 }
 
 async function completeStep3(user: ReturnType<typeof userEvent.setup>) {
-  // Set budget
-  const budgetInput = screen.getByPlaceholderText(/Enter maximum budget/i);
-  await user.type(budgetInput, '250');
-
-  // Select urgency
+  // Budget input was removed 2026-05-22 (contractors now bid their own
+  // price). Step 3 is the timeline step — selecting an urgency is what
+  // unlocks the Next button (canProceedStep3 === !!formData.urgency).
   const urgencyButton = screen.getByText('Urgent');
   await user.click(urgencyButton.closest('button')!);
 

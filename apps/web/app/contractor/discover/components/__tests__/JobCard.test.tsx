@@ -4,7 +4,9 @@ import type { Job } from '@mintenance/types';
 
 // Mock Next.js Image component
 vi.mock('next/image', () => ({
-  default: ({ src, alt, ...props }: any) => <img src={src} alt={alt} {...props} />,
+  default: ({ src, alt, ...props }: any) => (
+    <img src={src} alt={alt} {...props} />
+  ),
 }));
 
 // Mock Icon component
@@ -33,11 +35,17 @@ describe('JobCard', () => {
     expect(screen.getByText('Plumbing')).toBeInTheDocument();
   });
 
-  it('should display budget information', () => {
-    const { container } = render(<JobCard job={mockJob as any} />);
+  it('should display location instead of budget', () => {
+    // Budget display was removed 2026-05-22 — contractors price the job
+    // themselves and the homeowner picks from the bids. The card now surfaces
+    // a Location section in that slot.
+    render(<JobCard job={mockJob as any} />);
 
-    // Budget is stored in pence, formatMoney shows actual value
-    expect(screen.getByText(/£50,000/)).toBeInTheDocument();
+    expect(screen.getByText('Location')).toBeInTheDocument();
+    // formatLocationShort('London, UK') => 'London'
+    expect(screen.getByText('London')).toBeInTheDocument();
+    // No budget/currency value should be rendered.
+    expect(screen.queryByText(/£50,000/)).not.toBeInTheDocument();
   });
 
   it('should handle missing title with fallback', () => {

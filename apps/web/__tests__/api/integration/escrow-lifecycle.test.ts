@@ -8,7 +8,7 @@
  *   3. Dispute path:    homeowner requests changes -> escrow stays held -> contractor fixes -> released
  *   4. 7-day auto-release: homeowner never responds, auto-approval triggers release
  *   5. Double-release prevention: attempting to release an already-released escrow fails
- *   6. Fee calculation:  platform fee (5 %, min 0.50, max 50) + Stripe fee (1.5 % + 0.20)
+ *   6. Fee calculation:  platform fee (12 % Basic-tier default, min 0.50, no max cap) + Stripe fee (1.5 % + 0.20)
  *   7. Admin override:   admin can approve escrow release
  *   8. Refund flow:      before job starts homeowner gets full refund -> status "refunded"
  *
@@ -1231,10 +1231,90 @@ describe('Escrow Lifecycle - 5. Double-release prevention', () => {
     expect(body.error.message).toContain("Cannot transition from 'released'");
   });
 
-  it('should return 409 when lock contention is detected', async () => {
-    mocks.checkIdempotency.mockResolvedValue(null); // null = lock contention
+  it('should return 409 when concurrent modification is detected on the optimistic update', async () => {
+    // 2026-05-21 idempotency redesign: checkIdempotency returning null now means
+    // "claim acquired, proceed" (NOT lock contention). Real in-flight contention
+    // throws IdempotencyStoreUnavailableError -> 503. The route's genuine 409
+    // (ConflictError) is the optimistic-concurrency guard on the release_pending
+    // UPDATE: if the row's updated_at changed between read and write, the
+    // .eq('updated_at', originalUpdatedAt) match returns no row and the route
+    // throws ConflictError. We drive that path here.
+    mocks.checkIdempotency.mockResolvedValue(null); // claim acquired, proceed
     mocks.validateRequest.mockResolvedValue({
       data: { escrowTransactionId: ESCROW_ID, releaseReason: 'job_completed' },
+    });
+    mocks.validateTransition.mockReturnValue({ valid: true });
+
+    // Explicit homeowner approval -> skips auto-approval + photo gates.
+    // Job status 'assigned' (not 'completed') avoids the auto-release agent path.
+    const escrow = {
+      ...baseEscrowRow('held'),
+      homeowner_approval: true,
+      cooling_off_ends_at: null,
+      jobs: { ...baseJobRow, status: 'assigned' },
+    };
+
+    let escrowCallCount = 0;
+    mocks.supabaseFrom.mockImplementation((table: string) => {
+      if (table === 'escrow_transactions') {
+        escrowCallCount++;
+        if (escrowCallCount === 1) {
+          // Main read with jobs join
+          return {
+            select: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                single: vi
+                  .fn()
+                  .mockResolvedValue({ data: escrow, error: null }),
+              }),
+            }),
+          };
+        }
+        // Optimistic release_pending UPDATE: no row matched (updated_at changed
+        // under us) -> route throws ConflictError -> 409.
+        return {
+          update: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                select: vi.fn().mockReturnValue({
+                  single: vi.fn().mockResolvedValue({
+                    data: null,
+                    error: {
+                      message: 'No rows updated (optimistic lock miss)',
+                    },
+                  }),
+                }),
+              }),
+            }),
+          }),
+        };
+      }
+      if (table === 'profiles') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: {
+                  stripe_connect_account_id: 'acct_contractor1',
+                  stripe_payouts_enabled: true,
+                  stripe_transfers_active: true,
+                },
+                error: null,
+              }),
+            }),
+          }),
+        };
+      }
+      if (table === 'disputes') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              in: vi.fn().mockResolvedValue({ count: 0 }),
+            }),
+          }),
+        };
+      }
+      return { select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis() };
     });
 
     const req = createPostRequest(
@@ -1248,7 +1328,10 @@ describe('Escrow Lifecycle - 5. Double-release prevention', () => {
     expect(res.status).toBe(409);
 
     const body = await res.json();
-    expect(body.error.message).toContain('being processed');
+    expect(body.error.message).toContain('modified by another request');
+
+    // No Stripe transfer should have happened — we bailed before the transfer.
+    expect(mocks.stripeTransfersCreate).not.toHaveBeenCalled();
   });
 });
 
@@ -1260,7 +1343,9 @@ describe('Escrow Lifecycle - 6. Fee calculation verification', () => {
    * The FeeCalculationService is NOT mocked here; we import the real class
    * to verify fee math with concrete numbers.
    *
-   * Platform fee: 5 %, min 0.50, max 50.00
+   * Platform fee: 12 % (Basic-tier default), min 0.50, no max cap
+   *               (the flat 5 % + £50 cap was removed in the 2026-05-22
+   *               tiered-pricing rollout; the Basic-tier rate is now 12 %).
    * Stripe fee:   1.5 % + 0.20 (UK rates)
    *
    * NOTE: The user prompt references "2.9% + $0.30" for Stripe -- that is
@@ -1282,64 +1367,64 @@ describe('Escrow Lifecycle - 6. Fee calculation verification', () => {
     FeeCalculationService = mod.FeeCalculationService;
   });
 
-  it('should calculate 5 % platform fee on a 100 GBP payment', () => {
+  it('should calculate 12 % Basic-tier platform fee on a 100 GBP payment', () => {
     const result = FeeCalculationService.calculateFees(100);
 
-    expect(result.platformFee).toBe(5.0); // 100 * 0.05 = 5.00
+    expect(result.platformFee).toBe(12.0); // 100 * 0.12 = 12.00
     expect(result.stripeFee).toBe(1.7); // 100 * 0.015 + 0.20 = 1.70
-    expect(result.totalFees).toBe(6.7); // 5.00 + 1.70
-    expect(result.contractorAmount).toBe(93.3); // 100 - 6.70
+    expect(result.totalFees).toBe(13.7); // 12.00 + 1.70
+    expect(result.contractorAmount).toBe(86.3); // 100 - 13.70
     expect(result.originalAmount).toBe(100);
-    expect(result.platformFeeRate).toBe(0.05);
+    expect(result.platformFeeRate).toBe(0.12);
     expect(result.paymentType).toBe('final');
   });
 
   it('should enforce minimum platform fee of 0.50', () => {
-    const result = FeeCalculationService.calculateFees(5);
+    const result = FeeCalculationService.calculateFees(4);
 
-    // 5 * 0.05 = 0.25, but min is 0.50
+    // 4 * 0.12 = 0.48, but min is 0.50 -> floored to 0.50
     expect(result.platformFee).toBe(0.5);
-    expect(result.stripeFee).toBe(0.28); // 5 * 0.015 + 0.20 = 0.275 -> 0.28
-    expect(result.totalFees).toBe(0.78);
-    expect(result.contractorAmount).toBe(4.22); // 5 - 0.78
+    expect(result.stripeFee).toBe(0.26); // 4 * 0.015 + 0.20 = 0.26
+    expect(result.totalFees).toBe(0.76);
+    expect(result.contractorAmount).toBe(3.24); // 4 - 0.76
   });
 
-  it('should enforce maximum platform fee of 50.00', () => {
+  it('should apply no maximum cap on large jobs (cap removed in tiered-pricing rollout)', () => {
     const result = FeeCalculationService.calculateFees(2000);
 
-    // 2000 * 0.05 = 100, but max is 50
-    expect(result.platformFee).toBe(50.0);
+    // 2000 * 0.12 = 240.00 — the old £50 cap is gone, fee scales linearly
+    expect(result.platformFee).toBe(240.0);
     expect(result.stripeFee).toBe(30.2); // 2000 * 0.015 + 0.20 = 30.20
-    expect(result.totalFees).toBe(80.2);
-    expect(result.contractorAmount).toBe(1919.8); // 2000 - 80.20
+    expect(result.totalFees).toBe(270.2);
+    expect(result.contractorAmount).toBe(1729.8); // 2000 - 270.20
   });
 
   it('should calculate correct fees for a typical 250 GBP plumbing job', () => {
     const result = FeeCalculationService.calculateFees(250);
 
-    expect(result.platformFee).toBe(12.5); // 250 * 0.05 = 12.50
+    expect(result.platformFee).toBe(30.0); // 250 * 0.12 = 30.00
     expect(result.stripeFee).toBe(3.95); // 250 * 0.015 + 0.20 = 3.95
-    expect(result.totalFees).toBe(16.45);
-    expect(result.contractorAmount).toBe(233.55); // 250 - 16.45
+    expect(result.totalFees).toBe(33.95);
+    expect(result.contractorAmount).toBe(216.05); // 250 - 33.95
   });
 
   it('should calculate fees in cents for Stripe API', () => {
     const result = FeeCalculationService.calculateFeesInCents(25000); // 250 GBP in pence
 
     expect(result.originalAmount).toBe(25000);
-    expect(result.platformFee).toBe(1250); // 12.50 GBP in pence
+    expect(result.platformFee).toBe(3000); // 30.00 GBP in pence (250 * 0.12)
     expect(result.stripeFee).toBe(395); // 3.95 GBP in pence
-    expect(result.contractorAmount).toBe(23355); // 233.55 GBP in pence
+    expect(result.contractorAmount).toBe(21605); // 216.05 GBP in pence
   });
 
-  it('should handle deposit payment type with same 5 % rate', () => {
+  it('should handle deposit payment type with same 12 % Basic-tier rate', () => {
     const result = FeeCalculationService.calculateFees(100, {
       paymentType: 'deposit',
     });
 
-    expect(result.platformFee).toBe(5.0);
+    expect(result.platformFee).toBe(12.0);
     expect(result.paymentType).toBe('deposit');
-    expect(result.platformFeeRate).toBe(0.05);
+    expect(result.platformFeeRate).toBe(0.12);
   });
 
   it('should allow custom platform fee rate override', () => {
@@ -1363,8 +1448,8 @@ describe('Escrow Lifecycle - 6. Fee calculation verification', () => {
   it('should calculate net platform revenue (platform fee - Stripe fee)', () => {
     const result = FeeCalculationService.calculateFees(100);
 
-    // netPlatformRevenue = platformFee - stripeFee = 5.00 - 1.70 = 3.30
-    expect(result.netPlatformRevenue).toBe(3.3);
+    // netPlatformRevenue = platformFee - stripeFee = 12.00 - 1.70 = 10.30
+    expect(result.netPlatformRevenue).toBe(10.3);
   });
 
   it('should validate fee configuration bounds', () => {

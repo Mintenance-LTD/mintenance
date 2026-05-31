@@ -19,7 +19,12 @@ const mocks = vi.hoisted(() => ({
   requireCSRF: vi.fn(),
   rateLimiterCheckRateLimit: vi.fn(),
   createNotification: vi.fn(),
+  markEmailSent: vi.fn(),
   sendChangesRequestedEmail: vi.fn(),
+  getIdempotencyKeyFromRequest: vi.fn(),
+  checkIdempotency: vi.fn(),
+  storeIdempotencyResult: vi.fn(),
+  releaseOnError: vi.fn(),
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 
@@ -44,7 +49,13 @@ vi.mock('@/lib/rate-limiter', () => ({
 
 vi.mock('@mintenance/shared', () => ({
   logger: mocks.logger,
-  JOB_STATUS: { POSTED: 'posted', ASSIGNED: 'assigned', IN_PROGRESS: 'in_progress', COMPLETED: 'completed', CANCELLED: 'cancelled' },
+  JOB_STATUS: {
+    POSTED: 'posted',
+    ASSIGNED: 'assigned',
+    IN_PROGRESS: 'in_progress',
+    COMPLETED: 'completed',
+    CANCELLED: 'cancelled',
+  },
   BUSINESS_RULES: {},
   RATE_LIMITS: {},
   TIME_MS: { MINUTE: 60000, HOUR: 3600000 },
@@ -54,7 +65,18 @@ vi.mock('@/lib/logger', () => ({ logger: mocks.logger }));
 vi.mock('@/lib/services/notifications/NotificationService', () => ({
   NotificationService: {
     createNotification: mocks.createNotification,
+    markEmailSent: mocks.markEmailSent,
   },
+}));
+
+// Route uses the claim-then-complete idempotency layer. Mock the public
+// surface so the protected block always runs (checkIdempotency -> null =
+// "we own the claim") and releaseOnError just invokes the wrapped fn.
+vi.mock('@/lib/idempotency', () => ({
+  getIdempotencyKeyFromRequest: mocks.getIdempotencyKeyFromRequest,
+  checkIdempotency: mocks.checkIdempotency,
+  storeIdempotencyResult: mocks.storeIdempotencyResult,
+  releaseOnError: mocks.releaseOnError,
 }));
 
 vi.mock('@/lib/email-service', () => ({
@@ -65,24 +87,71 @@ vi.mock('@/lib/email-service', () => ({
 
 vi.mock('@/lib/errors/api-error', async () => {
   class APIError extends Error {
-    constructor(public code: string, public userMessage: string, public statusCode: number = 500, public details?: unknown) {
-      super(userMessage); this.name = 'APIError';
+    constructor(
+      public code: string,
+      public userMessage: string,
+      public statusCode: number = 500,
+      public details?: unknown
+    ) {
+      super(userMessage);
+      this.name = 'APIError';
     }
-    toResponse() { return { error: { code: this.code, message: this.userMessage }, timestamp: new Date().toISOString() }; }
+    toResponse() {
+      return {
+        error: { code: this.code, message: this.userMessage },
+        timestamp: new Date().toISOString(),
+      };
+    }
   }
-  class UnauthorizedError extends APIError { constructor(m = 'Unauthorized') { super('UNAUTHORIZED', m, 401); } }
-  class ForbiddenError extends APIError { constructor(m = 'Forbidden') { super('FORBIDDEN', m, 403); } }
-  class NotFoundError extends APIError { constructor(m = 'Resource not found') { super('NOT_FOUND', m, 404); } }
-  class BadRequestError extends APIError { constructor(m = 'Bad Request', d?: unknown) { super('BAD_REQUEST', m, 400, d); } }
+  class UnauthorizedError extends APIError {
+    constructor(m = 'Unauthorized') {
+      super('UNAUTHORIZED', m, 401);
+    }
+  }
+  class ForbiddenError extends APIError {
+    constructor(m = 'Forbidden') {
+      super('FORBIDDEN', m, 403);
+    }
+  }
+  class NotFoundError extends APIError {
+    constructor(m = 'Resource not found') {
+      super('NOT_FOUND', m, 404);
+    }
+  }
+  class BadRequestError extends APIError {
+    constructor(m = 'Bad Request', d?: unknown) {
+      super('BAD_REQUEST', m, 400, d);
+    }
+  }
+  class ServiceUnavailableError extends APIError {
+    constructor(m = 'Service unavailable') {
+      super('SERVICE_UNAVAILABLE', m, 503);
+    }
+  }
   return {
-    APIError, UnauthorizedError, ForbiddenError, NotFoundError, BadRequestError,
+    APIError,
+    UnauthorizedError,
+    ForbiddenError,
+    NotFoundError,
+    BadRequestError,
+    ServiceUnavailableError,
     handleAPIError: vi.fn((error: unknown) => {
       if (error instanceof APIError) {
         const { NextResponse } = require('next/server');
-        return NextResponse.json(error.toResponse(), { status: error.statusCode });
+        return NextResponse.json(error.toResponse(), {
+          status: error.statusCode,
+        });
       }
       const { NextResponse } = require('next/server');
-      return NextResponse.json({ error: { code: 'INTERNAL_SERVER_ERROR', message: 'An unexpected error occurred' } }, { status: 500 });
+      return NextResponse.json(
+        {
+          error: {
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'An unexpected error occurred',
+          },
+        },
+        { status: 500 }
+      );
     }),
   };
 });
@@ -92,7 +161,10 @@ vi.mock('@/lib/cors', () => ({ getCorsHeaders: vi.fn(() => ({})) }));
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-function createPostRequest(url: string, body?: Record<string, unknown>): NextRequest {
+function createPostRequest(
+  url: string,
+  body?: Record<string, unknown>
+): NextRequest {
   return new NextRequest(new URL(url, 'http://localhost:3000'), {
     method: 'POST',
     headers: {
@@ -128,18 +200,35 @@ function setupDefaultMocks() {
   mocks.getCurrentUserFromCookies.mockResolvedValue(homeownerUser);
   mocks.requireCSRF.mockResolvedValue(undefined);
   mocks.rateLimiterCheckRateLimit.mockResolvedValue({
-    allowed: true, remaining: 19, resetTime: Date.now() + 60000, retryAfter: 0,
+    allowed: true,
+    remaining: 19,
+    resetTime: Date.now() + 60000,
+    retryAfter: 0,
   });
   mocks.createNotification.mockResolvedValue('notif-1');
+  mocks.markEmailSent.mockResolvedValue(undefined);
   mocks.sendChangesRequestedEmail.mockResolvedValue(true);
+  mocks.getIdempotencyKeyFromRequest.mockReturnValue('idem-key-123');
+  // null = caller owns the claim and should run the protected block.
+  mocks.checkIdempotency.mockResolvedValue(null);
+  mocks.storeIdempotencyResult.mockResolvedValue(undefined);
+  // releaseOnError wraps the protected block: just invoke it.
+  mocks.releaseOnError.mockImplementation(
+    async (_key: string, _op: string, fn: () => Promise<unknown>) => fn()
+  );
 }
 
-function setupRequestChangesMocks(overrides: {
-  jobData?: unknown;
-  jobError?: unknown;
-  updateError?: unknown;
-} = {}) {
-  const jobResult = { data: overrides.jobData ?? completedJob, error: overrides.jobError ?? null };
+function setupRequestChangesMocks(
+  overrides: {
+    jobData?: unknown;
+    jobError?: unknown;
+    updateError?: unknown;
+  } = {}
+) {
+  const jobResult = {
+    data: overrides.jobData ?? completedJob,
+    error: overrides.jobError ?? null,
+  };
   const updateResult = { error: overrides.updateError ?? null };
 
   mocks.supabaseFrom.mockImplementation((table: string) => {
@@ -155,12 +244,27 @@ function setupRequestChangesMocks(overrides: {
         }),
       };
     }
+    if (table === 'escrow_transactions') {
+      // .update({...}).eq('job_id', id).eq('status', 'held') — best-effort reset.
+      return {
+        update: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockResolvedValue({ error: null }),
+          }),
+        }),
+      };
+    }
     if (table === 'profiles') {
       return {
         select: vi.fn().mockReturnValue({
           eq: vi.fn().mockReturnValue({
             single: vi.fn().mockResolvedValue({
-              data: { email: 'contractor@test.com', first_name: 'Bob', last_name: 'Builder', company_name: 'Bob Co' },
+              data: {
+                email: 'contractor@test.com',
+                first_name: 'Bob',
+                last_name: 'Builder',
+                company_name: 'Bob Co',
+              },
               error: null,
             }),
           }),
@@ -187,7 +291,10 @@ describe('POST /api/jobs/[id]/request-changes', () => {
   it('should return 401 when user is not authenticated', async () => {
     mocks.getCurrentUserFromCookies.mockResolvedValue(null);
 
-    const req = createPostRequest('http://localhost:3000/api/jobs/job-1/request-changes', { comments: 'Fix the grout' });
+    const req = createPostRequest(
+      'http://localhost:3000/api/jobs/job-1/request-changes',
+      { comments: 'Fix the grout' }
+    );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(401);
   });
@@ -202,7 +309,10 @@ describe('POST /api/jobs/[id]/request-changes', () => {
       last_name: 'Contractor',
     });
 
-    const req = createPostRequest('http://localhost:3000/api/jobs/job-1/request-changes', { comments: 'Fix the grout' });
+    const req = createPostRequest(
+      'http://localhost:3000/api/jobs/job-1/request-changes',
+      { comments: 'Fix the grout' }
+    );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(403);
   });
@@ -211,7 +321,10 @@ describe('POST /api/jobs/[id]/request-changes', () => {
   it('should return 400 when comments are empty', async () => {
     setupRequestChangesMocks();
 
-    const req = createPostRequest('http://localhost:3000/api/jobs/job-1/request-changes', { comments: '' });
+    const req = createPostRequest(
+      'http://localhost:3000/api/jobs/job-1/request-changes',
+      { comments: '' }
+    );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(400);
 
@@ -222,16 +335,25 @@ describe('POST /api/jobs/[id]/request-changes', () => {
   it('should return 400 when comments are whitespace only', async () => {
     setupRequestChangesMocks();
 
-    const req = createPostRequest('http://localhost:3000/api/jobs/job-1/request-changes', { comments: '   ' });
+    const req = createPostRequest(
+      'http://localhost:3000/api/jobs/job-1/request-changes',
+      { comments: '   ' }
+    );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(400);
   });
 
   // ---- Job not found ----
   it('should return 404 when job does not exist', async () => {
-    setupRequestChangesMocks({ jobData: null, jobError: { message: 'not found' } });
+    setupRequestChangesMocks({
+      jobData: null,
+      jobError: { message: 'not found' },
+    });
 
-    const req = createPostRequest('http://localhost:3000/api/jobs/bad-id/request-changes', { comments: 'Fix it' });
+    const req = createPostRequest(
+      'http://localhost:3000/api/jobs/bad-id/request-changes',
+      { comments: 'Fix it' }
+    );
     const res = await POST(req, segmentData('bad-id'));
     expect(res.status).toBe(404);
   });
@@ -247,7 +369,10 @@ describe('POST /api/jobs/[id]/request-changes', () => {
     });
     setupRequestChangesMocks();
 
-    const req = createPostRequest('http://localhost:3000/api/jobs/job-1/request-changes', { comments: 'Fix it' });
+    const req = createPostRequest(
+      'http://localhost:3000/api/jobs/job-1/request-changes',
+      { comments: 'Fix it' }
+    );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(403);
 
@@ -257,9 +382,14 @@ describe('POST /api/jobs/[id]/request-changes', () => {
 
   // ---- Job not completed ----
   it('should return 400 when job is not in completed status', async () => {
-    setupRequestChangesMocks({ jobData: { ...completedJob, status: 'in_progress' } });
+    setupRequestChangesMocks({
+      jobData: { ...completedJob, status: 'in_progress' },
+    });
 
-    const req = createPostRequest('http://localhost:3000/api/jobs/job-1/request-changes', { comments: 'Fix it' });
+    const req = createPostRequest(
+      'http://localhost:3000/api/jobs/job-1/request-changes',
+      { comments: 'Fix it' }
+    );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(400);
 
@@ -271,7 +401,10 @@ describe('POST /api/jobs/[id]/request-changes', () => {
   it('should roll back job to in_progress and send notification', async () => {
     setupRequestChangesMocks();
 
-    const req = createPostRequest('http://localhost:3000/api/jobs/job-1/request-changes', { comments: 'Grout needs redo' });
+    const req = createPostRequest(
+      'http://localhost:3000/api/jobs/job-1/request-changes',
+      { comments: 'Grout needs redo' }
+    );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(200);
 
@@ -283,15 +416,22 @@ describe('POST /api/jobs/[id]/request-changes', () => {
   it('should create a notification for the contractor', async () => {
     setupRequestChangesMocks();
 
-    const req = createPostRequest('http://localhost:3000/api/jobs/job-1/request-changes', { comments: 'Grout needs redo' });
+    const req = createPostRequest(
+      'http://localhost:3000/api/jobs/job-1/request-changes',
+      { comments: 'Grout needs redo' }
+    );
     await POST(req, segmentData('job-1'));
 
+    // 2026-05-21 Mint Editorial voice: title now names the homeowner's ask
+    // (`${job.title} — homeowner asked for a tweak`) and the message body is
+    // the verbatim comment. Realigned from the old static 'Changes Requested'.
     expect(mocks.createNotification).toHaveBeenCalledWith(
       expect.objectContaining({
         userId: 'contractor-1',
-        title: 'Changes Requested',
+        title: 'Fix leaking pipe — homeowner asked for a tweak',
+        message: 'Grout needs redo',
         type: 'changes_requested',
-      }),
+      })
     );
   });
 
@@ -299,7 +439,10 @@ describe('POST /api/jobs/[id]/request-changes', () => {
   it('should return 500 when job status rollback fails', async () => {
     setupRequestChangesMocks({ updateError: { message: 'DB error' } });
 
-    const req = createPostRequest('http://localhost:3000/api/jobs/job-1/request-changes', { comments: 'Fix it' });
+    const req = createPostRequest(
+      'http://localhost:3000/api/jobs/job-1/request-changes',
+      { comments: 'Fix it' }
+    );
     const res = await POST(req, segmentData('job-1'));
     expect(res.status).toBe(500);
   });

@@ -66,6 +66,19 @@ vi.mock('@/lib/utils/fileValidation', () => ({
   validateImageUpload: mocks.validateImageUpload,
 }));
 
+// Isolate the idempotency wrapper: the route opts into idempotency via
+// checkIdempotency/releaseOnError/storeIdempotencyResult, but those call
+// Supabase RPCs (not in this test's serverSupabase mock). Mock the module
+// so the route's protected block runs straight through with no caching.
+vi.mock('@/lib/idempotency', () => ({
+  getIdempotencyKeyFromRequest: vi.fn(() => 'test-idempotency-key'),
+  checkIdempotency: vi.fn().mockResolvedValue(null),
+  storeIdempotencyResult: vi.fn().mockResolvedValue(undefined),
+  releaseOnError: vi.fn(
+    async (_key: string, _op: string, fn: () => Promise<unknown>) => fn()
+  ),
+}));
+
 vi.mock('@/lib/errors/api-error', async () => {
   class APIError extends Error {
     constructor(
@@ -104,12 +117,22 @@ vi.mock('@/lib/errors/api-error', async () => {
       super('BAD_REQUEST', m, 400, d);
     }
   }
+  class ServiceUnavailableError extends APIError {
+    constructor(service = 'Service') {
+      super(
+        'SERVICE_UNAVAILABLE',
+        `${service} is temporarily unavailable`,
+        503
+      );
+    }
+  }
   return {
     APIError,
     UnauthorizedError,
     ForbiddenError,
     NotFoundError,
     BadRequestError,
+    ServiceUnavailableError,
     handleAPIError: vi.fn((error: unknown) => {
       if (error instanceof APIError) {
         const { NextResponse } = require('next/server');

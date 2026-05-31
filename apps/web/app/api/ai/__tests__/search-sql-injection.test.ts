@@ -170,7 +170,7 @@ describe('POST /api/ai/search - SQL Injection Prevention', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          query: "test /* malicious */ query",
+          query: 'test /* malicious */ query',
           filters: {},
         }),
       });
@@ -180,7 +180,12 @@ describe('POST /api/ai/search - SQL Injection Prevention', () => {
       expect(sanitizeText).toHaveBeenCalled();
     });
 
-    it('should respect maximum query length of 500 characters', async () => {
+    it('should reject queries exceeding the 500 character limit', async () => {
+      // The route now validates the body with a Zod schema
+      // (query: z.string().min(1).max(500)). An over-length query is
+      // rejected outright at the validation boundary with a 400 — it never
+      // reaches the downstream sanitizeText() truncation path. Rejecting is
+      // stronger than truncating, so assert the boundary enforcement.
       const longQuery = 'a'.repeat(600);
 
       const request = new NextRequest('http://localhost:3000/api/ai/search', {
@@ -192,10 +197,11 @@ describe('POST /api/ai/search - SQL Injection Prevention', () => {
         }),
       });
 
-      await POST(request);
+      const response = await POST(request);
 
-      // Verify max length parameter was passed
-      expect(sanitizeText).toHaveBeenCalledWith(longQuery, 500);
+      expect(response.status).toBe(400);
+      // Over-length input must not reach analytics sanitization at all.
+      expect(sanitizeText).not.toHaveBeenCalled();
     });
   });
 
@@ -258,7 +264,7 @@ describe('POST /api/ai/search - SQL Injection Prevention', () => {
       // Verify only allowed keys were processed
       // maliciousKey and anotherBadKey should be ignored
       const calls = vi.mocked(sanitizeText).mock.calls;
-      const sanitizedValues = calls.map(call => call[0]);
+      const sanitizedValues = calls.map((call) => call[0]);
 
       // Should have sanitized query, location, and category
       expect(sanitizedValues).toContain('test');

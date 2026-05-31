@@ -5,16 +5,18 @@ exports[`BookingCard Snapshot Stability should render consistently for cancelled
   style={
     {
       "backgroundColor": "#FFFFFF",
-      "borderRadius": 16,
-      "elevation": 2,
+      "borderColor": "#D8E2DA",
+      "borderRadius": 12,
+      "borderWidth": 1,
+      "elevation": 1,
       "padding": 16,
-      "shadowColor": "#000000",
+      "shadowColor": "#1F2A24",
       "shadowOffset": {
-        "height": 2,
+        "height": 1,
         "width": 0,
       },
-      "shadowOpacity": 0.08,
-      "shadowRadius": 8,
+      "shadowOpacity": 0.06,
+      "shadowRadius": 2,
     }
   }
 >
@@ -32,16 +34,16 @@ exports[`BookingCard Snapshot Stability should render consistently for cancelled
       style={
         {
           "flex": 1,
+          "gap": 6,
         }
       }
     >
       <Text
         style={
           {
-            "color": "#222222",
-            "fontSize": 18,
+            "color": "#1A2520",
+            "fontSize": 17,
             "fontWeight": "700",
-            "marginBottom": 4,
           }
         }
       >
@@ -49,27 +51,36 @@ exports[`BookingCard Snapshot Stability should render consistently for cancelled
       </Text>
       <View
         style={
-          {
-            "alignItems": "center",
-            "flexDirection": "row",
-            "gap": 4,
-          }
+          [
+            {
+              "alignItems": "center",
+              "alignSelf": "flex-start",
+              "borderRadius": 8,
+              "flexDirection": "row",
+              "gap": 4,
+              "paddingHorizontal": 8,
+              "paddingVertical": 4,
+            },
+            {
+              "backgroundColor": "#F1F5F9",
+            },
+          ]
         }
       >
         <Ionicons
-          color="#EF4444"
+          color="#475569"
           name="close-circle-outline"
-          size={16}
+          size={14}
         />
         <Text
           style={
             [
               {
-                "fontSize": 14,
+                "fontSize": 12,
                 "fontWeight": "600",
               },
               {
-                "color": "#EF4444",
+                "color": "#475569",
               },
             ]
           }
@@ -84,14 +95,19 @@ exports[`BookingCard Snapshot Stability should render consistently for cancelled
       onPress={[Function]}
       style={
         {
-          "padding": 4,
+          "alignItems": "center",
+          "backgroundColor": "#E9F1EB",
+          "borderRadius": 18,
+          "height": 36,
+          "justifyContent": "center",
+          "width": 36,
         }
       }
     >
       <Ionicons
-        color="#717171"
+        color="#4A5751"
         name="share-outline"
-        size={20}
+        size={18}
       />
     </TouchableOpacity>
   </View>
@@ -100,7 +116,7 @@ exports[`BookingCard Snapshot Stability should render consistently for cancelled
       {
         "alignItems": "center",
         "flexDirection": "row",
-        "marginBottom": 16,
+        "marginBottom": 14,
       }
     }
   >
@@ -108,7 +124,7 @@ exports[`BookingCard Snapshot Stability should render consistently for cancelled
       style={
         {
           "alignItems": "center",
-          "backgroundColor": "#222222",
+          "backgroundColor": "#1A2520",
           "borderRadius": 20,
           "height": 40,
           "justifyContent": "center",
@@ -121,7 +137,7 @@ exports[`BookingCard Snapshot Stability should render consistently for cancelled
         style={
           {
             "color": "#FFFFFF",
-            "fontSize": 16,
+            "fontSize": 15,
             "fontWeight": "700",
           }
         }
@@ -139,8 +155,8 @@ exports[`BookingCard Snapshot Stability should render consistently for cancelled
       <Text
         style={
           {
-            "color": "#222222",
-            "fontSize": 16,
+            "color": "#1A2520",
+            "fontSize": 15,
             "fontWeight": "600",
             "marginBottom": 2,
           }
@@ -151,8 +167,8 @@ exports[`BookingCard Snapshot Stability should render consistently for cancelled
       <Text
         style={
           {
-            "color": "#717171",
-            "fontSize": 14,
+            "color": "#4A5751",
+            "fontSize": 13,
           }
         }
       >
@@ -163,7 +179,8 @@ exports[`BookingCard Snapshot Stability should render consistently for cancelled
   <View
     style={
       {
-        "marginBottom": 16,
+        "gap": 6,
+        "marginBottom": 14,
       }
     }
   >
@@ -173,20 +190,19 @@ exports[`BookingCard Snapshot Stability should render consistently for cancelled
           "alignItems": "center",
           "flexDirection": "row",
           "gap": 8,
-          "marginBottom": 8,
         }
       }
     >
       <Ionicons
-        color="#717171"
+        color="#4A5751"
         name="calendar-outline"
-        size={16}
+        size={15}
       />
       <Text
         style={
           {
-            "color": "#717171",
-            "fontSize": 14,
+            "color": "#4A5751",
+            "fontSize": 13,
           }
         }
       >
@@ -199,20 +215,19 @@ exports[`BookingCard Snapshot Stability should render consistently for cancelled
           "alignItems": "center",
           "flexDirection": "row",
           "gap": 8,
-          "marginBottom": 8,
         }
       }
     >
       <Ionicons
-        color="#717171"
+        color="#4A5751"
         name="time-outline"
-        size={16}
+        size={15}
       />
       <Text
         style={
           {
-            "color": "#717171",
-            "fontSize": 14,
+            "color": "#4A5751",
+            "fontSize": 13,
           }
         }
       >
@@ -225,20 +240,19 @@ exports[`BookingCard Snapshot Stability should render consistently for cancelled
           "alignItems": "center",
           "flexDirection": "row",
           "gap": 8,
-          "marginBottom": 8,
         }
       }
     >
       <Ionicons
-        color="#717171"
+        color="#4A5751"
         name="hourglass-outline"
-        size={16}
+        size={15}
       />
       <Text
         style={
           {
-            "color": "#717171",
-            "fontSize": 14,
+            "color": "#4A5751",
+            "fontSize": 13,
           }
         }
       >
@@ -265,8 +279,8 @@ exports[`BookingCard Snapshot Stability should render consistently for cancelled
       <Text
         style={
           {
-            "color": "#717171",
-            "fontSize": 12,
+            "color": "#768079",
+            "fontSize": 11,
             "marginBottom": 2,
           }
         }
@@ -276,7 +290,7 @@ exports[`BookingCard Snapshot Stability should render consistently for cancelled
       <Text
         style={
           {
-            "color": "#222222",
+            "color": "#1A2520",
             "fontSize": 20,
             "fontWeight": "700",
           }
@@ -301,25 +315,25 @@ exports[`BookingCard Snapshot Stability should render consistently for cancelled
           {
             "alignItems": "center",
             "flexDirection": "row",
-            "gap": 4,
+            "gap": 2,
           }
         }
       >
         <Text
           style={
             {
-              "color": "#222222",
-              "fontSize": 14,
+              "color": "#1A2520",
+              "fontSize": 13,
               "fontWeight": "600",
             }
           }
         >
-          View Details
+          Details
         </Text>
         <Ionicons
-          color="#B0B0B0"
+          color="#768079"
           name="chevron-forward"
-          size={16}
+          size={14}
         />
       </TouchableOpacity>
     </View>
@@ -332,16 +346,18 @@ exports[`BookingCard Snapshot Stability should render consistently for completed
   style={
     {
       "backgroundColor": "#FFFFFF",
-      "borderRadius": 16,
-      "elevation": 2,
+      "borderColor": "#D8E2DA",
+      "borderRadius": 12,
+      "borderWidth": 1,
+      "elevation": 1,
       "padding": 16,
-      "shadowColor": "#000000",
+      "shadowColor": "#1F2A24",
       "shadowOffset": {
-        "height": 2,
+        "height": 1,
         "width": 0,
       },
-      "shadowOpacity": 0.08,
-      "shadowRadius": 8,
+      "shadowOpacity": 0.06,
+      "shadowRadius": 2,
     }
   }
 >
@@ -359,16 +375,16 @@ exports[`BookingCard Snapshot Stability should render consistently for completed
       style={
         {
           "flex": 1,
+          "gap": 6,
         }
       }
     >
       <Text
         style={
           {
-            "color": "#222222",
-            "fontSize": 18,
+            "color": "#1A2520",
+            "fontSize": 17,
             "fontWeight": "700",
-            "marginBottom": 4,
           }
         }
       >
@@ -376,27 +392,36 @@ exports[`BookingCard Snapshot Stability should render consistently for completed
       </Text>
       <View
         style={
-          {
-            "alignItems": "center",
-            "flexDirection": "row",
-            "gap": 4,
-          }
+          [
+            {
+              "alignItems": "center",
+              "alignSelf": "flex-start",
+              "borderRadius": 8,
+              "flexDirection": "row",
+              "gap": 4,
+              "paddingHorizontal": 8,
+              "paddingVertical": 4,
+            },
+            {
+              "backgroundColor": "#CCFBF1",
+            },
+          ]
         }
       >
         <Ionicons
-          color="#059669"
+          color="#0F766E"
           name="checkmark-circle-outline"
-          size={16}
+          size={14}
         />
         <Text
           style={
             [
               {
-                "fontSize": 14,
+                "fontSize": 12,
                 "fontWeight": "600",
               },
               {
-                "color": "#059669",
+                "color": "#0F766E",
               },
             ]
           }
@@ -411,14 +436,19 @@ exports[`BookingCard Snapshot Stability should render consistently for completed
       onPress={[Function]}
       style={
         {
-          "padding": 4,
+          "alignItems": "center",
+          "backgroundColor": "#E9F1EB",
+          "borderRadius": 18,
+          "height": 36,
+          "justifyContent": "center",
+          "width": 36,
         }
       }
     >
       <Ionicons
-        color="#717171"
+        color="#4A5751"
         name="share-outline"
-        size={20}
+        size={18}
       />
     </TouchableOpacity>
   </View>
@@ -427,7 +457,7 @@ exports[`BookingCard Snapshot Stability should render consistently for completed
       {
         "alignItems": "center",
         "flexDirection": "row",
-        "marginBottom": 16,
+        "marginBottom": 14,
       }
     }
   >
@@ -435,7 +465,7 @@ exports[`BookingCard Snapshot Stability should render consistently for completed
       style={
         {
           "alignItems": "center",
-          "backgroundColor": "#222222",
+          "backgroundColor": "#1A2520",
           "borderRadius": 20,
           "height": 40,
           "justifyContent": "center",
@@ -448,7 +478,7 @@ exports[`BookingCard Snapshot Stability should render consistently for completed
         style={
           {
             "color": "#FFFFFF",
-            "fontSize": 16,
+            "fontSize": 15,
             "fontWeight": "700",
           }
         }
@@ -466,8 +496,8 @@ exports[`BookingCard Snapshot Stability should render consistently for completed
       <Text
         style={
           {
-            "color": "#222222",
-            "fontSize": 16,
+            "color": "#1A2520",
+            "fontSize": 15,
             "fontWeight": "600",
             "marginBottom": 2,
           }
@@ -478,8 +508,8 @@ exports[`BookingCard Snapshot Stability should render consistently for completed
       <Text
         style={
           {
-            "color": "#717171",
-            "fontSize": 14,
+            "color": "#4A5751",
+            "fontSize": 13,
           }
         }
       >
@@ -490,7 +520,8 @@ exports[`BookingCard Snapshot Stability should render consistently for completed
   <View
     style={
       {
-        "marginBottom": 16,
+        "gap": 6,
+        "marginBottom": 14,
       }
     }
   >
@@ -500,20 +531,19 @@ exports[`BookingCard Snapshot Stability should render consistently for completed
           "alignItems": "center",
           "flexDirection": "row",
           "gap": 8,
-          "marginBottom": 8,
         }
       }
     >
       <Ionicons
-        color="#717171"
+        color="#4A5751"
         name="calendar-outline"
-        size={16}
+        size={15}
       />
       <Text
         style={
           {
-            "color": "#717171",
-            "fontSize": 14,
+            "color": "#4A5751",
+            "fontSize": 13,
           }
         }
       >
@@ -526,20 +556,19 @@ exports[`BookingCard Snapshot Stability should render consistently for completed
           "alignItems": "center",
           "flexDirection": "row",
           "gap": 8,
-          "marginBottom": 8,
         }
       }
     >
       <Ionicons
-        color="#717171"
+        color="#4A5751"
         name="time-outline"
-        size={16}
+        size={15}
       />
       <Text
         style={
           {
-            "color": "#717171",
-            "fontSize": 14,
+            "color": "#4A5751",
+            "fontSize": 13,
           }
         }
       >
@@ -552,20 +581,19 @@ exports[`BookingCard Snapshot Stability should render consistently for completed
           "alignItems": "center",
           "flexDirection": "row",
           "gap": 8,
-          "marginBottom": 8,
         }
       }
     >
       <Ionicons
-        color="#717171"
+        color="#4A5751"
         name="hourglass-outline"
-        size={16}
+        size={15}
       />
       <Text
         style={
           {
-            "color": "#717171",
-            "fontSize": 14,
+            "color": "#4A5751",
+            "fontSize": 13,
           }
         }
       >
@@ -592,8 +620,8 @@ exports[`BookingCard Snapshot Stability should render consistently for completed
       <Text
         style={
           {
-            "color": "#717171",
-            "fontSize": 12,
+            "color": "#768079",
+            "fontSize": 11,
             "marginBottom": 2,
           }
         }
@@ -603,7 +631,7 @@ exports[`BookingCard Snapshot Stability should render consistently for completed
       <Text
         style={
           {
-            "color": "#222222",
+            "color": "#1A2520",
             "fontSize": 20,
             "fontWeight": "700",
           }
@@ -627,8 +655,8 @@ exports[`BookingCard Snapshot Stability should render consistently for completed
         style={
           {
             "alignItems": "center",
-            "backgroundColor": "#F7F7F7",
-            "borderRadius": 8,
+            "backgroundColor": "#E9F1EB",
+            "borderRadius": 10,
             "flexDirection": "row",
             "gap": 4,
             "paddingHorizontal": 12,
@@ -637,14 +665,14 @@ exports[`BookingCard Snapshot Stability should render consistently for completed
         }
       >
         <Ionicons
-          color="#F59E0B"
+          color="#E26B4F"
           name="star-outline"
-          size={16}
+          size={14}
         />
         <Text
           style={
             {
-              "color": "#222222",
+              "color": "#1A2520",
               "fontSize": 12,
               "fontWeight": "600",
             }
@@ -659,25 +687,25 @@ exports[`BookingCard Snapshot Stability should render consistently for completed
           {
             "alignItems": "center",
             "flexDirection": "row",
-            "gap": 4,
+            "gap": 2,
           }
         }
       >
         <Text
           style={
             {
-              "color": "#222222",
-              "fontSize": 14,
+              "color": "#1A2520",
+              "fontSize": 13,
               "fontWeight": "600",
             }
           }
         >
-          View Details
+          Details
         </Text>
         <Ionicons
-          color="#B0B0B0"
+          color="#768079"
           name="chevron-forward"
-          size={16}
+          size={14}
         />
       </TouchableOpacity>
     </View>
@@ -690,16 +718,18 @@ exports[`BookingCard Snapshot Stability should render consistently for upcoming 
   style={
     {
       "backgroundColor": "#FFFFFF",
-      "borderRadius": 16,
-      "elevation": 2,
+      "borderColor": "#D8E2DA",
+      "borderRadius": 12,
+      "borderWidth": 1,
+      "elevation": 1,
       "padding": 16,
-      "shadowColor": "#000000",
+      "shadowColor": "#1F2A24",
       "shadowOffset": {
-        "height": 2,
+        "height": 1,
         "width": 0,
       },
-      "shadowOpacity": 0.08,
-      "shadowRadius": 8,
+      "shadowOpacity": 0.06,
+      "shadowRadius": 2,
     }
   }
 >
@@ -717,16 +747,16 @@ exports[`BookingCard Snapshot Stability should render consistently for upcoming 
       style={
         {
           "flex": 1,
+          "gap": 6,
         }
       }
     >
       <Text
         style={
           {
-            "color": "#222222",
-            "fontSize": 18,
+            "color": "#1A2520",
+            "fontSize": 17,
             "fontWeight": "700",
-            "marginBottom": 4,
           }
         }
       >
@@ -734,27 +764,36 @@ exports[`BookingCard Snapshot Stability should render consistently for upcoming 
       </Text>
       <View
         style={
-          {
-            "alignItems": "center",
-            "flexDirection": "row",
-            "gap": 4,
-          }
+          [
+            {
+              "alignItems": "center",
+              "alignSelf": "flex-start",
+              "borderRadius": 8,
+              "flexDirection": "row",
+              "gap": 4,
+              "paddingHorizontal": 8,
+              "paddingVertical": 4,
+            },
+            {
+              "backgroundColor": "#DBEAFE",
+            },
+          ]
         }
       >
         <Ionicons
-          color="#10B981"
+          color="#1D4ED8"
           name="time-outline"
-          size={16}
+          size={14}
         />
         <Text
           style={
             [
               {
-                "fontSize": 14,
+                "fontSize": 12,
                 "fontWeight": "600",
               },
               {
-                "color": "#10B981",
+                "color": "#1D4ED8",
               },
             ]
           }
@@ -769,14 +808,19 @@ exports[`BookingCard Snapshot Stability should render consistently for upcoming 
       onPress={[Function]}
       style={
         {
-          "padding": 4,
+          "alignItems": "center",
+          "backgroundColor": "#E9F1EB",
+          "borderRadius": 18,
+          "height": 36,
+          "justifyContent": "center",
+          "width": 36,
         }
       }
     >
       <Ionicons
-        color="#717171"
+        color="#4A5751"
         name="share-outline"
-        size={20}
+        size={18}
       />
     </TouchableOpacity>
   </View>
@@ -785,7 +829,7 @@ exports[`BookingCard Snapshot Stability should render consistently for upcoming 
       {
         "alignItems": "center",
         "flexDirection": "row",
-        "marginBottom": 16,
+        "marginBottom": 14,
       }
     }
   >
@@ -793,7 +837,7 @@ exports[`BookingCard Snapshot Stability should render consistently for upcoming 
       style={
         {
           "alignItems": "center",
-          "backgroundColor": "#222222",
+          "backgroundColor": "#1A2520",
           "borderRadius": 20,
           "height": 40,
           "justifyContent": "center",
@@ -806,7 +850,7 @@ exports[`BookingCard Snapshot Stability should render consistently for upcoming 
         style={
           {
             "color": "#FFFFFF",
-            "fontSize": 16,
+            "fontSize": 15,
             "fontWeight": "700",
           }
         }
@@ -824,8 +868,8 @@ exports[`BookingCard Snapshot Stability should render consistently for upcoming 
       <Text
         style={
           {
-            "color": "#222222",
-            "fontSize": 16,
+            "color": "#1A2520",
+            "fontSize": 15,
             "fontWeight": "600",
             "marginBottom": 2,
           }
@@ -836,8 +880,8 @@ exports[`BookingCard Snapshot Stability should render consistently for upcoming 
       <Text
         style={
           {
-            "color": "#717171",
-            "fontSize": 14,
+            "color": "#4A5751",
+            "fontSize": 13,
           }
         }
       >
@@ -848,7 +892,8 @@ exports[`BookingCard Snapshot Stability should render consistently for upcoming 
   <View
     style={
       {
-        "marginBottom": 16,
+        "gap": 6,
+        "marginBottom": 14,
       }
     }
   >
@@ -858,20 +903,19 @@ exports[`BookingCard Snapshot Stability should render consistently for upcoming 
           "alignItems": "center",
           "flexDirection": "row",
           "gap": 8,
-          "marginBottom": 8,
         }
       }
     >
       <Ionicons
-        color="#717171"
+        color="#4A5751"
         name="calendar-outline"
-        size={16}
+        size={15}
       />
       <Text
         style={
           {
-            "color": "#717171",
-            "fontSize": 14,
+            "color": "#4A5751",
+            "fontSize": 13,
           }
         }
       >
@@ -884,20 +928,19 @@ exports[`BookingCard Snapshot Stability should render consistently for upcoming 
           "alignItems": "center",
           "flexDirection": "row",
           "gap": 8,
-          "marginBottom": 8,
         }
       }
     >
       <Ionicons
-        color="#717171"
+        color="#4A5751"
         name="time-outline"
-        size={16}
+        size={15}
       />
       <Text
         style={
           {
-            "color": "#717171",
-            "fontSize": 14,
+            "color": "#4A5751",
+            "fontSize": 13,
           }
         }
       >
@@ -910,20 +953,19 @@ exports[`BookingCard Snapshot Stability should render consistently for upcoming 
           "alignItems": "center",
           "flexDirection": "row",
           "gap": 8,
-          "marginBottom": 8,
         }
       }
     >
       <Ionicons
-        color="#717171"
+        color="#4A5751"
         name="hourglass-outline"
-        size={16}
+        size={15}
       />
       <Text
         style={
           {
-            "color": "#717171",
-            "fontSize": 14,
+            "color": "#4A5751",
+            "fontSize": 13,
           }
         }
       >
@@ -950,8 +992,8 @@ exports[`BookingCard Snapshot Stability should render consistently for upcoming 
       <Text
         style={
           {
-            "color": "#717171",
-            "fontSize": 12,
+            "color": "#768079",
+            "fontSize": 11,
             "marginBottom": 2,
           }
         }
@@ -961,7 +1003,7 @@ exports[`BookingCard Snapshot Stability should render consistently for upcoming 
       <Text
         style={
           {
-            "color": "#222222",
+            "color": "#1A2520",
             "fontSize": 20,
             "fontWeight": "700",
           }
@@ -985,8 +1027,8 @@ exports[`BookingCard Snapshot Stability should render consistently for upcoming 
         style={
           {
             "alignItems": "center",
-            "backgroundColor": "#F7F7F7",
-            "borderRadius": 8,
+            "backgroundColor": "#E9F1EB",
+            "borderRadius": 10,
             "flexDirection": "row",
             "gap": 4,
             "paddingHorizontal": 12,
@@ -995,14 +1037,14 @@ exports[`BookingCard Snapshot Stability should render consistently for upcoming 
         }
       >
         <Ionicons
-          color="#717171"
+          color="#4A5751"
           name="refresh-outline"
-          size={16}
+          size={14}
         />
         <Text
           style={
             {
-              "color": "#222222",
+              "color": "#1A2520",
               "fontSize": 12,
               "fontWeight": "600",
             }
@@ -1017,34 +1059,34 @@ exports[`BookingCard Snapshot Stability should render consistently for upcoming 
           [
             {
               "alignItems": "center",
-              "backgroundColor": "#F7F7F7",
-              "borderRadius": 8,
+              "backgroundColor": "#E9F1EB",
+              "borderRadius": 10,
               "flexDirection": "row",
               "gap": 4,
               "paddingHorizontal": 12,
               "paddingVertical": 8,
             },
             {
-              "backgroundColor": "#F87171",
+              "backgroundColor": "#FEE2E2",
             },
           ]
         }
       >
         <Ionicons
-          color="#EF4444"
+          color="#8A2E1B"
           name="close-outline"
-          size={16}
+          size={14}
         />
         <Text
           style={
             [
               {
-                "color": "#222222",
+                "color": "#1A2520",
                 "fontSize": 12,
                 "fontWeight": "600",
               },
               {
-                "color": "#EF4444",
+                "color": "#8A2E1B",
               },
             ]
           }
@@ -1058,25 +1100,25 @@ exports[`BookingCard Snapshot Stability should render consistently for upcoming 
           {
             "alignItems": "center",
             "flexDirection": "row",
-            "gap": 4,
+            "gap": 2,
           }
         }
       >
         <Text
           style={
             {
-              "color": "#222222",
-              "fontSize": 14,
+              "color": "#1A2520",
+              "fontSize": 13,
               "fontWeight": "600",
             }
           }
         >
-          View Details
+          Details
         </Text>
         <Ionicons
-          color="#B0B0B0"
+          color="#768079"
           name="chevron-forward"
-          size={16}
+          size={14}
         />
       </TouchableOpacity>
     </View>

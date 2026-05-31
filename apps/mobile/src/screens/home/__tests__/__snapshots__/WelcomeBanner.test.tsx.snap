@@ -1,12 +1,11 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`WelcomeBanner Rendering should match snapshot with null user 1`] = `
+exports[`WelcomeBanner Rendering should match snapshot with custom labels 1`] = `
 <View
   style={
     {
-      "backgroundColor": undefined,
       "paddingBottom": 8,
-      "paddingHorizontal": 24,
+      "paddingHorizontal": 20,
       "paddingTop": 4,
     }
   }
@@ -15,21 +14,19 @@ exports[`WelcomeBanner Rendering should match snapshot with null user 1`] = `
     style={
       {
         "alignItems": "center",
-        "backgroundColor": undefined,
-        "borderColor": undefined,
-        "borderRadius": 16,
-        "borderWidth": 1,
-        "elevation": 2,
+        "backgroundColor": "#FFFFFF",
+        "borderRadius": 40,
+        "elevation": 1,
         "flexDirection": "row",
         "paddingHorizontal": 14,
         "paddingVertical": 12,
-        "shadowColor": "#000000",
+        "shadowColor": "#1F2A24",
         "shadowOffset": {
-          "height": 2,
+          "height": 1,
           "width": 0,
         },
         "shadowOpacity": 0.06,
-        "shadowRadius": 8,
+        "shadowRadius": 2,
       }
     }
   >
@@ -40,7 +37,7 @@ exports[`WelcomeBanner Rendering should match snapshot with null user 1`] = `
       style={
         {
           "alignItems": "center",
-          "backgroundColor": "#007AFF",
+          "backgroundColor": "#3F8C7A",
           "borderRadius": 18,
           "height": 36,
           "justifyContent": "center",
@@ -76,7 +73,7 @@ exports[`WelcomeBanner Rendering should match snapshot with null user 1`] = `
         <Text
           style={
             {
-              "color": undefined,
+              "color": "#1A2520",
               "fontSize": 11,
               "fontWeight": "600",
               "letterSpacing": 0.5,
@@ -91,21 +88,24 @@ exports[`WelcomeBanner Rendering should match snapshot with null user 1`] = `
           style={
             [
               {
-                "color": undefined,
+                "color": "#4A5751",
                 "fontSize": 13,
                 "marginTop": 1,
               },
-              null,
+              {
+                "color": "#1A2520",
+                "fontWeight": "600",
+              },
             ]
           }
         >
-          Select
+          123 Main St
         </Text>
       </TouchableOpacity>
       <View
         style={
           {
-            "backgroundColor": undefined,
+            "backgroundColor": "#D8E2DA",
             "height": 28,
             "width": 1,
           }
@@ -123,7 +123,7 @@ exports[`WelcomeBanner Rendering should match snapshot with null user 1`] = `
         <Text
           style={
             {
-              "color": undefined,
+              "color": "#1A2520",
               "fontSize": 11,
               "fontWeight": "600",
               "letterSpacing": 0.5,
@@ -138,21 +138,24 @@ exports[`WelcomeBanner Rendering should match snapshot with null user 1`] = `
           style={
             [
               {
-                "color": undefined,
+                "color": "#4A5751",
                 "fontSize": 13,
                 "marginTop": 1,
               },
-              null,
+              {
+                "color": "#1A2520",
+                "fontWeight": "600",
+              },
             ]
           }
         >
-          Medium
+          High
         </Text>
       </TouchableOpacity>
       <View
         style={
           {
-            "backgroundColor": undefined,
+            "backgroundColor": "#D8E2DA",
             "height": 28,
             "width": 1,
           }
@@ -170,7 +173,7 @@ exports[`WelcomeBanner Rendering should match snapshot with null user 1`] = `
         <Text
           style={
             {
-              "color": undefined,
+              "color": "#1A2520",
               "fontSize": 11,
               "fontWeight": "600",
               "letterSpacing": 0.5,
@@ -184,7 +187,7 @@ exports[`WelcomeBanner Rendering should match snapshot with null user 1`] = `
           numberOfLines={1}
           style={
             {
-              "color": undefined,
+              "color": "#4A5751",
               "fontSize": 13,
               "marginTop": 1,
             }
@@ -198,13 +201,12 @@ exports[`WelcomeBanner Rendering should match snapshot with null user 1`] = `
 </View>
 `;
 
-exports[`WelcomeBanner Rendering should match snapshot with valid user 1`] = `
+exports[`WelcomeBanner Rendering should match snapshot with default props 1`] = `
 <View
   style={
     {
-      "backgroundColor": undefined,
       "paddingBottom": 8,
-      "paddingHorizontal": 24,
+      "paddingHorizontal": 20,
       "paddingTop": 4,
     }
   }
@@ -213,21 +215,19 @@ exports[`WelcomeBanner Rendering should match snapshot with valid user 1`] = `
     style={
       {
         "alignItems": "center",
-        "backgroundColor": undefined,
-        "borderColor": undefined,
-        "borderRadius": 16,
-        "borderWidth": 1,
-        "elevation": 2,
+        "backgroundColor": "#FFFFFF",
+        "borderRadius": 40,
+        "elevation": 1,
         "flexDirection": "row",
         "paddingHorizontal": 14,
         "paddingVertical": 12,
-        "shadowColor": "#000000",
+        "shadowColor": "#1F2A24",
         "shadowOffset": {
-          "height": 2,
+          "height": 1,
           "width": 0,
         },
         "shadowOpacity": 0.06,
-        "shadowRadius": 8,
+        "shadowRadius": 2,
       }
     }
   >
@@ -238,7 +238,7 @@ exports[`WelcomeBanner Rendering should match snapshot with valid user 1`] = `
       style={
         {
           "alignItems": "center",
-          "backgroundColor": "#007AFF",
+          "backgroundColor": "#3F8C7A",
           "borderRadius": 18,
           "height": 36,
           "justifyContent": "center",
@@ -274,7 +274,7 @@ exports[`WelcomeBanner Rendering should match snapshot with valid user 1`] = `
         <Text
           style={
             {
-              "color": undefined,
+              "color": "#1A2520",
               "fontSize": 11,
               "fontWeight": "600",
               "letterSpacing": 0.5,
@@ -289,7 +289,7 @@ exports[`WelcomeBanner Rendering should match snapshot with valid user 1`] = `
           style={
             [
               {
-                "color": undefined,
+                "color": "#4A5751",
                 "fontSize": 13,
                 "marginTop": 1,
               },
@@ -303,7 +303,7 @@ exports[`WelcomeBanner Rendering should match snapshot with valid user 1`] = `
       <View
         style={
           {
-            "backgroundColor": undefined,
+            "backgroundColor": "#D8E2DA",
             "height": 28,
             "width": 1,
           }
@@ -321,7 +321,7 @@ exports[`WelcomeBanner Rendering should match snapshot with valid user 1`] = `
         <Text
           style={
             {
-              "color": undefined,
+              "color": "#1A2520",
               "fontSize": 11,
               "fontWeight": "600",
               "letterSpacing": 0.5,
@@ -336,7 +336,7 @@ exports[`WelcomeBanner Rendering should match snapshot with valid user 1`] = `
           style={
             [
               {
-                "color": undefined,
+                "color": "#4A5751",
                 "fontSize": 13,
                 "marginTop": 1,
               },
@@ -350,7 +350,7 @@ exports[`WelcomeBanner Rendering should match snapshot with valid user 1`] = `
       <View
         style={
           {
-            "backgroundColor": undefined,
+            "backgroundColor": "#D8E2DA",
             "height": 28,
             "width": 1,
           }
@@ -368,7 +368,7 @@ exports[`WelcomeBanner Rendering should match snapshot with valid user 1`] = `
         <Text
           style={
             {
-              "color": undefined,
+              "color": "#1A2520",
               "fontSize": 11,
               "fontWeight": "600",
               "letterSpacing": 0.5,
@@ -382,1195 +382,7 @@ exports[`WelcomeBanner Rendering should match snapshot with valid user 1`] = `
           numberOfLines={1}
           style={
             {
-              "color": undefined,
-              "fontSize": 13,
-              "marginTop": 1,
-            }
-          }
-        >
-          Browse all
-        </Text>
-      </TouchableOpacity>
-    </View>
-  </View>
-</View>
-`;
-
-exports[`WelcomeBanner Snapshots should match snapshot with contractor user 1`] = `
-<View
-  style={
-    {
-      "backgroundColor": undefined,
-      "paddingBottom": 8,
-      "paddingHorizontal": 24,
-      "paddingTop": 4,
-    }
-  }
->
-  <View
-    style={
-      {
-        "alignItems": "center",
-        "backgroundColor": undefined,
-        "borderColor": undefined,
-        "borderRadius": 16,
-        "borderWidth": 1,
-        "elevation": 2,
-        "flexDirection": "row",
-        "paddingHorizontal": 14,
-        "paddingVertical": 12,
-        "shadowColor": "#000000",
-        "shadowOffset": {
-          "height": 2,
-          "width": 0,
-        },
-        "shadowOpacity": 0.06,
-        "shadowRadius": 8,
-      }
-    }
-  >
-    <TouchableOpacity
-      accessibilityLabel="Request a service"
-      accessibilityRole="button"
-      activeOpacity={0.7}
-      style={
-        {
-          "alignItems": "center",
-          "backgroundColor": "#007AFF",
-          "borderRadius": 18,
-          "height": 36,
-          "justifyContent": "center",
-          "marginRight": 12,
-          "width": 36,
-        }
-      }
-    >
-      <Ionicons
-        color="#FFFFFF"
-        name="search"
-        size={18}
-      />
-    </TouchableOpacity>
-    <View
-      style={
-        {
-          "alignItems": "center",
-          "flex": 1,
-          "flexDirection": "row",
-        }
-      }
-    >
-      <TouchableOpacity
-        activeOpacity={0.6}
-        style={
-          {
-            "alignItems": "center",
-            "flex": 1,
-          }
-        }
-      >
-        <Text
-          style={
-            {
-              "color": undefined,
-              "fontSize": 11,
-              "fontWeight": "600",
-              "letterSpacing": 0.5,
-              "textTransform": "uppercase",
-            }
-          }
-        >
-          Property
-        </Text>
-        <Text
-          numberOfLines={1}
-          style={
-            [
-              {
-                "color": undefined,
-                "fontSize": 13,
-                "marginTop": 1,
-              },
-              null,
-            ]
-          }
-        >
-          Select
-        </Text>
-      </TouchableOpacity>
-      <View
-        style={
-          {
-            "backgroundColor": undefined,
-            "height": 28,
-            "width": 1,
-          }
-        }
-      />
-      <TouchableOpacity
-        activeOpacity={0.6}
-        style={
-          {
-            "alignItems": "center",
-            "flex": 1,
-          }
-        }
-      >
-        <Text
-          style={
-            {
-              "color": undefined,
-              "fontSize": 11,
-              "fontWeight": "600",
-              "letterSpacing": 0.5,
-              "textTransform": "uppercase",
-            }
-          }
-        >
-          Urgency
-        </Text>
-        <Text
-          numberOfLines={1}
-          style={
-            [
-              {
-                "color": undefined,
-                "fontSize": 13,
-                "marginTop": 1,
-              },
-              null,
-            ]
-          }
-        >
-          Medium
-        </Text>
-      </TouchableOpacity>
-      <View
-        style={
-          {
-            "backgroundColor": undefined,
-            "height": 28,
-            "width": 1,
-          }
-        }
-      />
-      <TouchableOpacity
-        activeOpacity={0.6}
-        style={
-          {
-            "alignItems": "center",
-            "flex": 1,
-          }
-        }
-      >
-        <Text
-          style={
-            {
-              "color": undefined,
-              "fontSize": 11,
-              "fontWeight": "600",
-              "letterSpacing": 0.5,
-              "textTransform": "uppercase",
-            }
-          }
-        >
-          Service
-        </Text>
-        <Text
-          numberOfLines={1}
-          style={
-            {
-              "color": undefined,
-              "fontSize": 13,
-              "marginTop": 1,
-            }
-          }
-        >
-          Browse all
-        </Text>
-      </TouchableOpacity>
-    </View>
-  </View>
-</View>
-`;
-
-exports[`WelcomeBanner Snapshots should match snapshot with different user names 1`] = `
-<View
-  style={
-    {
-      "backgroundColor": undefined,
-      "paddingBottom": 8,
-      "paddingHorizontal": 24,
-      "paddingTop": 4,
-    }
-  }
->
-  <View
-    style={
-      {
-        "alignItems": "center",
-        "backgroundColor": undefined,
-        "borderColor": undefined,
-        "borderRadius": 16,
-        "borderWidth": 1,
-        "elevation": 2,
-        "flexDirection": "row",
-        "paddingHorizontal": 14,
-        "paddingVertical": 12,
-        "shadowColor": "#000000",
-        "shadowOffset": {
-          "height": 2,
-          "width": 0,
-        },
-        "shadowOpacity": 0.06,
-        "shadowRadius": 8,
-      }
-    }
-  >
-    <TouchableOpacity
-      accessibilityLabel="Request a service"
-      accessibilityRole="button"
-      activeOpacity={0.7}
-      style={
-        {
-          "alignItems": "center",
-          "backgroundColor": "#007AFF",
-          "borderRadius": 18,
-          "height": 36,
-          "justifyContent": "center",
-          "marginRight": 12,
-          "width": 36,
-        }
-      }
-    >
-      <Ionicons
-        color="#FFFFFF"
-        name="search"
-        size={18}
-      />
-    </TouchableOpacity>
-    <View
-      style={
-        {
-          "alignItems": "center",
-          "flex": 1,
-          "flexDirection": "row",
-        }
-      }
-    >
-      <TouchableOpacity
-        activeOpacity={0.6}
-        style={
-          {
-            "alignItems": "center",
-            "flex": 1,
-          }
-        }
-      >
-        <Text
-          style={
-            {
-              "color": undefined,
-              "fontSize": 11,
-              "fontWeight": "600",
-              "letterSpacing": 0.5,
-              "textTransform": "uppercase",
-            }
-          }
-        >
-          Property
-        </Text>
-        <Text
-          numberOfLines={1}
-          style={
-            [
-              {
-                "color": undefined,
-                "fontSize": 13,
-                "marginTop": 1,
-              },
-              null,
-            ]
-          }
-        >
-          Select
-        </Text>
-      </TouchableOpacity>
-      <View
-        style={
-          {
-            "backgroundColor": undefined,
-            "height": 28,
-            "width": 1,
-          }
-        }
-      />
-      <TouchableOpacity
-        activeOpacity={0.6}
-        style={
-          {
-            "alignItems": "center",
-            "flex": 1,
-          }
-        }
-      >
-        <Text
-          style={
-            {
-              "color": undefined,
-              "fontSize": 11,
-              "fontWeight": "600",
-              "letterSpacing": 0.5,
-              "textTransform": "uppercase",
-            }
-          }
-        >
-          Urgency
-        </Text>
-        <Text
-          numberOfLines={1}
-          style={
-            [
-              {
-                "color": undefined,
-                "fontSize": 13,
-                "marginTop": 1,
-              },
-              null,
-            ]
-          }
-        >
-          Medium
-        </Text>
-      </TouchableOpacity>
-      <View
-        style={
-          {
-            "backgroundColor": undefined,
-            "height": 28,
-            "width": 1,
-          }
-        }
-      />
-      <TouchableOpacity
-        activeOpacity={0.6}
-        style={
-          {
-            "alignItems": "center",
-            "flex": 1,
-          }
-        }
-      >
-        <Text
-          style={
-            {
-              "color": undefined,
-              "fontSize": 11,
-              "fontWeight": "600",
-              "letterSpacing": 0.5,
-              "textTransform": "uppercase",
-            }
-          }
-        >
-          Service
-        </Text>
-        <Text
-          numberOfLines={1}
-          style={
-            {
-              "color": undefined,
-              "fontSize": 13,
-              "marginTop": 1,
-            }
-          }
-        >
-          Browse all
-        </Text>
-      </TouchableOpacity>
-    </View>
-  </View>
-</View>
-`;
-
-exports[`WelcomeBanner Snapshots should match snapshot with different user names 2`] = `
-<View
-  style={
-    {
-      "backgroundColor": undefined,
-      "paddingBottom": 8,
-      "paddingHorizontal": 24,
-      "paddingTop": 4,
-    }
-  }
->
-  <View
-    style={
-      {
-        "alignItems": "center",
-        "backgroundColor": undefined,
-        "borderColor": undefined,
-        "borderRadius": 16,
-        "borderWidth": 1,
-        "elevation": 2,
-        "flexDirection": "row",
-        "paddingHorizontal": 14,
-        "paddingVertical": 12,
-        "shadowColor": "#000000",
-        "shadowOffset": {
-          "height": 2,
-          "width": 0,
-        },
-        "shadowOpacity": 0.06,
-        "shadowRadius": 8,
-      }
-    }
-  >
-    <TouchableOpacity
-      accessibilityLabel="Request a service"
-      accessibilityRole="button"
-      activeOpacity={0.7}
-      style={
-        {
-          "alignItems": "center",
-          "backgroundColor": "#007AFF",
-          "borderRadius": 18,
-          "height": 36,
-          "justifyContent": "center",
-          "marginRight": 12,
-          "width": 36,
-        }
-      }
-    >
-      <Ionicons
-        color="#FFFFFF"
-        name="search"
-        size={18}
-      />
-    </TouchableOpacity>
-    <View
-      style={
-        {
-          "alignItems": "center",
-          "flex": 1,
-          "flexDirection": "row",
-        }
-      }
-    >
-      <TouchableOpacity
-        activeOpacity={0.6}
-        style={
-          {
-            "alignItems": "center",
-            "flex": 1,
-          }
-        }
-      >
-        <Text
-          style={
-            {
-              "color": undefined,
-              "fontSize": 11,
-              "fontWeight": "600",
-              "letterSpacing": 0.5,
-              "textTransform": "uppercase",
-            }
-          }
-        >
-          Property
-        </Text>
-        <Text
-          numberOfLines={1}
-          style={
-            [
-              {
-                "color": undefined,
-                "fontSize": 13,
-                "marginTop": 1,
-              },
-              null,
-            ]
-          }
-        >
-          Select
-        </Text>
-      </TouchableOpacity>
-      <View
-        style={
-          {
-            "backgroundColor": undefined,
-            "height": 28,
-            "width": 1,
-          }
-        }
-      />
-      <TouchableOpacity
-        activeOpacity={0.6}
-        style={
-          {
-            "alignItems": "center",
-            "flex": 1,
-          }
-        }
-      >
-        <Text
-          style={
-            {
-              "color": undefined,
-              "fontSize": 11,
-              "fontWeight": "600",
-              "letterSpacing": 0.5,
-              "textTransform": "uppercase",
-            }
-          }
-        >
-          Urgency
-        </Text>
-        <Text
-          numberOfLines={1}
-          style={
-            [
-              {
-                "color": undefined,
-                "fontSize": 13,
-                "marginTop": 1,
-              },
-              null,
-            ]
-          }
-        >
-          Medium
-        </Text>
-      </TouchableOpacity>
-      <View
-        style={
-          {
-            "backgroundColor": undefined,
-            "height": 28,
-            "width": 1,
-          }
-        }
-      />
-      <TouchableOpacity
-        activeOpacity={0.6}
-        style={
-          {
-            "alignItems": "center",
-            "flex": 1,
-          }
-        }
-      >
-        <Text
-          style={
-            {
-              "color": undefined,
-              "fontSize": 11,
-              "fontWeight": "600",
-              "letterSpacing": 0.5,
-              "textTransform": "uppercase",
-            }
-          }
-        >
-          Service
-        </Text>
-        <Text
-          numberOfLines={1}
-          style={
-            {
-              "color": undefined,
-              "fontSize": 13,
-              "marginTop": 1,
-            }
-          }
-        >
-          Browse all
-        </Text>
-      </TouchableOpacity>
-    </View>
-  </View>
-</View>
-`;
-
-exports[`WelcomeBanner Snapshots should match snapshot with empty firstName 1`] = `
-<View
-  style={
-    {
-      "backgroundColor": undefined,
-      "paddingBottom": 8,
-      "paddingHorizontal": 24,
-      "paddingTop": 4,
-    }
-  }
->
-  <View
-    style={
-      {
-        "alignItems": "center",
-        "backgroundColor": undefined,
-        "borderColor": undefined,
-        "borderRadius": 16,
-        "borderWidth": 1,
-        "elevation": 2,
-        "flexDirection": "row",
-        "paddingHorizontal": 14,
-        "paddingVertical": 12,
-        "shadowColor": "#000000",
-        "shadowOffset": {
-          "height": 2,
-          "width": 0,
-        },
-        "shadowOpacity": 0.06,
-        "shadowRadius": 8,
-      }
-    }
-  >
-    <TouchableOpacity
-      accessibilityLabel="Request a service"
-      accessibilityRole="button"
-      activeOpacity={0.7}
-      style={
-        {
-          "alignItems": "center",
-          "backgroundColor": "#007AFF",
-          "borderRadius": 18,
-          "height": 36,
-          "justifyContent": "center",
-          "marginRight": 12,
-          "width": 36,
-        }
-      }
-    >
-      <Ionicons
-        color="#FFFFFF"
-        name="search"
-        size={18}
-      />
-    </TouchableOpacity>
-    <View
-      style={
-        {
-          "alignItems": "center",
-          "flex": 1,
-          "flexDirection": "row",
-        }
-      }
-    >
-      <TouchableOpacity
-        activeOpacity={0.6}
-        style={
-          {
-            "alignItems": "center",
-            "flex": 1,
-          }
-        }
-      >
-        <Text
-          style={
-            {
-              "color": undefined,
-              "fontSize": 11,
-              "fontWeight": "600",
-              "letterSpacing": 0.5,
-              "textTransform": "uppercase",
-            }
-          }
-        >
-          Property
-        </Text>
-        <Text
-          numberOfLines={1}
-          style={
-            [
-              {
-                "color": undefined,
-                "fontSize": 13,
-                "marginTop": 1,
-              },
-              null,
-            ]
-          }
-        >
-          Select
-        </Text>
-      </TouchableOpacity>
-      <View
-        style={
-          {
-            "backgroundColor": undefined,
-            "height": 28,
-            "width": 1,
-          }
-        }
-      />
-      <TouchableOpacity
-        activeOpacity={0.6}
-        style={
-          {
-            "alignItems": "center",
-            "flex": 1,
-          }
-        }
-      >
-        <Text
-          style={
-            {
-              "color": undefined,
-              "fontSize": 11,
-              "fontWeight": "600",
-              "letterSpacing": 0.5,
-              "textTransform": "uppercase",
-            }
-          }
-        >
-          Urgency
-        </Text>
-        <Text
-          numberOfLines={1}
-          style={
-            [
-              {
-                "color": undefined,
-                "fontSize": 13,
-                "marginTop": 1,
-              },
-              null,
-            ]
-          }
-        >
-          Medium
-        </Text>
-      </TouchableOpacity>
-      <View
-        style={
-          {
-            "backgroundColor": undefined,
-            "height": 28,
-            "width": 1,
-          }
-        }
-      />
-      <TouchableOpacity
-        activeOpacity={0.6}
-        style={
-          {
-            "alignItems": "center",
-            "flex": 1,
-          }
-        }
-      >
-        <Text
-          style={
-            {
-              "color": undefined,
-              "fontSize": 11,
-              "fontWeight": "600",
-              "letterSpacing": 0.5,
-              "textTransform": "uppercase",
-            }
-          }
-        >
-          Service
-        </Text>
-        <Text
-          numberOfLines={1}
-          style={
-            {
-              "color": undefined,
-              "fontSize": 13,
-              "marginTop": 1,
-            }
-          }
-        >
-          Browse all
-        </Text>
-      </TouchableOpacity>
-    </View>
-  </View>
-</View>
-`;
-
-exports[`WelcomeBanner Snapshots should match snapshot with homeowner user 1`] = `
-<View
-  style={
-    {
-      "backgroundColor": undefined,
-      "paddingBottom": 8,
-      "paddingHorizontal": 24,
-      "paddingTop": 4,
-    }
-  }
->
-  <View
-    style={
-      {
-        "alignItems": "center",
-        "backgroundColor": undefined,
-        "borderColor": undefined,
-        "borderRadius": 16,
-        "borderWidth": 1,
-        "elevation": 2,
-        "flexDirection": "row",
-        "paddingHorizontal": 14,
-        "paddingVertical": 12,
-        "shadowColor": "#000000",
-        "shadowOffset": {
-          "height": 2,
-          "width": 0,
-        },
-        "shadowOpacity": 0.06,
-        "shadowRadius": 8,
-      }
-    }
-  >
-    <TouchableOpacity
-      accessibilityLabel="Request a service"
-      accessibilityRole="button"
-      activeOpacity={0.7}
-      style={
-        {
-          "alignItems": "center",
-          "backgroundColor": "#007AFF",
-          "borderRadius": 18,
-          "height": 36,
-          "justifyContent": "center",
-          "marginRight": 12,
-          "width": 36,
-        }
-      }
-    >
-      <Ionicons
-        color="#FFFFFF"
-        name="search"
-        size={18}
-      />
-    </TouchableOpacity>
-    <View
-      style={
-        {
-          "alignItems": "center",
-          "flex": 1,
-          "flexDirection": "row",
-        }
-      }
-    >
-      <TouchableOpacity
-        activeOpacity={0.6}
-        style={
-          {
-            "alignItems": "center",
-            "flex": 1,
-          }
-        }
-      >
-        <Text
-          style={
-            {
-              "color": undefined,
-              "fontSize": 11,
-              "fontWeight": "600",
-              "letterSpacing": 0.5,
-              "textTransform": "uppercase",
-            }
-          }
-        >
-          Property
-        </Text>
-        <Text
-          numberOfLines={1}
-          style={
-            [
-              {
-                "color": undefined,
-                "fontSize": 13,
-                "marginTop": 1,
-              },
-              null,
-            ]
-          }
-        >
-          Select
-        </Text>
-      </TouchableOpacity>
-      <View
-        style={
-          {
-            "backgroundColor": undefined,
-            "height": 28,
-            "width": 1,
-          }
-        }
-      />
-      <TouchableOpacity
-        activeOpacity={0.6}
-        style={
-          {
-            "alignItems": "center",
-            "flex": 1,
-          }
-        }
-      >
-        <Text
-          style={
-            {
-              "color": undefined,
-              "fontSize": 11,
-              "fontWeight": "600",
-              "letterSpacing": 0.5,
-              "textTransform": "uppercase",
-            }
-          }
-        >
-          Urgency
-        </Text>
-        <Text
-          numberOfLines={1}
-          style={
-            [
-              {
-                "color": undefined,
-                "fontSize": 13,
-                "marginTop": 1,
-              },
-              null,
-            ]
-          }
-        >
-          Medium
-        </Text>
-      </TouchableOpacity>
-      <View
-        style={
-          {
-            "backgroundColor": undefined,
-            "height": 28,
-            "width": 1,
-          }
-        }
-      />
-      <TouchableOpacity
-        activeOpacity={0.6}
-        style={
-          {
-            "alignItems": "center",
-            "flex": 1,
-          }
-        }
-      >
-        <Text
-          style={
-            {
-              "color": undefined,
-              "fontSize": 11,
-              "fontWeight": "600",
-              "letterSpacing": 0.5,
-              "textTransform": "uppercase",
-            }
-          }
-        >
-          Service
-        </Text>
-        <Text
-          numberOfLines={1}
-          style={
-            {
-              "color": undefined,
-              "fontSize": 13,
-              "marginTop": 1,
-            }
-          }
-        >
-          Browse all
-        </Text>
-      </TouchableOpacity>
-    </View>
-  </View>
-</View>
-`;
-
-exports[`WelcomeBanner Snapshots should match snapshot with long firstName 1`] = `
-<View
-  style={
-    {
-      "backgroundColor": undefined,
-      "paddingBottom": 8,
-      "paddingHorizontal": 24,
-      "paddingTop": 4,
-    }
-  }
->
-  <View
-    style={
-      {
-        "alignItems": "center",
-        "backgroundColor": undefined,
-        "borderColor": undefined,
-        "borderRadius": 16,
-        "borderWidth": 1,
-        "elevation": 2,
-        "flexDirection": "row",
-        "paddingHorizontal": 14,
-        "paddingVertical": 12,
-        "shadowColor": "#000000",
-        "shadowOffset": {
-          "height": 2,
-          "width": 0,
-        },
-        "shadowOpacity": 0.06,
-        "shadowRadius": 8,
-      }
-    }
-  >
-    <TouchableOpacity
-      accessibilityLabel="Request a service"
-      accessibilityRole="button"
-      activeOpacity={0.7}
-      style={
-        {
-          "alignItems": "center",
-          "backgroundColor": "#007AFF",
-          "borderRadius": 18,
-          "height": 36,
-          "justifyContent": "center",
-          "marginRight": 12,
-          "width": 36,
-        }
-      }
-    >
-      <Ionicons
-        color="#FFFFFF"
-        name="search"
-        size={18}
-      />
-    </TouchableOpacity>
-    <View
-      style={
-        {
-          "alignItems": "center",
-          "flex": 1,
-          "flexDirection": "row",
-        }
-      }
-    >
-      <TouchableOpacity
-        activeOpacity={0.6}
-        style={
-          {
-            "alignItems": "center",
-            "flex": 1,
-          }
-        }
-      >
-        <Text
-          style={
-            {
-              "color": undefined,
-              "fontSize": 11,
-              "fontWeight": "600",
-              "letterSpacing": 0.5,
-              "textTransform": "uppercase",
-            }
-          }
-        >
-          Property
-        </Text>
-        <Text
-          numberOfLines={1}
-          style={
-            [
-              {
-                "color": undefined,
-                "fontSize": 13,
-                "marginTop": 1,
-              },
-              null,
-            ]
-          }
-        >
-          Select
-        </Text>
-      </TouchableOpacity>
-      <View
-        style={
-          {
-            "backgroundColor": undefined,
-            "height": 28,
-            "width": 1,
-          }
-        }
-      />
-      <TouchableOpacity
-        activeOpacity={0.6}
-        style={
-          {
-            "alignItems": "center",
-            "flex": 1,
-          }
-        }
-      >
-        <Text
-          style={
-            {
-              "color": undefined,
-              "fontSize": 11,
-              "fontWeight": "600",
-              "letterSpacing": 0.5,
-              "textTransform": "uppercase",
-            }
-          }
-        >
-          Urgency
-        </Text>
-        <Text
-          numberOfLines={1}
-          style={
-            [
-              {
-                "color": undefined,
-                "fontSize": 13,
-                "marginTop": 1,
-              },
-              null,
-            ]
-          }
-        >
-          Medium
-        </Text>
-      </TouchableOpacity>
-      <View
-        style={
-          {
-            "backgroundColor": undefined,
-            "height": 28,
-            "width": 1,
-          }
-        }
-      />
-      <TouchableOpacity
-        activeOpacity={0.6}
-        style={
-          {
-            "alignItems": "center",
-            "flex": 1,
-          }
-        }
-      >
-        <Text
-          style={
-            {
-              "color": undefined,
-              "fontSize": 11,
-              "fontWeight": "600",
-              "letterSpacing": 0.5,
-              "textTransform": "uppercase",
-            }
-          }
-        >
-          Service
-        </Text>
-        <Text
-          numberOfLines={1}
-          style={
-            {
-              "color": undefined,
+              "color": "#4A5751",
               "fontSize": 13,
               "marginTop": 1,
             }
