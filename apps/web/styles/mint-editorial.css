@@ -1578,38 +1578,31 @@
     justify-content: center;
   }
 
-  /* Payments transactions table — a 5-column <table> that overflowed
-   * the viewport and collided cells (date over amount, etc.). Collapse
-   * each row into a stacked card: description on its own line, then
-   * date / amount / status / actions wrapping beneath it. */
-  .me-root .me-pay-table thead {
+  /* Payments transactions list — a flex row with fixed-width cells
+   * (date 120 + amount 110 + status 140 + actions 140 = 510px) that
+   * overflowed the viewport and collided (date over amount, etc.).
+   * Hide the desktop column header and let each row wrap: description
+   * on the first line, then date / amount / status / actions flow
+   * beneath at natural width. */
+  .me-root .me-tx-head {
     display: none;
   }
-  .me-root .me-pay-table,
-  .me-root .me-pay-table tbody,
-  .me-root .me-pay-row {
-    display: block;
-    width: 100%;
-  }
-  .me-root .me-pay-row {
-    display: flex;
+  .me-root .me-tx-row {
     flex-wrap: wrap;
-    align-items: center;
-    gap: 6px 12px;
+    gap: 8px 14px;
     padding: 14px 16px;
-    border-top: 1px solid var(--me-line-2);
   }
-  .me-root .me-pay-cell {
-    display: block;
-    padding: 0;
-    border-top: 0;
-  }
-  /* Description takes the full first line; the rest flow under it. */
-  .me-root .me-pay-cell:first-child {
+  .me-root .me-tx-desc {
     flex: 1 1 100%;
   }
-  .me-root .me-pay-actions {
+  .me-root .me-tx-date,
+  .me-root .me-tx-amount,
+  .me-root .me-tx-status {
+    width: auto !important;
+    text-align: left !important;
+  }
+  .me-root .me-tx-actions {
+    width: auto !important;
     margin-left: auto;
-    text-align: right;
   }
 }

@@ -101,7 +101,7 @@ export function MintEditorialTransactionList({
     <div className='card'>
       {/* Column header */}
       <div
-        className='row'
+        className='row me-tx-head'
         style={{
           padding: '12px 20px',
           borderBottom: '1px solid var(--me-line-2)',
@@ -131,6 +131,7 @@ export function MintEditorialTransactionList({
             onKeyDown={(e) => {
               if (e.key === 'Enter') router.push(`/payments/${tx.id}`);
             }}
+            className='me-tx-row'
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -142,6 +143,7 @@ export function MintEditorialTransactionList({
           >
             {/* Description */}
             <div
+              className='me-tx-desc'
               style={{
                 flex: 1,
                 display: 'flex',
@@ -168,7 +170,7 @@ export function MintEditorialTransactionList({
             </div>
 
             {/* Date */}
-            <div className='t-meta' style={{ width: 120 }}>
+            <div className='t-meta me-tx-date' style={{ width: 120 }}>
               {new Date(tx.created_at).toLocaleDateString('en-GB', {
                 day: 'numeric',
                 month: 'short',
@@ -178,7 +180,7 @@ export function MintEditorialTransactionList({
 
             {/* Amount */}
             <div
-              className='me-list-amount'
+              className='me-list-amount me-tx-amount'
               style={{ width: 110, textAlign: 'right', fontSize: 18 }}
             >
               {formatMoney(tx.amount, 'GBP')}
@@ -190,13 +192,13 @@ export function MintEditorialTransactionList({
             </div>
 
             {/* Status */}
-            <div style={{ width: 140, textAlign: 'right' }}>
+            <div className='me-tx-status' style={{ width: 140, textAlign: 'right' }}>
               <span className={badge.className}>{badge.label}</span>
             </div>
 
             {/* Actions */}
             <div
-              className='row'
+              className='row me-tx-actions'
               style={{ width: 140, gap: 6, justifyContent: 'flex-end' }}
               onClick={(e) => e.stopPropagation()}
               onKeyDown={(e) => e.stopPropagation()}
