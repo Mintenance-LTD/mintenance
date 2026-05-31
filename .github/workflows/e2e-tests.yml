@@ -66,6 +66,15 @@ jobs:
           path: apps/web/playwright-report/
           retention-days: 30
 
+      - name: Upload mobile responsive screenshots
+        if: always()
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v4
+        with:
+          name: mobile-screenshots
+          path: apps/web/test-results/mobile-screenshots/
+          retention-days: 30
+          if-no-files-found: ignore
+
       - name: Upload test videos
         if: failure()
         uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v4
