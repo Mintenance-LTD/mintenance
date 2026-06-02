@@ -7,24 +7,26 @@ import type { FinancialSummary } from '../../../services/contractor-business';
 /**
  * FinancialInsights Component Tests
  *
- * Tests the FinancialInsights component functionality including:
- * - Rendering with financial data
- * - Quarterly growth insight display and formatting
- * - Overdue invoices warning (conditional rendering)
- * - Bulk purchasing insight display
- * - Icon rendering for different insight types
- * - formatCurrency function integration
- * - Styling and layout (flex, padding, borderRadius)
- * - Theme integration (colors, spacing)
- * - Edge cases (zero overdue, negative growth, large numbers)
- * - Accessibility
+ * Realigned 2026-06-02 to the Mint Editorial redesign of FinancialInsights.
+ * The component now renders a card titled "Insights" with up to 3 insight
+ * rows (growth / overdue / bulk-purchasing). Each row has an icon wrapped in
+ * a coloured chip + a text/subtext column. Copy, colours, sizes and structure
+ * were updated by the redesign — tests below match the CURRENT component.
  *
- * Coverage: 100%
- * Total Tests: 35
+ * Current copy:
+ * - title:    "Insights"
+ * - growth:   "Revenue grew {N}% this quarter" / "Keep up the momentum!"
+ * - overdue:  "{currency} in overdue invoices" / "Send reminders to improve cash flow"
+ * - bulk:     "Bulk purchasing could save ~15% on materials" / "Negotiate better supplier rates"
+ *
+ * Icons render at size 18; colours: trending-up = primary #0D9488,
+ * warning = accent #F59E0B, bulb = #8B5CF6.
  */
 
 describe('FinancialInsights', () => {
-  const mockFormatCurrency = jest.fn((amount: number) => `$${amount.toLocaleString()}`);
+  const mockFormatCurrency = jest.fn(
+    (amount: number) => `$${amount.toLocaleString()}`
+  );
 
   const defaultFinancialData: FinancialSummary = {
     monthly_revenue: [10000, 12000, 15000],
@@ -38,7 +40,12 @@ describe('FinancialInsights', () => {
     ],
     tax_obligations: 5000,
     cash_flow_forecast: [
-      { week: 'Week 1', projected_income: 5000, projected_expenses: 3000, net_flow: 2000 },
+      {
+        week: 'Week 1',
+        projected_income: 5000,
+        projected_expenses: 3000,
+        net_flow: 2000,
+      },
     ],
   };
 
@@ -65,7 +72,7 @@ describe('FinancialInsights', () => {
           formatCurrency={mockFormatCurrency}
         />
       );
-      expect(getByText('Financial Insights')).toBeTruthy();
+      expect(getByText('Insights')).toBeTruthy();
     });
 
     it('should render the main container view', () => {
@@ -75,7 +82,7 @@ describe('FinancialInsights', () => {
           formatCurrency={mockFormatCurrency}
         />
       );
-      const title = getByText('Financial Insights');
+      const title = getByText('Insights');
       expect(title.parent?.type).toBe('View');
     });
 
@@ -86,7 +93,7 @@ describe('FinancialInsights', () => {
           formatCurrency={mockFormatCurrency}
         />
       );
-      const title = getByText('Financial Insights');
+      const title = getByText('Insights');
       const container = title.parent;
       const styles = container?.props.style;
       const flattenedStyles = Array.isArray(styles)
@@ -95,8 +102,8 @@ describe('FinancialInsights', () => {
 
       expect(flattenedStyles).toMatchObject(
         expect.objectContaining({
-          backgroundColor: '#F7F7F7',
-          padding: 16,
+          backgroundColor: '#FFFFFF',
+          padding: 20,
           marginBottom: 32,
         })
       );
@@ -109,7 +116,7 @@ describe('FinancialInsights', () => {
           formatCurrency={mockFormatCurrency}
         />
       );
-      const title = getByText('Financial Insights');
+      const title = getByText('Insights');
       const container = title.parent;
       const styles = container?.props.style;
       const flattenedStyles = Array.isArray(styles)
@@ -128,7 +135,7 @@ describe('FinancialInsights', () => {
           formatCurrency={mockFormatCurrency}
         />
       );
-      expect(getByText(/Your revenue has grown by/)).toBeTruthy();
+      expect(getByText(/Revenue grew/)).toBeTruthy();
       expect(getByText(/25.5% this quarter/)).toBeTruthy();
     });
 
@@ -144,42 +151,42 @@ describe('FinancialInsights', () => {
     });
 
     it('should render trending-up icon for growth insight', () => {
-      const { getAllByTestId, getByText } = render(
+      const { getByText } = render(
         <FinancialInsights
           financialData={defaultFinancialData}
           formatCurrency={mockFormatCurrency}
         />
       );
-      const growthText = getByText(/Your revenue has grown by/);
+      const growthText = getByText(/Revenue grew/);
       const insightCard = growthText.parent?.parent;
       const icon = insightCard?.findByProps({ name: 'trending-up' });
       expect(icon).toBeTruthy();
     });
 
-    it('should render trending-up icon with success color', () => {
+    it('should render trending-up icon with primary color', () => {
       const { getByText } = render(
         <FinancialInsights
           financialData={defaultFinancialData}
           formatCurrency={mockFormatCurrency}
         />
       );
-      const growthText = getByText(/Your revenue has grown by/);
+      const growthText = getByText(/Revenue grew/);
       const insightCard = growthText.parent?.parent;
       const icon = insightCard?.findByProps({ name: 'trending-up' });
-      expect(icon?.props.color).toBe('#10B981');
+      expect(icon?.props.color).toBe('#0D9488');
     });
 
-    it('should render trending-up icon with size 20', () => {
+    it('should render trending-up icon with size 18', () => {
       const { getByText } = render(
         <FinancialInsights
           financialData={defaultFinancialData}
           formatCurrency={mockFormatCurrency}
         />
       );
-      const growthText = getByText(/Your revenue has grown by/);
+      const growthText = getByText(/Revenue grew/);
       const insightCard = growthText.parent?.parent;
       const icon = insightCard?.findByProps({ name: 'trending-up' });
-      expect(icon?.props.size).toBe(20);
+      expect(icon?.props.size).toBe(18);
     });
 
     it('should display encouragement subtext for growth', () => {
@@ -189,7 +196,7 @@ describe('FinancialInsights', () => {
           formatCurrency={mockFormatCurrency}
         />
       );
-      expect(getByText('Keep up the excellent work!')).toBeTruthy();
+      expect(getByText('Keep up the momentum!')).toBeTruthy();
     });
 
     it('should handle zero growth percentage', () => {
@@ -234,7 +241,6 @@ describe('FinancialInsights', () => {
           formatCurrency={mockFormatCurrency}
         />
       );
-      expect(getByText(/You have/)).toBeTruthy();
       expect(getByText(/in overdue invoices/)).toBeTruthy();
     });
 
@@ -265,36 +271,36 @@ describe('FinancialInsights', () => {
           formatCurrency={mockFormatCurrency}
         />
       );
-      const overdueText = getByText(/You have/);
+      const overdueText = getByText(/in overdue invoices/);
       const insightCard = overdueText.parent?.parent;
       const icon = insightCard?.findByProps({ name: 'warning' });
       expect(icon).toBeTruthy();
     });
 
-    it('should render warning icon with warning color', () => {
+    it('should render warning icon with accent color', () => {
       const { getByText } = render(
         <FinancialInsights
           financialData={defaultFinancialData}
           formatCurrency={mockFormatCurrency}
         />
       );
-      const overdueText = getByText(/You have/);
+      const overdueText = getByText(/in overdue invoices/);
       const insightCard = overdueText.parent?.parent;
       const icon = insightCard?.findByProps({ name: 'warning' });
       expect(icon?.props.color).toBe('#F59E0B');
     });
 
-    it('should render warning icon with size 20', () => {
+    it('should render warning icon with size 18', () => {
       const { getByText } = render(
         <FinancialInsights
           financialData={defaultFinancialData}
           formatCurrency={mockFormatCurrency}
         />
       );
-      const overdueText = getByText(/You have/);
+      const overdueText = getByText(/in overdue invoices/);
       const insightCard = overdueText.parent?.parent;
       const icon = insightCard?.findByProps({ name: 'warning' });
-      expect(icon?.props.size).toBe(20);
+      expect(icon?.props.size).toBe(18);
     });
 
     it('should display reminder suggestion subtext', () => {
@@ -304,7 +310,7 @@ describe('FinancialInsights', () => {
           formatCurrency={mockFormatCurrency}
         />
       );
-      expect(getByText('Consider sending reminders to improve cash flow')).toBeTruthy();
+      expect(getByText('Send reminders to improve cash flow')).toBeTruthy();
     });
 
     it('should NOT display overdue warning when overdue_amount is 0', () => {
@@ -326,7 +332,7 @@ describe('FinancialInsights', () => {
           formatCurrency={mockFormatCurrency}
         />
       );
-      const growthText = queryByText(/Your revenue has grown by/);
+      const growthText = queryByText(/Revenue grew/);
       const container = growthText?.parent?.parent?.parent;
       const warningIcon = container?.findAllByProps({ name: 'warning' });
       expect(warningIcon).toHaveLength(0);
@@ -334,12 +340,11 @@ describe('FinancialInsights', () => {
 
     it('should handle large overdue amounts', () => {
       const data = { ...defaultFinancialData, overdue_amount: 150000 };
-      const customFormat = jest.fn((amount: number) => `$${amount.toLocaleString()}`);
+      const customFormat = jest.fn(
+        (amount: number) => `$${amount.toLocaleString()}`
+      );
       render(
-        <FinancialInsights
-          financialData={data}
-          formatCurrency={customFormat}
-        />
+        <FinancialInsights financialData={data} formatCurrency={customFormat} />
       );
       expect(customFormat).toHaveBeenCalledWith(150000);
     });
@@ -348,10 +353,7 @@ describe('FinancialInsights', () => {
       const data = { ...defaultFinancialData, overdue_amount: 50 };
       const customFormat = jest.fn((amount: number) => `$${amount.toFixed(2)}`);
       const { getByText } = render(
-        <FinancialInsights
-          financialData={data}
-          formatCurrency={customFormat}
-        />
+        <FinancialInsights financialData={data} formatCurrency={customFormat} />
       );
       expect(getByText(/in overdue invoices/)).toBeTruthy();
     });
@@ -365,7 +367,9 @@ describe('FinancialInsights', () => {
           formatCurrency={mockFormatCurrency}
         />
       );
-      expect(getByText(/Based on your trends, you could save 15% on material costs/)).toBeTruthy();
+      expect(
+        getByText(/Bulk purchasing could save ~15% on materials/)
+      ).toBeTruthy();
     });
 
     it('should display supplier negotiation subtext', () => {
@@ -375,7 +379,7 @@ describe('FinancialInsights', () => {
           formatCurrency={mockFormatCurrency}
         />
       );
-      expect(getByText('Consider negotiating better supplier rates')).toBeTruthy();
+      expect(getByText('Negotiate better supplier rates')).toBeTruthy();
     });
 
     it('should render bulb icon for bulk purchasing insight', () => {
@@ -385,36 +389,36 @@ describe('FinancialInsights', () => {
           formatCurrency={mockFormatCurrency}
         />
       );
-      const bulkText = getByText(/Based on your trends/);
+      const bulkText = getByText(/Bulk purchasing/);
       const insightCard = bulkText.parent?.parent;
       const icon = insightCard?.findByProps({ name: 'bulb' });
       expect(icon).toBeTruthy();
     });
 
-    it('should render bulb icon with primary color', () => {
+    it('should render bulb icon with purple color', () => {
       const { getByText } = render(
         <FinancialInsights
           financialData={defaultFinancialData}
           formatCurrency={mockFormatCurrency}
         />
       );
-      const bulkText = getByText(/Based on your trends/);
+      const bulkText = getByText(/Bulk purchasing/);
       const insightCard = bulkText.parent?.parent;
       const icon = insightCard?.findByProps({ name: 'bulb' });
-      expect(icon?.props.color).toBe('#222222');
+      expect(icon?.props.color).toBe('#8B5CF6');
     });
 
-    it('should render bulb icon with size 20', () => {
+    it('should render bulb icon with size 18', () => {
       const { getByText } = render(
         <FinancialInsights
           financialData={defaultFinancialData}
           formatCurrency={mockFormatCurrency}
         />
       );
-      const bulkText = getByText(/Based on your trends/);
+      const bulkText = getByText(/Bulk purchasing/);
       const insightCard = bulkText.parent?.parent;
       const icon = insightCard?.findByProps({ name: 'bulb' });
-      expect(icon?.props.size).toBe(20);
+      expect(icon?.props.size).toBe(18);
     });
   });
 
@@ -426,9 +430,13 @@ describe('FinancialInsights', () => {
           formatCurrency={mockFormatCurrency}
         />
       );
-      const growthText = getByText(/Your revenue has grown by/);
+      const growthText = getByText(/Revenue grew/);
       const insightCard = growthText.parent?.parent;
-      expect(insightCard?.props.style).toEqual(
+      const styles = insightCard?.props.style;
+      const flattened = Array.isArray(styles)
+        ? Object.assign({}, ...styles.filter(Boolean))
+        : styles;
+      expect(flattened).toEqual(
         expect.objectContaining({
           flexDirection: 'row',
           alignItems: 'flex-start',
@@ -444,14 +452,14 @@ describe('FinancialInsights', () => {
           formatCurrency={mockFormatCurrency}
         />
       );
-      const growthText = getByText(/Your revenue has grown by/);
+      const growthText = getByText(/Revenue grew/);
       const insightCard = growthText.parent?.parent;
-      expect(insightCard?.props.style).toEqual(
-        expect.objectContaining({
-          borderBottomWidth: 1,
-          borderBottomColor: '#EBEBEB',
-        })
-      );
+      const styles = insightCard?.props.style;
+      const flattened = Array.isArray(styles)
+        ? Object.assign({}, ...styles.filter(Boolean))
+        : styles;
+      expect(flattened.borderBottomColor).toBe('#F0F0F0');
+      expect(flattened.borderBottomWidth).toBeGreaterThan(0);
     });
 
     it('should apply correct content styling', () => {
@@ -461,12 +469,11 @@ describe('FinancialInsights', () => {
           formatCurrency={mockFormatCurrency}
         />
       );
-      const growthText = getByText(/Your revenue has grown by/);
+      const growthText = getByText(/Revenue grew/);
       const contentContainer = growthText.parent;
       expect(contentContainer?.props.style).toEqual(
         expect.objectContaining({
           flex: 1,
-          marginLeft: 12,
         })
       );
     });
@@ -478,12 +485,12 @@ describe('FinancialInsights', () => {
           formatCurrency={mockFormatCurrency}
         />
       );
-      const growthText = getByText(/Your revenue has grown by/);
+      const growthText = getByText(/Revenue grew/);
       expect(growthText.props.style).toEqual(
         expect.objectContaining({
           fontSize: 14,
           color: '#222222',
-          marginBottom: 4,
+          fontWeight: '600',
           lineHeight: 20,
         })
       );
@@ -496,7 +503,7 @@ describe('FinancialInsights', () => {
           formatCurrency={mockFormatCurrency}
         />
       );
-      const subtext = getByText('Keep up the excellent work!');
+      const subtext = getByText('Keep up the momentum!');
       expect(subtext.props.style).toEqual(
         expect.objectContaining({
           fontSize: 12,
@@ -513,11 +520,11 @@ describe('FinancialInsights', () => {
           formatCurrency={mockFormatCurrency}
         />
       );
-      const title = getByText('Financial Insights');
+      const title = getByText('Insights');
       expect(title.props.style).toEqual(
         expect.objectContaining({
-          fontSize: 16,
-          fontWeight: '600',
+          fontSize: 18,
+          fontWeight: '700',
           color: '#222222',
           marginBottom: 16,
         })
@@ -590,11 +597,11 @@ describe('FinancialInsights', () => {
       );
 
       // Growth insight
-      expect(getByText(/Your revenue has grown by/)).toBeTruthy();
+      expect(getByText(/Revenue grew/)).toBeTruthy();
       // Overdue insight
-      expect(getByText(/You have/)).toBeTruthy();
+      expect(getByText(/in overdue invoices/)).toBeTruthy();
       // Bulk purchasing insight
-      expect(getByText(/Based on your trends/)).toBeTruthy();
+      expect(getByText(/Bulk purchasing/)).toBeTruthy();
     });
 
     it('should display only two insights when overdue_amount is 0', () => {
@@ -607,11 +614,11 @@ describe('FinancialInsights', () => {
       );
 
       // Growth insight
-      expect(getByText(/Your revenue has grown by/)).toBeTruthy();
+      expect(getByText(/Revenue grew/)).toBeTruthy();
       // No overdue insight
-      expect(queryByText(/You have/)).toBeNull();
+      expect(queryByText(/in overdue invoices/)).toBeNull();
       // Bulk purchasing insight
-      expect(getByText(/Based on your trends/)).toBeTruthy();
+      expect(getByText(/Bulk purchasing/)).toBeTruthy();
     });
   });
 });

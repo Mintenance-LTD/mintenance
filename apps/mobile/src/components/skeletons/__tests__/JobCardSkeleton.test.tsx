@@ -8,14 +8,17 @@ jest.mock('expo-linear-gradient', () => ({
 }));
 
 // Mock AccessibilityInfo
-jest.mock('react-native/Libraries/Components/AccessibilityInfo/AccessibilityInfo', () => ({
-  isReduceMotionEnabled: jest.fn(() => Promise.resolve(false)),
-  isScreenReaderEnabled: jest.fn(() => Promise.resolve(false)),
-  addEventListener: jest.fn(),
-  removeEventListener: jest.fn(),
-  announceForAccessibility: jest.fn(),
-  fetch: jest.fn(() => Promise.resolve({})),
-}));
+jest.mock(
+  'react-native/Libraries/Components/AccessibilityInfo/AccessibilityInfo',
+  () => ({
+    isReduceMotionEnabled: jest.fn(() => Promise.resolve(false)),
+    isScreenReaderEnabled: jest.fn(() => Promise.resolve(false)),
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn(),
+    announceForAccessibility: jest.fn(),
+    fetch: jest.fn(() => Promise.resolve({})),
+  })
+);
 
 // Mock the Skeleton component to avoid animation issues in tests
 jest.mock('../Skeleton', () => ({
@@ -30,10 +33,14 @@ jest.mock('../Skeleton', () => ({
   SkeletonGroup: ({ children, gap, style }: any) => {
     const React = require('react');
     const { View } = require('react-native');
-    return React.createElement(View, {
-      testID: 'skeleton-group-mock',
-      style: { gap, ...style },
-    }, children);
+    return React.createElement(
+      View,
+      {
+        testID: 'skeleton-group-mock',
+        style: { gap, ...style },
+      },
+      children
+    );
   },
   SkeletonImage: ({ width, aspectRatio, borderRadius, style, testID }: any) => {
     const React = require('react');
@@ -187,7 +194,9 @@ describe('JobCardSkeleton', () => {
 
   describe('Prop Combinations', () => {
     it('should handle count=1 with showImage=false', () => {
-      const { toJSON } = render(<JobCardSkeleton count={1} showImage={false} />);
+      const { toJSON } = render(
+        <JobCardSkeleton count={1} showImage={false} />
+      );
       expect(toJSON()).toBeTruthy();
     });
 
@@ -197,7 +206,9 @@ describe('JobCardSkeleton', () => {
     });
 
     it('should handle count=3 with showImage=false', () => {
-      const { toJSON } = render(<JobCardSkeleton count={3} showImage={false} />);
+      const { toJSON } = render(
+        <JobCardSkeleton count={3} showImage={false} />
+      );
       expect(toJSON()).toBeTruthy();
     });
 
@@ -207,7 +218,9 @@ describe('JobCardSkeleton', () => {
     });
 
     it('should handle count=5 with showImage=false', () => {
-      const { toJSON } = render(<JobCardSkeleton count={5} showImage={false} />);
+      const { toJSON } = render(
+        <JobCardSkeleton count={5} showImage={false} />
+      );
       expect(toJSON()).toBeTruthy();
     });
 
@@ -217,17 +230,23 @@ describe('JobCardSkeleton', () => {
     });
 
     it('should handle count=10 with showImage=true', () => {
-      const { toJSON } = render(<JobCardSkeleton count={10} showImage={true} />);
+      const { toJSON } = render(
+        <JobCardSkeleton count={10} showImage={true} />
+      );
       expect(toJSON()).toBeTruthy();
     });
 
     it('should handle count=10 with showImage=false', () => {
-      const { toJSON } = render(<JobCardSkeleton count={10} showImage={false} />);
+      const { toJSON } = render(
+        <JobCardSkeleton count={10} showImage={false} />
+      );
       expect(toJSON()).toBeTruthy();
     });
 
     it('should handle count=0 with showImage=false', () => {
-      const { toJSON } = render(<JobCardSkeleton count={0} showImage={false} />);
+      const { toJSON } = render(
+        <JobCardSkeleton count={0} showImage={false} />
+      );
       expect(toJSON()).toBeTruthy();
     });
 
@@ -237,7 +256,9 @@ describe('JobCardSkeleton', () => {
     });
 
     it('should handle all props as undefined', () => {
-      const { toJSON } = render(<JobCardSkeleton count={undefined} showImage={undefined} />);
+      const { toJSON } = render(
+        <JobCardSkeleton count={undefined} showImage={undefined} />
+      );
       expect(toJSON()).toBeTruthy();
     });
 
@@ -247,7 +268,9 @@ describe('JobCardSkeleton', () => {
     });
 
     it('should handle count=7 with showImage=false', () => {
-      const { toJSON } = render(<JobCardSkeleton count={7} showImage={false} />);
+      const { toJSON } = render(
+        <JobCardSkeleton count={7} showImage={false} />
+      );
       expect(toJSON()).toBeTruthy();
     });
   });
@@ -270,7 +293,9 @@ describe('JobCardSkeleton', () => {
     });
 
     it('should handle multiple prop changes', () => {
-      const { rerender, toJSON } = render(<JobCardSkeleton count={3} showImage={true} />);
+      const { rerender, toJSON } = render(
+        <JobCardSkeleton count={3} showImage={true} />
+      );
       expect(toJSON()).toBeTruthy();
 
       rerender(<JobCardSkeleton count={5} showImage={false} />);
@@ -297,7 +322,9 @@ describe('JobCardSkeleton', () => {
     });
 
     it('should handle switching from showImage=false to true', () => {
-      const { rerender, toJSON } = render(<JobCardSkeleton showImage={false} />);
+      const { rerender, toJSON } = render(
+        <JobCardSkeleton showImage={false} />
+      );
       expect(toJSON()).toBeTruthy();
 
       rerender(<JobCardSkeleton showImage={true} />);
@@ -324,7 +351,9 @@ describe('JobCardSkeleton', () => {
     });
 
     it('should handle count changes with showImage=false', () => {
-      const { rerender, toJSON } = render(<JobCardSkeleton count={2} showImage={false} />);
+      const { rerender, toJSON } = render(
+        <JobCardSkeleton count={2} showImage={false} />
+      );
       expect(toJSON()).toBeTruthy();
 
       rerender(<JobCardSkeleton count={6} showImage={false} />);
@@ -341,28 +370,38 @@ describe('JobCardSkeleton', () => {
     });
 
     it('should mount with custom props and unmount cleanly', () => {
-      const { unmount, toJSON } = render(<JobCardSkeleton count={10} showImage={false} />);
+      const { unmount, toJSON } = render(
+        <JobCardSkeleton count={10} showImage={false} />
+      );
       expect(toJSON()).toBeTruthy();
       unmount();
       expect(toJSON()).toBeNull();
     });
 
     it('should handle rapid mount/unmount cycles', () => {
-      const { unmount: unmount1, toJSON: toJSON1 } = render(<JobCardSkeleton />);
+      const { unmount: unmount1, toJSON: toJSON1 } = render(
+        <JobCardSkeleton />
+      );
       expect(toJSON1()).toBeTruthy();
       unmount1();
 
-      const { unmount: unmount2, toJSON: toJSON2 } = render(<JobCardSkeleton />);
+      const { unmount: unmount2, toJSON: toJSON2 } = render(
+        <JobCardSkeleton />
+      );
       expect(toJSON2()).toBeTruthy();
       unmount2();
 
-      const { unmount: unmount3, toJSON: toJSON3 } = render(<JobCardSkeleton />);
+      const { unmount: unmount3, toJSON: toJSON3 } = render(
+        <JobCardSkeleton />
+      );
       expect(toJSON3()).toBeTruthy();
       unmount3();
     });
 
     it('should unmount after prop changes', () => {
-      const { rerender, unmount, toJSON } = render(<JobCardSkeleton count={3} />);
+      const { rerender, unmount, toJSON } = render(
+        <JobCardSkeleton count={3} />
+      );
       rerender(<JobCardSkeleton count={8} />);
       expect(toJSON()).toBeTruthy();
       unmount();
@@ -370,7 +409,9 @@ describe('JobCardSkeleton', () => {
     });
 
     it('should unmount with showImage prop changes', () => {
-      const { rerender, unmount, toJSON } = render(<JobCardSkeleton showImage={true} />);
+      const { rerender, unmount, toJSON } = render(
+        <JobCardSkeleton showImage={true} />
+      );
       rerender(<JobCardSkeleton showImage={false} />);
       expect(toJSON()).toBeTruthy();
       unmount();
@@ -400,22 +441,30 @@ describe('JobCardSkeleton', () => {
     });
 
     it('should handle negative count with showImage=true', () => {
-      const { toJSON } = render(<JobCardSkeleton count={-1} showImage={true} />);
+      const { toJSON } = render(
+        <JobCardSkeleton count={-1} showImage={true} />
+      );
       expect(toJSON()).toBeTruthy();
     });
 
     it('should handle negative count with showImage=false', () => {
-      const { toJSON } = render(<JobCardSkeleton count={-1} showImage={false} />);
+      const { toJSON } = render(
+        <JobCardSkeleton count={-1} showImage={false} />
+      );
       expect(toJSON()).toBeTruthy();
     });
 
     it('should handle NaN count with showImage=true', () => {
-      const { toJSON } = render(<JobCardSkeleton count={NaN} showImage={true} />);
+      const { toJSON } = render(
+        <JobCardSkeleton count={NaN} showImage={true} />
+      );
       expect(toJSON()).toBeTruthy();
     });
 
     it('should handle NaN count with showImage=false', () => {
-      const { toJSON } = render(<JobCardSkeleton count={NaN} showImage={false} />);
+      const { toJSON } = render(
+        <JobCardSkeleton count={NaN} showImage={false} />
+      );
       expect(toJSON()).toBeTruthy();
     });
   });
@@ -457,7 +506,9 @@ describe('JobCardSkeleton', () => {
     });
 
     it('should match snapshot with count=3 and showImage=false', () => {
-      const { toJSON } = render(<JobCardSkeleton count={3} showImage={false} />);
+      const { toJSON } = render(
+        <JobCardSkeleton count={3} showImage={false} />
+      );
       expect(toJSON()).toMatchSnapshot();
     });
 
@@ -467,7 +518,9 @@ describe('JobCardSkeleton', () => {
     });
 
     it('should match snapshot with count=1 and showImage=false', () => {
-      const { toJSON } = render(<JobCardSkeleton count={1} showImage={false} />);
+      const { toJSON } = render(
+        <JobCardSkeleton count={1} showImage={false} />
+      );
       expect(toJSON()).toMatchSnapshot();
     });
 
@@ -477,7 +530,9 @@ describe('JobCardSkeleton', () => {
     });
 
     it('should match snapshot with count=10 and showImage=false', () => {
-      const { toJSON } = render(<JobCardSkeleton count={10} showImage={false} />);
+      const { toJSON } = render(
+        <JobCardSkeleton count={10} showImage={false} />
+      );
       expect(toJSON()).toMatchSnapshot();
     });
   });
@@ -519,33 +574,40 @@ describe('JobCardSkeleton', () => {
     });
   });
 
-  describe('Default Export', () => {
-    it('should be importable as default export', () => {
-      const JobCardSkeletonDefault = require('../JobCardSkeleton').default;
-      expect(JobCardSkeletonDefault).toBeDefined();
+  describe('Named Export', () => {
+    it('should be importable as named export', () => {
+      const JobCardSkeletonNamed =
+        require('../JobCardSkeleton').JobCardSkeleton;
+      expect(JobCardSkeletonNamed).toBeDefined();
     });
 
-    it('should render when imported as default', () => {
-      const JobCardSkeletonDefault = require('../JobCardSkeleton').default;
-      const { toJSON } = render(<JobCardSkeletonDefault />);
+    it('should render when imported as named', () => {
+      const JobCardSkeletonNamed =
+        require('../JobCardSkeleton').JobCardSkeleton;
+      const { toJSON } = render(<JobCardSkeletonNamed />);
       expect(toJSON()).toBeTruthy();
     });
 
-    it('should render with props when imported as default', () => {
-      const JobCardSkeletonDefault = require('../JobCardSkeleton').default;
-      const { toJSON } = render(<JobCardSkeletonDefault count={3} showImage={false} />);
+    it('should render with props when imported as named', () => {
+      const JobCardSkeletonNamed =
+        require('../JobCardSkeleton').JobCardSkeleton;
+      const { toJSON } = render(
+        <JobCardSkeletonNamed count={3} showImage={false} />
+      );
       expect(toJSON()).toBeTruthy();
     });
 
-    it('should render with count when imported as default', () => {
-      const JobCardSkeletonDefault = require('../JobCardSkeleton').default;
-      const { toJSON } = render(<JobCardSkeletonDefault count={5} />);
+    it('should render with count when imported as named', () => {
+      const JobCardSkeletonNamed =
+        require('../JobCardSkeleton').JobCardSkeleton;
+      const { toJSON } = render(<JobCardSkeletonNamed count={5} />);
       expect(toJSON()).toBeTruthy();
     });
 
-    it('should render with showImage when imported as default', () => {
-      const JobCardSkeletonDefault = require('../JobCardSkeleton').default;
-      const { toJSON } = render(<JobCardSkeletonDefault showImage={false} />);
+    it('should render with showImage when imported as named', () => {
+      const JobCardSkeletonNamed =
+        require('../JobCardSkeleton').JobCardSkeleton;
+      const { toJSON } = render(<JobCardSkeletonNamed showImage={false} />);
       expect(toJSON()).toBeTruthy();
     });
   });
@@ -577,7 +639,9 @@ describe('JobCardSkeleton', () => {
     });
 
     it('should handle array rendering with showImage=false', () => {
-      const { toJSON } = render(<JobCardSkeleton count={4} showImage={false} />);
+      const { toJSON } = render(
+        <JobCardSkeleton count={4} showImage={false} />
+      );
       expect(toJSON()).toBeTruthy();
     });
 

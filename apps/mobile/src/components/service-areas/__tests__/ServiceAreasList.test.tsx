@@ -3,6 +3,48 @@ import { render, fireEvent } from '@testing-library/react-native';
 import { ServiceAreasList } from '../ServiceAreasList';
 import { ServiceArea } from '../../../services/ServiceAreasService';
 
+// The shared react-native mock stubs FlatList as a host string, so its
+// data/renderItem/ListHeaderComponent/ListEmptyComponent never render.
+// Provide a functional FlatList that actually renders its content so the
+// list-rendering and callback wiring can be exercised.
+jest.mock('react-native', () => {
+  const ReactNative = jest.requireActual('react-native');
+  const React = require('react');
+  const FlatList = ({
+    data,
+    renderItem,
+    keyExtractor,
+    ListHeaderComponent,
+    ListEmptyComponent,
+    contentContainerStyle,
+  }: any) => {
+    const items = data ?? [];
+    const header =
+      typeof ListHeaderComponent === 'function'
+        ? React.createElement(ListHeaderComponent)
+        : (ListHeaderComponent ?? null);
+    const empty =
+      typeof ListEmptyComponent === 'function'
+        ? React.createElement(ListEmptyComponent)
+        : (ListEmptyComponent ?? null);
+    return React.createElement(
+      'View',
+      { style: contentContainerStyle, testID: 'flat-list' },
+      header,
+      items.length === 0
+        ? empty
+        : items.map((item: any, index: number) =>
+            React.createElement(
+              React.Fragment,
+              { key: keyExtractor ? keyExtractor(item, index) : index },
+              renderItem({ item, index })
+            )
+          )
+    );
+  };
+  return { ...ReactNative, FlatList };
+});
+
 // Mock theme module
 jest.mock('../../../theme', () => ({
   theme: {
@@ -20,23 +62,41 @@ jest.mock('../../../theme', () => ({
 
 // Mock ServiceAreaCard component
 jest.mock('../../ServiceAreaCard', () => ({
-  ServiceAreaCard: ({ serviceArea, onPress, onEdit, onToggleActive, onDelete }: any) => {
+  ServiceAreaCard: ({
+    serviceArea,
+    onPress,
+    onEdit,
+    onToggleActive,
+    onDelete,
+  }: any) => {
     const React = require('react');
     const { View, Text, TouchableOpacity } = require('react-native');
     return (
       <View testID={`service-area-card-${serviceArea.id}`}>
         <Text>{serviceArea.area_name}</Text>
         <Text>{serviceArea.is_active ? 'Active' : 'Inactive'}</Text>
-        <TouchableOpacity testID={`card-press-${serviceArea.id}`} onPress={onPress}>
+        <TouchableOpacity
+          testID={`card-press-${serviceArea.id}`}
+          onPress={onPress}
+        >
           <Text>Card Press</Text>
         </TouchableOpacity>
-        <TouchableOpacity testID={`edit-btn-${serviceArea.id}`} onPress={onEdit}>
+        <TouchableOpacity
+          testID={`edit-btn-${serviceArea.id}`}
+          onPress={onEdit}
+        >
           <Text>Edit</Text>
         </TouchableOpacity>
-        <TouchableOpacity testID={`toggle-btn-${serviceArea.id}`} onPress={onToggleActive}>
+        <TouchableOpacity
+          testID={`toggle-btn-${serviceArea.id}`}
+          onPress={onToggleActive}
+        >
           <Text>Toggle</Text>
         </TouchableOpacity>
-        <TouchableOpacity testID={`delete-btn-${serviceArea.id}`} onPress={onDelete}>
+        <TouchableOpacity
+          testID={`delete-btn-${serviceArea.id}`}
+          onPress={onDelete}
+        >
           <Text>Delete</Text>
         </TouchableOpacity>
       </View>
@@ -44,13 +104,13 @@ jest.mock('../../ServiceAreaCard', () => ({
   },
 }));
 
-// Mock Button component
+// Mock Button component (named export `Button`)
 jest.mock('../../ui/Button', () => {
   const React = require('react');
   const { TouchableOpacity, Text } = require('react-native');
   return {
     __esModule: true,
-    default: ({ title, onPress, testID }: any) => (
+    Button: ({ title, onPress, testID }: any) => (
       <TouchableOpacity testID={testID || 'button'} onPress={onPress}>
         <Text>{title}</Text>
       </TouchableOpacity>
@@ -59,7 +119,9 @@ jest.mock('../../ui/Button', () => {
 });
 
 // Helper function to create mock service area
-const createMockServiceArea = (overrides?: Partial<ServiceArea>): ServiceArea => ({
+const createMockServiceArea = (
+  overrides?: Partial<ServiceArea>
+): ServiceArea => ({
   id: 'area-123',
   contractor_id: 'contractor-456',
   area_name: 'Test Area',
@@ -91,42 +153,45 @@ const createMockServiceArea = (overrides?: Partial<ServiceArea>): ServiceArea =>
 });
 
 describe('ServiceAreasList', () => {
-  let mockNavigation: any;
   let mockOnToggleActive: jest.Mock;
   let mockOnDelete: jest.Mock;
+  let mockOnCreatePress: jest.Mock;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    mockNavigation = {
-      navigate: jest.fn(),
-    };
     mockOnToggleActive = jest.fn();
     mockOnDelete = jest.fn();
+    mockOnCreatePress = jest.fn();
   });
 
   describe('Empty State', () => {
     it('should render empty state when serviceAreas is empty array', () => {
-      const { getByText, queryByText } = render(
+      const { getByText, queryByTestId } = render(
         <ServiceAreasList
           serviceAreas={[]}
-          navigation={mockNavigation}
           onToggleActive={mockOnToggleActive}
           onDelete={mockOnDelete}
+          onCreatePress={mockOnCreatePress}
         />
       );
 
-      expect(getByText('No service areas defined')).toBeTruthy();
-      expect(getByText('Create your first service area to start accepting jobs in your preferred locations')).toBeTruthy();
-      expect(queryByText('Your Service Areas')).toBeNull();
+      expect(getByText('No service areas yet')).toBeTruthy();
+      expect(
+        getByText(
+          'Add your first service area so homeowners nearby can find you for jobs in your preferred locations.'
+        )
+      ).toBeTruthy();
+      // No area cards render in the empty state.
+      expect(queryByTestId(/service-area-card-/)).toBeNull();
     });
 
     it('should render map icon in empty state', () => {
       const { UNSAFE_getByProps } = render(
         <ServiceAreasList
           serviceAreas={[]}
-          navigation={mockNavigation}
           onToggleActive={mockOnToggleActive}
           onDelete={mockOnDelete}
+          onCreatePress={mockOnCreatePress}
         />
       );
 
@@ -135,60 +200,60 @@ describe('ServiceAreasList', () => {
       expect(mapIcon.props.size).toBe(64);
     });
 
-    it('should render Create Service Area button in empty state', () => {
+    it('should render Add Service Area button in empty state', () => {
       const { getByText } = render(
         <ServiceAreasList
           serviceAreas={[]}
-          navigation={mockNavigation}
           onToggleActive={mockOnToggleActive}
           onDelete={mockOnDelete}
+          onCreatePress={mockOnCreatePress}
         />
       );
 
-      expect(getByText('Create Service Area')).toBeTruthy();
+      expect(getByText('Add Service Area')).toBeTruthy();
     });
 
-    it('should navigate to CreateServiceArea when button pressed', () => {
+    it('should call onCreatePress when button pressed', () => {
       const { getByText } = render(
         <ServiceAreasList
           serviceAreas={[]}
-          navigation={mockNavigation}
           onToggleActive={mockOnToggleActive}
           onDelete={mockOnDelete}
+          onCreatePress={mockOnCreatePress}
         />
       );
 
-      const button = getByText('Create Service Area');
+      const button = getByText('Add Service Area');
       fireEvent.press(button);
 
-      expect(mockNavigation.navigate).toHaveBeenCalledTimes(1);
-      expect(mockNavigation.navigate).toHaveBeenCalledWith('CreateServiceArea');
+      expect(mockOnCreatePress).toHaveBeenCalledTimes(1);
     });
 
     it('should not render any ServiceAreaCard components in empty state', () => {
       const { queryByTestId } = render(
         <ServiceAreasList
           serviceAreas={[]}
-          navigation={mockNavigation}
           onToggleActive={mockOnToggleActive}
           onDelete={mockOnDelete}
+          onCreatePress={mockOnCreatePress}
         />
       );
 
       expect(queryByTestId(/service-area-card-/)).toBeNull();
     });
 
-    it('should not render section titles in empty state', () => {
+    it('should not render section sub-titles in empty state', () => {
       const { queryByText } = render(
         <ServiceAreasList
           serviceAreas={[]}
-          navigation={mockNavigation}
           onToggleActive={mockOnToggleActive}
           onDelete={mockOnDelete}
+          onCreatePress={mockOnCreatePress}
         />
       );
 
-      expect(queryByText('Your Service Areas')).toBeNull();
+      // The Active/Inactive section sub-headers only render when there are
+      // areas in those sections, so they are absent in the empty state.
       expect(queryByText(/Active Areas/)).toBeNull();
       expect(queryByText(/Inactive Areas/)).toBeNull();
     });
@@ -200,9 +265,9 @@ describe('ServiceAreasList', () => {
       const { getByText } = render(
         <ServiceAreasList
           serviceAreas={serviceAreas}
-          navigation={mockNavigation}
           onToggleActive={mockOnToggleActive}
           onDelete={mockOnDelete}
+          onCreatePress={mockOnCreatePress}
         />
       );
 
@@ -217,9 +282,9 @@ describe('ServiceAreasList', () => {
       const { getByText } = render(
         <ServiceAreasList
           serviceAreas={serviceAreas}
-          navigation={mockNavigation}
           onToggleActive={mockOnToggleActive}
           onDelete={mockOnDelete}
+          onCreatePress={mockOnCreatePress}
         />
       );
 
@@ -235,9 +300,9 @@ describe('ServiceAreasList', () => {
       const { getByTestId, getByText } = render(
         <ServiceAreasList
           serviceAreas={[serviceArea]}
-          navigation={mockNavigation}
           onToggleActive={mockOnToggleActive}
           onDelete={mockOnDelete}
+          onCreatePress={mockOnCreatePress}
         />
       );
 
@@ -248,16 +313,28 @@ describe('ServiceAreasList', () => {
 
     it('should render multiple active areas', () => {
       const serviceAreas = [
-        createMockServiceArea({ id: 'area-1', area_name: 'Area One', is_active: true }),
-        createMockServiceArea({ id: 'area-2', area_name: 'Area Two', is_active: true }),
-        createMockServiceArea({ id: 'area-3', area_name: 'Area Three', is_active: true }),
+        createMockServiceArea({
+          id: 'area-1',
+          area_name: 'Area One',
+          is_active: true,
+        }),
+        createMockServiceArea({
+          id: 'area-2',
+          area_name: 'Area Two',
+          is_active: true,
+        }),
+        createMockServiceArea({
+          id: 'area-3',
+          area_name: 'Area Three',
+          is_active: true,
+        }),
       ];
       const { getByTestId, getByText } = render(
         <ServiceAreasList
           serviceAreas={serviceAreas}
-          navigation={mockNavigation}
           onToggleActive={mockOnToggleActive}
           onDelete={mockOnDelete}
+          onCreatePress={mockOnCreatePress}
         />
       );
 
@@ -275,9 +352,9 @@ describe('ServiceAreasList', () => {
       const { queryByText } = render(
         <ServiceAreasList
           serviceAreas={serviceAreas}
-          navigation={mockNavigation}
           onToggleActive={mockOnToggleActive}
           onDelete={mockOnDelete}
+          onCreatePress={mockOnCreatePress}
         />
       );
 
@@ -289,14 +366,14 @@ describe('ServiceAreasList', () => {
       const { queryByText } = render(
         <ServiceAreasList
           serviceAreas={serviceAreas}
-          navigation={mockNavigation}
           onToggleActive={mockOnToggleActive}
           onDelete={mockOnDelete}
+          onCreatePress={mockOnCreatePress}
         />
       );
 
-      expect(queryByText('No service areas defined')).toBeNull();
-      expect(queryByText('Create Service Area')).toBeNull();
+      expect(queryByText('No service areas yet')).toBeNull();
+      expect(queryByText('Add Service Area')).toBeNull();
     });
   });
 
@@ -309,9 +386,9 @@ describe('ServiceAreasList', () => {
       const { getByText } = render(
         <ServiceAreasList
           serviceAreas={serviceAreas}
-          navigation={mockNavigation}
           onToggleActive={mockOnToggleActive}
           onDelete={mockOnDelete}
+          onCreatePress={mockOnCreatePress}
         />
       );
 
@@ -327,9 +404,9 @@ describe('ServiceAreasList', () => {
       const { getByTestId, getByText } = render(
         <ServiceAreasList
           serviceAreas={[serviceArea]}
-          navigation={mockNavigation}
           onToggleActive={mockOnToggleActive}
           onDelete={mockOnDelete}
+          onCreatePress={mockOnCreatePress}
         />
       );
 
@@ -340,16 +417,28 @@ describe('ServiceAreasList', () => {
 
     it('should render multiple inactive areas', () => {
       const serviceAreas = [
-        createMockServiceArea({ id: 'area-1', area_name: 'Inactive One', is_active: false }),
-        createMockServiceArea({ id: 'area-2', area_name: 'Inactive Two', is_active: false }),
-        createMockServiceArea({ id: 'area-3', area_name: 'Inactive Three', is_active: false }),
+        createMockServiceArea({
+          id: 'area-1',
+          area_name: 'Inactive One',
+          is_active: false,
+        }),
+        createMockServiceArea({
+          id: 'area-2',
+          area_name: 'Inactive Two',
+          is_active: false,
+        }),
+        createMockServiceArea({
+          id: 'area-3',
+          area_name: 'Inactive Three',
+          is_active: false,
+        }),
       ];
       const { getByTestId, getByText } = render(
         <ServiceAreasList
           serviceAreas={serviceAreas}
-          navigation={mockNavigation}
           onToggleActive={mockOnToggleActive}
           onDelete={mockOnDelete}
+          onCreatePress={mockOnCreatePress}
         />
       );
 
@@ -367,9 +456,9 @@ describe('ServiceAreasList', () => {
       const { queryByText } = render(
         <ServiceAreasList
           serviceAreas={serviceAreas}
-          navigation={mockNavigation}
           onToggleActive={mockOnToggleActive}
           onDelete={mockOnDelete}
+          onCreatePress={mockOnCreatePress}
         />
       );
 
@@ -386,9 +475,9 @@ describe('ServiceAreasList', () => {
       const { getByText } = render(
         <ServiceAreasList
           serviceAreas={serviceAreas}
-          navigation={mockNavigation}
           onToggleActive={mockOnToggleActive}
           onDelete={mockOnDelete}
+          onCreatePress={mockOnCreatePress}
         />
       );
 
@@ -398,17 +487,33 @@ describe('ServiceAreasList', () => {
 
     it('should separate active and inactive areas correctly', () => {
       const serviceAreas = [
-        createMockServiceArea({ id: 'active-1', area_name: 'Active One', is_active: true }),
-        createMockServiceArea({ id: 'inactive-1', area_name: 'Inactive One', is_active: false }),
-        createMockServiceArea({ id: 'active-2', area_name: 'Active Two', is_active: true }),
-        createMockServiceArea({ id: 'inactive-2', area_name: 'Inactive Two', is_active: false }),
+        createMockServiceArea({
+          id: 'active-1',
+          area_name: 'Active One',
+          is_active: true,
+        }),
+        createMockServiceArea({
+          id: 'inactive-1',
+          area_name: 'Inactive One',
+          is_active: false,
+        }),
+        createMockServiceArea({
+          id: 'active-2',
+          area_name: 'Active Two',
+          is_active: true,
+        }),
+        createMockServiceArea({
+          id: 'inactive-2',
+          area_name: 'Inactive Two',
+          is_active: false,
+        }),
       ];
       const { getByText, getByTestId } = render(
         <ServiceAreasList
           serviceAreas={serviceAreas}
-          navigation={mockNavigation}
           onToggleActive={mockOnToggleActive}
           onDelete={mockOnDelete}
+          onCreatePress={mockOnCreatePress}
         />
       );
 
@@ -431,9 +536,9 @@ describe('ServiceAreasList', () => {
       const { getByText } = render(
         <ServiceAreasList
           serviceAreas={serviceAreas}
-          navigation={mockNavigation}
           onToggleActive={mockOnToggleActive}
           onDelete={mockOnDelete}
+          onCreatePress={mockOnCreatePress}
         />
       );
 
@@ -443,15 +548,23 @@ describe('ServiceAreasList', () => {
 
     it('should render active areas before inactive areas', () => {
       const serviceAreas = [
-        createMockServiceArea({ id: 'inactive-1', area_name: 'Inactive First', is_active: false }),
-        createMockServiceArea({ id: 'active-1', area_name: 'Active First', is_active: true }),
+        createMockServiceArea({
+          id: 'inactive-1',
+          area_name: 'Inactive First',
+          is_active: false,
+        }),
+        createMockServiceArea({
+          id: 'active-1',
+          area_name: 'Active First',
+          is_active: true,
+        }),
       ];
       const { getAllByText } = render(
         <ServiceAreasList
           serviceAreas={serviceAreas}
-          navigation={mockNavigation}
           onToggleActive={mockOnToggleActive}
           onDelete={mockOnDelete}
+          onCreatePress={mockOnCreatePress}
         />
       );
 
@@ -461,109 +574,18 @@ describe('ServiceAreasList', () => {
     });
   });
 
-  describe('Navigation - Card Press', () => {
-    it('should navigate to ServiceAreaDetail when card pressed', () => {
-      const serviceArea = createMockServiceArea({ id: 'area-123', is_active: true });
-      const { getByTestId } = render(
-        <ServiceAreasList
-          serviceAreas={[serviceArea]}
-          navigation={mockNavigation}
-          onToggleActive={mockOnToggleActive}
-          onDelete={mockOnDelete}
-        />
-      );
-
-      const cardPress = getByTestId('card-press-area-123');
-      fireEvent.press(cardPress);
-
-      expect(mockNavigation.navigate).toHaveBeenCalledTimes(1);
-      expect(mockNavigation.navigate).toHaveBeenCalledWith('ServiceAreaDetail', {
-        areaId: 'area-123',
-      });
-    });
-
-    it('should navigate with correct areaId for multiple areas', () => {
-      const serviceAreas = [
-        createMockServiceArea({ id: 'area-1', is_active: true }),
-        createMockServiceArea({ id: 'area-2', is_active: true }),
-      ];
-      const { getByTestId } = render(
-        <ServiceAreasList
-          serviceAreas={serviceAreas}
-          navigation={mockNavigation}
-          onToggleActive={mockOnToggleActive}
-          onDelete={mockOnDelete}
-        />
-      );
-
-      fireEvent.press(getByTestId('card-press-area-1'));
-      expect(mockNavigation.navigate).toHaveBeenCalledWith('ServiceAreaDetail', {
-        areaId: 'area-1',
-      });
-
-      fireEvent.press(getByTestId('card-press-area-2'));
-      expect(mockNavigation.navigate).toHaveBeenCalledWith('ServiceAreaDetail', {
-        areaId: 'area-2',
-      });
-    });
-  });
-
-  describe('Navigation - Edit Button', () => {
-    it('should navigate to EditServiceArea when edit button pressed', () => {
-      const serviceArea = createMockServiceArea({ id: 'area-123', is_active: true });
-      const { getByTestId } = render(
-        <ServiceAreasList
-          serviceAreas={[serviceArea]}
-          navigation={mockNavigation}
-          onToggleActive={mockOnToggleActive}
-          onDelete={mockOnDelete}
-        />
-      );
-
-      const editButton = getByTestId('edit-btn-area-123');
-      fireEvent.press(editButton);
-
-      expect(mockNavigation.navigate).toHaveBeenCalledTimes(1);
-      expect(mockNavigation.navigate).toHaveBeenCalledWith('EditServiceArea', {
-        areaId: 'area-123',
-      });
-    });
-
-    it('should navigate to correct edit page for multiple areas', () => {
-      const serviceAreas = [
-        createMockServiceArea({ id: 'area-1', is_active: true }),
-        createMockServiceArea({ id: 'area-2', is_active: false }),
-      ];
-      const { getByTestId } = render(
-        <ServiceAreasList
-          serviceAreas={serviceAreas}
-          navigation={mockNavigation}
-          onToggleActive={mockOnToggleActive}
-          onDelete={mockOnDelete}
-        />
-      );
-
-      fireEvent.press(getByTestId('edit-btn-area-1'));
-      expect(mockNavigation.navigate).toHaveBeenCalledWith('EditServiceArea', {
-        areaId: 'area-1',
-      });
-
-      fireEvent.press(getByTestId('edit-btn-area-2'));
-      expect(mockNavigation.navigate).toHaveBeenCalledWith('EditServiceArea', {
-        areaId: 'area-2',
-      });
-    });
-  });
-
   describe('Toggle Active Callback', () => {
     it('should call onToggleActive with correct area when toggle button pressed', () => {
-      const serviceArea = createMockServiceArea({ id: 'area-123', is_active: true });
+      const serviceArea = createMockServiceArea({
+        id: 'area-123',
+        is_active: true,
+      });
       const { getByTestId } = render(
         <ServiceAreasList
           serviceAreas={[serviceArea]}
-          navigation={mockNavigation}
           onToggleActive={mockOnToggleActive}
           onDelete={mockOnDelete}
+          onCreatePress={mockOnCreatePress}
         />
       );
 
@@ -575,13 +597,16 @@ describe('ServiceAreasList', () => {
     });
 
     it('should call onToggleActive for active areas', () => {
-      const activeArea = createMockServiceArea({ id: 'active-1', is_active: true });
+      const activeArea = createMockServiceArea({
+        id: 'active-1',
+        is_active: true,
+      });
       const { getByTestId } = render(
         <ServiceAreasList
           serviceAreas={[activeArea]}
-          navigation={mockNavigation}
           onToggleActive={mockOnToggleActive}
           onDelete={mockOnDelete}
+          onCreatePress={mockOnCreatePress}
         />
       );
 
@@ -591,13 +616,16 @@ describe('ServiceAreasList', () => {
     });
 
     it('should call onToggleActive for inactive areas', () => {
-      const inactiveArea = createMockServiceArea({ id: 'inactive-1', is_active: false });
+      const inactiveArea = createMockServiceArea({
+        id: 'inactive-1',
+        is_active: false,
+      });
       const { getByTestId } = render(
         <ServiceAreasList
           serviceAreas={[inactiveArea]}
-          navigation={mockNavigation}
           onToggleActive={mockOnToggleActive}
           onDelete={mockOnDelete}
+          onCreatePress={mockOnCreatePress}
         />
       );
 
@@ -607,13 +635,16 @@ describe('ServiceAreasList', () => {
     });
 
     it('should handle multiple toggle presses', () => {
-      const serviceArea = createMockServiceArea({ id: 'area-1', is_active: true });
+      const serviceArea = createMockServiceArea({
+        id: 'area-1',
+        is_active: true,
+      });
       const { getByTestId } = render(
         <ServiceAreasList
           serviceAreas={[serviceArea]}
-          navigation={mockNavigation}
           onToggleActive={mockOnToggleActive}
           onDelete={mockOnDelete}
+          onCreatePress={mockOnCreatePress}
         />
       );
 
@@ -629,13 +660,16 @@ describe('ServiceAreasList', () => {
 
   describe('Delete Callback', () => {
     it('should call onDelete with correct area when delete button pressed', () => {
-      const serviceArea = createMockServiceArea({ id: 'area-123', is_active: true });
+      const serviceArea = createMockServiceArea({
+        id: 'area-123',
+        is_active: true,
+      });
       const { getByTestId } = render(
         <ServiceAreasList
           serviceAreas={[serviceArea]}
-          navigation={mockNavigation}
           onToggleActive={mockOnToggleActive}
           onDelete={mockOnDelete}
+          onCreatePress={mockOnCreatePress}
         />
       );
 
@@ -647,13 +681,16 @@ describe('ServiceAreasList', () => {
     });
 
     it('should call onDelete for active areas', () => {
-      const activeArea = createMockServiceArea({ id: 'active-1', is_active: true });
+      const activeArea = createMockServiceArea({
+        id: 'active-1',
+        is_active: true,
+      });
       const { getByTestId } = render(
         <ServiceAreasList
           serviceAreas={[activeArea]}
-          navigation={mockNavigation}
           onToggleActive={mockOnToggleActive}
           onDelete={mockOnDelete}
+          onCreatePress={mockOnCreatePress}
         />
       );
 
@@ -663,13 +700,16 @@ describe('ServiceAreasList', () => {
     });
 
     it('should call onDelete for inactive areas', () => {
-      const inactiveArea = createMockServiceArea({ id: 'inactive-1', is_active: false });
+      const inactiveArea = createMockServiceArea({
+        id: 'inactive-1',
+        is_active: false,
+      });
       const { getByTestId } = render(
         <ServiceAreasList
           serviceAreas={[inactiveArea]}
-          navigation={mockNavigation}
           onToggleActive={mockOnToggleActive}
           onDelete={mockOnDelete}
+          onCreatePress={mockOnCreatePress}
         />
       );
 
@@ -684,9 +724,9 @@ describe('ServiceAreasList', () => {
       const { getByTestId } = render(
         <ServiceAreasList
           serviceAreas={[area1, area2]}
-          navigation={mockNavigation}
           onToggleActive={mockOnToggleActive}
           onDelete={mockOnDelete}
+          onCreatePress={mockOnCreatePress}
         />
       );
 
@@ -704,30 +744,34 @@ describe('ServiceAreasList', () => {
       const { getByText } = render(
         <ServiceAreasList
           serviceAreas={[]}
-          navigation={mockNavigation}
           onToggleActive={mockOnToggleActive}
           onDelete={mockOnDelete}
+          onCreatePress={mockOnCreatePress}
         />
       );
 
-      expect(getByText('No service areas defined')).toBeTruthy();
+      expect(getByText('No service areas yet')).toBeTruthy();
     });
 
     it('should handle very large number of areas (10 active, 10 inactive)', () => {
       const serviceAreas = [
-        ...Array(10).fill(null).map((_, i) =>
-          createMockServiceArea({ id: `active-${i}`, is_active: true })
-        ),
-        ...Array(10).fill(null).map((_, i) =>
-          createMockServiceArea({ id: `inactive-${i}`, is_active: false })
-        ),
+        ...Array(10)
+          .fill(null)
+          .map((_, i) =>
+            createMockServiceArea({ id: `active-${i}`, is_active: true })
+          ),
+        ...Array(10)
+          .fill(null)
+          .map((_, i) =>
+            createMockServiceArea({ id: `inactive-${i}`, is_active: false })
+          ),
       ];
       const { getByText } = render(
         <ServiceAreasList
           serviceAreas={serviceAreas}
-          navigation={mockNavigation}
           onToggleActive={mockOnToggleActive}
           onDelete={mockOnDelete}
+          onCreatePress={mockOnCreatePress}
         />
       );
 
@@ -745,9 +789,9 @@ describe('ServiceAreasList', () => {
       const { getByTestId } = render(
         <ServiceAreasList
           serviceAreas={[minimalArea]}
-          navigation={mockNavigation}
           onToggleActive={mockOnToggleActive}
           onDelete={mockOnDelete}
+          onCreatePress={mockOnCreatePress}
         />
       );
 
@@ -769,9 +813,9 @@ describe('ServiceAreasList', () => {
       const { getByTestId } = render(
         <ServiceAreasList
           serviceAreas={[fullArea]}
-          navigation={mockNavigation}
           onToggleActive={mockOnToggleActive}
           onDelete={mockOnDelete}
+          onCreatePress={mockOnCreatePress}
         />
       );
 
@@ -780,17 +824,35 @@ describe('ServiceAreasList', () => {
 
     it('should handle different area_type values', () => {
       const serviceAreas = [
-        createMockServiceArea({ id: 'radius-1', area_type: 'radius', is_active: true }),
-        createMockServiceArea({ id: 'polygon-1', area_type: 'polygon', is_active: true }),
-        createMockServiceArea({ id: 'postal-1', area_type: 'postal_codes', postal_codes: ['SW1'], is_active: true }),
-        createMockServiceArea({ id: 'cities-1', area_type: 'cities', cities: ['London'], is_active: true }),
+        createMockServiceArea({
+          id: 'radius-1',
+          area_type: 'radius',
+          is_active: true,
+        }),
+        createMockServiceArea({
+          id: 'polygon-1',
+          area_type: 'polygon',
+          is_active: true,
+        }),
+        createMockServiceArea({
+          id: 'postal-1',
+          area_type: 'postal_codes',
+          postal_codes: ['SW1'],
+          is_active: true,
+        }),
+        createMockServiceArea({
+          id: 'cities-1',
+          area_type: 'cities',
+          cities: ['London'],
+          is_active: true,
+        }),
       ];
       const { getByTestId } = render(
         <ServiceAreasList
           serviceAreas={serviceAreas}
-          navigation={mockNavigation}
           onToggleActive={mockOnToggleActive}
           onDelete={mockOnDelete}
+          onCreatePress={mockOnCreatePress}
         />
       );
 
@@ -802,28 +864,19 @@ describe('ServiceAreasList', () => {
   });
 
   describe('Integration Tests', () => {
-    it('should handle complete workflow: view, edit, toggle, delete', () => {
-      const serviceArea = createMockServiceArea({ id: 'area-1', is_active: true });
+    it('should handle complete workflow: toggle, delete', () => {
+      const serviceArea = createMockServiceArea({
+        id: 'area-1',
+        is_active: true,
+      });
       const { getByTestId } = render(
         <ServiceAreasList
           serviceAreas={[serviceArea]}
-          navigation={mockNavigation}
           onToggleActive={mockOnToggleActive}
           onDelete={mockOnDelete}
+          onCreatePress={mockOnCreatePress}
         />
       );
-
-      // View (press card)
-      fireEvent.press(getByTestId('card-press-area-1'));
-      expect(mockNavigation.navigate).toHaveBeenCalledWith('ServiceAreaDetail', {
-        areaId: 'area-1',
-      });
-
-      // Edit
-      fireEvent.press(getByTestId('edit-btn-area-1'));
-      expect(mockNavigation.navigate).toHaveBeenCalledWith('EditServiceArea', {
-        areaId: 'area-1',
-      });
 
       // Toggle
       fireEvent.press(getByTestId('toggle-btn-area-1'));
@@ -835,14 +888,22 @@ describe('ServiceAreasList', () => {
     });
 
     it('should render mixed list and handle all interactions correctly', () => {
-      const activeArea = createMockServiceArea({ id: 'active-1', area_name: 'Active Zone', is_active: true });
-      const inactiveArea = createMockServiceArea({ id: 'inactive-1', area_name: 'Inactive Zone', is_active: false });
+      const activeArea = createMockServiceArea({
+        id: 'active-1',
+        area_name: 'Active Zone',
+        is_active: true,
+      });
+      const inactiveArea = createMockServiceArea({
+        id: 'inactive-1',
+        area_name: 'Inactive Zone',
+        is_active: false,
+      });
       const { getByTestId, getByText } = render(
         <ServiceAreasList
           serviceAreas={[activeArea, inactiveArea]}
-          navigation={mockNavigation}
           onToggleActive={mockOnToggleActive}
           onDelete={mockOnDelete}
+          onCreatePress={mockOnCreatePress}
         />
       );
 
@@ -855,20 +916,10 @@ describe('ServiceAreasList', () => {
       expect(getByTestId('service-area-card-inactive-1')).toBeTruthy();
 
       // Test active area interactions
-      fireEvent.press(getByTestId('card-press-active-1'));
-      expect(mockNavigation.navigate).toHaveBeenCalledWith('ServiceAreaDetail', {
-        areaId: 'active-1',
-      });
-
       fireEvent.press(getByTestId('toggle-btn-active-1'));
       expect(mockOnToggleActive).toHaveBeenCalledWith(activeArea);
 
       // Test inactive area interactions
-      fireEvent.press(getByTestId('card-press-inactive-1'));
-      expect(mockNavigation.navigate).toHaveBeenCalledWith('ServiceAreaDetail', {
-        areaId: 'inactive-1',
-      });
-
       fireEvent.press(getByTestId('toggle-btn-inactive-1'));
       expect(mockOnToggleActive).toHaveBeenCalledWith(inactiveArea);
     });
@@ -883,9 +934,9 @@ describe('ServiceAreasList', () => {
       const { getByText, rerender } = render(
         <ServiceAreasList
           serviceAreas={serviceAreas}
-          navigation={mockNavigation}
           onToggleActive={mockOnToggleActive}
           onDelete={mockOnDelete}
+          onCreatePress={mockOnCreatePress}
         />
       );
 
@@ -902,9 +953,9 @@ describe('ServiceAreasList', () => {
       rerender(
         <ServiceAreasList
           serviceAreas={updatedAreas}
-          navigation={mockNavigation}
           onToggleActive={mockOnToggleActive}
           onDelete={mockOnDelete}
+          onCreatePress={mockOnCreatePress}
         />
       );
 
@@ -914,28 +965,31 @@ describe('ServiceAreasList', () => {
   });
 
   describe('Prop Validation', () => {
-    it('should accept valid navigation prop', () => {
+    it('should accept valid onCreatePress callback', () => {
       const { getByText } = render(
         <ServiceAreasList
           serviceAreas={[]}
-          navigation={mockNavigation}
           onToggleActive={mockOnToggleActive}
           onDelete={mockOnDelete}
+          onCreatePress={mockOnCreatePress}
         />
       );
 
-      expect(getByText('No service areas defined')).toBeTruthy();
+      expect(getByText('No service areas yet')).toBeTruthy();
     });
 
     it('should accept valid onToggleActive callback', () => {
       const customToggle = jest.fn();
-      const serviceArea = createMockServiceArea({ id: 'area-1', is_active: true });
+      const serviceArea = createMockServiceArea({
+        id: 'area-1',
+        is_active: true,
+      });
       const { getByTestId } = render(
         <ServiceAreasList
           serviceAreas={[serviceArea]}
-          navigation={mockNavigation}
           onToggleActive={customToggle}
           onDelete={mockOnDelete}
+          onCreatePress={mockOnCreatePress}
         />
       );
 
@@ -945,13 +999,16 @@ describe('ServiceAreasList', () => {
 
     it('should accept valid onDelete callback', () => {
       const customDelete = jest.fn();
-      const serviceArea = createMockServiceArea({ id: 'area-1', is_active: true });
+      const serviceArea = createMockServiceArea({
+        id: 'area-1',
+        is_active: true,
+      });
       const { getByTestId } = render(
         <ServiceAreasList
           serviceAreas={[serviceArea]}
-          navigation={mockNavigation}
           onToggleActive={mockOnToggleActive}
           onDelete={customDelete}
+          onCreatePress={mockOnCreatePress}
         />
       );
 
