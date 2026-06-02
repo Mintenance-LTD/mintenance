@@ -68,7 +68,7 @@ jobs:
         npx eslint . --ext .ts,.tsx --format json --output-file eslint-security-report.json || true
 
     - name: Check for secrets (TruffleHog)
-      uses: trufflesecurity/trufflehog@bff3d2670b362bbb4a0bcdeffea146cbc2ad3abd # main
+      uses: trufflesecurity/trufflehog@d411fff7b8879a62509f3fa98c07f247ac089a51 # main
       with:
         path: ./
         base: main
