@@ -5,7 +5,15 @@ import SearchBar from '../SearchBar';
 // Mock dependencies
 jest.mock('../../hooks/useI18n', () => ({
   useI18n: () => ({
-    t: (key: string, fallback?: string) => fallback || key,
+    // Source now calls t(key, { defaultValue }) for several strings, so the
+    // second arg can be an options object rather than a plain string fallback.
+    t: (key: string, opts?: string | { defaultValue?: string }) => {
+      if (typeof opts === 'string') return opts || key;
+      if (opts && typeof opts === 'object' && opts.defaultValue) {
+        return opts.defaultValue;
+      }
+      return key;
+    },
     common: {},
   }),
 }));
@@ -69,13 +77,13 @@ describe('SearchBar Component', () => {
 
     it('should render with custom placeholder', () => {
       const { getByPlaceholderText } = render(
-        <SearchBar placeholder="Search contractors..." />
+        <SearchBar placeholder='Search contractors...' />
       );
       expect(getByPlaceholderText('Search contractors...')).toBeTruthy();
     });
 
     it('should render with initial value', () => {
-      const { getByDisplayValue } = render(<SearchBar value="plumbing" />);
+      const { getByDisplayValue } = render(<SearchBar value='plumbing' />);
       expect(getByDisplayValue('plumbing')).toBeTruthy();
     });
 
@@ -90,7 +98,9 @@ describe('SearchBar Component', () => {
     });
 
     it('should hide filter button when showFilterButton is false', () => {
-      const { queryByLabelText } = render(<SearchBar showFilterButton={false} />);
+      const { queryByLabelText } = render(
+        <SearchBar showFilterButton={false} />
+      );
       expect(queryByLabelText('search.filters')).toBeNull();
     });
 
@@ -184,10 +194,12 @@ describe('SearchBar Component', () => {
     });
 
     it('should sync local value when value prop changes', () => {
-      const { getByDisplayValue, rerender } = render(<SearchBar value="initial" />);
+      const { getByDisplayValue, rerender } = render(
+        <SearchBar value='initial' />
+      );
       expect(getByDisplayValue('initial')).toBeTruthy();
 
-      rerender(<SearchBar value="updated" />);
+      rerender(<SearchBar value='updated' />);
       expect(getByDisplayValue('updated')).toBeTruthy();
     });
   });
@@ -258,7 +270,7 @@ describe('SearchBar Component', () => {
       const onChangeText = jest.fn();
       const onClear = jest.fn();
       const { getByPlaceholderText, queryByLabelText } = render(
-        <SearchBar value="test" onChangeText={onChangeText} onClear={onClear} />
+        <SearchBar value='test' onChangeText={onChangeText} onClear={onClear} />
       );
 
       // Type something
@@ -281,7 +293,7 @@ describe('SearchBar Component', () => {
     it('should call onChangeText with empty string on clear', () => {
       const onChangeText = jest.fn();
       const { getByPlaceholderText, queryByLabelText } = render(
-        <SearchBar value="test" onChangeText={onChangeText} />
+        <SearchBar value='test' onChangeText={onChangeText} />
       );
 
       const input = getByPlaceholderText('common.search');
@@ -298,12 +310,12 @@ describe('SearchBar Component', () => {
     });
 
     it('should not show clear button when input is empty (Android)', () => {
-      const { queryByLabelText } = render(<SearchBar value="" />);
+      const { queryByLabelText } = render(<SearchBar value='' />);
       expect(queryByLabelText('common.clear')).toBeNull();
     });
 
     it('should not show clear button when loading (Android)', () => {
-      const { queryByLabelText } = render(<SearchBar value="test" loading />);
+      const { queryByLabelText } = render(<SearchBar value='test' loading />);
       expect(queryByLabelText('common.clear')).toBeNull();
     });
   });
@@ -312,7 +324,7 @@ describe('SearchBar Component', () => {
     it('should call onSearch when submit is pressed', () => {
       const onSearch = jest.fn();
       const { getByPlaceholderText } = render(
-        <SearchBar value="plumbing" onSearch={onSearch} />
+        <SearchBar value='plumbing' onSearch={onSearch} />
       );
       const input = getByPlaceholderText('common.search');
 
@@ -324,7 +336,7 @@ describe('SearchBar Component', () => {
     it('should trim search query before calling onSearch', () => {
       const onSearch = jest.fn();
       const { getByPlaceholderText } = render(
-        <SearchBar value="  roofing  " onSearch={onSearch} />
+        <SearchBar value='  roofing  ' onSearch={onSearch} />
       );
       const input = getByPlaceholderText('common.search');
 
@@ -336,7 +348,7 @@ describe('SearchBar Component', () => {
     it('should not call onSearch if input is empty', () => {
       const onSearch = jest.fn();
       const { getByPlaceholderText } = render(
-        <SearchBar value="" onSearch={onSearch} />
+        <SearchBar value='' onSearch={onSearch} />
       );
       const input = getByPlaceholderText('common.search');
 
@@ -348,7 +360,7 @@ describe('SearchBar Component', () => {
     it('should not call onSearch if input is only whitespace', () => {
       const onSearch = jest.fn();
       const { getByPlaceholderText } = render(
-        <SearchBar value="   " onSearch={onSearch} />
+        <SearchBar value='   ' onSearch={onSearch} />
       );
       const input = getByPlaceholderText('common.search');
 
@@ -490,11 +502,15 @@ describe('SearchBar Component', () => {
       const { getByPlaceholderText } = render(<SearchBar />);
       const input = getByPlaceholderText('common.search');
 
-      expect(input.props.accessibilityHint).toBe('Enter search terms and tap search');
+      expect(input.props.accessibilityHint).toBe(
+        'Enter search terms and tap search'
+      );
     });
 
     it('should have accessibility labels for buttons', () => {
-      const { queryByLabelText, getByLabelText } = render(<SearchBar value="test" />);
+      const { queryByLabelText, getByLabelText } = render(
+        <SearchBar value='test' />
+      );
 
       // Clear button might only exist on Android
       const clearButton = queryByLabelText('common.clear');
@@ -522,7 +538,7 @@ describe('SearchBar Component', () => {
   describe('Edge Cases', () => {
     it('should handle missing callbacks gracefully', () => {
       const { getByPlaceholderText, queryByLabelText } = render(
-        <SearchBar value="test" />
+        <SearchBar value='test' />
       );
 
       const input = getByPlaceholderText('common.search');
@@ -625,7 +641,7 @@ describe('SearchBar Component', () => {
 
   describe('Platform-Specific Behavior', () => {
     it('should show clear button on Android when value exists', () => {
-      const { queryByLabelText } = render(<SearchBar value="test" />);
+      const { queryByLabelText } = render(<SearchBar value='test' />);
       const clearButton = queryByLabelText('common.clear');
 
       // Clear button is platform-specific (Android only in implementation)

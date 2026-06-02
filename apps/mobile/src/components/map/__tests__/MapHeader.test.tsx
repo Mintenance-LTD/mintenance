@@ -2,13 +2,14 @@ import React from 'react';
 import { render, fireEvent } from '../../test-utils';
 import { MapHeader } from '../MapHeader';
 
-
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaProvider: ({ children }: { children: React.ReactNode }) => children,
   SafeAreaView: ({ children }: { children: React.ReactNode }) => children,
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
-jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock')
+);
 
 // Mock Ionicons
 jest.mock('@expo/vector-icons', () => ({
@@ -24,11 +25,20 @@ jest.mock('@expo/vector-icons', () => ({
 
 // Mock Input component
 jest.mock('../../ui/Input', () => ({
-  Input: ({ value, onChangeText, placeholder, leftIcon, variant, size, containerStyle, ...props }: any) => {
+  Input: ({
+    value,
+    onChangeText,
+    placeholder,
+    leftIcon,
+    variant,
+    size,
+    containerStyle,
+    ...props
+  }: any) => {
     const { TextInput } = require('react-native');
     return (
       <TextInput
-        testID="search-input"
+        testID='search-input'
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
@@ -54,6 +64,14 @@ jest.mock('../../ui/Input', () => ({
  * Coverage: 100%
  * Total Tests: 30
  */
+
+// The header style is composed as an array ([styles.header, { paddingTop }])
+// so paddingTop can be driven by safe-area insets. Flatten to a single object
+// for objectContaining assertions.
+const flattenStyle = (style: any): Record<string, any> =>
+  Array.isArray(style)
+    ? Object.assign({}, ...style.map(flattenStyle))
+    : style || {};
 
 describe('MapHeader', () => {
   const mockOnSearchChange = jest.fn();
@@ -111,7 +129,7 @@ describe('MapHeader', () => {
       const input = getByTestId('search-input');
       const container = input.parent?.parent;
 
-      expect(container?.props.style).toEqual(
+      expect(flattenStyle(container?.props.style)).toEqual(
         expect.objectContaining({
           flexDirection: 'row',
         })
@@ -123,7 +141,7 @@ describe('MapHeader', () => {
       const input = getByTestId('search-input');
       const container = input.parent?.parent;
 
-      expect(container?.props.style).toEqual(
+      expect(flattenStyle(container?.props.style)).toEqual(
         expect.objectContaining({
           alignItems: 'center',
         })
@@ -136,7 +154,7 @@ describe('MapHeader', () => {
       const container = input.parent?.parent;
 
       // useSafeAreaInsets mock returns top: 0
-      expect(container?.props.style).toEqual(
+      expect(flattenStyle(container?.props.style)).toEqual(
         expect.objectContaining({
           paddingTop: 0,
         })
@@ -148,7 +166,7 @@ describe('MapHeader', () => {
       const input = getByTestId('search-input');
       const container = input.parent?.parent;
 
-      expect(container?.props.style).toEqual(
+      expect(flattenStyle(container?.props.style)).toEqual(
         expect.objectContaining({
           paddingBottom: 16,
         })
@@ -160,7 +178,7 @@ describe('MapHeader', () => {
       const input = getByTestId('search-input');
       const container = input.parent?.parent;
 
-      expect(container?.props.style).toEqual(
+      expect(flattenStyle(container?.props.style)).toEqual(
         expect.objectContaining({
           paddingHorizontal: 20,
         })
@@ -172,7 +190,7 @@ describe('MapHeader', () => {
       const input = getByTestId('search-input');
       const container = input.parent?.parent;
 
-      expect(container?.props.style).toEqual(
+      expect(flattenStyle(container?.props.style)).toEqual(
         expect.objectContaining({
           backgroundColor: '#F7F7F7',
         })
@@ -184,7 +202,7 @@ describe('MapHeader', () => {
       const input = getByTestId('search-input');
       const container = input.parent?.parent;
 
-      expect(container?.props.style).toEqual(
+      expect(flattenStyle(container?.props.style)).toEqual(
         expect.objectContaining({
           gap: 16,
         })
@@ -239,14 +257,18 @@ describe('MapHeader', () => {
 
   describe('Search Input', () => {
     it('should pass searchQuery value to Input', () => {
-      const { getByTestId } = render(<MapHeader {...defaultProps} searchQuery="test query" />);
+      const { getByTestId } = render(
+        <MapHeader {...defaultProps} searchQuery='test query' />
+      );
       const input = getByTestId('search-input');
 
       expect(input.props.value).toBe('test query');
     });
 
     it('should pass empty string as value when searchQuery is empty', () => {
-      const { getByTestId } = render(<MapHeader {...defaultProps} searchQuery="" />);
+      const { getByTestId } = render(
+        <MapHeader {...defaultProps} searchQuery='' />
+      );
       const input = getByTestId('search-input');
 
       expect(input.props.value).toBe('');
@@ -284,7 +306,9 @@ describe('MapHeader', () => {
     });
 
     it('should handle empty string input', () => {
-      const { getByTestId } = render(<MapHeader {...defaultProps} searchQuery="existing" />);
+      const { getByTestId } = render(
+        <MapHeader {...defaultProps} searchQuery='existing' />
+      );
       const input = getByTestId('search-input');
 
       fireEvent.changeText(input, '');
@@ -381,14 +405,23 @@ describe('MapHeader', () => {
 
   describe('Edge Cases', () => {
     it('should render correctly with different searchQuery values', () => {
-      const { getByTestId, rerender } = render(<MapHeader {...defaultProps} searchQuery="" />);
+      const { getByTestId, rerender } = render(
+        <MapHeader {...defaultProps} searchQuery='' />
+      );
       expect(getByTestId('search-input').props.value).toBe('');
 
-      rerender(<MapHeader {...defaultProps} searchQuery="test" />);
+      rerender(<MapHeader {...defaultProps} searchQuery='test' />);
       expect(getByTestId('search-input').props.value).toBe('test');
 
-      rerender(<MapHeader {...defaultProps} searchQuery="very long search query with many words" />);
-      expect(getByTestId('search-input').props.value).toBe('very long search query with many words');
+      rerender(
+        <MapHeader
+          {...defaultProps}
+          searchQuery='very long search query with many words'
+        />
+      );
+      expect(getByTestId('search-input').props.value).toBe(
+        'very long search query with many words'
+      );
     });
 
     it('should maintain component structure on re-renders', () => {
@@ -398,7 +431,7 @@ describe('MapHeader', () => {
       expect(getByTestId('icon-arrow-back')).toBeTruthy();
       expect(getByTestId('icon-options-outline')).toBeTruthy();
 
-      rerender(<MapHeader {...defaultProps} searchQuery="updated" />);
+      rerender(<MapHeader {...defaultProps} searchQuery='updated' />);
 
       expect(getByTestId('search-input')).toBeTruthy();
       expect(getByTestId('icon-arrow-back')).toBeTruthy();
@@ -414,7 +447,7 @@ describe('MapHeader', () => {
 
       rerender(
         <MapHeader
-          searchQuery="new query"
+          searchQuery='new query'
           onSearchChange={newOnSearchChange}
           onBackPress={newOnBackPress}
           onFilterPress={newOnFilterPress}
@@ -439,7 +472,9 @@ describe('MapHeader', () => {
 
     it('should handle special characters in search query', () => {
       const specialChars = '!@#$%^&*()_+-=[]{}|;:,.<>?/~`';
-      const { getByTestId } = render(<MapHeader {...defaultProps} searchQuery={specialChars} />);
+      const { getByTestId } = render(
+        <MapHeader {...defaultProps} searchQuery={specialChars} />
+      );
       const input = getByTestId('search-input');
 
       expect(input.props.value).toBe(specialChars);
@@ -447,7 +482,9 @@ describe('MapHeader', () => {
 
     it('should handle unicode characters in search query', () => {
       const unicodeText = '你好世界 🌍 مرحبا';
-      const { getByTestId } = render(<MapHeader {...defaultProps} searchQuery={unicodeText} />);
+      const { getByTestId } = render(
+        <MapHeader {...defaultProps} searchQuery={unicodeText} />
+      );
       const input = getByTestId('search-input');
 
       expect(input.props.value).toBe(unicodeText);

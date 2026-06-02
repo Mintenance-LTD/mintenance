@@ -3,37 +3,27 @@ import { render } from '@testing-library/react-native';
 import { Text, View } from 'react-native';
 import { Card } from '../Card';
 
-// Mock theme
+// Mock theme. The Card source was realigned to Mint Editorial: variants now
+// read theme.colors.surface / theme.colors.border (not theme.components.card)
+// and elevation comes from a Platform.select shadow rather than a borderWidth.
 jest.mock('../../../theme', () => ({
   theme: {
+    colors: {
+      surface: '#FFFFFF',
+      border: '#E5E5E5',
+    },
     spacing: {
       4: 16,
     },
     borderRadius: {
       xl: 16,
     },
-    components: {
-      card: {
-        default: {
-          backgroundColor: '#FFFFFF',
-          borderColor: '#E5E5E5',
-          borderWidth: 1,
-          borderRadius: 16,
-        },
-        elevated: {
-          backgroundColor: '#FFFFFF',
-          borderColor: 'transparent',
-          borderWidth: 0,
-        },
-        outlined: {
-          backgroundColor: 'transparent',
-          borderColor: '#E5E5E5',
-          borderWidth: 1,
-        },
-      },
-    },
   },
 }));
+
+// StyleSheet.hairlineWidth resolves to 1 under the jest RN preset; outlined
+// variant uses it for the border.
+const HAIRLINE = require('react-native').StyleSheet.hairlineWidth;
 
 describe('Card', () => {
   beforeEach(() => {
@@ -87,13 +77,13 @@ describe('Card', () => {
         ? styles.reduce((acc, style) => ({ ...acc, ...style }), {})
         : styles;
 
+      // Default variant is just a surface fill (no border in Mint Editorial).
       expect(flatStyles.backgroundColor).toBe('#FFFFFF');
-      expect(flatStyles.borderColor).toBe('#E5E5E5');
-      expect(flatStyles.borderWidth).toBe(1);
+      expect(flatStyles.borderWidth).toBeUndefined();
     });
 
     it('applies "default" variant styles', () => {
-      const { UNSAFE_root } = render(<Card variant="default" />);
+      const { UNSAFE_root } = render(<Card variant='default' />);
       const view = UNSAFE_root.findByType(View);
 
       const styles = view.props.style;
@@ -102,12 +92,25 @@ describe('Card', () => {
         : styles;
 
       expect(flatStyles.backgroundColor).toBe('#FFFFFF');
-      expect(flatStyles.borderColor).toBe('#E5E5E5');
-      expect(flatStyles.borderWidth).toBe(1);
+      expect(flatStyles.borderWidth).toBeUndefined();
     });
 
     it('applies "elevated" variant styles when variant="elevated"', () => {
-      const { UNSAFE_root } = render(<Card variant="elevated" />);
+      const { UNSAFE_root } = render(<Card variant='elevated' />);
+      const view = UNSAFE_root.findByType(View);
+
+      const styles = view.props.style;
+      const flatStyles = Array.isArray(styles)
+        ? styles.reduce((acc, style) => ({ ...acc, ...style }), {})
+        : styles;
+
+      // Elevated = surface fill + platform shadow, no border.
+      expect(flatStyles.backgroundColor).toBe('#FFFFFF');
+      expect(flatStyles.borderWidth).toBeUndefined();
+    });
+
+    it('applies "outlined" variant styles when variant="outlined"', () => {
+      const { UNSAFE_root } = render(<Card variant='outlined' />);
       const view = UNSAFE_root.findByType(View);
 
       const styles = view.props.style;
@@ -116,26 +119,12 @@ describe('Card', () => {
         : styles;
 
       expect(flatStyles.backgroundColor).toBe('#FFFFFF');
-      expect(flatStyles.borderColor).toBe('transparent');
-      expect(flatStyles.borderWidth).toBe(0);
-    });
-
-    it('applies "outlined" variant styles when variant="outlined"', () => {
-      const { UNSAFE_root } = render(<Card variant="outlined" />);
-      const view = UNSAFE_root.findByType(View);
-
-      const styles = view.props.style;
-      const flatStyles = Array.isArray(styles)
-        ? styles.reduce((acc, style) => ({ ...acc, ...style }), {})
-        : styles;
-
-      expect(flatStyles.backgroundColor).toBe('transparent');
       expect(flatStyles.borderColor).toBe('#E5E5E5');
-      expect(flatStyles.borderWidth).toBe(1);
+      expect(flatStyles.borderWidth).toBe(HAIRLINE);
     });
 
     it('variant styles are applied to View', () => {
-      const { UNSAFE_root } = render(<Card variant="elevated" />);
+      const { UNSAFE_root } = render(<Card variant='outlined' />);
       const view = UNSAFE_root.findByType(View);
 
       expect(view.props.style).toBeDefined();
@@ -143,8 +132,8 @@ describe('Card', () => {
         ? view.props.style.reduce((acc, style) => ({ ...acc, ...style }), {})
         : view.props.style;
 
-      // Verify elevated variant styles are present
-      expect(flatStyles.borderWidth).toBe(0);
+      // Verify outlined variant styles are present
+      expect(flatStyles.borderColor).toBe('#E5E5E5');
     });
   });
 
@@ -178,9 +167,7 @@ describe('Card', () => {
         }, {});
       };
 
-      const flatStyles = Array.isArray(styles)
-        ? flattenStyles(styles)
-        : styles;
+      const flatStyles = Array.isArray(styles) ? flattenStyles(styles) : styles;
 
       expect(flatStyles.marginTop).toBe(20);
       expect(flatStyles.marginBottom).toBe(10);
@@ -203,7 +190,7 @@ describe('Card', () => {
     it('custom styles override variant styles', () => {
       const customStyle = { backgroundColor: '#FF0000' };
       const { UNSAFE_root } = render(
-        <Card variant="default" style={customStyle} />
+        <Card variant='default' style={customStyle} />
       );
       const view = UNSAFE_root.findByType(View);
 
@@ -286,7 +273,7 @@ describe('Card', () => {
     });
 
     it('variant styles applied second', () => {
-      const { UNSAFE_root } = render(<Card variant="elevated" />);
+      const { UNSAFE_root } = render(<Card variant='outlined' />);
       const view = UNSAFE_root.findByType(View);
 
       const styles = view.props.style;
@@ -295,14 +282,14 @@ describe('Card', () => {
         : styles;
 
       // Variant styles should be present
-      expect(flatStyles.borderWidth).toBe(0);
-      expect(flatStyles.borderColor).toBe('transparent');
+      expect(flatStyles.borderWidth).toBe(HAIRLINE);
+      expect(flatStyles.borderColor).toBe('#E5E5E5');
     });
 
     it('custom styles applied last (highest priority)', () => {
       const customStyle = { backgroundColor: '#123456', padding: 30 };
       const { UNSAFE_root } = render(
-        <Card variant="default" style={customStyle} />
+        <Card variant='default' style={customStyle} />
       );
       const view = UNSAFE_root.findByType(View);
 
@@ -319,7 +306,7 @@ describe('Card', () => {
     it('style order: [base, variant, custom]', () => {
       const customStyle = { marginTop: 10 };
       const { UNSAFE_root } = render(
-        <Card variant="outlined" style={customStyle} />
+        <Card variant='outlined' style={customStyle} />
       );
       const view = UNSAFE_root.findByType(View);
 
@@ -366,7 +353,7 @@ describe('Card', () => {
     it('renders complete card with all props', () => {
       const customStyle = { marginHorizontal: 20 };
       const { getByText, UNSAFE_root } = render(
-        <Card variant="elevated" style={customStyle}>
+        <Card variant='elevated' style={customStyle}>
           <Text>Complete Card</Text>
         </Card>
       );
@@ -374,13 +361,16 @@ describe('Card', () => {
       expect(getByText('Complete Card')).toBeDefined();
       const view = UNSAFE_root.findByType(View);
       const flatStyles = Array.isArray(view.props.style)
-        ? view.props.style.reduce((acc: any, style: any) => ({ ...acc, ...style }), {})
+        ? view.props.style.reduce(
+            (acc: any, style: any) => ({ ...acc, ...style }),
+            {}
+          )
         : view.props.style;
 
       // Verify all styles are applied
       expect(flatStyles.padding).toBe(16); // base
       expect(flatStyles.borderRadius).toBe(16); // base
-      expect(flatStyles.borderWidth).toBe(0); // elevated variant
+      expect(flatStyles.backgroundColor).toBe('#FFFFFF'); // elevated variant
       expect(flatStyles.marginHorizontal).toBe(20); // custom
     });
 
@@ -394,11 +384,14 @@ describe('Card', () => {
       expect(getByText('Default Card')).toBeDefined();
       const view = UNSAFE_root.findByType(View);
       const flatStyles = Array.isArray(view.props.style)
-        ? view.props.style.reduce((acc: any, style: any) => ({ ...acc, ...style }), {})
+        ? view.props.style.reduce(
+            (acc: any, style: any) => ({ ...acc, ...style }),
+            {}
+          )
         : view.props.style;
 
       expect(flatStyles.backgroundColor).toBe('#FFFFFF');
-      expect(flatStyles.borderWidth).toBe(1);
+      expect(flatStyles.borderWidth).toBeUndefined();
     });
 
     it('renders card with custom variant and style override', () => {
@@ -409,7 +402,7 @@ describe('Card', () => {
       };
 
       const { getByText, UNSAFE_root } = render(
-        <Card variant="outlined" style={customStyle}>
+        <Card variant='outlined' style={customStyle}>
           <Text>Customized Outlined Card</Text>
         </Card>
       );
@@ -417,14 +410,17 @@ describe('Card', () => {
       expect(getByText('Customized Outlined Card')).toBeDefined();
       const view = UNSAFE_root.findByType(View);
       const flatStyles = Array.isArray(view.props.style)
-        ? view.props.style.reduce((acc: any, style: any) => ({ ...acc, ...style }), {})
+        ? view.props.style.reduce(
+            (acc: any, style: any) => ({ ...acc, ...style }),
+            {}
+          )
         : view.props.style;
 
       // Custom styles should override variant and base styles
       expect(flatStyles.backgroundColor).toBe('#F0F0F0');
       expect(flatStyles.borderColor).toBe('#0000FF');
       expect(flatStyles.padding).toBe(24);
-      expect(flatStyles.borderWidth).toBe(1); // from outlined variant
+      expect(flatStyles.borderWidth).toBe(HAIRLINE); // from outlined variant
     });
   });
 });

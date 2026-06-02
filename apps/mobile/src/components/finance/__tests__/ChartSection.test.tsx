@@ -12,29 +12,26 @@ jest.mock('../../FinanceChart', () => ({
 /**
  * ChartSection Component Tests
  *
- * Tests the ChartSection component functionality including:
- * - Rendering all 4 chart types (Revenue Trend, Profit Analysis, Cash Flow, Expense Breakdown)
- * - Data transformation functions (getRevenueChartData, getProfitChartData, getCashFlowChartData, getExpenseBreakdownData)
- * - Props passed to each FinanceChart (type, data, title, subtitle, height)
- * - Revenue data slicing (last 6 months)
- * - Profit trends mapping (month names and profit values)
- * - Cash flow forecast formatting (week labels and net flow)
- * - Cash flow color coding (positive = green, negative = red)
- * - Expense breakdown static data structure
- * - formatCurrency function usage in subtitles
- * - Edge cases (empty arrays, missing data, single data points)
+ * Realigned 2026-05-31 to the Airbnb-restyle redesign.
+ * The component now renders:
+ *  - A "Revenue Trend" card (Text title) containing a line FinanceChart
+ *    (title='', height=180) with a GBP-formatted "projected / yr" subtitle Text.
+ *  - An "Expense Breakdown" card with a custom donut + progress-bar UI,
+ *    gated on total_expenses > 0 (empty state otherwise). NO pie FinanceChart.
+ *  - A "Monthly Profit" bar FinanceChart, only when profit_trends.length > 0.
  *
- * Coverage: 100%
- * Total Tests: 35
+ * Cash Flow Forecast chart was removed in the redesign.
  */
 
 describe('ChartSection', () => {
   let mockFinancialData: FinancialSummary;
   let mockFormatCurrency: jest.Mock;
-  const MockedFinanceChart = FinanceChart as jest.MockedFunction<typeof FinanceChart>;
+  const MockedFinanceChart = FinanceChart as jest.MockedFunction<
+    typeof FinanceChart
+  >;
 
   beforeEach(() => {
-    mockFormatCurrency = jest.fn((amount: number) => `$${amount.toFixed(2)}`);
+    mockFormatCurrency = jest.fn((amount: number) => `£${amount.toFixed(2)}`);
 
     mockFinancialData = {
       monthly_revenue: [1000, 1200, 1500, 1800, 2000, 2200, 2500, 2800],
@@ -49,11 +46,12 @@ describe('ChartSection', () => {
       ],
       tax_obligations: 850,
       cash_flow_forecast: [
-        { week: '1', projected_income: 5000, projected_expenses: 3000, net_flow: 2000 },
-        { week: '2', projected_income: 6000, projected_expenses: 4000, net_flow: 2000 },
-        { week: '3', projected_income: 4000, projected_expenses: 5000, net_flow: -1000 },
-        { week: '4', projected_income: 7000, projected_expenses: 3500, net_flow: 3500 },
-        { week: '5', projected_income: 8000, projected_expenses: 4500, net_flow: 3500 },
+        {
+          week: '1',
+          projected_income: 5000,
+          projected_expenses: 3000,
+          net_flow: 2000,
+        },
       ],
     };
 
@@ -72,18 +70,27 @@ describe('ChartSection', () => {
       }).not.toThrow();
     });
 
-    it('should render all 4 FinanceChart components', () => {
-      render(
+    it('should render the Revenue Trend card title', () => {
+      const { getByText } = render(
         <ChartSection
           financialData={mockFinancialData}
           formatCurrency={mockFormatCurrency}
         />
       );
-
-      expect(MockedFinanceChart).toHaveBeenCalledTimes(4);
+      expect(getByText('Revenue Trend')).toBeTruthy();
     });
 
-    it('should render charts in correct order', () => {
+    it('should render the Expense Breakdown card title', () => {
+      const { getByText } = render(
+        <ChartSection
+          financialData={mockFinancialData}
+          formatCurrency={mockFormatCurrency}
+        />
+      );
+      expect(getByText('Expense Breakdown')).toBeTruthy();
+    });
+
+    it('should render 2 FinanceChart components when profit_trends present', () => {
       render(
         <ChartSection
           financialData={mockFinancialData}
@@ -91,17 +98,24 @@ describe('ChartSection', () => {
         />
       );
 
-      const calls = MockedFinanceChart.mock.calls;
-      expect(calls).toHaveLength(4);
-      expect(calls[0][0].title).toBe('Revenue Trend');
-      expect(calls[1][0].title).toBe('Profit Analysis');
-      expect(calls[2][0].title).toBe('Cash Flow Forecast');
-      expect(calls[3][0].title).toBe('Expense Breakdown');
+      // Revenue Trend (line) + Monthly Profit (bar)
+      expect(MockedFinanceChart).toHaveBeenCalledTimes(2);
+    });
+
+    it('should render only 1 FinanceChart when profit_trends empty', () => {
+      render(
+        <ChartSection
+          financialData={{ ...mockFinancialData, profit_trends: [] }}
+          formatCurrency={mockFormatCurrency}
+        />
+      );
+
+      expect(MockedFinanceChart).toHaveBeenCalledTimes(1);
     });
   });
 
   describe('Revenue Trend Chart', () => {
-    it('should render Revenue Trend as line chart', () => {
+    it('should render the revenue chart as a line chart', () => {
       render(
         <ChartSection
           financialData={mockFinancialData}
@@ -109,11 +123,10 @@ describe('ChartSection', () => {
         />
       );
 
-      const revenueChartCall = MockedFinanceChart.mock.calls.find(
-        call => call[0].title === 'Revenue Trend'
-      );
-      expect(revenueChartCall).toBeDefined();
-      expect(revenueChartCall![0].type).toBe('line');
+      // First FinanceChart call is the revenue line chart (title='')
+      const revenueCall = MockedFinanceChart.mock.calls[0];
+      expect(revenueCall[0].type).toBe('line');
+      expect(revenueCall[0].title).toBe('');
     });
 
     it('should slice last 6 months from monthly_revenue', () => {
@@ -124,14 +137,13 @@ describe('ChartSection', () => {
         />
       );
 
-      const revenueChartCall = MockedFinanceChart.mock.calls.find(
-        call => call[0].title === 'Revenue Trend'
-      );
-      expect(revenueChartCall).toBeDefined();
-      expect(revenueChartCall![0].data.datasets[0].data).toEqual([1500, 1800, 2000, 2200, 2500, 2800]);
+      const revenueCall = MockedFinanceChart.mock.calls[0];
+      expect(revenueCall[0].data.datasets[0].data).toEqual([
+        1500, 1800, 2000, 2200, 2500, 2800,
+      ]);
     });
 
-    it('should use correct month labels', () => {
+    it('should produce 6 month labels', () => {
       render(
         <ChartSection
           financialData={mockFinancialData}
@@ -139,13 +151,11 @@ describe('ChartSection', () => {
         />
       );
 
-      const revenueChartCall = MockedFinanceChart.mock.calls.find(
-        call => call[0].title === 'Revenue Trend'
-      );
-      expect(revenueChartCall![0].data.labels).toEqual(['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']);
+      const revenueCall = MockedFinanceChart.mock.calls[0];
+      expect(revenueCall[0].data.labels).toHaveLength(6);
     });
 
-    it('should set correct color for revenue dataset', () => {
+    it('should set the revenue dataset color to emerald rgba', () => {
       render(
         <ChartSection
           financialData={mockFinancialData}
@@ -153,12 +163,10 @@ describe('ChartSection', () => {
         />
       );
 
-      const revenueChartCall = MockedFinanceChart.mock.calls.find(
-        call => call[0].title === 'Revenue Trend'
-      );
-      const colorFunction = revenueChartCall![0].data.datasets[0].color;
-      expect(colorFunction(1)).toBe('rgba(0, 122, 255, 1)');
-      expect(colorFunction(0.5)).toBe('rgba(0, 122, 255, 0.5)');
+      const revenueCall = MockedFinanceChart.mock.calls[0];
+      const colorFunction = revenueCall[0].data.datasets[0].color;
+      expect(colorFunction(1)).toBe('rgba(16, 185, 129, 1)');
+      expect(colorFunction(0.5)).toBe('rgba(16, 185, 129, 0.5)');
     });
 
     it('should set strokeWidth to 2', () => {
@@ -169,13 +177,22 @@ describe('ChartSection', () => {
         />
       );
 
-      const revenueChartCall = MockedFinanceChart.mock.calls.find(
-        call => call[0].title === 'Revenue Trend'
-      );
-      expect(revenueChartCall![0].data.datasets[0].strokeWidth).toBe(2);
+      const revenueCall = MockedFinanceChart.mock.calls[0];
+      expect(revenueCall[0].data.datasets[0].strokeWidth).toBe(2);
     });
 
-    it('should include yearly projection in subtitle', () => {
+    it('should render the GBP yearly projection subtitle text', () => {
+      const { getByText } = render(
+        <ChartSection
+          financialData={mockFinancialData}
+          formatCurrency={mockFormatCurrency}
+        />
+      );
+
+      expect(getByText('£50000.00 projected / yr')).toBeTruthy();
+    });
+
+    it('should set revenue chart height to 180', () => {
       render(
         <ChartSection
           financialData={mockFinancialData}
@@ -183,30 +200,30 @@ describe('ChartSection', () => {
         />
       );
 
-      const revenueChartCall = MockedFinanceChart.mock.calls.find(
-        call => call[0].title === 'Revenue Trend'
-      );
-      expect(revenueChartCall![0].subtitle).toContain('$50000.00');
-      expect(revenueChartCall![0].subtitle).toContain('projected annually');
+      const revenueCall = MockedFinanceChart.mock.calls[0];
+      expect(revenueCall[0].height).toBe(180);
     });
 
-    it('should set height to 200', () => {
+    it('should clamp negative revenue values to 0', () => {
       render(
         <ChartSection
-          financialData={mockFinancialData}
+          financialData={{
+            ...mockFinancialData,
+            monthly_revenue: [-100, 200, -300, 400, 500, 600],
+          }}
           formatCurrency={mockFormatCurrency}
         />
       );
 
-      const revenueChartCall = MockedFinanceChart.mock.calls.find(
-        call => call[0].title === 'Revenue Trend'
-      );
-      expect(revenueChartCall![0].height).toBe(200);
+      const revenueCall = MockedFinanceChart.mock.calls[0];
+      expect(revenueCall[0].data.datasets[0].data).toEqual([
+        0, 200, 0, 400, 500, 600,
+      ]);
     });
   });
 
-  describe('Profit Analysis Chart', () => {
-    it('should render Profit Analysis as bar chart', () => {
+  describe('Monthly Profit Chart', () => {
+    it('should render the profit chart as a bar chart', () => {
       render(
         <ChartSection
           financialData={mockFinancialData}
@@ -214,14 +231,14 @@ describe('ChartSection', () => {
         />
       );
 
-      const profitChartCall = MockedFinanceChart.mock.calls.find(
-        call => call[0].title === 'Profit Analysis'
+      const profitCall = MockedFinanceChart.mock.calls.find(
+        (call) => call[0].title === 'Monthly Profit'
       );
-      expect(profitChartCall).toBeDefined();
-      expect(profitChartCall![0].type).toBe('bar');
+      expect(profitCall).toBeDefined();
+      expect(profitCall![0].type).toBe('bar');
     });
 
-    it('should map profit trends to month labels', () => {
+    it('should map profit trends to 3-char month labels', () => {
       render(
         <ChartSection
           financialData={mockFinancialData}
@@ -229,10 +246,10 @@ describe('ChartSection', () => {
         />
       );
 
-      const profitChartCall = MockedFinanceChart.mock.calls.find(
-        call => call[0].title === 'Profit Analysis'
+      const profitCall = MockedFinanceChart.mock.calls.find(
+        (call) => call[0].title === 'Monthly Profit'
       );
-      expect(profitChartCall![0].data.labels).toEqual(['Jan', 'Feb', 'Mar']);
+      expect(profitCall![0].data.labels).toEqual(['Jan', 'Feb', 'Mar']);
     });
 
     it('should extract profit values from profit_trends', () => {
@@ -243,13 +260,37 @@ describe('ChartSection', () => {
         />
       );
 
-      const profitChartCall = MockedFinanceChart.mock.calls.find(
-        call => call[0].title === 'Profit Analysis'
+      const profitCall = MockedFinanceChart.mock.calls.find(
+        (call) => call[0].title === 'Monthly Profit'
       );
-      expect(profitChartCall![0].data.datasets[0].data).toEqual([2000, 2500, 3000]);
+      expect(profitCall![0].data.datasets[0].data).toEqual([2000, 2500, 3000]);
     });
 
-    it('should use green color for profit dataset', () => {
+    it('should clamp negative profit values to 0', () => {
+      render(
+        <ChartSection
+          financialData={{
+            ...mockFinancialData,
+            profit_trends: [
+              {
+                month: 'January',
+                revenue: 3000,
+                expenses: 5000,
+                profit: -2000,
+              },
+            ],
+          }}
+          formatCurrency={mockFormatCurrency}
+        />
+      );
+
+      const profitCall = MockedFinanceChart.mock.calls.find(
+        (call) => call[0].title === 'Monthly Profit'
+      );
+      expect(profitCall![0].data.datasets[0].data).toEqual([0]);
+    });
+
+    it('should use emerald color for profit dataset', () => {
       render(
         <ChartSection
           financialData={mockFinancialData}
@@ -257,14 +298,14 @@ describe('ChartSection', () => {
         />
       );
 
-      const profitChartCall = MockedFinanceChart.mock.calls.find(
-        call => call[0].title === 'Profit Analysis'
+      const profitCall = MockedFinanceChart.mock.calls.find(
+        (call) => call[0].title === 'Monthly Profit'
       );
-      const colorFunction = profitChartCall![0].data.datasets[0].color;
-      expect(colorFunction(1)).toBe('rgba(52, 199, 89, 1)');
+      const colorFunction = profitCall![0].data.datasets[0].color;
+      expect(colorFunction(1)).toBe('rgba(16, 185, 129, 1)');
     });
 
-    it('should have subtitle "Monthly profit after expenses"', () => {
+    it('should have subtitle "After expenses"', () => {
       render(
         <ChartSection
           financialData={mockFinancialData}
@@ -272,13 +313,13 @@ describe('ChartSection', () => {
         />
       );
 
-      const profitChartCall = MockedFinanceChart.mock.calls.find(
-        call => call[0].title === 'Profit Analysis'
+      const profitCall = MockedFinanceChart.mock.calls.find(
+        (call) => call[0].title === 'Monthly Profit'
       );
-      expect(profitChartCall![0].subtitle).toBe('Monthly profit after expenses');
+      expect(profitCall![0].subtitle).toBe('After expenses');
     });
 
-    it('should set height to 200', () => {
+    it('should set profit chart height to 180', () => {
       render(
         <ChartSection
           financialData={mockFinancialData}
@@ -286,406 +327,141 @@ describe('ChartSection', () => {
         />
       );
 
-      const profitChartCall = MockedFinanceChart.mock.calls.find(
-        call => call[0].title === 'Profit Analysis'
+      const profitCall = MockedFinanceChart.mock.calls.find(
+        (call) => call[0].title === 'Monthly Profit'
       );
-      expect(profitChartCall![0].height).toBe(200);
+      expect(profitCall![0].height).toBe(180);
     });
-  });
 
-  describe('Cash Flow Forecast Chart', () => {
-    it('should render Cash Flow Forecast as bar chart', () => {
+    it('should not render the profit chart when profit_trends empty', () => {
       render(
         <ChartSection
-          financialData={mockFinancialData}
+          financialData={{ ...mockFinancialData, profit_trends: [] }}
           formatCurrency={mockFormatCurrency}
         />
       );
 
-      const cashFlowChartCall = MockedFinanceChart.mock.calls.find(
-        call => call[0].title === 'Cash Flow Forecast'
+      const profitCall = MockedFinanceChart.mock.calls.find(
+        (call) => call[0].title === 'Monthly Profit'
       );
-      expect(cashFlowChartCall).toBeDefined();
-      expect(cashFlowChartCall![0].type).toBe('bar');
-    });
-
-    it('should slice first 4 weeks from cash_flow_forecast', () => {
-      render(
-        <ChartSection
-          financialData={mockFinancialData}
-          formatCurrency={mockFormatCurrency}
-        />
-      );
-
-      const cashFlowChartCall = MockedFinanceChart.mock.calls.find(
-        call => call[0].title === 'Cash Flow Forecast'
-      );
-      expect(cashFlowChartCall![0].data.labels).toEqual(['W1', 'W2', 'W3', 'W4']);
-    });
-
-    it('should map net_flow values', () => {
-      render(
-        <ChartSection
-          financialData={mockFinancialData}
-          formatCurrency={mockFormatCurrency}
-        />
-      );
-
-      const cashFlowChartCall = MockedFinanceChart.mock.calls.find(
-        call => call[0].title === 'Cash Flow Forecast'
-      );
-      expect(cashFlowChartCall![0].data.datasets[0].data).toEqual([2000, 2000, -1000, 3500]);
-    });
-
-    it('should use green color for positive net flow', () => {
-      render(
-        <ChartSection
-          financialData={mockFinancialData}
-          formatCurrency={mockFormatCurrency}
-        />
-      );
-
-      const cashFlowChartCall = MockedFinanceChart.mock.calls.find(
-        call => call[0].title === 'Cash Flow Forecast'
-      );
-      const colors = cashFlowChartCall![0].data.datasets[0].colors;
-      expect(colors[0]).toBe('#10B981'); // Week 1: positive (theme.colors.success)
-      expect(colors[1]).toBe('#10B981'); // Week 2: positive (theme.colors.success)
-    });
-
-    it('should use red color for negative net flow', () => {
-      render(
-        <ChartSection
-          financialData={mockFinancialData}
-          formatCurrency={mockFormatCurrency}
-        />
-      );
-
-      const cashFlowChartCall = MockedFinanceChart.mock.calls.find(
-        call => call[0].title === 'Cash Flow Forecast'
-      );
-      const colors = cashFlowChartCall![0].data.datasets[0].colors;
-      expect(colors[2]).toBe('#EF4444'); // Week 3: negative (theme.colors.error)
-    });
-
-    it('should have subtitle "Next 4 weeks projection"', () => {
-      render(
-        <ChartSection
-          financialData={mockFinancialData}
-          formatCurrency={mockFormatCurrency}
-        />
-      );
-
-      const cashFlowChartCall = MockedFinanceChart.mock.calls.find(
-        call => call[0].title === 'Cash Flow Forecast'
-      );
-      expect(cashFlowChartCall![0].subtitle).toBe('Next 4 weeks projection');
-    });
-
-    it('should set height to 180', () => {
-      render(
-        <ChartSection
-          financialData={mockFinancialData}
-          formatCurrency={mockFormatCurrency}
-        />
-      );
-
-      const cashFlowChartCall = MockedFinanceChart.mock.calls.find(
-        call => call[0].title === 'Cash Flow Forecast'
-      );
-      expect(cashFlowChartCall![0].height).toBe(180);
+      expect(profitCall).toBeUndefined();
     });
   });
 
-  describe('Expense Breakdown Chart', () => {
-    it('should render Expense Breakdown as pie chart', () => {
-      render(
+  describe('Expense Breakdown', () => {
+    it('should show the empty state when there are no expenses', () => {
+      const { getByText } = render(
         <ChartSection
           financialData={mockFinancialData}
           formatCurrency={mockFormatCurrency}
         />
       );
 
-      const expenseChartCall = MockedFinanceChart.mock.calls.find(
-        call => call[0].title === 'Expense Breakdown'
-      );
-      expect(expenseChartCall).toBeDefined();
-      expect(expenseChartCall![0].type).toBe('pie');
+      expect(getByText('No expenses recorded yet')).toBeTruthy();
+      expect(getByText('Track expenses to see your breakdown')).toBeTruthy();
     });
 
-    it('should include 4 expense categories', () => {
-      render(
+    it('should render the donut total when expenses exist', () => {
+      const { getByText } = render(
         <ChartSection
-          financialData={mockFinancialData}
+          financialData={{
+            ...mockFinancialData,
+            total_expenses: 1000,
+            expense_breakdown: [
+              { category: 'materials', amount: 450, percentage: 45 },
+              { category: 'labor', amount: 300, percentage: 30 },
+              { category: 'transport', amount: 150, percentage: 15 },
+              { category: 'equipment', amount: 50, percentage: 5 },
+              { category: 'other', amount: 50, percentage: 5 },
+            ],
+          }}
           formatCurrency={mockFormatCurrency}
         />
       );
 
-      const expenseChartCall = MockedFinanceChart.mock.calls.find(
-        call => call[0].title === 'Expense Breakdown'
-      );
-      expect(expenseChartCall![0].data).toHaveLength(4);
+      expect(getByText('£1000.00')).toBeTruthy();
+      expect(getByText('Total')).toBeTruthy();
     });
 
-    it('should have Materials category with 45% value', () => {
-      render(
+    it('should render the 5 expense category labels when expenses exist', () => {
+      const { getAllByText } = render(
         <ChartSection
-          financialData={mockFinancialData}
+          financialData={{
+            ...mockFinancialData,
+            total_expenses: 1000,
+            expense_breakdown: [
+              { category: 'materials', amount: 450, percentage: 45 },
+              { category: 'labor', amount: 300, percentage: 30 },
+              { category: 'transport', amount: 150, percentage: 15 },
+              { category: 'equipment', amount: 50, percentage: 5 },
+              { category: 'other', amount: 50, percentage: 5 },
+            ],
+          }}
           formatCurrency={mockFormatCurrency}
         />
       );
 
-      const expenseChartCall = MockedFinanceChart.mock.calls.find(
-        call => call[0].title === 'Expense Breakdown'
-      );
-      const materialsCategory = expenseChartCall![0].data.find((item: any) => item.name === 'Materials');
-      expect(materialsCategory).toEqual(
-        expect.objectContaining({
-          name: 'Materials',
-          value: 45,
-          color: '#3B82F6', // theme.colors.info
-        })
-      );
+      // Each label appears twice (legend + progress row)
+      expect(getAllByText('Materials')).toHaveLength(2);
+      expect(getAllByText('Labour')).toHaveLength(2);
+      expect(getAllByText('Transport')).toHaveLength(2);
+      expect(getAllByText('Equipment')).toHaveLength(2);
+      expect(getAllByText('Other')).toHaveLength(2);
     });
 
-    it('should have Labor category with 30% value', () => {
-      render(
+    it('should render the percentage values in the legend', () => {
+      const { getByText } = render(
         <ChartSection
-          financialData={mockFinancialData}
+          financialData={{
+            ...mockFinancialData,
+            total_expenses: 1000,
+            expense_breakdown: [
+              { category: 'materials', amount: 450, percentage: 45 },
+              { category: 'labor', amount: 300, percentage: 30 },
+              { category: 'transport', amount: 150, percentage: 15 },
+              { category: 'equipment', amount: 50, percentage: 5 },
+              { category: 'other', amount: 50, percentage: 5 },
+            ],
+          }}
           formatCurrency={mockFormatCurrency}
         />
       );
 
-      const expenseChartCall = MockedFinanceChart.mock.calls.find(
-        call => call[0].title === 'Expense Breakdown'
-      );
-      const laborCategory = expenseChartCall![0].data.find((item: any) => item.name === 'Labor');
-      expect(laborCategory).toEqual(
-        expect.objectContaining({
-          name: 'Labor',
-          value: 30,
-          color: '#34C759',
-        })
-      );
-    });
-
-    it('should have Transport category with 15% value', () => {
-      render(
-        <ChartSection
-          financialData={mockFinancialData}
-          formatCurrency={mockFormatCurrency}
-        />
-      );
-
-      const expenseChartCall = MockedFinanceChart.mock.calls.find(
-        call => call[0].title === 'Expense Breakdown'
-      );
-      const transportCategory = expenseChartCall![0].data.find((item: any) => item.name === 'Transport');
-      expect(transportCategory).toEqual(
-        expect.objectContaining({
-          name: 'Transport',
-          value: 15,
-          color: '#FF9500',
-        })
-      );
-    });
-
-    it('should have Equipment category with 10% value', () => {
-      render(
-        <ChartSection
-          financialData={mockFinancialData}
-          formatCurrency={mockFormatCurrency}
-        />
-      );
-
-      const expenseChartCall = MockedFinanceChart.mock.calls.find(
-        call => call[0].title === 'Expense Breakdown'
-      );
-      const equipmentCategory = expenseChartCall![0].data.find((item: any) => item.name === 'Equipment');
-      expect(equipmentCategory).toEqual(
-        expect.objectContaining({
-          name: 'Equipment',
-          value: 10,
-          color: '#FF3B30',
-        })
-      );
-    });
-
-    it('should have subtitle "Current period distribution"', () => {
-      render(
-        <ChartSection
-          financialData={mockFinancialData}
-          formatCurrency={mockFormatCurrency}
-        />
-      );
-
-      const expenseChartCall = MockedFinanceChart.mock.calls.find(
-        call => call[0].title === 'Expense Breakdown'
-      );
-      expect(expenseChartCall![0].subtitle).toBe('Current period distribution');
-    });
-
-    it('should set height to 200', () => {
-      render(
-        <ChartSection
-          financialData={mockFinancialData}
-          formatCurrency={mockFormatCurrency}
-        />
-      );
-
-      const expenseChartCall = MockedFinanceChart.mock.calls.find(
-        call => call[0].title === 'Expense Breakdown'
-      );
-      expect(expenseChartCall![0].height).toBe(200);
+      expect(getByText('45%')).toBeTruthy();
+      expect(getByText('30%')).toBeTruthy();
+      expect(getByText('15%')).toBeTruthy();
     });
   });
 
   describe('Edge Cases', () => {
     it('should handle empty monthly_revenue array', () => {
-      const emptyRevenueData = {
-        ...mockFinancialData,
-        monthly_revenue: [],
-      };
-
       render(
         <ChartSection
-          financialData={emptyRevenueData}
+          financialData={{ ...mockFinancialData, monthly_revenue: [] }}
           formatCurrency={mockFormatCurrency}
         />
       );
 
-      const revenueChartCall = MockedFinanceChart.mock.calls.find(
-        call => call[0].title === 'Revenue Trend'
-      );
-      expect(revenueChartCall![0].data.datasets[0].data).toEqual([]);
+      const revenueCall = MockedFinanceChart.mock.calls[0];
+      expect(revenueCall[0].data.datasets[0].data).toEqual([]);
     });
 
     it('should handle monthly_revenue with less than 6 items', () => {
-      const shortRevenueData = {
-        ...mockFinancialData,
-        monthly_revenue: [1000, 1200, 1500],
-      };
-
       render(
         <ChartSection
-          financialData={shortRevenueData}
+          financialData={{
+            ...mockFinancialData,
+            monthly_revenue: [1000, 1200, 1500],
+          }}
           formatCurrency={mockFormatCurrency}
         />
       );
 
-      const revenueChartCall = MockedFinanceChart.mock.calls.find(
-        call => call[0].title === 'Revenue Trend'
-      );
-      expect(revenueChartCall![0].data.datasets[0].data).toEqual([1000, 1200, 1500]);
+      const revenueCall = MockedFinanceChart.mock.calls[0];
+      expect(revenueCall[0].data.datasets[0].data).toEqual([1000, 1200, 1500]);
     });
 
-    it('should handle empty profit_trends array', () => {
-      const emptyProfitData = {
-        ...mockFinancialData,
-        profit_trends: [],
-      };
-
-      render(
-        <ChartSection
-          financialData={emptyProfitData}
-          formatCurrency={mockFormatCurrency}
-        />
-      );
-
-      const profitChartCall = MockedFinanceChart.mock.calls.find(
-        call => call[0].title === 'Profit Analysis'
-      );
-      expect(profitChartCall![0].data.labels).toEqual([]);
-      expect(profitChartCall![0].data.datasets[0].data).toEqual([]);
-    });
-
-    it('should handle empty cash_flow_forecast array', () => {
-      const emptyCashFlowData = {
-        ...mockFinancialData,
-        cash_flow_forecast: [],
-      };
-
-      render(
-        <ChartSection
-          financialData={emptyCashFlowData}
-          formatCurrency={mockFormatCurrency}
-        />
-      );
-
-      const cashFlowChartCall = MockedFinanceChart.mock.calls.find(
-        call => call[0].title === 'Cash Flow Forecast'
-      );
-      expect(cashFlowChartCall![0].data.labels).toEqual([]);
-      expect(cashFlowChartCall![0].data.datasets[0].data).toEqual([]);
-    });
-
-    it('should handle cash_flow_forecast with less than 4 weeks', () => {
-      const shortCashFlowData = {
-        ...mockFinancialData,
-        cash_flow_forecast: [
-          { week: '1', projected_income: 5000, projected_expenses: 3000, net_flow: 2000 },
-          { week: '2', projected_income: 6000, projected_expenses: 4000, net_flow: 2000 },
-        ],
-      };
-
-      render(
-        <ChartSection
-          financialData={shortCashFlowData}
-          formatCurrency={mockFormatCurrency}
-        />
-      );
-
-      const cashFlowChartCall = MockedFinanceChart.mock.calls.find(
-        call => call[0].title === 'Cash Flow Forecast'
-      );
-      expect(cashFlowChartCall![0].data.labels).toEqual(['W1', 'W2']);
-      expect(cashFlowChartCall![0].data.datasets[0].data).toEqual([2000, 2000]);
-    });
-
-    it('should handle zero net_flow in cash forecast', () => {
-      const zeroCashFlowData = {
-        ...mockFinancialData,
-        cash_flow_forecast: [
-          { week: '1', projected_income: 5000, projected_expenses: 5000, net_flow: 0 },
-        ],
-      };
-
-      render(
-        <ChartSection
-          financialData={zeroCashFlowData}
-          formatCurrency={mockFormatCurrency}
-        />
-      );
-
-      const cashFlowChartCall = MockedFinanceChart.mock.calls.find(
-        call => call[0].title === 'Cash Flow Forecast'
-      );
-      const colors = cashFlowChartCall![0].data.datasets[0].colors;
-      expect(colors[0]).toBe('#10B981'); // Zero is treated as non-negative (theme.colors.success)
-    });
-
-    it('should handle negative profit values', () => {
-      const negativeProfitData = {
-        ...mockFinancialData,
-        profit_trends: [
-          { month: 'January', revenue: 3000, expenses: 5000, profit: -2000 },
-        ],
-      };
-
-      render(
-        <ChartSection
-          financialData={negativeProfitData}
-          formatCurrency={mockFormatCurrency}
-        />
-      );
-
-      const profitChartCall = MockedFinanceChart.mock.calls.find(
-        call => call[0].title === 'Profit Analysis'
-      );
-      expect(profitChartCall![0].data.datasets[0].data).toEqual([-2000]);
-    });
-
-    it('should handle formatCurrency being called with yearly_projection', () => {
+    it('should call formatCurrency with the yearly projection', () => {
       render(
         <ChartSection
           financialData={mockFinancialData}
@@ -696,8 +472,8 @@ describe('ChartSection', () => {
       expect(mockFormatCurrency).toHaveBeenCalledWith(50000);
     });
 
-    it('should maintain expense breakdown data regardless of financial data', () => {
-      const minimalData = {
+    it('should render with minimal financial data', () => {
+      const minimalData: FinancialSummary = {
         monthly_revenue: [],
         quarterly_growth: 0,
         yearly_projection: 0,
@@ -708,48 +484,16 @@ describe('ChartSection', () => {
         cash_flow_forecast: [],
       };
 
-      render(
+      const { getByText } = render(
         <ChartSection
           financialData={minimalData}
           formatCurrency={mockFormatCurrency}
         />
       );
 
-      const expenseChartCall = MockedFinanceChart.mock.calls.find(
-        call => call[0].title === 'Expense Breakdown'
-      );
-      expect(expenseChartCall![0].data).toHaveLength(4);
-      expect(expenseChartCall![0].data.map((item: any) => item.value)).toEqual([45, 30, 15, 10]);
-    });
-  });
-
-  describe('formatCurrency Function Usage', () => {
-    it('should call formatCurrency once for yearly projection', () => {
-      render(
-        <ChartSection
-          financialData={mockFinancialData}
-          formatCurrency={mockFormatCurrency}
-        />
-      );
-
-      expect(mockFormatCurrency).toHaveBeenCalledTimes(1);
-      expect(mockFormatCurrency).toHaveBeenCalledWith(50000);
-    });
-
-    it('should use formatCurrency result in Revenue Trend subtitle', () => {
-      const customFormat = jest.fn((amount: number) => `£${amount.toLocaleString()}`);
-
-      render(
-        <ChartSection
-          financialData={mockFinancialData}
-          formatCurrency={customFormat}
-        />
-      );
-
-      const revenueChartCall = MockedFinanceChart.mock.calls.find(
-        call => call[0].title === 'Revenue Trend'
-      );
-      expect(revenueChartCall![0].subtitle).toContain('£50,000');
+      expect(getByText('Revenue Trend')).toBeTruthy();
+      expect(getByText('Expense Breakdown')).toBeTruthy();
+      expect(getByText('No expenses recorded yet')).toBeTruthy();
     });
   });
 });

@@ -20,7 +20,9 @@ jest.mock('../../../theme', () => ({
   theme: {
     colors: {
       primary: '#0EA5E9',
+      textPrimary: '#0EA5E9',
       background: '#FFFFFF',
+      backgroundSecondary: '#FFFFFF',
       textSecondary: '#737373',
     },
     spacing: {
@@ -43,14 +45,11 @@ jest.mock('react-native', () => {
   const React = require('react');
 
   mockActivityIndicator = jest.fn(({ size, color, testID, ...props }) => {
-    return React.createElement(
-      actualRN.View,
-      {
-        testID: testID || 'activity-indicator',
-        accessibilityLabel: `ActivityIndicator: size=${size}, color=${color}`,
-        ...props,
-      }
-    );
+    return React.createElement(actualRN.View, {
+      testID: testID || 'activity-indicator',
+      accessibilityLabel: `ActivityIndicator: size=${size}, color=${color}`,
+      ...props,
+    });
   });
 
   return {
@@ -76,21 +75,19 @@ describe('LoadingSpinner Component', () => {
     it('renders ActivityIndicator with correct size', () => {
       render(<LoadingSpinner />);
       const calls = mockActivityIndicator.mock.calls[0];
-      expect(calls[0]).toEqual(
-        expect.objectContaining({ size: 'large' })
-      );
+      expect(calls[0]).toEqual(expect.objectContaining({ size: 'large' }));
     });
 
     it('renders ActivityIndicator with primary color', () => {
       render(<LoadingSpinner />);
       const calls = mockActivityIndicator.mock.calls[0];
-      expect(calls[0]).toEqual(
-        expect.objectContaining({ color: '#0EA5E9' })
-      );
+      expect(calls[0]).toEqual(expect.objectContaining({ color: '#0EA5E9' }));
     });
 
     it('renders message text when provided', () => {
-      const { getByText } = render(<LoadingSpinner message="Loading data..." />);
+      const { getByText } = render(
+        <LoadingSpinner message='Loading data...' />
+      );
       expect(getByText('Loading data...')).toBeTruthy();
     });
 
@@ -101,7 +98,7 @@ describe('LoadingSpinner Component', () => {
     });
 
     it('message has correct styling from theme', () => {
-      const { getByText } = render(<LoadingSpinner message="Loading..." />);
+      const { getByText } = render(<LoadingSpinner message='Loading...' />);
       const messageText = getByText('Loading...');
       const styles = Array.isArray(messageText.props.style)
         ? messageText.props.style.flat()
@@ -110,8 +107,8 @@ describe('LoadingSpinner Component', () => {
       expect(styles).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            marginTop: 12,
-            fontSize: 16,
+            marginTop: 16,
+            fontSize: 15,
             color: '#737373',
           }),
         ])
@@ -130,12 +127,12 @@ describe('LoadingSpinner Component', () => {
     });
 
     it('shows custom message when message prop provided', () => {
-      const { getByText } = render(<LoadingSpinner message="Please wait" />);
+      const { getByText } = render(<LoadingSpinner message='Please wait' />);
       expect(getByText('Please wait')).toBeTruthy();
     });
 
     it('hides message when message is empty string', () => {
-      const { queryByText } = render(<LoadingSpinner message="" />);
+      const { queryByText } = render(<LoadingSpinner message='' />);
       expect(queryByText('Loading...')).toBeNull();
       expect(queryByText('')).toBeNull();
     });
@@ -155,25 +152,19 @@ describe('LoadingSpinner Component', () => {
     it('uses default size "large" when size prop not provided', () => {
       render(<LoadingSpinner />);
       const calls = mockActivityIndicator.mock.calls[0];
-      expect(calls[0]).toEqual(
-        expect.objectContaining({ size: 'large' })
-      );
+      expect(calls[0]).toEqual(expect.objectContaining({ size: 'large' }));
     });
 
     it('uses "small" size when size prop is "small"', () => {
-      render(<LoadingSpinner size="small" />);
+      render(<LoadingSpinner size='small' />);
       const calls = mockActivityIndicator.mock.calls[0];
-      expect(calls[0]).toEqual(
-        expect.objectContaining({ size: 'small' })
-      );
+      expect(calls[0]).toEqual(expect.objectContaining({ size: 'small' }));
     });
 
     it('uses "large" size when size prop is "large"', () => {
-      render(<LoadingSpinner size="large" />);
+      render(<LoadingSpinner size='large' />);
       const calls = mockActivityIndicator.mock.calls[0];
-      expect(calls[0]).toEqual(
-        expect.objectContaining({ size: 'large' })
-      );
+      expect(calls[0]).toEqual(expect.objectContaining({ size: 'large' }));
     });
   });
 
@@ -192,7 +183,9 @@ describe('LoadingSpinner Component', () => {
         : [containerView?.props.style];
 
       const hasFlexStyle = styles.some((style: any) => style?.flex === 1);
-      const hasBgColor = styles.some((style: any) => style?.backgroundColor === '#FFFFFF');
+      const hasBgColor = styles.some(
+        (style: any) => style?.backgroundColor === '#FFFFFF'
+      );
 
       expect(hasFlexStyle).toBe(true);
       expect(hasBgColor).toBe(true);
@@ -208,7 +201,9 @@ describe('LoadingSpinner Component', () => {
         : [containerView?.props.style];
 
       const hasFlexStyle = styles.some((style: any) => style?.flex === 1);
-      const hasBgColor = styles.some((style: any) => style?.backgroundColor === '#FFFFFF');
+      const hasBgColor = styles.some(
+        (style: any) => style?.backgroundColor === '#FFFFFF'
+      );
 
       expect(hasFlexStyle).toBe(true);
       expect(hasBgColor).toBe(true);
@@ -224,7 +219,9 @@ describe('LoadingSpinner Component', () => {
         : [containerView?.props.style];
 
       const hasFlexStyle = styles.some((style: any) => style?.flex === 1);
-      const hasBgColor = styles.some((style: any) => style?.backgroundColor === '#FFFFFF');
+      const hasBgColor = styles.some(
+        (style: any) => style?.backgroundColor === '#FFFFFF'
+      );
 
       expect(hasFlexStyle).toBe(false);
       expect(hasBgColor).toBe(false);
@@ -240,7 +237,9 @@ describe('LoadingSpinner Component', () => {
         : [containerView?.props.style];
 
       const hasFlexStyle = styles.some((style: any) => style?.flex === 1);
-      const hasBgColor = styles.some((style: any) => style?.backgroundColor === '#FFFFFF');
+      const hasBgColor = styles.some(
+        (style: any) => style?.backgroundColor === '#FFFFFF'
+      );
 
       expect(hasFlexStyle).toBe(true);
       expect(hasBgColor).toBe(true);
@@ -268,8 +267,8 @@ describe('LoadingSpinner Component', () => {
     it('renders with all props provided', () => {
       const { getByText, getByTestId } = render(
         <LoadingSpinner
-          message="Custom loading message"
-          size="small"
+          message='Custom loading message'
+          size='small'
           fullScreen={false}
         />
       );
@@ -298,13 +297,16 @@ describe('LoadingSpinner Component', () => {
 
   describe('Edge Cases', () => {
     it('handles very long loading messages', () => {
-      const longMessage = 'This is a very long loading message that contains multiple sentences and should still be displayed correctly even though it exceeds normal length expectations and might cause layout issues if not handled properly by the component.';
+      const longMessage =
+        'This is a very long loading message that contains multiple sentences and should still be displayed correctly even though it exceeds normal length expectations and might cause layout issues if not handled properly by the component.';
       const { getByText } = render(<LoadingSpinner message={longMessage} />);
       expect(getByText(longMessage)).toBeTruthy();
     });
 
     it('handles empty string message', () => {
-      const { queryByText, getByTestId } = render(<LoadingSpinner message="" />);
+      const { queryByText, getByTestId } = render(
+        <LoadingSpinner message='' />
+      );
       // Empty string is falsy, so message should not be rendered
       expect(queryByText('Loading...')).toBeNull();
       expect(getByTestId('activity-indicator')).toBeTruthy();
@@ -325,8 +327,8 @@ describe('LoadingSpinner Component', () => {
     it('renders complete loading view with fullScreen=true', () => {
       const { getByText, getByTestId } = render(
         <LoadingSpinner
-          message="Loading your data..."
-          size="large"
+          message='Loading your data...'
+          size='large'
           fullScreen={true}
         />
       );
@@ -354,7 +356,9 @@ describe('LoadingSpinner Component', () => {
         : [containerView?.props.style];
 
       const hasFlexStyle = styles.some((style: any) => style?.flex === 1);
-      const hasBgColor = styles.some((style: any) => style?.backgroundColor === '#FFFFFF');
+      const hasBgColor = styles.some(
+        (style: any) => style?.backgroundColor === '#FFFFFF'
+      );
 
       expect(hasFlexStyle).toBe(true);
       expect(hasBgColor).toBe(true);
@@ -363,8 +367,8 @@ describe('LoadingSpinner Component', () => {
     it('renders complete loading view with fullScreen=false', () => {
       const { getByText, getByTestId, UNSAFE_root } = render(
         <LoadingSpinner
-          message="Processing..."
-          size="small"
+          message='Processing...'
+          size='small'
           fullScreen={false}
         />
       );
@@ -396,10 +400,7 @@ describe('LoadingSpinner Component', () => {
 
     it('renders with custom message and size', () => {
       const { getByText, getByTestId } = render(
-        <LoadingSpinner
-          message="Fetching jobs..."
-          size="small"
-        />
+        <LoadingSpinner message='Fetching jobs...' size='small' />
       );
 
       expect(getByText('Fetching jobs...')).toBeTruthy();
@@ -428,8 +429,12 @@ describe('LoadingSpinner Component', () => {
         ? containerView.props.style.flat()
         : [containerView?.props.style];
 
-      const hasJustifyCenter = styles.some((style: any) => style?.justifyContent === 'center');
-      const hasAlignCenter = styles.some((style: any) => style?.alignItems === 'center');
+      const hasJustifyCenter = styles.some(
+        (style: any) => style?.justifyContent === 'center'
+      );
+      const hasAlignCenter = styles.some(
+        (style: any) => style?.alignItems === 'center'
+      );
       const hasPadding = styles.some((style: any) => style?.padding === 24);
 
       expect(hasJustifyCenter).toBe(true);
@@ -438,7 +443,7 @@ describe('LoadingSpinner Component', () => {
     });
 
     it('applies correct message text styles', () => {
-      const { getByText } = render(<LoadingSpinner message="Style test" />);
+      const { getByText } = render(<LoadingSpinner message='Style test' />);
       const message = getByText('Style test');
       const styles = Array.isArray(message.props.style)
         ? message.props.style.flat()
@@ -447,8 +452,8 @@ describe('LoadingSpinner Component', () => {
       expect(styles).toEqual(
         expect.arrayContaining([
           expect.objectContaining({
-            marginTop: 12,
-            fontSize: 16,
+            marginTop: 16,
+            fontSize: 15,
             color: '#737373',
           }),
         ])
@@ -465,7 +470,9 @@ describe('LoadingSpinner Component', () => {
         : [containerView?.props.style];
 
       const hasFlexStyle = styles.some((style: any) => style?.flex === 1);
-      const hasBgColor = styles.some((style: any) => style?.backgroundColor === '#FFFFFF');
+      const hasBgColor = styles.some(
+        (style: any) => style?.backgroundColor === '#FFFFFF'
+      );
 
       expect(hasFlexStyle).toBe(true);
       expect(hasBgColor).toBe(true);
@@ -481,8 +488,12 @@ describe('LoadingSpinner Component', () => {
         : [containerView?.props.style];
 
       // Should have container styles
-      const hasJustifyCenter = styles.some((style: any) => style?.justifyContent === 'center');
-      const hasAlignCenter = styles.some((style: any) => style?.alignItems === 'center');
+      const hasJustifyCenter = styles.some(
+        (style: any) => style?.justifyContent === 'center'
+      );
+      const hasAlignCenter = styles.some(
+        (style: any) => style?.alignItems === 'center'
+      );
       const hasPadding = styles.some((style: any) => style?.padding === 24);
 
       expect(hasJustifyCenter).toBe(true);
@@ -491,7 +502,9 @@ describe('LoadingSpinner Component', () => {
 
       // Should NOT have fullScreen styles
       const hasFlexStyle = styles.some((style: any) => style?.flex === 1);
-      const hasBgColor = styles.some((style: any) => style?.backgroundColor === '#FFFFFF');
+      const hasBgColor = styles.some(
+        (style: any) => style?.backgroundColor === '#FFFFFF'
+      );
 
       expect(hasFlexStyle).toBe(false);
       expect(hasBgColor).toBe(false);
@@ -504,23 +517,19 @@ describe('LoadingSpinner Component', () => {
 
   describe('ActivityIndicator Props', () => {
     it('passes correct size prop to ActivityIndicator', () => {
-      render(<LoadingSpinner size="small" />);
+      render(<LoadingSpinner size='small' />);
       const calls = mockActivityIndicator.mock.calls[0];
-      expect(calls[0]).toEqual(
-        expect.objectContaining({ size: 'small' })
-      );
+      expect(calls[0]).toEqual(expect.objectContaining({ size: 'small' }));
     });
 
     it('passes correct color prop to ActivityIndicator', () => {
       render(<LoadingSpinner />);
       const calls = mockActivityIndicator.mock.calls[0];
-      expect(calls[0]).toEqual(
-        expect.objectContaining({ color: '#0EA5E9' })
-      );
+      expect(calls[0]).toEqual(expect.objectContaining({ color: '#0EA5E9' }));
     });
 
     it('ActivityIndicator receives both size and color', () => {
-      render(<LoadingSpinner size="large" />);
+      render(<LoadingSpinner size='large' />);
       const calls = mockActivityIndicator.mock.calls[0];
       expect(calls[0]).toEqual(
         expect.objectContaining({
@@ -537,12 +546,12 @@ describe('LoadingSpinner Component', () => {
 
   describe('Conditional Rendering', () => {
     it('shows message when truthy string provided', () => {
-      const { getByText } = render(<LoadingSpinner message="Loading data" />);
+      const { getByText } = render(<LoadingSpinner message='Loading data' />);
       expect(getByText('Loading data')).toBeTruthy();
     });
 
     it('does not show message when empty string provided', () => {
-      const { queryByText } = render(<LoadingSpinner message="" />);
+      const { queryByText } = render(<LoadingSpinner message='' />);
       expect(queryByText('')).toBeNull();
     });
 
@@ -552,10 +561,12 @@ describe('LoadingSpinner Component', () => {
     });
 
     it('message Text component only renders when message is truthy', () => {
-      const { queryByText: queryEmpty } = render(<LoadingSpinner message="" />);
+      const { queryByText: queryEmpty } = render(<LoadingSpinner message='' />);
       expect(queryEmpty('Loading...')).toBeNull();
 
-      const { getByText: getWithMessage } = render(<LoadingSpinner message="Test" />);
+      const { getByText: getWithMessage } = render(
+        <LoadingSpinner message='Test' />
+      );
       expect(getWithMessage('Test')).toBeTruthy();
     });
   });

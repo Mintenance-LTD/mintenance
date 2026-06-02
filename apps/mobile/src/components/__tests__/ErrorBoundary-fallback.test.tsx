@@ -9,7 +9,9 @@ jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: ({ children }: { children: React.ReactNode }) => children,
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
-jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock')
+);
 
 // Mock logger before importing component
 jest.mock('../../utils/logger', () => ({
@@ -22,10 +24,10 @@ jest.mock('../../utils/logger', () => ({
 }));
 
 // Test component that throws an error
-const ThrowError: React.FC<{ shouldThrow?: boolean; errorMessage?: string }> = ({
-  shouldThrow = true,
-  errorMessage = 'Test error'
-}) => {
+const ThrowError: React.FC<{
+  shouldThrow?: boolean;
+  errorMessage?: string;
+}> = ({ shouldThrow = true, errorMessage = 'Test error' }) => {
   if (shouldThrow) {
     throw new Error(errorMessage);
   }
@@ -81,8 +83,10 @@ describe('ErrorBoundary-fallback', () => {
     });
 
     it('should render without children (edge case)', () => {
-      const { container } = render(<ErrorBoundary>{null}</ErrorBoundary>);
-      expect(container).toBeDefined();
+      // Empty children render to nothing; assert no fallback shown instead of
+      // the removed RTL `container` accessor.
+      const { queryByText } = render(<ErrorBoundary>{null}</ErrorBoundary>);
+      expect(queryByText('Oops! Something went wrong')).toBeNull();
     });
   });
 
@@ -95,13 +99,15 @@ describe('ErrorBoundary-fallback', () => {
       );
 
       expect(getByText('Oops! Something went wrong')).toBeDefined();
-      expect(getByText(/The app encountered an unexpected error/)).toBeDefined();
+      expect(
+        getByText(/The app encountered an unexpected error/)
+      ).toBeDefined();
     });
 
     it('should display error details with error name', () => {
       const { getByText } = render(
         <ErrorBoundary>
-          <ThrowError errorMessage="Custom error message" />
+          <ThrowError errorMessage='Custom error message' />
         </ErrorBoundary>
       );
 
@@ -126,13 +132,15 @@ describe('ErrorBoundary-fallback', () => {
         </ErrorBoundary>
       );
 
-      expect(getByText(/If this problem persists, please restart the app/)).toBeDefined();
+      expect(
+        getByText(/If this problem persists, please restart the app/)
+      ).toBeDefined();
     });
 
     it('should log error to logger when caught', () => {
       render(
         <ErrorBoundary>
-          <ThrowError errorMessage="Logged error" />
+          <ThrowError errorMessage='Logged error' />
         </ErrorBoundary>
       );
 
@@ -149,21 +157,30 @@ describe('ErrorBoundary-fallback', () => {
         </ErrorBoundary>
       );
 
-      expect(logger.error).toHaveBeenCalledWith('Error info', expect.any(Object));
+      expect(logger.error).toHaveBeenCalledWith(
+        'Error info',
+        expect.any(Object)
+      );
     });
 
     it('should handle different error types', () => {
-      const TypeError: React.FC = () => {
+      // NB: must not name the component `TypeError` — that shadows the global
+      // constructor, so `new TypeError(...)` would `new` the component itself
+      // and recurse infinitely (RangeError). Use a distinct component name.
+      const ThrowTypeError: React.FC = () => {
         throw new TypeError('Type error occurred');
       };
 
       const { getByText } = render(
         <ErrorBoundary>
-          <TypeError />
+          <ThrowTypeError />
         </ErrorBoundary>
       );
 
-      expect(getByText(/TypeError: Type error occurred/)).toBeDefined();
+      // name + message render as string children of one <Text>, so the node's
+      // composite text is "TypeError: Type error occurred" — match via regex.
+      expect(getByText(/TypeError/)).toBeDefined();
+      expect(getByText(/Type error occurred/)).toBeDefined();
     });
 
     it('should handle ReferenceError', () => {
@@ -177,7 +194,9 @@ describe('ErrorBoundary-fallback', () => {
         </ErrorBoundary>
       );
 
-      expect(getByText(/ReferenceError: Variable is not defined/)).toBeDefined();
+      expect(
+        getByText(/ReferenceError: Variable is not defined/)
+      ).toBeDefined();
     });
 
     it('should handle error with very long message', () => {
@@ -275,7 +294,7 @@ describe('ErrorBoundary-fallback', () => {
 
       const { getByText } = render(
         <ErrorBoundary fallback={customFallback}>
-          <ThrowError errorMessage="Custom fallback error" />
+          <ThrowError errorMessage='Custom fallback error' />
         </ErrorBoundary>
       );
 
@@ -292,7 +311,7 @@ describe('ErrorBoundary-fallback', () => {
 
       render(
         <ErrorBoundary fallback={customFallback}>
-          <ThrowError errorMessage="Fallback test" />
+          <ThrowError errorMessage='Fallback test' />
         </ErrorBoundary>
       );
 
@@ -371,13 +390,15 @@ describe('ErrorBoundary-fallback', () => {
     it('should handle custom fallback returning null', () => {
       const nullFallback = () => null;
 
-      const { container } = render(
+      // A custom fallback that returns null renders nothing; the boundary must
+      // honour it (no throw) rather than fall back to the default error UI.
+      const { queryByText } = render(
         <ErrorBoundary fallback={nullFallback}>
           <ThrowError />
         </ErrorBoundary>
       );
 
-      expect(container).toBeDefined();
+      expect(queryByText('Oops! Something went wrong')).toBeNull();
     });
 
     it('should handle custom fallback with complex UI', () => {
@@ -391,7 +412,7 @@ describe('ErrorBoundary-fallback', () => {
 
       const { getByText } = render(
         <ErrorBoundary fallback={complexFallback}>
-          <ThrowError errorMessage="Complex UI error" />
+          <ThrowError errorMessage='Complex UI error' />
         </ErrorBoundary>
       );
 
@@ -407,7 +428,7 @@ describe('ErrorBoundary-fallback', () => {
 
       render(
         <ErrorBoundary onError={onErrorMock}>
-          <ThrowError errorMessage="Callback test" />
+          <ThrowError errorMessage='Callback test' />
         </ErrorBoundary>
       );
 
@@ -426,7 +447,7 @@ describe('ErrorBoundary-fallback', () => {
 
       render(
         <ErrorBoundary onError={onErrorMock}>
-          <ThrowError errorMessage="Error object test" />
+          <ThrowError errorMessage='Error object test' />
         </ErrorBoundary>
       );
 
@@ -500,7 +521,13 @@ describe('ErrorBoundary-fallback', () => {
         </ErrorBoundary>
       );
 
-      expect(callOrder).toEqual(['onError', 'fallback']);
+      // React 19 runs the (render-phase) fallback during the initial errored
+      // render attempt before the commit-phase componentDidCatch fires onError,
+      // and re-renders the fallback afterwards — so the precise interleaving is
+      // version-dependent. The behavioural invariant is that BOTH onError fired
+      // and the custom fallback rendered.
+      expect(callOrder).toContain('onError');
+      expect(callOrder).toContain('fallback');
     });
 
     it('should allow onError to perform side effects', () => {
@@ -545,7 +572,7 @@ describe('ErrorBoundary-fallback', () => {
     it('should store error in state', () => {
       const { getByText } = render(
         <ErrorBoundary>
-          <ThrowError errorMessage="Stored error" />
+          <ThrowError errorMessage='Stored error' />
         </ErrorBoundary>
       );
 
@@ -560,7 +587,10 @@ describe('ErrorBoundary-fallback', () => {
       );
 
       // componentDidCatch should have been called
-      expect(logger.error).toHaveBeenCalledWith('Error info', expect.any(Object));
+      expect(logger.error).toHaveBeenCalledWith(
+        'Error info',
+        expect.any(Object)
+      );
     });
 
     it('should clear error state on reset', () => {
@@ -612,13 +642,15 @@ describe('ErrorBoundary-fallback', () => {
         </ErrorBoundary>
       );
 
-      expect(getByText(/The app encountered an unexpected error/)).toBeDefined();
+      expect(
+        getByText(/The app encountered an unexpected error/)
+      ).toBeDefined();
     });
 
     it('should display error details section', () => {
       const { getByText } = render(
         <ErrorBoundary>
-          <ThrowError errorMessage="Details test" />
+          <ThrowError errorMessage='Details test' />
         </ErrorBoundary>
       );
 
@@ -643,7 +675,9 @@ describe('ErrorBoundary-fallback', () => {
         </ErrorBoundary>
       );
 
-      expect(getByText(/If this problem persists, please restart the app/)).toBeDefined();
+      expect(
+        getByText(/If this problem persists, please restart the app/)
+      ).toBeDefined();
     });
   });
 
@@ -698,7 +732,7 @@ describe('ErrorBoundary-fallback', () => {
       const { getByText } = render(
         <ErrorBoundary>
           <ErrorBoundary>
-            <ThrowError errorMessage="Nested error" />
+            <ThrowError errorMessage='Nested error' />
           </ErrorBoundary>
         </ErrorBoundary>
       );
@@ -732,7 +766,7 @@ describe('ErrorBoundary-fallback', () => {
 
       const { getByText } = render(
         <ErrorBoundary fallback={customFallback} onError={onErrorMock}>
-          <ThrowError errorMessage="Both props" />
+          <ThrowError errorMessage='Both props' />
         </ErrorBoundary>
       );
 
@@ -776,23 +810,23 @@ describe('ErrorBoundary-fallback', () => {
     });
 
     it('should handle children as function (edge case)', () => {
-      const { getByText } = render(
+      // This boundary is not a render-prop component, so a bare function child
+      // is not invoked by React — it renders nothing. The edge-case invariant
+      // is that the boundary tolerates it without throwing or showing fallback.
+      const { queryByText } = render(
         <ErrorBoundary>
-          {() => <Text>Function child</Text>}
+          {(() => <Text>Function child</Text>) as unknown as React.ReactNode}
         </ErrorBoundary>
       );
 
-      // React will render function as component
-      expect(getByText('Function child')).toBeDefined();
+      expect(queryByText('Function child')).toBeNull();
+      expect(queryByText('Oops! Something went wrong')).toBeNull();
     });
 
     it('should handle children as array', () => {
       const { getByText } = render(
         <ErrorBoundary>
-          {[
-            <Text key="1">First</Text>,
-            <Text key="2">Second</Text>,
-          ]}
+          {[<Text key='1'>First</Text>, <Text key='2'>Second</Text>]}
         </ErrorBoundary>
       );
 
@@ -986,10 +1020,14 @@ describe('ErrorBoundary-fallback', () => {
 
   describe('Error Recovery Scenarios', () => {
     it('should recover from error after successful retry', () => {
-      let throwCount = 0;
+      // Gate throwing on an external flag the test controls, rather than a
+      // render-count counter: React 19 re-renders the children once more during
+      // its error-recovery path, which would consume a counter-based gate
+      // immediately and prevent the fallback from ever sticking. With a flag we
+      // get a deterministic errored state, then flip it and retry.
+      let shouldThrow = true;
       const ConditionalError: React.FC = () => {
-        if (throwCount === 0) {
-          throwCount++;
+        if (shouldThrow) {
           throw new Error('First attempt');
         }
         return <Text>Success after retry</Text>;
@@ -1001,8 +1039,11 @@ describe('ErrorBoundary-fallback', () => {
         </ErrorBoundary>
       );
 
+      // Fallback is shown while the child still throws.
       expect(getByText('Try Again')).toBeDefined();
 
+      // Stop throwing, then trigger the boundary's reset + re-render.
+      shouldThrow = false;
       fireEvent.press(getByText('Try Again'));
 
       rerender(
@@ -1116,8 +1157,10 @@ describe('ErrorBoundary-fallback', () => {
 
   describe('Error Boundary Props Validation', () => {
     it('should handle missing children gracefully', () => {
-      const { container } = render(<ErrorBoundary />);
-      expect(container).toBeDefined();
+      // No children renders nothing; assert no error fallback rather than the
+      // removed RTL `container` accessor.
+      const { queryByText } = render(<ErrorBoundary />);
+      expect(queryByText('Oops! Something went wrong')).toBeNull();
     });
 
     it('should handle undefined fallback prop', () => {
