@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { render, waitFor, fireEvent } from '../..//test-utils';
+import { render, waitFor } from '../../__tests__/test-utils';
 import { PaymentScreen } from '../PaymentScreen';
 import { NavigationContainer } from '@react-navigation/native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -10,7 +9,25 @@ jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: ({ children }) => children,
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
-jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock')
+);
+
+// expo-screen-capture pulls expo-modules-core's native EventEmitter (undefined
+// under jest) — crashes the whole import graph via useScreenCaptureGuard.
+jest.mock('expo-screen-capture', () => ({
+  preventScreenCaptureAsync: jest.fn(() => Promise.resolve()),
+  allowScreenCaptureAsync: jest.fn(() => Promise.resolve()),
+  usePreventScreenCapture: jest.fn(),
+}));
+
+// AuthContext: the payment hook reads user?.id.
+jest.mock('../../contexts/AuthContext', () => ({
+  useAuth: () => ({
+    user: { id: 'user-1', email: 'test@example.com', role: 'homeowner' },
+    loading: false,
+  }),
+}));
 
 // Mock navigation
 const mockNavigation = {
@@ -22,12 +39,19 @@ const mockNavigation = {
   reset: jest.fn(),
   setParams: jest.fn(),
   isFocused: jest.fn(() => true),
+  canGoBack: jest.fn(() => true),
 };
 
 const mockRoute = {
   key: 'test-key',
   name: 'PaymentScreen',
-  params: {},
+  params: {
+    jobId: 'job-1',
+    amount: 350,
+    contractorId: 'contractor-1',
+    jobTitle: 'Fix leaking tap',
+    useEscrow: true,
+  },
 };
 
 // Mock any services this screen might use
@@ -41,7 +65,9 @@ jest.mock('../../config/supabase', () => ({
   supabase: {
     auth: {
       getSession: jest.fn(() => Promise.resolve({ data: { session: null } })),
-      onAuthStateChange: jest.fn(() => ({ data: { subscription: { unsubscribe: jest.fn() } } })),
+      onAuthStateChange: jest.fn(() => ({
+        data: { subscription: { unsubscribe: jest.fn() } },
+      })),
     },
     from: jest.fn(() => ({
       select: jest.fn().mockReturnThis(),
@@ -80,14 +106,11 @@ describe('PaymentScreen', () => {
     jest.clearAllMocks();
   });
 
-
   it('should render without crashing', async () => {
-    const { getByTestId, queryByText } = renderScreen();
+    const { queryAllByText } = renderScreen();
 
     await waitFor(() => {
-      // Check for either a test ID or any text to confirm render
-      const element = queryByText(/./i) || getByTestId('screen-container');
-      expect(element).toBeTruthy();
+      expect(queryAllByText(/./i).length).toBeGreaterThan(0);
     });
   });
 

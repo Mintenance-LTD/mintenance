@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { render, waitFor, fireEvent } from '../..//test-utils';
 import ProfileScreen from '../ProfileScreen';
@@ -10,7 +9,25 @@ jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: ({ children }) => children,
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
-jest.mock('@react-native-async-storage/async-storage', () => require('@react-native-async-storage/async-storage/jest/async-storage-mock'));
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock')
+);
+
+// The Reanimated-backed animation primitives pull the real native module in
+// jest (the repo's reanimated mock chokes on it). They're pure presentation
+// wrappers — render children straight through so the screen mounts.
+jest.mock('../../components/animations/primitives', () => {
+  const ReactActual = require('react');
+  const pass = ({ children }: { children: React.ReactNode }) =>
+    ReactActual.createElement(ReactActual.Fragment, null, children);
+  return {
+    FadeIn: pass,
+    SlideIn: pass,
+    ScaleIn: pass,
+    Pulse: pass,
+    BouncyPress: pass,
+  };
+});
 
 // Mock navigation
 const mockNavigation = {
@@ -41,7 +58,9 @@ jest.mock('../../config/supabase', () => ({
   supabase: {
     auth: {
       getSession: jest.fn(() => Promise.resolve({ data: { session: null } })),
-      onAuthStateChange: jest.fn(() => ({ data: { subscription: { unsubscribe: jest.fn() } } })),
+      onAuthStateChange: jest.fn(() => ({
+        data: { subscription: { unsubscribe: jest.fn() } },
+      })),
     },
     from: jest.fn(() => ({
       select: jest.fn().mockReturnThis(),
@@ -80,14 +99,13 @@ describe('ProfileScreen', () => {
     jest.clearAllMocks();
   });
 
-
   it('should render without crashing', async () => {
-    const { getByTestId, queryByText } = renderScreen();
+    const { queryAllByText } = renderScreen();
 
     await waitFor(() => {
-      // Check for either a test ID or any text to confirm render
-      const element = queryByText(/./i) || getByTestId('screen-container');
-      expect(element).toBeTruthy();
+      // The screen renders multiple text nodes (profile header, menu, etc.);
+      // confirm it mounted by asserting at least one is present.
+      expect(queryAllByText(/./i).length).toBeGreaterThan(0);
     });
   });
 
