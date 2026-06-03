@@ -97,6 +97,7 @@ export function CompareBidsTable({
                 onSelect(bid.id);
               }
             }}
+            className='me-bid-row'
             style={{
               display: 'grid',
               gridTemplateColumns: '44px 1fr 120px 140px 110px',

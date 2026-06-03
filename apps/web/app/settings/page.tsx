@@ -80,7 +80,7 @@ export default function SettingsPage2025({
         className='me-root me-legacy-fit settings-page'
         style={{ padding: '28px 32px' }}
       >
-        <div style={{ display: 'flex', gap: 28, maxWidth: 1180 }}>
+        <div className='settings-shell' style={{ display: 'flex', gap: 28, maxWidth: 1180 }}>
           <SettingsSidebar
             activeSection={activeSection}
             onSectionChange={setActiveSection}

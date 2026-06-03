@@ -1,8 +1,8 @@
 'use client';
 
-import type { ReactNode } from 'react';
-import Link from 'next/link';
-import { Search } from 'lucide-react';
+import { useEffect, useState, type ReactNode } from 'react';
+import { usePathname } from 'next/navigation';
+import { Menu, Search, X } from 'lucide-react';
 import { NotificationBell } from '@/components/notifications/NotificationBell';
 import { MintEditorialSidebar } from './MintEditorialSidebar';
 import { MintEditorialTopNav } from './MintEditorialTopNav';
@@ -43,6 +43,12 @@ interface MintEditorialShellProps {
  *
  * Single source of truth → one place to evolve the sidebar/topbar/dock
  * and every page picks up the change.
+ *
+ * Responsive: below 768px the 240px sidebar collapses into an
+ * off-canvas drawer toggled by the topbar hamburger (the `me-shell` +
+ * `me-drawer-open` classes drive the CSS in styles/mint-editorial.css).
+ * Without this the fixed sidebar stole most of a phone's width and
+ * clipped page content off-screen.
  */
 export function MintEditorialShell({
   homeownerName,
@@ -53,8 +59,28 @@ export function MintEditorialShell({
   children,
   contentPadding = '28px 36px 140px',
 }: MintEditorialShellProps) {
+  const pathname = usePathname();
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  // Close the mobile nav drawer whenever the route changes (e.g. after
+  // tapping a nav link) so it never lingers over the new page.
+  useEffect(() => {
+    setDrawerOpen(false);
+  }, [pathname]);
+
   return (
-    <div className='me-root' style={{ display: 'flex' }}>
+    <div
+      className={'me-root me-shell' + (drawerOpen ? ' me-drawer-open' : '')}
+      style={{ display: 'flex' }}
+    >
+      {/* Mobile-only backdrop. Inert on desktop (display:none); on small
+          viewports it dims the page and closes the drawer on tap. */}
+      <div
+        className='me-drawer-backdrop'
+        onClick={() => setDrawerOpen(false)}
+        aria-hidden='true'
+      />
+
       <MintEditorialSidebar
         homeownerName={homeownerName}
         email={email}
@@ -71,11 +97,24 @@ export function MintEditorialShell({
           minWidth: 0,
         }}
       >
-        {/* Topbar — search field on the left, sub-nav tabs in the
-            middle (Phase-2 mock parity), bell on the right. Primary
-            CTAs (Post a job, New job, etc.) still belong to the page's
-            own greeting row. */}
+        {/* Topbar — hamburger (mobile only) + search field on the left,
+            sub-nav tabs in the middle (Phase-2 mock parity), bell on the
+            right. Primary CTAs (Post a job, New job, etc.) still belong
+            to the page's own greeting row. */}
         <div className='me-topbar'>
+          <button
+            type='button'
+            className='me-menu-btn'
+            onClick={() => setDrawerOpen((open) => !open)}
+            aria-label={drawerOpen ? 'Close navigation menu' : 'Open navigation menu'}
+            aria-expanded={drawerOpen}
+          >
+            {drawerOpen ? (
+              <X size={18} strokeWidth={1.9} />
+            ) : (
+              <Menu size={18} strokeWidth={1.9} />
+            )}
+          </button>
           <div className='search-pill' style={{ width: 280 }}>
             <Search size={15} strokeWidth={1.75} />
             <span>Search jobs, contractors, invoices</span>
@@ -85,7 +124,9 @@ export function MintEditorialShell({
           <NotificationBell href='/notifications' />
         </div>
 
-        <div style={{ padding: contentPadding, flex: 1 }}>{children}</div>
+        <div className='me-content' style={{ padding: contentPadding, flex: 1 }}>
+          {children}
+        </div>
       </div>
     </div>
   );
