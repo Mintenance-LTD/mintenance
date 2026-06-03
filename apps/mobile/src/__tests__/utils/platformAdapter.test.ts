@@ -187,7 +187,9 @@ describe('platformAdapter', () => {
 
       // Re-import to get new capabilities
       jest.resetModules();
-      const { platformCapabilities: caps } = require('../../utils/platformAdapter');
+      const {
+        platformCapabilities: caps,
+      } = require('../../utils/platformAdapter');
 
       expect(caps.biometrics).toBe(true);
       expect(caps.camera).toBe(true);
@@ -203,7 +205,9 @@ describe('platformAdapter', () => {
 
       // Re-import to get web capabilities
       jest.resetModules();
-      const { platformCapabilities: caps } = require('../../utils/platformAdapter');
+      const {
+        platformCapabilities: caps,
+      } = require('../../utils/platformAdapter');
 
       // These will be true because we mocked the browser APIs
       expect(typeof caps.biometrics).toBe('boolean');
@@ -253,7 +257,10 @@ describe('platformAdapter', () => {
 
         const result = await WebPlatformServices.authenticateWithWebAuthn();
         expect(result).toBe(false);
-        expect(logger.warn).toHaveBeenCalledWith('WebAuthn authentication failed:', expect.any(Error));
+        expect(logger.warn).toHaveBeenCalledWith(
+          'WebAuthn authentication failed',
+          { error: 'WebAuthn failed' }
+        );
 
         (platformCapabilities as any).biometrics = originalCaps;
       });
@@ -293,7 +300,9 @@ describe('platformAdapter', () => {
 
         const result = await WebPlatformServices.accessWebCamera();
         expect(result).toBe(null);
-        expect(logger.warn).toHaveBeenCalledWith('Web camera access failed:', expect.any(Error));
+        expect(logger.warn).toHaveBeenCalledWith('Web camera access failed', {
+          error: 'Camera denied',
+        });
 
         (platformCapabilities as any).camera = originalCaps;
       });
@@ -314,9 +323,11 @@ describe('platformAdapter', () => {
         const originalCaps = platformCapabilities.location;
         (platformCapabilities as any).location = true;
         const mockPosition = {
-          coords: { latitude: 40.7128, longitude: -74.0060 },
+          coords: { latitude: 40.7128, longitude: -74.006 },
         };
-        mockGetCurrentPosition.mockImplementation((success) => success(mockPosition));
+        mockGetCurrentPosition.mockImplementation((success) =>
+          success(mockPosition)
+        );
 
         const result = await WebPlatformServices.getWebLocation();
         expect(result).toBe(mockPosition);
@@ -346,7 +357,8 @@ describe('platformAdapter', () => {
         const originalCaps = platformCapabilities.notifications;
         (platformCapabilities as any).notifications = false;
 
-        const result = await WebPlatformServices.requestWebNotificationPermission();
+        const result =
+          await WebPlatformServices.requestWebNotificationPermission();
         expect(result).toBe(false);
 
         (platformCapabilities as any).notifications = originalCaps;
@@ -357,7 +369,8 @@ describe('platformAdapter', () => {
         (platformCapabilities as any).notifications = true;
         mockRequestPermission.mockResolvedValue('granted');
 
-        const result = await WebPlatformServices.requestWebNotificationPermission();
+        const result =
+          await WebPlatformServices.requestWebNotificationPermission();
         expect(result).toBe(true);
         expect(mockRequestPermission).toHaveBeenCalled();
 
@@ -369,7 +382,8 @@ describe('platformAdapter', () => {
         (platformCapabilities as any).notifications = true;
         mockRequestPermission.mockResolvedValue('denied');
 
-        const result = await WebPlatformServices.requestWebNotificationPermission();
+        const result =
+          await WebPlatformServices.requestWebNotificationPermission();
         expect(result).toBe(false);
 
         (platformCapabilities as any).notifications = originalCaps;
@@ -380,9 +394,13 @@ describe('platformAdapter', () => {
         (platformCapabilities as any).notifications = true;
         mockRequestPermission.mockRejectedValue(new Error('Permission error'));
 
-        const result = await WebPlatformServices.requestWebNotificationPermission();
+        const result =
+          await WebPlatformServices.requestWebNotificationPermission();
         expect(result).toBe(false);
-        expect(logger.warn).toHaveBeenCalledWith('Web notification permission failed:', expect.any(Error));
+        expect(logger.warn).toHaveBeenCalledWith(
+          'Web notification permission failed',
+          { error: 'Permission error' }
+        );
 
         (platformCapabilities as any).notifications = originalCaps;
       });
@@ -405,12 +423,17 @@ describe('platformAdapter', () => {
         (platformCapabilities as any).notifications = true;
         global.Notification.permission = 'granted';
 
-        await WebPlatformServices.showWebNotification('Test Title', { body: 'Test body' });
-        expect(mockShowNotification).toHaveBeenCalledWith('Test Title', expect.objectContaining({
+        await WebPlatformServices.showWebNotification('Test Title', {
           body: 'Test body',
-          icon: '/assets/notification-icon.png',
-          badge: '/assets/badge-icon.png',
-        }));
+        });
+        expect(mockShowNotification).toHaveBeenCalledWith(
+          'Test Title',
+          expect.objectContaining({
+            body: 'Test body',
+            icon: '/assets/notification-icon.png',
+            badge: '/assets/badge-icon.png',
+          })
+        );
 
         (platformCapabilities as any).notifications = originalCaps;
         global.Notification.permission = originalPermission;
@@ -425,8 +448,12 @@ describe('platformAdapter', () => {
         global.Notification.permission = 'granted';
         delete (global.navigator as any).serviceWorker;
 
-        await WebPlatformServices.showWebNotification('Test Title', { body: 'Test body' });
-        expect(global.Notification).toHaveBeenCalledWith('Test Title', { body: 'Test body' });
+        await WebPlatformServices.showWebNotification('Test Title', {
+          body: 'Test body',
+        });
+        expect(global.Notification).toHaveBeenCalledWith('Test Title', {
+          body: 'Test body',
+        });
 
         (platformCapabilities as any).notifications = originalCaps;
         global.Notification.permission = originalPermission;
@@ -438,10 +465,14 @@ describe('platformAdapter', () => {
         const originalPermission = global.Notification.permission;
         (platformCapabilities as any).notifications = true;
         global.Notification.permission = 'granted';
-        mockShowNotification.mockRejectedValue(new Error('Notification failed'));
+        mockShowNotification.mockRejectedValue(
+          new Error('Notification failed')
+        );
 
         await WebPlatformServices.showWebNotification('Test', {});
-        expect(logger.warn).toHaveBeenCalledWith('Web notification failed:', expect.any(Error));
+        expect(logger.warn).toHaveBeenCalledWith('Web notification failed', {
+          error: 'Notification failed',
+        });
 
         (platformCapabilities as any).notifications = originalCaps;
         global.Notification.permission = originalPermission;
@@ -493,12 +524,17 @@ describe('platformAdapter', () => {
         };
         mockShowOpenFilePicker.mockResolvedValue([mockFileHandle]);
 
-        const result = await WebPlatformServices.pickWebFile({ accept: 'text/*', multiple: false });
+        const result = await WebPlatformServices.pickWebFile({
+          accept: 'text/*',
+          multiple: false,
+        });
         expect(mockShowOpenFilePicker).toHaveBeenCalledWith({
-          types: [{
-            description: 'Allowed files',
-            accept: { 'text/*': [] },
-          }],
+          types: [
+            {
+              description: 'Allowed files',
+              accept: { 'text/*': [] },
+            },
+          ],
           multiple: false,
         });
 
@@ -521,7 +557,10 @@ describe('platformAdapter', () => {
         };
         (document.createElement as jest.Mock).mockReturnValue(mockInput);
 
-        const promise = WebPlatformServices.pickWebFile({ accept: 'image/*', multiple: true });
+        const promise = WebPlatformServices.pickWebFile({
+          accept: 'image/*',
+          multiple: true,
+        });
 
         // Simulate file selection
         mockInput.onchange();
@@ -544,7 +583,9 @@ describe('platformAdapter', () => {
 
         const result = await WebPlatformServices.pickWebFile();
         expect(result).toBe(null);
-        expect(logger.warn).toHaveBeenCalledWith('Web file picker failed:', expect.any(Error));
+        expect(logger.warn).toHaveBeenCalledWith('Web file picker failed', {
+          error: 'User cancelled',
+        });
 
         (platformCapabilities as any).fileSystem = originalCaps;
       });

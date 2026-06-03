@@ -1,15 +1,33 @@
 // Mock logger first to avoid Sentry issues
-import { HapticService } from '../../utils/haptics';
-import * as Haptics from '../../utils/haptics';
-
 jest.mock('../../utils/logger', () => ({
   logger: {
     warn: jest.fn(),
   },
 }));
 
-// Mock expo-haptics
-jest.mock('expo-haptics');
+// Mock expo-haptics with an explicit factory so all functions + enums are present.
+jest.mock('expo-haptics', () => ({
+  impactAsync: jest.fn(),
+  notificationAsync: jest.fn(),
+  selectionAsync: jest.fn(),
+  performAndroidHapticsAsync: jest.fn(),
+  ImpactFeedbackStyle: {
+    Light: 'light',
+    Medium: 'medium',
+    Heavy: 'heavy',
+    Soft: 'soft',
+    Rigid: 'rigid',
+  },
+  NotificationFeedbackType: {
+    Success: 'success',
+    Warning: 'warning',
+    Error: 'error',
+  },
+  AndroidHaptics: {},
+}));
+
+import { HapticService } from '../../utils/haptics';
+import * as Haptics from 'expo-haptics';
 
 const mockHaptics = Haptics as jest.Mocked<typeof Haptics>;
 

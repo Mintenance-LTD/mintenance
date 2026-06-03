@@ -230,10 +230,9 @@ describe('prefetchImages', () => {
 
     await prefetchImages(urls);
 
-    expect(logger.info).toHaveBeenCalledWith(
-      'Prefetching images',
-      { count: 3 }
-    );
+    expect(logger.info).toHaveBeenCalledWith('Prefetching images', {
+      count: 3,
+    });
     expect(logger.info).toHaveBeenCalledWith(
       'Images prefetched',
       expect.objectContaining({ count: 3 })
@@ -534,10 +533,10 @@ describe('trackImageLoad', () => {
 
     trackImageLoad(url, duration);
 
-    expect(logger.warn).toHaveBeenCalledWith(
-      'Slow image load detected',
-      { url, duration }
-    );
+    expect(logger.warn).toHaveBeenCalledWith('Slow image load detected', {
+      url,
+      duration,
+    });
   });
 
   it('should truncate long URLs', () => {
@@ -581,8 +580,12 @@ describe('imageOptimization export', () => {
     expect(imageOptimization.prefetchBatch).toBe(prefetchImages);
     expect(imageOptimization.getMetadata).toBe(getImageMetadata);
     expect(imageOptimization.generateThumbnail).toBe(generateThumbnail);
-    expect(imageOptimization.generateProgressive).toBe(generateProgressiveSources);
-    expect(imageOptimization.generateResponsive).toBe(generateResponsiveSources);
+    expect(imageOptimization.generateProgressive).toBe(
+      generateProgressiveSources
+    );
+    expect(imageOptimization.generateResponsive).toBe(
+      generateResponsiveSources
+    );
     expect(imageOptimization.optimizeJobPhotos).toBe(optimizeJobPhotos);
     expect(imageOptimization.clearCache).toBe(clearImageCache);
     expect(imageOptimization.isImageCached).toBe(isImageCached);
@@ -590,8 +593,9 @@ describe('imageOptimization export', () => {
     expect(imageOptimization.getCacheStats).toBe(getImageCacheStats);
   });
 
-  it('should be the default export', () => {
-    const defaultExport = require('../../utils/imageOptimization').default;
-    expect(defaultExport).toBe(imageOptimization);
+  it('should expose the consolidated object as a named export', () => {
+    const namedExport =
+      require('../../utils/imageOptimization').imageOptimization;
+    expect(namedExport).toBe(imageOptimization);
   });
 });

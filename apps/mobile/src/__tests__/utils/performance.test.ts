@@ -44,7 +44,8 @@ describe('PerformanceMonitor', () => {
     global.performance = mockPerformance as any;
 
     const perf = require('../../utils/performance');
-    PerformanceMonitor = perf.PerformanceMonitor;
+    PerformanceMonitor =
+      require('../../utils/performance/PerformanceMonitor').PerformanceMonitor;
     performanceMonitor = perf.performanceMonitor;
     DeviceEventEmitter = require('react-native').DeviceEventEmitter;
     logger = require('../../utils/logger').logger;
@@ -111,7 +112,11 @@ describe('PerformanceMonitor', () => {
     mockPerformance.now.mockReturnValueOnce(1000).mockReturnValueOnce(1150);
 
     const asyncOperation = jest.fn().mockResolvedValue('result');
-    const result = await monitor.measureAsync('async_test', asyncOperation, 'network');
+    const result = await monitor.measureAsync(
+      'async_test',
+      asyncOperation,
+      'network'
+    );
 
     expect(result).toBe('result');
     const metrics = monitor.getMetrics();

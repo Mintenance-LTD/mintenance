@@ -154,7 +154,7 @@ describe('ApiMiddleware', () => {
 
     it('should handle request timeout', async () => {
       mockRequestFn.mockImplementation(
-        () => new Promise(resolve => setTimeout(resolve, 5000))
+        () => new Promise((resolve) => setTimeout(resolve, 5000))
       );
 
       const middleware = new ApiMiddleware({ timeoutMs: 100 });
@@ -384,7 +384,10 @@ describe('ApiMiddleware', () => {
 
     it('should track multiple active requests', async () => {
       mockRequestFn.mockImplementation(
-        () => new Promise(resolve => setTimeout(() => resolve({ data: 'test' }), 50))
+        () =>
+          new Promise((resolve) =>
+            setTimeout(() => resolve({ data: 'test' }), 50)
+          )
       );
 
       const promise1 = middleware.requestMiddleware(mockRequestFn, {
@@ -411,7 +414,10 @@ describe('ApiMiddleware', () => {
 
     it('should calculate request duration', async () => {
       mockRequestFn.mockImplementation(
-        () => new Promise(resolve => setTimeout(() => resolve({ data: 'test' }), 50))
+        () =>
+          new Promise((resolve) =>
+            setTimeout(() => resolve({ data: 'test' }), 50)
+          )
       );
 
       const promise = middleware.requestMiddleware(mockRequestFn, {
@@ -419,7 +425,7 @@ describe('ApiMiddleware', () => {
         method: 'GET',
       });
 
-      await new Promise(resolve => setTimeout(resolve, 20));
+      await new Promise((resolve) => setTimeout(resolve, 20));
 
       const activeRequests = middleware.getActiveRequests();
       expect(activeRequests[0].duration).toBeGreaterThanOrEqual(20);
@@ -429,7 +435,10 @@ describe('ApiMiddleware', () => {
 
     it('should clear active requests on cancel', () => {
       mockRequestFn.mockImplementation(
-        () => new Promise(resolve => setTimeout(() => resolve({ data: 'test' }), 1000))
+        () =>
+          new Promise((resolve) =>
+            setTimeout(() => resolve({ data: 'test' }), 1000)
+          )
       );
 
       middleware.requestMiddleware(mockRequestFn, {
@@ -636,8 +645,8 @@ describe('Singleton Export', () => {
     expect(apiMiddleware).toBeInstanceOf(ApiMiddleware);
   });
 
-  it('should be the default export', () => {
-    const defaultExport = require('../../utils/ApiMiddleware').default;
-    expect(defaultExport).toBe(apiMiddleware);
+  it('should export the singleton as a named export', () => {
+    const namedExport = require('../../utils/ApiMiddleware').apiMiddleware;
+    expect(namedExport).toBe(apiMiddleware);
   });
 });
