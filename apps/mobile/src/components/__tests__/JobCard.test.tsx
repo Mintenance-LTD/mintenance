@@ -13,6 +13,9 @@ jest.mock('../../theme', () => ({
       textTertiary: '#999999',
       textInverse: '#FFFFFF',
       primary: '#007AFF',
+      accent: '#FF9500',
+      error: '#FF3B30',
+      backgroundSecondary: '#F2F2F7',
       surfaceSecondary: '#F2F2F7',
     },
     spacing: { 1: 4, 2: 8, 3: 12, 4: 16, 6: 24 },
@@ -24,24 +27,6 @@ jest.mock('../../theme', () => ({
     },
     shadows: { base: {} },
   },
-  getStatusColor: jest.fn((status: string) => {
-    const colors: Record<string, string> = {
-      posted: '#34C759',
-      assigned: '#5856D6',
-      in_progress: '#FF9500',
-      completed: '#007AFF',
-      cancelled: '#FF3B30',
-    };
-    return colors[status] || '#999999';
-  }),
-  getPriorityColor: jest.fn((priority: string) => {
-    const colors: Record<string, string> = {
-      high: '#FF3B30',
-      medium: '#FF9500',
-      low: '#34C759',
-    };
-    return colors[priority] || '#999999';
-  }),
 }));
 
 // Helper function to create mock Job objects
@@ -75,29 +60,25 @@ describe('JobCard Component', () => {
   describe('Core Rendering', () => {
     it('renders job title correctly', () => {
       const job = createMockJob();
-      const { getByText } = render(
-        <JobCard job={job} onPress={mockOnPress} />
-      );
+      const { getByText } = render(<JobCard job={job} onPress={mockOnPress} />);
 
       expect(getByText('Fix Leaking Faucet')).toBeTruthy();
     });
 
     it('renders job description correctly', () => {
       const job = createMockJob();
-      const { getByText } = render(
-        <JobCard job={job} onPress={mockOnPress} />
-      );
+      const { getByText } = render(<JobCard job={job} onPress={mockOnPress} />);
 
-      expect(getByText('Kitchen faucet is leaking and needs repair')).toBeTruthy();
+      expect(
+        getByText('Kitchen faucet is leaking and needs repair')
+      ).toBeTruthy();
     });
 
     it('renders job budget correctly', () => {
       const job = createMockJob();
-      const { getByText } = render(
-        <JobCard job={job} onPress={mockOnPress} />
-      );
+      const { getByText } = render(<JobCard job={job} onPress={mockOnPress} />);
 
-      expect(getByText('$150')).toBeTruthy();
+      expect(getByText('£150')).toBeTruthy();
     });
 
     it('card is touchable with TouchableOpacity', () => {
@@ -137,29 +118,29 @@ describe('JobCard Component', () => {
       );
 
       expect(getByText('Fix Leaking Faucet')).toBeTruthy();
-      expect(getByText('Kitchen faucet is leaking and needs repair')).toBeTruthy();
-      expect(getByText('$150')).toBeTruthy();
+      expect(
+        getByText('Kitchen faucet is leaking and needs repair')
+      ).toBeTruthy();
+      expect(getByText('£150')).toBeTruthy();
       expect(getByTestId('job-card')).toBeTruthy();
     });
 
     it('title has numberOfLines={2} for truncation', () => {
       const job = createMockJob();
-      const { getByText } = render(
-        <JobCard job={job} onPress={mockOnPress} />
-      );
+      const { getByText } = render(<JobCard job={job} onPress={mockOnPress} />);
 
       const titleElement = getByText('Fix Leaking Faucet');
       expect(titleElement.props.numberOfLines).toBe(2);
     });
 
-    it('description has numberOfLines={3} for truncation', () => {
+    it('description has numberOfLines={2} for truncation', () => {
       const job = createMockJob();
-      const { getByText } = render(
-        <JobCard job={job} onPress={mockOnPress} />
-      );
+      const { getByText } = render(<JobCard job={job} onPress={mockOnPress} />);
 
-      const descElement = getByText('Kitchen faucet is leaking and needs repair');
-      expect(descElement.props.numberOfLines).toBe(3);
+      const descElement = getByText(
+        'Kitchen faucet is leaking and needs repair'
+      );
+      expect(descElement.props.numberOfLines).toBe(2);
     });
 
     it('renders correctly with minimal required props', () => {
@@ -183,47 +164,37 @@ describe('JobCard Component', () => {
   describe('Budget Formatting', () => {
     it('formats budget with $ and commas for thousands', () => {
       const job = createMockJob({ budget: 1000 });
-      const { getByText } = render(
-        <JobCard job={job} onPress={mockOnPress} />
-      );
+      const { getByText } = render(<JobCard job={job} onPress={mockOnPress} />);
 
-      expect(getByText('$1,000')).toBeTruthy();
+      expect(getByText('£1,000')).toBeTruthy();
     });
 
     it('rounds budget to nearest integer (1234.56 → $1,235)', () => {
       const job = createMockJob({ budget: 1234.56 });
-      const { getByText } = render(
-        <JobCard job={job} onPress={mockOnPress} />
-      );
+      const { getByText } = render(<JobCard job={job} onPress={mockOnPress} />);
 
-      expect(getByText('$1,235')).toBeTruthy();
+      expect(getByText('£1,235')).toBeTruthy();
     });
 
     it('rounds budget down when < 0.5 (1234.49 → $1,234)', () => {
       const job = createMockJob({ budget: 1234.49 });
-      const { getByText } = render(
-        <JobCard job={job} onPress={mockOnPress} />
-      );
+      const { getByText } = render(<JobCard job={job} onPress={mockOnPress} />);
 
-      expect(getByText('$1,234')).toBeTruthy();
+      expect(getByText('£1,234')).toBeTruthy();
     });
 
     it('handles large budgets correctly ($10,000+)', () => {
       const job = createMockJob({ budget: 12500 });
-      const { getByText } = render(
-        <JobCard job={job} onPress={mockOnPress} />
-      );
+      const { getByText } = render(<JobCard job={job} onPress={mockOnPress} />);
 
-      expect(getByText('$12,500')).toBeTruthy();
+      expect(getByText('£12,500')).toBeTruthy();
     });
 
     it('handles small budgets correctly ($50)', () => {
       const job = createMockJob({ budget: 50 });
-      const { getByText } = render(
-        <JobCard job={job} onPress={mockOnPress} />
-      );
+      const { getByText } = render(<JobCard job={job} onPress={mockOnPress} />);
 
-      expect(getByText('$50')).toBeTruthy();
+      expect(getByText('£50')).toBeTruthy();
     });
   });
 
@@ -231,69 +202,81 @@ describe('JobCard Component', () => {
   // Status & Priority Tests (8 tests)
   // ========================================
   describe('Status Badge', () => {
-    it('displays status in uppercase', () => {
+    it('displays status as a title-case label', () => {
       const job = createMockJob({ status: 'posted' });
-      const { getByText } = render(
-        <JobCard job={job} onPress={mockOnPress} />
+      const { getByText } = render(<JobCard job={job} onPress={mockOnPress} />);
+
+      expect(getByText('Posted')).toBeTruthy();
+    });
+
+    it('applies status pill background color for posted status', () => {
+      const job = createMockJob({ status: 'posted' });
+      const { getByText } = render(<JobCard job={job} onPress={mockOnPress} />);
+
+      // posted maps to a blue pill background (#3B82F6)
+      const pill = getByText('Posted').parent;
+      expect(pill?.props.style).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ backgroundColor: '#3B82F6' }),
+        ])
       );
-
-      expect(getByText('POSTED')).toBeTruthy();
     });
 
-    it('applies correct color from getStatusColor for posted status', () => {
-      const { getStatusColor } = require('../../theme');
-      const job = createMockJob({ status: 'posted' });
-
-      render(<JobCard job={job} onPress={mockOnPress} />);
-
-      expect(getStatusColor).toHaveBeenCalledWith('posted');
-    });
-
-    it('applies correct color from getStatusColor for in_progress status', () => {
-      const { getStatusColor } = require('../../theme');
+    it('applies status pill background color for in_progress status', () => {
       const job = createMockJob({ status: 'in_progress' });
+      const { getByText } = render(<JobCard job={job} onPress={mockOnPress} />);
 
-      render(<JobCard job={job} onPress={mockOnPress} />);
-
-      expect(getStatusColor).toHaveBeenCalledWith('in_progress');
+      // in_progress maps to theme.colors.primary
+      const pill = getByText('In Progress').parent;
+      expect(pill?.props.style).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ backgroundColor: '#007AFF' }),
+        ])
+      );
     });
 
-    it('applies correct color from getStatusColor for completed status', () => {
-      const { getStatusColor } = require('../../theme');
+    it('applies status pill background color for completed status', () => {
       const job = createMockJob({ status: 'completed' });
+      const { getByText } = render(<JobCard job={job} onPress={mockOnPress} />);
 
-      render(<JobCard job={job} onPress={mockOnPress} />);
-
-      expect(getStatusColor).toHaveBeenCalledWith('completed');
+      // completed maps to a gray pill background (#6B7280)
+      const pill = getByText('Completed').parent;
+      expect(pill?.props.style).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ backgroundColor: '#6B7280' }),
+        ])
+      );
     });
   });
 
   describe('Priority Badge', () => {
-    it('displays priority in uppercase with " PRIORITY" suffix', () => {
+    it('displays priority as a title-case label', () => {
       const job = createMockJob({ priority: 'high' });
-      const { getByText } = render(
-        <JobCard job={job} onPress={mockOnPress} />
+      const { getByText } = render(<JobCard job={job} onPress={mockOnPress} />);
+
+      expect(getByText('High')).toBeTruthy();
+    });
+
+    it('applies priority color for high priority', () => {
+      const job = createMockJob({ priority: 'high' });
+      const { getByText } = render(<JobCard job={job} onPress={mockOnPress} />);
+
+      // high maps to theme.colors.error
+      const label = getByText('High');
+      expect(label.props.style).toEqual(
+        expect.arrayContaining([expect.objectContaining({ color: '#FF3B30' })])
       );
-
-      expect(getByText('HIGH PRIORITY')).toBeTruthy();
     });
 
-    it('applies correct color from getPriorityColor for high priority', () => {
-      const { getPriorityColor } = require('../../theme');
-      const job = createMockJob({ priority: 'high' });
-
-      render(<JobCard job={job} onPress={mockOnPress} />);
-
-      expect(getPriorityColor).toHaveBeenCalledWith('high');
-    });
-
-    it('applies correct color from getPriorityColor for medium priority', () => {
-      const { getPriorityColor } = require('../../theme');
+    it('applies priority color for medium priority', () => {
       const job = createMockJob({ priority: 'medium' });
+      const { getByText } = render(<JobCard job={job} onPress={mockOnPress} />);
 
-      render(<JobCard job={job} onPress={mockOnPress} />);
-
-      expect(getPriorityColor).toHaveBeenCalledWith('medium');
+      // medium maps to theme.colors.accent
+      const label = getByText('Medium');
+      expect(label.props.style).toEqual(
+        expect.arrayContaining([expect.objectContaining({ color: '#FF9500' })])
+      );
     });
 
     it('priority badge not rendered when priority is undefined', () => {
@@ -302,7 +285,9 @@ describe('JobCard Component', () => {
         <JobCard job={job} onPress={mockOnPress} />
       );
 
-      expect(queryByText(/PRIORITY/)).toBeNull();
+      expect(queryByText('High')).toBeNull();
+      expect(queryByText('Medium')).toBeNull();
+      expect(queryByText('Low')).toBeNull();
     });
   });
 
@@ -312,9 +297,7 @@ describe('JobCard Component', () => {
   describe('Category Display', () => {
     it('displays category when present', () => {
       const job = createMockJob({ category: 'Plumbing' });
-      const { getByText } = render(
-        <JobCard job={job} onPress={mockOnPress} />
-      );
+      const { getByText } = render(<JobCard job={job} onPress={mockOnPress} />);
 
       expect(getByText('Plumbing')).toBeTruthy();
     });
@@ -330,9 +313,7 @@ describe('JobCard Component', () => {
 
     it('displays different category values correctly', () => {
       const job = createMockJob({ category: 'Electrical' });
-      const { getByText } = render(
-        <JobCard job={job} onPress={mockOnPress} />
-      );
+      const { getByText } = render(<JobCard job={job} onPress={mockOnPress} />);
 
       expect(getByText('Electrical')).toBeTruthy();
     });
@@ -343,7 +324,9 @@ describe('JobCard Component', () => {
   // ========================================
   describe('Photo Indicator', () => {
     it('shows photo indicator when photos exist', () => {
-      const job = createMockJob({ photos: ['photo1.jpg', 'photo2.jpg', 'photo3.jpg'] });
+      const job = createMockJob({
+        photos: ['photo1.jpg', 'photo2.jpg', 'photo3.jpg'],
+      });
       const { getByTestId } = render(
         <JobCard job={job} onPress={mockOnPress} />
       );
@@ -351,13 +334,13 @@ describe('JobCard Component', () => {
       expect(getByTestId('photo-indicator')).toBeTruthy();
     });
 
-    it('displays correct photo count with camera emoji', () => {
-      const job = createMockJob({ photos: ['photo1.jpg', 'photo2.jpg', 'photo3.jpg'] });
-      const { getByText } = render(
-        <JobCard job={job} onPress={mockOnPress} />
-      );
+    it('displays correct photo count', () => {
+      const job = createMockJob({
+        photos: ['photo1.jpg', 'photo2.jpg', 'photo3.jpg'],
+      });
+      const { getByText } = render(<JobCard job={job} onPress={mockOnPress} />);
 
-      expect(getByText('📷 3')).toBeTruthy();
+      expect(getByText('3')).toBeTruthy();
     });
 
     it('applies testID="photo-indicator" to photo indicator', () => {
@@ -423,11 +406,7 @@ describe('JobCard Component', () => {
     it('hides bid button when onBid not provided', () => {
       const job = createMockJob();
       const { queryByText } = render(
-        <JobCard
-          job={job}
-          onPress={mockOnPress}
-          showBidButton={true}
-        />
+        <JobCard job={job} onPress={mockOnPress} showBidButton={true} />
       );
 
       expect(queryByText('Place Bid')).toBeNull();
@@ -484,25 +463,23 @@ describe('JobCard Component', () => {
   // ========================================
   describe('Edge Cases', () => {
     it('handles long title with numberOfLines={2}', () => {
-      const longTitle = 'This is a very long job title that should be truncated to two lines maximum when displayed in the card component';
+      const longTitle =
+        'This is a very long job title that should be truncated to two lines maximum when displayed in the card component';
       const job = createMockJob({ title: longTitle });
-      const { getByText } = render(
-        <JobCard job={job} onPress={mockOnPress} />
-      );
+      const { getByText } = render(<JobCard job={job} onPress={mockOnPress} />);
 
       const titleElement = getByText(longTitle);
       expect(titleElement.props.numberOfLines).toBe(2);
     });
 
-    it('handles long description with numberOfLines={3}', () => {
-      const longDescription = 'This is a very long description that contains a lot of details about the job and should be truncated to exactly three lines when displayed in the card to maintain consistent layout and prevent overflow issues';
+    it('handles long description with numberOfLines={2}', () => {
+      const longDescription =
+        'This is a very long description that contains a lot of details about the job and should be truncated to exactly two lines when displayed in the card to maintain consistent layout and prevent overflow issues';
       const job = createMockJob({ description: longDescription });
-      const { getByText } = render(
-        <JobCard job={job} onPress={mockOnPress} />
-      );
+      const { getByText } = render(<JobCard job={job} onPress={mockOnPress} />);
 
       const descElement = getByText(longDescription);
-      expect(descElement.props.numberOfLines).toBe(3);
+      expect(descElement.props.numberOfLines).toBe(2);
     });
 
     it('renders correctly when category field is missing', () => {
@@ -522,7 +499,7 @@ describe('JobCard Component', () => {
       );
 
       expect(getByText('Fix Leaking Faucet')).toBeTruthy();
-      expect(queryByText(/PRIORITY/)).toBeNull();
+      expect(queryByText('High')).toBeNull();
     });
 
     it('renders correctly with all optional fields missing', () => {
@@ -537,13 +514,15 @@ describe('JobCard Component', () => {
 
       // Core content should render
       expect(getByText('Fix Leaking Faucet')).toBeTruthy();
-      expect(getByText('Kitchen faucet is leaking and needs repair')).toBeTruthy();
-      expect(getByText('$150')).toBeTruthy();
-      expect(getByText('POSTED')).toBeTruthy();
+      expect(
+        getByText('Kitchen faucet is leaking and needs repair')
+      ).toBeTruthy();
+      expect(getByText('£150')).toBeTruthy();
+      expect(getByText('Posted')).toBeTruthy();
 
       // Optional content should not render
       expect(queryByText('Plumbing')).toBeNull();
-      expect(queryByText(/PRIORITY/)).toBeNull();
+      expect(queryByText('High')).toBeNull();
       expect(queryByTestId('photo-indicator')).toBeNull();
     });
   });
@@ -565,42 +544,55 @@ describe('JobCard Component', () => {
 
       // Verify all elements present
       expect(getByText('Fix Leaking Faucet')).toBeTruthy();
-      expect(getByText('Kitchen faucet is leaking and needs repair')).toBeTruthy();
-      expect(getByText('$150')).toBeTruthy();
+      expect(
+        getByText('Kitchen faucet is leaking and needs repair')
+      ).toBeTruthy();
+      expect(getByText('£150')).toBeTruthy();
       expect(getByText('Plumbing')).toBeTruthy();
-      expect(getByText('HIGH PRIORITY')).toBeTruthy();
-      expect(getByText('POSTED')).toBeTruthy();
+      expect(getByText('High')).toBeTruthy();
+      expect(getByText('Posted')).toBeTruthy();
       expect(getByTestId('photo-indicator')).toBeTruthy();
-      expect(getByText('📷 2')).toBeTruthy();
+      expect(getByText('2')).toBeTruthy();
       expect(getByText('Place Bid')).toBeTruthy();
     });
 
     it('handles multiple status values correctly', () => {
-      const statuses: ('posted' | 'assigned' | 'in_progress' | 'completed')[] = [
-        'posted',
-        'assigned',
-        'in_progress',
-        'completed',
-      ];
+      const statusLabels: Record<string, string> = {
+        posted: 'Posted',
+        assigned: 'Assigned',
+        in_progress: 'In Progress',
+        completed: 'Completed',
+      };
+      const statuses: ('posted' | 'assigned' | 'in_progress' | 'completed')[] =
+        ['posted', 'assigned', 'in_progress', 'completed'];
 
       statuses.forEach((status) => {
         const job = createMockJob({ status });
         const { getByText } = render(
           <JobCard job={job} onPress={mockOnPress} />
         );
-        expect(getByText(status.toUpperCase())).toBeTruthy();
+        expect(getByText(statusLabels[status])).toBeTruthy();
       });
     });
 
     it('handles multiple priority values correctly', () => {
-      const priorities: ('low' | 'medium' | 'high')[] = ['low', 'medium', 'high'];
+      const priorityLabels: Record<string, string> = {
+        low: 'Low',
+        medium: 'Medium',
+        high: 'High',
+      };
+      const priorities: ('low' | 'medium' | 'high')[] = [
+        'low',
+        'medium',
+        'high',
+      ];
 
       priorities.forEach((priority) => {
         const job = createMockJob({ priority });
         const { getByText } = render(
           <JobCard job={job} onPress={mockOnPress} />
         );
-        expect(getByText(`${priority.toUpperCase()} PRIORITY`)).toBeTruthy();
+        expect(getByText(priorityLabels[priority])).toBeTruthy();
       });
     });
 
@@ -639,30 +631,24 @@ describe('JobCard Component', () => {
 
     it('handles zero budget correctly', () => {
       const job = createMockJob({ budget: 0 });
-      const { getByText } = render(
-        <JobCard job={job} onPress={mockOnPress} />
-      );
+      const { getByText } = render(<JobCard job={job} onPress={mockOnPress} />);
 
-      expect(getByText('$0')).toBeTruthy();
+      expect(getByText('£0')).toBeTruthy();
     });
 
     it('handles single photo correctly', () => {
       const job = createMockJob({ photos: ['single-photo.jpg'] });
-      const { getByText } = render(
-        <JobCard job={job} onPress={mockOnPress} />
-      );
+      const { getByText } = render(<JobCard job={job} onPress={mockOnPress} />);
 
-      expect(getByText('📷 1')).toBeTruthy();
+      expect(getByText('1')).toBeTruthy();
     });
 
     it('handles very large photo count', () => {
       const manyPhotos = Array(100).fill('photo.jpg');
       const job = createMockJob({ photos: manyPhotos });
-      const { getByText } = render(
-        <JobCard job={job} onPress={mockOnPress} />
-      );
+      const { getByText } = render(<JobCard job={job} onPress={mockOnPress} />);
 
-      expect(getByText('📷 100')).toBeTruthy();
+      expect(getByText('100')).toBeTruthy();
     });
   });
 
